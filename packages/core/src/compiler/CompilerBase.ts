@@ -10,8 +10,8 @@
  * @version 2.0.0
  */
 
-import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 import type { CulturalProfileMetadata } from './identity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
@@ -22,11 +22,10 @@ import type {
   VRRCompilationResult,
   IOSCompileResult,
 } from './CompilerTypes';
-import { CapabilityRBAC, getCapabilityRBAC } from '@holoscript/platform';
-import type { CapabilityToken } from '@holoscript/platform';
+import { CapabilityRBAC, getCapabilityRBAC } from './identity';
+import type { CapabilityToken } from './identity';
 import {
   type CompilerName,
-  type ANSCapabilityPathValue,
   COMPILER_ANS_MAP,
   isValidCompilerName,
 } from './identity';
@@ -563,7 +562,7 @@ export abstract class CompilerBase implements ICompiler {
    * }
    * ```
    */
-  protected getRequiredCapability(): ANSCapabilityPathValue | undefined {
+  protected getRequiredCapability(): string | undefined {
     const ansName = COMPILER_CLASS_TO_ANS_NAME[this.compilerName];
     if (ansName && isValidCompilerName(ansName)) {
       return COMPILER_ANS_MAP[ansName];

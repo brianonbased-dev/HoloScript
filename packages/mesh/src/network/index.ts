@@ -75,6 +75,7 @@ export {
   NETWORK_DEFAULTS,
   CONNECTION_DEFAULTS,
   SYNC_DEFAULTS,
+  SYNC_TIER_RATES,
 
   // Helper Functions
   generateMessageId,

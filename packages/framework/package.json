@@ -7,59 +7,59 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./bt": {
+      "types": "./dist/behavior.d.ts",
       "import": "./dist/behavior.js",
-      "require": "./dist/behavior.cjs",
-      "types": "./dist/behavior.d.ts"
+      "require": "./dist/behavior.cjs"
     },
     "./behavior": {
+      "types": "./dist/behavior.d.ts",
       "import": "./dist/behavior.js",
-      "require": "./dist/behavior.cjs",
-      "types": "./dist/behavior.d.ts"
+      "require": "./dist/behavior.cjs"
     },
     "./agents": {
+      "types": "./dist/agents/index.d.ts",
       "import": "./dist/agents/index.js",
-      "require": "./dist/agents/index.cjs",
-      "types": "./dist/agents/index.d.ts"
+      "require": "./dist/agents/index.cjs"
     },
     "./economy": {
+      "types": "./dist/economy/index.d.ts",
       "import": "./dist/economy/index.js",
-      "require": "./dist/economy/index.cjs",
-      "types": "./dist/economy/index.d.ts"
+      "require": "./dist/economy/index.cjs"
     },
     "./swarm": {
+      "types": "./dist/swarm/index.d.ts",
       "import": "./dist/swarm/index.js",
-      "require": "./dist/swarm/index.cjs",
-      "types": "./dist/swarm/index.d.ts"
+      "require": "./dist/swarm/index.cjs"
     },
     "./ai": {
+      "types": "./dist/ai/index.d.ts",
       "import": "./dist/ai/index.js",
-      "require": "./dist/ai/index.cjs",
-      "types": "./dist/ai/index.d.ts"
+      "require": "./dist/ai/index.cjs"
     },
     "./training": {
+      "types": "./dist/training/index.d.ts",
       "import": "./dist/training/index.js",
-      "require": "./dist/training/index.cjs",
-      "types": "./dist/training/index.d.ts"
+      "require": "./dist/training/index.cjs"
     },
     "./learning": {
+      "types": "./dist/learning/index.d.ts",
       "import": "./dist/learning/index.js",
-      "require": "./dist/learning/index.cjs",
-      "types": "./dist/learning/index.d.ts"
+      "require": "./dist/learning/index.cjs"
     },
     "./skills": {
+      "types": "./dist/skills/index.d.ts",
       "import": "./dist/skills/index.js",
-      "require": "./dist/skills/index.cjs",
-      "types": "./dist/skills/index.d.ts"
+      "require": "./dist/skills/index.cjs"
     },
     "./negotiation": {
+      "types": "./dist/negotiation/index.d.ts",
       "import": "./dist/negotiation/index.js",
-      "require": "./dist/negotiation/index.cjs",
-      "types": "./dist/negotiation/index.d.ts"
+      "require": "./dist/negotiation/index.cjs"
     }
   },
   "scripts": {

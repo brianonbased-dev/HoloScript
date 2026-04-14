@@ -119,8 +119,8 @@ export async function runSelfImprove(options: CLIOptions): Promise<number> {
 
   // Dynamic imports to avoid loading heavy modules at CLI startup
   // Use string concatenation to prevent bundler static analysis
-  const corePkg = '@holoscript/core';
-  const selfImproveMod = await import(corePkg + '/self-improvement');
+  const absorbPkg = '@holoscript/absorb-service';
+  const selfImproveMod = await import(absorbPkg + '/self-improvement');
   const { SelfImproveCommand, SelfImproveHarvester } = selfImproveMod;
 
   // Build IO
@@ -216,8 +216,8 @@ async function runDaemonMode(
   harvester: any | null,
   rootDir: string
 ): Promise<number> {
-  const corePkg = '@holoscript/core';
-  const { SelfImproveCommand } = await import(corePkg + '/self-improvement');
+  const absorbPkg = '@holoscript/absorb-service';
+  const { SelfImproveCommand } = await import(absorbPkg + '/self-improvement');
 
   let running = true;
   let cycleCount = 0;
