@@ -19,15 +19,15 @@ import {
   TerminatedEvent,
   OutputEvent,
   ContinuedEvent,
-  _BreakpointEvent,
+  BreakpointEvent,
   LoadedSourceEvent,
   Thread,
   StackFrame,
   Scope,
   Source,
   Variable,
-  _Breakpoint,
-  _CompletionItem,
+  Breakpoint,
+  CompletionItem,
   Handles,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';

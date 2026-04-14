@@ -14,7 +14,7 @@ export default defineConfig({
     'negotiation/index': 'src/negotiation/index.ts',
   },
   format: ['esm', 'cjs'],
-  dts: false, // Disabled: pervasive Vec3 tuple/object mismatch across AI modules needs bulk fix
+  dts: true,
   clean: true,
   splitting: false,
   external: ['@holoscript/core'],

@@ -17,7 +17,7 @@ export interface Stimulus {
   id: string;
   type: SenseType;
   sourceId: string;
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   intensity: number; // 0-1
   timestamp: number;
   data?: unknown;
@@ -46,7 +46,7 @@ export class PerceptionSystem {
     {
       senses: SenseConfig[];
       facing: { x: number; y: number; z: number };
-      position: [number, number, number];
+      position: { x: number; y: number; z: number };
       memory: Map<string, PerceivedStimulus>;
       memoryDuration: number;
     }
@@ -63,7 +63,7 @@ export class PerceptionSystem {
     this.entities.set(id, {
       senses,
       facing: { x: 0, y: 0, z: 1 },
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 },
       memory: new Map(),
       memoryDuration,
     });
@@ -71,7 +71,7 @@ export class PerceptionSystem {
 
   setEntityTransform(
     entityId: string,
-    position: [number, number, number],
+    position: { x: number; y: number; z: number },
     facing: { x: number; y: number; z: number }
   ): void {
     const e = this.entities.get(entityId);

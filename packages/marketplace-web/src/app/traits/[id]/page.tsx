@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { marketplaceApi } from '@/lib/api';
 import { useInstallStore } from '@/lib/store';
 import { CATEGORY_LABELS, PLATFORM_LABELS } from '@/types';
-import type { _TraitPackage, _VersionInfo, _DownloadStats } from '@/types';
+import type { TraitPackage as _TraitPackage, VersionInfo as _VersionInfo, DownloadStats as _DownloadStats } from '@/types';
 import {
   ArrowLeft,
   Download,
@@ -28,7 +28,7 @@ import {
   Box,
   BookOpen,
 } from 'lucide-react';
-import { formatDistanceToNow, _format } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { ReadmeTab } from './tabs/ReadmeTab';
 import { VersionsTab } from './tabs/VersionsTab';
 import { DependenciesTab } from './tabs/DependenciesTab';

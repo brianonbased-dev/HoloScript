@@ -16,6 +16,11 @@
       "require": "./dist/behavior.cjs",
       "types": "./dist/behavior.d.ts"
     },
+    "./behavior": {
+      "import": "./dist/behavior.js",
+      "require": "./dist/behavior.cjs",
+      "types": "./dist/behavior.d.ts"
+    },
     "./agents": {
       "import": "./dist/agents/index.js",
       "require": "./dist/agents/index.cjs",

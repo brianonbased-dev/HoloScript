@@ -79,7 +79,7 @@ export { MultiLayerCompiler } from './MultiLayerCompiler';
 // Sprint 2 extensions
 export { COCOExporter } from './COCOExporter';
 
-// Next.js compilers
+// Next.js compilers (public barrel exports)
 export { NextJSCompiler } from './NextJSCompiler';
 export type { NextJSCompilerOptions, NextJSCompileResult } from './NextJSCompiler';
 export { compileToNextJSAPI, compileAllToNextJSAPI } from './NextJSAPICompiler';

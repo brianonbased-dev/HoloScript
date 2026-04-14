@@ -26,7 +26,7 @@ export function ReadmeTab({ trait }: ReadmeTabProps) {
     const elements: React.ReactNode[] = [];
     let inCodeBlock = false;
     let codeContent: string[] = [];
-    const _codeLanguage = '';
+    let codeLanguage = '';
 
     lines.forEach((line, i) => {
       // Code block start

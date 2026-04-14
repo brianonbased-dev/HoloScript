@@ -1036,7 +1036,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
-  packages/create-holoscript-app:
+  packages/create-holoscript:
     dependencies:
       picocolors:
         specifier: ^1.1.1

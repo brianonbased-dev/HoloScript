@@ -45,7 +45,13 @@ describe('auth (server-side)', () => {
 
   it('returns empty string when env not set', () => {
     delete process.env.HOLOSCRIPT_API_KEY;
-    expect(getMcpApiKey()).toBe('');
+    const savedMcpKey = process.env.MCP_API_KEY;
+    delete process.env.MCP_API_KEY;
+    try {
+      expect(getMcpApiKey()).toBe('');
+    } finally {
+      if (savedMcpKey !== undefined) process.env.MCP_API_KEY = savedMcpKey;
+    }
   });
 
   it('mcpAuthHeaders returns correct header', () => {

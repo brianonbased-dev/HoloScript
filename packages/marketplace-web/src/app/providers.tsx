@@ -1,20 +1,25 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { getDefaultConfig, RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { createConfig, http, WagmiProvider } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import '@rainbow-me/rainbowkit/styles.css';
 
-const config = getDefaultConfig({
-  appName: 'HoloScript Marketplace',
-  projectId: 'holoscript-marketplace-dev-id',
+const fallbackConfig = createConfig({
   chains: [base, baseSepolia],
   ssr: true,
+  transports: {
+    [base.id]: http(),
+    [baseSepolia.id]: http(),
+  },
 });
 
 export function Providers({ children }: { children: ReactNode }) {
+  const [config, setConfig] = useState<ReturnType<typeof getDefaultConfig> | typeof fallbackConfig>(
+    fallbackConfig
+  );
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -26,6 +31,17 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       })
   );
+
+  useEffect(() => {
+    setConfig(
+      getDefaultConfig({
+        appName: 'HoloScript Marketplace',
+        projectId: 'holoscript-marketplace-dev-id',
+        chains: [base, baseSepolia],
+        ssr: false,
+      })
+    );
+  }, []);
 
   return (
     <WagmiProvider config={config}>

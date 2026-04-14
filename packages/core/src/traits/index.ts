@@ -427,7 +427,6 @@ export * from '@holoscript/plugin-threat-intelligence';
 export * from '@holoscript/plugin-trait-audit';
 export * from '@holoscript/plugin-travel-hospitality';
 export * from '@holoscript/plugin-urban-planning';
-export * from 'holoscript-web-preview';
 export * from '@holoscript/plugin-wine-food-beverage';
 export * from '@holoscript/plugin-wisdom-gotcha';
 
