@@ -9,11 +9,7 @@
 // Spatial Types
 // ============================================================================
 
-export interface SpatialPosition {
-  x: number;
-  y: number;
-  z: number;
-}
+export type SpatialPosition = [number, number, number];
 
 export type HologramShape =
   | 'orb'
@@ -102,6 +98,40 @@ export interface ASTNode extends BaseASTNode {
   directives?: HSPlusDirective[];
   /** HS+ Traits (Pre-processed map) */
   traits?: Map<VRTraitName, Record<string, unknown>>;
+}
+
+/**
+ * Minimal HoloScript+ scene node shape used by downstream packages that need
+ * to inspect parsed object trees without importing @holoscript/core.
+ */
+export interface HSPlusNode extends ASTNode {
+  name?: string;
+  children?: HSPlusNode[];
+  properties?: Record<string, unknown>;
+  directives?: HSPlusDirective[];
+  args?: unknown;
+  body?: unknown;
+  rotation?: [number, number, number] | [number, number, number, number];
+  scale?: [number, number, number];
+  version?: string | number;
+  migrations?: Array<{ type: string; fromVersion: number; body: string }>;
+  migrationBlocks?: Record<number, string>;
+  value?: unknown;
+  target?: unknown;
+  arguments?: unknown[];
+  method?: string;
+  condition?: HSPlusNode;
+  consequent?: HSPlusNode;
+  alternate?: HSPlusNode;
+  event?: string;
+  data?: unknown;
+  loc?: {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+  };
+  stateBlock?: Record<string, unknown>;
+  inferredType?: HoloScriptType | unknown;
+  [key: `__${string}`]: unknown;
 }
 
 // ============================================================================

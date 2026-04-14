@@ -11,7 +11,7 @@ export {
   DEFAULT_LOD_SCALING,
   PLATFORM_LOD_SCALING,
   type TraitUtility,
-  type TraitCategory,
+  type TraitCategory as BudgetTraitCategory,
   type TraitAllocation,
   type ResourceCostFloor,
   type UnifiedBudgetState,

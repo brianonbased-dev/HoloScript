@@ -18,8 +18,7 @@ import {
   SemanticVersion,
   Publisher,
 } from './MarketplaceSubmission';
-import { SafetyReport, SafetyVerdict } from '../compiler/safety/SafetyReport';
-import { PlatformTarget } from '../compiler/platform/PlatformConditional';
+import type { SafetyReport, SafetyVerdict, PlatformTarget } from '@holoscript/core';
 
 // =============================================================================
 // REGISTRY TYPES
@@ -61,7 +60,7 @@ export interface SearchFilters {
 }
 
 /** Search result */
-export interface SearchResult {
+export interface MarketplaceSearchResult {
   listings: PackageListing[];
   total: number;
   offset: number;
@@ -127,7 +126,7 @@ export class MarketplaceRegistry {
   /**
    * Search the registry.
    */
-  search(filters: SearchFilters = {}): SearchResult {
+  search(filters: SearchFilters = {}): MarketplaceSearchResult {
     let results = [...this.packages.values()];
 
     // Text search (name, description, tags)
@@ -217,7 +216,7 @@ export class MarketplaceRegistry {
       version: listing.metadata.version,
       safetyVerdict: listing.safetyReport.verdict,
       dangerScore: listing.safetyReport.dangerScore,
-      requiredCapabilities: listing.safetyReport.capabilities.required.map((r) => r.scope),
+      requiredCapabilities: listing.safetyReport.capabilities.required.map((r: { scope: string }) => r.scope),
       targetPlatforms: listing.metadata.platforms,
       dependencies: listing.metadata.dependencies,
       installedAt: new Date().toISOString(),

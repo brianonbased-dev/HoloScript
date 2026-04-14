@@ -20,7 +20,7 @@ import type {
   HoloComposition,
   HoloObjectDecl,
   HoloObjectTrait,
-} from '@holoscript/core';
+} from '@holoscript/core-types/composition';
 
 // =============================================================================
 // TYPES
