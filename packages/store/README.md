@@ -47,16 +47,15 @@ pnpm add @holoscript/core --registry http://localhost:4873
 
 ```
 Store (Verdaccio :4873)     ← npm-compatible registry
-  ├── storage/              ← package tarballs + metadata
-  ├── plugins/              ← auth plugins
+  ├── storage/              ← package tarballs + metadata (gitignored)
+  ├── plugins/              ← auth plugins (HoloMesh wallet + htpasswd)
   └── config.yaml           ← scopes, uplinks, auth
-
-Registry API (:3001)        ← team workspaces, search, certification
-  ├── SQLite backend
-  └── Express REST API
 ```
 
 The store proxies npmjs.org — any package not found locally is fetched and cached for offline use.
+
+**Production**: `store.holoscript.net` (Railway, same config)
+**Local**: `localhost:4873` (offline-capable with cached packages)
 
 ## Local MCP Server
 

@@ -299,7 +299,7 @@ export async function handleTeamRoutes(
       env_config: {
         HOLOMESH_API_KEY: apiKey,
         HOLOMESH_TEAM_ID: joinedTeam?.id || '',
-        HOLOSCRIPT_API_KEY: '(get from team lead or set up your own)',
+        HOLOSCRIPT_API_KEY: apiKey,
       },
       next_steps: joinedTeam ? [
         `You are now on team "${joinedTeam.name}" in ${teamMode} mode`,

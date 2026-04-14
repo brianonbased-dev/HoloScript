@@ -163,7 +163,7 @@ export const coreTools: Tool[] = [
   // === TRAITS ===
   {
     name: 'list_traits',
-    description: 'List all 1,800+ VR traits available in HoloScript with their categories.',
+    description: 'List traits available in HoloScript across 115 categories (verify count: node scripts/generate-trait-mappings.mjs).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -194,7 +194,7 @@ export const coreTools: Tool[] = [
   {
     name: 'explain_trait',
     description:
-      'Get detailed documentation for a specific VR trait including parameters and example usage.',
+      'Get detailed documentation for a specific trait including parameters and example usage.',
     inputSchema: {
       type: 'object',
       properties: {

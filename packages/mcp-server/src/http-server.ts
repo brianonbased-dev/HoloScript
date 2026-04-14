@@ -755,6 +755,56 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /.well-known/agent-card-lite.json — Lightweight agent card (~2KB)
+  // For agents with small context windows that can't handle the full 365KB card
+  if (url === '/.well-known/agent-card-lite.json' && req.method === 'GET') {
+    const allTools = [...tools, ...PluginManager.getTools()];
+    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : `http://localhost:${PORT}`;
+
+    // Group tools by category, just names — no schemas
+    const categories: Record<string, string[]> = {};
+    for (const t of allTools) {
+      const cat = (t as { category?: string }).category || 'Utility';
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(t.name);
+    }
+
+    const lite = {
+      name: 'holoscript-mcp',
+      version: '6.0.4',
+      description: 'HoloScript spatial computing — parse, compile, simulate, deploy.',
+      url: baseUrl,
+      transport: 'streamable-http',
+      endpoints: {
+        mcp: `${baseUrl}/mcp`,
+        health: `${baseUrl}/health`,
+        a2a: `${baseUrl}/a2a`,
+        quickstart: `${baseUrl}/api/holomesh/quickstart`,
+        full_card: `${baseUrl}/.well-known/agent-card.json`,
+      },
+      auth: {
+        type: 'oauth2',
+        register: `${baseUrl}/oauth/register`,
+        free_tools: ['parse_hs', 'parse_holo', 'health'],
+      },
+      tools: {
+        total: allTools.length,
+        categories: Object.fromEntries(
+          Object.entries(categories).map(([cat, names]) => [cat, names.length])
+        ),
+      },
+    };
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    res.end(JSON.stringify(lite, null, 2));
+    return;
+  }
+
   // GET /.well-known/crdt-state — Export initial CRDT state for gossip sync
   if (url === '/.well-known/crdt-state' && req.method === 'GET') {
     try {
