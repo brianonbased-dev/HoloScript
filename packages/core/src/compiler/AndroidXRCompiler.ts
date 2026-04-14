@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript -> Android XR Compiler
  *
@@ -35,7 +36,7 @@
  */
 
 import { CompilerBase, type CompilerToken } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type { Extensible } from '../types/utility-types';
 import type {
   HoloComposition,
@@ -2149,7 +2150,7 @@ dependencies {
     this.dedent();
     this.emit('} catch (e: IllegalStateException) {');
     this.indent();
-    this.emit('android.util.Log.w("HoloScript", "AI Glasses not connected: ${e.message}")');
+    this.emit('android.util.Log[3]("HoloScript", "AI Glasses not connected: ${e.message}")');
     this.emit('null');
     this.dedent();
     this.emit('}');

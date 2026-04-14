@@ -20,8 +20,8 @@
 
 import type { TraitDependencyGraph } from './TraitDependencyGraph';
 import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
-import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 import {
   ProvenanceSemiring,
   type TraitApplication,

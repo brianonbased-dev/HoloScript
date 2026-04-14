@@ -318,7 +318,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, TraitMapping> = {
     level: 'full',
     generate: (varName, config) => {
       const axis = String(config.axis || 'y');
-      const axisMap: Record<string, string> = { x: '.x', y: '.y', z: '.z' };
+      const axisMap: Record<string, string> = ['.x', '.y', '.z'];
       return [
         `${varName}.components.set(InputTargetComponent())`,
         `${varName}.components.set(CollisionComponent(shapes: [.generateConvex(from: ${varName}Mesh)]))`,

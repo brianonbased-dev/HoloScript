@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * DomainBlockCompilerMixin.ts
  *
@@ -3333,7 +3334,7 @@ export function roboticsToGodot(robotics: CompiledRobotics): string {
       );
     }
     lines.push('    current_angle = angle');
-    lines.push('    rotation.x = angle');
+    lines.push('    rotation[0] = angle');
     lines.push('    joint_position_changed.emit(angle)');
   }
 
@@ -3528,13 +3529,13 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
   const props = block.properties || {};
   let axes: CompiledDataViz['axes'];
   if (props.x_axis || props.y_axis || props.z_axis) {
-    axes = { x: props.x_axis as string, y: props.y_axis as string, z: props.z_axis as string };
+    axes = [props.x_axis as string, props.y_axis as string, props.z_axis as string];
   } else if (props.axes && typeof props.axes === 'object') {
     const a = props.axes as Record<string, unknown>;
     axes = {
-      x: a.x as string | undefined,
-      y: a.y as string | undefined,
-      z: a.z as string | undefined,
+      x: a[0] as string | undefined,
+      y: a[1] as string | undefined,
+      z: a[2] as string | undefined,
     };
   }
   let dimensions: CompiledDataViz['dimensions'];

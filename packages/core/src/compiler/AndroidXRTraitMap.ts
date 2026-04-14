@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Android XR Trait Mapping System
  *
@@ -448,9 +449,9 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `)`,
         `xrSession.scene.addOnUpdateListener { frame ->`,
         `    val noise = SimplexNoise.noise3D(`,
-        `        ${varName}.pose.translation.x * 0.1f,`,
+        `        ${varName}.pose.translation[0] * 0.1f,`,
         `        frame.time * 0.5f,`,
-        `        ${varName}.pose.translation.z * 0.1f`,
+        `        ${varName}.pose.translation[2] * 0.1f`,
         `    ) * ${turbulence}f`,
         `    val windDir = Vector3(${d[0]}f + noise, ${d[1]}f, ${d[2]}f + noise)`,
         `    ${varName}Physics.applyForce(windDir * ${strength}f)`,
@@ -650,7 +651,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `// Constrained to axis: ${axis}`,
         `val ${varName}Interactable = InteractableComponent.create(session, executor) { event ->`,
         `    if (event.action == InputEvent.Action.ACTION_MOVE) {`,
-        `        val rotation = Quaternion.fromEulerAngles(0f, event.delta.y, 0f)`,
+        `        val rotation = Quaternion.fromEulerAngles(0f, event.delta[1], 0f)`,
         `        ${varName}.setPose(Pose(${varName}.pose.translation, rotation))`,
         `    }`,
         `}`,

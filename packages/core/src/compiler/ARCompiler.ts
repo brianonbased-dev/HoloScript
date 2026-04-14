@@ -9,7 +9,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase, type CompilerToken } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 
 export interface ARCompilerOptions {
   target: 'webxr' | 'ar.js';

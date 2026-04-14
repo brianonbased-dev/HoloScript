@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript → iOS Swift ARKit Compiler
  *
@@ -16,7 +17,7 @@
  */
 
 import { CompilerBase, type CompilerToken } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -516,7 +517,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('SCNTransaction.begin()');
     this.emit('SCNTransaction.animationDuration = 0.1');
     this.emit(
-      'node.scale = SCNVector3(originalScale.x * 1.2, originalScale.y * 1.2, originalScale.z * 1.2)'
+      'node.scale = SCNVector3(originalScale[0] * 1.2, originalScale[1] * 1.2, originalScale[2] * 1.2)'
     );
     this.emit('SCNTransaction.commit()');
     this.emit('');
@@ -541,8 +542,8 @@ export class IOSCompiler extends CompilerBase {
     this.emit('plane.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.3)');
     this.emit('');
     this.emit('let planeNode = SCNNode(geometry: plane)');
-    this.emit('planeNode.eulerAngles.x = -.pi / 2');
-    this.emit('planeNode.position = SCNVector3(anchor.center.x, 0, anchor.center.z)');
+    this.emit('planeNode.eulerAngles[0] = -.pi / 2');
+    this.emit('planeNode.position = SCNVector3(anchor.center[0], 0, anchor.center[2])');
     this.emit('');
     this.emit('node.addChildNode(planeNode)');
     this.emit('detectedPlanes[anchor.identifier] = planeNode');
@@ -557,7 +558,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
     this.emit('plane.width = CGFloat(anchor.planeExtent.width)');
     this.emit('plane.height = CGFloat(anchor.planeExtent.height)');
-    this.emit('planeNode.position = SCNVector3(anchor.center.x, 0, anchor.center.z)');
+    this.emit('planeNode.position = SCNVector3(anchor.center[0], 0, anchor.center[2])');
     this.indentLevel--;
     this.emit('}');
     this.emit('');
@@ -976,7 +977,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('// Create anchor at current camera position as placeholder');
     this.emit('guard let frame = arView.session.currentFrame else { return }');
     this.emit('var translation = matrix_identity_float4x4');
-    this.emit('translation.columns.3.z = -1.0 // 1 meter in front');
+    this.emit('translation.columns.3[2] = -1.0 // 1 meter in front');
     this.emit('let transform = simd_mul(frame.camera.transform, translation)');
     this.emit('let anchor = ARAnchor(name: name, transform: transform)');
     this.emit('arView.session.add(anchor: anchor)');
@@ -1343,10 +1344,10 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel++;
     this.emit('lines.append("  object \\(entity.label)_\\(entity.id.uuidString.prefix(8)) {")');
     this.emit(
-      'lines.append("    position: [\\(entity.position.x), \\(entity.position.y), \\(entity.position.z)]")'
+      'lines.append("    position: [\\(entity.position[0]), \\(entity.position[1]), \\(entity.position[2])]")'
     );
     this.emit(
-      'lines.append("    dimensions: [\\(entity.dimensions.x), \\(entity.dimensions.y), \\(entity.dimensions.z)]")'
+      'lines.append("    dimensions: [\\(entity.dimensions[0]), \\(entity.dimensions[1]), \\(entity.dimensions[2])]")'
     );
     this.emit('lines.append("    category: \\\"\\(entity.category)\\\"")');
     this.emit('for trait in entity.traits {');
@@ -1819,8 +1820,8 @@ export class IOSCompiler extends CompilerBase {
       this.emit('for entity in entities {');
       this.indentLevel++;
       this.emit('obj += "# \\(entity.label)\\n"');
-      this.emit('for v in entity.vertices { obj += "v \\(v.x) \\(v.y) \\(v.z)\\n" }');
-      this.emit('for n in entity.normals { obj += "vn \\(n.x) \\(n.y) \\(n.z)\\n" }');
+      this.emit('for v in entity.vertices { obj += "v \\(v[0]) \\(v[1]) \\(v[2])\\n" }');
+      this.emit('for n in entity.normals { obj += "vn \\(n[0]) \\(n[1]) \\(n[2])\\n" }');
       this.emit('for face in entity.faces {');
       this.indentLevel++;
       this.emit('let indices = face.map { "\\($0 + vertexOffset)" }.joined(separator: " ")');
@@ -2365,7 +2366,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('text.firstMaterial?.isDoubleSided = true');
       this.emit('let node = SCNNode(geometry: text)');
       this.emit('node.scale = SCNVector3(0.005, 0.005, 0.005)');
-      this.emit(`node.position.y += labelOffsetY`);
+      this.emit(`node.position[1] += labelOffsetY`);
       this.emit('// Billboard constraint: always face camera');
       this.emit('let billboard = SCNBillboardConstraint()');
       this.emit('billboard.freeAxes = .Y');
@@ -2669,7 +2670,7 @@ export class IOSCompiler extends CompilerBase {
         'let screenPoint = frame.camera.projectPoint(child.worldPosition, orientation: .portrait, viewportSize: CGSize(width: 1, height: 1))'
       );
       this.emit(
-        'child.isHidden = isOccluded(at: screenPoint, depthMap: depthMap, nodeDepth: child.worldPosition.z)'
+        'child.isHidden = isOccluded(at: screenPoint, depthMap: depthMap, nodeDepth: child.worldPosition[2])'
       );
       this.indentLevel--;
       this.emit('}');
@@ -2685,8 +2686,8 @@ export class IOSCompiler extends CompilerBase {
       this.emit('defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }');
       this.emit('let width = CVPixelBufferGetWidth(depthMap)');
       this.emit('let height = CVPixelBufferGetHeight(depthMap)');
-      this.emit('let x = Int(point.x * CGFloat(width))');
-      this.emit('let y = Int(point.y * CGFloat(height))');
+      this.emit('let x = Int(point[0] * CGFloat(width))');
+      this.emit('let y = Int(point[1] * CGFloat(height))');
       this.emit('guard x >= 0, x < width, y >= 0, y < height else { return false }');
       this.emit('let baseAddress = CVPixelBufferGetBaseAddress(depthMap)!');
       this.emit('let buffer = baseAddress.assumingMemoryBound(to: Float32.self)');
@@ -2725,18 +2726,18 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('let cameraTransform = frame.camera.transform');
       this.emit(
-        'let cameraPosition = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)'
+        'let cameraPosition = SIMD3<Float>(cameraTransform.columns.3[0], cameraTransform.columns.3[1], cameraTransform.columns.3[2])'
       );
       this.emit('// Offset holographic layer based on camera movement for parallax');
       this.emit('for child in holographicLayer.childNodes {');
       this.indentLevel++;
-      this.emit('let depth = child.worldPosition.z');
+      this.emit('let depth = child.worldPosition[2]');
       this.emit('let parallaxFactor: Float = 1.0 - (depth / 10.0)');
       this.emit(
-        'child.position.x += (cameraPosition.x - child.position.x) * parallaxFactor * 0.01'
+        'child.position[0] += (cameraPosition[0] - child.position[0]) * parallaxFactor * 0.01'
       );
       this.emit(
-        'child.position.y += (cameraPosition.y - child.position.y) * parallaxFactor * 0.01'
+        'child.position[1] += (cameraPosition[1] - child.position[1]) * parallaxFactor * 0.01'
       );
       this.indentLevel--;
       this.emit('}');
@@ -2752,7 +2753,7 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('let cameraTransform = frame.camera.transform');
       this.emit(
-        'let cameraPos = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)'
+        'let cameraPos = SIMD3<Float>(cameraTransform.columns.3[0], cameraTransform.columns.3[1], cameraTransform.columns.3[2])'
       );
       this.emit('let nearPlane: Float = 0.1');
       this.emit('let farPlane: Float = 10.0');
@@ -2760,7 +2761,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('for child in holographicLayer.childNodes {');
       this.indentLevel++;
       this.emit(
-        'let nodePos = SIMD3<Float>(child.worldPosition.x, child.worldPosition.y, child.worldPosition.z)'
+        'let nodePos = SIMD3<Float>(child.worldPosition[0], child.worldPosition[1], child.worldPosition[2])'
       );
       this.emit('let distance = simd_distance(cameraPos, nodePos)');
       this.emit(
@@ -2886,9 +2887,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let cameraTransform = frame.camera.transform');
       this.emit('// Calculate tilt angle from camera orientation');
       this.emit(
-        'let forward = SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)'
+        'let forward = SIMD3<Float>(cameraTransform.columns.2[0], cameraTransform.columns.2[1], cameraTransform.columns.2[2])'
       );
-      this.emit('let tiltAngle = abs(asin(forward.y)) * 180.0 / .pi');
+      this.emit('let tiltAngle = abs(asin(forward[1])) * 180.0 / .pi');
       this.emit('let tiltThreshold: Float = 30.0');
       this.emit('portalEnabled = tiltAngle > tiltThreshold');
       this.emit('holographicLayer.isHidden = !portalEnabled');
@@ -3110,7 +3111,7 @@ export class IOSCompiler extends CompilerBase {
     if (hasPinch) {
       this.emit('// Pinch gesture: thumb tip close to index tip');
       this.emit(
-        'let pinchDist = hypot(thumbTip.location.x - indexTip.location.x, thumbTip.location.y - indexTip.location.y)'
+        'let pinchDist = hypot(thumbTip.location[0] - indexTip.location[0], thumbTip.location[1] - indexTip.location[1])'
       );
       this.emit('if pinchDist < 0.05 {');
       this.indentLevel++;
@@ -3126,10 +3127,10 @@ export class IOSCompiler extends CompilerBase {
 
     if (hasPoint) {
       this.emit('// Point gesture: index extended, others curled');
-      this.emit('let indexExtended = indexTip.location.y > indexMCP.location.y');
-      this.emit('let middleCurled = middleTip.location.y < middlePIP.location.y');
-      this.emit('let ringCurled = ringTip.location.y < ringPIP.location.y');
-      this.emit('let littleCurled = littleTip.location.y < littlePIP.location.y');
+      this.emit('let indexExtended = indexTip.location[1] > indexMCP.location[1]');
+      this.emit('let middleCurled = middleTip.location[1] < middlePIP.location[1]');
+      this.emit('let ringCurled = ringTip.location[1] < ringPIP.location[1]');
+      this.emit('let littleCurled = littleTip.location[1] < littlePIP.location[1]');
       this.emit('if indexExtended && middleCurled && ringCurled && littleCurled {');
       this.indentLevel++;
       this.emit('DispatchQueue.main.async { self.currentGesture = .point }');
@@ -3144,10 +3145,10 @@ export class IOSCompiler extends CompilerBase {
 
     if (hasPalm) {
       this.emit('// Palm gesture: all fingertips above MCPs (open hand)');
-      this.emit('let allExtended = indexTip.location.y > indexMCP.location.y &&');
-      this.emit('    middleTip.location.y > middleMCP.location.y &&');
-      this.emit('    ringTip.location.y > ringMCP.location.y &&');
-      this.emit('    littleTip.location.y > littleMCP.location.y');
+      this.emit('let allExtended = indexTip.location[1] > indexMCP.location[1] &&');
+      this.emit('    middleTip.location[1] > middleMCP.location[1] &&');
+      this.emit('    ringTip.location[1] > ringMCP.location[1] &&');
+      this.emit('    littleTip.location[1] > littleMCP.location[1]');
       this.emit('if allExtended {');
       this.indentLevel++;
       this.emit('DispatchQueue.main.async { self.currentGesture = .palm }');
@@ -3162,10 +3163,10 @@ export class IOSCompiler extends CompilerBase {
 
     if (hasFist) {
       this.emit('// Fist gesture: all fingertips below PIPs (closed hand)');
-      this.emit('let allCurled = indexTip.location.y < indexPIP.location.y &&');
-      this.emit('    middleTip.location.y < middlePIP.location.y &&');
-      this.emit('    ringTip.location.y < ringPIP.location.y &&');
-      this.emit('    littleTip.location.y < littlePIP.location.y');
+      this.emit('let allCurled = indexTip.location[1] < indexPIP.location[1] &&');
+      this.emit('    middleTip.location[1] < middlePIP.location[1] &&');
+      this.emit('    ringTip.location[1] < ringPIP.location[1] &&');
+      this.emit('    littleTip.location[1] < littlePIP.location[1]');
       this.emit('if allCurled {');
       this.indentLevel++;
       this.emit('DispatchQueue.main.async { self.currentGesture = .fist }');
@@ -3192,8 +3193,8 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('"type": "hand_gesture",');
       this.emit('"gesture": gesture.rawValue,');
-      this.emit('"x": location.x,');
-      this.emit('"y": location.y');
+      this.emit('"x": location[0],');
+      this.emit('"y": location[1]');
       this.indentLevel--;
       this.emit(']');
       this.emit('print("[HoloScript] SpatialInput: \\(event)")');
@@ -3698,10 +3699,10 @@ export class IOSCompiler extends CompilerBase {
       this.emit('holo += "  object \\(entity.name) {\\n"');
       this.emit('holo += "    model: \\"\\(entity.modelURL.lastPathComponent)\\"\\n"');
       this.emit(
-        'holo += "    position: [\\(entity.boundingBox.center.x), \\(entity.boundingBox.center.y), \\(entity.boundingBox.center.z)]\\n"'
+        'holo += "    position: [\\(entity.boundingBox.center[0]), \\(entity.boundingBox.center[1]), \\(entity.boundingBox.center[2])]\\n"'
       );
       this.emit(
-        'holo += "    scale: [\\(entity.boundingBox.extents.x), \\(entity.boundingBox.extents.y), \\(entity.boundingBox.extents.z)]\\n"'
+        'holo += "    scale: [\\(entity.boundingBox.extents[0]), \\(entity.boundingBox.extents[1]), \\(entity.boundingBox.extents[2])]\\n"'
       );
       this.emit('holo += "    traits: [object_capture, photogrammetry_scan]\\n"');
       if (traits.has('pbr_texture_extract')) {
@@ -4368,7 +4369,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('// Each participant creates a local ARKit anchor and maps shared positions');
       this.emit('let cameraPos = arFrame.camera.transform.columns.3');
       this.emit(
-        'sharedToLocalOffset = simd_float3(cameraPos.x, cameraPos.y, cameraPos.z) - sharedReferencePoint'
+        'sharedToLocalOffset = simd_float3(cameraPos[0], cameraPos[1], cameraPos[2]) - sharedReferencePoint'
       );
       this.emit('localWorldTransform = arFrame.camera.transform');
       this.indentLevel--;
@@ -4708,7 +4709,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let lookAt = faceAnchor.lookAtPoint');
       this.emit('DispatchQueue.main.async {');
       this.indentLevel++;
-      this.emit('self.gazeDirection = simd_float3(lookAt.x, lookAt.y, lookAt.z)');
+      this.emit('self.gazeDirection = simd_float3(lookAt[0], lookAt[1], lookAt[2])');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -4931,7 +4932,7 @@ export class IOSCompiler extends CompilerBase {
     }
     if (hasGaze) {
       this.emit(
-        'Text("Gaze: \\(manager.gazeDirection.x, specifier: "%.2f"), \\(manager.gazeDirection.y, specifier: "%.2f"), \\(manager.gazeDirection.z, specifier: "%.2f")").font(.caption)'
+        'Text("Gaze: \\(manager.gazeDirection[0], specifier: "%.2f"), \\(manager.gazeDirection[1], specifier: "%.2f"), \\(manager.gazeDirection[2], specifier: "%.2f")").font(.caption)'
       );
     }
     if (hasTongue) {
@@ -5148,14 +5149,14 @@ export class IOSCompiler extends CompilerBase {
       this.emit('func azimuthToPeer(_ peerId: String) -> Float? {');
       this.indentLevel++;
       this.emit('guard let dir = peers[peerId]?.direction else { return nil }');
-      this.emit('return atan2(dir.x, dir.z)');
+      this.emit('return atan2(dir[0], dir[2])');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
       this.emit('func elevationToPeer(_ peerId: String) -> Float? {');
       this.indentLevel++;
       this.emit('guard let dir = peers[peerId]?.direction else { return nil }');
-      this.emit('return asin(dir.y)');
+      this.emit('return asin(dir[1])');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -5221,7 +5222,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('      let distance = peer.distance,');
       this.emit('      let direction = peer.direction else { return nil }');
       this.emit('let pos = direction * distance');
-      this.emit('return SCNVector3(pos.x, pos.y, pos.z)');
+      this.emit('return SCNVector3(pos[0], pos[1], pos[2])');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -5239,7 +5240,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let pos = direction * distance');
       this.emit('let lookAt = SCNMatrix4LookAt(');
       this.indentLevel++;
-      this.emit('SCNVector3(pos.x, pos.y, pos.z),');
+      this.emit('SCNVector3(pos[0], pos[1], pos[2]),');
       this.emit('SCNVector3Zero,');
       this.emit('SCNVector3(0, 1, 0))');
       this.indentLevel--;
@@ -5997,7 +5998,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('Text(source.id)');
       this.emit('Spacer()');
       this.emit(
-        'Text(String(format: "(%.1f, %.1f, %.1f)", source.position.x, source.position.y, source.position.z))'
+        'Text(String(format: "(%.1f, %.1f, %.1f)", source.position[0], source.position[1], source.position[2]))'
       );
       this.indentLevel--;
       this.emit('}');

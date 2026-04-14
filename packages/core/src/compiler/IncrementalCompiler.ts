@@ -35,8 +35,8 @@ import {
   hashASTSubtree,
   type SemanticCacheStats,
 } from './SemanticCache';
-import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 
 /**
  * Types of changes detected during AST diff

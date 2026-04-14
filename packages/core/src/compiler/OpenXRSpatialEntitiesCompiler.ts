@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript -> OpenXR Spatial Entities Export Compiler
  *
@@ -23,7 +24,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
   HoloObjectDecl,

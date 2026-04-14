@@ -30,7 +30,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   NIRGraph,
   NIRNode,
@@ -524,7 +524,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     return [
       `@compute @workgroup_size(${wgSize})`,
       `fn main(@builtin(global_invocation_id) gid: vec3u) {`,
-      `  let idx = gid.x;`,
+      `  let idx = gid[0];`,
       `  if (idx >= arrayLength(&voltage)) { return; }`,
       ``,
       `  let i_in = input[idx];`,
@@ -560,7 +560,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       ``,
       `@compute @workgroup_size(${wgSize})`,
       `fn main(@builtin(global_invocation_id) gid: vec3u) {`,
-      `  let idx = gid.x;`,
+      `  let idx = gid[0];`,
       `  if (idx >= arrayLength(&voltage)) { return; }`,
       ``,
       `  let i_in = input[idx];`,
@@ -742,7 +742,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     return [
       `@compute @workgroup_size(${wgSize})`,
       `fn main(@builtin(global_invocation_id) gid: vec3u) {`,
-      `  let idx = gid.x;`,
+      `  let idx = gid[0];`,
       `  if (idx >= arrayLength(&voltage)) { return; }`,
       ``,
       `  let x = input[idx];`,
@@ -790,7 +790,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       ``,
       `@compute @workgroup_size(${wgSize})`,
       `fn main(@builtin(global_invocation_id) gid: vec3u) {`,
-      `  let idx = gid.x;`,
+      `  let idx = gid[0];`,
       `  if (idx >= arrayLength(&voltage)) { return; }`,
       ``,
       `  let x = input[idx];`,
@@ -861,7 +861,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&voltage)) { return; }`);
     lines.push('');
     lines.push(`  let i_in = input[idx];`);
@@ -971,7 +971,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&voltage)) { return; }`);
     lines.push('');
     lines.push(`  let i_in = input[idx];`);
@@ -1081,7 +1081,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&voltage)) { return; }`);
     lines.push('');
     lines.push(`  var v = voltage[idx];`);
@@ -1169,7 +1169,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let row = gid.x;`);
+    lines.push(`  let row = gid[0];`);
     lines.push(`  if (row >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  var sum: f32 = 0.0;`);
@@ -1245,7 +1245,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let row = gid.x;`);
+    lines.push(`  let row = gid[0];`);
     lines.push(`  if (row >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  var sum: f32 = 0.0;`);
@@ -1343,7 +1343,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let global_idx = gid.x;`);
+    lines.push(`  let global_idx = gid[0];`);
     lines.push(`  let total_out = OUT_C * OUT_H * OUT_W;`);
     lines.push(`  if (global_idx >= total_out) { return; }`);
     lines.push('');
@@ -1433,7 +1433,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  if (input[idx] >= threshold[idx]) {`);
@@ -1498,7 +1498,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push(`  output[idx] = scale[idx] * input[idx];`);
     lines.push(`}`);
@@ -1564,7 +1564,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  let t = sim.timestep;`);
@@ -1649,7 +1649,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push(`  output[idx] = input[idx];`);
     lines.push(`}`);
@@ -1710,7 +1710,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  let oh = idx / OUT_W;`);
@@ -1783,7 +1783,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     lines.push('');
     lines.push(`@compute @workgroup_size(${wgSize})`);
     lines.push(`fn main(@builtin(global_invocation_id) gid: vec3u) {`);
-    lines.push(`  let idx = gid.x;`);
+    lines.push(`  let idx = gid[0];`);
     lines.push(`  if (idx >= arrayLength(&output)) { return; }`);
     lines.push('');
     lines.push(`  let oh = idx / OUT_W;`);

@@ -34,7 +34,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -894,7 +894,7 @@ export class URDFCompiler extends CompilerBase {
       // Extract axis
       if (jointConfig.axis) {
         const axis = jointConfig.axis as { x?: number; y?: number; z?: number };
-        joint.axis = [axis.x ?? 0, axis.y ?? 0, axis.z ?? 1];
+        joint.axis = [axis[0] ?? 0, axis[1] ?? 0, axis[2] ?? 1];
       }
 
       // Extract limits (for revolute/prismatic joints)

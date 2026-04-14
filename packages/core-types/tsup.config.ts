@@ -10,6 +10,7 @@ export default defineConfig({
     'src/security.ts',
     'src/hologram.ts',
     'src/utility.ts',
+    'src/ans.ts',
   ],
   format: ['esm', 'cjs'],
   dts: true,

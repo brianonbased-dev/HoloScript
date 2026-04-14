@@ -24,7 +24,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -551,7 +551,7 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };');
     this.emit('@fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {');
     this.emit('  let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));');
-    this.emit('  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm.x * 0.5);');
+    this.emit('  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);');
     this.emit('  return vec4<f32>(mat.color.rgb * (0.15 + d), mat.color.a); }`;');
     this.emit('');
     // Gaussian splat shader
@@ -568,7 +568,7 @@ export class WebGPUCompiler extends CompilerBase {
     );
     this.emit('  var q = array<vec2<f32>,4>(vec2(-1,-1),vec2(1,-1),vec2(-1,1),vec2(1,1));');
     this.emit(
-      '  var o: SO; let s = splats[ii]; o.p = vec4<f32>(s.center.xy + q[vi]*0.01, s.center.z, 1.0);'
+      '  var o: SO; let s = splats[ii]; o.p = vec4<f32>(s.center.xy + q[vi]*0.01, s.center[2], 1.0);'
     );
     this.emit('  o.c = vec4<f32>(s.sh, s.opacity); o.uv = q[vi]; return o; }');
     this.emit('@fragment fn fs_splat(i: SO) -> @location(0) vec4<f32> {');
@@ -603,8 +603,8 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       '@compute @workgroup_size(64) fn cs_particle_update(@builtin(global_invocation_id) gid: vec3<u32>) {'
     );
-    this.emit('  let i = gid.x; if (i >= arrayLength(&pin)) { return; } var p = pin[i];');
-    this.emit('  p.vel.y -= 9.81 * dt; p.pos += p.vel * dt; p.life -= dt;');
+    this.emit('  let i = gid[0]; if (i >= arrayLength(&pin)) { return; } var p = pin[i];');
+    this.emit('  p.vel[1] -= 9.81 * dt; p.pos += p.vel * dt; p.life -= dt;');
     this.emit(
       '  if (p.life <= 0.0) { p.pos = vec3(0.0); p.vel = vec3(0.0, 5.0, 0.0); p.life = 2.0; }'
     );
@@ -618,10 +618,10 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit(
       '@compute @workgroup_size(64) fn cs_physics_step(@builtin(global_invocation_id) gid: vec3<u32>) {'
     );
-    this.emit('  let i = gid.x; if (i >= arrayLength(&bodies)) { return; } var b = bodies[i];');
-    this.emit('  b.vel.y -= 9.81 * dt; b.pos += b.vel * dt;');
+    this.emit('  let i = gid[0]; if (i >= arrayLength(&bodies)) { return; } var b = bodies[i];');
+    this.emit('  b.vel[1] -= 9.81 * dt; b.pos += b.vel * dt;');
     this.emit(
-      '  if (b.pos.y < 0.0) { b.pos.y = 0.0; b.vel.y = -b.vel.y * 0.6; } bodies[i] = b; }`;'
+      '  if (b.pos[1] < 0.0) { b.pos[1] = 0.0; b.vel[1] = -b.vel[1] * 0.6; } bodies[i] = b; }`;'
     );
     this.emit('');
   }

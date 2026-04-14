@@ -755,7 +755,7 @@ export class CompilerDocumentationGenerator {
         const pos = (objRec.position || transform?.position) as
           | { x: number; y: number; z: number }
           | undefined;
-        const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
+        const posStr = pos ? `(${pos[0]}, ${pos[1]}, ${pos[2]})` : 'N/A';
         const traitNames = obj.traits
           ? this.extractTraitNames(obj.traits).join(', ') || 'none'
           : 'none';

@@ -1,7 +1,8 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript → Godot GDScript Compiler
  *
- * Translates a HoloComposition AST into a Godot 4.x GDScript file
+ * Translates a HoloComposition AST into a Godot 4[0] GDScript file
  * that builds the scene tree programmatically via _ready().
  *
  * Emits:
@@ -30,7 +31,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,

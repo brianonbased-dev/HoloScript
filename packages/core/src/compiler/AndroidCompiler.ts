@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript → Android Kotlin ARCore Compiler
  *
@@ -16,7 +17,7 @@
 
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import { GEOSPATIAL_DEFAULTS } from '../traits/constants/mobile/geospatial';
 import {
   DEPTH_SCANNER_TRAITS,
@@ -303,7 +304,7 @@ export class AndroidCompiler extends CompilerBase {
     this.indentLevel++;
     this.emit('val originalScale = node.localScale');
     this.emit(
-      'val scaledUp = Vector3(originalScale.x * 1.2f, originalScale.y * 1.2f, originalScale.z * 1.2f)'
+      'val scaledUp = Vector3(originalScale[0] * 1.2f, originalScale[1] * 1.2f, originalScale[2] * 1.2f)'
     );
     this.emit('');
     this.emit('android.animation.ObjectAnimator.ofObject(');
@@ -1379,7 +1380,7 @@ dependencies {
     this.indentLevel--;
     this.emit('} catch (e: Exception) {');
     this.indentLevel++;
-    this.emit('android.util.Log.w("HoloScript", "Depth frame unavailable: ${e.message}")');
+    this.emit('android.util.Log[3]("HoloScript", "Depth frame unavailable: ${e.message}")');
     this.indentLevel--;
     this.emit('}');
     this.indentLevel--;
@@ -1499,7 +1500,7 @@ dependencies {
       this.indentLevel++;
       this.emit('"type" to "DepthPoint",');
       this.emit('"id" to "dp_$i",');
-      this.emit('"position" to listOf(vertex.x, vertex.y, vertex.z),');
+      this.emit('"position" to listOf(vertex[0], vertex[1], vertex[2]),');
       this.emit('"classification" to "unknown"');
       this.indentLevel--;
       this.emit('))');
@@ -1528,7 +1529,7 @@ dependencies {
       this.emit('sb.appendLine("# HoloScript Depth Scan Export")');
       this.emit('for (v in vertices) {');
       this.indentLevel++;
-      this.emit('sb.appendLine("v ${v.x} ${v.y} ${v.z}")');
+      this.emit('sb.appendLine("v ${v[0]} ${v[1]} ${v[2]}")');
       this.indentLevel--;
       this.emit('}');
       this.emit('for (i in indices.indices step 3) {');
@@ -2357,14 +2358,14 @@ dependencies {
     if (hasPinch) {
       this.emit('// Pinch gesture: thumb tip close to index tip');
       this.emit('val pinchDist = Math.sqrt(');
-      this.emit('    Math.pow((thumbTip.x - indexTip.x).toDouble(), 2.0) +');
-      this.emit('    Math.pow((thumbTip.y - indexTip.y).toDouble(), 2.0)');
+      this.emit('    Math.pow((thumbTip[0] - indexTip[0]).toDouble(), 2.0) +');
+      this.emit('    Math.pow((thumbTip[1] - indexTip[1]).toDouble(), 2.0)');
       this.emit(').toFloat()');
       this.emit('if (pinchDist < 0.05f) {');
       this.indentLevel++;
       this.emit('android.util.Log.d("HoloScript", "Hand $handIndex: PINCH detected")');
       if (hasToSpatial) {
-        this.emit('onSpatialInput("pinch", handIndex, thumbTip.x, thumbTip.y, thumbTip.z)');
+        this.emit('onSpatialInput("pinch", handIndex, thumbTip[0], thumbTip[1], thumbTip[2])');
       }
       this.indentLevel--;
       this.emit('}');
@@ -2373,15 +2374,15 @@ dependencies {
 
     if (hasPoint) {
       this.emit('// Point gesture: index extended, others curled');
-      this.emit('val indexExtended = indexTip.y < indexMcp.y');
-      this.emit('val middleCurled = middleTip.y > middlePip.y');
-      this.emit('val ringCurled = ringTip.y > ringPip.y');
-      this.emit('val pinkyCurled = pinkyTip.y > pinkyPip.y');
+      this.emit('val indexExtended = indexTip[1] < indexMcp[1]');
+      this.emit('val middleCurled = middleTip[1] > middlePip[1]');
+      this.emit('val ringCurled = ringTip[1] > ringPip[1]');
+      this.emit('val pinkyCurled = pinkyTip[1] > pinkyPip[1]');
       this.emit('if (indexExtended && middleCurled && ringCurled && pinkyCurled) {');
       this.indentLevel++;
       this.emit('android.util.Log.d("HoloScript", "Hand $handIndex: POINT detected")');
       if (hasToSpatial) {
-        this.emit('onSpatialInput("point", handIndex, indexTip.x, indexTip.y, indexTip.z)');
+        this.emit('onSpatialInput("point", handIndex, indexTip[0], indexTip[1], indexTip[2])');
       }
       this.indentLevel--;
       this.emit('}');
@@ -2390,13 +2391,13 @@ dependencies {
 
     if (hasPalm) {
       this.emit('// Palm gesture: all fingertips above MCPs (open hand)');
-      this.emit('val allExtended = indexTip.y < indexMcp.y && middleTip.y < middleMcp.y &&');
-      this.emit('    ringTip.y < ringMcp.y && pinkyTip.y < pinkyMcp.y');
+      this.emit('val allExtended = indexTip[1] < indexMcp[1] && middleTip[1] < middleMcp[1] &&');
+      this.emit('    ringTip[1] < ringMcp[1] && pinkyTip[1] < pinkyMcp[1]');
       this.emit('if (allExtended) {');
       this.indentLevel++;
       this.emit('android.util.Log.d("HoloScript", "Hand $handIndex: PALM detected")');
       if (hasToSpatial) {
-        this.emit('onSpatialInput("palm", handIndex, indexTip.x, indexTip.y, indexTip.z)');
+        this.emit('onSpatialInput("palm", handIndex, indexTip[0], indexTip[1], indexTip[2])');
       }
       this.indentLevel--;
       this.emit('}');
@@ -2405,13 +2406,13 @@ dependencies {
 
     if (hasFist) {
       this.emit('// Fist gesture: all fingertips below PIPs (closed hand)');
-      this.emit('val allCurled = indexTip.y > indexPip.y && middleTip.y > middlePip.y &&');
-      this.emit('    ringTip.y > ringPip.y && pinkyTip.y > pinkyPip.y');
+      this.emit('val allCurled = indexTip[1] > indexPip[1] && middleTip[1] > middlePip[1] &&');
+      this.emit('    ringTip[1] > ringPip[1] && pinkyTip[1] > pinkyPip[1]');
       this.emit('if (allCurled) {');
       this.indentLevel++;
       this.emit('android.util.Log.d("HoloScript", "Hand $handIndex: FIST detected")');
       if (hasToSpatial) {
-        this.emit('onSpatialInput("fist", handIndex, indexTip.x, indexTip.y, indexTip.z)');
+        this.emit('onSpatialInput("fist", handIndex, indexTip[0], indexTip[1], indexTip[2])');
       }
       this.indentLevel--;
       this.emit('}');
@@ -3450,7 +3451,7 @@ dependencies {
       this.emit('if (estimate) {');
       this.indentLevel++;
       this.emit('const dir = estimate.primaryLightDirection;');
-      this.emit('estimatedLight.position.set(dir.x, dir.y, dir.z);');
+      this.emit('estimatedLight.position.set(dir[0], dir[1], dir[2]);');
       this.emit('estimatedLight.intensity = estimate.primaryLightIntensity?.y || 1.0;');
       this.indentLevel--;
       this.emit('}');

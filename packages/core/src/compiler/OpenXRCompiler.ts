@@ -18,7 +18,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type { Extensible } from '../types/utility-types';
 import {
   compileDomainBlocks,
@@ -1068,7 +1068,7 @@ export class OpenXRCompiler extends CompilerBase {
     this.emit('for (uint32_t j = 0; j < XR_HAND_JOINT_COUNT_EXT; j++) {');
     this.indent();
     this.emit('const auto& loc = jointLocations[j];');
-    this.emit('glm::vec3 pos(loc.pose.position.x, loc.pose.position.y, loc.pose.position.z);');
+    this.emit('glm::vec3 pos(loc.pose.position[0], loc.pose.position[1], loc.pose.position[2]);');
     this.emit('// Update hand-tracked object transforms from joint data');
     this.dedent();
     this.emit('}');
@@ -1082,7 +1082,7 @@ export class OpenXRCompiler extends CompilerBase {
     this.emit('for (uint32_t j = 0; j < XR_HAND_JOINT_COUNT_EXT; j++) {');
     this.indent();
     this.emit('const auto& loc = jointLocations[j];');
-    this.emit('glm::vec3 pos(loc.pose.position.x, loc.pose.position.y, loc.pose.position.z);');
+    this.emit('glm::vec3 pos(loc.pose.position[0], loc.pose.position[1], loc.pose.position[2]);');
     this.emit('// Update hand-tracked object transforms from joint data');
     this.dedent();
     this.emit('}');

@@ -38,7 +38,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import { WEBXR_TRAITS } from '../traits/constants/mobile/webxr';
 
 // ---------------------------------------------------------------------------
@@ -289,20 +289,20 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
           const estimate = frame.getLightEstimate(lightProbe);
           if (estimate) {
             const intensity = Math.max(
-              estimate.primaryLightIntensity.x,
-              estimate.primaryLightIntensity.y,
-              estimate.primaryLightIntensity.z
+              estimate.primaryLightIntensity[0],
+              estimate.primaryLightIntensity[1],
+              estimate.primaryLightIntensity[2]
             );
             estimatedLight.intensity = intensity;
             estimatedLight.position.set(
-              estimate.primaryLightDirection.x,
-              estimate.primaryLightDirection.y,
-              estimate.primaryLightDirection.z
+              estimate.primaryLightDirection[0],
+              estimate.primaryLightDirection[1],
+              estimate.primaryLightDirection[2]
             );
             estimatedLight.color.setRGB(
-              estimate.primaryLightIntensity.x / intensity || 1,
-              estimate.primaryLightIntensity.y / intensity || 1,
-              estimate.primaryLightIntensity.z / intensity || 1
+              estimate.primaryLightIntensity[0] / intensity || 1,
+              estimate.primaryLightIntensity[1] / intensity || 1,
+              estimate.primaryLightIntensity[2] / intensity || 1
             );
           }
         }`
@@ -1020,9 +1020,9 @@ ${handTrackingFrame}
         // Calculate rotation speed for vignette
         const currentRot = camera.rotation.clone();
         rotationSpeed =
-          Math.abs(currentRot.x - lastRotation.x) +
-          Math.abs(currentRot.y - lastRotation.y) +
-          Math.abs(currentRot.z - lastRotation.z);
+          Math.abs(currentRot[0] - lastRotation[0]) +
+          Math.abs(currentRot[1] - lastRotation[1]) +
+          Math.abs(currentRot[2] - lastRotation[2]);
         lastRotation.copy(currentRot);
       }
 

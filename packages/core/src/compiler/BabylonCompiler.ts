@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HoloScript -> Babylon.js Compiler
  *
@@ -35,7 +36,7 @@ import type {
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { ProvenanceSemiring } from './traits/ProvenanceSemiring';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,

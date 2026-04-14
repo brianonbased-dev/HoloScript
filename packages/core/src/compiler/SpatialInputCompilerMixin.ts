@@ -355,8 +355,8 @@ export function controllerInputToARCore(ctrl: CompiledControllerInput, varPrefix
     `    val thumbstick = inputEvent.thumbstick`,
     ``,
     `    // Apply deadzone`,
-    `    val adjustedX = applyDeadzone(thumbstick.x, ${ctrl.deadzone}f)`,
-    `    val adjustedY = applyDeadzone(thumbstick.y, ${ctrl.deadzone}f)`,
+    `    val adjustedX = applyDeadzone(thumbstick[0], ${ctrl.deadzone}f)`,
+    `    val adjustedY = applyDeadzone(thumbstick[1], ${ctrl.deadzone}f)`,
   ];
 
   if (ctrl.hapticOnPress) {
@@ -853,8 +853,8 @@ export function controllerInputToOpenXR(ctrl: CompiledControllerInput, varPrefix
     `    xrGetActionStateVector2f(session, &getInfo, &thumbstickState);`,
     ``,
     `    if (thumbstickState.isActive) {`,
-    `        float x = applyDeadzone(thumbstickState.currentState.x, ${ctrl.deadzone}f);`,
-    `        float y = applyDeadzone(thumbstickState.currentState.y, ${ctrl.deadzone}f);`,
+    `        float x = applyDeadzone(thumbstickState.currentState[0], ${ctrl.deadzone}f);`,
+    `        float y = applyDeadzone(thumbstickState.currentState[1], ${ctrl.deadzone}f);`,
     `        onThumbstickChanged(x, y);`
   );
 
@@ -915,8 +915,8 @@ export function handTrackingToWebXR(ht: CompiledHandTracking, varPrefix = ''): s
     `      const ori = pose.transform.orientation;`,
     ``,
     `      let jointData: ${v}HandJointData = {`,
-    `        position: new Float32Array([pos.x, pos.y, pos.z]),`,
-    `        orientation: new Float32Array([ori.x, ori.y, ori.z, ori.w]),`,
+    `        position: new Float32Array([pos[0], pos[1], pos[2]]),`,
+    `        orientation: new Float32Array([ori[0], ori[1], ori[2], ori[3]]),`,
     `        radius: pose.radius ?? 0.005,`,
     `      };`,
     ``,
@@ -1014,9 +1014,9 @@ export function gazeTransientPointerToWebXR(
     `      const hitPoint = hitResults?.[0]?.getPose(refSpace)?.transform.position ?? commitPoint;`,
     ``,
     `      onGazeCommit({`,
-    `        x: hitPoint.x,`,
-    `        y: hitPoint.y,`,
-    `        z: hitPoint.z,`,
+    `        x: hitPoint[0],`,
+    `        y: hitPoint[1],`,
+    `        z: hitPoint[2],`,
     `      });`,
   ];
 
@@ -1078,8 +1078,8 @@ export function sharedAnchorToWebXR(anchor: CompiledSharedSpatialAnchor, varPref
     `      anchorId,`,
     `      roomId: '${anchor.roomId}',`,
     `      pose: {`,
-    `        position: [pose.position.x, pose.position.y, pose.position.z],`,
-    `        orientation: { x: pose.orientation.x, y: pose.orientation.y, z: pose.orientation.z, w: pose.orientation.w },`,
+    `        position: [pose.position[0], pose.position[1], pose.position[2]],`,
+    `        orientation: [pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]],`,
     `      },`,
     `    };`,
   ];
@@ -1209,11 +1209,11 @@ export function controllerInputToWebXR(ctrl: CompiledControllerInput, varPrefix 
     lines.push(
       ``,
       `    // Thumbstick as D-pad`,
-      `    if (Math.abs(thumbstick.x) > ${ctrl.dpadThreshold}) {`,
-      `      onSpatialDpad(hand, thumbstick.x > 0 ? 'right' : 'left', Math.abs(thumbstick.x));`,
+      `    if (Math.abs(thumbstick[0]) > ${ctrl.dpadThreshold}) {`,
+      `      onSpatialDpad(hand, thumbstick[0] > 0 ? 'right' : 'left', Math.abs(thumbstick[0]));`,
       `    }`,
-      `    if (Math.abs(thumbstick.y) > ${ctrl.dpadThreshold}) {`,
-      `      onSpatialDpad(hand, thumbstick.y > 0 ? 'up' : 'down', Math.abs(thumbstick.y));`,
+      `    if (Math.abs(thumbstick[1]) > ${ctrl.dpadThreshold}) {`,
+      `      onSpatialDpad(hand, thumbstick[1] > 0 ? 'up' : 'down', Math.abs(thumbstick[1]));`,
       `    }`
     );
   }

@@ -148,7 +148,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -345,7 +345,7 @@ export class VRRCompiler extends CompilerBase {
       `const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7d3a, roughness: 0.9 });`
     );
     this.generatedCode.push(`const ground = new THREE.Mesh(groundGeo, groundMat);`);
-    this.generatedCode.push(`ground.rotation.x = -Math.PI / 2;`);
+    this.generatedCode.push(`ground.rotation[0] = -Math.PI / 2;`);
     this.generatedCode.push(`ground.receiveShadow = true;`);
     this.generatedCode.push(`scene.add(ground);`);
 

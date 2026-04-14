@@ -34,7 +34,7 @@ import type {
   HoloLight,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -249,7 +249,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
     ],
     fragmentContribution: `
     // @hologram trait: holographic scanline effect
-    let holoScanline = sin(in.uv.y * material.u_scanlineDensity + scene.time * 2.0) * 0.1;
+    let holoScanline = sin(in.uv[1] * material.u_scanlineDensity + scene.time * 2.0) * 0.1;
     let holoFlicker = 0.9 + 0.1 * sin(scene.time * material.u_flickerSpeed) * sin(scene.time * 13.0);
     let holoFresnel = pow(1.0 - abs(dot(N, V)), 2.0);
     baseColor = material.u_holoColor;
@@ -329,11 +329,11 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
 
     @compute @workgroup_size(64)
     fn cs_particle_update(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let i = gid.x;
+      let i = gid[0];
       if (i >= arrayLength(&particlesIn)) { return; }
 
       var p = particlesIn[i];
-      p.vel.y += material.u_gravity * dt;
+      p.vel[1] += material.u_gravity * dt;
       p.pos += p.vel * dt;
       p.life -= dt;
 
@@ -347,7 +347,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
     }`,
     fragmentContribution: `
     // @gpu_particle trait: particle rendering
-    let particleLife = clamp(in.worldPosition.y / 5.0, 0.0, 1.0);
+    let particleLife = clamp(in.worldPosition[1] / 5.0, 0.0, 1.0);
     baseColor = mix(vec3<f32>(1.0, 0.2, 0.0), vec3<f32>(1.0, 1.0, 0.5), particleLife);
     alpha = particleLife * 0.8;`,
     workgroupSize: [64, 1, 1],
@@ -372,17 +372,17 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
 
     @compute @workgroup_size(64)
     fn cs_physics_step(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let i = gid.x;
+      let i = gid[0];
       if (i >= arrayLength(&bodies)) { return; }
 
       var b = bodies[i];
-      b.vel.y -= 9.81 * dt;
+      b.vel[1] -= 9.81 * dt;
       b.pos += b.vel * dt;
 
       // Ground plane collision
-      if (b.pos.y < 0.0) {
-        b.pos.y = 0.0;
-        b.vel.y = -b.vel.y * material.u_restitution;
+      if (b.pos[1] < 0.0) {
+        b.pos[1] = 0.0;
+        b.vel[1] = -b.vel[1] * material.u_restitution;
       }
 
       bodies[i] = b;
@@ -400,7 +400,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
 
     @compute @workgroup_size(64)
     fn cs_generic(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let i = gid.x;
+      let i = gid[0];
       if (i >= arrayLength(&computeBuffer)) { return; }
       // Custom compute logic placeholder
       computeBuffer[i] = computeBuffer[i];
@@ -415,7 +415,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
     // @billboard trait: always face camera
     let billboardRight = camera.view[0].xyz;
     let billboardUp = camera.view[1].xyz;
-    worldPos = in.position.x * billboardRight + in.position.y * billboardUp;`,
+    worldPos = in.position[0] * billboardRight + in.position[1] * billboardUp;`,
   },
 
   lod: {
@@ -430,7 +430,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
     vertexContribution: `
     // @lod trait: level of detail (distance-based vertex culling)
     let lodDist = length(camera.position - (model.model * vec4<f32>(in.position, 1.0)).xyz);
-    let lodLevel = select(0u, select(1u, select(2u, 3u, lodDist > material.u_lodDistances.z), lodDist > material.u_lodDistances.y), lodDist > material.u_lodDistances.x);`,
+    let lodLevel = select(0u, select(1u, select(2u, 3u, lodDist > material.u_lodDistances[2]), lodDist > material.u_lodDistances[1]), lodDist > material.u_lodDistances[0]);`,
   },
 
   instanced: {
@@ -452,7 +452,7 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
     ],
     vertexContribution: `
     // @animated trait: vertex animation
-    let animOffset = sin(scene.time * material.u_animSpeed + in.position.x * 3.0) * material.u_animAmplitude;
+    let animOffset = sin(scene.time * material.u_animSpeed + in.position[0] * 3.0) * material.u_animAmplitude;
     worldPos = in.position + in.normal * animOffset;`,
   },
 
@@ -739,14 +739,14 @@ export class TSLCompiler extends CompilerBase {
           lines.push(
             `fn cs_domain_physics_${safeName}(@builtin(global_invocation_id) gid: vec3<u32>) {`
           );
-          lines.push(`  let i = gid.x;`);
+          lines.push(`  let i = gid[0];`);
           lines.push(`  if (i >= arrayLength(&bodies_${safeName})) { return; }`);
           lines.push(`  var b = bodies_${safeName}[i];`);
-          lines.push(`  b.velocity.y -= 9.81 * dt_${safeName};`);
+          lines.push(`  b.velocity[1] -= 9.81 * dt_${safeName};`);
           lines.push(`  b.position += b.velocity * dt_${safeName};`);
-          lines.push(`  if (b.position.y < 0.0) {`);
-          lines.push(`    b.position.y = 0.0;`);
-          lines.push(`    b.velocity.y = -b.velocity.y * b.restitution;`);
+          lines.push(`  if (b.position[1] < 0.0) {`);
+          lines.push(`    b.position[1] = 0.0;`);
+          lines.push(`    b.velocity[1] = -b.velocity[1] * b.restitution;`);
           lines.push(`  }`);
           lines.push(`  bodies_${safeName}[i] = b;`);
           lines.push(`}`);
@@ -798,11 +798,11 @@ export class TSLCompiler extends CompilerBase {
           lines.push(
             `fn cs_domain_particle_${safeName}(@builtin(global_invocation_id) gid: vec3<u32>) {`
           );
-          lines.push(`  let i = gid.x;`);
+          lines.push(`  let i = gid[0];`);
           lines.push(`  if (i >= arrayLength(&particlesIn_${safeName})) { return; }`);
           lines.push(`  var p = particlesIn_${safeName}[i];`);
           lines.push(
-            `  p.vel.y += ${typeof gravity === 'number' ? gravity.toFixed(2) : gravity} * dt_${safeName};`
+            `  p.vel[1] += ${typeof gravity === 'number' ? gravity.toFixed(2) : gravity} * dt_${safeName};`
           );
           lines.push(`  p.pos += p.vel * dt_${safeName};`);
           lines.push(`  p.life -= dt_${safeName};`);
@@ -1507,7 +1507,7 @@ fn gradientNoise(uv: vec2<f32>) -> f32 {
   let n01 = simpleNoise(i + vec2<f32>(0.0, 1.0));
   let n11 = simpleNoise(i + vec2<f32>(1.0, 1.0));
 
-  return mix(mix(n00, n10, u.x), mix(n01, n11, u.x), u.y);
+  return mix(mix(n00, n10, u[0]), mix(n01, n11, u[0]), u[1]);
 }
 
 // ─── PBR Functions ─────────────────────────────────────────────────────

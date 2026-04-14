@@ -3807,7 +3807,7 @@ export class R3FCompiler {
     const props: Record<string, unknown> = { ...expandedProps };
 
     if (node.position) {
-      props.position = [node.position.x, node.position.y, node.position.z];
+      props.position = node.position;
     }
     if (rawProps.position && Array.isArray(rawProps.position)) {
       props.position = rawProps.position;

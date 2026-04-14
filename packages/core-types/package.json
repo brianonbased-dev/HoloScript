@@ -43,6 +43,10 @@
     "./utility": {
       "types": "./dist/utility.d.ts",
       "import": "./dist/utility.js"
+    },
+    "./ans": {
+      "types": "./dist/ans.d.ts",
+      "import": "./dist/ans.js"
     }
   },
   "scripts": {
