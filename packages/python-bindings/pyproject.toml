@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "holoscript"
 # Local development version. Release version is derived from git tag (vX.Y.Z)
 # by the publish-pypi.yml workflow. PyPI major tracks npm platform major.
-version = "6.0.0.dev0"
-description = "Python bindings for HoloScript parsing and validation"
+version = "6.0.5"
+description = "Python bindings for HoloScript — parsing, validation, and domain bridges for scientific computing"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
@@ -29,6 +29,25 @@ classifiers = [
 dev = [
   "pytest>=8.0.0",
   "mypy>=1.11.0",
+]
+medical = [
+  "pydicom>=2.4.0",
+  "numpy>=1.24.0",
+]
+alphafold = [
+  "requests>=2.31.0",
+]
+astronomy = [
+  "numpy>=1.24.0",
+]
+robotics = [
+  "roslibpy>=1.6.0",
+]
+scientific = [
+  "numpy>=1.24.0",
+]
+all = [
+  "holoscript[medical,alphafold,astronomy,robotics,scientific]",
 ]
 
 [tool.setuptools.packages.find]
