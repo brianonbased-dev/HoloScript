@@ -63,8 +63,8 @@ const AVAILABLE_TOOLS = [
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function truncatePremium(content: string, maxLen = 100): string {
-  return content.slice(0, maxLen) + '... [premium content — include X-PAYMENT header to unlock]';
+function truncatePremium(content: string, maxLen = 500): string {
+  return content.length <= maxLen ? content : content.slice(0, maxLen) + '\n... [premium content — include X-PAYMENT header to unlock]';
 }
 
 function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; id: string }) {
@@ -305,7 +305,8 @@ export async function handleCoreRoutes(
       id: a.id,
       name: a.name,
       walletAddress: a.walletAddress,
-      traits: a.traits,
+      traits: a.traits.slice(0, 5),
+      traitCount: a.traits.length,
       reputation: a.reputation,
       createdAt: a.createdAt,
     }));

@@ -1,5 +1,4 @@
 'use client';
-
 /**
  * HoloScript Store — The AI-Native Hardware & Software Gateway
  * 

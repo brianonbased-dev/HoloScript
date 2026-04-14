@@ -4,16 +4,11 @@
 
 # Storage lives alongside config — add to .gitignore
 # The startup script can symlink this to %APPDATA%/HoloScript/store if needed
-storage: "${APPDATA}/HoloScript/store"  # Windows
-# storage: "~/.holoscript/store"        # Linux/Mac
+storage: "./storage"
 
 plugins: ./plugins
 
-middlewares:
-  # x402 payment gating plugin (custom Verdaccio middleware)
-  # Intercepts requests for @premium/ packages and returns HTTP 402 with invoice
-  x402-gateway:
-    enabled: true
+middlewares: {}
 
 # Auth: HoloMesh wallet verification with htpasswd local fallback
 # When mcp.holoscript.net is down (502), local htpasswd still works
