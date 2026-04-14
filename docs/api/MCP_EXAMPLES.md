@@ -389,6 +389,83 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 
 ---
 
+## MCP config generation
+
+Write your MCP server config once in `.holo`, compile to any IDE format.
+
+### Compile to Claude config
+
+```json
+{ "name": "compile_to_mcp_config", "arguments": {
+    "code": "mcp_servers { server holoscript { @connector(holoscript, transport: \"http\") url: \"https://mcp.holoscript.net/mcp\" @env(HOLOSCRIPT_API_KEY, header: \"Authorization: Bearer\") } }",
+    "target": "claude"
+  }
+}
+```
+
+Returns `~/.mcp/config.json` format with `${HOLOSCRIPT_API_KEY}` interpolation.
+
+### Compile to Antigravity/Gemini config (literal keys)
+
+```json
+{ "name": "compile_to_mcp_config", "arguments": {
+    "code": "mcp_servers { server holoscript { @connector(holoscript, transport: \"http\") url: \"https://mcp.holoscript.net/mcp\" @env(HOLOSCRIPT_API_KEY, header: \"Authorization: Bearer\") } }",
+    "target": "antigravity",
+    "envValues": { "HOLOSCRIPT_API_KEY": "your-actual-key-here" }
+  }
+}
+```
+
+Returns `.gemini/antigravity/mcp_config.json` format with literal key values injected (Antigravity doesn't interpolate `${VAR}`).
+
+### Available targets
+
+| Target | Output format | Credential handling |
+|--------|--------------|-------------------|
+| `claude` | `~/.mcp/config.json` | `${VAR}` interpolation |
+| `vscode` | `.vscode/mcp.json` | `${env:VAR}` syntax |
+| `cursor` | `.cursor/mcp.json` | `${VAR}` interpolation |
+| `antigravity` | `.gemini/.../mcp_config.json` | Literal key injection |
+| `generic` | `mcp.json` | `${VAR}` default |
+
+### Full .holo example
+
+```holo
+mcp_servers {
+  server holoscript_remote {
+    @connector(holoscript, transport: "http")
+    url: "https://mcp.holoscript.net/mcp"
+    @env(HOLOSCRIPT_API_KEY, header: "Authorization: Bearer")
+    description: "HoloScript MCP — compile, parse, team board"
+  }
+
+  server orchestrator {
+    @connector(orchestrator, transport: "http")
+    url: "https://mcp-orchestrator-production-45f9.up.railway.app/mcp"
+    @env(HOLOSCRIPT_API_KEY, header: "x-mcp-api-key")
+    description: "Tool discovery, knowledge federation"
+  }
+
+  server brave_search {
+    @connector(brave, transport: "stdio")
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-brave-search"]
+    @env(BRAVE_API_KEY)
+  }
+
+  server holoscript_local {
+    @connector(holoscript, transport: "stdio")
+    command: "node"
+    args: ["packages/mcp-server/dist/index.js"]
+    cwd: "C:/Users/Josep/Documents/GitHub/HoloScript"
+    @env(HOLOSCRIPT_API_KEY)
+    @env(OPENAI_API_KEY)
+  }
+}
+```
+
+---
+
 ## Tool discovery
 
 ### List all available tools

@@ -280,6 +280,29 @@ Or via MCP:
 { "name": "suggest_tools_for_goal", "arguments": { "goal": "deploy to Railway" } }
 ```
 
+## MCP Config Compiler
+
+Write your MCP server config once in `.holo`, compile to any IDE's format:
+
+```holo
+mcp_servers {
+  server holoscript {
+    @connector(holoscript, transport: "http")
+    url: "https://mcp.holoscript.net/mcp"
+    @env(HOLOSCRIPT_API_KEY, header: "Authorization: Bearer")
+  }
+}
+```
+
+```bash
+# Via MCP tool
+compile_to_mcp_config({ code: "...", target: "claude" })      # → ${VAR} interpolation
+compile_to_mcp_config({ code: "...", target: "antigravity" })  # → literal key injection
+compile_to_mcp_config({ code: "...", target: "vscode" })       # → ${env:VAR} syntax
+```
+
+Solves the problem where some IDEs interpolate `${VAR}` (Claude, VS Code, Cursor) and others don't (Antigravity/Gemini). See [GOLD 041](D:/GOLD/w_gold_041.md).
+
 ## Related Docs
 
 - [REST API Examples](../../docs/api/REST_EXAMPLES.md) — HTTP endpoints
