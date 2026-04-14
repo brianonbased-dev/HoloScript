@@ -50,6 +50,10 @@ COPY packages/connector-github/ packages/connector-github/
 COPY packages/connector-railway/ packages/connector-railway/
 COPY packages/connector-upstash/ packages/connector-upstash/
 COPY packages/connector-vscode/ packages/connector-vscode/
+COPY packages/plugins/ packages/plugins/
+COPY packages/platform/ packages/platform/
+COPY packages/mesh/ packages/mesh/
+COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
@@ -63,6 +67,10 @@ RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/std && npx tsup --no-dts
 RUN cd packages/config && npx tsup --no-dts || true
 RUN cd packages/absorb-service && npx tsup --no-dts
+RUN cd packages/platform && npx tsup --no-dts || true
+RUN cd packages/mesh && npx tsup --no-dts || true
+RUN cd packages/llm-provider && npx tsup --no-dts || true
+RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
 RUN cd packages/ui && npx tsup --no-dts || true
