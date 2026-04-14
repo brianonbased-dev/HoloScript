@@ -451,3 +451,11 @@ packages/*/test-out*.txt
 /read_*.mjs
 .preflight-result.json
 .preflight-history.jsonl
+
+# Large untracked data (training sets, scratch work)
+datasets/
+scratch/
+samples/
+
+# VitePress dev/build cache (regenerated locally)
+docs/.vitepress/cache/
