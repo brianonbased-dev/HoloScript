@@ -130,7 +130,7 @@ curl -s "https://mcp.holoscript.net/health"
 {
   "status": "healthy",
   "service": "holoscript-mcp",
-  "version": "6.0.2",
+  "version": "6.0.4",
   "uptime": 123666,
   "capabilities": ["render", "share", "mcp", "oauth21", "audit"],
   "render_url": "https://mcp.holoscript.net"

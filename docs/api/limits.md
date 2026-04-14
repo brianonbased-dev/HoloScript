@@ -57,7 +57,7 @@ When using all formats together:
 
 | Capability        | Combined Value                      |
 | ----------------- | ----------------------------------- |
-| VR Traits         | 1,800+ (stackable - 20+ per object) |
+| VR Traits         | see `docs/NUMBERS.md` for current count (stackable - 20+ per object) |
 | Lifecycle Hooks   | 80+ (combinable)                    |
 | Builtin Functions | 90+                                 |
 | Import Chains     | Unlimited                           |
@@ -66,7 +66,7 @@ When using all formats together:
 ### The Power Formula
 
 ```
-COMBINED = .holo(∞ scene) × .hsplus(2,000+ traits + 80 hooks) × .ts(logic)
+COMBINED = .holo(∞ scene) × .hsplus(traits + 80 hooks) × .ts(logic)
 PRACTICAL_CAP = 1,000 nodes OR 5 seconds (whichever hits first)
 ```
 

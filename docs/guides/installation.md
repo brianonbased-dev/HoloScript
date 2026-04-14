@@ -21,7 +21,7 @@ Or search **"HoloScript Enhanced"** in the VS Code extensions marketplace.
 - ✅ Error checking and diagnostics
 - ✅ Hover documentation for traits
 - ✅ Code snippets
-- ✅ Live preview (coming soon)
+- ✅ Live preview (planned)
 
 ---
 

@@ -1,6 +1,6 @@
 # @holoscript/traits
 
-**Standard trait library for HoloScript.** 2,000+ semantic trait definitions covering spatial computing, AI, physics, networking, IoT, and more.
+**Standard trait library for HoloScript.** Semantic trait definitions covering spatial computing, AI, physics, networking, IoT, and more.
 
 ## Overview
 
@@ -34,7 +34,7 @@ npm install @holoscript/traits
 npm install @holoscript/core
 ```
 
-## Trait Categories (2,000+)
+## Trait Categories
 
 ### Interaction (200+ traits)
 
@@ -305,7 +305,7 @@ const physicTraits = searchTraits('physics');
 
 ## Reference
 
-- **[Full trait index →](../../guides/traits.md)** — Complete 2,000+ trait catalog
+- **[Full trait index →](../../guides/traits.md)** — Complete trait catalog
 - **[Trait categories →](../../guides/traits.md)** — Browse by domain
 - **[Custom traits guide →](../../guides/extending-traits.md)** — Create your own
 - **[Best practices →](../../guides/traits-best-practices.md)** — Design patterns

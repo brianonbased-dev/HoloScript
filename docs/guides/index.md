@@ -88,6 +88,6 @@ composition "Hello World" {
 - [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
 - [Traits Reference](./traits) - trait categories and usage patterns (inventory changes over time)
 - [Working Tree Triage](./working-tree-triage) - Keep large local change sets cleanly scoped
-- [Release Slice v5.0.1](./release-slice-v5-0-1) - Current patch-train scope and ship criteria
+- [Release Versioning](./release-versioning) - Version policy and current release info
 - [MCP Mesh Operations](./mcp-mesh-operations) - Health checks and first-response recovery
 - [Metrics SSOT](./metrics-ssot) - Canonical commands for targets/tools/traits/package counts

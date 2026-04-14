@@ -15,7 +15,7 @@ Uses temporal sequence modeling to predict user actions and system phase transit
 
 A high-performance associative memory built on Spiking Neural Networks.
 
-- **Function**: Replaces linear vector scans with O(1) spiking retrieval for 2,000+ traits.
+- **Function**: Replaces linear vector scans with O(1) spiking retrieval for the full trait registry.
 - **Hardware**: Powered by WebGPU compute shaders with NIR (Neuromorphic Intermediate Representation) export for silicon.
 
 ### 3. Resonant Convergence

@@ -69,6 +69,6 @@ Compiles to a PlayCanvas scene with a drag-to-rotate 3D model viewer in under 30
 
 ## See Also
 
-- [WebGPU Compiler](/compilers/webgpu) — For cutting-edge browser rendering
+- [WebGPU Compiler](/compilers/webgpu) — Modern browser rendering
 - [Babylon.js Compiler](/compilers/babylon) — Alternative WebGL engine
 - [Three.js Compiler](/compilers/three-js) — Smallest bundle, most flexible

@@ -1,6 +1,6 @@
 # Trait System Architecture
 
-> How HoloScript's 2,000+ traits are defined, registered, resolved, and compiled.
+> How HoloScript's traits are defined, registered, resolved, and compiled.
 
 ## Overview
 
@@ -22,7 +22,7 @@ The trait system is the semantic core of HoloScript. Traits like `@physics`, `@g
 │  TRAIT REGISTRATION                                     │
 │  CrossRealityTraitRegistry                              │
 │  ├── register(trait)           Register single trait    │
-│  ├── registerBuiltinTraits()   Bulk register all 2000+  │
+│  ├── registerBuiltinTraits()   Bulk register all  │
 │  ├── getByCategory(cat)        Query by category        │
 │  └── getAllTraitIds()           List all registered IDs  │
 │  File: src/compiler/platform/CrossRealityTraitRegistry  │
@@ -66,7 +66,7 @@ The trait system is the semantic core of HoloScript. Traits like `@physics`, `@g
 import { CrossRealityTraitRegistry } from '@holoscript/core';
 
 const registry = new CrossRealityTraitRegistry();
-registry.registerBuiltinTraits(); // Load all 2,000+ built-in traits
+registry.registerBuiltinTraits(); // Load all built-in traits
 
 // Register a custom trait
 registry.register({

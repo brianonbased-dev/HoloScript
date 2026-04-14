@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open spatial computing platform — 3 languages, 30+ compile targets, AI agent runtime, visual studio, and 60+ packages',
+    'Open spatial computing platform — 3 languages, 45+ compile targets, AI agent runtime, visual studio, and 60+ packages',
 
   markdown: {
     // Keep custom HoloScript fence names while routing them through a loaded lexer.

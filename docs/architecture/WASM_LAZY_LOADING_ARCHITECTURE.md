@@ -29,7 +29,7 @@ This document defines the architecture for decomposing HoloScript's 24+ export t
   |-- TypeChecker
   |-- 24 Compiler classes (all eagerly imported by ExportManager)
   |-- CircuitBreaker, BundleSplitter, SemanticCache
-  |-- 1,800+ trait definitions
+  |-- trait definitions
 ```
 
 **Problem**: `ExportManager` constructor imports ALL 24 compilers via `CompilerFactory.createCompiler()`, which uses a giant `switch` statement with static imports. Even with tsup code-splitting, the shared dependency graph pulls in most compilers when any one is used.

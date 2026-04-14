@@ -233,5 +233,5 @@ const transformed = transformAST(ast, new AddGlowTransformer());
 ## See Also
 
 - [Compiler package](./compiler.md) — Details on compilation targets
-- [Traits reference](../guides/traits.md) — 2,000+ trait catalog
+- [Traits reference](../guides/traits.md) — trait catalog
 - [Language spec](../language/holoscript-language-spec.md) — Full grammar

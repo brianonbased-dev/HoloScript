@@ -12,8 +12,8 @@ Use this index for current, canonical documentation entry points.
 
 ## Reference
 
-1. **[Traits](./traits/index.md)** - 2,000+ trait categories and examples
-2. **[Compilers](./compilers/index.md)** - 30+ export targets and profiles
+1. **[Traits](./traits/index.md)** - Trait categories and examples
+2. **[Compilers](./compilers/index.md)** - Export targets and profiles (see `NUMBERS.md` for live count)
 3. **[Agents](./agents/index.md)** - Agent protocol and orchestration docs
 4. **[Packages](./packages/index.md)** - Monorepo package map and APIs
 

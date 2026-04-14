@@ -1,6 +1,6 @@
 # Agent MCP Quickstart: Spatial + Economic Superpowers in 60 Seconds
 
-Give any AI agent (Claude, Cursor, Windsurf, CrewAI) spatial and economic superpowers on the **HoloScript AI-Native Spatial Operating System**. Agents can parse, validate, and generate **spatial compositions** and **economic protocols** across 32+ backend targets.
+Give any AI agent (Claude, Cursor, Windsurf, CrewAI) spatial and economic superpowers on the **HoloScript AI-Native Spatial Operating System**. Agents can parse, validate, and generate **spatial compositions** and **economic protocols** across registered backend targets (verify count via `docs/NUMBERS.md`).
 
 ## 1. Connect to the Hosted MCP Server
 
@@ -56,7 +56,7 @@ Once connected, try this prompt to see the multi-agent economy in action:
 
 ## 4. Key Capabilities for Agents
 
-- **`parse_hs` / `parse_holo`**: Understand 2,000+ semantic traits.
+- **`parse_hs` / `parse_holo`**: Understand semantic traits.
 - **`generate_object`**: Text-to-HoloScript (HSPlus/Holo).
 - **`compile_holoscript`**: Deploy to Unity, Unreal, Godot, WebGPU, and 23 others.
 - **`x402_facilitator`**: Autonomous on-chain settlement for agent interactions.

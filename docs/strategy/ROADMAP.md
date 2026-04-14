@@ -2,19 +2,19 @@
 
 _The declarative language for the spatial and autonomous web._
 
-> **Current version: v6.0.2** — shipped 2026-04-06. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current version: v6.0.4** — shipped 2026-04-06. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
 
-## Current State (v6.0.2)
+## Current State (v6.0.4)
 
-v6.0.2 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or exceeded:
+v6.0.4 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or exceeded:
 
-| Metric          | v5.0 Target | v6.0.2 Actual                                                                          |
+| Metric          | v5.0 Target | v6.0.4 Actual                                                                          |
 | --------------- | ----------- | -------------------------------------------------------------------------------------- |
-| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.2, at time of writing)                             |
+| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.4, at time of writing)                             |
 | Traits          | 1,800+      | 3,300+ across 116 categories (at time of writing)                                      |
 | Compile targets | 15          | 40 compilers (12 sovereign + 28 bridge, at time of writing), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
 | MCP tools       | —           | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health`       |
@@ -24,7 +24,7 @@ v6.0.2 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or ex
 | Knowledge store | —           | Entry count via `curl orchestrator.../health`                                          |
 | Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction, at time of writing)                |
 
-What shipped in v6.0.2:
+What shipped in v6.0.4:
 
 - **Studio restructured**: 43 routes → 18, progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`)
 - **Brittney AI**: wired to Claude via Anthropic SDK, 54 tools (13 scene + 29 Studio API + 15 MCP), conversation wizard
@@ -43,7 +43,7 @@ What shipped in v6.0.0-v6.0.1:
 - Publishing protocol (4-layer on-chain: Provenance, Registry, Collect, Remix Revenue)
 - Multi-tenant auth, RBAC across compilers
 - Absorb service extracted as standalone microservice at `absorb.holoscript.net`
-- Agent loop proven: knowledge query -> scene compile -> absorb health -> knowledge sync
+- **The 8-Paper Research Foundation**: Centering trust as an algebraic primitive. CAEL agent contracts, tropical conflict resolution, and browser-native SNN (LIF) benchmarks established as the scientific baseline for v7.0.
 
 ---
 

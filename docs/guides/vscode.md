@@ -87,7 +87,7 @@ Access via Command Palette (`Ctrl/Cmd + Shift + P`):
 | Command                                 | Description                     |
 | --------------------------------------- | ------------------------------- |
 | `HoloScript: Validate File`             | Check current file for errors   |
-| `HoloScript: Preview Scene`             | Launch 3D preview (coming soon) |
+| `HoloScript: Preview Scene`             | Launch 3D preview (planned)     |
 | `HoloScript: Compile to...`             | Compile to target platform      |
 | `HoloScript: Generate from Description` | AI-powered generation           |
 | `HoloScript: Suggest Traits`            | Get trait suggestions           |

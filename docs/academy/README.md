@@ -1,6 +1,6 @@
 # HoloScript Academy
 
-Welcome to HoloScript Academy! This comprehensive learning platform will take you from beginner to expert in creating VR/XR experiences with HoloScript.
+Welcome to HoloScript Academy. Learn to create VR/XR experiences with HoloScript, from first scene to production deployment.
 
 ## Course Structure
 
@@ -21,9 +21,9 @@ Learn the basics of HoloScript and create your first VR scenes.
 | 1.9  | [Project Structure](./level-1-fundamentals/09-project-structure.md)                   | Organizing larger HoloScript projects             | 20 min   |
 | 1.10 | [Building & Deploying](./level-1-fundamentals/10-building.md)                         | Compiling and deploying your VR experience        | 25 min   |
 
-### Level 2: Intermediate (Coming Soon)
+### Level 2: Intermediate
 
-Master advanced features for professional VR development. Topics will include advanced traits, physics, audio, animation, VR UI, state management, networking, performance, debugging, and testing.
+Advanced traits, physics, audio, animation, VR UI, state management, networking, performance, debugging, and testing.
 
 ### Level 3: Advanced (v3.1)
 

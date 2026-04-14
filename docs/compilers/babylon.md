@@ -8,7 +8,7 @@ Compiles HoloScript to TypeScript using the [Babylon.js](https://www.babylonjs.c
 
 Choose Babylon.js when you need:
 
-- Enterprise-grade WebXR with Microsoft backing
+- WebXR with Microsoft backing
 - Built-in PBR materials and the Babylon Inspector debugger
 - Complex physics via Havok or Ammo.js
 - `.babylon` / glTF scene file support

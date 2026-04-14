@@ -10,7 +10,7 @@ The system uses **Predictive Pre-warming** to anticipate your next move. If you 
 
 ### 1. Intent-Based Pre-rendering
 
-As you type or point in VR, Studio calculates the **Semantic Resonance** between your current context and the 2,000+ available traits.
+As you type or point in VR, Studio calculates the **Semantic Resonance** between your current context and the available traits.
 
 - **Result**: Visual previews of traits appear instantly, often before you finish selecting them.
 

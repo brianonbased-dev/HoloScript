@@ -1,6 +1,6 @@
 # Funding HoloScript
 
-HoloScript is an **AI-Native Spatial Operating System** for the agentic era, governed by the HoloScript Foundation. We need your support to sustain development, maintain 30+ compiler backends, and build the future of AI-native spatial infrastructure.
+HoloScript is an **AI-Native Spatial Operating System** for the agentic era, governed by the HoloScript Foundation. We need your support to sustain development, maintain compiler backends (see `docs/NUMBERS.md` for current count), and build the future of AI-native spatial infrastructure.
 
 ---
 
@@ -26,7 +26,7 @@ Unlike proprietary platforms (Unity, Unreal), HoloScript is **neutral infrastruc
 2. **Core Infrastructure**
    - Runtime execution layer (ThreeJSRenderer, physics engine)
    - Parser and AST improvements
-   - Trait system expansion (2,000+ traits → 3,000+)
+   - Trait system expansion (growing — verify via NUMBERS.md)
 
 3. **Developer Experience**
    - VS Code extension enhancements
@@ -222,7 +222,7 @@ Documentation, tutorials, tools:
 Not ready for recurring sponsorship? Make a one-time contribution:
 
 - **GitHub Sponsors**: [github.com/sponsors/brianonbased-dev](https://github.com/sponsors/brianonbased-dev)
-- **Open Collective**: [opencollective.com/holoscript](https://opencollective.com/holoscript) (coming soon)
+- **Open Collective**: [opencollective.com/holoscript](https://opencollective.com/holoscript)
 - **Direct Donation**: [foundation@holoscript.net](mailto:foundation@holoscript.net)
 
 ---

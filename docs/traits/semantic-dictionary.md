@@ -6,7 +6,7 @@ description: Official guidelines, naming conventions, design principles, and bes
 # HoloScript Semantic Dictionary
 
 **Version 0.2** — March 2026  
-**Purpose**: A living, authoritative reference that defines semantic guidelines, naming conventions, design principles, and best practices for creating and extending traits. This ensures traits remain consistent, highly composable, performant across 30+ compile targets, and naturally AI-generatable.
+**Purpose**: A living, authoritative reference that defines semantic guidelines, naming conventions, design principles, and best practices for creating and extending traits. This ensures traits remain consistent, highly composable, performant across all registered compile targets, and naturally AI-generatable.
 
 ## 1. What Is a Semantic Trait?
 
@@ -16,7 +16,7 @@ Traits are **semantic** when they focus on _what_ something is or does in human-
 Good example: `@physics`  
 Poor example: `@addRigidBodyWithColliderAndGravity`
 
-Core traits currently number **1,525+** (with the broader vision targeting **2,000+** across 40+ categories).
+Core trait counts grow with each release — verify via `docs/NUMBERS.md` or `holoscript list-traits`.
 
 ## 2. Core Design Principles
 

@@ -25,7 +25,7 @@ That's it! You now have a live, editable HoloScript scene running.
 - 📝 **Sample scene** in `src/main.holo`
 - 🎨 **Live preview** in the browser
 - 🔄 **Hot reload** — changes appear instantly
-- 📦 **Pre-configured build** for all 30+ platforms
+- 📦 **Pre-configured build** for all registered platforms
 
 ---
 
@@ -95,7 +95,7 @@ npm run build -- --target unreal
 
 Output: `dist/GeneratedScene.cpp` — ready for Unreal Editor.
 
-### Compile to All 30+ Targets at Once
+### Compile to All Targets at Once
 
 ```bash
 npm run build -- --target all
@@ -125,7 +125,7 @@ This returns ready-to-use React code.
 ## Next Steps
 
 1. **[Lesson 1.3: Your First Composition](./03-first-scene.md)** — Deep dive into `.holo` syntax
-2. **[Traits Reference](../../../traits/index.md)** — Explore all 2,000+ traits
+2. **[Traits Reference](../../../traits/index.md)** — Explore the full trait catalog (see `docs/NUMBERS.md` for live counts)
 3. **[Compiler Guide](../../../compilers/index.md)** — Deploy to your platform
 
 ---

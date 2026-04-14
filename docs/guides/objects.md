@@ -116,7 +116,7 @@ composition ball {
 }
 ```
 
-See [VR Traits Reference](/api/traits) for all 2,000+ traits.
+See [VR Traits Reference](/api/traits) for all traits.
 
 ---
 

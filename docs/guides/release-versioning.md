@@ -34,10 +34,10 @@ If they diverge, the workflow fails with a clear error message.
 
 ## Current state (verified from repository)
 
-- npm root `holoscript`: `6.0.2` (from `/package.json`)
-- npm `@holoscript/core`: `6.0.2` (from `packages/core/package.json`)
-- npm `@holoscript/engine`: `6.0.2` (from `packages/engine/package.json`)
-- npm `@holoscript/mcp-server`: `6.0.2` (from `packages/mcp-server/package.json`)
+- npm root `holoscript`: `6.0.4` (from `/package.json`)
+- npm `@holoscript/core`: `6.0.4` (from `packages/core/package.json`)
+- npm `@holoscript/engine`: `6.0.4` (from `packages/engine/package.json`)
+- npm `@holoscript/mcp-server`: `6.0.4` (from `packages/mcp-server/package.json`)
 
 For PyPI package state, verify directly at release time (do not hardcode here):
 

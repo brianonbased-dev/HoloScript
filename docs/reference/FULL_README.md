@@ -46,7 +46,7 @@ MCP tools total (verify count via `curl absorb.holoscript.net/health`). Producti
 
 ### 2. Build — sovereign + bridge compiler fleet
 
-HoloScript ships a mixed sovereign and bridge compiler fleet (30+ targets; verify current counts via health endpoints and ExportTarget registry).
+HoloScript ships a mixed sovereign and bridge compiler fleet (verify current target count via `docs/NUMBERS.md` or the `ExportTarget` registry).
 
 **Sovereign compilers** define what the platform natively IS — agent identity, neural computation, mathematical physics, digital twins, trait composition, real-time state. They don't translate for hardware. They expand the platform's native reality.
 
@@ -214,7 +214,7 @@ Production 3D rendering components. Each is a standalone R3F component:
 | Metric          | Value                                                                 | How to verify                                |
 | --------------- | --------------------------------------------------------------------- | -------------------------------------------- |
 | MCP tools       | Live count (changes with deploys)                                     | `curl mcp.holoscript.net/api/health`         |
-| Compile targets | 30+ target family (sovereign + bridge), ExportTarget registry-backed  | `curl mcp.holoscript.net/health` + code enum |
+| Compile targets | Sovereign + bridge fleet, ExportTarget registry-backed                | `find *Compiler.ts` + code enum              |
 | Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                                   | `packages/holo-vm` + `packages/uaal`         |
 | GPU systems     | 6 WebGPU compute pipelines                                            | `packages/core/src/gpu/shaders/`             |
 | Renderers       | 32 React Three Fiber components                                       | `packages/r3f-renderer/src/components/`      |
@@ -228,7 +228,7 @@ See [NUMBERS.md](../NUMBERS.md) for live verification commands and current count
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
-![version-badge](https://img.shields.io/badge/version-v6.0.2-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v6.0.4-green?style=for-the-badge)
 
 ---
 
@@ -806,7 +806,7 @@ curl -s https://mcp.holoscript.net/api/health
 
 ---
 
-v6.0.2 shipped 2026-04-06. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history and current release notes.
+v6.0.4 shipped 2026-04-06. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history and current release notes.
 
 ---
 

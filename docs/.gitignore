@@ -1,0 +1,12 @@
+# Build artifacts
+.vitepress/cache/
+node_modules/
+
+# Generated files
+api/classes/
+build.log
+compilation-proof.json
+package-lock.json
+
+# Test files that don't belong in docs
+*.test.*

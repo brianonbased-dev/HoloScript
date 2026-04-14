@@ -1,5 +1,0 @@
-composition "HoloScriptLanding" {
-  object "Page" @layout(type: "block") {
-    object "Nav" @theme(className: "landing-nav", tag: "nav") {}
-  }
-}
