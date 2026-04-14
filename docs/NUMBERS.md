@@ -20,7 +20,7 @@
 | R3F renderers | `ls packages/r3f-renderer/src/components/ \| wc -l` | Production components |
 | Absorb tools | `curl absorb.holoscript.net/health` → `tools` | May be down — check first |
 | npm packages | `npm search @holoscript 2>/dev/null \| wc -l` | Published @holoscript/* + create-holoscript |
-| PyPI package | `pip3 show holoscript` | Python bindings (packages/python-bindings) |
+| PyPI package | `pip3 show holoscript` | Core + 6 domain bridge extras (medical, alphafold, astronomy, robotics, scientific, all) |
 | Store packages | `curl store.holoscript.net/-/v1/search?text=holoscript` → `total` | Verdaccio registry |
 
 ## Policy

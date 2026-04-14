@@ -1,6 +1,131 @@
-# holoscript (Python bindings)
+# holoscript
 
-Python bindings for core HoloScript operations.
+Python bindings for [HoloScript](https://github.com/brianonbased-dev/HoloScript) — parse, validate, and bridge domain-specific scientific tools into the HoloScript spatial computing ecosystem.
 
-This package keeps a local development version (`6.0.0.dev0`) in source.
-Release versions are injected by CI from git tags (for example `v6.1.0` -> `6.1.0`).
+## Install
+
+```bash
+pip install holoscript
+```
+
+## Quick Start
+
+```python
+import holoscript
+
+# Parse a .holo composition
+result = holoscript.parse('object Cube { position: [0, 1, 0] }')
+print(result.success)  # True
+print(result.ast)      # {"type": "composition", "source": "..."}
+
+# Validate
+validation = holoscript.validate('object Cube { position: [0, 1, 0] }')
+print(validation.valid)  # True
+
+# List available traits
+traits = holoscript.list_traits()
+print(traits)  # ["@grabbable", "@physics", "@clickable", "@color", "@position"]
+```
+
+## Domain Bridges
+
+HoloScript bridges Python scientific libraries into spatial computing. Install the extras you need:
+
+```bash
+pip install holoscript[medical]           # DICOM imaging
+pip install holoscript[alphafold]         # Protein structure prediction
+pip install holoscript[astronomy]         # Radio astronomy
+pip install holoscript[robotics]          # ROS2 integration
+pip install holoscript[scientific]        # Molecular docking (AutoDock)
+pip install holoscript[all]              # Everything
+```
+
+### Medical — DICOM Bridge
+
+```python
+from holoscript.bridges.medical import load_dicom_series, extract_volume
+
+# Load a DICOM series and extract 3D volume for HoloScript visualization
+series = load_dicom_series("/path/to/dicom/")
+volume = extract_volume(series)
+```
+
+Requires: `pydicom`, `numpy`
+
+### AlphaFold — Protein Structure
+
+```python
+from holoscript.bridges.alphafold import AlphaFoldBridge
+
+bridge = AlphaFoldBridge(api_key="your_key")
+structure = bridge.predict("MKFLILLFNILCLFPVLAADNHGVS")
+```
+
+Requires: `requests`
+
+### Astronomy — Radio Telescope Data
+
+```python
+from holoscript.bridges.radio_astronomy import calculate_synchrotron
+
+flux = calculate_synchrotron({
+    "magnetic_field_gauss": 1e-4,
+    "frequency_hz": 1.4e9
+})
+```
+
+### Robotics — ROS2
+
+```python
+from holoscript.bridges.robotics import ROS2Bridge
+
+bridge = ROS2Bridge("ws://localhost:9090")
+bridge.connect()
+bridge.publish_joint_command("/joint_states", {"position": [0, 0.5, 1.0]})
+```
+
+Requires: `roslibpy`
+
+### Scientific — Molecular Docking
+
+```python
+from holoscript.bridges.scientific import AutoDockBridge
+
+bridge = AutoDockBridge()
+results = bridge.run_docking({
+    "protein_pdb": "receptor.pdb",
+    "ligand_mol": "compound.mol"
+})
+```
+
+## MCP Server
+
+HoloScript also runs as an MCP server with 214 tools (verify via `curl mcp.holoscript.net/health`). The Python package provides local parsing — the MCP server provides compilation, rendering, and deployment.
+
+```bash
+# No auth needed for parsing
+curl -X POST https://mcp.holoscript.net/api/compile \
+  -H "Content-Type: application/json" \
+  -d '{"code": "object Cube { position: [0,1,0] }", "target": "r3f"}'
+```
+
+## npm Ecosystem
+
+The full HoloScript ecosystem is on npm:
+
+```bash
+npx create-holoscript my-app    # Scaffold a project
+npm install @holoscript/core    # Core library
+```
+
+## Links
+
+- [GitHub](https://github.com/brianonbased-dev/HoloScript)
+- [MCP Server](https://mcp.holoscript.net)
+- [Store](https://store.holoscript.net)
+- [npm](https://www.npmjs.com/org/holoscript)
+- [PyPI](https://pypi.org/project/holoscript/)
+
+## License
+
+MIT
