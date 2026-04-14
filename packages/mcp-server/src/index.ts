@@ -109,18 +109,26 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
 
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: ALL_AVAILABLE_TOOLS.map(t => {
-      // Dynamic Appender: Ensure ALL tools explicitly state what they return per Gap 3 Requirements
-      if (!t.description.includes('Returns:') && !t.description.includes('Output:')) {
-        return {
-          ...t,
-          description: t.description + '\n\nReturns: JSON object with execution results. Specific schema omitted, see tool implementation.'
-        };
-      }
-      return t;
-    })
-  };
+  let mappedTools = ALL_AVAILABLE_TOOLS.map(t => {
+    // Dynamic Appender: Ensure ALL tools explicitly state what they return per Gap 3 Requirements
+    const desc = t.description || '';
+    if (!desc.includes('Returns:') && !desc.includes('Output:')) {
+      return {
+        ...t,
+        description: desc + '\n\nReturns: JSON object with execution results. Specific schema omitted, see tool implementation.'
+      };
+    }
+    return t;
+  });
+
+  const limit = parseInt(process.env.HOLOSCRIPT_MAX_TOOLS || '99', 10);
+  if (limit > 0 && mappedTools.length > limit) {
+    const metaTools = mappedTools.filter(t => t.name === 'holoscript_discover_tools' || t.name === 'holoscript_batch_execute');
+    const rest = mappedTools.filter(t => t.name !== 'holoscript_discover_tools' && t.name !== 'holoscript_batch_execute');
+    mappedTools = [...metaTools, ...rest].slice(0, limit);
+  }
+
+  return { tools: mappedTools };
 });
 
 // Single tool executor allowing internal recursive calls

@@ -1111,7 +1111,7 @@ export async function handleKnowledgeRoutes(
     );
 
     if (isPremium && !paymentHeader && !paidAccessStore.has(`${caller.id}:${entryId}`)) {
-      const gateway = new PaymentGateway();
+      const gateway = new (PaymentGateway as any)();
       const resource = `https://mcp.holoscript.net/api/holomesh/entry/${entryId}`;
       const paymentReq = gateway.createPaymentAuthorization(resource, entry.price || 0);
       json(res, 402, {

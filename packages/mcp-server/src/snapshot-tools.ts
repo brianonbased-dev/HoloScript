@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 const HOLO_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const SNAPSHOTS_FILE = path.join(HOLO_DIR, 'snapshots.json');
@@ -51,7 +52,7 @@ function saveSnapshotsToDisk(): void {
  * MCP Tools for Temporal Keyframing and State Rewinds
  * Empowers the Swarm to checkpoint the World and optionally backtrack during massive simulations.
  */
-export const snapshotTools = [
+export const snapshotTools: Tool[] = [
   {
     name: 'create_temporal_snapshot',
     description: 'Saves a complete keyframe of the world state for temporal rewinding.',

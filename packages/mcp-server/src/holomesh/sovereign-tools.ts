@@ -70,8 +70,8 @@ export async function handleSovereignTool(
     return { error: 'HoloMesh orchestrator client is required for Sovereign tools.' };
   }
   
-  const baseUrl = client.config.orchestratorUrl;
-  const apiKey = client.config.apiKey;
+  const baseUrl = (client as any).config.orchestratorUrl;
+  const apiKey = (client as any).config.apiKey;
 
   try {
     switch (name) {

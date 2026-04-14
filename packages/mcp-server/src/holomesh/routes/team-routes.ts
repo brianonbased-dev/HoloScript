@@ -209,7 +209,7 @@ export async function handleTeamRoutes(
         }
         joinedTeam = team;
         teamBoard = team.taskBoard || [];
-        teamMode = (team as Record<string, unknown>).mode as string || 'build';
+        teamMode = ((team as unknown) as Record<string, unknown>).mode as string || 'build';
         break;
       }
     }
@@ -826,6 +826,7 @@ export async function handleTeamRoutes(
             source: 'scout:todo-scan',
             status: 'open',
             createdAt: new Date().toISOString(),
+            priority: 5,
           });
         }
       }

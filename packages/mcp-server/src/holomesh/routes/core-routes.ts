@@ -253,7 +253,7 @@ export async function handleCoreRoutes(
     const entry: MeshKnowledgeEntry = {
       id: entryId,
       workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
-      type: (body.type as string) || 'wisdom',
+      type: ((body.type as string) || 'wisdom') as any,
       content,
       provenanceHash,
       authorId: caller.id,

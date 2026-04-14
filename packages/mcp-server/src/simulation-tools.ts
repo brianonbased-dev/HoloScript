@@ -265,7 +265,7 @@ export async function handleSimulationTool(name: string, args: Record<string, un
     const Sim = await getSimulation();
 
     if (name === 'solve_structural') {
-      const solver = new Sim.StructuralSolverTET10(config as Parameters<typeof Sim.StructuralSolverTET10>[0]);
+      const solver = new Sim.StructuralSolverTET10((config as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
       recorder = new LocalTraceRecorder(name, config);
 
       await Promise.resolve(solver.solve());
@@ -276,7 +276,7 @@ export async function handleSimulationTool(name: string, args: Record<string, un
         safetyFactor: solver.getSafetyFactor(),
       };
     } else {
-      const solver = new Sim.ThermalSolver(config as Parameters<typeof Sim.ThermalSolver>[0]);
+      const solver = new Sim.ThermalSolver((config as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
       recorder = new LocalTraceRecorder(name, config);
 
       const dt = typeof config.timeStep === 'number' ? config.timeStep : 0.01;
@@ -353,10 +353,10 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
     const Sim = await getSimulation();
 
     if (solverType === 'solve_structural') {
-      const solver = new Sim.StructuralSolverTET10((init?.payload?.config ?? {}) as Parameters<typeof Sim.StructuralSolverTET10>[0]);
+      const solver = new Sim.StructuralSolverTET10(((init?.payload?.config ?? {}) as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
       await Promise.resolve(solver.solve());
     } else if (solverType === 'solve_thermal') {
-      const solver = new Sim.ThermalSolver((init?.payload?.config ?? {}) as Parameters<typeof Sim.ThermalSolver>[0]);
+      const solver = new Sim.ThermalSolver(((init?.payload?.config ?? {}) as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
       for (const e of trace) {
         if (e.event === 'step') {
           const dt = Number(e.payload.wallDelta ?? 0.01);

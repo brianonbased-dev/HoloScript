@@ -387,7 +387,7 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     const team = getTeam(teamId);
     const board = team.taskBoard || [];
     const open = board.filter((t: TeamTask) => t.status === 'open');
-    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' || t.status === 'in-progress');
+    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' || (t as any).status === 'in-progress');
     const blocked = board.filter((t: TeamTask) => t.status === 'blocked');
     return {
       success: true,
@@ -574,7 +574,7 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
   try {
     const team = getTeam(teamId) as any;
     if (!team.suggestions) team.suggestions = [];
-    const suggestion = createSuggestion(
+    const suggestion = (createSuggestion as any)(
       team.suggestions,
       title,
       'mcp-agent',
@@ -600,7 +600,7 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   try {
     const team = getTeam(teamId) as any;
     if (!team.suggestions) team.suggestions = [];
-    const result = voteSuggestion(
+    const result = (voteSuggestion as any)(
       team.suggestions,
       sugId,
       'mcp-agent',
@@ -608,7 +608,7 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
       args.reason as string | undefined,
     );
     persistTeamStore();
-    return { success: true, ...result };
+    return { ...result, success: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

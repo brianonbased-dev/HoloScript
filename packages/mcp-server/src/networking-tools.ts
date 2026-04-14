@@ -71,7 +71,7 @@ function broadcastDeltas(deltas: ReturnType<typeof computeDeltas>): void {
  * Gives LLM Agents and remote servers the ability to natively subscribe to
  * and publish push-based state delta increments.
  */
-export const networkingTools = [
+export const networkingTools: Tool[] = [
   {
     name: 'push_state_delta',
     description: 'Push a raw spatial or semantic state delta securely to the Global Sync Mesh. ' +
