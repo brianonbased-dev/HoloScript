@@ -216,7 +216,6 @@ export class UnauthorizedCompilerAccessError extends Error {
   ) {
     super(
       `[${compilerName}] Unauthorized ${operation}: ${decision.reason || 'Access denied'}\n` +
-        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
         `Required Permission: ${decision.requiredPermission || 'unknown'}`
     );
     this.name = 'UnauthorizedCompilerAccessError';
