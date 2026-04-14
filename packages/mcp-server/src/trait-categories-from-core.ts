@@ -73,7 +73,3 @@ export function resolveTraitCategorySlug(input: string): string {
   const legacy = LEGACY_TRAIT_CATEGORY_ALIASES[input];
   return legacy ?? input;
 }
-
-export function traitCategorySlugs(): string[] {
-  return Object.keys(loadTraitCategoriesFromCore()).sort();
-}
