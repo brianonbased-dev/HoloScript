@@ -227,7 +227,11 @@ export class MCPConfigCompiler extends CompilerBase {
       }
     } else {
       // http/sse: url + headers
-      entry.url = server.url;
+      if (this.options.target === 'antigravity') {
+        entry.serverURL = server.url;
+      } else {
+        entry.url = server.url;
+      }
 
       if (this.options.target !== 'antigravity' && server.transport === 'sse') {
         entry.transport = 'sse';

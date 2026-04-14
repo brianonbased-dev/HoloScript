@@ -12,7 +12,7 @@
 
 import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
 import { WorkflowStep } from '@holoscript/platform';
-import type { CulturalProfileMetadata } from '@holoscript/platform';
+import type { CulturalProfileMetadata } from './identity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type {
@@ -29,13 +29,13 @@ import {
   type ANSCapabilityPathValue,
   COMPILER_ANS_MAP,
   isValidCompilerName,
-} from '@holoscript/platform';
+} from './identity';
 import {
   type SpatialZoneEnforcer,
   type SpatialAccessDecision,
   SpatialPermission,
   getSpatialZoneEnforcer,
-} from '@holoscript/platform';
+} from './identity';
 import {
   CompilerDocumentationGenerator,
   type TripleOutputResult,

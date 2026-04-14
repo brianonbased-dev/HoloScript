@@ -26,7 +26,7 @@
  */
 
 import type { CulturalFamily, PromptDialect } from '../../traits/CultureTraits';
-import type { CulturalProfileMetadata } from '@holoscript/platform';
+import type { CulturalProfileMetadata } from '../identity';
 
 // =============================================================================
 // CIF SECTION TYPES

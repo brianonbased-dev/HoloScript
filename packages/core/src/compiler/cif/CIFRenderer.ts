@@ -28,7 +28,7 @@ import type {
   CIFTargetModel,
   CIFPriority,
 } from './CanonicalIntermediateFormat';
-import type { CulturalProfileMetadata } from '@holoscript/platform';
+import type { CulturalProfileMetadata } from '../identity';
 
 // =============================================================================
 // RENDERED PROMPT
