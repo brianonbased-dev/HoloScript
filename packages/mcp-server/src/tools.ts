@@ -754,7 +754,6 @@ export const tools: Tool[] = [
   ...monitoringTools,
   ...holotestTools,
   ...refactorCodegenTools,
-  ...PluginManager.getTools(),
 ];
 
 // Tool name type for type safety

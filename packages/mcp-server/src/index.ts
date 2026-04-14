@@ -109,7 +109,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
 
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  let mappedTools = ALL_AVAILABLE_TOOLS.map(t => {
+  let mappedTools = [...ALL_AVAILABLE_TOOLS, ...PluginManager.getTools()].map(t => {
     // Dynamic Appender: Ensure ALL tools explicitly state what they return per Gap 3 Requirements
     const desc = t.description || '';
     if (!desc.includes('Returns:') && !desc.includes('Output:')) {
