@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.0.3",
+  "version": "6.0.4",
   "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",
@@ -157,14 +157,14 @@
       "require": "./dist/runtime/index.cjs"
     },
     "./runtime/protocols/MQTTClient": {
-      "types": "./dist/runtime/index.d.ts",
-      "import": "./dist/runtime/index.js",
-      "require": "./dist/runtime/index.cjs"
+      "types": "./dist/runtime/protocols/index.d.ts",
+      "import": "./dist/runtime/protocols/index.js",
+      "require": "./dist/runtime/protocols/index.cjs"
     },
     "./runtime/protocols": {
-      "types": "./dist/runtime/index.d.ts",
-      "import": "./dist/runtime/index.js",
-      "require": "./dist/runtime/index.cjs"
+      "types": "./dist/runtime/protocols/index.d.ts",
+      "import": "./dist/runtime/protocols/index.js",
+      "require": "./dist/runtime/protocols/index.cjs"
     },
     "./runtime/BaseVoiceSynthesizer": {
       "types": "./dist/runtime/index.d.ts",
@@ -765,16 +765,6 @@
       "types": "./dist/shader/index.d.ts",
       "import": "./dist/shader/index.js",
       "require": "./dist/shader/index.cjs"
-    },
-    "./runtime/protocols": {
-      "types": "./dist/runtime/protocols/index.d.ts",
-      "import": "./dist/runtime/protocols/index.js",
-      "require": "./dist/runtime/protocols/index.cjs"
-    },
-    "./runtime/protocols/MQTTClient": {
-      "types": "./dist/runtime/protocols/index.d.ts",
-      "import": "./dist/runtime/protocols/index.js",
-      "require": "./dist/runtime/protocols/index.cjs"
     },
     "./*": {
       "types": "./dist/*.d.ts",
