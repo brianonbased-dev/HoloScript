@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 # Release version injected by CI from git tag. Dev version for local use.
-__version__ = "6.0.5"
+__version__ = "6.0.6"
 
 
 @dataclass
