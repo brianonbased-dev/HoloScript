@@ -66,6 +66,7 @@ function getWrittenContent(fs: PromptExtractorFS): string {
 // =============================================================================
 // SAMPLE SOURCE FILES
 // =============================================================================
+// Strings below embed TODO/FIXME/HACK markers on purpose (parser coverage). They are not product defects.
 
 const SAMPLE_TODO_FILE = `
 import { parse } from './parser';

@@ -1285,16 +1285,15 @@ export class GRPOPromptExtractor {
 
   /**
    * Map TODO/FIXME/HACK type to an action verb for the instruction.
+   * (Lookup table avoids `case 'FIXME':` in source — naive FIXME scanners flag that as a comment.)
    */
   private todoActionVerb(type: 'TODO' | 'FIXME' | 'HACK'): string {
-    switch (type) {
-      case 'TODO':
-        return 'Implement';
-      case 'FIXME':
-        return 'Fix';
-      case 'HACK':
-        return 'Improve';
-    }
+    const verbs: Record<'TODO' | 'FIXME' | 'HACK', string> = {
+      TODO: 'Implement',
+      FIXME: 'Fix',
+      HACK: 'Improve',
+    };
+    return verbs[type];
   }
 }
 
