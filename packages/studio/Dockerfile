@@ -62,7 +62,7 @@ RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-eng
 RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/std && npx tsup --no-dts
 RUN cd packages/config && npx tsup --no-dts || true
-RUN cd packages/absorb-service && npx tsup
+RUN cd packages/absorb-service && npx tsup --no-dts
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
 RUN cd packages/ui && npx tsup --no-dts || true

@@ -11,6 +11,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
+import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import type { EnrichedResult, LLMProvider } from '../engine/GraphRAGEngine';
 
 // =============================================================================
@@ -101,13 +102,13 @@ export const graphRagTools: Tool[] = [
 // =============================================================================
 
 // These will be set by codebase-tools.ts when absorb completes
-let cachedEmbeddingIndex: unknown = null;
+let cachedEmbeddingIndex: EmbeddingIndex | null = null;
 let cachedGraphRAGEngine: unknown = null;
 
 /**
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
  */
-export function setGraphRAGState(embeddingIndex: unknown, ragEngine: unknown): void {
+export function setGraphRAGState(embeddingIndex: EmbeddingIndex, ragEngine: unknown): void {
   cachedEmbeddingIndex = embeddingIndex;
   cachedGraphRAGEngine = ragEngine;
 }
@@ -261,7 +262,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           // @ts-ignore - Automatic remediation for TS2339
           cachedGraphRAGEngine.graph ||
           (cachedGraphRAGEngine.constructor as { graph?: unknown }).graph;
-        engine = new GraphRAGEngine(graph, cachedEmbeddingIndex, {
+        engine = new GraphRAGEngine(graph, cachedEmbeddingIndex!, {
           llmProvider: llmAdapter,
           llmModel: llmModel,
         });
