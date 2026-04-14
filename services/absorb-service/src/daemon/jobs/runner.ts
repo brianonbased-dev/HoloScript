@@ -913,6 +913,42 @@ export async function runDaemonJob(
   onProgress(100, 'Complete');
   log('info', `Daemon job complete: ${patches.length} patches, quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}, ${durationMs}ms`);
 
+  // Autonomous Infinity Loop: Escalate unresolved errors to the live board
+  if (currentQuality.typeErrors > 0 && qualityDelta <= 0.01) {
+    log('info', `Daemon plateaued with ${currentQuality.typeErrors} lingering errors. Escalating to Team Board...`);
+    const teamId = process.env.HOLOMESH_TEAM_ID;
+    const authKey = process.env.GEMINI_HOLOMESH_KEY || process.env.HOLOMESH_API_KEY;
+    
+    if (teamId && authKey) {
+      try {
+        const payload = {
+          title: `[Daemon] Resolve Plateaued Errors (${currentQuality.typeErrors} type errors remain)`,
+          description: `### Absorb Daemon Reached Optimization Plateau\n\nThe self-improvement daemon encountered unresolved errors after completing its structural cycles.\n\n**Remaining Errors:** \`${currentQuality.typeErrors} type errors\`\n**Lint Errors:** \`${currentQuality.lintErrors}\`\n**Quality Delta:** ${qualityDelta}\n\nLocal agent should claim this and patch the structural failures manually.`,
+          priority: "high",
+          type: "codebase",
+          agent: null
+        };
+        const res = await fetch(`https://mcp.holoscript.net/api/holomesh/team/${teamId}/board`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          log('info', `Escalated to Team Board successfully`);
+        } else {
+          log('warn', `Board escalation rejected: HTTP ${res.status}`);
+        }
+      } catch (e: any) {
+        log('warn', `Board escalation failed: ${e.message}`);
+      }
+    } else {
+      log('warn', 'Skipping board escalation: missing HOLOMESH_TEAM_ID or Auth Key');
+    }
+  }
+
   const summary = patches.length > 0
     ? `Analyzed ${filesAnalyzed} type errors across ${cyclesCompleted} cycle(s). Produced ${patches.length} patch proposal(s) with quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}.`
     : `Analyzed project in ${cyclesCompleted} cycle(s). No actionable improvements found for the "${profile}" profile.`;
