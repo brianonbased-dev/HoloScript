@@ -43,7 +43,7 @@ graph TB
     mcp["@holoscript/mcp-server<br/>MCP tools + JSON-RPC + REST"]
     cli["@holoscript/cli<br/>CLI: compile, validate, dev-serve"]
     studio["@holoscript/studio<br/>Next.js universal semantic IDE"]
-    create["create-holoscript-app<br/>Zero-config project scaffolding"]
+    create["create-holoscript<br/>Zero-config project scaffolding"]
   end
 
   %% L0 internal
@@ -103,7 +103,7 @@ graph TB
 | L5    | `@holoscript/mcp-server`       | 6.0.2   | MCP tools + REST API                                     |
 | L5    | `@holoscript/cli`              | 6.0.2   | CLI: compile, validate, dev-serve                        |
 | L5    | `@holoscript/studio`           | 6.0.2   | Next.js scene builder (private)                          |
-| L5    | `create-holoscript-app`        | 1.1.0   | Zero-config scaffolding                                  |
+| L5    | `create-holoscript`        | 1.1.0   | Zero-config scaffolding                                  |
 
 ## Dependency Rules
 

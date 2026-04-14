@@ -6,7 +6,7 @@ Welcome! This guide will help you go from zero to a working VR scene in **under 
 
 ```bash
 # 1. Create a new HoloScript project
-npx create-holoscript-app my-first-world
+npx create-holoscript my-first-world
 cd my-first-world
 
 # 2. Install dependencies

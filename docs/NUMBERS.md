@@ -19,6 +19,9 @@
 | Knowledge entries | `curl mcp-orchestrator-production-45f9.up.railway.app/health` → `knowledge_entries` | Orchestrator |
 | R3F renderers | `ls packages/r3f-renderer/src/components/ \| wc -l` | Production components |
 | Absorb tools | `curl absorb.holoscript.net/health` → `tools` | May be down — check first |
+| npm packages | `npm search @holoscript 2>/dev/null \| wc -l` | Published @holoscript/* + create-holoscript |
+| PyPI package | `pip3 show holoscript` | Python bindings (packages/python-bindings) |
+| Store packages | `curl store.holoscript.net/-/v1/search?text=holoscript` → `total` | Verdaccio registry |
 
 ## Policy
 

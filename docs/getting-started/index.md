@@ -5,7 +5,7 @@ Write `.holo`, compile to Unity, Unreal, WebXR, React, VisionOS, ROS 2, and othe
 ## Quickstart (recommended)
 
 ```bash
-npx create-holoscript-app my-world
+npx create-holoscript my-world
 cd my-world
 npm install
 npm run dev

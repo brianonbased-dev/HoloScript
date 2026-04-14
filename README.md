@@ -159,7 +159,7 @@ curl -s -X POST https://mcp.holoscript.net/api/compile \
 **Scaffold a project:**
 
 ```bash
-npx create-holoscript-app my-world
+npx create-holoscript my-world
 cd my-world && npm install && npm run dev
 ```
 

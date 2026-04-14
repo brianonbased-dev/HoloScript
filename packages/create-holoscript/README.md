@@ -1,4 +1,4 @@
-# 🌐 create-holoscript-app
+# 🌐 create-holoscript
 
 **Create HoloScript apps with zero configuration.** Scaffold a working 3D/XR project and see it in your browser in under 2 minutes.
 
@@ -7,7 +7,7 @@
 ## Quick Start
 
 ```bash
-npx create-holoscript-app my-world
+npx create-holoscript my-world
 cd my-world
 npm install
 npm run dev
@@ -44,7 +44,7 @@ Art gallery with clickable glowing panels, portal rings, and a floating sculptur
 ## CLI Options
 
 ```bash
-npx create-holoscript-app <project-name> [options]
+npx create-holoscript <project-name> [options]
 
 Options:
   --template <name>    Template to use (hello-world, physics-playground, interactive-gallery)

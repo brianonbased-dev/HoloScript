@@ -20,7 +20,7 @@ Traditionally, building an app involves mapping abstract data to HTML tags. Holo
 Start immediately using the CLI's dedicated \`2d-revolution\` template:
 
 \`\`\`bash
-npx create-holoscript-app@latest my-dashboard -t 2d-revolution
+npx create-holoscript@latest my-dashboard -t 2d-revolution
 cd my-dashboard
 pnpm install
 pnpm dev

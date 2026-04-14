@@ -27,7 +27,7 @@ Three.js loads from CDN via import maps — zero npm dependencies.
 Want hot reload and build tooling? Switch to the `hello-world` template:
 
 ```bash
-npx create-holoscript-app my-app --template hello-world
+npx create-holoscript my-app --template hello-world
 ```
 
 ## Learn More
