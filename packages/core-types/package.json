@@ -46,7 +46,8 @@
     },
     "./ans": {
       "types": "./dist/ans.d.ts",
-      "import": "./dist/ans.js"
+      "import": "./dist/ans.js",
+      "require": "./dist/ans.cjs"
     }
   },
   "scripts": {
