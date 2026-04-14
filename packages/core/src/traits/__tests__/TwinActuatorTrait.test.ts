@@ -95,7 +95,7 @@ describe('TwinActuatorTrait', () => {
       safe_limits: {},
     };
 
-    const targetVelocity: Vector3 = { x: 5, y: 0, z: 2 };
+    const targetVelocity: Vector3 = [5, 0, 2 ];
 
     twinActuatorHandler.onEvent?.(mockNode, config, mockContext, {
       type: 'twin_command',

@@ -29,8 +29,8 @@ fn spmv_vector(
     @builtin(global_invocation_id) global_id: vec3<u32>,
     @builtin(local_invocation_id) local_id: vec3<u32>
 ) {
-    let tid = local_id.x;
-    let gid = global_id.x;
+    let tid = local_id[0];
+    let gid = global_id[0];
     let threads_per_row = args.vector_width;
     let row = gid / threads_per_row;
     let lane = gid % threads_per_row;
@@ -64,7 +64,7 @@ fn spmv_vector(
 
 @compute @workgroup_size(64)
 fn spmv(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let row = global_id.x;
+    let row = global_id[0];
     if (row >= args.num_rows) {
         return;
     }
@@ -82,7 +82,7 @@ fn spmv(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 @compute @workgroup_size(256)
 fn saxpy(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let idx = global_id.x;
+    let idx = global_id[0];
     if (idx >= args.n) {
         return;
     }
@@ -91,7 +91,7 @@ fn saxpy(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 @compute @workgroup_size(256)
 fn p_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let idx = global_id.x;
+    let idx = global_id[0];
     if (idx >= args.n) {
         return;
     }
@@ -100,7 +100,7 @@ fn p_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 @compute @workgroup_size(256)
 fn vec_copy(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let idx = global_id.x;
+    let idx = global_id[0];
     if (idx >= args.n) {
         return;
     }
@@ -109,7 +109,7 @@ fn vec_copy(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 @compute @workgroup_size(256)
 fn vec_zero(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let idx = global_id.x;
+    let idx = global_id[0];
     if (idx >= args.n) {
         return;
     }
@@ -124,8 +124,8 @@ fn dot_product(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) workgroup_id: vec3<u32>
 ) {
-    let idx = global_id.x;
-    let tid = local_id.x;
+    let idx = global_id[0];
+    let tid = local_id[0];
 
     if (idx < args.n) {
         dot_shared[tid] = vec_in[idx] * vec_out[idx];
@@ -143,7 +143,7 @@ fn dot_product(
     }
 
     if (tid == 0u) {
-        partial_sums[workgroup_id.x] = dot_shared[0];
+        partial_sums[workgroup_id[0]] = dot_shared[0];
     }
 }
 
@@ -151,7 +151,7 @@ var<workgroup> reduce_shared: array<f32, 256>;
 
 @compute @workgroup_size(256)
 fn final_reduce(@builtin(local_invocation_id) local_id: vec3<u32>) {
-    let tid = local_id.x;
+    let tid = local_id[0];
     let count = args.n;
 
     var acc: f32 = 0.0;

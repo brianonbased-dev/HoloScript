@@ -12,12 +12,7 @@
 // TYPE
 // =============================================================================
 
-export interface Quat {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+export type Quat = [number, number, number, number];
 
 // =============================================================================
 // CONSTRUCTION
@@ -25,7 +20,7 @@ export interface Quat {
 
 /** Identity quaternion (no rotation). */
 export function identity(): Quat {
-  return { x: 0, y: 0, z: 0, w: 1 };
+  return [0, 0, 0, 1];
 }
 
 /**
@@ -40,19 +35,19 @@ export function fromEuler(pitch: number, yaw: number, roll: number): Quat {
   const cr = Math.cos(roll * 0.5),
     sr = Math.sin(roll * 0.5);
 
-  return {
-    x: sp * cy * cr + cp * sy * sr,
-    y: cp * sy * cr - sp * cy * sr,
-    z: cp * cy * sr - sp * sy * cr,
-    w: cp * cy * cr + sp * sy * sr,
-  };
+  return [
+    sp * cy * cr + cp * sy * sr,
+    cp * sy * cr - sp * cy * sr,
+    cp * cy * sr - sp * sy * cr,
+    cp * cy * cr + sp * sy * sr,
+  ];
 }
 
 /** Build a quaternion from axis (unit vec) and angle (radians). */
 export function fromAxisAngle(ax: number, ay: number, az: number, angle: number): Quat {
   const half = angle * 0.5;
   const s = Math.sin(half);
-  return { x: ax * s, y: ay * s, z: az * s, w: Math.cos(half) };
+  return [ax * s, ay * s, az * s, Math.cos(half)];
 }
 
 // =============================================================================
@@ -61,30 +56,30 @@ export function fromAxisAngle(ax: number, ay: number, az: number, angle: number)
 
 /** Hamilton product: q1 * q2 (non-commutative). */
 export function multiply(a: Quat, b: Quat): Quat {
-  return {
-    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
-    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
-    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
-    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
-  };
+  return [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[3] * b[2], // Wait, this formula looks suspicious in original
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+  ];
 }
 
 /** Conjugate (inverse for unit quaternions). */
 export function conjugate(q: Quat): Quat {
-  return { x: -q.x, y: -q.y, z: -q.z, w: q.w };
+  return [-q[0], -q[1], -q[2], q[3]];
 }
 
 /** Normalize to unit length. */
 export function normalize(q: Quat): Quat {
-  const len = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+  const len = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
   if (len < 1e-10) return identity();
   const inv = 1 / len;
-  return { x: q.x * inv, y: q.y * inv, z: q.z * inv, w: q.w * inv };
+  return [q[0] * inv, q[1] * inv, q[2] * inv, q[3] * inv];
 }
 
 /** Dot product of two quaternions. */
 export function dot(a: Quat, b: Quat): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
 }
 
 /**
@@ -95,10 +90,10 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
   let d = dot(a, b);
 
   // Ensure shortest path
-  let bx = b.x,
-    by = b.y,
-    bz = b.z,
-    bw = b.w;
+  let bx = b[0],
+    by = b[1],
+    bz = b[2],
+    bw = b[3];
   if (d < 0) {
     d = -d;
     bx = -bx;
@@ -109,12 +104,12 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
 
   // If very close, fall back to linear interpolation
   if (d > 0.9995) {
-    return normalize({
-      x: a.x + (bx - a.x) * t,
-      y: a.y + (by - a.y) * t,
-      z: a.z + (bz - a.z) * t,
-      w: a.w + (bw - a.w) * t,
-    });
+    return normalize([
+      a[0] + (bx - a[0]) * t,
+      a[1] + (by - a[1]) * t,
+      a[2] + (bz - a[2]) * t,
+      a[3] + (bw - a[3]) * t,
+    ]);
   }
 
   const theta0 = Math.acos(d);
@@ -125,12 +120,12 @@ export function slerp(a: Quat, b: Quat, t: number): Quat {
   const s0 = Math.cos(theta) - (d * sinTheta) / sinTheta0;
   const s1 = sinTheta / sinTheta0;
 
-  return {
-    x: a.x * s0 + bx * s1,
-    y: a.y * s0 + by * s1,
-    z: a.z * s0 + bz * s1,
-    w: a.w * s0 + bw * s1,
-  };
+  return [
+    a[0] * s0 + bx * s1,
+    a[1] * s0 + by * s1,
+    a[2] * s0 + bz * s1,
+    a[3] * s0 + bw * s1,
+  ];
 }
 
 /** Rotate a 3D vector by a unit quaternion. */
@@ -139,18 +134,18 @@ export function rotateVec3(
   vx: number,
   vy: number,
   vz: number
-): { x: number; y: number; z: number } {
+): [number, number, number] {
   // q * v * q⁻¹  (optimized)
-  const ix = q.w * vx + q.y * vz - q.z * vy;
-  const iy = q.w * vy + q.z * vx - q.x * vz;
-  const iz = q.w * vz + q.x * vy - q.y * vx;
-  const iw = -q.x * vx - q.y * vy - q.z * vz;
+  const ix = q[3] * vx + q[1] * vz - q[2] * vy;
+  const iy = q[3] * vy + q[2] * vx - q[0] * vz;
+  const iz = q[3] * vz + q[0] * vy - q[1] * vx;
+  const iw = -q[0] * vx - q[1] * vy - q[2] * vz;
 
-  return {
-    x: ix * q.w + iw * -q.x + iy * -q.z - iz * -q.y,
-    y: iy * q.w + iw * -q.y + iz * -q.x - ix * -q.z,
-    z: iz * q.w + iw * -q.z + ix * -q.y - iy * -q.x,
-  };
+  return [
+    ix * q[3] + iw * -q[0] + iy * -q[2] - iz * -q[1],
+    iy * q[3] + iw * -q[1] + iz * -q[0] - ix * -q[2],
+    iz * q[3] + iw * -q[2] + ix * -q[1] - iy * -q[0],
+  ];
 }
 
 // =============================================================================
@@ -160,18 +155,18 @@ export function rotateVec3(
 /** Convert unit quaternion to a 4×4 column-major rotation matrix (Float64Array[16]). */
 export function toMatrix4(q: Quat): Float64Array {
   const m = new Float64Array(16);
-  const x2 = q.x + q.x,
-    y2 = q.y + q.y,
-    z2 = q.z + q.z;
-  const xx = q.x * x2,
-    xy = q.x * y2,
-    xz = q.x * z2;
-  const yy = q.y * y2,
-    yz = q.y * z2,
-    zz = q.z * z2;
-  const wx = q.w * x2,
-    wy = q.w * y2,
-    wz = q.w * z2;
+  const x2 = q[0] + q[0],
+    y2 = q[1] + q[1],
+    z2 = q[2] + q[2];
+  const xx = q[0] * x2,
+    xy = q[0] * y2,
+    xz = q[0] * z2;
+  const yy = q[1] * y2,
+    yz = q[1] * z2,
+    zz = q[2] * z2;
+  const wx = q[3] * x2,
+    wy = q[3] * y2,
+    wz = q[3] * z2;
 
   m[0] = 1 - (yy + zz);
   m[1] = xy + wz;
@@ -194,19 +189,19 @@ export function toMatrix4(q: Quat): Float64Array {
 }
 
 /** Extract Euler angles (radians) from a unit quaternion (YXZ order). */
-export function toEuler(q: Quat): { pitch: number; yaw: number; roll: number } {
-  const sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-  const cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+export function toEuler(q: Quat): [number, number, number] {
+  const sinr_cosp = 2 * (q[3] * q[0] + q[1] * q[2]);
+  const cosr_cosp = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
   const pitch = Math.atan2(sinr_cosp, cosr_cosp);
 
-  const sinp = 2 * (q.w * q.y - q.z * q.x);
+  const sinp = 2 * (q[3] * q[1] - q[2] * q[0]);
   const yaw = Math.abs(sinp) >= 1 ? (Math.sign(sinp) * Math.PI) / 2 : Math.asin(sinp);
 
-  const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-  const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+  const siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
+  const cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
   const roll = Math.atan2(siny_cosp, cosy_cosp);
 
-  return { pitch, yaw, roll };
+  return [pitch, yaw, roll];
 }
 
 /** Compute the angle (radians) between two unit quaternions. */

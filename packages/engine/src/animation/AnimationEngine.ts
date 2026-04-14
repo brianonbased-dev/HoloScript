@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AnimationEngine.ts
  *
@@ -58,7 +59,7 @@ export interface Keyframe<T = number> {
 
 export interface AnimationClip {
   id: string;
-  property: string; // Property path to animate (e.g., 'position.x', 'opacity')
+  property: string; // Property path to animate (e.g., 'position[0]', 'opacity')
   keyframes: Keyframe[];
   duration: number; // Seconds
   loop: boolean;
@@ -84,18 +85,14 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-interface Vec3Like {
-  x?: number;
-  y?: number;
-  z?: number;
-}
+type IVector3 = [number, number, number];
 
-function _lerpVec3(a: Vec3Like, b: Vec3Like, t: number): Vec3Like {
-  return {
-    x: lerp(a.x ?? 0, b.x ?? 0, t),
-    y: lerp(a.y ?? 0, b.y ?? 0, t),
-    z: lerp(a.z ?? 0, b.z ?? 0, t),
-  };
+function _lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
+  return [
+    lerp(a[0], b[0], t),
+    lerp(a[1], b[1], t),
+    lerp(a[2], b[2], t),
+  ];
 }
 
 function interpolateKeyframes(keyframes: Keyframe[], t: number): number {

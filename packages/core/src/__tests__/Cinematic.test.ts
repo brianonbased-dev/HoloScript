@@ -60,7 +60,7 @@ describe('Cycle 144: Cinematic Sequencer', () => {
 
     rig.update(0.5);
     const state = rig.getState();
-    expect(state.position.x).toBeGreaterThan(0);
+    expect(state.position[0]).toBeGreaterThan(0);
   });
 
   it('should apply camera shake with decay', () => {
@@ -107,7 +107,7 @@ describe('Cycle 144: Cinematic Sequencer', () => {
     dir.addActorMark('battle', {
       actorId: 'hero',
       position: [0, 0, 0],
-      rotation: { x: 0, y: 90, z: 0 },
+      rotation: [0, 90, 0 ],
       animation: 'idle',
     });
 

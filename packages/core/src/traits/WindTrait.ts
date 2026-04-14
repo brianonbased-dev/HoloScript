@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Wind Trait
  *
@@ -15,7 +16,7 @@ import type { TraitHandler } from './TraitTypes';
 interface WindState {
   currentStrength: number;
   gustTimer: number;
-  turbulenceOffset: { x: number; y: number; z: number };
+  turbulenceOffset: Vector3;
   time: number;
   isActive: boolean;
 }
@@ -79,7 +80,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     const state: WindState = {
       currentStrength: config.strength,
       gustTimer: 0,
-      turbulenceOffset: { x: 0, y: 0, z: 0 },
+      turbulenceOffset: [0, 0, 0 ],
       time: 0,
       isActive: true,
     };
@@ -88,7 +89,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     // Register wind zone with physics system via event
     context.emit?.('register_wind_zone', {
       node,
-      position: node.position || { x: 0, y: 0, z: 0 },
+      position: node.position || [0, 0, 0 ],
       radius: config.radius,
     });
   },
@@ -136,7 +137,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     state.currentStrength = config.strength * pulseMultiplier * gustMultiplier;
 
     // Request objects in radius and apply wind force via events
-    const windPos = node.position || { x: 0, y: 0, z: 0 };
+    const windPos = node.position || [0, 0, 0 ];
 
     // Emit wind zone update for physics system to apply forces
     context.emit?.('wind_zone_update', {
@@ -186,13 +187,13 @@ export const windHandler: TraitHandler<WindConfig> = {
 function _calculateWindForce(
   state: WindState,
   config: WindConfig,
-  windPos: { x: number; y: number; z: number },
-  objectPos: { x: number; y: number; z: number }
-): { x: number; y: number; z: number } {
+  windPos: Vector3,
+  objectPos: Vector3
+): Vector3 {
   // Calculate distance
-  const dx = objectPos.x - windPos.x;
-  const dy = objectPos.y - windPos.y;
-  const dz = objectPos.z - windPos.z;
+  const dx = objectPos[0] - windPos[0];
+  const dy = objectPos[1] - windPos[1];
+  const dz = objectPos[2] - windPos[2];
   const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   // Calculate falloff
@@ -206,30 +207,30 @@ function _calculateWindForce(
     falloff = 1 - ratio * ratio;
   }
 
-  if (falloff <= 0) return { x: 0, y: 0, z: 0 };
+  if (falloff <= 0) return [0, 0, 0 ];
 
   // Apply turbulence to direction
   const dir = {
-    x: config.direction[0] + state.turbulenceOffset.x,
-    y: config.direction[1] + state.turbulenceOffset.y,
-    z: config.direction[2] + state.turbulenceOffset.z,
+    x: config.direction[0] + state.turbulenceOffset[0],
+    y: config.direction[1] + state.turbulenceOffset[1],
+    z: config.direction[2] + state.turbulenceOffset[2],
   };
 
   // Normalize
-  const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+  const len = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
   if (len > 0) {
-    dir.x /= len;
-    dir.y /= len;
-    dir.z /= len;
+    dir[0] /= len;
+    dir[1] /= len;
+    dir[2] /= len;
   }
 
   // Calculate final force
   const forceMag = state.currentStrength * falloff;
 
   return {
-    x: dir.x * forceMag,
-    y: dir.y * forceMag,
-    z: dir.z * forceMag,
+    x: dir[0] * forceMag,
+    y: dir[1] * forceMag,
+    z: dir[2] * forceMag,
   };
 }
 

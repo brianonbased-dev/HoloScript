@@ -19,7 +19,7 @@ function makeClip(id: string, duration: number): AnimationClip {
     speed: 1,
     tracks: [
       {
-        targetProperty: 'position.y',
+        targetProperty: 'position[1]',
         keyframes: [
           { time: 0, value: 0 },
           { time: duration, value: 1 },
@@ -34,7 +34,7 @@ function makePose(boneIds: string[], y: number): BonePose[] {
   return boneIds.map((id) => ({
     boneId: id,
     position: { x: 0, y, z: 0 },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    rotation: [0, 0, 0, 1 ],
   }));
 }
 
@@ -118,8 +118,8 @@ describe('Cycle 107: Animation Graph System', () => {
 
     // Advance half way (t = 1.0 of 2.0 duration)
     const output = graph.update(1.0);
-    expect(output.has('position.y')).toBe(true);
-    expect(output.get('position.y')!).toBeCloseTo(0.5, 1);
+    expect(output.has('position[1]')).toBe(true);
+    expect(output.get('position[1]')!).toBeCloseTo(0.5, 1);
   });
 
   // -------------------------------------------------------------------------
@@ -141,7 +141,7 @@ describe('Cycle 107: Animation Graph System', () => {
     expect(result.has('entity1')).toBe(true);
     const blended = result.get('entity1')!;
     // Should be halfway between anim (y=1) and ragdoll (y=0)
-    expect(blended[0].position.y).toBeCloseTo(0.5, 1);
+    expect(blended[0].position[1]).toBeCloseTo(0.5, 1);
 
     // Complete
     system.update(0.3, ragdollPoses, animPoses);

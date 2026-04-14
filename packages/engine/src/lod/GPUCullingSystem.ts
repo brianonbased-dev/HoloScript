@@ -135,15 +135,15 @@ fn sphereInFrustum(center: vec3<f32>, radius: f32, frustum: array<vec4<f32>, 6>)
 }
 
 fn selectLODLevel(distance: f32, lodDistances: vec4<f32>) -> u32 {
-  if (distance < lodDistances.x) { return 0u; }
-  if (distance < lodDistances.y) { return 1u; }
-  if (distance < lodDistances.z) { return 2u; }
+  if (distance < lodDistances[0]) { return 0u; }
+  if (distance < lodDistances[1]) { return 1u; }
+  if (distance < lodDistances[2]) { return 2u; }
   return 3u;
 }
 
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-  let objectIndex = global_id.x;
+  let objectIndex = global_id[0];
   if (objectIndex >= arrayLength(&objects)) {
     return;
   }
@@ -196,13 +196,13 @@ struct ObjectData {
 
 fn projectSphere(center: vec3<f32>, radius: f32, viewProj: mat4x4<f32>) -> vec4<f32> {
   let clipPos = viewProj * vec4<f32>(center, 1.0);
-  let ndcPos = clipPos.xyz / clipPos.w;
+  let ndcPos = clipPos.xyz / clipPos[3];
 
   // Calculate screen-space radius
   let rightOffset = viewProj * vec4<f32>(center + vec3<f32>(radius, 0.0, 0.0), 1.0);
-  let screenRadius = length((rightOffset.xy / rightOffset.w) - ndcPos.xy);
+  let screenRadius = length((rightOffset.xy / rightOffset[3]) - ndcPos.xy);
 
-  return vec4<f32>(ndcPos.xy, ndcPos.z, screenRadius);
+  return vec4<f32>(ndcPos.xy, ndcPos[2], screenRadius);
 }
 
 fn isOccluded(screenPos: vec2<f32>, depth: f32, radius: f32, hiZ: texture_2d<f32>) -> bool {
@@ -211,7 +211,7 @@ fn isOccluded(screenPos: vec2<f32>, depth: f32, radius: f32, hiZ: texture_2d<f32
 
   // Select appropriate mip level based on screen size
   let texSize = vec2<f32>(textureDimensions(hiZ, 0));
-  let pixelRadius = radius * texSize.x;
+  let pixelRadius = radius * texSize[0];
   let mipLevel = max(0.0, log2(pixelRadius));
 
   // Sample Hi-Z buffer
@@ -223,7 +223,7 @@ fn isOccluded(screenPos: vec2<f32>, depth: f32, radius: f32, hiZ: texture_2d<f32
 
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-  let objectIndex = global_id.x;
+  let objectIndex = global_id[0];
   if (objectIndex >= arrayLength(&objects)) {
     return;
   }
@@ -234,7 +234,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let projected = projectSphere(object.position, object.radius, camera.viewProj);
 
   // Check occlusion
-  let occluded = isOccluded(projected.xy, projected.z, projected.w, hiZTexture);
+  let occluded = isOccluded(projected.xy, projected[2], projected[3], hiZTexture);
 
   if (!occluded) {
     // Calculate distance and LOD
@@ -256,7 +256,7 @@ const HIZ_GENERATION_SHADER = /* wgsl */ `
 @compute @workgroup_size(8, 8, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let outSize = textureDimensions(outputTexture);
-  if (global_id.x >= outSize.x || global_id.y >= outSize.y) {
+  if (global_id[0] >= outSize[0] || global_id[1] >= outSize[1]) {
     return;
   }
 

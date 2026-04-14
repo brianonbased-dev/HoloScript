@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIPanelConfig {
@@ -22,10 +23,10 @@ export function createUIPanel(
     type: 'object',
     name: `Panel_${id}`,
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       geometry: 'box',
-      scale: { x: width, y: height, z: 0.01 },
+      scale: [width, height, 0.01 ],
       color: config.color || '#222222',
       physics: { type: 'kinematic' }, // Rigid panel
     },

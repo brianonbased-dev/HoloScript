@@ -12,13 +12,13 @@ function v3(x = 0, y = 0, z = 0): IVector3 {
   return { x, y, z };
 }
 function q() {
-  return { x: 0, y: 0, z: 0, w: 1 };
+  return [0, 0, 0, 1 ];
 }
 
 function body(id: string, pos: IVector3 = v3()): IRigidBodyState {
   return {
     id,
-    position: { ...pos },
+    position: [...pos  ],
     rotation: q(),
     linearVelocity: v3(),
     angularVelocity: v3(),

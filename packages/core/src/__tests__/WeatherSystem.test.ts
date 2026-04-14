@@ -43,7 +43,7 @@ describe('WeatherSystem', () => {
   it('setWind updates wind state', () => {
     ws.setWind(1, 0, 0, 10);
     expect(ws.getState().wind.speed).toBe(10);
-    expect(ws.getState().wind.x).toBe(1);
+    expect(ws.getState().wind[0]).toBe(1);
   });
 
   it('setTemperature updates temperature', () => {

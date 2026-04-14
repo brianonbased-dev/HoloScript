@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 export * from './ParticleSystem';
 export * from './ParticleAffectors';
 export { ParticlePresets } from './ParticlePresets';

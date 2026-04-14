@@ -7,10 +7,10 @@ import { TriggerTrait, createTriggerTrait } from '../TriggerTrait';
 describe('TriggerTrait constructor defaults', () => {
   const t = new TriggerTrait();
   it('shape=box', () => expect(t.getConfig().shape).toBe('box'));
-  it('size={1,1,1}', () => expect(t.getConfig().size).toEqual({ x: 1, y: 1, z: 1 }));
+  it('size={1,1,1}', () => expect(t.getConfig().size).toEqual([1, 1, 1 ]));
   it('radius=0.5', () => expect(t.getConfig().radius).toBe(0.5));
   it('height=1', () => expect(t.getConfig().height).toBe(1));
-  it('center={0,0,0}', () => expect(t.getConfig().center).toEqual({ x: 0, y: 0, z: 0 }));
+  it('center={0,0,0}', () => expect(t.getConfig().center).toEqual([0, 0, 0 ]));
   it('layer=0', () => expect(t.getConfig().layer).toBe(0));
   it('layerMask=-1', () => expect(t.getConfig().layerMask).toBe(-1));
   it('filterTags=[]', () => expect(t.getConfig().filterTags).toEqual([]));
@@ -29,8 +29,8 @@ describe('TriggerTrait shape/size setters', () => {
   });
   it('setSize', () => {
     const t = new TriggerTrait();
-    t.setSize({ x: 10, y: 5, z: 2 });
-    expect(t.getConfig().size).toEqual({ x: 10, y: 5, z: 2 });
+    t.setSize([10, 5, 2 ]);
+    expect(t.getConfig().size).toEqual([10, 5, 2 ]);
   });
   it('setRadius clamps negative to 0', () => {
     const t = new TriggerTrait();
@@ -39,8 +39,8 @@ describe('TriggerTrait shape/size setters', () => {
   });
   it('setCenter', () => {
     const t = new TriggerTrait();
-    t.setCenter({ x: 1, y: 2, z: 3 });
-    expect(t.getConfig().center).toEqual({ x: 1, y: 2, z: 3 });
+    t.setCenter([1, 2, 3 ]);
+    expect(t.getConfig().center).toEqual([1, 2, 3 ]);
   });
   it('setLayerMask', () => {
     const t = new TriggerTrait();

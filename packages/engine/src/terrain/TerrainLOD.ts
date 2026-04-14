@@ -119,8 +119,8 @@ export class TerrainLOD {
     this.activeChunks.clear();
 
     for (const chunk of this.chunks.values()) {
-      const cx = chunk.x + chunk.size / 2;
-      const cz = chunk.z + chunk.size / 2;
+      const cx = chunk[0] + chunk.size / 2;
+      const cz = chunk[2] + chunk.size / 2;
       const dx = cx - cameraX;
       const dz = cz - cameraZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
@@ -158,13 +158,13 @@ export class TerrainLOD {
       if (other.id === chunkId || !other.active || other.level === chunk.level) continue;
 
       // Check adjacency
-      if (Math.abs(other.z + other.size - chunk.z) < 0.1 && this.overlapsX(chunk, other))
+      if (Math.abs(other[2] + other.size - chunk[2]) < 0.1 && this.overlapsX(chunk, other))
         result.north = true;
-      if (Math.abs(chunk.z + chunk.size - other.z) < 0.1 && this.overlapsX(chunk, other))
+      if (Math.abs(chunk[2] + chunk.size - other[2]) < 0.1 && this.overlapsX(chunk, other))
         result.south = true;
-      if (Math.abs(other.x + other.size - chunk.x) < 0.1 && this.overlapsZ(chunk, other))
+      if (Math.abs(other[0] + other.size - chunk[0]) < 0.1 && this.overlapsZ(chunk, other))
         result.west = true;
-      if (Math.abs(chunk.x + chunk.size - other.x) < 0.1 && this.overlapsZ(chunk, other))
+      if (Math.abs(chunk[0] + chunk.size - other[0]) < 0.1 && this.overlapsZ(chunk, other))
         result.east = true;
     }
 
@@ -172,11 +172,11 @@ export class TerrainLOD {
   }
 
   private overlapsX(a: TerrainChunk, b: TerrainChunk): boolean {
-    return a.x < b.x + b.size && a.x + a.size > b.x;
+    return a[0] < b[0] + b.size && a[0] + a.size > b[0];
   }
 
   private overlapsZ(a: TerrainChunk, b: TerrainChunk): boolean {
-    return a.z < b.z + b.size && a.z + a.size > b.z;
+    return a[2] < b[2] + b.size && a[2] + a.size > b[2];
   }
 
   // ---------------------------------------------------------------------------
@@ -199,9 +199,9 @@ export class TerrainLOD {
   sampleHeight(x: number, z: number): number {
     for (const chunk of this.chunks.values()) {
       if (!chunk.active) continue;
-      if (x >= chunk.x && x < chunk.x + chunk.size && z >= chunk.z && z < chunk.z + chunk.size) {
-        const lx = (x - chunk.x) / chunk.size;
-        const lz = (z - chunk.z) / chunk.size;
+      if (x >= chunk[0] && x < chunk[0] + chunk.size && z >= chunk[2] && z < chunk[2] + chunk.size) {
+        const lx = (x - chunk[0]) / chunk.size;
+        const lz = (z - chunk[2]) / chunk.size;
         const col = Math.min(chunk.resolution - 1, Math.floor(lx * (chunk.resolution - 1)));
         const row = Math.min(chunk.resolution - 1, Math.floor(lz * (chunk.resolution - 1)));
         return chunk.heightData[row * chunk.resolution + col];

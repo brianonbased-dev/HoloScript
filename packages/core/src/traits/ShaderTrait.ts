@@ -16,7 +16,7 @@
  *     fragment: `
  *       uniform float time;
  *       void main() {
- *         float scanline = sin(gl_FragCoord.y * 0.5 + time * 2.0) * 0.1;
+ *         float scanline = sin(gl_FragCoord[1] * 0.5 + time * 2.0) * 0.1;
  *         gl_FragColor = vec4(0.0, 1.0, 1.0, 0.5 + scanline);
  *       }
  *     `,
@@ -246,11 +246,11 @@ float snoise(vec2 v) {
                       -0.577350269189626, 0.024390243902439);
   vec2 i  = floor(v + dot(v, C.yy));
   vec2 x0 = v -   i + dot(i, C.xx);
-  vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec2 i1 = (x0[0] > x0[1]) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
   vec4 x12 = x0.xyxy + C.xxzz;
   x12.xy -= i1;
   i = mod289(i);
-  vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+  vec3 p = permute(permute(i[1] + vec3(0.0, i1[1], 1.0)) + i[0] + vec3(0.0, i1[0], 1.0));
   vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
   m = m*m;
   m = m*m;
@@ -260,7 +260,7 @@ float snoise(vec2 v) {
   vec3 a0 = x - ox;
   m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
   vec3 g;
-  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g[0]  = a0[0]  * x0[0]  + h[0]  * x0[1];
   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
   return 130.0 * dot(m, g);
 }
@@ -270,7 +270,7 @@ float snoise(vec2 v) {
   hologram: `
 // Hologram scanline effect
 float hologramScanline(vec2 uv, float time, float density) {
-  return sin(uv.y * density + time * 2.0) * 0.5 + 0.5;
+  return sin(uv[1] * density + time * 2.0) * 0.5 + 0.5;
 }
 
 // Hologram flicker
@@ -336,7 +336,7 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 vec2 rotateUV(vec2 uv, float angle) {
   float c = cos(angle);
   float s = sin(angle);
-  return vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
+  return vec2(c * uv[0] - s * uv[1], s * uv[0] + c * uv[1]);
 }
 
 // Tile UV
@@ -347,7 +347,7 @@ vec2 tileUV(vec2 uv, vec2 scale) {
 // Parallax mapping
 vec2 parallaxUV(vec2 uv, vec3 viewDir, sampler2D heightMap, float scale) {
   float height = texture2D(heightMap, uv).r;
-  vec2 p = viewDir.xy / viewDir.z * (height * scale);
+  vec2 p = viewDir.xy / viewDir[2] * (height * scale);
   return uv - p;
 }
 `,
@@ -690,7 +690,7 @@ void main() {
   float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.0);
   
   // Scanlines
-  float scanline = sin(vUv.y * 100.0 + time * 2.0) * scanlineIntensity;
+  float scanline = sin(vUv[1] * 100.0 + time * 2.0) * scanlineIntensity;
   
   // Flicker
   float flicker = 0.9 + flickerIntensity * sin(time * 20.0) * sin(time * 13.0);
@@ -743,14 +743,14 @@ varying vec3 vNormal;
 varying vec3 vWorldPosition;
 
 float hexPattern(vec2 p) {
-  vec2 q = vec2(p.x * 2.0 * 0.5773503, p.y + p.x * 0.5773503);
+  vec2 q = vec2(p[0] * 2.0 * 0.5773503, p[1] + p[0] * 0.5773503);
   vec2 pi = floor(q);
   vec2 pf = fract(q);
-  float v = mod(pi.x + pi.y, 3.0);
+  float v = mod(pi[0] + pi[1], 3.0);
   float ca = step(1.0, v);
   float cb = step(2.0, v);
   vec2 ma = step(pf.xy, pf.yx);
-  float e = dot(ma, 1.0 - pf.yx + ca * (pf.x + pf.y - 1.0) + cb * (pf.yx - 2.0 * pf.xy));
+  float e = dot(ma, 1.0 - pf.yx + ca * (pf[0] + pf[1] - 1.0) + cb * (pf.yx - 2.0 * pf.xy));
   return e;
 }
 

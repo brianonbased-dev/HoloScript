@@ -90,17 +90,17 @@ describe('Skeletal & IK Performance', () => {
           {
             id: `b1-${c}`,
             position: [0, 0, 0],
-            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            rotation: [0, 0, 0, 1 ],
             length: 0.3,
           },
           {
             id: `b2-${c}`,
             position: [0.3, 0, 0],
-            rotation: { x: 0, y: 0, z: 0, w: 1 },
+            rotation: [0, 0, 0, 1 ],
             length: 0.3,
           },
         ],
-        target: { x: 0.5, y: 0.2, z: 0 },
+        target: [0.5, 0.2, 0],
         weight: 1,
         iterations: 20,
       });
@@ -132,8 +132,8 @@ describe('ECS Performance', () => {
   bench('component store: add + query 1000', () => {
     const store = new ComponentStore();
     for (let i = 0; i < 1000; i++) {
-      store.set(i, 'position', { x: i, y: i * 2, z: 0 });
-      store.set(i, 'velocity', { x: 0, y: 0, z: -1 });
+      store.set(i, 'position', [i, i * 2, 0]);
+      store.set(i, 'velocity', [0, 0, -1]);
     }
     // Query all with both components
     const results: number[] = [];

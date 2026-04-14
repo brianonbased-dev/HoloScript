@@ -39,8 +39,8 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
     if (!state) return;
 
     if (config.include_physics) {
-      const pos = context.physics.getBodyPosition?.(node.id || '') || { x: 0, y: 0, z: 0 };
-      const vel = context.physics.getBodyVelocity?.(node.id || '') || { x: 0, y: 0, z: 0 };
+      const pos = context.physics.getBodyPosition?.(node.id || '') || [0, 0, 0 ];
+      const vel = context.physics.getBodyVelocity?.(node.id || '') || [0, 0, 0 ];
 
       state.buffer.push({
         type: 'physics',

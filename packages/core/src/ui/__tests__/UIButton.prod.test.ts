@@ -16,14 +16,14 @@ describe('createUIButton — Production', () => {
 
   it('applies default dimensions', () => {
     const node = createUIButton('btn1', {});
-    expect(node.properties.scale.x).toBeCloseTo(0.2);
-    expect(node.properties.scale.y).toBeCloseTo(0.1);
+    expect(node.properties.scale[0]).toBeCloseTo(0.2);
+    expect(node.properties.scale[1]).toBeCloseTo(0.1);
   });
 
   it('applies custom dimensions', () => {
     const node = createUIButton('btn1', { width: 0.4, height: 0.2, depth: 0.1 });
-    expect(node.properties.scale.x).toBeCloseTo(0.4);
-    expect(node.properties.scale.y).toBeCloseTo(0.2);
+    expect(node.properties.scale[0]).toBeCloseTo(0.4);
+    expect(node.properties.scale[1]).toBeCloseTo(0.2);
   });
 
   it('creates button child', () => {

@@ -26,7 +26,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
   defaultValue: {
     hand: 'left',
     trigger: 'palm_up',
-    offset: { x: 0, y: 0.2, z: 0 },
+    offset: [0, 0.2, 0 ],
     scale: 1,
   },
 
@@ -34,7 +34,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     const spring = new SpringAnimator(0, SpringPresets.gentle);
     menuSprings.set(node.id!, spring);
     if (node.properties) {
-      node.properties.scale = { x: 0, y: 0, z: 0 };
+      node.properties.scale = [0, 0, 0 ];
       node.properties!.opacity = 0;
     }
   },
@@ -62,29 +62,29 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     if (!hand) {
       if (node.properties) {
         const s = visibility * (config.scale || 1);
-        node.properties.scale = { x: s, y: s, z: s };
+        node.properties.scale = [s, s, s ];
         node.properties!.opacity = visibility;
       }
       return;
     }
 
     // Position: Smooth follow via lerp
-    const targetPos = add(hand.position, config.offset || { x: 0, y: 0.2, z: 0 });
+    const targetPos = add(hand.position, config.offset || [0, 0.2, 0 ]);
     const currentPos: unknown = node.properties?.position || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
     const newPos = {
       // @ts-expect-error
-      x: (currentPos.x ?? 0) + ((targetPos.x ?? 0) - (currentPos.x ?? 0)) * lerpFactor,
+      x: (currentPos[0] ?? 0) + ((targetPos[0] ?? 0) - (currentPos[0] ?? 0)) * lerpFactor,
       // @ts-expect-error
-      y: (currentPos.y ?? 0) + ((targetPos.y ?? 0) - (currentPos.y ?? 0)) * lerpFactor,
+      y: (currentPos[1] ?? 0) + ((targetPos[1] ?? 0) - (currentPos[1] ?? 0)) * lerpFactor,
       // @ts-expect-error
-      z: (currentPos.z ?? 0) + ((targetPos.z ?? 0) - (currentPos.z ?? 0)) * lerpFactor,
+      z: (currentPos[2] ?? 0) + ((targetPos[2] ?? 0) - (currentPos[2] ?? 0)) * lerpFactor,
     };
 
     if (node.properties) {
       node.properties.position = newPos;
       const s = visibility * (config.scale || 1);
-      node.properties.scale = { x: s, y: s, z: s };
+      node.properties.scale = [s, s, s ];
       node.properties!.opacity = visibility;
     }
   },

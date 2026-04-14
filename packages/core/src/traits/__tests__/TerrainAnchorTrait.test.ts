@@ -46,7 +46,7 @@ describe('TerrainAnchorTrait', () => {
       terrainHeight: 50,
       confidence: 0.95,
       position: [1, 50, 2],
-      surfaceNormal: { x: 0, y: 1, z: 0 },
+      surfaceNormal: [0, 1, 0 ],
     });
     const s = (node as any).__terrainAnchorState;
     expect(s.state).toBe('resolved');

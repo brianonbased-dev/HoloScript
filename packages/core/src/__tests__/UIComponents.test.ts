@@ -17,8 +17,8 @@ describe('createUIButton', () => {
 
   it('uses default dimensions when none specified', () => {
     const btn = createUIButton('btn', {});
-    expect(btn.properties.scale.x).toBe(0.2); // Default width
-    expect(btn.properties.scale.y).toBe(0.1); // Default height
+    expect(btn.properties.scale[0]).toBe(0.2); // Default width
+    expect(btn.properties.scale[1]).toBe(0.1); // Default height
   });
 
   it('applies custom config', () => {
@@ -71,13 +71,13 @@ describe('createUISlider', () => {
 
   it('applies correct axis to track scale', () => {
     const slider = createUISlider('s', { axis: 'y', length: 0.5 });
-    expect(slider.properties.scale.y).toBe(0.5);
-    expect(slider.properties.scale.x).toBe(0.01); // Other axes stay thin
+    expect(slider.properties.scale[1]).toBe(0.5);
+    expect(slider.properties.scale[0]).toBe(0.01); // Other axes stay thin
   });
 
   it('defaults to x axis and 0.3m length', () => {
     const slider = createUISlider('s', {});
-    expect(slider.properties.scale.x).toBe(0.3);
+    expect(slider.properties.scale[0]).toBe(0.3);
   });
 
   it('attaches slidable + grabbable traits to handle', () => {

@@ -211,7 +211,7 @@ describe('heatmap3dHandler.onUpdate — animation path', () => {
     heatmap3dHandler.onUpdate!(node as any, config, ctx as any, 0.1); // +0.1 → 0.5
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'heatmap_render');
     expect(call).toBeDefined();
-    // At t=0.5: position.x = 0 + (2-0)*0.5 = 1, value = 0 + (1-0)*0.5 = 0.5
+    // At t=0.5: position[0] = 0 + (2-0)*0.5 = 1, value = 0 + (1-0)*0.5 = 0.5
     expect(call![1].data[0].position[0]).toBeCloseTo(1, 1);
     expect(call![1].data[0].value).toBeCloseTo(0.5, 1);
   });

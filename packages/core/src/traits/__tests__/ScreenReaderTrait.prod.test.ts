@@ -54,7 +54,7 @@ describe('screenReaderHandler.onAttach', () => {
     expect((attachNode().node as any).__screenReaderState.childNodes).toEqual([]));
   it('captures initial position from node.position', () => {
     const { node } = attachNode({}, { position: [1, 2, 3] });
-    expect((node as any).__screenReaderState.lastPosition).toEqual({ x: 1, y: 2, z: 3 });
+    expect((node as any).__screenReaderState.lastPosition).toEqual([1, 2, 3 ]);
   });
   it('emits screen_reader_register with order, semanticStructure, readingMode', () => {
     const { ctx } = attachNode({
@@ -121,18 +121,18 @@ describe('screenReaderHandler.onUpdate — position changes', () => {
   it('updates lastPosition and sonifies when distMoved>0.5 + focused + sonify_position=true', () => {
     const { node, cfg, ctx } = attachNode({ announce_changes: true, sonify_position: true });
     (node as any).__screenReaderState.isFocused = true;
-    (node as any).__screenReaderState.lastPosition = { x: 0, y: 0, z: 0 };
-    node.position = { x: 2, y: 0, z: 0 };
+    (node as any).__screenReaderState.lastPosition = [0, 0, 0 ];
+    node.position = [2, 0, 0 ];
     ctx.emit.mockClear();
     screenReaderHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect((node as any).__screenReaderState.lastPosition).toEqual({ x: 2, y: 0, z: 0 });
+    expect((node as any).__screenReaderState.lastPosition).toEqual([2, 0, 0 ]);
     expect(ctx.emit).toHaveBeenCalledWith('screen_reader_sonify', expect.any(Object));
   });
   it('does NOT sonify when dist ≤ 0.5', () => {
     const { node, cfg, ctx } = attachNode({ announce_changes: true, sonify_position: true });
     (node as any).__screenReaderState.isFocused = true;
-    (node as any).__screenReaderState.lastPosition = { x: 0, y: 0, z: 0 };
-    node.position = { x: 0.1, y: 0, z: 0 };
+    (node as any).__screenReaderState.lastPosition = [0, 0, 0 ];
+    node.position = [0.1, 0, 0 ];
     ctx.emit.mockClear();
     screenReaderHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('screen_reader_sonify', expect.any(Object));
@@ -140,8 +140,8 @@ describe('screenReaderHandler.onUpdate — position changes', () => {
   it('does NOT sonify when not focused', () => {
     const { node, cfg, ctx } = attachNode({ announce_changes: true, sonify_position: true });
     (node as any).__screenReaderState.isFocused = false;
-    (node as any).__screenReaderState.lastPosition = { x: 0, y: 0, z: 0 };
-    node.position = { x: 5, y: 0, z: 0 };
+    (node as any).__screenReaderState.lastPosition = [0, 0, 0 ];
+    node.position = [5, 0, 0 ];
     ctx.emit.mockClear();
     screenReaderHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('screen_reader_sonify', expect.any(Object));

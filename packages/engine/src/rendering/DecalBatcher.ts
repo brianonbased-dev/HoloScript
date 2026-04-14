@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * DecalBatcher.ts
  *
@@ -15,7 +16,7 @@ export interface DecalInstance {
   id: string;
   textureId: string;
   position: [number, number, number];
-  scale: { x: number; y: number; z: number };
+  scale: Vector3;
   rotation: { x: number; y: number; z: number; w: number };
   opacity: number;
   lodLevel: number;
@@ -98,7 +99,7 @@ export class DecalBatcher {
   // ---------------------------------------------------------------------------
 
   buildBatches(
-    cameraPos: { x: number; y: number; z: number },
+    cameraPos: Vector3,
     frustumTest?: (pos: DecalInstance['position']) => boolean
   ): DrawBatch[] {
     this.batches.clear();

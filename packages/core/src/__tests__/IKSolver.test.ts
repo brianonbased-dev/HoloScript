@@ -6,7 +6,7 @@ import { IKSolver, type IKChain, type IKBone } from '@holoscript/engine/animatio
 // =============================================================================
 
 function bone(id: string, x: number, y: number, length: number): IKBone {
-  return { id, position: { x, y, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length };
+  return { id, position: { x, y, z: 0 }, rotation: [0, 0, 0, 1 ], length };
 }
 
 function chain2(id: string, target: { x: number; y: number; z: number }): IKChain {
@@ -66,9 +66,9 @@ describe('IKSolver', () => {
 
   it('solveTwoBone moves mid bone position', () => {
     solver.addChain(chain3('arm', { x: 5, y: 5, z: 0 }));
-    const beforeY = solver.getChain('arm')!.bones[1].position.y;
+    const beforeY = solver.getChain('arm')!.bones[1].position[1];
     solver.solveTwoBone('arm');
-    const afterY = solver.getChain('arm')!.bones[1].position.y;
+    const afterY = solver.getChain('arm')!.bones[1].position[1];
     expect(afterY).not.toBe(beforeY);
   });
 
@@ -83,8 +83,8 @@ describe('IKSolver', () => {
     solver.addChain(longChain);
     solver.solveCCD('tentacle');
     const end = solver.getChain('tentacle')!.bones[3].position;
-    const dx = end.x - 5;
-    const dy = end.y - 5;
+    const dx = end[0] - 5;
+    const dy = end[1] - 5;
     const dist = Math.sqrt(dx * dx + dy * dy);
     expect(dist).toBeLessThan(3); // should converge reasonably close
   });

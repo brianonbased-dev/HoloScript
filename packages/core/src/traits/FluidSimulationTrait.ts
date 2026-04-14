@@ -73,11 +73,11 @@ export function poly6Kernel(r: number, h: number): number {
 
 /**
  * Spiky kernel gradient for pressure forces.
- * Returns {x:0,y:0,z:0} when distance > h or distance is near zero.
+ * Returns [0, 0, 0] when distance > h or distance is near zero.
  */
 export function spikyKernelGradient(dx: number, dy: number, dz: number, h: number): Vec3 {
   const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (r > h || r < 1e-5) return { x: 0, y: 0, z: 0 };
+  if (r > h || r < 1e-5) return [0, 0, 0 ];
   const coeff = (-45 / (Math.PI * h ** 6)) * (h - r) ** 2;
   return {
     x: coeff * (dx / r),
@@ -117,15 +117,15 @@ export class SpatialHash {
   }
 
   insert(id: number, pos: Vec3): void {
-    const k = this.key(pos.x, pos.y, pos.z);
+    const k = this.key(pos[0], pos[1], pos[2]);
     if (!this.cells.has(k)) this.cells.set(k, []);
     this.cells.get(k)!.push(id);
   }
 
   getNeighbors(pos: Vec3): number[] {
-    const cx = Math.floor(pos.x / this.cellSize);
-    const cy = Math.floor(pos.y / this.cellSize);
-    const cz = Math.floor(pos.z / this.cellSize);
+    const cx = Math.floor(pos[0] / this.cellSize);
+    const cy = Math.floor(pos[1] / this.cellSize);
+    const cz = Math.floor(pos[2] / this.cellSize);
     const result: number[] = [];
 
     for (let dx = -1; dx <= 1; dx++) {
@@ -182,7 +182,7 @@ export class FluidSimulationSystem {
     this.cfg = {
       restDensity: config.restDensity ?? 1000,
       viscosity: config.viscosity ?? 0.001,
-      gravity: config.gravity ?? { x: 0, y: -9.81, z: 0 },
+      gravity: config.gravity ?? [0, -9.81, 0 ],
       solverType: config.solverType ?? 'sph',
       timeStep: config.timeStep ?? 0.016,
       maxVelocity: config.maxVelocity ?? 100,
@@ -202,8 +202,8 @@ export class FluidSimulationSystem {
     this.particles.set(id, {
       id,
       position: { ...position },
-      velocity: velocity ? { ...velocity } : { x: 0, y: 0, z: 0 },
-      force: { x: 0, y: 0, z: 0 },
+      velocity: velocity ? { ...velocity } : [0, 0, 0 ],
+      force: [0, 0, 0 ],
       density: this.cfg.restDensity,
       pressure: 0,
       mass: 1.0,
@@ -286,54 +286,54 @@ export class FluidSimulationSystem {
     // Compute forces
     for (const pi of particles) {
       pi.force = {
-        x: this.cfg.gravity.x * pi.mass,
-        y: this.cfg.gravity.y * pi.mass,
-        z: this.cfg.gravity.z * pi.mass,
+        x: this.cfg.gravity[0] * pi.mass,
+        y: this.cfg.gravity[1] * pi.mass,
+        z: this.cfg.gravity[2] * pi.mass,
       };
 
       for (const pj of particles) {
         if (pi.id === pj.id) continue;
-        const dx = pi.position.x - pj.position.x;
-        const dy = pi.position.y - pj.position.y;
-        const dz = pi.position.z - pj.position.z;
+        const dx = pi.position[0] - pj.position[0];
+        const dy = pi.position[1] - pj.position[1];
+        const dz = pi.position[2] - pj.position[2];
         const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (r < h && r > 1e-5) {
           // Pressure force
           const grad = spikyKernelGradient(dx, dy, dz, h);
           const pScale = -pj.mass * ((pi.pressure + pj.pressure) / (2 * pj.density));
-          pi.force.x += pScale * grad.x;
-          pi.force.y += pScale * grad.y;
-          pi.force.z += pScale * grad.z;
+          pi.force[0] += pScale * grad[0];
+          pi.force[1] += pScale * grad[1];
+          pi.force[2] += pScale * grad[2];
 
           // Viscosity force
           const viscLap = viscosityKernelLaplacian(r, h);
           const vScale = this.cfg.viscosity * pj.mass * (1 / pj.density) * viscLap;
-          pi.force.x += vScale * (pj.velocity.x - pi.velocity.x);
-          pi.force.y += vScale * (pj.velocity.y - pi.velocity.y);
-          pi.force.z += vScale * (pj.velocity.z - pi.velocity.z);
+          pi.force[0] += vScale * (pj.velocity[0] - pi.velocity[0]);
+          pi.force[1] += vScale * (pj.velocity[1] - pi.velocity[1]);
+          pi.force[2] += vScale * (pj.velocity[2] - pi.velocity[2]);
         }
       }
     }
 
     // Integrate
     for (const p of particles) {
-      p.velocity.x += (p.force.x / p.mass) * deltaT;
-      p.velocity.y += (p.force.y / p.mass) * deltaT;
-      p.velocity.z += (p.force.z / p.mass) * deltaT;
+      p.velocity[0] += (p.force[0] / p.mass) * deltaT;
+      p.velocity[1] += (p.force[1] / p.mass) * deltaT;
+      p.velocity[2] += (p.force[2] / p.mass) * deltaT;
 
       // Clamp velocity
-      const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+      const speed = Math.sqrt(p.velocity[0] ** 2 + p.velocity[1] ** 2 + p.velocity[2] ** 2);
       if (speed > this.cfg.maxVelocity) {
         const scale = this.cfg.maxVelocity / speed;
-        p.velocity.x *= scale;
-        p.velocity.y *= scale;
-        p.velocity.z *= scale;
+        p.velocity[0] *= scale;
+        p.velocity[1] *= scale;
+        p.velocity[2] *= scale;
       }
 
-      p.position.x += p.velocity.x * deltaT;
-      p.position.y += p.velocity.y * deltaT;
-      p.position.z += p.velocity.z * deltaT;
+      p.position[0] += p.velocity[0] * deltaT;
+      p.position[1] += p.velocity[1] * deltaT;
+      p.position[2] += p.velocity[2] * deltaT;
     }
 
     // Apply boundaries
@@ -363,7 +363,7 @@ export class FluidSimulationSystem {
   getKineticEnergy(): number {
     let energy = 0;
     for (const p of this.particles.values()) {
-      energy += 0.5 * p.mass * (p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+      energy += 0.5 * p.mass * (p.velocity[0] ** 2 + p.velocity[1] ** 2 + p.velocity[2] ** 2);
     }
     return energy;
   }
@@ -385,79 +385,79 @@ export class FluidSimulationSystem {
   // ── Private Helpers ────────────────────────────────────────────────────
 
   private dist(a: Vec3, b: Vec3): number {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+    return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
   }
 
   private applyBoundaries(p: FluidParticle): void {
     const pr = this.cfg.particleRadius;
     for (const b of this.boundaries) {
       if (b.type === 'plane') {
-        const dx = p.position.x - b.position.x;
-        const dy = p.position.y - b.position.y;
-        const dz = p.position.z - b.position.z;
-        const d = dx * b.normal.x + dy * b.normal.y + dz * b.normal.z;
+        const dx = p.position[0] - b.position[0];
+        const dy = p.position[1] - b.position[1];
+        const dz = p.position[2] - b.position[2];
+        const d = dx * b.normal[0] + dy * b.normal[1] + dz * b.normal[2];
         if (d < pr) {
           // Push out
-          p.position.x += b.normal.x * (pr - d);
-          p.position.y += b.normal.y * (pr - d);
-          p.position.z += b.normal.z * (pr - d);
+          p.position[0] += b.normal[0] * (pr - d);
+          p.position[1] += b.normal[1] * (pr - d);
+          p.position[2] += b.normal[2] * (pr - d);
           // Reflect velocity
           const vn =
-            p.velocity.x * b.normal.x + p.velocity.y * b.normal.y + p.velocity.z * b.normal.z;
+            p.velocity[0] * b.normal[0] + p.velocity[1] * b.normal[1] + p.velocity[2] * b.normal[2];
           if (vn < 0) {
-            p.velocity.x -= (1 + b.restitution) * vn * b.normal.x;
-            p.velocity.y -= (1 + b.restitution) * vn * b.normal.y;
-            p.velocity.z -= (1 + b.restitution) * vn * b.normal.z;
+            p.velocity[0] -= (1 + b.restitution) * vn * b.normal[0];
+            p.velocity[1] -= (1 + b.restitution) * vn * b.normal[1];
+            p.velocity[2] -= (1 + b.restitution) * vn * b.normal[2];
           }
         }
       } else if (b.type === 'sphere') {
-        const dx = p.position.x - b.position.x;
-        const dy = p.position.y - b.position.y;
-        const dz = p.position.z - b.position.z;
+        const dx = p.position[0] - b.position[0];
+        const dy = p.position[1] - b.position[1];
+        const dz = p.position[2] - b.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         const maxDist = b.radius - pr;
         if (dist > maxDist && dist > 1e-6) {
           const nx = dx / dist;
           const ny = dy / dist;
           const nz = dz / dist;
-          p.position.x = b.position.x + nx * maxDist;
-          p.position.y = b.position.y + ny * maxDist;
-          p.position.z = b.position.z + nz * maxDist;
-          const vn = p.velocity.x * nx + p.velocity.y * ny + p.velocity.z * nz;
+          p.position[0] = b.position[0] + nx * maxDist;
+          p.position[1] = b.position[1] + ny * maxDist;
+          p.position[2] = b.position[2] + nz * maxDist;
+          const vn = p.velocity[0] * nx + p.velocity[1] * ny + p.velocity[2] * nz;
           if (vn > 0) {
-            p.velocity.x -= (1 + b.restitution) * vn * nx;
-            p.velocity.y -= (1 + b.restitution) * vn * ny;
-            p.velocity.z -= (1 + b.restitution) * vn * nz;
+            p.velocity[0] -= (1 + b.restitution) * vn * nx;
+            p.velocity[1] -= (1 + b.restitution) * vn * ny;
+            p.velocity[2] -= (1 + b.restitution) * vn * nz;
           }
         }
       } else if (b.type === 'box') {
-        const halfX = b.size.x / 2;
-        const halfY = b.size.y / 2;
-        const halfZ = b.size.z / 2;
+        const halfX = b.size[0] / 2;
+        const halfY = b.size[1] / 2;
+        const halfZ = b.size[2] / 2;
         const limit = pr;
 
-        if (p.position.x > b.position.x + halfX - limit) {
-          p.position.x = b.position.x + halfX - limit;
-          p.velocity.x *= -b.restitution;
-        } else if (p.position.x < b.position.x - halfX + limit) {
-          p.position.x = b.position.x - halfX + limit;
-          p.velocity.x *= -b.restitution;
+        if (p.position[0] > b.position[0] + halfX - limit) {
+          p.position[0] = b.position[0] + halfX - limit;
+          p.velocity[0] *= -b.restitution;
+        } else if (p.position[0] < b.position[0] - halfX + limit) {
+          p.position[0] = b.position[0] - halfX + limit;
+          p.velocity[0] *= -b.restitution;
         }
 
-        if (p.position.y > b.position.y + halfY - limit) {
-          p.position.y = b.position.y + halfY - limit;
-          p.velocity.y *= -b.restitution;
-        } else if (p.position.y < b.position.y - halfY + limit) {
-          p.position.y = b.position.y - halfY + limit;
-          p.velocity.y *= -b.restitution;
+        if (p.position[1] > b.position[1] + halfY - limit) {
+          p.position[1] = b.position[1] + halfY - limit;
+          p.velocity[1] *= -b.restitution;
+        } else if (p.position[1] < b.position[1] - halfY + limit) {
+          p.position[1] = b.position[1] - halfY + limit;
+          p.velocity[1] *= -b.restitution;
         }
 
-        if (p.position.z > b.position.z + halfZ - limit) {
-          p.position.z = b.position.z + halfZ - limit;
-          p.velocity.z *= -b.restitution;
-        } else if (p.position.z < b.position.z - halfZ + limit) {
-          p.position.z = b.position.z - halfZ + limit;
-          p.velocity.z *= -b.restitution;
+        if (p.position[2] > b.position[2] + halfZ - limit) {
+          p.position[2] = b.position[2] + halfZ - limit;
+          p.velocity[2] *= -b.restitution;
+        } else if (p.position[2] < b.position[2] - halfZ + limit) {
+          p.position[2] = b.position[2] - halfZ + limit;
+          p.velocity[2] *= -b.restitution;
         }
       }
     }

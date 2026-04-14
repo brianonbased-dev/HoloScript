@@ -17,16 +17,16 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
     createBody(config: any) {
       bodies[config.id] = {
         ...config,
-        velocity: { x: 0, y: 0, z: 0 },
+        velocity: [0, 0, 0 ],
         position: config.transform?.position,
       };
       return config.id;
     },
     setPosition(id: string, position: IVector3) {
-      if (bodies[id]) bodies[id].position = { ...position };
+      if (bodies[id]) bodies[id].position = [...position  ];
     },
     setLinearVelocity(id: string, velocity: IVector3) {
-      if (bodies[id]) bodies[id].velocity = { ...velocity };
+      if (bodies[id]) bodies[id].velocity = [...velocity  ];
     },
     getBody(id: string) {
       return bodies[id] ?? null;
@@ -47,7 +47,7 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
 }
 
 function makeHand(x: number, y = 0, z = 0): VRHand {
-  return { position: { x, y, z }, rotation: { x: 0, y: 0, z: 0 } } as VRHand;
+  return { position: { x, y, z }, rotation: [0, 0, 0 ] } as VRHand;
 }
 
 function makeContext(left: VRHand | null, right: VRHand | null) {
@@ -98,9 +98,9 @@ describe('VRPhysicsBridge — Production Tests', () => {
       const bridge = new VRPhysicsBridge(world as any);
       bridge.updateHand(makeHand(1.5, 2.5, 0.5), 'left', 0.016);
       const body = world._bodies['hand_left'];
-      expect(body.position.x).toBeCloseTo(1.5);
-      expect(body.position.y).toBeCloseTo(2.5);
-      expect(body.position.z).toBeCloseTo(0.5);
+      expect(body.position[0]).toBeCloseTo(1.5);
+      expect(body.position[1]).toBeCloseTo(2.5);
+      expect(body.position[2]).toBeCloseTo(0.5);
     });
 
     it('body shape is a sphere', () => {
@@ -146,7 +146,7 @@ describe('VRPhysicsBridge — Production Tests', () => {
       bridge.updateHand(makeHand(0), 'left', 0.016);
       bridge.updateHand(makeHand(1), 'left', 0.016); // moved 1m in 16ms
       const vel = world._bodies['hand_left'].velocity;
-      expect(Math.abs(vel.x)).toBeGreaterThan(0);
+      expect(Math.abs(vel[0])).toBeGreaterThan(0);
     });
 
     it('velocity is zero when hand has not moved', () => {
@@ -156,7 +156,7 @@ describe('VRPhysicsBridge — Production Tests', () => {
       bridge.updateHand(makeHand(1), 'left', 0.016);
       const vel = world._bodies['hand_left'].velocity;
       // With smoothingFactor=0.5, velocity should be very close to 0
-      expect(Math.abs(vel.x)).toBeLessThan(0.01);
+      expect(Math.abs(vel[0])).toBeLessThan(0.01);
     });
 
     it('applies smoothing (velocity magnitude < raw)', () => {
@@ -166,7 +166,7 @@ describe('VRPhysicsBridge — Production Tests', () => {
       // Large jump: raw velocity would be 100/s
       bridge.updateHand(makeHand(1), 'left', 0.01);
       const rawExpected = 1 / 0.01; // 100
-      const smoothed = world._bodies['hand_left'].velocity.x;
+      const smoothed = world._bodies['hand_left'].velocity[0];
       // With smoothing factor 0.5, first frame: smoothed = 0*0.5 + 100*0.5 = 50
       expect(smoothed).toBeLessThan(rawExpected);
     });
@@ -178,7 +178,7 @@ describe('VRPhysicsBridge — Production Tests', () => {
       // Very small delta — should use 0.016 fallback, not divide by ~0
       expect(() => bridge.updateHand(makeHand(0.001), 'left', 0.0001)).not.toThrow();
       const body = world._bodies['hand_left'];
-      expect(isFinite(body.velocity.x)).toBe(true);
+      expect(isFinite(body.velocity[0])).toBe(true);
     });
   });
 

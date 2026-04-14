@@ -1,0 +1,1 @@
+{"version":3,"file":"MigrateTrait.d.ts","sourceRoot":"","sources":["MigrateTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;GAaG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,aAAa;IAC5B,eAAe,EAAE,MAAM,CAAC;IACxB,QAAQ,EAAE,OAAO,CAAC;CACnB;AAQD,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAsEtD,CAAC;AAEF,eAAe,cAAc,CAAC"}

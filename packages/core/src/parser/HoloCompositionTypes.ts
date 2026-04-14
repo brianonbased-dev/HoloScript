@@ -423,6 +423,8 @@ export interface HoloObjectTrait extends HoloNode {
   type: 'ObjectTrait';
   name: string;
   config: Record<string, HoloValue>;
+  /** Positional arguments for traits (e.g. @trait(arg1, arg2)) */
+  args?: HoloValue[];
 }
 
 // =============================================================================

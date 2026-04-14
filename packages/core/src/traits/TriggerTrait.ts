@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core Trigger Trait
  *
@@ -9,7 +10,7 @@
  * object "DamageZone" {
  *   @trigger {
  *     shape: "box",
- *     size: { x: 5, y: 2, z: 5 },
+ *     size: [5, 2, 5 ],
  *     layerMask: ["player", "enemy"],
  *     onEnter: { damage: 10 },
  *     onStay: { damagePerSecond: 5 }
@@ -21,11 +22,7 @@
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 /**
  * Trigger shape types
@@ -185,10 +182,10 @@ export class TriggerTrait {
   constructor(config: Partial<TriggerConfig> = {}) {
     this.config = {
       shape: config.shape ?? 'box',
-      size: config.size ?? { x: 1, y: 1, z: 1 },
+      size: config.size ?? [1, 1, 1 ],
       radius: config.radius ?? 0.5,
       height: config.height ?? 1,
-      center: config.center ?? { x: 0, y: 0, z: 0 },
+      center: config.center ?? [0, 0, 0 ],
       layer: config.layer ?? 0,
       layerMask: config.layerMask ?? -1, // All layers
       filterTags: config.filterTags ?? [],
@@ -249,7 +246,7 @@ export class TriggerTrait {
    * Set size
    */
   public setSize(size: Vector3): void {
-    this.config.size = { ...size };
+    this.config.size = [...(size as number[])] as unknown as Vector3;
   }
 
   /**
@@ -263,7 +260,7 @@ export class TriggerTrait {
    * Set center offset
    */
   public setCenter(center: Vector3): void {
-    this.config.center = { ...center };
+    this.config.center = [...(center as number[])] as unknown as Vector3;
   }
 
   /**

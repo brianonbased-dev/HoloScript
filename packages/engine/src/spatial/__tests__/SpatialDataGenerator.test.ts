@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * SpatialDataGenerator Tests
  *
@@ -77,7 +78,7 @@ describe('SpatialDataGenerator', () => {
   describe('basic operation', () => {
     it('should return empty array for compositions with fewer than 2 objects', () => {
       const comp = makeComposition('SingleObject', [
-        makeObject('a', 'CubeA', { x: 0, y: 0, z: 0 }),
+        makeObject('a', 'CubeA', [0, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -86,8 +87,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should generate samples for a pair of objects', () => {
       const comp = makeComposition('TwoObjects', [
-        makeObject('a', 'CubeA', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'CubeB', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'CubeA', [0, 0, 0 ]),
+        makeObject('b', 'CubeB', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -96,9 +97,9 @@ describe('SpatialDataGenerator', () => {
 
     it('should assign unique IDs to each sample', () => {
       const comp = makeComposition('Test', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
-        makeObject('c', 'C', { x: 2, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
+        makeObject('c', 'C', [2, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -109,8 +110,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include composition name in each sample', () => {
       const comp = makeComposition('MyScene', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -127,8 +128,8 @@ describe('SpatialDataGenerator', () => {
   describe('adjacent relationships', () => {
     it('should detect objects within adjacency threshold as adjacent', () => {
       const comp = makeComposition('Adjacent', [
-        makeObject('a', 'CubeA', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'CubeB', { x: 1.5, y: 0, z: 0 }),
+        makeObject('a', 'CubeA', [0, 0, 0 ]),
+        makeObject('b', 'CubeB', [1.5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -142,8 +143,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should detect objects beyond threshold as NOT adjacent', () => {
       const comp = makeComposition('NotAdjacent', [
-        makeObject('a', 'CubeA', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'CubeB', { x: 5, y: 0, z: 0 }),
+        makeObject('a', 'CubeA', [0, 0, 0 ]),
+        makeObject('b', 'CubeB', [5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -162,8 +163,8 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('MultiThreshold', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 2, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [2, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -179,8 +180,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include correct distance in adjacent samples', () => {
       const comp = makeComposition('DistCheck', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 3, y: 4, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [3, 4, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -202,20 +203,20 @@ describe('SpatialDataGenerator', () => {
         makeObject(
           'room',
           'Room',
-          { x: 0, y: 2.5, z: 0 },
+          [0, 2.5, 0 ],
           {
             bounds: {
-              min: { x: -5, y: 0, z: -5 },
-              max: { x: 5, y: 5, z: 5 },
+              min: [-5, 0, -5 ],
+              max: [5, 5, 5 ],
             },
           }
         ),
         makeObject(
           'table',
           'Table',
-          { x: 1, y: 0.75, z: 0 },
+          [1, 0.75, 0 ],
           {
-            scale: { x: 2, y: 0.1, z: 1 },
+            scale: [2, 0.1, 1 ],
           }
         ),
       ]);
@@ -238,15 +239,15 @@ describe('SpatialDataGenerator', () => {
         makeObject(
           'box',
           'Box',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
             bounds: {
-              min: { x: -1, y: -1, z: -1 },
-              max: { x: 1, y: 1, z: 1 },
+              min: [-1, -1, -1 ],
+              max: [1, 1, 1 ],
             },
           }
         ),
-        makeObject('sphere', 'Sphere', { x: 5, y: 0, z: 0 }),
+        makeObject('sphere', 'Sphere', [5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -263,20 +264,20 @@ describe('SpatialDataGenerator', () => {
         makeObject(
           'container',
           'Container',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
             bounds: {
-              min: { x: -5, y: -5, z: -5 },
-              max: { x: 5, y: 5, z: 5 },
+              min: [-5, -5, -5 ],
+              max: [5, 5, 5 ],
             },
           }
         ),
         makeObject(
           'inner',
           'Inner',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
-            scale: { x: 2, y: 2, z: 2 },
+            scale: [2, 2, 2 ],
           }
         ),
       ]);
@@ -304,23 +305,23 @@ describe('SpatialDataGenerator', () => {
         makeObject(
           'container',
           'Container',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
             bounds: {
-              min: { x: -2, y: -2, z: -2 },
-              max: { x: 2, y: 2, z: 2 },
+              min: [-2, -2, -2 ],
+              max: [2, 2, 2 ],
             },
           }
         ),
         makeObject(
           'overhanging',
           'Overhanging',
-          { x: 1.5, y: 0, z: 0 },
+          [1.5, 0, 0 ],
           {
-            scale: { x: 2, y: 1, z: 1 },
+            scale: [2, 1, 1 ],
             bounds: {
-              min: { x: 0.5, y: -0.5, z: -0.5 },
-              max: { x: 2.5, y: 0.5, z: 0.5 },
+              min: [0.5, -0.5, -0.5 ],
+              max: [2.5, 0.5, 0.5 ],
             },
           }
         ),
@@ -346,8 +347,8 @@ describe('SpatialDataGenerator', () => {
   describe('reachable relationships', () => {
     it('should detect clear line-of-sight as reachable', () => {
       const comp = makeComposition('Reachable', [
-        makeObject('a', 'PointA', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'PointB', { x: 5, y: 0, z: 0 }),
+        makeObject('a', 'PointA', [0, 0, 0 ]),
+        makeObject('b', 'PointB', [5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -362,18 +363,18 @@ describe('SpatialDataGenerator', () => {
 
     it('should detect blocked line-of-sight as NOT reachable', () => {
       const comp = makeComposition('Blocked', [
-        makeObject('a', 'PointA', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'PointB', { x: 10, y: 0, z: 0 }),
+        makeObject('a', 'PointA', [0, 0, 0 ]),
+        makeObject('b', 'PointB', [10, 0, 0 ]),
         makeObject(
           'wall',
           'Wall',
-          { x: 5, y: 0, z: 0 },
+          [5, 0, 0 ],
           {
             type: 'wall',
             isStatic: true,
             bounds: {
-              min: { x: 4.5, y: -2, z: -2 },
-              max: { x: 5.5, y: 2, z: 2 },
+              min: [4.5, -2, -2 ],
+              max: [5.5, 2, 2 ],
             },
           }
         ),
@@ -402,8 +403,8 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('FarApart', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 100, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [100, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -414,8 +415,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include estimated path length', () => {
       const comp = makeComposition('PathLength', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 3, y: 4, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [3, 4, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -435,8 +436,8 @@ describe('SpatialDataGenerator', () => {
   describe('direction labels', () => {
     it('should detect "above" direction', () => {
       const comp = makeComposition('Above', [
-        makeObject('floor', 'Floor', { x: 0, y: 0, z: 0 }),
-        makeObject('lamp', 'Lamp', { x: 0, y: 3, z: 0 }),
+        makeObject('floor', 'Floor', [0, 0, 0 ]),
+        makeObject('lamp', 'Lamp', [0, 3, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -448,8 +449,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should detect "below" direction', () => {
       const comp = makeComposition('Below', [
-        makeObject('ceiling', 'Ceiling', { x: 0, y: 3, z: 0 }),
-        makeObject('floor', 'Floor', { x: 0, y: 0, z: 0 }),
+        makeObject('ceiling', 'Ceiling', [0, 3, 0 ]),
+        makeObject('floor', 'Floor', [0, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -467,8 +468,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should detect "near" for close objects', () => {
       const comp = makeComposition('Near', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 0.5, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [0.5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -479,8 +480,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should detect "overlapping" for coincident objects', () => {
       const comp = makeComposition('Overlap', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 0, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [0, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -497,22 +498,22 @@ describe('SpatialDataGenerator', () => {
   describe('ground truth and scene context', () => {
     it('should include source and target positions in ground truth', () => {
       const comp = makeComposition('GT', [
-        makeObject('a', 'A', { x: 1, y: 2, z: 3 }),
-        makeObject('b', 'B', { x: 4, y: 5, z: 6 }),
+        makeObject('a', 'A', [1, 2, 3 ]),
+        makeObject('b', 'B', [4, 5, 6 ]),
       ]);
 
       const samples = generator.generate(comp);
       const sample = samples[0];
 
-      expect(sample.groundTruth.source.position).toEqual({ x: 1, y: 2, z: 3 });
-      expect(sample.groundTruth.target.position).toEqual({ x: 4, y: 5, z: 6 });
+      expect(sample.groundTruth.source.position).toEqual([1, 2, 3 ]);
+      expect(sample.groundTruth.target.position).toEqual([4, 5, 6 ]);
     });
 
     it('should include scene context with all objects', () => {
       const comp = makeComposition('Context', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
-        makeObject('c', 'C', { x: 2, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
+        makeObject('c', 'C', [2, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -530,8 +531,8 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('NoContext', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -549,8 +550,8 @@ describe('SpatialDataGenerator', () => {
   describe('descriptions and QA', () => {
     it('should generate meaningful descriptions for adjacent relationships', () => {
       const comp = makeComposition('DescTest', [
-        makeObject('a', 'Table', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'Chair', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'Table', [0, 0, 0 ]),
+        makeObject('b', 'Chair', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -566,8 +567,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should generate QA pairs when enabled', () => {
       const comp = makeComposition('QATest', [
-        makeObject('a', 'Lamp', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'Desk', { x: 1.5, y: 0, z: 0 }),
+        makeObject('a', 'Lamp', [0, 0, 0 ]),
+        makeObject('b', 'Desk', [1.5, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -585,8 +586,8 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('NoQA', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -604,8 +605,8 @@ describe('SpatialDataGenerator', () => {
   describe('negative samples', () => {
     it('should generate negative adjacent samples for distant objects', () => {
       const comp = makeComposition('Negatives', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 10, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [10, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -625,8 +626,8 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('NoNeg', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 10, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [10, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -645,8 +646,8 @@ describe('SpatialDataGenerator', () => {
   describe('tags and difficulty', () => {
     it('should tag samples with relationship type', () => {
       const comp = makeComposition('Tags', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -657,8 +658,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should tag positive samples as "positive"', () => {
       const comp = makeComposition('PosTag', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -671,8 +672,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should assign difficulty levels', () => {
       const comp = makeComposition('Difficulty', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -683,8 +684,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include object type tags', () => {
       const comp = makeComposition('TypeTags', [
-        makeObject('a', 'MySphere', { x: 0, y: 0, z: 0 }, { type: 'sphere' }),
-        makeObject('b', 'MyCube', { x: 1, y: 0, z: 0 }, { type: 'cube' }),
+        makeObject('a', 'MySphere', [0, 0, 0 ], { type: 'sphere' }),
+        makeObject('b', 'MyCube', [1, 0, 0 ], { type: 'cube' }),
       ]);
 
       const samples = generator.generate(comp);
@@ -696,8 +697,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include trait tags', () => {
       const comp = makeComposition('TraitTags', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }, { traits: ['physics', 'grabbable'] }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ], { traits: ['physics', 'grabbable'] }),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -715,8 +716,8 @@ describe('SpatialDataGenerator', () => {
   describe('JSONL output', () => {
     it('should produce valid JSONL with one JSON object per line', () => {
       const comp = makeComposition('JSONL', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -732,8 +733,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should roundtrip through JSONL serialization', () => {
       const comp = makeComposition('Roundtrip', [
-        makeObject('a', 'A', { x: 1, y: 2, z: 3 }),
-        makeObject('b', 'B', { x: 4, y: 5, z: 6 }),
+        makeObject('a', 'A', [1, 2, 3 ]),
+        makeObject('b', 'B', [4, 5, 6 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -756,8 +757,8 @@ describe('SpatialDataGenerator', () => {
   describe('instruction JSONL output', () => {
     it('should produce conversation-style JSONL with system/user/assistant messages', () => {
       const comp = makeComposition('Instruct', [
-        makeObject('a', 'Table', { x: 0, y: 0.75, z: 0 }),
-        makeObject('b', 'Chair', { x: 1, y: 0.5, z: 1.2 }),
+        makeObject('a', 'Table', [0, 0.75, 0 ]),
+        makeObject('b', 'Chair', [1, 0.5, 1.2 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -776,8 +777,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include scene description in user message', () => {
       const comp = makeComposition('SceneDesc', [
-        makeObject('a', 'Lamp', { x: 0, y: 2, z: 0 }),
-        makeObject('b', 'Desk', { x: 0, y: 0.75, z: 0 }),
+        makeObject('a', 'Lamp', [0, 2, 0 ]),
+        makeObject('b', 'Desk', [0, 0.75, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -798,12 +799,12 @@ describe('SpatialDataGenerator', () => {
     it('should generate samples from multiple compositions', () => {
       const comps = [
         makeComposition('Scene1', [
-          makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-          makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+          makeObject('a', 'A', [0, 0, 0 ]),
+          makeObject('b', 'B', [1, 0, 0 ]),
         ]),
         makeComposition('Scene2', [
-          makeObject('c', 'C', { x: 0, y: 0, z: 0 }),
-          makeObject('d', 'D', { x: 2, y: 0, z: 0 }),
+          makeObject('c', 'C', [0, 0, 0 ]),
+          makeObject('d', 'D', [2, 0, 0 ]),
         ]),
       ];
 
@@ -818,8 +819,8 @@ describe('SpatialDataGenerator', () => {
     it('should compute accurate statistics', () => {
       const comps = [
         makeComposition('Stats', [
-          makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-          makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+          makeObject('a', 'A', [0, 0, 0 ]),
+          makeObject('b', 'B', [1, 0, 0 ]),
         ]),
       ];
 
@@ -853,10 +854,10 @@ describe('SpatialDataGenerator', () => {
       });
 
       const comp = makeComposition('Limited', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
-        makeObject('c', 'C', { x: 2, y: 0, z: 0 }),
-        makeObject('d', 'D', { x: 3, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
+        makeObject('c', 'C', [2, 0, 0 ]),
+        makeObject('d', 'D', [3, 0, 0 ]),
       ]);
 
       const samples = gen.generate(comp);
@@ -879,8 +880,8 @@ describe('SpatialDataGenerator', () => {
   describe('metadata', () => {
     it('should include generator version in metadata', () => {
       const comp = makeComposition('Meta', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -889,8 +890,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include timestamp in metadata', () => {
       const comp = makeComposition('Time', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -900,8 +901,8 @@ describe('SpatialDataGenerator', () => {
 
     it('should include composition hash for provenance', () => {
       const comp = makeComposition('Hash', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }),
-        makeObject('b', 'B', { x: 1, y: 0, z: 0 }),
+        makeObject('a', 'A', [0, 0, 0 ]),
+        makeObject('b', 'B', [1, 0, 0 ]),
       ]);
 
       const samples = generator.generate(comp);
@@ -917,8 +918,8 @@ describe('SpatialDataGenerator', () => {
   describe('auto-bounds enrichment', () => {
     it('should auto-compute bounds for objects without explicit bounds', () => {
       const comp = makeComposition('AutoBounds', [
-        makeObject('a', 'A', { x: 0, y: 0, z: 0 }, { scale: { x: 2, y: 2, z: 2 } }),
-        makeObject('b', 'B', { x: 0, y: 0, z: 0 }, { scale: { x: 0.5, y: 0.5, z: 0.5 } }),
+        makeObject('a', 'A', [0, 0, 0 ], { scale: [2, 2, 2 ] }),
+        makeObject('b', 'B', [0, 0, 0 ], { scale: [0.5, 0.5, 0.5 ] }),
       ]);
 
       const samples = generator.generate(comp);
@@ -935,19 +936,19 @@ describe('SpatialDataGenerator', () => {
         makeObject(
           'big',
           'BigSphere',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
             type: 'sphere',
-            scale: { x: 5, y: 5, z: 5 },
+            scale: [5, 5, 5 ],
           }
         ),
         makeObject(
           'small',
           'SmallCube',
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0 ],
           {
             type: 'cube',
-            scale: { x: 0.5, y: 0.5, z: 0.5 },
+            scale: [0.5, 0.5, 0.5 ],
           }
         ),
       ]);
@@ -991,10 +992,10 @@ describe('parseSimpleComposition', () => {
     expect(comp.objects).toHaveLength(2);
     expect(comp.objects[0].name).toBe('Table');
     expect(comp.objects[0].type).toBe('cube');
-    expect(comp.objects[0].position).toEqual({ x: 0, y: 0.75, z: 0 });
-    expect(comp.objects[0].scale).toEqual({ x: 3, y: 0.1, z: 1.5 });
+    expect(comp.objects[0].position).toEqual([0, 0.75, 0 ]);
+    expect(comp.objects[0].scale).toEqual([3, 0.1, 1.5 ]);
     expect(comp.objects[1].name).toBe('Chair');
-    expect(comp.objects[1].position).toEqual({ x: 1, y: 0.5, z: 1.2 });
+    expect(comp.objects[1].position).toEqual([1, 0.5, 1.2 ]);
   });
 
   it('should extract traits from objects', () => {

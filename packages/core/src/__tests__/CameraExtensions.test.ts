@@ -70,14 +70,14 @@ describe('Cycle 165: Camera Extensions', () => {
     ]);
 
     const start = path.evaluate(0);
-    expect(start.position.x).toBeCloseTo(0);
+    expect(start.position[0]).toBeCloseTo(0);
 
     const mid = path.evaluate(0.5);
-    expect(mid.position.x).toBeGreaterThan(5);
-    expect(mid.position.x).toBeLessThan(25);
+    expect(mid.position[0]).toBeGreaterThan(5);
+    expect(mid.position[0]).toBeLessThan(25);
 
     const end = path.evaluate(1);
-    expect(end.position.x).toBeCloseTo(30);
+    expect(end.position[0]).toBeCloseTo(30);
   });
 
   it('should stop at end or loop', () => {

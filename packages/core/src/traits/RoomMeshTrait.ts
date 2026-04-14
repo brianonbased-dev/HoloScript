@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * RoomMesh Trait
  *
@@ -21,11 +22,7 @@ import type { TraitHandler } from './TraitTypes';
 export type RoomMeshResolution = 'low' | 'medium' | 'high';
 export type SemanticSurface = 'floor' | 'wall' | 'ceiling' | 'furniture' | 'unknown';
 
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 interface MeshBlock {
   id: string;
@@ -86,8 +83,8 @@ function estimateFloorArea(blocks: Map<string, MeshBlock>): number {
   let area = 0;
   for (const block of blocks.values()) {
     if (block.semanticLabel === 'floor') {
-      const dx = block.bounds.max.x - block.bounds.min.x;
-      const dz = block.bounds.max.z - block.bounds.min.z;
+      const dx = block.bounds.max[0] - block.bounds.min[0];
+      const dz = block.bounds.max[2] - block.bounds.min[2];
       area += dx * dz;
     }
   }
@@ -103,14 +100,14 @@ function computeRoomBounds(blocks: Map<string, MeshBlock>): { min: Vector3; max:
     maxY = -Infinity,
     maxZ = -Infinity;
   for (const block of blocks.values()) {
-    minX = Math.min(minX, block.bounds.min.x);
-    minY = Math.min(minY, block.bounds.min.y);
-    minZ = Math.min(minZ, block.bounds.min.z);
-    maxX = Math.max(maxX, block.bounds.max.x);
-    maxY = Math.max(maxY, block.bounds.max.y);
-    maxZ = Math.max(maxZ, block.bounds.max.z);
+    minX = Math.min(minX, block.bounds.min[0]);
+    minY = Math.min(minY, block.bounds.min[1]);
+    minZ = Math.min(minZ, block.bounds.min[2]);
+    maxX = Math.max(maxX, block.bounds.max[0]);
+    maxY = Math.max(maxY, block.bounds.max[1]);
+    maxZ = Math.max(maxZ, block.bounds.max[2]);
   }
-  return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
+  return { min: [minX, minY, minZ ], max: [maxX, maxY, maxZ ] };
 }
 
 // =============================================================================
@@ -236,8 +233,8 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         if (!existing.blockIds.includes(block.id)) {
           existing.blockIds.push(block.id);
         }
-        const dx = block.bounds.max.x - block.bounds.min.x;
-        const dz = block.bounds.max.z - block.bounds.min.z;
+        const dx = block.bounds.max[0] - block.bounds.min[0];
+        const dz = block.bounds.max[2] - block.bounds.min[2];
         existing.area += dx * dz;
         state.detectedSurfaces.set(surfaceKey, existing);
 
@@ -273,7 +270,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
       state.roomBounds = event.bounds as { min: Vector3; max: Vector3 };
       const floorArea = estimateFloorArea(state.meshBlocks);
       const bounds = state.roomBounds;
-      const roomHeight = bounds ? bounds.max.y - bounds.min.y : 0;
+      const roomHeight = bounds ? bounds.max[1] - bounds.min[1] : 0;
 
       context.emit?.('on_room_mapped', {
         node,

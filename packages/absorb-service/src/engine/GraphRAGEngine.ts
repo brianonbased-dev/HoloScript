@@ -124,7 +124,7 @@ export interface TraceWithContextOptions {
 // =============================================================================
 
 export class GraphRAGEngine {
-  private graph: CodebaseGraph;
+  public graph: CodebaseGraph;
   private index: EmbeddingIndex;
   private ollamaUrl: string;
   private llmModel: string;

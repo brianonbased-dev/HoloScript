@@ -75,7 +75,7 @@ describe('Asset Pipeline', () => {
 
     const transform = world.getComponent<any>(newEntity!, 'Transform');
     expect(transform).toBeDefined();
-    expect(transform.position.z).toBe(-1);
+    expect(transform.position[2]).toBe(-1);
   });
 
   it('should generate UI entities for assets', () => {

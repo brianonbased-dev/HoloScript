@@ -700,7 +700,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
         // Interaction heatmap (spatial bucket, no PII)
         if (config.collect_heatmap && event.position) {
           const pos = event.position as { x: number; y: number; z: number };
-          const bucket = quantizePosition(pos.x, pos.y, pos.z, config.heatmap_resolution);
+          const bucket = quantizePosition(pos[0], pos[1], pos[2], config.heatmap_resolution);
           const current = state.engagement.interactionHeatmapBuckets.get(bucket) || 0;
           state.engagement.interactionHeatmapBuckets.set(bucket, current + 1);
         }

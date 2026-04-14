@@ -9,17 +9,17 @@ import { GrabbableTrait } from '../GrabbableTrait';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeHand(pinchStrength: number, position = { x: 0, y: 0, z: 0 }) {
+function makeHand(pinchStrength: number, position = [0, 0, 0 ]) {
   return { pinchStrength, position };
 }
 
-function makeNode(pos = { x: 0, y: 0, z: 0 }, scale = { x: 1, y: 1, z: 1 }) {
+function makeNode(pos = [0, 0, 0 ], scale = [1, 1, 1 ]) {
   return {
     id: 'grab_node',
     properties: {
-      position: { ...pos },
-      scale: { ...scale },
-      rotation: { x: 0, y: 0, z: 0 },
+      position: [...pos] as [number, number, number],
+      scale: [...scale] as [number, number, number],
+      rotation: [0, 0, 0 ],
     },
   };
 }
@@ -53,8 +53,8 @@ describe('GrabbableTrait constructor', () => {
 describe('GrabbableTrait.onUpdate — single-hand grab', () => {
   it('emits physics_grab when right hand is within 0.1m and pinch > 0.9', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0.05, y: 0, z: 0 }); // dist < 0.1
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0.05, 0, 0 ]); // dist < 0.1
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -65,8 +65,8 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
 
   it('emits physics_grab when left hand is within range and pinching', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctx = makeCtx(hand, null);
     t.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -77,8 +77,8 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
 
   it('does NOT grab when hand is too far (dist >= 0.1)', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0.5, y: 0, z: 0 }); // dist = 0.5
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0.5, 0, 0 ]); // dist = 0.5
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('physics_grab', expect.anything());
@@ -86,8 +86,8 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
 
   it('does NOT grab when pinch < 0.9 even within range', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.5, { x: 0.02, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.5, [0.02, 0, 0 ]);
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('physics_grab', expect.anything());
@@ -95,8 +95,8 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
 
   it('does not double-grab same hand', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016); // first grab
     ctx.emit.mockClear();
@@ -113,10 +113,10 @@ describe('GrabbableTrait.onUpdate — single-hand grab', () => {
 describe('GrabbableTrait.onUpdate — release', () => {
   it('emits physics_release when pinch drops below 0.5 after grab', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
 
     // Grab first
-    const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const hand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctxGrab = makeCtx(null, hand);
     t.onUpdate(node, ctxGrab as any, 0.016);
 
@@ -132,13 +132,13 @@ describe('GrabbableTrait.onUpdate — release', () => {
 
   it('includes velocity in physics_release payload', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctx = makeCtx(null, hand);
     // Record position on first frame
     t.onUpdate(node, ctx as any, 0.016);
     // Move hand and release
-    hand.position = { x: 0.1, y: 0, z: 0 };
+    hand.position = [0.1, 0, 0 ];
     hand.pinchStrength = 0.2;
     const ctxR = makeCtx(null, hand);
     t.onUpdate(node, ctxR as any, 0.016);
@@ -150,12 +150,12 @@ describe('GrabbableTrait.onUpdate — release', () => {
 
   it('throw velocity is clamped to [-20, 20]', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const hand = makeHand(0.95, { x: 0, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const hand = makeHand(0.95, [0, 0, 0 ]);
     const ctx = makeCtx(null, hand);
     t.onUpdate(node, ctx as any, 0.016);
     // Extreme movement
-    hand.position = { x: 100, y: 100, z: 100 };
+    hand.position = [100, 100, 100 ];
     hand.pinchStrength = 0.1;
     const ctxR = makeCtx(null, hand);
     t.onUpdate(node, ctxR as any, 0.016);
@@ -172,15 +172,15 @@ describe('GrabbableTrait.onUpdate — release', () => {
 describe('GrabbableTrait.onUpdate — two-hand grab', () => {
   it('emits physics_release (for physics_release to allow free scaling) when second hand grabs', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
 
     // Left grabs first
-    const leftHand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const leftHand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctx1 = makeCtx(leftHand, null);
     t.onUpdate(node, ctx1 as any, 0.016);
 
     // Right hand now also grabs
-    const rightHand = makeHand(0.95, { x: -0.02, y: 0, z: 0 });
+    const rightHand = makeHand(0.95, [-0.02, 0, 0 ]);
     const ctx2 = makeCtx(leftHand, rightHand);
     ctx2.emit.mockClear();
     t.onUpdate(node, ctx2 as any, 0.016);
@@ -192,10 +192,10 @@ describe('GrabbableTrait.onUpdate — two-hand grab', () => {
 
   it('scales object proportionally as hands move apart', () => {
     const t = new GrabbableTrait();
-    const node = makeNode({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
+    const node = makeNode([0, 0, 0 ], [1, 1, 1 ]);
 
-    const leftHand = makeHand(0.95, { x: -0.05, y: 0, z: 0 });
-    const rightHand = makeHand(0.95, { x: 0.05, y: 0, z: 0 });
+    const leftHand = makeHand(0.95, [-0.05, 0, 0 ]);
+    const rightHand = makeHand(0.95, [0.05, 0, 0 ]);
 
     // Grab left
     t.onUpdate(node, makeCtx(leftHand, null) as any, 0.016);
@@ -204,29 +204,29 @@ describe('GrabbableTrait.onUpdate — two-hand grab', () => {
     t.onUpdate(node, ctx2 as any, 0.016);
 
     // Now move hands 2x apart
-    leftHand.position = { x: -0.1, y: 0, z: 0 };
-    rightHand.position = { x: 0.1, y: 0, z: 0 };
+    leftHand.position = [-0.1, 0, 0 ];
+    rightHand.position = [0.1, 0, 0 ];
     const ctx3 = makeCtx(leftHand, rightHand);
     t.onUpdate(node, ctx3 as any, 0.016);
 
     // Scale should be ~2x initial (initialPinchDist = 0.1, now 0.2 → factor 2)
-    expect(node.properties.scale.x).toBeCloseTo(2.0, 0);
-    expect(node.properties.scale.y).toBeCloseTo(2.0, 0);
+    expect(node.properties.scale[0]).toBeCloseTo(2.0, 0);
+    expect(node.properties.scale[1]).toBeCloseTo(2.0, 0);
   });
 
   it('applies Y-axis rotation when hand angle changes (steering-wheel)', () => {
     const t = new GrabbableTrait();
     const node = makeNode();
 
-    const leftHand = makeHand(0.95, { x: -0.05, y: 0, z: 0 });
-    const rightHand = makeHand(0.95, { x: 0.05, y: 0, z: 0 });
+    const leftHand = makeHand(0.95, [-0.05, 0, 0 ]);
+    const rightHand = makeHand(0.95, [0.05, 0, 0 ]);
 
     t.onUpdate(node, makeCtx(leftHand, null) as any, 0.016);
     t.onUpdate(node, makeCtx(leftHand, rightHand) as any, 0.016);
 
     // Rotate hands (change angle)
-    leftHand.position = { x: -0.05, y: 0, z: 0.05 };
-    rightHand.position = { x: 0.05, y: 0, z: -0.05 };
+    leftHand.position = [-0.05, 0, 0.05 ];
+    rightHand.position = [0.05, 0, -0.05 ];
     t.onUpdate(node, makeCtx(leftHand, rightHand) as any, 0.016);
 
     // Rotation Y should differ from 0
@@ -240,7 +240,7 @@ describe('GrabbableTrait.onDetach', () => {
   it('emits physics_release when detached while grabbed', () => {
     const t = new GrabbableTrait();
     const node = makeNode();
-    const hand = makeHand(0.95, { x: 0.02, y: 0, z: 0 });
+    const hand = makeHand(0.95, [0.02, 0, 0 ]);
     const ctxGrab = makeCtx(null, hand);
     t.onUpdate(node, ctxGrab as any, 0.016);
 

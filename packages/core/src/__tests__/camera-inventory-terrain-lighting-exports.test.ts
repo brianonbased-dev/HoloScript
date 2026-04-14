@@ -24,10 +24,10 @@ describe('CameraController exports', () => {
   it('orbit rotation updates position', () => {
     const cam = new CameraController({ mode: 'orbit' });
     cam.setTarget(0, 0, 0);
-    const before = cam.getState().position.x;
+    const before = cam.getState().position[0];
     cam.rotateOrbit(1, 0);
     cam.update(0.016);
-    expect(cam.getState().position.x).not.toBe(before);
+    expect(cam.getState().position[0]).not.toBe(before);
   });
 
   it('zoom clamps within range', () => {
@@ -42,7 +42,7 @@ describe('CameraController exports', () => {
     const cam = new CameraController({ mode: 'follow', smoothing: 0.5 });
     cam.setTarget(100, 0, 0);
     cam.update(0.5);
-    expect(cam.getState().position.x).toBeGreaterThan(0);
+    expect(cam.getState().position[0]).toBeGreaterThan(0);
   });
 });
 

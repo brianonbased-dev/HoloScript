@@ -6,7 +6,7 @@ import { DecalSystem } from '../rendering/DecalSystem';
 // =============================================================================
 
 const pos = { x: 0, y: 0, z: 0 };
-const normal = { x: 0, y: 1, z: 0 };
+const normal = [0, 1, 0 ];
 
 describe('DecalSystem', () => {
   let sys: DecalSystem;

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Buoyancy Trait
  *
@@ -16,8 +17,8 @@ interface BuoyancyState {
   isSubmerged: boolean;
   submersionRatio: number;
   buoyancyForce: number;
-  lastPosition: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
+  lastPosition: Vector3;
+  velocity: Vector3;
   splashCooldown: number;
 }
 
@@ -84,13 +85,13 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
   },
 
   onAttach(node, _config, _context) {
-    const position = node.position || { x: 0, y: 0, z: 0 };
+    const position = node.position || [0, 0, 0 ];
     const state: BuoyancyState = {
       isSubmerged: false,
       submersionRatio: 0,
       buoyancyForce: 0,
-      lastPosition: { ...position },
-      velocity: { x: 0, y: 0, z: 0 },
+      lastPosition: [...(position as number[])],
+      velocity: [0, 0, 0 ],
       splashCooldown: 0,
     };
     node.__buoyancyState = state;
@@ -104,21 +105,21 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
     const state = node.__buoyancyState as BuoyancyState;
     if (!state) return;
 
-    const position = node.position || { x: 0, y: 0, z: 0 };
-    const scale = node.scale || { x: 1, y: 1, z: 1 };
-    const objectHeight = scale.y;
+    const position = node.position || [0, 0, 0 ];
+    const scale = node.scale || [1, 1, 1 ];
+    const objectHeight = scale[1];
 
     // Calculate velocity from position change
-    state.velocity = {
-      x: (position.x - state.lastPosition.x) / delta,
-      y: (position.y - state.lastPosition.y) / delta,
-      z: (position.z - state.lastPosition.z) / delta,
-    };
-    state.lastPosition = { ...position };
+    state.velocity = [
+      (position[0] - state.lastPosition[0]) / delta,
+      (position[1] - state.lastPosition[1]) / delta,
+      (position[2] - state.lastPosition[2]) / delta,
+    ];
+    state.lastPosition = [...(position as number[])];
 
     // Calculate submersion
     const prevSubmersion = state.submersionRatio;
-    state.submersionRatio = calculateSubmersionRatio(position.y, objectHeight, config.fluid_level);
+    state.submersionRatio = calculateSubmersionRatio(position[1], objectHeight, config.fluid_level);
 
     const wasSubmerged = state.isSubmerged;
     state.isSubmerged = state.submersionRatio >= config.submerge_threshold;
@@ -142,9 +143,9 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       context.emit?.('apply_force', {
         node,
         force: {
-          x: -state.velocity.x * dragCoeff,
-          y: -state.velocity.y * dragCoeff,
-          z: -state.velocity.z * dragCoeff,
+          x: -state.velocity[0] * dragCoeff,
+          y: -state.velocity[1] * dragCoeff,
+          z: -state.velocity[2] * dragCoeff,
         },
       });
 
@@ -167,7 +168,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
     if (config.splash_effect && state.splashCooldown <= 0) {
       // Entering water
       if (prevSubmersion === 0 && state.submersionRatio > 0) {
-        const splashIntensity = Math.min(1, Math.abs(state.velocity.y) / 5);
+        const splashIntensity = Math.min(1, Math.abs(state.velocity[1]) / 5);
         context.emit?.('on_splash', { node, intensity: splashIntensity, entering: true });
         state.splashCooldown = 0.5; // 500ms cooldown
       }

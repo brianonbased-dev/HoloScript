@@ -30,16 +30,16 @@ describe('GrassRenderer', () => {
     gr.generate({ x: 10, z: 20, w: 5, h: 5 });
     const blades = gr.getVisibleBlades();
     for (const b of blades) {
-      expect(b.position.x).toBeGreaterThanOrEqual(10);
-      expect(b.position.x).toBeLessThanOrEqual(15);
-      expect(b.position.z).toBeGreaterThanOrEqual(20);
-      expect(b.position.z).toBeLessThanOrEqual(25);
+      expect(b.position[0]).toBeGreaterThanOrEqual(10);
+      expect(b.position[0]).toBeLessThanOrEqual(15);
+      expect(b.position[2]).toBeGreaterThanOrEqual(20);
+      expect(b.position[2]).toBeLessThanOrEqual(25);
     }
   });
 
   it('updateLOD culls far blades', () => {
     gr.generate({ x: 0, z: 0, w: 200, h: 1 }, 42);
-    gr.updateLOD({ x: 0, z: 0 });
+    gr.updateLOD([0, 0, 0]);
     const visible = gr.getVisibleBlades();
     // Blades beyond cullDistance (60) should be culled
     expect(visible.length).toBeLessThan(gr.getBladeCount());
@@ -47,14 +47,14 @@ describe('GrassRenderer', () => {
 
   it('updateLOD marks distant blades as billboards', () => {
     gr.generate({ x: 0, z: 0, w: 100, h: 1 }, 42);
-    gr.updateLOD({ x: 0, z: 0 });
+    gr.updateLOD([0, 0, 0]);
     const bbCount = gr.getBillboardCount();
     expect(bbCount).toBeGreaterThan(0);
   });
 
   it('close blades have lod level 0', () => {
     gr.generate({ x: 0, z: 0, w: 1, h: 1 }, 42);
-    gr.updateLOD({ x: 0.5, z: 0.5 });
+    gr.updateLOD([0.5, 0, 0.5]);
     const blades = gr.getVisibleBlades();
     for (const b of blades) {
       expect(b.lodLevel).toBe(0);
@@ -80,7 +80,7 @@ describe('GrassRenderer', () => {
     gr.generate({ x: 0, z: 0, w: 3, h: 3 }, 999);
     const blade2 = gr.getVisibleBlades()[0];
     expect(gr.getBladeCount()).toBe(count1);
-    expect(blade2.position.x).toBeCloseTo(blade1.position.x);
+    expect(blade2.position[0]).toBeCloseTo(blade1.position[0]);
   });
 
   it('setConfig updates parameters', () => {

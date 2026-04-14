@@ -66,7 +66,7 @@ describe('Cycle 112: Particle System', () => {
     const particles = emitter.getAliveParticles();
     if (particles.length > 0) {
       // After one frame with gravity, velocity should be downward
-      expect(particles[0].velocity.y).toBeLessThan(0);
+      expect(particles[0].velocity[1]).toBeLessThan(0);
     }
   });
 
@@ -137,7 +137,7 @@ describe('Cycle 112: Particle System', () => {
     forces.apply(particles, 1.0);
 
     if (particles.length > 0) {
-      expect(particles[0].velocity.y).toBeLessThan(0);
+      expect(particles[0].velocity[1]).toBeLessThan(0);
     }
   });
 
@@ -159,12 +159,12 @@ describe('Cycle 112: Particle System', () => {
     });
 
     const particles = emitter.getAliveParticles();
-    const initialVx = particles[0]?.velocity.x ?? 0;
+    const initialVx = particles[0]?.velocity[0] ?? 0;
     forces.apply(particles, 0.1);
 
     if (particles.length > 0) {
       // Should accelerate toward x=10
-      expect(particles[0].velocity.x).toBeGreaterThan(initialVx);
+      expect(particles[0].velocity[0]).toBeGreaterThan(initialVx);
     }
   });
 
@@ -179,11 +179,11 @@ describe('Cycle 112: Particle System', () => {
     const particles = emitter.getAliveParticles();
     if (particles.length > 0) {
       const speed0 = Math.sqrt(
-        particles[0].velocity.x ** 2 + particles[0].velocity.y ** 2 + particles[0].velocity.z ** 2
+        particles[0].velocity[0] ** 2 + particles[0].velocity[1] ** 2 + particles[0].velocity[2] ** 2
       );
       forces.apply(particles, 0.5);
       const speed1 = Math.sqrt(
-        particles[0].velocity.x ** 2 + particles[0].velocity.y ** 2 + particles[0].velocity.z ** 2
+        particles[0].velocity[0] ** 2 + particles[0].velocity[1] ** 2 + particles[0].velocity[2] ** 2
       );
       // Drag should reduce speed
       expect(speed1).toBeLessThan(speed0);

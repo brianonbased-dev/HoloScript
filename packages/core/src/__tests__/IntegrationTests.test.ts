@@ -158,7 +158,7 @@ describe('Cycle 110: Integration Tests', () => {
       speed: 1,
       tracks: [
         {
-          targetProperty: 'position.z',
+          targetProperty: 'position[2]',
           keyframes: [
             { time: 0, value: 0 },
             { time: 1, value: 2 },
@@ -186,8 +186,8 @@ describe('Cycle 110: Integration Tests', () => {
     const animOutput = animGraph.update(0.5);
 
     expect(timelineEvents.get('chase')!.length).toBeGreaterThan(0);
-    expect(animOutput.has('position.z')).toBe(true);
-    expect(animOutput.get('position.z')!).toBeGreaterThan(0);
+    expect(animOutput.has('position[2]')).toBe(true);
+    expect(animOutput.get('position[2]')!).toBeGreaterThan(0);
   });
 
   // -------------------------------------------------------------------------
@@ -252,18 +252,18 @@ describe('Cycle 110: Integration Tests', () => {
       entityId: 'crate',
       timestamp: 0,
       position: [0, 1, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     interp.pushSnapshot({
       entityId: 'crate',
       timestamp: 100,
       position: [5, 1, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
 
     // Interpolate at midpoint
     const state = interp.getInterpolatedState('crate', 100); // renderTime = 50
     expect(state).not.toBeNull();
-    expect(state!.position.x).toBeCloseTo(2.5, 0);
+    expect(state!.position[0]).toBeCloseTo(2.5, 0);
   });
 });

@@ -23,7 +23,7 @@ describe('FluidSim', () => {
 
   it('addParticle with velocity', () => {
     sim.addParticle({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
-    expect(sim.getParticles()[0].velocity.x).toBe(1);
+    expect(sim.getParticles()[0].velocity[0]).toBe(1);
   });
 
   it('addBlock creates grid of particles', () => {
@@ -35,7 +35,7 @@ describe('FluidSim', () => {
   it('update moves particles under gravity', () => {
     sim.addParticle({ x: 0, y: 5, z: 0 });
     sim.update();
-    expect(sim.getParticles()[0].position.y).toBeLessThan(5);
+    expect(sim.getParticles()[0].position[1]).toBeLessThan(5);
   });
 
   it('boundary enforcement clamps position', () => {
@@ -48,7 +48,7 @@ describe('FluidSim', () => {
     sim.addParticle({ x: 0, y: -0.9, z: 0 }, { x: 0, y: -100, z: 0 });
     sim.update();
     const p = sim.getParticles()[0];
-    expect(p.position.y).toBeGreaterThanOrEqual(-1);
+    expect(p.position[1]).toBeGreaterThanOrEqual(-1);
   });
 
   it('getKineticEnergy is non-negative', () => {

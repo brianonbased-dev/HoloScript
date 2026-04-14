@@ -21,14 +21,14 @@ import { IKTrait, createIKTrait, type IKChain, type IKBone } from '../IKTrait';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
 
-function bone(name: string, length: number, position = { x: 0, y: 0, z: 0 }): IKBone {
-  return { name, length, transform: { position, rotation: { x: 0, y: 0, z: 0, w: 1 } } };
+function bone(name: string, length: number, position = [0, 0, 0 ]): IKBone {
+  return { name, length, transform: { position, rotation: [0, 0, 0, 1 ] } };
 }
 
 function twoSegmentChain(): IKChain {
   return {
     name: 'arm',
-    bones: [bone('upper', 1.0, { x: 0, y: 0, z: 0 }), bone('lower', 1.0, { x: 0, y: 1, z: 0 })],
+    bones: [bone('upper', 1.0, [0, 0, 0 ]), bone('lower', 1.0, [0, 1, 0 ])],
     solver: 'fabrik',
   };
 }
@@ -37,9 +37,9 @@ function threeSegmentChain(): IKChain {
   return {
     name: 'spine',
     bones: [
-      bone('s0', 1.0, { x: 0, y: 0, z: 0 }),
-      bone('s1', 1.0, { x: 0, y: 1, z: 0 }),
-      bone('s2', 1.0, { x: 0, y: 2, z: 0 }),
+      bone('s0', 1.0, [0, 0, 0 ]),
+      bone('s1', 1.0, [0, 1, 0 ]),
+      bone('s2', 1.0, [0, 2, 0 ]),
     ],
     solver: 'fabrik',
   };
@@ -124,7 +124,7 @@ describe('IKTrait — setChain / getChain', () => {
 
 describe('IKTrait — setTarget', () => {
   it('string target sets config.target and clears targetPosition', () => {
-    const t = new IKTrait({ chain: '', targetPosition: { x: 1, y: 2, z: 3 } });
+    const t = new IKTrait({ chain: '', targetPosition: [1, 2, 3 ] });
     t.setTarget('TargetSphere');
     expect(t.getConfig().target).toBe('TargetSphere');
     expect(t.getConfig().targetPosition).toBeUndefined();
@@ -132,8 +132,8 @@ describe('IKTrait — setTarget', () => {
 
   it('Vector3 target sets targetPosition and clears config.target', () => {
     const t = new IKTrait({ chain: '', target: 'Sphere' });
-    t.setTarget({ x: 1, y: 2, z: 3 });
-    expect(t.getConfig().targetPosition).toEqual({ x: 1, y: 2, z: 3 });
+    t.setTarget([1, 2, 3 ]);
+    expect(t.getConfig().targetPosition).toEqual([1, 2, 3 ]);
     expect(t.getConfig().target).toBeUndefined();
   });
 });
@@ -142,7 +142,7 @@ describe('IKTrait — setTarget', () => {
 
 describe('IKTrait — setPoleTarget', () => {
   it('string pole sets config.poleTarget and clears polePosition', () => {
-    const t = new IKTrait({ chain: '', polePosition: { x: 0, y: 0, z: 1 } });
+    const t = new IKTrait({ chain: '', polePosition: [0, 0, 1 ] });
     t.setPoleTarget('ElbowHint');
     expect(t.getConfig().poleTarget).toBe('ElbowHint');
     expect(t.getConfig().polePosition).toBeUndefined();
@@ -150,8 +150,8 @@ describe('IKTrait — setPoleTarget', () => {
 
   it('Vector3 pole sets polePosition and clears poleTarget', () => {
     const t = new IKTrait({ chain: '', poleTarget: 'ElbowHint' });
-    t.setPoleTarget({ x: 0, y: 0, z: 2 });
-    expect(t.getConfig().polePosition).toEqual({ x: 0, y: 0, z: 2 });
+    t.setPoleTarget([0, 0, 2 ]);
+    expect(t.getConfig().polePosition).toEqual([0, 0, 2 ]);
     expect(t.getConfig().poleTarget).toBeUndefined();
   });
 });
@@ -204,25 +204,25 @@ describe('IKTrait — setEnabled / isEnabled', () => {
 describe('IKTrait — solve() no chain', () => {
   it('returns reached=false when chain is null', () => {
     const t = new IKTrait({ chain: '' });
-    const result = t.solve({ x: 1, y: 1, z: 0 });
+    const result = t.solve([1, 1, 0 ]);
     expect(result.reached).toBe(false);
   });
 
   it('distanceToTarget = Infinity when chain is null', () => {
     const t = new IKTrait({ chain: '' });
-    const result = t.solve({ x: 1, y: 1, z: 0 });
+    const result = t.solve([1, 1, 0 ]);
     expect(result.distanceToTarget).toBe(Infinity);
   });
 
   it('boneTransforms is empty map when chain is null', () => {
     const t = new IKTrait({ chain: '' });
-    const result = t.solve({ x: 1, y: 1, z: 0 });
+    const result = t.solve([1, 1, 0 ]);
     expect(result.boneTransforms.size).toBe(0);
   });
 
   it('iterationsUsed = 0 when chain is null', () => {
     const t = new IKTrait({ chain: '' });
-    const result = t.solve({ x: 0, y: 1, z: 0 });
+    const result = t.solve([0, 1, 0 ]);
     expect(result.iterationsUsed).toBe(0);
   });
 });
@@ -233,7 +233,7 @@ describe('IKTrait — solve() reachable target', () => {
   it('boneTransforms has entry for each bone', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), iterations: 50, tolerance: 0.001 });
     // Target within reach: two bones of length 1 each = total 2; target at y=1.5
-    const result = t.solve({ x: 0, y: 1.5, z: 0 });
+    const result = t.solve([0, 1.5, 0 ]);
     expect(result.boneTransforms.has('upper')).toBe(true);
     expect(result.boneTransforms.has('lower')).toBe(true);
   });
@@ -242,26 +242,26 @@ describe('IKTrait — solve() reachable target', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), iterations: 100, tolerance: 0.01 });
     // Target at x=1.4 is within total chain length 2, off-axis from rest pose (bones go up)
     // so FABRIK must actually work. pinRoot=true keeps root at origin.
-    const result = t.solve({ x: 1.4, y: 0, z: 0 });
+    const result = t.solve([1.4, 0, 0 ]);
     expect(result.reached).toBe(true);
   });
 
   it('distanceToTarget is near 0 for reachable target', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), iterations: 100, tolerance: 0.001 });
-    const result = t.solve({ x: 1.4, y: 0, z: 0 });
+    const result = t.solve([1.4, 0, 0 ]);
     expect(result.distanceToTarget).toBeLessThan(0.5);
   });
 
   it('solveTimeMs is a non-negative finite number', () => {
     const t = new IKTrait({ chain: twoSegmentChain() });
-    const result = t.solve({ x: 0, y: 1, z: 0 });
+    const result = t.solve([0, 1, 0 ]);
     expect(result.solveTimeMs).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(result.solveTimeMs)).toBe(true);
   });
 
   it('three-segment chain produces 3 bone transforms', () => {
     const t = new IKTrait({ chain: threeSegmentChain(), iterations: 50 });
-    const result = t.solve({ x: 0, y: 2, z: 0 }); // within total length 3
+    const result = t.solve([0, 2, 0 ]); // within total length 3
     expect(result.boneTransforms.size).toBe(3);
   });
 });
@@ -272,20 +272,20 @@ describe('IKTrait — solve() unreachable target', () => {
   it('reached = false when target is beyond chain length', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), stretch: false });
     // Total length = 2; target at distance 10 → unreachable
-    const result = t.solve({ x: 0, y: 10, z: 0 });
+    const result = t.solve([0, 10, 0 ]);
     expect(result.reached).toBe(false);
   });
 
   it('boneTransforms still contains all bones (stretch toward target)', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), stretch: false });
-    const result = t.solve({ x: 0, y: 10, z: 0 });
+    const result = t.solve([0, 10, 0 ]);
     expect(result.boneTransforms.has('upper')).toBe(true);
     expect(result.boneTransforms.has('lower')).toBe(true);
   });
 
   it('distanceToTarget is positive when unreachable', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), stretch: false });
-    const result = t.solve({ x: 0, y: 10, z: 0 });
+    const result = t.solve([0, 10, 0 ]);
     expect(result.distanceToTarget).toBeGreaterThan(0);
   });
 });
@@ -300,22 +300,22 @@ describe('IKTrait — getLastResult', () => {
 
   it('getLastResult is null when chain is null (empty chain solve)', () => {
     const t = new IKTrait({ chain: '' });
-    t.solve({ x: 0, y: 1, z: 0 });
+    t.solve([0, 1, 0 ]);
     // No chain → no lastResult update
     expect(t.getLastResult()).toBeNull();
   });
 
   it('getLastResult updated after successful reachable solve', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), iterations: 100 });
-    t.solve({ x: 0, y: 1, z: 0 });
+    t.solve([0, 1, 0 ]);
     expect(t.getLastResult()).not.toBeNull();
     expect(t.getLastResult()?.boneTransforms.size).toBe(2);
   });
 
   it('getLastResult reflects most recent call', () => {
     const t = new IKTrait({ chain: twoSegmentChain(), iterations: 100, tolerance: 0.01 });
-    t.solve({ x: 0, y: 1, z: 0 });
-    t.solve({ x: 0, y: 1.5, z: 0 });
+    t.solve([0, 1, 0 ]);
+    t.solve([0, 1.5, 0 ]);
     // Both reachable; just confirm a second call updates the result
     expect(t.getLastResult()).toBeDefined();
   });

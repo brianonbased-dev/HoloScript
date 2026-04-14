@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * DeformableMesh.ts
  *
@@ -12,9 +13,9 @@
 // =============================================================================
 
 export interface DeformVertex {
-  rest: { x: number; y: number; z: number }; // Original position
-  current: { x: number; y: number; z: number }; // Deformed position
-  velocity: { x: number; y: number; z: number };
+  rest: Vector3; // Original position
+  current: Vector3; // Deformed position
+  velocity: Vector3;
   mass: number;
   locked: boolean;
 }
@@ -43,7 +44,7 @@ export class DeformableMesh {
   private vertices: DeformVertex[] = [];
   private springs: DeformSpring[] = [];
   private config: DeformConfig;
-  private restCentroid = { x: 0, y: 0, z: 0 };
+  private restCentroid: Vector3 = [0, 0, 0];
 
   constructor(config?: Partial<DeformConfig>) {
     this.config = {
@@ -60,11 +61,11 @@ export class DeformableMesh {
   // Mesh Setup
   // ---------------------------------------------------------------------------
 
-  setVertices(positions: Array<{ x: number; y: number; z: number }>): void {
+  setVertices(positions: Vector3[]): void {
     this.vertices = positions.map((p) => ({
-      rest: { ...p },
-      current: { ...p },
-      velocity: { x: 0, y: 0, z: 0 },
+      rest: [p[0], p[1], p[2]],
+      current: [p[0], p[1], p[2]],
+      velocity: [0, 0, 0],
       mass: 1,
       locked: false,
     }));
@@ -74,9 +75,9 @@ export class DeformableMesh {
   addSpring(a: number, b: number, stiffness?: number, damping?: number): void {
     const pa = this.vertices[a].rest,
       pb = this.vertices[b].rest;
-    const dx = pb.x - pa.x,
-      dy = pb.y - pa.y,
-      dz = pb.z - pa.z;
+    const dx = pb[0] - pa[0],
+      dy = pb[1] - pa[1],
+      dz = pb[2] - pa[2];
     this.springs.push({
       a,
       b,
@@ -91,9 +92,9 @@ export class DeformableMesh {
       for (let j = i + 1; j < this.vertices.length; j++) {
         const a = this.vertices[i].rest,
           b = this.vertices[j].rest;
-        const dx = b.x - a.x,
-          dy = b.y - a.y,
-          dz = b.z - a.z;
+        const dx = b[0] - a[0],
+          dy = b[1] - a[1],
+          dz = b[2] - a[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist <= radius) this.addSpring(i, j);
       }
@@ -105,33 +106,33 @@ export class DeformableMesh {
       cy = 0,
       cz = 0;
     for (const v of this.vertices) {
-      cx += v.rest.x;
-      cy += v.rest.y;
-      cz += v.rest.z;
+      cx += v.rest[0];
+      cy += v.rest[1];
+      cz += v.rest[2];
     }
     const n = this.vertices.length || 1;
-    this.restCentroid = { x: cx / n, y: cy / n, z: cz / n };
+    this.restCentroid = [cx / n, cy / n, cz / n];
   }
 
   // ---------------------------------------------------------------------------
   // Deformation
   // ---------------------------------------------------------------------------
 
-  applyImpact(center: { x: number; y: number; z: number }, radius: number, force: number): void {
+  applyImpact(center: Vector3, radius: number, force: number): void {
     for (const v of this.vertices) {
       if (v.locked) continue;
-      const dx = v.current.x - center.x;
-      const dy = v.current.y - center.y;
-      const dz = v.current.z - center.z;
+      const dx = v.current[0] - center[0];
+      const dy = v.current[1] - center[1];
+      const dz = v.current[2] - center[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist > radius || dist === 0) continue;
 
       const falloff = 1 - dist / radius;
       const strength = (force * falloff) / v.mass;
       const n = dist;
-      v.velocity.x += (dx / n) * strength;
-      v.velocity.y += (dy / n) * strength;
-      v.velocity.z += (dz / n) * strength;
+      v.velocity[0] += (dx / n) * strength;
+      v.velocity[1] += (dy / n) * strength;
+      v.velocity[2] += (dz / n) * strength;
     }
   }
 
@@ -144,9 +145,9 @@ export class DeformableMesh {
     for (const s of this.springs) {
       const a = this.vertices[s.a],
         b = this.vertices[s.b];
-      const dx = b.current.x - a.current.x;
-      const dy = b.current.y - a.current.y;
-      const dz = b.current.z - a.current.z;
+      const dx = b.current[0] - a.current[0];
+      const dy = b.current[1] - a.current[1];
+      const dz = b.current[2] - a.current[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.0001;
       const stretch = dist - s.restLength;
       const fx = (dx / dist) * stretch * s.stiffness;
@@ -154,19 +155,19 @@ export class DeformableMesh {
       const fz = (dz / dist) * stretch * s.stiffness;
 
       // Relative velocity damping
-      const dvx = b.velocity.x - a.velocity.x;
-      const dvy = b.velocity.y - a.velocity.y;
-      const dvz = b.velocity.z - a.velocity.z;
+      const dvx = b.velocity[0] - a.velocity[0];
+      const dvy = b.velocity[1] - a.velocity[1];
+      const dvz = b.velocity[2] - a.velocity[2];
 
       if (!a.locked) {
-        a.velocity.x += ((fx + dvx * s.damping) * dt) / a.mass;
-        a.velocity.y += ((fy + dvy * s.damping) * dt) / a.mass;
-        a.velocity.z += ((fz + dvz * s.damping) * dt) / a.mass;
+        a.velocity[0] += ((fx + dvx * s.damping) * dt) / a.mass;
+        a.velocity[1] += ((fy + dvy * s.damping) * dt) / a.mass;
+        a.velocity[2] += ((fz + dvz * s.damping) * dt) / a.mass;
       }
       if (!b.locked) {
-        b.velocity.x -= ((fx + dvx * s.damping) * dt) / b.mass;
-        b.velocity.y -= ((fy + dvy * s.damping) * dt) / b.mass;
-        b.velocity.z -= ((fz + dvz * s.damping) * dt) / b.mass;
+        b.velocity[0] -= ((fx + dvx * s.damping) * dt) / b.mass;
+        b.velocity[1] -= ((fy + dvy * s.damping) * dt) / b.mass;
+        b.velocity[2] -= ((fz + dvz * s.damping) * dt) / b.mass;
       }
     }
 
@@ -176,9 +177,9 @@ export class DeformableMesh {
         cy = 0,
         cz = 0;
       for (const v of this.vertices) {
-        cx += v.current.x;
-        cy += v.current.y;
-        cz += v.current.z;
+        cx += v.current[0];
+        cy += v.current[1];
+        cz += v.current[2];
       }
       const n = this.vertices.length || 1;
       cx /= n;
@@ -187,43 +188,43 @@ export class DeformableMesh {
 
       for (const v of this.vertices) {
         if (v.locked) continue;
-        const goalX = v.rest.x - this.restCentroid.x + cx;
-        const goalY = v.rest.y - this.restCentroid.y + cy;
-        const goalZ = v.rest.z - this.restCentroid.z + cz;
-        v.velocity.x += (goalX - v.current.x) * this.config.shapeMatchingStrength * dt * 10;
-        v.velocity.y += (goalY - v.current.y) * this.config.shapeMatchingStrength * dt * 10;
-        v.velocity.z += (goalZ - v.current.z) * this.config.shapeMatchingStrength * dt * 10;
+        const goalX = v.rest[0] - this.restCentroid[0] + cx;
+        const goalY = v.rest[1] - this.restCentroid[1] + cy;
+        const goalZ = v.rest[2] - this.restCentroid[2] + cz;
+        v.velocity[0] += (goalX - v.current[0]) * this.config.shapeMatchingStrength * dt * 10;
+        v.velocity[1] += (goalY - v.current[1]) * this.config.shapeMatchingStrength * dt * 10;
+        v.velocity[2] += (goalZ - v.current[2]) * this.config.shapeMatchingStrength * dt * 10;
       }
     }
 
     // Integrate
     for (const v of this.vertices) {
       if (v.locked) continue;
-      v.velocity.x *= this.config.damping;
-      v.velocity.y *= this.config.damping;
-      v.velocity.z *= this.config.damping;
+      v.velocity[0] *= this.config.damping;
+      v.velocity[1] *= this.config.damping;
+      v.velocity[2] *= this.config.damping;
 
-      v.current.x += v.velocity.x * dt;
-      v.current.y += v.velocity.y * dt;
-      v.current.z += v.velocity.z * dt;
+      v.current[0] += v.velocity[0] * dt;
+      v.current[1] += v.velocity[1] * dt;
+      v.current[2] += v.velocity[2] * dt;
 
       // Clamp displacement
-      const dx = v.current.x - v.rest.x;
-      const dy = v.current.y - v.rest.y;
-      const dz = v.current.z - v.rest.z;
+      const dx = v.current[0] - v.rest[0];
+      const dy = v.current[1] - v.rest[1];
+      const dz = v.current[2] - v.rest[2];
       const disp = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (disp > this.config.maxDisplacement) {
         const scale = this.config.maxDisplacement / disp;
-        v.current.x = v.rest.x + dx * scale;
-        v.current.y = v.rest.y + dy * scale;
-        v.current.z = v.rest.z + dz * scale;
+        v.current[0] = v.rest[0] + dx * scale;
+        v.current[1] = v.rest[1] + dy * scale;
+        v.current[2] = v.rest[2] + dz * scale;
       }
 
       // Plasticity — shift rest position
       if (this.config.plasticity > 0 && disp > 0.01) {
-        v.rest.x += dx * this.config.plasticity * dt;
-        v.rest.y += dy * this.config.plasticity * dt;
-        v.rest.z += dz * this.config.plasticity * dt;
+        v.rest[0] += dx * this.config.plasticity * dt;
+        v.rest[1] += dy * this.config.plasticity * dt;
+        v.rest[2] += dz * this.config.plasticity * dt;
       }
     }
   }
@@ -247,9 +248,9 @@ export class DeformableMesh {
   getDisplacement(index: number): number {
     const v = this.vertices[index];
     if (!v) return 0;
-    const dx = v.current.x - v.rest.x,
-      dy = v.current.y - v.rest.y,
-      dz = v.current.z - v.rest.z;
+    const dx = v.current[0] - v.rest[0],
+      dy = v.current[1] - v.rest[1],
+      dz = v.current[2] - v.rest[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
   getMaxDisplacement(): number {

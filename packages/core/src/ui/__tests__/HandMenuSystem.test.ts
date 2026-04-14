@@ -86,9 +86,9 @@ describe('HandMenuSystem', () => {
       (menu as any).showMenu(hand);
 
       const mountedNode = runtime.mountObject.mock.calls[0][0];
-      expect(mountedNode.properties.position.x).toBe(0.1);
+      expect(mountedNode.properties.position[0]).toBe(0.1);
       // y should be offset above hand
-      expect(mountedNode.properties.position.y).toBeGreaterThan(1.5);
+      expect(mountedNode.properties.position[1]).toBeGreaterThan(1.5);
     });
 
     it('should not show menu again if already showing', () => {

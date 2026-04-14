@@ -118,7 +118,7 @@ describe('coLocatedHandler.onEvent — co_located_aligned', () => {
     coLocatedHandler.onEvent!(node, config, ctx, {
       type: 'co_located_aligned',
       anchorId: 'anc-1',
-      transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
       quality: 0.9,
       ...overrides,
     });
@@ -238,7 +238,7 @@ describe('coLocatedHandler.onEvent — participant events', () => {
       position: [1, 0, 0],
     });
     expect(node.__coLocatedState.participants.get('u1')!.isAligned).toBe(true);
-    expect(node.__coLocatedState.participants.get('u1')!.position.x).toBe(1);
+    expect(node.__coLocatedState.participants.get('u1')!.position[0]).toBe(1);
   });
   it('participant_aligned ignored for unknown user', () => {
     const { node, ctx, config } = attach();
@@ -306,7 +306,7 @@ describe('coLocatedHandler.onEvent — participant events', () => {
       userId: 'u1',
       position: [5, 0, 0],
     });
-    expect(node.__coLocatedState.participants.get('u1')!.position.x).toBe(5);
+    expect(node.__coLocatedState.participants.get('u1')!.position[0]).toBe(5);
   });
 });
 

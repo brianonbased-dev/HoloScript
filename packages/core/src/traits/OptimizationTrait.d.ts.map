@@ -1,0 +1,1 @@
+{"version":3,"file":"OptimizationTrait.d.ts","sourceRoot":"","sources":["OptimizationTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,kBAAkB;IACjC,cAAc,EAAE,MAAM,CAAC;IACvB,SAAS,EAAE,MAAM,CAAC;CACnB;AACD,eAAO,MAAM,mBAAmB,EAAE,YAAY,CAAC,kBAAkB,CA6BhE,CAAC;AACF,eAAe,mBAAmB,CAAC"}

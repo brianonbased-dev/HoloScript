@@ -13,8 +13,8 @@
 
 export interface Transform {
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number }; // Euler angles
-  scale: { x: number; y: number; z: number };
+  rotation: [number, number, number]; // Euler angles
+  scale: [number, number, number];
 }
 
 export type Matrix4 = Float64Array; // 16-element column-major
@@ -42,8 +42,8 @@ export class SceneNode {
     this.name = name || id;
     this.local = {
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
     };
     this.worldMatrix = new Float64Array(16);
     this.setIdentity(this.worldMatrix);
@@ -58,26 +58,25 @@ export class SceneNode {
     this.markDirty();
   }
   setRotation(x: number, y: number, z: number): void {
-    this.local.rotation = { x, y, z };
+    this.local.rotation = [x, y, z];
     this.markDirty();
   }
   setScale(x: number, y: number, z: number): void {
-    this.local.scale = { x, y, z };
+    this.local.scale = [x, y, z];
     this.markDirty();
   }
 
   getLocalTransform(): Transform {
     return {
-      ...this.local,
-      position: { ...this.local.position },
-      rotation: { ...this.local.rotation },
-      scale: { ...this.local.scale },
+      position: [...this.local.position] as [number, number, number],
+      rotation: [...this.local.rotation] as [number, number, number],
+      scale: [...this.local.scale] as [number, number, number],
     };
   }
 
-  getWorldPosition(): { x: number; y: number; z: number } {
+  getWorldPosition(): [number, number, number] {
     this.updateWorldMatrix();
-    return { x: this.worldMatrix[12], y: this.worldMatrix[13], z: this.worldMatrix[14] };
+    return [this.worldMatrix[12], this.worldMatrix[13], this.worldMatrix[14]];
   }
 
   getWorldMatrix(): Matrix4 {
@@ -151,27 +150,27 @@ export class SceneNode {
     const { position: p, rotation: r, scale: s } = this.local;
 
     // Euler angles → rotation matrix (intrinsic YXZ order)
-    const cx = Math.cos(r.x),
-      sx = Math.sin(r.x);
-    const cy = Math.cos(r.y),
-      sy = Math.sin(r.y);
-    const cz = Math.cos(r.z),
-      sz = Math.sin(r.z);
+    const cx = Math.cos(r[0]),
+      sx = Math.sin(r[0]);
+    const cy = Math.cos(r[1]),
+      sy = Math.sin(r[1]);
+    const cz = Math.cos(r[2]),
+      sz = Math.sin(r[2]);
 
     // Column-major TRS: M = T * Ry * Rx * Rz * S
-    m[0] = (cy * cz + sy * sx * sz) * s.x;
+    m[0] = (cy * cz + sy * sx * sz) * s[0];
     m[1] = cx * sz;
-    m[2] = (-sy * cz + cy * sx * sz) * s.x;
+    m[2] = (-sy * cz + cy * sx * sz) * s[0];
     m[3] = 0;
 
-    m[4] = (cy * -sz + sy * sx * cz) * s.y;
+    m[4] = (cy * -sz + sy * sx * cz) * s[1];
     m[5] = cx * cz;
-    m[6] = (sy * sz + cy * sx * cz) * s.y;
+    m[6] = (sy * sz + cy * sx * cz) * s[1];
     m[7] = 0;
 
-    m[8] = sy * cx * s.z;
+    m[8] = sy * cx * s[2];
     m[9] = -sx;
-    m[10] = cy * cx * s.z;
+    m[10] = cy * cx * s[2];
     m[11] = 0;
 
     m[12] = p[0];

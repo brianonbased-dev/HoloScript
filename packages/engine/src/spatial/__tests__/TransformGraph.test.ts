@@ -117,14 +117,14 @@ describe('TransformGraph', () => {
   // =========== World Position ===========
 
   it('root world position equals local position', () => {
-    graph.addNode('r', { x: 1, y: 2, z: 3 });
+    graph.addNode('r', [1, 2, 3 ]);
     const wp = graph.getWorldPosition('r')!;
-    expect(wp).toEqual({ x: 1, y: 2, z: 3 });
+    expect(wp).toEqual([1, 2, 3 ]);
   });
 
   it('child world position accounts for parent position', () => {
-    graph.addNode('parent', { x: 10, y: 0, z: 0 });
-    graph.addNode('child', { x: 5, y: 0, z: 0 });
+    graph.addNode('parent', [10, 0, 0 ]);
+    graph.addNode('child', [5, 0, 0 ]);
     graph.setParent('child', 'parent');
     const wp = graph.getWorldPosition('child')!;
     expect(wp.x).toBe(15); // 10 + 5*1
@@ -132,7 +132,7 @@ describe('TransformGraph', () => {
 
   it('child world position respects parent scale', () => {
     graph.addNode('parent', { x: 0, y: 0, z: 0, sx: 2, sy: 3, sz: 4 });
-    graph.addNode('child', { x: 1, y: 1, z: 1 });
+    graph.addNode('child', [1, 1, 1 ]);
     graph.setParent('child', 'parent');
     const wp = graph.getWorldPosition('child')!;
     expect(wp.x).toBe(2); // 0 + 1*2
@@ -141,9 +141,9 @@ describe('TransformGraph', () => {
   });
 
   it('three-level hierarchy accumulates positions', () => {
-    graph.addNode('a', { x: 1, y: 0, z: 0 });
-    graph.addNode('b', { x: 2, y: 0, z: 0 });
-    graph.addNode('c', { x: 3, y: 0, z: 0 });
+    graph.addNode('a', [1, 0, 0 ]);
+    graph.addNode('b', [2, 0, 0 ]);
+    graph.addNode('c', [3, 0, 0 ]);
     graph.setParent('b', 'a');
     graph.setParent('c', 'b');
     const wp = graph.getWorldPosition('c')!;
@@ -172,7 +172,7 @@ describe('TransformGraph', () => {
 
   it('setScale propagates dirty to children', () => {
     graph.addNode('p');
-    graph.addNode('c', { x: 10, y: 0, z: 0 });
+    graph.addNode('c', [10, 0, 0 ]);
     graph.setParent('c', 'p');
     graph.getWorldPosition('c'); // update
     graph.setScale('p', 3, 1, 1);
@@ -183,9 +183,9 @@ describe('TransformGraph', () => {
   // =========== Batch Update ===========
 
   it('updateAll resolves all dirty nodes', () => {
-    graph.addNode('a', { x: 1, y: 0, z: 0 });
-    graph.addNode('b', { x: 2, y: 0, z: 0 });
-    graph.addNode('c', { x: 3, y: 0, z: 0 });
+    graph.addNode('a', [1, 0, 0 ]);
+    graph.addNode('b', [2, 0, 0 ]);
+    graph.addNode('c', [3, 0, 0 ]);
     graph.setParent('b', 'a');
     graph.setParent('c', 'b');
     graph.updateAll();

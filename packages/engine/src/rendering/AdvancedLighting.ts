@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AdvancedLighting.ts
  *
@@ -18,8 +19,8 @@
 // TYPES
 // =============================================================================
 
-export type Vec3 = { x: number; y: number; z: number };
-export type Vec2 = { x: number; y: number };
+export type Vec3 = [number, number, number];
+export type Vec2 = [number, number];
 
 export type AreaLightShape = 'rectangle' | 'disk' | 'tube';
 export type LightType = 'point' | 'spot' | 'directional' | 'area' | 'ies' | 'emissive_mesh';
@@ -62,8 +63,8 @@ export interface CausticConfig {
 export interface AdvancedLight {
   id: string;
   type: LightType;
-  position: Vec3;
-  direction: Vec3;
+  position: Vector3;
+  direction: Vector3;
   color: [number, number, number];
   intensity: number;
   range: number;
@@ -149,51 +150,51 @@ export function sampleIES(profile: IESProfile, vertDeg: number, horizDeg: number
  * All positions in world space.
  */
 export function rectSolidAngle(
-  surfacePos: Vec3,
-  lightPos: Vec3,
-  right: Vec3,
-  up: Vec3,
+  surfacePos: Vector3,
+  lightPos: Vector3,
+  right: Vector3,
+  up: Vector3,
   halfWidth: number,
   halfHeight: number
 ): number {
   // Compute corners
-  const corners: Vec3[] = [
-    {
-      x: lightPos.x - right.x * halfWidth - up.x * halfHeight,
-      y: lightPos.y - right.y * halfWidth - up.y * halfHeight,
-      z: lightPos.z - right.z * halfWidth - up.z * halfHeight,
-    },
-    {
-      x: lightPos.x + right.x * halfWidth - up.x * halfHeight,
-      y: lightPos.y + right.y * halfWidth - up.y * halfHeight,
-      z: lightPos.z + right.z * halfWidth - up.z * halfHeight,
-    },
-    {
-      x: lightPos.x + right.x * halfWidth + up.x * halfHeight,
-      y: lightPos.y + right.y * halfWidth + up.y * halfHeight,
-      z: lightPos.z + right.z * halfWidth + up.z * halfHeight,
-    },
-    {
-      x: lightPos.x - right.x * halfWidth + up.x * halfHeight,
-      y: lightPos.y - right.y * halfWidth + up.y * halfHeight,
-      z: lightPos.z - right.z * halfWidth + up.z * halfHeight,
-    },
+  const corners: Vector3[] = [
+    [
+      lightPos[0] - right[0] * halfWidth - up[0] * halfHeight,
+      lightPos[1] - right[1] * halfWidth - up[1] * halfHeight,
+      lightPos[2] - right[2] * halfWidth - up[2] * halfHeight,
+    ],
+    [
+      lightPos[0] + right[0] * halfWidth - up[0] * halfHeight,
+      lightPos[1] + right[1] * halfWidth - up[1] * halfHeight,
+      lightPos[2] + right[2] * halfWidth - up[2] * halfHeight,
+    ],
+    [
+      lightPos[0] + right[0] * halfWidth + up[0] * halfHeight,
+      lightPos[1] + right[1] * halfWidth + up[1] * halfHeight,
+      lightPos[2] + right[2] * halfWidth + up[2] * halfHeight,
+    ],
+    [
+      lightPos[0] - right[0] * halfWidth + up[0] * halfHeight,
+      lightPos[1] - right[1] * halfWidth + up[1] * halfHeight,
+      lightPos[2] - right[2] * halfWidth + up[2] * halfHeight,
+    ],
   ];
 
   const dirs = corners.map((c) => {
-    const d = { x: c.x - surfacePos.x, y: c.y - surfacePos.y, z: c.z - surfacePos.z };
-    const len = Math.sqrt(d.x ** 2 + d.y ** 2 + d.z ** 2) || 1;
-    return { x: d.x / len, y: d.y / len, z: d.z / len };
+    const d = [c[0] - surfacePos[0], c[1] - surfacePos[1], c[2] - surfacePos[2]];
+    const len = Math.sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2) || 1;
+    return [d[0] / len, d[1] / len, d[2] / len] as Vector3;
   });
 
   // Van Oosterom–Strackee solid angle formula
-  const dot_ = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
-  const cross_ = (a: Vec3, b: Vec3): Vec3 => ({
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  });
-  const len_ = (v: Vec3) => Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
+  const dot_ = (a: Vector3, b: Vector3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross_ = (a: Vector3, b: Vector3): Vector3 => ([
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ]);
+  const len_ = (v: Vector3) => Math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2);
 
   let solidAngle = 0;
   for (let i = 0; i < 4; i++) {
@@ -210,10 +211,10 @@ export function rectSolidAngle(
 /**
  * Disk area light — solid angle approximation.
  */
-export function diskSolidAngle(surfacePos: Vec3, lightPos: Vec3, radius: number): number {
-  const dx = lightPos.x - surfacePos.x;
-  const dy = lightPos.y - surfacePos.y;
-  const dz = lightPos.z - surfacePos.z;
+export function diskSolidAngle(surfacePos: Vector3, lightPos: Vector3, radius: number): number {
+  const dx = lightPos[0] - surfacePos[0];
+  const dy = lightPos[1] - surfacePos[1];
+  const dz = lightPos[2] - surfacePos[2];
   const dist2 = dx * dx + dy * dy + dz * dz;
   const area = Math.PI * radius * radius;
   return area / (dist2 + area);
@@ -271,8 +272,8 @@ export class AdvancedLightingManager {
   addLight(config: Partial<AdvancedLight> & { type: LightType }): AdvancedLight {
     const light: AdvancedLight = {
       id: `alight_${_lightId++}`,
-      position: {x: 0, y: 5, z: 0},
-      direction: { x: 0, y: -1, z: 0 },
+      position: [0, 5, 0],
+      direction: [0, -1, 0],
       color: [1, 1, 1],
       intensity: 1,
       range: 20,

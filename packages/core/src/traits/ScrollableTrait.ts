@@ -97,10 +97,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const contentNode = context.getNode(`${node.id}_content`);
     if (contentNode && contentNode.properties) {
-      contentNode.properties.position = {
-        ...(contentNode.properties.position as Vector3),
-        y: state.offset,
-      };
+      (contentNode.properties.position as unknown as number[])[1] = state.offset;
       context.emit('property_changed', {
         nodeId: `${node.id}_content`,
         property: 'position',
@@ -133,10 +130,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         const contentNode = context.getNode(`${node.id}_content`);
         if (contentNode && contentNode.properties) {
-          contentNode.properties.position = {
-            ...(contentNode.properties.position as Vector3),
-            y: state.offset,
-          };
+          (contentNode.properties.position as unknown as number[])[1] = state.offset;
           context.emit('property_changed', {
             nodeId: `${node.id}_content`,
             property: 'position',

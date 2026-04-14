@@ -17,13 +17,13 @@ function makeSolver(): IKSolver {
       {
         id: 'LeftShoulder',
         position: [-0.2, 1.4, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 0.3,
       },
       {
         id: 'LeftForearm',
         position: [-0.5, 1.4, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 0.25,
       },
     ],
@@ -37,13 +37,13 @@ function makeSolver(): IKSolver {
       {
         id: 'RightShoulder',
         position: [0.2, 1.4, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 0.3,
       },
       {
         id: 'RightForearm',
         position: [0.5, 1.4, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 0.25,
       },
     ],
@@ -67,9 +67,9 @@ function makeBones(): BoneSystem {
 
 function makeInput(overrides: Partial<AvatarInput> = {}): AvatarInput {
   return {
-    head: { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
-    leftHand: { position: [-0.4, 1.0, 0.3], rotation: { x: 0, y: 0, z: 0, w: 1 } },
-    rightHand: { position: [0.4, 1.0, 0.3], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    head: { position: [0, 1.7, 0], rotation: [0, 0, 0, 1 ] },
+    leftHand: { position: [-0.4, 1.0, 0.3], rotation: [0, 0, 0, 1 ] },
+    rightHand: { position: [0.4, 1.0, 0.3], rotation: [0, 0, 0, 1 ] },
     height: 1.75,
     ...overrides,
   };

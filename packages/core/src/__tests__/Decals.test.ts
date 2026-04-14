@@ -142,8 +142,8 @@ describe('Cycle 138: Decals & Projectors', () => {
         id: `d${i}`,
         textureId: i < 5 ? 'blood' : 'scorch',
         position: [i * 5, 0, 0],
-        scale: { x: 1, y: 1, z: 1 },
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1 ],
         opacity: 1,
         lodLevel: 0,
       });
@@ -164,8 +164,8 @@ describe('Cycle 138: Decals & Projectors', () => {
       id: 'visible',
       textureId: 'tex',
       position: [5, 0, 0],
-      scale: { x: 1, y: 1, z: 1 },
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      scale: [1, 1, 1 ],
+      rotation: [0, 0, 0, 1 ],
       opacity: 1,
       lodLevel: 0,
     });
@@ -173,8 +173,8 @@ describe('Cycle 138: Decals & Projectors', () => {
       id: 'hidden',
       textureId: 'tex',
       position: [500, 0, 0],
-      scale: { x: 1, y: 1, z: 1 },
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      scale: [1, 1, 1 ],
+      rotation: [0, 0, 0, 1 ],
       opacity: 1,
       lodLevel: 0,
     });

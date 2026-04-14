@@ -28,7 +28,7 @@ describe('MeshDetectionTrait', () => {
     vertices: new Float32Array(verts * 3),
     indices: new Uint32Array(tris * 3),
     normals: new Float32Array(verts * 3),
-    bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+    bounds: { min: [0, 0, 0 ], max: [1, 1, 1 ] },
     vertexCount: verts,
     triangleCount: tris,
     lastUpdated: 0,

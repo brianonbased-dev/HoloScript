@@ -57,19 +57,19 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
       entityId: 'e1',
       timestamp: 0,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     interp.pushSnapshot({
       entityId: 'e1',
       timestamp: 100,
       position: [10, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
 
     // At render time 150 (minus 100 buffer = t=50), should be at x=5
     const state = interp.getInterpolatedState('e1', 150);
     expect(state).not.toBeNull();
-    expect(state!.position.x).toBeCloseTo(5, 0);
+    expect(state!.position[0]).toBeCloseTo(5, 0);
     expect(state!.isExtrapolating).toBe(false);
   });
 
@@ -80,14 +80,14 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
       entityId: 'e2',
       timestamp: 0,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      velocity: { x: 10, y: 0, z: 0 }, // Moving 10 units/sec
+      rotation: [0, 0, 0, 1 ],
+      velocity: [10, 0, 0 ], // Moving 10 units/sec
     });
 
     // At render time 550 (buffer=50 → t=500), extrapolate: 0 + 10 * 0.5 = 5
     const state = interp.getInterpolatedState('e2', 550);
     expect(state).not.toBeNull();
-    expect(state!.position.x).toBeCloseTo(5, 0);
+    expect(state!.position[0]).toBeCloseTo(5, 0);
     expect(state!.isExtrapolating).toBe(true);
   });
 
@@ -115,7 +115,7 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
     mgr.register('car1', 'vehicle', 'player1', { priority: 8, updateIntervalMs: 0 });
     mgr.updateSnapshot('car1', {
       position: [10, 0, 5],
-      velocity: { x: 1, y: 0, z: 0 },
+      velocity: [1, 0, 0 ],
     });
 
     const updates = mgr.generateUpdates(999999);

@@ -48,14 +48,14 @@ export class EditorUI {
     // Handle Spawning
     this.assetBrowser.onAssetSelected = (asset) => {
       // Spawn 1 meter in front of user (0, 1.5, -1)
-      const spawnPos: Vector3 = { x: 0, y: 1.5, z: -1 };
+      const spawnPos: Vector3 = [0, 1.5, -1];
 
       const entity = this.world.createEntity();
       this.world.addComponent(entity, 'Name', { value: asset.name });
       this.world.addComponent(entity, 'Transform', {
         position: spawnPos,
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
       });
 
       if (asset.assetType === 'model') {
@@ -73,14 +73,14 @@ export class EditorUI {
 
     // Handle Minting/Spawning
     this.marketplace.onSpawnNFT = (nft: NFTAsset) => {
-      const spawnPos: Vector3 = { x: -0.5, y: 1.5, z: -1 };
+      const spawnPos: Vector3 = [-0.5, 1.5, -1];
 
       const entity = this.world.createEntity();
       this.world.addComponent(entity, 'Name', { value: nft.name });
       this.world.addComponent(entity, 'Transform', {
         position: spawnPos,
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
       });
 
       // Web3 Trait

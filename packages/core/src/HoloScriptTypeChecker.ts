@@ -486,8 +486,8 @@ export class HoloScriptTypeChecker {
    * Check a node for type errors
    */
   private checkNode(node: ASTNode): void {
-    this.currentLine = node.position?.x ?? 0;
-    this.currentColumn = node.position?.y ?? 0;
+    this.currentLine = node.position?.[0] ?? 0;
+    this.currentColumn = node.position?.[1] ?? 0;
 
     switch (node.type) {
       case 'connection':

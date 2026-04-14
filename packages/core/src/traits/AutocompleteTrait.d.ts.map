@@ -1,0 +1,1 @@
+{"version":3,"file":"AutocompleteTrait.d.ts","sourceRoot":"","sources":["AutocompleteTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,kBAAkB;IACjC,eAAe,EAAE,MAAM,CAAC;IACxB,SAAS,EAAE,MAAM,CAAC;CACnB;AACD,eAAO,MAAM,mBAAmB,EAAE,YAAY,CAAC,kBAAkB,CAsChE,CAAC;AACF,eAAe,mBAAmB,CAAC"}

@@ -12,8 +12,8 @@ describe('SkeletonTrait', () => {
           name: 'Hips',
           bindPose: {
             position: [0, 1, 0],
-            rotation: { x: 0, y: 0, z: 0, w: 1 },
-            scale: { x: 1, y: 1, z: 1 },
+            rotation: [0, 0, 0, 1 ],
+            scale: [1, 1, 1 ],
           },
           length: 0.1,
         },
@@ -22,8 +22,8 @@ describe('SkeletonTrait', () => {
           parent: 'Hips',
           bindPose: {
             position: [0, 1.1, 0],
-            rotation: { x: 0, y: 0, z: 0, w: 1 },
-            scale: { x: 1, y: 1, z: 1 },
+            rotation: [0, 0, 0, 1 ],
+            scale: [1, 1, 1 ],
           },
           length: 0.2,
         },
@@ -100,7 +100,7 @@ describe('SkeletonTrait', () => {
   it('getBoneTransform returns transform', () => {
     const t = skel.getBoneTransform('Hips');
     expect(t).toBeDefined();
-    expect(t?.position.y).toBe(1);
+    expect(t?.position[1]).toBe(1);
   });
 
   it('getBoneTransform returns undefined for missing', () => {

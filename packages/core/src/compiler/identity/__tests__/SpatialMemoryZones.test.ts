@@ -544,7 +544,7 @@ describe('SpatialMemoryZones', () => {
         })
       );
 
-      const position: SpatialPosition = { x: 37.78, y: -122.42, z: 100 };
+      const position: SpatialPosition = [37.78, -122.42, 100];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -572,7 +572,7 @@ describe('SpatialMemoryZones', () => {
       );
 
       // Position outside the zone bounds
-      const position: SpatialPosition = { x: 40.0, y: -74.0, z: 0 };
+      const position: SpatialPosition = [40.0, -74.0, 0];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -591,7 +591,7 @@ describe('SpatialMemoryZones', () => {
         createZonePolicy('room-1', { [AgentRole.AST_OPTIMIZER]: [SpatialPermission.SPATIAL_READ] })
       );
 
-      const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
+      const position: SpatialPosition = [5, 2.5, 1.5];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -614,7 +614,7 @@ describe('SpatialMemoryZones', () => {
         )
       );
 
-      const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
+      const position: SpatialPosition = [5, 2.5, 1.5];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -633,7 +633,7 @@ describe('SpatialMemoryZones', () => {
         createZonePolicy('lobby', { [AgentRole.ORCHESTRATOR]: [SpatialPermission.SPATIAL_READ] })
       );
 
-      const position: SpatialPosition = { x: 0, y: 0, z: 0 };
+      const position: SpatialPosition = [0, 0, 0];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -650,7 +650,7 @@ describe('SpatialMemoryZones', () => {
       const zone = createLocalZone('room-3', 'Room 3', 'public', 0, 10, 0, 5, 0, 3);
       enforcer.registerZone(zone);
 
-      const position: SpatialPosition = { x: 5, y: 2.5, z: 1.5 };
+      const position: SpatialPosition = [5, 2.5, 1.5];
       const decision = enforcer.validateSpatialOperation(
         'bad-token',
         position,
@@ -680,7 +680,7 @@ describe('SpatialMemoryZones', () => {
       );
 
       // Inside altitude range
-      const inside: SpatialPosition = { x: 37.78, y: -122.42, z: 150 };
+      const inside: SpatialPosition = [37.78, -122.42, 150];
       const insideDecision = enforcer.validateSpatialOperation(
         'token',
         inside,
@@ -689,7 +689,7 @@ describe('SpatialMemoryZones', () => {
       expect(insideDecision.allowed).toBe(true);
 
       // Outside altitude range (too high)
-      const above: SpatialPosition = { x: 37.78, y: -122.42, z: 300 };
+      const above: SpatialPosition = [37.78, -122.42, 300];
       const aboveDecision = enforcer.validateSpatialOperation(
         'token',
         above,
@@ -698,7 +698,7 @@ describe('SpatialMemoryZones', () => {
       expect(aboveDecision.allowed).toBe(false);
 
       // Outside altitude range (too low)
-      const below: SpatialPosition = { x: 37.78, y: -122.42, z: 50 };
+      const below: SpatialPosition = [37.78, -122.42, 50];
       const belowDecision = enforcer.validateSpatialOperation(
         'token',
         below,
@@ -717,13 +717,13 @@ describe('SpatialMemoryZones', () => {
       );
 
       // Exact corner
-      const corner: SpatialPosition = { x: 0, y: 0, z: 0 };
+      const corner: SpatialPosition = [0, 0, 0];
       expect(
         enforcer.validateSpatialOperation('token', corner, SpatialPermission.SPATIAL_READ).allowed
       ).toBe(true);
 
       // Opposite exact corner
-      const farCorner: SpatialPosition = { x: 10, y: 5, z: 3 };
+      const farCorner: SpatialPosition = [10, 5, 3];
       expect(
         enforcer.validateSpatialOperation('token', farCorner, SpatialPermission.SPATIAL_READ)
           .allowed
@@ -1023,7 +1023,7 @@ describe('SpatialMemoryZones', () => {
       );
 
       // Position in overlap region
-      const position: SpatialPosition = { x: 7, y: 5, z: 5 };
+      const position: SpatialPosition = [7, 5, 5];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,
@@ -1044,7 +1044,7 @@ describe('SpatialMemoryZones', () => {
       enforcer.registerZone(zoneB);
       enforcer.setPolicy(createZonePolicy('deny-b', {}, {}, []));
 
-      const position: SpatialPosition = { x: 7, y: 5, z: 5 };
+      const position: SpatialPosition = [7, 5, 5];
       const decision = enforcer.validateSpatialOperation(
         'token',
         position,

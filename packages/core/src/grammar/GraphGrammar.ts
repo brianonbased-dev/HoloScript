@@ -272,10 +272,10 @@ class SeededRandom {
  *   symbol: 'Village',
  *   weight: 1.0,
  *   produce: (node, ctx) => [
- *     createNonTerminal('TownSquare', { x: 0, y: 0, z: 0 }),
- *     createNonTerminal('HouseRow', { x: -20, y: 0, z: 0 }),
- *     createNonTerminal('HouseRow', { x: 20, y: 0, z: 0 }),
- *     createNonTerminal('Forest', { x: 0, y: 0, z: -50 }),
+ *     createNonTerminal('TownSquare', [0, 0, 0]),
+ *     createNonTerminal('HouseRow', [-20, 0, 0]),
+ *     createNonTerminal('HouseRow', [20, 0, 0]),
+ *     createNonTerminal('Forest', [0, 0, -50]),
  *   ],
  *   tags: ['layout', 'village'],
  * });
@@ -285,8 +285,8 @@ class SeededRandom {
  *   symbol: 'House',
  *   weight: 0.7,
  *   produce: (node, ctx) => [
- *     createTerminal('house_mesh', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
- *     createTerminal('door', ['grabbable', 'collidable'], { x: 0, y: 0, z: 2 }),
+ *     createTerminal('house_mesh', ['collidable', 'visible'], [0, 0, 0]),
+ *     createTerminal('door', ['grabbable', 'collidable'], [0, 0, 2]),
  *   ],
  *   tags: ['structure', 'house'],
  * });
@@ -385,7 +385,7 @@ export class GraphGrammar {
     const unexpanded: string[] = [];
 
     // Create start node
-    const startNode = createNonTerminal(this.startSymbol, { x: 0, y: 0, z: 0 });
+    const startNode = createNonTerminal(this.startSymbol, [0, 0, 0]);
 
     // Recursively expand
     const root = this.expandNode(
@@ -583,8 +583,8 @@ export function createNonTerminal(
     config: {},
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0 ],
+      scale: [1, 1, 1 ],
       positionMode: 'relative',
     },
     children: [],
@@ -611,8 +611,8 @@ export function createTerminal(
     config,
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0 ],
+      scale: [1, 1, 1 ],
       positionMode: 'relative',
     },
     children: [],
@@ -637,8 +637,8 @@ export function createAnchor(
     config: {},
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0 ],
+      scale: [1, 1, 1 ],
       positionMode: bounds ? 'random_in_bounds' : 'absolute',
       bounds,
     },
@@ -677,7 +677,7 @@ export function compositionToRule(
     tags: ['composition', ...traitNames],
     produce: (_node, _context) => {
       return [
-        createTerminal(compositionName, traitNames, { x: 0, y: 0, z: 0 }, {}, [
+        createTerminal(compositionName, traitNames, [0, 0, 0], {}, [
           'composed',
           ...traitNames,
         ]),
@@ -705,7 +705,7 @@ export function templateToRule(
     tags: ['template', templateName],
     produce: (_node, _context) => {
       return [
-        createTerminal(templateName, traits, { x: 0, y: 0, z: 0 }, defaultConfig, [
+        createTerminal(templateName, traits, [0, 0, 0], defaultConfig, [
           'template-instance',
           templateName,
         ]),
@@ -733,7 +733,7 @@ export function createVillageGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed + ctx.depth);
       const houseCount = rng.int(4, 8);
-      const nodes: GrammarNode[] = [createNonTerminal('TownSquare', { x: 0, y: 0, z: 0 })];
+      const nodes: GrammarNode[] = [createNonTerminal('TownSquare', [0, 0, 0])];
 
       // Scatter houses in a circle around town square
       for (let i = 0; i < houseCount; i++) {
@@ -773,7 +773,7 @@ export function createVillageGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed + ctx.depth + 100);
       const nodes: GrammarNode[] = [
-        createTerminal('fountain', ['collidable', 'audio', 'visible'], { x: 0, y: 0, z: 0 }),
+        createTerminal('fountain', ['collidable', 'audio', 'visible'], [0, 0, 0]),
       ];
 
       const benchCount = rng.int(2, 6);
@@ -799,9 +799,9 @@ export function createVillageGrammar(): GraphGrammar {
     weight: 0.7,
     tags: ['structure', 'house'],
     produce: () => [
-      createTerminal('house_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
-      createTerminal('house_door', ['grabbable', 'collidable', 'visible'], { x: 0, y: 0, z: 3 }),
-      createTerminal('house_roof', ['collidable', 'visible'], { x: 0, y: 3, z: 0 }),
+      createTerminal('house_walls', ['collidable', 'visible'], [0, 0, 0]),
+      createTerminal('house_door', ['grabbable', 'collidable', 'visible'], [0, 0, 3]),
+      createTerminal('house_roof', ['collidable', 'visible'], [0, 3, 0]),
     ],
   });
 
@@ -815,7 +815,7 @@ export function createVillageGrammar(): GraphGrammar {
       createTerminal(
         'house_large_walls',
         ['collidable', 'visible'],
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0],
         { scale: 1.5 }
       ),
       createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], {
@@ -823,8 +823,8 @@ export function createVillageGrammar(): GraphGrammar {
         y: 0,
         z: 4.5,
       }),
-      createTerminal('house_large_roof', ['collidable', 'visible'], { x: 0, y: 4.5, z: 0 }),
-      createTerminal('chimney', ['visible', 'collidable'], { x: 2, y: 6, z: 0 }),
+      createTerminal('house_large_roof', ['collidable', 'visible'], [0, 4.5, 0]),
+      createTerminal('chimney', ['visible', 'collidable'], [2, 6, 0]),
     ],
   });
 
@@ -841,7 +841,7 @@ export function createVillageGrammar(): GraphGrammar {
         createTerminal(
           'tree',
           ['collidable', 'visible'],
-          { x: 0, y: 0, z: 0 },
+          [0, 0, 0],
           { treeScale: scale }
         ),
       ];
@@ -855,8 +855,8 @@ export function createVillageGrammar(): GraphGrammar {
     weight: 0.4,
     tags: ['nature', 'tree', 'oak'],
     produce: () => [
-      createTerminal('oak_trunk', ['collidable', 'climbable', 'visible'], { x: 0, y: 0, z: 0 }),
-      createTerminal('oak_canopy', ['visible'], { x: 0, y: 5, z: 0 }, { radius: 4 }),
+      createTerminal('oak_trunk', ['collidable', 'climbable', 'visible'], [0, 0, 0]),
+      createTerminal('oak_canopy', ['visible'], [0, 5, 0], { radius: 4 }),
     ],
   });
 
@@ -877,12 +877,12 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed);
       const roomCount = rng.int(3, 7);
-      const nodes: GrammarNode[] = [createNonTerminal('Entrance', { x: 0, y: 0, z: 0 })];
+      const nodes: GrammarNode[] = [createNonTerminal('Entrance', [0, 0, 0])];
 
       let z = -10;
       for (let i = 0; i < roomCount; i++) {
         nodes.push(createNonTerminal(rng.next() > 0.3 ? 'Room' : 'BossRoom', { x: 0, y: 0, z }));
-        nodes.push(createTerminal('corridor', ['collidable', 'visible'], { x: 0, y: 0, z: z + 5 }));
+        nodes.push(createTerminal('corridor', ['collidable', 'visible'], [0, 0, z + 5]));
         z -= 15;
       }
 
@@ -898,8 +898,8 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed + ctx.depth);
       const nodes: GrammarNode[] = [
-        createTerminal('room_floor', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
-        createTerminal('room_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
+        createTerminal('room_floor', ['collidable', 'visible'], [0, 0, 0]),
+        createTerminal('room_walls', ['collidable', 'visible'], [0, 0, 0]),
       ];
 
       // Random loot
@@ -934,15 +934,15 @@ export function createDungeonGrammar(): GraphGrammar {
     weight: 0.2,
     tags: ['dungeon', 'room', 'treasure'],
     produce: () => [
-      createTerminal('room_floor', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
-      createTerminal('room_walls', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
+      createTerminal('room_floor', ['collidable', 'visible'], [0, 0, 0]),
+      createTerminal('room_walls', ['collidable', 'visible'], [0, 0, 0]),
       createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], {
         x: 0,
         y: 0,
         z: 0,
       }),
-      createTerminal('gold_pile', ['visible', 'collidable'], { x: -2, y: 0, z: 1 }),
-      createTerminal('gold_pile', ['visible', 'collidable'], { x: 2, y: 0, z: -1 }),
+      createTerminal('gold_pile', ['visible', 'collidable'], [-2, 0, 1]),
+      createTerminal('gold_pile', ['visible', 'collidable'], [2, 0, -1]),
     ],
   });
 
@@ -956,19 +956,19 @@ export function createDungeonGrammar(): GraphGrammar {
       createTerminal(
         'boss_room_floor',
         ['collidable', 'visible'],
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0],
         { scale: 2 }
       ),
       createTerminal(
         'boss_room_walls',
         ['collidable', 'visible'],
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0],
         { scale: 2 }
       ),
       createTerminal(
         'boss',
         ['health', 'damage', 'collidable', 'visible'],
-        { x: 0, y: 0, z: -5 },
+        [0, 0, -5],
         { maxHealth: 1000, baseDamage: 50 }
       ),
       createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], {
@@ -985,9 +985,9 @@ export function createDungeonGrammar(): GraphGrammar {
     weight: 1.0,
     tags: ['dungeon', 'entrance'],
     produce: () => [
-      createTerminal('entrance_gate', ['collidable', 'visible'], { x: 0, y: 0, z: 0 }),
-      createTerminal('entrance_torch_left', ['visible', 'audio'], { x: -3, y: 2, z: 0 }),
-      createTerminal('entrance_torch_right', ['visible', 'audio'], { x: 3, y: 2, z: 0 }),
+      createTerminal('entrance_gate', ['collidable', 'visible'], [0, 0, 0]),
+      createTerminal('entrance_torch_left', ['visible', 'audio'], [-3, 2, 0]),
+      createTerminal('entrance_torch_right', ['visible', 'audio'], [3, 2, 0]),
     ],
   });
 

@@ -44,13 +44,13 @@ export interface SceneObject {
   /** Object type (e.g., 'cube', 'sphere', 'zone', 'npc') */
   type: string;
   /** 3D position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** 3D scale */
-  scale: { x: number; y: number; z: number };
+  scale: [number, number, number];
   /** Bounding box (for containment checks) */
   bounds?: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: [number, number, number];
+    max: [number, number, number];
   };
   /** Whether this object acts as an obstacle */
   isObstacle?: boolean;

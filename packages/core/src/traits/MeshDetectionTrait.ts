@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * MeshDetection Trait
  *
@@ -31,7 +32,7 @@ interface MeshBlock {
   vertices: Float32Array;
   indices: Uint32Array;
   normals: Float32Array;
-  bounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } };
+  bounds: { min: Vector3; max: Vector3 };
   semanticLabels?: Uint8Array;
   lastUpdated: number;
   vertexCount: number;

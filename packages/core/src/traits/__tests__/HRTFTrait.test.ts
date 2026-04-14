@@ -52,8 +52,8 @@ describe('HRTFTrait', () => {
   });
 
   it('listener_update updates position', () => {
-    const pos = { x: 1, y: 2, z: 3 };
-    const ori = { forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } };
+    const pos = [1, 2, 3 ];
+    const ori = { forward: [0, 0, -1 ], up: [0, 1, 0 ] };
     sendEvent(hrtfHandler, node, cfg, ctx, {
       type: 'listener_update',
       position: pos,

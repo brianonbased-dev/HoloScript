@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * VPS Trait
  *
@@ -32,7 +33,7 @@ interface VPSState {
   continuousTrackingActive: boolean;
   locationId: string | null;
   pose: {
-    position: { x: number; y: number; z: number };
+    position: Vector3;
     rotation: { x: number; y: number; z: number; w: number };
   };
   localizationAttempts: number;
@@ -78,7 +79,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       locationId: null,
       pose: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
       },
       localizationAttempts: 0,
     };
@@ -118,16 +119,16 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
     // Apply VPS pose to node
     if (state.state === 'tracking' || state.state === 'localized') {
       if (node.position) {
-        node.position.x = state.pose.position.x;
-        node.position.y = state.pose.position.y;
-        node.position.z = state.pose.position.z;
+        node.position[0] = state.pose.position[0];
+        node.position[1] = state.pose.position[1];
+        node.position[2] = state.pose.position[2];
       }
       if (node.rotation) {
-        node.rotation.x = state.pose.rotation.x;
-        node.rotation.y = state.pose.rotation.y;
-        node.rotation.z = state.pose.rotation.z;
-        if (node.rotation.w !== undefined) {
-          node.rotation.w = state.pose.rotation.w;
+        node.rotation[0] = state.pose.rotation[0];
+        node.rotation[1] = state.pose.rotation[1];
+        node.rotation[2] = state.pose.rotation[2];
+        if (node.rotation[3] !== undefined) {
+          node.rotation[3] = state.pose.rotation[3];
         }
       }
     }

@@ -45,8 +45,8 @@ function makeGranularSystem() {
         position: { ...pos },
         radius,
         mass: (4 / 3) * Math.PI * radius ** 3 * config.material.density,
-        velocity: { x: 0, y: 0, z: 0 },
-        force: { x: 0, y: 0, z: 0 },
+        velocity: [0, 0, 0 ],
+        force: [0, 0, 0 ],
       });
       return id;
     },
@@ -70,8 +70,8 @@ function makeClothSystem() {
   const particles: any[] = [
     {
       position: [0, 0, 0],
-      velocity: { x: 1, y: -1, z: 0 },
-      force: { x: 0, y: 0, z: 0 },
+      velocity: [1, -1, 0 ],
+      force: [0, 0, 0 ],
       mass: 0.5,
     },
   ];
@@ -197,7 +197,7 @@ describe('DestructionToGranularConverter — convertWithVelocity', () => {
     const stats = c.convertWithVelocity(fracture as any, granular as any, { x: 0, y: 0, z: 0 }, 10);
     expect(stats.particlesCreated).toBe(1);
     const p = granular._particles[0];
-    expect(p.velocity.x).not.toBe(0); // should have outward velocity
+    expect(p.velocity[0]).not.toBe(0); // should have outward velocity
   });
 
   it('skips sub-minSize fragments', () => {
@@ -302,7 +302,7 @@ describe('FluidGranularInteraction — applyFluidForces', () => {
     const granular = makeGranularSystem();
     granular.addParticle({ x: 0, y: 0, z: 0 }, 0.5);
     fi.applyFluidForces(makeFluidSystem(100) as any, granular as any);
-    expect(granular._particles[0].force.y).toBeGreaterThan(0);
+    expect(granular._particles[0].force[1]).toBeGreaterThan(0);
   });
 
   it('does not apply forces when fluid density ≤ 0.1', () => {
@@ -310,7 +310,7 @@ describe('FluidGranularInteraction — applyFluidForces', () => {
     const granular = makeGranularSystem();
     granular.addParticle({ x: 0, y: 0, z: 0 }, 0.5);
     fi.applyFluidForces(makeFluidSystem(0.05) as any, granular as any);
-    expect(granular._particles[0].force.y).toBe(0);
+    expect(granular._particles[0].force[1]).toBe(0);
   });
 });
 
@@ -346,11 +346,11 @@ describe('ClothFluidInteraction — applyFluidDrag', () => {
   it('modifies particle velocity when in fluid', () => {
     const ci = new ClothFluidInteraction();
     const cloth = makeClothSystem();
-    const origVx = cloth._particles[0].velocity.x; // = 1
+    const origVx = cloth._particles[0].velocity[0]; // = 1
     ci.applyFluidDrag(cloth as any, makeFluidSystem(500) as any);
     // Velocity was changed by the drag computation (not necessarily reduced in magnitude
     // since large drag coefficient can overshoot)
-    expect(cloth._particles[0].velocity.x).not.toBe(origVx);
+    expect(cloth._particles[0].velocity[0]).not.toBe(origVx);
   });
 });
 
@@ -359,14 +359,14 @@ describe('ClothFluidInteraction — applyWetWeight', () => {
     const ci = new ClothFluidInteraction();
     const cloth = makeClothSystem();
     ci.applyWetWeight(cloth as any, makeFluidSystem(800) as any);
-    expect(cloth._particles[0].force.y).toBeLessThan(0);
+    expect(cloth._particles[0].force[1]).toBeLessThan(0);
   });
 
   it('no force change when fluid density ≤ 0.5', () => {
     const ci = new ClothFluidInteraction();
     const cloth = makeClothSystem();
     ci.applyWetWeight(cloth as any, makeFluidSystem(0.1) as any);
-    expect(cloth._particles[0].force.y).toBe(0);
+    expect(cloth._particles[0].force[1]).toBe(0);
   });
 });
 
@@ -401,7 +401,7 @@ describe('PhysicsIntegrationManager', () => {
     granular.addParticle({ x: 0, y: 0, z: 0 }, 0.3);
     // No fluid system
     expect(() => m.update({ granular: granular as any })).not.toThrow();
-    expect(granular._particles[0].force.y).toBe(0);
+    expect(granular._particles[0].force[1]).toBe(0);
   });
 
   it('accepts custom config for DestructionToGranularConverter', () => {

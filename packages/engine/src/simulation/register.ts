@@ -18,6 +18,7 @@ import { MolecularDynamicsSolver, type MDConfig } from './MolecularDynamicsSolve
 import { registerWasmMesher } from './AutoMesher';
 import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 import type { BoundaryCondition, BCFace } from './BoundaryConditions';
+import { MLSMPMFluid, type MLSMPMConfig } from '../physics/MLSMPMFluid';
 
 // ── Config parsers ───────────────────────────────────────────────────────────
 // Convert raw .hsplus parsed config objects into typed solver configs.
@@ -135,6 +136,23 @@ function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
   };
 }
 
+function parseMLSMPMConfig(raw: Record<string, unknown>): Partial<MLSMPMConfig> {
+  return {
+    type: (raw.type as 'liquid' | 'gas') ?? undefined,
+    particleCount: (raw.particleCount as number) ?? undefined,
+    viscosity: (raw.viscosity as number) ?? undefined,
+    gridResolution: (raw.gridResolution as number) ?? undefined,
+    domainSize: (raw.domainSize as number) ?? undefined,
+    resolutionScale: (raw.resolutionScale as number) ?? undefined,
+    restDensity: (raw.restDensity as number) ?? undefined,
+    bulkModulus: (raw.bulkModulus as number) ?? undefined,
+    particleRadius: (raw.particleRadius as number) ?? undefined,
+    gravity: (raw.gravity as number) ?? undefined,
+    absorptionColor: (raw.absorptionColor as [number, number, number]) ?? undefined,
+    absorptionStrength: (raw.absorptionStrength as number) ?? undefined,
+  };
+}
+
 // ── Registration ─────────────────────────────────────────────────────────────
 
 interface SolverFactoryRegistry {
@@ -155,6 +173,7 @@ export function registerSimulationSolvers(factory: SolverFactoryRegistry): void 
   factory.register('navier-stokes', (raw) => new NavierStokesSolver(raw as unknown as NavierStokesConfig));
   factory.register('multiphase', (raw) => new MultiphaseNSSolver(raw as unknown as MultiphaseConfig));
   factory.register('molecular-dynamics', (raw) => new MolecularDynamicsSolver(raw as unknown as MDConfig));
+  factory.register('mls-mpm-fluid', (raw) => new MLSMPMFluid(parseMLSMPMConfig(raw)));
 
   // Register WASM meshers
   const tetgen = new TetGenWasmMesher();

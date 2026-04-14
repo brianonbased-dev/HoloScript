@@ -1,0 +1,1 @@
+{"version":3,"file":"FeatureFlagTrait.d.ts","sourceRoot":"","sources":["FeatureFlagTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;GAUG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,iBAAiB;IAChC,SAAS,EAAE,MAAM,CAAC;CACnB;AAQD,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,iBAAiB,CAiD9D,CAAC;AAEF,eAAe,kBAAkB,CAAC"}

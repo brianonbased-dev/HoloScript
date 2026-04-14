@@ -63,7 +63,7 @@ describe('ambisonicsHandler.onAttach', () => {
   });
   it('initial rotation = identity quaternion {0,0,0,1}', () => {
     const { node } = attachNode();
-    expect((node as any).__ambisonicsState.rotation).toEqual({ x: 0, y: 0, z: 0, w: 1 });
+    expect((node as any).__ambisonicsState.rotation).toEqual([0, 0, 0, 1 ]);
   });
   it('initial gain = volume', () => {
     const { node } = attachNode({ volume: 0.5 });
@@ -209,7 +209,7 @@ describe('ambisonicsHandler.onEvent', () => {
   });
   it('listener_rotation_update sets rotation state', () => {
     const { node, cfg, ctx } = attachNode();
-    const newRot = { x: 0.1, y: 0.2, z: 0.3, w: 0.9 };
+    const newRot = [0.1, 0.2, 0.3, 0.9 ];
     ambisonicsHandler.onEvent!(node, cfg, ctx, {
       type: 'listener_rotation_update',
       rotation: newRot,

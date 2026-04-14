@@ -94,10 +94,10 @@ describe('Cycle 109: Procedural Generation', () => {
     expect(result.leaves.length).toBeGreaterThan(0);
 
     // First segment should start at origin
-    expect(result.segments[0].start.y).toBe(0);
+    expect(result.segments[0].start[1]).toBe(0);
 
     // Tree should grow upward
-    expect(result.boundingBox.max.y).toBeGreaterThan(0);
+    expect(result.boundingBox.max[1]).toBeGreaterThan(0);
   });
 
   it('should handle different presets', () => {
@@ -135,7 +135,7 @@ describe('Cycle 109: Procedural Generation', () => {
     expect(result.meshData.faces.length).toBeGreaterThan(0);
 
     // Check bounding box
-    expect(result.boundingBox.max.y).toBe(6); // 2 floors × 3m
+    expect(result.boundingBox.max[1]).toBe(6); // 2 floors × 3m
   });
 
   it('should generate commercial building with lobby', () => {

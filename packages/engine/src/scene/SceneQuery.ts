@@ -15,7 +15,7 @@ import { SceneNode } from './SceneNode';
 
 export interface Frustum {
   position: [number, number, number];
-  direction: { x: number; y: number; z: number };
+  direction: [number, number, number];
   fov: number; // Degrees
   near: number;
   far: number;
@@ -62,15 +62,15 @@ export class SceneQuery {
 
   static findInRadius(
     root: SceneNode,
-    center: { x: number; y: number; z: number },
+    center: [number, number, number],
     radius: number
   ): SceneNode[] {
     const results: SceneNode[] = [];
     root.traverse((node) => {
       const wp = node.getWorldPosition();
-      const dx = wp.x - center.x,
-        dy = wp.y - center.y,
-        dz = wp.z - center.z;
+      const dx = wp[0] - center[0],
+        dy = wp[1] - center[1],
+        dz = wp[2] - center[2];
       if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= radius) results.push(node);
     });
     return results;
@@ -99,7 +99,7 @@ export class SceneQuery {
 
       // Angle check
       if (dist > 0) {
-        const dot = (dx * dir.x + dy * dir.y + dz * dir.z) / dist;
+        const dot = (dx * dir[0] + dy * dir[1] + dz * dir[2]) / dist;
         if (dot >= cosHalfFov) results.push(node);
       }
     });
@@ -125,12 +125,8 @@ export class SceneQuery {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private static normalize(v: { x: number; y: number; z: number }): {
-    x: number;
-    y: number;
-    z: number;
-  } {
-    const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
+  private static normalize(v: [number, number, number]): [number, number, number] {
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) || 1;
+    return [v[0] / len, v[1] / len, v[2] / len];
   }
 }

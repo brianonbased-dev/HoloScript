@@ -80,39 +80,39 @@ describe('ScalarArithmetic', () => {
 
 describe('Vector3Arithmetic', () => {
   it('zero returns origin', () => {
-    expect(Vector3Arithmetic.zero()).toEqual({ x: 0, y: 0, z: 0 });
+    expect(Vector3Arithmetic.zero()).toEqual([0, 0, 0 ]);
   });
 
   it('add performs component-wise addition', () => {
-    const a: IVector3 = { x: 1, y: 2, z: 3 };
-    const b: IVector3 = { x: 4, y: 5, z: 6 };
-    expect(Vector3Arithmetic.add(a, b)).toEqual({ x: 5, y: 7, z: 9 });
+    const a: IVector3 = [1, 2, 3 ];
+    const b: IVector3 = [4, 5, 6 ];
+    expect(Vector3Arithmetic.add(a, b)).toEqual([5, 7, 9 ]);
   });
 
   it('sub performs component-wise subtraction', () => {
-    const a: IVector3 = { x: 10, y: 20, z: 30 };
-    const b: IVector3 = { x: 3, y: 5, z: 7 };
-    expect(Vector3Arithmetic.sub(a, b)).toEqual({ x: 7, y: 15, z: 23 });
+    const a: IVector3 = [10, 20, 30 ];
+    const b: IVector3 = [3, 5, 7 ];
+    expect(Vector3Arithmetic.sub(a, b)).toEqual([7, 15, 23 ]);
   });
 
   it('scale multiplies all components', () => {
-    const v: IVector3 = { x: 1, y: 2, z: 3 };
-    expect(Vector3Arithmetic.scale(2, v)).toEqual({ x: 2, y: 4, z: 6 });
+    const v: IVector3 = [1, 2, 3 ];
+    expect(Vector3Arithmetic.scale(2, v)).toEqual([2, 4, 6 ]);
   });
 
   it('magnitude returns L2 norm', () => {
-    expect(Vector3Arithmetic.magnitude({ x: 3, y: 4, z: 0 })).toBeCloseTo(5, 10);
-    expect(Vector3Arithmetic.magnitude({ x: 0, y: 0, z: 0 })).toBe(0);
-    expect(Vector3Arithmetic.magnitude({ x: 1, y: 1, z: 1 })).toBeCloseTo(Math.sqrt(3), 10);
+    expect(Vector3Arithmetic.magnitude([3, 4, 0 ])).toBeCloseTo(5, 10);
+    expect(Vector3Arithmetic.magnitude([0, 0, 0 ])).toBe(0);
+    expect(Vector3Arithmetic.magnitude([1, 1, 1 ])).toBeCloseTo(Math.sqrt(3), 10);
   });
 
   it('clamp restricts each component', () => {
-    const v: IVector3 = { x: 15, y: -15, z: 5 };
-    expect(Vector3Arithmetic.clamp(v, -10, 10)).toEqual({ x: 10, y: -10, z: 5 });
+    const v: IVector3 = [15, -15, 5 ];
+    expect(Vector3Arithmetic.clamp(v, -10, 10)).toEqual([10, -10, 5 ]);
   });
 
   it('clone creates independent copy', () => {
-    const v: IVector3 = { x: 1, y: 2, z: 3 };
+    const v: IVector3 = [1, 2, 3 ];
     const c = Vector3Arithmetic.clone(v);
     expect(c).toEqual(v);
     c.x = 99;
@@ -211,8 +211,8 @@ describe('defaultPIDConfig', () => {
   });
 
   it('works with Vector3 initial setpoint', () => {
-    const config = defaultPIDConfig('vec-test', { x: 1, y: 2, z: 3 });
-    expect(config.initialSetpoint).toEqual({ x: 1, y: 2, z: 3 });
+    const config = defaultPIDConfig('vec-test', [1, 2, 3 ]);
+    expect(config.initialSetpoint).toEqual([1, 2, 3 ]);
   });
 });
 
@@ -566,7 +566,7 @@ describe('PIDController<IVector3> (Vector3)', () => {
     controller = new PIDController<IVector3>(
       defaultPIDConfig(
         'test-vec3',
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0 ],
         {
           outerGains: { kP: 2.0, kI: 0.1, kD: 0.3 },
           innerGains: { kP: 1.0, kI: 0.0, kD: 0.1 },
@@ -586,14 +586,14 @@ describe('PIDController<IVector3> (Vector3)', () => {
   });
 
   it('should track 3D setpoint', () => {
-    const target: IVector3 = { x: 10, y: 5, z: -3 };
+    const target: IVector3 = [10, 5, -3 ];
     controller.setSetpoint(target);
     expect(controller.getTargetSetpoint()).toEqual(target);
   });
 
   it('should produce vector output', () => {
-    controller.setSetpoint({ x: 10, y: 0, z: 0 });
-    const output = controller.step({ x: 0, y: 0, z: 0 }, 0.02);
+    controller.setSetpoint([10, 0, 0 ]);
+    const output = controller.step([0, 0, 0 ], 0.02);
     expect(output).toHaveProperty('x');
     expect(output).toHaveProperty('y');
     expect(output).toHaveProperty('z');
@@ -602,8 +602,8 @@ describe('PIDController<IVector3> (Vector3)', () => {
   });
 
   it('should handle multi-axis setpoints', () => {
-    controller.setSetpoint({ x: 5, y: -3, z: 8 });
-    const output = controller.step({ x: 0, y: 0, z: 0 }, 0.02);
+    controller.setSetpoint([5, -3, 8 ]);
+    const output = controller.step([0, 0, 0 ], 0.02);
     // All components should have some contribution
     expect(Number.isFinite(output.x)).toBe(true);
     expect(Number.isFinite(output.y)).toBe(true);
@@ -611,33 +611,33 @@ describe('PIDController<IVector3> (Vector3)', () => {
   });
 
   it('should report vector velocity magnitude', () => {
-    controller.setSetpoint({ x: 10, y: 10, z: 10 });
-    controller.step({ x: 0, y: 0, z: 0 }, 0.01);
-    controller.step({ x: 1, y: 1, z: 1 }, 0.01);
+    controller.setSetpoint([10, 10, 10 ]);
+    controller.step([0, 0, 0 ], 0.01);
+    controller.step([1, 1, 1 ], 0.01);
     // Velocity = magnitude of (1,1,1)/0.01 = sqrt(3)*100
     expect(controller.getVelocityMagnitude()).toBeGreaterThan(0);
   });
 
   it('should produce frozen state snapshot', () => {
-    controller.setSetpoint({ x: 1, y: 2, z: 3 });
-    controller.step({ x: 0, y: 0, z: 0 }, 0.01);
+    controller.setSetpoint([1, 2, 3 ]);
+    controller.step([0, 0, 0 ], 0.01);
     const state = controller.getState();
     expect(Object.isFrozen(state)).toBe(true);
-    expect(state.setpoint).toEqual({ x: 1, y: 2, z: 3 });
+    expect(state.setpoint).toEqual([1, 2, 3 ]);
   });
 
   it('should reset to zero vector', () => {
-    controller.setSetpoint({ x: 100, y: 200, z: 300 });
-    controller.step({ x: 50, y: 100, z: 150 }, 0.01);
+    controller.setSetpoint([100, 200, 300 ]);
+    controller.step([50, 100, 150 ], 0.01);
     controller.reset();
     const state = controller.getState();
-    expect(state.setpoint).toEqual({ x: 0, y: 0, z: 0 });
-    expect(state.targetSetpoint).toEqual({ x: 0, y: 0, z: 0 });
+    expect(state.setpoint).toEqual([0, 0, 0 ]);
+    expect(state.targetSetpoint).toEqual([0, 0, 0 ]);
   });
 
   it('should work with stepSingle for simple 3D control', () => {
-    controller.setSetpoint({ x: 5, y: 5, z: 5 });
-    const output = controller.stepSingle({ x: 0, y: 0, z: 0 }, 0.01);
+    controller.setSetpoint([5, 5, 5 ]);
+    const output = controller.stepSingle([0, 0, 0 ], 0.01);
     expect(Number.isFinite(output.x)).toBe(true);
     expect(Number.isFinite(output.y)).toBe(true);
     expect(Number.isFinite(output.z)).toBe(true);
@@ -728,7 +728,7 @@ describe('VR 90fps Performance', () => {
     const controller = new PIDController<IVector3>(
       defaultPIDConfig(
         'perf-vec3',
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0 ],
         {
           timing: { innerHz: 200, outerHz: 90 },
         }
@@ -736,12 +736,12 @@ describe('VR 90fps Performance', () => {
       Vector3Arithmetic
     );
 
-    controller.setSetpoint({ x: 100, y: 50, z: -30 });
+    controller.setSetpoint([100, 50, -30 ]);
     const dt = 1 / 90;
 
     const start = performance.now();
     for (let i = 0; i < 100; i++) {
-      controller.step({ x: i * 0.3, y: i * 0.2, z: i * -0.1 }, dt);
+      controller.step([i * 0.3, i * 0.2, i * -0.1 ], dt);
     }
     const elapsed = performance.now() - start;
 

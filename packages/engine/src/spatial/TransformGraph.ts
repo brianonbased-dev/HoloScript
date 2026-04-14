@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * TransformGraph.ts
  *
@@ -12,21 +13,17 @@
 // TYPES
 // =============================================================================
 
+import { Vector3 } from './SpatialTypes';
+
 export interface Transform3D {
-  x: number;
-  y: number;
-  z: number;
-  sx: number;
-  sy: number;
-  sz: number;
+  position: Vector3;
+  scale: Vector3;
 }
 
 interface TransformEntry {
   id: string;
   local: Transform3D;
-  worldX: number;
-  worldY: number;
-  worldZ: number;
+  worldPosition: Vector3;
   parent: string | null;
   children: string[];
   dirty: boolean;
@@ -44,12 +41,18 @@ export class TransformGraph {
   // ---------------------------------------------------------------------------
 
   addNode(id: string, local?: Partial<Transform3D>): void {
+    const defaultLocal: Transform3D = {
+      position: [0, 0, 0],
+      scale: [1, 1, 1],
+    };
+
     this.entries.set(id, {
       id,
-      local: { x: 0, y: 0, z: 0, sx: 1, sy: 1, sz: 1, ...local },
-      worldX: 0,
-      worldY: 0,
-      worldZ: 0,
+      local: {
+        position: local?.position ? [...local.position] : [...defaultLocal.position],
+        scale: local?.scale ? [...local.scale] : [...defaultLocal.scale],
+      },
+      worldPosition: [0, 0, 0],
       parent: null,
       children: [],
       dirty: true,
@@ -114,18 +117,14 @@ export class TransformGraph {
   setPosition(id: string, x: number, y: number, z: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.x = x;
-    e.local.y = y;
-    e.local.z = z;
+    e.local.position = [x, y, z];
     this.markDirty(id);
   }
 
   setScale(id: string, sx: number, sy: number, sz: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.sx = sx;
-    e.local.sy = sy;
-    e.local.sz = sz;
+    e.local.scale = [sx, sy, sz];
     this.markDirty(id);
   }
 
@@ -134,11 +133,11 @@ export class TransformGraph {
     return e ? { ...e.local } : null;
   }
 
-  getWorldPosition(id: string): { x: number; y: number; z: number } | null {
+  getWorldPosition(id: string): Vector3 | null {
     const e = this.entries.get(id);
     if (!e) return null;
     if (e.dirty) this.updateWorld(id);
-    return { x: e.worldX, y: e.worldY, z: e.worldZ };
+    return [...e.worldPosition];
   }
 
   // ---------------------------------------------------------------------------
@@ -159,13 +158,13 @@ export class TransformGraph {
     if (e.parent) {
       const parent = this.entries.get(e.parent)!;
       if (parent.dirty) this.updateWorld(e.parent);
-      e.worldX = parent.worldX + e.local.x * parent.local.sx;
-      e.worldY = parent.worldY + e.local.y * parent.local.sy;
-      e.worldZ = parent.worldZ + e.local.z * parent.local.sz;
+      e.worldPosition = [
+        parent.worldPosition[0] + e.local.position[0] * parent.local.scale[0],
+        parent.worldPosition[1] + e.local.position[1] * parent.local.scale[1],
+        parent.worldPosition[2] + e.local.position[2] * parent.local.scale[2],
+      ];
     } else {
-      e.worldX = e.local.x;
-      e.worldY = e.local.y;
-      e.worldZ = e.local.z;
+      e.worldPosition = [...e.local.position];
     }
 
     e.dirty = false;

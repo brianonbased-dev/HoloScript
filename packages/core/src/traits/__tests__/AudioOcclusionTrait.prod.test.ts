@@ -123,13 +123,13 @@ describe('audioOcclusionHandler.onUpdate — raycast rate limiting', () => {
     const { node, ctx, config } = attach({ mode: 'raycast' });
     const state = (node as any).__audioOcclusionState;
     state.lastRaycastTime = 0;
-    state.sourcePosition = { x: 1, y: 2, z: 3 };
-    state.listenerPosition = { x: 4, y: 5, z: 6 };
+    state.sourcePosition = [1, 2, 3 ];
+    state.listenerPosition = [4, 5, 6 ];
     ctx.emit.mockClear();
     audioOcclusionHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_occlusion_raycast');
-    expect(call![1].from).toEqual({ x: 1, y: 2, z: 3 });
-    expect(call![1].to).toEqual({ x: 4, y: 5, z: 6 });
+    expect(call![1].from).toEqual([1, 2, 3 ]);
+    expect(call![1].to).toEqual([4, 5, 6 ]);
   });
 
   it('does NOT emit raycast if called twice rapidly (rate limited)', () => {
@@ -334,7 +334,7 @@ describe('audioOcclusionHandler.onEvent — position updates', () => {
       type: 'source_position_update',
       position: [1, 2, 3],
     });
-    expect((node as any).__audioOcclusionState.sourcePosition).toEqual({ x: 1, y: 2, z: 3 });
+    expect((node as any).__audioOcclusionState.sourcePosition).toEqual([1, 2, 3 ]);
   });
 
   it('listener_position_update stores position', () => {
@@ -343,6 +343,6 @@ describe('audioOcclusionHandler.onEvent — position updates', () => {
       type: 'listener_position_update',
       position: [7, 8, 9],
     });
-    expect((node as any).__audioOcclusionState.listenerPosition).toEqual({ x: 7, y: 8, z: 9 });
+    expect((node as any).__audioOcclusionState.listenerPosition).toEqual([7, 8, 9 ]);
   });
 });

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * OctreeLODSystem.ts
  *
@@ -21,6 +22,8 @@
  * @module spatial
  */
 
+import { Vector3 } from './SpatialTypes';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -33,9 +36,7 @@ export interface GaussianAnchor {
   /** Unique identifier for this anchor Gaussian */
   id: string;
   /** World-space position (center of the Gaussian) */
-  x: number;
-  y: number;
-  z: number;
+  position: Vector3;
   /** Gaussian scale (max axis determines effective radius for octree insertion) */
   scale: number;
   /** LOD level this anchor belongs to (0 = coarsest/root, higher = finer detail) */
@@ -54,9 +55,7 @@ export interface GaussianAnchor {
  */
 interface LODOctreeNode {
   /** Center of this node's bounding volume */
-  cx: number;
-  cy: number;
-  cz: number;
+  center: Vector3;
   /** Half-size of this node's bounding cube */
   halfSize: number;
   /** Depth in the octree (0 = root, maps to LOD level) */
@@ -231,9 +230,7 @@ export class OctreeLODSystem {
   private nodeCount = 0;
 
   /** Scene center for distance calculations */
-  private sceneCX = 0;
-  private sceneCY = 0;
-  private sceneCZ = 0;
+  private sceneCenter: Vector3 = [0, 0, 0];
 
   constructor(config?: Partial<OctreeLODConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -249,9 +246,7 @@ export class OctreeLODSystem {
    * Must be called before inserting anchors.
    */
   initialize(centerX: number, centerY: number, centerZ: number, halfSize: number): void {
-    this.sceneCX = centerX;
-    this.sceneCY = centerY;
-    this.sceneCZ = centerZ;
+    this.sceneCenter = [centerX, centerY, centerZ];
     this.root = this.createNode(centerX, centerY, centerZ, halfSize, 0);
     this.anchorCount = 0;
     this.totalGaussianCount = 0;
@@ -331,7 +326,7 @@ export class OctreeLODSystem {
   }
 
   private insertIntoNode(node: LODOctreeNode, anchor: GaussianAnchor): boolean {
-    if (!this.containsPoint(node, anchor.x, anchor.y, anchor.z)) return false;
+    if (!this.containsPoint(node, anchor.position[0], anchor.position[1], anchor.position[2])) return false;
 
     // If this node's depth matches the anchor's LOD level, store here
     if (node.depth === anchor.lodLevel) {
@@ -460,9 +455,9 @@ export class OctreeLODSystem {
     }
 
     // 1. Camera distance to scene center
-    const dx = cameraX - this.sceneCX;
-    const dy = cameraY - this.sceneCY;
-    const dz = cameraZ - this.sceneCZ;
+    const dx = cameraX - this.sceneCenter[0];
+    const dy = cameraY - this.sceneCenter[1];
+    const dz = cameraZ - this.sceneCenter[2];
     const cameraDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // 2. Determine deepest visible LOD level from thresholds
@@ -665,9 +660,7 @@ export class OctreeLODSystem {
     depth: number
   ): LODOctreeNode {
     return {
-      cx,
-      cy,
-      cz,
+      center: [cx, cy, cz],
       halfSize,
       depth,
       anchors: [],
@@ -684,9 +677,9 @@ export class OctreeLODSystem {
       for (let y = -1; y <= 1; y += 2) {
         for (let z = -1; z <= 1; z += 2) {
           const child = this.createNode(
-            node.cx + x * hs,
-            node.cy + y * hs,
-            node.cz + z * hs,
+            node.center[0] + x * hs,
+            node.center[1] + y * hs,
+            node.center[2] + z * hs,
             hs,
             node.depth + 1
           );
@@ -703,7 +696,7 @@ export class OctreeLODSystem {
       // Only redistribute if the anchor's LOD level is deeper than this node
       if (anchor.lodLevel > node.depth) {
         for (const child of node.children) {
-          if (this.containsPoint(child, anchor.x, anchor.y, anchor.z)) {
+          if (this.containsPoint(child, anchor.position[0], anchor.position[1], anchor.position[2])) {
             if (anchor.lodLevel === child.depth) {
               child.anchors.push(anchor);
               child.gaussianCount += anchor.gaussianCount;
@@ -728,9 +721,9 @@ export class OctreeLODSystem {
 
   private containsPoint(node: LODOctreeNode, x: number, y: number, z: number): boolean {
     return (
-      Math.abs(x - node.cx) <= node.halfSize &&
-      Math.abs(y - node.cy) <= node.halfSize &&
-      Math.abs(z - node.cz) <= node.halfSize
+      Math.abs(x - node.center[0]) <= node.halfSize &&
+      Math.abs(y - node.center[1]) <= node.halfSize &&
+      Math.abs(z - node.center[2]) <= node.halfSize
     );
   }
 

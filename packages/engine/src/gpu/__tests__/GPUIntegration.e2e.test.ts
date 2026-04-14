@@ -72,7 +72,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
       // Create spatial grid
       const spatialGrid = new SpatialGrid(context, particleCount, {
         cellSize: 0.2,
-        gridDimensions: { x: 25, y: 25, z: 25 },
+        gridDimensions: [25, 25, 25 ],
         maxParticlesPerCell: 64,
         shaderCode: spatialGridShader,
       });
@@ -263,7 +263,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
 
       const spatialGrid = new SpatialGrid(context, particleCount, {
         cellSize: 0.2,
-        gridDimensions: { x: 25, y: 25, z: 25 },
+        gridDimensions: [25, 25, 25 ],
         maxParticlesPerCell: 64,
         shaderCode: spatialGridShader,
       });
@@ -379,7 +379,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
 
       const spatialGrid = new SpatialGrid(context, particleCount, {
         cellSize: 0.2,
-        gridDimensions: { x: 50, y: 50, z: 50 },
+        gridDimensions: [50, 50, 50 ],
         maxParticlesPerCell: 64,
         shaderCode: spatialGridShader,
       });
@@ -492,7 +492,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
 
       const spatialGrid = new SpatialGrid(context, particleCount, {
         cellSize: 0.2,
-        gridDimensions: { x: 100, y: 50, z: 100 },
+        gridDimensions: [100, 50, 100 ],
         maxParticlesPerCell: 64,
         shaderCode: spatialGridShader,
       });

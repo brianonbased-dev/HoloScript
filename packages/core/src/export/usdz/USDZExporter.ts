@@ -201,7 +201,7 @@ export class USDZExporter {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested transform object access (position.x/y/z, rotation.x/y/z/w, scale.x/y/z)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested transform object access (position[0]/y/z, rotation[0]/y/z/w, scale[0]/y/z)
   private addTransform(prim: IUSDPrim, transform: any): void {
     const ops: IUSDXformOp[] = [];
 
@@ -209,17 +209,17 @@ export class USDZExporter {
     if (transform.position) {
       ops.push({
         type: 'translate',
-        value: [transform.position.x, transform.position.y, transform.position.z],
+        value: [transform.position[0], transform.position[1], transform.position[2]],
       });
     }
 
     // Rotation (quaternion to Euler)
     if (transform.rotation) {
       const euler = quaternionToEuler([
-        transform.rotation.x,
-        transform.rotation.y,
-        transform.rotation.z,
-        transform.rotation.w,
+        transform.rotation[0],
+        transform.rotation[1],
+        transform.rotation[2],
+        transform.rotation[3],
       ]);
       ops.push({
         type: 'rotateXYZ',
@@ -231,7 +231,7 @@ export class USDZExporter {
     if (transform.scale) {
       ops.push({
         type: 'scale',
-        value: [transform.scale.x, transform.scale.y, transform.scale.z],
+        value: [transform.scale[0], transform.scale[1], transform.scale[2]],
       });
     }
 

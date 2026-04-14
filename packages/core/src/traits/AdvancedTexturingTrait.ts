@@ -247,11 +247,11 @@ ${
 fn triplanarSample(worldPos: vec3<f32>, worldNormal: vec3<f32>) -> vec4<f32> {
     let scale = ${t.scale};
     let blendW = pow(abs(worldNormal), vec3<f32>(${t.blendSharpness ?? 4}));
-    let normW = blendW / (blendW.x + blendW.y + blendW.z);
+    let normW = blendW / (blendW[0] + blendW[1] + blendW[2]);
     let cx = textureSample(texX, ts, worldPos.yz * scale);
     let cy = textureSample(texY, ts, worldPos.xz * scale);
     let cz = textureSample(texZ, ts, worldPos.xy * scale);
-    return cx * normW.x + cy * normW.y + cz * normW.z;
+    return cx * normW[0] + cy * normW[1] + cz * normW[2];
 }`
     : ''
 }`;

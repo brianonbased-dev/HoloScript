@@ -76,7 +76,7 @@ describe('ClothSim', () => {
   it('getAABB computes bounding box', () => {
     cloth.createGrid(3, 3, 1.0);
     const aabb = cloth.getAABB();
-    expect(aabb.min.x).toBeLessThanOrEqual(0);
-    expect(aabb.max.x).toBeGreaterThanOrEqual(2);
+    expect(aabb.min[0]).toBeLessThanOrEqual(0);
+    expect(aabb.max[0]).toBeGreaterThanOrEqual(2);
   });
 });

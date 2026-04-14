@@ -12,8 +12,8 @@ describe('Two-Handed Interactions', () => {
       id: 'test_node',
       properties: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0 ],
+        scale: [1, 1, 1 ],
       },
     };
 
@@ -49,12 +49,12 @@ describe('Two-Handed Interactions', () => {
     // Left at -0.5, Right at 0.5
     context.vr.hands.left = {
       position: [-0.5, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
       position: [0.5, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       pinchStrength: 1,
     } as any;
 
@@ -66,25 +66,25 @@ describe('Two-Handed Interactions', () => {
     (trait as any).grab(node, context, 'right', context.vr.hands.right);
 
     // Now move hands further apart (Distance 2.0)
-    context.vr.hands.left.position.x = -1.0;
-    context.vr.hands.right.position.x = 1.0;
+    context.vr.hands.left.position[0] = -1.0;
+    context.vr.hands.right.position[0] = 1.0;
 
     trait.onUpdate(node, context, 0.016);
 
     // Scale should double
-    expect(node.properties.scale.x).toBeCloseTo(2.0);
+    expect(node.properties.scale[0]).toBeCloseTo(2.0);
   });
 
   it('rotates object based on steering angle', () => {
     // Setup initial grab (Horizontal)
     context.vr.hands.left = {
       position: [-0.5, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
       position: [0.5, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       pinchStrength: 1,
     } as any;
 
@@ -100,7 +100,7 @@ describe('Two-Handed Interactions', () => {
     // Rotate hands 90 degrees (Right forward, Left back)
     // Left at (0, 0, 0.5), Right at (0, 0, -0.5) ??
     // atan2(dz, dx).
-    // dz = right.z - left.z. dx = right.x - left.x.
+    // dz = right[2] - left.z. dx = right[0] - left.x.
 
     // Target: 90 degrees (PI/2).
     // Let's rotate 45 degrees.
@@ -113,8 +113,8 @@ describe('Two-Handed Interactions', () => {
     // Delta angle = -90 - 0 = -90.
     // Object rotation Y = 0 - (-90) = +90 ? (Depends on sign logic in trait)
 
-    context.vr.hands.left.position = { x: 0, y: 0, z: 0.5 };
-    context.vr.hands.right.position = { x: 0, y: 0, z: -0.5 };
+    context.vr.hands.left.position = [0, 0, 0.5 ];
+    context.vr.hands.right.position = [0, 0, -0.5 ];
 
     trait.onUpdate(node, context, 0.016);
 
@@ -122,6 +122,6 @@ describe('Two-Handed Interactions', () => {
     // Trait logic: y - delta.
     // 0 - (-PI/2) = PI/2.
 
-    expect(node.properties.rotation.y).toBeCloseTo(-Math.PI / 2);
+    expect(node.properties.rotation[1]).toBeCloseTo(-Math.PI / 2);
   });
 });

@@ -62,7 +62,7 @@ describe('MotionReducedTrait', () => {
 
   it('clamps velocity when active', () => {
     sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_enable' });
-    (node as any).velocity = { x: 3, y: 0, z: 4 }; // speed = 5
+    (node as any).velocity = [3, 0, 4 ]; // speed = 5
     updateTrait(motionReducedHandler, node, cfg, ctx, 0.016);
     const vel = (node as any).velocity;
     const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
@@ -84,7 +84,7 @@ describe('MotionReducedTrait', () => {
     sendEvent(motionReducedHandler, node, cfg, ctx, { type: 'motion_reduced_enable' });
     sendEvent(motionReducedHandler, node, cfg, ctx, {
       type: 'camera_transition_request',
-      target: { x: 1, y: 2, z: 3 },
+      target: [1, 2, 3 ],
     });
     expect(getEventCount(ctx, 'camera_teleport')).toBe(1);
   });

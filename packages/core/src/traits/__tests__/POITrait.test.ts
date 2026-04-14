@@ -30,7 +30,7 @@ describe('POITrait', () => {
 
   beforeEach(() => {
     node = createMockNode('poi');
-    node.position = { x: 0, y: 0, z: 0 };
+    node.position = [0, 0, 0 ];
     ctx = createMockContext();
     attachTrait(poiHandler, node, cfg, ctx);
   });

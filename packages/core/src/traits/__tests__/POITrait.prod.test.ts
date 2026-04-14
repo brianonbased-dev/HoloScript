@@ -8,10 +8,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { poiHandler } from '../POITrait';
 
-function makeNode(pos?: { x: number; y: number; z: number }) {
-  return { id: 'poi_1', position: pos ?? { x: 0, y: 0, z: 0 } };
+function makeNode(pos?: Vector3) {
+  return { id: 'poi_1', position: pos ?? [0, 0, 0 ] };
 }
-function makeContext(playerPos?: { x: number; y: number; z: number }) {
+function makeContext(playerPos?: Vector3) {
   return {
     emit: vi.fn(),
     player: playerPos ? { position: playerPos } : undefined,
@@ -131,8 +131,8 @@ describe('poiHandler.onDetach', () => {
 
 describe('poiHandler.onUpdate', () => {
   it('calculates distance when player and node positions known', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 3, y: 4, z: 0 }); // distance = 5
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([3, 4, 0 ]); // distance = 5
     const cfg = { ...poiHandler.defaultConfig!, visible_radius: 100, trigger_radius: 10 };
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
@@ -140,16 +140,16 @@ describe('poiHandler.onUpdate', () => {
     expect((node as any).__poiState.distanceToUser).toBeCloseTo(5, 2);
   });
   it('marks visible when distance <= visible_radius', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 5, y: 0, z: 0 }); // distance = 5
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([5, 0, 0 ]); // distance = 5
     const cfg = { ...poiHandler.defaultConfig!, visible_radius: 10, trigger_radius: 2 };
     poiHandler.onAttach!(node, cfg, ctx);
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__poiState.isVisible).toBe(true);
   });
   it('emits poi_visibility_change when visibility changes', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 5, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([5, 0, 0 ]);
     const cfg = { ...poiHandler.defaultConfig!, visible_radius: 10, trigger_radius: 2 };
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
@@ -160,8 +160,8 @@ describe('poiHandler.onUpdate', () => {
     );
   });
   it('fires on_poi_proximity when entering trigger zone', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 2, y: 0, z: 0 }); // distance = 2 < trigger_radius = 5
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([2, 0, 0 ]); // distance = 2 < trigger_radius = 5
     const cfg = {
       ...poiHandler.defaultConfig!,
       trigger_radius: 5,
@@ -174,8 +174,8 @@ describe('poiHandler.onUpdate', () => {
     expect(ctx.emit).toHaveBeenCalledWith('on_poi_proximity', expect.any(Object));
   });
   it('does NOT re-fire on_poi_proximity when trigger_once=true and already triggered', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 2, y: 0, z: 0 });
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([2, 0, 0 ]);
     const cfg = {
       ...poiHandler.defaultConfig!,
       trigger_radius: 5,
@@ -192,8 +192,8 @@ describe('poiHandler.onUpdate', () => {
     expect(calls).toHaveLength(0);
   });
   it('emits on_poi_exit when leaving trigger zone', () => {
-    const node = makeNode({ x: 0, y: 0, z: 0 });
-    const ctx = makeContext({ x: 20, y: 0, z: 0 }); // far away
+    const node = makeNode([0, 0, 0 ]);
+    const ctx = makeContext([20, 0, 0 ]); // far away
     const cfg = { ...poiHandler.defaultConfig!, trigger_radius: 5, visible_radius: 100 };
     poiHandler.onAttach!(node, cfg, ctx);
     (node as any).__poiState.userInTriggerZone = true; // was in zone

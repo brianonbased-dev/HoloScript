@@ -84,12 +84,12 @@ function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: n
     }
 
     smoothed.push({
-      x: curr.x * (1 - smoothing) + prev.x * smoothing,
-      y: curr.y * (1 - smoothing) + prev.y * smoothing,
+      x: curr[0] * (1 - smoothing) + prev[0] * smoothing,
+      y: curr[1] * (1 - smoothing) + prev[1] * smoothing,
       z:
-        curr.z !== undefined && prev.z !== undefined
-          ? curr.z * (1 - smoothing) + prev.z * smoothing
-          : curr.z,
+        curr[2] !== undefined && prev[2] !== undefined
+          ? curr[2] * (1 - smoothing) + prev[2] * smoothing
+          : curr[2],
       confidence: curr.confidence,
       name: curr.name,
     });

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * BuildingGenerator.ts
  *
@@ -151,8 +152,8 @@ export class BuildingGenerator {
       floorPlans,
       meshData,
       boundingBox: {
-        min: { x: -halfW, y: 0, z: -halfD },
-        max: { x: halfW, y: config.floors * config.floorHeight, z: halfD },
+        min: [-halfW, 0, -halfD ],
+        max: [halfW, config.floors * config.floorHeight, halfD ],
       },
     };
   }
@@ -266,7 +267,7 @@ export class BuildingGenerator {
       if (!wall.isExterior) continue;
 
       const wallLen = Math.sqrt(
-        Math.pow(wall.end.x - wall.start.x, 2) + Math.pow(wall.end.z - wall.start.z, 2)
+        Math.pow(wall.end[0] - wall.start[0], 2) + Math.pow(wall.end[2] - wall.start[2], 2)
       );
 
       const windowCount = Math.floor(wallLen * style.windowDensity);
@@ -316,14 +317,14 @@ export class BuildingGenerator {
     // 8 corners of the building box
     const base = vertices.length;
     vertices.push(
-      { x: -hw, y: 0, z: -hd }, // 0: bottom-front-left
-      { x: hw, y: 0, z: -hd }, // 1: bottom-front-right
-      { x: hw, y: 0, z: hd }, // 2: bottom-back-right
-      { x: -hw, y: 0, z: hd }, // 3: bottom-back-left
-      { x: -hw, y: h, z: -hd }, // 4: top-front-left
-      { x: hw, y: h, z: -hd }, // 5: top-front-right
-      { x: hw, y: h, z: hd }, // 6: top-back-right
-      { x: -hw, y: h, z: hd } // 7: top-back-left
+      [-hw, 0, -hd ], // 0: bottom-front-left
+      [hw, 0, -hd ], // 1: bottom-front-right
+      [hw, 0, hd ], // 2: bottom-back-right
+      [-hw, 0, hd ], // 3: bottom-back-left
+      [-hw, h, -hd ], // 4: top-front-left
+      [hw, h, -hd ], // 5: top-front-right
+      [hw, h, hd ], // 6: top-back-right
+      [-hw, h, hd ] // 7: top-back-left
     );
 
     // 6 faces (2 triangles each)

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * SpatialAudioZone.ts
  *
@@ -24,7 +25,7 @@ export interface AudioZoneConfig {
   id: string;
   shape: 'box' | 'sphere';
   position: [number, number, number];
-  size: { x: number; y: number; z: number }; // half-extents for box, radius in x for sphere
+  size: Vector3; // half-extents for box, radius in x for sphere
   reverb: ReverbPreset;
   ambientClipId?: string;
   ambientVolume?: number;
@@ -35,7 +36,7 @@ export interface AudioZoneConfig {
 export interface AudioPortal {
   id: string;
   position: [number, number, number];
-  normal: { x: number; y: number; z: number };
+  normal: Vector3;
   width: number;
   height: number;
   fromZoneId: string;
@@ -112,7 +113,7 @@ export class SpatialAudioZoneSystem {
   private zones: Map<string, AudioZoneConfig> = new Map();
   private portals: Map<string, AudioPortal> = new Map();
   private activeZones: Map<string, ZoneState> = new Map();
-  private listenerPos: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  private listenerPos: Vector3 = [0, 0, 0 ];
 
   // ---------------------------------------------------------------------------
   // Zone Management
@@ -151,8 +152,8 @@ export class SpatialAudioZoneSystem {
   // Update
   // ---------------------------------------------------------------------------
 
-  updateListenerPosition(pos: { x: number; y: number; z: number }): void {
-    this.listenerPos = { ...pos };
+  updateListenerPosition(pos: Vector3): void {
+    this.listenerPos = [...pos ];
     this.recalculate();
   }
 
@@ -184,13 +185,13 @@ export class SpatialAudioZoneSystem {
 
     if (zone.shape === 'sphere') {
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      return Math.max(0, dist - zone.size.x); // size.x = radius
+      return Math.max(0, dist - zone.size[0]); // size[0] = radius
     }
 
     // Box: signed distance to AABB
-    const cx = Math.max(0, Math.abs(dx) - zone.size.x);
-    const cy = Math.max(0, Math.abs(dy) - zone.size.y);
-    const cz = Math.max(0, Math.abs(dz) - zone.size.z);
+    const cx = Math.max(0, Math.abs(dx) - zone.size[0]);
+    const cy = Math.max(0, Math.abs(dy) - zone.size[1]);
+    const cz = Math.max(0, Math.abs(dz) - zone.size[2]);
     return Math.sqrt(cx * cx + cy * cy + cz * cz);
   }
 

@@ -119,7 +119,7 @@ describe('PhysicsIntegration', () => {
 
       if (newParticle) {
         const velocityMag = Math.sqrt(
-          newParticle.velocity.x ** 2 + newParticle.velocity.y ** 2 + newParticle.velocity.z ** 2
+          newParticle.velocity[0] ** 2 + newParticle.velocity[1] ** 2 + newParticle.velocity[2] ** 2
         );
         expect(velocityMag).toBeGreaterThan(0);
       }
@@ -203,9 +203,9 @@ describe('PhysicsIntegration', () => {
       for (let i = 0; i < 10; i++) {
         granularSystem.addParticle(
           {
-            x: targetFragment.position.x,
-            y: targetFragment.position.y + 1 + i * 0.1,
-            z: targetFragment.position.z,
+            x: targetFragment.position[0],
+            y: targetFragment.position[1] + 1 + i * 0.1,
+            z: targetFragment.position[2],
           },
           0.05
         );
@@ -225,9 +225,9 @@ describe('PhysicsIntegration', () => {
       // Add particle below fragment
       granularSystem.addParticle(
         {
-          x: targetFragment.position.x,
-          y: targetFragment.position.y - 1,
-          z: targetFragment.position.z,
+          x: targetFragment.position[0],
+          y: targetFragment.position[1] - 1,
+          z: targetFragment.position[2],
         },
         0.05
       );
@@ -246,9 +246,9 @@ describe('PhysicsIntegration', () => {
       // Add particle far away horizontally
       granularSystem.addParticle(
         {
-          x: targetFragment.position.x + 10,
-          y: targetFragment.position.y + 1,
-          z: targetFragment.position.z,
+          x: targetFragment.position[0] + 10,
+          y: targetFragment.position[1] + 1,
+          z: targetFragment.position[2],
         },
         0.05
       );
@@ -273,7 +273,7 @@ describe('PhysicsIntegration', () => {
       const fragment2 = fragments[1];
 
       // Ensure fragments are far apart horizontally
-      if (Math.abs(fragment1.position.x - fragment2.position.x) < 2) {
+      if (Math.abs(fragment1.position[0] - fragment2.position[0]) < 2) {
         // Skip test if fragments are too close
         return;
       }
@@ -282,9 +282,9 @@ describe('PhysicsIntegration', () => {
       for (let i = 0; i < 10; i++) {
         granularSystem.addParticle(
           {
-            x: fragment1.position.x,
-            y: fragment1.position.y + 1 + i * 0.1,
-            z: fragment1.position.z,
+            x: fragment1.position[0],
+            y: fragment1.position[1] + 1 + i * 0.1,
+            z: fragment1.position[2],
           },
           0.05
         );
@@ -294,9 +294,9 @@ describe('PhysicsIntegration', () => {
       for (let i = 0; i < 2; i++) {
         granularSystem.addParticle(
           {
-            x: fragment2.position.x,
-            y: fragment2.position.y + 1 + i * 0.1,
-            z: fragment2.position.z,
+            x: fragment2.position[0],
+            y: fragment2.position[1] + 1 + i * 0.1,
+            z: fragment2.position[2],
           },
           0.05
         );
@@ -357,9 +357,9 @@ describe('PhysicsIntegration', () => {
       for (let i = 0; i < 10; i++) {
         granularSystem.addParticle(
           {
-            x: fragments[0].position.x,
-            y: fragments[0].position.y + 1 + i * 0.1,
-            z: fragments[0].position.z,
+            x: fragments[0].position[0],
+            y: fragments[0].position[1] + 1 + i * 0.1,
+            z: fragments[0].position[2],
           },
           0.05
         );

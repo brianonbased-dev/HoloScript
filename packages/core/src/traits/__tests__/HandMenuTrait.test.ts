@@ -30,7 +30,7 @@ describe('HandMenuTrait', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     node = createMockNode('menu1');
-    (node as any).properties = { position: [0, 0, 0], scale: { x: 1, y: 1, z: 1 } };
+    (node as any).properties = { position: [0, 0, 0], scale: [1, 1, 1 ] };
     ctx = {
       ...createMockContext(),
       vr: {
@@ -43,7 +43,7 @@ describe('HandMenuTrait', () => {
   });
 
   it('sets initial scale to zero on attach', () => {
-    expect((node as any).properties.scale).toEqual({ x: 0, y: 0, z: 0 });
+    expect((node as any).properties.scale).toEqual([0, 0, 0 ]);
   });
 
   it('sets initial opacity to zero on attach', () => {
@@ -63,7 +63,7 @@ describe('HandMenuTrait', () => {
 
   it('drives spring visibility from hand presence', () => {
     updateTrait(handMenuHandler, node, {}, ctx, 0.016);
-    expect((node as any).properties.scale.x).toBeCloseTo(0.5, 1);
+    expect((node as any).properties.scale[0]).toBeCloseTo(0.5, 1);
   });
 
   it('reduces visibility when no hand present', () => {

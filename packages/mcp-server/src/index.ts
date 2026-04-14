@@ -49,6 +49,7 @@ import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
+import { traitTools, handleTraitTool } from './trait-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 
 declare const __SERVICE_VERSION__: string;
@@ -240,6 +241,7 @@ registerCategory(graphRagTools, (name, args) => handleGraphRagTool(name, args));
 registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, args));
 registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
+registerCategory(traitTools, (name, args) => handleTraitTool(name, args));
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
@@ -329,6 +331,7 @@ export * from './brittney-lite';
 export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
+export * from './trait-tools';
 export * from '@holoscript/absorb-service/mcp';
 export * from './a2a';
 export * from './security';

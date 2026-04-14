@@ -10,11 +10,7 @@ import type { ProvenanceContext } from '../compiler/traits/ProvenanceSemiring';
 // Spatial Types (canonical definitions — re-exported by types.ts)
 // ============================================================================
 
-export interface SpatialPosition {
-  x: number;
-  y: number;
-  z: number;
-}
+export type SpatialPosition = [number, number, number];
 
 export type HologramShape =
   | 'orb'
@@ -78,6 +74,12 @@ export type VRTraitName =
   | 'draft'
   | 'hot_reload'
   | (string & {}); // Allow any string for extensibility while preserving autocomplete
+
+// ============================================================================
+// VR Effect Types
+// ============================================================================
+
+export type VREffect = string;
 
 // ============================================================================
 // Base AST Node

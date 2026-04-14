@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Patrol Trait
  *
@@ -12,10 +13,10 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-interface Waypoint {
-  x: number;
-  y: number;
-  z: number;
+interface Waypoint extends Array<number> {
+  0: number;
+  1: number;
+  2: number;
   waitTime?: number; // Override default wait time
   action?: string; // Action to perform at waypoint
 }
@@ -29,7 +30,7 @@ interface PatrolState {
   isWaiting: boolean;
   waitTimer: number;
   isAlerted: boolean;
-  alertPosition: { x: number; y: number; z: number } | null;
+  alertPosition: Vector3 | null;
   completed: boolean;
   visitedSet: Set<number>; // For random mode
 }
@@ -51,32 +52,32 @@ interface PatrolConfig {
 // =============================================================================
 
 function distance3D(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: Vector3,
+  b: Vector3
 ): number {
-  return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) + Math.pow(a.z - b.z, 2));
+  return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 }
 
 function moveToward(
-  current: { x: number; y: number; z: number },
-  target: { x: number; y: number; z: number },
+  current: Vector3,
+  target: Vector3,
   speed: number,
   delta: number
-): { x: number; y: number; z: number; reached: boolean } {
+): [number, number, number, boolean] {
   const dist = distance3D(current, target);
   const step = speed * delta;
 
   if (dist <= step) {
-    return { ...target, reached: true };
+    return [target[0], target[1], target[2], true];
   }
 
   const ratio = step / dist;
-  return {
-    x: current.x + (target.x - current.x) * ratio,
-    y: current.y + (target.y - current.y) * ratio,
-    z: current.z + (target.z - current.z) * ratio,
-    reached: false,
-  };
+  return [
+    current[0] + (target[0] - current[0]) * ratio,
+    current[1] + (target[1] - current[1]) * ratio,
+    current[2] + (target[2] - current[2]) * ratio,
+    false,
+  ];
 }
 
 function getNextIndex(state: PatrolState, config: PatrolConfig): number {
@@ -168,7 +169,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     if (!state || state.isPaused || state.completed) return;
     if (config.waypoints.length === 0) return;
 
-    const position = node.position || { x: 0, y: 0, z: 0 };
+    const position = node.position || [0, 0, 0 ];
 
     // Handle alert state
     if (state.isAlerted) {
@@ -226,22 +227,22 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     // Update position
     context.emit?.('set_position', {
       node,
-      position: [result.x, result.y, result.z],
+      position: [result[0], result[1], result[2]],
     });
 
     // Look toward movement direction
-    if (config.look_ahead && !result.reached) {
-      const dx = target.x - position.x;
-      const dz = target.z - position.z;
+    if (config.look_ahead && !result[3]) {
+      const dx = target[0] - position[0];
+      const dz = target[2] - position[2];
       const angle = Math.atan2(dx, dz);
       context.emit?.('set_rotation', {
         node,
-        rotation: { x: 0, y: angle, z: 0 },
+        rotation: [0, angle, 0 ],
       });
     }
 
     // Reached waypoint
-    if (result.reached) {
+    if (result[3]) {
       state.isWaiting = true;
       state.waitTimer = 0;
 
@@ -266,7 +267,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
       context.emit?.('patrol_resumed', { node });
     } else if (event.type === 'patrol_alert' && config.alert_on_detection) {
       state.isAlerted = true;
-      state.alertPosition = event.position as { x: number; y: number; z: number };
+      state.alertPosition = event.position as [number, number, number];
       state.waitTimer = 0;
       context.emit?.('patrol_alerted', {
         node,

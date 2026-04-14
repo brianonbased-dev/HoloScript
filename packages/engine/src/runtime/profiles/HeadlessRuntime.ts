@@ -489,7 +489,7 @@ export class HeadlessRuntime {
     return {
       vr: {
         hands: { left: null, right: null },
-        headset: { position: { x: 0, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
+        headset: { position: [0, 1.6, 0 ], rotation: [0, 0, 0 ] },
         getPointerRay: () => null,
         getDominantHand: () => null,
       },
@@ -498,8 +498,8 @@ export class HeadlessRuntime {
         applyAngularVelocity: () => {},
         setKinematic: () => {},
         raycast: () => null,
-        getBodyPosition: () => ({ x: 0, y: 0, z: 0 }),
-        getBodyVelocity: () => ({ x: 0, y: 0, z: 0 }),
+        getBodyPosition: () => ([0, 0, 0 ]),
+        getBodyVelocity: () => ([0, 0, 0 ]),
       },
       audio: {
         playSound: () => {},

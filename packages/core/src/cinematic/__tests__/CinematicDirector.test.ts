@@ -161,7 +161,7 @@ describe('CinematicDirector', () => {
     director.addActorMark('s', {
       actorId: 'hero',
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       animation: 'idle',
     });
     const scene = director.getScene('s')!;

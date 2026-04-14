@@ -14,11 +14,7 @@ import type { EngineSystem } from './SpatialEngine';
 // TYPES
 // =============================================================================
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface PhysicsBodyState {
   id: string;
@@ -51,7 +47,7 @@ export class PhysicsStep implements EngineSystem {
   readonly priority = 100; // After input (0), before animation (200)
 
   private bodies: Map<string, PhysicsBodyState> = new Map();
-  private gravity: Vec3 = { x: 0, y: -9.81, z: 0 };
+  private gravity: Vec3 = [0, -9.81, 0];
   private collisionCallbacks: CollisionCallback[] = [];
   private broadphaseGrid: Map<string, string[]> = new Map();
   private cellSize = 10;
@@ -61,7 +57,7 @@ export class PhysicsStep implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   setGravity(x: number, y: number, z: number): void {
-    this.gravity = { x, y, z };
+    this.gravity = [x, y, z];
   }
 
   setCellSize(size: number): void {
@@ -101,17 +97,17 @@ export class PhysicsStep implements EngineSystem {
     for (const body of this.bodies.values()) {
       if (body.isStatic) continue;
 
-      body.velocity.x += this.gravity.x * dt;
-      body.velocity.y += this.gravity.y * dt;
-      body.velocity.z += this.gravity.z * dt;
+      body.velocity[0] += this.gravity[0] * dt;
+      body.velocity[1] += this.gravity[1] * dt;
+      body.velocity[2] += this.gravity[2] * dt;
 
-      body.position.x += body.velocity.x * dt;
-      body.position.y += body.velocity.y * dt;
-      body.position.z += body.velocity.z * dt;
+      body.position[0] += body.velocity[0] * dt;
+      body.position[1] += body.velocity[1] * dt;
+      body.position[2] += body.velocity[2] * dt;
 
-      body.rotation.x += body.angularVelocity.x * dt;
-      body.rotation.y += body.angularVelocity.y * dt;
-      body.rotation.z += body.angularVelocity.z * dt;
+      body.rotation[0] += body.angularVelocity[0] * dt;
+      body.rotation[1] += body.angularVelocity[1] * dt;
+      body.rotation[2] += body.angularVelocity[2] * dt;
     }
 
     // 2. Broadphase collision detection (spatial hashing)
@@ -138,12 +134,12 @@ export class PhysicsStep implements EngineSystem {
     // 4. Ground plane collision (y = 0)
     for (const body of this.bodies.values()) {
       if (body.isStatic) continue;
-      if (body.position.y < 0) {
-        body.position.y = 0;
-        body.velocity.y = -body.velocity.y * body.restitution;
+      if (body.position[1] < 0) {
+        body.position[1] = 0;
+        body.velocity[1] = -body.velocity[1] * body.restitution;
         // Friction
-        body.velocity.x *= 1 - body.friction * dt;
-        body.velocity.z *= 1 - body.friction * dt;
+        body.velocity[0] *= 1 - body.friction * dt;
+        body.velocity[2] *= 1 - body.friction * dt;
       }
     }
   }
@@ -153,9 +149,9 @@ export class PhysicsStep implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   private resolveCollision(a: PhysicsBodyState, b: PhysicsBodyState, _dt: number): void {
-    const dx = b.position.x - a.position.x;
-    const dy = b.position.y - a.position.y;
-    const dz = b.position.z - a.position.z;
+    const dx = b.position[0] - a.position[0];
+    const dy = b.position[1] - a.position[1];
+    const dz = b.position[2] - a.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     const minDist = 1.0; // Default sphere radius
 
@@ -167,9 +163,9 @@ export class PhysicsStep implements EngineSystem {
       nz = dz / dist;
 
     // Relative velocity along normal
-    const dvx = a.velocity.x - b.velocity.x;
-    const dvy = a.velocity.y - b.velocity.y;
-    const dvz = a.velocity.z - b.velocity.z;
+    const dvx = a.velocity[0] - b.velocity[0];
+    const dvy = a.velocity[1] - b.velocity[1];
+    const dvz = a.velocity[2] - b.velocity[2];
     const relVel = dvx * nx + dvy * ny + dvz * nz;
 
     if (relVel > 0) return; // Separating
@@ -181,48 +177,48 @@ export class PhysicsStep implements EngineSystem {
     const impulse = (-(1 + restitution) * relVel) / totalMass;
 
     if (!a.isStatic) {
-      a.velocity.x -= (impulse * nx) / a.mass;
-      a.velocity.y -= (impulse * ny) / a.mass;
-      a.velocity.z -= (impulse * nz) / a.mass;
+      a.velocity[0] -= (impulse * nx) / a.mass;
+      a.velocity[1] -= (impulse * ny) / a.mass;
+      a.velocity[2] -= (impulse * nz) / a.mass;
     }
     if (!b.isStatic) {
-      b.velocity.x += (impulse * nx) / b.mass;
-      b.velocity.y += (impulse * ny) / b.mass;
-      b.velocity.z += (impulse * nz) / b.mass;
+      b.velocity[0] += (impulse * nx) / b.mass;
+      b.velocity[1] += (impulse * ny) / b.mass;
+      b.velocity[2] += (impulse * nz) / b.mass;
     }
 
     // Positional correction (push apart)
     const correction = (minDist - dist) * 0.5;
     if (!a.isStatic) {
-      a.position.x -= nx * correction;
-      a.position.y -= ny * correction;
-      a.position.z -= nz * correction;
+      a.position[0] -= nx * correction;
+      a.position[1] -= ny * correction;
+      a.position[2] -= nz * correction;
     }
     if (!b.isStatic) {
-      b.position.x += nx * correction;
-      b.position.y += ny * correction;
-      b.position.z += nz * correction;
+      b.position[0] += nx * correction;
+      b.position[1] += ny * correction;
+      b.position[2] += nz * correction;
     }
 
     // Fire collision event
     const event: CollisionEvent = {
       bodyA: a.id,
       bodyB: b.id,
-      contactPoint: {
-        x: (a.position.x + b.position.x) / 2,
-        y: (a.position.y + b.position.y) / 2,
-        z: (a.position.z + b.position.z) / 2,
-      },
-      normal: { x: nx, y: ny, z: nz },
+      contactPoint: [
+        (a.position[0] + b.position[0]) / 2,
+        (a.position[1] + b.position[1]) / 2,
+        (a.position[2] + b.position[2]) / 2,
+      ],
+      normal: [nx, ny, nz],
       impulse: Math.abs(impulse),
     };
     for (const cb of this.collisionCallbacks) cb(event);
   }
 
   private hashPosition(pos: Vec3): string {
-    const cx = Math.floor(pos.x / this.cellSize);
-    const cy = Math.floor(pos.y / this.cellSize);
-    const cz = Math.floor(pos.z / this.cellSize);
+    const cx = Math.floor(pos[0] / this.cellSize);
+    const cy = Math.floor(pos[1] / this.cellSize);
+    const cz = Math.floor(pos[2] / this.cellSize);
     return `${cx},${cy},${cz}`;
   }
 
@@ -239,13 +235,13 @@ export class PhysicsStep implements EngineSystem {
     let closest: { bodyId: string; distance: number; point: Vec3 } | null = null;
 
     for (const body of this.bodies.values()) {
-      const oc = {
-        x: origin.x - body.position.x,
-        y: origin.y - body.position.y,
-        z: origin.z - body.position.z,
-      };
-      const b = oc.x * direction.x + oc.y * direction.y + oc.z * direction.z;
-      const c = oc.x * oc.x + oc.y * oc.y + oc.z * oc.z - 0.5 * 0.5; // radius 0.5
+      const oc = [
+        origin[0] - body.position[0],
+        origin[1] - body.position[1],
+        origin[2] - body.position[2],
+      ];
+      const b = oc[0] * direction[0] + oc[1] * direction[1] + oc[2] * direction[2];
+      const c = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - 0.5 * 0.5; // radius 0.5
       const discriminant = b * b - c;
 
       if (discriminant < 0) continue;
@@ -257,11 +253,11 @@ export class PhysicsStep implements EngineSystem {
         closest = {
           bodyId: body.id,
           distance: t,
-          point: {
-            x: origin.x + direction.x * t,
-            y: origin.y + direction.y * t,
-            z: origin.z + direction.z * t,
-          },
+          point: [
+            origin[0] + direction[0] * t,
+            origin[1] + direction[1] * t,
+            origin[2] + direction[2] * t,
+          ],
         };
       }
     }

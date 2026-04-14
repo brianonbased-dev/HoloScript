@@ -33,7 +33,7 @@ export class AvatarController {
 
   // Configuration for VRIK
   private config = {
-    headOffset: { x: 0, y: -0.1, z: 0 }, // Neck pivot relative to HMD
+    headOffset: [0, -0.1, 0 ], // Neck pivot relative to HMD
     shoulderWidth: 0.4,
     spineLength: 0.6,
   };

@@ -46,11 +46,11 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
             if (parentTransform) {
               // Store world position (simplified — additive)
               transform._worldX =
-                (parentTransform._worldX ?? parentTransform.position.x) + transform.position.x;
+                (parentTransform._worldX ?? parentTransform.position[0]) + transform.position[0];
               transform._worldY =
-                (parentTransform._worldY ?? parentTransform.position.y) + transform.position.y;
+                (parentTransform._worldY ?? parentTransform.position[1]) + transform.position[1];
               transform._worldZ =
-                (parentTransform._worldZ ?? parentTransform.position.z) + transform.position.z;
+                (parentTransform._worldZ ?? parentTransform.position[2]) + transform.position[2];
             }
           }
         }

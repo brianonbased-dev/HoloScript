@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core CRDT Room Trait
  *
@@ -380,9 +381,9 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
  */
 export function normalizeCenter(
   center: [number, number, number] | { x: number; y: number; z: number }
-): { x: number; y: number; z: number } {
+): Vector3 {
   if (Array.isArray(center)) {
-    return { x: center[0], y: center[1], z: center[2] };
+    return [center[0], center[1], center[2] ];
   }
   return center;
 }

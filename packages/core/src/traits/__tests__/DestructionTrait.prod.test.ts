@@ -8,7 +8,7 @@ function makeNode(overrides: any = {}) {
   return {
     id: 'dest_node',
     position: [0, 0, 0],
-    scale: { x: 1, y: 1, z: 1 },
+    scale: [1, 1, 1 ],
     ...overrides,
   };
 }
@@ -248,27 +248,27 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     const frag = node.__destructionState.fragments[0];
     // Set y high enough to avoid ground bounce (semi-implicit Euler moves y by vy*dt AFTER
     // applying gravity, so a fragment near y=0 can drop below ground in the same step)
-    frag.position.y = 10;
-    frag.velocity.y = 0;
+    frag.position[1] = 10;
+    frag.velocity[1] = 0;
     const delta = 0.1;
     destructionHandler.onUpdate!(node, config, ctx, delta);
-    // gravity = 9.81, velocity.y should be negative (downward)
+    // gravity = 9.81, velocity[1] should be negative (downward)
     if (node.__destructionState.fragments.length > 0) {
-      expect(node.__destructionState.fragments[0].velocity.y).toBeCloseTo(-9.81 * delta, 2);
+      expect(node.__destructionState.fragments[0].velocity[1]).toBeCloseTo(-9.81 * delta, 2);
     }
   });
   it('updates fragment position by velocity * delta', () => {
     const { node, ctx, config } = attach({ fragment_count: 1, fragment_lifetime: 100 });
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     const frag = node.__destructionState.fragments[0];
-    frag.velocity.x = 10;
-    frag.velocity.y = 0;
-    frag.velocity.z = 0;
-    const prevX = frag.position.x;
+    frag.velocity[0] = 10;
+    frag.velocity[1] = 0;
+    frag.velocity[2] = 0;
+    const prevX = frag.position[0];
     destructionHandler.onUpdate!(node, config, ctx, 0.1);
-    // Position should have moved by (velocity.x * drag) * delta ≈ prevX + 10 * 0.1 = prevX + 1
-    // Since drag is applied after position update, position.x = prevX + 10 * 0.1 = prevX + 1
-    expect(frag.position.x).toBeGreaterThan(prevX);
+    // Position should have moved by (velocity[0] * drag) * delta ≈ prevX + 10 * 0.1 = prevX + 1
+    // Since drag is applied after position update, position[0] = prevX + 10 * 0.1 = prevX + 1
+    expect(frag.position[0]).toBeGreaterThan(prevX);
   });
   it('emits on_destruction_complete when all fragments expire', () => {
     const { node, ctx, config } = attach({ fragment_count: 1, fragment_lifetime: 0.05 });
@@ -282,11 +282,11 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     const { node, ctx, config } = attach({ fragment_count: 1, fragment_lifetime: 100 });
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     const frag = node.__destructionState.fragments[0];
-    frag.position.y = -0.5;
-    frag.velocity.y = -5;
+    frag.position[1] = -0.5;
+    frag.velocity[1] = -5;
     destructionHandler.onUpdate!(node, config, ctx, 0.016);
     if (node.__destructionState.fragments.length > 0) {
-      expect(node.__destructionState.fragments[0].position.y).toBeGreaterThanOrEqual(0);
+      expect(node.__destructionState.fragments[0].position[1]).toBeGreaterThanOrEqual(0);
     }
   });
 });

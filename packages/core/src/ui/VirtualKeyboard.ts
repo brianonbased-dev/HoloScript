@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';

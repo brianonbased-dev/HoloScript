@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AnimationTransitions.ts
  *
@@ -7,16 +8,12 @@
  * @module animation
  */
 
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type IVector3 = [number, number, number];
 
 export interface BonePose {
   boneId: string;
   position: IVector3;
-  rotation: { x: number; y: number; z: number; w: number };
+  rotation: [number, number, number, number];
 }
 
 export interface TransitionConfig {
@@ -56,8 +53,8 @@ export class AnimationTransitionSystem {
       duration: this.config.duration,
       sourcePose: currentPose.map((p) => ({
         ...p,
-        position: { ...p.position },
-        rotation: { ...p.rotation },
+        position: [...p.position] as IVector3,
+        rotation: [...p.rotation] as [number, number, number, number],
       })),
       isComplete: false,
     });
@@ -70,8 +67,8 @@ export class AnimationTransitionSystem {
       duration: this.config.duration,
       sourcePose: currentPose.map((p) => ({
         ...p,
-        position: { ...p.position },
-        rotation: { ...p.rotation },
+        position: [...p.position] as IVector3,
+        rotation: [...p.rotation] as [number, number, number, number],
       })),
       isComplete: false,
     });
@@ -154,23 +151,23 @@ export class AnimationTransitionSystem {
   }
 
   private lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
-    return {
-      x: a.x + (b.x - a.x) * t,
-      y: a.y + (b.y - a.y) * t,
-      z: a.z + (b.z - a.z) * t,
-    };
+    return [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t,
+    ];
   }
 
   private slerpQuat(
-    a: { x: number; y: number; z: number; w: number },
-    b: { x: number; y: number; z: number; w: number },
+    a: [number, number, number, number],
+    b: [number, number, number, number],
     t: number
-  ): { x: number; y: number; z: number; w: number } {
-    let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-    let bx = b.x,
-      by = b.y,
-      bz = b.z,
-      bw = b.w;
+  ): [number, number, number, number] {
+    let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    let bx = b[0],
+      by = b[1],
+      bz = b[2],
+      bw = b[3];
     if (dot < 0) {
       bx = -bx;
       by = -by;
@@ -179,11 +176,11 @@ export class AnimationTransitionSystem {
       dot = -dot;
     }
 
-    const rx = a.x + (bx - a.x) * t;
-    const ry = a.y + (by - a.y) * t;
-    const rz = a.z + (bz - a.z) * t;
-    const rw = a.w + (bw - a.w) * t;
+    const rx = a[0] + (bx - a[0]) * t;
+    const ry = a[1] + (by - a[1]) * t;
+    const rz = a[2] + (bz - a[2]) * t;
+    const rw = a[3] + (bw - a[3]) * t;
     const len = Math.sqrt(rx * rx + ry * ry + rz * rz + rw * rw) || 1;
-    return { x: rx / len, y: ry / len, z: rz / len, w: rw / len };
+    return [rx / len, ry / len, rz / len, rw / len];
   }
 }

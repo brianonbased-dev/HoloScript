@@ -264,7 +264,7 @@ export class HoloScriptParser {
     return {
       type: 'orb',
       name,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'orb',
         color: '#00ffff',
@@ -304,7 +304,7 @@ export class HoloScriptParser {
       name,
       parameters,
       body: [],
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'cube',
         color: '#ff6b35',
@@ -323,7 +323,7 @@ export class HoloScriptParser {
       condition,
       truePath: [],
       falsePath: [],
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'pyramid',
         color: '#4ecdc4',
@@ -340,7 +340,7 @@ export class HoloScriptParser {
       name,
       source: params[0] || 'unknown',
       transformations: [],
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'cylinder',
         color: '#45b7d1',
@@ -359,7 +359,7 @@ export class HoloScriptParser {
     return {
       type: shape,
       name,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: shape as HologramShape,
         color: '#ffffff',
@@ -381,7 +381,7 @@ export class HoloScriptParser {
       type: 'server',
       port,
       routes,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'cube',
         color: '#000000', // Black box
@@ -400,7 +400,7 @@ export class HoloScriptParser {
     return {
       type: 'database',
       query,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'cylinder',
         color: '#ffd700', // Gold
@@ -420,7 +420,7 @@ export class HoloScriptParser {
       type: 'fetch',
       url,
       method: 'GET',
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: 'orb',
         color: '#00ff00', // Green
@@ -786,9 +786,9 @@ export class HoloScriptParser {
     return this.ast.filter((node) => {
       if (!node.position) return false;
       const distance = Math.sqrt(
-        Math.pow(node.position.x - position.x, 2) +
-          Math.pow(node.position.y - position.y, 2) +
-          Math.pow(node.position.z - position.z, 2)
+        Math.pow(node.position[0] - position[0], 2) +
+          Math.pow(node.position[1] - position[1], 2) +
+          Math.pow(node.position[2] - position[2], 2)
       );
       return distance <= radius;
     });

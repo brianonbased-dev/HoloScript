@@ -49,7 +49,7 @@ function makeMockClient() {
   return client;
 }
 
-vi.mock('@holoscript/engine/runtime', () => {
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => {
   const parsePayload = vi.fn((msg: any) => {
     try {
       return JSON.parse(msg.payload);
@@ -77,7 +77,7 @@ import {
   isMQTTSourceConnected,
 } from '../MQTTSourceTrait';
 // @ts-expect-error - TS doesn't resolve peerDep workspace paths correctly
-import { createMQTTClient, getMQTTClient, MQTTClient } from '@holoscript/engine/runtime';
+import { createMQTTClient, getMQTTClient, MQTTClient } from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;

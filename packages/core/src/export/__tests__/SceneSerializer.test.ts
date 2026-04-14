@@ -261,9 +261,9 @@ describe('SceneSerializer', () => {
     it('should preserve node transforms through JSON round-trip', () => {
       const scene = createEmptySceneGraph('TransformTest');
       const node = createEmptyNode('n1', 'Node');
-      node.transform.position = { x: 10, y: 20, z: 30 };
-      node.transform.rotation = { x: 0, y: 0.707, z: 0, w: 0.707 };
-      node.transform.scale = { x: 2, y: 2, z: 2 };
+      node.transform.position = [10, 20, 30 ];
+      node.transform.rotation = [0, 0.707, 0, 0.707 ];
+      node.transform.scale = [2, 2, 2 ];
       scene.root.children.push(node);
 
       const serializer = new SceneSerializer();
@@ -271,10 +271,10 @@ describe('SceneSerializer', () => {
       const restored = serializer.deserialize(json);
 
       const restoredNode = restored.root.children[0];
-      expect(restoredNode.transform.position.x).toBe(10);
-      expect(restoredNode.transform.position.y).toBe(20);
-      expect(restoredNode.transform.position.z).toBe(30);
-      expect(restoredNode.transform.scale.x).toBe(2);
+      expect(restoredNode.transform.position[0]).toBe(10);
+      expect(restoredNode.transform.position[1]).toBe(20);
+      expect(restoredNode.transform.position[2]).toBe(30);
+      expect(restoredNode.transform.scale[0]).toBe(2);
     });
 
     it('should preserve node tags through round-trip', () => {
@@ -415,32 +415,32 @@ describe('Utility Functions', () => {
 
     it('should accumulate translations', () => {
       const scene = createEmptySceneGraph('Test');
-      scene.root.transform.position = { x: 10, y: 0, z: 0 };
+      scene.root.transform.position = [10, 0, 0 ];
 
       const child = createEmptyNode('c1', 'Child');
-      child.transform.position = { x: 5, y: 0, z: 0 };
+      child.transform.position = [5, 0, 0 ];
       scene.root.children.push(child);
 
       const worldTransform = getWorldTransform(scene.root, 'c1');
 
       // Position should be parent position + child position
       expect(worldTransform).toBeTruthy();
-      expect(worldTransform!.position.x).toBe(15);
+      expect(worldTransform!.position[0]).toBe(15);
     });
 
     it('should accumulate scales', () => {
       const scene = createEmptySceneGraph('Test');
-      scene.root.transform.scale = { x: 2, y: 2, z: 2 };
+      scene.root.transform.scale = [2, 2, 2 ];
 
       const child = createEmptyNode('c1', 'Child');
-      child.transform.scale = { x: 0.5, y: 0.5, z: 0.5 };
+      child.transform.scale = [0.5, 0.5, 0.5 ];
       scene.root.children.push(child);
 
       const worldTransform = getWorldTransform(scene.root, 'c1');
 
       // Scale should be parent scale * child scale
       expect(worldTransform).toBeTruthy();
-      expect(worldTransform!.scale.x).toBe(1);
+      expect(worldTransform!.scale[0]).toBe(1);
     });
   });
 });

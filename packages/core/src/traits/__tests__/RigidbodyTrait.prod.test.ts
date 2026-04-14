@@ -35,7 +35,7 @@ describe('RigidbodyTrait — constructor', () => {
   it('starts enabled', () => expect(mkRb().isEnabled()).toBe(true));
   it('initial velocity is zero vector', () => {
     const v = mkRb().getVelocity();
-    expect(v).toEqual({ x: 0, y: 0, z: 0 });
+    expect(v).toEqual([0, 0, 0 ]);
   });
   it('accepts initial velocity', () => {
     const rb = mkRb({ velocity: V(1, 2, 3) });
@@ -74,15 +74,15 @@ describe('RigidbodyTrait — addForce: force mode', () => {
   it('force mode accumulates in state.force', () => {
     const rb = mkRb({ mass: 2 });
     rb.addForce(V(10, 0, 0), 'force');
-    expect(rb.getState().force.x).toBe(10);
-    expect(rb.getState().velocity.x).toBe(0); // not immediate
+    expect(rb.getState().force[0]).toBe(10);
+    expect(rb.getState().velocity[0]).toBe(0); // not immediate
   });
 
   it('impulse mode changes velocity directly (F/m)', () => {
     const rb = mkRb({ mass: 2 });
     rb.addForce(V(10, 0, 0), 'impulse');
     expect(rb.getVelocity().x).toBe(5); // 10/2
-    expect(rb.getState().force.x).toBe(0);
+    expect(rb.getState().force[0]).toBe(0);
   });
 
   it('velocity-change mode adds to velocity regardless of mass', () => {
@@ -94,7 +94,7 @@ describe('RigidbodyTrait — addForce: force mode', () => {
   it('acceleration mode multiplies by mass to get force', () => {
     const rb = mkRb({ mass: 3 });
     rb.addForce(V(4, 0, 0), 'acceleration');
-    expect(rb.getState().force.x).toBe(12); // 4*3
+    expect(rb.getState().force[0]).toBe(12); // 4*3
   });
 
   it('addForce wakes up sleeping body', () => {
@@ -191,8 +191,8 @@ describe('RigidbodyTrait — kinematic', () => {
 
   it('moveRotation updates rotation only when kinematic', () => {
     const rb = mkRb({ isKinematic: true });
-    rb.moveRotation({ x: 0, y: 0.707, z: 0, w: 0.707 });
-    expect(rb.getState().rotation.y).toBeCloseTo(0.707);
+    rb.moveRotation([0, 0.707, 0, 0.707 ]);
+    expect(rb.getState().rotation[1]).toBeCloseTo(0.707);
   });
 
   it('setKinematic(true) makes body kinematic', () => {

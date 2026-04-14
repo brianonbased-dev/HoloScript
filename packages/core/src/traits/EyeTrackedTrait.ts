@@ -11,7 +11,6 @@
  */
 
 import type { Vector3 } from '../types';
-import type { Vector3Tuple } from '../types/HoloScriptPlus';
 import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
@@ -45,22 +44,22 @@ interface EyeTrackedState {
   dwellProgress: number;
   originalScale: number;
   originalColor: string | null;
-  lastGazePosition: Vector3Tuple;
-  smoothPosition: Vector3Tuple;
+  lastGazePosition: Vector3;
+  smoothPosition: Vector3;
 }
 
 // =============================================================================
 // HELPERS
 // =============================================================================
 
-function toTuple(v: Vector3): Vector3Tuple {
-  if (Array.isArray(v)) return v as Vector3Tuple;
-  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
+function toTuple(v: Vector3): Vector3 {
+  if (Array.isArray(v)) return v as Vector3;
+  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
 }
 
 interface GazeRay {
-  origin: Vector3Tuple;
-  direction: Vector3Tuple;
+  origin: Vector3;
+  direction: Vector3;
 }
 
 function getEyeGazeRay(context: TraitContext): GazeRay | null {
@@ -73,7 +72,7 @@ function getEyeGazeRay(context: TraitContext): GazeRay | null {
   const radY = (headRot[1] * Math.PI) / 180;
   const radX = (headRot[0] * Math.PI) / 180;
 
-  const direction: Vector3Tuple = [
+  const direction: Vector3 = [
     -Math.sin(radY) * Math.cos(radX),
     -Math.sin(radX),
     -Math.cos(radY) * Math.cos(radX),
@@ -87,12 +86,12 @@ function getEyeGazeRay(context: TraitContext): GazeRay | null {
 
 function isPointGazedAt(
   ray: GazeRay,
-  point: Vector3Tuple,
+  point: Vector3,
   radius: number,
   toleranceDegrees: number
 ): boolean {
   // Vector from ray origin to point
-  const toPoint: Vector3Tuple = [
+  const toPoint: Vector3 = [
     point[0] - ray.origin[0],
     point[1] - ray.origin[1],
     point[2] - ray.origin[2],
@@ -106,7 +105,7 @@ function isPointGazedAt(
   if (distance === 0) return true;
 
   // Normalize
-  const toPointNorm: Vector3Tuple = [
+  const toPointNorm: Vector3 = [
     toPoint[0] / distance,
     toPoint[1] / distance,
     toPoint[2] / distance,
@@ -127,7 +126,7 @@ function isPointGazedAt(
   return angle <= toleranceDegrees + radiusTolerance;
 }
 
-function rayPointAtDistance(ray: GazeRay, distance: number): Vector3Tuple {
+function rayPointAtDistance(ray: GazeRay, distance: number): Vector3 {
   return [
     ray.origin[0] + ray.direction[0] * distance,
     ray.origin[1] + ray.direction[1] * distance,

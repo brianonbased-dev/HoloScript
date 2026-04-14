@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SynthEngine } from '../audio/SynthEngine';
-import { AudioGraph } from '../audio/AudioGraph';
-import { MusicGenerator } from '../audio/MusicGenerator';
+import { SynthEngine, AudioGraph, MusicGenerator } from '@holoscript/engine/audio';
 
 describe('Cycle 129: Procedural Audio', () => {
   // -------------------------------------------------------------------------

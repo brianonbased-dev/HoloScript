@@ -62,7 +62,7 @@ describe('GeospatialAnchorTrait', () => {
   it('pose update tracking vs limited based on accuracy', () => {
     sendEvent(geospatialAnchorHandler, node, cfg, ctx, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 1, y: 2, z: 3 },
+      localPosition: [1, 2, 3 ],
       accuracy: 5,
       headingAccuracy: 2,
     });
@@ -70,7 +70,7 @@ describe('GeospatialAnchorTrait', () => {
 
     sendEvent(geospatialAnchorHandler, node, cfg, ctx, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 1, y: 2, z: 3 },
+      localPosition: [1, 2, 3 ],
       accuracy: 15,
       headingAccuracy: 5,
     });

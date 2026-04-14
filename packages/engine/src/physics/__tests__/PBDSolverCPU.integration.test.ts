@@ -90,7 +90,7 @@ function createGridConfig(gridSize: number = 3): ISoftBodyConfig {
     collisionMargin: 0.01,
     solverIterations: 10,
     selfCollision: false,
-    gravity: { x: 0, y: -9.81, z: 0 },
+    gravity: [0, -9.81, 0 ],
   };
 }
 
@@ -142,7 +142,7 @@ describe('PBDSolverCPU', () => {
     it('pinned vertices (mass=0) do not move', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
         })
       );
 
@@ -164,7 +164,7 @@ describe('PBDSolverCPU', () => {
     it('free vertices fall under gravity', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
         })
       );
 
@@ -252,10 +252,10 @@ describe('PBDSolverCPU', () => {
     it('pinVertex keeps vertex at target', () => {
       const config = createQuadConfig({
         masses: new Float32Array([1, 1, 1, 1]), // All free
-        gravity: { x: 0, y: -9.81, z: 0 },
+        gravity: [0, -9.81, 0 ],
       });
       const solver = new PBDSolverCPU(config);
-      solver.pinVertex(0, { x: 0, y: 1, z: 0 });
+      solver.pinVertex(0, [0, 1, 0 ]);
 
       for (let i = 0; i < 30; i++) solver.step(1 / 60);
 
@@ -268,10 +268,10 @@ describe('PBDSolverCPU', () => {
     it('unpinVertex releases vertex', () => {
       const config = createQuadConfig({
         masses: new Float32Array([1, 1, 1, 1]),
-        gravity: { x: 0, y: -9.81, z: 0 },
+        gravity: [0, -9.81, 0 ],
       });
       const solver = new PBDSolverCPU(config);
-      solver.pinVertex(0, { x: 0, y: 1, z: 0 });
+      solver.pinVertex(0, [0, 1, 0 ]);
       solver.step(1 / 60);
       solver.unpinVertex(0);
       // After unpinning, vertex should be free to move
@@ -292,8 +292,8 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(config);
 
       solver.applyImpulse(
-        { x: 0.5, y: 0.5, z: 0 }, // Center of quad
-        { x: 10, y: 0, z: 0 }, // Push right
+        [0.5, 0.5, 0 ], // Center of quad
+        [10, 0, 0 ], // Push right
         2.0 // Large radius (covers all vertices)
       );
 
@@ -310,7 +310,7 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(config);
 
       // Apply impulse near v0 (0,1,0)
-      solver.applyImpulse({ x: 0, y: 1, z: 0 }, { x: 10, y: 0, z: 0 }, 1.0);
+      solver.applyImpulse([0, 1, 0 ], [10, 0, 0 ], 1.0);
 
       const state = solver.getState();
       const v0_vx = state.velocities[0]; // v0 is at impulse center
@@ -320,7 +320,7 @@ describe('PBDSolverCPU', () => {
 
     it('does not affect pinned vertices (mass=0)', () => {
       const solver = new PBDSolverCPU(createQuadConfig()); // v0, v1 pinned
-      solver.applyImpulse({ x: 0.5, y: 0.5, z: 0 }, { x: 100, y: 0, z: 0 }, 5.0);
+      solver.applyImpulse([0.5, 0.5, 0 ], [100, 0, 0 ], 5.0);
       const state = solver.getState();
       expect(state.velocities[0]).toBe(0); // v0 pinned
       expect(state.velocities[3]).toBe(0); // v1 pinned
@@ -333,7 +333,7 @@ describe('PBDSolverCPU', () => {
     it('inactive solver does not update on step', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
         })
       );
       solver.setActive(false);
@@ -351,7 +351,7 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
           masses: new Float32Array([1, 1, 1, 1]),
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
         })
       );
       solver.setActive(false);
@@ -371,7 +371,7 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
           masses: new Float32Array([1, 1, 1, 1]),
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
         })
       );
 
@@ -393,7 +393,7 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(
         createQuadConfig({
           masses: new Float32Array([1, 1, 1, 1]), // All free
-          gravity: { x: 0, y: -9.81, z: 0 },
+          gravity: [0, -9.81, 0 ],
           collisionMargin: 0.01,
         })
       );

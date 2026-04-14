@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { RaycastSystem, type Ray } from '..';
 
-const RAY_Z: Ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
+const RAY_Z: Ray = { origin: [0, 0, -10 ], direction: [0, 0, 1 ] };
 
 describe('RaycastSystem — Production', () => {
   // ─── Registration ─────────────────────────────────────────────────
@@ -17,7 +17,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 'a',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [0, 0, 0 ], radius: 1 },
       layer: 1,
     });
     expect(rc.getColliderCount()).toBe(1);
@@ -31,7 +31,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 5 }, radius: 1 },
+      shape: { center: [0, 0, 5 ], radius: 1 },
       layer: 1,
     });
     const hit = rc.raycast(RAY_Z);
@@ -45,7 +45,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: { x: 100, y: 0, z: 5 }, radius: 1 },
+      shape: { center: [100, 0, 5 ], radius: 1 },
       layer: 1,
     });
     expect(rc.raycast(RAY_Z)).toBeNull();
@@ -57,7 +57,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 'box',
       type: 'aabb',
-      shape: { min: { x: -1, y: -1, z: 4 }, max: { x: 1, y: 1, z: 6 } },
+      shape: { min: [-1, -1, 4 ], max: [1, 1, 6 ] },
       layer: 1,
     });
     const hit = rc.raycast(RAY_Z);
@@ -71,7 +71,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 'floor',
       type: 'plane',
-      shape: { normal: { x: 0, y: 0, z: -1 }, distance: -5 },
+      shape: { normal: [0, 0, -1 ], distance: -5 },
       layer: 1,
     });
     const hit = rc.raycast(RAY_Z);
@@ -85,13 +85,13 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 10 }, radius: 1 },
+      shape: { center: [0, 0, 10 ], radius: 1 },
       layer: 1,
     });
     rc.addCollider({
       entityId: 'near',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 2 }, radius: 1 },
+      shape: { center: [0, 0, 2 ], radius: 1 },
       layer: 1,
     });
     const hits = rc.raycastAll(RAY_Z);
@@ -106,7 +106,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 100 }, radius: 1 },
+      shape: { center: [0, 0, 100 ], radius: 1 },
       layer: 1,
     });
     expect(rc.raycast(RAY_Z, 5)).toBeNull();
@@ -118,7 +118,7 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 5 }, radius: 1 },
+      shape: { center: [0, 0, 5 ], radius: 1 },
       layer: 2,
     });
     // mask=1 doesn't include layer=2
@@ -133,11 +133,11 @@ describe('RaycastSystem — Production', () => {
     rc.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: { x: 0, y: 0, z: 5 }, radius: 1 },
+      shape: { center: [0, 0, 5 ], radius: 1 },
       layer: 1,
     });
     const hit = rc.raycast(RAY_Z)!;
-    expect(hit.normal.z).toBeLessThan(0); // normal points back toward ray origin
+    expect(hit.normal[2]).toBeLessThan(0); // normal points back toward ray origin
   });
 
   it('empty system returns null', () => {

@@ -1,0 +1,1 @@
+{"version":3,"file":"WebhookOutTrait.d.ts","sourceRoot":"","sources":["WebhookOutTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,gBAAgB;IAC/B,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;CACpB;AACD,eAAO,MAAM,iBAAiB,EAAE,YAAY,CAAC,gBAAgB,CA4B5D,CAAC;AACF,eAAe,iBAAiB,CAAC"}

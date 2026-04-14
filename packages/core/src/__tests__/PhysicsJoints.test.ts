@@ -47,9 +47,9 @@ describe('Cycle 128: Physics Joints & Constraints', () => {
     rag.addBone('head', 'spine', 1, 0.2);
 
     rag.goRagdoll();
-    const hipsBefore = rag.getBone('hips')!.position.y;
+    const hipsBefore = rag.getBone('hips')!.position[1];
     rag.update(1 / 30);
-    const hipsAfter = rag.getBone('hips')!.position.y;
+    const hipsAfter = rag.getBone('hips')!.position[1];
 
     expect(hipsAfter).toBeLessThan(hipsBefore); // Gravity pulled down
     expect(rag.getBoneCount()).toBe(3);

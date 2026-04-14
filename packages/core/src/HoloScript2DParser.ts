@@ -186,8 +186,8 @@ export class HoloScript2DParser {
       name,
       properties: {
         ...this.getDefaultProperties(elementType),
-        x: position.x,
-        y: position.y,
+        x: position[0],
+        y: position[1],
       },
     };
 

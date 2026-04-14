@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * RopeSystem.ts
  *
@@ -12,8 +13,8 @@
 // =============================================================================
 
 export interface RopeNode {
-  position: [number, number, number];
-  previous: { x: number; y: number; z: number };
+  position: Vector3;
+  previous: Vector3;
   mass: number;
   pinned: boolean;
 }
@@ -21,7 +22,7 @@ export interface RopeNode {
 export interface RopeConfig {
   segmentCount: number;
   segmentLength: number;
-  gravity: { x: number; y: number; z: number };
+  gravity: Vector3;
   damping: number;
   iterations: number;
   elasticity: number; // 0-1 stiffness
@@ -30,7 +31,7 @@ export interface RopeConfig {
 export interface RopeAttachment {
   nodeIndex: number;
   entityId: string;
-  offset: { x: number; y: number; z: number };
+  offset: Vector3;
 }
 
 // =============================================================================
@@ -49,21 +50,21 @@ export class RopeSystem {
 
   createRope(
     id: string,
-    start: { x: number; y: number; z: number },
-    end: { x: number; y: number; z: number },
+    start: Vector3,
+    end: Vector3,
     config?: Partial<RopeConfig>
   ): void {
     const segCount = config?.segmentCount ?? 10;
-    const dx = end.x - start.x,
-      dy = end.y - start.y,
-      dz = end.z - start.z;
+    const dx = end[0] - start[0],
+      dy = end[1] - start[1],
+      dz = end[2] - start[2];
     const totalLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
     const autoSegmentLength = totalLength / segCount;
 
     const cfg: RopeConfig = {
       segmentCount: segCount,
       segmentLength: autoSegmentLength,
-      gravity: { x: 0, y: -9.81, z: 0 },
+      gravity: [0, -9.81, 0 ],
       damping: 0.98,
       iterations: 8,
       elasticity: 1,
@@ -73,13 +74,12 @@ export class RopeSystem {
     const nodes: RopeNode[] = [];
     for (let i = 0; i <= cfg.segmentCount; i++) {
       const t = i / cfg.segmentCount;
+      const px = start[0] + (end[0] - start[0]) * t;
+      const py = start[1] + (end[1] - start[1]) * t;
+      const pz = start[2] + (end[2] - start[2]) * t;
       nodes.push({
-        position: [start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t, start.z + (end.z - start.z) * t,],
-        previous: {
-          x: start.x + (end.x - start.x) * t,
-          y: start.y + (end.y - start.y) * t,
-          z: start.z + (end.z - start.z) * t,
-        },
+        position: [px, py, pz],
+        previous: [px, py, pz],
         mass: 1,
         pinned: false,
       });
@@ -125,7 +125,7 @@ export class RopeSystem {
         const vy = (n.position[1] - n.previous[1]) * config.damping;
         const vz = (n.position[2] - n.previous[2]) * config.damping;
 
-        n.previous = { ...n.position } as any;
+        n.previous = [n.position[0], n.position[1], n.position[2]];
         n.position[0] += vx + config.gravity[0] * dt2;
         n.position[1] += vy + config.gravity[1] * dt2;
         n.position[2] += vz + config.gravity[2] * dt2;

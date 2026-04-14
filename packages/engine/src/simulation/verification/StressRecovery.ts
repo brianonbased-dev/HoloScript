@@ -95,7 +95,7 @@ function solvePatchLeastSquares(
   const b = new Float64Array(n);     // right-hand side
 
   for (const pt of samplingPoints) {
-    const P = basisFn(pt.x, pt.y, pt.z);
+    const P = basisFn(pt[0], pt[1], pt[2]);
     // Accumulate A = Σ P · Pᵀ
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {

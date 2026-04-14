@@ -501,7 +501,7 @@ function generateObjectBlock(obj: SceneObject, indent: string = '  '): string {
     lines.push(`${indent}  geometry: "${obj.geometry}"`);
   }
   lines.push(
-    `${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+    `${indent}  position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
   );
   if (obj.scale.x !== 1 || obj.scale.y !== 1 || obj.scale.z !== 1) {
     lines.push(
@@ -524,7 +524,7 @@ function generateZoneBlock(obj: SceneObject, indent: string = '  '): string {
   const sz = obj.scale.z;
   lines.push(`${indent}  size: [${sx.toFixed(1)}, ${sy.toFixed(1)}, ${sz.toFixed(1)}]`);
   lines.push(
-    `${indent}  position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+    `${indent}  position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
   );
   lines.push(`${indent}}`);
   return lines.join('\n');
@@ -569,27 +569,27 @@ function generateReachableTrait(
 }
 
 function computeDistance(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: [number, number, number],
+  b: [number, number, number]
 ): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 function isPointInBox(
-  point: { x: number; y: number; z: number },
+  point: [number, number, number],
   bounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } },
   margin: number = 0
 ): boolean {
   return (
-    point.x >= bounds.min.x + margin &&
-    point.x <= bounds.max.x - margin &&
-    point.y >= bounds.min.y + margin &&
-    point.y <= bounds.max.y - margin &&
-    point.z >= bounds.min.z + margin &&
-    point.z <= bounds.max.z - margin
+    point[0] >= bounds.min.x + margin &&
+    point[0] <= bounds.max.x - margin &&
+    point[1] >= bounds.min.y + margin &&
+    point[1] <= bounds.max.y - margin &&
+    point[2] >= bounds.min.z + margin &&
+    point[2] <= bounds.max.z - margin
   );
 }
 
@@ -598,11 +598,11 @@ function isPointInBox(
  * Returns true if the line from `a` to `b` intersects the box.
  */
 function lineIntersectsBox(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number },
+  a: [number, number, number],
+  b: [number, number, number],
   box: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
 ): boolean {
-  const dir = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+  const dir = { x: b[0] - a[0], y: b[1] - a[1], z: b[2] - a[2] };
   const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
   if (len === 0) return false;
 
@@ -612,7 +612,7 @@ function lineIntersectsBox(
   const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
   for (const axis of axes) {
     const d = dir[axis];
-    const o = a[axis];
+    const o = a[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
     const bmin = box.min[axis];
     const bmax = box.max[axis];
 
@@ -867,20 +867,20 @@ export class SpatialTrainingDataGenerator {
       const angle = this.rng.float(0, Math.PI * 2);
       const elevation = this.rng.float(-0.5, 0.5);
       const dist = this.rng.float(0.5, maxDistance * 0.9);
-      tgtPos = {
-        x: srcPos.x + Math.cos(angle) * dist,
-        y: srcPos.y + elevation,
-        z: srcPos.z + Math.sin(angle) * dist,
-      };
+      tgtPos = [
+        srcPos[0] + Math.cos(angle) * dist,
+        srcPos[1] + elevation,
+        srcPos[2] + Math.sin(angle) * dist,
+      ] as [number, number, number];
     } else {
       // Place beyond maxDistance
       const angle = this.rng.float(0, Math.PI * 2);
       const dist = this.rng.float(maxDistance * 1.5, maxDistance * 3.0);
-      tgtPos = {
-        x: srcPos.x + Math.cos(angle) * dist,
-        y: srcPos.y + this.rng.float(-1, 1),
-        z: srcPos.z + Math.sin(angle) * dist,
-      };
+      tgtPos = [
+        srcPos[0] + Math.cos(angle) * dist,
+        srcPos[1] + this.rng.float(-1, 1),
+        srcPos[2] + Math.sin(angle) * dist,
+      ] as [number, number, number];
     }
 
     const tgtObj: SceneObject = {
@@ -945,7 +945,7 @@ export class SpatialTrainingDataGenerator {
         lines.push(`  object "${obj.id}" {`);
         if (obj.geometry) lines.push(`    geometry: "${obj.geometry}"`);
         lines.push(
-          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+          `    position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
         );
         if (obj.color) lines.push(`    color: "${obj.color}"`);
         lines.push(`    ${generateAdjacentTrait(tgtName, maxDistance)}`);
@@ -980,14 +980,14 @@ export class SpatialTrainingDataGenerator {
 
     const containerBounds = {
       min: {
-        x: containerPos.x - containerSize.x / 2,
-        y: containerPos.y - containerSize.y / 2,
-        z: containerPos.z - containerSize.z / 2,
+        x: containerPos[0] - containerSize.x / 2,
+        y: containerPos[1] - containerSize.y / 2,
+        z: containerPos[2] - containerSize.z / 2,
       },
       max: {
-        x: containerPos.x + containerSize.x / 2,
-        y: containerPos.y + containerSize.y / 2,
-        z: containerPos.z + containerSize.z / 2,
+        x: containerPos[0] + containerSize.x / 2,
+        y: containerPos[1] + containerSize.y / 2,
+        z: containerPos[2] + containerSize.z / 2,
       },
     };
 
@@ -1007,42 +1007,42 @@ export class SpatialTrainingDataGenerator {
 
     if (isPositive) {
       // Place inside container bounds (with margin)
-      containedPos = {
-        x: this.rng.float(
+      containedPos = [
+        this.rng.float(
           containerBounds.min.x + margin + 0.5,
           containerBounds.max.x - margin - 0.5
         ),
-        y: this.rng.float(
+        this.rng.float(
           containerBounds.min.y + margin + 0.5,
           containerBounds.max.y - margin - 0.5
         ),
-        z: this.rng.float(
+        this.rng.float(
           containerBounds.min.z + margin + 0.5,
           containerBounds.max.z - margin - 0.5
         ),
-      };
+      ] as [number, number, number];
     } else {
       // Place outside container bounds
       const side = this.rng.int(0, 5);
-      containedPos = { ...containerPos };
+      containedPos = [...containerPos] as [number, number, number];
       switch (side) {
         case 0:
-          containedPos.x = containerBounds.max.x + this.rng.float(1, 5);
+          containedPos[0] = containerBounds.max.x + this.rng.float(1, 5);
           break;
         case 1:
-          containedPos.x = containerBounds.min.x - this.rng.float(1, 5);
+          containedPos[0] = containerBounds.min.x - this.rng.float(1, 5);
           break;
         case 2:
-          containedPos.y = containerBounds.max.y + this.rng.float(1, 5);
+          containedPos[1] = containerBounds.max.y + this.rng.float(1, 5);
           break;
         case 3:
-          containedPos.y = containerBounds.min.y - this.rng.float(1, 5);
+          containedPos[1] = containerBounds.min.y - this.rng.float(1, 5);
           break;
         case 4:
-          containedPos.z = containerBounds.max.z + this.rng.float(1, 5);
+          containedPos[2] = containerBounds.max.z + this.rng.float(1, 5);
           break;
         case 5:
-          containedPos.z = containerBounds.min.z - this.rng.float(1, 5);
+          containedPos[2] = containerBounds.min.z - this.rng.float(1, 5);
           break;
       }
     }
@@ -1085,14 +1085,14 @@ export class SpatialTrainingDataGenerator {
         scale: innerSize,
         bounds: {
           min: {
-            x: containerPos.x - innerSize.x / 2,
-            y: containerPos.y - innerSize.y / 2,
-            z: containerPos.z - innerSize.z / 2,
+            x: containerPos[0] - innerSize.x / 2,
+            y: containerPos[1] - innerSize.y / 2,
+            z: containerPos[2] - innerSize.z / 2,
           },
           max: {
-            x: containerPos.x + innerSize.x / 2,
-            y: containerPos.y + innerSize.y / 2,
-            z: containerPos.z + innerSize.z / 2,
+            x: containerPos[0] + innerSize.x / 2,
+            y: containerPos[1] + innerSize.y / 2,
+            z: containerPos[2] + innerSize.z / 2,
           },
         },
       };
@@ -1142,7 +1142,7 @@ export class SpatialTrainingDataGenerator {
             `    size: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`
           );
           lines.push(
-            `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+            `    position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
           );
           lines.push(
             `    ${generateContainsTrait(containedName, margin > 0 ? margin : undefined)}`
@@ -1186,11 +1186,11 @@ export class SpatialTrainingDataGenerator {
     const tgtName = this.pickUniqueName([...OBJECT_NAMES, ...NPC_NAMES], [srcName]);
     const tgtAngle = this.rng.float(0, Math.PI * 2);
     const tgtDist = this.rng.float(5, 20);
-    const tgtPos = {
-      x: srcPos.x + Math.cos(tgtAngle) * tgtDist,
-      y: srcPos.y + this.rng.float(-1, 1),
-      z: srcPos.z + Math.sin(tgtAngle) * tgtDist,
-    };
+    const tgtPos = [
+      srcPos[0] + Math.cos(tgtAngle) * tgtDist,
+      srcPos[1] + this.rng.float(-1, 1),
+      srcPos[2] + Math.sin(tgtAngle) * tgtDist,
+    ] as [number, number, number];
     objects.push({
       id: tgtName,
       type: 'object',
@@ -1226,50 +1226,50 @@ export class SpatialTrainingDataGenerator {
       if (!isPositive && i === 0) {
         // Place first obstacle directly in the path (for negative examples)
         const t = this.rng.float(0.3, 0.7);
-        obsPos = {
-          x: srcPos.x + (tgtPos.x - srcPos.x) * t,
-          y: srcPos.y + (tgtPos.y - srcPos.y) * t,
-          z: srcPos.z + (tgtPos.z - srcPos.z) * t,
-        };
+        obsPos = [
+          srcPos[0] + (tgtPos[0] - srcPos[0]) * t,
+          srcPos[1] + (tgtPos[1] - srcPos[1]) * t,
+          srcPos[2] + (tgtPos[2] - srcPos[2]) * t,
+        ] as [number, number, number];
         blockingObstacle = obsName;
       } else {
         // Place off to the side (doesn't block)
         const offset = this.rng.float(3, 8);
         const side = this.rng.next() > 0.5 ? 1 : -1;
-        const midpoint = {
-          x: (srcPos.x + tgtPos.x) / 2,
-          y: (srcPos.y + tgtPos.y) / 2,
-          z: (srcPos.z + tgtPos.z) / 2,
-        };
+        const midpoint = [
+          (srcPos[0] + tgtPos[0]) / 2,
+          (srcPos[1] + tgtPos[1]) / 2,
+          (srcPos[2] + tgtPos[2]) / 2,
+        ];
         // Perpendicular offset
-        const perpX = -(tgtPos.z - srcPos.z);
-        const perpZ = tgtPos.x - srcPos.x;
+        const perpX = -(tgtPos[2] - srcPos[2]);
+        const perpZ = tgtPos[0] - srcPos[0];
         const perpLen = Math.sqrt(perpX * perpX + perpZ * perpZ);
         if (perpLen > 0) {
-          obsPos = {
-            x: midpoint.x + (perpX / perpLen) * offset * side,
-            y: midpoint.y,
-            z: midpoint.z + (perpZ / perpLen) * offset * side,
-          };
+          obsPos = [
+            midpoint[0] + (perpX / perpLen) * offset * side,
+            midpoint[1],
+            midpoint[2] + (perpZ / perpLen) * offset * side,
+          ] as [number, number, number];
         } else {
-          obsPos = {
-            x: midpoint.x + offset * side,
-            y: midpoint.y,
-            z: midpoint.z,
-          };
+          obsPos = [
+            midpoint[0] + offset * side,
+            midpoint[1],
+            midpoint[2],
+          ] as [number, number, number];
         }
       }
 
       const obsBounds = {
         min: {
-          x: obsPos.x - obsScale.x / 2,
-          y: obsPos.y - obsScale.y / 2,
-          z: obsPos.z - obsScale.z / 2,
+          x: obsPos[0] - obsScale.x / 2,
+          y: obsPos[1] - obsScale.y / 2,
+          z: obsPos[2] - obsScale.z / 2,
         },
         max: {
-          x: obsPos.x + obsScale.x / 2,
-          y: obsPos.y + obsScale.y / 2,
-          z: obsPos.z + obsScale.z / 2,
+          x: obsPos[0] + obsScale.x / 2,
+          y: obsPos[1] + obsScale.y / 2,
+          z: obsPos[2] + obsScale.z / 2,
         },
       };
 
@@ -1359,7 +1359,7 @@ export class SpatialTrainingDataGenerator {
         lines.push(`  object "${obj.id}" {`);
         if (obj.geometry) lines.push(`    geometry: "${obj.geometry}"`);
         lines.push(
-          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+          `    position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
         );
         if (obj.color) lines.push(`    color: "${obj.color}"`);
         lines.push(
@@ -1370,7 +1370,7 @@ export class SpatialTrainingDataGenerator {
         lines.push(`  object "${obj.id}" {`);
         lines.push(`    geometry: "cube"`);
         lines.push(
-          `    position: [${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)}, ${obj.position.z.toFixed(1)}]`
+          `    position: [${obj.position[0].toFixed(1)}, ${obj.position[1].toFixed(1)}, ${obj.position[2].toFixed(1)}]`
         );
         lines.push(
           `    scale: [${obj.scale.x.toFixed(1)}, ${obj.scale.y.toFixed(1)}, ${obj.scale.z.toFixed(1)}]`
@@ -1480,13 +1480,13 @@ export class SpatialTrainingDataGenerator {
     }
   }
 
-  private randomPosition(difficulty: SpatialDifficulty): { x: number; y: number; z: number } {
+  private randomPosition(difficulty: SpatialDifficulty): [number, number, number] {
     const range = difficulty === 'basic' ? 5 : difficulty === 'intermediate' ? 10 : 20;
-    return {
-      x: this.rng.float(-range, range),
-      y: this.rng.float(0, range / 2),
-      z: this.rng.float(-range, range),
-    };
+    return [
+      this.rng.float(-range, range),
+      this.rng.float(0, range / 2),
+      this.rng.float(-range, range),
+    ];
   }
 
   private randomScale(): { x: number; y: number; z: number } {

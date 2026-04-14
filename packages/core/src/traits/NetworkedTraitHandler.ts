@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Networked Trait Handler
  *
@@ -29,7 +30,6 @@
  */
 
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
 import type { SyncTier } from '@holoscript/mesh';
 import { SYNC_TIER_RATES } from '@holoscript/mesh';
@@ -61,7 +61,7 @@ function nodePosition(node: HSPlusNode): [number, number, number] {
   if (!p) return [0, 0, 0];
   if (Array.isArray(p)) return [p[0] || 0, p[1] || 0, p[2] || 0];
   const v = p as { x: number; y: number; z: number };
-  return [v.x || 0, v.y || 0, v.z || 0];
+  return [v[0] || 0, v[1] || 0, v[2] || 0];
 }
 
 function nodeRotation(node: HSPlusNode): [number, number, number] {
@@ -69,7 +69,7 @@ function nodeRotation(node: HSPlusNode): [number, number, number] {
   if (!r) return [0, 0, 0];
   if (Array.isArray(r)) return [r[0] || 0, r[1] || 0, r[2] || 0];
   const v = r as { x: number; y: number; z: number };
-  return [v.x || 0, v.y || 0, v.z || 0];
+  return [v[0] || 0, v[1] || 0, v[2] || 0];
 }
 
 // =============================================================================

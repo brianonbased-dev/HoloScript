@@ -112,8 +112,8 @@ describe('windHandler.onUpdate — basic', () => {
     const { node, config, ctx } = attach({ turbulence: 0.5, turbulence_frequency: 1 });
     windHandler.onUpdate!(node, config, ctx, 1.0); // large time step to get non-zero noise
     const offset = node.__windState.turbulenceOffset;
-    expect(typeof offset.x).toBe('number');
-    expect(typeof offset.z).toBe('number');
+    expect(typeof offset[0]).toBe('number');
+    expect(typeof offset[2]).toBe('number');
   });
   it('pulse modulator reduces strength to ~0 at sin trough', () => {
     const { node, config, ctx } = attach({

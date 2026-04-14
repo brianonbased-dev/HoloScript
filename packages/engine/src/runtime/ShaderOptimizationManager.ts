@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ShaderOptimizationManager.ts
  *
@@ -107,17 +108,17 @@ export const OptimizedDebrisShader = {
       float oc = 1.0 - c;
 
       mat3 rot = mat3(
-        oc * axis.x * axis.x + c,
-        oc * axis.x * axis.y - axis.z * s,
-        oc * axis.z * axis.x + axis.y * s,
+        oc * axis[0] * axis[0] + c,
+        oc * axis[0] * axis[1] - axis[2] * s,
+        oc * axis[2] * axis[0] + axis[1] * s,
 
-        oc * axis.x * axis.y + axis.z * s,
-        oc * axis.y * axis.y + c,
-        oc * axis.y * axis.z - axis.x * s,
+        oc * axis[0] * axis[1] + axis[2] * s,
+        oc * axis[1] * axis[1] + c,
+        oc * axis[1] * axis[2] - axis[0] * s,
 
-        oc * axis.z * axis.x - axis.y * s,
-        oc * axis.y * axis.z + axis.x * s,
-        oc * axis.z * axis.z + c
+        oc * axis[2] * axis[0] - axis[1] * s,
+        oc * axis[1] * axis[2] + axis[0] * s,
+        oc * axis[2] * axis[2] + c
       );
 
       return rot * v;
@@ -263,18 +264,18 @@ export const OptimizedFluidShader = {
       float c = hash(i + vec2(0.0, 1.0));
       float d = hash(i + vec2(1.0, 1.0));
 
-      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      return mix(mix(a, b, f[0]), mix(c, d, f[0]), f[1]);
     }
 
     void main() {
       vec3 pos = position;
 
       // Wave animation
-      float wave1 = sin(pos.x * 2.0 + time * flowSpeed) * waveHeight;
-      float wave2 = sin(pos.z * 1.5 + time * flowSpeed * 1.3) * waveHeight * 0.5;
+      float wave1 = sin(pos[0] * 2.0 + time * flowSpeed) * waveHeight;
+      float wave2 = sin(pos[2] * 1.5 + time * flowSpeed * 1.3) * waveHeight * 0.5;
       float wave3 = noise(pos.xz * 0.5 + time * flowSpeed * 0.2) * waveHeight * 0.3;
 
-      pos.y += wave1 + wave2 + wave3;
+      pos[1] += wave1 + wave2 + wave3;
       vWave = wave1 + wave2 + wave3;
 
       vPosition = pos;
@@ -322,8 +323,8 @@ export const TerrainDeformationShader = {
       vec3 pos = position;
 
       // Apply height deformation
-      pos.y += deformation.r * heightScale;
-      vHeight = pos.y;
+      pos[1] += deformation.r * heightScale;
+      vHeight = pos[1];
 
       // Compute deformed normal
       vec3 deformedNormal = normal;

@@ -44,7 +44,7 @@ describe('ScrollableTrait', () => {
       position: { y: -0.1 },
     } as any);
 
-    expect(contentNode.properties.position.y).toBeCloseTo(-0.1);
+    expect(contentNode.properties.position[1]).toBeCloseTo(-0.1);
   });
 
   it('velocity applies inertia', () => {
@@ -63,7 +63,7 @@ describe('ScrollableTrait', () => {
     scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
 
     // Should have moved further down (negative)
-    expect(contentNode.properties.position.y).toBeLessThan(-0.1);
+    expect(contentNode.properties.position[1]).toBeLessThan(-0.1);
   });
 
   it('clamps to bounds', () => {
@@ -87,6 +87,6 @@ describe('ScrollableTrait', () => {
     scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
 
     // Should clamp to -1.0
-    expect(contentNode.properties.position.y).toBe(-1.0);
+    expect(contentNode.properties.position[1]).toBe(-1.0);
   });
 });

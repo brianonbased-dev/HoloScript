@@ -435,7 +435,7 @@ describe('HoloCompositionParser', () => {
         composition "Test" {
           logic {
             on_tick {
-              state.player.position.x = 5
+              state.player.position[0] = 5
             }
           }
         }

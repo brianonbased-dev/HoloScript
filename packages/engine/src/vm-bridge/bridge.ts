@@ -114,8 +114,8 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
           world.setComponent(id, 0x01, {
             // ComponentType.Transform
             position: action.position,
-            rotation: { x: 0, y: 0, z: 0, w: 1 },
-            scale: { x: 1, y: 1, z: 1 },
+            rotation: [0, 0, 0, 1 ],
+            scale: [1, 1, 1 ],
           });
         }
         if (action.geometryType !== undefined) {
@@ -131,8 +131,8 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
         const existing = world.getComponent<TransformComponent>(action.entityId, 0x01);
         const transform = existing ?? {
           position: [0, 0, 0],
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
-          scale: { x: 1, y: 1, z: 1 },
+          rotation: [0, 0, 0, 1 ],
+          scale: [1, 1, 1 ],
         };
         transform.position = action.position;
         world.setComponent(action.entityId, 0x01, transform);
@@ -239,8 +239,8 @@ export class SpatialCognitiveAgent {
         this.world.setComponent(id, 0x01, {
           // ComponentType.Transform
           position: { x, y, z },
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
-          scale: { x: 1, y: 1, z: 1 },
+          rotation: [0, 0, 0, 1 ],
+          scale: [1, 1, 1 ],
         });
         proxy.push(id);
       }
@@ -274,8 +274,8 @@ export class SpatialCognitiveAgent {
         this.world.setComponent(entityId, 0x01, {
           // ComponentType.Transform
           position: { x, y, z },
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
-          scale: { x: 1, y: 1, z: 1 },
+          rotation: [0, 0, 0, 1 ],
+          scale: [1, 1, 1 ],
         });
         proxy.push({ teleported: true, entityId, position: { x, y, z } });
       }

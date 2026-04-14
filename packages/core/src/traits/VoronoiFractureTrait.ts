@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * VoronoiFractureTrait.ts
  * Advanced procedural destruction and fracture simulation with Voronoi cells
@@ -24,11 +25,11 @@ export interface FractureFragment {
   /** Fragment ID */
   id: number;
   /** Centroid position */
-  position: { x: number; y: number; z: number };
+  position: Vector3;
   /** Bounding box min */
-  boundsMin: { x: number; y: number; z: number };
+  boundsMin: Vector3;
   /** Bounding box max */
-  boundsMax: { x: number; y: number; z: number };
+  boundsMax: Vector3;
   /** Vertices of the fragment mesh */
   vertices: Array<{ x: number; y: number; z: number }>;
   /** Triangle indices (3 per triangle) */
@@ -50,7 +51,7 @@ export interface FractureFragment {
  */
 export interface VoronoiSite {
   /** Position */
-  position: { x: number; y: number; z: number };
+  position: Vector3;
   /** Cell ID */
   id: number;
 }
@@ -60,7 +61,7 @@ export interface VoronoiSite {
  */
 export interface DamageEvent {
   /** Position of impact */
-  position: { x: number; y: number; z: number };
+  position: Vector3;
   /** Damage radius */
   radius: number;
   /** Maximum damage at center */
@@ -77,8 +78,8 @@ export interface VoronoiFractureConfig {
   voronoiSites: number;
   /** Bounding box for fracture volume */
   bounds: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   };
   /** Health threshold for destruction (0-1) */
   destructionThreshold: number;
@@ -91,7 +92,7 @@ export interface VoronoiFractureConfig {
   /** Enable LOD system? */
   enableLOD: boolean;
   /** Distance thresholds for LOD levels [LOD1, LOD2, LOD3] */
-  lodDistances: { x: number; y: number; z: number };
+  lodDistances: Vector3;
   /** Enable fragment pooling? */
   enablePooling: boolean;
   /** Maximum pooled fragments */
@@ -114,12 +115,12 @@ interface FragmentNeighbor {
  * Computes distance between two 3D points
  */
 function distance3D(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: Vector3,
+  b: Vector3
 ): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -127,13 +128,13 @@ function distance3D(
  * Generates a random point within bounds
  */
 function randomPointInBounds(bounds: {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
-}): { x: number; y: number; z: number } {
+  min: Vector3;
+  max: Vector3;
+}): Vector3 {
   return {
-    x: bounds.min.x + Math.random() * (bounds.max.x - bounds.min.x),
-    y: bounds.min.y + Math.random() * (bounds.max.y - bounds.min.y),
-    z: bounds.min.z + Math.random() * (bounds.max.z - bounds.min.z),
+    x: bounds.min[0] + Math.random() * (bounds.max[0] - bounds.min[0]),
+    y: bounds.min[1] + Math.random() * (bounds.max[1] - bounds.min[1]),
+    z: bounds.min[2] + Math.random() * (bounds.max[2] - bounds.min[2]),
   };
 }
 
@@ -141,13 +142,13 @@ function randomPointInBounds(bounds: {
  * Computes bounding box for a set of vertices
  */
 function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>): {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
+  min: Vector3;
+  max: Vector3;
 } {
   if (vertices.length === 0) {
     return {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 0, y: 0, z: 0 },
+      min: [0, 0, 0 ],
+      max: [0, 0, 0 ],
     };
   }
 
@@ -155,12 +156,12 @@ function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>
   const max = { ...vertices[0] };
 
   for (const v of vertices) {
-    min.x = Math.min(min.x, v.x);
-    min.y = Math.min(min.y, v.y);
-    min.z = Math.min(min.z, v.z);
-    max.x = Math.max(max.x, v.x);
-    max.y = Math.max(max.y, v.y);
-    max.z = Math.max(max.z, v.z);
+    min[0] = Math.min(min[0], v[0]);
+    min[1] = Math.min(min[1], v[1]);
+    min[2] = Math.min(min[2], v[2]);
+    max[0] = Math.max(max[0], v[0]);
+    max[1] = Math.max(max[1], v[1]);
+    max[2] = Math.max(max[2], v[2]);
   }
 
   return { min, max };
@@ -170,12 +171,12 @@ function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>
  * Computes volume of a bounding box
  */
 function computeVolume(bounds: {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
+  min: Vector3;
+  max: Vector3;
 }): number {
-  const dx = bounds.max.x - bounds.min.x;
-  const dy = bounds.max.y - bounds.min.y;
-  const dz = bounds.max.z - bounds.min.z;
+  const dx = bounds.max[0] - bounds.min[0];
+  const dy = bounds.max[1] - bounds.min[1];
+  const dz = bounds.max[2] - bounds.min[2];
   return dx * dy * dz;
 }
 
@@ -193,14 +194,14 @@ export class VoronoiFractureSystem {
   private config: VoronoiFractureConfig;
   private nextFragmentId: number = 0;
   private voronoiSites: VoronoiSite[] = [];
-  private cameraPosition: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  private cameraPosition: Vector3 = [0, 0, 0 ];
 
   constructor(config: Partial<VoronoiFractureConfig> = {}) {
     this.config = {
       voronoiSites: config.voronoiSites ?? 10,
       bounds: config.bounds ?? {
-        min: { x: -1, y: -1, z: -1 },
-        max: { x: 1, y: 1, z: 1 },
+        min: [-1, -1, -1 ],
+        max: [1, 1, 1 ],
       },
       destructionThreshold: config.destructionThreshold ?? 0.2,
       maxHealth: config.maxHealth ?? 100,
@@ -225,7 +226,7 @@ export class VoronoiFractureSystem {
     Object.assign(this.config, config);
   }
 
-  setCameraPosition(position: { x: number; y: number; z: number }): void {
+  setCameraPosition(position: Vector3): void {
     this.cameraPosition = { ...position };
   }
 
@@ -265,14 +266,14 @@ export class VoronoiFractureSystem {
     const size = 0.2; // Approximate fragment size
     const vertices = [
       // Cube vertices around site
-      { x: site.position.x - size, y: site.position.y - size, z: site.position.z - size },
-      { x: site.position.x + size, y: site.position.y - size, z: site.position.z - size },
-      { x: site.position.x + size, y: site.position.y + size, z: site.position.z - size },
-      { x: site.position.x - size, y: site.position.y + size, z: site.position.z - size },
-      { x: site.position.x - size, y: site.position.y - size, z: site.position.z + size },
-      { x: site.position.x + size, y: site.position.y - size, z: site.position.z + size },
-      { x: site.position.x + size, y: site.position.y + size, z: site.position.z + size },
-      { x: site.position.x - size, y: site.position.y + size, z: site.position.z + size },
+      [site.position[0] - size, site.position[1] - size, site.position[2] - size ],
+      [site.position[0] + size, site.position[1] - size, site.position[2] - size ],
+      [site.position[0] + size, site.position[1] + size, site.position[2] - size ],
+      [site.position[0] - size, site.position[1] + size, site.position[2] - size ],
+      [site.position[0] - size, site.position[1] - size, site.position[2] + size ],
+      [site.position[0] + size, site.position[1] - size, site.position[2] + size ],
+      [site.position[0] + size, site.position[1] + size, site.position[2] + size ],
+      [site.position[0] - size, site.position[1] + size, site.position[2] + size ],
     ];
 
     // Cube triangle indices (12 triangles, 2 per face)
@@ -628,8 +629,8 @@ export interface VoronoiFractureTrait {
   // Voronoi fracture settings
   voronoi_sites: number;
   bounds: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   };
 
   // Destruction settings
@@ -642,7 +643,7 @@ export interface VoronoiFractureTrait {
 
   // LOD settings
   enable_lod: boolean;
-  lod_distances: { x: number; y: number; z: number }; // [LOD1, LOD2, LOD3]
+  lod_distances: Vector3; // [LOD1, LOD2, LOD3]
 
   // Performance settings
   enable_pooling: boolean;
@@ -653,7 +654,7 @@ export interface VoronoiFractureTrait {
 
   // Damage events (optional)
   initial_damage_events?: Array<{
-    position: { x: number; y: number; z: number };
+    position: Vector3;
     radius: number;
     max_damage: number;
     falloff: number;

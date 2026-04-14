@@ -1,3 +1,4 @@
+import type { Vector3, Quaternion } from '@holoscript/core';
 /**
  * DecalSystem.ts
  *
@@ -15,10 +16,10 @@ export interface DecalDef {
   id: string;
   textureId: string;
   atlasRegion?: { u: number; v: number; w: number; h: number };
-  size: { x: number; y: number; z: number };
-  position: [number, number, number];
-  rotation: { x: number; y: number; z: number; w: number };
-  normal: { x: number; y: number; z: number };
+  size: Vector3;
+  position: Vector3;
+  rotation: Quaternion;
+  normal: Vector3;
   color: { r: number; g: number; b: number; a: number };
   layer: number;
   sortOrder: number;
@@ -75,10 +76,10 @@ export class DecalSystem {
         id: `decal_${_decalId++}`,
         textureId: '',
         atlasRegion: undefined,
-        size: { x: 1, y: 1, z: 1 },
+        size: [1, 1, 1],
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        normal: { x: 0, y: 1, z: 0 },
+        rotation: [0, 0, 0, 1],
+        normal: [0, 1, 0],
         color: { r: 1, g: 1, b: 1, a: 1 },
         layer: 1,
         sortOrder: 0,

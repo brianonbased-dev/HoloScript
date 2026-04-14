@@ -66,7 +66,7 @@ export class GrassRenderer {
 
   generate(bounds: { x: number; z: number; w: number; h: number }, seed = 123): void {
     this.blades = [];
-    const area = bounds.w * bounds.h;
+    const area = bounds[3] * bounds.h;
     const count = Math.floor(area * this.config.bladesPerUnit);
 
     let rng = seed;
@@ -76,8 +76,8 @@ export class GrassRenderer {
     };
 
     for (let i = 0; i < count; i++) {
-      const x = bounds.x + rand() * bounds.w;
-      const z = bounds.z + rand() * bounds.h;
+      const x = bounds[0] + rand() * bounds[3];
+      const z = bounds[2] + rand() * bounds.h;
 
       const heightMul = 1 - this.config.heightVariation + rand() * this.config.heightVariation * 2;
       const widthMul =
@@ -107,7 +107,7 @@ export class GrassRenderer {
   // Update LOD
   // ---------------------------------------------------------------------------
 
-  updateLOD(cameraPos: { x: number; z: number }): void {
+  updateLOD(cameraPos: [number, number, number]): void {
     for (const blade of this.blades) {
       const dx = blade.position[0] - cameraPos[0];
       const dz = blade.position[2] - cameraPos[2];

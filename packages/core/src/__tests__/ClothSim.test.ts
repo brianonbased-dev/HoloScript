@@ -75,13 +75,13 @@ describe('ClothSim', () => {
 
   it('getAABB computes bounding box', () => {
     const aabb = cloth.getAABB();
-    expect(aabb.min.x).toBeCloseTo(0);
-    expect(aabb.max.x).toBeCloseTo(3);
+    expect(aabb.min[0]).toBeCloseTo(0);
+    expect(aabb.max[0]).toBeCloseTo(3);
   });
 
   it('constraints keep particles from drifting infinitely', () => {
     for (let i = 0; i < 100; i++) cloth.update(0.016);
     const aabb = cloth.getAABB();
-    expect(aabb.max.x - aabb.min.x).toBeLessThan(50);
+    expect(aabb.max[0] - aabb.min[0]).toBeLessThan(50);
   });
 });

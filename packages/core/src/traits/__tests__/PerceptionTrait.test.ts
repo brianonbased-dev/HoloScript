@@ -30,8 +30,8 @@ describe('PerceptionTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('guard');
-    node.position = { x: 0, y: 0, z: 0 };
-    node.rotation = { x: 0, y: 0, z: 0 };
+    node.position = [0, 0, 0 ];
+    node.rotation = [0, 0, 0 ];
     ctx = createMockContext();
     attachTrait(perceptionHandler, node, cfg, ctx);
   });

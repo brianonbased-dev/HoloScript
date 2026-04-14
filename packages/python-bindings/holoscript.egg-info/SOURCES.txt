@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+holoscript/__init__.py
+holoscript.egg-info/PKG-INFO
+holoscript.egg-info/SOURCES.txt
+holoscript.egg-info/dependency_links.txt
+holoscript.egg-info/requires.txt
+holoscript.egg-info/top_level.txt
+holoscript/bridges/__init__.py
+holoscript/bridges/alphafold.py
+holoscript/bridges/medical.py
+holoscript/bridges/narupa.py
+holoscript/bridges/radio_astronomy.py
+holoscript/bridges/robotics.py
+holoscript/bridges/scientific.py
+tests/test_smoke.py

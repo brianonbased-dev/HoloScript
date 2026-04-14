@@ -30,24 +30,14 @@ export const enum ComponentType {
 }
 
 export interface TransformComponent {
-  x: number;
-  y: number;
-  z: number;
-  rx: number;
-  ry: number;
-  rz: number;
-  sx: number;
-  sy: number;
-  sz: number;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
 }
 
 export interface VelocityComponent {
-  vx: number;
-  vy: number;
-  vz: number;
-  angularX: number;
-  angularY: number;
-  angularZ: number;
+  linear: [number, number, number];
+  angular: [number, number, number];
 }
 
 export interface ColliderComponent {
@@ -68,9 +58,7 @@ export interface RenderableComponent {
 
 export interface AgentComponent {
   state: 'idle' | 'moving' | 'interacting';
-  targetX: number;
-  targetY: number;
-  targetZ: number;
+  target: [number, number, number];
   speed: number;
   traitMask: number;
 }
@@ -254,12 +242,12 @@ export function physicsSystem(world: ECSWorld, dt: number): void {
   for (const id of world.query(mask)) {
     const t = world.getTransform(id)!;
     const v = world.getVelocity(id)!;
-    t.x += v.vx * dt;
-    t.y += v.vy * dt;
-    t.z += v.vz * dt;
-    t.rx += v.angularX * dt;
-    t.ry += v.angularY * dt;
-    t.rz += v.angularZ * dt;
+    t.position[0] += v.linear[0] * dt;
+    t.position[1] += v.linear[1] * dt;
+    t.position[2] += v.linear[2] * dt;
+    t.rotation[0] += v.angular[0] * dt;
+    t.rotation[1] += v.angular[1] * dt;
+    t.rotation[2] += v.angular[2] * dt;
   }
 }
 
@@ -271,9 +259,9 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
     const a = world.getAgent(id)!;
     if (a.state !== 'moving') continue;
 
-    const dx = a.targetX - t.x;
-    const dy = a.targetY - t.y;
-    const dz = a.targetZ - t.z;
+    const dx = a.target[0] - t.position[0];
+    const dy = a.target[1] - t.position[1];
+    const dz = a.target[2] - t.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist < 0.01) {
@@ -281,9 +269,9 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
     } else {
       const step = Math.min(a.speed * dt, dist);
       const inv = step / dist;
-      t.x += dx * inv;
-      t.y += dy * inv;
-      t.z += dz * inv;
+      t.position[0] += dx * inv;
+      t.position[1] += dy * inv;
+      t.position[2] += dz * inv;
     }
   }
 }
@@ -292,17 +280,15 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
 export function lodSystem(
   world: ECSWorld,
   _dt: number,
-  cameraX = 0,
-  cameraY = 0,
-  cameraZ = 0
+  cameraPos: [number, number, number] = [0, 0, 0]
 ): void {
   const mask = ComponentType.Transform | ComponentType.Renderable;
   for (const id of world.query(mask)) {
     const t = world.getTransform(id)!;
     const r = world.getRenderable(id)!;
-    const dx = t.x - cameraX,
-      dy = t.y - cameraY,
-      dz = t.z - cameraZ;
+    const dx = t.position[0] - cameraPos[0],
+      dy = t.position[1] - cameraPos[1],
+      dz = t.position[2] - cameraPos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     r.lodLevel = dist < 10 ? 0 : dist < 30 ? 1 : dist < 100 ? 2 : 3;
   }
@@ -335,30 +321,18 @@ export function runECSBenchmark(
     const e = world.createEntity();
     world
       .addTransform(e, {
-        x: Math.random() * 100,
-        y: 0,
-        z: Math.random() * 100,
-        rx: 0,
-        ry: 0,
-        rz: 0,
-        sx: 1,
-        sy: 1,
-        sz: 1,
+        position: [Math.random() * 100, 0, Math.random() * 100],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
       })
       .addVelocity(e, {
-        vx: (Math.random() - 0.5) * 2,
-        vy: 0,
-        vz: (Math.random() - 0.5) * 2,
-        angularX: 0,
-        angularY: Math.random(),
-        angularZ: 0,
+        linear: [(Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 2],
+        angular: [0, Math.random(), 0],
       })
       .addRenderable(e, { meshId: 'cube', materialId: 'default', visible: true, lodLevel: 0 })
       .addAgent(e, {
         state: 'moving',
-        targetX: Math.random() * 100,
-        targetY: 0,
-        targetZ: Math.random() * 100,
+        target: [Math.random() * 100, 0, Math.random() * 100],
         speed: 5,
         traitMask: 0,
       });

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PhysicsBody.ts
  *
@@ -63,8 +64,8 @@ export class RigidBody {
     this.shape = config.shape;
 
     // Initialize state
-    this._position = { ...config.transform.position };
-    this._rotation = { ...config.transform.rotation };
+    this._position = [...config.transform.position];
+    this._rotation = [...config.transform.rotation];
     this._linearVelocity = zeroVector();
     this._angularVelocity = zeroVector();
     this._isSleeping = config.sleeping ?? false;
@@ -74,11 +75,11 @@ export class RigidBody {
     this._mass = config.type === 'dynamic' ? (config.mass ?? 1) : 0;
     this._inverseMass = this._mass > 0 ? 1 / this._mass : 0;
     this._inertia = this.calculateInertia();
-    this._inverseInertia = {
-      x: this._inertia.x > 0 ? 1 / this._inertia.x : 0,
-      y: this._inertia.y > 0 ? 1 / this._inertia.y : 0,
-      z: this._inertia.z > 0 ? 1 / this._inertia.z : 0,
-    };
+    this._inverseInertia = [
+      this._inertia[0] > 0 ? 1 / this._inertia[0] : 0,
+      this._inertia[1] > 0 ? 1 / this._inertia[1] : 0,
+      this._inertia[2] > 0 ? 1 / this._inertia[2] : 0,
+    ];
 
     // Properties
     this._material = config.material ?? defaultMaterial();
@@ -100,25 +101,25 @@ export class RigidBody {
   // ============================================================================
 
   public get position(): IVector3 {
-    return { ...this._position };
+    return [...this._position];
   }
 
   public set position(value: IVector3) {
-    this._position = { ...value };
+    this._position = [...value];
     this.wakeUp();
   }
 
   public get rotation(): IQuaternion {
-    return { ...this._rotation };
+    return [...this._rotation];
   }
 
   public set rotation(value: IQuaternion) {
-    this._rotation = { ...value };
+    this._rotation = [...value];
     this.wakeUp();
   }
 
   public get linearVelocity(): IVector3 {
-    return { ...this._linearVelocity };
+    return [...this._linearVelocity];
   }
 
   public set linearVelocity(value: IVector3) {
@@ -128,7 +129,7 @@ export class RigidBody {
   }
 
   public get angularVelocity(): IVector3 {
-    return { ...this._angularVelocity };
+    return [...this._angularVelocity];
   }
 
   public set angularVelocity(value: IVector3) {
@@ -208,9 +209,9 @@ export class RigidBody {
   public applyForce(force: IVector3): void {
     if (this.type !== 'dynamic') return;
 
-    this._force.x += force.x;
-    this._force.y += force.y;
-    this._force.z += force.z;
+    this._force[0] += force[0];
+    this._force[1] += force[1];
+    this._force[2] += force[2];
     this.wakeUp();
   }
 
@@ -224,18 +225,18 @@ export class RigidBody {
     this.applyForce(force);
 
     // Calculate torque from offset
-    const r = {
-      x: worldPoint.x - this._position.x,
-      y: worldPoint.y - this._position.y,
-      z: worldPoint.z - this._position.z,
-    };
+    const r = [
+      worldPoint[0] - this._position[0],
+      worldPoint[1] - this._position[1],
+      worldPoint[2] - this._position[2],
+    ] as IVector3;
 
     // Cross product r x F = torque
-    const torque = {
-      x: r.y * force.z - r.z * force.y,
-      y: r.z * force.x - r.x * force.z,
-      z: r.x * force.y - r.y * force.x,
-    };
+    const torque = [
+      r[1] * force[2] - r[2] * force[1],
+      r[2] * force[0] - r[0] * force[2],
+      r[0] * force[1] - r[1] * force[0],
+    ] as IVector3;
 
     this.applyTorque(torque);
   }
@@ -246,9 +247,9 @@ export class RigidBody {
   public applyImpulse(impulse: IVector3): void {
     if (this.type !== 'dynamic') return;
 
-    this._linearVelocity.x += impulse.x * this._inverseMass;
-    this._linearVelocity.y += impulse.y * this._inverseMass;
-    this._linearVelocity.z += impulse.z * this._inverseMass;
+    this._linearVelocity[0] += impulse[0] * this._inverseMass;
+    this._linearVelocity[1] += impulse[1] * this._inverseMass;
+    this._linearVelocity[2] += impulse[2] * this._inverseMass;
     this._linearVelocity = this.clampVelocity(this._linearVelocity, PHYSICS_DEFAULTS.maxVelocity);
     this.wakeUp();
   }
@@ -263,18 +264,18 @@ export class RigidBody {
     this.applyImpulse(impulse);
 
     // Calculate angular impulse from offset
-    const r = {
-      x: worldPoint.x - this._position.x,
-      y: worldPoint.y - this._position.y,
-      z: worldPoint.z - this._position.z,
-    };
+    const r = [
+      worldPoint[0] - this._position[0],
+      worldPoint[1] - this._position[1],
+      worldPoint[2] - this._position[2],
+    ] as IVector3;
 
     // Cross product r x impulse = angular impulse
-    const angularImpulse = {
-      x: r.y * impulse.z - r.z * impulse.y,
-      y: r.z * impulse.x - r.x * impulse.z,
-      z: r.x * impulse.y - r.y * impulse.x,
-    };
+    const angularImpulse = [
+      r[1] * impulse[2] - r[2] * impulse[1],
+      r[2] * impulse[0] - r[0] * impulse[2],
+      r[0] * impulse[1] - r[1] * impulse[0],
+    ] as IVector3;
 
     this.applyTorqueImpulse(angularImpulse);
   }
@@ -285,9 +286,9 @@ export class RigidBody {
   public applyTorque(torque: IVector3): void {
     if (this.type !== 'dynamic') return;
 
-    this._torque.x += torque.x;
-    this._torque.y += torque.y;
-    this._torque.z += torque.z;
+    this._torque[0] += torque[0];
+    this._torque[1] += torque[1];
+    this._torque[2] += torque[2];
     this.wakeUp();
   }
 
@@ -297,9 +298,9 @@ export class RigidBody {
   public applyTorqueImpulse(impulse: IVector3): void {
     if (this.type !== 'dynamic') return;
 
-    this._angularVelocity.x += impulse.x * this._inverseInertia.x;
-    this._angularVelocity.y += impulse.y * this._inverseInertia.y;
-    this._angularVelocity.z += impulse.z * this._inverseInertia.z;
+    this._angularVelocity[0] += impulse[0] * this._inverseInertia[0];
+    this._angularVelocity[1] += impulse[1] * this._inverseInertia[1];
+    this._angularVelocity[2] += impulse[2] * this._inverseInertia[2];
     this._angularVelocity = this.clampVelocity(
       this._angularVelocity,
       PHYSICS_DEFAULTS.maxAngularVelocity
@@ -326,33 +327,33 @@ export class RigidBody {
     if (this.type !== 'dynamic' || this._isSleeping) return;
 
     // Apply gravity
-    const gravityForce = {
-      x: gravity.x * this._mass * this._gravityScale,
-      y: gravity.y * this._mass * this._gravityScale,
-      z: gravity.z * this._mass * this._gravityScale,
-    };
+    const gravityForce = [
+      gravity[0] * this._mass * this._gravityScale,
+      gravity[1] * this._mass * this._gravityScale,
+      gravity[2] * this._mass * this._gravityScale,
+    ] as IVector3;
 
     // Update linear velocity
-    this._linearVelocity.x += (this._force.x + gravityForce.x) * this._inverseMass * dt;
-    this._linearVelocity.y += (this._force.y + gravityForce.y) * this._inverseMass * dt;
-    this._linearVelocity.z += (this._force.z + gravityForce.z) * this._inverseMass * dt;
+    this._linearVelocity[0] += (this._force[0] + gravityForce[0]) * this._inverseMass * dt;
+    this._linearVelocity[1] += (this._force[1] + gravityForce[1]) * this._inverseMass * dt;
+    this._linearVelocity[2] += (this._force[2] + gravityForce[2]) * this._inverseMass * dt;
 
     // Update angular velocity
-    this._angularVelocity.x += this._torque.x * this._inverseInertia.x * dt;
-    this._angularVelocity.y += this._torque.y * this._inverseInertia.y * dt;
-    this._angularVelocity.z += this._torque.z * this._inverseInertia.z * dt;
+    this._angularVelocity[0] += this._torque[0] * this._inverseInertia[0] * dt;
+    this._angularVelocity[1] += this._torque[1] * this._inverseInertia[1] * dt;
+    this._angularVelocity[2] += this._torque[2] * this._inverseInertia[2] * dt;
 
     // Apply damping
     const linearDamp = Math.pow(1 - this._linearDamping, dt);
     const angularDamp = Math.pow(1 - this._angularDamping, dt);
 
-    this._linearVelocity.x *= linearDamp;
-    this._linearVelocity.y *= linearDamp;
-    this._linearVelocity.z *= linearDamp;
+    this._linearVelocity[0] *= linearDamp;
+    this._linearVelocity[1] *= linearDamp;
+    this._linearVelocity[2] *= linearDamp;
 
-    this._angularVelocity.x *= angularDamp;
-    this._angularVelocity.y *= angularDamp;
-    this._angularVelocity.z *= angularDamp;
+    this._angularVelocity[0] *= angularDamp;
+    this._angularVelocity[1] *= angularDamp;
+    this._angularVelocity[2] *= angularDamp;
 
     // Clamp velocities
     this._linearVelocity = this.clampVelocity(this._linearVelocity, PHYSICS_DEFAULTS.maxVelocity);
@@ -369,27 +370,27 @@ export class RigidBody {
     if (this.type === 'static' || this._isSleeping) return;
 
     // Update position
-    this._position.x += this._linearVelocity.x * dt;
-    this._position.y += this._linearVelocity.y * dt;
-    this._position.z += this._linearVelocity.z * dt;
+    this._position[0] += this._linearVelocity[0] * dt;
+    this._position[1] += this._linearVelocity[1] * dt;
+    this._position[2] += this._linearVelocity[2] * dt;
 
     // Update rotation (quaternion integration)
-    const wx = this._angularVelocity.x * dt * 0.5;
-    const wy = this._angularVelocity.y * dt * 0.5;
-    const wz = this._angularVelocity.z * dt * 0.5;
+    const wx = this._angularVelocity[0] * dt * 0.5;
+    const wy = this._angularVelocity[1] * dt * 0.5;
+    const wz = this._angularVelocity[2] * dt * 0.5;
 
     const q = this._rotation;
-    const dq = {
-      x: wx * q.w + wy * q.z - wz * q.y,
-      y: wy * q.w + wz * q.x - wx * q.z,
-      z: wz * q.w + wx * q.y - wy * q.x,
-      w: -wx * q.x - wy * q.y - wz * q.z,
-    };
+    const dq = [
+      wx * q[3] + wy * q[2] - wz * q[1],
+      wy * q[3] + wz * q[0] - wx * q[2],
+      wz * q[3] + wx * q[1] - wy * q[0],
+      -wx * q[0] - wy * q[1] - wz * q[2],
+    ];
 
-    q.x += dq.x;
-    q.y += dq.y;
-    q.z += dq.z;
-    q.w += dq.w;
+    q[0] += dq[0];
+    q[1] += dq[1];
+    q[2] += dq[2];
+    q[3] += dq[3];
 
     // Normalize quaternion
     this._rotation = this.normalizeQuaternion(q);
@@ -464,8 +465,8 @@ export class RigidBody {
    * Set transform directly (for kinematic bodies)
    */
   public setTransform(transform: ITransform): void {
-    this._position = { ...transform.position };
-    this._rotation = { ...transform.rotation };
+    this._position = [...transform.position];
+    this._rotation = [...transform.rotation];
     this.wakeUp();
   }
 
@@ -473,14 +474,14 @@ export class RigidBody {
    * Get accumulated force
    */
   public getForce(): IVector3 {
-    return { ...this._force };
+    return [...this._force] as IVector3;
   }
 
   /**
    * Get accumulated torque
    */
   public getTorque(): IVector3 {
-    return { ...this._torque };
+    return [...this._torque] as IVector3;
   }
 
   // ============================================================================
@@ -498,26 +499,26 @@ export class RigidBody {
       case 'box': {
         const { halfExtents } = this.shape;
         const factor = mass / 12;
-        return {
-          x: factor * (4 * halfExtents.y * halfExtents.y + 4 * halfExtents.z * halfExtents.z),
-          y: factor * (4 * halfExtents.x * halfExtents.x + 4 * halfExtents.z * halfExtents.z),
-          z: factor * (4 * halfExtents.x * halfExtents.x + 4 * halfExtents.y * halfExtents.y),
-        };
+        return [
+          factor * (4 * halfExtents[1] * halfExtents[1] + 4 * halfExtents[2] * halfExtents[2]),
+          factor * (4 * halfExtents[0] * halfExtents[0] + 4 * halfExtents[2] * halfExtents[2]),
+          factor * (4 * halfExtents[0] * halfExtents[0] + 4 * halfExtents[1] * halfExtents[1]),
+        ] as IVector3;
       }
       case 'sphere': {
         const inertia = (2 / 5) * mass * this.shape.radius * this.shape.radius;
-        return { x: inertia, y: inertia, z: inertia };
+        return [inertia, inertia, inertia] as IVector3;
       }
       case 'capsule': {
         // Approximate as cylinder + hemispheres
         const r = this.shape.radius;
         const h = this.shape.height;
         const cylinderInertia = (1 / 12) * mass * (3 * r * r + h * h);
-        return { x: cylinderInertia, y: cylinderInertia, z: (1 / 2) * mass * r * r };
+        return [cylinderInertia, cylinderInertia, (1 / 2) * mass * r * r] as IVector3;
       }
       default:
         // Default sphere-like inertia
-        return { x: mass, y: mass, z: mass };
+        return [mass, mass, mass] as IVector3;
     }
   }
 
@@ -528,7 +529,7 @@ export class RigidBody {
     const speed = this.vectorLength(v);
     if (speed > maxSpeed) {
       const scale = maxSpeed / speed;
-      return { x: v.x * scale, y: v.y * scale, z: v.z * scale };
+      return [v[0] * scale, v[1] * scale, v[2] * scale] as IVector3;
     }
     return v;
   }
@@ -537,21 +538,21 @@ export class RigidBody {
    * Calculate vector length
    */
   private vectorLength(v: IVector3): number {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
   /**
    * Normalize quaternion
    */
   private normalizeQuaternion(q: IQuaternion): IQuaternion {
-    const len = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    const len = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
     if (len === 0) return identityQuaternion();
-    return {
-      x: q.x / len,
-      y: q.y / len,
-      z: q.z / len,
-      w: q.w / len,
-    };
+    return [
+      q[0] / len,
+      q[1] / len,
+      q[2] / len,
+      q[3] / len,
+    ] as IQuaternion;
   }
 
   /**

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UISliderConfig {
@@ -19,18 +20,18 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
   const handleId = `${id}_handle`;
 
   // Determine scale based on axis
-  const trackScale = { x: 0.01, y: 0.01, z: 0.01 };
-  if (axis === 'x') trackScale.x = length;
-  if (axis === 'y') trackScale.y = length;
-  if (axis === 'z') trackScale.z = length;
+  const trackScale = [0.01, 0.01, 0.01];
+  if (axis === 'x') trackScale[0] = length;
+  if (axis === 'y') trackScale[1] = length;
+  if (axis === 'z') trackScale[2] = length;
 
   return {
     id: trackId,
     type: 'object',
     name: `SliderTrack_${id}`,
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       geometry: 'box', // Cylinder might be better, but box is simpler for now
       scale: trackScale,
       color: config.trackColor || '#555555',
@@ -44,7 +45,7 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
         properties: {
           position: [0, 0, 0], // Center of track (0.5 value)
           geometry: 'sphere',
-          scale: { x: 0.03, y: 0.03, z: 0.03 },
+          scale: [0.03, 0.03, 0.03 ],
           color: config.handleColor || '#FFFFFF',
           physics: { type: 'dynamic', mass: 0.1 },
           axis: axis,

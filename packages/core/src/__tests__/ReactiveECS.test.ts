@@ -51,19 +51,19 @@ describe('Reactive ECS', () => {
     const entity = world.createEntity();
     world.addComponent(entity, 'Transform', {
       position: [0, 0, 0],
-      scale: { x: 1, y: 1, z: 1 },
+      scale: [1, 1, 1 ],
     });
 
     const transform = world.getComponent<any>(entity, 'Transform')!;
     const callback = vi.fn();
 
     effect(() => {
-      callback(transform.position.x);
+      callback(transform.position[0]);
     });
 
     expect(callback).toHaveBeenCalledWith(0);
 
-    transform.position.x = 10;
+    transform.position[0] = 10;
 
     await Promise.resolve();
 

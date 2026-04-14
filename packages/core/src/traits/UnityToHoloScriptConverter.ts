@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
 /**
@@ -20,9 +21,9 @@ export interface UnityGameObject {
   tag?: string;
   layer?: number;
   isActive?: boolean;
-  position?: { x: number; y: number; z: number };
-  rotation?: { x: number; y: number; z: number };
-  scale?: { x: number; y: number; z: number };
+  position?: Vector3;
+  rotation?: Vector3;
+  scale?: Vector3;
   components?: UnityComponent[];
   children?: UnityGameObject[];
 }
@@ -100,8 +101,8 @@ const SHADER_TYPE_MAP: Record<string, 'pbr' | 'unlit' | 'toon' | 'holographic'> 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function vec3ToString(
-  v: { x: number; y: number; z: number } | undefined,
-  def = { x: 0, y: 0, z: 0 }
+  v: Vector3 | undefined,
+  def = [0, 0, 0 ]
 ): string {
   const { x, y, z } = v ?? def;
   return `[${x}, ${y}, ${z}]`;
@@ -199,7 +200,7 @@ export function convertGameObject(
   // Build DSL block
   const pos = vec3ToString(go.position);
   const rot = vec3ToString(go.rotation);
-  const scale = vec3ToString(go.scale, { x: 1, y: 1, z: 1 });
+  const scale = vec3ToString(go.scale, [1, 1, 1 ]);
 
   const lines: string[] = [
     `${pad}object ${id} : ${geometryId} {`,

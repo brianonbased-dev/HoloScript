@@ -129,7 +129,7 @@ export class KeyboardSystem {
     if (cursorNode && cursorNode.properties) {
       cursorNode.properties.visible = true;
       const xPos = startX + cursorIndex * charWidth;
-      cursorNode.properties.position = { x: xPos, y: 0, z: 0.006 };
+      cursorNode.properties.position = [xPos, 0, 0.006 ];
 
       this.context.emit('property_changed', {
         nodeId: `${this.focusedNodeId}_cursor`,

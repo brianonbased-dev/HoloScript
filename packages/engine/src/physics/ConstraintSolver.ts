@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ConstraintSolver.ts
  *
@@ -52,32 +53,32 @@ interface SolvedConstraint {
 // =============================================================================
 
 function v3(x: number, y: number, z: number): IVector3 {
-  return { x, y, z };
+  return [x, y, z];
 }
 function v3Add(a: IVector3, b: IVector3): IVector3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2] ];
 }
 function v3Sub(a: IVector3, b: IVector3): IVector3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2] ];
 }
 function v3Scale(v: IVector3, s: number): IVector3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
+  return [v[0] * s, v[1] * s, v[2] * s ];
 }
 function v3Dot(a: IVector3, b: IVector3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 function _v3Cross(a: IVector3, b: IVector3): IVector3 {
-  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] ];
 }
 function v3Length(v: IVector3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 function v3Normalize(v: IVector3): IVector3 {
   const len = v3Length(v);
   return len > 1e-10 ? v3Scale(v, 1 / len) : v3(0, 0, 0);
 }
 function v3Zero(): IVector3 {
-  return { x: 0, y: 0, z: 0 };
+  return [0, 0, 0 ];
 }
 
 // =============================================================================
@@ -472,24 +473,24 @@ export class ConstraintSolver {
     const pos = sc.bodyA.position;
     const linCorrection = v3Zero();
 
-    if (pos.x < c.linearLowerLimit.x)
-      linCorrection.x =
-        ((c.linearLowerLimit.x - pos.x) * this.config.baumgarte) / Math.max(dt, 1e-6);
-    if (pos.x > c.linearUpperLimit.x)
-      linCorrection.x =
-        ((c.linearUpperLimit.x - pos.x) * this.config.baumgarte) / Math.max(dt, 1e-6);
-    if (pos.y < c.linearLowerLimit.y)
-      linCorrection.y =
-        ((c.linearLowerLimit.y - pos.y) * this.config.baumgarte) / Math.max(dt, 1e-6);
-    if (pos.y > c.linearUpperLimit.y)
-      linCorrection.y =
-        ((c.linearUpperLimit.y - pos.y) * this.config.baumgarte) / Math.max(dt, 1e-6);
-    if (pos.z < c.linearLowerLimit.z)
-      linCorrection.z =
-        ((c.linearLowerLimit.z - pos.z) * this.config.baumgarte) / Math.max(dt, 1e-6);
-    if (pos.z > c.linearUpperLimit.z)
-      linCorrection.z =
-        ((c.linearUpperLimit.z - pos.z) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[0] < c.linearLowerLimit[0])
+      linCorrection[0] =
+        ((c.linearLowerLimit[0] - pos[0]) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[0] > c.linearUpperLimit[0])
+      linCorrection[0] =
+        ((c.linearUpperLimit[0] - pos[0]) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[1] < c.linearLowerLimit[1])
+      linCorrection[1] =
+        ((c.linearLowerLimit[1] - pos[1]) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[1] > c.linearUpperLimit[1])
+      linCorrection[1] =
+        ((c.linearUpperLimit[1] - pos[1]) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[2] < c.linearLowerLimit[2])
+      linCorrection[2] =
+        ((c.linearLowerLimit[2] - pos[2]) * this.config.baumgarte) / Math.max(dt, 1e-6);
+    if (pos[2] > c.linearUpperLimit[2])
+      linCorrection[2] =
+        ((c.linearUpperLimit[2] - pos[2]) * this.config.baumgarte) / Math.max(dt, 1e-6);
 
     this.accumulateCorrection(corrections, sc.bodyA.id, linCorrection, v3Zero());
 

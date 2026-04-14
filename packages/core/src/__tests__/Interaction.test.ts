@@ -10,7 +10,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
       const bodies = new Map();
       bodies.set('box1', {
         position: [0, 0, -0.5],
-        velocity: { x: 0, y: 0, z: 0 },
+        velocity: [0, 0, 0 ],
         type: 'dynamic',
       });
 
@@ -20,7 +20,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
           const id = config.id || `body_${bodies.size}`;
           bodies.set(id, {
             position: config.position,
-            velocity: { x: 0, y: 0, z: 0 },
+            velocity: [0, 0, 0 ],
             type: config.type,
           });
           return id;
@@ -28,7 +28,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
         addBody: vi.fn((id, config) => {
           bodies.set(id, {
             position: config.position,
-            velocity: { x: 0, y: 0, z: 0 },
+            velocity: [0, 0, 0 ],
             type: config.type,
           });
         }),
@@ -101,7 +101,7 @@ describe('Physics Interaction', () => {
     const bridge = (runtime as any).vrPhysicsBridge;
     const handData = {
       position: [-0.2, 1.5, -0.5],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
       pinchStrength: 0,
     };
 
@@ -115,7 +115,7 @@ describe('Physics Interaction', () => {
     // Ensure hand body exists
     const bridge = (runtime as any).vrPhysicsBridge;
     bridge.updateHand(
-      { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 }, pinchStrength: 1 },
+      { position: [0, 0, 0], rotation: [0, 0, 0 ], pinchStrength: 1 },
       'right',
       0.016
     );

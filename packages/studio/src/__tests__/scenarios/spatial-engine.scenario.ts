@@ -120,8 +120,7 @@ describe('Quaternion', () => {
 // SpatialEngine Tests
 // ============================================================================
 
-import { SpatialEngine } from '../../../../core/src/engine/SpatialEngine';
-import type { EngineSystem } from '../../../../core/src/engine/SpatialEngine';
+import { SpatialEngine, type EngineSystem } from '@holoscript/engine';
 
 describe('SpatialEngine', () => {
   it('starts in stopped state', () => {
@@ -189,14 +188,14 @@ describe('SpatialEngine', () => {
 // PhysicsStep Tests
 // ============================================================================
 
-import { PhysicsStep } from '../../../../core/src/engine/PhysicsStep';
+import { PhysicsStep } from '@holoscript/engine';
 
 describe('PhysicsStep', () => {
   it('adds and retrieves bodies', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: [0, 10, 0],
+      position: { x: 0, y: 10, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -214,7 +213,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: [0, 10, 0],
+      position: { x: 0, y: 10, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -234,7 +233,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: [0, 0.001, 0],
+      position: { x: 0, y: 0.001, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: -5, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -253,7 +252,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'floor',
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -278,7 +277,7 @@ describe('PhysicsStep', () => {
     // The resolver will push them apart and fire the callback
     phys.addBody({
       id: 'a',
-      position: [0, 5, 0],
+      position: { x: 0, y: 5, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -289,7 +288,7 @@ describe('PhysicsStep', () => {
     });
     phys.addBody({
       id: 'b',
-      position: [0.3, 5, 0],
+      position: { x: 0.3, y: 5, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -313,7 +312,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'target',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -333,7 +332,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'x',
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 } as any,
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -351,7 +350,8 @@ describe('PhysicsStep', () => {
 // RenderGraph Tests
 // ============================================================================
 
-import { RenderGraph } from '../../../../core/src/rendering/RenderGraph';
+import { Rendering } from '@holoscript/engine';
+const { RenderGraph } = Rendering;
 
 describe('RenderGraph', () => {
   it('topologically sorts passes by dependencies', () => {

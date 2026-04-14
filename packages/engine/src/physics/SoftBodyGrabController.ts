@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * SoftBodyGrabController
  *
@@ -79,9 +80,9 @@ export class SoftBodyGrabController {
     // Find vertices within grab radius, sorted by distance
     const candidates: Array<{ index: number; dist: number }> = [];
     for (let i = 0; i < numVerts; i++) {
-      const dx = positions[i * 3] - handPosition.x;
-      const dy = positions[i * 3 + 1] - handPosition.y;
-      const dz = positions[i * 3 + 2] - handPosition.z;
+      const dx = positions[i * 3] - handPosition[0];
+      const dy = positions[i * 3 + 1] - handPosition[1];
+      const dz = positions[i * 3 + 2] - handPosition[2];
       const distSq = dx * dx + dy * dy + dz * dz;
       if (distSq < radiusSq) {
         candidates.push({ index: i, dist: Math.sqrt(distSq) });
@@ -97,11 +98,7 @@ export class SoftBodyGrabController {
     const grabPoints: GrabPoint[] = [];
     for (const { index, dist } of selected) {
       // Compute local offset (vertex position relative to hand)
-      const localOffset: IVector3 = {
-        x: positions[index * 3] - handPosition.x,
-        y: positions[index * 3 + 1] - handPosition.y,
-        z: positions[index * 3 + 2] - handPosition.z,
-      };
+      const localOffset: IVector3 = [positions[index * 3] - handPosition[0], positions[index * 3 + 1] - handPosition[1], positions[index * 3 + 2] - handPosition[2], ];
 
       // Compliance weighted by distance: closer = stiffer
       const distRatio = dist / grabRadius;
@@ -110,11 +107,11 @@ export class SoftBodyGrabController {
       // Create attachment constraint with XPBD compliance for soft grab
       solver.pinVertex(
         index,
-        {
-          x: positions[index * 3],
-          y: positions[index * 3 + 1],
-          z: positions[index * 3 + 2],
-        },
+        [
+          positions[index * 3],
+          positions[index * 3 + 1],
+          positions[index * 3 + 2],
+        ],
         compliance
       );
 
@@ -125,7 +122,7 @@ export class SoftBodyGrabController {
       handId,
       solver,
       grabPoints,
-      handPosition: { ...handPosition },
+      handPosition: [...handPosition  ],
     });
   }
 
@@ -137,14 +134,10 @@ export class SoftBodyGrabController {
     const grab = this.activeGrabs.get(handId);
     if (!grab) return;
 
-    grab.handPosition = { ...handPosition };
+    grab.handPosition = [...handPosition  ];
 
     for (const gp of grab.grabPoints) {
-      const target: IVector3 = {
-        x: handPosition.x + gp.localOffset.x,
-        y: handPosition.y + gp.localOffset.y,
-        z: handPosition.z + gp.localOffset.z,
-      };
+      const target: IVector3 = [handPosition[0] + gp.localOffset[0], handPosition[1] + gp.localOffset[1], handPosition[2] + gp.localOffset[2], ];
       grab.solver.updateAttachmentTarget(gp.vertexIndex, target);
     }
   }

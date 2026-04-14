@@ -68,7 +68,7 @@ describe('Cycle 151: Collision Queries', () => {
     const hit = rc.raycast({ origin: { x: 0, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } });
     expect(hit).not.toBeNull();
     expect(hit!.distance).toBeCloseTo(10, 1);
-    expect(hit!.point.y).toBeCloseTo(0, 1);
+    expect(hit!.point[1]).toBeCloseTo(0, 1);
   });
 
   // -------------------------------------------------------------------------

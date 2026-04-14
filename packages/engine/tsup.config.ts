@@ -39,7 +39,7 @@ export default defineConfig({
     'src/runtime/protocols/index.ts',
   ],
   format: ['esm', 'cjs'],
-  dts: false, // DTS disabled until HoloScriptPlusRuntime type errors are fixed
+  dts: true, // DTS disabled until HoloScriptPlusRuntime type errors are fixed
   esbuildPlugins: [
     {
       name: 'wgsl-raw-loader',

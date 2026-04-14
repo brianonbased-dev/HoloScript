@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   LightingTrait,
@@ -41,7 +42,7 @@ describe('LightingTrait', () => {
     it('should add light and return ID', () => {
       const id = lighting.addLight({
         type: 'directional',
-        direction: { x: 1, y: 1, z: 1 },
+        direction: [1, 1, 1 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 1.0,
       });
@@ -64,7 +65,7 @@ describe('LightingTrait', () => {
     it('should get all lights', () => {
       lighting.addLight({
         type: 'directional',
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 1.0,
       });
@@ -82,7 +83,7 @@ describe('LightingTrait', () => {
     it('should filter lights by type', () => {
       lighting.addLight({
         type: 'directional',
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 1.0,
       });
@@ -200,7 +201,7 @@ describe('LightingTrait', () => {
 
   describe('light creation helpers', () => {
     it('should create directional light (sun)', () => {
-      const dir: Vector3 = { x: 1, y: 1, z: 1 };
+      const dir: Vector3 = [1, 1, 1 ];
       const color: Color = { r: 1, g: 1, b: 1 };
       const id = lighting.createDirectionalLight(dir, color, 1.0, true);
       const light = lighting.getLight(id);
@@ -210,7 +211,7 @@ describe('LightingTrait', () => {
     });
 
     it('should create point light', () => {
-      const pos: Vector3 = { x: 0, y: 5, z: 0 };
+      const pos: Vector3 = [0, 5, 0 ];
       const color: Color = { r: 1, g: 0, b: 0 };
       const id = lighting.createPointLight(pos, color, 1.0, 20, false);
       const light = lighting.getLight(id);
@@ -221,8 +222,8 @@ describe('LightingTrait', () => {
     });
 
     it('should create spot light', () => {
-      const pos: Vector3 = { x: 0, y: 10, z: 0 };
-      const dir: Vector3 = { x: 0, y: -1, z: 0 };
+      const pos: Vector3 = [0, 10, 0 ];
+      const dir: Vector3 = [0, -1, 0 ];
       const color: Color = { r: 1, g: 1, b: 0 };
       const id = lighting.createSpotLight(pos, dir, color, 1.0, 30, 45, true);
       const light = lighting.getLight(id);
@@ -232,7 +233,7 @@ describe('LightingTrait', () => {
     });
 
     it('should create area light', () => {
-      const pos: Vector3 = { x: 0, y: 5, z: 0 };
+      const pos: Vector3 = [0, 5, 0 ];
       const color: Color = { r: 0, g: 1, b: 1 };
       const id = lighting.createAreaLight(pos, color, 0.8, 2, 2);
       const light = lighting.getLight(id);
@@ -246,7 +247,7 @@ describe('LightingTrait', () => {
       const lig = new LightingTrait();
       lig.addLight({
         type: 'directional',
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 1.0,
         shadow: { type: 'soft' },
@@ -266,7 +267,7 @@ describe('LightingTrait', () => {
       const lig = new LightingTrait();
       lig.addLight({
         type: 'directional',
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 1.0,
       });
@@ -287,7 +288,7 @@ describe('LightingTrait', () => {
       lig.addLight({
         type: 'spot',
         position: [0, 5, 0],
-        direction: { x: 0, y: -1, z: 0 },
+        direction: [0, -1, 0 ],
         color: { r: 0, g: 0, b: 1 },
         intensity: 1.0,
         range: 15,
@@ -321,7 +322,7 @@ describe('LightingTrait', () => {
         lig.addLight({
           type: 'spot',
           position: [i, 0, 0],
-          direction: { x: 0, y: -1, z: 0 },
+          direction: [0, -1, 0 ],
           color: { r: 1, g: 1, b: 1 },
           intensity: 0.5,
           range: 10,
@@ -335,8 +336,8 @@ describe('LightingTrait', () => {
     });
 
     it('should generate scene info string', () => {
-      lighting.createDirectionalLight({ x: 0, y: 1, z: 0 }, { r: 1, g: 1, b: 1 }, 1.0, true);
-      lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 0, b: 0 }, 1.0, 10, false);
+      lighting.createDirectionalLight([0, 1, 0 ], { r: 1, g: 1, b: 1 }, 1.0, true);
+      lighting.createPointLight([0, 0, 0 ], { r: 1, g: 0, b: 0 }, 1.0, 10, false);
       const info = lighting.getSceneInfo();
       expect(info).toContain('Lighting:');
       expect(info).toContain('Shadows:');
@@ -399,7 +400,7 @@ describe('LightingTrait', () => {
       // Sun
       lig.addLight({
         type: 'directional',
-        direction: { x: 0.5, y: 1, z: 0.5 },
+        direction: [0.5, 1, 0.5 ],
         color: { r: 1, g: 0.95, b: 0.8 },
         intensity: 1.2,
         shadow: {
@@ -431,7 +432,7 @@ describe('LightingTrait', () => {
       lig.addLight({
         type: 'spot',
         position: [0, 5, -10],
-        direction: { x: 0, y: -1, z: 0.5 },
+        direction: [0, -1, 0.5 ],
         color: { r: 1, g: 1, b: 1 },
         intensity: 0.8,
         range: 30,
@@ -450,7 +451,7 @@ describe('LightingTrait', () => {
 
   describe('disposal', () => {
     it('should dispose and cleanup', () => {
-      lighting.createDirectionalLight({ x: 0, y: 1, z: 0 }, { r: 1, g: 1, b: 1 }, 1.0, true);
+      lighting.createDirectionalLight([0, 1, 0 ], { r: 1, g: 1, b: 1 }, 1.0, true);
       lighting.dispose();
       expect(lighting.getLights()).toHaveLength(0);
     });

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * InstancedRenderer.ts
  *
@@ -421,9 +422,9 @@ export class InstancedRenderer {
       const euler = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
 
       return {
-        position: [pos.x, pos.y, pos.z],
-        rotation: [euler.x, euler.y, euler.z],
-        scale: [scl.x, scl.y, scl.z],
+        position: [pos[0], pos[1], pos[2]],
+        rotation: [euler[0], euler[1], euler[2]],
+        scale: [scl[0], scl[1], scl[2]],
       };
     }
 

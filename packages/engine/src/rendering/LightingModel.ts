@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * LightingModel.ts
  *
@@ -19,7 +20,7 @@ export interface Light {
   color: [number, number, number];
   intensity: number;
   position: [number, number, number];
-  direction: { x: number; y: number; z: number };
+  direction: Vector3;
   range: number; // Point/Spot
   spotAngle: number; // Spot only (degrees)
   spotPenumbra: number; // Soft edge (0-1)
@@ -71,7 +72,7 @@ export class LightingModel {
       color: [1, 1, 1],
       intensity: 1,
       position: [0, 10, 0],
-      direction: { x: 0, y: -1, z: 0 },
+      direction: [0, -1, 0 ],
       range: 50,
       spotAngle: 45,
       spotPenumbra: 0.2,
@@ -152,7 +153,7 @@ export class LightingModel {
   // Light Calculations
   // ---------------------------------------------------------------------------
 
-  calculateAttenuation(lightId: string, worldPos: { x: number; y: number; z: number }): number {
+  calculateAttenuation(lightId: string, worldPos: Vector3): number {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return 0;
 
@@ -170,10 +171,10 @@ export class LightingModel {
     if (light.type === 'spot') {
       // Spot cone falloff
       const dirLen =
-        Math.sqrt(light.direction.x ** 2 + light.direction.y ** 2 + light.direction.z ** 2) || 1;
-      const ndx = light.direction.x / dirLen,
-        ndy = light.direction.y / dirLen,
-        ndz = light.direction.z / dirLen;
+        Math.sqrt(light.direction[0] ** 2 + light.direction[1] ** 2 + light.direction[2] ** 2) || 1;
+      const ndx = light.direction[0] / dirLen,
+        ndy = light.direction[1] / dirLen,
+        ndz = light.direction[2] / dirLen;
       const toLight = dist || 1;
       const dot = (dx * ndx + dy * ndy + dz * ndz) / toLight;
       const cosAngle = Math.cos((light.spotAngle * Math.PI) / 360);
@@ -192,7 +193,7 @@ export class LightingModel {
   // ---------------------------------------------------------------------------
 
   getVisibleLights(
-    cameraPos: { x: number; y: number; z: number },
+    cameraPos: Vector3,
     maxRange: number,
     layerMask = 0xffffffff
   ): Light[] {

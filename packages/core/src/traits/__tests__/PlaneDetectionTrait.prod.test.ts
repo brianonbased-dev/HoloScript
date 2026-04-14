@@ -40,9 +40,9 @@ function makePlane(
   return {
     id,
     classification: 'floor',
-    center: { x: 0, y: opts.centerY ?? 0, z: 0 },
+    center: [0, opts.centerY ?? 0, 0 ],
     extent: { width: 1, height: 1 },
-    normal: { x: opts.normalX ?? 0, y: opts.normalY ?? 1, z: opts.normalZ ?? 0 },
+    normal: [opts.normalX ?? 0, opts.normalY ?? 1, opts.normalZ ?? 0 ],
     vertices: [],
     area: opts.area ?? 1.0,
     lastUpdated: Date.now(),
@@ -275,11 +275,11 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
   it('detects hit against y=0 floor, ray pointing down', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
-    st(node).planes.set('floor', { ...makePlane('floor'), center: { x: 0, y: 0, z: 0 } });
+    st(node).planes.set('floor', { ...makePlane('floor'), center: [0, 0, 0 ] });
     fire(node, cfg, ctx, {
       type: 'plane_hit_test',
       queryId: 'ht1',
-      ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 0, y: -1, z: 0 } },
+      ray: { origin: [0, 5, 0 ], direction: [0, -1, 0 ] },
     });
     const call = (ctx.emit as any).mock.calls.find(
       (c: any[]) => c[0] === 'plane_hit_test_result'
@@ -287,17 +287,17 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
     expect(call).toBeDefined();
     expect(call.queryId).toBe('ht1');
     expect(call.results[0].planeId).toBe('floor');
-    expect(call.results[0].point.y).toBeCloseTo(0, 1);
+    expect(call.results[0].point[1]).toBeCloseTo(0, 1);
   });
 
   it('parallel ray yields no hit', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
-    st(node).planes.set('floor', { ...makePlane('floor'), center: { x: 0, y: 0, z: 0 } });
+    st(node).planes.set('floor', { ...makePlane('floor'), center: [0, 0, 0 ] });
     fire(node, cfg, ctx, {
       type: 'plane_hit_test',
       queryId: 'ht2',
-      ray: { origin: { x: 0, y: 1, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      ray: { origin: [0, 1, 0 ], direction: [1, 0, 0 ] },
     });
     const call = (ctx.emit as any).mock.calls.find(
       (c: any[]) => c[0] === 'plane_hit_test_result'
@@ -308,12 +308,12 @@ describe('PlaneDetectionTrait — onEvent: plane_hit_test', () => {
   it('results sorted by distance ascending', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { min_area: 0.0 });
-    st(node).planes.set('near', { ...makePlane('near'), center: { x: 0, y: 5, z: 0 } });
-    st(node).planes.set('far', { ...makePlane('far'), center: { x: 0, y: 2, z: 0 } });
+    st(node).planes.set('near', { ...makePlane('near'), center: [0, 5, 0 ] });
+    st(node).planes.set('far', { ...makePlane('far'), center: [0, 2, 0 ] });
     fire(node, cfg, ctx, {
       type: 'plane_hit_test',
       queryId: 'ht3',
-      ray: { origin: { x: 0, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } },
+      ray: { origin: [0, 10, 0 ], direction: [0, -1, 0 ] },
     });
     const call = (ctx.emit as any).mock.calls.find(
       (c: any[]) => c[0] === 'plane_hit_test_result'

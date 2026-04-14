@@ -547,7 +547,7 @@ describe('Feature 10: NetworkInterpolation', () => {
         entityId: 'e1',
         timestamp: 100,
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
       })
     ).not.toThrow();
   });
@@ -558,13 +558,13 @@ describe('Feature 10: NetworkInterpolation', () => {
       entityId: 'e1',
       timestamp: 100,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     ni.pushSnapshot({
       entityId: 'e1',
       timestamp: 200,
       position: [5, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     expect(ni.getBufferSize('e1')).toBe(2);
   });
@@ -575,7 +575,7 @@ describe('Feature 10: NetworkInterpolation', () => {
       entityId: 'e1',
       timestamp: 100,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     ni.clearEntity('e1');
     expect(ni.getBufferSize('e1')).toBe(0);
@@ -593,13 +593,13 @@ describe('Feature 10: NetworkInterpolation', () => {
       entityId: 'e1',
       timestamp: now - 200,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     ni.pushSnapshot({
       entityId: 'e1',
       timestamp: now - 100,
       position: [10, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     });
     const state = ni.getInterpolatedState('e1', now - 150);
     // May return null or a state depending on bufferDelay; just test it doesn't throw

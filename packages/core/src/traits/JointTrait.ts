@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core Joint Trait
  *
@@ -10,8 +11,8 @@
  *   @joint {
  *     jointType: "hinge",
  *     connectedBody: "DoorFrame",
- *     anchor: { x: -0.5, y: 0, z: 0 },
- *     axis: { x: 0, y: 1, z: 0 },
+ *     anchor: [-0.5, 0, 0 ],
+ *     axis: [0, 1, 0 ],
  *     limits: { min: 0, max: 120 }
  *   }
  * }
@@ -30,11 +31,7 @@ export type JointType =
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 /**
  * Angular limits
@@ -252,13 +249,13 @@ export class JointTrait {
     switch (this.config.jointType) {
       case 'hinge':
         if (!this.config.axis) {
-          this.config.axis = { x: 0, y: 1, z: 0 }; // Default to Y-axis
+          this.config.axis = [0, 1, 0 ]; // Default to Y-axis
         }
         break;
 
       case 'slider':
         if (!this.config.axis) {
-          this.config.axis = { x: 1, y: 0, z: 0 }; // Default to X-axis
+          this.config.axis = [1, 0, 0 ]; // Default to X-axis
         }
         break;
 
@@ -414,7 +411,7 @@ export class JointTrait {
     if (!this.state.broken && this.config.breakForce) {
       const force = this.state.appliedForce;
       if (force) {
-        const magnitude = Math.sqrt(force.x ** 2 + force.y ** 2 + force.z ** 2);
+        const magnitude = Math.sqrt(force[0] ** 2 + force[1] ** 2 + force[2] ** 2);
         if (magnitude > this.config.breakForce) {
           this.break();
         }

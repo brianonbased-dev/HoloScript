@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HoloScript Runtime Engine
  *
  * Executes HoloScript AST in VR environment with spatial computation.
@@ -214,7 +214,7 @@ export class HoloScriptRuntime {
 
       const selfRaw = this.context.variables.get('self');
       const selfNode = isOrbData(selfRaw) ? selfRaw : undefined;
-      const observerPos: SpatialPosition = selfNode?.position ?? { x: 0, y: 0, z: 0 };
+      const observerPos: SpatialPosition = selfNode?.position ?? [0, 0, 0];
 
       const entities: Array<{
         id: string;
@@ -288,7 +288,7 @@ export class HoloScriptRuntime {
       if (element) element.visible = true;
       const hologram = this.context.hologramState.get(target);
       if (hologram) {
-        this.createParticleEffect(`${target}_show`, { x: 0, y: 0, z: 0 }, hologram.color, 15);
+        this.createParticleEffect(`${target}_show`, [0, 0, 0], hologram.color, 15);
       }
       logger.info('show', { target });
       return { shown: target };
@@ -309,7 +309,7 @@ export class HoloScriptRuntime {
       const duration = Number(options.duration) || 1000;
       const color = String(options.color || '#ffffff');
 
-      const position = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
+      const position = this.context.spatialMemory.get(target) || [0, 0, 0];
       this.createParticleEffect(`${target}_pulse`, position, color, 30);
 
       return { pulsing: target, duration };
@@ -321,7 +321,7 @@ export class HoloScriptRuntime {
 
       const animation: Animation = {
         target,
-        property: String(options.property || 'position.y'),
+        property: String(options.property || 'position[1]'),
         from: Number(options.from || 0),
         to: Number(options.to || 1),
         duration: Number(options.duration || 1000),
@@ -341,7 +341,7 @@ export class HoloScriptRuntime {
       // Legacy support for (name, position)
       if (typeof config === 'string') {
         const target = config;
-        const position = (args[1] as SpatialPosition) || { x: 0, y: 0, z: 0 };
+        const position = (args[1] as SpatialPosition) || [0, 0, 0];
         this.context.spatialMemory.set(target, position);
         this.createParticleEffect(`${target}_spawn`, position, '#00ff00', 25);
         return { spawned: target, at: position };
@@ -351,7 +351,7 @@ export class HoloScriptRuntime {
       const spawnConfig = config as Record<string, unknown>;
       const templateName = String(spawnConfig.template);
       const id = String(spawnConfig.id || `${templateName}_${Date.now()}`);
-      const position = (spawnConfig.position as SpatialPosition) || { x: 0, y: 0, z: 0 };
+      const position = (spawnConfig.position as SpatialPosition) || [0, 0, 0];
 
       const template = this.context.templates.get(templateName);
       if (!template) {
@@ -421,7 +421,7 @@ export class HoloScriptRuntime {
     builtins.set('despawn', (args): HoloScriptValue => {
       const target = String(args[0]);
       if (this.context.hologramState.has(target)) {
-        const pos = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
+        const pos = this.context.spatialMemory.get(target) || [0, 0, 0];
         this.createParticleEffect(`${target}_despawn`, pos, '#ff0000', 30);
         this.context.hologramState.delete(target);
         this.context.variables.delete(target);
@@ -434,7 +434,7 @@ export class HoloScriptRuntime {
 
     builtins.set('move', (args): HoloScriptValue => {
       const target = String(args[0]);
-      const position = (args[1] as SpatialPosition) || { x: 0, y: 0, z: 0 };
+      const position = (args[1] as SpatialPosition) || [0, 0, 0];
 
       const current = this.context.spatialMemory.get(target);
       if (current) {
@@ -984,7 +984,7 @@ export class HoloScriptRuntime {
       }
 
       // Visual effect
-      this.createExecutionEffect(name, func.position || { x: 0, y: 0, z: 0 });
+      this.createExecutionEffect(name, func.position || [0, 0, 0]);
 
       return {
         success: results.every((r) => r.success),
@@ -1121,26 +1121,26 @@ export class HoloScriptRuntime {
     const existingOrb = isOrbData(existingRaw) ? existingRaw : undefined;
     const isUpdate = !!existingOrb;
 
-    let pos = { x: 0, y: 0, z: 0 };
+    let pos: [number, number, number] = [0, 0, 0];
     if (Array.isArray(node.position)) {
-      pos = {
-        x: Number(node.position[0]) || 0,
-        y: Number(node.position[1]) || 0,
-        z: Number(node.position[2]) || 0,
-      };
+      pos = [
+        Number(node.position[0]) || 0,
+        Number(node.position[1]) || 0,
+        Number(node.position[2]) || 0,
+      ];
     } else if (node.position) {
-      pos = {
-        x: Number(node.position.x) || 0,
-        y: Number(node.position.y) || 0,
-        z: Number(node.position.z) || 0,
-      };
+      pos = [
+        Number((node.position as any).x) || 0,
+        Number((node.position as any).y) || 0,
+        Number((node.position as any).z) || 0,
+      ];
     }
 
-    const adjustedPos = {
-      x: pos.x * scale,
-      y: pos.y * scale,
-      z: pos.z * scale,
-    };
+    const adjustedPos: [number, number, number] = [
+      pos[0] * scale,
+      pos[1] * scale,
+      pos[2] * scale,
+    ];
 
     if (node.position) {
       this.context.spatialMemory.set(node.name, adjustedPos);
@@ -1470,7 +1470,7 @@ export class HoloScriptRuntime {
     }
 
     this.setVariable(`${node.name}_result`, data);
-    this.createFlowingStream(node.name, node.position || { x: 0, y: 0, z: 0 }, data);
+    this.createFlowingStream(node.name, node.position || [0, 0, 0], data);
 
     return {
       success: true,
@@ -1559,7 +1559,7 @@ export class HoloScriptRuntime {
       interactive: true,
     };
 
-    this.createDataVisualization(target, data, node.position || { x: 0, y: 0, z: 0 });
+    this.createDataVisualization(target, data, node.position || [0, 0, 0]);
 
     return {
       success: true,
@@ -1688,7 +1688,7 @@ export class HoloScriptRuntime {
       interactive: true,
     };
 
-    const position = _node.position || { x: 0, y: 0, z: 0 };
+    const position = _node.position || [0, 0, 0];
     this.context.spatialMemory.set(target, position);
     this.createParticleEffect(`${target}_show`, position, hologram.color, 15);
 
@@ -1708,7 +1708,7 @@ export class HoloScriptRuntime {
     target: string,
     _node: ASTNode
   ): Promise<Record<string, unknown>> {
-    const position = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
+    const position = this.context.spatialMemory.get(target) || [0, 0, 0];
     this.createParticleEffect(`${target}_hide`, position, '#ff0000', 10);
 
     logger.info('Hide command executed', { target });
@@ -1731,7 +1731,7 @@ export class HoloScriptRuntime {
 
     const shape = tokens[0];
     const name = tokens[1];
-    const position = _node.position || { x: 0, y: 0, z: 0 };
+    const position = _node.position || [0, 0, 0];
 
     const hologram: HologramProperties = {
       shape: shape as HologramShape,
@@ -1762,7 +1762,7 @@ export class HoloScriptRuntime {
     tokens: string[],
     _node: ASTNode
   ): Promise<Record<string, unknown>> {
-    const property = tokens[0] || 'position.y';
+    const property = tokens[0] || 'position[1]';
     const duration = parseInt(tokens[1] || '1000', 10);
 
     const animation: Animation = {
@@ -1794,7 +1794,7 @@ export class HoloScriptRuntime {
     _node: ASTNode
   ): Promise<Record<string, unknown>> {
     const duration = parseInt(tokens[0] || '500', 10);
-    const position = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
+    const position = this.context.spatialMemory.get(target) || [0, 0, 0];
 
     // Create pulsing particle effect
     this.createParticleEffect(`${target}_pulse`, position, '#ffff00', 30);
@@ -2413,18 +2413,18 @@ export class HoloScriptRuntime {
    * Handle calculate_arc(start, end, speed)
    */
   private handleCalculateArc(args: HoloScriptValue[]): HoloScriptValue {
-    if (args.length < 3) return { x: 0, y: 0, z: 0 };
+    if (args.length < 3) return [0, 0, 0];
 
     const start = args[0] as SpatialPosition;
     const end = args[1] as SpatialPosition;
     const speed = args[2] as number;
 
-    const dx = end.x - start.x;
-    const dz = end.z - start.z;
-    const dy = end.y - start.y;
+    const dx = end[0] - start[0];
+    const dz = end[2] - start[2];
+    const dy = end[1] - start[1];
     const dist = Math.sqrt(dx * dx + dz * dz);
 
-    if (dist < 0.1) return { x: 0, y: speed, z: 0 };
+    if (dist < 0.1) return [0, speed, 0];
 
     // Basic projectile velocity with upward arc
     // v_x = dx/t, v_z = dz/t, v_y = dy/t + 0.5 * g * t
@@ -2434,7 +2434,7 @@ export class HoloScriptRuntime {
     const vz = dz / t;
     const vy = dy / t + 0.5 * 9.81 * t; // Compensate for gravity
 
-    return { x: vx, y: vy, z: vz };
+    return [vx, vy, vz];
   }
 
   private handleAnimate(args: HoloScriptValue[]): HoloScriptValue {
@@ -2477,11 +2477,11 @@ export class HoloScriptRuntime {
     const particles: SpatialPosition[] = [];
 
     for (let i = 0; i < limitedCount; i++) {
-      particles.push({
-        x: position.x + (Math.random() - 0.5) * 2,
-        y: position.y + (Math.random() - 0.5) * 2,
-        z: position.z + (Math.random() - 0.5) * 2,
-      });
+      particles.push([
+        position[0] + (Math.random() - 0.5) * 2,
+        position[1] + (Math.random() - 0.5) * 2,
+        position[2] + (Math.random() - 0.5) * 2,
+      ]);
     }
 
     this.particleSystems.set(name, {
@@ -2506,9 +2506,9 @@ export class HoloScriptRuntime {
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       particles.push({
-        x: fromPos.x + (toPos.x - fromPos.x) * t,
-        y: fromPos.y + (toPos.y - fromPos.y) * t,
-        z: fromPos.z + (toPos.z - fromPos.z) * t,
+        x: fromPos[0] + (toPos[0] - fromPos[0]) * t,
+        y: fromPos[1] + (toPos[1] - fromPos[1]) * t,
+        z: fromPos[2] + (toPos[2] - fromPos[2]) * t,
       });
     }
 
@@ -2599,7 +2599,7 @@ export class HoloScriptRuntime {
               id,
               name: orbData.name || id,
               position: Array.isArray(orbData.position)
-                ? { x: orbData.position[0], y: orbData.position[1], z: orbData.position[2] }
+                ? [orbData.position[0], orbData.position[1], orbData.position[2]]
                 : orbData.position,
               properties: orbData.properties || {},
               hologram:
@@ -2700,9 +2700,9 @@ export class HoloScriptRuntime {
     for (const [name, system] of this.particleSystems) {
       system.lifetime -= deltaTime;
       system.particles.forEach((particle) => {
-        particle.x += (Math.random() - 0.5) * system.speed;
-        particle.y += (Math.random() - 0.5) * system.speed;
-        particle.z += (Math.random() - 0.5) * system.speed;
+        particle[0] += (Math.random() - 0.5) * system.speed;
+        particle[1] += (Math.random() - 0.5) * system.speed;
+        particle[2] += (Math.random() - 0.5) * system.speed;
       });
       if (system.lifetime <= 0) {
         this.particleSystems.delete(name);
@@ -3692,7 +3692,7 @@ export class HoloScriptRuntime {
     }
 
     const result = await this.executeFunction(target);
-    this.createExecutionEffect(node.target, target.position || { x: 0, y: 0, z: 0 });
+    this.createExecutionEffect(node.target, target.position || [0, 0, 0]);
 
     return {
       success: true,

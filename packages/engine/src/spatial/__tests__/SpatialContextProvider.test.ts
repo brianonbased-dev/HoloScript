@@ -15,12 +15,12 @@ describe('SpatialContextProvider', () => {
   // =========== Agent Registration ===========
 
   it('registers an agent', () => {
-    provider.registerAgent('agent1', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('agent1', [0, 0, 0 ]);
     expect(provider.getContext('agent1')).toBeNull(); // no update yet
   });
 
   it('unregisters an agent', () => {
-    provider.registerAgent('agent1', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('agent1', [0, 0, 0 ]);
     provider.unregisterAgent('agent1');
     expect(provider.getContext('agent1')).toBeNull();
   });
@@ -61,7 +61,7 @@ describe('SpatialContextProvider', () => {
     provider.setRegion({
       id: 'r1',
       name: 'Zone A',
-      bounds: { center: { x: 0, y: 0, z: 0 }, radius: 10 },
+      bounds: { center: [0, 0, 0 ], radius: 10 },
     });
     // No direct getter for regions, but we verify it doesn't throw
   });
@@ -70,7 +70,7 @@ describe('SpatialContextProvider', () => {
     provider.setRegion({
       id: 'r1',
       name: 'Zone A',
-      bounds: { center: { x: 0, y: 0, z: 0 }, radius: 10 },
+      bounds: { center: [0, 0, 0 ], radius: 10 },
     });
     provider.removeRegion('r1');
   });
@@ -78,7 +78,7 @@ describe('SpatialContextProvider', () => {
   // =========== Manual Update ===========
 
   it('update populates agent context', () => {
-    provider.registerAgent('agent1', { x: 0, y: 0, z: 0 }, { perceptionRadius: 100 });
+    provider.registerAgent('agent1', [0, 0, 0 ], { perceptionRadius: 100 });
     provider.setEntity({ id: 'e1', type: 'npc', position: [5, 0, 0] });
     provider.update();
     const ctx = provider.getContext('agent1');
@@ -88,7 +88,7 @@ describe('SpatialContextProvider', () => {
   });
 
   it('entities outside perception radius are not in context', () => {
-    provider.registerAgent('agent1', { x: 0, y: 0, z: 0 }, { perceptionRadius: 5 });
+    provider.registerAgent('agent1', [0, 0, 0 ], { perceptionRadius: 5 });
     provider.setEntity({ id: 'far', type: 'npc', position: [100, 0, 0] });
     provider.update();
     const ctx = provider.getContext('agent1')!;
@@ -99,7 +99,7 @@ describe('SpatialContextProvider', () => {
     const handler = vi.fn();
     provider.on('entity:entered', handler);
 
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 50 });
+    provider.registerAgent('a', [0, 0, 0 ], { perceptionRadius: 50 });
     provider.setEntity({ id: 'e1', type: 'npc', position: [10, 0, 0] });
     provider.update();
 
@@ -112,7 +112,7 @@ describe('SpatialContextProvider', () => {
     const handler = vi.fn();
     provider.on('entity:exited', handler);
 
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 50 });
+    provider.registerAgent('a', [0, 0, 0 ], { perceptionRadius: 50 });
     provider.setEntity({ id: 'e1', type: 'npc', position: [10, 0, 0] });
     provider.update(); // e1 enters
 
@@ -133,9 +133,9 @@ describe('SpatialContextProvider', () => {
     provider.setRegion({
       id: 'zone',
       name: 'Safe Zone',
-      bounds: { center: { x: 0, y: 0, z: 0 }, radius: 10 },
+      bounds: { center: [0, 0, 0 ], radius: 10 },
     });
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('a', [0, 0, 0 ]);
     provider.update();
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -148,9 +148,9 @@ describe('SpatialContextProvider', () => {
     provider.setRegion({
       id: 'zone',
       name: 'Zone',
-      bounds: { center: { x: 0, y: 0, z: 0 }, radius: 10 },
+      bounds: { center: [0, 0, 0 ], radius: 10 },
     });
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('a', [0, 0, 0 ]);
     provider.subscribeToRegion('a', 'zone', callback);
     provider.update();
 
@@ -160,11 +160,11 @@ describe('SpatialContextProvider', () => {
   // =========== Position Updates ===========
 
   it('updateAgentPosition updates agent state', () => {
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 100 });
+    provider.registerAgent('a', [0, 0, 0 ], { perceptionRadius: 100 });
     provider.setEntity({ id: 'e1', type: 'npc', position: [50, 0, 0] });
     provider.update();
 
-    provider.updateAgentPosition('a', { x: 49, y: 0, z: 0 });
+    provider.updateAgentPosition('a', [49, 0, 0 ]);
     provider.update();
 
     const ctx = provider.getContext('a')!;
@@ -174,14 +174,14 @@ describe('SpatialContextProvider', () => {
   // =========== Lifecycle ===========
 
   it('start/stop lifecycle', () => {
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { updateRate: 10 });
+    provider.registerAgent('a', [0, 0, 0 ], { updateRate: 10 });
     provider.start();
     // Should not throw
     provider.stop();
   });
 
   it('starting twice is no-op', () => {
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { updateRate: 10 });
+    provider.registerAgent('a', [0, 0, 0 ], { updateRate: 10 });
     provider.start();
     provider.start(); // no-op
     provider.stop();
@@ -197,7 +197,7 @@ describe('SpatialContextProvider', () => {
     const handler = vi.fn();
     provider.on('context:updated', handler);
 
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('a', [0, 0, 0 ]);
     provider.update();
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -209,7 +209,7 @@ describe('SpatialContextProvider', () => {
   it('findNearest returns closest entity', () => {
     provider.setEntity({ id: 'far', type: 'npc', position: [100, 0, 0] });
     provider.setEntity({ id: 'near', type: 'npc', position: [1, 0, 0] });
-    const results = provider.findNearest({ x: 0, y: 0, z: 0 }, 1);
+    const results = provider.findNearest([0, 0, 0 ], 1);
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results[0].entity.id).toBe('near');
   });
@@ -217,7 +217,7 @@ describe('SpatialContextProvider', () => {
   it('findWithin returns entities in radius', () => {
     provider.setEntity({ id: 'close', type: 'npc', position: [3, 0, 0] });
     provider.setEntity({ id: 'far', type: 'npc', position: [500, 0, 0] });
-    const results = provider.findWithin({ x: 0, y: 0, z: 0 }, 10);
+    const results = provider.findWithin([0, 0, 0 ], 10);
     expect(results).toHaveLength(1);
     expect(results[0].entity.id).toBe('close');
   });
@@ -230,9 +230,9 @@ describe('SpatialContextProvider', () => {
     provider.setRegion({
       id: 'zone',
       name: 'Zone',
-      bounds: { center: { x: 0, y: 0, z: 0 }, radius: 10 },
+      bounds: { center: [0, 0, 0 ], radius: 10 },
     });
-    provider.registerAgent('a', { x: 0, y: 0, z: 0 });
+    provider.registerAgent('a', [0, 0, 0 ]);
     provider.subscribeToRegion('a', 'zone', callback);
     provider.unsubscribeFromRegion('a', 'zone');
     provider.update();

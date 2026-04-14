@@ -1316,7 +1316,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'orb',
       name,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: hologram || {
         shape: 'orb',
         color: '#00ffff',
@@ -1783,7 +1783,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'orb',
       name,
-      position: position || { x: 0, y: 0, z: 0 },
+      position: position || [0, 0, 0],
       hologram: {
         shape: primitiveType as HologramShape,
         color: '#00d4ff',
@@ -2736,21 +2736,20 @@ export class HoloScriptCodeParser {
    */
   private parsePosition(value: unknown): SpatialPosition {
     if (Array.isArray(value)) {
-      return {
-        x: Number(value[0]) || 0,
-        y: Number(value[1]) || 0,
-        z: Number(value[2]) || 0,
-      };
+      return [
+        Number(value[0]) || 0,
+        Number(value[1]) || 0,
+        Number(value[2]) || 0,
+      ];
     }
     if (typeof value === 'object' && value !== null) {
-      const v = value as Record<string, unknown>;
-      return {
-        x: Number(v.x) || 0,
-        y: Number(v.y) || 0,
-        z: Number(v.z) || 0,
-      };
+      const v = value as any;
+      const x = Number(v[0] !== undefined ? v[0] : v[0]) || 0;
+      const y = Number(v[1] !== undefined ? v[1] : v[1]) || 0;
+      const z = Number(v[2] !== undefined ? v[2] : v[2]) || 0;
+      return [x, y, z];
     }
-    return { x: 0, y: 0, z: 0 };
+    return [0, 0, 0];
   }
 
   // Helper methods

@@ -89,7 +89,7 @@ export class TreePlacer {
     if (validTemplates.length === 0) return [];
 
     const totalWeight = validTemplates.reduce((sum, t) => sum + t.probability, 0);
-    const area = bounds.w * bounds.h;
+    const area = bounds[3] * bounds.h;
     const count = Math.floor(area * biome.density);
 
     let rng = seed;
@@ -101,8 +101,8 @@ export class TreePlacer {
     const placed: PlacedTree[] = [];
 
     for (let attempt = 0; attempt < count * 3 && placed.length < count; attempt++) {
-      const x = bounds.x + rand() * bounds.w;
-      const z = bounds.z + rand() * bounds.h;
+      const x = bounds[0] + rand() * bounds[3];
+      const z = bounds[2] + rand() * bounds.h;
       const y = heightSampler ? heightSampler(x, z) : 0;
 
       // Height check

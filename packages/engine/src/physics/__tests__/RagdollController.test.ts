@@ -67,14 +67,14 @@ describe('RagdollController', () => {
   it('update in active state does nothing to bones', () => {
     rc.addBone('spine', null, 5, 0.5);
     rc.update(0.016);
-    expect(rc.getBone('spine')!.position.y).toBe(0);
+    expect(rc.getBone('spine')!.position[1]).toBe(0);
   });
 
   it('update in ragdoll applies gravity', () => {
     rc.addBone('spine', null, 5, 0.5);
     rc.goRagdoll();
     rc.update(0.1);
-    expect(rc.getBone('spine')!.position.y).toBeLessThan(0);
+    expect(rc.getBone('spine')!.position[1]).toBeLessThan(0);
   });
 
   it('blending transitions to ragdoll', () => {
@@ -89,9 +89,9 @@ describe('RagdollController', () => {
   it('damping reduces velocity', () => {
     rc.addBone('spine', null, 5, 0.5);
     rc.goRagdoll();
-    rc.getBone('spine')!.velocity.x = 10;
+    rc.getBone('spine')!.velocity[0] = 10;
     rc.update(0.016);
-    expect(rc.getBone('spine')!.velocity.x).toBeLessThan(10);
+    expect(rc.getBone('spine')!.velocity[0]).toBeLessThan(10);
   });
 
   // Constraint solving (parent-child distance)
@@ -100,35 +100,35 @@ describe('RagdollController', () => {
     rc.addBone('head', 'spine', 2, 0.3);
     rc.goRagdoll();
     // Push head far away
-    rc.getBone('head')!.position.y = 10;
+    rc.getBone('head')!.position[1] = 10;
     rc.update(0.016);
     // After solving, distance should be closer to bone length
-    const dy = rc.getBone('head')!.position.y - rc.getBone('spine')!.position.y;
+    const dy = rc.getBone('head')!.position[1] - rc.getBone('spine')!.position[1];
     expect(Math.abs(dy)).toBeLessThan(10);
   });
 
   // Impulse
   it('applyImpulse changes velocity', () => {
     rc.addBone('spine', null, 5, 0.5);
-    rc.applyImpulse('spine', { x: 10, y: 0, z: 0 });
-    expect(rc.getBone('spine')!.velocity.x).toBe(2); // 10/5
+    rc.applyImpulse('spine', [10, 0, 0 ]);
+    expect(rc.getBone('spine')!.velocity[0]).toBe(2); // 10/5
   });
 
   it('applyImpulse on unknown bone is no-op', () => {
-    rc.applyImpulse('nope', { x: 10, y: 0, z: 0 }); // no throw
+    rc.applyImpulse('nope', [10, 0, 0 ]); // no throw
   });
 
   // Joint limits
   it('rotation clamped to joint limits', () => {
     rc.addBone('spine', null, 5, 0.5);
     rc.addBone('arm', 'spine', 2, 0.4, {
-      min: { x: -0.5, y: -0.5, z: -0.5 },
-      max: { x: 0.5, y: 0.5, z: 0.5 },
+      min: [-0.5, -0.5, -0.5 ],
+      max: [0.5, 0.5, 0.5 ],
     });
     rc.goRagdoll();
-    rc.getBone('arm')!.rotation.x = 10;
+    rc.getBone('arm')!.rotation[0] = 10;
     rc.update(0.016);
-    expect(rc.getBone('arm')!.rotation.x).toBeLessThanOrEqual(0.5);
+    expect(rc.getBone('arm')!.rotation[0]).toBeLessThanOrEqual(0.5);
   });
 
   // Config
@@ -138,6 +138,6 @@ describe('RagdollController', () => {
     rc2.goRagdoll();
     rc2.update(0.1);
     // Stronger gravity = more fall
-    expect(rc2.getBone('spine')!.position.y).toBeLessThanOrEqual(-0.1);
+    expect(rc2.getBone('spine')!.position[1]).toBeLessThanOrEqual(-0.1);
   });
 });

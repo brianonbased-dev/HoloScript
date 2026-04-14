@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Perception Trait
  *
  * Agent sensory system for awareness with sight, hearing, and memory.
@@ -21,7 +21,7 @@ interface PerceivedEntity {
   senseType: SenseType;
   confidence: number; // 0-1, decays over time
   threat: number; // Threat level 0-1
-  velocity?: { x: number; y: number; z: number };
+  velocity?: [number, number, number];
   tags: string[];
 }
 
@@ -30,7 +30,7 @@ interface PerceptionState {
   lastUpdate: number;
   alertLevel: number; // 0-1
   isSearching: boolean;
-  lastKnownPosition: { x: number; y: number; z: number } | null;
+  lastKnownPosition: [number, number, number] | null;
   scanTimer: number;
 }
 
@@ -54,21 +54,21 @@ interface PerceptionConfig {
 // =============================================================================
 
 function distance3D(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: [number, number, number],
+  b: [number, number, number]
 ): number {
-  return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) + Math.pow(a.z - b.z, 2));
+  return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 }
 
 function angleBetween(
-  from: { x: number; y: number; z: number },
-  to: { x: number; y: number; z: number },
-  forward: { x: number; z: number }
+  from: [number, number, number],
+  to: [number, number, number],
+  forward: [number, number]
 ): number {
-  const dx = to.x - from.x;
-  const dz = to.z - from.z;
+  const dx = to[0] - from[0];
+  const dz = to[2] - from[2];
   const targetAngle = Math.atan2(dx, dz);
-  const forwardAngle = Math.atan2(forward.x, forward.z);
+  const forwardAngle = Math.atan2(forward[0], forward[1]);
 
   let diff = targetAngle - forwardAngle;
   while (diff > Math.PI) diff -= 2 * Math.PI;
@@ -120,12 +120,12 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     if (!state) return;
 
     const now = Date.now();
-    const position = node.position || { x: 0, y: 0, z: 0 };
-    const rotation = node.rotation || { x: 0, y: 0, z: 0 };
-    const forward = {
-      x: Math.sin(rotation.y),
-      z: Math.cos(rotation.y),
-    };
+    const position = node.position || [0, 0, 0];
+    const rotation = node.rotation || [0, 0, 0];
+    const forward: [number, number] = [
+      Math.sin(rotation[1]),
+      Math.cos(rotation[1]),
+    ];
 
     // Decay confidence and remove forgotten entities
     const toRemove: string[] = [];
@@ -171,7 +171,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     if (state.entities.size > 0 && state.alertLevel > 0.3) {
       const closest = Array.from(state.entities.values()).sort((a, b) => b.threat - a.threat)[0];
       if (closest) {
-        state.lastKnownPosition = { ...closest.position };
+        state.lastKnownPosition = [...closest.position];
       }
     }
 
@@ -196,12 +196,12 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     const state = node.__perceptionState as PerceptionState;
     if (!state) return;
 
-    const position = node.position || { x: 0, y: 0, z: 0 };
-    const rotation = node.rotation || { x: 0, y: 0, z: 0 };
-    const forward = {
-      x: Math.sin(rotation.y),
-      z: Math.cos(rotation.y),
-    };
+    const position = node.position || [0, 0, 0];
+    const rotation = node.rotation || [0, 0, 0];
+    const forward: [number, number] = [
+      Math.sin(rotation[1]),
+      Math.cos(rotation[1]),
+    ];
 
     if (event.type === 'perception_detect') {
       // External system reports a detected entity
@@ -210,7 +210,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
         position: [number, number, number];
         tags?: string[];
         threat?: number;
-        velocity?: { x: number; y: number; z: number };
+        velocity?: [number, number, number];
       };
 
       if (!target?.id) return;
@@ -258,7 +258,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
 
       state.entities.set(target.id, {
         id: target.id,
-        position: { ...target.position },
+        position: [...target.position],
         lastSeen: Date.now(),
         senseType,
         confidence,
@@ -278,7 +278,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
       }
     } else if (event.type === 'perception_sound') {
       // Sound event
-      const soundPos = event.position as { x: number; y: number; z: number };
+      const soundPos = event.position as [number, number, number];
       const dist = distance3D(position, soundPos);
 
       if (dist <= config.hearing_range) {
@@ -286,7 +286,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
 
         state.entities.set(sourceId, {
           id: sourceId,
-          position: { ...soundPos },
+          position: [...soundPos],
           lastSeen: Date.now(),
           senseType: 'hearing',
           confidence: 0.6 - (dist / config.hearing_range) * 0.3,
@@ -303,12 +303,12 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     } else if (event.type === 'perception_damage') {
       // Took damage - immediate high-priority perception
       const attackerId = event.attackerId as string;
-      const attackerPos = event.position as { x: number; y: number; z: number };
+      const attackerPos = event.position as [number, number, number];
 
       if (attackerId && attackerPos) {
         state.entities.set(attackerId, {
           id: attackerId,
-          position: { ...attackerPos },
+          position: [...attackerPos],
           lastSeen: Date.now(),
           senseType: 'damage',
           confidence: 1.0,
@@ -317,7 +317,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
         });
 
         state.alertLevel = 1.0;
-        state.lastKnownPosition = { ...attackerPos };
+        state.lastKnownPosition = [...attackerPos];
 
         context.emit?.('perception_attacked', {
           node,

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * LSystemGenerator.ts
  *
@@ -7,11 +8,11 @@
  * @module procedural
  */
 
-import { IVector3 } from '../physics/PhysicsTypes';
-
 // =============================================================================
 // TYPES
 // =============================================================================
+
+export type IVector3 = Vector3;
 
 export interface LSystemRule {
   symbol: string;
@@ -176,28 +177,28 @@ export class LSystemGenerator {
 
     const stack: TurtleState[] = [];
     let state: TurtleState = {
-      position: {x: 0, y: 0, z: 0},
-      direction: { x: 0, y: 1, z: 0 }, // Growing upward
-      up: { x: 0, y: 0, z: 1 },
+      position: [0, 0, 0],
+      direction: [0, 1, 0], // Growing upward
+      up: [0, 0, 1],
       length: config.length,
       depth: 0,
     };
 
     const angleRad = (config.angle * Math.PI) / 180;
 
-    const minBound = { x: 0, y: 0, z: 0 };
-    const maxBound = { x: 0, y: 0, z: 0 };
+    const minBound: IVector3 = [0, 0, 0];
+    const maxBound: IVector3 = [0, 0, 0];
 
     for (const char of lString) {
       switch (char) {
         case 'F': {
           // Move forward and draw
-          const start = { ...state.position };
-          const end = {
-            x: state.position.x + state.direction.x * state.length,
-            y: state.position.y + state.direction.y * state.length,
-            z: state.position.z + state.direction.z * state.length,
-          };
+          const start = [...state.position] as IVector3;
+          const end: IVector3 = [
+            state.position[0] + state.direction[0] * state.length,
+            state.position[1] + state.direction[1] * state.length,
+            state.position[2] + state.direction[2] * state.length,
+          ];
           segments.push({
             start,
             end,
@@ -222,9 +223,9 @@ export class LSystemGenerator {
           break;
         case '[':
           stack.push({
-            position: { ...state.position },
-            direction: { ...state.direction },
-            up: { ...state.up },
+            position: [...state.position] as IVector3,
+            direction: [...state.direction] as IVector3,
+            up: [...state.up] as IVector3,
             length: state.length * config.lengthScale,
             depth: state.depth + 1,
           });
@@ -233,8 +234,8 @@ export class LSystemGenerator {
           if (stack.length > 0) {
             // Add leaf at branch tip before popping
             leaves.push({
-              position: { ...state.position },
-              normal: { ...state.direction },
+              position: [...state.position] as IVector3,
+              normal: [...state.direction] as IVector3,
               size: 0.3 * Math.pow(config.lengthScale, state.depth),
             });
             state = stack.pop()!;
@@ -272,30 +273,22 @@ export class LSystemGenerator {
   private rotateY(dir: IVector3, angle: number): IVector3 {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-    return {
-      x: dir.x * cos - dir.z * sin,
-      y: dir.y,
-      z: dir.x * sin + dir.z * cos,
-    };
+    return [dir[0] * cos - dir[2] * sin, dir[1], dir[0] * sin + dir[2] * cos];
   }
 
   private rotateX(dir: IVector3, angle: number): IVector3 {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-    return {
-      x: dir.x,
-      y: dir.y * cos - dir.z * sin,
-      z: dir.y * sin + dir.z * cos,
-    };
+    return [dir[0], dir[1] * cos - dir[2] * sin, dir[1] * sin + dir[2] * cos];
   }
 
   private updateBounds(p: IVector3, min: IVector3, max: IVector3): void {
-    min.x = Math.min(min.x, p.x);
-    min.y = Math.min(min.y, p.y);
-    min.z = Math.min(min.z, p.z);
-    max.x = Math.max(max.x, p.x);
-    max.y = Math.max(max.y, p.y);
-    max.z = Math.max(max.z, p.z);
+    min[0] = Math.min(min[0], p[0]);
+    min[1] = Math.min(min[1], p[1]);
+    min[2] = Math.min(min[2], p[2]);
+    max[0] = Math.max(max[0], p[0]);
+    max[1] = Math.max(max[1], p[1]);
+    max[2] = Math.max(max[2], p[2]);
   }
 
   private createRng(seed: number): () => number {

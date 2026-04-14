@@ -169,17 +169,17 @@ describe('gaussianSplatHandler.onUpdate', () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
-    ctx.camera.position = { x: 1, y: 2, z: 3 };
+    ctx.camera.position = [1, 2, 3 ];
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(state.lastCameraPosition).toEqual({ x: 1, y: 2, z: 3 });
+    expect(state.lastCameraPosition).toEqual([1, 2, 3 ]);
   });
 
   it('sets needsSort=true when camera moves >0.1 units (verified via radix mode)', () => {
     const { node, ctx, config } = attach({ sort_mode: 'radix' });
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
-    ctx.camera.position = { x: 0, y: 0, z: 0.2 };
+    state.lastCameraPosition = [0, 0, 0 ];
+    ctx.camera.position = [0, 0, 0.2 ];
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(state.needsSort).toBe(true);
   });
@@ -189,8 +189,8 @@ describe('gaussianSplatHandler.onUpdate', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.needsSort = false;
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
-    ctx.camera.position = { x: 0, y: 0, z: 0.05 };
+    state.lastCameraPosition = [0, 0, 0 ];
+    ctx.camera.position = [0, 0, 0.05 ];
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(state.needsSort).toBe(false);
   });
@@ -200,7 +200,7 @@ describe('gaussianSplatHandler.onUpdate', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.needsSort = true;
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    state.lastCameraPosition = [0, 0, 0 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -215,7 +215,7 @@ describe('gaussianSplatHandler.onUpdate', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.needsSort = true;
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    state.lastCameraPosition = [0, 0, 0 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_sort', expect.anything());
@@ -232,9 +232,9 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.boundingBox = { min: [0, 0, 0], max: [10, 10, 10] };
-    state.lastCameraPosition = { x: 5, y: 5, z: 5 }; // at scene center, dist=0 -> level 0
+    state.lastCameraPosition = [5, 5, 5 ]; // at scene center, dist=0 -> level 0
     // Move camera far from scene center
-    ctx.camera.position = { x: 5, y: 5, z: 50 }; // dist ~45 from center(5,5,5) -> beyond threshold 30 -> level 3
+    ctx.camera.position = [5, 5, 50 ]; // dist ~45 from center(5,5,5) -> beyond threshold 30 -> level 3
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -254,8 +254,8 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.boundingBox = { min: [0, 0, 0], max: [10, 10, 10] };
-    state.lastCameraPosition = { x: 5, y: 5, z: 5 };
-    ctx.camera.position = { x: 5, y: 5, z: 50 };
+    state.lastCameraPosition = [5, 5, 5 ];
+    ctx.camera.position = [5, 5, 50 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_lod_change', expect.anything());
@@ -269,9 +269,9 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     state.isLoaded = true;
     state.boundingBox = { min: [0, 0, 0], max: [10, 10, 10] };
     // Camera close to center -> level 0, stays 0
-    state.lastCameraPosition = { x: 5, y: 5, z: 5 };
+    state.lastCameraPosition = [5, 5, 5 ];
     state.currentLODLevel = 0;
-    ctx.camera.position = { x: 5, y: 5.2, z: 5 }; // barely moved, still within threshold 0
+    ctx.camera.position = [5, 5.2, 5 ]; // barely moved, still within threshold 0
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_lod_change', expect.anything());
@@ -284,8 +284,8 @@ describe('gaussianSplatHandler.onUpdate — LOD', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.boundingBox = { min: [0, 0, 0], max: [0, 0, 0] }; // center at origin
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
-    ctx.camera.position = { x: 10, y: 0, z: 0 }; // dist=10, above 5 but below 15 -> level 1
+    state.lastCameraPosition = [0, 0, 0 ];
+    ctx.camera.position = [10, 0, 0 ]; // dist=10, above 5 but below 15 -> level 1
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -308,7 +308,7 @@ describe('gaussianSplatHandler.onUpdate — Gaussian Budget', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.splatCount = 200000; // exceeds 180000
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    state.lastCameraPosition = [0, 0, 0 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -328,7 +328,7 @@ describe('gaussianSplatHandler.onUpdate — Gaussian Budget', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.splatCount = 150000; // under 180000
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    state.lastCameraPosition = [0, 0, 0 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_budget_exceeded', expect.anything());
@@ -341,7 +341,7 @@ describe('gaussianSplatHandler.onUpdate — Gaussian Budget', () => {
     const state = (node as any).__gaussianSplatState;
     state.isLoaded = true;
     state.splatCount = 500000;
-    state.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    state.lastCameraPosition = [0, 0, 0 ];
     ctx.emit.mockClear();
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('splat_budget_exceeded', expect.anything());

@@ -21,7 +21,7 @@ export interface AnimationClip {
 }
 
 export interface AnimationTrack {
-  targetProperty: string; // e.g. "position.x", "rotation.y"
+  targetProperty: string; // e.g. "position[0]", "rotation[1]"
   keyframes: Keyframe[];
   interpolation: 'linear' | 'step' | 'cubic';
 }

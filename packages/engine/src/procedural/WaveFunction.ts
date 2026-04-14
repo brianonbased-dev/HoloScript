@@ -122,7 +122,7 @@ export class WaveFunction {
 
     while (stack.length > 0) {
       const current = stack.pop()!;
-      const neighbors = this.getNeighbors(current.x, current.y);
+      const neighbors = this.getNeighbors(current[0], current[1]);
 
       for (const [dir, neighbor] of neighbors) {
         if (neighbor.collapsed) continue;

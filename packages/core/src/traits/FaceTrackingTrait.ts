@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * FaceTracking Trait
  *
@@ -56,8 +57,8 @@ type BlendShape =
   | 'tongueOut';
 
 interface EyeGaze {
-  direction: { x: number; y: number; z: number };
-  origin: { x: number; y: number; z: number };
+  direction: Vector3;
+  origin: Vector3;
   confidence: number;
 }
 

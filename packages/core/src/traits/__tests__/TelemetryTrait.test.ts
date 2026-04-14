@@ -19,8 +19,8 @@ describe('TelemetryTrait', () => {
     mockContext = {
       emit,
       physics: {
-        getBodyPosition: vi.fn().mockReturnValue({ x: 1, y: 2, z: 3 }),
-        getBodyVelocity: vi.fn().mockReturnValue({ x: 0.1, y: 0.2, z: 0.3 }),
+        getBodyPosition: vi.fn().mockReturnValue([1, 2, 3 ]),
+        getBodyVelocity: vi.fn().mockReturnValue([0.1, 0.2, 0.3 ]),
         applyVelocity: vi.fn(),
         applyAngularVelocity: vi.fn(),
         setKinematic: vi.fn(),
@@ -86,7 +86,7 @@ describe('TelemetryTrait', () => {
     expect(emittedEvents.length).toBe(1);
     const data = emittedEvents[0].payload.payload[0];
     expect(data.type).toBe('physics');
-    expect(data.position.y).toBe(2);
-    expect(data.velocity.x).toBe(0.1);
+    expect(data.position[1]).toBe(2);
+    expect(data.velocity[0]).toBe(0.1);
   });
 });

@@ -33,7 +33,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 } },
+      headset: { position: [0, 0, 0], rotation: [0, 0, 0 ] },
       getPointerRay: () => null,
       getDominantHand: () => null,
     },
@@ -223,7 +223,7 @@ describe('spatialAdjacentHandler', () => {
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
     // Node should be snapped toward target at maxDistance
-    expect(node.position.x).toBeCloseTo(7, 0); // 10 - 3 = 7 (along x axis)
+    expect(node.position[0]).toBeCloseTo(7, 0); // 10 - 3 = 7 (along x axis)
   });
 });
 

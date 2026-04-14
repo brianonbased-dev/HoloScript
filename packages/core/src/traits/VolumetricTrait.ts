@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Volumetric Trait
  *
@@ -8,7 +9,6 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { SplatProcessingService, type SplatData } from '../services/SplatProcessingService';
 
 // =============================================================================

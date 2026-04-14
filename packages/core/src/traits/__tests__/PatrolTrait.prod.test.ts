@@ -4,14 +4,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { patrolHandler } from '../PatrolTrait';
 
-const WP = (x: number, y = 0, z = 0, extra: any = {}) => ({ x, y, z, ...extra });
-function makeNode(pos = { x: 0, y: 0, z: 0 }) {
+const WP = (x: number, y = 0, z = 0) => [x, y, z] as [number, number, number];
+function makeNode(pos = [0, 0, 0 ]) {
   return { id: 'p_node', position: { ...pos } };
 }
 function makeCtx() {
   return { emit: vi.fn() };
 }
-function attach(cfg: any = {}, pos = { x: 0, y: 0, z: 0 }) {
+function attach(cfg: any = {}, pos = [0, 0, 0 ]) {
   const node = makeNode(pos);
   const ctx = makeCtx();
   const config = { ...patrolHandler.defaultConfig!, ...cfg };

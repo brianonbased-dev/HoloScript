@@ -83,7 +83,7 @@ export class HandTracker {
 
     if (thumb && index && middle) {
       const indexDist = Math.sqrt(
-        (thumb.x - index.x) ** 2 + (thumb.y - index.y) ** 2 + (thumb.z - index.z) ** 2
+        (thumb[0] - index[0]) ** 2 + (thumb[1] - index[1]) ** 2 + (thumb[2] - index[2]) ** 2
       );
       if (indexDist > 0.1 && state.gripStrength < 0.3) return 'point';
     }

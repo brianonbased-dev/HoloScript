@@ -70,13 +70,13 @@ export class VRPhysicsBridge {
         type: 'kinematic',
         mass: 1, // Infinite mass for kinematic
         transform: {
-          position: {x: hand.position?.x ?? 0, y: hand.position?.y ?? 0, z: hand.position?.z ?? 0},
-          rotation: {
-            x: hand.rotation?.x ?? 0,
-            y: hand.rotation?.y ?? 0,
-            z: hand.rotation?.z ?? 0,
-            w: 1,
-          },
+          position: [hand.position?.[0] ?? 0, hand.position?.[1] ?? 0, hand.position?.[2] ?? 0],
+          rotation: [
+            hand.rotation?.[0] ?? 0,
+            hand.rotation?.[1] ?? 0,
+            hand.rotation?.[2] ?? 0,
+            hand.rotation?.[3] ?? 1,
+          ],
         },
         shape: {
           type: 'sphere',
@@ -94,43 +94,44 @@ export class VRPhysicsBridge {
 
     if (body) {
       // Calculate Velocity (vital for throwing)
-      const safePosX = hand.position?.x ?? 0;
-      const safePosY = hand.position?.y ?? 0;
-      const safePosZ = hand.position?.z ?? 0;
-
-      const prevPos = this.lastPositions.get(bodyId) || {
-        x: safePosX,
-        y: safePosY,
-        z: safePosZ,
-      };
+      const currentPos = hand.position || [0, 0, 0];
+      const prevPos = this.lastPositions.get(bodyId) || currentPos;
 
       // Prevent divide by zero
       const safeDelta = delta > 0.001 ? delta : 0.016;
 
-      const rawVelocity = {
-        x: (safePosX - prevPos.x) / safeDelta,
-        y: (safePosY - prevPos.y) / safeDelta,
-        z: (safePosZ - prevPos.z) / safeDelta,
-      };
+      const rawVelocity: IVector3 = [
+        (currentPos[0] - prevPos[0]) / safeDelta,
+        (currentPos[1] - prevPos[1]) / safeDelta,
+        (currentPos[2] - prevPos[2]) / safeDelta,
+      ];
 
       // Simple smoothing (Lerp with previous velocity if available)
-      const prevVel = body.linearVelocity || { x: 0, y: 0, z: 0 };
+      const prevVel = body.linearVelocity || [0, 0, 0];
       const smoothingFactor = 0.5; // 0 = old, 1 = new
 
-      const smoothedVelocity = {
-        x: prevVel.x * (1 - smoothingFactor) + rawVelocity.x * smoothingFactor,
-        y: prevVel.y * (1 - smoothingFactor) + rawVelocity.y * smoothingFactor,
-        z: prevVel.z * (1 - smoothingFactor) + rawVelocity.z * smoothingFactor,
-      };
+      const smoothedVelocity: IVector3 = [
+        prevVel[0] * (1 - smoothingFactor) + rawVelocity[0] * smoothingFactor,
+        prevVel[1] * (1 - smoothingFactor) + rawVelocity[1] * smoothingFactor,
+        prevVel[2] * (1 - smoothingFactor) + rawVelocity[2] * smoothingFactor,
+      ];
 
       // Update Body Transform
-      this.world.setPosition(bodyId, { x: safePosX, y: safePosY, z: safePosZ });
+      this.world.setPosition(bodyId, [currentPos[0], currentPos[1], currentPos[2]]);
+      if (hand.rotation) {
+        this.world.setRotation(bodyId, [
+          hand.rotation[0],
+          hand.rotation[1],
+          hand.rotation[2],
+          hand.rotation[3],
+        ]);
+      }
 
       // Update Body Velocity
       this.world.setLinearVelocity(bodyId, smoothedVelocity);
 
       // Store history
-      this.lastPositions.set(bodyId, { x: safePosX, y: safePosY, z: safePosZ });
+      this.lastPositions.set(bodyId, [currentPos[0], currentPos[1], currentPos[2]]);
     }
   }
 

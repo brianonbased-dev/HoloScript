@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Runtime Type Definitions
  *
@@ -21,7 +22,7 @@ import type { SpatialPosition, HologramProperties, HologramShape } from '@holosc
 export interface NodeProperties {
   position?: Vector3 | number[];
   rotation?: { x: number; y: number; z: number; w?: number } | number[];
-  scale?: { x: number; y: number; z: number } | number | number[];
+  scale?: Vector3 | number | number[];
   color?: string;
   size?: number;
   shape?: string;
@@ -123,8 +124,8 @@ export interface WebXRManagerLike {
  * Used in onNetworkStateUpdate and applyNetworkState.
  */
 export interface InterpolatedState {
-  position?: { x: number; y: number; z: number };
-  rotation?: { x: number; y: number; z: number; w?: number };
+  position?: Vector3;
+  rotation?: Vector3;
   [key: string]: unknown;
 }
 

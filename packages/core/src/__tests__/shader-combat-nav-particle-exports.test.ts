@@ -294,7 +294,7 @@ describe('ParticleSystem exports', () => {
       position: [0, 0, 0],
     });
     ps.setPosition(5, 10, 3);
-    expect(ps.getConfig().position.x).toBe(5);
-    expect(ps.getConfig().position.y).toBe(10);
+    expect(ps.getConfig().position[0]).toBe(5);
+    expect(ps.getConfig().position[1]).toBe(10);
   });
 });

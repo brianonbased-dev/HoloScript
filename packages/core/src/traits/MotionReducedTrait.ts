@@ -100,13 +100,13 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
     const nodeRecord = node as unknown as Record<string, unknown>;
     if (nodeRecord.velocity) {
       const vel = nodeRecord.velocity as { x: number; y: number; z: number };
-      const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+      const speed = Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
 
       if (speed > config.max_velocity) {
         const scale = config.max_velocity / speed;
-        vel.x *= scale;
-        vel.y *= scale;
-        vel.z *= scale;
+        vel[0] *= scale;
+        vel[1] *= scale;
+        vel[2] *= scale;
 
         context.emit?.('on_motion_clamped', {
           node,

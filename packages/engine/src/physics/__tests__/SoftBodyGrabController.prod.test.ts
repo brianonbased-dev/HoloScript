@@ -76,7 +76,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const positions = gridPositions(10, 0.1); // vertices at 0, 0.1, … 0.9
       const solver = makeSolver(positions);
       // Only vertices within 0.5 units should be grabbed
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       // At least 4 pins (capped by maxVertices: 4) — all within 0.5
       expect(solver._pins.length).toBeLessThanOrEqual(4);
     });
@@ -90,14 +90,14 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 0.2, maxVertices: 8 });
       const positions = gridPositions(10, 0.05); // 0, 0.05, 0.1, … 0.45
       const solver = makeSolver(positions);
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       expect(solver._pins.length).toBeGreaterThan(0);
     });
 
     it('registers the hand as active', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0 });
       const solver = makeSolver(gridPositions(3, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       expect(ctrl.isGrabbing('h1')).toBe(true);
       expect(ctrl.getActiveGrabs()).toContain('h1');
     });
@@ -105,7 +105,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('pins at most maxVertices vertices', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 100, maxVertices: 3 });
       const solver = makeSolver(gridPositions(20, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       expect(solver._pins.length).toBe(3);
     });
 
@@ -114,7 +114,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
       // 3 vertices at x=0.3, 0.1, 0.2 — sorted: 0.1, 0.2, 0.3
       const positions = [0.3, 0, 0, 0.1, 0, 0, 0.2, 0, 0];
       const solver = makeSolver(positions);
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       // Pin order should be index 1 (dist 0.1), then 2 (0.2), then 0 (0.3)
       expect(solver._pins[0].index).toBe(1);
       expect(solver._pins[1].index).toBe(2);
@@ -131,7 +131,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
       // Two vertices: close (dist 0.1) and far (dist 0.8)
       const positions = [0.1, 0, 0, 0.8, 0, 0];
       const solver = makeSolver(positions);
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       const [closePin, farPin] = solver._pins;
       expect(closePin.compliance).toBeLessThan(farPin.compliance);
     });
@@ -140,7 +140,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 0.01 });
       const positions = [1, 0, 0, 2, 0, 0]; // far from origin
       const solver = makeSolver(positions);
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       expect(solver._pins.length).toBe(0);
       expect(ctrl.isGrabbing('h1')).toBe(false);
     });
@@ -149,11 +149,11 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 2 });
       const solver = makeSolver(gridPositions(4, 0.1));
 
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       const firstPinCount = solver._pins.length;
 
       // Grab again from same hand at a different position
-      ctrl.grabStart('h1', { x: 0.2, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0.2, 0, 0 ], solver as any);
 
       // First grab unpinned (unpins === firstPinCount), second grab added more pins
       expect(solver._unpins.length).toBe(firstPinCount);
@@ -164,8 +164,8 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const solver = makeSolver(gridPositions(10, 0.05));
       const solver2 = makeSolver(gridPositions(10, 0.05));
 
-      ctrl.grabStart('left', { x: 0, y: 0, z: 0 }, solver as any);
-      ctrl.grabStart('right', { x: 0.4, y: 0, z: 0 }, solver2 as any);
+      ctrl.grabStart('left', [0, 0, 0 ], solver as any);
+      ctrl.grabStart('right', [0.4, 0, 0 ], solver2 as any);
 
       expect(ctrl.getActiveGrabs()).toHaveLength(2);
       expect(ctrl.isGrabbing('left')).toBe(true);
@@ -180,10 +180,10 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('calls updateAttachmentTarget for each grabbed vertex', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 3 });
       const solver = makeSolver(gridPositions(5, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       const pinCount = solver._pins.length;
 
-      ctrl.grabUpdate('h1', { x: 0.5, y: 0, z: 0 });
+      ctrl.grabUpdate('h1', [0.5, 0, 0 ]);
       expect(solver._attachUpdates.length).toBe(pinCount);
     });
 
@@ -192,31 +192,31 @@ describe('SoftBodyGrabController — Production Tests', () => {
       // Single vertex at (0.1, 0, 0) — local offset is (0.1, 0, 0)
       const positions = [0.1, 0, 0];
       const solver = makeSolver(positions);
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
 
-      ctrl.grabUpdate('h1', { x: 0.5, y: 0, z: 0 });
+      ctrl.grabUpdate('h1', [0.5, 0, 0 ]);
       // Target should be handPos + localOffset = 0.5 + 0.1 = 0.6
       const target = solver._attachUpdates[0].target;
-      expect(target.x).toBeCloseTo(0.6, 5);
+      expect(target[0]).toBeCloseTo(0.6, 5);
     });
 
     it('no-ops when hand is not grabbing', () => {
       const ctrl = new SoftBodyGrabController();
       const solver = makeSolver([0, 0, 0]);
       // No grabStart called
-      ctrl.grabUpdate('ghost', { x: 0, y: 0, z: 0 });
+      ctrl.grabUpdate('ghost', [0, 0, 0 ]);
       expect(solver._attachUpdates.length).toBe(0);
     });
 
     it('multiple updates accumulate correctly', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 2 });
       const solver = makeSolver(gridPositions(4, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       const pinCount = solver._pins.length;
 
-      ctrl.grabUpdate('h1', { x: 0.1, y: 0, z: 0 });
-      ctrl.grabUpdate('h1', { x: 0.2, y: 0, z: 0 });
-      ctrl.grabUpdate('h1', { x: 0.3, y: 0, z: 0 });
+      ctrl.grabUpdate('h1', [0.1, 0, 0 ]);
+      ctrl.grabUpdate('h1', [0.2, 0, 0 ]);
+      ctrl.grabUpdate('h1', [0.3, 0, 0 ]);
 
       expect(solver._attachUpdates.length).toBe(pinCount * 3);
     });
@@ -229,7 +229,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('unpins all grabbed vertices', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 4 });
       const solver = makeSolver(gridPositions(6, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       const pinCount = solver._pins.length;
 
       ctrl.grabEnd('h1');
@@ -239,7 +239,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('removes hand from active grabs', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0 });
       const solver = makeSolver(gridPositions(3, 0.1));
-      ctrl.grabStart('h1', { x: 0, y: 0, z: 0 }, solver as any);
+      ctrl.grabStart('h1', [0, 0, 0 ], solver as any);
       ctrl.grabEnd('h1');
       expect(ctrl.isGrabbing('h1')).toBe(false);
       expect(ctrl.getActiveGrabs()).not.toContain('h1');
@@ -255,8 +255,8 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 0.5, maxVertices: 2 });
       const s1 = makeSolver(gridPositions(4, 0.1));
       const s2 = makeSolver(gridPositions(4, 0.1));
-      ctrl.grabStart('left', { x: 0, y: 0, z: 0 }, s1 as any);
-      ctrl.grabStart('right', { x: 0.1, y: 0, z: 0 }, s2 as any); // within grabRadius
+      ctrl.grabStart('left', [0, 0, 0 ], s1 as any);
+      ctrl.grabStart('right', [0.1, 0, 0 ], s2 as any); // within grabRadius
 
       ctrl.grabEnd('left');
       expect(ctrl.isGrabbing('left')).toBe(false);
@@ -272,8 +272,8 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 2 });
       const s1 = makeSolver(gridPositions(4, 0.1));
       const s2 = makeSolver(gridPositions(4, 0.1));
-      ctrl.grabStart('left', { x: 0, y: 0, z: 0 }, s1 as any);
-      ctrl.grabStart('right', { x: 0.05, y: 0, z: 0 }, s2 as any);
+      ctrl.grabStart('left', [0, 0, 0 ], s1 as any);
+      ctrl.grabStart('right', [0.05, 0, 0 ], s2 as any);
 
       ctrl.releaseAll();
       expect(ctrl.getActiveGrabs()).toHaveLength(0);
@@ -290,8 +290,8 @@ describe('SoftBodyGrabController — Production Tests', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0, maxVertices: 2 });
       const s1 = makeSolver(gridPositions(4, 0.1));
       const s2 = makeSolver(gridPositions(4, 0.1));
-      ctrl.grabStart('left', { x: 0, y: 0, z: 0 }, s1 as any);
-      ctrl.grabStart('right', { x: 0.05, y: 0, z: 0 }, s2 as any);
+      ctrl.grabStart('left', [0, 0, 0 ], s1 as any);
+      ctrl.grabStart('right', [0.05, 0, 0 ], s2 as any);
       const totalPins = s1._pins.length + s2._pins.length;
 
       ctrl.releaseAll();
@@ -310,8 +310,8 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('lists all current grab IDs', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0 });
       const s = makeSolver(gridPositions(3, 0.1));
-      ctrl.grabStart('alpha', { x: 0, y: 0, z: 0 }, s as any);
-      ctrl.grabStart('beta', { x: 0.05, y: 0, z: 0 }, s as any);
+      ctrl.grabStart('alpha', [0, 0, 0 ], s as any);
+      ctrl.grabStart('beta', [0.05, 0, 0 ], s as any);
       const ids = ctrl.getActiveGrabs();
       expect(ids).toContain('alpha');
       expect(ids).toContain('beta');
@@ -320,7 +320,7 @@ describe('SoftBodyGrabController — Production Tests', () => {
     it('isGrabbing returns false after grabEnd', () => {
       const ctrl = new SoftBodyGrabController({ grabRadius: 1.0 });
       const s = makeSolver(gridPositions(2, 0.1));
-      ctrl.grabStart('h', { x: 0, y: 0, z: 0 }, s as any);
+      ctrl.grabStart('h', [0, 0, 0 ], s as any);
       expect(ctrl.isGrabbing('h')).toBe(true);
       ctrl.grabEnd('h');
       expect(ctrl.isGrabbing('h')).toBe(false);

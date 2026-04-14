@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * Cloth Trait
  *
@@ -15,8 +16,8 @@ import type { TraitHandler } from './TraitTypes';
 
 interface ClothVertex {
   position: [number, number, number];
-  prevPosition: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
+  prevPosition: Vector3;
+  velocity: Vector3;
   isPinned: boolean;
   mass: number;
 }
@@ -31,7 +32,7 @@ interface ClothState {
     restLength: number;
     broken: boolean;
   }>;
-  windForce: { x: number; y: number; z: number };
+  windForce: Vector3;
   simulationHandle: unknown;
 }
 
@@ -76,7 +77,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       isTorn: false,
       vertices: [],
       constraints: [],
-      windForce: { x: 0, y: 0, z: 0 },
+      windForce: [0, 0, 0 ],
       simulationHandle: null,
     };
     node.__clothState = state;
@@ -116,9 +117,9 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       context.emit?.('cloth_apply_force', {
         node,
         force: {
-          x: state.windForce.x * config.wind_response,
-          y: state.windForce.y * config.wind_response,
-          z: state.windForce.z * config.wind_response,
+          x: state.windForce[0] * config.wind_response,
+          y: state.windForce[1] * config.wind_response,
+          z: state.windForce[2] * config.wind_response,
         },
       });
     }
@@ -244,8 +245,8 @@ function initializeClothMesh(state: ClothState, config: ClothConfig): void {
 
       state.vertices[i][j] = {
         position: [j / res, 0, i / res],
-        prevPosition: { x: j / res, y: 0, z: i / res },
-        velocity: { x: 0, y: 0, z: 0 },
+        prevPosition: [j / res, 0, i / res ],
+        velocity: [0, 0, 0 ],
         isPinned,
         mass: config.mass / (res * res),
       };

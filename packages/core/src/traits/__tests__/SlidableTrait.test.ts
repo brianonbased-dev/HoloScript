@@ -6,7 +6,7 @@ function createSlidableMockContext() {
   return {
     emit: (type: string, data: any) => events.push({ type, data }),
     physics: {
-      getBodyPosition: (_id: string) => ({ x: 0, y: 0, z: 0 }),
+      getBodyPosition: (_id: string) => ([0, 0, 0 ]),
     },
     haptics: {
       rumble: (_hand: string, _intensity: number) => {},
@@ -61,7 +61,7 @@ describe('SlidableTrait', () => {
     trait.onUpdate(node, ctx as any, 0.016); // capture initial + emit for 0.5
 
     // Move slider to max position
-    ctx.physics.getBodyPosition = () => ({ x: 0.05, y: 0, z: 0 }); // max position
+    ctx.physics.getBodyPosition = () => ([0.05, 0, 0 ]); // max position
     trait.onUpdate(node, ctx as any, 0.016);
     const valueEvents = ctx._events.filter((e: any) => e.type === 'ui_value_change');
     expect(valueEvents.length).toBe(2);
@@ -73,7 +73,7 @@ describe('SlidableTrait', () => {
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Position beyond max
-    ctx.physics.getBodyPosition = () => ({ x: 0.2, y: 0, z: 0 });
+    ctx.physics.getBodyPosition = () => ([0.2, 0, 0 ]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(node.properties.value).toBeLessThanOrEqual(1);
   });
@@ -82,13 +82,13 @@ describe('SlidableTrait', () => {
     node.properties.axis = 'y';
     trait.onAttach(node, ctx as any);
     const constraint = ctx._events[0].data;
-    expect(constraint.axis).toEqual({ x: 0, y: 1, z: 0 });
+    expect(constraint.axis).toEqual([0, 1, 0 ]);
   });
 
   it('supports z axis', () => {
     node.properties.axis = 'z';
     trait.onAttach(node, ctx as any);
     const constraint = ctx._events[0].data;
-    expect(constraint.axis).toEqual({ x: 0, y: 0, z: 1 });
+    expect(constraint.axis).toEqual([0, 0, 1 ]);
   });
 });

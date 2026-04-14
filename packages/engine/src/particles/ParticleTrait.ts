@@ -80,7 +80,7 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
     // Override position from node
     if (config.followNode && node.properties?.position) {
       const pos = node.properties.position as Record<string, number>;
-      emitterConfig.position = [pos.x || 0, pos.y || 0, pos.z || 0 ];
+      emitterConfig.position = [pos[0] || 0, pos[1] || 0, pos[2] || 0 ];
     }
 
     const system = new ParticleSystem(emitterConfig);
@@ -115,7 +115,7 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
     // Follow node position
     if (config.followNode && node.properties?.position) {
       const pos = node.properties.position as Record<string, number>;
-      system.setPosition(pos.x || 0, pos.y || 0, pos.z || 0);
+      system.setPosition(pos[0] || 0, pos[1] || 0, pos[2] || 0);
     }
 
     system.update(delta);

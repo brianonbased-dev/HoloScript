@@ -333,11 +333,11 @@ describe('SceneGraph', () => {
   describe('Transform', () => {
     it('should support custom position', () => {
       const node = createEmptyNode('id', 'name');
-      node.transform.position = { x: 10, y: 20, z: 30 };
+      node.transform.position = [10, 20, 30 ];
 
-      expect(node.transform.position.x).toBe(10);
-      expect(node.transform.position.y).toBe(20);
-      expect(node.transform.position.z).toBe(30);
+      expect(node.transform.position[0]).toBe(10);
+      expect(node.transform.position[1]).toBe(20);
+      expect(node.transform.position[2]).toBe(30);
     });
 
     it('should support custom rotation', () => {
@@ -345,18 +345,18 @@ describe('SceneGraph', () => {
       // 90 degree rotation around Y
       const sin45 = Math.sin(Math.PI / 4);
       const cos45 = Math.cos(Math.PI / 4);
-      node.transform.rotation = { x: 0, y: sin45, z: 0, w: cos45 };
+      node.transform.rotation = [0, sin45, 0, cos45 ];
 
-      expect(node.transform.rotation.w).toBeCloseTo(cos45);
+      expect(node.transform.rotation[3]).toBeCloseTo(cos45);
     });
 
     it('should support non-uniform scale', () => {
       const node = createEmptyNode('id', 'name');
-      node.transform.scale = { x: 2, y: 0.5, z: 1.5 };
+      node.transform.scale = [2, 0.5, 1.5 ];
 
-      expect(node.transform.scale.x).toBe(2);
-      expect(node.transform.scale.y).toBe(0.5);
-      expect(node.transform.scale.z).toBe(1.5);
+      expect(node.transform.scale[0]).toBe(2);
+      expect(node.transform.scale[1]).toBe(0.5);
+      expect(node.transform.scale[2]).toBe(1.5);
     });
   });
 });

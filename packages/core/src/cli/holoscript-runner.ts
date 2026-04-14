@@ -423,7 +423,7 @@ function createDaemonLLMProvider(opts: CLIOptions): import('@holoscript/absorb-s
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) throw new Error('XAI_API_KEY not set');
 
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        const response = await fetch('https://api[0].ai/v1/chat/completions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,

@@ -83,12 +83,12 @@ export class ParticleCollisionSystem {
 
       // Plane collisions
       for (const plane of this.planes) {
-        const dist = plane.nx * p.x + plane.ny * p.y + plane.nz * p.z + plane.d;
+        const dist = plane.nx * p[0] + plane.ny * p[1] + plane.nz * p[2] + plane.d;
         if (dist < 0) {
           // Push out
-          p.x -= plane.nx * dist;
-          p.y -= plane.ny * dist;
-          p.z -= plane.nz * dist;
+          p[0] -= plane.nx * dist;
+          p[1] -= plane.ny * dist;
+          p[2] -= plane.nz * dist;
 
           // Reflect velocity
           const vDotN = p.vx * plane.nx + p.vy * plane.ny + p.vz * plane.nz;
@@ -106,15 +106,15 @@ export class ParticleCollisionSystem {
           if (p.lifetime <= 0) p.alive = false;
 
           this.collisionCount++;
-          if (this.subEmitCallback) this.subEmitCallback(p.x, p.y, p.z, this.subEmitCount);
+          if (this.subEmitCallback) this.subEmitCallback(p[0], p[1], p[2], this.subEmitCount);
         }
       }
 
       // Sphere collisions
       for (const sphere of this.spheres) {
-        const dx = p.x - sphere.cx,
-          dy = p.y - sphere.cy,
-          dz = p.z - sphere.cz;
+        const dx = p[0] - sphere.cx,
+          dy = p[1] - sphere.cy,
+          dz = p[2] - sphere.cz;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist < sphere.radius && dist > 0) {
@@ -124,9 +124,9 @@ export class ParticleCollisionSystem {
 
           // Push out
           const pen = sphere.radius - dist;
-          p.x += nx * pen;
-          p.y += ny * pen;
-          p.z += nz * pen;
+          p[0] += nx * pen;
+          p[1] += ny * pen;
+          p[2] += nz * pen;
 
           // Reflect
           const vDotN = p.vx * nx + p.vy * ny + p.vz * nz;

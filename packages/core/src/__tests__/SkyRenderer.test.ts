@@ -46,8 +46,8 @@ describe('SkyRenderer', () => {
     const layer = sky.addCloudLayer(0.5, 1000, { x: 10, z: 5 });
     sky.updateClouds(2);
     const layers = sky.getCloudLayers();
-    expect(layers[0].offset.x).toBeCloseTo(20);
-    expect(layers[0].offset.z).toBeCloseTo(10);
+    expect(layers[0].offset[0]).toBeCloseTo(20);
+    expect(layers[0].offset[2]).toBeCloseTo(10);
   });
 
   it('setSunAngle controls visibility', () => {

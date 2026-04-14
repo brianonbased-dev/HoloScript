@@ -67,21 +67,17 @@ export class GizmoSystem {
     this.world.addTag(gizmoRoot, 'NoSelect');
 
     // Add transform synced to target
-    const targetPos = this.world.getComponent<any>(target, 'Transform')?.position || {
-      x: 0,
-      y: 0,
-      z: 0,
-    };
+    const targetPos = this.world.getComponent<any>(target, 'Transform')?.position || [0, 0, 0];
     this.world.addComponent(gizmoRoot, 'Transform', {
-      position: { ...targetPos },
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      scale: { x: 1, y: 1, z: 1 },
+      position: [...targetPos],
+      rotation: [0, 0, 0, 1 ],
+      scale: [1, 1, 1],
     });
 
     // Create Axis Handles
-    const xAxis = this.createAxis(gizmoRoot, 'x', { x: 1, y: 0, z: 0 }, { r: 1, g: 0, b: 0 });
-    const yAxis = this.createAxis(gizmoRoot, 'y', { x: 0, y: 1, z: 0 }, { r: 0, g: 1, b: 0 });
-    const zAxis = this.createAxis(gizmoRoot, 'z', { x: 0, y: 0, z: 1 }, { r: 0, g: 0, b: 1 });
+    const xAxis = this.createAxis(gizmoRoot, 'x', [1, 0, 0], { r: 1, g: 0, b: 0 });
+    const yAxis = this.createAxis(gizmoRoot, 'y', [0, 1, 0], { r: 0, g: 1, b: 0 });
+    const zAxis = this.createAxis(gizmoRoot, 'z', [0, 0, 1], { r: 0, g: 0, b: 1 });
 
     // Store
     this.gizmoEntities.set(gizmoRoot, [xAxis, yAxis, zAxis]);
@@ -104,8 +100,8 @@ export class GizmoSystem {
     // Initial relative transform
     this.world.addComponent(axis, 'Transform', {
       position: [0, 0, 0], // Relative to parent (simulated)
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      scale: { x: this.axisLength, y: this.axisThickness, z: this.axisThickness },
+      rotation: [0, 0, 0, 1 ],
+      scale: [this.axisLength, this.axisThickness, this.axisThickness],
     });
 
     this.world.addComponent(axis, 'Material', { color });
@@ -130,14 +126,14 @@ export class GizmoSystem {
       const rootTransform = this.world.getComponent<any>(gizmoRoot, 'Transform');
 
       if (targetTransform && rootTransform) {
-        rootTransform.position = { ...targetTransform.position };
+        rootTransform.position = [...targetTransform.position];
         rootTransform.rotation = { ...targetTransform.rotation }; // Sync rotation too? Yes.
 
         // Sync axes (simulate hierarchy)
         children.forEach((child) => {
           const childTransform = this.world.getComponent<any>(child, 'Transform');
           if (childTransform) {
-            childTransform.position = { ...rootTransform.position };
+            childTransform.position = [...rootTransform.position];
             childTransform.rotation = { ...rootTransform.rotation };
           }
         });
@@ -157,7 +153,9 @@ export class GizmoSystem {
 
     const transform = this.world.getComponent<any>(primary, 'Transform');
     if (transform) {
-      transform.position[axis] += amount;
+      if (axis === 'x') transform.position[0] += amount;
+      if (axis === 'y') transform.position[1] += amount;
+      if (axis === 'z') transform.position[2] += amount;
     }
   }
 }

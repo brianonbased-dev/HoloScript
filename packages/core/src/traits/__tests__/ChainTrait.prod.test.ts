@@ -53,9 +53,9 @@ describe('chainHandler.onAttach', () => {
   });
   it('links are spaced vertically by link_length', () => {
     const { node } = attach({ links: 3, link_length: 0.5 });
-    expect(node.__chainState.links[0].position.y).toBeCloseTo(0);
-    expect(node.__chainState.links[1].position.y).toBeCloseTo(-0.5);
-    expect(node.__chainState.links[2].position.y).toBeCloseTo(-1.0);
+    expect(node.__chainState.links[0].position[1]).toBeCloseTo(0);
+    expect(node.__chainState.links[1].position[1]).toBeCloseTo(-0.5);
+    expect(node.__chainState.links[2].position[1]).toBeCloseTo(-1.0);
   });
   it('emits chain_create with linkCount and linkLength', () => {
     const { ctx } = attach({ links: 4, link_length: 0.25 });
@@ -111,8 +111,8 @@ describe('chainHandler.onDetach', () => {
 // ─── onEvent — chain_link_update ──────────────────────────────────────────────
 
 describe('chainHandler.onEvent — chain_link_update', () => {
-  const pos = { x: 1, y: -0.1, z: 0 };
-  const rot = { x: 0, y: 0, z: 0, w: 1 };
+  const pos = [1, -0.1, 0 ];
+  const rot = [0, 0, 0, 1 ];
   it('updates link position', () => {
     const { node, ctx, config } = attach({ links: 5 });
     chainHandler.onEvent!(node, config, ctx, {
@@ -166,28 +166,28 @@ describe('chainHandler.onEvent — chain_full_update', () => {
   it('updates all link positions in batch', () => {
     const { node, ctx, config } = attach({ links: 3 });
     const positions = [
-      { x: 1, y: 0, z: 0 },
-      { x: 2, y: 0, z: 0 },
-      { x: 3, y: 0, z: 0 },
+      [1, 0, 0 ],
+      [2, 0, 0 ],
+      [3, 0, 0 ],
     ];
     const rots = [
-      { x: 0, y: 0, z: 0, w: 1 },
-      { x: 0, y: 0, z: 0, w: 1 },
-      { x: 0, y: 0, z: 0, w: 1 },
+      [0, 0, 0, 1 ],
+      [0, 0, 0, 1 ],
+      [0, 0, 0, 1 ],
     ];
     chainHandler.onEvent!(node, config, ctx, {
       type: 'chain_full_update',
       positions,
       rotations: rots,
     });
-    expect(node.__chainState.links[0].position.x).toBe(1);
-    expect(node.__chainState.links[2].position.x).toBe(3);
+    expect(node.__chainState.links[0].position[0]).toBe(1);
+    expect(node.__chainState.links[2].position[0]).toBe(3);
   });
   it('emits chain_full_mesh_update', () => {
     const { node, ctx, config } = attach({ links: 2 });
     const positions = [
-      { x: 0, y: 0, z: 0 },
-      { x: 0, y: -0.1, z: 0 },
+      [0, 0, 0 ],
+      [0, -0.1, 0 ],
     ];
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, {
@@ -202,7 +202,7 @@ describe('chainHandler.onEvent — chain_full_update', () => {
   });
   it('handles fewer positions than links gracefully', () => {
     const { node, ctx, config } = attach({ links: 5 });
-    const positions = [{ x: 1, y: 0, z: 0 }];
+    const positions = [[1, 0, 0 ]];
     expect(() =>
       chainHandler.onEvent!(node, config, ctx, {
         type: 'chain_full_update',
@@ -210,7 +210,7 @@ describe('chainHandler.onEvent — chain_full_update', () => {
         rotations: [],
       })
     ).not.toThrow();
-    expect(node.__chainState.links[0].position.x).toBe(1);
+    expect(node.__chainState.links[0].position[0]).toBe(1);
   });
 });
 
@@ -327,7 +327,7 @@ describe('chainHandler.onEvent — chain_repair', () => {
 describe('chainHandler.onEvent — misc events', () => {
   it('chain_apply_force emits chain_external_force', () => {
     const { node, ctx, config } = attach();
-    const force = { x: 0, y: -9.8, z: 0 };
+    const force = [0, -9.8, 0 ];
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_apply_force', linkIndex: 1, force });
     expect(ctx.emit).toHaveBeenCalledWith(

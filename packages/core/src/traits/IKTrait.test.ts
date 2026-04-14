@@ -74,8 +74,8 @@ describe('IKTrait', () => {
     });
 
     it('should set target by position', () => {
-      trait.setTarget({ x: 1, y: 2, z: 3 });
-      expect(trait.getConfig().targetPosition).toEqual({ x: 1, y: 2, z: 3 });
+      trait.setTarget([1, 2, 3 ]);
+      expect(trait.getConfig().targetPosition).toEqual([1, 2, 3 ]);
     });
   });
 
@@ -86,8 +86,8 @@ describe('IKTrait', () => {
     });
 
     it('should set pole target by position', () => {
-      trait.setPoleTarget({ x: 0, y: 1, z: -0.5 });
-      expect(trait.getConfig().polePosition).toEqual({ x: 0, y: 1, z: -0.5 });
+      trait.setPoleTarget([0, 1, -0.5 ]);
+      expect(trait.getConfig().polePosition).toEqual([0, 1, -0.5 ]);
     });
   });
 
@@ -124,7 +124,7 @@ describe('IKTrait', () => {
   describe('solve', () => {
     it('should solve IK', () => {
       trait.setTarget('target');
-      const result = trait.solve({ x: 1, y: 0, z: 0 });
+      const result = trait.solve([1, 0, 0 ]);
       expect(result).toBeDefined();
       expect(result.reached).toBeDefined();
     });
@@ -141,7 +141,7 @@ describe('IKTrait', () => {
       };
       trait.setChain(chain);
 
-      trait.solve({ x: 0.5, y: 0, z: 0 });
+      trait.solve([0.5, 0, 0 ]);
       const lastResult = trait.getLastResult();
       expect(lastResult).not.toBeNull();
     });

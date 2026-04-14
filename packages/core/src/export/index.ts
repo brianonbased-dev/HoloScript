@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Export Module
  *

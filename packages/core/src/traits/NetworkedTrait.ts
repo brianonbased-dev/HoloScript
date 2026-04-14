@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core Networked Trait
  *
@@ -6,7 +7,7 @@
  * Integrates with SyncProtocol for WebSocket/WebRTC/Local transport.
  *
  * @version 3.0.1
- * @Sprint v3.0.x Stabilization Sprint
+ * @Sprint v3.0[0] Stabilization Sprint
  *
  * @example
  * ```hsplus
@@ -600,17 +601,17 @@ export class NetworkedTrait {
         // Extrapolate Position using linear velocity
         const vel = props.velocity as { x: number; y: number; z: number } | undefined;
         if (vel) {
-          position[0] += vel.x * dtSec;
-          position[1] += vel.y * dtSec;
-          position[2] += vel.z * dtSec;
+          position[0] += vel[0] * dtSec;
+          position[1] += vel[1] * dtSec;
+          position[2] += vel[2] * dtSec;
         }
 
         // Extrapolate Rotation using angular velocity (quaternion integration)
         const aVel = props.angularVelocity as { x: number; y: number; z: number } | undefined;
         if (aVel) {
-          const wx = aVel.x * dtSec;
-          const wy = aVel.y * dtSec;
-          const wz = aVel.z * dtSec;
+          const wx = aVel[0] * dtSec;
+          const wy = aVel[1] * dtSec;
+          const wz = aVel[2] * dtSec;
           const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
           if (len > 0.0001) {
             const halfLen = len * 0.5;

@@ -292,7 +292,7 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     expect(peer.avatarType).toBe('full_body');
     expect(peer.isVoiceActive).toBe(false);
     expect(peer.isVideoActive).toBe(false);
-    expect(peer.pose.head.position).toMatchObject({ x: 0, y: 1.6, z: 0 });
+    expect(peer.pose.head.position).toMatchObject([0, 1.6, 0 ]);
     expect(ctx.emit).toHaveBeenCalledWith(
       'remote_presence_spawn_avatar',
       expect.objectContaining({ peerId: 'p1' })
@@ -346,7 +346,7 @@ describe('RemotePresenceTrait — onEvent: pose, voice, video', () => {
     const { cfg, ctx } = attach(node);
     peerJoin(node, cfg, ctx, 'p1');
     const newPose = {
-      head: { position: [1, 1.8, -1], rotation: { x: 0, y: 0.7, z: 0, w: 0.7 } },
+      head: { position: [1, 1.8, -1], rotation: [0, 0.7, 0, 0.7 ] },
     };
     fireEvent(node, cfg, ctx, {
       type: 'remote_presence_pose_update',

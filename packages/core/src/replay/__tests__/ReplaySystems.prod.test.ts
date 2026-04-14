@@ -417,7 +417,7 @@ describe('GhostRunner', () => {
     expect(results.has(run.id)).toBe(true);
     const sample = results.get(run.id);
     expect(sample).not.toBeNull();
-    expect(sample?.position.x).toBe(5); // Should be at second sample
+    expect(sample?.position[0]).toBe(5); // Should be at second sample
   });
 
   it('stopPlayback removes run from active playbacks', () => {

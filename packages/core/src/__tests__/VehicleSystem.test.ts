@@ -79,7 +79,7 @@ describe('VehicleSystem', () => {
   it('vehicle falls under gravity when airborne', () => {
     sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 10, z: 0 });
     sys.update('car1', 1 / 60);
-    expect(sys.getVehicle('car1')!.position.y).toBeLessThan(10);
+    expect(sys.getVehicle('car1')!.position[1]).toBeLessThan(10);
   });
 
   it('wheel rotation increases with speed', () => {

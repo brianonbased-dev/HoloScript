@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PhysicsWorldImpl.ts
  *
@@ -34,45 +35,45 @@ import { IslandDetector } from './IslandDetector';
 // ============================================================================
 
 function vec3Dot(a: IVector3, b: IVector3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
 function vec3Cross(a: IVector3, b: IVector3): IVector3 {
-  return {
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  };
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
 }
 
 function vec3Sub(a: IVector3, b: IVector3): IVector3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
 function vec3Add(a: IVector3, b: IVector3): IVector3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
 function vec3Scale(v: IVector3, s: number): IVector3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
+  return [v[0] * s, v[1] * s, v[2] * s];
 }
 
 function vec3Negate(v: IVector3): IVector3 {
-  return { x: -v.x, y: -v.y, z: -v.z };
+  return [-v[0], -v[1], -v[2]];
 }
 
 function vec3Length(v: IVector3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 function vec3LengthSq(v: IVector3): number {
-  return v.x * v.x + v.y * v.y + v.z * v.z;
+  return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 }
 
 function vec3Normalize(v: IVector3): IVector3 {
   const len = vec3Length(v);
-  if (len < 1e-10) return { x: 0, y: 1, z: 0 };
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
+  if (len < 1e-10) return [0, 1, 0];
+  return [v[0] / len, v[1] / len, v[2] / len];
 }
 
 /**
@@ -98,11 +99,11 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
     }
     case 'box': {
       const he = shape.halfExtents;
-      return {
-        x: position.x + (direction.x >= 0 ? he.x : -he.x),
-        y: position.y + (direction.y >= 0 ? he.y : -he.y),
-        z: position.z + (direction.z >= 0 ? he.z : -he.z),
-      };
+      return [
+        position[0] + (direction[0] >= 0 ? he[0] : -he[0]),
+        position[1] + (direction[1] >= 0 ? he[1] : -he[1]),
+        position[2] + (direction[2] >= 0 ? he[2] : -he[2]),
+      ];
     }
     case 'capsule': {
       // Capsule = line segment + sphere sweep
@@ -110,9 +111,9 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
       const r = shape.radius;
       const axis = shape.axis ?? 'y';
       let segDir: IVector3;
-      if (axis === 'x') segDir = { x: 1, y: 0, z: 0 };
-      else if (axis === 'z') segDir = { x: 0, y: 0, z: 1 };
-      else segDir = { x: 0, y: 1, z: 0 };
+      if (axis === 'x') segDir = [1, 0, 0];
+      else if (axis === 'z') segDir = [0, 0, 1];
+      else segDir = [0, 1, 0];
 
       // Pick the endpoint of the line segment farthest along direction
       const dotSeg = vec3Dot(direction, segDir);
@@ -130,9 +131,9 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
       const r = shape.radius;
       const axis = shape.axis ?? 'y';
       let axisDir: IVector3;
-      if (axis === 'x') axisDir = { x: 1, y: 0, z: 0 };
-      else if (axis === 'z') axisDir = { x: 0, y: 0, z: 1 };
-      else axisDir = { x: 0, y: 1, z: 0 };
+      if (axis === 'x') axisDir = [1, 0, 0];
+      else if (axis === 'z') axisDir = [0, 0, 1];
+      else axisDir = [0, 1, 0];
 
       // Component of direction along axis
       const dotAxis = vec3Dot(direction, axisDir);
@@ -141,7 +142,7 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
       // Component of direction perpendicular to axis
       const perpDir = vec3Sub(direction, vec3Scale(axisDir, dotAxis));
       const perpLen = vec3Length(perpDir);
-      const discPoint = perpLen > 1e-10 ? vec3Scale(perpDir, r / perpLen) : { x: 0, y: 0, z: 0 };
+      const discPoint: IVector3 = perpLen > 1e-10 ? vec3Scale(perpDir, r / perpLen) : [0, 0, 0];
 
       return vec3Add(position, vec3Add(axisPoint, discPoint));
     }
@@ -149,14 +150,14 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
       // Cone along Y-axis: apex at +height/2, base center at -height/2 with given radius
       const halfH = shape.height / 2;
       const r = shape.radius;
-      const apex: IVector3 = { x: 0, y: halfH, z: 0 };
+      const apex: IVector3 = [0, halfH, 0];
 
       // Direction projected onto the XZ plane
-      const perpDir: IVector3 = { x: direction.x, y: 0, z: direction.z };
+      const perpDir: IVector3 = [direction[0], 0, direction[2]];
       const perpLen = vec3Length(perpDir);
 
       // Base center point farthest in direction on the base disc
-      const baseCenter: IVector3 = { x: 0, y: -halfH, z: 0 };
+      const baseCenter: IVector3 = [0, -halfH, 0];
       const basePoint =
         perpLen > 1e-10 ? vec3Add(baseCenter, vec3Scale(perpDir, r / perpLen)) : baseCenter;
 
@@ -172,13 +173,13 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
       let bestDot = -Infinity;
       let bestPoint: IVector3 = position;
       for (let i = 0; i < verts.length; i += 3) {
-        const vx = verts[i] + position.x;
-        const vy = verts[i + 1] + position.y;
-        const vz = verts[i + 2] + position.z;
-        const d = vx * direction.x + vy * direction.y + vz * direction.z;
+        const vx = verts[i] + position[0];
+        const vy = verts[i + 1] + position[1];
+        const vz = verts[i + 2] + position[2];
+        const d = vx * direction[0] + vy * direction[1] + vz * direction[2];
         if (d > bestDot) {
           bestDot = d;
-          bestPoint = { x: vx, y: vy, z: vz };
+          bestPoint = [vx, vy, vz];
         }
       }
       return bestPoint;
@@ -239,7 +240,7 @@ function gjk(
   // Initial direction: from A to B
   let direction = vec3Sub(posB, posA);
   if (vec3LengthSq(direction) < 1e-10) {
-    direction = { x: 1, y: 0, z: 0 };
+    direction = [1, 0, 0];
   }
 
   const simplex: IVector3[] = [];
@@ -434,19 +435,19 @@ function doSimplexTetrahedron(simplex: IVector3[], _direction: IVector3): Simple
   // For face ABC: if D is on the negative side, normal points away from D
   if (vec3Dot(abcNorm, ad) > 0) {
     // Normal points toward D, flip it
-    abcNorm.x = -abcNorm.x;
-    abcNorm.y = -abcNorm.y;
-    abcNorm.z = -abcNorm.z;
+    abcNorm[0] = -abcNorm[0];
+    abcNorm[1] = -abcNorm[1];
+    abcNorm[2] = -abcNorm[2];
   }
   if (vec3Dot(acdNorm, ab) > 0) {
-    acdNorm.x = -acdNorm.x;
-    acdNorm.y = -acdNorm.y;
-    acdNorm.z = -acdNorm.z;
+    acdNorm[0] = -acdNorm[0];
+    acdNorm[1] = -acdNorm[1];
+    acdNorm[2] = -acdNorm[2];
   }
   if (vec3Dot(adbNorm, ac) > 0) {
-    adbNorm.x = -adbNorm.x;
-    adbNorm.y = -adbNorm.y;
-    adbNorm.z = -adbNorm.z;
+    adbNorm[0] = -adbNorm[0];
+    adbNorm[1] = -adbNorm[1];
+    adbNorm[2] = -adbNorm[2];
   }
 
   // Check which face(s) the origin is in front of
@@ -473,17 +474,17 @@ function doSimplexTetrahedron(simplex: IVector3[], _direction: IVector3): Simple
   }
 
   // Origin is inside the tetrahedron
-  return { containsOrigin: true, direction: { x: 0, y: 0, z: 0 } };
+  return { containsOrigin: true, direction: [0, 0, 0] };
 }
 
 /**
  * Returns an arbitrary vector perpendicular to v.
  */
 function vec3Perpendicular(v: IVector3): IVector3 {
-  if (Math.abs(v.x) < 0.9) {
-    return vec3Normalize(vec3Cross(v, { x: 1, y: 0, z: 0 }));
+  if (Math.abs(v[0]) < 0.9) {
+    return vec3Normalize(vec3Cross(v, [1, 0, 0]));
   }
-  return vec3Normalize(vec3Cross(v, { x: 0, y: 1, z: 0 }));
+  return vec3Normalize(vec3Cross(v, [0, 1, 0]));
 }
 
 // ============================================================================
@@ -529,11 +530,11 @@ function epa(
   ];
 
   // Compute centroid to ensure normals point outward
-  const centroid: IVector3 = {
-    x: (polytope[0].x + polytope[1].x + polytope[2].x + polytope[3].x) / 4,
-    y: (polytope[0].y + polytope[1].y + polytope[2].y + polytope[3].y) / 4,
-    z: (polytope[0].z + polytope[1].z + polytope[2].z + polytope[3].z) / 4,
-  };
+  const centroid: IVector3 = [
+    (polytope[0][0] + polytope[1][0] + polytope[2][0] + polytope[3][0]) / 4,
+    (polytope[0][1] + polytope[1][1] + polytope[2][1] + polytope[3][1]) / 4,
+    (polytope[0][2] + polytope[1][2] + polytope[2][2] + polytope[3][2]) / 4,
+  ];
 
   for (const [ia, ib, ic] of faceIndices) {
     const face = buildEPAFace(polytope, ia, ib, ic, centroid);
@@ -603,11 +604,11 @@ function epa(
     }
 
     // Create new faces from the horizon edges to the new point
-    const newCentroid: IVector3 = {
-      x: (centroid.x * (polytope.length - 1)) / polytope.length + newPoint.x / polytope.length,
-      y: (centroid.y * (polytope.length - 1)) / polytope.length + newPoint.y / polytope.length,
-      z: (centroid.z * (polytope.length - 1)) / polytope.length + newPoint.z / polytope.length,
-    };
+    const newCentroid: IVector3 = [
+      (centroid[0] * (polytope.length - 1)) / polytope.length + newPoint[0] / polytope.length,
+      (centroid[1] * (polytope.length - 1)) / polytope.length + newPoint[1] / polytope.length,
+      (centroid[2] * (polytope.length - 1)) / polytope.length + newPoint[2] / polytope.length,
+    ];
 
     for (const [edgeA, edgeB] of edges) {
       const face = buildEPAFace(polytope, edgeA, edgeB, newIdx, newCentroid);
@@ -633,7 +634,7 @@ function epa(
 
   // Ultimate fallback
   return {
-    normal: { x: 0, y: 1, z: 0 },
+    normal: [0, 1, 0],
     penetration: 0,
   };
 }
@@ -749,7 +750,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
   constructor(config?: IPhysicsWorldConfig) {
     this.config = {
-      gravity: config?.gravity ?? { ...PHYSICS_DEFAULTS.gravity },
+      gravity: config?.gravity ?? [...PHYSICS_DEFAULTS.gravity],
       fixedTimestep: config?.fixedTimestep ?? PHYSICS_DEFAULTS.fixedTimestep,
       maxSubsteps: config?.maxSubsteps ?? PHYSICS_DEFAULTS.maxSubsteps,
       solverIterations: config?.solverIterations ?? PHYSICS_DEFAULTS.solverIterations,
@@ -765,11 +766,11 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   // ============================================================================
 
   public setGravity(gravity: IVector3): void {
-    this.config.gravity = { ...gravity };
+    this.config.gravity = [...gravity];
   }
 
   public getGravity(): IVector3 {
-    return { ...this.config.gravity };
+    return [...this.config.gravity];
   }
 
   // ============================================================================
@@ -1078,9 +1079,9 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const radiusA = (bodyA.shape as { radius: number }).radius;
     const radiusB = (bodyB.shape as { radius: number }).radius;
 
-    const dx = posB.x - posA.x;
-    const dy = posB.y - posA.y;
-    const dz = posB.z - posA.z;
+    const dx = posB[0] - posA[0];
+    const dy = posB[1] - posA[1];
+    const dz = posB[2] - posA[2];
     const distSq = dx * dx + dy * dy + dz * dz;
     const radiusSum = radiusA + radiusB;
 
@@ -1091,13 +1092,13 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const dist = Math.sqrt(distSq);
     const penetration = radiusSum - dist;
 
-    const normal = dist > 0 ? { x: dx / dist, y: dy / dist, z: dz / dist } : { x: 0, y: 1, z: 0 };
+    const normal: IVector3 = dist > 0 ? [dx / dist, dy / dist, dz / dist] : [0, 1, 0];
 
-    const contactPoint = {
-      x: posA.x + normal.x * radiusA,
-      y: posA.y + normal.y * radiusA,
-      z: posA.z + normal.z * radiusA,
-    };
+    const contactPoint: IVector3 = [
+      posA[0] + normal[0] * radiusA,
+      posA[1] + normal[1] * radiusA,
+      posA[2] + normal[2] * radiusA,
+    ];
 
     return {
       contacts: [
@@ -1151,11 +1152,11 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     // Use support points on each shape along the contact normal direction
     const supportA = shapeSupport(bodyA.shape, posA, normal);
     const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal));
-    const contactPoint = {
-      x: (supportA.x + supportB.x) / 2,
-      y: (supportA.y + supportB.y) / 2,
-      z: (supportA.z + supportB.z) / 2,
-    };
+    const contactPoint: IVector3 = [
+      (supportA[0] + supportB[0]) / 2,
+      (supportA[1] + supportB[1]) / 2,
+      (supportA[2] + supportB[2]) / 2,
+    ];
 
     return {
       contacts: [
@@ -1184,16 +1185,16 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     for (const contact of collision.contacts) {
       // Simple impulse-based resolution
       const normal = contact.normal;
-      const relativeVelocity = {
-        x: bodyB.linearVelocity.x - bodyA.linearVelocity.x,
-        y: bodyB.linearVelocity.y - bodyA.linearVelocity.y,
-        z: bodyB.linearVelocity.z - bodyA.linearVelocity.z,
-      };
+      const relativeVelocity: IVector3 = [
+        bodyB.linearVelocity[0] - bodyA.linearVelocity[0],
+        bodyB.linearVelocity[1] - bodyA.linearVelocity[1],
+        bodyB.linearVelocity[2] - bodyA.linearVelocity[2],
+      ];
 
       const normalVelocity =
-        relativeVelocity.x * normal.x +
-        relativeVelocity.y * normal.y +
-        relativeVelocity.z * normal.z;
+        relativeVelocity[0] * normal[0] +
+        relativeVelocity[1] * normal[1] +
+        relativeVelocity[2] * normal[2];
 
       // Don't resolve if separating
       if (normalVelocity > 0) continue;
@@ -1208,13 +1209,13 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       const impulseMag = (-(1 + restitution) * normalVelocity) / invMassSum;
 
       // Apply impulse
-      const impulse = {
-        x: normal.x * impulseMag,
-        y: normal.y * impulseMag,
-        z: normal.z * impulseMag,
-      };
+      const impulse: IVector3 = [
+        normal[0] * impulseMag,
+        normal[1] * impulseMag,
+        normal[2] * impulseMag,
+      ];
 
-      bodyA.applyImpulse({ x: -impulse.x, y: -impulse.y, z: -impulse.z });
+      bodyA.applyImpulse([-impulse[0], -impulse[1], -impulse[2]]);
       bodyB.applyImpulse(impulse);
 
       // Position correction (penetration resolution)
@@ -1222,28 +1223,28 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       const slop = 0.01; // Penetration allowance
 
       const correctionMag = (Math.max(contact.penetration - slop, 0) / invMassSum) * percent;
-      const correction = {
-        x: normal.x * correctionMag,
-        y: normal.y * correctionMag,
-        z: normal.z * correctionMag,
-      };
+      const correction: IVector3 = [
+        normal[0] * correctionMag,
+        normal[1] * correctionMag,
+        normal[2] * correctionMag,
+      ];
 
       if (bodyA.type === 'dynamic') {
         const posA = bodyA.position;
-        bodyA.position = {
-          x: posA.x - correction.x * bodyA.inverseMass,
-          y: posA.y - correction.y * bodyA.inverseMass,
-          z: posA.z - correction.z * bodyA.inverseMass,
-        };
+        bodyA.position = [
+          posA[0] - correction[0] * bodyA.inverseMass,
+          posA[1] - correction[1] * bodyA.inverseMass,
+          posA[2] - correction[2] * bodyA.inverseMass,
+        ];
       }
 
       if (bodyB.type === 'dynamic') {
         const posB = bodyB.position;
-        bodyB.position = {
-          x: posB.x + correction.x * bodyB.inverseMass,
-          y: posB.y + correction.y * bodyB.inverseMass,
-          z: posB.z + correction.z * bodyB.inverseMass,
-        };
+        bodyB.position = [
+          posB[0] + correction[0] * bodyB.inverseMass,
+          posB[1] + correction[1] * bodyB.inverseMass,
+          posB[2] + correction[2] * bodyB.inverseMass,
+        ];
       }
 
       // Store impulse
@@ -1274,34 +1275,34 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         const posA = bodyA.position;
         const posB = bodyB.position;
 
-        const dx = posB.x - posA.x;
-        const dy = posB.y - posA.y;
-        const dz = posB.z - posA.z;
+        const dx = posB[0] - posA[0];
+        const dy = posB[1] - posA[1];
+        const dz = posB[2] - posA[2];
         const currentDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (currentDist === 0) return;
 
         const diff = (currentDist - config.distance) / currentDist;
-        const correction = {
-          x: dx * diff * 0.5,
-          y: dy * diff * 0.5,
-          z: dz * diff * 0.5,
-        };
+        const correction: IVector3 = [
+          dx * diff * 0.5,
+          dy * diff * 0.5,
+          dz * diff * 0.5,
+        ];
 
         if (bodyA.type === 'dynamic') {
-          bodyA.position = {
-            x: posA.x + correction.x,
-            y: posA.y + correction.y,
-            z: posA.z + correction.z,
-          };
+          bodyA.position = [
+            posA[0] + correction[0],
+            posA[1] + correction[1],
+            posA[2] + correction[2],
+          ];
         }
 
         if (bodyB.type === 'dynamic') {
-          bodyB.position = {
-            x: posB.x - correction.x,
-            y: posB.y - correction.y,
-            z: posB.z - correction.z,
-          };
+          bodyB.position = [
+            posB[0] - correction[0],
+            posB[1] - correction[1],
+            posB[2] - correction[2],
+          ];
         }
         break;
       }
@@ -1395,29 +1396,29 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     let tmin = 0;
     let tmax = maxDistance;
 
-    const invDirX = ray.direction.x !== 0 ? 1 / ray.direction.x : Infinity;
-    const invDirY = ray.direction.y !== 0 ? 1 / ray.direction.y : Infinity;
-    const invDirZ = ray.direction.z !== 0 ? 1 / ray.direction.z : Infinity;
+    const invDirX = ray.direction[0] !== 0 ? 1 / ray.direction[0] : Infinity;
+    const invDirY = ray.direction[1] !== 0 ? 1 / ray.direction[1] : Infinity;
+    const invDirZ = ray.direction[2] !== 0 ? 1 / ray.direction[2] : Infinity;
 
     // X axis
-    let t1 = (aabb.min.x - ray.origin.x) * invDirX;
-    let t2 = (aabb.max.x - ray.origin.x) * invDirX;
+    let t1 = (aabb.min[0] - ray.origin[0]) * invDirX;
+    let t2 = (aabb.max[0] - ray.origin[0]) * invDirX;
     if (t1 > t2) [t1, t2] = [t2, t1];
     tmin = Math.max(tmin, t1);
     tmax = Math.min(tmax, t2);
     if (tmin > tmax) return null;
 
     // Y axis
-    t1 = (aabb.min.y - ray.origin.y) * invDirY;
-    t2 = (aabb.max.y - ray.origin.y) * invDirY;
+    t1 = (aabb.min[1] - ray.origin[1]) * invDirY;
+    t2 = (aabb.max[1] - ray.origin[1]) * invDirY;
     if (t1 > t2) [t1, t2] = [t2, t1];
     tmin = Math.max(tmin, t1);
     tmax = Math.min(tmax, t2);
     if (tmin > tmax) return null;
 
     // Z axis
-    t1 = (aabb.min.z - ray.origin.z) * invDirZ;
-    t2 = (aabb.max.z - ray.origin.z) * invDirZ;
+    t1 = (aabb.min[2] - ray.origin[2]) * invDirZ;
+    t2 = (aabb.max[2] - ray.origin[2]) * invDirZ;
     if (t1 > t2) [t1, t2] = [t2, t1];
     tmin = Math.max(tmin, t1);
     tmax = Math.min(tmax, t2);
@@ -1427,11 +1428,11 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const distance = tmin >= 0 ? tmin : tmax;
     if (distance < 0 || distance > maxDistance) return null;
 
-    const point = {
-      x: ray.origin.x + ray.direction.x * distance,
-      y: ray.origin.y + ray.direction.y * distance,
-      z: ray.origin.z + ray.direction.z * distance,
-    };
+    const point: IVector3 = [
+      ray.origin[0] + ray.direction[0] * distance,
+      ray.origin[1] + ray.direction[1] * distance,
+      ray.origin[2] + ray.direction[2] * distance,
+    ];
 
     // Approximate normal (from AABB face)
     const normal = this.calculateAABBHitNormal(point, body.position, aabb);
@@ -1448,19 +1449,19 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   private calculateAABBHitNormal(point: IVector3, center: IVector3, aabb: IAABB): IVector3 {
     const epsilon = 0.001;
 
-    if (Math.abs(point.x - aabb.min.x) < epsilon) return { x: -1, y: 0, z: 0 };
-    if (Math.abs(point.x - aabb.max.x) < epsilon) return { x: 1, y: 0, z: 0 };
-    if (Math.abs(point.y - aabb.min.y) < epsilon) return { x: 0, y: -1, z: 0 };
-    if (Math.abs(point.y - aabb.max.y) < epsilon) return { x: 0, y: 1, z: 0 };
-    if (Math.abs(point.z - aabb.min.z) < epsilon) return { x: 0, y: 0, z: -1 };
-    if (Math.abs(point.z - aabb.max.z) < epsilon) return { x: 0, y: 0, z: 1 };
+    if (Math.abs(point[0] - aabb.min[0]) < epsilon) return [-1, 0, 0];
+    if (Math.abs(point[0] - aabb.max[0]) < epsilon) return [1, 0, 0];
+    if (Math.abs(point[1] - aabb.min[1]) < epsilon) return [0, -1, 0];
+    if (Math.abs(point[1] - aabb.max[1]) < epsilon) return [0, 1, 0];
+    if (Math.abs(point[2] - aabb.min[2]) < epsilon) return [0, 0, -1];
+    if (Math.abs(point[2] - aabb.max[2]) < epsilon) return [0, 0, 1];
 
     // Default: direction from center to point
-    const dx = point.x - center.x;
-    const dy = point.y - center.y;
-    const dz = point.z - center.z;
+    const dx = point[0] - center[0];
+    const dy = point[1] - center[1];
+    const dz = point[2] - center[2];
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    return len > 0 ? { x: dx / len, y: dy / len, z: dz / len } : { x: 0, y: 1, z: 0 };
+    return len > 0 ? [dx / len, dy / len, dz / len] : [0, 1, 0];
   }
 
   public sphereOverlap(
@@ -1477,15 +1478,15 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       const aabb = this.getBodyAABB(body);
 
       // Find closest point on AABB to sphere center
-      const closest = {
-        x: Math.max(aabb.min.x, Math.min(center.x, aabb.max.x)),
-        y: Math.max(aabb.min.y, Math.min(center.y, aabb.max.y)),
-        z: Math.max(aabb.min.z, Math.min(center.z, aabb.max.z)),
-      };
+      const closest: IVector3 = [
+        Math.max(aabb.min[0], Math.min(center[0], aabb.max[0])),
+        Math.max(aabb.min[1], Math.min(center[1], aabb.max[1])),
+        Math.max(aabb.min[2], Math.min(center[2], aabb.max[2])),
+      ];
 
-      const dx = center.x - closest.x;
-      const dy = center.y - closest.y;
-      const dz = center.z - closest.z;
+      const dx = center[0] - closest[0];
+      const dy = center[1] - closest[1];
+      const dz = center[2] - closest[2];
       const distSq = dx * dx + dy * dy + dz * dz;
 
       if (distSq < radius * radius) {
@@ -1493,7 +1494,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         results.push({
           bodyId: body.id,
           penetration: radius - dist,
-          direction: dist > 0 ? { x: dx / dist, y: dy / dist, z: dz / dist } : { x: 0, y: 1, z: 0 },
+          direction: dist > 0 ? [dx / dist, dy / dist, dz / dist] : [0, 1, 0],
         });
       }
     }
@@ -1510,16 +1511,16 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const results: IOverlapResult[] = [];
 
     const queryAABB: IAABB = {
-      min: {
-        x: center.x - halfExtents.x,
-        y: center.y - halfExtents.y,
-        z: center.z - halfExtents.z,
-      },
-      max: {
-        x: center.x + halfExtents.x,
-        y: center.y + halfExtents.y,
-        z: center.z + halfExtents.z,
-      },
+      min: [
+        center[0] - halfExtents[0],
+        center[1] - halfExtents[1],
+        center[2] - halfExtents[2],
+      ],
+      max: [
+        center[0] + halfExtents[0],
+        center[1] + halfExtents[1],
+        center[2] + halfExtents[2],
+      ],
     };
 
     for (const body of this.bodiesArray) {
@@ -1531,28 +1532,28 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       if (this.aabbOverlap(queryAABB, bodyAABB)) {
         // Calculate penetration
         const overlapX = Math.min(
-          queryAABB.max.x - bodyAABB.min.x,
-          bodyAABB.max.x - queryAABB.min.x
+          queryAABB.max[0] - bodyAABB.min[0],
+          bodyAABB.max[0] - queryAABB.min[0]
         );
         const overlapY = Math.min(
-          queryAABB.max.y - bodyAABB.min.y,
-          bodyAABB.max.y - queryAABB.min.y
+          queryAABB.max[1] - bodyAABB.min[1],
+          bodyAABB.max[1] - queryAABB.min[1]
         );
         const overlapZ = Math.min(
-          queryAABB.max.z - bodyAABB.min.z,
-          bodyAABB.max.z - queryAABB.min.z
+          queryAABB.max[2] - bodyAABB.min[2],
+          bodyAABB.max[2] - queryAABB.min[2]
         );
         const penetration = Math.min(overlapX, overlapY, overlapZ);
 
-        const dx = body.position.x - center.x;
-        const dy = body.position.y - center.y;
-        const dz = body.position.z - center.z;
+        const dx = body.position[0] - center[0];
+        const dy = body.position[1] - center[1];
+        const dz = body.position[2] - center[2];
         const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         results.push({
           bodyId: body.id,
           penetration,
-          direction: len > 0 ? { x: dx / len, y: dy / len, z: dz / len } : { x: 0, y: 1, z: 0 },
+          direction: len > 0 ? [dx / len, dy / len, dz / len] : [0, 1, 0],
         });
       }
     }
@@ -1573,37 +1574,33 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         halfExtents = body.shape.halfExtents;
         break;
       case 'sphere':
-        halfExtents = {
-          x: body.shape.radius,
-          y: body.shape.radius,
-          z: body.shape.radius,
-        };
+        halfExtents = [body.shape.radius, body.shape.radius, body.shape.radius];
         break;
       case 'capsule':
-        halfExtents = {
-          x: body.shape.radius,
-          y: body.shape.height / 2 + body.shape.radius,
-          z: body.shape.radius,
-        };
+        halfExtents = [
+          body.shape.radius,
+          body.shape.height / 2 + body.shape.radius,
+          body.shape.radius,
+        ];
         break;
       default:
-        halfExtents = { x: 1, y: 1, z: 1 };
+        halfExtents = [1, 1, 1];
     }
 
     return {
-      min: { x: pos.x - halfExtents.x, y: pos.y - halfExtents.y, z: pos.z - halfExtents.z },
-      max: { x: pos.x + halfExtents.x, y: pos.y + halfExtents.y, z: pos.z + halfExtents.z },
+      min: [pos[0] - halfExtents[0], pos[1] - halfExtents[1], pos[2] - halfExtents[2]],
+      max: [pos[0] + halfExtents[0], pos[1] + halfExtents[1], pos[2] + halfExtents[2]],
     };
   }
 
   private aabbOverlap(a: IAABB, b: IAABB): boolean {
     return (
-      a.min.x <= b.max.x &&
-      a.max.x >= b.min.x &&
-      a.min.y <= b.max.y &&
-      a.max.y >= b.min.y &&
-      a.min.z <= b.max.z &&
-      a.max.z >= b.min.z
+      a.min[0] <= b.max[0] &&
+      a.max[0] >= b.min[0] &&
+      a.min[1] <= b.max[1] &&
+      a.max[1] >= b.min[1] &&
+      a.min[2] <= b.max[2] &&
+      a.max[2] >= b.min[2]
     );
   }
 

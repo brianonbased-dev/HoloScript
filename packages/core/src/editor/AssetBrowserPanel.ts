@@ -38,7 +38,7 @@ export class AssetBrowserPanel {
         color: '#222222',
         borderRadius: 0.02,
         position: [0.8, 1.5, -0.5],
-        rotation: { x: 0, y: -0.5, z: 0 }, // Angled towards user
+        rotation: [0, -0.5, 0 ], // Angled towards user
       },
       children: [],
     });

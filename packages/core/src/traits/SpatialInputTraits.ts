@@ -195,12 +195,12 @@ function smoothJointPose(
 ): SpatialHandJointPose {
   const inv = 1 - factor;
   return {
-    position: [prev.position.x * factor + current.position.x * inv, prev.position.y * factor + current.position.y * inv, prev.position.z * factor + current.position.z * inv,],
+    position: [prev.position[0] * factor + current.position[0] * inv, prev.position[1] * factor + current.position[1] * inv, prev.position[2] * factor + current.position[2] * inv,],
     rotation: {
-      x: prev.rotation.x * factor + current.rotation.x * inv,
-      y: prev.rotation.y * factor + current.rotation.y * inv,
-      z: prev.rotation.z * factor + current.rotation.z * inv,
-      w: prev.rotation.w * factor + current.rotation.w * inv,
+      x: prev.rotation[0] * factor + current.rotation[0] * inv,
+      y: prev.rotation[1] * factor + current.rotation[1] * inv,
+      z: prev.rotation[2] * factor + current.rotation[2] * inv,
+      w: prev.rotation[3] * factor + current.rotation[3] * inv,
     },
     radius: current.radius,
     linearVelocity: current.linearVelocity,
@@ -1038,16 +1038,16 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       if ((event as Record<string, unknown>).thumbstick) {
         const ts = (event as Record<string, unknown>).thumbstick as { x: number; y: number };
         ctrl.thumbstick = {
-          x: applyDeadzone(ts.x, config.deadzone),
-          y: applyDeadzone(ts.y, config.deadzone),
+          x: applyDeadzone(ts[0], config.deadzone),
+          y: applyDeadzone(ts[1], config.deadzone),
         };
       }
 
       if ((event as Record<string, unknown>).touchpad) {
         const tp = (event as Record<string, unknown>).touchpad as { x: number; y: number };
         ctrl.touchpad = {
-          x: applyDeadzone(tp.x, config.deadzone),
-          y: applyDeadzone(tp.y, config.deadzone),
+          x: applyDeadzone(tp[0], config.deadzone),
+          y: applyDeadzone(tp[1], config.deadzone),
         };
       }
 

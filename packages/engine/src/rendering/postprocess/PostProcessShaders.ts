@@ -62,7 +62,7 @@ fn linearToSrgb(color: vec3f) -> vec3f {
 fn hash(p: vec2f) -> f32 {
   let k = vec2f(0.3183099, 0.3678794);
   let x = p * k + k.yx;
-  return fract(16.0 * k.x * fract(x.x * x.y * (x.x + x.y)));
+  return fract(16.0 * k[0] * fract(x[0] * x[1] * (x[0] + x[1])));
 }
 
 // Simple 2D noise
@@ -71,9 +71,9 @@ fn noise2D(p: vec2f) -> f32 {
   let f = fract(p);
   let u = f * f * (3.0 - 2.0 * f);
   return mix(
-    mix(hash(i + vec2f(0.0, 0.0)), hash(i + vec2f(1.0, 0.0)), u.x),
-    mix(hash(i + vec2f(0.0, 1.0)), hash(i + vec2f(1.0, 1.0)), u.x),
-    u.y
+    mix(hash(i + vec2f(0.0, 0.0)), hash(i + vec2f(1.0, 0.0)), u[0]),
+    mix(hash(i + vec2f(0.0, 1.0)), hash(i + vec2f(1.0, 1.0)), u[0]),
+    u[1]
   );
 }
 `;
@@ -385,7 +385,7 @@ fn fs_fxaa(input: VertexOutput) -> @location(0) vec4f {
   let isHorizontal = edgeH >= edgeV;
 
   // Blend direction
-  let stepLength = select(invSize.x, invSize.y, isHorizontal);
+  let stepLength = select(invSize[0], invSize[1], isHorizontal);
   var lum1: f32;
   var lum2: f32;
 
@@ -414,9 +414,9 @@ fn fs_fxaa(input: VertexOutput) -> @location(0) vec4f {
   let blendFactor = max(subpix, 0.5);
 
   if (isHorizontal) {
-    finalUV.y += select(stepLength, -stepLength, is1Steeper) * blendFactor;
+    finalUV[1] += select(stepLength, -stepLength, is1Steeper) * blendFactor;
   } else {
-    finalUV.x += select(stepLength, -stepLength, is1Steeper) * blendFactor;
+    finalUV[0] += select(stepLength, -stepLength, is1Steeper) * blendFactor;
   }
 
   let result = textureSample(inputTexture, texSampler, finalUV);
@@ -448,7 +448,7 @@ fn fs_vignette(input: VertexOutput) -> @location(0) vec4f {
   let aspect = 1.0; // Could be passed via uniforms
 
   var coords = uv;
-  coords.x *= aspect;
+  coords[0] *= aspect;
 
   // Compute vignette
   let dist = length(coords) * uniforms.roundness;
@@ -523,10 +523,10 @@ fn fs_sharpen(input: VertexOutput) -> @location(0) vec4f {
 
   // Sample 3x3 neighborhood
   let center = textureSample(inputTexture, texSampler, input.uv).rgb;
-  let n = textureSample(inputTexture, texSampler, input.uv + vec2f(0.0, -texel.y)).rgb;
-  let s = textureSample(inputTexture, texSampler, input.uv + vec2f(0.0, texel.y)).rgb;
-  let e = textureSample(inputTexture, texSampler, input.uv + vec2f(texel.x, 0.0)).rgb;
-  let w = textureSample(inputTexture, texSampler, input.uv + vec2f(-texel.x, 0.0)).rgb;
+  let n = textureSample(inputTexture, texSampler, input.uv + vec2f(0.0, -texel[1])).rgb;
+  let s = textureSample(inputTexture, texSampler, input.uv + vec2f(0.0, texel[1])).rgb;
+  let e = textureSample(inputTexture, texSampler, input.uv + vec2f(texel[0], 0.0)).rgb;
+  let w = textureSample(inputTexture, texSampler, input.uv + vec2f(-texel[0], 0.0)).rgb;
 
   // Compute unsharp mask
   let blur = (n + s + e + w) * 0.25;
@@ -699,11 +699,11 @@ fn hash3(p: vec2f) -> vec3f {
 
 fn reconstructNormal(uv: vec2f, texelSize: vec2f) -> vec3f {
   let dc = textureSample(depthTexture, texSampler, uv).r;
-  let dl = textureSample(depthTexture, texSampler, uv - vec2f(texelSize.x, 0.0)).r;
-  let dr = textureSample(depthTexture, texSampler, uv + vec2f(texelSize.x, 0.0)).r;
-  let db = textureSample(depthTexture, texSampler, uv - vec2f(0.0, texelSize.y)).r;
-  let dt = textureSample(depthTexture, texSampler, uv + vec2f(0.0, texelSize.y)).r;
-  return normalize(vec3f(dl - dr, db - dt, 2.0 * texelSize.x));
+  let dl = textureSample(depthTexture, texSampler, uv - vec2f(texelSize[0], 0.0)).r;
+  let dr = textureSample(depthTexture, texSampler, uv + vec2f(texelSize[0], 0.0)).r;
+  let db = textureSample(depthTexture, texSampler, uv - vec2f(0.0, texelSize[1])).r;
+  let dt = textureSample(depthTexture, texSampler, uv + vec2f(0.0, texelSize[1])).r;
+  return normalize(vec3f(dl - dr, db - dt, 2.0 * texelSize[0]));
 }
 
 // HBAO: 8 directions × 4 steps per direction = 32 samples
@@ -786,7 +786,7 @@ fn fs_ssao(input: VertexOutput) -> @location(0) vec4f {
   if (uniforms.mode > 0.5) {
     // HBAO mode: 8 directions × 4 steps
     let hbaoResult = hbaoOcclusion(input.uv, normal, centerDepth, texelSize);
-    occlusion = hbaoResult.x;
+    occlusion = hbaoResult[0];
   } else {
     // Standard hemisphere sampling
     let sampleCount = u32(uniforms.samples);
@@ -880,7 +880,7 @@ fn fs_fog(input: VertexOutput) -> @location(0) vec4f {
   }
 
   // Height-based attenuation
-  let heightUV = 1.0 - input.uv.y; // screen-space approximation of world height
+  let heightUV = 1.0 - input.uv[1]; // screen-space approximation of world height
   let heightFactor = exp(-max(heightUV - uniforms.height, 0.0) * uniforms.heightFalloff);
   fogFactor = mix(fogFactor, 1.0, 1.0 - heightFactor);
 
@@ -998,17 +998,17 @@ fn hue2rgb(p: f32, q: f32, t: f32) -> f32 {
 }
 
 fn hslToRgb(hsl: vec3f) -> vec3f {
-  if (hsl.y == 0.0) {
-    return vec3f(hsl.z);
+  if (hsl[1] == 0.0) {
+    return vec3f(hsl[2]);
   }
 
-  let q = select(hsl.z + hsl.y - hsl.z * hsl.y, hsl.z * (1.0 + hsl.y), hsl.z < 0.5);
-  let p = 2.0 * hsl.z - q;
+  let q = select(hsl[2] + hsl[1] - hsl[2] * hsl[1], hsl[2] * (1.0 + hsl[1]), hsl[2] < 0.5);
+  let p = 2.0 * hsl[2] - q;
 
   return vec3f(
-    hue2rgb(p, q, hsl.x + 1.0/3.0),
-    hue2rgb(p, q, hsl.x),
-    hue2rgb(p, q, hsl.x - 1.0/3.0)
+    hue2rgb(p, q, hsl[0] + 1.0/3.0),
+    hue2rgb(p, q, hsl[0]),
+    hue2rgb(p, q, hsl[0] - 1.0/3.0)
   );
 }
 
@@ -1041,7 +1041,7 @@ fn fs_colorgrade(input: VertexOutput) -> @location(0) vec4f {
   // Hue shift
   if (abs(uniforms.hueShift) > 0.001) {
     var hsl = rgbToHsl(color);
-    hsl.x = fract(hsl.x + uniforms.hueShift);
+    hsl[0] = fract(hsl[0] + uniforms.hueShift);
     color = hslToRgb(hsl);
   }
 
@@ -1132,7 +1132,7 @@ fn fs_caustics(input: VertexOutput) -> @location(0) vec4f {
   let color = textureSample(inputTexture, texSampler, input.uv);
   let depth = textureSample(depthTexture, texSampler, input.uv).r;
 
-  let worldY = 1.0 - input.uv.y;
+  let worldY = 1.0 - input.uv[1];
   if (worldY > uniforms.waterLevel) {
     return color;
   }
@@ -1204,11 +1204,11 @@ fn fs_ssr(input: VertexOutput) -> @location(0) vec4f {
 
   // Reconstruct normal from depth
   let dc = depth;
-  let dl = textureSample(depthTexture, texSampler, input.uv - vec2f(texel.x, 0.0)).r;
-  let dr = textureSample(depthTexture, texSampler, input.uv + vec2f(texel.x, 0.0)).r;
-  let db = textureSample(depthTexture, texSampler, input.uv - vec2f(0.0, texel.y)).r;
-  let dt = textureSample(depthTexture, texSampler, input.uv + vec2f(0.0, texel.y)).r;
-  let normal = normalize(vec3f(dl - dr, db - dt, 2.0 * texel.x));
+  let dl = textureSample(depthTexture, texSampler, input.uv - vec2f(texel[0], 0.0)).r;
+  let dr = textureSample(depthTexture, texSampler, input.uv + vec2f(texel[0], 0.0)).r;
+  let db = textureSample(depthTexture, texSampler, input.uv - vec2f(0.0, texel[1])).r;
+  let dt = textureSample(depthTexture, texSampler, input.uv + vec2f(0.0, texel[1])).r;
+  let normal = normalize(vec3f(dl - dr, db - dt, 2.0 * texel[0]));
 
   // View direction (simplified — assumes forward-facing camera)
   let viewDir = normalize(vec3f(input.uv * 2.0 - 1.0, -1.0));
@@ -1225,7 +1225,7 @@ fn fs_ssr(input: VertexOutput) -> @location(0) vec4f {
     hitUV += stepDir;
 
     // Bounds check
-    if (hitUV.x < 0.0 || hitUV.x > 1.0 || hitUV.y < 0.0 || hitUV.y > 1.0) { break; }
+    if (hitUV[0] < 0.0 || hitUV[0] > 1.0 || hitUV[1] < 0.0 || hitUV[1] > 1.0) { break; }
 
     let sampleDepth = textureSample(depthTexture, texSampler, hitUV).r;
     let expectedDepth = depth + f32(i) * uniforms.stepSize;
@@ -1277,7 +1277,7 @@ fn fs_ssr(input: VertexOutput) -> @location(0) vec4f {
   let fresnelWeight = mix(1.0, fresnel, uniforms.fresnelStrength);
 
   // Edge fade
-  let edgeDist = max(abs(hitUV.x - 0.5), abs(hitUV.y - 0.5)) * 2.0;
+  let edgeDist = max(abs(hitUV[0] - 0.5), abs(hitUV[1] - 0.5)) * 2.0;
   let edgeFade = 1.0 - pow(clamp(edgeDist, 0.0, 1.0), uniforms.edgeFade);
 
   // Distance fade
@@ -1323,11 +1323,11 @@ fn fs_ssgi(input: VertexOutput) -> @location(0) vec4f {
   let texel = 1.0 / texSize;
 
   // Reconstruct normal from depth
-  let dl = textureSample(depthTexture, texSampler, input.uv - vec2f(texel.x, 0.0)).r;
-  let dr = textureSample(depthTexture, texSampler, input.uv + vec2f(texel.x, 0.0)).r;
-  let db = textureSample(depthTexture, texSampler, input.uv - vec2f(0.0, texel.y)).r;
-  let dt = textureSample(depthTexture, texSampler, input.uv + vec2f(0.0, texel.y)).r;
-  let normal = normalize(vec3f(dl - dr, db - dt, 2.0 * texel.x));
+  let dl = textureSample(depthTexture, texSampler, input.uv - vec2f(texel[0], 0.0)).r;
+  let dr = textureSample(depthTexture, texSampler, input.uv + vec2f(texel[0], 0.0)).r;
+  let db = textureSample(depthTexture, texSampler, input.uv - vec2f(0.0, texel[1])).r;
+  let dt = textureSample(depthTexture, texSampler, input.uv + vec2f(0.0, texel[1])).r;
+  let normal = normalize(vec3f(dl - dr, db - dt, 2.0 * texel[0]));
 
   var indirect = vec3f(0.0);
   let sampleCount = i32(uniforms.samples);
@@ -1374,11 +1374,11 @@ fn fs_ssgi(input: VertexOutput) -> @location(0) vec4f {
         // Depth weight
         let dw = exp(-abs(centerDepth - sd) * uniforms.falloff * 10.0);
         // Normal weight
-        let snl = textureSample(depthTexture, texSampler, input.uv + off - vec2f(texel.x, 0.0)).r;
-        let snr = textureSample(depthTexture, texSampler, input.uv + off + vec2f(texel.x, 0.0)).r;
-        let snb = textureSample(depthTexture, texSampler, input.uv + off - vec2f(0.0, texel.y)).r;
-        let snt = textureSample(depthTexture, texSampler, input.uv + off + vec2f(0.0, texel.y)).r;
-        let sn = normalize(vec3f(snl - snr, snb - snt, 2.0 * texel.x));
+        let snl = textureSample(depthTexture, texSampler, input.uv + off - vec2f(texel[0], 0.0)).r;
+        let snr = textureSample(depthTexture, texSampler, input.uv + off + vec2f(texel[0], 0.0)).r;
+        let snb = textureSample(depthTexture, texSampler, input.uv + off - vec2f(0.0, texel[1])).r;
+        let snt = textureSample(depthTexture, texSampler, input.uv + off + vec2f(0.0, texel[1])).r;
+        let sn = normalize(vec3f(snl - snr, snb - snt, 2.0 * texel[0]));
         let nw = max(dot(normal, sn), 0.0);
         let w = dw * nw;
         // Sample neighbor's indirect (approximation: use color luminance ratio)

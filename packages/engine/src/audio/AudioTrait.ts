@@ -71,14 +71,10 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
 
     const engine = getSharedAudioEngine();
     const nodeId = node.id ?? 'unknown';
-    const pos = (node.properties?.position as { x: number; y: number; z: number } | undefined) || {
-      x: 0,
-      y: 0,
-      z: 0,
-    };
+    const pos = (node.properties?.position as any) || [0, 0, 0];
 
     const sourceId = engine.play(config.soundId, {
-      position: { x: pos.x, y: pos.y, z: pos.z },
+      position: [pos[0], pos[1], pos[2]],
       volume: config.volume,
       pitch: config.pitch,
       loop: config.loop,
@@ -106,11 +102,7 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     const sourceId = nodeAudioSources.get(nodeId);
     if (!sourceId) return;
 
-    const pos = (node.properties?.position as { x: number; y: number; z: number } | undefined) || {
-      x: 0,
-      y: 0,
-      z: 0,
-    };
+    const pos = (node.properties?.position as any) || [0, 0, 0];
     getSharedAudioEngine().setSourcePosition(sourceId, pos);
   },
 };

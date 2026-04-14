@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Shader Graph Type Definitions
  *
@@ -324,7 +325,7 @@ export const INPUT_NODES: INodeTemplate[] = [
     description: 'Constant vec3 value',
     inputs: [],
     outputs: [{ id: 'value', name: 'Value', type: 'vec3' }],
-    defaultProperties: { x: 0, y: 0, z: 0 },
+    defaultProperties: [0, 0, 0 ],
     generateCode: (node) => {
       const x = node.properties?.x ?? 0;
       const y = node.properties?.y ?? 0;
@@ -511,7 +512,7 @@ export const MATH_NODES: INodeTemplate[] = [
       { id: 'x', name: 'X', type: 'float', defaultValue: 0.5 },
     ],
     outputs: [{ id: 'result', name: 'Result', type: 'float' }],
-    generateCode: (_, inputs) => `smoothstep(${inputs.edge0}, ${inputs.edge1}, ${inputs.x})`,
+    generateCode: (_, inputs) => `smoothstep(${inputs.edge0}, ${inputs.edge1}, ${inputs[0]})`,
   },
   {
     type: 'math_step',
@@ -523,7 +524,7 @@ export const MATH_NODES: INodeTemplate[] = [
       { id: 'x', name: 'X', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'result', name: 'Result', type: 'float' }],
-    generateCode: (_, inputs) => `step(${inputs.edge}, ${inputs.x})`,
+    generateCode: (_, inputs) => `step(${inputs.edge}, ${inputs[0]})`,
   },
   {
     type: 'math_fract',
@@ -643,7 +644,7 @@ export const TRIG_NODES: INodeTemplate[] = [
       { id: 'x', name: 'X', type: 'float', defaultValue: 1 },
     ],
     outputs: [{ id: 'result', name: 'Result', type: 'float' }],
-    generateCode: (_, inputs) => `atan2(${inputs.y}, ${inputs.x})`,
+    generateCode: (_, inputs) => `atan2(${inputs[1]}, ${inputs[0]})`,
   },
   {
     type: 'trig_radians',
@@ -679,7 +680,7 @@ export const VECTOR_NODES: INodeTemplate[] = [
       { id: 'y', name: 'Y', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'vector', name: 'Vector', type: 'vec2' }],
-    generateCode: (_, inputs) => `vec2<f32>(${inputs.x}, ${inputs.y})`,
+    generateCode: (_, inputs) => `vec2<f32>(${inputs[0]}, ${inputs[1]})`,
   },
   {
     type: 'vector_make_vec3',
@@ -692,7 +693,7 @@ export const VECTOR_NODES: INodeTemplate[] = [
       { id: 'z', name: 'Z', type: 'float', defaultValue: 0 },
     ],
     outputs: [{ id: 'vector', name: 'Vector', type: 'vec3' }],
-    generateCode: (_, inputs) => `vec3<f32>(${inputs.x}, ${inputs.y}, ${inputs.z})`,
+    generateCode: (_, inputs) => `vec3<f32>(${inputs[0]}, ${inputs[1]}, ${inputs[2]})`,
   },
   {
     type: 'vector_make_vec4',
@@ -706,7 +707,7 @@ export const VECTOR_NODES: INodeTemplate[] = [
       { id: 'w', name: 'W', type: 'float', defaultValue: 1 },
     ],
     outputs: [{ id: 'vector', name: 'Vector', type: 'vec4' }],
-    generateCode: (_, inputs) => `vec4<f32>(${inputs.x}, ${inputs.y}, ${inputs.z}, ${inputs.w})`,
+    generateCode: (_, inputs) => `vec4<f32>(${inputs[0]}, ${inputs[1]}, ${inputs[2]}, ${inputs[3]})`,
   },
   {
     type: 'vector_split_vec2',

@@ -18,8 +18,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── mock KeplerianCalculator ──────────────────────────────────────────────
-vi.mock('../../orbital/KeplerianCalculator', () => ({
-  calculatePosition: vi.fn().mockReturnValue({ x: 1, y: 2, z: 3 }),
+vi.mock('@holoscript/engine/orbital', () => ({
+  calculatePosition: vi.fn().mockReturnValue([1, 2, 3 ]),
 }));
 
 import { orbitalHandler } from '../OrbitalTrait';
@@ -45,7 +45,7 @@ function makeCtx(overrides: Record<string, any> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockCalcPos.mockReturnValue({ x: 1, y: 2, z: 3 });
+  mockCalcPos.mockReturnValue([1, 2, 3 ]);
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
@@ -125,39 +125,39 @@ describe('orbitalHandler.onUpdate — calculatePosition', () => {
 
 describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', () => {
   it('maps rawPos.x to finalPosition.x', () => {
-    mockCalcPos.mockReturnValue({ x: 2, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([2, 0, 0 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx(); // scaleMultiplier=1 → visualScale=50
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
-    expect(node.position.x).toBeCloseTo(2 * 50, 1);
+    expect(node.position[0]).toBeCloseTo(2 * 50, 1);
   });
 
   it('maps rawPos.z (Keplerian height) → Three.js Y', () => {
-    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 4 });
+    mockCalcPos.mockReturnValue([0, 0, 4 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
-    expect(node.position.y).toBeCloseTo(4 * 50, 1); // rawPos.z → y
+    expect(node.position[1]).toBeCloseTo(4 * 50, 1); // rawPos.z → y
   });
 
   it('maps rawPos.y (Keplerian in-plane) → Three.js Z', () => {
-    mockCalcPos.mockReturnValue({ x: 0, y: 3, z: 0 });
+    mockCalcPos.mockReturnValue([0, 3, 0 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
-    expect(node.position.z).toBeCloseTo(3 * 50, 1); // rawPos.y → z
+    expect(node.position[2]).toBeCloseTo(3 * 50, 1); // rawPos.y → z
   });
 
   it('applies scaleMultiplier * 50 to all axes', () => {
-    mockCalcPos.mockReturnValue({ x: 1, y: 1, z: 1 });
+    mockCalcPos.mockReturnValue([1, 1, 1 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx({ getScaleMultiplier: vi.fn().mockReturnValue(2) }); // visualScale=100
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
-    expect(node.position.x).toBeCloseTo(100, 1);
+    expect(node.position[0]).toBeCloseTo(100, 1);
   });
 
   it('applies satelliteScale ×5 when config.parent set', () => {
-    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([1, 0, 0 ]);
     const node = makeNode({});
     const ctx = makeCtx(); // visualScale=50
     // config.parent set → currentScale = visualScale * 5 = 250
@@ -167,15 +167,15 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
       ctx as any,
       0.016
     );
-    expect(node.position.x).toBeCloseTo(1 * 50 * 5, 1); // 250
+    expect(node.position[0]).toBeCloseTo(1 * 50 * 5, 1); // 250
   });
 
   it('does NOT apply satelliteScale when no parent', () => {
-    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([1, 0, 0 ]);
     const node = makeNode({});
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, { semiMajorAxis: 1 } as any, ctx as any, 0.016);
-    expect(node.position.x).toBeCloseTo(50, 1); // just visualScale
+    expect(node.position[0]).toBeCloseTo(50, 1); // just visualScale
   });
 });
 
@@ -183,7 +183,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
 
 describe('orbitalHandler.onUpdate — parent node offset', () => {
   it('adds parent node position when getNode resolves it', () => {
-    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([0, 0, 0 ]);
     const parentNode = { position: [100, 200, 300] };
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(parentNode) });
     const node = makeNode({});
@@ -194,13 +194,13 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
       0.016
     );
     // orbPos at (0,0,0) scaled; parent adds offset
-    expect(node.position.x).toBeCloseTo(100, 1);
-    expect(node.position.y).toBeCloseTo(200, 1);
-    expect(node.position.z).toBeCloseTo(300, 1);
+    expect(node.position[0]).toBeCloseTo(100, 1);
+    expect(node.position[1]).toBeCloseTo(200, 1);
+    expect(node.position[2]).toBeCloseTo(300, 1);
   });
 
   it('no parent offset when getNode returns null', () => {
-    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([1, 0, 0 ]);
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(null) });
     const node = makeNode({});
     orbitalHandler.onUpdate!(
@@ -210,11 +210,11 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
       0.016
     );
     // Position is just the scaled orbital position (no parent offset)
-    expect(node.position.x).toBeCloseTo(250, 1); // x=1*50*5 (satellite scale)
+    expect(node.position[0]).toBeCloseTo(250, 1); // x=1*50*5 (satellite scale)
   });
 
   it('supports parent passed as object reference (fallback path)', () => {
-    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([0, 0, 0 ]);
     const parentObj = { position: [5, 10, 15] };
     // getNode returns null, but parent IS the object
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(null) });
@@ -226,9 +226,9 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
       0.016
     );
     // parent is object with .position → parentNode = parent → adds offset
-    expect(node.position.x).toBeCloseTo(5, 1);
-    expect(node.position.y).toBeCloseTo(10, 1);
-    expect(node.position.z).toBeCloseTo(15, 1);
+    expect(node.position[0]).toBeCloseTo(5, 1);
+    expect(node.position[1]).toBeCloseTo(10, 1);
+    expect(node.position[2]).toBeCloseTo(15, 1);
   });
 });
 
@@ -236,7 +236,7 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
 
 describe('orbitalHandler.onUpdate — position_update', () => {
   it('emits position_update with finalPosition', () => {
-    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([1, 0, 0 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -247,7 +247,7 @@ describe('orbitalHandler.onUpdate — position_update', () => {
   });
 
   it('emitted position matches node.position', () => {
-    mockCalcPos.mockReturnValue({ x: 2, y: 0, z: 0 });
+    mockCalcPos.mockReturnValue([2, 0, 0 ]);
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);

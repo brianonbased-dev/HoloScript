@@ -1,4 +1,4 @@
-import { InputBindings } from '@holoscript/core';
+import { InputBindings } from '../input/InputBindings.js';
 import { WebRTCTransport } from '@holoscript/core';
 
 export class VoiceManager {

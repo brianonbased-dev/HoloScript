@@ -1,0 +1,1 @@
+{"version":3,"file":"RestEndpointTrait.d.ts","sourceRoot":"","sources":["RestEndpointTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,kBAAkB;IACjC,SAAS,EAAE,MAAM,CAAC;CACnB;AACD,eAAO,MAAM,mBAAmB,EAAE,YAAY,CAAC,kBAAkB,CA0ChE,CAAC;AACF,eAAe,mBAAmB,CAAC"}

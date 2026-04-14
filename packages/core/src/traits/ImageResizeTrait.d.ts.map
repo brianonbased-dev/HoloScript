@@ -1,0 +1,1 @@
+{"version":3,"file":"ImageResizeTrait.d.ts","sourceRoot":"","sources":["ImageResizeTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,iBAAiB;IAChC,SAAS,EAAE,MAAM,CAAC;IAClB,UAAU,EAAE,MAAM,CAAC;IACnB,OAAO,EAAE,MAAM,CAAC;CACjB;AAED,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,iBAAiB,CAiC9D,CAAC;AAEF,eAAe,kBAAkB,CAAC"}

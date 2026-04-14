@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AdvancedTexturing.ts
  *
@@ -18,15 +19,7 @@
 // SHARED TYPES
 // =============================================================================
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec2 = [number, number];
 
 /** Simple flat texture (row-major, RGBA, linear) */
 export interface Texture2D {
@@ -100,28 +93,24 @@ export interface DisplacementConfig {
  * and a height map sample at the corresponding UV.
  */
 export function computeDisplacedPosition(
-  position: Vec3,
-  normal: Vec3,
+  position: Vector3,
+  normal: Vector3,
   heightMap: Texture2D,
   u: number,
   v: number,
   config: Partial<DisplacementConfig> = {}
-): Vec3 {
+): Vector3 {
   const scale = config.scale ?? 0.1;
   const bias = config.bias ?? 0.5;
   const h = sampleTexture(heightMap, u, v)[0]; // R channel = height
   const offset = (h - bias) * scale;
-  return {
-    x: position.x + normal.x * offset,
-    y: position.y + normal.y * offset,
-    z: position.z + normal.z * offset,
-  };
+  return [position[0] + normal[0] * offset, position[1] + normal[1] * offset, position[2] + normal[2] * offset];
 }
 
 /**
  * Compute vertex normals for a displaced mesh via finite differences.
  * heights: per-vertex height samples (row-major, same size as vertex grid).
- * Returns per-vertex Vec3 normals (not normalised).
+ * Returns per-vertex Vector3 normals (not normalised).
  */
 export function computeDisplacementNormalsFromHeightMap(
   heights: Float32Array,
@@ -129,8 +118,8 @@ export function computeDisplacementNormalsFromHeightMap(
   gridH: number,
   cellSizeX: number,
   cellSizeZ: number
-): Vec3[] {
-  const normals: Vec3[] = [];
+): Vector3[] {
+  const normals: Vector3[] = [];
   for (let y = 0; y < gridH; y++) {
     for (let x = 0; x < gridW; x++) {
       const c = heights[y * gridW + x];
@@ -138,11 +127,11 @@ export function computeDisplacementNormalsFromHeightMap(
       const r = x < gridW - 1 ? heights[y * gridW + (x + 1)] : c;
       const u = y > 0 ? heights[(y - 1) * gridW + x] : c;
       const d = y < gridH - 1 ? heights[(y + 1) * gridW + x] : c;
-      normals.push({
-        x: -(r - l) / (2 * cellSizeX),
-        y: 1,
-        z: -(d - u) / (2 * cellSizeZ),
-      });
+      normals.push([
+        -(r - l) / (2 * cellSizeX),
+        1,
+        -(d - u) / (2 * cellSizeZ),
+      ]);
     }
   }
   return normals;
@@ -172,7 +161,7 @@ export interface POMConfig {
  */
 export function computePOM(
   uv: Vec2,
-  viewDir: Vec3,
+  viewDir: Vector3,
   heightMap: Texture2D,
   config: Partial<POMConfig> = {}
 ): Vec2 {
@@ -181,37 +170,37 @@ export function computePOM(
   const maxL = config.maxLayers ?? 32;
 
   // Number of layers depends on angle to surface (less when head-on)
-  const numLayers = Math.round(minL + (maxL - minL) * (1 - Math.abs(viewDir.z)));
+  const numLayers = Math.round(minL + (maxL - minL) * (1 - Math.abs(viewDir[2])));
   const layerDepth = 1 / numLayers;
-  const deltaUV: Vec2 = {
-    x: (viewDir.x * scale) / (numLayers * Math.abs(viewDir.z) + 1e-6),
-    y: (viewDir.y * scale) / (numLayers * Math.abs(viewDir.z) + 1e-6),
-  };
+  const deltaUV: Vec2 = [
+    (viewDir[0] * scale) / (numLayers * Math.abs(viewDir[2]) + 1e-6),
+    (viewDir[1] * scale) / (numLayers * Math.abs(viewDir[2]) + 1e-6),
+  ];
 
   let currentDepth = 0;
-  const currentUV = { ...uv };
-  let mapValue = sampleTexture(heightMap, currentUV.x, currentUV.y)[0];
+  const currentUV: [number, number] = [uv[0], uv[1]];
+  let mapValue = sampleTexture(heightMap, currentUV[0], currentUV[1])[0];
 
   // Step until height map depth < current layer depth
   while (currentDepth < mapValue) {
-    currentUV.x -= deltaUV.x;
-    currentUV.y -= deltaUV.y;
+    currentUV[0] -= deltaUV[0];
+    currentUV[1] -= deltaUV[1];
     currentDepth += layerDepth;
-    mapValue = sampleTexture(heightMap, currentUV.x, currentUV.y)[0];
+    mapValue = sampleTexture(heightMap, currentUV[0], currentUV[1])[0];
   }
 
   // Binary refinement (one step back, then interpolate)
-  const prevUV = { x: currentUV.x + deltaUV.x, y: currentUV.y + deltaUV.y };
+  const prevUV: Vec2 = [currentUV[0] + deltaUV[0], currentUV[1] + deltaUV[1]];
   const prevDepth = currentDepth - layerDepth;
-  const prevMapValue = sampleTexture(heightMap, prevUV.x, prevUV.y)[0];
+  const prevMapValue = sampleTexture(heightMap, prevUV[0], prevUV[1])[0];
   const after = mapValue - currentDepth;
   const before = prevMapValue - prevDepth;
   const weight = after / (after - before + 1e-6);
 
-  return {
-    x: prevUV.x * weight + currentUV.x * (1 - weight),
-    y: prevUV.y * weight + currentUV.y * (1 - weight),
-  };
+  return [
+    prevUV[0] * weight + currentUV[0] * (1 - weight),
+    prevUV[1] * weight + currentUV[1] * (1 - weight),
+  ];
 }
 
 // =============================================================================
@@ -222,20 +211,16 @@ export function computePOM(
  * Compute triplanar blend weights from a surface normal.
  * Higher sharpness → sharper transitions between planes.
  */
-export function triplanarWeights(normal: Vec3, sharpness = 4): Vec3 {
-  const w = {
-    x: Math.abs(normal.x),
-    y: Math.abs(normal.y),
-    z: Math.abs(normal.z),
-  };
+export function triplanarWeights(normal: Vector3, sharpness = 4): Vector3 {
+  const w = [Math.abs(normal[0]), Math.abs(normal[1]), Math.abs(normal[2])];
   // Power curve for sharper blending
-  const pw = {
-    x: Math.pow(w.x, sharpness),
-    y: Math.pow(w.y, sharpness),
-    z: Math.pow(w.z, sharpness),
-  };
-  const sum = pw.x + pw.y + pw.z + 1e-6;
-  return { x: pw.x / sum, y: pw.y / sum, z: pw.z / sum };
+  const pw = [
+    Math.pow(w[0], sharpness),
+    Math.pow(w[1], sharpness),
+    Math.pow(w[2], sharpness),
+  ];
+  const sum = pw[0] + pw[1] + pw[2] + 1e-6;
+  return [pw[0] / sum, pw[1] / sum, pw[2] / sum];
 }
 
 /**
@@ -245,22 +230,22 @@ export function triplanarWeights(normal: Vec3, sharpness = 4): Vec3 {
  */
 export function sampleTriplanar(
   tex: Texture2D,
-  position: Vec3,
-  normal: Vec3,
+  position: Vector3,
+  normal: Vector3,
   tileScale = 1,
   sharpness = 4
 ): [number, number, number, number] {
   const w = triplanarWeights(normal, sharpness);
 
-  const yz = sampleTextureBilinear(tex, position.y * tileScale, position.z * tileScale);
-  const xz = sampleTextureBilinear(tex, position.x * tileScale, position.z * tileScale);
-  const xy = sampleTextureBilinear(tex, position.x * tileScale, position.y * tileScale);
+  const yz = sampleTextureBilinear(tex, position[1] * tileScale, position[2] * tileScale);
+  const xz = sampleTextureBilinear(tex, position[0] * tileScale, position[2] * tileScale);
+  const xy = sampleTextureBilinear(tex, position[0] * tileScale, position[1] * tileScale);
 
   return [
-    yz[0] * w.x + xz[0] * w.y + xy[0] * w.z,
-    yz[1] * w.x + xz[1] * w.y + xy[1] * w.z,
-    yz[2] * w.x + xz[2] * w.y + xy[2] * w.z,
-    yz[3] * w.x + xz[3] * w.y + xy[3] * w.z,
+    yz[0] * w[0] + xz[0] * w[1] + xy[0] * w[2],
+    yz[1] * w[0] + xz[1] * w[1] + xy[1] * w[2],
+    yz[2] * w[0] + xz[2] * w[1] + xy[2] * w[2],
+    yz[3] * w[0] + xz[3] * w[1] + xy[3] * w[2],
   ];
 }
 
@@ -305,11 +290,10 @@ function overlayBlend(base: number, detail: number, intensity: number): number {
  * Blend detail normal with base normal (Reoriented Normal Mapping).
  * Both normals must be unit-length, in tangent space.
  */
-export function blendDetailNormal(base: Vec3, detail: Vec3): Vec3 {
-  const t = { x: base.x + base.z * detail.x, y: base.y + base.z * detail.y, z: base.z };
-  const _u = { x: -detail.x, y: -detail.y, z: 1 };
-  const len = Math.sqrt(t.x * t.x + t.y * t.y + t.z * t.z) || 1;
-  return { x: t.x / len, y: t.y / len, z: t.z / len };
+export function blendDetailNormal(base: Vector3, detail: Vector3): Vector3 {
+  const t = [base[0] + base[2] * detail[0], base[1] + base[2] * detail[1], base[2]];
+  const len = Math.sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]) || 1;
+  return [t[0] / len, t[1] / len, t[2] / len];
 }
 
 // =============================================================================

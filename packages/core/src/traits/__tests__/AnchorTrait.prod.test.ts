@@ -130,7 +130,7 @@ describe('anchorHandler.onEvent — anchor_created', () => {
 describe('anchorHandler.onEvent — anchor_pose_update', () => {
   const pose = {
     position: [1, 2, 3],
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    rotation: [0, 0, 0, 1 ],
     confidence: 0.95,
   };
   it('updates pose', () => {
@@ -296,7 +296,7 @@ describe('anchorHandler.onUpdate — fallback: interpolate', () => {
     node.__anchorState.trackingState = 'lost';
     node.__anchorState.lastValidPose = {
       position: [5, 1, 2],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     };
     ctx.emit.mockClear();
@@ -314,20 +314,20 @@ describe('anchorHandler.onUpdate — offset application', () => {
     createAnchor(node, ctx, config);
     node.__anchorState.pose = {
       position: [2, 1, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'set_position')!;
-    expect(call[1].position.x).toBeCloseTo(3); // 2 + 1
-    expect(call[1].position.y).toBeCloseTo(1.5); // 1 + 0.5
-    expect(call[1].position.z).toBeCloseTo(0); // 0 + 0
+    expect(call[1].position[0]).toBeCloseTo(3); // 2 + 1
+    expect(call[1].position[1]).toBeCloseTo(1.5); // 1 + 0.5
+    expect(call[1].position[2]).toBeCloseTo(0); // 0 + 0
   });
   it('emits set_rotation when tracking', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config);
-    const rot = { x: 0, y: 0.7, z: 0, w: 0.7 };
+    const rot = [0, 0.7, 0, 0.7 ];
     node.__anchorState.pose = { position: [0, 0, 0], rotation: rot, confidence: 1 };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);

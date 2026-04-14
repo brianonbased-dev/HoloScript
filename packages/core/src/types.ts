@@ -878,12 +878,12 @@ export interface QuestState {
   status: 'active' | 'completed' | 'failed';
 }
 
-export interface ReactiveState {
-  get(key: string): HoloScriptValue;
-  set(key: string, value: HoloScriptValue): void;
-  subscribe(callback: (state: Record<string, HoloScriptValue>) => void): () => void;
-  getSnapshot(): Record<string, HoloScriptValue>;
-  update(updates: Record<string, HoloScriptValue>): void;
+export interface ReactiveState<T = Record<string, HoloScriptValue>> {
+  get<K extends keyof T>(key: K): T[K];
+  set<K extends keyof T>(key: K, value: T[K]): void;
+  subscribe(callback: (state: T, changedKey?: keyof T) => void): () => void;
+  getSnapshot(): T;
+  update(updates: Partial<T>): void;
 }
 
 export interface ExecutionResult {
@@ -926,16 +926,12 @@ export interface RuntimeSecurityLimits {
 // VR Types
 // ============================================================================
 
-export interface SpatialVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+// Vector3 is imported from HoloScriptPlus below
+// export type Vector3 = [number, number, number];
 
-export interface Vector2 {
-  x: number;
-  y: number;
-}
+export type SpatialVector3 = Vector3;
+
+export type Vector2 = [number, number];
 
 export interface Color {
   r: number;
@@ -1220,8 +1216,9 @@ export type {
   ParticleConfig,
   Vector3,
   Transform,
-  Vector3Tuple,
 } from './types/HoloScriptPlus';
+
+export type { Vector3, Transform };
 
 // ============================================================================
 // Scene Graph Types (First-Class)

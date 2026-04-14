@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core User Monitor Trait
  *
@@ -10,7 +11,6 @@ import {
   getEmotionDetector,
   type EmotionInference,
 } from '@holoscript/engine/runtime/EmotionDetector';
-import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UserMonitorConfig {
   /** Frequency of emotion inference (in seconds, default 0.2s = 5Hz) */

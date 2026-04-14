@@ -13,7 +13,7 @@ describe('GranularMaterialSystem', () => {
   beforeEach(() => {
     sand = new GranularMaterialSystem({
       material: { density: 1500, friction: 0.5, restitution: 0.3 },
-      bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } },
+      bounds: { min: [-5, -5, -5 ], max: [5, 5, 5 ] },
     });
   });
 
@@ -33,26 +33,26 @@ describe('GranularMaterialSystem', () => {
   // ── Particle Management ───────────────────────────────────────────────────
 
   it('addParticle returns a non-negative id', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    const id = sand.addParticle([0, 0, 0 ], 0.02);
     expect(id).toBeGreaterThanOrEqual(0);
   });
 
   it('getParticle retrieves added particle', () => {
-    const id = sand.addParticle({ x: 1, y: 2, z: 3 }, 0.05);
+    const id = sand.addParticle([1, 2, 3 ], 0.05);
     const p = sand.getParticle(id)!;
-    expect(p.position.x).toBe(1);
-    expect(p.position.y).toBe(2);
+    expect(p.position[0]).toBe(1);
+    expect(p.position[1]).toBe(2);
     expect(p.radius).toBe(0.05);
   });
 
   it('particle count increases with each add', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
-    sand.addParticle({ x: 0.1, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
+    sand.addParticle([0.1, 0, 0 ], 0.02);
     expect(sand.getParticleCount()).toBe(2);
   });
 
   it('removeParticle removes targeted particle', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    const id = sand.addParticle([0, 0, 0 ], 0.02);
     expect(sand.removeParticle(id)).toBe(true);
     expect(sand.getParticle(id)).toBeUndefined();
     expect(sand.getParticleCount()).toBe(0);
@@ -63,29 +63,29 @@ describe('GranularMaterialSystem', () => {
   });
 
   it('getParticles returns only active particles', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
-    sand.addParticle({ x: 0.1, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
+    sand.addParticle([0.1, 0, 0 ], 0.02);
     expect(sand.getParticles().length).toBe(2);
   });
 
   it('maxParticles cap prevents over-adding', () => {
     const small = new GranularMaterialSystem({ maxParticles: 2 });
-    small.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
-    small.addParticle({ x: 0.1, y: 0, z: 0 }, 0.02);
-    const id = small.addParticle({ x: 0.2, y: 0, z: 0 }, 0.02);
+    small.addParticle([0, 0, 0 ], 0.02);
+    small.addParticle([0.1, 0, 0 ], 0.02);
+    const id = small.addParticle([0.2, 0, 0 ], 0.02);
     expect(id).toBe(-1); // rejected
     expect(small.getParticleCount()).toBe(2);
   });
 
   it('materialTag is stored on particle', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02, 'gravel');
+    const id = sand.addParticle([0, 0, 0 ], 0.02, 'gravel');
     expect(sand.getParticle(id)!.materialTag).toBe('gravel');
   });
 
   // ── Mass Calculation ──────────────────────────────────────────────────────
 
   it('particle mass is calculated from density and radius', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.01);
+    const id = sand.addParticle([0, 0, 0 ], 0.01);
     const p = sand.getParticle(id)!;
     const expectedVolume = (4 / 3) * Math.PI * 0.01 ** 3;
     const expectedMass = 1500 * expectedVolume;
@@ -95,7 +95,7 @@ describe('GranularMaterialSystem', () => {
   // ── Simulation ────────────────────────────────────────────────────────────
 
   it('step() causes gravity-driven movement', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    const id = sand.addParticle([0, 0, 0 ], 0.02);
     const before = { ...sand.getParticle(id)!.position };
     sand.step(0.016);
     const after = sand.getParticle(id)!.position;
@@ -111,29 +111,29 @@ describe('GranularMaterialSystem', () => {
   });
 
   it('particles stay within bounds after many steps', () => {
-    const bounds = { min: { x: -2, y: -2, z: -2 }, max: { x: 2, y: 2, z: 2 } };
+    const bounds = { min: [-2, -2, -2 ], max: [2, 2, 2 ] };
     const bounded = new GranularMaterialSystem({ bounds });
-    const id = bounded.addParticle({ x: 0, y: 1.5, z: 0 }, 0.05);
+    const id = bounded.addParticle([0, 1.5, 0 ], 0.05);
     for (let i = 0; i < 200; i++) bounded.step(0.016);
     const p = bounded.getParticle(id)!;
-    expect(p.position.y).toBeGreaterThanOrEqual(-2);
-    expect(p.position.y).toBeLessThanOrEqual(2);
+    expect(p.position[1]).toBeGreaterThanOrEqual(-2);
+    expect(p.position[1]).toBeLessThanOrEqual(2);
   });
 
   // ── Impulse ────────────────────────────────────────────────────────────────
 
   it('applyImpulse affects particles within radius', () => {
-    const id = sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    const id = sand.addParticle([0, 0, 0 ], 0.02);
     const before = { ...sand.getParticle(id)!.velocity };
-    sand.applyImpulse({ x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 0 }, 1.0);
+    sand.applyImpulse([0, 0, 0 ], [5, 5, 0 ], 1.0);
     const after = sand.getParticle(id)!.velocity;
     expect(after.x).toBeGreaterThan(before.x);
   });
 
   it('applyImpulse does not affect particles outside radius', () => {
-    const id = sand.addParticle({ x: 10, y: 10, z: 10 }, 0.02);
+    const id = sand.addParticle([10, 10, 10 ], 0.02);
     const before = { ...sand.getParticle(id)!.velocity };
-    sand.applyImpulse({ x: 0, y: 0, z: 0 }, { x: 100, y: 0, z: 0 }, 0.5);
+    sand.applyImpulse([0, 0, 0 ], [100, 0, 0 ], 0.5);
     const after = sand.getParticle(id)!.velocity;
     expect(after.x).toBe(before.x);
   });
@@ -148,34 +148,34 @@ describe('GranularMaterialSystem', () => {
   });
 
   it('getCenterOfMass is weighted by mass', () => {
-    sand.addParticle({ x: -1, y: 0, z: 0 }, 0.05);
-    sand.addParticle({ x: 1, y: 0, z: 0 }, 0.05);
+    sand.addParticle([-1, 0, 0 ], 0.05);
+    sand.addParticle([1, 0, 0 ], 0.05);
     const com = sand.getCenterOfMass();
     expect(com.x).toBeCloseTo(0, 5);
   });
 
   it('getKineticEnergy is 0 for stationary particles', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
     expect(sand.getKineticEnergy()).toBe(0);
   });
 
   it('getKineticEnergy increases after gravity steps', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
     const before = sand.getKineticEnergy();
     sand.step(0.016);
     expect(sand.getKineticEnergy()).toBeGreaterThan(before);
   });
 
   it('getAverageSpeed is 0 for stationary particles', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
     expect(sand.getAverageSpeed()).toBe(0);
   });
 
   // ── Config & Reset ────────────────────────────────────────────────────────
 
   it('updateConfig changes gravity', () => {
-    sand.updateConfig({ gravity: { x: 0, y: -20, z: 0 } });
-    expect(sand.getConfig().gravity.y).toBe(-20);
+    sand.updateConfig({ gravity: [0, -20, 0 ] });
+    expect(sand.getConfig().gravity[1]).toBe(-20);
   });
 
   it('updateConfig changes material properties', () => {
@@ -184,7 +184,7 @@ describe('GranularMaterialSystem', () => {
   });
 
   it('reset clears all particles and stepCount', () => {
-    sand.addParticle({ x: 0, y: 0, z: 0 }, 0.02);
+    sand.addParticle([0, 0, 0 ], 0.02);
     sand.step(0.016);
     sand.reset();
     expect(sand.getParticleCount()).toBe(0);

@@ -646,7 +646,7 @@ describe('BabylonCompiler', () => {
         entries: [
           {
             time: 0.5,
-            action: { kind: 'animate', target: 'Ball', properties: { 'position.y': 2 } },
+            action: { kind: 'animate', target: 'Ball', properties: { 'position[1]': 2 } },
           },
         ],
       } as any;

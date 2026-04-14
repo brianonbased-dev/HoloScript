@@ -570,7 +570,7 @@ export class WebGPURenderer {
         let p = pos[vertexIndex];
         output.position = vec4<f32>(p, 0.0, 1.0);
         // Map clip-space to UV: [-1,1] -> [0,1], flip Y for texture coords
-        output.uv = vec2<f32>(p.x * 0.5 + 0.5, 1.0 - (p.y * 0.5 + 0.5));
+        output.uv = vec2<f32>(p[0] * 0.5 + 0.5, 1.0 - (p[1] * 0.5 + 0.5));
         return output;
       }
 
@@ -1021,9 +1021,9 @@ export class WebGPURenderer {
         projectionMatrix: view.projectionMatrix,
         // Calculate camera position from inverse view matrix
         cameraPosition: [
-          view.transform.position.x,
-          view.transform.position.y,
-          view.transform.position.z,
+          view.transform.position[0],
+          view.transform.position[1],
+          view.transform.position[2],
         ],
         viewProjectionMatrix: this.multiplyMatrices(
           view.projectionMatrix,
@@ -1070,7 +1070,7 @@ export class WebGPURenderer {
       });
 
       // Set viewport
-      pass.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
+      pass.setViewport(viewport[0], viewport[1], viewport.width, viewport.height, 0, 1);
 
       // Execute Draw Calls would go here
       // this.renderScene(pass);
@@ -1186,7 +1186,7 @@ export class WebGPURenderer {
         },
       });
 
-      renderPass.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
+      renderPass.setViewport(viewport[0], viewport[1], viewport.width, viewport.height, 0, 1);
 
       // Simple matrix multiplication for ViewProjection
       // Note: In a real engine, use a math library. Here we just pass raw matrices if possible or stub.
@@ -1198,9 +1198,9 @@ export class WebGPURenderer {
         // Mock VP matrix for now (or compute it if we had a math lib)
         viewProjectionMatrix: view.projectionMatrix,
         cameraPosition: new Float32Array([
-          view.transform.position.x,
-          view.transform.position.y,
-          view.transform.position.z,
+          view.transform.position[0],
+          view.transform.position[1],
+          view.transform.position[2],
         ]),
       } as unknown as ICameraUniforms);
 

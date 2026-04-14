@@ -140,7 +140,7 @@ export const anchorHandler: TraitHandler<AnchorConfig> = {
       const [ox, oy, oz] = config.offset;
       context.emit?.('set_position', {
         node,
-        position: [state.pose.position.x + ox, state.pose.position.y + oy, state.pose.position.z + oz,],
+        position: [state.pose.position[0] + ox, state.pose.position[1] + oy, state.pose.position[2] + oz,],
       });
 
       context.emit?.('set_rotation', {

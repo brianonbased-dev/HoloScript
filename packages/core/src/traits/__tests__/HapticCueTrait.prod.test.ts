@@ -237,8 +237,8 @@ describe('hapticCueHandler.onEvent — spatial_direction', () => {
     ctx.emit.mockClear();
     hapticCueHandler.onEvent!(node as any, config, ctx as any, { type: 'interact' });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'haptic_play');
-    expect(call![1].direction.x).toBeCloseTo(0.6, 3);
-    expect(call![1].direction.z).toBeCloseTo(0.8, 3);
+    expect(call![1].direction[0]).toBeCloseTo(0.6, 3);
+    expect(call![1].direction[2]).toBeCloseTo(0.8, 3);
   });
 
   it('no direction emitted when spatial_direction=false', () => {

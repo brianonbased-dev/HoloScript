@@ -89,7 +89,7 @@ export class SplinePath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): SplinePoint {
-    if (this.points.length === 0) return { x: 0, y: 0, z: 0 };
+    if (this.points.length === 0) return [0, 0, 0];
     if (this.points.length === 1) return { ...this.points[0] };
 
     t = Math.max(0, Math.min(1, t));
@@ -114,9 +114,9 @@ export class SplinePath {
     const p0 = this.getWrapped(seg);
     const p1 = this.getWrapped(seg + 1);
     return {
-      x: p0.x + (p1.x - p0.x) * t,
-      y: p0.y + (p1.y - p0.y) * t,
-      z: p0.z + (p1.z - p0.z) * t,
+      x: p0[0] + (p1[0] - p0[0]) * t,
+      y: p0[1] + (p1[1] - p0[1]) * t,
+      z: p0[2] + (p1[2] - p0[2]) * t,
     };
   }
 
@@ -138,9 +138,9 @@ export class SplinePath {
     };
 
     return {
-      x: interp(p0.x, p1.x, p2.x, p3.x),
-      y: interp(p0.y, p1.y, p2.y, p3.y),
-      z: interp(p0.z, p1.z, p2.z, p3.z),
+      x: interp(p0[0], p1[0], p2[0], p3[0]),
+      y: interp(p0[1], p1[1], p2[1], p3[1]),
+      z: interp(p0[2], p1[2], p2[2], p3[2]),
     };
   }
 
@@ -163,15 +163,15 @@ export class SplinePath {
     const ttt = tt * t;
 
     return {
-      x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-      y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
-      z: uuu * p0.z + 3 * uu * t * p1.z + 3 * u * tt * p2.z + ttt * p3.z,
+      x: uuu * p0[0] + 3 * uu * t * p1[0] + 3 * u * tt * p2[0] + ttt * p3[0],
+      y: uuu * p0[1] + 3 * uu * t * p1[1] + 3 * u * tt * p2[1] + ttt * p3[1],
+      z: uuu * p0[2] + 3 * uu * t * p1[2] + 3 * u * tt * p2[2] + ttt * p3[2],
     };
   }
 
   private getWrapped(index: number): SplinePoint {
     const len = this.points.length;
-    if (len === 0) return { x: 0, y: 0, z: 0 };
+    if (len === 0) return [0, 0, 0];
     if (this.loop) return this.points[((index % len) + len) % len];
     return this.points[Math.max(0, Math.min(len - 1, index))];
   }
@@ -202,9 +202,9 @@ export class SplinePath {
     for (let i = 1; i <= this.resolution; i++) {
       const t = i / this.resolution;
       const curr = this.evaluate(t);
-      const dx = curr.x - prev.x,
-        dy = curr.y - prev.y,
-        dz = curr.z - prev.z;
+      const dx = curr[0] - prev[0],
+        dy = curr[1] - prev[1],
+        dz = curr[2] - prev[2];
       total += Math.sqrt(dx * dx + dy * dy + dz * dz);
       this.arcLengthTable.push(total);
       prev = curr;
@@ -237,10 +237,10 @@ export class SplinePath {
     const eps = 0.001;
     const a = this.evaluate(Math.max(0, t - eps));
     const b = this.evaluate(Math.min(1, t + eps));
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      dz = b.z - a.z;
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      dz = b[2] - a[2];
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-    return { x: dx / len, y: dy / len, z: dz / len };
+    return [dx / len, dy / len, dz / len];
   }
 }

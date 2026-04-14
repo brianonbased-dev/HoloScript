@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * GPUParticle Trait
  *
@@ -37,9 +38,9 @@ interface GPUParticleState {
   activeCount: number;
   totalEmitted: number;
   computeHandle: unknown;
-  emitterPosition: { x: number; y: number; z: number };
-  emitterVelocity: { x: number; y: number; z: number };
-  burstQueue: Array<{ count: number; position?: { x: number; y: number; z: number } }>;
+  emitterPosition: Vector3;
+  emitterVelocity: Vector3;
+  burstQueue: Array<{ count: number; position?: Vector3 }>;
 }
 
 interface GPUParticleConfig {
@@ -99,8 +100,8 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
       activeCount: 0,
       totalEmitted: 0,
       computeHandle: null,
-      emitterPosition: { x: 0, y: 0, z: 0 },
-      emitterVelocity: { x: 0, y: 0, z: 0 },
+      emitterPosition: [0, 0, 0 ],
+      emitterVelocity: [0, 0, 0 ],
       burstQueue: [],
     };
     node.__gpuParticleState = state;
@@ -182,7 +183,7 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
       state.activeCount = event.activeCount as number;
     } else if (event.type === 'particle_burst') {
       const count = (event.count as number) || 100;
-      const position = event.position as { x: number; y: number; z: number } | undefined;
+      const position = event.position as [number, number, number] | undefined;
       state.burstQueue.push({ count, position });
     } else if (event.type === 'particle_set_emitter') {
       if (event.position) {

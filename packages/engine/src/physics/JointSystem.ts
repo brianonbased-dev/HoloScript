@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * JointSystem.ts
  *
@@ -18,9 +19,9 @@ export interface JointDef {
   type: JointType;
   bodyA: string;
   bodyB: string;
-  anchorA: { x: number; y: number; z: number };
-  anchorB: { x: number; y: number; z: number };
-  axis?: { x: number; y: number; z: number };
+  anchorA: Vector3;
+  anchorB: Vector3;
+  axis?: Vector3;
   limits?: { min: number; max: number };
   breakForce: number; // Infinity = unbreakable
   stiffness: number;
@@ -59,9 +60,9 @@ export class JointSystem {
       type,
       bodyA,
       bodyB,
-      anchorA: config?.anchorA ?? { x: 0, y: 0, z: 0 },
-      anchorB: config?.anchorB ?? { x: 0, y: 0, z: 0 },
-      axis: config?.axis ?? { x: 0, y: 1, z: 0 },
+      anchorA: config?.anchorA ?? [0, 0, 0 ],
+      anchorB: config?.anchorB ?? [0, 0, 0 ],
+      axis: config?.axis ?? [0, 1, 0 ],
       limits: config?.limits,
       breakForce: config?.breakForce ?? Infinity,
       stiffness: config?.stiffness ?? 1,
@@ -207,12 +208,12 @@ export class JointSystem {
   // ---------------------------------------------------------------------------
 
   private distance3D(
-    a: { x: number; y: number; z: number },
-    b: { x: number; y: number; z: number }
+    a: Vector3,
+    b: Vector3
   ): number {
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      dz = b.z - a.z;
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      dz = b[2] - a[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 }

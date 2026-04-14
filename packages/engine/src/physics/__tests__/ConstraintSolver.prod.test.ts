@@ -17,9 +17,9 @@ function bodyState(id: string, x = 0, y = 0, z = 0): IRigidBodyState {
   return {
     id,
     position: { x, y, z },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
-    linearVelocity: { x: 0, y: 0, z: 0 },
-    angularVelocity: { x: 0, y: 0, z: 0 },
+    rotation: [0, 0, 0, 1 ],
+    linearVelocity: [0, 0, 0 ],
+    angularVelocity: [0, 0, 0 ],
     isSleeping: false,
     isActive: true,
   };
@@ -34,8 +34,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
       distance: 5,
     };
     cs.addConstraint(c, bodyState('a'), bodyState('b', 5));
@@ -49,8 +49,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
       distance: 5,
     };
     cs.addConstraint(c, bodyState('a'), bodyState('b'));
@@ -68,8 +68,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
       distance: 5,
     };
     cs.addConstraint(c, a, b);
@@ -87,8 +87,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'spring',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
       restLength: 2,
       stiffness: 100,
       damping: 1,
@@ -108,8 +108,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'fixed',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
     };
     cs.addConstraint(c, a, b);
     const corrections = cs.solve(1 / 60);
@@ -126,8 +126,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0 ],
+      pivotB: [0, 0, 0 ],
       distance: 1,
       breakForce: 0.001,
     };
@@ -145,8 +145,8 @@ describe('ConstraintSolver — Production', () => {
         type: 'distance',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: { x: 0, y: 0, z: 0 },
-        pivotB: { x: 0, y: 0, z: 0 },
+        pivotA: [0, 0, 0 ],
+        pivotB: [0, 0, 0 ],
         distance: 5,
       } as IDistanceConstraint,
       bodyState('a'),

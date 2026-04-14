@@ -1,4 +1,5 @@
-﻿/**
+import type { Vector3 } from '../types';
+/**
  * Core Types Module â€” CANONICAL type definitions for HoloScript.
  *
  * This is the authoritative source of truth for all HoloScript types.
@@ -13,13 +14,46 @@
 // Re-export type systems - AdvancedTypeSystem takes precedence for duplicate types
 export * from './AdvancedTypeSystem';
 
+// =============================================================================
+// AST & Composition Types
+// =============================================================================
+
+export interface HoloComposition {
+  name?: string;
+  templates?: CompositionChild[];
+  children?: CompositionChild[];
+  environment?: Record<string, unknown>;
+  lights?: Record<string, unknown>[];
+  objects?: Record<string, unknown>[];
+  spatialGroups?: Record<string, unknown>[];
+  timelines?: Record<string, unknown>[];
+  audio?: Record<string, unknown>[];
+  zones?: Record<string, unknown>[];
+  ui?: Record<string, unknown>;
+  transitions?: Record<string, unknown>[];
+  conditionals?: Record<string, unknown>[];
+  iterators?: Record<string, unknown>[];
+  camera?: Record<string, unknown>;
+  effects?: Record<string, unknown>;
+}
+
+export interface CompositionChild {
+  type: string;
+  name?: string;
+  properties?: Record<string, unknown>;
+  children?: CompositionChild[];
+  traits?: any[];
+  directives?: any[];
+  [key: string]: any;
+}
+
+
 // Re-export non-conflicting types from HoloScriptPlus
 // Note: HSPlusAST, LifecycleHook, StateDeclaration are already exported from AdvancedTypeSystem
 export {
   // Types that don't conflict
   type Vector3,
   type Color,
-  type Vector3Tuple,
   type Transform,
   type VRHand,
   type HSPlusRuntime,
@@ -146,8 +180,8 @@ export interface IComponent {
 export interface ITransformComponent extends IComponent {
   componentType: 'transform';
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number };
-  scale: { x: number; y: number; z: number };
+  rotation: Vector3;
+  scale: Vector3;
 }
 
 /**

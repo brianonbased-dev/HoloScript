@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * OctreeSystem.ts
  *
@@ -11,18 +12,16 @@
 // TYPES
 // =============================================================================
 
+import { Vector3 } from './SpatialTypes';
+
 export interface OctreeEntry {
   id: string;
-  x: number;
-  y: number;
-  z: number;
+  position: Vector3;
   radius: number;
 }
 
 interface OctreeNode {
-  cx: number;
-  cy: number;
-  cz: number; // Center
+  center: Vector3;
   halfSize: number;
   entries: OctreeEntry[];
   children: OctreeNode[] | null;
@@ -41,9 +40,7 @@ export class OctreeSystem {
 
   constructor(centerX: number, centerY: number, centerZ: number, halfSize: number) {
     this.root = {
-      cx: centerX,
-      cy: centerY,
-      cz: centerZ,
+      center: [centerX, centerY, centerZ],
       halfSize,
       entries: [],
       children: null,
@@ -62,7 +59,7 @@ export class OctreeSystem {
   }
 
   private insertIntoNode(node: OctreeNode, entry: OctreeEntry): boolean {
-    if (!this.containsPoint(node, entry.x, entry.y, entry.z)) return false;
+    if (!this.containsPoint(node, entry.position[0], entry.position[1], entry.position[2])) return false;
 
     if (node.children === null) {
       node.entries.push(entry);
@@ -125,9 +122,9 @@ export class OctreeSystem {
     if (!this.sphereOverlapsNode(node, x, y, z, radius)) return;
 
     for (const entry of node.entries) {
-      const dx = entry.x - x,
-        dy = entry.y - y,
-        dz = entry.z - z;
+      const dx = entry.position[0] - x,
+        dy = entry.position[1] - y,
+        dz = entry.position[2] - z;
       if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= radius + entry.radius) {
         results.push(entry);
       }
@@ -147,9 +144,9 @@ export class OctreeSystem {
     z: number,
     radius: number
   ): boolean {
-    const dx = Math.max(0, Math.abs(x - node.cx) - node.halfSize);
-    const dy = Math.max(0, Math.abs(y - node.cy) - node.halfSize);
-    const dz = Math.max(0, Math.abs(z - node.cz) - node.halfSize);
+    const dx = Math.max(0, Math.abs(x - node.center[0]) - node.halfSize);
+    const dy = Math.max(0, Math.abs(y - node.center[1]) - node.halfSize);
+    const dz = Math.max(0, Math.abs(z - node.center[2]) - node.halfSize);
     return dx * dx + dy * dy + dz * dz <= radius * radius;
   }
 
@@ -165,9 +162,11 @@ export class OctreeSystem {
       for (let y = -1; y <= 1; y += 2) {
         for (let z = -1; z <= 1; z += 2) {
           node.children.push({
-            cx: node.cx + x * hs,
-            cy: node.cy + y * hs,
-            cz: node.cz + z * hs,
+            center: [
+              node.center[0] + x * hs,
+              node.center[1] + y * hs,
+              node.center[2] + z * hs,
+            ],
             halfSize: hs,
             entries: [],
             children: null,
@@ -183,7 +182,7 @@ export class OctreeSystem {
     for (const entry of entries) {
       let placed = false;
       for (const child of node.children) {
-        if (this.containsPoint(child, entry.x, entry.y, entry.z)) {
+        if (this.containsPoint(child, entry.position[0], entry.position[1], entry.position[2])) {
           child.entries.push(entry);
           placed = true;
           break;
@@ -199,9 +198,9 @@ export class OctreeSystem {
 
   private containsPoint(node: OctreeNode, x: number, y: number, z: number): boolean {
     return (
-      Math.abs(x - node.cx) <= node.halfSize &&
-      Math.abs(y - node.cy) <= node.halfSize &&
-      Math.abs(z - node.cz) <= node.halfSize
+      Math.abs(x - node.center[0]) <= node.halfSize &&
+      Math.abs(y - node.center[1]) <= node.halfSize &&
+      Math.abs(z - node.center[2]) <= node.halfSize
     );
   }
 

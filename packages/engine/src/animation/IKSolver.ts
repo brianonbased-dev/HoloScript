@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * IKSolver.ts
  *
@@ -23,8 +24,8 @@ export interface IKBone {
 export interface IKChain {
   id: string;
   bones: IKBone[];
-  target: { x: number; y: number; z: number };
-  poleTarget?: { x: number; y: number; z: number };
+  target: Vector3;
+  poleTarget?: Vector3;
   weight: number; // 0-1 blend with original pose
   iterations: number;
 }
@@ -50,7 +51,7 @@ export class IKSolver {
     blendSpeed: 10,
     enabled: false,
   };
-  private footPositions: Map<string, { x: number; y: number; z: number }> = new Map();
+  private footPositions: Map<string, Vector3> = new Map();
 
   // ---------------------------------------------------------------------------
   // Chain Management
@@ -71,12 +72,12 @@ export class IKSolver {
 
   setTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.target = { x, y, z };
+    if (chain) chain.target = [x, y, z ];
   }
 
   setPoleTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.poleTarget = { x, y, z };
+    if (chain) chain.poleTarget = [x, y, z ];
   }
 
   setWeight(chainId: string, weight: number): void {
@@ -129,7 +130,7 @@ export class IKSolver {
       root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
       root.position[1] + Math.sin(totalRootAngle) * a,
       root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
-    ];
+    ] as [number, number, number];
 
     // Position end bone (if exists)
     if (end) {
@@ -161,22 +162,14 @@ export class IKSolver {
         const endEffector = bones[bones.length - 1];
 
         // Vector from bone to end effector
-        const toEnd = {
-          x: endEffector.position[0] - bone.position[0],
-          y: endEffector.position[1] - bone.position[1],
-          z: endEffector.position[2] - bone.position[2],
-        };
+        const toEnd = [endEffector.position[0] - bone.position[0], endEffector.position[1] - bone.position[1], endEffector.position[2] - bone.position[2], ];
 
         // Vector from bone to target
-        const toTarget = {
-          x: target[0] - bone.position[0],
-          y: target[1] - bone.position[1],
-          z: target[2] - bone.position[2],
-        };
+        const toTarget = [target[0] - bone.position[0], target[1] - bone.position[1], target[2] - bone.position[2], ];
 
         // Compute rotation angle (2D simplification in XY plane)
-        const angleEnd = Math.atan2(toEnd.y, toEnd.x);
-        const angleTarget = Math.atan2(toTarget.y, toTarget.x);
+        const angleEnd = Math.atan2(toEnd[1], toEnd[0]);
+        const angleTarget = Math.atan2(toTarget[1], toTarget[0]);
         let angle = (angleTarget - angleEnd) * chain.weight;
 
         // Apply joint limits
@@ -195,7 +188,7 @@ export class IKSolver {
             bone.position[0] + rx * cosA - ry * sinA,
             bone.position[1] + rx * sinA + ry * cosA,
             child.position[2],
-          ];
+          ] as [number, number, number];
         }
       }
 
@@ -226,17 +219,12 @@ export class IKSolver {
     footId: string,
     groundHeight: number,
     dt: number
-  ): { x: number; y: number; z: number } {
-    const current = this.footPositions.get(footId) ?? { x: 0, y: 0, z: 0 };
+  ): Vector3 {
+    const current = this.footPositions.get(footId) ?? [0, 0, 0 ];
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);
 
-    const result = {
-      x: current.x,
-      y: current.y + (targetY - current.y) * blend,
-      z: current.z,
-    };
-
+    const result = [current[0], current[1] + (targetY - current[1]) * blend, current[2] ] as Vector3;
     this.footPositions.set(footId, result);
     return result;
   }

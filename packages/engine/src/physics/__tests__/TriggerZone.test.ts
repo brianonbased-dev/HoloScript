@@ -8,7 +8,7 @@ function sphereZone(id: string, x = 0, y = 0, z = 0, radius = 1): any {
 function boxZone(id: string, x = 0, y = 0, z = 0, hx = 1, hy = 1, hz = 1): any {
   return {
     id,
-    shape: { type: 'box', position: { x, y, z }, halfExtents: { x: hx, y: hy, z: hz } },
+    shape: { type: 'box', position: { x, y, z }, halfExtents: [hx, hy, hz ] },
     enabled: true,
     tags: [],
   };

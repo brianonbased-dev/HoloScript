@@ -21,7 +21,7 @@ function makeNode(id = 'scroll_test') {
 
 /**
  * Create a context with a mock content node at `${nodeId}_content`.
- * The content node will have properties.position.y we can inspect.
+ * The content node will have properties.position[1] we can inspect.
  */
 function makeCtx(nodeId: string) {
   const contentNode = { properties: { position: [0, 0, 0] } };
@@ -51,7 +51,7 @@ function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
 // We access it indirectly by inspecting context-emitted values / position
 function peekState(node: any) {
   // Override: use a second attach to expose state via setter pattern won't work.
-  // We instead read from contentNode.properties.position.y after onUpdate.
+  // We instead read from contentNode.properties.position[1] after onUpdate.
   return null;
 }
 
@@ -116,7 +116,7 @@ describe('ScrollableTrait — onEvent: ui_press_start', () => {
     // (No position change from velocity when isDragging)
   });
 
-  it('ui_press_start with no position.y uses 0 as lastY', () => {
+  it('ui_press_start with no position[1] uses 0 as lastY', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     // Should not throw
@@ -135,10 +135,10 @@ describe('ScrollableTrait — onEvent: ui_press_end', () => {
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     // With isDragging=false, onUpdate applies inertia from velocity
-    const y0 = ctx._contentNode.properties.position.y;
+    const y0 = ctx._contentNode.properties.position[1];
     update(node, cfg, ctx, 0.016);
     // velocity ≈ 0.1/0.016 ≈ 6.25; offset changes by velocity*delta
-    const y1 = ctx._contentNode.properties.position.y;
+    const y1 = ctx._contentNode.properties.position[1];
     // offset should have changed due to inertia
     expect(y1).not.toBe(y0);
   });
@@ -153,9 +153,9 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
     // offset should be 0.1, content node y = 0.1
-    expect(ctx._contentNode.properties.position.y).toBeCloseTo(0.1);
+    expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.1);
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.15 } });
-    expect(ctx._contentNode.properties.position.y).toBeCloseTo(0.15);
+    expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.15);
     expect(ctx.emit).toHaveBeenCalledWith(
       'property_changed',
       expect.objectContaining({ nodeId: `${node.id}_content` })
@@ -169,10 +169,10 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -0.016 } }); // dy=-0.016, velocity=-1.0
     // After press_end, one update step: offset += -1.0 * 0.016 = -0.016 more
-    const y0 = ctx._contentNode.properties.position.y; // -0.016
+    const y0 = ctx._contentNode.properties.position[1]; // -0.016
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
-    const y1 = ctx._contentNode.properties.position.y;
+    const y1 = ctx._contentNode.properties.position[1];
     expect(y1).toBeCloseTo(y0 + -1.0 * 0.016, 3); // offset += velocity * delta
   });
 
@@ -198,14 +198,14 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -0.1 } }); // velocity ≈ -6.25
     fire(node, cfg, ctx, { type: 'ui_press_end' });
-    const y0 = ctx._contentNode.properties.position.y;
+    const y0 = ctx._contentNode.properties.position[1];
     update(node, cfg, ctx, 0.016); // offset moves downward, velocity *= 0.9
-    const y1 = ctx._contentNode.properties.position.y;
+    const y1 = ctx._contentNode.properties.position[1];
     expect(y1).toBeLessThan(y0); // offset moved further negative (down)
     // After many ticks, velocity should diminish (< 0.001 threshold)
     for (let i = 0; i < 150; i++) update(node, cfg, ctx, 0.016);
     // Eventually clamped to -maxScroll (9.5) or resting
-    const yFinal = ctx._contentNode.properties.position.y;
+    const yFinal = ctx._contentNode.properties.position[1];
     expect(yFinal).toBeGreaterThanOrEqual(-9.5); // within [-maxScroll, 0]
     expect(yFinal).toBeLessThanOrEqual(0);
   });
@@ -226,7 +226,7 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
     // Should be clamped to 0
-    expect(ctx._contentNode.properties.position.y).toBeCloseTo(0);
+    expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0);
   });
 
   it('hard-clamps offset to -maxScroll when overscrolled bottom', () => {
@@ -244,7 +244,7 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -5.0 } }); // offset = -5.0 (past bottom)
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
-    expect(ctx._contentNode.properties.position.y).toBeCloseTo(-1.5); // -maxScroll
+    expect(ctx._contentNode.properties.position[1]).toBeCloseTo(-1.5); // -maxScroll
   });
 
   it('no-op when no state (after detach)', () => {

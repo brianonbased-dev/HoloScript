@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * RaycastSystem.ts
  *
@@ -12,30 +13,30 @@
 // =============================================================================
 
 export interface Ray {
-  origin: { x: number; y: number; z: number };
-  direction: { x: number; y: number; z: number };
+  origin: Vector3;
+  direction: Vector3;
 }
 
 export interface AABB {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
+  min: Vector3;
+  max: Vector3;
 }
 
 export interface Sphere {
-  center: { x: number; y: number; z: number };
+  center: Vector3;
   radius: number;
 }
 
 export interface Plane {
-  normal: { x: number; y: number; z: number };
+  normal: Vector3;
   distance: number; // Distance from origin along normal
 }
 
 export interface RayHit {
   entityId: string;
   distance: number;
-  point: { x: number; y: number; z: number };
-  normal: { x: number; y: number; z: number };
+  point: Vector3;
+  normal: Vector3;
 }
 
 export interface Collider {
@@ -106,17 +107,16 @@ export class RaycastSystem {
   // ---------------------------------------------------------------------------
 
   private rayAABB(
-    origin: { x: number; y: number; z: number },
-    dir: { x: number; y: number; z: number },
+    origin: Vector3,
+    dir: Vector3,
     aabb: AABB,
     entityId: string
   ): RayHit | null {
     let tmin = -Infinity,
       tmax = Infinity;
-    const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
-    let hitNormal = { x: 0, y: 0, z: 0 };
+    let hitNormal: Vector3 = [0, 0, 0];
 
-    for (const axis of axes) {
+    for (let axis = 0; axis < 3; axis++) {
       if (Math.abs(dir[axis]) < 1e-10) {
         if (origin[axis] < aabb.min[axis] || origin[axis] > aabb.max[axis]) return null;
         continue;
@@ -129,7 +129,7 @@ export class RaycastSystem {
 
       if (tNear > tmin) {
         tmin = tNear;
-        hitNormal = { x: 0, y: 0, z: 0 };
+        hitNormal = [0, 0, 0];
         hitNormal[axis] = dir[axis] > 0 ? -1 : 1;
       }
       tmax = Math.min(tmax, tFar);
@@ -143,22 +143,22 @@ export class RaycastSystem {
     return {
       entityId,
       distance: t,
-      point: { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t },
+      point: [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t],
       normal: hitNormal,
     };
   }
 
   private raySphere(
-    origin: { x: number; y: number; z: number },
-    dir: { x: number; y: number; z: number },
+    origin: Vector3,
+    dir: Vector3,
     sphere: Sphere,
     entityId: string
   ): RayHit | null {
-    const ox = origin.x - sphere.center.x,
-      oy = origin.y - sphere.center.y,
-      oz = origin.z - sphere.center.z;
-    const a = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
-    const b = 2 * (ox * dir.x + oy * dir.y + oz * dir.z);
+    const ox = origin[0] - sphere.center[0],
+      oy = origin[1] - sphere.center[1],
+      oz = origin[2] - sphere.center[2];
+    const a = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
+    const b = 2 * (ox * dir[0] + oy * dir[1] + oz * dir[2]);
     const c = ox * ox + oy * oy + oz * oz - sphere.radius * sphere.radius;
     const disc = b * b - 4 * a * c;
 
@@ -169,34 +169,34 @@ export class RaycastSystem {
     if (t < 0) t = (-b + sqrtDisc) / (2 * a);
     if (t < 0) return null;
 
-    const point = { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t };
-    const nx = point.x - sphere.center.x,
-      ny = point.y - sphere.center.y,
-      nz = point.z - sphere.center.z;
+    const point: Vector3 = [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t];
+    const nx = point[0] - sphere.center[0],
+      ny = point[1] - sphere.center[1],
+      nz = point[2] - sphere.center[2];
     const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
 
     return {
       entityId,
       distance: t,
       point,
-      normal: { x: nx / nLen, y: ny / nLen, z: nz / nLen },
+      normal: [nx / nLen, ny / nLen, nz / nLen],
     };
   }
 
   private rayPlane(
-    origin: { x: number; y: number; z: number },
-    dir: { x: number; y: number; z: number },
+    origin: Vector3,
+    dir: Vector3,
     plane: Plane,
     entityId: string
   ): RayHit | null {
-    const denom = plane.normal.x * dir.x + plane.normal.y * dir.y + plane.normal.z * dir.z;
+    const denom = plane.normal[0] * dir[0] + plane.normal[1] * dir[1] + plane.normal[2] * dir[2];
     if (Math.abs(denom) < 1e-10) return null;
 
     const t =
       -(
-        plane.normal.x * origin.x +
-        plane.normal.y * origin.y +
-        plane.normal.z * origin.z +
+        plane.normal[0] * origin[0] +
+        plane.normal[1] * origin[1] +
+        plane.normal[2] * origin[2] +
         plane.distance
       ) / denom;
     if (t < 0) return null;
@@ -204,8 +204,8 @@ export class RaycastSystem {
     return {
       entityId,
       distance: t,
-      point: { x: origin.x + dir.x * t, y: origin.y + dir.y * t, z: origin.z + dir.z * t },
-      normal: { ...plane.normal },
+      point: [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t],
+      normal: [plane.normal[0], plane.normal[1], plane.normal[2]],
     };
   }
 
@@ -213,8 +213,8 @@ export class RaycastSystem {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private normalize(v: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-    const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
+  private normalize(v: Vector3): Vector3 {
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) || 1;
+    return [v[0] / len, v[1] / len, v[2] / len];
   }
 }

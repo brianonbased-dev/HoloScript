@@ -17,8 +17,8 @@ function createGrabbableMockContext() {
 
 function makeHand(x: number, y: number, z: number, pinch: number) {
   return {
-    position: { x, y, z },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    position: [x, y, z] as [number, number, number],
+    rotation: [0, 0, 0, 1 ],
     pinchStrength: pinch,
     gripStrength: 0,
     joints: [],
@@ -38,8 +38,8 @@ describe('GrabbableTrait', () => {
       id: 'obj1',
       properties: {
         position: [0, 1, 0],
-        scale: { x: 1, y: 1, z: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
+        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0 ],
       },
     };
   });

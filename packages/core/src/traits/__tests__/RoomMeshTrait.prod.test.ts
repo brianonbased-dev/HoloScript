@@ -56,8 +56,8 @@ function makeBlock(
     indices: new Uint32Array([0, 1, 2]),
     normals: new Float32Array([0, 1, 0]),
     bounds: {
-      min: { x: opts.minX ?? 0, y: opts.minY ?? 0, z: opts.minZ ?? 0 },
-      max: { x: opts.maxX ?? 2, y: opts.maxY ?? 1, z: opts.maxZ ?? 2 },
+      min: [opts.minX ?? 0, opts.minY ?? 0, opts.minZ ?? 0 ],
+      max: [opts.maxX ?? 2, opts.maxY ?? 1, opts.maxZ ?? 2 ],
     },
     semanticLabel: opts.semanticLabel,
     lastUpdated: Date.now(),
@@ -370,8 +370,8 @@ describe('RoomMeshTrait — onEvent: mesh_block_update (new block)', () => {
     });
     const bounds = st(node).roomBounds;
     expect(bounds).not.toBeNull();
-    expect(bounds.min.x).toBe(-1);
-    expect(bounds.max.y).toBe(3);
+    expect(bounds.min[0]).toBe(-1);
+    expect(bounds.max[1]).toBe(3);
   });
 });
 
@@ -418,7 +418,7 @@ describe('RoomMeshTrait — onEvent: room_boundary_detected', () => {
     });
     ctx.emit.mockClear();
 
-    const bounds = { min: { x: -1, y: 0, z: -1 }, max: { x: 4, y: 2.5, z: 5 } };
+    const bounds = { min: [-1, 0, -1 ], max: [4, 2.5, 5 ] };
     fire(node, cfg, ctx, { type: 'room_boundary_detected', bounds });
 
     expect(st(node).roomBounds).toStrictEqual(bounds);
@@ -426,7 +426,7 @@ describe('RoomMeshTrait — onEvent: room_boundary_detected', () => {
       'on_room_mapped',
       expect.objectContaining({
         bounds,
-        roomHeight: 2.5, // max.y - min.y
+        roomHeight: 2.5, // max[1] - min[1]
         surfaceCount: 1,
         totalBlocks: 1,
       })

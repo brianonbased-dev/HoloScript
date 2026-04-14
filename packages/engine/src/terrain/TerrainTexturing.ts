@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * TerrainTexturing.ts
  *
@@ -147,17 +148,13 @@ export class TerrainTexturing {
     return { ...this.triplanar };
   }
 
-  computeTriplanarWeights(normal: { x: number; y: number; z: number }): {
-    x: number;
-    y: number;
-    z: number;
-  } {
+  computeTriplanarWeights(normal: Vector3): Vector3 {
     const s = this.triplanar.sharpness;
-    const ax = Math.pow(Math.abs(normal.x), s);
-    const ay = Math.pow(Math.abs(normal.y), s);
-    const az = Math.pow(Math.abs(normal.z), s);
+    const ax = Math.pow(Math.abs(normal[0]), s);
+    const ay = Math.pow(Math.abs(normal[1]), s);
+    const az = Math.pow(Math.abs(normal[2]), s);
     const total = ax + ay + az || 1;
-    return { x: ax / total, y: ay / total, z: az / total };
+    return [ax / total, ay / total, az / total ];
   }
 
   // ---------------------------------------------------------------------------

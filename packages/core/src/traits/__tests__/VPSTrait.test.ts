@@ -60,7 +60,7 @@ describe('VPSTrait', () => {
       confidence: 0.9,
       accuracy: 0.5,
       locationId: 'loc1',
-      pose: { position: [1, 2, 3], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      pose: { position: [1, 2, 3], rotation: [0, 0, 0, 1 ] },
     });
     expect((node as any).__vpsState.state).toBe('tracking');
     expect(getEventCount(ctx, 'on_vps_localized')).toBe(1);
@@ -72,7 +72,7 @@ describe('VPSTrait', () => {
       type: 'vps_localized',
       confidence: 0.3,
       accuracy: 2.0,
-      pose: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      pose: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
     });
     expect((node as any).__vpsState.state).toBe('limited');
     expect(getEventCount(ctx, 'on_vps_limited')).toBe(1);

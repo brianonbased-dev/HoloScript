@@ -297,7 +297,7 @@ describe('Feature 2A: AudioEngine', () => {
   it('setListenerPosition updates listener', () => {
     engine.setListenerPosition({ x: 5, y: 0, z: 5 });
     const l = engine.getListener();
-    expect(l.position.x).toBe(5);
+    expect(l.position[0]).toBe(5);
   });
 });
 
@@ -505,7 +505,7 @@ describe('Feature 5A: ParticleSystem', () => {
 
   it('setPosition updates emitter position', () => {
     sys.setPosition(5, 2, 3);
-    expect(sys.getConfig().position.x).toBe(5);
+    expect(sys.getConfig().position[0]).toBe(5);
   });
 
   it('particles age over time', () => {

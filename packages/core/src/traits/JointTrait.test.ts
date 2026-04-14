@@ -50,7 +50,7 @@ describe('JointTrait', () => {
     it('should support hinge joint', () => {
       const hinge = createJointTrait({
         jointType: 'hinge',
-        axis: { x: 0, y: 1, z: 0 },
+        axis: [0, 1, 0 ],
       });
       expect(hinge.getConfig().jointType).toBe('hinge');
       expect(hinge.getConfig().axis?.y).toBe(1);
@@ -206,7 +206,7 @@ describe('JointTrait', () => {
       const hingeJoint = createJointTrait({
         jointType: 'hinge',
         connectedBody: 'door-frame',
-        axis: { x: 0, y: 1, z: 0 },
+        axis: [0, 1, 0 ],
       });
 
       const serialized = hingeJoint.serialize();

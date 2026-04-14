@@ -114,7 +114,7 @@ describe('TriggerTrait', () => {
   });
 
   it('setShape changes configuration', () => {
-    trigger.setShape('box', { size: { x: 2, y: 2, z: 2 } });
+    trigger.setShape('box', { size: [2, 2, 2 ] });
     expect(trigger.getConfig().shape).toBe('box');
   });
 

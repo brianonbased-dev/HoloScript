@@ -1,4 +1,5 @@
-﻿import type {
+import type { Vector3 } from '../types';
+import type {
   VRTraitName,
   VRHand,
   ThrowVelocity,
@@ -90,13 +91,13 @@ export interface TraitContext {
   haptics: HapticsContext;
   accessibility?: AccessibilityContext;
   camera?: {
-    position: [number, number, number];
-    rotation?: { x: number; y: number; z: number };
+    position: Vector3;
+    rotation?: Vector3;
     fov?: number;
   };
   player?: {
-    position: [number, number, number];
-    rotation?: { x: number; y: number; z: number };
+    position: Vector3;
+    rotation?: Vector3;
   };
   emit: (event: string, payload?: unknown) => void;
   getState: () => Record<string, unknown>;

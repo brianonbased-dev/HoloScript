@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PhysicsActivation.ts
  *
@@ -24,7 +25,7 @@
  */
 
 import type { IVector3 } from './PhysicsTypes';
-import type { WeatherBlackboardState } from '@holoscript/core';
+import type { WeatherBlackboardState } from '../environment/WeatherBlackboard';
 
 // =============================================================================
 // Enums
@@ -363,12 +364,12 @@ export class WindZoneManager {
       if (!zone.enabled) continue;
 
       const contribution = this.computeZoneContribution(zone, worldPos);
-      wx += contribution.x;
-      wy += contribution.y;
-      wz += contribution.z;
+      wx += contribution[0];
+      wy += contribution[1];
+      wz += contribution[2];
     }
 
-    return { x: wx, y: wy, z: wz };
+    return [wx, wy, wz ];
   }
 
   /**
@@ -392,31 +393,27 @@ export class WindZoneManager {
     if (zone.turbulence > 0) {
       const noiseScale = zone.turbulence * 0.3;
       // Simple deterministic turbulence using sin waves
-      const tx = Math.sin(this.time * 2.17 + pos.x * 0.5) * noiseScale;
-      const ty = Math.sin(this.time * 1.83 + pos.y * 0.5) * noiseScale;
-      const tz = Math.sin(this.time * 3.07 + pos.z * 0.5) * noiseScale;
+      const tx = Math.sin(this.time * 2.17 + pos[0] * 0.5) * noiseScale;
+      const ty = Math.sin(this.time * 1.83 + pos[1] * 0.5) * noiseScale;
+      const tz = Math.sin(this.time * 3.07 + pos[2] * 0.5) * noiseScale;
       forceMagnitude *= 1.0 + tx + ty + tz;
     }
 
     switch (zone.type) {
       case WindZoneType.GLOBAL:
-        return {
-          x: zone.direction.x * forceMagnitude,
-          y: zone.direction.y * forceMagnitude,
-          z: zone.direction.z * forceMagnitude,
-        };
+        return [zone.direction[0] * forceMagnitude, zone.direction[1] * forceMagnitude, zone.direction[2] * forceMagnitude, ];
 
       case WindZoneType.POINT: {
         if (!zone.position || !zone.radius) {
-          return { x: 0, y: 0, z: 0 };
+          return [0, 0, 0 ];
         }
-        const dx = pos.x - zone.position.x;
-        const dy = pos.y - zone.position.y;
-        const dz = pos.z - zone.position.z;
+        const dx = pos[0] - zone.position[0];
+        const dy = pos[1] - zone.position[1];
+        const dz = pos[2] - zone.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist > zone.radius || dist < 0.001) {
-          return { x: 0, y: 0, z: 0 };
+          return [0, 0, 0 ];
         }
 
         // Falloff: linear from center to radius
@@ -424,28 +421,20 @@ export class WindZoneManager {
         const f = forceMagnitude * falloff;
 
         // Direction: zone.direction (e.g., updraft = [0,1,0])
-        return {
-          x: zone.direction.x * f,
-          y: zone.direction.y * f,
-          z: zone.direction.z * f,
-        };
+        return [zone.direction[0] * f, zone.direction[1] * f, zone.direction[2] * f, ];
       }
 
       case WindZoneType.DIRECTIONAL: {
         if (!zone.position || zone.coneAngle === undefined) {
-          return { x: 0, y: 0, z: 0 };
+          return [0, 0, 0 ];
         }
-        const toPosX = pos.x - zone.position.x;
-        const toPosY = pos.y - zone.position.y;
-        const toPosZ = pos.z - zone.position.z;
+        const toPosX = pos[0] - zone.position[0];
+        const toPosY = pos[1] - zone.position[1];
+        const toPosZ = pos[2] - zone.position[2];
         const toDist = Math.sqrt(toPosX * toPosX + toPosY * toPosY + toPosZ * toPosZ);
 
         if (toDist < 0.001) {
-          return {
-            x: zone.direction.x * forceMagnitude,
-            y: zone.direction.y * forceMagnitude,
-            z: zone.direction.z * forceMagnitude,
-          };
+          return [zone.direction[0] * forceMagnitude, zone.direction[1] * forceMagnitude, zone.direction[2] * forceMagnitude, ];
         }
 
         // Normalize direction to point
@@ -454,11 +443,11 @@ export class WindZoneManager {
         const normZ = toPosZ / toDist;
 
         // Dot product with zone direction = cosine of angle
-        const dot = normX * zone.direction.x + normY * zone.direction.y + normZ * zone.direction.z;
+        const dot = normX * zone.direction[0] + normY * zone.direction[1] + normZ * zone.direction[2];
         const cosCone = Math.cos(zone.coneAngle);
 
         if (dot < cosCone) {
-          return { x: 0, y: 0, z: 0 }; // Outside cone
+          return [0, 0, 0 ]; // Outside cone
         }
 
         // Smooth falloff from cone center to edge
@@ -467,15 +456,11 @@ export class WindZoneManager {
         const distFalloff = zone.radius ? Math.max(0, 1.0 - toDist / zone.radius) : 1.0;
         const f = forceMagnitude * coneFalloff * distFalloff;
 
-        return {
-          x: zone.direction.x * f,
-          y: zone.direction.y * f,
-          z: zone.direction.z * f,
-        };
+        return [zone.direction[0] * f, zone.direction[1] * f, zone.direction[2] * f, ];
       }
 
       default:
-        return { x: 0, y: 0, z: 0 };
+        return [0, 0, 0 ];
     }
   }
 }
@@ -507,24 +492,24 @@ export class VelocitySmoother {
    */
   update(raw: IVector3): IVector3 {
     if (!this.initialized) {
-      this.smoothedX = raw.x;
-      this.smoothedY = raw.y;
-      this.smoothedZ = raw.z;
+      this.smoothedX = raw[0];
+      this.smoothedY = raw[1];
+      this.smoothedZ = raw[2];
       this.initialized = true;
     } else {
-      this.smoothedX = this.alpha * raw.x + (1 - this.alpha) * this.smoothedX;
-      this.smoothedY = this.alpha * raw.y + (1 - this.alpha) * this.smoothedY;
-      this.smoothedZ = this.alpha * raw.z + (1 - this.alpha) * this.smoothedZ;
+      this.smoothedX = this.alpha * raw[0] + (1 - this.alpha) * this.smoothedX;
+      this.smoothedY = this.alpha * raw[1] + (1 - this.alpha) * this.smoothedY;
+      this.smoothedZ = this.alpha * raw[2] + (1 - this.alpha) * this.smoothedZ;
     }
 
-    return { x: this.smoothedX, y: this.smoothedY, z: this.smoothedZ };
+    return [this.smoothedX, this.smoothedY, this.smoothedZ ];
   }
 
   /**
    * Get current smoothed velocity without updating.
    */
   getCurrent(): IVector3 {
-    return { x: this.smoothedX, y: this.smoothedY, z: this.smoothedZ };
+    return [this.smoothedX, this.smoothedY, this.smoothedZ ];
   }
 
   /**
@@ -584,11 +569,7 @@ export function evaluateIntensityCurve(speed: number, curve: IntensityCurvePoint
  * @returns Opposing wind force vector
  */
 export function computeSelfWind(smoothedVelocity: IVector3, scale: number): IVector3 {
-  return {
-    x: -smoothedVelocity.x * scale,
-    y: -smoothedVelocity.y * scale,
-    z: -smoothedVelocity.z * scale,
-  };
+  return [-smoothedVelocity[0] * scale, -smoothedVelocity[1] * scale, -smoothedVelocity[2] * scale, ];
 }
 
 // =============================================================================
@@ -650,16 +631,16 @@ export class PhysicsActivationController {
   // Locomotion
   private velocitySmoother: VelocitySmoother;
   private currentIntensity = 0;
-  private selfWindVector: IVector3 = { x: 0, y: 0, z: 0 };
+  private selfWindVector: IVector3 = [0, 0, 0 ];
 
   // Wind
-  private currentWindForce: IVector3 = { x: 0, y: 0, z: 0 };
+  private currentWindForce: IVector3 = [0, 0, 0 ];
 
   // Settling
   private maxVertexVelocity = 0;
 
   // Previous gravity (for gravity change trigger)
-  private previousGravity: IVector3 = { x: 0, y: -9.81, z: 0 };
+  private previousGravity: IVector3 = [0, -9.81, 0 ];
 
   // Active animation events this frame
   private activeAnimationEvents: Set<string> = new Set();
@@ -803,7 +784,7 @@ export class PhysicsActivationController {
    * Opposes movement direction (headwind effect).
    */
   getSelfWind(): IVector3 {
-    return { ...this.selfWindVector };
+    return [...this.selfWindVector  ];
   }
 
   /**
@@ -817,11 +798,7 @@ export class PhysicsActivationController {
    * Get the total effective wind = external wind + self-wind.
    */
   getEffectiveWind(): IVector3 {
-    return {
-      x: this.currentWindForce.x + this.selfWindVector.x,
-      y: this.currentWindForce.y + this.selfWindVector.y,
-      z: this.currentWindForce.z + this.selfWindVector.z,
-    };
+    return [this.currentWindForce[0] + this.selfWindVector[0], this.currentWindForce[1] + this.selfWindVector[1], this.currentWindForce[2] + this.selfWindVector[2], ];
   }
 
   /**
@@ -908,7 +885,7 @@ export class PhysicsActivationController {
   update(dt: number, input: ActivationUpdateInput = {}): void {
     if (this.config.mode === 'always_on') {
       this.updateLocomotion(input.characterVelocity);
-      this.currentWindForce = input.windForce ?? { x: 0, y: 0, z: 0 };
+      this.currentWindForce = input.windForce ?? [0, 0, 0 ];
       return;
     }
 
@@ -925,7 +902,7 @@ export class PhysicsActivationController {
     this.updateLocomotion(input.characterVelocity);
 
     // Store wind force
-    this.currentWindForce = input.windForce ?? { x: 0, y: 0, z: 0 };
+    this.currentWindForce = input.windForce ?? [0, 0, 0 ];
 
     // Run state machine
     this.updateStateMachine(dt);
@@ -944,7 +921,7 @@ export class PhysicsActivationController {
     if (!ts || !cfg) return;
 
     const speed = velocity
-      ? Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z)
+      ? Math.sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2])
       : 0;
 
     if (speed >= cfg.wake) {
@@ -969,7 +946,7 @@ export class PhysicsActivationController {
     if (!ts || !cfg) return;
 
     const magnitude = windForce
-      ? Math.sqrt(windForce.x * windForce.x + windForce.y * windForce.y + windForce.z * windForce.z)
+      ? Math.sqrt(windForce[0] * windForce[0] + windForce[1] * windForce[1] + windForce[2] * windForce[2])
       : 0;
 
     if (magnitude >= cfg.wake) {
@@ -1013,9 +990,9 @@ export class PhysicsActivationController {
     const cfg = this.config.triggers.gravity;
     if (!ts || !cfg || !gravity) return;
 
-    const dx = gravity.x - this.previousGravity.x;
-    const dy = gravity.y - this.previousGravity.y;
-    const dz = gravity.z - this.previousGravity.z;
+    const dx = gravity[0] - this.previousGravity[0];
+    const dy = gravity[1] - this.previousGravity[1];
+    const dz = gravity[2] - this.previousGravity[2];
     const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     this.previousGravity = { ...gravity };
@@ -1065,12 +1042,12 @@ export class PhysicsActivationController {
     const loco = this.config.locomotion;
     if (!loco) {
       this.currentIntensity = 0;
-      this.selfWindVector = { x: 0, y: 0, z: 0 };
+      this.selfWindVector = [0, 0, 0 ];
       return;
     }
 
     // Smooth velocity with EMA
-    const raw = velocity ?? { x: 0, y: 0, z: 0 };
+    const raw = velocity ?? [0, 0, 0 ];
     const smoothed = this.velocitySmoother.update(raw);
     const speed = this.velocitySmoother.getSpeed();
 
@@ -1081,7 +1058,7 @@ export class PhysicsActivationController {
     if (loco.selfWind) {
       this.selfWindVector = computeSelfWind(smoothed, loco.selfWindScale);
     } else {
-      this.selfWindVector = { x: 0, y: 0, z: 0 };
+      this.selfWindVector = [0, 0, 0 ];
     }
   }
 

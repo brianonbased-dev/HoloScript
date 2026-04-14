@@ -66,7 +66,7 @@ describe('LightEstimationTrait', () => {
     sendEvent(lightEstimationHandler, node, cfg, ctx, {
       type: 'light_estimation_update',
       intensity: 1,
-      direction: { x: 1, y: 0, z: 0 },
+      direction: [1, 0, 0 ],
     });
     const s = (node as any).__lightEstimationState;
     // smoothed x: 0 * 0.8 + 1 * 0.2 = 0.2

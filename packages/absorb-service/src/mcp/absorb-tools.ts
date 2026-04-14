@@ -35,6 +35,11 @@ function getDefaultApiKey(): string {
   return process.env.ABSORB_API_KEY || '';
 }
 
+interface StudioApiResponse {
+  error?: string;
+  [key: string]: any;
+}
+
 /**
  * Make an authenticated request to the Studio absorb API.
  */
@@ -43,7 +48,7 @@ async function studioFetch(
   method: 'GET' | 'POST' | 'DELETE',
   apiKey?: string,
   body?: Record<string, unknown>
-): Promise<{ ok: boolean; status: number; data: unknown }> {
+): Promise<{ ok: boolean; status: number; data: StudioApiResponse }> {
   const url = `${getStudioUrl()}${path}`;
   const key = apiKey || getDefaultApiKey();
 
@@ -507,7 +512,6 @@ async function handleFreeDiff(args: Record<string, unknown>): Promise<unknown> {
 async function handleListProjects(args: Record<string, unknown>): Promise<unknown> {
   const apiKey = args.apiKey as string | undefined;
   const { ok, data } = await studioFetch('/api/absorb/projects', 'GET', apiKey);
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Failed to list projects' };
   return data;
 }
@@ -523,7 +527,6 @@ async function handleCreateProject(args: Record<string, unknown>): Promise<unkno
     sourceType,
     sourceUrl,
   });
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Failed to create project' };
   return data;
 }
@@ -537,7 +540,6 @@ async function handleDeleteProject(args: Record<string, unknown>): Promise<unkno
     'DELETE',
     apiKey
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Failed to delete project' };
   return { success: true, projectId };
 }
@@ -547,23 +549,18 @@ async function handleCheckCredits(args: Record<string, unknown>): Promise<unknow
   const includeHistory = (args.includeHistory as boolean) ?? false;
 
   const { ok, data } = await studioFetch('/api/absorb/credits', 'GET', apiKey);
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Failed to check credits' };
 
   const result: Record<string, unknown> = {
-    // @ts-ignore - Automatic remediation for TS18046
-    balance: data.balance,
-    // @ts-ignore - Automatic remediation for TS18046
-    balanceDollars: `$${((data.balance ?? 0) / 100).toFixed(2)}`,
-    // @ts-ignore - Automatic remediation for TS18046
-    tier: data.tier,
+      balance: data.balance,
+      balanceDollars: `$${((data.balance ?? 0) / 100).toFixed(2)}`,
+      tier: data.tier,
   };
 
   if (includeHistory) {
     const historyRes = await studioFetch('/api/absorb/credits/history?limit=20', 'GET', apiKey);
     if (historyRes.ok) {
-      // @ts-ignore - Automatic remediation for TS18046
-      result.recentTransactions = historyRes.data.transactions;
+          result.recentTransactions = historyRes.data.transactions;
     }
   }
 
@@ -586,7 +583,6 @@ async function handleRunAbsorb(args: Record<string, unknown>): Promise<unknown> 
     apiKey,
     { depth, tier }
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Absorb failed' };
   return data;
 }
@@ -603,7 +599,6 @@ async function handleRunImprove(args: Record<string, unknown>): Promise<unknown>
     apiKey,
     { profile, tier }
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Improvement failed' };
   return data;
 }
@@ -620,7 +615,6 @@ async function handleRunQueryAI(args: Record<string, unknown>): Promise<unknown>
     apiKey,
     { query: question, withLLM: true, maxResults }
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'AI query failed' };
   return data;
 }
@@ -644,7 +638,6 @@ async function handleRunRender(args: Record<string, unknown>): Promise<unknown> 
     apiKey,
     body
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Render failed' };
   return data;
 }
@@ -660,7 +653,6 @@ async function handleRunPipeline(args: Record<string, unknown>): Promise<unknown
     apiKey,
     { layer }
   );
-  // @ts-ignore - Automatic remediation for TS18046
   if (!ok) return { error: data.error || 'Pipeline failed' };
   return data;
 }

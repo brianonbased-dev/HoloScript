@@ -52,7 +52,8 @@ export type NormCategory =
   | 'authority' // Hierarchy, decision-making protocols
   | 'safety' // Anti-griefing, non-aggression
   | 'ritual' // Repeated group behaviors, ceremonies
-  | 'identity'; // Group markers, naming conventions
+  | 'identity' // Group markers, naming conventions
+  | 'economy'; // Economy-specific norms (Sprint 6)
 
 // =============================================================================
 // NORM DEFINITION

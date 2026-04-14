@@ -24,42 +24,35 @@ import type {
   SpatialConstraintResolvedEvent,
   TrajectoryWaypoint,
 } from '@holoscript/engine/spatial';
-import type { Vector3 } from '@holoscript/engine/spatial';
+import { Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // SHARED HELPERS
 // =============================================================================
 
-function computeDistance3D(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
-): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+function computeDistance3D(a: Vector3, b: Vector3): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-function computeAxisDistance(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number },
-  axis: string
-): number {
+function computeAxisDistance(a: Vector3, b: Vector3, axis: string): number {
   switch (axis) {
     case 'x':
-      return Math.abs(b.x - a.x);
+      return Math.abs(b[0] - a[0]);
     case 'y':
-      return Math.abs(b.y - a.y);
+      return Math.abs(b[1] - a[1]);
     case 'z':
-      return Math.abs(b.z - a.z);
+      return Math.abs(b[2] - a[2]);
     case 'xy': {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
       return Math.sqrt(dx * dx + dy * dy);
     }
     case 'xz': {
-      const dx = b.x - a.x;
-      const dz = b.z - a.z;
+      const dx = b[0] - a[0];
+      const dz = b[2] - a[2];
       return Math.sqrt(dx * dx + dz * dz);
     }
     case 'xyz':
@@ -78,41 +71,37 @@ function predictPosition(
   acceleration?: Vector3
 ): Vector3 {
   if (acceleration) {
-    return {
-      x: position.x + velocity.x * t + 0.5 * acceleration.x * t * t,
-      y: position.y + velocity.y * t + 0.5 * acceleration.y * t * t,
-      z: position.z + velocity.z * t + 0.5 * acceleration.z * t * t,
-    };
+    return [
+      position[0] + velocity[0] * t + 0.5 * acceleration[0] * t * t,
+      position[1] + velocity[1] * t + 0.5 * acceleration[1] * t * t,
+      position[2] + velocity[2] * t + 0.5 * acceleration[2] * t * t,
+    ];
   }
-  return {
-    x: position.x + velocity.x * t,
-    y: position.y + velocity.y * t,
-    z: position.z + velocity.z * t,
-  };
+  return [
+    position[0] + velocity[0] * t,
+    position[1] + velocity[1] * t,
+    position[2] + velocity[2] * t,
+  ];
 }
 
 /**
  * Find the closest point on a line segment AB to point P.
  */
 function closestPointOnSegment(p: Vector3, a: Vector3, b: Vector3): Vector3 {
-  const abx = b.x - a.x;
-  const aby = b.y - a.y;
-  const abz = b.z - a.z;
-  const apx = p.x - a.x;
-  const apy = p.y - a.y;
-  const apz = p.z - a.z;
+  const abx = b[0] - a[0];
+  const aby = b[1] - a[1];
+  const abz = b[2] - a[2];
+  const apx = p[0] - a[0];
+  const apy = p[1] - a[1];
+  const apz = p[2] - a[2];
 
   const abLenSq = abx * abx + aby * aby + abz * abz;
-  if (abLenSq === 0) return { x: a.x, y: a.y, z: a.z };
+  if (abLenSq === 0) return [a[0], a[1], a[2]];
 
   let t = (apx * abx + apy * aby + apz * abz) / abLenSq;
   t = Math.max(0, Math.min(1, t));
 
-  return {
-    x: a.x + t * abx,
-    y: a.y + t * aby,
-    z: a.z + t * abz,
-  };
+  return [a[0] + t * abx, a[1] + t * aby, a[2] + t * abz];
 }
 
 /**
@@ -290,7 +279,7 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
 
     state.elapsedTime += delta;
 
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0];
     const targetPos = state.targetPosition;
     if (!targetPos) return;
 
@@ -360,9 +349,9 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
         if (config.enforcement === 'correct' && dist > config.maxDistance) {
           const ratio = config.maxDistance / dist;
           if (node.position) {
-            node.position.x = targetPos.x + (nodePos.x - targetPos.x) * ratio;
-            node.position.y = targetPos.y + (nodePos.y - targetPos.y) * ratio;
-            node.position.z = targetPos.z + (nodePos.z - targetPos.z) * ratio;
+            node.position[0] = targetPos[0] + (nodePos[0] - targetPos[0]) * ratio;
+            node.position[1] = targetPos[1] + (nodePos[1] - targetPos[1]) * ratio;
+            node.position[2] = targetPos[2] + (nodePos[2] - targetPos[2]) * ratio;
           }
         }
       }
@@ -451,7 +440,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
     if (now - state.lastCheckTime < 250) return;
     state.lastCheckTime = now;
 
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0];
     const targetPos = state.targetPosition;
     if (!targetPos) return;
 
@@ -473,13 +462,13 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
       const agentRadius = config.agentRadius ?? 0.5;
 
       // Direction from source to target (normalized)
-      const dx = targetPos.x - nodePos.x;
-      const dy = targetPos.y - nodePos.y;
-      const dz = targetPos.z - nodePos.z;
+      const dx = targetPos[0] - nodePos[0];
+      const dy = targetPos[1] - nodePos[1];
+      const dz = targetPos[2] - nodePos[2];
       const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (len > 0) {
-        const dirNorm = { x: dx / len, y: dy / len, z: dz / len };
+        const dirNorm = [dx / len, dy / len, dz / len] as Vector3;
 
         // Sample time steps across the prediction horizon
         const sampleCount = 10;
@@ -511,12 +500,12 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
 
     // Static obstacle check via physics raycast
     if (reachable) {
-      const sdx = targetPos.x - nodePos.x;
-      const sdy = targetPos.y - nodePos.y;
-      const sdz = targetPos.z - nodePos.z;
+      const sdx = targetPos[0] - nodePos[0];
+      const sdy = targetPos[1] - nodePos[1];
+      const sdz = targetPos[2] - nodePos[2];
       const slen = Math.sqrt(sdx * sdx + sdy * sdy + sdz * sdz);
       if (slen > 0) {
-        const dirNorm = { x: sdx / slen, y: sdy / slen, z: sdz / slen };
+        const dirNorm = [sdx / slen, sdy / slen, sdz / slen] as Vector3;
         // @ts-expect-error
         const hit = context.physics.raycast(nodePos, dirNorm, slen);
         if (hit && hit.distance < slen - 0.01) {
@@ -635,7 +624,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     const state: TrajectoryState = {
       violated: false,
       lastCheckTime: 0,
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0],
       acceleration: null,
       regionBounds: null,
       lastTrajectory: [],
@@ -656,7 +645,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     if (now - state.lastCheckTime < 100) return;
     state.lastCheckTime = now;
 
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0];
     const sampleCount = config.sampleCount ?? 10;
     const horizon = config.horizon;
 
@@ -739,12 +728,12 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
         inside = dist <= bounds.radius;
       } else {
         inside =
-          pt.x >= bounds.min.x &&
-          pt.x <= bounds.max.x &&
-          pt.y >= bounds.min.y &&
-          pt.y <= bounds.max.y &&
-          pt.z >= bounds.min.z &&
-          pt.z <= bounds.max.z;
+          pt[0] >= bounds.min[0] &&
+          pt[0] <= bounds.max[0] &&
+          pt[1] >= bounds.min[1] &&
+          pt[1] <= bounds.max[1] &&
+          pt[2] >= bounds.min[2] &&
+          pt[2] <= bounds.max[2];
       }
 
       if (!inside) {
@@ -776,12 +765,12 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
         inside = dist <= bounds.radius;
       } else {
         inside =
-          pt.x >= bounds.min.x &&
-          pt.x <= bounds.max.x &&
-          pt.y >= bounds.min.y &&
-          pt.y <= bounds.max.y &&
-          pt.z >= bounds.min.z &&
-          pt.z <= bounds.max.z;
+          pt[0] >= bounds.min[0] &&
+          pt[0] <= bounds.max[0] &&
+          pt[1] >= bounds.min[1] &&
+          pt[1] <= bounds.max[1] &&
+          pt[2] >= bounds.min[2] &&
+          pt[2] <= bounds.max[2];
       }
 
       if (inside) {

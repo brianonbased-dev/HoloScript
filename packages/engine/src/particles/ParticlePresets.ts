@@ -23,7 +23,7 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     colorEnd: { r: 0.9, g: 0.85, b: 0.7, a: 0 },
     position: [0, 1, 0],
     radius: 2,
-    direction: { x: 0, y: 0.2, z: 0 },
+    direction: [0, 0.2, 0 ],
   },
 
   /** Sparks flying upward */
@@ -39,7 +39,7 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     colorEnd: { r: 1, g: 0.3, b: 0, a: 0 },
     position: [0, 0, 0],
     coneAngle: Math.PI / 8,
-    direction: { x: 0, y: 1, z: 0 },
+    direction: [0, 1, 0 ],
   },
 
   /** Flame / fire effect */
@@ -55,7 +55,7 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     colorEnd: { r: 0.8, g: 0.1, b: 0, a: 0 },
     position: [0, 0, 0],
     coneAngle: Math.PI / 10,
-    direction: { x: 0, y: 1, z: 0 },
+    direction: [0, 1, 0 ],
   },
 
   /** Confetti burst (use with burst() method) */
@@ -88,7 +88,7 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     colorEnd: { r: 1, g: 1, b: 1, a: 0 },
     position: [0, 3, 0],
     radius: 3,
-    direction: { x: 0, y: -1, z: 0 },
+    direction: [0, -1, 0 ],
     rotationSpeed: [-1, 1],
   },
 
@@ -121,6 +121,6 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     colorEnd: { r: 0.6, g: 0.6, b: 0.6, a: 0 },
     position: [0, 0, 0],
     coneAngle: Math.PI / 12,
-    direction: { x: 0, y: 1, z: 0 },
+    direction: [0, 1, 0 ],
   },
 };

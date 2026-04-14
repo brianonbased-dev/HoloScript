@@ -123,8 +123,8 @@ function buildCanonicalJwk(jwk: Record<string, unknown>): CanonicalJwk {
 
     case 'EC': {
       const crv = jwk.crv as string | undefined;
-      const x = jwk.x as string | undefined;
-      const y = jwk.y as string | undefined;
+        const x = jwk.x as string | undefined;
+        const y = jwk.y as string | undefined;
       if (!crv || !x || !y) {
         throw new Error('EC JWK missing required members: crv, x, y');
       }
@@ -134,7 +134,7 @@ function buildCanonicalJwk(jwk: Record<string, unknown>): CanonicalJwk {
 
     case 'OKP': {
       const crv = jwk.crv as string | undefined;
-      const x = jwk.x as string | undefined;
+        const x = jwk.x as string | undefined;
       if (!crv || !x) {
         throw new Error('OKP JWK missing required members: crv, x');
       }

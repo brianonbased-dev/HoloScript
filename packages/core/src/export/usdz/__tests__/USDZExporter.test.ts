@@ -280,8 +280,8 @@ describe('USDZExporter', () => {
 
     it('should apply transforms correctly', async () => {
       const node = createEmptyNode('node1', 'TransformedNode');
-      node.transform.position = { x: 1, y: 2, z: 3 };
-      node.transform.scale = { x: 2, y: 2, z: 2 };
+      node.transform.position = [1, 2, 3 ];
+      node.transform.scale = [2, 2, 2 ];
       sceneGraph.root.children = [node];
 
       const result = await exporter.export(sceneGraph);

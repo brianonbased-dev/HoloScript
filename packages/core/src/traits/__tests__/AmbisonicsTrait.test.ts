@@ -81,9 +81,9 @@ describe('AmbisonicsTrait', () => {
   it('listener_rotation_update updates rotation', () => {
     sendEvent(ambisonicsHandler, node, cfg, ctx, {
       type: 'listener_rotation_update',
-      rotation: { x: 1, y: 0, z: 0, w: 0 },
+      rotation: [1, 0, 0, 0 ],
     });
-    expect((node as any).__ambisonicsState.rotation.x).toBe(1);
+    expect((node as any).__ambisonicsState.rotation[0]).toBe(1);
   });
 
   it('cleans up on detach', () => {

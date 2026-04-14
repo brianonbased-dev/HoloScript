@@ -61,7 +61,7 @@ export const ambisonicsHandler: TraitHandler<AmbisonicsConfig> = {
       currentOrder: config.order,
       sourceLoaded: false,
       decoderReady: false,
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       gain: config.volume,
     };
     node.__ambisonicsState = state;

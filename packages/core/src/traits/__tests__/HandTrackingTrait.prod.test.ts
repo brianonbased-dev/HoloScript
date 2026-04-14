@@ -132,7 +132,7 @@ describe('HandTrackingTrait — Production', () => {
       const joints1 = new Map([
         [
           'wrist',
-          { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 },
+          { position: [0, 0, 0], rotation: [0, 0, 0, 1 ], radius: 0.01 },
         ],
       ]);
 
@@ -147,7 +147,7 @@ describe('HandTrackingTrait — Production', () => {
       const joints2 = new Map([
         [
           'wrist',
-          { position: [10, 10, 10], rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.01 },
+          { position: [10, 10, 10], rotation: [0, 0, 0, 1 ], radius: 0.01 },
         ],
       ]);
 
@@ -159,7 +159,7 @@ describe('HandTrackingTrait — Production', () => {
 
       const wrist = getState(n).left.joints.get('wrist');
       // With 0.5 smoothing: 0 * 0.5 + 10 * 0.5 = 5
-      expect(wrist.position.x).toBe(5);
+      expect(wrist.position[0]).toBe(5);
     });
   });
 
@@ -308,7 +308,7 @@ describe('HandTrackingTrait — Production', () => {
       const joints = new Map([
         [
           'index_tip',
-          { position: [1, 2, 3], rotation: { x: 0, y: 0, z: 0, w: 1 }, radius: 0.005 },
+          { position: [1, 2, 3], rotation: [0, 0, 0, 1 ], radius: 0.005 },
         ],
       ]);
       handTrackingHandler.onEvent!(node, config, ctx, {

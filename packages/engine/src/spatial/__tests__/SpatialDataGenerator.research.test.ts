@@ -43,8 +43,8 @@ describe('ZoneMetadata', () => {
       zoneId: 'zone_forest_01',
       biome: 'forest',
       bounds: {
-        min: { x: 0, y: 0, z: 0 },
-        max: { x: 100, y: 50, z: 100 },
+        min: [0, 0, 0 ],
+        max: [100, 50, 100 ],
       },
       objectIds: ['tree_01', 'tree_02', 'rock_01'],
       adjacentZones: ['zone_desert_01', 'zone_river_01'],
@@ -59,7 +59,7 @@ describe('ZoneMetadata', () => {
     const zone: ZoneMetadata = {
       zoneId: 'zone_basement',
       biome: 'urban',
-      bounds: { min: { x: 0, y: -10, z: 0 }, max: { x: 50, y: 0, z: 50 } },
+      bounds: { min: [0, -10, 0 ], max: [50, 0, 50 ] },
       objectIds: [],
       adjacentZones: [],
       level: -1,

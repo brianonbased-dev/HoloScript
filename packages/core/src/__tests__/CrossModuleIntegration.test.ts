@@ -120,7 +120,7 @@ describe('Cross-Module Integration (Cycle 173)', () => {
       // Generate violations
       antiCheat.validatePositionUpdate('cheater', { x: 9999, y: 0, z: 0 });
       const state = antiCheat.getPlayerState('cheater')!;
-      state.position = { x: 0, y: 0, z: 0 };
+      state.position = [0, 0, 0 ];
       antiCheat.validatePositionUpdate('cheater', { x: 9999, y: 0, z: 0 });
 
       if (antiCheat.isBanned('cheater')) {

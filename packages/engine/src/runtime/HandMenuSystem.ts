@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 import {
   HSPlusRuntime,
   VRHand,
@@ -82,12 +83,11 @@ export class HandMenuSystem {
     );
 
     // Position near the hand
-    menu.properties!.position = {
-      x: hand.position.x,
-
-      y: hand.position.y + 0.1,
-      z: hand.position.z,
-    };
+    menu.properties!.position = [
+      hand.position[0],
+      hand.position[1] + 0.1,
+      hand.position[2],
+    ];
 
     // Start invisible for transition
     menu.properties!.opacity = 0;

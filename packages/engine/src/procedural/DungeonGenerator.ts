@@ -87,10 +87,10 @@ export class DungeonGenerator {
   private overlaps(x: number, y: number, w: number, h: number): boolean {
     for (const room of this.rooms) {
       if (
-        x < room.x + room.width + 1 &&
-        x + w + 1 > room.x &&
-        y < room.y + room.height + 1 &&
-        y + h + 1 > room.y
+        x < room[0] + room.width + 1 &&
+        x + w + 1 > room[0] &&
+        y < room[1] + room.height + 1 &&
+        y + h + 1 > room[1]
       )
         return true;
     }
@@ -98,10 +98,10 @@ export class DungeonGenerator {
   }
 
   private connectRooms(a: Room, b: Room): void {
-    const ax = Math.floor(a.x + a.width / 2);
-    const ay = Math.floor(a.y + a.height / 2);
-    const bx = Math.floor(b.x + b.width / 2);
-    const by = Math.floor(b.y + b.height / 2);
+    const ax = Math.floor(a[0] + a.width / 2);
+    const ay = Math.floor(a[1] + a.height / 2);
+    const bx = Math.floor(b[0] + b.width / 2);
+    const by = Math.floor(b[1] + b.height / 2);
 
     const points: { x: number; y: number }[] = [];
 

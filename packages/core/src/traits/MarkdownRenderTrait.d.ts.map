@@ -1,0 +1,1 @@
+{"version":3,"file":"MarkdownRenderTrait.d.ts","sourceRoot":"","sources":["MarkdownRenderTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,oBAAoB;IACnC,QAAQ,EAAE,OAAO,CAAC;IAClB,GAAG,EAAE,OAAO,CAAC;CACd;AAED,eAAO,MAAM,qBAAqB,EAAE,YAAY,CAAC,oBAAoB,CA8BpE,CAAC;AAEF,eAAe,qBAAqB,CAAC"}

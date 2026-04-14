@@ -72,7 +72,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       sharedAnchorId: config.shared_anchor_id || null,
       alignmentTransform: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
       },
       alignmentQuality: 0,
       lastAlignmentTime: 0,

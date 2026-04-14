@@ -34,7 +34,7 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     it('should add polygons and compute centers', () => {
       expect(nav.getPolygonCount()).toBe(3);
       const p = nav.getPolygon(0)!;
-      expect(p.center.x).toBeCloseTo(1, 0);
+      expect(p.center[0]).toBeCloseTo(1, 0);
     });
 
     it('should find a path between connected polygons', () => {
@@ -79,23 +79,23 @@ describe('AI & Pathfinding (Cycle 180)', () => {
 
     it('should seek toward a target', () => {
       const force = SteeringBehavior.seek(agent, { x: 10, z: 0 });
-      expect(force.x).toBeGreaterThan(0);
+      expect(force[0]).toBeGreaterThan(0);
     });
 
     it('should flee away from a target', () => {
       const force = SteeringBehavior.flee(agent, { x: 10, z: 0 });
-      expect(force.x).toBeLessThan(0);
+      expect(force[0]).toBeLessThan(0);
     });
 
     it('should arrive and decelerate near target', () => {
       agent.position = { x: 9, z: 0 };
       const force = SteeringBehavior.arrive(agent, { x: 10, z: 0 }, 5);
-      expect(Math.abs(force.x)).toBeLessThan(agent.maxSpeed);
+      expect(Math.abs(force[0])).toBeLessThan(agent.maxSpeed);
     });
 
     it('should avoid obstacles', () => {
       const force = SteeringBehavior.avoid(agent, [{ position: { x: 3, z: 0 }, radius: 1 }], 5);
-      expect(force.x).toBeLessThan(0); // pushed away
+      expect(force[0]).toBeLessThan(0); // pushed away
     });
 
     it('should blend multiple steering outputs', () => {

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ClothSim.ts
  *
@@ -12,12 +13,8 @@
 // =============================================================================
 
 export interface ClothParticle {
-  x: number;
-  y: number;
-  z: number;
-  prevX: number;
-  prevY: number;
-  prevZ: number;
+  position: Vector3;
+  prevPosition: Vector3;
   mass: number;
   pinned: boolean;
 }
@@ -33,7 +30,7 @@ export interface ClothConfig {
   gravity: number;
   damping: number;
   iterations: number;
-  wind: { x: number; y: number; z: number };
+  wind: Vector3;
 }
 
 // =============================================================================
@@ -52,7 +49,7 @@ export class ClothSim {
       gravity: -9.81,
       damping: 0.99,
       iterations: 5,
-      wind: { x: 0, y: 0, z: 0 },
+      wind: [0, 0, 0],
       ...config,
     };
   }
@@ -71,12 +68,8 @@ export class ClothSim {
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         this.particles.push({
-          x: col * spacing,
-          y: 0,
-          z: row * spacing,
-          prevX: col * spacing,
-          prevY: 0,
-          prevZ: row * spacing,
+          position: [col * spacing, 0, row * spacing],
+          prevPosition: [col * spacing, 0, row * spacing],
           mass: 1,
           pinned: false,
         });
@@ -127,21 +120,27 @@ export class ClothSim {
   // ---------------------------------------------------------------------------
 
   update(dt: number): void {
+    const dt2 = dt * dt;
+    const gravity = this.config.gravity;
+    const wind = this.config.wind;
+    const damping = this.config.damping;
+
     // Apply forces (Verlet integration)
     for (const p of this.particles) {
       if (p.pinned) continue;
 
-      const vx = (p.x - p.prevX) * this.config.damping;
-      const vy = (p.y - p.prevY) * this.config.damping;
-      const vz = (p.z - p.prevZ) * this.config.damping;
+      const pos = p.position;
+      const prev = p.prevPosition;
 
-      p.prevX = p.x;
-      p.prevY = p.y;
-      p.prevZ = p.z;
+      const vx = (pos[0] - prev[0]) * damping;
+      const vy = (pos[1] - prev[1]) * damping;
+      const vz = (pos[2] - prev[2]) * damping;
 
-      p.x += vx + (this.config.wind.x * dt * dt) / p.mass;
-      p.y += vy + this.config.gravity * dt * dt;
-      p.z += vz + (this.config.wind.z * dt * dt) / p.mass;
+      p.prevPosition = [pos[0], pos[1], pos[2]];
+
+      p.position[0] += vx + (wind[0] * dt2) / p.mass;
+      p.position[1] += vy + gravity * dt2;
+      p.position[2] += vz + (wind[2] * dt2) / p.mass;
     }
 
     // Constraint solving
@@ -150,9 +149,12 @@ export class ClothSim {
         const a = this.particles[c.particleA];
         const b = this.particles[c.particleB];
 
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dz = b.z - a.z;
+        const pa = a.position;
+        const pb = b.position;
+
+        const dx = pb[0] - pa[0];
+        const dy = pb[1] - pa[1];
+        const dz = pb[2] - pa[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist === 0) continue;
@@ -163,14 +165,14 @@ export class ClothSim {
         const oz = dz * diff;
 
         if (!a.pinned) {
-          a.x -= ox;
-          a.y -= oy;
-          a.z -= oz;
+          pa[0] -= ox;
+          pa[1] -= oy;
+          pa[2] -= oz;
         }
         if (!b.pinned) {
-          b.x += ox;
-          b.y += oy;
-          b.z += oz;
+          pb[0] += ox;
+          pb[1] += oy;
+          pb[2] += oz;
         }
       }
     }
@@ -181,7 +183,7 @@ export class ClothSim {
   // ---------------------------------------------------------------------------
 
   setWind(x: number, y: number, z: number): void {
-    this.config.wind = { x, y, z };
+    this.config.wind = [x, y, z];
   }
 
   // ---------------------------------------------------------------------------
@@ -202,8 +204,8 @@ export class ClothSim {
   }
 
   getAABB(): {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   } {
     let minX = Infinity,
       minY = Infinity,
@@ -212,13 +214,14 @@ export class ClothSim {
       maxY = -Infinity,
       maxZ = -Infinity;
     for (const p of this.particles) {
-      minX = Math.min(minX, p.x);
-      minY = Math.min(minY, p.y);
-      minZ = Math.min(minZ, p.z);
-      maxX = Math.max(maxX, p.x);
-      maxY = Math.max(maxY, p.y);
-      maxZ = Math.max(maxZ, p.z);
+      const pos = p.position;
+      minX = Math.min(minX, pos[0]);
+      minY = Math.min(minY, pos[1]);
+      minZ = Math.min(minZ, pos[2]);
+      maxX = Math.max(maxX, pos[0]);
+      maxY = Math.max(maxY, pos[1]);
+      maxZ = Math.max(maxZ, pos[2]);
     }
-    return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
+    return { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
   }
 }

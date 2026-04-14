@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ParticleSystem.ts
  *
@@ -74,7 +75,7 @@ export interface EmitterConfig {
   /** Rotation speed range [min, max] */
   rotationSpeed?: [number, number];
   /** Direction bias (normalized) */
-  direction?: { x: number; y: number; z: number };
+  direction?: Vector3;
 }
 
 // =============================================================================
@@ -214,9 +215,9 @@ export class ParticleSystem {
       p.vx += p.ax * delta;
       p.vy += p.ay * delta;
       p.vz += p.az * delta;
-      p.x += p.vx * delta;
-      p.y += p.vy * delta;
-      p.z += p.vz * delta;
+      p[0] += p.vx * delta;
+      p[1] += p.vy * delta;
+      p[2] += p.vz * delta;
 
       // Interpolate size over lifetime
       p.size = lerp(p.sizeStart, p.sizeEnd, lifeT);
@@ -275,11 +276,11 @@ export class ParticleSystem {
     vy: number;
     vz: number;
   } {
-    const dir = this.config.direction || { x: 0, y: 1, z: 0 };
+    const dir = this.config.direction || [0, 1, 0 ];
 
     switch (this.config.shape) {
       case 'point':
-        return { px: 0, py: 0, pz: 0, vx: dir.x, vy: dir.y, vz: dir.z };
+        return { px: 0, py: 0, pz: 0, vx: dir[0], vy: dir[1], vz: dir[2] };
 
       case 'sphere': {
         const r = (this.config.radius || 0.1) * Math.random();
@@ -306,7 +307,7 @@ export class ParticleSystem {
         const px = (Math.random() - 0.5) * r * 2;
         const py = (Math.random() - 0.5) * r * 2;
         const pz = (Math.random() - 0.5) * r * 2;
-        return { px, py, pz, vx: dir.x, vy: dir.y, vz: dir.z };
+        return { px, py, pz, vx: dir[0], vy: dir[1], vz: dir[2] };
       }
 
       default:

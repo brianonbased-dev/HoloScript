@@ -14,6 +14,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Zap, X, Play, RotateCcw, Box, Lock, ArrowDown, Loader2 } from 'lucide-react';
 import { useEditorStore } from '@/lib/stores';
 import { useHistoryStore } from '@/lib/historyStore';
+import { type ColormapName } from '@holoscript/r3f-renderer';
 
 interface SimulationPanelProps {
   onClose: () => void;
@@ -40,7 +41,7 @@ interface SimConfig {
   loadForceY: number;
   loadForceZ: number;
   // Visualization
-  colormap: 'turbo' | 'viridis' | 'jet' | 'inferno' | 'coolwarm';
+  colormap: ColormapName;
   displacementScale: number;
   wireframe: boolean;
   useGpuBuffers: boolean;

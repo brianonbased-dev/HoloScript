@@ -71,8 +71,8 @@ describe('FaceTrackingTrait', () => {
       type: 'face_data_update',
       blendShapes: {},
       eyes: {
-        left: { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0, y: 0, z: 0 }, confidence: 0.9 },
-        right: { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0, y: 0, z: 0 }, confidence: 0.9 },
+        left: { direction: [0, 0, -1 ], origin: [0, 0, 0 ], confidence: 0.9 },
+        right: { direction: [0, 0, -1 ], origin: [0, 0, 0 ], confidence: 0.9 },
       },
     });
     const s = (node as any).__faceTrackingState;
@@ -84,7 +84,7 @@ describe('FaceTrackingTrait', () => {
     sendEvent(faceTrackingHandler, node, cfg, ctx, {
       type: 'face_data_update',
       blendShapes: {},
-      headPose: { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      headPose: { position: [0, 1.7, 0], rotation: [0, 0, 0, 1 ] },
     });
     expect((node as any).__faceTrackingState.headPose).not.toBeNull();
   });

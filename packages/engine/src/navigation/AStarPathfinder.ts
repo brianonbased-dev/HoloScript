@@ -199,7 +199,7 @@ export class AStarPathfinder {
 
     for (let i = from + 1; i < to; i++) {
       const p = path[i];
-      const crossX = (p.z - a.z) * (b.x - a.x) - (p.x - a.x) * (b.z - a.z);
+      const crossX = (p[2] - a[2]) * (b[0] - a[0]) - (p[0] - a[0]) * (b[2] - a[2]);
       const perpDist = Math.abs(crossX) / lineLen;
       if (perpDist > 2) return false;
     }
@@ -247,11 +247,11 @@ export class AStarPathfinder {
   }
 
   private dist(a: NavPoint, b: NavPoint): number {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+    return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
   }
 
   private makeCacheKey(a: NavPoint, b: NavPoint): string {
-    return `${a.x.toFixed(1)},${a.y.toFixed(1)},${a.z.toFixed(1)}->${b.x.toFixed(1)},${b.y.toFixed(1)},${b.z.toFixed(1)}`;
+    return `${a[0].toFixed(1)},${a[1].toFixed(1)},${a[2].toFixed(1)}->${b[0].toFixed(1)},${b[1].toFixed(1)},${b[2].toFixed(1)}`;
   }
 
   clearCache(): void {

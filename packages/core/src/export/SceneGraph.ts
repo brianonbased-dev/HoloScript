@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Scene Graph Intermediate Representation (IR)
  *
@@ -15,11 +16,7 @@
 /**
  * 3D vector representation
  */
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type IVector3 = [number, number, number];
 
 /**
  * Quaternion for rotation (w, x, y, z)
@@ -682,8 +679,8 @@ export interface ISceneMetadata {
 export function createIdentityTransform(): ITransform {
   return {
     position: [0, 0, 0],
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
-    scale: { x: 1, y: 1, z: 1 },
+    rotation: [0, 0, 0, 1 ],
+    scale: [1, 1, 1],
   };
 }
 

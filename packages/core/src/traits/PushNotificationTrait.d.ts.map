@@ -1,0 +1,1 @@
+{"version":3,"file":"PushNotificationTrait.d.ts","sourceRoot":"","sources":["PushNotificationTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,sBAAsB;IACrC,QAAQ,EAAE,KAAK,GAAG,MAAM,GAAG,KAAK,CAAC;IACjC,SAAS,EAAE,MAAM,CAAC;CACnB;AAED,eAAO,MAAM,uBAAuB,EAAE,YAAY,CAAC,sBAAsB,CAgCxE,CAAC;AAEF,eAAe,uBAAuB,CAAC"}

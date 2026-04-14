@@ -172,12 +172,12 @@ describe('parseCRDTRoomEntityConfig', () => {
 describe('normalizeCenter', () => {
   it('should convert tuple to object', () => {
     const result = normalizeCenter([10, 20, 30]);
-    expect(result).toEqual({ x: 10, y: 20, z: 30 });
+    expect(result).toEqual([10, 20, 30 ]);
   });
 
   it('should pass through object format', () => {
-    const result = normalizeCenter({ x: 5, y: 10, z: 15 });
-    expect(result).toEqual({ x: 5, y: 10, z: 15 });
+    const result = normalizeCenter([5, 10, 15 ]);
+    expect(result).toEqual([5, 10, 15 ]);
   });
 });
 
@@ -447,13 +447,13 @@ describe('CRDTRoomTraitHandler', () => {
       expect(regions).toHaveLength(2);
 
       expect(regions[0].id).toBe('spawn-a');
-      expect(regions[0].center).toEqual({ x: 0, y: 0, z: 50 });
+      expect(regions[0].center).toEqual([0, 0, 50 ]);
       expect(regions[0].radius).toBe(30);
       expect(regions[0].priority).toBe(0);
       expect(regions[0].syncRateHz).toBe(40);
 
       expect(regions[1].id).toBe('mid');
-      expect(regions[1].center).toEqual({ x: 0, y: 0, z: 0 });
+      expect(regions[1].center).toEqual([0, 0, 0 ]);
     });
   });
 
@@ -654,7 +654,7 @@ describe('CRDTRoomTrait integration', () => {
 
     // Verify interest regions
     expect(output.interestRegions).toHaveLength(3);
-    expect(output.interestRegions[0].center).toEqual({ x: 0, y: 0, z: 50 });
+    expect(output.interestRegions[0].center).toEqual([0, 0, 50 ]);
     expect(output.interestRegions[2].id).toBe('mid-field');
 
     // Verify sync tiers

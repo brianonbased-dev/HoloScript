@@ -104,9 +104,9 @@ describe('SemanticRegistry — Production', () => {
   // ─── Annotation Index ─────────────────────────────────────────────
 
   it('getAnnotation retrieves by entity + property path', () => {
-    const ann = makeAnnotation('pos', { propertyPath: 'position.x' });
+    const ann = makeAnnotation('pos', { propertyPath: 'position[0]' });
     registry.registerSchema(makeSchema('s3', 'Cube', [ann]));
-    const result = registry.getAnnotation('Cube', 'position.x');
+    const result = registry.getAnnotation('Cube', 'position[0]');
     expect(result).toBeDefined();
     expect(result!.id).toBe('pos');
   });
@@ -164,9 +164,9 @@ describe('SemanticRegistry — Production', () => {
   it('getPropertySuggestions matches partial path', () => {
     registry.registerSchema(
       makeSchema('s8', 'Character', [
-        makeAnnotation('a1', { propertyPath: 'position.x' }),
-        makeAnnotation('a2', { propertyPath: 'position.y' }),
-        makeAnnotation('a3', { propertyPath: 'rotation.z' }),
+        makeAnnotation('a1', { propertyPath: 'position[0]' }),
+        makeAnnotation('a2', { propertyPath: 'position[1]' }),
+        makeAnnotation('a3', { propertyPath: 'rotation[2]' }),
       ])
     );
     const suggestions = registry.getPropertySuggestions('Character', 'pos');

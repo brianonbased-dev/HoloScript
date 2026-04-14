@@ -10,7 +10,7 @@
     "src"
   ],
   "scripts": {
-    "test": "node src/index.mjs --dry-run --name=test-agent --ide=cli"
+    "test": "vitest run"
   },
   "keywords": [
     "holoscript",
@@ -31,5 +31,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0"
   }
 }

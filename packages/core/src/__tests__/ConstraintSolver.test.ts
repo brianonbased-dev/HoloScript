@@ -14,7 +14,7 @@ function body(id: string, x = 0, y = 0, z = 0): IRigidBodyState {
   return {
     id,
     position: { x, y, z },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    rotation: [0, 0, 0, 1 ],
     linearVelocity: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 },
     mass: 1,

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core Lighting Trait
  *
@@ -21,11 +22,7 @@ export interface Color {
 /**
  * Vector3 position or direction
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 /**
  * Shadow configuration

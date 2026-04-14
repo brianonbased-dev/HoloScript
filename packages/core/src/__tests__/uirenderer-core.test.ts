@@ -405,8 +405,8 @@ describe('Feature 7: CameraEffects', () => {
 
   it('getShakeOffset returns {x, y}', () => {
     const offset = new CameraEffects().getShakeOffset();
-    expect(typeof offset.x).toBe('number');
-    expect(typeof offset.y).toBe('number');
+    expect(typeof offset[0]).toBe('number');
+    expect(typeof offset[1]).toBe('number');
   });
 
   it('update reduces shake over time', () => {

@@ -178,7 +178,7 @@ describe('Cycle 110: Edge Case Tests', () => {
     });
 
     expect(result.floorPlans).toHaveLength(1);
-    expect(result.boundingBox.max.y).toBe(2.5);
+    expect(result.boundingBox.max[1]).toBe(2.5);
   });
 
   // -------------------------------------------------------------------------

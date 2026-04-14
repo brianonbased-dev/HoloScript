@@ -191,8 +191,8 @@ describe('voiceProximityHandler — calculateAttenuation helper', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance,
-      listenerPosition: { x: 0, y: 0, z: 0 },
-      speakerPosition: { x: distance, y: 0, z: 0 },
+      listenerPosition: [0, 0, 0 ],
+      speakerPosition: [distance, 0, 0 ],
     });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'voice_proximity_changed');
     return call![1].attenuation as number;
@@ -231,8 +231,8 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 5,
-      listenerPosition: { x: 0, y: 0, z: 0 },
-      speakerPosition: { x: 5, y: 0, z: 0 },
+      listenerPosition: [0, 0, 0 ],
+      speakerPosition: [5, 0, 0 ],
     });
     expect((node as any).__voiceProximityState.distanceToListener).toBe(5);
   });
@@ -243,8 +243,8 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 5.5,
-      listenerPosition: { x: 0, y: 0, z: 0 },
-      speakerPosition: { x: 5.5, y: 0, z: 0 },
+      listenerPosition: [0, 0, 0 ],
+      speakerPosition: [5.5, 0, 0 ],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'voice_proximity_changed',
@@ -260,8 +260,8 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 4,
-      listenerPosition: { x: 0, y: 0, z: 0 },
-      speakerPosition: { x: 4, y: 0, z: 0 },
+      listenerPosition: [0, 0, 0 ],
+      speakerPosition: [4, 0, 0 ],
     });
     const pv = (node as any).__voiceProximityState.panningVector;
     expect(pv.x).toBeCloseTo(1, 5);
@@ -278,7 +278,7 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
         {
           id: 'pub',
           type: 'public',
-          bounds: { center: { x: 0, y: 0, z: 0 }, radius: 50 },
+          bounds: { center: [0, 0, 0 ], radius: 50 },
           volumeMultiplier: 2.0,
         },
       ],
@@ -287,8 +287,8 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 5,
-      listenerPosition: { x: 0, y: 0, z: 0 }, // inside zone
-      speakerPosition: { x: 5, y: 0, z: 0 }, // inside zone
+      listenerPosition: [0, 0, 0 ], // inside zone
+      speakerPosition: [5, 0, 0 ], // inside zone
     });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'voice_proximity_changed');
     // Base linear attenuation for d=5, min=1, max=100: normalized=(5-1)/99≈0.040, attenuation≈0.960
@@ -305,7 +305,7 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
         {
           id: 'priv',
           type: 'private',
-          bounds: { center: { x: 0, y: 0, z: 0 }, radius: 5 },
+          bounds: { center: [0, 0, 0 ], radius: 5 },
           volumeMultiplier: 1.0,
         },
       ],
@@ -314,8 +314,8 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
     voiceProximityHandler.onEvent!(node as any, config, ctx as any, {
       type: 'voice_distance_update',
       distance: 3,
-      listenerPosition: { x: 3, y: 0, z: 0 }, // inside private zone
-      speakerPosition: { x: 20, y: 0, z: 0 }, // OUTSIDE private zone
+      listenerPosition: [3, 0, 0 ], // inside private zone
+      speakerPosition: [20, 0, 0 ], // OUTSIDE private zone
     });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'voice_proximity_changed');
     expect(call![1].attenuation).toBe(0);

@@ -104,9 +104,9 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
           (state.boundingBox.min[1] + state.boundingBox.max[1]) / 2,
           (state.boundingBox.min[2] + state.boundingBox.max[2]) / 2,
         ];
-        const dx = camera.position.x - center[0];
-        const dy = camera.position.y - center[1];
-        const dz = camera.position.z - center[2];
+        const dx = camera.position[0] - center[0];
+        const dy = camera.position[1] - center[1];
+        const dz = camera.position[2] - center[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         // Calculate LOD level based on distance

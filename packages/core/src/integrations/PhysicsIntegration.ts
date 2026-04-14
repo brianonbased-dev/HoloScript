@@ -178,16 +178,16 @@ export class DestructionToGranularConverter {
 
       // Calculate direction from explosion center
       const dir = {
-        x: fragment.position.x - explosionCenter.x,
-        y: fragment.position.y - explosionCenter.y,
-        z: fragment.position.z - explosionCenter.z,
+        x: fragment.position[0] - explosionCenter[0],
+        y: fragment.position[1] - explosionCenter[1],
+        z: fragment.position[2] - explosionCenter[2],
       };
 
-      const dist = Math.sqrt(dir.x ** 2 + dir.y ** 2 + dir.z ** 2);
+      const dist = Math.sqrt(dir[0] ** 2 + dir[1] ** 2 + dir[2] ** 2);
       if (dist > 0) {
-        dir.x /= dist;
-        dir.y /= dist;
-        dir.z /= dist;
+        dir[0] /= dist;
+        dir[1] /= dist;
+        dir[2] /= dist;
       }
 
       // Add particle with velocity
@@ -197,9 +197,9 @@ export class DestructionToGranularConverter {
       if (particle) {
         // Set initial velocity based on distance from explosion
         const velocityMag = explosionStrength / Math.max(dist, 0.1);
-        particle.velocity.x = dir.x * velocityMag;
-        particle.velocity.y = dir.y * velocityMag;
-        particle.velocity.z = dir.z * velocityMag;
+        particle.velocity[0] = dir[0] * velocityMag;
+        particle.velocity[1] = dir[1] * velocityMag;
+        particle.velocity[2] = dir[2] * velocityMag;
       }
 
       convertedCount++;
@@ -292,12 +292,12 @@ export class GranularToDestructionStress {
 
       // Check particles within horizontal range
       for (const particle of particles) {
-        const dx = particle.position.x - fragment.position.x;
-        const dz = particle.position.z - fragment.position.z;
+        const dx = particle.position[0] - fragment.position[0];
+        const dz = particle.position[2] - fragment.position[2];
         const horizontalDist = Math.sqrt(dx ** 2 + dz ** 2);
 
         // Only consider particles above and within radius
-        if (particle.position.y > fragment.position.y && horizontalDist < 1.0) {
+        if (particle.position[1] > fragment.position[1] && horizontalDist < 1.0) {
           totalMassAbove += particle.mass;
         }
       }
@@ -342,20 +342,20 @@ export class FluidGranularInteraction {
         const volume = (4 / 3) * Math.PI * Math.pow(particle.radius, 3);
         const buoyancy = fluidDensity * volume * 9.81;
 
-        particle.force.y += buoyancy;
+        particle.force[1] += buoyancy;
 
         // Drag force: F = 0.5 * ρ * v² * C_d * A
         const area = Math.PI * particle.radius ** 2;
         const velocityMag = Math.sqrt(
-          particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
+          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
         );
 
         const dragForce = 0.5 * fluidDensity * velocityMag ** 2 * dragCoefficient * area;
 
         if (velocityMag > 0) {
-          particle.force.x -= (particle.velocity.x / velocityMag) * dragForce;
-          particle.force.y -= (particle.velocity.y / velocityMag) * dragForce;
-          particle.force.z -= (particle.velocity.z / velocityMag) * dragForce;
+          particle.force[0] -= (particle.velocity[0] / velocityMag) * dragForce;
+          particle.force[1] -= (particle.velocity[1] / velocityMag) * dragForce;
+          particle.force[2] -= (particle.velocity[2] / velocityMag) * dragForce;
         }
       }
     }
@@ -418,15 +418,15 @@ export class ClothFluidInteraction {
       if (fluidDensity > 0.1) {
         // Apply drag force opposing particle velocity
         const velocityMag = Math.sqrt(
-          particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
+          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
         );
 
         const dragForce = dragCoefficient * fluidDensity * velocityMag;
 
         if (velocityMag > 0) {
-          particle.velocity.x -= (particle.velocity.x / velocityMag) * dragForce * 0.01;
-          particle.velocity.y -= (particle.velocity.y / velocityMag) * dragForce * 0.01;
-          particle.velocity.z -= (particle.velocity.z / velocityMag) * dragForce * 0.01;
+          particle.velocity[0] -= (particle.velocity[0] / velocityMag) * dragForce * 0.01;
+          particle.velocity[1] -= (particle.velocity[1] / velocityMag) * dragForce * 0.01;
+          particle.velocity[2] -= (particle.velocity[2] / velocityMag) * dragForce * 0.01;
         }
       }
     }
@@ -450,7 +450,7 @@ export class ClothFluidInteraction {
         const wetnessFactor = Math.min(fluidDensity / 1000, 1.0);
         const additionalWeight = particle.mass * 9.81 * wetnessFactor * wetWeightMultiplier;
 
-        particle.force.y -= additionalWeight;
+        particle.force[1] -= additionalWeight;
       }
     }
   }

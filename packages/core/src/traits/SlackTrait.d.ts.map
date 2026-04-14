@@ -1,0 +1,1 @@
+{"version":3,"file":"SlackTrait.d.ts","sourceRoot":"","sources":["SlackTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,WAAW;IAC1B,WAAW,EAAE,MAAM,CAAC;IACpB,eAAe,EAAE,MAAM,CAAC;CACzB;AAED,eAAO,MAAM,YAAY,EAAE,YAAY,CAAC,WAAW,CAuBlD,CAAC;AAEF,eAAe,YAAY,CAAC"}

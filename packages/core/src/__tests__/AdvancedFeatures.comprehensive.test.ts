@@ -153,7 +153,7 @@ describe('Advanced HoloScript Features - Complex Scenarios', () => {
           logic {
             on_timer(interval: 16ms) {
               volatile.state.counter += 1
-              volatile.state.position.x += volatile.state.counter * 0.01
+              volatile.state.position[0] += volatile.state.counter * 0.01
               volatile.state.color = "#" + (volatile.state.counter % 0xFFFFFF).toString(16).padStart(6, '0')
             }
           }

@@ -195,7 +195,7 @@ describe('gpuParticleHandler.onUpdate — burst queue', () => {
   it('uses emitterPosition as burst position when burst.position is undefined', () => {
     const { node, ctx, config } = attach({ emission_rate: 0 });
     const state = getState(node);
-    state.emitterPosition = { x: 5, y: 0, z: 0 };
+    state.emitterPosition = [5, 0, 0 ];
     state.burstQueue.push({ count: 10 }); // no position
     ctx.emit.mockClear();
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
@@ -277,7 +277,7 @@ describe('gpuParticleHandler.onEvent', () => {
 
   it('particle_burst — queues burst with custom count and position', () => {
     const { node, ctx, config } = attach();
-    const pos = { x: 3, y: 0, z: 0 };
+    const pos = [3, 0, 0 ];
     gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
       type: 'particle_burst',
       count: 250,
@@ -292,16 +292,16 @@ describe('gpuParticleHandler.onEvent', () => {
       type: 'particle_set_emitter',
       position: [1, 2, 3],
     });
-    expect(getState(node).emitterPosition).toEqual({ x: 1, y: 2, z: 3 });
+    expect(getState(node).emitterPosition).toEqual([1, 2, 3 ]);
   });
 
   it('particle_set_emitter — updates emitterVelocity', () => {
     const { node, ctx, config } = attach();
     gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
       type: 'particle_set_emitter',
-      velocity: { x: 0, y: 5, z: 0 },
+      velocity: [0, 5, 0 ],
     });
-    expect(getState(node).emitterVelocity).toEqual({ x: 0, y: 5, z: 0 });
+    expect(getState(node).emitterVelocity).toEqual([0, 5, 0 ]);
   });
 
   it('particle_start — sets isEmitting=true', () => {

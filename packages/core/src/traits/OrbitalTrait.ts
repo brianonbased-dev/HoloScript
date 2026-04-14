@@ -55,9 +55,9 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     const currentScale = mergedConfig.parent ? visualScale * satelliteScale : visualScale;
 
     let finalPosition = {
-      x: rawPosition.x * currentScale,
-      y: rawPosition.z * currentScale,
-      z: rawPosition.y * currentScale,
+      x: rawPosition[0] * currentScale,
+      y: rawPosition[2] * currentScale,
+      z: rawPosition[1] * currentScale,
     };
 
     // Get parent position if this is a moon/satellite
@@ -82,9 +82,9 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
       if (parentNode && parentNode.position) {
         // Add parent's position to our orbital position
         finalPosition = {
-          x: finalPosition.x + (parentNode.position.x || 0),
-          y: finalPosition.y + (parentNode.position.y || 0),
-          z: finalPosition.z + (parentNode.position.z || 0),
+           x: finalPosition.x + (parentNode.position[0] || 0),
+           y: finalPosition.y + (parentNode.position[1] || 0),
+           z: finalPosition.z + (parentNode.position[2] || 0),
         };
       } else {
         // Failure to find parent - Moon will end up in the Sun (0, 0, 0)
@@ -95,9 +95,10 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     }
 
     // Update node position
-    node.position = finalPosition as unknown as typeof node.position;
+    const posArray = [finalPosition.x, finalPosition.y, finalPosition.z];
+    node.position = posArray as unknown as typeof node.position;
 
     // Emit position update event
-    context.emit('position_update', { position: finalPosition });
+    context.emit('position_update', { position: posArray });
   },
 };

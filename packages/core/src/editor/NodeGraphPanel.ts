@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NodeGraphPanel.ts
  *
  * Editor panel for the Visual Logic Editor.
@@ -66,7 +66,7 @@ export class NodeGraphPanel {
     this.entities.push({
       id: 'graph_background',
       type: 'panel',
-      position: { ...this.config.position },
+      position: [...this.config.position],
       size: { width: 2, height: 1.5 },
       color: '#1a1a2e',
       data: { role: 'background' },
@@ -89,9 +89,9 @@ export class NodeGraphPanel {
    * Generate UI entities for a single node.
    */
   private generateNodeUI(node: LogicNode): void {
-    const worldX = this.config.position.x + node.position.x * this.config.gridSpacing;
-    const worldY = this.config.position.y - node.position.y * this.config.gridSpacing;
-    const worldZ = this.config.position.z;
+    const worldX = this.config.position[0] + node.position[0] * this.config.gridSpacing;
+    const worldY = this.config.position[1] - node.position[1] * this.config.gridSpacing;
+    const worldZ = this.config.position[2];
 
     const isSelected = this.selectedNodeId === node.id;
 
@@ -149,27 +149,27 @@ export class NodeGraphPanel {
     if (!fromNode || !toNode) return;
 
     const fromX =
-      this.config.position.x +
-      fromNode.position.x * this.config.gridSpacing +
+      this.config.position[0] +
+      fromNode.position[0] * this.config.gridSpacing +
       this.config.nodeWidth * 0.45;
-    const fromY = this.config.position.y - fromNode.position.y * this.config.gridSpacing;
+    const fromY = this.config.position[1] - fromNode.position[1] * this.config.gridSpacing;
     const toX =
-      this.config.position.x +
-      toNode.position.x * this.config.gridSpacing -
+      this.config.position[0] +
+      toNode.position[0] * this.config.gridSpacing -
       this.config.nodeWidth * 0.45;
-    const toY = this.config.position.y - toNode.position.y * this.config.gridSpacing;
-    const z = this.config.position.z + 0.003;
+    const toY = this.config.position[1] - toNode.position[1] * this.config.gridSpacing;
+    const z = this.config.position[2] + 0.003;
 
     this.entities.push({
       id: `conn_line_${conn.id}`,
       type: 'connection_line',
-      position: { x: (fromX + toX) / 2, y: (fromY + toY) / 2, z },
+      position: [(fromX + toX) / 2, (fromY + toY) / 2, z],
       color: '#16c79a',
       data: {
         role: 'connection',
         connectionId: conn.id,
-        from: { x: fromX, y: fromY, z },
-        to: { x: toX, y: toY, z },
+        from: [fromX, fromY, z],
+        to: [toX, toY, z],
       },
     });
   }

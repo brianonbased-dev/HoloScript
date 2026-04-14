@@ -1,0 +1,1 @@
+{"version":3,"file":"ApiKeyTrait.d.ts","sourceRoot":"","sources":["ApiKeyTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,YAAY;IAC3B,MAAM,EAAE,MAAM,CAAC;IACf,QAAQ,EAAE,MAAM,CAAC;CAClB;AAED,eAAO,MAAM,aAAa,EAAE,YAAY,CAAC,YAAY,CAoCpD,CAAC;AAEF,eAAe,aAAa,CAAC"}

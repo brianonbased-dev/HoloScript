@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Binary Serializer
  *
@@ -264,19 +265,19 @@ export class BinaryWriter {
    * Write a 3D vector
    */
   writeVector3(v: IVector3): void {
-    this.writeFloat32(v.x);
-    this.writeFloat32(v.y);
-    this.writeFloat32(v.z);
+    this.writeFloat32(v[0]);
+    this.writeFloat32(v[1]);
+    this.writeFloat32(v[2]);
   }
 
   /**
    * Write a quaternion
    */
   writeQuaternion(q: IQuaternion): void {
-    this.writeFloat32(q.x);
-    this.writeFloat32(q.y);
-    this.writeFloat32(q.z);
-    this.writeFloat32(q.w);
+    this.writeFloat32(q[0]);
+    this.writeFloat32(q[1]);
+    this.writeFloat32(q[2]);
+    this.writeFloat32(q[3]);
   }
 
   /**
@@ -444,11 +445,11 @@ export class BinaryReader {
    * Read a 3D vector
    */
   readVector3(): IVector3 {
-    return {
-      x: this.readFloat32(),
-      y: this.readFloat32(),
-      z: this.readFloat32(),
-    };
+    return [
+      this.readFloat32(),
+      this.readFloat32(),
+      this.readFloat32(),
+    ];
   }
 
   /**

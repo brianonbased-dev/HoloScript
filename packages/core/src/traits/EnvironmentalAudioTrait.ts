@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * EnvironmentalAudioTrait.ts
  *
@@ -311,9 +312,9 @@ export class EnvironmentalAudioSystem {
    * @returns Pitch multiplier (1.0 = no change, >1 = higher pitch, <1 = lower pitch)
    */
   calculateDopplerShift(
-    sourceVelocity: { x: number; y: number; z: number },
-    listenerVelocity: { x: number; y: number; z: number },
-    sourceToListener: { x: number; y: number; z: number }
+    sourceVelocity: Vector3,
+    listenerVelocity: Vector3,
+    sourceToListener: Vector3
   ): number {
     if (!this.config.doppler.enabled) {
       return 1.0;
@@ -321,25 +322,25 @@ export class EnvironmentalAudioSystem {
 
     // Normalize direction vector
     const dist = Math.sqrt(
-      sourceToListener.x ** 2 + sourceToListener.y ** 2 + sourceToListener.z ** 2
+      sourceToListener[0] ** 2 + sourceToListener[1] ** 2 + sourceToListener[2] ** 2
     );
 
     if (dist === 0) return 1.0;
 
     const dir = {
-      x: sourceToListener.x / dist,
-      y: sourceToListener.y / dist,
-      z: sourceToListener.z / dist,
+      x: sourceToListener[0] / dist,
+      y: sourceToListener[1] / dist,
+      z: sourceToListener[2] / dist,
     };
 
     // Project velocities onto direction vector
     const sourceSpeed = -(
-      sourceVelocity.x * dir.x +
-      sourceVelocity.y * dir.y +
-      sourceVelocity.z * dir.z
+      sourceVelocity[0] * dir[0] +
+      sourceVelocity[1] * dir[1] +
+      sourceVelocity[2] * dir[2]
     );
     const listenerSpeed =
-      listenerVelocity.x * dir.x + listenerVelocity.y * dir.y + listenerVelocity.z * dir.z;
+      listenerVelocity[0] * dir[0] + listenerVelocity[1] * dir[1] + listenerVelocity[2] * dir[2];
 
     // Apply weather-based Doppler scaling
     const dopplerScale = this.currentWeather.dopplerScale;
@@ -400,9 +401,9 @@ export class EnvironmentalAudioSystem {
    */
   getEnvironmentalEffect(
     distance: number,
-    sourceVelocity?: { x: number; y: number; z: number },
-    listenerVelocity?: { x: number; y: number; z: number },
-    sourceToListener?: { x: number; y: number; z: number }
+    sourceVelocity?: Vector3,
+    listenerVelocity?: Vector3,
+    sourceToListener?: Vector3
   ): {
     airAbsorption: number;
     dopplerShift: number;

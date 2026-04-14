@@ -304,7 +304,7 @@ describe('HoloScript2DParser', () => {
   // =========================================================================
   describe('parse2DGesture', () => {
     it('should create button on tap gesture', () => {
-      const node = parser.parse2DGesture('tap', { x: 100, y: 200 });
+      const node = parser.parse2DGesture('tap', [100, 200]);
       expect(node).not.toBeNull();
       expect(node!.elementType).toBe('button');
       expect(node!.properties.x).toBe(100);
@@ -312,13 +312,13 @@ describe('HoloScript2DParser', () => {
     });
 
     it('should create textinput on double-tap gesture', () => {
-      const node = parser.parse2DGesture('double-tap', { x: 50, y: 50 });
+      const node = parser.parse2DGesture('double-tap', [50, 50]);
       expect(node).not.toBeNull();
       expect(node!.elementType).toBe('textinput');
     });
 
     it('should create panel on long-press gesture', () => {
-      const node = parser.parse2DGesture('long-press', { x: 0, y: 0 });
+      const node = parser.parse2DGesture('long-press', [0, 0]);
       expect(node).not.toBeNull();
       expect(node!.elementType).toBe('panel');
     });

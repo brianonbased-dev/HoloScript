@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * SpatialAudioSource.ts
  *
@@ -20,8 +21,8 @@ export interface AudioCone {
 }
 
 export interface SpatialAudioConfig {
-  position: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
+  position: Vector3;
+  velocity: Vector3;
   rolloff: RolloffModel;
   minDistance: number;
   maxDistance: number;
@@ -49,8 +50,8 @@ export class SpatialAudioSource {
 
   constructor(config?: Partial<SpatialAudioConfig>) {
     this.config = {
-      position: { x: 0, y: 0, z: 0 },
-      velocity: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0 ],
+      velocity: [0, 0, 0 ],
       rolloff: 'inverse',
       minDistance: 3, // Tuned for voice: audible within 3m
       maxDistance: 100,
@@ -95,13 +96,13 @@ export class SpatialAudioSource {
   // ---------------------------------------------------------------------------
 
   setPosition(x: number, y: number, z: number): void {
-    this.config.position = { x, y, z };
+    this.config.position = [x, y, z ];
   }
-  getPosition(): { x: number; y: number; z: number } {
-    return { ...this.config.position };
+  getPosition(): Vector3 {
+    return [...this.config.position ];
   }
   setVelocity(x: number, y: number, z: number): void {
-    this.config.velocity = { x, y, z };
+    this.config.velocity = [x, y, z ];
   }
   setVolume(v: number): void {
     this.config.volume = Math.max(0, Math.min(1, v));
@@ -135,7 +136,7 @@ export class SpatialAudioSource {
   // Update
   // ---------------------------------------------------------------------------
 
-  update(dt: number, listenerPos: { x: number; y: number; z: number }): void {
+  update(dt: number, listenerPos: Vector3): void {
     if (!this.playing || this.paused) return;
 
     this.time += dt * this.config.pitch;
@@ -149,9 +150,9 @@ export class SpatialAudioSource {
     }
 
     // Compute distance
-    const dx = this.config.position.x - listenerPos.x;
-    const dy = this.config.position.y - listenerPos.y;
-    const dz = this.config.position.z - listenerPos.z;
+    const dx = this.config.position[0] - listenerPos[0];
+    const dy = this.config.position[1] - listenerPos[1];
+    const dz = this.config.position[2] - listenerPos[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Attenuation
@@ -196,10 +197,10 @@ export class SpatialAudioSource {
     }
   }
 
-  private computeConeGain(listenerPos: { x: number; y: number; z: number }): number {
+  private computeConeGain(listenerPos: Vector3): number {
     if (!this.config.cone) return 1;
-    const dx = listenerPos.x - this.config.position.x;
-    const dz = listenerPos.z - this.config.position.z;
+    const dx = listenerPos[0] - this.config.position[0];
+    const dz = listenerPos[2] - this.config.position[2];
     const angle = Math.abs(Math.atan2(dz, dx) * (180 / Math.PI));
 
     const halfInner = this.config.cone.innerAngle / 2;
@@ -227,8 +228,8 @@ export class SpatialAudioSource {
   getConfig(): SpatialAudioConfig {
     return {
       ...this.config,
-      position: { ...this.config.position },
-      velocity: { ...this.config.velocity },
+      position: [...this.config.position ],
+      velocity: [...this.config.velocity ],
     };
   }
 }

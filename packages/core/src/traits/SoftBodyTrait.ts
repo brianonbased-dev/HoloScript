@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * SoftBody Trait
  *
@@ -20,9 +21,9 @@ import {
 
 interface SoftBodyVertex {
   position: [number, number, number];
-  restPosition: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
-  normal: { x: number; y: number; z: number };
+  restPosition: Vector3;
+  velocity: Vector3;
+  normal: Vector3;
 }
 
 interface SoftBodyState {
@@ -32,7 +33,7 @@ interface SoftBodyState {
   vertices: SoftBodyVertex[];
   currentVolume: number;
   restVolume: number;
-  centerOfMass: { x: number; y: number; z: number };
+  centerOfMass: Vector3;
   solver: SoftBodySolver | null;
 }
 
@@ -148,7 +149,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       vertices: [],
       currentVolume: 1,
       restVolume: 1,
-      centerOfMass: { x: 0, y: 0, z: 0 },
+      centerOfMass: [0, 0, 0 ],
       solver: null,
     };
     node.__softBodyState = state;
@@ -188,8 +189,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
           y: p.previousPosition[1],
           z: p.previousPosition[2],
         },
-        velocity: { x: p.velocity[0], y: p.velocity[1], z: p.velocity[2] },
-        normal: { x: 0, y: 1, z: 0 },
+        velocity: [p.velocity[0], p.velocity[1], p.velocity[2] ],
+        normal: [0, 1, 0 ],
       }));
     }
 
@@ -221,8 +222,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
           state.vertices[i] = {
             position: positions[i],
             restPosition: { ...positions[i] },
-            velocity: { x: 0, y: 0, z: 0 },
-            normal: normals[i] || { x: 0, y: 1, z: 0 },
+            velocity: [0, 0, 0 ],
+            normal: normals[i] || [0, 1, 0 ],
           };
         } else {
           state.vertices[i].position = positions[i];
@@ -235,9 +236,9 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       // Calculate deformation
       let totalDeform = 0;
       for (const vert of state.vertices) {
-        const dx = vert.position.x - vert.restPosition.x;
-        const dy = vert.position.y - vert.restPosition.y;
-        const dz = vert.position.z - vert.restPosition.z;
+        const dx = vert.position[0] - vert.restPosition[0];
+        const dy = vert.position[1] - vert.restPosition[1];
+        const dz = vert.position[2] - vert.restPosition[2];
         totalDeform += Math.sqrt(dx * dx + dy * dy + dz * dz);
       }
       state.deformationAmount = state.vertices.length > 0 ? totalDeform / state.vertices.length : 0;
@@ -283,9 +284,9 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
         node,
         position,
         force: {
-          x: direction.x * force,
-          y: direction.y * force,
-          z: direction.z * force,
+          x: direction[0] * force,
+          y: direction[1] * force,
+          z: direction[2] * force,
         },
       });
     } else if (event.type === 'soft_body_set_anchor') {
@@ -340,7 +341,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       // Reset to rest shape
       for (const vert of state.vertices) {
         vert.position = { ...vert.restPosition };
-        vert.velocity = { x: 0, y: 0, z: 0 };
+        vert.velocity = [0, 0, 0 ];
       }
       state.isDeformed = false;
       state.deformationAmount = 0;

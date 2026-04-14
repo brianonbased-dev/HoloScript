@@ -44,7 +44,7 @@ function makeNode(withProps = true) {
   return {
     id: `hand_node_${++_nodeId}`,
     properties: withProps
-      ? { position: [0, 0, 0], scale: { x: 1, y: 1, z: 1 } }
+      ? { position: [0, 0, 0], scale: [1, 1, 1 ] }
       : undefined,
   };
 }
@@ -62,7 +62,7 @@ function makeCtx(handData?: { left?: { position: [number, number, number] } }) {
 const defaultConfig: any = {
   hand: 'left',
   trigger: 'palm_up',
-  offset: { x: 0, y: 0.2, z: 0 },
+  offset: [0, 0.2, 0 ],
   scale: 1,
 };
 
@@ -83,7 +83,7 @@ describe('handMenuHandler.defaultValue', () => {
   const d = (handMenuHandler as any).defaultValue;
   it('hand = left', () => expect(d.hand).toBe('left'));
   it('trigger = palm_up', () => expect(d.trigger).toBe('palm_up'));
-  it('offset = {0,0.2,0}', () => expect(d.offset).toEqual({ x: 0, y: 0.2, z: 0 }));
+  it('offset = {0,0.2,0}', () => expect(d.offset).toEqual([0, 0.2, 0 ]));
   it('scale = 1', () => expect(d.scale).toBe(1));
 });
 
@@ -92,7 +92,7 @@ describe('handMenuHandler.defaultValue', () => {
 describe('handMenuHandler.onAttach', () => {
   it('sets node.properties.scale to {0,0,0}', () => {
     const { node } = attach();
-    expect(node.properties!.scale).toEqual({ x: 0, y: 0, z: 0 });
+    expect(node.properties!.scale).toEqual([0, 0, 0 ]);
   });
 
   it('sets node.properties.opacity to 0', () => {
@@ -152,7 +152,7 @@ describe('handMenuHandler.onUpdate â€” hand absent (no left hand)', () => {
     const ctx = makeCtx({ left: undefined });
     handMenuHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const expectedS = 0.4 * (config.scale || 1);
-    expect(node.properties!.scale).toEqual({ x: expectedS, y: expectedS, z: expectedS });
+    expect(node.properties!.scale).toEqual([expectedS, expectedS, expectedS ]);
   });
 
   it('updates opacity from spring value when hand absent', () => {
@@ -182,8 +182,8 @@ describe('handMenuHandler.onUpdate â€” hand present', () => {
     const ctx = makeCtx({ left: { position: [1, 0, 0] } });
     // delta=0.1, lerpFactor = min(1, 10*0.1) = 1 â†’ position = target immediately
     handMenuHandler.onUpdate!(node as any, config, ctx as any, 0.1);
-    expect(node.properties!.position.x).toBeCloseTo(1, 4);
-    expect(node.properties!.position.y).toBeCloseTo(0.2, 4);
+    expect(node.properties!.position[0]).toBeCloseTo(1, 4);
+    expect(node.properties!.position[1]).toBeCloseTo(0.2, 4);
   });
 
   it('sets scale from spring visibility * config.scale', () => {
@@ -193,7 +193,7 @@ describe('handMenuHandler.onUpdate â€” hand present', () => {
     const ctx = makeCtx({ left: { position: [0, 0, 0] } });
     handMenuHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const expectedS = 0.5 * 2; // 1.0
-    expect(node.properties!.scale.x).toBeCloseTo(expectedS, 4);
+    expect(node.properties!.scale[0]).toBeCloseTo(expectedS, 4);
   });
 
   it('sets opacity from spring visibility', () => {

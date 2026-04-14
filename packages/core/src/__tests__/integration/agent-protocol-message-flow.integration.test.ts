@@ -579,15 +579,15 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const id1 = world.spawn('Player');
       world.setComponent(id1, ComponentType.Transform, {
         position: [1, 2, 3],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
 
       const id2 = world.spawn('Enemy');
       world.setComponent(id2, ComponentType.Transform, {
         position: [10, 0, 5],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
 
       const snapshot = captureSceneSnapshot(world);
@@ -607,8 +607,8 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const existingId = world.spawn('Existing');
       world.setComponent(existingId, ComponentType.Transform, {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
 
       const actions: AgentAction[] = [

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * AudioOcclusion Trait
  *
@@ -29,8 +30,8 @@ interface AudioOcclusionState {
   targetLowPass: number;
   occludingObjects: OccludingObject[];
   lastRaycastTime: number;
-  sourcePosition: { x: number; y: number; z: number };
-  listenerPosition: { x: number; y: number; z: number };
+  sourcePosition: Vector3;
+  listenerPosition: Vector3;
 }
 
 interface AudioOcclusionConfig {
@@ -92,8 +93,8 @@ export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
       targetLowPass: config.low_pass_max_freq,
       occludingObjects: [],
       lastRaycastTime: 0,
-      sourcePosition: { x: 0, y: 0, z: 0 },
-      listenerPosition: { x: 0, y: 0, z: 0 },
+      sourcePosition: [0, 0, 0 ],
+      listenerPosition: [0, 0, 0 ],
     };
     node.__audioOcclusionState = state;
 

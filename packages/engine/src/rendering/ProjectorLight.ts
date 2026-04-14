@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ProjectorLight.ts
  *
@@ -14,8 +15,8 @@
 
 export interface ProjectorConfig {
   id: string;
-  position: [number, number, number];
-  direction: { x: number; y: number; z: number };
+  position: Vector3;
+  direction: Vector3;
   cookieTextureId: string;
   fov: number; // degrees
   aspectRatio: number;
@@ -68,7 +69,7 @@ export class ProjectorLight {
 
   setDirection(id: string, x: number, y: number, z: number): void {
     const p = this.projectors.get(id);
-    if (p) p.direction = { x, y, z };
+    if (p) p.direction = [x, y, z];
   }
 
   setIntensity(id: string, intensity: number): void {
@@ -96,7 +97,7 @@ export class ProjectorLight {
     return { near: p.nearClip, far: p.farClip, fov: p.fov, aspect: p.aspectRatio };
   }
 
-  isPointInFrustum(id: string, point: { x: number; y: number; z: number }): boolean {
+  isPointInFrustum(id: string, point: Vector3): boolean {
     const p = this.projectors.get(id);
     if (!p || !p.enabled) return false;
 
@@ -108,13 +109,13 @@ export class ProjectorLight {
     // Dot with direction = depth
     const dirLen =
       Math.sqrt(
-        p.direction.x * p.direction.x +
-          p.direction.y * p.direction.y +
-          p.direction.z * p.direction.z
+        p.direction[0] * p.direction[0] +
+          p.direction[1] * p.direction[1] +
+          p.direction[2] * p.direction[2]
       ) || 1;
-    const nx = p.direction.x / dirLen,
-      ny = p.direction.y / dirLen,
-      nz = p.direction.z / dirLen;
+    const nx = p.direction[0] / dirLen,
+      ny = p.direction[1] / dirLen,
+      nz = p.direction[2] / dirLen;
     const depth = dx * nx + dy * ny + dz * nz;
 
     if (depth < p.nearClip || depth > p.farClip) return false;

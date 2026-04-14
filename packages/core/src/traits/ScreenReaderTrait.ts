@@ -19,7 +19,7 @@ interface ScreenReaderState {
   isFocused: boolean;
   isAnnouncing: boolean;
   announcementQueue: string[];
-  lastPosition: { x: number; y: number; z: number };
+  lastPosition: [number, number, number];
   navigationStack: string[];
   childNodes: string[];
 }
@@ -60,7 +60,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       isFocused: false,
       isAnnouncing: false,
       announcementQueue: [],
-      lastPosition: { x: 0, y: 0, z: 0 },
+      lastPosition: [0, 0, 0],
       navigationStack: [],
       childNodes: [],
     };
@@ -68,7 +68,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
 
     // Store initial position
     if (node.position) {
-      state.lastPosition = { ...node.position };
+      state.lastPosition = [...node.position];
     }
 
     // Register with screen reader navigation system
@@ -105,13 +105,13 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
     // Check for position changes and announce
     if (config.announce_changes && state.isFocused && node.position) {
       const pos = node.position;
-      const dx = pos.x - state.lastPosition.x;
-      const dy = pos.y - state.lastPosition.y;
-      const dz = pos.z - state.lastPosition.z;
+      const dx = pos[0] - state.lastPosition[0];
+      const dy = pos[1] - state.lastPosition[1];
+      const dz = pos[2] - state.lastPosition[2];
       const distMoved = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (distMoved > 0.5) {
-        state.lastPosition = { x: pos.x, y: pos.y, z: pos.z };
+        state.lastPosition = [pos[0], pos[1], pos[2]];
 
         // Sonify position change
         if (config.sonify_position) {
@@ -140,7 +140,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       // Add spatial information
       if (config.reading_mode === 'spatial' && node.position) {
         const pos = node.position;
-        announcement += `. Position: ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+        announcement += `. Position: ${pos[0].toFixed(1)}, ${pos[1].toFixed(1)}, ${pos[2].toFixed(1)}`;
       }
 
       context.emit?.('screen_reader_announce', {
@@ -199,7 +199,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
 
       if (node.position) {
         const pos = node.position;
-        description += ` Located at ${pos.x.toFixed(1)} meters right, ${pos.y.toFixed(1)} meters up, ${pos.z.toFixed(1)} meters forward.`;
+        description += ` Located at ${pos[0].toFixed(1)} meters right, ${pos[1].toFixed(1)} meters up, ${pos[2].toFixed(1)} meters forward.`;
       }
 
       state.announcementQueue.push(description);
@@ -244,7 +244,7 @@ function getNodeDescription(node: HSPlusNode, _verbosity: string): string {
 
   if (node.scale) {
     const s = node.scale;
-    desc += `, size ${s.x?.toFixed(1) || 1} by ${s.y?.toFixed(1) || 1} by ${s.z?.toFixed(1) || 1} meters`;
+    desc += `, size ${s[0]?.toFixed(1) || 1} by ${s[1]?.toFixed(1) || 1} by ${s[2]?.toFixed(1) || 1} meters`;
   }
 
   return desc;

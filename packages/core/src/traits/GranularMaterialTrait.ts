@@ -101,12 +101,12 @@ interface ResolvedConfig {
  * ```typescript
  * const sand = new GranularMaterialSystem({
  *   material: { density: 1500, friction: 0.5, cohesion: 0 },
- *   bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } },
+ *   bounds: { min: [-5, -5, -5 ], max: [5, 5, 5 ] },
  * });
  *
  * // Add a pile of sand particles
  * for (let i = 0; i < 1000; i++) {
- *   sand.addParticle({ x: Math.random()*2 - 1, y: 2 + i*0.05, z: Math.random()*2 - 1 }, 0.02);
+ *   sand.addParticle([Math.random()*2 - 1, 2 + i*0.05, Math.random()*2 - 1 ], 0.02);
  * }
  *
  * // Simulate
@@ -131,10 +131,10 @@ export class GranularMaterialSystem {
     };
 
     this.config = {
-      gravity: config.gravity ?? { x: 0, y: -9.81, z: 0 },
+      gravity: config.gravity ?? [0, -9.81, 0 ],
       bounds: config.bounds ?? {
-        min: { x: -10, y: -10, z: -10 },
-        max: { x: 10, y: 10, z: 10 },
+        min: [-10, -10, -10 ],
+        max: [10, 10, 10 ],
       },
       material: mat,
       enableCollision: config.enableCollision ?? true,
@@ -161,8 +161,8 @@ export class GranularMaterialSystem {
     this.particles.set(id, {
       id,
       position: { ...position },
-      velocity: { x: 0, y: 0, z: 0 },
-      force: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0 ],
+      force: [0, 0, 0 ],
       radius,
       mass,
       active: true,
@@ -212,15 +212,15 @@ export class GranularMaterialSystem {
   applyImpulse(position: Vec3, force: Vec3, radius: number): void {
     for (const particle of this.particles.values()) {
       if (!particle.active) continue;
-      const dx = particle.position.x - position.x;
-      const dy = particle.position.y - position.y;
-      const dz = particle.position.z - position.z;
+      const dx = particle.position[0] - position[0];
+      const dy = particle.position[1] - position[1];
+      const dz = particle.position[2] - position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist < radius) {
         const falloff = 1 - dist / radius;
-        particle.velocity.x += (force.x * falloff) / particle.mass;
-        particle.velocity.y += (force.y * falloff) / particle.mass;
-        particle.velocity.z += (force.z * falloff) / particle.mass;
+        particle.velocity[0] += (force[0] * falloff) / particle.mass;
+        particle.velocity[1] += (force[1] * falloff) / particle.mass;
+        particle.velocity[2] += (force[2] * falloff) / particle.mass;
       }
     }
   }
@@ -231,9 +231,9 @@ export class GranularMaterialSystem {
   step(dt = 0.016): void {
     // Clear forces
     for (const p of this.particles.values()) {
-      p.force.x = this.config.gravity.x * p.mass;
-      p.force.y = this.config.gravity.y * p.mass;
-      p.force.z = this.config.gravity.z * p.mass;
+      p.force[0] = this.config.gravity[0] * p.mass;
+      p.force[1] = this.config.gravity[1] * p.mass;
+      p.force[2] = this.config.gravity[2] * p.mass;
     }
 
     // Particle-particle collisions
@@ -252,37 +252,37 @@ export class GranularMaterialSystem {
       const oldPos = { ...p.position };
 
       // Semi-implicit Euler
-      p.velocity.x = p.velocity.x * (1 - damping) + (p.force.x / p.mass) * dt;
-      p.velocity.y = p.velocity.y * (1 - damping) + (p.force.y / p.mass) * dt;
-      p.velocity.z = p.velocity.z * (1 - damping) + (p.force.z / p.mass) * dt;
+      p.velocity[0] = p.velocity[0] * (1 - damping) + (p.force[0] / p.mass) * dt;
+      p.velocity[1] = p.velocity[1] * (1 - damping) + (p.force[1] / p.mass) * dt;
+      p.velocity[2] = p.velocity[2] * (1 - damping) + (p.force[2] / p.mass) * dt;
 
-      p.position.x += p.velocity.x * dt;
-      p.position.y += p.velocity.y * dt;
-      p.position.z += p.velocity.z * dt;
+      p.position[0] += p.velocity[0] * dt;
+      p.position[1] += p.velocity[1] * dt;
+      p.position[2] += p.velocity[2] * dt;
 
       // Boundary reflection
-      if (p.position.x - p.radius < bounds.min.x) {
-        p.position.x = bounds.min.x + p.radius;
-        p.velocity.x = Math.abs(p.velocity.x) * restitution;
-      } else if (p.position.x + p.radius > bounds.max.x) {
-        p.position.x = bounds.max.x - p.radius;
-        p.velocity.x = -Math.abs(p.velocity.x) * restitution;
+      if (p.position[0] - p.radius < bounds.min[0]) {
+        p.position[0] = bounds.min[0] + p.radius;
+        p.velocity[0] = Math.abs(p.velocity[0]) * restitution;
+      } else if (p.position[0] + p.radius > bounds.max[0]) {
+        p.position[0] = bounds.max[0] - p.radius;
+        p.velocity[0] = -Math.abs(p.velocity[0]) * restitution;
       }
 
-      if (p.position.y - p.radius < bounds.min.y) {
-        p.position.y = bounds.min.y + p.radius;
-        p.velocity.y = Math.abs(p.velocity.y) * restitution;
-      } else if (p.position.y + p.radius > bounds.max.y) {
-        p.position.y = bounds.max.y - p.radius;
-        p.velocity.y = -Math.abs(p.velocity.y) * restitution;
+      if (p.position[1] - p.radius < bounds.min[1]) {
+        p.position[1] = bounds.min[1] + p.radius;
+        p.velocity[1] = Math.abs(p.velocity[1]) * restitution;
+      } else if (p.position[1] + p.radius > bounds.max[1]) {
+        p.position[1] = bounds.max[1] - p.radius;
+        p.velocity[1] = -Math.abs(p.velocity[1]) * restitution;
       }
 
-      if (p.position.z - p.radius < bounds.min.z) {
-        p.position.z = bounds.min.z + p.radius;
-        p.velocity.z = Math.abs(p.velocity.z) * restitution;
-      } else if (p.position.z + p.radius > bounds.max.z) {
-        p.position.z = bounds.max.z - p.radius;
-        p.velocity.z = -Math.abs(p.velocity.z) * restitution;
+      if (p.position[2] - p.radius < bounds.min[2]) {
+        p.position[2] = bounds.min[2] + p.radius;
+        p.velocity[2] = Math.abs(p.velocity[2]) * restitution;
+      } else if (p.position[2] + p.radius > bounds.max[2]) {
+        p.position[2] = bounds.max[2] - p.radius;
+        p.velocity[2] = -Math.abs(p.velocity[2]) * restitution;
       }
 
       // Update spatial grid
@@ -338,13 +338,13 @@ export class GranularMaterialSystem {
       totalMass = 0;
     for (const p of this.particles.values()) {
       if (!p.active) continue;
-      cx += p.position.x * p.mass;
-      cy += p.position.y * p.mass;
-      cz += p.position.z * p.mass;
+      cx += p.position[0] * p.mass;
+      cy += p.position[1] * p.mass;
+      cz += p.position[2] * p.mass;
       totalMass += p.mass;
     }
-    if (totalMass === 0) return { x: 0, y: 0, z: 0 };
-    return { x: cx / totalMass, y: cy / totalMass, z: cz / totalMass };
+    if (totalMass === 0) return [0, 0, 0 ];
+    return [cx / totalMass, cy / totalMass, cz / totalMass ];
   }
 
   /**
@@ -354,7 +354,7 @@ export class GranularMaterialSystem {
     let energy = 0;
     for (const p of this.particles.values()) {
       if (!p.active) continue;
-      const v2 = p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2;
+      const v2 = p.velocity[0] ** 2 + p.velocity[1] ** 2 + p.velocity[2] ** 2;
       energy += 0.5 * p.mass * v2;
     }
     return energy;
@@ -368,7 +368,7 @@ export class GranularMaterialSystem {
     if (particles.length === 0) return 0;
     let total = 0;
     for (const p of particles) {
-      total += Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+      total += Math.sqrt(p.velocity[0] ** 2 + p.velocity[1] ** 2 + p.velocity[2] ** 2);
     }
     return total / particles.length;
   }
@@ -398,7 +398,7 @@ export class GranularMaterialSystem {
   }
 
   private insertIntoGrid(id: number, pos: Vec3): void {
-    const key = this.gridKey(pos.x, pos.y, pos.z);
+    const key = this.gridKey(pos[0], pos[1], pos[2]);
     if (!this.spatialGrid.has(key)) {
       this.spatialGrid.set(key, new Set());
     }
@@ -406,16 +406,16 @@ export class GranularMaterialSystem {
   }
 
   private removeFromGrid(id: number, pos: Vec3): void {
-    const key = this.gridKey(pos.x, pos.y, pos.z);
+    const key = this.gridKey(pos[0], pos[1], pos[2]);
     this.spatialGrid.get(key)?.delete(id);
   }
 
   private getNeighborCandidates(pos: Vec3, radius: number): number[] {
     const cs = this.config.gridCellSize;
     const range = Math.ceil(radius / cs) + 1;
-    const cx = Math.floor(pos.x / cs);
-    const cy = Math.floor(pos.y / cs);
-    const cz = Math.floor(pos.z / cs);
+    const cx = Math.floor(pos[0] / cs);
+    const cy = Math.floor(pos[1] / cs);
+    const cz = Math.floor(pos[2] / cs);
     const candidates: number[] = [];
 
     for (let dx = -range; dx <= range; dx++) {
@@ -450,9 +450,9 @@ export class GranularMaterialSystem {
         const pB = this.particles.get(bId);
         if (!pB || !pB.active) continue;
 
-        const dx = pB.position.x - pA.position.x;
-        const dy = pB.position.y - pA.position.y;
-        const dz = pB.position.z - pA.position.z;
+        const dx = pB.position[0] - pA.position[0];
+        const dy = pB.position[1] - pA.position[1];
+        const dz = pB.position[2] - pA.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         const minDist = pA.radius + pB.radius;
 
@@ -469,18 +469,18 @@ export class GranularMaterialSystem {
           const invMassB = 1 / pB.mass;
           const totalInvMass = invMassA + invMassB;
 
-          pA.force.x -= contactForce * nx * (invMassA / totalInvMass);
-          pA.force.y -= contactForce * ny * (invMassA / totalInvMass);
-          pA.force.z -= contactForce * nz * (invMassA / totalInvMass);
+          pA.force[0] -= contactForce * nx * (invMassA / totalInvMass);
+          pA.force[1] -= contactForce * ny * (invMassA / totalInvMass);
+          pA.force[2] -= contactForce * nz * (invMassA / totalInvMass);
 
-          pB.force.x += contactForce * nx * (invMassB / totalInvMass);
-          pB.force.y += contactForce * ny * (invMassB / totalInvMass);
-          pB.force.z += contactForce * nz * (invMassB / totalInvMass);
+          pB.force[0] += contactForce * nx * (invMassB / totalInvMass);
+          pB.force[1] += contactForce * ny * (invMassB / totalInvMass);
+          pB.force[2] += contactForce * nz * (invMassB / totalInvMass);
 
           // Friction (tangential)
-          const relVx = pB.velocity.x - pA.velocity.x;
-          const relVy = pB.velocity.y - pA.velocity.y;
-          const relVz = pB.velocity.z - pA.velocity.z;
+          const relVx = pB.velocity[0] - pA.velocity[0];
+          const relVy = pB.velocity[1] - pA.velocity[1];
+          const relVz = pB.velocity[2] - pA.velocity[2];
 
           const relVnorm = relVx * nx + relVy * ny + relVz * nz;
           const tangX = relVx - relVnorm * nx;
@@ -490,12 +490,12 @@ export class GranularMaterialSystem {
 
           if (tangMag > 0.0001) {
             const frictionForce = Math.min(mu * contactForce, tangMag);
-            pA.force.x += frictionForce * (tangX / tangMag) * 0.5;
-            pA.force.y += frictionForce * (tangY / tangMag) * 0.5;
-            pA.force.z += frictionForce * (tangZ / tangMag) * 0.5;
-            pB.force.x -= frictionForce * (tangX / tangMag) * 0.5;
-            pB.force.y -= frictionForce * (tangY / tangMag) * 0.5;
-            pB.force.z -= frictionForce * (tangZ / tangMag) * 0.5;
+            pA.force[0] += frictionForce * (tangX / tangMag) * 0.5;
+            pA.force[1] += frictionForce * (tangY / tangMag) * 0.5;
+            pA.force[2] += frictionForce * (tangZ / tangMag) * 0.5;
+            pB.force[0] -= frictionForce * (tangX / tangMag) * 0.5;
+            pB.force[1] -= frictionForce * (tangY / tangMag) * 0.5;
+            pB.force[2] -= frictionForce * (tangZ / tangMag) * 0.5;
           }
         }
       }

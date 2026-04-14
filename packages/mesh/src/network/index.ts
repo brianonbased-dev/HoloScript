@@ -95,6 +95,10 @@ export {
   serializeState,
   deserializeState,
   validateConnectionConfig,
+
+  // Neural Streaming (Pillar 2)
+  INeuralPacket,
+  INeuralSplatPacket,
 } from './NetworkTypes';
 
 // Implementations
@@ -208,3 +212,12 @@ export {
   type NeuralSignalPayload,
   type StreamingTransportConfig,
 } from './NeuralStreamingTransport';
+
+export * from './AntiCheat';
+export * from './Matchmaker';
+export * from './LobbyManager';
+export * from './RoomManager';
+export * from './SessionManager';
+export * from './NetEventBus';
+export * from './NetworkManager';
+export * from './NetworkSystem';

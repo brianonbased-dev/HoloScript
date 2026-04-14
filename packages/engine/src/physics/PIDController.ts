@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PIDController.ts
  *
@@ -68,17 +69,17 @@ export const ScalarArithmetic: PIDArithmetic<number> = {
  * Arithmetic adapter for IVector3 values.
  */
 export const Vector3Arithmetic: PIDArithmetic<IVector3> = {
-  zero: () => ({ x: 0, y: 0, z: 0 }),
-  add: (a, b) => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }),
-  sub: (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }),
-  scale: (s, a) => ({ x: s * a.x, y: s * a.y, z: s * a.z }),
-  magnitude: (a) => Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z),
-  clamp: (a, min, max) => ({
-    x: Math.max(min, Math.min(max, a.x)),
-    y: Math.max(min, Math.min(max, a.y)),
-    z: Math.max(min, Math.min(max, a.z)),
-  }),
-  clone: (a) => ({ x: a.x, y: a.y, z: a.z }),
+  zero: () => ([0, 0, 0 ]),
+  add: (a, b) => ([a[0] + b[0], a[1] + b[1], a[2] + b[2] ]),
+  sub: (a, b) => ([a[0] - b[0], a[1] - b[1], a[2] - b[2] ]),
+  scale: (s, a) => ([s * a[0], s * a[1], s * a[2] ]),
+  magnitude: (a) => Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]),
+  clamp: (a, min, max) => ([
+    Math.max(min, Math.min(max, a[0])),
+    Math.max(min, Math.min(max, a[1])),
+    Math.max(min, Math.min(max, a[2])),
+  ]),
+  clone: (a) => ([a[0], a[1], a[2] ]),
 };
 
 // =============================================================================
@@ -472,10 +473,10 @@ class PIDLoop<T> {
  *
  * // Vector3 PID for 3D position tracking
  * const tracker = new PIDController(
- *   defaultPIDConfig('pos-tracker', { x: 0, y: 0, z: 0 }),
+ *   defaultPIDConfig('pos-tracker', [0, 0, 0 ]),
  *   Vector3Arithmetic,
  * );
- * tracker.setSetpoint({ x: 1, y: 2, z: 3 });
+ * tracker.setSetpoint([1, 2, 3 ]);
  * const force = tracker.step(currentPosition, 1/200);
  * ```
  */
@@ -906,7 +907,7 @@ export function createVector3PIDController(
   return new PIDController<IVector3>(
     defaultPIDConfig(
       'pid-vec3-' + config.id,
-      { x: 0, y: 0, z: 0 },
+      [0, 0, 0 ],
       {
         outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
         innerGains: { kP: 1.0, kI: 0.0, kD: 0.1, ...config.innerGains },

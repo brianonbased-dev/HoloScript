@@ -4,7 +4,7 @@ import { SteeringBehaviors, SteeringAgent, FlockConfig } from '@holoscript/frame
 function agent(x = 0, y = 0, z = 0, vx = 1, vy = 0, vz = 0): SteeringAgent {
   return {
     position: { x, y, z },
-    velocity: { x: vx, y: vy, z: vz },
+    velocity: [vx, vy, vz ],
     maxSpeed: 5,
     maxForce: 2,
     mass: 1,
@@ -104,7 +104,7 @@ describe('SteeringBehaviors', () => {
   it('applyForce updates position and velocity', () => {
     const a = agent(0, 0, 0, 0, 0, 0);
     SteeringBehaviors.applyForce(a, { x: 2, y: 0, z: 0 }, 1);
-    expect(a.velocity.x).toBeGreaterThan(0);
-    expect(a.position.x).toBeGreaterThan(0);
+    expect(a.velocity[0]).toBeGreaterThan(0);
+    expect(a.position[0]).toBeGreaterThan(0);
   });
 });

@@ -8,7 +8,6 @@
 import type { TraitHandler } from './TraitTypes';
 import { getNavigationEngine } from '@holoscript/engine/runtime/NavigationEngine';
 import type { Vector3 } from '../types/HoloScriptPlus';
-import type { Vector3Tuple } from '../types/HoloScriptPlus';
 
 export interface FlowFieldConfig {
   /** ID of the destination to follow */
@@ -25,13 +24,13 @@ export interface FlowFieldConfig {
 }
 
 interface FlowFieldState {
-  currentDirection: Vector3Tuple;
+  currentDirection: Vector3;
   isMoving: boolean;
 }
 
-function toTuple(v: Vector3): Vector3Tuple {
-  if (Array.isArray(v)) return v as Vector3Tuple;
-  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
+function toTuple(v: Vector3): Vector3 {
+  if (Array.isArray(v)) return v as Vector3;
+  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
 }
 
 export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
@@ -88,7 +87,7 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
     );
 
     if (mag > 0.001) {
-      const normalizedDir: Vector3Tuple = [
+      const normalizedDir: Vector3 = [
         state.currentDirection[0] / mag,
         state.currentDirection[1] / mag,
         state.currentDirection[2] / mag,

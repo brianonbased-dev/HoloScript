@@ -111,16 +111,16 @@ export class TextureAtlas {
       sourceWidth: width,
       sourceHeight: height,
       rect: {
-        x: placement.x + pad,
-        y: placement.y + pad,
+        x: placement[0] + pad,
+        y: placement[1] + pad,
         width: rotated ? height : width,
         height: rotated ? width : height,
       },
       uv: {
-        u0: (placement.x + pad) / this.getAtlasWidth(),
-        v0: (placement.y + pad) / this.getAtlasHeight(),
-        u1: (placement.x + pad + (rotated ? height : width)) / this.getAtlasWidth(),
-        v1: (placement.y + pad + (rotated ? width : height)) / this.getAtlasHeight(),
+        u0: (placement[0] + pad) / this.getAtlasWidth(),
+        v0: (placement[1] + pad) / this.getAtlasHeight(),
+        u1: (placement[0] + pad + (rotated ? height : width)) / this.getAtlasWidth(),
+        v1: (placement[1] + pad + (rotated ? width : height)) / this.getAtlasHeight(),
       },
       rotated,
       trimmed: false,
@@ -156,7 +156,7 @@ export class TextureAtlas {
     if (fit) {
       const shelf = this.shelves[fit.shelfIndex];
       const x = shelf.usedWidth;
-      const y = shelf.y;
+      const y = shelf[1];
       shelf.usedWidth += w;
       this.currentWidth = Math.max(this.currentWidth, shelf.usedWidth);
       return { x, y };

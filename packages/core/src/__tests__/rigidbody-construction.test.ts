@@ -31,7 +31,7 @@ function makeDynamic(id = 'b1', x = 0, y = 0, z = 0): RigidBody {
   return new RigidBody({
     id,
     type: 'dynamic',
-    transform: { position: { x, y, z }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    transform: { position: { x, y, z }, rotation: [0, 0, 0, 1 ] },
     shape: { type: 'sphere', radius: 0.5 },
     mass: 2,
   } as IRigidBodyConfig);
@@ -41,7 +41,7 @@ function makeStatic(id = 'wall'): RigidBody {
   return new RigidBody({
     id,
     type: 'static',
-    transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
     shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
   } as IRigidBodyConfig);
 }
@@ -149,7 +149,7 @@ describe('Feature 1B: RigidBody â€” forces and velocity', () => {
     const b = makeDynamic();
     b.linearVelocity = { x: 10, y: 0, z: 0 };
     b.integrateVelocities(0.1);
-    expect(b.position.x).toBeGreaterThan(0);
+    expect(b.position[0]).toBeGreaterThan(0);
   });
 
   it('integrateForces() with gravity increases downward velocity', () => {

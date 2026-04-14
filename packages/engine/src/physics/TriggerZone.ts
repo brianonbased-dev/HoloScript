@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * TriggerZone.ts
  *
@@ -18,7 +19,7 @@ export interface TriggerShape {
   type: 'box' | 'sphere';
   position: [number, number, number];
   // Box: halfExtents, Sphere: radius
-  halfExtents?: { x: number; y: number; z: number };
+  halfExtents?: Vector3;
   radius?: number;
 }
 
@@ -129,7 +130,7 @@ export class TriggerZoneSystem {
       const dx = Math.abs(pos[0] - shape.position[0]),
         dy = Math.abs(pos[1] - shape.position[1]),
         dz = Math.abs(pos[2] - shape.position[2]);
-      return dx <= he.x + entityRadius && dy <= he.y + entityRadius && dz <= he.z + entityRadius;
+      return dx <= he[0] + entityRadius && dy <= he[1] + entityRadius && dz <= he[2] + entityRadius;
     }
 
     return false;

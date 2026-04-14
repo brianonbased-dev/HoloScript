@@ -51,7 +51,7 @@ describe('BodyTrackingTrait', () => {
     for (const j of upperJoints) {
       joints[j] = {
         position: [0, 1, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.9,
       };
     }
@@ -80,7 +80,7 @@ describe('BodyTrackingTrait', () => {
     for (const j of upperJoints) {
       joints[j] = {
         position: [0, 1, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.1,
       };
     }
@@ -108,7 +108,7 @@ describe('BodyTrackingTrait', () => {
     for (const j of upperJoints) {
       joints[j] = {
         position: [0, 1, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.9,
       };
     }
@@ -118,7 +118,7 @@ describe('BodyTrackingTrait', () => {
     for (const j of upperJoints) {
       lowJoints[j] = {
         position: [0, 1, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.1,
       };
     }
@@ -131,7 +131,7 @@ describe('BodyTrackingTrait', () => {
     s.isTracking = true;
     s.joints.set('head', {
       position: [0, 1.8, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 0.9,
     });
     updateTrait(bodyTrackingHandler, node, cfg, ctx, 0.016);
@@ -142,22 +142,22 @@ describe('BodyTrackingTrait', () => {
     const s = (node as any).__bodyTrackingState;
     s.joints.set('head', {
       position: [0, 1.8, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     });
     s.joints.set('foot_left', {
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     });
     s.joints.set('hand_left', {
       position: [-0.9, 1.2, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     });
     s.joints.set('hand_right', {
       position: [0.9, 1.2, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 1,
     });
     sendEvent(bodyTrackingHandler, node, cfg, ctx, { type: 'body_calibrate' });

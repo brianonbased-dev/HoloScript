@@ -1,0 +1,1 @@
+{"version":3,"file":"InferenceTrait.d.ts","sourceRoot":"","sources":["InferenceTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,eAAe;IAC9B,UAAU,EAAE,MAAM,CAAC;IACnB,UAAU,EAAE,MAAM,CAAC;CACpB;AAED,eAAO,MAAM,gBAAgB,EAAE,YAAY,CAAC,eAAe,CA+B1D,CAAC;AAEF,eAAe,gBAAgB,CAAC"}

@@ -59,7 +59,7 @@ describe('ClothTrait', () => {
   it('wind_update changes wind force', () => {
     sendEvent(clothHandler, node, cfg, ctx, {
       type: 'wind_update',
-      direction: { x: 5, y: 0, z: 0 },
+      direction: [5, 0, 0 ],
     });
     expect((node as any).__clothState.windForce.x).toBe(5);
   });

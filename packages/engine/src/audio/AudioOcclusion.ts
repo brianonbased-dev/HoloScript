@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AudioOcclusion.ts
  *
@@ -47,8 +48,8 @@ export interface OcclusionResult {
 }
 
 export interface OcclusionRay {
-  origin: { x: number; y: number; z: number };
-  direction: { x: number; y: number; z: number };
+  origin: Vector3;
+  direction: Vector3;
   maxDistance: number;
 }
 
@@ -243,8 +244,8 @@ export class AudioOcclusionSystem {
    * Now includes frequency-dependent filtering for realistic muffled sound.
    */
   computeOcclusion(
-    listenPos: { x: number; y: number; z: number },
-    sourcePos: { x: number; y: number; z: number },
+    listenPos: Vector3,
+    sourcePos: Vector3,
     sourceId: string
   ): OcclusionResult {
     if (!this.raycastProvider) {
@@ -260,9 +261,9 @@ export class AudioOcclusionSystem {
       };
     }
 
-    const dx = sourcePos.x - listenPos.x;
-    const dy = sourcePos.y - listenPos.y;
-    const dz = sourcePos.z - listenPos.z;
+    const dx = sourcePos[0] - listenPos[0];
+    const dy = sourcePos[1] - listenPos[1];
+    const dz = sourcePos[2] - listenPos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist === 0) {
@@ -279,8 +280,8 @@ export class AudioOcclusionSystem {
     }
 
     const ray: OcclusionRay = {
-      origin: { ...listenPos },
-      direction: { x: dx / dist, y: dy / dist, z: dz / dist },
+      origin: [...listenPos ],
+      direction: [dx / dist, dy / dist, dz / dist ],
       maxDistance: dist,
     };
 

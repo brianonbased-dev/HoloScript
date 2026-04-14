@@ -5,8 +5,8 @@ import {
   createTestCompilerToken,
   type ICompiler,
 } from '../CompilerBase';
-import { ResourceType, type AccessDecision } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
+import { ResourceType, type AccessDecision } from '../identity/AgentRBAC';
+import { WorkflowStep } from '../identity/AgentIdentity';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ describe('CompilerBase', () => {
       expect(err.compilerName).toBe('UnityCompiler');
     });
 
-    it('formats message with reason, role, and required permission', () => {
+    it('formats message with reason and required permission', () => {
       const decision: AccessDecision = {
         allowed: false,
         reason: 'Token expired',
@@ -118,7 +118,6 @@ describe('CompilerBase', () => {
       expect(err.message).toContain('[GodotCompiler]');
       expect(err.message).toContain('Unauthorized AST access');
       expect(err.message).toContain('Token expired');
-      expect(err.message).toContain('Agent Role: syntax_analyzer');
       expect(err.message).toContain('Required Permission: read:ast');
     });
 
@@ -128,7 +127,6 @@ describe('CompilerBase', () => {
       const err = new UnauthorizedCompilerAccessError(decision, 'code generation', 'WASMCompiler');
 
       expect(err.message).toContain('Access denied');
-      expect(err.message).toContain('Agent Role: unknown');
       expect(err.message).toContain('Required Permission: unknown');
     });
 
@@ -513,7 +511,7 @@ describe('CompilerBase', () => {
       expect(err.message).toContain("Can't access <resource>");
     });
 
-    it('includes newlines separating role and permission info', () => {
+    it('includes newline separating reason and permission info', () => {
       const decision: AccessDecision = {
         allowed: false,
         reason: 'Denied',
@@ -524,10 +522,9 @@ describe('CompilerBase', () => {
       const err = new UnauthorizedCompilerAccessError(decision, 'serialize', 'Exp');
       const lines = err.message.split('\n');
 
-      expect(lines.length).toBe(3);
+      expect(lines.length).toBe(2);
       expect(lines[0]).toContain('[Exp] Unauthorized serialize: Denied');
-      expect(lines[1]).toContain('Agent Role: exporter');
-      expect(lines[2]).toContain('Required Permission: write:output');
+      expect(lines[1]).toContain('Required Permission: write:output');
     });
   });
 

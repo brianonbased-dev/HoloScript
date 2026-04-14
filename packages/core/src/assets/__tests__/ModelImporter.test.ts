@@ -89,7 +89,7 @@ describe('ModelImporter', () => {
   it('gltf meshes have correct bounds', () => {
     const result = importer.import('a.gltf', 'data');
     const mesh = result.meshes[0];
-    expect(mesh.bounds.min.x).toBe(-1);
-    expect(mesh.bounds.max.x).toBe(1);
+    expect(mesh.bounds.min[0]).toBe(-1);
+    expect(mesh.bounds.max[0]).toBe(1);
   });
 });

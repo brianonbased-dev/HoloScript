@@ -88,7 +88,7 @@ export class WebXRSystem implements EngineSystem {
   // Locomotion
   private locomotionSpeed = 3.0; // m/s
   private teleportTarget: Vec3 | null = null;
-  private playerPosition: Vec3 = { x: 0, y: 0, z: 0 };
+  private playerPosition: Vec3 = [0, 0, 0 ];
   private playerRotation = 0; // Y-axis radians
 
   // ---------------------------------------------------------------------------
@@ -121,25 +121,25 @@ export class WebXRSystem implements EngineSystem {
       // Smooth locomotion via left thumbstick
       if (
         id.includes('left') &&
-        (Math.abs(input.thumbstick.x) > 0.1 || Math.abs(input.thumbstick.y) > 0.1)
+        (Math.abs(input.thumbstick[0]) > 0.1 || Math.abs(input.thumbstick[1]) > 0.1)
       ) {
         const sinR = Math.sin(this.playerRotation);
         const cosR = Math.cos(this.playerRotation);
-        this.playerPosition.x +=
-          (input.thumbstick.x * cosR - input.thumbstick.y * sinR) * this.locomotionSpeed * dt;
-        this.playerPosition.z +=
-          (input.thumbstick.x * sinR + input.thumbstick.y * cosR) * this.locomotionSpeed * dt;
+        this.playerPosition[0] +=
+          (input.thumbstick[0] * cosR - input.thumbstick[1] * sinR) * this.locomotionSpeed * dt;
+        this.playerPosition[2] +=
+          (input.thumbstick[0] * sinR + input.thumbstick[1] * cosR) * this.locomotionSpeed * dt;
       }
 
       // Snap turn via right thumbstick
-      if (id.includes('right') && Math.abs(input.thumbstick.x) > 0.6) {
-        this.playerRotation += Math.sign(input.thumbstick.x) * (Math.PI / 6); // 30° snap
+      if (id.includes('right') && Math.abs(input.thumbstick[0]) > 0.6) {
+        this.playerRotation += Math.sign(input.thumbstick[0]) * (Math.PI / 6); // 30° snap
       }
     }
 
     // Teleport execution
     if (this.teleportTarget) {
-      this.playerPosition = { ...this.teleportTarget };
+      this.playerPosition = [...this.teleportTarget  ];
       this.teleportTarget = null;
     }
   }
@@ -219,11 +219,11 @@ export class WebXRSystem implements EngineSystem {
   }
 
   getHeadPosition(): Vec3 {
-    return this.frameData?.headPosition ?? { x: 0, y: 0, z: 0 };
+    return this.frameData?.headPosition ?? [0, 0, 0 ];
   }
 
   getHeadRotation(): Vec3 {
-    return this.frameData?.headRotation ?? { x: 0, y: 0, z: 0 };
+    return this.frameData?.headRotation ?? [0, 0, 0 ];
   }
 
   // ---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ export class WebXRSystem implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   getPlayerPosition(): Vec3 {
-    return { ...this.playerPosition };
+    return [...this.playerPosition  ];
   }
   getPlayerRotation(): number {
     return this.playerRotation;
@@ -260,7 +260,7 @@ export class WebXRSystem implements EngineSystem {
 
   /** Queue a teleport to a world position. Executes next frame. */
   teleportTo(target: Vec3): void {
-    this.teleportTarget = { ...target };
+    this.teleportTarget = [...target  ];
   }
 
   // ---------------------------------------------------------------------------

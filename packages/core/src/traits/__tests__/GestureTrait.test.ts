@@ -52,11 +52,11 @@ describe('GestureTrait', () => {
 
   it('detects swipe right', () => {
     // 1. Initial pos
-    vrContext.hands.right.position = { x: 0, y: 0, z: 0 };
+    vrContext.hands.right.position = [0, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     // 2. Move right > threshold
-    vrContext.hands.right.position = { x: 0.2, y: 0, z: 0 };
+    vrContext.hands.right.position = [0.2, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     expect(context.emit).toHaveBeenCalledWith('gesture', {
@@ -68,11 +68,11 @@ describe('GestureTrait', () => {
 
   it('detects swipe left', () => {
     // 1. Initial pos
-    vrContext.hands.right.position = { x: 0, y: 0, z: 0 };
+    vrContext.hands.right.position = [0, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     // 2. Move left > threshold
-    vrContext.hands.right.position = { x: -0.2, y: 0, z: 0 };
+    vrContext.hands.right.position = [-0.2, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     expect(context.emit).toHaveBeenCalledWith('gesture', {
@@ -84,11 +84,11 @@ describe('GestureTrait', () => {
 
   it('ignores small movements', () => {
     // 1. Initial pos
-    vrContext.hands.right.position = { x: 0, y: 0, z: 0 };
+    vrContext.hands.right.position = [0, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     // 2. Move slightly right < threshold
-    vrContext.hands.right.position = { x: 0.05, y: 0, z: 0 };
+    vrContext.hands.right.position = [0.05, 0, 0];
     gestureHandler.onUpdate!(node, config, context, 0.016);
 
     expect(context.emit).not.toHaveBeenCalled();

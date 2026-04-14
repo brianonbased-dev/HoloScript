@@ -322,7 +322,7 @@ struct Ray {
 @compute @workgroup_size(8, 8)
 fn rayTrace(@builtin(global_invocation_id) id: vec3<u32>) {
     let dims = textureDimensions(outputBuffer);
-    if (id.x >= dims.x || id.y >= dims.y) { return; }
+    if (id[0] >= dims[0] || id[1] >= dims[1]) { return; }
 
     let uv = (vec2<f32>(id.xy) + 0.5) / vec2<f32>(dims);
 

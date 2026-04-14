@@ -123,7 +123,7 @@ describe('CRDTRoomTraitHandler', () => {
 
       expect(regions).toHaveLength(1);
       expect(regions[0].id).toBe('spawn-a');
-      expect(regions[0].center).toEqual({ x: 10, y: 0, z: 20 });
+      expect(regions[0].center).toEqual([10, 0, 20 ]);
       expect(regions[0].radius).toBe(30);
       expect(regions[0].priority).toBe(0);
       expect(regions[0].syncRateHz).toBe(40);
@@ -132,12 +132,12 @@ describe('CRDTRoomTraitHandler', () => {
     it('converts interest region declarations with object centers', () => {
       const handler = makeHandler({
         interestRegions: [
-          { id: 'mid', center: { x: 5, y: 1, z: -3 }, radius: 50, priority: 1, syncRateHz: 20 },
+          { id: 'mid', center: [5, 1, -3 ], radius: 50, priority: 1, syncRateHz: 20 },
         ],
       });
       const regions = handler.toInterestRegions();
 
-      expect(regions[0].center).toEqual({ x: 5, y: 1, z: -3 });
+      expect(regions[0].center).toEqual([5, 1, -3 ]);
     });
   });
 

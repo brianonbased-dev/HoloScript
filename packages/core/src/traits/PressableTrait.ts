@@ -17,7 +17,7 @@ import type { TraitContext } from './TraitTypes';
 export class PressableTrait implements Trait {
   name = 'pressable';
   private isPressed: boolean = false;
-  private initialPos: { x: number; y: number; z: number } | null = null; // Local offset?
+  private initialPos: [number, number, number] | null = null; // Local offset?
 
   // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onAttach(node: HSPlusNode, context: TraitContext): void {
@@ -33,7 +33,7 @@ export class PressableTrait implements Trait {
     context.emit('physics_add_constraint', {
       type: 'prismatic',
       nodeId: node.id,
-      axis: { x: 0, y: 0, z: 1 }, // Local Z
+      axis: [0, 0, 1 ], // Local Z
       min: 0,
       max: distance,
       spring: { stiffness, damping, restLength: 0 }, // Spring pulls back to 0
@@ -49,8 +49,8 @@ export class PressableTrait implements Trait {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialPos = node.properties.position
         ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          { ...node.properties.position }
-        : { x: 0, y: 0, z: 0 };
+          [...node.properties.position]
+        : [0, 0, 0];
     }
 
     const currentPos = context.physics.getBodyPosition(node.id as string);
@@ -64,7 +64,8 @@ export class PressableTrait implements Trait {
     // inverse-transform of currentPos into local space before measuring depression.
 
     // @ts-expect-error During migration
-    const dist = Math.abs(currentPos.z - this.initialPos.z);
+    // @ts-expect-error During migration
+    const dist = Math.abs((currentPos[2] ?? currentPos[2]) - this.initialPos[2]);
 
     // Config
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2

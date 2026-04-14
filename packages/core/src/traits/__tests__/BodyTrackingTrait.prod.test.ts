@@ -19,7 +19,7 @@ function attach(cfg: any = {}) {
 }
 
 function makePose(x = 0, y = 0, z = 0, conf = 1.0) {
-  return { position: { x, y, z }, rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: conf };
+  return { position: [x, y, z] as [number, number, number], rotation: [0, 0, 0, 1], confidence: conf };
 }
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────
@@ -319,7 +319,7 @@ describe('bodyTrackingHandler.onEvent — body_pose_update', () => {
       },
     });
     // smoothed = prev*0.5 + current*0.5 = 0*0.5 + 1*0.5 = 0.5
-    expect(node.__bodyTrackingState.joints.get('wrist_left')?.position.x).toBeCloseTo(0.5, 5);
+    expect(node.__bodyTrackingState.joints.get('wrist_left')?.position[0]).toBeCloseTo(0.5, 5);
   });
   it('uses raw pose when joint_smoothing=0', () => {
     const { node, config, ctx } = attach({
@@ -334,7 +334,7 @@ describe('bodyTrackingHandler.onEvent — body_pose_update', () => {
       hand_right: makePose(0, 0, 0, 1),
     };
     bodyTrackingHandler.onEvent!(node, config, ctx, { type: 'body_pose_update', joints });
-    expect(node.__bodyTrackingState.joints.get('wrist_left')?.position.x).toBe(3);
+    expect(node.__bodyTrackingState.joints.get('wrist_left')?.position[0]).toBe(3);
   });
   it('updates lastUpdateTime', () => {
     const before = Date.now();

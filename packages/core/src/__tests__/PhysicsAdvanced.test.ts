@@ -25,7 +25,7 @@ function createBody(id: string, pos: { x: number; y: number; z: number }): IRigi
   return {
     id,
     position: { ...pos },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    rotation: [0, 0, 0, 1 ],
     linearVelocity: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 },
     isSleeping: false,

@@ -70,9 +70,9 @@ describe('Cycle 106: Terrain & Environment System', () => {
     });
 
     const normal = system.getNormalAt('normal_terrain', 50, 50);
-    expect(normal.y).toBeGreaterThan(0); // Should point mostly up
+    expect(normal[1]).toBeGreaterThan(0); // Should point mostly up
     // Normal should be roughly unit length
-    const len = Math.sqrt(normal.x ** 2 + normal.y ** 2 + normal.z ** 2);
+    const len = Math.sqrt(normal[0] ** 2 + normal[1] ** 2 + normal[2] ** 2);
     expect(len).toBeCloseTo(1, 1);
   });
 

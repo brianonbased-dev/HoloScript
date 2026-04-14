@@ -147,7 +147,7 @@ describe('Cycle 140: Replay System', () => {
 
     const sample = result.get(run.id);
     expect(sample).not.toBeNull();
-    expect(sample!.position.x).toBeGreaterThan(0);
+    expect(sample!.position[0]).toBeGreaterThan(0);
   });
 
   it('should compare two runs at a given time', () => {

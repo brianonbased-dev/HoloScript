@@ -7,6 +7,8 @@
  * @module camera
  */
 
+import type { Vector3 } from '@holoscript/core';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -15,7 +17,7 @@ export type CameraMode = 'follow' | 'orbit' | 'free' | 'topDown' | 'fixed';
 
 export interface CameraState {
   position: [number, number, number];
-  rotation: { pitch: number; yaw: number; roll: number };
+  rotation: Vector3;
   zoom: number;
   fov: number;
 }
@@ -23,7 +25,7 @@ export interface CameraState {
 export interface CameraConfig {
   mode: CameraMode;
   smoothing: number; // 0-1, lerp factor
-  followOffset: { x: number; y: number; z: number };
+  followOffset: Vector3;
   orbitDistance: number;
   orbitMinDistance: number;
   orbitMaxDistance: number;
@@ -33,8 +35,8 @@ export interface CameraConfig {
   maxZoom: number;
   deadZone: { x: number; y: number };
   bounds: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   } | null;
   fov: number;
   freeSpeed: number;
@@ -47,7 +49,7 @@ export interface CameraConfig {
 const DEFAULT_CAMERA: CameraConfig = {
   mode: 'follow',
   smoothing: 0.1,
-  followOffset: { x: 0, y: 5, z: -10 },
+  followOffset: [0, 5, -10 ],
   orbitDistance: 10,
   orbitMinDistance: 2,
   orbitMaxDistance: 50,
@@ -97,7 +99,7 @@ const DEFAULT_CAMERA: CameraConfig = {
 export class CameraController {
   private config: CameraConfig;
   private state: CameraState;
-  private target: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  private target: Vector3 = [0, 0, 0 ];
   private orbitAngle = 0;
   private orbitPitch = 0.3;
 
@@ -110,7 +112,7 @@ export class CameraController {
    * const camera = new CameraController({
    *   mode: 'follow',
    *   smoothing: 0.2,
-   *   followOffset: { x: 0, y: 3, z: -8 }
+   *   followOffset: [0, 3, -8 ]
    * });
    * ```
    */
@@ -118,7 +120,7 @@ export class CameraController {
     this.config = { ...DEFAULT_CAMERA, ...config };
     this.state = {
       position: [0, 5, -10],
-      rotation: { pitch: 0, yaw: 0, roll: 0 },
+      rotation: [0, 0, 0],
       zoom: 1,
       fov: this.config.fov,
     };
@@ -168,15 +170,15 @@ export class CameraController {
 
   private updateFollow(dt: number): void {
     const off = this.config.followOffset;
-    const desiredX = this.target.x + off.x;
-    const desiredY = this.target.y + off.y;
-    const desiredZ = this.target.z + off.z;
+    const desiredX = this.target[0] + off[0];
+    const desiredY = this.target[1] + off[1];
+    const desiredZ = this.target[2] + off[2];
 
     // Dead zone check
     const dx = Math.abs(this.target[0] - this.state.position[0] + off[0]);
     const dy = Math.abs(this.target[1] - this.state.position[1] + off[1]);
     const dz = this.config.deadZone;
-    if (dx < dz.x && dy < dz.y) return;
+    if (dx < dz[0] && dy < dz[1]) return;
 
     const s = 1 - Math.pow(1 - this.config.smoothing, dt * 60);
     this.state.position[0] = this.lerp(this.state.position[0], desiredX, s);
@@ -187,12 +189,12 @@ export class CameraController {
   private updateOrbit(_dt: number): void {
     const d = this.config.orbitDistance * this.state.zoom;
     this.state.position[0] =
-      this.target.x + Math.sin(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
+      this.target[0] + Math.sin(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
     this.state.position[1] = this.target[1] + Math.sin(this.orbitPitch) * d;
     this.state.position[2] =
-      this.target.z + Math.cos(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
-    this.state.rotation.yaw = this.orbitAngle;
-    this.state.rotation.pitch = -this.orbitPitch;
+      this.target[2] + Math.cos(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
+    this.state.rotation[1] = this.orbitAngle; // yaw
+    this.state.rotation[0] = -this.orbitPitch; // pitch
   }
 
   private updateTopDown(_dt: number): void {
@@ -201,8 +203,8 @@ export class CameraController {
     this.state.position[0] = this.lerp(this.state.position[0], this.target[0], s);
     this.state.position[1] = height;
     this.state.position[2] = this.lerp(this.state.position[2], this.target[2], s);
-    this.state.rotation.pitch = -Math.PI / 2;
-    this.state.rotation.yaw = 0;
+    this.state.rotation[0] = -Math.PI / 2; // pitch
+    this.state.rotation[1] = 0; // yaw
   }
 
   private clampToBounds(): void {
@@ -229,11 +231,11 @@ export class CameraController {
    * @example
    * ```typescript
    * // Track a moving player
-   * camera.setTarget(player.x, player.y, player.z);
+   * camera.setTarget(player[0], player[1], player[2]);
    * ```
    */
   setTarget(x: number, y: number, z: number): void {
-    this.target = { x, y, z };
+    this.target = [x, y, z];
   }
 
   /**
@@ -241,8 +243,8 @@ export class CameraController {
    *
    * @returns Copy of the current target coordinates
    */
-  getTarget(): { x: number; y: number; z: number } {
-    return { ...this.target };
+  getTarget(): Vector3 {
+    return [...this.target] as Vector3;
   }
 
   /**
@@ -351,8 +353,8 @@ export class CameraController {
    */
   getState(): CameraState {
     return {
-      position: { ...this.state.position },
-      rotation: { ...this.state.rotation },
+      position: [...this.state.position] as Vector3,
+      rotation: [...this.state.rotation ] as Vector3,
       zoom: this.state.zoom,
       fov: this.state.fov,
     };

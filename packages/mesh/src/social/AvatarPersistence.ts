@@ -7,11 +7,9 @@
  * @module social
  */
 
-import type {
-  AvatarPersonality,
-  AvatarTrackingSource,
-  AvatarIKMode,
-} from '@holoscript/core/traits';
+type AvatarTrackingSource = 'hmd' | 'fullbody' | 'hand' | 'none';
+type AvatarIKMode = 'full' | 'upper_body' | 'look_at' | 'none';
+type AvatarPersonality = Record<string, any>;
 
 // =============================================================================
 // TYPES

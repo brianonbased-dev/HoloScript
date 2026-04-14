@@ -25,6 +25,10 @@
 // Types
 // =============================================================================
 
+import p2gShader from '../gpu/shaders/mls-mpm-p2g.wgsl?raw';
+import gridShader from '../gpu/shaders/mls-mpm-grid.wgsl?raw';
+import g2pShader from '../gpu/shaders/mls-mpm-g2p.wgsl?raw';
+
 export interface MLSMPMConfig {
   /** Fluid behavior: liquid (incompressible) or gas (compressible) */
   type: 'liquid' | 'gas';
@@ -402,23 +406,19 @@ export class MLSMPMFluid {
   private async createPipelines(): Promise<void> {
     const device = this.device!;
 
-    // Import WGSL shaders
-    // Note: In production these are loaded from .wgsl files via bundler.
-    // Here we define the entry points for the pipeline.
-
     const p2gModule = device.createShaderModule({
       label: 'MLS-MPM P2G',
-      code: await this.loadShader('mls-mpm-p2g.wgsl'),
+      code: p2gShader,
     });
 
     const gridModule = device.createShaderModule({
       label: 'MLS-MPM Grid',
-      code: await this.loadShader('mls-mpm-grid.wgsl'),
+      code: gridShader,
     });
 
     const g2pModule = device.createShaderModule({
       label: 'MLS-MPM G2P',
-      code: await this.loadShader('mls-mpm-g2p.wgsl'),
+      code: g2pShader,
     });
 
     // --- Grid Clear Pipeline ---
@@ -553,20 +553,5 @@ export class MLSMPMFluid {
     this.device.queue.writeBuffer(this.simParamsBuffer, 0, data);
   }
 
-  /**
-   * Load a WGSL shader file. In bundled environments, this uses the import.
-   * Falls back to inline strings for testing.
-   */
-  private async loadShader(filename: string): Promise<string> {
-    // In a bundled environment, shaders are imported as strings.
-    // This method provides a hook for different loading strategies.
-    try {
-      const response = await fetch(`/shaders/${filename}`);
-      return await response.text();
-    } catch {
-      // Fallback: return empty shader for testing environments
-      console.warn(`Could not load shader ${filename}, using empty fallback`);
-      return '';
-    }
-  }
+  // Shaders are imported natively using Vite/esbuild ?raw plugin mechanism.
 }

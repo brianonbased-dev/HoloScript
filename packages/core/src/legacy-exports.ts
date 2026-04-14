@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 // Legacy Compatibility Barrel
 export {
   ParsedObject,
@@ -205,6 +206,9 @@ export type {
   ExportNode,
   CompositionNode,
   TemplateNode,
+  StateMachineNode,
+  StateNode,
+  TransitionNode,
   StorageAPI,
   DeviceAPI,
   InputAPI,

@@ -134,8 +134,8 @@ describe('LSystemGenerator', () => {
     });
     expect(result.boundingBox.min).toBeDefined();
     expect(result.boundingBox.max).toBeDefined();
-    const dx = result.boundingBox.max.x - result.boundingBox.min.x;
-    const dy = result.boundingBox.max.y - result.boundingBox.min.y;
+    const dx = result.boundingBox.max[0] - result.boundingBox.min[0];
+    const dy = result.boundingBox.max[1] - result.boundingBox.min[1];
     expect(dx + dy).toBeGreaterThan(0);
   });
 
@@ -161,8 +161,8 @@ describe('LSystemGenerator', () => {
     const r2 = gen2.generate(TREE_SIMPLE);
     expect(r1.segments.length).toBe(r2.segments.length);
     for (let i = 0; i < r1.segments.length; i++) {
-      expect(r1.segments[i].start.x).toBeCloseTo(r2.segments[i].start.x);
-      expect(r1.segments[i].start.y).toBeCloseTo(r2.segments[i].start.y);
+      expect(r1.segments[i].start[0]).toBeCloseTo(r2.segments[i].start[0]);
+      expect(r1.segments[i].start[1]).toBeCloseTo(r2.segments[i].start[1]);
     }
   });
 

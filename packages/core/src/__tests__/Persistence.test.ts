@@ -42,7 +42,7 @@ describe('Editor Persistence', () => {
     expect(stored).toBeDefined();
     // Parse to be robust against formatting
     const json = JSON.parse(stored!);
-    // Navigate to position.x
+    // Navigate to position[0]
     // root -> children[0] -> properties -> position -> x
     // But structure depends on whether it's root or child.
     // My serializer wraps in root.
@@ -81,7 +81,7 @@ describe('Editor Persistence', () => {
     world.getAllEntities().forEach((e) => {
       const t = world.getComponent<any>(e, 'Transform');
       if (t) {
-        // Check flat x OR nested position.x
+        // Check flat x OR nested position[0]
         const x = t.x ?? t.position?.x;
         if (x === 999) found = true;
       }

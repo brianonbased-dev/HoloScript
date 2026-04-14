@@ -21,8 +21,8 @@ function makeEntity(id: string, x: number, y: number, z: number, type = 'unit'):
     type,
     position: { x, y, z },
     boundingBox: {
-      min: { x: x - 0.5, y: y - 0.5, z: z - 0.5 },
-      max: { x: x + 0.5, y: y + 0.5, z: z + 0.5 },
+      min: [x - 0.5, y - 0.5, z - 0.5 ],
+      max: [x + 0.5, y + 0.5, z + 0.5 ],
     },
   };
 }
@@ -105,14 +105,14 @@ describe('TransformGraph', () => {
   });
 
   it('getWorldPosition returns local coords for root node', () => {
-    g.addNode('A', { x: 3, y: 4, z: 5 });
+    g.addNode('A', [3, 4, 5 ]);
     const wp = g.getWorldPosition('A');
-    expect(wp).toEqual({ x: 3, y: 4, z: 5 });
+    expect(wp).toEqual([3, 4, 5 ]);
   });
 
   it('world position accumulates through hierarchy', () => {
-    g.addNode('parent', { x: 10, y: 0, z: 0 });
-    g.addNode('child', { x: 5, y: 0, z: 0 });
+    g.addNode('parent', [10, 0, 0 ]);
+    g.addNode('child', [5, 0, 0 ]);
     g.setParent('child', 'parent');
     const wp = g.getWorldPosition('child');
     // child world = parent.world + child.local * parent.scale
@@ -122,7 +122,7 @@ describe('TransformGraph', () => {
 
   it('world position respects parent scale', () => {
     g.addNode('parent', { x: 0, y: 0, z: 0, sx: 2, sy: 2, sz: 1 });
-    g.addNode('child', { x: 3, y: 3, z: 0 });
+    g.addNode('child', [3, 3, 0 ]);
     g.setParent('child', 'parent');
     const wp = g.getWorldPosition('child');
     // child world = (0 + 3*2, 0 + 3*2, 0 + 0*1) = (6, 6, 0)
@@ -132,7 +132,7 @@ describe('TransformGraph', () => {
   });
 
   it('setPosition marks dirty and updates world position', () => {
-    g.addNode('A', { x: 0, y: 0, z: 0 });
+    g.addNode('A', [0, 0, 0 ]);
     g.setPosition('A', 7, 8, 9);
     const wp = g.getWorldPosition('A');
     expect(wp!.x).toBe(7);
@@ -142,7 +142,7 @@ describe('TransformGraph', () => {
 
   it('setScale marks dirty and affects children', () => {
     g.addNode('parent', { x: 0, y: 0, z: 0, sx: 1, sy: 1, sz: 1 });
-    g.addNode('child', { x: 2, y: 0, z: 0 });
+    g.addNode('child', [2, 0, 0 ]);
     g.setParent('child', 'parent');
     g.setScale('parent', 3, 1, 1);
     const wp = g.getWorldPosition('child');
@@ -161,9 +161,9 @@ describe('TransformGraph', () => {
   });
 
   it('updateAll resolves all dirty nodes', () => {
-    g.addNode('root', { x: 1, y: 0, z: 0 });
-    g.addNode('mid', { x: 2, y: 0, z: 0 });
-    g.addNode('leaf', { x: 3, y: 0, z: 0 });
+    g.addNode('root', [1, 0, 0 ]);
+    g.addNode('mid', [2, 0, 0 ]);
+    g.addNode('leaf', [3, 0, 0 ]);
     g.setParent('mid', 'root');
     g.setParent('leaf', 'mid');
     g.updateAll();
@@ -173,10 +173,10 @@ describe('TransformGraph', () => {
 
   it('deep hierarchy computes correctly', () => {
     // root(1) → a(1) → b(1) → c(1) → world = 4
-    g.addNode('root', { x: 1, y: 0, z: 0 });
-    g.addNode('a', { x: 1, y: 0, z: 0 });
-    g.addNode('b', { x: 1, y: 0, z: 0 });
-    g.addNode('c', { x: 1, y: 0, z: 0 });
+    g.addNode('root', [1, 0, 0 ]);
+    g.addNode('a', [1, 0, 0 ]);
+    g.addNode('b', [1, 0, 0 ]);
+    g.addNode('c', [1, 0, 0 ]);
     g.setParent('a', 'root');
     g.setParent('b', 'a');
     g.setParent('c', 'b');
@@ -226,7 +226,7 @@ describe('SpatialQueryExecutor — nearest', () => {
   it('returns nearest entity from origin', () => {
     const results = exec.execute({
       type: 'nearest',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       count: 1,
     });
     expect(results).toHaveLength(1);
@@ -236,7 +236,7 @@ describe('SpatialQueryExecutor — nearest', () => {
   it('returns N nearest entities sorted by distance', () => {
     const results = exec.execute({
       type: 'nearest',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       count: 2,
     });
     expect(results).toHaveLength(2);
@@ -246,7 +246,7 @@ describe('SpatialQueryExecutor — nearest', () => {
   it('includes the querying origin entity in results', () => {
     const results = exec.execute({
       type: 'nearest',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       count: 3,
     });
     expect(results.some((r) => r.entity.id === 'a')).toBe(true);
@@ -254,7 +254,7 @@ describe('SpatialQueryExecutor — nearest', () => {
   });
 
   it('distances are non-negative', () => {
-    const results = exec.execute({ type: 'nearest', from: { x: 0, y: 0, z: 0 } });
+    const results = exec.execute({ type: 'nearest', from: [0, 0, 0 ] });
     results.forEach((r) => expect(r.distance).toBeGreaterThanOrEqual(0));
   });
 });
@@ -274,7 +274,7 @@ describe('SpatialQueryExecutor — within radius', () => {
   it('returns entities within radius', () => {
     const results = exec.execute({
       type: 'within',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       radius: 6,
     });
     expect(results.some((r) => r.entity.id === 'near')).toBe(true);
@@ -285,7 +285,7 @@ describe('SpatialQueryExecutor — within radius', () => {
   it('returns empty when no entity within radius', () => {
     const results = exec.execute({
       type: 'within',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       radius: 0.5,
     });
     expect(results).toHaveLength(0);
@@ -294,7 +294,7 @@ describe('SpatialQueryExecutor — within radius', () => {
   it('maxResults limits returned items', () => {
     const results = exec.execute({
       type: 'within',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       radius: 100,
       maxResults: 2,
     });
@@ -318,7 +318,7 @@ describe('SpatialQueryExecutor — by_type', () => {
   it('filters by entity type correctly', () => {
     const results = exec.execute({
       type: 'by_type',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       entityTypes: ['enemy'],
     });
     expect(results.every((r) => r.entity.type === 'enemy')).toBe(true);
@@ -328,7 +328,7 @@ describe('SpatialQueryExecutor — by_type', () => {
   it('multiple types can be filtered', () => {
     const results = exec.execute({
       type: 'by_type',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       entityTypes: ['enemy', 'ally'],
     });
     expect(results.some((r) => r.entity.type === 'enemy')).toBe(true);
@@ -339,7 +339,7 @@ describe('SpatialQueryExecutor — by_type', () => {
   it('radius constraint on by_type query', () => {
     const results = exec.execute({
       type: 'by_type',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       entityTypes: ['enemy'],
       radius: 0.9, // only e1 at dist=0 is within 0.9
     });
@@ -362,7 +362,7 @@ describe('SpatialQueryExecutor — in_region', () => {
       {
         id: 'box',
         type: 'box',
-        bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 5, y: 5, z: 5 } },
+        bounds: { min: [0, 0, 0 ], max: [5, 5, 5 ] },
       },
     ]);
   });
@@ -370,11 +370,11 @@ describe('SpatialQueryExecutor — in_region', () => {
   it('returns entities inside the region', () => {
     const results = exec.execute({
       type: 'in_region',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       region: {
         id: 'box',
         type: 'box',
-        bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 5, y: 5, z: 5 } },
+        bounds: { min: [0, 0, 0 ], max: [5, 5, 5 ] },
       } as Region,
     });
     expect(results.some((r) => r.entity.id === 'inside')).toBe(true);
@@ -393,8 +393,8 @@ describe('SpatialQueryExecutor — raycast', () => {
   it('raycast along +X hits the entity in that direction', () => {
     const hits = exec.execute({
       type: 'raycast',
-      from: { x: 0, y: 0, z: 0 },
-      direction: { x: 1, y: 0, z: 0 },
+      from: [0, 0, 0 ],
+      direction: [1, 0, 0 ],
       maxDistance: 10,
     });
     expect(hits.some((r) => r.entity.id === 'target')).toBe(true);
@@ -403,8 +403,8 @@ describe('SpatialQueryExecutor — raycast', () => {
   it('raycast along +Y does not hit target along +X', () => {
     const hits = exec.execute({
       type: 'raycast',
-      from: { x: 0, y: 0, z: 0 },
-      direction: { x: 0, y: 1, z: 0 },
+      from: [0, 0, 0 ],
+      direction: [0, 1, 0 ],
       maxDistance: 3, // won't reach 'side' at y=5
     });
     expect(hits.some((r) => r.entity.id === 'target')).toBe(false);
@@ -413,8 +413,8 @@ describe('SpatialQueryExecutor — raycast', () => {
   it('raycast maxDistance limits hits', () => {
     const hits = exec.execute({
       type: 'raycast',
-      from: { x: 0, y: 0, z: 0 },
-      direction: { x: 1, y: 0, z: 0 },
+      from: [0, 0, 0 ],
+      direction: [1, 0, 0 ],
       maxDistance: 2, // target is at x=5, so outside range
     });
     expect(hits.some((r) => r.entity.id === 'target')).toBe(false);
@@ -436,8 +436,8 @@ describe('SpatialQueryExecutor — visible', () => {
   it('visible query returns entities in fov cone', () => {
     const results = exec.execute({
       type: 'visible',
-      from: { x: 0, y: 0, z: 0 },
-      direction: { x: 1, y: 0, z: 0 },
+      from: [0, 0, 0 ],
+      direction: [1, 0, 0 ],
       fov: 90, // 90° fov
       maxDistance: 10,
     });
@@ -450,8 +450,8 @@ describe('SpatialQueryExecutor — visible', () => {
     exec.updateEntities([makeEntity('offaxis', 3, 3, 0)]);
     const results = exec.execute({
       type: 'visible',
-      from: { x: 0, y: 0, z: 0 },
-      direction: { x: 1, y: 0, z: 0 },
+      from: [0, 0, 0 ],
+      direction: [1, 0, 0 ],
       fov: 180,
       maxDistance: 10,
     });
@@ -470,7 +470,7 @@ describe('SpatialQueryExecutor — entity type filter', () => {
   it('entityTypeFilter on nearest restricts results', () => {
     const results = exec.execute({
       type: 'nearest',
-      from: { x: 0, y: 0, z: 0 },
+      from: [0, 0, 0 ],
       entityTypeFilter: ['ally'],
     });
     expect(results.every((r) => r.entity.type === 'ally')).toBe(true);
@@ -482,14 +482,14 @@ describe('SpatialQueryExecutor — updateEntities', () => {
     const exec = new SpatialQueryExecutor();
     exec.updateEntities([makeEntity('old', 0, 0, 0)]);
     exec.updateEntities([makeEntity('new1', 1, 0, 0), makeEntity('new2', 2, 0, 0)]);
-    const results = exec.execute({ type: 'nearest', from: { x: 0, y: 0, z: 0 } });
+    const results = exec.execute({ type: 'nearest', from: [0, 0, 0 ] });
     expect(results.every((r) => r.entity.id !== 'old')).toBe(true);
     expect(results.some((r) => r.entity.id === 'new1')).toBe(true);
   });
 
   it('empty entity set returns empty results', () => {
     const exec = new SpatialQueryExecutor();
-    const results = exec.execute({ type: 'nearest', from: { x: 0, y: 0, z: 0 } });
+    const results = exec.execute({ type: 'nearest', from: [0, 0, 0 ] });
     expect(results).toHaveLength(0);
   });
 });

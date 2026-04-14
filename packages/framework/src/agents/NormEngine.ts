@@ -18,7 +18,18 @@
  * @version 1.0.0
  */
 
-import type { NormEnforcement, NormScope, NormCategory, CulturalNorm } from '@holoscript/core';
+import type {
+  NormEnforcement,
+  NormScope,
+  NormCategory,
+  CulturalNorm,
+} from '@holoscript/core';
+
+/**
+ * VR Effect alias. 
+ * Re-defined locally to resolve persistent TS2305 error in dts build.
+ */
+type VREffect = string;
 
 export const BUILTIN_NORMS: CulturalNorm[] = [
   {
@@ -62,15 +73,14 @@ export function criticalMassForChange(norm: CulturalNorm, populationSize: number
   return populationSize * 0.02;
 }
 
-export type { NormEnforcement, NormScope, NormCategory, CulturalNorm };
-export type VREffect = string;
+export type { NormEnforcement, NormScope, NormCategory, CulturalNorm, VREffect };
 
 export class EffectRow {
-  private effects: Set<string>;
-  constructor(effects: string[]) {
+  private effects: Set<VREffect>;
+  constructor(effects: VREffect[]) {
     this.effects = new Set(effects);
   }
-  has(effect: string): boolean {
+  has(effect: VREffect): boolean {
     return this.effects.has(effect);
   }
 }

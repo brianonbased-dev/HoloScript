@@ -23,8 +23,8 @@ interface PersistentAnchorState {
   createdAt: number;
   lastResolvedAt: number;
   resolveAttempts: number;
-  localPosition: { x: number; y: number; z: number };
-  localRotation: { x: number; y: number; z: number; w: number };
+  localPosition: [number, number, number];
+  localRotation: [number, number, number, number];
   anchorHandle: unknown;
 }
 
@@ -63,8 +63,8 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       createdAt: Date.now(),
       lastResolvedAt: 0,
       resolveAttempts: 0,
-      localPosition: { x: 0, y: 0, z: 0 },
-      localRotation: { x: 0, y: 0, z: 0, w: 1 },
+      localPosition: [0, 0, 0],
+      localRotation: [0, 0, 0, 1],
       anchorHandle: null,
     };
     node.__persistentAnchorState = state;
@@ -118,16 +118,16 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
     // Apply position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
       if (node.position) {
-        node.position.x = state.localPosition.x;
-        node.position.y = state.localPosition.y;
-        node.position.z = state.localPosition.z;
+        node.position[0] = state.localPosition[0];
+        node.position[1] = state.localPosition[1];
+        node.position[2] = state.localPosition[2];
       }
       if (node.rotation) {
-        node.rotation.x = state.localRotation.x;
-        node.rotation.y = state.localRotation.y;
-        node.rotation.z = state.localRotation.z;
-        if (node.rotation.w !== undefined) {
-          node.rotation.w = state.localRotation.w;
+        node.rotation[0] = state.localRotation[0];
+        node.rotation[1] = state.localRotation[1];
+        node.rotation[2] = state.localRotation[2];
+        if (node.rotation[3] !== undefined) {
+          node.rotation[3] = state.localRotation[3];
         }
       }
     }
@@ -156,11 +156,11 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
 
       if (state.resolveAttempts >= config.max_resolve_attempts) {
         // Use fallback position
-        state.localPosition = {
-          x: config.fallback_position[0],
-          y: config.fallback_position[1],
-          z: config.fallback_position[2],
-        };
+        state.localPosition = [
+          config.fallback_position[0],
+          config.fallback_position[1],
+          config.fallback_position[2],
+        ];
         state.state = 'unresolved';
 
         context.emit?.('on_persistent_anchor_fallback', {
@@ -174,8 +174,8 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       state.state = 'tracking';
     } else if (event.type === 'persistent_anchor_create') {
       // Create new anchor at current position
-      const pos = node.position || { x: 0, y: 0, z: 0 };
-      const rot = node.rotation || { x: 0, y: 0, z: 0, w: 1 };
+      const pos = node.position || [0, 0, 0];
+      const rot = node.rotation || [0, 0, 0, 1];
 
       context.emit?.('persistent_anchor_create_request', {
         node,

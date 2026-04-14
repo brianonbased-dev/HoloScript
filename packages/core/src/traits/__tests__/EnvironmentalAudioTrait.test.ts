@@ -206,27 +206,27 @@ describe('EnvironmentalAudioTrait', () => {
   describe('Doppler Effect', () => {
     it('returns 1.0 for stationary source and listener', () => {
       const shift = system.calculateDopplerShift(
-        { x: 0, y: 0, z: 0 }, // source velocity
-        { x: 0, y: 0, z: 0 }, // listener velocity
-        { x: 10, y: 0, z: 0 } // source to listener
+        [0, 0, 0 ], // source velocity
+        [0, 0, 0 ], // listener velocity
+        [10, 0, 0 ] // source to listener
       );
       expect(shift).toBeCloseTo(1.0, 2);
     });
 
     it('increases pitch when source approaches listener', () => {
       const shift = system.calculateDopplerShift(
-        { x: 10, y: 0, z: 0 }, // source moving toward listener (positive x)
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 } // listener at +x
+        [10, 0, 0 ], // source moving toward listener (positive x)
+        [0, 0, 0 ],
+        [10, 0, 0 ] // listener at +x
       );
       expect(shift).toBeGreaterThan(1.0);
     });
 
     it('decreases pitch when source moves away', () => {
       const shift = system.calculateDopplerShift(
-        { x: -10, y: 0, z: 0 }, // source moving away (negative x)
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [-10, 0, 0 ], // source moving away (negative x)
+        [0, 0, 0 ],
+        [10, 0, 0 ]
       );
       expect(shift).toBeLessThan(1.0);
     });
@@ -234,9 +234,9 @@ describe('EnvironmentalAudioTrait', () => {
     it('returns 1.0 when Doppler is disabled', () => {
       system.setDoppler(false);
       const shift = system.calculateDopplerShift(
-        { x: 50, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [50, 0, 0 ],
+        [0, 0, 0 ],
+        [10, 0, 0 ]
       );
       expect(shift).toBe(1.0);
     });
@@ -244,9 +244,9 @@ describe('EnvironmentalAudioTrait', () => {
     it('clamps pitch shift to max', () => {
       system.setDoppler(true, 343, 1.3);
       const shift = system.calculateDopplerShift(
-        { x: 200, y: 0, z: 0 }, // Very fast approach
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [200, 0, 0 ], // Very fast approach
+        [0, 0, 0 ],
+        [10, 0, 0 ]
       );
       expect(shift).toBeLessThanOrEqual(1.3);
     });
@@ -264,16 +264,16 @@ describe('EnvironmentalAudioTrait', () => {
     it('weather affects Doppler scale', () => {
       system.setWeather('wind'); // Higher Doppler scale
       const windShift = system.calculateDopplerShift(
-        { x: 20, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [20, 0, 0 ],
+        [0, 0, 0 ],
+        [10, 0, 0 ]
       );
 
       system.setWeather('storm'); // Lower Doppler scale
       const stormShift = system.calculateDopplerShift(
-        { x: 20, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [20, 0, 0 ],
+        [0, 0, 0 ],
+        [10, 0, 0 ]
       );
 
       // Wind should have stronger Doppler effect
@@ -282,9 +282,9 @@ describe('EnvironmentalAudioTrait', () => {
 
     it('returns 1.0 for zero distance', () => {
       const shift = system.calculateDopplerShift(
-        { x: 10, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 } // Zero distance
+        [10, 0, 0 ],
+        [0, 0, 0 ],
+        [0, 0, 0 ] // Zero distance
       );
       expect(shift).toBe(1.0);
     });
@@ -331,9 +331,9 @@ describe('EnvironmentalAudioTrait', () => {
     it('includes Doppler when velocities provided', () => {
       const effect = system.getEnvironmentalEffect(
         100,
-        { x: 10, y: 0, z: 0 }, // source velocity
-        { x: 0, y: 0, z: 0 }, // listener velocity
-        { x: 100, y: 0, z: 0 } // source to listener
+        [10, 0, 0 ], // source velocity
+        [0, 0, 0 ], // listener velocity
+        [100, 0, 0 ] // source to listener
       );
 
       expect(effect.dopplerShift).toBeGreaterThan(1.0);

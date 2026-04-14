@@ -11,6 +11,8 @@
 // TYPES
 // =============================================================================
 
+import type { Vector3 } from '@holoscript/core';
+
 export interface BoneTransform {
   tx: number;
   ty: number;
@@ -186,11 +188,11 @@ export class BoneSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getWorldPosition(id: string): { x: number; y: number; z: number } | null {
+  getWorldPosition(id: string): Vector3 | null {
     const bone = this.bones.get(id);
     if (!bone) return null;
     this.updateWorldTransforms();
-    return { x: bone.world.tx, y: bone.world.ty, z: bone.world.tz };
+    return [bone.world.tx, bone.world.ty, bone.world.tz ];
   }
 
   getChain(leafId: string): string[] {

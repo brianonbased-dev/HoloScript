@@ -7,15 +7,7 @@
 // Core Types
 // ============================================================================
 
-export type Vector3 = {
-  x?: number;
-  y?: number;
-  z?: number;
-  0?: number;
-  1?: number;
-  2?: number;
-  [key: string]: unknown;
-};
+export type Vector3 = [number, number, number];
 
 export interface Color {
   r: number;
@@ -24,7 +16,6 @@ export interface Color {
   a?: number;
 }
 
-export type Vector3Tuple = [number, number, number];
 
 export interface Transform {
   position: Vector3;
@@ -32,17 +23,12 @@ export interface Transform {
   scale: Vector3;
 }
 
-export type Quaternion = {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-};
+export type Quaternion = [number, number, number, number];
 
 export interface VRHand {
   id: string;
   position: Vector3;
-  rotation: Vector3;
+  rotation: Quaternion;
   velocity: Vector3;
   pinch?: number;
   /** Normalized pinch strength 0-1 — alias for pinch */
@@ -102,9 +88,9 @@ export interface HSPlusNode extends ASTNode {
   args?: unknown;
   body?: unknown;
   /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
-  rotation?: { x: number; y: number; z: number; w?: number };
+  rotation?: Vector3 | Quaternion;
   /** Scene-graph scale set by spatial traits at runtime. */
-  scale?: { x: number; y: number; z: number };
+  scale?: Vector3;
   version?: string | number;
   migrations?: Array<{ type: string; fromVersion: number; body: string }>;
   migrationBlocks?: Record<number, string>;
@@ -328,7 +314,7 @@ export interface HoverableTrait extends BaseTrait {
   highlight_color?: string;
   scale_on_hover?: number;
   show_tooltip?: boolean | string;
-  tooltip_offset?: Vector3Tuple;
+  tooltip_offset?: Vector3;
   glow?: boolean;
   glow_intensity?: number;
 }
@@ -349,7 +335,7 @@ export interface ScalableTrait extends BaseTrait {
   min_scale?: number;
   max_scale?: number;
   uniform?: boolean;
-  pivot?: Vector3Tuple;
+  pivot?: Vector3;
 }
 
 export interface StackableTrait extends BaseTrait {
@@ -360,7 +346,7 @@ export interface StackableTrait extends BaseTrait {
 }
 
 export interface SnappableTrait extends BaseTrait {
-  snap_points?: Vector3Tuple[];
+  snap_points?: Vector3[];
   snap_distance?: number;
   snap_rotation?: boolean;
   magnetic?: boolean;

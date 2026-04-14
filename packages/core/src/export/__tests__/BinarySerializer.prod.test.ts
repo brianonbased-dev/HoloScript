@@ -116,8 +116,8 @@ describe('BinaryWriter: production', () => {
   it('writeTransform stores 10 floats (3+4+3)', () => {
     writer.writeTransform({
       position: [1, 2, 3],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0, 1 ],
+      scale: [1, 1, 1 ],
     });
     expect(writer.getOffset()).toBe(40); // 10 × float32 = 40 bytes
   });

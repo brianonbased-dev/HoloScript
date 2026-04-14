@@ -86,10 +86,10 @@ describe('AdvancedClothSystem', () => {
 
   it('gravity moves unpinned particles downward', () => {
     cloth.initialize();
-    const before = cloth.getAllParticles()[5].position.y;
+    const before = cloth.getAllParticles()[5].position[1];
     cloth.step(0.016);
     cloth.step(0.016);
-    const after = cloth.getAllParticles()[5].position.y;
+    const after = cloth.getAllParticles()[5].position[1];
     expect(after).toBeLessThan(before);
   });
 
@@ -108,24 +108,24 @@ describe('AdvancedClothSystem', () => {
   it('applyImpulse affects nearby particles', () => {
     cloth.initialize();
     const p = cloth.getAllParticles()[5]; // not pinned
-    const prevVy = p.velocity.y;
-    cloth.applyImpulse(p.position, { x: 0, y: 10, z: 0 }, 1.0);
-    expect(p.velocity.y).toBeGreaterThan(prevVy);
+    const prevVy = p.velocity[1];
+    cloth.applyImpulse(p.position, [0, 10, 0 ], 1.0);
+    expect(p.velocity[1]).toBeGreaterThan(prevVy);
   });
 
   it('applyImpulse does not affect pinned particles', () => {
     cloth.initialize();
     const pinned = cloth.getAllParticles()[0]; // top row, pinned
-    cloth.applyImpulse(pinned.position, { x: 0, y: 100, z: 0 }, 1.0);
+    cloth.applyImpulse(pinned.position, [0, 100, 0 ], 1.0);
     // pinned → inverseMass is 0 → velocity unchanged
-    expect(pinned.velocity.y).toBe(0);
+    expect(pinned.velocity[1]).toBe(0);
   });
 
   // ── Wind ───────────────────────────────────────────────────────────────────
 
   it('setWind updates wind config', () => {
-    cloth.setWind({ x: 1, y: 0, z: 0 });
-    expect(cloth.getConfig().wind.x).toBe(1);
+    cloth.setWind([1, 0, 0 ]);
+    expect(cloth.getConfig().wind[0]).toBe(1);
   });
 
   // ── Tearing ────────────────────────────────────────────────────────────────

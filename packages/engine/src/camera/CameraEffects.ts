@@ -117,8 +117,8 @@ export class CameraEffects {
           const p = effect.params as unknown as ShakeParams;
           const decay = 1 - t * p.decay;
           if (decay > 0) {
-            this.shakeOffset.x += (Math.random() - 0.5) * 2 * effect.intensity * decay;
-            this.shakeOffset.y += (Math.random() - 0.5) * 2 * effect.intensity * decay;
+            this.shakeOffset[0] += (Math.random() - 0.5) * 2 * effect.intensity * decay;
+            this.shakeOffset[1] += (Math.random() - 0.5) * 2 * effect.intensity * decay;
           }
           break;
         }

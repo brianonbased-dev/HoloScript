@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AttentionEngine
  *
@@ -8,7 +9,7 @@
 export interface AttendedEntity {
   id: string;
   position: [number, number, number];
-  velocity?: { x: number; y: number; z: number };
+  velocity?: Vector3;
   saliencyBase?: number; // Pre-assigned visual/semantic weight
 }
 
@@ -23,7 +24,7 @@ export class AttentionEngine {
    * Incorporates 4 factors: Proximity, Movement, Base Saliency, and Recency (mocked).
    */
   static calculateWeight(
-    observerPos: { x: number; y: number; z: number },
+    observerPos: Vector3,
     target: AttendedEntity
   ): number {
     // 1. Proximity (Inverse squared distance approximation)
@@ -38,7 +39,7 @@ export class AttentionEngine {
     // 2. Movement (Kinematic attention)
     let movementWeight = 0;
     if (target.velocity) {
-      const speedSq = target.velocity.x ** 2 + target.velocity.y ** 2 + target.velocity.z ** 2;
+      const speedSq = target.velocity[0] ** 2 + target.velocity[1] ** 2 + target.velocity[2] ** 2;
       movementWeight = Math.min(1.0, speedSq / 100); // Caps out at high speeds
     }
 
@@ -60,7 +61,7 @@ export class AttentionEngine {
    * objects around the observer to save inference/rendering payload.
    */
   static getTopKEntities(
-    observerPos: { x: number; y: number; z: number },
+    observerPos: Vector3,
     entities: AttendedEntity[],
     k: number
   ): string[] {

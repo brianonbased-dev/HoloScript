@@ -26,18 +26,8 @@ import type {
 // ECS WORLD
 // =============================================================================
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export interface Quat {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+export type Vec3 = [number, number, number];
+export type Quat = [number, number, number, number];
 
 export interface TransformComponent {
   position: Vec3;
@@ -487,17 +477,17 @@ export class HoloVM {
       }
 
       // ── Spatial Operations ──────────────────────────────────────────────
-      case HoloOpCode.TRANSFORM: {
+    case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
-          position: { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number },
-          rotation: {
-            x: operands[4] as number,
-            y: operands[5] as number,
-            z: operands[6] as number,
-            w: operands[7] as number,
-          },
-          scale: { x: operands[8] as number, y: operands[9] as number, z: operands[10] as number },
+          position: [operands[1] as number, operands[2] as number, operands[3] as number],
+          rotation: [
+            operands[4] as number,
+            operands[5] as number,
+            operands[6] as number,
+            operands[7] as number,
+          ],
+          scale: [operands[8] as number, operands[9] as number, operands[10] as number],
         };
         this.world.setComponent(entityId, ComponentType.Transform, transform);
         break;
@@ -509,9 +499,9 @@ export class HoloVM {
           ComponentType.Transform
         );
         if (existing) {
-          existing.position.x += operands[1] as number;
-          existing.position.y += operands[2] as number;
-          existing.position.z += operands[3] as number;
+          existing.position[0] += operands[1] as number;
+          existing.position[1] += operands[2] as number;
+          existing.position[2] += operands[3] as number;
           this.world.setComponent(entityId, ComponentType.Transform, existing);
         }
         break;
@@ -520,13 +510,13 @@ export class HoloVM {
         const entityId = operands[0] as number;
         this.world.setComponent(entityId, ComponentType.Transform, {
           position: [0, 0, 0],
-          rotation: {
-            x: operands[1] as number,
-            y: operands[2] as number,
-            z: operands[3] as number,
-            w: operands[4] as number,
-          },
-          scale: { x: 1, y: 1, z: 1 },
+          rotation: [
+            operands[1] as number,
+            operands[2] as number,
+            operands[3] as number,
+            operands[4] as number,
+          ],
+          scale: [1, 1, 1],
         });
         break;
       }
@@ -571,8 +561,8 @@ export class HoloVM {
         const rb: RigidBodyComponent = {
           mass: operands[1] as number,
           bodyType: operands[2] as number,
-          velocity: { x: 0, y: 0, z: 0 },
-          angularVelocity: { x: 0, y: 0, z: 0 },
+          velocity: [0, 0, 0],
+          angularVelocity: [0, 0, 0],
         };
         this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         break;
@@ -582,9 +572,9 @@ export class HoloVM {
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb && rb.mass > 0) {
           const dt = 1 / 90; // Assume 90fps
-          rb.velocity.x += ((operands[1] as number) / rb.mass) * dt;
-          rb.velocity.y += ((operands[2] as number) / rb.mass) * dt;
-          rb.velocity.z += ((operands[3] as number) / rb.mass) * dt;
+          rb.velocity[0] += ((operands[1] as number) / rb.mass) * dt;
+          rb.velocity[1] += ((operands[2] as number) / rb.mass) * dt;
+          rb.velocity[2] += ((operands[3] as number) / rb.mass) * dt;
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
@@ -593,9 +583,9 @@ export class HoloVM {
         const entityId = operands[0] as number;
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb && rb.mass > 0) {
-          rb.velocity.x += (operands[1] as number) / rb.mass;
-          rb.velocity.y += (operands[2] as number) / rb.mass;
-          rb.velocity.z += (operands[3] as number) / rb.mass;
+          rb.velocity[0] += (operands[1] as number) / rb.mass;
+          rb.velocity[1] += (operands[2] as number) / rb.mass;
+          rb.velocity[2] += (operands[3] as number) / rb.mass;
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
@@ -604,18 +594,18 @@ export class HoloVM {
         const entityId = operands[0] as number;
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb) {
-          rb.velocity = {
-            x: operands[1] as number,
-            y: operands[2] as number,
-            z: operands[3] as number,
-          };
+          rb.velocity = [
+            operands[1] as number,
+            operands[2] as number,
+            operands[3] as number,
+          ];
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
       }
       case HoloOpCode.SET_GRAVITY: {
         // Store as world-level metadata
-        this.world.setComponent(0, 0xff, { x: operands[0], y: operands[1], z: operands[2] });
+        this.world.setComponent(0, 0xff, [operands[0], operands[1], operands[2] ]);
         break;
       }
 

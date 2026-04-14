@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * CloudRenderer.ts
  *
@@ -19,7 +20,7 @@ export interface CloudConfig {
   windSpeed: { x: number; z: number };
   lightColor: [number, number, number];
   ambientColor: [number, number, number];
-  lightDirection: { x: number; y: number; z: number };
+  lightDirection: Vector3;
   noiseScale: number;
   detailScale: number;
   layers: number; // Noise octaves
@@ -48,7 +49,7 @@ export class CloudRenderer {
       windSpeed: { x: 5, z: 2 },
       lightColor: [1, 0.95, 0.85],
       ambientColor: [0.4, 0.45, 0.55],
-      lightDirection: { x: 0.3, y: -0.8, z: 0.5 },
+      lightDirection: [0.3, -0.8, 0.5 ],
       noiseScale: 0.002,
       detailScale: 0.01,
       layers: 4,
@@ -88,8 +89,8 @@ export class CloudRenderer {
       1 - Math.abs(relY - this.config.thickness / 2) / (this.config.thickness / 2);
 
     // Wind offset
-    const wx = x + this.config.windSpeed.x * this.time;
-    const wz = z + this.config.windSpeed.z * this.time;
+    const wx = x + this.config.windSpeed[0] * this.time;
+    const wz = z + this.config.windSpeed[2] * this.time;
 
     // Layered noise (approximated with sin-based pseudo noise)
     let noise = 0;
@@ -120,9 +121,9 @@ export class CloudRenderer {
     const stepSize = this.config.thickness / steps;
 
     for (let i = 1; i <= steps; i++) {
-      const sx = x + ld.x * stepSize * i;
-      const sy = y + ld.y * stepSize * i;
-      const sz = z + ld.z * stepSize * i;
+      const sx = x + ld[0] * stepSize * i;
+      const sy = y + ld[1] * stepSize * i;
+      const sz = z + ld[2] * stepSize * i;
       const d = this.sampleDensity(sx, sy, sz);
       transmittance *= Math.exp(-d * stepSize * 0.1);
     }

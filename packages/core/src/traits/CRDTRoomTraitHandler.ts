@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * CRDTRoomTraitHandler — Bridges @crdt-room trait config to CRDTRoom runtime
  *
@@ -82,7 +83,7 @@ export interface CRDTRoomManagerConfigOutput {
  */
 export interface InterestRegionOutput {
   id: string;
-  center: { x: number; y: number; z: number };
+  center: Vector3;
   radius: number;
   priority: number;
   syncRateHz: number;

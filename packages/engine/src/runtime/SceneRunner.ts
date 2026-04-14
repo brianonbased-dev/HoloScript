@@ -88,9 +88,9 @@ export class SceneRunner {
     const nodeId = node.id || node.name || `node_${entity}`;
 
     // 1. Add transform component from node properties
-    const pos = this.extractVec3(node.properties, 'position', { x: 0, y: 0, z: 0 });
-    const rot = this.extractVec3(node.properties, 'rotation', { x: 0, y: 0, z: 0 });
-    const scl = this.extractVec3(node.properties, 'scale', { x: 1, y: 1, z: 1 });
+    const pos = this.extractVec3(node.properties, 'position', [0, 0, 0 ]);
+    const rot = this.extractVec3(node.properties, 'rotation', [0, 0, 0 ]);
+    const scl = this.extractVec3(node.properties, 'scale', [1, 1, 1 ]);
     this.world.addComponent(entity, 'transform', { position: pos, rotation: rot, scale: scl });
 
     // 2. Add renderable component if it has visual properties
@@ -215,15 +215,15 @@ export class SceneRunner {
   private extractVec3(
     props: Record<string, unknown> | undefined,
     key: string,
-    fallback: { x: number; y: number; z: number }
-  ): { x: number; y: number; z: number } {
+    fallback: Vector3
+  ): Vector3 {
     if (!props || !props[key]) return fallback;
     const v = props[key];
     if (Array.isArray(v))
-      return { x: Number(v[0]) || 0, y: Number(v[1]) || 0, z: Number(v[2]) || 0 };
+      return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0 ];
     if (typeof v === 'object' && v !== null) {
       const o = v as Record<string, unknown>;
-      return { x: Number(o.x) || 0, y: Number(o.y) || 0, z: Number(o.z) || 0 };
+      return [Number(o[0]) || 0, Number(o[1]) || 0, Number(o[2]) || 0 ];
     }
     return fallback;
   }

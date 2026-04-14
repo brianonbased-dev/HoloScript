@@ -52,11 +52,11 @@ describe('CRDTRoomTrait', () => {
   describe('normalizeCenter', () => {
     it('converts tuple [x, y, z] to {x, y, z} object', () => {
       const result = normalizeCenter([10, 20, 30]);
-      expect(result).toEqual({ x: 10, y: 20, z: 30 });
+      expect(result).toEqual([10, 20, 30 ]);
     });
 
     it('passes through {x, y, z} object unchanged', () => {
-      const input = { x: 5, y: 15, z: 25 };
+      const input = [5, 15, 25 ];
       const result = normalizeCenter(input);
       expect(result).toEqual(input);
     });

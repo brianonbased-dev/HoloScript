@@ -67,7 +67,7 @@ export type {
 export { SimulationProvider } from './components/SimulationProvider';
 export type { SimulationProviderProps, SimulationContextValue } from './components/SimulationProvider';
 export { ScalarFieldOverlay, type ColormapName } from './components/ScalarFieldOverlay';
-export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarFieldOverlay';
+export type { ScalarFieldOverlayProps } from './components/ScalarFieldOverlay';
 export { SimResultsMesh } from './components/SimResultsMesh';
 export type { SimResultsMeshProps } from './components/SimResultsMesh';
 

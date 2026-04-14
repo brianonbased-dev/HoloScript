@@ -15,32 +15,32 @@ describe('SpatialQueryExecutor', () => {
       {
         id: 'entity-1',
         type: 'player',
-        position: {x: 0, y: 0, z: 0},
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1],
       },
       {
         id: 'entity-2',
         type: 'npc',
-        position: {x: 10, y: 0, z: 0}, // 10m away
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        position: [10, 0, 0], // 10m away
+        rotation: [0, 0, 0, 1],
 
-        bounds: { min: { x: 9.5, y: -0.5, z: -0.5 }, max: { x: 10.5, y: 0.5, z: 0.5 } }, // Box bounds
+        bounds: { min: [9.5, -0.5, -0.5], max: [10.5, 0.5, 0.5] }, // Box bounds
       },
       {
         id: 'entity-3',
         type: 'item',
-        position: {x: 0, y: 10, z: 0}, // 10m up
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        position: [0, 10, 0], // 10m up
+        rotation: [0, 0, 0, 1],
 
-        bounds: { radius: 1, center: { x: 0, y: 10, z: 0 } }, // Sphere bounds
+        bounds: { radius: 1, center: [0, 10, 0] }, // Sphere bounds
       },
       {
         id: 'entity-4',
         type: 'obstacle',
-        position: {x: 5, y: 0, z: 0}, // Between 1 and 2
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        position: [5, 0, 0], // Between 1 and 2
+        rotation: [0, 0, 0, 1],
 
-        bounds: { min: { x: 4.5, y: -2.5, z: -2.5 }, max: { x: 5.5, y: 2.5, z: 2.5 } },
+        bounds: { min: [4.5, -2.5, -2.5], max: [5.5, 2.5, 2.5] },
       },
     ];
 
@@ -49,13 +49,13 @@ describe('SpatialQueryExecutor', () => {
         id: 'region-1',
         type: 'box',
         name: 'Region 1',
-        bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } }, // Origin box
+        bounds: { min: [-5, -5, -5], max: [5, 5, 5] }, // Origin box
       },
       {
         id: 'region-2',
         type: 'sphere',
         name: 'Region 2',
-        bounds: { radius: 15, center: { x: 0, y: 0, z: 0 } }, // Big sphere
+        bounds: { radius: 15, center: [0, 0, 0] }, // Big sphere
       },
     ];
 
@@ -67,7 +67,7 @@ describe('SpatialQueryExecutor', () => {
     it('should find nearest entity', () => {
       const query: SpatialQuery = {
         type: 'nearest',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         count: 1,
       };
 
@@ -81,7 +81,7 @@ describe('SpatialQueryExecutor', () => {
     it('should exclude self if managed correctly (caller responsibility) but here just sorts', () => {
       const query: SpatialQuery = {
         type: 'nearest',
-        from: { x: 1, y: 0, z: 0 }, // Close to entity-1
+        from: [1, 0, 0], // Close to entity-1
         count: 2,
       };
       const results = executor.execute(query);
@@ -94,7 +94,7 @@ describe('SpatialQueryExecutor', () => {
     it('should find entities within radius', () => {
       const query: SpatialQuery = {
         type: 'within',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         radius: 6,
       };
       const results = executor.execute(query);
@@ -110,8 +110,8 @@ describe('SpatialQueryExecutor', () => {
     it('should detect hits along a ray', () => {
       const query: SpatialQuery = {
         type: 'raycast',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 1, y: 0, z: 0 }, // Towards pos x
+        from: [0, 0, 0],
+        direction: [1, 0, 0], // Towards pos x
         maxDistance: 20,
       };
 
@@ -140,8 +140,8 @@ describe('SpatialQueryExecutor', () => {
       // Start far enough back to be outside of bounding spheres
       const query: SpatialQuery = {
         type: 'raycast',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 1, y: 0, z: 0 },
+        from: [0, 0, 0],
+        direction: [1, 0, 0],
         maxDistance: 20,
         hitFirst: true,
       };
@@ -160,7 +160,7 @@ describe('SpatialQueryExecutor', () => {
       // entity-2 (x=10) is blocked by entity-4 (x=5) from origin (0,0)
       const query: SpatialQuery = {
         type: 'visible',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         maxDistance: 20,
       };
 
@@ -186,8 +186,8 @@ describe('SpatialQueryExecutor', () => {
     it('should respect FOV', () => {
       const query: SpatialQuery = {
         type: 'visible',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 0, y: 1, z: 0 }, // Look UP using Y axis
+        from: [0, 0, 0],
+        direction: [0, 1, 0], // Look UP using Y axis
         fov: 90,
         maxDistance: 20,
       };
@@ -213,7 +213,7 @@ describe('SpatialQueryExecutor', () => {
 
       const query: SpatialQuery = {
         type: 'in_region',
-        from: { x: 0, y: 0, z: 0 }, // 'from' just for sorting results
+        from: [0, 0, 0], // 'from' just for sorting results
         region: regions[0], // region-1
       };
 
@@ -230,7 +230,7 @@ describe('SpatialQueryExecutor', () => {
     it('should filter by type', () => {
       const query: SpatialQuery = {
         type: 'by_type',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         entityTypes: ['npc', 'item'],
       };
       const results = executor.execute(query);

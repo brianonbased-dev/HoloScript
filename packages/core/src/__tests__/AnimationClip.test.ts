@@ -27,17 +27,17 @@ describe('AnimClip', () => {
 
   it('samples linear interpolation at midpoint', () => {
     const s = clip.sample(0.5);
-    expect(s.get('root.position.x')).toBeCloseTo(5, 1);
+    expect(s.get('root.position[0]')).toBeCloseTo(5, 1);
   });
 
   it('samples returns first value at time 0', () => {
     const s = clip.sample(0);
-    expect(s.get('root.position.x')).toBe(0);
+    expect(s.get('root.position[0]')).toBe(0);
   });
 
   it('samples returns last value at or beyond duration', () => {
     const s = clip.sample(1);
-    expect(s.get('root.position.x')).toBe(10);
+    expect(s.get('root.position[0]')).toBe(10);
   });
 
   it('step interpolation returns previous keyframe value', () => {
@@ -59,20 +59,20 @@ describe('AnimClip', () => {
     clip.setLoop(true);
     expect(clip.isLooping()).toBe(true);
     const s = clip.sample(1.5);
-    expect(s.get('root.position.x')).toBeCloseTo(5, 1);
+    expect(s.get('root.position[0]')).toBeCloseTo(5, 1);
   });
 
   it('ping-pong wrap mode reverses', () => {
     clip.setWrapMode('ping-pong');
     const s = clip.sample(1.5); // Should be going back: 0.5*dur = 5
-    expect(s.get('root.position.x')).toBeCloseTo(5, 1);
+    expect(s.get('root.position[0]')).toBeCloseTo(5, 1);
   });
 
   it('speed multiplier scales time', () => {
     clip.setSpeed(2);
     expect(clip.getSpeed()).toBe(2);
     const s = clip.sample(0.25); // effective time=0.5 → value 5
-    expect(s.get('root.position.x')).toBeCloseTo(5, 1);
+    expect(s.get('root.position[0]')).toBeCloseTo(5, 1);
   });
 
   it('clip events are sorted and queried', () => {

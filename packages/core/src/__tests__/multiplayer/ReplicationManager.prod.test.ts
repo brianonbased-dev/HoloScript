@@ -105,7 +105,7 @@ describe('ReplicationManager â€” updateSnapshot', () => {
     rm.register('e1', 'player', 'p1');
     rm.updateSnapshot('e1', { position: [10, 0, 0] });
     const e = rm.getEntity('e1')!;
-    expect(e.snapshot.position.x).toBe(10);
+    expect(e.snapshot.position[0]).toBe(10);
   });
 
   it('updateSnapshot on unknown entity does not throw', () => {
@@ -199,7 +199,7 @@ describe('ReplicationManager â€” applyRemoteUpdate', () => {
     };
     rm.applyRemoteUpdate(update);
     const e = rm.getEntity('e1')!;
-    expect(e.snapshot.position.x).toBe(99);
+    expect(e.snapshot.position[0]).toBe(99);
   });
 
   it('applyRemoteUpdate delta updates only provided fields', () => {
@@ -209,14 +209,14 @@ describe('ReplicationManager â€” applyRemoteUpdate', () => {
     const delta: DeltaUpdate = {
       entityId: 'e1',
       timestamp: Date.now(),
-      fields: { velocity: { x: 3, y: 0, z: 0 } },
+      fields: { velocity: [3, 0, 0 ] },
       isFullSnapshot: false,
     };
     rm.applyRemoteUpdate(delta);
     const e = rm.getEntity('e1')!;
-    expect(e.snapshot.velocity.x).toBe(3);
+    expect(e.snapshot.velocity[0]).toBe(3);
     // Position should remain unchanged
-    expect(e.snapshot.position.x).toBe(5);
+    expect(e.snapshot.position[0]).toBe(5);
   });
 
   it('applyRemoteUpdate on unknown entity does not throw', () => {

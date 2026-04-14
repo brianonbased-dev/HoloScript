@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * USD Trait
  *
@@ -9,7 +10,6 @@
  */
 
 import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // TYPES

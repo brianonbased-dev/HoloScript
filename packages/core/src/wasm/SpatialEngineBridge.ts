@@ -278,24 +278,24 @@ export class SpatialEngineBridge {
     if (this.wasm)
       return (
         this.wasm.sphere_sphere_test(
-          aPos.x,
-          aPos.y,
-          aPos.z,
+          aPos[0],
+          aPos[1],
+          aPos[2],
           aRadius,
-          bPos.x,
-          bPos.y,
-          bPos.z,
+          bPos[0],
+          bPos[1],
+          bPos[2],
           bRadius
         ) === 1
       );
     return sphereSphereTest_fallback(
-      aPos.x,
-      aPos.y,
-      aPos.z,
+      aPos[0],
+      aPos[1],
+      aPos[2],
       aRadius,
-      bPos.x,
-      bPos.y,
-      bPos.z,
+      bPos[0],
+      bPos[1],
+      bPos[2],
       bRadius
     );
   }
@@ -304,33 +304,33 @@ export class SpatialEngineBridge {
     if (this.wasm)
       return (
         this.wasm.aabb_overlap(
-          aMin.x,
-          aMin.y,
-          aMin.z,
-          aMax.x,
-          aMax.y,
-          aMax.z,
-          bMin.x,
-          bMin.y,
-          bMin.z,
-          bMax.x,
-          bMax.y,
-          bMax.z
+          aMin[0],
+          aMin[1],
+          aMin[2],
+          aMax[0],
+          aMax[1],
+          aMax[2],
+          bMin[0],
+          bMin[1],
+          bMin[2],
+          bMax[0],
+          bMax[1],
+          bMax[2]
         ) === 1
       );
     return aabbOverlap_fallback(
-      aMin.x,
-      aMin.y,
-      aMin.z,
-      aMax.x,
-      aMax.y,
-      aMax.z,
-      bMin.x,
-      bMin.y,
-      bMin.z,
-      bMax.x,
-      bMax.y,
-      bMax.z
+      aMin[0],
+      aMin[1],
+      aMin[2],
+      aMax[0],
+      aMax[1],
+      aMax[2],
+      bMin[0],
+      bMin[1],
+      bMin[2],
+      bMax[0],
+      bMax[1],
+      bMax[2]
     );
   }
 

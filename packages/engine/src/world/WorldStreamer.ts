@@ -78,8 +78,8 @@ export class WorldStreamer {
   }
 
   update(): void {
-    const cx = Math.floor(this.viewerPosition.x / this.config.chunkSize);
-    const cz = Math.floor(this.viewerPosition.z / this.config.chunkSize);
+    const cx = Math.floor(this.viewerPosition[0] / this.config.chunkSize);
+    const cz = Math.floor(this.viewerPosition[2] / this.config.chunkSize);
 
     // Determine which chunks to load
     for (let dx = -this.config.loadRadius; dx <= this.config.loadRadius; dx++) {
@@ -103,8 +103,8 @@ export class WorldStreamer {
     // Unload distant chunks
     for (const [id, chunk] of this.chunks) {
       if (chunk.state !== 'loaded') continue;
-      const dx = chunk.x - cx;
-      const dz = chunk.z - cz;
+      const dx = chunk[0] - cx;
+      const dz = chunk[2] - cz;
       const dist = Math.sqrt(dx * dx + dz * dz);
       if (dist > this.config.unloadRadius) {
         this.unloadChunk(id);
@@ -149,12 +149,12 @@ export class WorldStreamer {
 
       // Simulate sync load (in real engine would be async)
       if (this.chunkGenerator) {
-        chunk.data = this.chunkGenerator(chunk.x, chunk.z);
+        chunk.data = this.chunkGenerator(chunk[0], chunk[2]);
         const serialized = JSON.stringify(chunk.data);
         chunk.size = serialized.length;
         this.totalMemory += chunk.size;
       } else {
-        chunk.data = { x: chunk.x, z: chunk.z };
+        chunk.data = { x: chunk[0], z: chunk[2] };
         chunk.size = 64;
         this.totalMemory += 64;
       }

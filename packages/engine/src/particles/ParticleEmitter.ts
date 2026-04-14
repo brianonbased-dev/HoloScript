@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ParticleEmitter.ts
  *
@@ -11,11 +12,7 @@
 // TYPES
 // =============================================================================
 
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type IVector3 = Vector3;
 export interface IColor {
   r: number;
   g: number;
@@ -186,25 +183,25 @@ export class ParticleEmitter {
       const t = p.age / p.lifetime;
 
       // Apply gravity
-      p.velocity.y -= this.config.gravity * dt;
+      p.velocity[1] -= this.config.gravity * dt;
 
       // Speed over lifetime
       if (this.config.speedOverLifetime) {
         const speedMul = sampleCurve(this.config.speedOverLifetime, t);
-        const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+        const speed = Math.sqrt(p.velocity[0] ** 2 + p.velocity[1] ** 2 + p.velocity[2] ** 2);
         if (speed > 0.001) {
           const targetSpeed = p.startSpeed * speedMul;
           const scale = targetSpeed / speed;
-          p.velocity.x *= scale;
-          p.velocity.y *= scale;
-          p.velocity.z *= scale;
+          p.velocity[0] *= scale;
+          p.velocity[1] *= scale;
+          p.velocity[2] *= scale;
         }
       }
 
       // Move
-      p.position.x += p.velocity.x * dt;
-      p.position.y += p.velocity.y * dt;
-      p.position.z += p.velocity.z * dt;
+      p.position[0] += p.velocity[0] * dt;
+      p.position[1] += p.velocity[1] * dt;
+      p.position[2] += p.velocity[2] * dt;
 
       // Size over lifetime
       if (this.config.sizeOverLifetime) {
@@ -248,11 +245,7 @@ export class ParticleEmitter {
     // Emit position and direction from shape
     const { position, direction } = this.sampleShape();
     p.position = position;
-    p.velocity = {
-      x: direction.x * p.startSpeed,
-      y: direction.y * p.startSpeed,
-      z: direction.z * p.startSpeed,
-    };
+    p.velocity = [direction[0] * p.startSpeed, direction[1] * p.startSpeed, direction[2] * p.startSpeed];
 
     this.state.totalEmitted++;
   }
@@ -263,26 +256,26 @@ export class ParticleEmitter {
 
     switch (shape) {
       case 'point':
-        return { position: {x: 0, y: 0, z: 0}, direction: this.randomDirection() };
+        return { position: [0, 0, 0], direction: this.randomDirection() };
 
       case 'sphere': {
         const dir = this.randomDirection();
         const r = (params.radius ?? 1) * Math.cbrt(Math.random());
         return {
-          position: {x: dir.x * r, y: dir.y * r, z: dir.z * r},
+          position: [dir[0] * r, dir[1] * r, dir[2] * r],
           direction: dir,
         };
       }
 
       case 'box': {
-        const ext = params.extents ?? { x: 1, y: 1, z: 1 };
+        const ext = params.extents ?? [1, 1, 1];
         return {
-          position: {
-            x: randomRange(-ext.x, ext.x),
-            y: randomRange(-ext.y, ext.y),
-            z: randomRange(-ext.z, ext.z),
-          },
-          direction: { x: 0, y: 1, z: 0 },
+          position: [
+            randomRange(-ext[0], ext[0]),
+            randomRange(-ext[1], ext[1]),
+            randomRange(-ext[2], ext[2]),
+          ],
+          direction: [0, 1, 0],
         };
       }
 
@@ -292,12 +285,8 @@ export class ParticleEmitter {
         const cosTheta = Math.cos(angle * Math.random());
         const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
         return {
-          position: {x: 0, y: 0, z: 0},
-          direction: {
-            x: sinTheta * Math.cos(phi),
-            y: cosTheta,
-            z: sinTheta * Math.sin(phi),
-          },
+          position: [0, 0, 0],
+          direction: [sinTheta * Math.cos(phi), cosTheta, sinTheta * Math.sin(phi)],
         };
       }
 
@@ -305,16 +294,16 @@ export class ParticleEmitter {
         const r = (params.radius ?? 1) * Math.sqrt(Math.random());
         const theta = Math.random() * 2 * Math.PI;
         return {
-          position: {x: r * Math.cos(theta), y: 0, z: r * Math.sin(theta)},
-          direction: { x: 0, y: 1, z: 0 },
+          position: [r * Math.cos(theta), 0, r * Math.sin(theta)],
+          direction: [0, 1, 0],
         };
       }
 
       case 'line': {
         const len = params.length ?? 2;
         return {
-          position: { x: randomRange(-len / 2, len / 2), y: 0, z: 0 },
-          direction: { x: 0, y: 1, z: 0 },
+          position: [randomRange(-len / 2, len / 2), 0, 0],
+          direction: [0, 1, 0],
         };
       }
     }
@@ -323,17 +312,13 @@ export class ParticleEmitter {
   private randomDirection(): IVector3 {
     const theta = Math.acos(2 * Math.random() - 1);
     const phi = 2 * Math.PI * Math.random();
-    return {
-      x: Math.sin(theta) * Math.cos(phi),
-      y: Math.sin(theta) * Math.sin(phi),
-      z: Math.cos(theta),
-    };
+    return [Math.sin(theta) * Math.cos(phi), Math.sin(theta) * Math.sin(phi), Math.cos(theta)];
   }
 
   private createDeadParticle(): Particle {
     return {
-      position: {x: 0, y: 0, z: 0},
-      velocity: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
+      velocity: [0, 0, 0],
       color: { r: 1, g: 1, b: 1, a: 1 },
       size: 1,
       age: 0,

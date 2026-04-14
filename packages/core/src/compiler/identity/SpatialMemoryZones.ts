@@ -161,14 +161,7 @@ export interface SpatialZonePolicy {
 /**
  * A 3D position that can be checked against zone bounds.
  */
-export interface SpatialPosition {
-  /** Latitude (for geospatial) or X (for local) */
-  x: number;
-  /** Longitude (for geospatial) or Y (for local) */
-  y: number;
-  /** Altitude (for geospatial) or Z (for local) */
-  z: number;
-}
+export type SpatialPosition = [number, number, number];
 
 // ---------------------------------------------------------------------------
 // GDPR Audit Trail
@@ -447,7 +440,7 @@ export class SpatialZoneEnforcer {
     if (containingZones.length === 0) {
       const decision: SpatialAccessDecision = {
         allowed: false,
-        reason: `No registered zone contains position (${position.x}, ${position.y}, ${position.z})`,
+        reason: `No registered zone contains position (${position[0]}, ${position[1]}, ${position[2]})`,
         agentRole,
         agentId,
       };
@@ -462,7 +455,7 @@ export class SpatialZoneEnforcer {
       if (permissions.includes(operation)) {
         const decision: SpatialAccessDecision = {
           allowed: true,
-          reason: `Access granted via zone ${zone.id} at position (${position.x}, ${position.y}, ${position.z})`,
+          reason: `Access granted via zone ${zone.id} at position (${position[0]}, ${position[1]}, ${position[2]})`,
           agentRole,
           agentId,
         };
@@ -475,7 +468,7 @@ export class SpatialZoneEnforcer {
     const zoneIds = containingZones.map((z) => z.id).join(', ');
     const decision: SpatialAccessDecision = {
       allowed: false,
-      reason: `Access denied in all containing zones [${zoneIds}] at position (${position.x}, ${position.y}, ${position.z})`,
+      reason: `Access denied in all containing zones [${zoneIds}] at position (${position[0]}, ${position[1]}, ${position[2]})`,
       agentRole,
       agentId,
     };
@@ -614,23 +607,23 @@ export class SpatialZoneEnforcer {
   private isPositionInBounds(position: SpatialPosition, bounds: ZoneBounds): boolean {
     switch (bounds.type) {
       case 'geospatial': {
-        const inLat = position.x >= bounds.minLat && position.x <= bounds.maxLat;
-        const inLon = position.y >= bounds.minLon && position.y <= bounds.maxLon;
+        const inLat = position[0] >= bounds.minLat && position[0] <= bounds.maxLat;
+        const inLon = position[1] >= bounds.minLon && position[1] <= bounds.maxLon;
         let inAlt = true;
         if (bounds.minAlt !== undefined && bounds.maxAlt !== undefined) {
-          inAlt = position.z >= bounds.minAlt && position.z <= bounds.maxAlt;
+          inAlt = position[2] >= bounds.minAlt && position[2] <= bounds.maxAlt;
         }
         return inLat && inLon && inAlt;
       }
 
       case 'local': {
         return (
-          position.x >= bounds.minX &&
-          position.x <= bounds.maxX &&
-          position.y >= bounds.minY &&
-          position.y <= bounds.maxY &&
-          position.z >= bounds.minZ &&
-          position.z <= bounds.maxZ
+          position[0] >= bounds.minX &&
+          position[0] <= bounds.maxX &&
+          position[1] >= bounds.minY &&
+          position[1] <= bounds.maxY &&
+          position[2] >= bounds.minZ &&
+          position[2] <= bounds.maxZ
         );
       }
 

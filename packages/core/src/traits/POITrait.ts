@@ -103,12 +103,12 @@ export const poiHandler: TraitHandler<POIConfig> = {
 
     // Calculate distance to user
     const userPos = context.player?.position;
-    const nodePos = (node as { position?: { x: number; y: number; z: number } }).position;
+    const nodePos = node.position;
 
     if (userPos && nodePos) {
-      const dx = userPos.x - nodePos.x;
-      const dy = userPos.y - nodePos.y;
-      const dz = userPos.z - nodePos.z;
+      const dx = userPos[0] - nodePos[0];
+      const dy = userPos[1] - nodePos[1];
+      const dz = userPos[2] - nodePos[2];
       state.distanceToUser = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       // Update visibility

@@ -10,7 +10,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
       constructor() {}
       step = vi.fn();
       addBody = vi.fn();
-      getBody = vi.fn().mockReturnValue({ velocity: { x: 0, y: 0, z: 0 } });
+      getBody = vi.fn().mockReturnValue({ velocity: [0, 0, 0 ] });
       addConstraint = vi.fn();
       removeConstraints = vi.fn();
       getContacts = vi.fn().mockReturnValue([]);

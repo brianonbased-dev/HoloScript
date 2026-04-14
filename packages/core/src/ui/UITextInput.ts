@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UITextInputConfig {
@@ -32,7 +33,7 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
       width,
       height,
       color: bgColor,
-      position: config.position ?? { x: 0, y: 0, z: 0 },
+      position: config.position ?? [0, 0, 0],
 
       // Data accessible by KeyboardSystem
       data: {

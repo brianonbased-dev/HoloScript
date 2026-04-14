@@ -1,4 +1,4 @@
-﻿/**
+/**
  * OpenXR HAL (Hardware Abstraction Layer) Trait
  *
  * Critical foundation for ALL haptic traits - abstracts XR hardware capabilities.
@@ -196,8 +196,8 @@ interface HandTrackingState {
 
 // Phase 3: Eye tracking types
 interface GazeRay {
-  origin: { x: number; y: number; z: number };
-  direction: { x: number; y: number; z: number };
+  origin: [number, number, number];
+  direction: [number, number, number];
 }
 
 interface OpenXRHALState {
@@ -1107,9 +1107,9 @@ function calculatePinchStrength(joints: Map<HandJoint, JointPose>): number {
 
   if (!thumbTip || !indexTip) return 0;
 
-  const dx = thumbTip.position.x - indexTip.position.x;
-  const dy = thumbTip.position.y - indexTip.position.y;
-  const dz = thumbTip.position.z - indexTip.position.z;
+  const dx = thumbTip.position[0] - indexTip.position[0];
+  const dy = thumbTip.position[1] - indexTip.position[1];
+  const dz = thumbTip.position[2] - indexTip.position[2];
   const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   // Normalize: 0.05m = open (0.0), 0.01m = pinched (1.0)
@@ -1141,9 +1141,9 @@ function calculateGripStrength(joints: Map<HandJoint, JointPose>): number {
     if (!tip) continue;
 
     // Distance from wrist to fingertip
-    const dx = tip.position.x - wrist.position.x;
-    const dy = tip.position.y - wrist.position.y;
-    const dz = tip.position.z - wrist.position.z;
+    const dx = tip.position[0] - wrist.position[0];
+    const dy = tip.position[1] - wrist.position[1];
+    const dz = tip.position[2] - wrist.position[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Normalize: 0.15m = open (0.0), 0.08m = gripped (1.0)
@@ -1170,8 +1170,8 @@ function pollHandTracking(
 
   // XRHand provides joint data as an iterable
   for (const [jointName, xrJoint] of source.hand.entries()) {
-    let position = { x: 0, y: 0, z: 0 };
-    let rotation = { x: 0, y: 0, z: 0, w: 1 };
+    let position: [number, number, number] = [0, 0, 0];
+    let rotation = [0, 0, 0, 1 ];
     let radius = 0.01;
 
     if (frame && referenceSpace) {
@@ -1180,8 +1180,9 @@ function pollHandTracking(
         if (jointPose) {
           const t = jointPose.transform.position;
           const r = jointPose.transform.orientation;
-          position = { x: t.x, y: t.y, z: t.z };
-          rotation = { x: r.x, y: r.y, z: r.z, w: r.w };
+          // t is assumed to be an array from XRPoseResult, but if it was not we would wrap it
+          position = [t[0], t[1], t[2]];
+          rotation = [r[0], r[1], r[2], r[3] ];
           radius = jointPose.radius ?? 0.01;
         }
       } catch {
@@ -1205,11 +1206,7 @@ function pollHandTracking(
 /**
  * Calculate forward direction vector from quaternion (Phase 3)
  */
-function _calculateForwardVector(quaternion: { x: number; y: number; z: number; w: number }): {
-  x: number;
-  y: number;
-  z: number;
-} {
+function _calculateForwardVector(quaternion: { x: number; y: number; z: number; w: number }): [number, number, number] {
   const { x, y, z, w } = quaternion;
 
   // Forward is -Z axis rotated by quaternion
@@ -1241,20 +1238,20 @@ function pollEyeTracking(
   if (frame && state.referenceSpace && gazeSource.targetRaySpace) {
     try {
       const gazePose = frame.getPose(gazeSource.targetRaySpace, state.referenceSpace);
-      if (gazePose) {
-        const t = gazePose.transform.position;
-        const r = gazePose.transform.orientation;
-        // Compute forward from quaternion: rotate -Z by orientation
-        const { x, y, z, w } = r;
-        return {
-          origin: { x: t.x, y: t.y, z: t.z },
-          direction: {
-            x: 2 * (x * z + w * y),
-            y: 2 * (y * z - w * x),
-            z: 1 - 2 * (x * x + y * y),
-          },
-        };
-      }
+        if (gazePose) {
+          const t = gazePose.transform.position;
+          const r = gazePose.transform.orientation;
+          // Compute forward from quaternion: rotate -Z by orientation
+          const { x, y, z, w } = r;
+          return {
+            origin: [t[0], t[1], t[2]],
+            direction: [
+              2 * (x * z + w * y),
+              2 * (y * z - w * x),
+              1 - 2 * (x * x + y * y),
+            ],
+          };
+        }
     } catch {
       // Gaze pose unavailable
     }
@@ -1262,8 +1259,8 @@ function pollEyeTracking(
 
   // Fallback: approximate eye height, forward direction
   return {
-    origin: { x: 0, y: 1.6, z: 0 },
-    direction: { x: 0, y: 0, z: -1 },
+    origin: [0, 1.6, 0],
+    direction: [0, 0, -1],
   };
 }
 
@@ -1294,8 +1291,8 @@ function pollInputSources(state: OpenXRHALState, context: TraitContext, node: HS
           const t = xrPose.transform.position;
           const r = xrPose.transform.orientation;
           pose = {
-            position: [t.x, t.y, t.z],
-            rotation: { x: r.x, y: r.y, z: r.z, w: r.w },
+            position: [t[0], t[1], t[2]],
+            rotation: [r[0], r[1], r[2], r[3] ],
           };
         }
       } catch {

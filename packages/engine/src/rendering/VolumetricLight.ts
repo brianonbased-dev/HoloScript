@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * VolumetricLight.ts
  *
@@ -14,7 +15,7 @@
 export interface VolumetricLightConfig {
   id: string;
   position: [number, number, number];
-  direction: { x: number; y: number; z: number };
+  direction: Vector3;
   color: [number, number, number];
   intensity: number;
   scattering: number; // 0-1
@@ -45,7 +46,7 @@ export class VolumetricLight {
   addLight(config: Partial<VolumetricLightConfig> & { id: string }): VolumetricLightConfig {
     const light: VolumetricLightConfig = {
       position: [0, 50, 0],
-      direction: { x: 0, y: -1, z: 0 },
+      direction: [0, -1, 0 ],
       color: [1, 0.95, 0.8],
       intensity: 1,
       scattering: 0.3,
@@ -76,8 +77,8 @@ export class VolumetricLight {
 
   march(
     lightId: string,
-    viewPos: { x: number; y: number; z: number },
-    viewDir: { x: number; y: number; z: number }
+    viewPos: Vector3,
+    viewDir: Vector3
   ): VolumetricSample[] {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return [];
@@ -89,20 +90,12 @@ export class VolumetricLight {
 
     for (let i = 0; i < light.samples; i++) {
       const t = (i + 0.5) * stepSize;
-      const samplePos = {
-        x: viewPos.x + dir.x * t,
-        y: viewPos.y + dir.y * t,
-        z: viewPos.z + dir.z * t,
-      };
+      const samplePos = [viewPos[0] + dir[0] * t, viewPos[1] + dir[1] * t, viewPos[2] + dir[2] * t, ];
 
       // Phase function (Henyey-Greenstein approximation)
-      const toLight = {
-        x: light.position[0] - samplePos[0],
-        y: light.position[1] - samplePos[1],
-        z: light.position[2] - samplePos[2],
-      };
-      const dist = Math.sqrt(toLight.x ** 2 + toLight.y ** 2 + toLight.z ** 2) || 1;
-      const ndl = (toLight.x * dir.x + toLight.y * dir.y + toLight.z * dir.z) / dist;
+      const toLight = [light.position[0] - samplePos[0], light.position[1] - samplePos[1], light.position[2] - samplePos[2], ];
+      const dist = Math.sqrt(toLight[0] ** 2 + toLight[1] ** 2 + toLight[2] ** 2) || 1;
+      const ndl = (toLight[0] * dir[0] + toLight[1] * dir[1] + toLight[2] * dir[2]) / dist;
 
       const g = light.scattering;
       const phase = (1 - g * g) / (4 * Math.PI * Math.pow(1 + g * g - 2 * g * ndl, 1.5));
@@ -111,7 +104,7 @@ export class VolumetricLight {
       const contribution = phase * light.intensity * attenuation * stepSize;
       accumulated += contribution;
 
-      samples.push({ position: [samplePos.x, samplePos.y, samplePos.z], accumulated, step: i });
+      samples.push({ position: [samplePos[0], samplePos[1], samplePos[2]], accumulated, step: i });
     }
 
     return samples;
@@ -121,7 +114,7 @@ export class VolumetricLight {
   // Scattering Query
   // ---------------------------------------------------------------------------
 
-  getScatteringAt(lightId: string, worldPos: { x: number; y: number; z: number }): number {
+  getScatteringAt(lightId: string, worldPos: Vector3): number {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return 0;
 
@@ -140,8 +133,8 @@ export class VolumetricLight {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private normalize(v: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
-    const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
+  private normalize(v: Vector3): Vector3 {
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) || 1;
+    return [v[0] / len, v[1] / len, v[2] / len ];
   }
 }

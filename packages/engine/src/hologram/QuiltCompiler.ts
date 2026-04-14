@@ -272,7 +272,7 @@ function QuiltCamera({ tileIndex, children }) {
   useFrame(() => {
     if (!cameraRef.current) return;
     const cam = cameraRef.current;
-    cam.position.x = tile.offset;
+    cam.position[0] = tile.offset;
     cam.projectionMatrix.elements[8] = tile.shear;
     cam.updateProjectionMatrix();
   });

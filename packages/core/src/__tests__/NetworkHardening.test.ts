@@ -190,7 +190,7 @@ describe('Networking Hardening (Cycle 170)', () => {
         ac.validatePositionUpdate('p1', { x: 999, y: 0, z: 0 });
         // Reset position for next violation
         const state = ac.getPlayerState('p1')!;
-        state.position = { x: 0, y: 0, z: 0 };
+        state.position = [0, 0, 0 ];
       }
       expect(ac.isBanned('p1')).toBe(true);
     });

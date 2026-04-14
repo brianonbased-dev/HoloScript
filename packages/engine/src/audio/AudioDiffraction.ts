@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AudioDiffraction.ts
  *
@@ -16,14 +17,14 @@
 
 export interface DiffractionEdge {
   id: string;
-  point1: { x: number; y: number; z: number };
-  point2: { x: number; y: number; z: number };
+  point1: Vector3;
+  point2: Vector3;
   obstacleId?: string; // Optional reference to obstacle
 }
 
 export interface DiffractionPath {
   edgeId: string;
-  diffractionPoint: { x: number; y: number; z: number };
+  diffractionPoint: Vector3;
   totalDistance: number; // Source -> edge -> listener
   directDistance: number; // Direct source -> listener
   pathDifference: number; // Extra distance via edge
@@ -56,8 +57,8 @@ export interface DiffractionConfig {
  * Implementations should return edges that could cause diffraction.
  */
 export type EdgeDetectionProvider = (
-  sourcePos: { x: number; y: number; z: number },
-  listenerPos: { x: number; y: number; z: number }
+  sourcePos: Vector3,
+  listenerPos: Vector3
 ) => DiffractionEdge[];
 
 /**
@@ -65,8 +66,8 @@ export type EdgeDetectionProvider = (
  * Returns true if the path is clear, false if obstructed.
  */
 export type LineOfSightProvider = (
-  point1: { x: number; y: number; z: number },
-  point2: { x: number; y: number; z: number }
+  point1: Vector3,
+  point2: Vector3
 ) => boolean;
 
 // =============================================================================
@@ -115,8 +116,8 @@ export class AudioDiffractionSystem {
    * Returns all valid diffraction paths sorted by coefficient (strongest first).
    */
   computeDiffraction(
-    sourcePos: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number },
+    sourcePos: Vector3,
+    listenerPos: Vector3,
     sourceId: string
   ): DiffractionResult {
     if (!this.config.enabled || !this.edgeProvider || !this.losProvider) {
@@ -184,8 +185,8 @@ export class AudioDiffractionSystem {
    */
   private computeEdgeDiffraction(
     edge: DiffractionEdge,
-    sourcePos: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number }
+    sourcePos: Vector3,
+    listenerPos: Vector3
   ): DiffractionPath | null {
     if (!this.losProvider) return null;
 
@@ -230,15 +231,15 @@ export class AudioDiffractionSystem {
    */
   private findDiffractionPoint(
     edge: DiffractionEdge,
-    sourcePos: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number }
-  ): { x: number; y: number; z: number } {
+    sourcePos: Vector3,
+    listenerPos: Vector3
+  ): Vector3 {
     // Simplified: use midpoint of source and listener projected onto edge
-    const midpoint = {
-      x: (sourcePos.x + listenerPos.x) / 2,
-      y: (sourcePos.y + listenerPos.y) / 2,
-      z: (sourcePos.z + listenerPos.z) / 2,
-    };
+    const midpoint: Vector3 = [
+      (sourcePos[0] + listenerPos[0]) / 2,
+      (sourcePos[1] + listenerPos[1]) / 2,
+      (sourcePos[2] + listenerPos[2]) / 2,
+    ];
 
     return this.closestPointOnSegment(edge.point1, edge.point2, midpoint);
   }
@@ -248,39 +249,33 @@ export class AudioDiffractionSystem {
    * This is the angle between source->edge and edge->listener vectors.
    */
   private calculateDiffractionAngle(
-    sourcePos: { x: number; y: number; z: number },
-    edgePoint: { x: number; y: number; z: number },
-    listenerPos: { x: number; y: number; z: number }
+    sourcePos: Vector3,
+    edgePoint: Vector3,
+    listenerPos: Vector3
   ): number {
     // Vector from edge to source
-    const v1 = {
-      x: sourcePos.x - edgePoint.x,
-      y: sourcePos.y - edgePoint.y,
-      z: sourcePos.z - edgePoint.z,
-    };
+    const v1 = [sourcePos[0] - edgePoint[0], sourcePos[1] - edgePoint[1], sourcePos[2] - edgePoint[2],
+    ];
 
     // Vector from edge to listener
-    const v2 = {
-      x: listenerPos.x - edgePoint.x,
-      y: listenerPos.y - edgePoint.y,
-      z: listenerPos.z - edgePoint.z,
-    };
+    const v2 = [listenerPos[0] - edgePoint[0], listenerPos[1] - edgePoint[1], listenerPos[2] - edgePoint[2],
+    ];
 
     // Normalize
-    const len1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
-    const len2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+    const len1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+    const len2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
 
     if (len1 === 0 || len2 === 0) return 0;
 
-    v1.x /= len1;
-    v1.y /= len1;
-    v1.z /= len1;
-    v2.x /= len2;
-    v2.y /= len2;
-    v2.z /= len2;
+    v1[0] /= len1;
+    v1[1] /= len1;
+    v1[2] /= len1;
+    v2[0] /= len2;
+    v2[1] /= len2;
+    v2[2] /= len2;
 
     // Dot product
-    const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+    const dot = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 
     // Clamp to [-1, 1] for acos stability
     const clampedDot = Math.max(-1, Math.min(1, dot));
@@ -345,12 +340,12 @@ export class AudioDiffractionSystem {
   // ---------------------------------------------------------------------------
 
   private distance3D(
-    p1: { x: number; y: number; z: number },
-    p2: { x: number; y: number; z: number }
+    p1: Vector3,
+    p2: Vector3
   ): number {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const dz = p2.z - p1.z;
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    const dz = p2[2] - p1[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
@@ -358,24 +353,21 @@ export class AudioDiffractionSystem {
    * Find closest point on line segment AB to point P.
    */
   private closestPointOnSegment(
-    a: { x: number; y: number; z: number },
-    b: { x: number; y: number; z: number },
-    p: { x: number; y: number; z: number }
-  ): { x: number; y: number; z: number } {
-    const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
-    const ap = { x: p.x - a.x, y: p.y - a.y, z: p.z - a.z };
+    a: Vector3,
+    b: Vector3,
+    p: Vector3
+  ): Vector3 {
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2] ];
+    const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2] ];
 
-    const abLenSq = ab.x * ab.x + ab.y * ab.y + ab.z * ab.z;
+    const abLenSq = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
 
-    if (abLenSq === 0) return { ...a }; // A and B are the same point
+    if (abLenSq === 0) return [...a]; // A and B are the same point
 
-    const t = Math.max(0, Math.min(1, (ap.x * ab.x + ap.y * ab.y + ap.z * ab.z) / abLenSq));
+    const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / abLenSq));
 
-    return {
-      x: a.x + t * ab.x,
-      y: a.y + t * ab.y,
-      z: a.z + t * ab.z,
-    };
+    return [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2],
+    ];
   }
 
   // ---------------------------------------------------------------------------

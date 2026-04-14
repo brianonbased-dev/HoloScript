@@ -36,14 +36,14 @@ function createMockContext(stateOverrides: Record<string, unknown> = {}): TraitC
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0 } },
+      headset: { position: [0, 1.6, 0], rotation: [0, 0, 0 ] },
       isPresenting: false,
     } as any,
     physics: {
       addCollider: vi.fn(),
       removeCollider: vi.fn(),
       setVelocity: vi.fn(),
-      getVelocity: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }),
+      getVelocity: vi.fn().mockReturnValue([0, 0, 0 ]),
       applyForce: vi.fn(),
       applyImpulse: vi.fn(),
       raycast: vi.fn().mockReturnValue(null),

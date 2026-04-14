@@ -19,7 +19,7 @@ function buildNavMesh(polys: NavPolygon[], adjacency: Record<string, string[]> =
       let best: NavPolygon | null = null;
       let bestDist = Infinity;
       for (const poly of polys) {
-        const d = Math.hypot(p.x - poly.center.x, p.y - poly.center.y, p.z - poly.center.z);
+        const d = Math.hypot(p.x - poly.center[0], p.y - poly.center[1], p.z - poly.center[2]);
         if (d < bestDist) {
           bestDist = d;
           best = poly;
@@ -31,7 +31,7 @@ function buildNavMesh(polys: NavPolygon[], adjacency: Record<string, string[]> =
       let best: NavPolygon | null = null;
       let bestDist = Infinity;
       for (const poly of polys) {
-        const d = Math.hypot(p.x - poly.center.x, p.y - poly.center.y, p.z - poly.center.z);
+        const d = Math.hypot(p.x - poly.center[0], p.y - poly.center[1], p.z - poly.center[2]);
         if (d < bestDist) {
           bestDist = d;
           best = poly;

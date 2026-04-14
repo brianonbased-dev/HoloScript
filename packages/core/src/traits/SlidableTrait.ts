@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * SlidableTrait.ts
  *
@@ -22,9 +23,9 @@ export class SlidableTrait implements Trait {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const length = node.properties.length || 0.1;
 
-    let axisVec = { x: 1, y: 0, z: 0 };
-    if (axis === 'y') axisVec = { x: 0, y: 1, z: 0 };
-    if (axis === 'z') axisVec = { x: 0, y: 0, z: 1 };
+    let axisVec = [1, 0, 0 ];
+    if (axis === 'y') axisVec = [0, 1, 0 ];
+    if (axis === 'z') axisVec = [0, 0, 1 ];
 
     // Request Prismatic Constraint without spring (or weak spring/friction for "feel")
     context.emit('physics_add_constraint', {
@@ -38,7 +39,7 @@ export class SlidableTrait implements Trait {
     });
   }
 
-  private initialPos: { x: number; y: number; z: number } | null = null;
+  private initialPos: Vector3 | null = null;
   private lastValue: number = 0;
 
   // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
@@ -48,7 +49,7 @@ export class SlidableTrait implements Trait {
       this.initialPos = node.properties.position
         ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           { ...node.properties.position }
-        : { x: 0, y: 0, z: 0 };
+        : [0, 0, 0 ];
     }
 
     const currentPos = context.physics.getBodyPosition(node.id as string);
@@ -62,11 +63,11 @@ export class SlidableTrait implements Trait {
     // Project position difference onto axis
     let delta = 0;
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'x') delta = currentPos.x - this.initialPos.x;
+    if (axis === 'x') delta = currentPos[0] - this.initialPos[0];
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'y') delta = currentPos.y - this.initialPos.y;
+    if (axis === 'y') delta = currentPos[1] - this.initialPos[1];
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'z') delta = currentPos.z - this.initialPos.z;
+    if (axis === 'z') delta = currentPos[2] - this.initialPos[2];
 
     // Normalize to 0-1 based on length (-length/2 to length/2)
     // Constraint min = -length/2, max = length/2

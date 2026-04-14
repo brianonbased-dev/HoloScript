@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * HandTracking Trait
  *
@@ -50,7 +51,7 @@ interface HandData {
   joints: Map<HandJoint, JointPose>;
   pinchStrength: number;
   gripStrength: number;
-  velocity: { x: number; y: number; z: number };
+  velocity: Vector3;
 }
 
 type GestureType = 'pinch' | 'grab' | 'point' | 'fist' | 'open' | 'thumbs_up' | 'peace' | 'custom';
@@ -131,7 +132,7 @@ function createEmptyHandData(): HandData {
     joints: new Map(),
     pinchStrength: 0,
     gripStrength: 0,
-    velocity: { x: 0, y: 0, z: 0 },
+    velocity: [0, 0, 0 ],
   };
 }
 
@@ -282,7 +283,7 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
         joints?: Map<HandJoint, JointPose>;
         pinchStrength?: number;
         gripStrength?: number;
-        velocity?: { x: number; y: number; z: number };
+        velocity?: Vector3;
       };
 
       const handState = hand === 'left' ? state.left : state.right;
@@ -297,9 +298,9 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
             const prev = handState.joints.get(joint);
             if (prev) {
               const s = config.smoothing;
-              pose.position.x = prev.position.x * s + pose.position.x * (1 - s);
-              pose.position.y = prev.position.y * s + pose.position.y * (1 - s);
-              pose.position.z = prev.position.z * s + pose.position.z * (1 - s);
+              pose.position[0] = prev.position[0] * s + pose.position[0] * (1 - s);
+              pose.position[1] = prev.position[1] * s + pose.position[1] * (1 - s);
+              pose.position[2] = prev.position[2] * s + pose.position[2] * (1 - s);
             }
           }
         }

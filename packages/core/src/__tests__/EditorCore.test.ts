@@ -67,7 +67,7 @@ describe('Editor Core (Selection & Gizmos)', () => {
 
     // Check gizmo transform matches target
     const gizmoTransform = world.getComponent<any>(gizmo!, 'Transform');
-    expect(gizmoTransform.position.x).toBe(10);
+    expect(gizmoTransform.position[0]).toBe(10);
   });
 
   it('should destroy gizmos on deselect', async () => {
@@ -105,6 +105,6 @@ describe('Editor Core (Selection & Gizmos)', () => {
     await Promise.resolve();
 
     const transform = world.getComponent<any>(e1, 'Transform');
-    expect(transform.position.x).toBe(5);
+    expect(transform.position[0]).toBe(5);
   });
 });

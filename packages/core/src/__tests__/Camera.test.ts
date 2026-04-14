@@ -19,7 +19,7 @@ describe('Cycle 123: Camera System', () => {
 
     const state = cam.getState();
     // With smoothing=1, should snap to target
-    expect(state.position.x).toBeCloseTo(10, 0);
+    expect(state.position[0]).toBeCloseTo(10, 0);
   });
 
   it('should orbit around target', () => {
@@ -30,7 +30,7 @@ describe('Cycle 123: Camera System', () => {
 
     const state = cam.getState();
     // After 90° orbit, x should be ~10 (sin(π/2)*cos(pitch)*10)
-    expect(Math.abs(state.position.x)).toBeGreaterThan(5);
+    expect(Math.abs(state.position[0])).toBeGreaterThan(5);
   });
 
   it('should clamp to bounds', () => {
@@ -42,8 +42,8 @@ describe('Cycle 123: Camera System', () => {
     cam.update(1 / 60);
 
     const state = cam.getState();
-    expect(state.position.x).toBeLessThanOrEqual(10);
-    expect(state.position.y).toBeLessThanOrEqual(10);
+    expect(state.position[0]).toBeLessThanOrEqual(10);
+    expect(state.position[1]).toBeLessThanOrEqual(10);
   });
 
   // -------------------------------------------------------------------------
@@ -56,7 +56,7 @@ describe('Cycle 123: Camera System', () => {
     effects.update(0.1);
 
     const offset = effects.getShakeOffset();
-    expect(Math.abs(offset.x) + Math.abs(offset.y)).toBeGreaterThan(0);
+    expect(Math.abs(offset[0]) + Math.abs(offset[1])).toBeGreaterThan(0);
     expect(effects.getActiveEffectCount()).toBe(1);
   });
 
@@ -89,7 +89,7 @@ describe('Cycle 123: Camera System', () => {
     track.addKeyframe({ time: 2, position: [10, 0, 0], easing: 'linear' });
 
     const state = track.evaluate(1);
-    expect(state.position.x).toBeCloseTo(5);
+    expect(state.position[0]).toBeCloseTo(5);
   });
 
   it('should fire cues during playback', () => {
@@ -113,6 +113,6 @@ describe('Cycle 123: Camera System', () => {
 
     const state = track.evaluate(0.5);
     // easeIn at t=0.5 → t²=0.25 → x≈2.5
-    expect(state.position.x).toBeCloseTo(2.5, 0);
+    expect(state.position[0]).toBeCloseTo(2.5, 0);
   });
 });

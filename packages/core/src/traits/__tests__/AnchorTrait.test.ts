@@ -55,11 +55,11 @@ describe('AnchorTrait', () => {
       anchorId: 'anc1',
       pose: {
         position: [1, 2, 3],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.9,
       },
     });
-    expect((node as any).__anchorState.pose.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect((node as any).__anchorState.pose.position).toEqual([1, 2, 3 ]);
     expect((node as any).__anchorState.updateCount).toBe(1);
   });
 
@@ -86,7 +86,7 @@ describe('AnchorTrait', () => {
     sendEvent(anchorHandler, node, cfg, ctx, {
       type: 'anchor_pose_update',
       anchorId: 'anc1',
-      pose: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 },
+      pose: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ], confidence: 1 },
     });
     expect((node as any).__anchorState.trackingState).toBe('tracking');
     expect(getEventCount(ctx, 'anchor_recovered')).toBe(1);
@@ -97,7 +97,7 @@ describe('AnchorTrait', () => {
     sendEvent(anchorHandler, node, cfg, ctx, {
       type: 'anchor_pose_update',
       anchorId: 'anc1',
-      pose: { position: [1, 2, 3], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 },
+      pose: { position: [1, 2, 3], rotation: [0, 0, 0, 1 ], confidence: 1 },
     });
     ctx.clearEvents();
     updateTrait(anchorHandler, node, cfg, ctx, 0.016);

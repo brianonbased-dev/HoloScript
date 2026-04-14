@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * TerrainSystem.ts
  *
@@ -189,8 +190,8 @@ export class TerrainSystem {
     const res = config.resolution;
 
     // World to heightmap coords
-    const localX = (worldX - config.position.x) / config.width;
-    const localZ = (worldZ - config.position.z) / config.depth;
+    const localX = (worldX - config.position[0]) / config.width;
+    const localZ = (worldZ - config.position[2]) / config.depth;
 
     if (localX < 0 || localX > 1 || localZ < 0 || localZ > 1) return 0;
 
@@ -212,7 +213,7 @@ export class TerrainSystem {
 
     const h = h00 * (1 - fx) * (1 - fz) + h10 * fx * (1 - fz) + h01 * (1 - fx) * fz + h11 * fx * fz;
 
-    return config.position.y + h * config.maxHeight;
+    return config.position[1] + h * config.maxHeight;
   }
 
   /**
@@ -230,7 +231,7 @@ export class TerrainSystem {
     const ny = 2 * epsilon;
     const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
 
-    return { x: nx / len, y: ny / len, z: nz / len };
+    return [nx / len, ny / len, nz / len ];
   }
 
   /**
@@ -312,13 +313,13 @@ export class TerrainSystem {
         for (let z = cz; z <= endZ; z += step) {
           for (let x = cx; x <= endX; x += step) {
             const h = heightmap[z * res + x];
-            const worldX = config.position.x + (x / (res - 1)) * config.width;
-            const worldZ = config.position.z + (z / (res - 1)) * config.depth;
-            const worldY = config.position.y + h * config.maxHeight;
+            const worldX = config.position[0] + (x / (res - 1)) * config.width;
+            const worldZ = config.position[2] + (z / (res - 1)) * config.depth;
+            const worldY = config.position[1] + h * config.maxHeight;
 
             vertices.push({
-              position: {x: worldX, y: worldY, z: worldZ},
-              normal: { x: 0, y: 1, z: 0 }, // Simplified; real normals computed post-pass
+              position: [worldX, worldY, worldZ],
+              normal: [0, 1, 0 ], // Simplified; real normals computed post-pass
               uv: { u: x / (res - 1), v: z / (res - 1) },
               height: h,
             });

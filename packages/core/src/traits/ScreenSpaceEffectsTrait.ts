@@ -661,7 +661,7 @@ fn computeSSAO(@builtin(global_invocation_id) id: vec3<u32>) {
     let sampleDepth = sampleDepthAtPosition(samplePos);
 
     let rangeCheck = smoothstep(0.0, 1.0, ssaoParams.radius / abs(depth - sampleDepth));
-    occlusion += select(0.0, 1.0, sampleDepth >= samplePos.z + ssaoParams.bias) * rangeCheck;
+    occlusion += select(0.0, 1.0, sampleDepth >= samplePos[2] + ssaoParams.bias) * rangeCheck;
   }
 
   occlusion = 1.0 - (occlusion / f32(ssaoParams.samples));
@@ -693,12 +693,12 @@ fn computeSSR(@location(0) uv: vec2<f32>,
     hitPos += reflectDir * stepSize;
 
     let screenPos = worldToScreen(hitPos);
-    if (screenPos.x < 0.0 || screenPos.x > 1.0 || screenPos.y < 0.0 || screenPos.y > 1.0) {
+    if (screenPos[0] < 0.0 || screenPos[0] > 1.0 || screenPos[1] < 0.0 || screenPos[1] > 1.0) {
       break; // Ray left screen
     }
 
     let sceneDepth = textureLoad(depthTexture, vec2<u32>(screenPos * vec2<f32>(textureDimensions(depthTexture))), 0);
-    let rayDepth = screenPos.z;
+    let rayDepth = screenPos[2];
 
     if (abs(rayDepth - sceneDepth) < ${config.ssr.thickness}) {
       // Hit!

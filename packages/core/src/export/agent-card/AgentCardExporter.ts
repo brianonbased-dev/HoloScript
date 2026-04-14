@@ -253,7 +253,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       {
         name: 'Grab a cube',
         input: { objectId: 'cube_1', hand: 'right', snapToHand: true },
-        output: { grabbed: true, objectId: 'cube_1', grabPoint: { x: 0, y: 1.2, z: -0.3 } },
+        output: { grabbed: true, objectId: 'cube_1', grabPoint: [0, 1.2, -0.3] },
       },
     ],
   },
@@ -286,7 +286,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       {
         name: 'Throw a ball',
         input: { objectId: 'ball_1', velocityMultiplier: 1.5 },
-        output: { thrown: true, velocity: { x: 2.1, y: 3.0, z: -1.5 } },
+        output: { thrown: true, velocity: [2.1, 3.0, -1.5 ] },
       },
     ],
   },
@@ -619,7 +619,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
     examples: [
       {
         name: 'Mount a horse',
-        input: { objectId: 'horse_1', seatOffset: { x: 0, y: 1.5, z: 0 }, speed: 8.0 },
+        input: { objectId: 'horse_1', seatOffset: [0, 1.5, 0], speed: 8.0 },
       },
     ],
   },
@@ -771,7 +771,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
     examples: [
       {
         name: 'Player respawn',
-        input: { objectId: 'player_1', respawnDelay: 3.0, respawnPoint: { x: 0, y: 1, z: 0 } },
+        input: { objectId: 'player_1', respawnDelay: 3.0, respawnPoint: [0, 1, 0] },
       },
     ],
   },

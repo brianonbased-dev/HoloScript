@@ -47,23 +47,23 @@ describe('SpatialAwarenessTrait - Construction', () => {
     trait = new SpatialAwarenessTrait('agent-1');
 
     expect(trait).toBeDefined();
-    expect(trait.getPosition()).toEqual({ x: 0, y: 0, z: 0 });
+    expect(trait.getPosition()).toEqual([0, 0, 0 ]);
   });
 
   it('should create with initial position', () => {
     trait = new SpatialAwarenessTrait('agent-1', {
-      initialPosition: { x: 10, y: 20, z: 30 },
+      initialPosition: [10, 20, 30 ],
     });
 
-    expect(trait.getPosition()).toEqual({ x: 10, y: 20, z: 30 });
+    expect(trait.getPosition()).toEqual([10, 20, 30 ]);
   });
 
   it('should auto-start by default', () => {
     trait = new SpatialAwarenessTrait('agent-1');
 
     // Trait should be active - we can verify by updating position
-    trait.setPosition({ x: 5, y: 5, z: 5 });
-    expect(trait.getPosition()).toEqual({ x: 5, y: 5, z: 5 });
+    trait.setPosition([5, 5, 5 ]);
+    expect(trait.getPosition()).toEqual([5, 5, 5 ]);
   });
 
   it('should not auto-start when autoStart is false', () => {
@@ -72,8 +72,8 @@ describe('SpatialAwarenessTrait - Construction', () => {
     });
 
     // Position updates still work locally
-    trait.setPosition({ x: 5, y: 5, z: 5 });
-    expect(trait.getPosition()).toEqual({ x: 5, y: 5, z: 5 });
+    trait.setPosition([5, 5, 5 ]);
+    expect(trait.getPosition()).toEqual([5, 5, 5 ]);
   });
 
   it('should use shared provider when provided', () => {
@@ -145,13 +145,13 @@ describe('SpatialAwarenessTrait - Position & Movement', () => {
   });
 
   it('should get position', () => {
-    expect(trait.getPosition()).toEqual({ x: 0, y: 0, z: 0 });
+    expect(trait.getPosition()).toEqual([0, 0, 0 ]);
   });
 
   it('should set position', () => {
-    trait.setPosition({ x: 10, y: 20, z: 30 });
+    trait.setPosition([10, 20, 30 ]);
 
-    expect(trait.getPosition()).toEqual({ x: 10, y: 20, z: 30 });
+    expect(trait.getPosition()).toEqual([10, 20, 30 ]);
   });
 
   it('should return copy of position (not reference)', () => {
@@ -162,17 +162,17 @@ describe('SpatialAwarenessTrait - Position & Movement', () => {
   });
 
   it('should get velocity', () => {
-    expect(trait.getVelocity()).toEqual({ x: 0, y: 0, z: 0 });
+    expect(trait.getVelocity()).toEqual([0, 0, 0 ]);
   });
 
   it('should set velocity', () => {
-    trait.setVelocity({ x: 1, y: 2, z: 3 });
+    trait.setVelocity([1, 2, 3 ]);
 
-    expect(trait.getVelocity()).toEqual({ x: 1, y: 2, z: 3 });
+    expect(trait.getVelocity()).toEqual([1, 2, 3 ]);
   });
 
   it('should return copy of velocity (not reference)', () => {
-    trait.setVelocity({ x: 1, y: 2, z: 3 });
+    trait.setVelocity([1, 2, 3 ]);
     const vel = trait.getVelocity();
     vel.x = 999;
 
@@ -180,25 +180,25 @@ describe('SpatialAwarenessTrait - Position & Movement', () => {
   });
 
   it('should move by delta', () => {
-    trait.setPosition({ x: 10, y: 10, z: 10 });
-    trait.move({ x: 5, y: -3, z: 2 });
+    trait.setPosition([10, 10, 10 ]);
+    trait.move([5, -3, 2 ]);
 
-    expect(trait.getPosition()).toEqual({ x: 15, y: 7, z: 12 });
+    expect(trait.getPosition()).toEqual([15, 7, 12 ]);
   });
 
   it('should update position while not active', () => {
     const inactiveTrait = new SpatialAwarenessTrait('agent-2', { autoStart: false });
-    inactiveTrait.setPosition({ x: 100, y: 100, z: 100 });
+    inactiveTrait.setPosition([100, 100, 100 ]);
 
-    expect(inactiveTrait.getPosition()).toEqual({ x: 100, y: 100, z: 100 });
+    expect(inactiveTrait.getPosition()).toEqual([100, 100, 100 ]);
     inactiveTrait.dispose();
   });
 
   it('should update velocity while not active', () => {
     const inactiveTrait = new SpatialAwarenessTrait('agent-2', { autoStart: false });
-    inactiveTrait.setVelocity({ x: 5, y: 5, z: 5 });
+    inactiveTrait.setVelocity([5, 5, 5 ]);
 
-    expect(inactiveTrait.getVelocity()).toEqual({ x: 5, y: 5, z: 5 });
+    expect(inactiveTrait.getVelocity()).toEqual([5, 5, 5 ]);
     inactiveTrait.dispose();
   });
 });
@@ -244,7 +244,7 @@ describe('SpatialAwarenessTrait - Context Access', () => {
   });
 
   it('should get nearby entities after update', () => {
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     const nearby = trait.getNearbyEntities();
@@ -253,7 +253,7 @@ describe('SpatialAwarenessTrait - Context Access', () => {
   });
 
   it('should check if in region', () => {
-    const region = createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 });
+    const region = createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ]);
     trait.registerRegion(region);
     provider.update();
 
@@ -279,9 +279,9 @@ describe('SpatialAwarenessTrait - Queries', () => {
 
     // Add some entities
     trait.registerEntities([
-      createEntity('npc1', { x: 5, y: 0, z: 0 }, 'npc'),
-      createEntity('npc2', { x: 15, y: 0, z: 0 }, 'npc'),
-      createEntity('item1', { x: 10, y: 0, z: 0 }, 'item'),
+      createEntity('npc1', [5, 0, 0 ], 'npc'),
+      createEntity('npc2', [15, 0, 0 ], 'npc'),
+      createEntity('item1', [10, 0, 0 ], 'item'),
     ]);
     provider.update();
   });
@@ -363,7 +363,7 @@ describe('SpatialAwarenessTrait - Entity Management', () => {
   });
 
   it('should register an entity', () => {
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     const nearby = trait.getNearbyEntities();
@@ -371,7 +371,7 @@ describe('SpatialAwarenessTrait - Entity Management', () => {
   });
 
   it('should unregister an entity', () => {
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     trait.unregisterEntity('e1');
@@ -383,9 +383,9 @@ describe('SpatialAwarenessTrait - Entity Management', () => {
 
   it('should batch register entities', () => {
     trait.registerEntities([
-      createEntity('e1', { x: 3, y: 0, z: 0 }),
-      createEntity('e2', { x: 5, y: 0, z: 0 }),
-      createEntity('e3', { x: 8, y: 0, z: 0 }),
+      createEntity('e1', [3, 0, 0 ]),
+      createEntity('e2', [5, 0, 0 ]),
+      createEntity('e3', [8, 0, 0 ]),
     ]);
     provider.update();
 
@@ -415,7 +415,7 @@ describe('SpatialAwarenessTrait - Region Management', () => {
   });
 
   it('should register a region', () => {
-    const region = createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 });
+    const region = createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ]);
     trait.registerRegion(region);
     provider.update();
 
@@ -423,7 +423,7 @@ describe('SpatialAwarenessTrait - Region Management', () => {
   });
 
   it('should unregister a region', () => {
-    const region = createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 });
+    const region = createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ]);
     trait.registerRegion(region);
     provider.update();
 
@@ -435,7 +435,7 @@ describe('SpatialAwarenessTrait - Region Management', () => {
 
   it('should watch region', () => {
     const callback = vi.fn();
-    const region = createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 });
+    const region = createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ]);
 
     trait.registerRegion(region);
     trait.watchRegion('zone1', callback);
@@ -447,7 +447,7 @@ describe('SpatialAwarenessTrait - Region Management', () => {
 
   it('should unwatch region', () => {
     const callback = vi.fn();
-    const region = createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 });
+    const region = createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ]);
 
     trait.registerRegion(region);
     trait.watchRegion('zone1', callback);
@@ -538,7 +538,7 @@ describe('SpatialAwarenessTrait - Events', () => {
 
     provider.update(); // Initial update
 
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     expect(handler).toHaveBeenCalled();
@@ -548,7 +548,7 @@ describe('SpatialAwarenessTrait - Events', () => {
     const handler = vi.fn();
     trait.on('entity:exited', handler);
 
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     trait.unregisterEntity('e1');
@@ -562,7 +562,7 @@ describe('SpatialAwarenessTrait - Events', () => {
     trait.on('region:entered', handler);
 
     trait.registerRegion(
-      createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 })
+      createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ])
     );
     provider.update();
 
@@ -574,12 +574,12 @@ describe('SpatialAwarenessTrait - Events', () => {
     trait.on('region:exited', handler);
 
     trait.registerRegion(
-      createBoxRegion('zone1', { x: -10, y: -10, z: -10 }, { x: 10, y: 10, z: 10 })
+      createBoxRegion('zone1', [-10, -10, -10 ], [10, 10, 10 ])
     );
     provider.update();
 
     // Move outside region
-    trait.setPosition({ x: 100, y: 100, z: 100 });
+    trait.setPosition([100, 100, 100 ]);
     provider.update();
 
     expect(handler).toHaveBeenCalled();
@@ -604,7 +604,7 @@ describe('SpatialAwarenessTrait - Events', () => {
     // Create another trait for a different agent
     const otherTrait = new SpatialAwarenessTrait('other-agent', {
       sharedProvider: provider,
-      initialPosition: { x: 500, y: 500, z: 500 },
+      initialPosition: [500, 500, 500 ],
       perceptionRadius: 10,
     });
     otherTrait.on('entity:entered', otherAgentHandler);
@@ -612,7 +612,7 @@ describe('SpatialAwarenessTrait - Events', () => {
     provider.update(); // Initial
 
     // Add entity near our trait (at origin), not near other agent (at 500,500,500)
-    trait.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    trait.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     // Other agent should not receive event for entity far from it
@@ -658,12 +658,12 @@ describe('SpatialAwarenessTrait - Multi-Agent', () => {
     provider = createSharedSpatialProvider();
     agent1 = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
-      initialPosition: { x: 0, y: 0, z: 0 },
+      initialPosition: [0, 0, 0 ],
       perceptionRadius: 100,
     });
     agent2 = new SpatialAwarenessTrait('agent-2', {
       sharedProvider: provider,
-      initialPosition: { x: 50, y: 0, z: 0 },
+      initialPosition: [50, 0, 0 ],
       perceptionRadius: 100,
     });
   });
@@ -675,7 +675,7 @@ describe('SpatialAwarenessTrait - Multi-Agent', () => {
   });
 
   it('should share entities between agents', () => {
-    agent1.registerEntity(createEntity('shared-entity', { x: 25, y: 0, z: 0 }));
+    agent1.registerEntity(createEntity('shared-entity', [25, 0, 0 ]));
     provider.update();
 
     // Both agents should see the entity
@@ -687,8 +687,8 @@ describe('SpatialAwarenessTrait - Multi-Agent', () => {
   });
 
   it('should have independent positions', () => {
-    expect(agent1.getPosition()).toEqual({ x: 0, y: 0, z: 0 });
-    expect(agent2.getPosition()).toEqual({ x: 50, y: 0, z: 0 });
+    expect(agent1.getPosition()).toEqual([0, 0, 0 ]);
+    expect(agent2.getPosition()).toEqual([50, 0, 0 ]);
   });
 
   it('should receive independent events', async () => {
@@ -701,7 +701,7 @@ describe('SpatialAwarenessTrait - Multi-Agent', () => {
     provider.update(); // Initial
 
     // Add entity near agent1 only
-    agent1.registerEntity(createEntity('e1', { x: 5, y: 0, z: 0 }));
+    agent1.registerEntity(createEntity('e1', [5, 0, 0 ]));
     provider.update();
 
     // Both may receive event (within 100 radius), depends on implementation

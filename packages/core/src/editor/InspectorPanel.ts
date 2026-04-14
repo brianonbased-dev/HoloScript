@@ -121,7 +121,7 @@ export class InspectorPanel {
       type: 'text',
       properties: {
         text,
-        position: { x, y, z: 0.01 },
+        position: [x, y, 0.01],
         color: '#ffffff',
         fontSize: 0.05,
       },
@@ -149,7 +149,7 @@ export class InspectorPanel {
       text: '<',
       width: 0.05,
       height: 0.05,
-      position: { x: x - 0.15, y, z: 0.01 },
+      position: [x - 0.15, y, 0.01],
     });
     const decEntity = this.builder.spawn(decBtn, this.panelRoot);
     this.world.addTag(decEntity, 'UI_Interactable');
@@ -169,7 +169,7 @@ export class InspectorPanel {
       type: 'text',
       properties: {
         text: value.toFixed(2),
-        position: { x, y, z: 0.01 },
+        position: [x, y, 0.01],
         color: '#00ff00',
         fontSize: 0.04,
       },
@@ -182,7 +182,7 @@ export class InspectorPanel {
       text: '>',
       width: 0.05,
       height: 0.05,
-      position: { x: x + 0.15, y, z: 0.01 },
+      position: [x + 0.15, y, 0.01],
     });
     const incEntity = this.builder.spawn(incBtn, this.panelRoot);
     this.world.addTag(incEntity, 'UI_Interactable');

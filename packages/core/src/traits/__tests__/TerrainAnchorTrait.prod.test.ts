@@ -84,9 +84,9 @@ describe('TerrainAnchorTrait — Production', () => {
     expect(s.terrainHeight).toBe(0);
     expect(s.confidence).toBe(0);
     expect(s.anchorHandle).toBeNull();
-    expect(s.surfaceNormal).toEqual({ x: 0, y: 1, z: 0 });
-    expect(s.localPosition).toEqual({ x: 0, y: 0, z: 0 });
-    expect(s.localRotation).toEqual({ x: 0, y: 0, z: 0, w: 1 });
+    expect(s.surfaceNormal).toEqual([0, 1, 0 ]);
+    expect(s.localPosition).toEqual([0, 0, 0 ]);
+    expect(s.localRotation).toEqual([0, 0, 0, 1 ]);
   });
 
   it('auto_resolve=true emits terrain_anchor_request', () => {
@@ -188,7 +188,7 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('resolved with surfaceNormal computes localRotation when normal is not up', () => {
     const { node, ctx, cfg } = attach({ surface_normal_alignment: true });
-    const angled = { x: 0.2, y: 0.9, z: 0.1 };
+    const angled = [0.2, 0.9, 0.1 ];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH4',
@@ -209,7 +209,7 @@ describe('TerrainAnchorTrait — Production', () => {
       handle: 'TH5',
       terrainHeight: 10,
       position: [0, 10, 0],
-      surfaceNormal: { x: 0, y: 1, z: 0 }, // perfect up
+      surfaceNormal: [0, 1, 0 ], // perfect up
     });
     // When normal is straight up, len < 0.001 → rotation unchanged (identity)
     const s = st(node);
@@ -227,13 +227,13 @@ describe('TerrainAnchorTrait — Production', () => {
     });
     const s = st(node);
     expect(s.state).toBe('tracking');
-    expect(s.localPosition).toEqual({ x: 5, y: 100, z: 3 });
+    expect(s.localPosition).toEqual([5, 100, 3 ]);
     expect(s.terrainHeight).toBe(100);
   });
 
   it('terrain_pose_update also updates surfaceNormal when provided', () => {
     const { node, ctx, cfg } = attach();
-    const norm = { x: 0.1, y: 0.99, z: 0.05 };
+    const norm = [0.1, 0.99, 0.05 ];
     fire(node, cfg, ctx, {
       type: 'terrain_pose_update',
       position: [0, 50, 0],
@@ -288,7 +288,7 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('onUpdate applies smoothed position when resolved', () => {
     const { node, ctx, cfg } = attach({ smoothing: 0, elevation_offset: 5 });
-    node.position = { x: 0, y: 0, z: 0 };
+    node.position = [0, 0, 0 ];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH6',
@@ -296,9 +296,9 @@ describe('TerrainAnchorTrait — Production', () => {
       position: [3, 10, 4],
     });
     terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);
-    expect(node.position.x).toBe(3);
-    expect(node.position.y).toBe(15); // localPos.y(10) + elevation_offset(5)
-    expect(node.position.z).toBe(4);
+    expect(node.position[0]).toBe(3);
+    expect(node.position[1]).toBe(15); // localPos.y(10) + elevation_offset(5)
+    expect(node.position[2]).toBe(4);
   });
 
   it('onUpdate does not throw when node lacks position', () => {
@@ -315,9 +315,9 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('onUpdate applies smoothed rotation when surface_normal_alignment=true and rotation exists', () => {
     const { node, ctx, cfg } = attach({ smoothing: 0, surface_normal_alignment: true });
-    node.rotation = { x: 0, y: 0, z: 0, w: 1 };
-    node.position = { x: 0, y: 0, z: 0 };
-    const angled = { x: 0.3, y: 0.9, z: 0.1 };
+    node.rotation = [0, 0, 0, 1 ];
+    node.position = [0, 0, 0 ];
+    const angled = [0.3, 0.9, 0.1 ];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH7',
@@ -326,9 +326,9 @@ describe('TerrainAnchorTrait — Production', () => {
       surfaceNormal: angled,
     });
     terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);
-    // With smoothing=0, rotation.x should match state.localRotation.x exactly
+    // With smoothing=0, rotation[0] should match state.localRotation.x exactly
     const s = st(node);
-    expect(node.rotation.x).toBeCloseTo(s.localRotation.x, 5);
+    expect(node.rotation[0]).toBeCloseTo(s.localRotation.x, 5);
   });
 
   // ─── Unknown event ───────────────────────────────────────────────────

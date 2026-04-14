@@ -45,7 +45,7 @@ describe('RaycastSystem', () => {
     });
     const hit = rs.raycast(xRay);
     expect(hit).not.toBeNull();
-    expect(hit!.point.x).toBeCloseTo(4);
+    expect(hit!.point[0]).toBeCloseTo(4);
   });
 
   it('ray-sphere miss', () => {
@@ -67,7 +67,7 @@ describe('RaycastSystem', () => {
     });
     const hit = rs.raycast(xRay);
     expect(hit).not.toBeNull();
-    expect(hit!.point.x).toBeCloseTo(3);
+    expect(hit!.point[0]).toBeCloseTo(3);
   });
 
   it('ray-plane parallel returns null', () => {

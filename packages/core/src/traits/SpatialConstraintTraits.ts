@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Spatial Constraint Traits
  *
@@ -35,7 +36,7 @@ interface ConstraintViolation {
 
 interface AdjacentState {
   violation: ConstraintViolation;
-  targetPosition: { x: number; y: number; z: number } | null;
+  targetPosition: Vector3 | null;
 }
 
 interface ContainsState {
@@ -51,35 +52,35 @@ interface ReachableState {
 }
 
 function computeDistance3D(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: Vector3,
+  b: Vector3
 ): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 function computeAxisDistance(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number },
+  a: Vector3,
+  b: Vector3,
   axis: string
 ): number {
   switch (axis) {
     case 'x':
-      return Math.abs(b.x - a.x);
+      return Math.abs(b[0] - a[0]);
     case 'y':
-      return Math.abs(b.y - a.y);
+      return Math.abs(b[1] - a[1]);
     case 'z':
-      return Math.abs(b.z - a.z);
+      return Math.abs(b[2] - a[2]);
     case 'xy': {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
       return Math.sqrt(dx * dx + dy * dy);
     }
     case 'xz': {
-      const dx = b.x - a.x;
-      const dz = b.z - a.z;
+      const dx = b[0] - a[0];
+      const dz = b[2] - a[2];
       return Math.sqrt(dx * dx + dz * dz);
     }
     case 'xyz':
@@ -176,7 +177,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
     if (!state) return;
 
     // Get positions from context
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0 ];
     const targetPos = state.targetPosition;
     if (!targetPos) return;
 
@@ -215,14 +216,14 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
         // Snap toward target
         const ratio = config.maxDistance / dist;
         const corrected = {
-          x: targetPos.x + (nodePos.x - targetPos.x) * ratio,
-          y: targetPos.y + (nodePos.y - targetPos.y) * ratio,
-          z: targetPos.z + (nodePos.z - targetPos.z) * ratio,
+          x: targetPos[0] + (nodePos[0] - targetPos[0]) * ratio,
+          y: targetPos[1] + (nodePos[1] - targetPos[1]) * ratio,
+          z: targetPos[2] + (nodePos[2] - targetPos[2]) * ratio,
         };
         if (node.position) {
-          node.position.x = corrected.x;
-          node.position.y = corrected.y;
-          node.position.z = corrected.z;
+          node.position[0] = corrected[0];
+          node.position[1] = corrected[1];
+          node.position[2] = corrected[2];
         }
       }
     } else if (!isViolated && wasViolated) {
@@ -299,18 +300,18 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
     // Container bounds from node
     interface SphereBounds {
       radius: number;
-      center: { x: number; y: number; z: number };
+      center: Vector3;
     }
     interface BoxBounds {
-      min: { x: number; y: number; z: number };
-      max: { x: number; y: number; z: number };
+      min: Vector3;
+      max: Vector3;
     }
     const nodeBounds = (node as unknown as Record<string, unknown>).bounds as
       | (SphereBounds | BoxBounds)
       | undefined;
     if (!nodeBounds) return;
 
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0 ];
     const margin = config.margin ?? 0;
 
     // Check each contained entity
@@ -333,12 +334,12 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
       } else if ('min' in nodeBounds && 'max' in nodeBounds) {
         // Box containment
         isInside =
-          containedPos.x >= nodeBounds.min.x + margin &&
-          containedPos.x <= nodeBounds.max.x - margin &&
-          containedPos.y >= nodeBounds.min.y + margin &&
-          containedPos.y <= nodeBounds.max.y - margin &&
-          containedPos.z >= nodeBounds.min.z + margin &&
-          containedPos.z <= nodeBounds.max.z - margin;
+          containedPos[0] >= nodeBounds.min[0] + margin &&
+          containedPos[0] <= nodeBounds.max[0] - margin &&
+          containedPos[1] >= nodeBounds.min[1] + margin &&
+          containedPos[1] <= nodeBounds.max[1] - margin &&
+          containedPos[2] >= nodeBounds.min[2] + margin &&
+          containedPos[2] <= nodeBounds.max[2] - margin;
       }
 
       if (!isInside) {
@@ -358,16 +359,16 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
         if (config.enforcement === 'correct' && 'min' in nodeBounds && 'max' in nodeBounds) {
           const clamped = {
             x: Math.max(
-              nodeBounds.min.x + margin,
-              Math.min(nodeBounds.max.x - margin, containedPos.x)
+              nodeBounds.min[0] + margin,
+              Math.min(nodeBounds.max[0] - margin, containedPos[0])
             ),
             y: Math.max(
-              nodeBounds.min.y + margin,
-              Math.min(nodeBounds.max.y - margin, containedPos.y)
+              nodeBounds.min[1] + margin,
+              Math.min(nodeBounds.max[1] - margin, containedPos[1])
             ),
             z: Math.max(
-              nodeBounds.min.z + margin,
-              Math.min(nodeBounds.max.z - margin, containedPos.z)
+              nodeBounds.min[2] + margin,
+              Math.min(nodeBounds.max[2] - margin, containedPos[2])
             ),
           };
           context.setState({ [`entity_pos_${containedId}`]: clamped });
@@ -474,7 +475,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
     if (now - state.lastPathCheck < 500) return;
     state.lastPathCheck = now;
 
-    const nodePos = node.position || { x: 0, y: 0, z: 0 };
+    const nodePos = node.position || [0, 0, 0 ];
     const targetPos = context.getState()[`reachable_target_${config.target}`] as
       | { x: number; y: number; z: number }
       | undefined;
@@ -495,18 +496,18 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
       // For line_of_sight, use physics raycast if available
       if (config.algorithm === 'line_of_sight') {
         const direction = {
-          x: targetPos.x - nodePos.x,
-          y: targetPos.y - nodePos.y,
-          z: targetPos.z - nodePos.z,
+          x: targetPos[0] - nodePos[0],
+          y: targetPos[1] - nodePos[1],
+          z: targetPos[2] - nodePos[2],
         };
         const len = Math.sqrt(
-          direction.x * direction.x + direction.y * direction.y + direction.z * direction.z
+          direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]
         );
         if (len > 0) {
           const normalized = {
-            x: direction.x / len,
-            y: direction.y / len,
-            z: direction.z / len,
+            x: direction[0] / len,
+            y: direction[1] / len,
+            z: direction[2] / len,
           };
           // @ts-expect-error
           const hit = context.physics.raycast(nodePos, normalized, dist);

@@ -17,9 +17,9 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
     const nodesAfter = rs.getRopeNodes('r1');
     // Pinned node stays put
-    expect(nodesAfter[0].position.y).toBe(10);
+    expect(nodesAfter[0].position[1]).toBe(10);
     // Middle unpinned nodes should have fallen below starting Y=10
-    expect(nodesAfter[3].position.y).toBeLessThan(10);
+    expect(nodesAfter[3].position[1]).toBeLessThan(10);
   });
 
   it('should measure rope length and tension', () => {
@@ -96,11 +96,11 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
     const count = fluid.getParticleCount();
     expect(count).toBeGreaterThan(0);
 
-    const initialY = fluid.getParticles()[0].position.y;
+    const initialY = fluid.getParticles()[0].position[1];
     for (let i = 0; i < 10; i++) fluid.update();
 
     // Particles should have fallen
-    expect(fluid.getParticles()[0].position.y).toBeLessThan(initialY);
+    expect(fluid.getParticles()[0].position[1]).toBeLessThan(initialY);
   });
 
   it('should enforce boundaries', () => {
@@ -113,7 +113,7 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
     for (let i = 0; i < 50; i++) fluid.update();
 
     const p = fluid.getParticles()[0];
-    expect(p.position.y).toBeGreaterThanOrEqual(0); // Didn't fall through floor
+    expect(p.position[1]).toBeGreaterThanOrEqual(0); // Didn't fall through floor
   });
 
   it('should report density and kinetic energy', () => {

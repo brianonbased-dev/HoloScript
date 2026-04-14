@@ -58,14 +58,14 @@ describe('ShaderGraph — createNode', () => {
   it('node position defaults to {x:0, y:0}', () => {
     const g = new ShaderGraph();
     const node = g.createNode('output_surface')!;
-    expect(node.position.x).toBe(0);
-    expect(node.position.y).toBe(0);
+    expect(node.position[0]).toBe(0);
+    expect(node.position[1]).toBe(0);
   });
   it('createNode respects custom position', () => {
     const g = new ShaderGraph();
     const node = g.createNode('output_surface', { x: 100, y: 200 })!;
-    expect(node.position.x).toBe(100);
-    expect(node.position.y).toBe(200);
+    expect(node.position[0]).toBe(100);
+    expect(node.position[1]).toBe(200);
   });
 });
 

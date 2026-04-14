@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * FrustumCuller.ts
  *
@@ -11,6 +12,8 @@
 // TYPES
 // =============================================================================
 
+import { Vector3 } from './SpatialTypes';
+
 export interface Plane4 {
   a: number;
   b: number;
@@ -21,12 +24,8 @@ export interface Plane4 {
 export interface BoundingVolume {
   id: string;
   type: 'aabb' | 'sphere';
-  centerX: number;
-  centerY: number;
-  centerZ: number;
-  halfX?: number;
-  halfY?: number;
-  halfZ?: number; // AABB half-extents
+  center: Vector3;
+  halfExtents?: Vector3; // AABB half-extents
   radius?: number;
 }
 
@@ -152,15 +151,15 @@ export class FrustumCuller {
       let result: CullResult;
 
       if (vol.type === 'sphere' && vol.radius !== undefined) {
-        result = this.testSphere(vol.centerX, vol.centerY, vol.centerZ, vol.radius);
-      } else if (vol.type === 'aabb' && vol.halfX !== undefined) {
+        result = this.testSphere(vol.center[0], vol.center[1], vol.center[2], vol.radius);
+      } else if (vol.type === 'aabb' && vol.halfExtents !== undefined) {
         result = this.testAABB(
-          vol.centerX,
-          vol.centerY,
-          vol.centerZ,
-          vol.halfX!,
-          vol.halfY!,
-          vol.halfZ!
+          vol.center[0],
+          vol.center[1],
+          vol.center[2],
+          vol.halfExtents[0],
+          vol.halfExtents[1],
+          vol.halfExtents[2]
         );
       } else {
         continue;

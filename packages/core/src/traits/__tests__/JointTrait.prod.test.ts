@@ -41,15 +41,15 @@ describe('JointTrait — constructor defaults', () => {
 describe('JointTrait — type-specific defaults', () => {
   it('hinge defaults axis to Y-up', () => {
     const j = new JointTrait({ jointType: 'hinge' });
-    expect(j.getConfig().axis).toEqual({ x: 0, y: 1, z: 0 });
+    expect(j.getConfig().axis).toEqual([0, 1, 0 ]);
   });
   it('hinge with explicit axis keeps it', () => {
-    const j = new JointTrait({ jointType: 'hinge', axis: { x: 1, y: 0, z: 0 } });
-    expect(j.getConfig().axis).toEqual({ x: 1, y: 0, z: 0 });
+    const j = new JointTrait({ jointType: 'hinge', axis: [1, 0, 0 ] });
+    expect(j.getConfig().axis).toEqual([1, 0, 0 ]);
   });
   it('slider defaults axis to X', () => {
     const j = new JointTrait({ jointType: 'slider' });
-    expect(j.getConfig().axis).toEqual({ x: 1, y: 0, z: 0 });
+    expect(j.getConfig().axis).toEqual([1, 0, 0 ]);
   });
   it('spring creates default spring config', () => {
     const j = new JointTrait({ jointType: 'spring' });
@@ -232,17 +232,17 @@ describe('JointTrait — updateState', () => {
   });
   it('auto-breaks when appliedForce exceeds breakForce', () => {
     const j = new JointTrait({ jointType: 'fixed', breakForce: 100 });
-    j.updateState({ appliedForce: { x: 200, y: 0, z: 0 } });
+    j.updateState({ appliedForce: [200, 0, 0 ] });
     expect(j.isBroken()).toBe(true);
   });
   it('no auto-break when force below threshold', () => {
     const j = new JointTrait({ jointType: 'fixed', breakForce: 100 });
-    j.updateState({ appliedForce: { x: 50, y: 0, z: 0 } });
+    j.updateState({ appliedForce: [50, 0, 0 ] });
     expect(j.isBroken()).toBe(false);
   });
   it('no auto-break when breakForce not set', () => {
     const j = new JointTrait({ jointType: 'fixed' });
-    j.updateState({ appliedForce: { x: 99999, y: 0, z: 0 } });
+    j.updateState({ appliedForce: [99999, 0, 0 ] });
     expect(j.isBroken()).toBe(false);
   });
 });

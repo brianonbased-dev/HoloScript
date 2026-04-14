@@ -18,8 +18,8 @@ describe('RigidbodyTrait', () => {
 
   it('initial state is zeroed', () => {
     const s = rb.getState();
-    expect(s.position).toEqual({ x: 0, y: 0, z: 0 });
-    expect(s.velocity).toEqual({ x: 0, y: 0, z: 0 });
+    expect(s.position).toEqual([0, 0, 0 ]);
+    expect(s.velocity).toEqual([0, 0, 0 ]);
     expect(s.isSleeping).toBe(false);
   });
 
@@ -41,32 +41,32 @@ describe('RigidbodyTrait', () => {
   });
 
   it('addForce accumulates force', () => {
-    rb.addForce({ x: 10, y: 0, z: 0 }, 'force');
+    rb.addForce([10, 0, 0 ], 'force');
     const s = rb.getState();
-    expect(s.force.x).toBe(10);
+    expect(s.force[0]).toBe(10);
   });
 
   it('addForce impulse changes velocity', () => {
-    rb.addForce({ x: 4, y: 0, z: 0 }, 'impulse');
+    rb.addForce([4, 0, 0 ], 'impulse');
     // v = F/m = 4/2 = 2
-    expect(rb.getState().velocity.x).toBe(2);
+    expect(rb.getState().velocity[0]).toBe(2);
   });
 
   it('addForce velocity-change ignores mass', () => {
-    rb.addForce({ x: 3, y: 0, z: 0 }, 'velocity-change');
-    expect(rb.getState().velocity.x).toBe(3);
+    rb.addForce([3, 0, 0 ], 'velocity-change');
+    expect(rb.getState().velocity[0]).toBe(3);
   });
 
   it('addForce acceleration multiplies by mass', () => {
-    rb.addForce({ x: 5, y: 0, z: 0 }, 'acceleration');
+    rb.addForce([5, 0, 0 ], 'acceleration');
     // force = accel * mass = 5 * 2 = 10
-    expect(rb.getState().force.x).toBe(10);
+    expect(rb.getState().force[0]).toBe(10);
   });
 
   it('kinematic body ignores addForce', () => {
     rb.setKinematic(true);
-    rb.addForce({ x: 100, y: 0, z: 0 });
-    expect(rb.getState().force.x).toBe(0);
+    rb.addForce([100, 0, 0 ]);
+    expect(rb.getState().force[0]).toBe(0);
   });
 
   it('setConstraints merges', () => {
@@ -78,11 +78,11 @@ describe('RigidbodyTrait', () => {
   });
 
   it('clearForces zeroes force and torque', () => {
-    rb.addForce({ x: 10, y: 5, z: 0 });
+    rb.addForce([10, 5, 0 ]);
     rb.clearForces();
     const s = rb.getState();
-    expect(s.force).toEqual({ x: 0, y: 0, z: 0 });
-    expect(s.torque).toEqual({ x: 0, y: 0, z: 0 });
+    expect(s.force).toEqual([0, 0, 0 ]);
+    expect(s.torque).toEqual([0, 0, 0 ]);
   });
 
   it('serialize returns config snapshot', () => {

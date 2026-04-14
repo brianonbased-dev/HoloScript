@@ -102,7 +102,7 @@ describe('fluidHandler — onUpdate', () => {
         emitterId: 'e1',
         rate: 100,
         position: [0, 5, 0],
-        velocity: { x: 0, y: -1, z: 0 },
+        velocity: [0, -1, 0 ],
       } as any
     );
     ctx.emitted.length = 0;
@@ -123,7 +123,7 @@ describe('fluidHandler — onEvent: emitters', () => {
         emitterId: 'src1',
         rate: 50,
         position: [0, 0, 0],
-        velocity: { x: 0, y: -1, z: 0 },
+        velocity: [0, -1, 0 ],
       } as any
     );
     expect((node as any).__fluidState.emitters.has('src1')).toBe(true);
@@ -217,10 +217,10 @@ describe('fluidHandler — onEvent: bounds/pause/resume/reset/viscosity/query', 
       node,
       cfg,
       ctx as any,
-      { type: 'fluid_set_bounds', min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } } as any
+      { type: 'fluid_set_bounds', min: [-5, -5, -5 ], max: [5, 5, 5 ] } as any
     );
     expect(ctx.emitted.some((e: any) => e.type === 'fluid_update_bounds')).toBe(true);
-    expect((node as any).__fluidState.boundingBox.min.x).toBe(-5);
+    expect((node as any).__fluidState.boundingBox.min[0]).toBe(-5);
   });
   it('fluid_pause sets isSimulating=false', () => {
     const { node, ctx, cfg } = attach();

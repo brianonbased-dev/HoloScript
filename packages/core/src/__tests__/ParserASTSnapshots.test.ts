@@ -30,7 +30,7 @@ describe('Parser AST Visual Regression', () => {
       const source = `object BasicCube {
   geometry: "cube"
   color: "red"
-  scale: { x: 1, y: 1, z: 1 }
+  scale: [1, 1, 1 ]
 }`;
       const ast = parser.parse(source);
       expect(ast).toMatchSnapshot();
@@ -49,7 +49,7 @@ describe('Parser AST Visual Regression', () => {
       const source = `composition NestedTest {
   transform: {
     position: [0, 0, 0],
-    rotation: { x: 0, y: 0, z: 0 }
+    rotation: [0, 0, 0 ]
   }
 }`;
       const ast = parser.parse(source);
@@ -243,7 +243,7 @@ import { Controller } from "./logic/Controller.hsplus"`;
     test('template definition AST', () => {
       const source = `template ButtonTemplate {
   geometry: "cube"
-  scale: { x: 0.2, y: 0.05, z: 0.1 }
+  scale: [0.2, 0.05, 0.1 ]
   @clickable
 }`;
       const ast = parser.parse(source);

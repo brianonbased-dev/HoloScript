@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * TerrainAnchor Trait
  *
@@ -19,8 +20,8 @@ interface TerrainAnchorState {
   state: AnchorState;
   isResolved: boolean;
   terrainHeight: number; // meters above sea level
-  surfaceNormal: { x: number; y: number; z: number };
-  localPosition: { x: number; y: number; z: number };
+  surfaceNormal: Vector3;
+  localPosition: Vector3;
   localRotation: { x: number; y: number; z: number; w: number };
   confidence: number;
   anchorHandle: unknown;
@@ -58,9 +59,9 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
       state: 'unresolved',
       isResolved: false,
       terrainHeight: 0,
-      surfaceNormal: { x: 0, y: 1, z: 0 },
-      localPosition: { x: 0, y: 0, z: 0 },
-      localRotation: { x: 0, y: 0, z: 0, w: 1 },
+      surfaceNormal: [0, 1, 0 ],
+      localPosition: [0, 0, 0 ],
+      localRotation: [0, 0, 0, 1 ],
       confidence: 0,
       anchorHandle: null,
     };
@@ -96,14 +97,14 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
       if (node.position) {
         if (config.smoothing > 0) {
           const s = config.smoothing;
-          node.position.x = node.position.x * s + state.localPosition.x * (1 - s);
-          node.position.y =
-            node.position.y * s + (state.localPosition.y + config.elevation_offset) * (1 - s);
-          node.position.z = node.position.z * s + state.localPosition.z * (1 - s);
+          node.position[0] = node.position[0] * s + state.localPosition[0] * (1 - s);
+          node.position[1] =
+            node.position[1] * s + (state.localPosition[1] + config.elevation_offset) * (1 - s);
+          node.position[2] = node.position[2] * s + state.localPosition[2] * (1 - s);
         } else {
-          node.position.x = state.localPosition.x;
-          node.position.y = state.localPosition.y + config.elevation_offset;
-          node.position.z = state.localPosition.z;
+          node.position[0] = state.localPosition[0];
+          node.position[1] = state.localPosition[1] + config.elevation_offset;
+          node.position[2] = state.localPosition[2];
         }
       }
 
@@ -111,18 +112,18 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
       if (config.surface_normal_alignment && node.rotation) {
         if (config.smoothing > 0) {
           const s = config.smoothing;
-          node.rotation.x = node.rotation.x * s + state.localRotation.x * (1 - s);
-          node.rotation.y = node.rotation.y * s + state.localRotation.y * (1 - s);
-          node.rotation.z = node.rotation.z * s + state.localRotation.z * (1 - s);
-          if (node.rotation.w !== undefined) {
-            node.rotation.w = node.rotation.w * s + state.localRotation.w * (1 - s);
+          node.rotation[0] = node.rotation[0] * s + state.localRotation[0] * (1 - s);
+          node.rotation[1] = node.rotation[1] * s + state.localRotation[1] * (1 - s);
+          node.rotation[2] = node.rotation[2] * s + state.localRotation[2] * (1 - s);
+          if (node.rotation[3] !== undefined) {
+            node.rotation[3] = node.rotation[3] * s + state.localRotation[3] * (1 - s);
           }
         } else {
-          node.rotation.x = state.localRotation.x;
-          node.rotation.y = state.localRotation.y;
-          node.rotation.z = state.localRotation.z;
-          if (node.rotation.w !== undefined) {
-            node.rotation.w = state.localRotation.w;
+          node.rotation[0] = state.localRotation[0];
+          node.rotation[1] = state.localRotation[1];
+          node.rotation[2] = state.localRotation[2];
+          if (node.rotation[3] !== undefined) {
+            node.rotation[3] = state.localRotation[3];
           }
         }
       }
@@ -148,17 +149,17 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
         if (config.surface_normal_alignment) {
           const up = state.surfaceNormal;
           // Simple rotation calculation - align Y axis with surface normal
-          const angle = Math.acos(up.y);
-          const axis = { x: -up.z, y: 0, z: up.x };
-          const len = Math.sqrt(axis.x * axis.x + axis.z * axis.z);
+          const angle = Math.acos(up[1]);
+          const axis = [-up[2], 0, up[0] ];
+          const len = Math.sqrt(axis[0] * axis[0] + axis[2] * axis[2]);
 
           if (len > 0.001) {
             const halfAngle = angle / 2;
             const s = Math.sin(halfAngle) / len;
             state.localRotation = {
-              x: axis.x * s,
+              x: axis[0] * s,
               y: 0,
-              z: axis.z * s,
+              z: axis[2] * s,
               w: Math.cos(halfAngle),
             };
           }

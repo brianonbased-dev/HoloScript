@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Query System
  * Sprint 4 Priority 4 - Spatial Context Awareness
@@ -7,7 +8,6 @@
  */
 
 import {
-  Vector3,
   BoundingBox,
   BoundingSphere,
   SpatialEntity,
@@ -281,7 +281,7 @@ export class SpatialQueryExecutor {
 
     for (const entity of candidates) {
       const dir = subtract(entity.position, query.from);
-      const dist = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+      const dist = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
 
       if (dist > maxDist) continue;
       if (dist === 0) continue;
@@ -403,8 +403,8 @@ export class SpatialQueryExecutor {
     excludeId?: string
   ): SightLine {
     const dir = subtract(to, from);
-    const dist = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
-    const normalizedDir = dist > 0 ? scale(dir, 1 / dist) : { x: 0, y: 0, z: 0 };
+    const dist = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+    const normalizedDir = dist > 0 ? scale(dir, 1 / dist) : ([0, 0, 0] as Vector3);
 
     for (const entity of entities) {
       if (entity.id === excludeId) continue;
@@ -470,9 +470,9 @@ export class SpatialQueryExecutor {
     }
 
     const box = entity.bounds as BoundingBox;
-    const dx = box.max.x - box.min.x;
-    const dy = box.max.y - box.min.y;
-    const dz = box.max.z - box.min.z;
+    const dx = box.max[0] - box.min[0];
+    const dy = box.max[1] - box.min[1];
+    const dz = box.max[2] - box.min[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz) / 2;
   }
 
@@ -519,9 +519,9 @@ class SpatialIndex {
     const results: SpatialEntity[] = [];
     const cellRadius = Math.ceil(radius / this.cellSize);
 
-    const cx = Math.floor(position.x / this.cellSize);
-    const cy = Math.floor(position.y / this.cellSize);
-    const cz = Math.floor(position.z / this.cellSize);
+    const cx = Math.floor(position[0] / this.cellSize);
+    const cy = Math.floor(position[1] / this.cellSize);
+    const cz = Math.floor(position[2] / this.cellSize);
 
     for (let dx = -cellRadius; dx <= cellRadius; dx++) {
       for (let dy = -cellRadius; dy <= cellRadius; dy++) {
@@ -539,9 +539,9 @@ class SpatialIndex {
   }
 
   private getCellKey(position: Vector3): string {
-    const cx = Math.floor(position.x / this.cellSize);
-    const cy = Math.floor(position.y / this.cellSize);
-    const cz = Math.floor(position.z / this.cellSize);
+    const cx = Math.floor(position[0] / this.cellSize);
+    const cy = Math.floor(position[1] / this.cellSize);
+    const cz = Math.floor(position[2] / this.cellSize);
     return `${cx},${cy},${cz}`;
   }
 }

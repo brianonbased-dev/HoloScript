@@ -28,7 +28,7 @@ describe('WindTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('wind');
-    node.position = { x: 0, y: 0, z: 0 };
+    node.position = [0, 0, 0 ];
     ctx = createMockContext();
     attachTrait(windHandler, node, cfg, ctx);
   });
@@ -52,7 +52,7 @@ describe('WindTrait', () => {
   it('pulse mode modulates strength', () => {
     const pulseCfg = { ...cfg, pulse: true, pulse_frequency: 1 };
     const n2 = createMockNode('wp');
-    (n2 as any).position = { x: 0, y: 0, z: 0 };
+    (n2 as any).position = [0, 0, 0 ];
     const c2 = createMockContext();
     attachTrait(windHandler, n2, pulseCfg, c2);
     updateTrait(windHandler, n2, pulseCfg, c2, 0.25); // quarter cycle

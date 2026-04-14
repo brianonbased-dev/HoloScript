@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { buoyancyHandler } from '../BuoyancyTrait';
 
 function makeNode(y = 0, scaleY = 1) {
-  return { id: 'buoy', position: { x: 0, y, z: 0 }, scale: { x: 1, y: scaleY, z: 1 } };
+  return { id: 'buoy', position: [0, y, 0] as [number, number, number], scale: [1, scaleY, 1] };
 }
 function makeContext() {
   return { emit: vi.fn() };
@@ -45,13 +45,13 @@ describe('buoyancyHandler.onAttach', () => {
     expect(attachNode().node.__buoyancyState.submersionRatio).toBe(0));
   it('buoyancyForce = 0', () => expect(attachNode().node.__buoyancyState.buoyancyForce).toBe(0));
   it('velocity = {0,0,0}', () =>
-    expect(attachNode().node.__buoyancyState.velocity).toEqual({ x: 0, y: 0, z: 0 }));
+    expect(attachNode().node.__buoyancyState.velocity).toEqual([0, 0, 0 ]));
   it('splashCooldown = 0', () => expect(attachNode().node.__buoyancyState.splashCooldown).toBe(0));
   it('lastPosition copies node.position', () => {
     const node = makeNode(3);
     const ctx = makeContext();
     buoyancyHandler.onAttach!(node, { ...buoyancyHandler.defaultConfig! }, ctx);
-    expect((node as any).__buoyancyState.lastPosition).toEqual({ x: 0, y: 3, z: 0 });
+    expect((node as any).__buoyancyState.lastPosition).toEqual([0, 3, 0 ]);
   });
 });
 
@@ -70,18 +70,18 @@ describe('buoyancyHandler.onDetach', () => {
 describe('buoyancyHandler.onUpdate — velocity', () => {
   it('computes velocity from position change / delta', () => {
     const { node, cfg, ctx } = attachNode({}, 0);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: 0, z: 0 };
-    node.position = { x: 0, y: 2, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, 0, 0 ];
+    node.position = [0, 2, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.5);
-    // velocity.y = (2 - 0) / 0.5 = 4
-    expect((node as any).__buoyancyState.velocity.y).toBeCloseTo(4, 5);
+    // velocity[1] = (2 - 0) / 0.5 = 4
+    expect((node as any).__buoyancyState.velocity[1]).toBeCloseTo(4, 5);
   });
   it('updates lastPosition to current position', () => {
     const { node, cfg, ctx } = attachNode({}, 5);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: 0, z: 0 };
-    node.position = { x: 0, y: 5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, 0, 0 ];
+    node.position = [0, 5, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect((node as any).__buoyancyState.lastPosition).toEqual({ x: 0, y: 5, z: 0 });
+    expect((node as any).__buoyancyState.lastPosition).toEqual([0, 5, 0 ]);
   });
 });
 
@@ -91,27 +91,27 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
   it('fully submerged (objectTop <= fluidLevel): submersionRatio = 1.0', () => {
     // node at y=-5, scaleY=2 → top=-4, fluid_level=0 → fully submerged
     const { node, cfg, ctx } = attachNode({ fluid_level: 0 }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.submersionRatio).toBe(1.0);
   });
   it('above water (objectBottom >= fluidLevel): submersionRatio = 0', () => {
     // node at y=10, scaleY=1 → bottom=9.5, fluid_level=0 → above water
     const { node, cfg, ctx } = attachNode({ fluid_level: 0 }, 10, 1);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: 10, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, 10, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.submersionRatio).toBe(0);
   });
   it('half submerged: submersionRatio ≈ 0.5', () => {
     // node at y=0.5, scaleY=1 → bottom=0, top=1, fluid_level=0.5
     const { node, cfg, ctx } = attachNode({ fluid_level: 0.5 }, 0.5, 1);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: 0.5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, 0.5, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.submersionRatio).toBeCloseTo(0.5, 5);
   });
   it('emits apply_force when submerged (buoyancy)', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0 }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const calls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'apply_force');
@@ -123,15 +123,15 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
   });
   it('does NOT emit apply_force when above water (submersionRatio=0)', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: -10 }, 5, 1);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: 5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, 5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('apply_force', expect.any(Object));
   });
   it('emits drag force opposing velocity when submerged', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, drag: 2 }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 2, y: -5, z: 0 };
-    node.position = { x: 2, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [2, -5, 0 ];
+    node.position = [2, -5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const dragCalls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'apply_force');
@@ -148,7 +148,7 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
       -5,
       2
     );
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const forceCalls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'apply_force');
@@ -167,7 +167,7 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
       -5,
       2
     );
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const forceCalls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'apply_force');
@@ -180,9 +180,9 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
 describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
   it('emits on_splash entering when prevSubmersion=0 → submerged', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, splash_effect: true }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     (node as any).__buoyancyState.submersionRatio = 0; // was out of water
-    (node as any).__buoyancyState.velocity = { x: 0, y: -3, z: 0 };
+    (node as any).__buoyancyState.velocity = [0, -3, 0 ];
     ctx.emit.mockClear();
     // Simulate by running onUpdate; state.submersionRatio will become 1.0 (fully submerged)
     // prevSubmersion needs to be 0 so we patch it before call
@@ -193,7 +193,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
   });
   it('does NOT emit on_splash entering when splash_effect=false', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, splash_effect: false }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     (node as any).__buoyancyState.submersionRatio = 0;
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
@@ -202,8 +202,8 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
   it('on_splash intensity clamped to 1 for high velocity', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, splash_effect: true }, -5, 2);
     (node as any).__buoyancyState.submersionRatio = 0;
-    (node as any).__buoyancyState.velocity = { x: 0, y: -100, z: 0 }; // very fast
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.velocity = [0, -100, 0 ]; // very fast
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const splashCall = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_splash');
@@ -213,7 +213,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
   });
   it('emits on_submerge when submersion crosses submerge_threshold', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, submerge_threshold: 0.9 }, -5, 2);
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     (node as any).__buoyancyState.isSubmerged = false;
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
@@ -222,14 +222,14 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
   it('splashCooldown decrements by delta', () => {
     const { node, cfg, ctx } = attachNode({}, -5, 2);
     (node as any).__buoyancyState.splashCooldown = 0.5;
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.1);
     expect((node as any).__buoyancyState.splashCooldown).toBeCloseTo(0.4, 5);
   });
   it('splashCooldown does not go below 0', () => {
     const { node, cfg, ctx } = attachNode({}, -5, 2);
     (node as any).__buoyancyState.splashCooldown = 0.05;
-    (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
+    (node as any).__buoyancyState.lastPosition = [0, -5, 0 ];
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.3);
     expect((node as any).__buoyancyState.splashCooldown).toBeGreaterThanOrEqual(0);
   });

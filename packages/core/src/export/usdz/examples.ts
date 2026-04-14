@@ -175,7 +175,7 @@ export async function example4_TabletopInteractive(): Promise<void> {
 
   // Create scene hierarchy
   const boardNode = createEmptyNode('board', 'GameBoard');
-  boardNode.transform.scale = { x: 0.5, y: 0.01, z: 0.5 }; // Flat board
+  boardNode.transform.scale = [0.5, 0.01, 0.5 ]; // Flat board
   sceneGraph.root.children.push(boardNode);
 
   // Create pieces (simplified)
@@ -186,7 +186,7 @@ export async function example4_TabletopInteractive(): Promise<void> {
       y: 0.02,
       z: Math.floor(i / 2) * 0.1 - 0.05,
     };
-    piece.transform.scale = { x: 0.03, y: 0.03, z: 0.03 };
+    piece.transform.scale = [0.03, 0.03, 0.03 ];
     boardNode.children.push(piece);
   }
 
@@ -310,9 +310,9 @@ export async function example7_CoordinateConversion(): Promise<void> {
 
   // Create object with specific transforms
   const obj = createEmptyNode('obj', 'TestObject');
-  obj.transform.position = { x: 1, y: 2, z: 3 };
-  obj.transform.rotation = { x: 0, y: 0.707, z: 0, w: 0.707 }; // 90° Y rotation
-  obj.transform.scale = { x: 2, y: 2, z: 2 };
+  obj.transform.position = [1, 2, 3 ];
+  obj.transform.rotation = [0, 0.707, 0, 0.707 ]; // 90° Y rotation
+  obj.transform.scale = [2, 2, 2 ];
   sceneGraph.root.children.push(obj);
 
   // Test Y-up (default)

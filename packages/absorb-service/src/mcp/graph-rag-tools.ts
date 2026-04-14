@@ -12,7 +12,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
-import type { EnrichedResult, LLMProvider } from '../engine/GraphRAGEngine';
+import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -103,12 +103,12 @@ export const graphRagTools: Tool[] = [
 
 // These will be set by codebase-tools.ts when absorb completes
 let cachedEmbeddingIndex: EmbeddingIndex | null = null;
-let cachedGraphRAGEngine: unknown = null;
+let cachedGraphRAGEngine: GraphRAGEngine | null = null;
 
 /**
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
  */
-export function setGraphRAGState(embeddingIndex: EmbeddingIndex, ragEngine: unknown): void {
+export function setGraphRAGState(embeddingIndex: EmbeddingIndex, ragEngine: GraphRAGEngine): void {
   cachedEmbeddingIndex = embeddingIndex;
   cachedGraphRAGEngine = ragEngine;
 }
@@ -169,9 +169,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 
   try {
     const results = hasFilters
-      // @ts-ignore - Automatic remediation for TS2339
       ? await cachedEmbeddingIndex.searchWithFilters(query, topK, filters)
-      // @ts-ignore - Automatic remediation for TS2339
       : await cachedEmbeddingIndex.search(query, topK);
 
     return {
@@ -218,7 +216,6 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     const effectiveProvider = llmProvider ?? detectDefaultLLMProvider();
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
-        // @ts-ignore - Automatic remediation for TS2307
         const llmPkg = await import('@holoscript/llm-provider');
         const apiKey = llmApiKey || process.env[`${effectiveProvider.toUpperCase()}_API_KEY`] || '';
 
@@ -258,10 +255,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
         // Create a temporary engine with the custom LLM provider
         const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
-        const graph =
-          // @ts-ignore - Automatic remediation for TS2339
-          cachedGraphRAGEngine.graph ||
-          (cachedGraphRAGEngine.constructor as { graph?: unknown }).graph;
+        const graph = cachedGraphRAGEngine.graph;
         engine = new GraphRAGEngine(graph, cachedEmbeddingIndex!, {
           llmProvider: llmAdapter,
           llmModel: llmModel,
@@ -274,8 +268,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       }
     }
 
-    // @ts-ignore - Automatic remediation for TS2339
-    const answer = await engine.queryWithLLM(question, {
+    const answer = await (engine as GraphRAGEngine).queryWithLLM(question, {
       topK,
       language,
       type,

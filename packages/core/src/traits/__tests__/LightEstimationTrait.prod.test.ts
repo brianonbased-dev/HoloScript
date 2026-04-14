@@ -60,7 +60,7 @@ describe('LightEstimationTrait — onAttach', () => {
     expect(s.intensity).toBeCloseTo(1.0);
     expect(s.colorTemperature).toBe(6500);
     expect(s.colorCorrection).toEqual({ r: 1, g: 1, b: 1 });
-    expect(s.primaryDirection).toEqual({ x: 0, y: -1, z: 0 });
+    expect(s.primaryDirection).toEqual([0, -1, 0 ]);
     expect(s.sphericalHarmonics).toBeNull();
     expect(s.environmentMap).toBeNull();
     expect(s.updateAccumulator).toBe(0);
@@ -200,11 +200,11 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
   it('smooths primaryDirection when event.direction provided', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { smoothing: 0.8 });
-    st(node).primaryDirection = { x: 0, y: -1, z: 0 };
+    st(node).primaryDirection = [0, -1, 0 ];
     fire(node, cfg, ctx, {
       type: 'light_estimation_update',
       intensity: 1.0,
-      direction: { x: 1, y: 0, z: 0 },
+      direction: [1, 0, 0 ],
     });
     // x: 0*0.8 + 1*0.2 = 0.2
     expect(st(node).primaryDirection.x).toBeCloseTo(0.2);

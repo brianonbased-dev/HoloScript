@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * OcclusionCulling.ts
  *
@@ -12,12 +13,12 @@
 // =============================================================================
 
 export interface AABB {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
+  min: Vector3;
+  max: Vector3;
 }
 
 export interface FrustumPlane {
-  normal: { x: number; y: number; z: number };
+  normal: Vector3;
   distance: number;
 }
 
@@ -144,11 +145,11 @@ export class OcclusionCulling {
 
     for (const plane of this.frustumPlanes) {
       // Test AABB against plane: get the positive vertex
-      const px = plane.normal.x >= 0 ? bounds.max.x : bounds.min.x;
-      const py = plane.normal.y >= 0 ? bounds.max.y : bounds.min.y;
-      const pz = plane.normal.z >= 0 ? bounds.max.z : bounds.min.z;
+      const px = plane.normal[0] >= 0 ? bounds.max[0] : bounds.min[0];
+      const py = plane.normal[1] >= 0 ? bounds.max[1] : bounds.min[1];
+      const pz = plane.normal[2] >= 0 ? bounds.max[2] : bounds.min[2];
 
-      const dot = plane.normal.x * px + plane.normal.y * py + plane.normal.z * pz + plane.distance;
+      const dot = plane.normal[0] * px + plane.normal[1] * py + plane.normal[2] * pz + plane.distance;
       if (dot < 0) return false; // Completely outside
     }
     return true;
@@ -160,12 +161,12 @@ export class OcclusionCulling {
 
   testAABBOverlap(a: AABB, b: AABB): boolean {
     return (
-      a.min.x <= b.max.x &&
-      a.max.x >= b.min.x &&
-      a.min.y <= b.max.y &&
-      a.max.y >= b.min.y &&
-      a.min.z <= b.max.z &&
-      a.max.z >= b.min.z
+      a.min[0] <= b.max[0] &&
+      a.max[0] >= b.min[0] &&
+      a.min[1] <= b.max[1] &&
+      a.max[1] >= b.min[1] &&
+      a.min[2] <= b.max[2] &&
+      a.max[2] >= b.min[2]
     );
   }
 

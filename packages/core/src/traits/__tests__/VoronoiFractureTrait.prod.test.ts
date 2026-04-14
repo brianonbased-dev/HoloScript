@@ -56,7 +56,7 @@ describe('VoronoiFractureSystem — constructor', () => {
 
   it('setCameraPosition stores position', () => {
     const sys = makeSys();
-    sys.setCameraPosition({ x: 5, y: 10, z: 0 }); // no error
+    sys.setCameraPosition([5, 10, 0 ]); // no error
     // LOD tests below verify the effect
   });
 });
@@ -131,7 +131,7 @@ describe('VoronoiFractureSystem — applyDamage', () => {
       enableLOD: false,
       enablePooling: true,
       maxPooledFragments: 100,
-      bounds: { min: { x: -0.5, y: -0.5, z: -0.5 }, max: { x: 0.5, y: 0.5, z: 0.5 } },
+      bounds: { min: [-0.5, -0.5, -0.5 ], max: [0.5, 0.5, 0.5 ] },
     });
     sys.generateVoronoiFracture();
   });
@@ -212,10 +212,10 @@ describe('VoronoiFractureSystem — updateLOD', () => {
       enablePooling: false,
       maxPooledFragments: 0,
       lodDistances: [10, 20, 40],
-      bounds: { min: { x: -0.1, y: -0.1, z: -0.1 }, max: { x: 0.1, y: 0.1, z: 0.1 } },
+      bounds: { min: [-0.1, -0.1, -0.1 ], max: [0.1, 0.1, 0.1 ] },
     });
     sys.generateVoronoiFracture();
-    sys.setCameraPosition({ x: 0, y: 0, z: 0 }); // camera at origin, fragments all near origin
+    sys.setCameraPosition([0, 0, 0 ]); // camera at origin, fragments all near origin
     sys.updateLOD();
     const lod0 = sys.getFragmentsByLOD(0);
     expect(lod0.length).toBe(3); // all within LOD0 distance of 10
@@ -231,10 +231,10 @@ describe('VoronoiFractureSystem — updateLOD', () => {
       enablePooling: false,
       maxPooledFragments: 0,
       lodDistances: [10, 20, 40],
-      bounds: { min: { x: -0.1, y: -0.1, z: -0.1 }, max: { x: 0.1, y: 0.1, z: 0.1 } },
+      bounds: { min: [-0.1, -0.1, -0.1 ], max: [0.1, 0.1, 0.1 ] },
     });
     sys.generateVoronoiFracture();
-    sys.setCameraPosition({ x: 1000, y: 0, z: 0 }); // very far away
+    sys.setCameraPosition([1000, 0, 0 ]); // very far away
     sys.updateLOD();
     const lod3 = sys.getFragmentsByLOD(3);
     expect(lod3.length).toBe(2);
@@ -243,7 +243,7 @@ describe('VoronoiFractureSystem — updateLOD', () => {
   it('updateLOD is no-op when enableLOD=false', () => {
     const sys = makeSys({ enableLOD: false, voronoiSites: 3 });
     sys.generateVoronoiFracture();
-    sys.setCameraPosition({ x: 1000, y: 0, z: 0 });
+    sys.setCameraPosition([1000, 0, 0 ]);
     sys.updateLOD(); // should not update anything
     // All should still be LOD 0 (initial value)
     const lod0 = sys.getFragmentsByLOD(0);

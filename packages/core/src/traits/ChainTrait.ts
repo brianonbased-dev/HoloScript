@@ -80,7 +80,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
     for (let i = 0; i < config.links; i++) {
       state.links.push({
         position: [0, -i * config.link_length, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         bodyHandle: null,
       });
     }

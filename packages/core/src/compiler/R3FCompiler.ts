@@ -1,4 +1,4 @@
-import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
+import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName, HoloComposition, CompositionChild } from '../types';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { ProvenanceSemiring, type ProvenanceContext } from './traits/ProvenanceSemiring';
 // Side-effect import: registers all preset visuals into the registry
@@ -47,7 +47,7 @@ export interface R3FNode {
   type: string;
   id?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic React component props bag; full `unknown` refactor tracked separately
-  props: Record<string, any>;
+  props: Record<string, unknown>;
   children?: R3FNode[];
   traits?: Map<VRTraitName, Record<string, unknown>>;
   directives?: HSPlusDirective[];
@@ -64,7 +64,7 @@ export interface R3FNode {
 /**
  * Material presets mapping surface names to Three.js PBR properties.
  */
-export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
+export const MATERIAL_PRESETS: Record<string, Record<string, unknown>> = {
   plastic: { roughness: 0.5, metalness: 0.0, clearcoat: 0.1 },
   metal: { roughness: 0.2, metalness: 1.0 },
   chrome: { roughness: 0.05, metalness: 1.0, envMapIntensity: 1.5 },
@@ -2306,21 +2306,21 @@ export class R3FCompiler {
   public compileNode(node: ASTNode): R3FNode {
     // Dispatch to dedicated methods for rich node types
     if (node.type === 'system') {
-      return this.compileSystemNode(node as unknown as Record<string, unknown>);
+      return this.compileSystemNode(node as unknown as CompositionChild);
     }
     if (node.type === 'component') {
-      return this.compileComponentNode(node as unknown as Record<string, unknown>);
+      return this.compileComponentNode(node as unknown as CompositionChild);
     }
 
     const rawProps =
-      ((node as unknown as Record<string, unknown>).properties as Record<string, unknown>) || {};
+      ((node as unknown as CompositionChild).properties) || {};
     const type = this.mapType(node.type, rawProps);
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
     const rawId =
-      ((node as unknown as Record<string, unknown>).id as string) ||
-      ((node as unknown as Record<string, unknown>).name as string);
+      ((node as unknown as CompositionChild).id as string) ||
+      ((node as unknown as CompositionChild).name as string);
     r3fNode.id = rawId ? escapeStringValue(rawId, 'JSX') : undefined;
     r3fNode.props = this.compileProperties(node, rawProps);
     r3fNode.children = [];
@@ -2338,7 +2338,7 @@ export class R3FCompiler {
       }
     }
 
-    const enhanced = node as unknown as Record<string, unknown>;
+    const enhanced = node as unknown as CompositionChild;
     if (enhanced.graphics) {
       this.applyGraphicsConfig(r3fNode, enhanced.graphics as Record<string, unknown>);
     }
@@ -2355,7 +2355,7 @@ export class R3FCompiler {
   // ─── HoloComposition Compilation (.holo files) ────────────────────────
 
   public compileComposition(
-    composition: Record<string, unknown>,
+    composition: HoloComposition,
     agentToken?: string,
     outputPath?: string
   ): R3FNode {
@@ -2370,9 +2370,9 @@ export class R3FCompiler {
     root.directives = [];
 
     // Build template map for trait merging
-    const templateMap = new Map<string, Record<string, unknown>>();
+    const templateMap = new Map<string, CompositionChild>();
     if (Array.isArray(composition.templates)) {
-      for (const tmpl of composition.templates as Record<string, unknown>[]) {
+      for (const tmpl of composition.templates) {
         templateMap.set(tmpl.name as string, tmpl);
       }
     }
@@ -2397,85 +2397,85 @@ export class R3FCompiler {
 
     if (composition.environment) {
       root.children!.push(
-        ...this.compileEnvironmentBlock(composition.environment as Record<string, unknown>)
+        ...this.compileEnvironmentBlock(composition.environment)
       );
     }
 
     // Compile first-class light blocks
     if (Array.isArray(composition.lights)) {
-      for (const light of composition.lights as Record<string, unknown>[]) {
+      for (const light of composition.lights) {
         root.children!.push(this.compileLightBlock(light));
       }
     }
 
     if (Array.isArray(composition.objects)) {
-      for (const obj of composition.objects as Record<string, unknown>[]) {
-        root.children!.push(this.compileObjectDecl(obj, templateMap));
+      for (const obj of composition.objects) {
+        root.children!.push(this.compileObjectDecl(obj as CompositionChild, templateMap));
       }
     }
 
     if (Array.isArray(composition.spatialGroups)) {
-      for (const group of composition.spatialGroups as Record<string, unknown>[]) {
-        root.children!.push(this.compileSpatialGroup(group, templateMap));
+      for (const group of composition.spatialGroups) {
+        root.children!.push(this.compileSpatialGroup(group as CompositionChild, templateMap));
       }
     }
 
     // Compile timelines
     if (Array.isArray(composition.timelines)) {
-      for (const timeline of composition.timelines as Record<string, unknown>[]) {
+      for (const timeline of composition.timelines) {
         root.children!.push(this.compileTimelineBlock(timeline));
       }
     }
 
     // Compile audio blocks
     if (Array.isArray(composition.audio)) {
-      for (const audio of composition.audio as Record<string, unknown>[]) {
+      for (const audio of composition.audio) {
         root.children!.push(this.compileAudioBlock(audio));
       }
     }
 
     // Compile zones
     if (Array.isArray(composition.zones)) {
-      for (const zone of composition.zones as Record<string, unknown>[]) {
+      for (const zone of composition.zones) {
         root.children!.push(this.compileZoneBlock(zone));
       }
     }
 
     // Compile UI overlay
     if (composition.ui) {
-      root.children!.push(this.compileUIBlock(composition.ui as Record<string, unknown>));
+      root.children!.push(this.compileUIBlock(composition.ui));
     }
 
     // Compile transitions
     if (Array.isArray(composition.transitions)) {
-      for (const transition of composition.transitions as Record<string, unknown>[]) {
+      for (const transition of composition.transitions) {
         root.children!.push(this.compileTransitionBlock(transition));
       }
     }
 
     // Compile conditional blocks
     if (Array.isArray(composition.conditionals)) {
-      for (const cond of composition.conditionals as Record<string, unknown>[]) {
-        root.children!.push(this.compileConditionalBlock(cond, templateMap));
+      for (const cond of composition.conditionals) {
+        root.children!.push(this.compileConditionalBlock(cond as CompositionChild, templateMap));
       }
     }
 
     // Compile for-each blocks
     if (Array.isArray(composition.iterators)) {
-      for (const iter of composition.iterators as Record<string, unknown>[]) {
-        root.children!.push(this.compileForEachBlock(iter, templateMap));
+      for (const iter of composition.iterators) {
+        root.children!.push(this.compileForEachBlock(iter as CompositionChild, templateMap));
       }
     }
 
     // Compile first-class camera block
     if (composition.camera) {
-      root.children!.push(this.compileCameraBlock(composition.camera as Record<string, unknown>));
+      root.children!.push(this.compileCameraBlock(composition.camera));
     }
 
     // Compile first-class effects block OR auto-detect post-processing
     if (composition.effects) {
       root.children!.unshift(
-        this.compileEffectsBlock(composition.effects as Record<string, unknown>)
+        this.compileEffectsBlock(composition.effects)
       );
     } else if (this.hasPostProcessing(root)) {
       root.children!.unshift({
@@ -2502,7 +2502,7 @@ export class R3FCompiler {
     const props: Record<string, unknown> = {};
 
     if (Array.isArray(light.properties)) {
-      for (const prop of light.properties as Record<string, unknown>[]) {
+      for (const prop of light.properties as CompositionChild[]) {
         const key = prop.key as string;
         const value = prop.value;
         if (key === 'cast_shadow' || key === 'castShadow') {

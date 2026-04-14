@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * GeospatialAnchor Trait
  *
@@ -21,7 +22,7 @@ interface GeospatialAnchorState {
   accuracy: number; // meters
   headingAccuracy: number; // degrees
   resolvedPosition: { lat: number; lon: number; alt: number } | null;
-  localPosition: { x: number; y: number; z: number };
+  localPosition: Vector3;
   retryCount: number;
   lastUpdateTime: number;
   anchorHandle: unknown;
@@ -80,7 +81,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
       accuracy: Infinity,
       headingAccuracy: Infinity,
       resolvedPosition: null,
-      localPosition: { x: 0, y: 0, z: 0 },
+      localPosition: [0, 0, 0 ],
       retryCount: 0,
       lastUpdateTime: 0,
       anchorHandle: null,
@@ -136,9 +137,9 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
     // Apply local position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
       if (node.position) {
-        node.position.x = state.localPosition.x;
-        node.position.y = state.localPosition.y;
-        node.position.z = state.localPosition.z;
+        node.position[0] = state.localPosition[0];
+        node.position[1] = state.localPosition[1];
+        node.position[2] = state.localPosition[2];
       }
     }
   },

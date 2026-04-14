@@ -682,7 +682,7 @@ export class MaterialEditor {
       // Rotate sphere
       if (this.previewSphere) {
         // @ts-expect-error
-        this.previewSphere.rotation.y += 0.005;
+        this.previewSphere.rotation[1] += 0.005;
       }
 
       // @ts-expect-error

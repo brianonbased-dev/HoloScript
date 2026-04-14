@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * GlobalIllumination.ts
  *
@@ -19,8 +20,6 @@
 // TYPES
 // =============================================================================
 
-export type Vec3 = { x: number; y: number; z: number };
-
 /** L2 spherical harmonics — 9 coefficients per RGB channel */
 export interface SH9 {
   r: Float32Array; // length 9
@@ -39,7 +38,7 @@ export interface GIConfig {
   /** Grid dimensions [x, y, z] */
   gridSize: [number, number, number];
   /** World-space origin of the probe grid */
-  gridOrigin: Vec3;
+  gridOrigin: Vector3;
 }
 
 const DEFAULT_GI_CONFIG: GIConfig = {
@@ -47,7 +46,7 @@ const DEFAULT_GI_CONFIG: GIConfig = {
   probeSpacing: 2,
   bounceCount: 2,
   gridSize: [8, 4, 8],
-  gridOrigin: { x: 0, y: 0, z: 0 },
+  gridOrigin: [0, 0, 0],
 };
 
 // =============================================================================
@@ -65,11 +64,11 @@ export function createSH9(): SH9 {
  */
 export function addSHSample(
   sh: SH9,
-  dir: Vec3,
+  dir: Vector3,
   radiance: [number, number, number],
   weight = 1
 ): void {
-  const { x, y, z } = dir;
+  const [x, y, z] = dir;
   // L0–L2 SH basis evaluations
   const basis: number[] = [
     0.282095, // L0
@@ -94,8 +93,8 @@ export function addSHSample(
  * Evaluate SH9 irradiance at a surface normal (Ravi Ramamoorthi, 2001).
  * Returns RGB irradiance.
  */
-export function evalSH9Irradiance(sh: SH9, normal: Vec3): [number, number, number] {
-  const { x, y, z } = normal;
+export function evalSH9Irradiance(sh: SH9, normal: Vector3): [number, number, number] {
+  const [x, y, z] = normal;
   const c1 = 0.429043,
     c2 = 0.511664,
     c3 = 0.743125,
@@ -143,7 +142,7 @@ export function lerpSH9(a: SH9, b: SH9, t: number): SH9 {
 
 export interface ProbeInfo {
   index: number;
-  worldPos: Vec3;
+  worldPos: Vector3;
   sh: SH9;
   /** 0 = invalid (occlusion issue), 1 = valid */
   validity: number;
@@ -170,11 +169,11 @@ export class GIProbeGrid {
         for (let x = 0; x < gx; x++) {
           probes.push({
             index: probes.length,
-            worldPos: {
-              x: gridOrigin.x + x * probeSpacing,
-              y: gridOrigin.y + y * probeSpacing,
-              z: gridOrigin.z + z * probeSpacing,
-            },
+            worldPos: [
+              gridOrigin[0] + x * probeSpacing,
+              gridOrigin[1] + y * probeSpacing,
+              gridOrigin[2] + z * probeSpacing,
+            ],
             sh: createSH9(),
             validity: 1,
             updateCount: 0,
@@ -247,13 +246,13 @@ export class GIProbeGrid {
    * Sample irradiance at a world-space position + surface normal.
    * Performs trilinear interpolation across the 8 surrounding probes.
    */
-  sampleIrradiance(worldPos: Vec3, normal: Vec3): [number, number, number] {
+  sampleIrradiance(worldPos: Vector3, normal: Vector3): [number, number, number] {
     const { probeSpacing, gridOrigin, gridSize } = this.config;
 
     // Convert world pos to probe grid coords
-    const gx = (worldPos.x - gridOrigin.x) / probeSpacing;
-    const gy = (worldPos.y - gridOrigin.y) / probeSpacing;
-    const gz = (worldPos.z - gridOrigin.z) / probeSpacing;
+    const gx = (worldPos[0] - gridOrigin[0]) / probeSpacing;
+    const gy = (worldPos[1] - gridOrigin[1]) / probeSpacing;
+    const gz = (worldPos[2] - gridOrigin[2]) / probeSpacing;
 
     const ix = Math.max(0, Math.min(gridSize[0] - 2, Math.floor(gx)));
     const iy = Math.max(0, Math.min(gridSize[1] - 2, Math.floor(gy)));

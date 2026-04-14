@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * Fluid Trait
  *
@@ -28,8 +29,8 @@ interface FluidState {
   particleCount: number;
   volume: number;
   boundingBox: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   };
   simulationHandle: unknown;
   emitters: Map<
@@ -37,7 +38,7 @@ interface FluidState {
     {
       position: [number, number, number];
       rate: number;
-      velocity: { x: number; y: number; z: number };
+      velocity: Vector3;
     }
   >;
   /** MLS-MPM GPU simulation instance (null if using CPU fallback) */
@@ -108,8 +109,8 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       particleCount: 0,
       volume: 0,
       boundingBox: {
-        min: { x: -1, y: -1, z: -1 },
-        max: { x: 1, y: 1, z: 1 },
+        min: [-1, -1, -1 ],
+        max: [1, 1, 1 ],
       },
       simulationHandle: null,
       emitters: new Map(),
@@ -186,12 +187,12 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       if (config.wind_sensitivity > 0 && weatherBlackboard.wind_speed > 0) {
         const s = config.wind_sensitivity;
         const wv = weatherBlackboard.wind_vector;
-        const windDir = wv ? { x: wv[0], y: wv[1], z: wv[2] } : { x: 0, y: 0, z: 0 };
+        const windDir = wv ? [wv[0], wv[1], wv[2] ] : [0, 0, 0 ];
         const windSpeed = weatherBlackboard.wind_speed;
         state.mlsMpm.setExternalForce(
-          windDir.x * windSpeed * s,
-          windDir.y * windSpeed * s,
-          windDir.z * windSpeed * s
+          windDir[0] * windSpeed * s,
+          windDir[1] * windSpeed * s,
+          windDir[2] * windSpeed * s
         );
       } else if (state.mlsMpm) {
         state.mlsMpm.setExternalForce(0, 0, 0);
@@ -244,9 +245,9 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       const emitterId = (event.emitterId as string) || `emitter_${state.emitters.size}`;
 
       state.emitters.set(emitterId, {
-        position: (event.position as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 },
+        position: (event.position as { x: number; y: number; z: number }) || [0, 0, 0 ],
         rate: (event.rate as number) || 100,
-        velocity: (event.velocity as { x: number; y: number; z: number }) || { x: 0, y: -1, z: 0 },
+        velocity: (event.velocity as { x: number; y: number; z: number }) || [0, -1, 0 ],
       });
     } else if (event.type === 'fluid_remove_emitter') {
       const emitterId = event.emitterId as string;

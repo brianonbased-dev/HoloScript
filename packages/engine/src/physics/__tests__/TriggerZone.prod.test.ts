@@ -21,7 +21,7 @@ function boxZone(): TriggerZoneConfig {
     id: 'z2',
     enabled: true,
     tags: ['box'],
-    shape: { type: 'box', position: [0, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
+    shape: { type: 'box', position: [0, 0, 0], halfExtents: [5, 5, 5 ] },
   };
 }
 

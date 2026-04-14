@@ -19,7 +19,7 @@ interface RooftopAnchorState {
   state: AnchorState;
   isResolved: boolean;
   buildingHeight: number; // meters
-  rooftopPosition: { x: number; y: number; z: number };
+  rooftopPosition: [number, number, number];
   groundPosition: { lat: number; lon: number };
   estimatedFloors: number;
   confidence: number;
@@ -58,7 +58,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
       state: 'unresolved',
       isResolved: false,
       buildingHeight: 0,
-      rooftopPosition: { x: 0, y: 0, z: 0 },
+      rooftopPosition: [0, 0, 0],
       groundPosition: { lat: config.latitude, lon: config.longitude },
       estimatedFloors: 0,
       confidence: 0,
@@ -95,9 +95,9 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
     // Apply position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
       if (node.position) {
-        node.position.x = state.rooftopPosition.x;
-        node.position.y = state.rooftopPosition.y + config.elevation_offset;
-        node.position.z = state.rooftopPosition.z;
+        node.position[0] = state.rooftopPosition[0];
+        node.position[1] = state.rooftopPosition[1] + config.elevation_offset;
+        node.position[2] = state.rooftopPosition[2];
       }
     }
   },

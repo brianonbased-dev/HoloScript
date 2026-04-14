@@ -141,36 +141,36 @@ export class Vec3SpringAnimator {
   z: SpringAnimator;
 
   constructor(
-    initial: { x: number; y: number; z: number },
+    initial: [number, number, number],
     config: Partial<SpringConfig> = {},
-    onUpdate?: (value: { x: number; y: number; z: number }) => void
+    onUpdate?: (value: [number, number, number]) => void
   ) {
     const notifyAll = () => {
       if (onUpdate) {
-        onUpdate({ x: this.x.getValue(), y: this.y.getValue(), z: this.z.getValue() });
+        onUpdate([this.x.getValue(), this.y.getValue(), this.z.getValue()]);
       }
     };
-    this.x = new SpringAnimator(initial.x, config, notifyAll);
-    this.y = new SpringAnimator(initial.y, config, notifyAll);
-    this.z = new SpringAnimator(initial.z, config, notifyAll);
+    this.x = new SpringAnimator(initial[0], config, notifyAll);
+    this.y = new SpringAnimator(initial[1], config, notifyAll);
+    this.z = new SpringAnimator(initial[2], config, notifyAll);
   }
 
-  setTarget(target: { x: number; y: number; z: number }): void {
-    this.x.setTarget(target.x);
-    this.y.setTarget(target.y);
-    this.z.setTarget(target.z);
+  setTarget(target: [number, number, number]): void {
+    this.x.setTarget(target[0]);
+    this.y.setTarget(target[1]);
+    this.z.setTarget(target[2]);
   }
 
-  update(delta: number): { x: number; y: number; z: number } {
-    return {
-      x: this.x.update(delta),
-      y: this.y.update(delta),
-      z: this.z.update(delta),
-    };
+  update(delta: number): [number, number, number] {
+    return [
+      this.x.update(delta),
+      this.y.update(delta),
+      this.z.update(delta),
+    ];
   }
 
-  getValue(): { x: number; y: number; z: number } {
-    return { x: this.x.getValue(), y: this.y.getValue(), z: this.z.getValue() };
+  getValue(): [number, number, number] {
+    return [this.x.getValue(), this.y.getValue(), this.z.getValue()];
   }
 
   isAtRest(): boolean {

@@ -38,7 +38,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
       hands: { left: null, right: null },
       headset: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0 },
+        rotation: [0, 0, 0 ],
       },
       getPointerRay: () => null,
       getDominantHand: () => null,
@@ -75,103 +75,103 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
 describe('utility functions', () => {
   describe('predictPosition', () => {
     it('should predict linear position at t=0', () => {
-      const pos = { x: 1, y: 2, z: 3 };
-      const vel = { x: 10, y: 0, z: 0 };
+      const pos: Vector3 = [1, 2, 3];
+      const vel: Vector3 = [10, 0, 0];
       const result = predictPosition(pos, vel, 0);
-      expect(result).toEqual({ x: 1, y: 2, z: 3 });
+      expect(result).toEqual([1, 2, 3]);
     });
 
     it('should predict linear position at t=1', () => {
-      const pos = { x: 0, y: 0, z: 0 };
-      const vel = { x: 5, y: 3, z: -2 };
+      const pos: Vector3 = [0, 0, 0];
+      const vel: Vector3 = [5, 3, -2];
       const result = predictPosition(pos, vel, 1);
-      expect(result).toEqual({ x: 5, y: 3, z: -2 });
+      expect(result).toEqual([5, 3, -2]);
     });
 
     it('should predict linear position at t=2.5', () => {
-      const pos = { x: 1, y: 0, z: 0 };
-      const vel = { x: 2, y: 0, z: 0 };
+      const pos: Vector3 = [1, 0, 0];
+      const vel: Vector3 = [2, 0, 0];
       const result = predictPosition(pos, vel, 2.5);
-      expect(result.x).toBeCloseTo(6);
+      expect(result[0]).toBeCloseTo(6);
     });
 
     it('should predict quadratic position with acceleration', () => {
-      const pos = { x: 0, y: 0, z: 0 };
-      const vel = { x: 0, y: 0, z: 0 };
-      const acc = { x: 2, y: 0, z: 0 };
+      const pos: Vector3 = [0, 0, 0];
+      const vel: Vector3 = [0, 0, 0];
+      const acc: Vector3 = [2, 0, 0];
       const result = predictPosition(pos, vel, 2, acc);
       // x = 0 + 0*2 + 0.5*2*4 = 4
-      expect(result.x).toBeCloseTo(4);
+      expect(result[0]).toBeCloseTo(4);
     });
 
     it('should handle combined velocity and acceleration', () => {
-      const pos = { x: 10, y: 0, z: 0 };
-      const vel = { x: 5, y: 0, z: 0 };
-      const acc = { x: -1, y: 0, z: 0 };
+      const pos: Vector3 = [10, 0, 0];
+      const vel: Vector3 = [5, 0, 0];
+      const acc: Vector3 = [-1, 0, 0];
       const result = predictPosition(pos, vel, 3, acc);
       // x = 10 + 5*3 + 0.5*(-1)*9 = 10 + 15 - 4.5 = 20.5
-      expect(result.x).toBeCloseTo(20.5);
+      expect(result[0]).toBeCloseTo(20.5);
     });
   });
 
   describe('closestPointOnSegment', () => {
     it('should return point A when projection is before segment', () => {
       const result = closestPointOnSegment(
-        { x: -5, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [-5, 0, 0],
+        [0, 0, 0],
+        [10, 0, 0]
       );
-      expect(result.x).toBeCloseTo(0);
+      expect(result[0]).toBeCloseTo(0);
     });
 
     it('should return point B when projection is beyond segment', () => {
       const result = closestPointOnSegment(
-        { x: 15, y: 0, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [15, 0, 0],
+        [0, 0, 0],
+        [10, 0, 0]
       );
-      expect(result.x).toBeCloseTo(10);
+      expect(result[0]).toBeCloseTo(10);
     });
 
     it('should return midpoint for perpendicular point', () => {
       const result = closestPointOnSegment(
-        { x: 5, y: 5, z: 0 },
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 }
+        [5, 5, 0],
+        [0, 0, 0],
+        [10, 0, 0]
       );
-      expect(result.x).toBeCloseTo(5);
-      expect(result.y).toBeCloseTo(0);
+      expect(result[0]).toBeCloseTo(5);
+      expect(result[1]).toBeCloseTo(0);
     });
 
     it('should handle degenerate segment (point)', () => {
       const result = closestPointOnSegment(
-        { x: 5, y: 5, z: 0 },
-        { x: 3, y: 3, z: 0 },
-        { x: 3, y: 3, z: 0 }
+        [5, 5, 0],
+        [3, 3, 0],
+        [3, 3, 0]
       );
-      expect(result.x).toBeCloseTo(3);
-      expect(result.y).toBeCloseTo(3);
+      expect(result[0]).toBeCloseTo(3);
+      expect(result[1]).toBeCloseTo(3);
     });
   });
 
   describe('distanceToPath', () => {
     it('should return Infinity for empty path', () => {
-      expect(distanceToPath({ x: 0, y: 0, z: 0 }, [])).toBe(Infinity);
+      expect(distanceToPath([0, 0, 0], [])).toBe(Infinity);
     });
 
     it('should compute distance to single-point path', () => {
-      const dist = distanceToPath({ x: 3, y: 4, z: 0 }, [{ x: 0, y: 0, z: 0 }]);
+      const dist = distanceToPath([3, 4, 0], [[0, 0, 0]]);
       expect(dist).toBeCloseTo(5);
     });
 
     it('should find minimum distance to multi-segment path', () => {
-      const path = [
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        { x: 10, y: 10, z: 0 },
+      const path: Vector3[] = [
+        [0, 0, 0],
+        [10, 0, 0],
+        [10, 10, 0],
       ];
       // Point is 2 units above the first segment
-      const dist = distanceToPath({ x: 5, y: 2, z: 0 }, path);
+      const dist = distanceToPath([5, 2, 0], path);
       expect(dist).toBeCloseTo(2);
     });
   });
@@ -241,7 +241,7 @@ describe('spatialTemporalAdjacentHandler', () => {
     );
 
     const state = context._state.spatialTemporalAdjacent;
-    expect(state.targetPosition).toEqual({ x: 1, y: 0, z: 0 });
+    expect(state.targetPosition).toEqual([1, 0, 0]);
   });
 
   it('should accumulate duration while in range', () => {
@@ -482,7 +482,7 @@ describe('spatialTemporalAdjacentHandler', () => {
     spatialTemporalAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
 
     // Should snap back toward target
-    expect(node.position.x).toBeCloseTo(7, 0);
+    expect(node.position[0]).toBeCloseTo(7, 0);
   });
 
   it('should respect minDistance constraint', () => {
@@ -569,7 +569,7 @@ describe('spatialTemporalReachableHandler', () => {
     );
 
     const state = context._state.spatialTemporalReachable;
-    expect(state.targetPosition).toEqual({ x: 20, y: 0, z: 0 });
+    expect(state.targetPosition).toEqual([20, 0, 0]);
   });
 
   it('should track moving obstacles via events', () => {
@@ -587,7 +587,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'car_1',
         position: [10, 0, 0],
-        velocity: { x: -2, y: 0, z: 0 },
+        velocity: [-2, 0, 0],
         radius: 1.0,
       } as any
     );
@@ -595,7 +595,7 @@ describe('spatialTemporalReachableHandler', () => {
     const state = context._state.spatialTemporalReachable;
     expect(state.movingObstacles.size).toBe(1);
     expect(state.movingObstacles.get('car_1')).toBeDefined();
-    expect(state.movingObstacles.get('car_1').velocity).toEqual({ x: -2, y: 0, z: 0 });
+    expect(state.movingObstacles.get('car_1').velocity).toEqual([ -2, 0, 0 ]);
   });
 
   it('should remove obstacles when despawned', () => {
@@ -613,7 +613,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'car_1',
         position: [10, 0, 0],
-        velocity: { x: 0, y: 0, z: 0 },
+        velocity: [0, 0, 0],
         radius: 1.0,
       } as any
     );
@@ -700,7 +700,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
         position: [10, 5, 0],
-        velocity: { x: 0, y: -2, z: 0 },
+        velocity: [ 0, -2, 0 ],
         radius: 1.0,
       } as any
     );
@@ -757,7 +757,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
         position: [10, 5, 0],
-        velocity: { x: 0, y: 5, z: 0 }, // Moving away from path
+        velocity: [ 0, 5, 0 ], // Moving away from path
         radius: 0.5,
       } as any
     );
@@ -853,7 +853,7 @@ describe('spatialTrajectoryHandler', () => {
     const state = context._state.spatialTrajectory;
     expect(state).toBeDefined();
     expect(state.violated).toBe(false);
-    expect(state.velocity).toEqual({ x: 0, y: 0, z: 0 });
+    expect(state.velocity).toEqual([0, 0, 0]);
     expect(state.lastTrajectory).toEqual([]);
   });
 
@@ -870,12 +870,12 @@ describe('spatialTrajectoryHandler', () => {
       context as any,
       {
         type: 'velocity_update',
-        velocity: { x: 5, y: 0, z: 0 },
+        velocity: [5, 0, 0],
       } as any
     );
 
     const state = context._state.spatialTrajectory;
-    expect(state.velocity).toEqual({ x: 5, y: 0, z: 0 });
+    expect(state.velocity).toEqual([5, 0, 0]);
   });
 
   it('should update acceleration from events', () => {
@@ -891,13 +891,13 @@ describe('spatialTrajectoryHandler', () => {
       context as any,
       {
         type: 'velocity_update',
-        velocity: { x: 5, y: 0, z: 0 },
-        acceleration: { x: -1, y: 0, z: 0 },
+        velocity: [5, 0, 0],
+        acceleration: [-1, 0, 0],
       } as any
     );
 
     const state = context._state.spatialTrajectory;
-    expect(state.acceleration).toEqual({ x: -1, y: 0, z: 0 });
+    expect(state.acceleration).toEqual([-1, 0, 0]);
   });
 
   it('should update region bounds from events', () => {
@@ -915,8 +915,8 @@ describe('spatialTrajectoryHandler', () => {
         type: 'region_bounds_update',
         regionId: 'zone1',
         bounds: {
-          min: { x: -10, y: -10, z: -10 },
-          max: { x: 10, y: 10, z: 10 },
+          min: [-10, -10, -10],
+          max: [10, 10, 10],
         },
       } as any
     );
@@ -950,8 +950,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'safe_zone',
           bounds: {
-            min: { x: -20, y: -20, z: -20 },
-            max: { x: 20, y: 20, z: 20 },
+            min: [-20, -20, -20],
+            max: [20, 20, 20],
           },
         } as any
       );
@@ -963,7 +963,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 1, y: 0, z: 0 },
+          velocity: [1, 0, 0],
         } as any
       );
 
@@ -997,8 +997,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'safe_zone',
           bounds: {
-            min: { x: -3, y: -3, z: -3 },
-            max: { x: 3, y: 3, z: 3 },
+            min: [-3, -3, -3],
+            max: [3, 3, 3],
           },
         } as any
       );
@@ -1010,7 +1010,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 5, y: 0, z: 0 },
+          velocity: [5, 0, 0],
         } as any
       );
 
@@ -1051,7 +1051,7 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'sphere_zone',
           bounds: {
-            center: { x: 0, y: 0, z: 0 },
+            center: [0, 0, 0],
             radius: 5,
           },
         } as any
@@ -1064,7 +1064,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 3, y: 0, z: 0 },
+          velocity: [3, 0, 0],
         } as any
       );
 
@@ -1101,8 +1101,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'danger_zone',
           bounds: {
-            min: { x: 50, y: -5, z: -5 },
-            max: { x: 60, y: 5, z: 5 },
+            min: [50, -5, -5],
+            max: [60, 5, 5],
           },
         } as any
       );
@@ -1113,7 +1113,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 1, y: 0, z: 0 },
+          velocity: [1, 0, 0],
         } as any
       );
 
@@ -1145,8 +1145,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'danger_zone',
           bounds: {
-            min: { x: 8, y: -5, z: -5 },
-            max: { x: 15, y: 5, z: 5 },
+            min: [8, -5, -5],
+            max: [15, 5, 5],
           },
         } as any
       );
@@ -1157,7 +1157,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 5, y: 0, z: 0 },
+          velocity: [5, 0, 0],
         } as any
       );
 
@@ -1190,9 +1190,9 @@ describe('spatialTrajectoryHandler', () => {
         sampleCount: 10,
         maxDeviation: 2.0,
         referencePath: [
-          { x: 0, y: 0, z: 0 },
-          { x: 10, y: 0, z: 0 },
-          { x: 20, y: 0, z: 0 },
+          [0, 0, 0],
+          [10, 0, 0],
+          [20, 0, 0],
         ],
       };
 
@@ -1205,7 +1205,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 3, y: 0.5, z: 0 },
+          velocity: [3, 0.5, 0],
         } as any
       );
 
@@ -1226,8 +1226,8 @@ describe('spatialTrajectoryHandler', () => {
         sampleCount: 10,
         maxDeviation: 1.0,
         referencePath: [
-          { x: 0, y: 0, z: 0 },
-          { x: 10, y: 0, z: 0 },
+          [0, 0, 0],
+          [10, 0, 0],
         ],
       };
 
@@ -1240,7 +1240,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 0, y: 5, z: 0 },
+          velocity: [0, 5, 0],
         } as any
       );
 
@@ -1286,7 +1286,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 2, y: 0, z: 0 },
+          velocity: [2, 0, 0],
         } as any
       );
 
@@ -1322,7 +1322,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 3, y: 0, z: 0 },
+          velocity: [3, 0, 0],
         } as any
       );
 
@@ -1370,8 +1370,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'zone',
           bounds: {
-            min: { x: -5, y: -5, z: -5 },
-            max: { x: 5, y: 5, z: 5 },
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
         } as any
       );
@@ -1383,8 +1383,8 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 0, y: 0, z: 0 },
-          acceleration: { x: 5, y: 0, z: 0 },
+          velocity: [0, 0, 0],
+          acceleration: [5, 0, 0],
         } as any
       );
 
@@ -1397,7 +1397,7 @@ describe('spatialTrajectoryHandler', () => {
 
       // Verify the trajectory points include acceleration effect
       const lastPoint = state.lastTrajectory[state.lastTrajectory.length - 1];
-      expect(lastPoint.x).toBeGreaterThan(5);
+      expect(lastPoint[0]).toBeGreaterThan(5);
     });
   });
 
@@ -1425,8 +1425,8 @@ describe('spatialTrajectoryHandler', () => {
           type: 'region_bounds_update',
           regionId: 'zone',
           bounds: {
-            min: { x: -3, y: -3, z: -3 },
-            max: { x: 3, y: 3, z: 3 },
+            min: [-3, -3, -3],
+            max: [3, 3, 3],
           },
         } as any
       );
@@ -1438,7 +1438,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 10, y: 0, z: 0 },
+          velocity: [10, 0, 0],
         } as any
       );
 
@@ -1453,7 +1453,7 @@ describe('spatialTrajectoryHandler', () => {
         context as any,
         {
           type: 'velocity_update',
-          velocity: { x: 0.1, y: 0, z: 0 },
+          velocity: [0.1, 0, 0],
         } as any
       );
 

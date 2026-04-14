@@ -40,6 +40,7 @@ import { snapshotTools } from './snapshot-tools';
 import { monitoringTools } from './monitoring-tools';
 import { holotestTools } from './holotest-tools';
 import { refactorCodegenTools } from './refactor-codegen-tools';
+import { traitTools } from './trait-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -754,6 +755,7 @@ export const tools: Tool[] = [
   ...monitoringTools,
   ...holotestTools,
   ...refactorCodegenTools,
+  ...traitTools,
 ];
 
 // Tool name type for type safety

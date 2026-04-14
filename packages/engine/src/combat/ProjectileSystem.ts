@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ProjectileSystem.ts
  *
@@ -23,12 +24,8 @@ export interface ProjectileConfig {
 
 export interface Projectile {
   id: string;
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vy: number;
-  vz: number;
+  position: Vector3;
+  velocity: Vector3;
   config: ProjectileConfig;
   age: number;
   hitCount: number;
@@ -37,6 +34,12 @@ export interface Projectile {
 }
 
 export type ImpactCallback = (projectile: Projectile, targetId: string) => void;
+
+export interface ProjectileTarget {
+  id: string;
+  position: Vector3;
+  radius: number;
+}
 
 // =============================================================================
 // PROJECTILE SYSTEM
@@ -65,12 +68,12 @@ export class ProjectileSystem {
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
     this.projectiles.set(id, {
       id,
-      x,
-      y,
-      z,
-      vx: (dx / len) * config.speed,
-      vy: (dy / len) * config.speed,
-      vz: (dz / len) * config.speed,
+      position: [x, y, z],
+      velocity: [
+        (dx / len) * config.speed,
+        (dy / len) * config.speed,
+        (dz / len) * config.speed,
+      ],
       config,
       age: 0,
       hitCount: 0,
@@ -90,7 +93,7 @@ export class ProjectileSystem {
 
   update(
     dt: number,
-    targets?: Array<{ id: string; x: number; y: number; z: number; radius: number }>
+    targets?: ProjectileTarget[]
   ): void {
     for (const proj of this.projectiles.values()) {
       if (!proj.alive) continue;
@@ -102,39 +105,39 @@ export class ProjectileSystem {
       }
 
       // Gravity
-      proj.vy -= proj.config.gravity * dt;
+      proj.velocity[1] -= proj.config.gravity * dt;
 
       // Homing
       if (proj.config.homing && targets && targets.length > 0) {
         const nearest = this.findNearest(proj, targets);
         if (nearest) {
-          const dx = nearest.x - proj.x,
-            dy = nearest.y - proj.y,
-            dz = nearest.z - proj.z;
+          const dx = nearest[0] - proj.position[0],
+            dy = nearest[1] - proj.position[1],
+            dz = nearest[2] - proj.position[2];
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
           const str = proj.config.homingStrength * dt;
-          proj.vx += (dx / dist) * str;
-          proj.vy += (dy / dist) * str;
-          proj.vz += (dz / dist) * str;
+          proj.velocity[0] += (dx / dist) * str;
+          proj.velocity[1] += (dy / dist) * str;
+          proj.velocity[2] += (dz / dist) * str;
           // Re-normalize to speed
-          const sp = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy + proj.vz * proj.vz) || 1;
-          proj.vx = (proj.vx / sp) * proj.config.speed;
-          proj.vy = (proj.vy / sp) * proj.config.speed;
-          proj.vz = (proj.vz / sp) * proj.config.speed;
+          const sp = Math.sqrt(proj.velocity[0] ** 2 + proj.velocity[1] ** 2 + proj.velocity[2] ** 2) || 1;
+          proj.velocity[0] = (proj.velocity[0] / sp) * proj.config.speed;
+          proj.velocity[1] = (proj.velocity[1] / sp) * proj.config.speed;
+          proj.velocity[2] = (proj.velocity[2] / sp) * proj.config.speed;
         }
       }
 
       // Move
-      proj.x += proj.vx * dt;
-      proj.y += proj.vy * dt;
-      proj.z += proj.vz * dt;
+      proj.position[0] += proj.velocity[0] * dt;
+      proj.position[1] += proj.velocity[1] * dt;
+      proj.position[2] += proj.velocity[2] * dt;
 
       // Hit detection
       if (targets) {
         for (const t of targets) {
-          const dx = t.x - proj.x,
-            dy = t.y - proj.y,
-            dz = t.z - proj.z;
+          const dx = t.position[0] - proj.position[0],
+            dy = t.position[1] - proj.position[1],
+            dz = t.position[2] - proj.position[2];
           if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= t.radius) {
             proj.hitCount++;
             if (this.onImpact) this.onImpact(proj, t.id);
@@ -154,15 +157,19 @@ export class ProjectileSystem {
 
   private findNearest(
     proj: Projectile,
-    targets: Array<{ id: string; x: number; y: number; z: number }>
-  ): { x: number; y: number; z: number } | null {
-    let best: { x: number; y: number; z: number } | null = null;
+    targets: ProjectileTarget[]
+  ): Vector3 | null {
+    let best: Vector3 | null = null;
     let bestDist = Infinity;
     for (const t of targets) {
-      const d = Math.sqrt((t.x - proj.x) ** 2 + (t.y - proj.y) ** 2 + (t.z - proj.z) ** 2);
+      const d = Math.sqrt(
+        (t.position[0] - proj.position[0]) ** 2 +
+        (t.position[1] - proj.position[1]) ** 2 +
+        (t.position[2] - proj.position[2]) ** 2
+      );
       if (d < bestDist) {
         bestDist = d;
-        best = t;
+        best = t.position;
       }
     }
     return best;

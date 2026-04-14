@@ -4,13 +4,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { magnifiableHandler } from '../MagnifiableTrait';
 
-function makeNode(scale?: { x: number; y: number; z: number }) {
-  return { id: 'mag_node', scale: scale ?? { x: 1, y: 1, z: 1 } };
+function makeNode(scale?: Vector3) {
+  return { id: 'mag_node', scale: scale ?? [1, 1, 1 ] };
 }
 function makeContext() {
   return { emit: vi.fn() };
 }
-function attachNode(config: any = {}, nodeScale?: { x: number; y: number; z: number }) {
+function attachNode(config: any = {}, nodeScale?: Vector3) {
   const node = makeNode(nodeScale);
   const ctx = makeContext();
   const cfg = { ...magnifiableHandler.defaultConfig!, ...config };
@@ -47,8 +47,8 @@ describe('magnifiableHandler.onAttach', () => {
   it('lensPosition = null', () =>
     expect((attachNode().node as any).__magnifiableState.lensPosition).toBeNull());
   it('captures originalScale from node.scale', () => {
-    const { node } = attachNode({}, { x: 2, y: 3, z: 4 });
-    expect((node as any).__magnifiableState.originalScale).toEqual({ x: 2, y: 3, z: 4 });
+    const { node } = attachNode({}, [2, 3, 4 ]);
+    expect((node as any).__magnifiableState.originalScale).toEqual([2, 3, 4 ]);
   });
   it('emits magnifiable_register with trigger and lensMode', () => {
     const { ctx } = attachNode({ trigger: 'gaze', lens_mode: true });
@@ -68,15 +68,15 @@ describe('magnifiableHandler.onDetach', () => {
     expect((node as any).__magnifiableState).toBeUndefined();
   });
   it('restores originalScale on node.scale', () => {
-    const { node, cfg, ctx } = attachNode({}, { x: 3, y: 2, z: 1 });
+    const { node, cfg, ctx } = attachNode({}, [3, 2, 1 ]);
     // Simulate magnification applied by dirtying scale
-    node.scale.x = 9;
-    node.scale.y = 6;
-    node.scale.z = 3;
+    node.scale[0] = 9;
+    node.scale[1] = 6;
+    node.scale[2] = 3;
     magnifiableHandler.onDetach!(node, cfg, ctx);
-    expect(node.scale.x).toBe(3);
-    expect(node.scale.y).toBe(2);
-    expect(node.scale.z).toBe(1);
+    expect(node.scale[0]).toBe(3);
+    expect(node.scale[1]).toBe(2);
+    expect(node.scale[2]).toBe(1);
   });
   it('emits magnifiable_unregister', () => {
     const { node, cfg, ctx } = attachNode();
@@ -150,9 +150,9 @@ describe('magnifiableHandler.onEvent — magnify_start / pinch_start', () => {
     const { node, cfg, ctx } = attachNode();
     magnifiableHandler.onEvent!(node, cfg, ctx, {
       type: 'magnify_start',
-      center: { x: 1, y: 2, z: 3 },
+      center: [1, 2, 3 ],
     });
-    expect((node as any).__magnifiableState.zoomCenter).toEqual({ x: 1, y: 2, z: 3 });
+    expect((node as any).__magnifiableState.zoomCenter).toEqual([1, 2, 3 ]);
   });
   it('magnify_start emits on_magnify_start', () => {
     const { node, cfg, ctx } = attachNode();

@@ -150,8 +150,8 @@ export class KeyboardSystem {
       const newX = KeyboardSystem.START_X + this.cursorIndex * KeyboardSystem.CHAR_WIDTH;
 
       // We need to keep Y and Z same, just update X
-      const currentPos = cursorChild.node.properties.position || { x: 0, y: 0, z: 0 };
-      const newPos = { ...currentPos, x: newX };
+      const currentPos = (cursorChild.node.properties.position as [number, number, number]) || [0, 0, 0];
+      const newPos = [newX, currentPos[1], currentPos[2]];
 
       this.runtime.updateNodeProperty(cursorChild.node.id, 'position', newPos);
     }

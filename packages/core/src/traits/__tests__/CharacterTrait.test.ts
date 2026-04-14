@@ -47,8 +47,8 @@ describe('CharacterTrait', () => {
     it('should initialize state', () => {
       const state = character.getState();
 
-      expect(state.position).toEqual({ x: 0, y: 0, z: 0 });
-      expect(state.velocity).toEqual({ x: 0, y: 0, z: 0 });
+      expect(state.position).toEqual([0, 0, 0 ]);
+      expect(state.velocity).toEqual([0, 0, 0 ]);
       expect(state.movementMode).toBe('walking');
       expect(state.groundState).toBe('grounded');
       expect(state.isCrouching).toBe(false);
@@ -58,14 +58,14 @@ describe('CharacterTrait', () => {
 
   describe('position', () => {
     it('should set position', () => {
-      character.setPosition({ x: 10, y: 5, z: 20 });
+      character.setPosition([10, 5, 20 ]);
 
       const state = character.getState();
-      expect(state.position).toEqual({ x: 10, y: 5, z: 20 });
+      expect(state.position).toEqual([10, 5, 20 ]);
     });
 
     it('should get position', () => {
-      character.setPosition({ x: 1, y: 2, z: 3 });
+      character.setPosition([1, 2, 3 ]);
 
       const pos = character.getPosition();
       expect(pos.x).toBe(1);
@@ -76,14 +76,14 @@ describe('CharacterTrait', () => {
 
   describe('velocity', () => {
     it('should set velocity', () => {
-      character.setVelocity({ x: 5, y: 0, z: 0 });
+      character.setVelocity([5, 0, 0 ]);
 
       const state = character.getState();
-      expect(state.velocity.x).toBe(5);
+      expect(state.velocity[0]).toBe(5);
     });
 
     it('should get velocity', () => {
-      character.setVelocity({ x: 1, y: 2, z: 3 });
+      character.setVelocity([1, 2, 3 ]);
 
       const vel = character.getVelocity();
       expect(vel.x).toBe(1);
@@ -212,7 +212,7 @@ describe('CharacterTrait', () => {
 
   describe('teleport', () => {
     it('should teleport to position', () => {
-      character.teleport({ x: 100, y: 50, z: 200 });
+      character.teleport([100, 50, 200 ]);
 
       const pos = character.getPosition();
       expect(pos.x).toBe(100);
@@ -221,8 +221,8 @@ describe('CharacterTrait', () => {
     });
 
     it('should reset velocity on teleport', () => {
-      character.setVelocity({ x: 10, y: 5, z: 10 });
-      character.teleport({ x: 0, y: 0, z: 0 });
+      character.setVelocity([10, 5, 10 ]);
+      character.teleport([0, 0, 0 ]);
 
       const vel = character.getVelocity();
       expect(vel.x).toBe(0);
@@ -231,8 +231,8 @@ describe('CharacterTrait', () => {
     });
 
     it('should optionally keep velocity on teleport', () => {
-      character.setVelocity({ x: 10, y: 5, z: 10 });
-      character.teleport({ x: 0, y: 0, z: 0 }, false);
+      character.setVelocity([10, 5, 10 ]);
+      character.teleport([0, 0, 0 ], false);
 
       const vel = character.getVelocity();
       expect(vel.x).toBe(10);
@@ -241,12 +241,12 @@ describe('CharacterTrait', () => {
 
   describe('export/import state', () => {
     it('should export current state', () => {
-      character.setPosition({ x: 1, y: 2, z: 3 });
+      character.setPosition([1, 2, 3 ]);
       const state = character.exportState();
 
-      expect(state.position.x).toBe(1);
-      expect(state.position.y).toBe(2);
-      expect(state.position.z).toBe(3);
+      expect(state.position[0]).toBe(1);
+      expect(state.position[1]).toBe(2);
+      expect(state.position[2]).toBe(3);
     });
 
     it('should import state', () => {

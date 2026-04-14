@@ -9,7 +9,7 @@ import type { WeatherBlackboardState } from '@holoscript/core';
 describe('VelocitySmoother', () => {
   it('initializes with first sample (no smoothing on first call)', () => {
     const s = new VelocitySmoother(0.1);
-    const result = s.update({ x: 5, y: 0, z: 0 });
+    const result = s.update([5, 0, 0 ]);
     expect(result.x).toBe(5);
     expect(result.y).toBe(0);
     expect(result.z).toBe(0);
@@ -17,54 +17,54 @@ describe('VelocitySmoother', () => {
 
   it('applies EMA smoothing on subsequent samples', () => {
     const s = new VelocitySmoother(0.1);
-    s.update({ x: 0, y: 0, z: 0 });
-    const result = s.update({ x: 10, y: 0, z: 0 });
+    s.update([0, 0, 0 ]);
+    const result = s.update([10, 0, 0 ]);
     // EMA: 0.1 * 10 + 0.9 * 0 = 1.0
     expect(result.x).toBeCloseTo(1.0, 5);
   });
 
   it('converges toward the input over many frames', () => {
     const s = new VelocitySmoother(0.1);
-    s.update({ x: 0, y: 0, z: 0 });
-    let result = { x: 0, y: 0, z: 0 };
+    s.update([0, 0, 0 ]);
+    let result = [0, 0, 0 ];
     for (let i = 0; i < 100; i++) {
-      result = s.update({ x: 5, y: 0, z: 0 });
+      result = s.update([5, 0, 0 ]);
     }
     expect(result.x).toBeCloseTo(5.0, 1);
   });
 
   it('getSpeed returns magnitude of smoothed velocity', () => {
     const s = new VelocitySmoother(1.0); // alpha=1 -> no smoothing
-    s.update({ x: 3, y: 4, z: 0 });
+    s.update([3, 4, 0 ]);
     expect(s.getSpeed()).toBeCloseTo(5.0, 5);
   });
 
   it('getCurrent returns last smoothed value', () => {
     const s = new VelocitySmoother(1.0);
-    s.update({ x: 7, y: 0, z: 0 });
+    s.update([7, 0, 0 ]);
     const cur = s.getCurrent();
     expect(cur.x).toBe(7);
   });
 
   it('reset clears state', () => {
     const s = new VelocitySmoother(0.5);
-    s.update({ x: 10, y: 0, z: 0 });
+    s.update([10, 0, 0 ]);
     s.reset();
     // After reset, first update should take value directly
-    const result = s.update({ x: 3, y: 0, z: 0 });
+    const result = s.update([3, 0, 0 ]);
     expect(result.x).toBe(3);
   });
 
   it('clamps alpha to valid range', () => {
     const s1 = new VelocitySmoother(0);
-    s1.update({ x: 0, y: 0, z: 0 });
-    const r1 = s1.update({ x: 10, y: 0, z: 0 });
+    s1.update([0, 0, 0 ]);
+    const r1 = s1.update([10, 0, 0 ]);
     // alpha clamped to 0.001, so result is very close to 0
     expect(r1.x).toBeCloseTo(0.01, 1);
 
     const s2 = new VelocitySmoother(5); // clamped to 1.0
-    s2.update({ x: 0, y: 0, z: 0 });
-    const r2 = s2.update({ x: 10, y: 0, z: 0 });
+    s2.update([0, 0, 0 ]);
+    const r2 = s2.update([10, 0, 0 ]);
     expect(r2.x).toBe(10);
   });
 });
@@ -110,22 +110,22 @@ describe('evaluateIntensityCurve', () => {
 
 describe('computeSelfWind', () => {
   it('produces opposing wind vector', () => {
-    const wind = computeSelfWind({ x: 5, y: 0, z: 0 }, 0.6);
-    expect(wind.x).toBeCloseTo(-3.0, 5);
-    expect(wind.y).toBeCloseTo(0, 5);
-    expect(wind.z).toBeCloseTo(0, 5);
+    const wind = computeSelfWind([5, 0, 0 ], 0.6);
+    expect(wind[0]).toBeCloseTo(-3.0, 5);
+    expect(wind[1]).toBeCloseTo(0, 5);
+    expect(wind[2]).toBeCloseTo(0, 5);
   });
 
   it('scales with factor', () => {
-    const wind = computeSelfWind({ x: 10, y: 0, z: 0 }, 0.5);
-    expect(wind.x).toBeCloseTo(-5.0, 5);
+    const wind = computeSelfWind([10, 0, 0 ], 0.5);
+    expect(wind[0]).toBeCloseTo(-5.0, 5);
   });
 
   it('returns zero for zero velocity', () => {
-    const wind = computeSelfWind({ x: 0, y: 0, z: 0 }, 0.6);
-    expect(wind.x).toBeCloseTo(0, 5);
-    expect(wind.y).toBeCloseTo(0, 5);
-    expect(wind.z).toBeCloseTo(0, 5);
+    const wind = computeSelfWind([0, 0, 0 ], 0.6);
+    expect(wind[0]).toBeCloseTo(0, 5);
+    expect(wind[1]).toBeCloseTo(0, 5);
+    expect(wind[2]).toBeCloseTo(0, 5);
   });
 });
 
@@ -148,7 +148,7 @@ describe('WindZoneManager', () => {
     const zone: WindZone = {
       id: 'test',
       type: WindZoneType.GLOBAL,
-      direction: { x: 1, y: 0, z: 0 },
+      direction: [1, 0, 0 ],
       force: 2.0,
       turbulence: 0,
       enabled: true,
@@ -162,7 +162,7 @@ describe('WindZoneManager', () => {
     mgr.addZone({
       id: 'z1',
       type: WindZoneType.GLOBAL,
-      direction: { x: 1, y: 0, z: 0 },
+      direction: [1, 0, 0 ],
       force: 1.0,
       turbulence: 0,
       enabled: true,
@@ -177,27 +177,27 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'global',
         type: WindZoneType.GLOBAL,
-        direction: { x: 0.7, y: 0, z: 0.3 },
+        direction: [0.7, 0, 0.3 ],
         force: 2.0,
         turbulence: 0,
         enabled: true,
       });
-      const wind = mgr.computeWindAt({ x: 100, y: 0, z: -50 });
-      expect(wind.x).toBeCloseTo(1.4, 5);
-      expect(wind.z).toBeCloseTo(0.6, 5);
+      const wind = mgr.computeWindAt([100, 0, -50 ]);
+      expect(wind[0]).toBeCloseTo(1.4, 5);
+      expect(wind[2]).toBeCloseTo(0.6, 5);
     });
 
     it('disabled zone contributes nothing', () => {
       mgr.addZone({
         id: 'off',
         type: WindZoneType.GLOBAL,
-        direction: { x: 1, y: 0, z: 0 },
+        direction: [1, 0, 0 ],
         force: 10.0,
         turbulence: 0,
         enabled: false,
       });
-      const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
-      expect(wind.x).toBe(0);
+      const wind = mgr.computeWindAt([0, 0, 0 ]);
+      expect(wind[0]).toBe(0);
     });
   });
 
@@ -207,7 +207,7 @@ describe('WindZoneManager', () => {
         id: 'fire',
         type: WindZoneType.POINT,
         position: [0, 0, 0],
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         force: 4.0,
         radius: 2.0,
         turbulence: 0,
@@ -215,19 +215,19 @@ describe('WindZoneManager', () => {
       });
 
       // At center: full force
-      const atCenter = mgr.computeWindAt({ x: 0.001, y: 0, z: 0 });
+      const atCenter = mgr.computeWindAt([0.001, 0, 0 ]);
       expect(atCenter.y).toBeGreaterThan(3.5);
 
       // At half radius: ~50% force
-      const atHalf = mgr.computeWindAt({ x: 1.0, y: 0, z: 0 });
+      const atHalf = mgr.computeWindAt([1.0, 0, 0 ]);
       expect(atHalf.y).toBeCloseTo(2.0, 0);
 
       // At radius: zero force
-      const atEdge = mgr.computeWindAt({ x: 2.0, y: 0, z: 0 });
+      const atEdge = mgr.computeWindAt([2.0, 0, 0 ]);
       expect(atEdge.y).toBeCloseTo(0, 1);
 
       // Beyond radius: zero
-      const beyond = mgr.computeWindAt({ x: 5.0, y: 0, z: 0 });
+      const beyond = mgr.computeWindAt([5.0, 0, 0 ]);
       expect(beyond.y).toBe(0);
     });
 
@@ -235,14 +235,14 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'bad',
         type: WindZoneType.POINT,
-        direction: { x: 0, y: 1, z: 0 },
+        direction: [0, 1, 0 ],
         force: 4.0,
         turbulence: 0,
         enabled: true,
       });
-      const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
-      expect(wind.x).toBe(0);
-      expect(wind.y).toBe(0);
+      const wind = mgr.computeWindAt([0, 0, 0 ]);
+      expect(wind[0]).toBe(0);
+      expect(wind[1]).toBe(0);
     });
   });
 
@@ -252,7 +252,7 @@ describe('WindZoneManager', () => {
         id: 'window',
         type: WindZoneType.DIRECTIONAL,
         position: [0, 0, 0],
-        direction: { x: 1, y: 0, z: 0 },
+        direction: [1, 0, 0 ],
         force: 5.0,
         coneAngle: Math.PI / 4, // 45 degrees
         turbulence: 0,
@@ -260,11 +260,11 @@ describe('WindZoneManager', () => {
       });
 
       // Directly in front (on-axis)
-      const inFront = mgr.computeWindAt({ x: 5, y: 0, z: 0 });
+      const inFront = mgr.computeWindAt([5, 0, 0 ]);
       expect(inFront.x).toBeGreaterThan(0);
 
       // Way off to the side (outside cone)
-      const offSide = mgr.computeWindAt({ x: 0, y: 5, z: 0 });
+      const offSide = mgr.computeWindAt([0, 5, 0 ]);
       expect(offSide.x).toBe(0);
     });
 
@@ -272,13 +272,13 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'bad2',
         type: WindZoneType.DIRECTIONAL,
-        direction: { x: 1, y: 0, z: 0 },
+        direction: [1, 0, 0 ],
         force: 5.0,
         turbulence: 0,
         enabled: true,
       });
-      const wind = mgr.computeWindAt({ x: 5, y: 0, z: 0 });
-      expect(wind.x).toBe(0);
+      const wind = mgr.computeWindAt([5, 0, 0 ]);
+      expect(wind[0]).toBe(0);
     });
   });
 
@@ -288,16 +288,16 @@ describe('WindZoneManager', () => {
         wind_vector: [3, 0, 1] as [number, number, number],
       } as WeatherBlackboardState;
 
-      const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 }, weather);
-      expect(wind.x).toBeCloseTo(3, 5);
-      expect(wind.z).toBeCloseTo(1, 5);
+      const wind = mgr.computeWindAt([0, 0, 0 ], weather);
+      expect(wind[0]).toBeCloseTo(3, 5);
+      expect(wind[2]).toBeCloseTo(1, 5);
     });
 
     it('combines weather wind with zone wind', () => {
       mgr.addZone({
         id: 'g',
         type: WindZoneType.GLOBAL,
-        direction: { x: 1, y: 0, z: 0 },
+        direction: [1, 0, 0 ],
         force: 2.0,
         turbulence: 0,
         enabled: true,
@@ -306,8 +306,8 @@ describe('WindZoneManager', () => {
         wind_vector: [1, 0, 0] as [number, number, number],
       } as WeatherBlackboardState;
 
-      const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 }, weather);
-      expect(wind.x).toBeCloseTo(3.0, 5);
+      const wind = mgr.computeWindAt([0, 0, 0 ], weather);
+      expect(wind[0]).toBeCloseTo(3.0, 5);
     });
   });
 
@@ -316,7 +316,7 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'gusty',
         type: WindZoneType.GLOBAL,
-        direction: { x: 1, y: 0, z: 0 },
+        direction: [1, 0, 0 ],
         force: 1.0,
         turbulence: 0,
         enabled: true,
@@ -325,17 +325,17 @@ describe('WindZoneManager', () => {
 
       // At time 0, we're inside the gust window (cyclePos=0 < duration=0.8)
       // but gustT=0 so sin(0)=0, multiplier=1
-      const windAtStart = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
+      const windAtStart = mgr.computeWindAt([0, 0, 0 ]);
       expect(windAtStart.x).toBeCloseTo(1.0, 1);
 
       // Advance to mid-gust
       mgr.advanceTime(0.4); // cyclePos=0.4, gustT=0.5, sin(0.5*PI)=1.0
-      const windMidGust = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
+      const windMidGust = mgr.computeWindAt([0, 0, 0 ]);
       expect(windMidGust.x).toBeCloseTo(3.0, 1); // 1.0 * (1 + (3-1)*1) = 3.0
 
       // Advance past gust
       mgr.advanceTime(1.0); // time=1.4, cyclePos=1.4 > 0.8 duration
-      const windAfterGust = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
+      const windAfterGust = mgr.computeWindAt([0, 0, 0 ]);
       expect(windAfterGust.x).toBeCloseTo(1.0, 1); // base force only
     });
   });
@@ -405,7 +405,7 @@ describe('PhysicsActivationController', () => {
 
     it('still computes locomotion', () => {
       const c = new PhysicsActivationController({ mode: 'always_on' });
-      c.update(1 / 60, { characterVelocity: { x: 5, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       expect(c.getIntensity()).toBeGreaterThan(0);
     });
   });
@@ -416,24 +416,24 @@ describe('PhysicsActivationController', () => {
 
   describe('velocity trigger', () => {
     it('wakes on velocity above threshold', () => {
-      ctrl.update(1 / 60, { characterVelocity: { x: 0.2, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [0.2, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.WAKING);
       expect(ctrl.isSimulating()).toBe(true);
     });
 
     it('stays sleeping when velocity below wake threshold', () => {
-      ctrl.update(1 / 60, { characterVelocity: { x: 0.05, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [0.05, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.SLEEPING);
     });
 
     it('transitions WAKING -> ACTIVE after blend duration', () => {
       // Wake
-      ctrl.update(1 / 60, { characterVelocity: { x: 0.2, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [0.2, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.WAKING);
 
       // Advance past wake blend duration (default 0.3s)
       for (let i = 0; i < 20; i++) {
-        ctrl.update(1 / 60, { characterVelocity: { x: 0.2, y: 0, z: 0 } });
+        ctrl.update(1 / 60, { characterVelocity: [0.2, 0, 0 ] });
       }
       expect(ctrl.getState()).toBe(PhysicsActivationState.ACTIVE);
     });
@@ -445,12 +445,12 @@ describe('PhysicsActivationController', () => {
 
   describe('wind trigger', () => {
     it('wakes on strong wind', () => {
-      ctrl.update(1 / 60, { windForce: { x: 0.5, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { windForce: [0.5, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.WAKING);
     });
 
     it('stays sleeping with light wind', () => {
-      ctrl.update(1 / 60, { windForce: { x: 0.05, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { windForce: [0.05, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.SLEEPING);
     });
   });
@@ -538,8 +538,8 @@ describe('PhysicsActivationController', () => {
       });
 
       // Sudden gravity change
-      c.update(1 / 60, { gravity: { x: 0, y: -9.81, z: 0 } }); // Initialize
-      c.update(1 / 60, { gravity: { x: 0, y: 0, z: 0 } }); // Zero-g!
+      c.update(1 / 60, { gravity: [0, -9.81, 0 ] }); // Initialize
+      c.update(1 / 60, { gravity: [0, 0, 0 ] }); // Zero-g!
       expect(c.getState()).toBe(PhysicsActivationState.WAKING);
     });
   });
@@ -551,27 +551,27 @@ describe('PhysicsActivationController', () => {
   describe('WAKING blend (G.CHAR.005 — no pop)', () => {
     it('blend weight increases from 0 to 1 during WAKING', () => {
       // First update triggers WAKING (stateTime resets to 0)
-      ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.WAKING);
 
       // Second update advances stateTime by 1/60, giving non-zero blend weight
-      ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       const w1 = ctrl.getBlendWeight();
       expect(w1).toBeGreaterThan(0);
       expect(w1).toBeLessThan(1);
 
       // Advance further
       for (let i = 0; i < 8; i++) {
-        ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+        ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       }
       const w2 = ctrl.getBlendWeight();
       expect(w2).toBeGreaterThan(w1);
     });
 
     it('uses smoothstep for natural blending', () => {
-      ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       // After one more frame, stateTime is small but non-zero
-      ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       // At very small stateTime, blend should be near 0 (smoothstep starts slow)
       const earlyWeight = ctrl.getBlendWeight();
       expect(earlyWeight).toBeLessThan(0.2);
@@ -588,10 +588,10 @@ describe('PhysicsActivationController', () => {
      */
     function advanceToActive(c: PhysicsActivationController): void {
       // Trigger wake
-      c.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       // Advance past WAKING
       for (let i = 0; i < 30; i++) {
-        c.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+        c.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       }
       expect(c.getState()).toBe(PhysicsActivationState.ACTIVE);
     }
@@ -605,7 +605,7 @@ describe('PhysicsActivationController', () => {
       // so we don't skip through SETTLING to SLEEPING
       for (let i = 0; i < 40; i++) {
         c.reportMaxVertexVelocity(1.0); // Vertices still in motion
-        c.update(1 / 60, { characterVelocity: { x: 0, y: 0, z: 0 } });
+        c.update(1 / 60, { characterVelocity: [0, 0, 0 ] });
       }
     }
 
@@ -653,7 +653,7 @@ describe('PhysicsActivationController', () => {
 
       // New velocity trigger
       ctrl.reportMaxVertexVelocity(1.0);
-      ctrl.update(1 / 60, { characterVelocity: { x: 2, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [2, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.ACTIVE);
     });
   });
@@ -669,13 +669,13 @@ describe('PhysicsActivationController', () => {
       expect(ctrl.isSimulating()).toBe(false);
 
       // 2. Trigger wake via velocity
-      ctrl.update(1 / 60, { characterVelocity: { x: 2, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [2, 0, 0 ] });
       expect(ctrl.getState()).toBe(PhysicsActivationState.WAKING);
       expect(ctrl.isSimulating()).toBe(true);
 
       // 3. Complete wake blend -> ACTIVE
       for (let i = 0; i < 30; i++) {
-        ctrl.update(1 / 60, { characterVelocity: { x: 2, y: 0, z: 0 } });
+        ctrl.update(1 / 60, { characterVelocity: [2, 0, 0 ] });
       }
       expect(ctrl.getState()).toBe(PhysicsActivationState.ACTIVE);
       expect(ctrl.getBlendWeight()).toBe(1.0);
@@ -704,7 +704,7 @@ describe('PhysicsActivationController', () => {
   describe('locomotion-driven intensity', () => {
     it('intensity scales with character speed', () => {
       // Walking speed
-      ctrl.update(1 / 60, { characterVelocity: { x: 1.4, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1.4, 0, 0 ] });
       // Due to EMA, first frame will not be at full value
       // but intensity should be > 0
       expect(ctrl.getIntensity()).toBeGreaterThan(0);
@@ -713,7 +713,7 @@ describe('PhysicsActivationController', () => {
       const sprintCtrl = new PhysicsActivationController({
         locomotion: { ...DEFAULT_LOCOMOTION_CONFIG, emaAlpha: 1.0 },
       });
-      sprintCtrl.update(1 / 60, { characterVelocity: { x: 8, y: 0, z: 0 } });
+      sprintCtrl.update(1 / 60, { characterVelocity: [8, 0, 0 ] });
       expect(sprintCtrl.getIntensity()).toBeCloseTo(1.0, 1);
     });
 
@@ -721,7 +721,7 @@ describe('PhysicsActivationController', () => {
       const c = new PhysicsActivationController({
         locomotion: { ...DEFAULT_LOCOMOTION_CONFIG, emaAlpha: 1.0 },
       });
-      c.update(1 / 60, { characterVelocity: { x: 5, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       const selfWind = c.getSelfWind();
       expect(selfWind.x).toBeLessThan(0); // Opposing
       expect(selfWind.x).toBeCloseTo(-3.0, 1); // 5 * -0.6 = -3
@@ -732,8 +732,8 @@ describe('PhysicsActivationController', () => {
         locomotion: { ...DEFAULT_LOCOMOTION_CONFIG, emaAlpha: 1.0 },
       });
       c.update(1 / 60, {
-        characterVelocity: { x: 5, y: 0, z: 0 },
-        windForce: { x: 1, y: 0, z: 0 },
+        characterVelocity: [5, 0, 0 ],
+        windForce: [1, 0, 0 ],
       });
       const effective = c.getEffectiveWind();
       // external(1) + self-wind(-3) = -2
@@ -753,13 +753,13 @@ describe('PhysicsActivationController', () => {
 
       // Move right for many frames
       for (let i = 0; i < 50; i++) {
-        c.update(1 / 60, { characterVelocity: { x: 5, y: 0, z: 0 } });
+        c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       }
       const windBefore = c.getSelfWind();
       expect(windBefore.x).toBeLessThan(0); // Opposing rightward movement
 
       // Instant reversal to left
-      c.update(1 / 60, { characterVelocity: { x: -5, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [-5, 0, 0 ] });
       const windAfter = c.getSelfWind();
 
       // Self-wind should NOT have flipped instantly (EMA smoothing)
@@ -827,7 +827,7 @@ describe('PhysicsActivationController', () => {
 
       // 3 walking, rest idle
       for (let i = 0; i < 20; i++) {
-        const vel = i < 3 ? { x: 1.5, y: 0, z: 0 } : { x: 0, y: 0, z: 0 };
+        const vel = i < 3 ? [1.5, 0, 0 ] : [0, 0, 0 ];
         controllers[i].update(1 / 60, { characterVelocity: vel });
       }
 
@@ -846,7 +846,7 @@ describe('PhysicsActivationController', () => {
     });
 
     it('reports correct trigger after activation', () => {
-      ctrl.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      ctrl.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       expect(ctrl.isTriggerActive(ActivationTriggerType.VELOCITY)).toBe(true);
       expect(ctrl.isTriggerActive(ActivationTriggerType.WIND)).toBe(false);
     });
@@ -861,18 +861,18 @@ describe('PhysicsActivationController', () => {
       const c = new PhysicsActivationController({
         wakeBlendDuration: 1.0, // 1 second
       });
-      c.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       expect(c.getState()).toBe(PhysicsActivationState.WAKING);
 
       // Still waking after 0.5s (30 frames at 60fps)
       for (let i = 0; i < 30; i++) {
-        c.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+        c.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       }
       expect(c.getState()).toBe(PhysicsActivationState.WAKING);
 
       // Active after 1.0s (60 more frames)
       for (let i = 0; i < 40; i++) {
-        c.update(1 / 60, { characterVelocity: { x: 1, y: 0, z: 0 } });
+        c.update(1 / 60, { characterVelocity: [1, 0, 0 ] });
       }
       expect(c.getState()).toBe(PhysicsActivationState.ACTIVE);
     });
@@ -893,11 +893,11 @@ describe('PhysicsActivationController', () => {
       });
 
       // Below custom wake threshold
-      c.update(1 / 60, { characterVelocity: { x: 0.8, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [0.8, 0, 0 ] });
       expect(c.getState()).toBe(PhysicsActivationState.SLEEPING);
 
       // Above custom wake threshold
-      c.update(1 / 60, { characterVelocity: { x: 1.5, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [1.5, 0, 0 ] });
       expect(c.getState()).toBe(PhysicsActivationState.WAKING);
     });
 
@@ -905,17 +905,17 @@ describe('PhysicsActivationController', () => {
       const c = new PhysicsActivationController({
         locomotion: undefined,
       });
-      c.update(1 / 60, { characterVelocity: { x: 5, y: 0, z: 0 } });
+      c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       expect(c.getIntensity()).toBe(0);
-      expect(c.getSelfWind()).toEqual({ x: 0, y: 0, z: 0 });
+      expect(c.getSelfWind()).toEqual([0, 0, 0 ]);
     });
 
     it('works with selfWind disabled', () => {
       const c = new PhysicsActivationController({
         locomotion: { ...DEFAULT_LOCOMOTION_CONFIG, selfWind: false },
       });
-      c.update(1 / 60, { characterVelocity: { x: 5, y: 0, z: 0 } });
-      expect(c.getSelfWind()).toEqual({ x: 0, y: 0, z: 0 });
+      c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
+      expect(c.getSelfWind()).toEqual([0, 0, 0 ]);
       expect(c.getIntensity()).toBeGreaterThan(0); // intensity still computed
     });
   });

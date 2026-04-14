@@ -3,8 +3,8 @@ import { PhysicsWorldImpl, createPhysicsWorld } from '..';
 
 /** Helper to create a body config with the required transform property */
 function bodyConfig(overrides: Record<string, any> = {}) {
-  const pos = overrides.position ?? { x: 0, y: 0, z: 0 };
-  const rot = overrides.rotation ?? { x: 0, y: 0, z: 0, w: 1 };
+  const pos = overrides.position ?? [0, 0, 0 ];
+  const rot = overrides.rotation ?? [0, 0, 0, 1 ];
   return {
     id: overrides.id ?? 'body',
     type: overrides.type ?? 'dynamic',
@@ -33,7 +33,7 @@ describe('PhysicsWorldImpl', () => {
 
     it('accepts custom config', () => {
       const w = new PhysicsWorldImpl({
-        gravity: { x: 0, y: -20, z: 0 },
+        gravity: [0, -20, 0 ],
         fixedTimestep: 1 / 120,
         maxSubsteps: 10,
         solverIterations: 4,
@@ -44,7 +44,7 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('setGravity updates gravity', () => {
-      world.setGravity({ x: 0, y: -5, z: 0 });
+      world.setGravity([0, -5, 0 ]);
       expect(world.getGravity().y).toBe(-5);
     });
   });
@@ -58,14 +58,14 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'box1',
           type: 'dynamic',
-          shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
+          shape: { type: 'box', halfExtents: [1, 1, 1 ] },
           position: [0, 5, 0],
           mass: 1,
         })
       );
       const state = world.getBody('box1');
       expect(state).toBeDefined();
-      expect(state!.position.y).toBe(5);
+      expect(state!.position[1]).toBe(5);
     });
 
     it('throws on duplicate body id', () => {
@@ -95,7 +95,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'b',
           type: 'static',
-          shape: { type: 'box', halfExtents: { x: 10, y: 0.5, z: 10 } },
+          shape: { type: 'box', halfExtents: [10, 0.5, 10 ] },
           position: [0, -1, 0],
           mass: 0,
         })
@@ -113,26 +113,26 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('setPosition updates position', () => {
-      world.setPosition('obj', { x: 5, y: 10, z: 15 });
-      expect(world.getBody('obj')!.position.x).toBe(5);
+      world.setPosition('obj', [5, 10, 15 ]);
+      expect(world.getBody('obj')!.position[0]).toBe(5);
     });
 
     it('setLinearVelocity updates velocity', () => {
-      world.setLinearVelocity('obj', { x: 1, y: 2, z: 3 });
+      world.setLinearVelocity('obj', [1, 2, 3 ]);
       const state = world.getBody('obj')!;
       expect(state.linearVelocity.x).toBe(1);
     });
 
     it('applyForce does not throw', () => {
-      expect(() => world.applyForce('obj', { x: 10, y: 0, z: 0 })).not.toThrow();
+      expect(() => world.applyForce('obj', [10, 0, 0 ])).not.toThrow();
     });
 
     it('applyImpulse does not throw', () => {
-      expect(() => world.applyImpulse('obj', { x: 0, y: 5, z: 0 })).not.toThrow();
+      expect(() => world.applyImpulse('obj', [0, 5, 0 ])).not.toThrow();
     });
 
     it('applyTorque does not throw', () => {
-      expect(() => world.applyTorque('obj', { x: 0, y: 1, z: 0 })).not.toThrow();
+      expect(() => world.applyTorque('obj', [0, 1, 0 ])).not.toThrow();
     });
   });
 
@@ -224,7 +224,7 @@ describe('PhysicsWorldImpl', () => {
       );
       world.step(1 / 60);
       const state = world.getBody('fall')!;
-      expect(state.position.y).toBeLessThan(10);
+      expect(state.position[1]).toBeLessThan(10);
     });
 
     it('static bodies do not move', () => {
@@ -232,12 +232,12 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'ground',
           type: 'static',
-          shape: { type: 'box', halfExtents: { x: 100, y: 0.5, z: 100 } },
+          shape: { type: 'box', halfExtents: [100, 0.5, 100 ] },
           mass: 0,
         })
       );
       world.step(1 / 60);
-      expect(world.getBody('ground')!.position.y).toBe(0);
+      expect(world.getBody('ground')!.position[1]).toBe(0);
     });
 
     it('sphere-sphere collision generates events', () => {
@@ -258,7 +258,7 @@ describe('PhysicsWorldImpl', () => {
       world.createBody(
         bodyConfig({
           id: 'target',
-          shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
+          shape: { type: 'box', halfExtents: [1, 1, 1 ] },
           position: [0, 0, -5],
         })
       );
@@ -266,8 +266,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycast hits a body', () => {
       const hits = world.raycast({
-        origin: { x: 0, y: 0, z: 0 },
-        direction: { x: 0, y: 0, z: -1 },
+        origin: [0, 0, 0 ],
+        direction: [0, 0, -1 ],
         maxDistance: 100,
       });
       expect(hits.length).toBeGreaterThan(0);
@@ -276,8 +276,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycast misses when direction is wrong', () => {
       const hits = world.raycast({
-        origin: { x: 0, y: 0, z: 0 },
-        direction: { x: 0, y: 0, z: 1 },
+        origin: [0, 0, 0 ],
+        direction: [0, 0, 1 ],
         maxDistance: 100,
       });
       expect(hits).toHaveLength(0);
@@ -285,8 +285,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycastClosest returns single hit', () => {
       const hit = world.raycastClosest({
-        origin: { x: 0, y: 0, z: 0 },
-        direction: { x: 0, y: 0, z: -1 },
+        origin: [0, 0, 0 ],
+        direction: [0, 0, -1 ],
         maxDistance: 100,
       });
       expect(hit).not.toBeNull();
@@ -294,13 +294,13 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('sphereOverlap finds nearby bodies', () => {
-      const results = world.sphereOverlap({ x: 0, y: 0, z: -5 }, 2);
+      const results = world.sphereOverlap([0, 0, -5 ], 2);
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].bodyId).toBe('target');
     });
 
     it('boxOverlap finds overlapping bodies', () => {
-      const results = world.boxOverlap({ x: 0, y: 0, z: -5 }, { x: 2, y: 2, z: 2 });
+      const results = world.boxOverlap([0, 0, -5 ], [2, 2, 2 ]);
       expect(results.length).toBeGreaterThan(0);
     });
   });

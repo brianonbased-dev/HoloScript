@@ -158,9 +158,9 @@ export class GhostRunner {
     const sampleB = this.getSampleAtTime(runB, time);
     if (!sampleA || !sampleB) return null;
 
-    const dx = sampleA.position.x - sampleB.position.x;
-    const dy = sampleA.position.y - sampleB.position.y;
-    const dz = sampleA.position.z - sampleB.position.z;
+    const dx = sampleA.position[0] - sampleB.position[0];
+    const dy = sampleA.position[1] - sampleB.position[1];
+    const dz = sampleA.position[2] - sampleB.position[2];
 
     return {
       deltaTime: sampleA.time - sampleB.time,

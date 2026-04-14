@@ -5,8 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { LightingTrait, createLightingTrait, LIGHTING_PRESETS } from '../LightingTrait';
 
 const WHITE = { r: 1, g: 1, b: 1 };
-const POS = { x: 0, y: 10, z: 0 };
-const DIR = { x: 0, y: -1, z: 0 };
+const POS = [0, 10, 0 ];
+const DIR = [0, -1, 0 ];
 
 // ─── Constructor / GI defaults ────────────────────────────────────────────────
 

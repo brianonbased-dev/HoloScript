@@ -27,7 +27,7 @@ describe('Cycle 139: Foliage & Vegetation', () => {
 
     // Deterministic: same seed = same positions
     const patch2 = fs.scatter('p2', 'fern', { x: 0, z: 0, w: 10, h: 10 }, 50);
-    expect(patch2.instances[0].position.x).toBeCloseTo(patch.instances[0].position.x);
+    expect(patch2.instances[0].position[0]).toBeCloseTo(patch.instances[0].position[0]);
   });
 
   it('should compute wind sway offsets', () => {
@@ -50,8 +50,8 @@ describe('Cycle 139: Foliage & Vegetation', () => {
     // After advancing time, sway should be non-zero
     fs.update(1.0, { x: 0, z: 0 });
     const offset = fs.getWindOffset(patch.instances[0]);
-    expect(typeof offset.x).toBe('number');
-    expect(typeof offset.z).toBe('number');
+    expect(typeof offset[0]).toBe('number');
+    expect(typeof offset[2]).toBe('number');
   });
 
   it('should LOD and cull based on camera distance', () => {
@@ -136,8 +136,8 @@ describe('Cycle 139: Foliage & Vegetation', () => {
     // Check minimum spacing
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
-        const dx = placed[i].position.x - placed[j].position.x;
-        const dz = placed[i].position.z - placed[j].position.z;
+        const dx = placed[i].position[0] - placed[j].position[0];
+        const dz = placed[i].position[2] - placed[j].position[2];
         const dist = Math.sqrt(dx * dx + dz * dz);
         expect(dist).toBeGreaterThanOrEqual(3);
       }

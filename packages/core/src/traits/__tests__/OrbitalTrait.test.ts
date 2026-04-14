@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockNode, createMockContext, attachTrait, updateTrait } from './traitTestHelpers';
 
 // Mock KeplerianCalculator
-vi.mock('../../orbital/KeplerianCalculator', () => ({
-  calculatePosition: vi.fn(() => ({ x: 1.0, y: 0.5, z: 0.2 })),
+vi.mock('@holoscript/engine/orbital', () => ({
+  calculatePosition: vi.fn(() => ([1.0, 0.5, 0.2 ])),
 }));
 
 // Mock logger
-vi.mock('@holoscript/engine/logger', () => ({
+vi.mock('../../logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -55,17 +55,17 @@ describe('OrbitalTrait', () => {
 
   it('maps Keplerian Z to Three.js Y (coordinate swap)', () => {
     updateTrait(orbitalHandler, node, cfg, ctx, 0.016);
-    // rawPosition = { x: 1.0, y: 0.5, z: 0.2 }
+    // rawPosition = [1.0, 0.5, 0.2 ]
     // Three.js: x = raw.x * scale, y = raw.z * scale, z = raw.y * scale
-    const pos = node.position;
-    expect(pos.y).toBeCloseTo(0.2 * 50, 0); // Z→Y
-    expect(pos.z).toBeCloseTo(0.5 * 50, 0); // Y→Z
+    const pos = node.position as unknown as number[];
+    expect(pos[1]).toBeCloseTo(0.2 * 50, 0); // Z→Y
+    expect(pos[2]).toBeCloseTo(0.5 * 50, 0); // Y→Z
   });
 
   it('applies visual scale', () => {
     updateTrait(orbitalHandler, node, cfg, ctx, 0.016);
-    const pos = node.position;
-    expect(pos.x).toBeCloseTo(1.0 * 50, 0);
+    const pos = node.position as unknown as number[];
+    expect(pos[0]).toBeCloseTo(1.0 * 50, 0);
   });
 
   it('emits position_update event', () => {
@@ -84,9 +84,9 @@ describe('OrbitalTrait', () => {
     ctx.getNode = vi.fn().mockReturnValue(parentNode);
     const moonCfg = { ...cfg, parent: 'earth' };
     updateTrait(orbitalHandler, node, moonCfg, ctx, 0.016);
-    const pos = node.position;
-    expect(pos.x).toBeGreaterThan(100);
-    expect(pos.y).toBeGreaterThan(200);
+    const pos = node.position as unknown as number[];
+    expect(pos[0]).toBeGreaterThan(100);
+    expect(pos[1]).toBeGreaterThan(200);
   });
 
   it('warns when parent not found', () => {

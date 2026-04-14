@@ -587,24 +587,24 @@ export class GLTFExporter {
 
   private applyTransform(node: IGLTFNode, transform: ITransform): void {
     const hasTranslation =
-      transform.position.x !== 0 || transform.position.y !== 0 || transform.position.z !== 0;
+      transform.position[0] !== 0 || transform.position[1] !== 0 || transform.position[2] !== 0;
     const hasRotation =
-      transform.rotation.x !== 0 ||
-      transform.rotation.y !== 0 ||
-      transform.rotation.z !== 0 ||
-      transform.rotation.w !== 1;
-    const hasScale = transform.scale.x !== 1 || transform.scale.y !== 1 || transform.scale.z !== 1;
+      transform.rotation[0] !== 0 ||
+      transform.rotation[1] !== 0 ||
+      transform.rotation[2] !== 0 ||
+      transform.rotation[3] !== 1;
+    const hasScale = transform.scale[0] !== 1 || transform.scale[1] !== 1 || transform.scale[2] !== 1;
 
     if (hasTranslation)
-      node.translation = [transform.position.x, transform.position.y, transform.position.z];
+      node.translation = [transform.position[0], transform.position[1], transform.position[2]];
     if (hasRotation)
       node.rotation = [
-        transform.rotation.x,
-        transform.rotation.y,
-        transform.rotation.z,
-        transform.rotation.w,
+        transform.rotation[0],
+        transform.rotation[1],
+        transform.rotation[2],
+        transform.rotation[3],
       ];
-    if (hasScale) node.scale = [transform.scale.x, transform.scale.y, transform.scale.z];
+    if (hasScale) node.scale = [transform.scale[0], transform.scale[1], transform.scale[2]];
   }
 
   private reset(): void {

@@ -68,11 +68,7 @@ export interface HoloObject {
   [key: string]: HoloValue;
 }
 
-export interface HoloPosition {
-  x: number;
-  y: number;
-  z: number;
-}
+export type HoloPosition = [number, number, number];
 
 // =============================================================================
 // COMPOSITION (ROOT NODE)

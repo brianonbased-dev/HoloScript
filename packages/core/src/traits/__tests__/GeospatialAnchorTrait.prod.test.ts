@@ -176,28 +176,28 @@ describe('geospatialAnchorHandler.onUpdate', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     const state = (node as any).__geospatialAnchorState;
     state.state = 'tracking';
-    state.localPosition = { x: 1, y: 2, z: 3 };
+    state.localPosition = [1, 2, 3 ];
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(node.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(node.position).toEqual([1, 2, 3 ]);
   });
 
   it('applies localPosition to node.position when state=resolved', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     const state = (node as any).__geospatialAnchorState;
     state.state = 'resolved';
-    state.localPosition = { x: 5, y: 6, z: 7 };
+    state.localPosition = [5, 6, 7 ];
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(node.position).toEqual({ x: 5, y: 6, z: 7 });
+    expect(node.position).toEqual([5, 6, 7 ]);
   });
 
   it('does NOT apply localPosition when state=unresolved', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     const state = (node as any).__geospatialAnchorState;
     state.state = 'unresolved';
-    state.localPosition = { x: 9, y: 9, z: 9 };
-    node.position = { x: 0, y: 0, z: 0 };
+    state.localPosition = [9, 9, 9 ];
+    node.position = [0, 0, 0 ];
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(node.position).toEqual({ x: 0, y: 0, z: 0 });
+    expect(node.position).toEqual([0, 0, 0 ]);
   });
 });
 
@@ -259,7 +259,7 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
     const { node, ctx, config } = attach({ auto_resolve: false, accuracy_threshold: 10 });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 0, y: 0, z: 0 },
+      localPosition: [0, 0, 0 ],
       accuracy: 5,
       headingAccuracy: 1,
     });
@@ -270,7 +270,7 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
     const { node, ctx, config } = attach({ auto_resolve: false, accuracy_threshold: 10 });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 0, y: 0, z: 0 },
+      localPosition: [0, 0, 0 ],
       accuracy: 15,
       headingAccuracy: 3,
     });
@@ -281,11 +281,11 @@ describe('geospatialAnchorHandler.onEvent — geospatial_pose_update', () => {
     const { node, ctx, config } = attach({ auto_resolve: false });
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 10, y: 2, z: -5 },
+      localPosition: [10, 2, -5 ],
       accuracy: 3,
       headingAccuracy: 0.5,
     });
-    expect((node as any).__geospatialAnchorState.localPosition).toEqual({ x: 10, y: 2, z: -5 });
+    expect((node as any).__geospatialAnchorState.localPosition).toEqual([10, 2, -5 ]);
   });
 });
 

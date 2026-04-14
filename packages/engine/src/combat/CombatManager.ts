@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * CombatManager.ts
  *
@@ -15,7 +16,7 @@ export interface HitBox {
   id: string;
   ownerId: string;
   position: [number, number, number];
-  size: { x: number; y: number; z: number };
+  size: Vector3;
   active: boolean;
   damage: number;
   damageType: string;
@@ -26,7 +27,7 @@ export interface HurtBox {
   id: string;
   ownerId: string;
   position: [number, number, number];
-  size: { x: number; y: number; z: number };
+  size: Vector3;
   active: boolean;
 }
 
@@ -112,15 +113,15 @@ export class CombatManager {
   }
 
   private aabbOverlap(
-    posA: { x: number; y: number; z: number },
-    sizeA: { x: number; y: number; z: number },
-    posB: { x: number; y: number; z: number },
-    sizeB: { x: number; y: number; z: number }
+    posA: Vector3,
+    sizeA: Vector3,
+    posB: Vector3,
+    sizeB: Vector3
   ): boolean {
     return (
-      Math.abs(posA.x - posB.x) < (sizeA.x + sizeB.x) / 2 &&
-      Math.abs(posA.y - posB.y) < (sizeA.y + sizeB.y) / 2 &&
-      Math.abs(posA.z - posB.z) < (sizeA.z + sizeB.z) / 2
+      Math.abs(posA[0] - posB[0]) < (sizeA[0] + sizeB[0]) / 2 &&
+      Math.abs(posA[1] - posB[1]) < (sizeA[1] + sizeB[1]) / 2 &&
+      Math.abs(posA[2] - posB[2]) < (sizeA[2] + sizeB[2]) / 2
     );
   }
 

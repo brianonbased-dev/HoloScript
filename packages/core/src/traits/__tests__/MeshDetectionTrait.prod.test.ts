@@ -24,7 +24,7 @@ function makeBlock(id: string, vCount = 10, tCount = 5): any {
     vertices: new Float32Array(vCount * 3),
     indices: new Uint32Array(tCount * 3),
     normals: new Float32Array(vCount * 3),
-    bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+    bounds: { min: [0, 0, 0 ], max: [1, 1, 1 ] },
     lastUpdated: 0,
     vertexCount: vCount,
     triangleCount: tCount,

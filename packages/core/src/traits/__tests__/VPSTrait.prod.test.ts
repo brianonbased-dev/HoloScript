@@ -36,7 +36,7 @@ function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
 
 const POSE = {
   position: [1, 2, 3],
-  rotation: { x: 0, y: 0.707, z: 0, w: 0.707 },
+  rotation: [0, 0.707, 0, 0.707 ],
 };
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────
@@ -156,15 +156,15 @@ describe('VPSTrait — onUpdate', () => {
     const node = {
       ...makeNode(),
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 0 },
+      rotation: [0, 0, 0, 0 ],
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';
     st(node).pose = POSE;
     vpsHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(node.position.x).toBe(1);
-    expect(node.position.y).toBe(2);
-    expect(node.position.z).toBe(3);
+    expect(node.position[0]).toBe(1);
+    expect(node.position[1]).toBe(2);
+    expect(node.position[2]).toBe(3);
   });
 
   it('applies pose when state=localized', () => {
@@ -173,7 +173,7 @@ describe('VPSTrait — onUpdate', () => {
     st(node).state = 'localized';
     st(node).pose = POSE;
     vpsHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(node.position.x).toBe(1);
+    expect(node.position[0]).toBe(1);
   });
 
   it('does not apply pose when state=idle', () => {
@@ -182,20 +182,20 @@ describe('VPSTrait — onUpdate', () => {
     st(node).state = 'idle';
     st(node).pose = POSE;
     vpsHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(node.position.x).toBe(99); // unchanged
+    expect(node.position[0]).toBe(99); // unchanged
   });
 
-  it('applies rotation.w when node.rotation.w defined', () => {
+  it('applies rotation[3] when node.rotation[3] defined', () => {
     const node = {
       ...makeNode(),
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 0 },
+      rotation: [0, 0, 0, 0 ],
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';
     st(node).pose = POSE;
     vpsHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(node.rotation.w).toBeCloseTo(0.707);
+    expect(node.rotation[3]).toBeCloseTo(0.707);
   });
 });
 

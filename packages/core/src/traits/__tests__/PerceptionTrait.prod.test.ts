@@ -4,8 +4,8 @@ type PercConfig = NonNullable<Parameters<typeof perceptionHandler.onAttach>[1]>;
 function mkCfg(o: Partial<PercConfig> = {}): PercConfig {
   return { ...perceptionHandler.defaultConfig!, ...o };
 }
-function mkNode(id = 'perc-node', position = { x: 0, y: 0, z: 0 }) {
-  return { id, position, rotation: { x: 0, y: 0, z: 0 } } as any;
+function mkNode(id = 'perc-node', position = [0, 0, 0 ]) {
+  return { id, position, rotation: [0, 0, 0 ] } as any;
 }
 function mkCtx() {
   const e: any[] = [];
@@ -21,7 +21,7 @@ function detect(
   ctx: any,
   cfg: PercConfig,
   id: string,
-  pos: { x: number; y: number; z: number },
+  pos: Vector3,
   threat = 0.5
 ) {
   perceptionHandler.onEvent!(
@@ -75,23 +75,23 @@ describe('perceptionHandler — onDetach', () => {
 
 describe('perceptionHandler — onEvent: perception_detect', () => {
   it('adds entity within sight range + angle', () => {
-    // Node at origin, facing +Z (rotation.y=0). Target directly in front at z=5 (within 20 range, 0° angle)
+    // Node at origin, facing +Z (rotation[1]=0). Target directly in front at z=5 (within 20 range, 0° angle)
     const { node, ctx, cfg } = attach(
       mkCfg({ sight_range: 20, sight_angle: 120, detection_layers: [] })
     );
-    detect(node, ctx, cfg, 'e1', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'e1', [0, 0, 5 ]);
     expect((node as any).__perceptionState.entities.has('e1')).toBe(true);
   });
   it('emits perception_new for first detection', () => {
     const { node, ctx, cfg } = attach(mkCfg({ detection_layers: [] }));
-    detect(node, ctx, cfg, 'e2', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'e2', [0, 0, 5 ]);
     expect(ctx.emitted.some((e: any) => e.type === 'perception_new')).toBe(true);
   });
   it('no perception_new on second detection of same entity', () => {
     const { node, ctx, cfg } = attach(mkCfg({ detection_layers: [] }));
-    detect(node, ctx, cfg, 'dup', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'dup', [0, 0, 5 ]);
     ctx.emitted.length = 0;
-    detect(node, ctx, cfg, 'dup', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'dup', [0, 0, 5 ]);
     expect(ctx.emitted.some((e: any) => e.type === 'perception_new')).toBe(false);
   });
   it('stores entity beyond sight/hearing as proximity type (no hard cutoff without layers)', () => {
@@ -100,7 +100,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
     const { node, ctx, cfg } = attach(
       mkCfg({ sight_range: 5, hearing_range: 3, alert_radius: 1, detection_layers: [] })
     );
-    detect(node, ctx, cfg, 'far', { x: 0, y: 0, z: 100 });
+    detect(node, ctx, cfg, 'far', [0, 0, 100 ]);
     const entity = (node as any).__perceptionState.entities.get('far');
     expect(entity?.senseType).toBe('proximity');
   });
@@ -139,7 +139,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
     const { node, ctx, cfg } = attach(
       mkCfg({ sight_range: 20, sight_angle: 120, detection_layers: [] })
     );
-    detect(node, ctx, cfg, 'sight_ent', { x: 0, y: 0, z: 10 });
+    detect(node, ctx, cfg, 'sight_ent', [0, 0, 10 ]);
     const entity = (node as any).__perceptionState.entities.get('sight_ent');
     expect(entity?.senseType).toBe('sight');
   });
@@ -154,7 +154,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
         detection_layers: [],
       })
     );
-    detect(node, ctx, cfg, 'hear_ent', { x: 10, y: 0, z: 0 });
+    detect(node, ctx, cfg, 'hear_ent', [10, 0, 0 ]);
     const entity = (node as any).__perceptionState.entities.get('hear_ent');
     expect(entity?.senseType).toBe('hearing');
   });
@@ -259,7 +259,7 @@ describe('perceptionHandler — onEvent: perception_damage', () => {
 describe('perceptionHandler — onEvent: forget / clear', () => {
   it('perception_forget removes single entity', () => {
     const { node, ctx, cfg } = attach(mkCfg({ detection_layers: [] }));
-    detect(node, ctx, cfg, 'rem_me', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'rem_me', [0, 0, 5 ]);
     perceptionHandler.onEvent!(
       node,
       cfg,
@@ -270,8 +270,8 @@ describe('perceptionHandler — onEvent: forget / clear', () => {
   });
   it('perception_clear removes all entities and resets state', () => {
     const { node, ctx, cfg } = attach(mkCfg({ detection_layers: [] }));
-    detect(node, ctx, cfg, 'a', { x: 0, y: 0, z: 5 });
-    detect(node, ctx, cfg, 'b', { x: 1, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'a', [0, 0, 5 ]);
+    detect(node, ctx, cfg, 'b', [1, 0, 5 ]);
     perceptionHandler.onEvent!(node, cfg, ctx as any, { type: 'perception_clear' } as any);
     expect((node as any).__perceptionState.entities.size).toBe(0);
     expect((node as any).__perceptionState.alertLevel).toBe(0);
@@ -295,7 +295,7 @@ describe('perceptionHandler — onUpdate', () => {
   it('emits perception_lost when confidence decays to 0', () => {
     const cfg = mkCfg({ confidence_decay: 100, memory_duration: 60000, detection_layers: [] });
     const { node, ctx } = attach(cfg);
-    detect(node, ctx, cfg, 'fading', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'fading', [0, 0, 5 ]);
     ctx.emitted.length = 0;
     perceptionHandler.onUpdate!(node, cfg, ctx as any, 1.0); // 100 decay × 1s = -100 confidence
     expect(ctx.emitted.some((e: any) => e.type === 'perception_lost')).toBe(true);
@@ -304,7 +304,7 @@ describe('perceptionHandler — onUpdate', () => {
   it('emits perception_lost when entity exceeds memory_duration', () => {
     const cfg = mkCfg({ memory_duration: 1, confidence_decay: 0, detection_layers: [] });
     const { node, ctx } = attach(cfg);
-    detect(node, ctx, cfg, 'old', { x: 0, y: 0, z: 5 });
+    detect(node, ctx, cfg, 'old', [0, 0, 5 ]);
     // Manually age the entity
     const entity = (node as any).__perceptionState.entities.get('old');
     entity.lastSeen = Date.now() - 5000; // 5 seconds old, well past 1ms memory_duration

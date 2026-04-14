@@ -27,10 +27,10 @@ describe('PlaneDetectionTrait', () => {
   const makePlane = (id: string, area = 1, normalY = 1) => ({
     id,
     classification: 'floor' as const,
-    center: { x: 0, y: 0, z: 0 },
+    center: [0, 0, 0 ],
     extent: { width: 1, height: 1 },
-    normal: { x: 0, y: normalY, z: 0 },
-    vertices: [{ x: 0, y: 0, z: 0 }],
+    normal: [0, normalY, 0 ],
+    vertices: [[0, 0, 0 ]],
     area,
     lastUpdated: Date.now(),
     confidence: 0.9,
@@ -91,17 +91,17 @@ describe('PlaneDetectionTrait', () => {
 
   it('hit_test returns ray intersection results', () => {
     const p = makePlane('floor');
-    p.center = { x: 0, y: 0, z: 0 };
-    p.normal = { x: 0, y: 1, z: 0 };
+    p.center = [0, 0, 0 ];
+    p.normal = [0, 1, 0 ];
     sendEvent(planeDetectionHandler, node, cfg, ctx, { type: 'plane_detected', plane: p });
     sendEvent(planeDetectionHandler, node, cfg, ctx, {
       type: 'plane_hit_test',
-      ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 0, y: -1, z: 0 } },
+      ray: { origin: [0, 5, 0 ], direction: [0, -1, 0 ] },
       queryId: 'ht1',
     });
     const r = getLastEvent(ctx, 'plane_hit_test_result') as any;
     expect(r.results.length).toBe(1);
-    expect(r.results[0].point.y).toBeCloseTo(0, 0);
+    expect(r.results[0].point[1]).toBeCloseTo(0, 0);
   });
 
   it('plane_select sets selected plane', () => {

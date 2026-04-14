@@ -765,7 +765,7 @@ describe('HoloScriptTypeChecker', () => {
           type: 'orb',
           name: 'orbA',
           shape: 'sphere',
-          properties: { rotation: { x: 0, y: 0, z: 0 } }, // euler-like
+          properties: { rotation: [0, 0, 0 ] }, // euler-like
         } as OrbNode,
         {
           type: 'orb',

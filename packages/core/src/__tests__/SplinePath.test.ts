@@ -35,9 +35,9 @@ describe('SplinePath', () => {
     sp.addPoint(10, 20, 0);
     const start = sp.evaluate(0);
     const end = sp.evaluate(1);
-    expect(start.x).toBeCloseTo(0);
-    expect(end.x).toBeCloseTo(10);
-    expect(end.y).toBeCloseTo(20);
+    expect(start[0]).toBeCloseTo(0);
+    expect(end[0]).toBeCloseTo(10);
+    expect(end[1]).toBeCloseTo(20);
   });
 
   it('catmull-rom produces smooth curve', () => {
@@ -83,7 +83,7 @@ describe('SplinePath', () => {
     sp.addPoint(10, 0);
     sp.setPoint(1, 0, 10);
     const end = sp.evaluate(1);
-    expect(end.y).toBeCloseTo(10);
+    expect(end[1]).toBeCloseTo(10);
   });
 
   it('removePoint reduces count', () => {

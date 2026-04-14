@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core Skeleton Trait
  *
@@ -26,11 +27,7 @@
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 /**
  * Quaternion rotation

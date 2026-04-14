@@ -16,19 +16,19 @@ describe('createUISlider — Production', () => {
 
   it('default axis is x', () => {
     const node = createUISlider('s1', {});
-    expect(node.properties.scale.x).toBeCloseTo(0.3); // default length
-    expect(node.properties.scale.y).toBeCloseTo(0.01);
+    expect(node.properties.scale[0]).toBeCloseTo(0.3); // default length
+    expect(node.properties.scale[1]).toBeCloseTo(0.01);
   });
 
   it('y axis scales correctly', () => {
     const node = createUISlider('s1', { axis: 'y', length: 0.5 });
-    expect(node.properties.scale.y).toBeCloseTo(0.5);
-    expect(node.properties.scale.x).toBeCloseTo(0.01);
+    expect(node.properties.scale[1]).toBeCloseTo(0.5);
+    expect(node.properties.scale[0]).toBeCloseTo(0.01);
   });
 
   it('z axis scales correctly', () => {
     const node = createUISlider('s1', { axis: 'z' });
-    expect(node.properties.scale.z).toBeCloseTo(0.3);
+    expect(node.properties.scale[2]).toBeCloseTo(0.3);
   });
 
   it('creates handle child', () => {

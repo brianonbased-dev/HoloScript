@@ -1,0 +1,1 @@
+{"version":3,"file":"HealthcheckTrait.d.ts","sourceRoot":"","sources":["HealthcheckTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;GAaG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,iBAAiB;IAChC,gBAAgB,EAAE,MAAM,CAAC;IACzB,UAAU,EAAE,MAAM,CAAC;CACpB;AAUD,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,iBAAiB,CA+E9D,CAAC;AAaF,eAAe,kBAAkB,CAAC"}

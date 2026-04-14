@@ -168,7 +168,7 @@ describe('VolumetricTrait — onEvent: volumetric_sort_request', () => {
     const fakeSplat = { count: 3, positions: new Float32Array([0, 0, 0, 1, 1, 1, 2, 2, 2]) } as any;
     st(node).splatData = fakeSplat;
     // service.sortSplat should return a Uint32Array
-    fire(node, cfg, ctx, { type: 'volumetric_sort_request', cameraPosition: { x: 0, y: 0, z: 0 } });
+    fire(node, cfg, ctx, { type: 'volumetric_sort_request', cameraPosition: [0, 0, 0 ] });
     expect(st(node).indices).not.toBeNull();
     expect(st(node).indices).toBeInstanceOf(Uint32Array);
   });
@@ -177,7 +177,7 @@ describe('VolumetricTrait — onEvent: volumetric_sort_request', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     const prevIndices = st(node).indices;
-    fire(node, cfg, ctx, { type: 'volumetric_sort_request', cameraPosition: { x: 0, y: 0, z: 0 } });
+    fire(node, cfg, ctx, { type: 'volumetric_sort_request', cameraPosition: [0, 0, 0 ] });
     expect(st(node).indices).toBe(prevIndices); // unchanged (still null)
   });
 });
@@ -207,8 +207,8 @@ describe('VolumetricTrait — onEvent: volumetric_set_clip', () => {
   it('stores clipBounds and emits volumetric_clip_updated', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    const min = { x: -1, y: -1, z: -1 };
-    const max = { x: 1, y: 1, z: 1 };
+    const min = [-1, -1, -1 ];
+    const max = [1, 1, 1 ];
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'volumetric_set_clip', min, max });
     expect(st(node).clipBounds).toEqual({ min, max });
@@ -227,7 +227,7 @@ describe('VolumetricTrait — onEvent: volumetric_reset_clip', () => {
   it('resets clipBounds to null', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    st(node).clipBounds = { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } };
+    st(node).clipBounds = { min: [-1, -1, -1 ], max: [1, 1, 1 ] };
     fire(node, cfg, ctx, { type: 'volumetric_reset_clip' });
     expect(st(node).clipBounds).toBeNull();
   });
@@ -252,8 +252,8 @@ describe('VolumetricTrait — onEvent: volumetric_ray_query', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, {
       type: 'volumetric_ray_query',
-      origin: { x: 0, y: 5, z: 0 },
-      direction: { x: 0, y: -1, z: 0 },
+      origin: [0, 5, 0 ],
+      direction: [0, -1, 0 ],
       threshold: 0.1,
       queryId: 'rq1',
     });
@@ -271,8 +271,8 @@ describe('VolumetricTrait — onEvent: volumetric_ray_query', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, {
       type: 'volumetric_ray_query',
-      origin: { x: 0, y: 0, z: 0 },
-      direction: { x: 0, y: -1, z: 0 },
+      origin: [0, 0, 0 ],
+      direction: [0, -1, 0 ],
       queryId: 'rq2',
     });
     expect(ctx.emit).not.toHaveBeenCalledWith('volumetric_ray_hit', expect.any(Object));
@@ -284,8 +284,8 @@ describe('VolumetricTrait — onEvent: volumetric_ray_query', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, {
       type: 'volumetric_ray_query',
-      origin: { x: 0, y: 0, z: 0 },
-      direction: { x: 0, y: -1, z: 0 },
+      origin: [0, 0, 0 ],
+      direction: [0, -1, 0 ],
       queryId: 'rq3',
     });
     expect(ctx.emit).not.toHaveBeenCalledWith('volumetric_ray_hit', expect.any(Object));

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * Destruction Trait
  *
@@ -15,9 +16,9 @@ import type { TraitHandler, TraitContext } from './TraitTypes';
 interface Fragment {
   id: string;
   position: [number, number, number];
-  velocity: { x: number; y: number; z: number };
-  rotation: { x: number; y: number; z: number };
-  angularVelocity: { x: number; y: number; z: number };
+  velocity: [number, number, number];
+  rotation: [number, number, number];
+  angularVelocity: [number, number, number];
   scale: number;
   lifetime: number;
   mesh?: unknown;
@@ -56,23 +57,23 @@ interface DestructionConfig {
 
 function generateVoronoiPoints(
   count: number,
-  bounds: { x: number; y: number; z: number }
-): { x: number; y: number; z: number }[] {
-  const points: { x: number; y: number; z: number }[] = [];
+  bounds: Vector3
+): Vector3[] {
+  const points: Vector3[] = [];
   for (let i = 0; i < count; i++) {
-    points.push({
-      x: (Math.random() - 0.5) * bounds.x,
-      y: (Math.random() - 0.5) * bounds.y,
-      z: (Math.random() - 0.5) * bounds.z,
-    });
+    points.push([
+      (Math.random() - 0.5) * bounds[0],
+      (Math.random() - 0.5) * bounds[1],
+      (Math.random() - 0.5) * bounds[2],
+    ]);
   }
   return points;
 }
 
 function generateFragments(
   position: [number, number, number],
-  scale: { x: number; y: number; z: number },
-  impactPoint: { x: number; y: number; z: number } | null,
+  scale: Vector3,
+  impactPoint: Vector3 | null,
   config: DestructionConfig
 ): Fragment[] {
   const fragments: Fragment[] = [];
@@ -80,10 +81,10 @@ function generateFragments(
 
   for (let i = 0; i < points.length; i++) {
     // Direction from center (or impact point)
-    const center = impactPoint || { x: 0, y: 0, z: 0 };
-    const dx = points[i].x - center.x;
-    const dy = points[i].y - center.y;
-    const dz = points[i].z - center.z;
+    const center = impactPoint || [0, 0, 0 ];
+    const dx = points[i].x - center[0];
+    const dy = points[i].y - center[1];
+    const dz = points[i].z - center[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
 
     // Normalize and apply explosion force
@@ -91,18 +92,18 @@ function generateFragments(
 
     fragments.push({
       id: `fragment_${i}_${Date.now()}`,
-      position: [position.x + points[i].x, position.y + points[i].y, position.z + points[i].z,],
-      velocity: {
-        x: (dx / dist) * explosionScale,
-        y: (dy / dist) * explosionScale + Math.random() * 2, // Slight upward bias
-        z: (dz / dist) * explosionScale,
-      },
-      rotation: { x: 0, y: 0, z: 0 },
-      angularVelocity: {
-        x: (Math.random() - 0.5) * 10,
-        y: (Math.random() - 0.5) * 10,
-        z: (Math.random() - 0.5) * 10,
-      },
+      position: [position[0] + points[i][0], position[1] + points[i][1], position[2] + points[i][2]],
+      velocity: [
+        (dx / dist) * explosionScale,
+        (dy / dist) * explosionScale + Math.random() * 2, // Slight upward bias
+        (dz / dist) * explosionScale,
+      ],
+      rotation: [0, 0, 0],
+      angularVelocity: [
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+      ],
       scale: (0.3 + Math.random() * 0.7) / Math.sqrt(config.fragment_count),
       lifetime: config.fragment_lifetime,
     });
@@ -177,20 +178,20 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
 
         if (frag.lifetime > 0) {
           // Update physics
-          frag.velocity.y -= gravity * delta;
+          frag.velocity[1] -= gravity * delta;
 
-          frag.position.x += frag.velocity.x * delta;
-          frag.position.y += frag.velocity.y * delta;
-          frag.position.z += frag.velocity.z * delta;
+          frag.position[0] += frag.velocity[0] * delta;
+          frag.position[1] += frag.velocity[1] * delta;
+          frag.position[2] += frag.velocity[2] * delta;
 
-          frag.rotation.x += frag.angularVelocity.x * delta;
-          frag.rotation.y += frag.angularVelocity.y * delta;
-          frag.rotation.z += frag.angularVelocity.z * delta;
+          frag.rotation[0] += frag.angularVelocity[0] * delta;
+          frag.rotation[1] += frag.angularVelocity[1] * delta;
+          frag.rotation[2] += frag.angularVelocity[2] * delta;
 
           // Apply drag
           const drag = 0.98;
-          frag.velocity.x *= drag;
-          frag.velocity.z *= drag;
+          frag.velocity[0] *= drag;
+          frag.velocity[2] *= drag;
 
           // Update visual via emit
           if (frag.mesh) {
@@ -204,11 +205,11 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
           }
 
           // Ground collision
-          if (frag.position.y < 0) {
-            frag.position.y = 0;
-            frag.velocity.y = -frag.velocity.y * 0.3; // Bounce
-            frag.velocity.x *= 0.8;
-            frag.velocity.z *= 0.8;
+          if (frag.position[1] < 0) {
+            frag.position[1] = 0;
+            frag.velocity[1] = -frag.velocity[1] * 0.3; // Bounce
+            frag.velocity[0] *= 0.8;
+            frag.velocity[2] *= 0.8;
           }
 
           remainingFragments.push(frag);
@@ -244,7 +245,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
           config,
           context,
           state,
-          event.impactPoint as { x: number; y: number; z: number } | undefined
+          event.impactPoint as [number, number, number] | undefined
         );
       }
     } else if (event.type === 'destroy') {
@@ -254,7 +255,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
           config,
           context,
           state,
-          event.impactPoint as { x: number; y: number; z: number } | undefined
+          event.impactPoint as [number, number, number] | undefined
         );
       }
     } else if (event.type === 'repair') {
@@ -293,7 +294,7 @@ function _handleImpact(
   context: TraitContext,
   state: DestructionState,
   impulse: number,
-  impactPoint: { x: number; y: number; z: number } | undefined
+  impactPoint: Vector3 | undefined
 ): void {
   if (impulse >= config.impact_threshold) {
     // Calculate damage based on impulse
@@ -320,7 +321,7 @@ function triggerDestruction(
   config: DestructionConfig,
   context: TraitContext,
   state: DestructionState,
-  impactPoint: { x: number; y: number; z: number } | undefined
+  impactPoint: Vector3 | undefined
 ): void {
   if (state.isDestroyed) return;
 
@@ -333,23 +334,19 @@ function triggerDestruction(
   state.isDestroyed = true;
 
   const nodeRecord = node as Record<string, unknown>;
-  const position = (nodeRecord.position as { x: number; y: number; z: number }) || {
-    x: 0,
-    y: 0,
-    z: 0,
-  };
-  const scale = (nodeRecord.scale as { x: number; y: number; z: number }) || { x: 1, y: 1, z: 1 };
+  const position = (nodeRecord.position as [number, number, number]) || [0, 0, 0];
+  const scale = (nodeRecord.scale as [number, number, number]) || [1, 1, 1];
 
   // Generate fragments
   state.fragments = generateFragments(
     position,
     scale,
     impactPoint
-      ? {
-          x: impactPoint.x - position.x,
-          y: impactPoint.y - position.y,
-          z: impactPoint.z - position.z,
-        }
+      ? [
+          impactPoint[0] - position[0],
+          impactPoint[1] - position[1],
+          impactPoint[2] - position[2],
+        ]
       : null,
     config
   );

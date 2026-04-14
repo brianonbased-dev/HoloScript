@@ -1,3 +1,4 @@
+import type { Vector3, Quaternion } from '@holoscript/core';
 /**
  * VehicleSystem.ts
  *
@@ -54,7 +55,7 @@ export interface VehicleState {
   id: string;
   definition: VehicleDefinition;
   position: IVector3;
-  rotation: { x: number; y: number; z: number; w: number };
+  rotation: Quaternion;
   linearVelocity: IVector3;
   angularVelocity: IVector3;
   wheels: WheelState[];
@@ -76,9 +77,9 @@ export function createDefaultCar(id: string): VehicleDefinition {
     isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z > 0 ? 'f' : 'r'}`,
-    connectionPoint: { x, y: -0.3, z },
-    direction: { x: 0, y: -1, z: 0 },
-    axle: { x: 1, y: 0, z: 0 },
+    connectionPoint: [x, -0.3, z],
+    direction: [0, -1, 0],
+    axle: [1, 0, 0],
     suspensionRestLength: 0.3,
     suspensionStiffness: 25,
     suspensionDamping: 4.4,
@@ -93,7 +94,7 @@ export function createDefaultCar(id: string): VehicleDefinition {
   return {
     id,
     chassisMass: 1500,
-    chassisSize: { x: 1.8, y: 0.6, z: 4.2 },
+    chassisSize: [1.8, 0.6, 4.2],
     wheels: [
       wheelConfig(-0.8, 1.4, true, false), // Front Left
       wheelConfig(0.8, 1.4, true, false), // Front Right
@@ -114,9 +115,9 @@ export function createTruck(id: string): VehicleDefinition {
     isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z.toFixed(0)}`,
-    connectionPoint: { x, y: -0.5, z },
-    direction: { x: 0, y: -1, z: 0 },
-    axle: { x: 1, y: 0, z: 0 },
+    connectionPoint: [x, -0.5, z],
+    direction: [0, -1, 0],
+    axle: [1, 0, 0],
     suspensionRestLength: 0.4,
     suspensionStiffness: 40,
     suspensionDamping: 6.0,
@@ -131,7 +132,7 @@ export function createTruck(id: string): VehicleDefinition {
   return {
     id,
     chassisMass: 5000,
-    chassisSize: { x: 2.4, y: 1.0, z: 7.0 },
+    chassisSize: [2.4, 1.0, 7.0],
     wheels: [
       wheelConfig(-1.0, 2.8, true, false),
       wheelConfig(1.0, 2.8, true, false),
@@ -171,10 +172,10 @@ export class VehicleSystem {
     const state: VehicleState = {
       id: definition.id,
       definition,
-      position: { ...position },
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      linearVelocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 },
+      position: [position[0], position[1], position[2]],
+      rotation: [0, 0, 0, 1],
+      linearVelocity: [0, 0, 0],
+      angularVelocity: [0, 0, 0],
       wheels,
       speed: 0,
       engineForce: 0,
@@ -208,7 +209,7 @@ export class VehicleSystem {
 
     for (const wheel of vehicle.wheels) {
       // Raycast suspension (simplified: ground at y = 0)
-      const wheelWorldY = vehicle.position.y + wheel.config.connectionPoint.y;
+      const wheelWorldY = vehicle.position[1] + wheel.config.connectionPoint[1];
       const rayEnd = wheelWorldY - wheel.config.suspensionRestLength - wheel.config.wheelRadius;
 
       if (rayEnd <= 0) {
@@ -225,17 +226,13 @@ export class VehicleSystem {
         const springForce = springDelta * wheel.config.suspensionStiffness;
 
         // Damping force
-        const relVel = vehicle.linearVelocity.y;
+        const relVel = vehicle.linearVelocity[1];
         const dampForce = -relVel * wheel.config.suspensionDamping;
 
         wheel.suspensionForce = Math.max(0, springForce + dampForce);
         totalSuspensionForce += wheel.suspensionForce;
 
-        wheel.contactPoint = {
-          x: vehicle.position.x + wheel.config.connectionPoint.x,
-          y: 0,
-          z: vehicle.position.z + wheel.config.connectionPoint.z,
-        };
+        wheel.contactPoint = [vehicle.position[0] + wheel.config.connectionPoint[0], 0, vehicle.position[2] + wheel.config.connectionPoint[2]];
       } else {
         wheel.isGrounded = false;
         wheel.suspensionForce = 0;
@@ -251,59 +248,59 @@ export class VehicleSystem {
       if (wheel.config.isDriving && vehicle.engineForce !== 0) {
         const driveForce =
           vehicle.engineForce / vehicle.wheels.filter((w) => w.config.isDriving).length;
-        vehicle.linearVelocity.x += ((forwardDir.x * driveForce) / def.chassisMass) * dt;
-        vehicle.linearVelocity.z += ((forwardDir.z * driveForce) / def.chassisMass) * dt;
+        vehicle.linearVelocity[0] += ((forwardDir[0] * driveForce) / def.chassisMass) * dt;
+        vehicle.linearVelocity[2] += ((forwardDir[2] * driveForce) / def.chassisMass) * dt;
       }
 
       if (vehicle.brakeForce > 0) {
-        const speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
+        const speed = Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2);
         if (speed > 0.01) {
           const brakeDec = Math.min((vehicle.brakeForce / def.chassisMass) * dt, speed);
           const factor = 1 - brakeDec / speed;
-          vehicle.linearVelocity.x *= factor;
-          vehicle.linearVelocity.z *= factor;
+          vehicle.linearVelocity[0] *= factor;
+          vehicle.linearVelocity[2] *= factor;
         }
       }
 
       // Wheel rotation (visual)
-      const wheelSpeed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
+      const wheelSpeed = Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2);
       wheel.rotation += (wheelSpeed / wheel.config.wheelRadius) * dt;
 
       // Skid factor
-      const lateralSpeed = Math.abs(vehicle.angularVelocity.y * 0.5);
+      const lateralSpeed = Math.abs(vehicle.angularVelocity[1] * 0.5);
       wheel.skidFactor = Math.min(lateralSpeed / (wheel.config.frictionSlip + 0.001), 1);
     }
 
     // Apply gravity
     const isGrounded = vehicle.wheels.some((w) => w.isGrounded);
     if (!isGrounded) {
-      vehicle.linearVelocity.y -= 9.81 * dt;
+      vehicle.linearVelocity[1] -= 9.81 * dt;
     } else {
       // Suspension keeps us up
       const suspensionAccel = totalSuspensionForce / def.chassisMass;
-      vehicle.linearVelocity.y += (suspensionAccel - 9.81) * dt;
+      vehicle.linearVelocity[1] += (suspensionAccel - 9.81) * dt;
       const refWheel = vehicle.wheels[0].config;
-      if (vehicle.position.y <= refWheel.wheelRadius + refWheel.suspensionRestLength) {
-        vehicle.linearVelocity.y = Math.max(vehicle.linearVelocity.y, 0);
+      if (vehicle.position[1] <= refWheel.wheelRadius + refWheel.suspensionRestLength) {
+        vehicle.linearVelocity[1] = Math.max(vehicle.linearVelocity[1], 0);
       }
     }
 
     // Steering yaw
     if (vehicle.steerAngle !== 0 && isGrounded) {
-      const speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2);
+      const speed = Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2);
       const turnRate = vehicle.steerAngle * speed * 0.5;
-      vehicle.angularVelocity.y = turnRate;
+      vehicle.angularVelocity[1] = turnRate;
     } else {
-      vehicle.angularVelocity.y *= 0.95; // Natural yaw damping
+      vehicle.angularVelocity[1] *= 0.95; // Natural yaw damping
     }
 
     // Integrate position
-    vehicle.position.x += vehicle.linearVelocity.x * dt;
-    vehicle.position.y += vehicle.linearVelocity.y * dt;
-    vehicle.position.z += vehicle.linearVelocity.z * dt;
+    vehicle.position[0] += vehicle.linearVelocity[0] * dt;
+    vehicle.position[1] += vehicle.linearVelocity[1] * dt;
+    vehicle.position[2] += vehicle.linearVelocity[2] * dt;
 
     // Compute speed in km/h
-    vehicle.speed = Math.sqrt(vehicle.linearVelocity.x ** 2 + vehicle.linearVelocity.z ** 2) * 3.6;
+    vehicle.speed = Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2) * 3.6;
 
     return vehicle;
   }
@@ -344,8 +341,8 @@ export class VehicleSystem {
 
   private getForwardVector(vehicle: VehicleState): IVector3 {
     // Simplified: use yaw from angular velocity to determine forward direction
-    const yaw = vehicle.angularVelocity.y;
+    const yaw = vehicle.angularVelocity[1];
     // Accumulated yaw approximation (simplified)
-    return { x: Math.sin(yaw), y: 0, z: Math.cos(yaw) };
+    return [Math.sin(yaw), 0, Math.cos(yaw)];
   }
 }

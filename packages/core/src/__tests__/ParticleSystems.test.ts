@@ -95,7 +95,7 @@ describe('ParticleSystem', () => {
   it('setPosition updates emitter origin', () => {
     ps.setPosition(10, 20, 30);
     const cfg = ps.getConfig();
-    expect(cfg.position.x).toBe(10);
+    expect(cfg.position[0]).toBe(10);
   });
 
   it('sphere shape emits at varying positions', () => {

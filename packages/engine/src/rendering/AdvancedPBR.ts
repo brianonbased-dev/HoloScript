@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AdvancedPBR.ts
  *
@@ -21,11 +22,6 @@
 // TYPES
 // =============================================================================
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
 export type RGB = [number, number, number];
 
 export interface ClearcoatConfig {
@@ -43,7 +39,7 @@ export interface AnisotropyConfig {
   /** Rotation angle of anisotropic tangent in radians */
   angle: number;
   /** Anisotropy direction vector (must be unit) */
-  tangent: Vec3;
+  tangent: Vector3;
 }
 
 export interface SheenConfig {
@@ -427,7 +423,7 @@ export const MATERIAL_PRESETS = {
       albedo: [0.8, 0.8, 0.85],
       metallic: 1,
       roughness: 0.3,
-      anisotropy: { strength: 0.8, angle: 0, tangent: { x: 1, y: 0, z: 0 } },
+      anisotropy: { strength: 0.8, angle: 0, tangent: [1, 0, 0] },
     }),
 
   velvet: (): AdvancedPBRMaterial =>

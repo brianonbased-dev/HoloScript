@@ -79,7 +79,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should seek toward and flee from targets', () => {
     const agent: SteeringAgent = {
       position: [0, 0, 0],
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0 ],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,
@@ -95,7 +95,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should arrive and slow down near target', () => {
     const agent: SteeringAgent = {
       position: [0, 0, 0],
-      velocity: { x: 2, y: 0, z: 0 },
+      velocity: [2, 0, 0 ],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,
@@ -111,7 +111,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should produce flock forces for a group', () => {
     const agents: SteeringAgent[] = Array.from({ length: 5 }, (_, i) => ({
       position: [i * 2, 0, 0],
-      velocity: { x: 1, y: 0, z: 0 },
+      velocity: [1, 0, 0 ],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,
@@ -125,7 +125,7 @@ describe('Cycle 148: AI Senses', () => {
     });
 
     // Flock force should be non-zero since there are neighbors
-    const mag = Math.sqrt(force.x ** 2 + force.y ** 2 + force.z ** 2);
+    const mag = Math.sqrt(force[0] ** 2 + force[1] ** 2 + force[2] ** 2);
     expect(mag).toBeGreaterThan(0);
   });
 
@@ -170,8 +170,8 @@ describe('Cycle 148: AI Senses', () => {
     im.setInfluence('heat', 7, 3, 42);
 
     const max = im.getMaxCell('heat');
-    expect(max.x).toBe(7);
-    expect(max.y).toBe(3);
+    expect(max[0]).toBe(7);
+    expect(max[1]).toBe(3);
     expect(max.value).toBe(42);
   });
 });

@@ -141,9 +141,9 @@ describe('SkyRenderer', () => {
 
   it('cloud offset advances', () => {
     const l = sky.addCloudLayer(0.3, 1000, { x: 10, z: 0 });
-    const before = l.offset.x;
+    const before = l.offset[0];
     sky.updateClouds(1);
-    expect(l.offset.x).toBeGreaterThan(before);
+    expect(l.offset[0]).toBeGreaterThan(before);
   });
 
   it('sun visibility tied to angle', () => {

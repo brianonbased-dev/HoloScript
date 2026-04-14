@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * V43 Trait Handler Tests
  *
@@ -35,13 +36,13 @@ function createMockNode(id = 'test_node'): HSPlusNode {
   } as HSPlusNode;
 }
 
-function createMockContext(playerPos?: { x: number; y: number; z: number }): TraitContext {
+function createMockContext(playerPos?: Vector3): TraitContext {
   let state: Record<string, unknown> = {};
 
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0 } },
+      headset: { position: [0, 1.6, 0], rotation: [0, 0, 0 ] },
       isPresenting: false,
     } as any,
     physics: {

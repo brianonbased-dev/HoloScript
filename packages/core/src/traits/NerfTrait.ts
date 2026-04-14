@@ -206,18 +206,18 @@ function loadNerfModel(
 }
 
 function getCameraHash(camera: {
-  position?: { x: number; y: number; z: number };
-  rotation?: { x: number; y: number; z: number };
+  position?: [number, number, number];
+  rotation?: [number, number, number];
 }): string {
-  const pos = camera.position || { x: 0, y: 0, z: 0 };
-  const rot = camera.rotation || { x: 0, y: 0, z: 0 };
+  const pos = camera.position || [0, 0, 0];
+  const rot = camera.rotation || [0, 0, 0];
   // Quantize to reduce cache misses for minor movements
-  const px = Math.round(pos.x * 100) / 100;
-  const py = Math.round(pos.y * 100) / 100;
-  const pz = Math.round(pos.z * 100) / 100;
-  const rx = Math.round(rot.x * 100) / 100;
-  const ry = Math.round(rot.y * 100) / 100;
-  const rz = Math.round(rot.z * 100) / 100;
+  const px = Math.round(pos[0] * 100) / 100;
+  const py = Math.round(pos[1] * 100) / 100;
+  const pz = Math.round(pos[2] * 100) / 100;
+  const rx = Math.round(rot[0] * 100) / 100;
+  const ry = Math.round(rot[1] * 100) / 100;
+  const rz = Math.round(rot[2] * 100) / 100;
   return `${px},${py},${pz},${rx},${ry},${rz}`;
 }
 

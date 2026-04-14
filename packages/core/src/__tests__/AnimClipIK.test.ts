@@ -22,10 +22,10 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
     });
 
     const mid = clip.sample(1);
-    expect(mid.get('root.position.y')).toBeCloseTo(5, 0);
+    expect(mid.get('root.position[1]')).toBeCloseTo(5, 0);
 
     const end = clip.sample(2);
-    expect(end.get('root.position.y')).toBeCloseTo(10, 0);
+    expect(end.get('root.position[1]')).toBeCloseTo(10, 0);
   });
 
   it('should fire events in time range', () => {
@@ -75,19 +75,19 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
       {
         id: 'upper',
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 5,
       },
       {
         id: 'lower',
         position: [5, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 5,
       },
       {
         id: 'end',
         position: [10, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         length: 0,
       },
     ];
@@ -98,7 +98,7 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
 
     const chain = solver.getChain('arm')!;
     // End effector should have moved toward target
-    expect(chain.bones[2].position.x).not.toBe(10);
+    expect(chain.bones[2].position[0]).not.toBe(10);
   });
 
   it('should solve CCD chain solver', () => {
@@ -109,7 +109,7 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
         id: `bone${i}`,
         length: 2,
         position: [i * 2, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
       });
     }
 
@@ -118,8 +118,8 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
 
     const chain = solver.getChain('tail')!;
     const end = chain.bones[chain.bones.length - 1].position;
-    const dx = end.x - 4,
-      dy = end.y - 4;
+    const dx = end[0] - 4,
+      dy = end[1] - 4;
     const dist = Math.sqrt(dx * dx + dy * dy);
     expect(dist).toBeLessThan(3); // Should be reasonably close
   });
@@ -138,9 +138,9 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
   it('should solve all chains at once', () => {
     const solver = new IKSolver();
     const makeBones = (): IKBone[] => [
-      { id: 'a', position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 3 },
-      { id: 'b', position: [3, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 3 },
-      { id: 'c', position: [6, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 0 },
+      { id: 'a', position: [0, 0, 0], rotation: [0, 0, 0, 1 ], length: 3 },
+      { id: 'b', position: [3, 0, 0], rotation: [0, 0, 0, 1 ], length: 3 },
+      { id: 'c', position: [6, 0, 0], rotation: [0, 0, 0, 1 ], length: 0 },
     ];
 
     solver.addChain({

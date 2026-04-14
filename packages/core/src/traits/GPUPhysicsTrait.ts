@@ -10,7 +10,7 @@ function extractPosition(node: HSPlusNode): [number, number, number] {
   }
   if (pos && typeof pos === 'object' && 'x' in pos) {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    return [pos.x, pos.y, pos.z];
+    return [pos[0], pos[1], pos[2]];
   }
   return [0, 0, 0];
 }

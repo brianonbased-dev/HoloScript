@@ -718,7 +718,7 @@ fn gradientNoise(uv: vec2<f32>) -> f32 {
   let n01 = simpleNoise(i + vec2<f32>(0.0, 1.0));
   let n11 = simpleNoise(i + vec2<f32>(1.0, 1.0));
 
-  return mix(mix(n00, n10, u.x), mix(n01, n11, u.x), u.y);
+  return mix(mix(n00, n10, u[0]), mix(n01, n11, u[0]), u[1]);
 }
 
 fn voronoi(uv: vec2<f32>) -> vec2<f32> {
@@ -831,7 +831,7 @@ fn animatedPattern(uv: vec2<f32>, time: f32, patternType: f32, speed: f32, ampli
   }
   // 6: wave — sinusoidal displacement
   else if (pType == 6) {
-    value = sin(suv.x * 10.0 + t * 3.0) * sin(suv.y * 10.0 + t * 2.0) * 0.5 + 0.5;
+    value = sin(suv[0] * 10.0 + t * 3.0) * sin(suv[1] * 10.0 + t * 2.0) * 0.5 + 0.5;
   }
   // 7: noise — animated Perlin
   else {
@@ -886,7 +886,7 @@ fn dualLayerBlend(
   // 0: linear
   // 1: height-based (top appears on upward-facing surfaces)
   if (modeInt == 1) {
-    factor = factor * max(normal.y, 0.0);
+    factor = factor * max(normal[1], 0.0);
   }
   // 2: noise-based
   else if (modeInt == 2) {
@@ -923,18 +923,18 @@ fn noise3D(p: vec3<f32>) -> f32 {
   let f = fract(p);
   let u = f * f * (3.0 - 2.0 * f);
 
-  let n000 = simpleNoise(i.xy + vec2<f32>(0.0, i.z * 37.0));
-  let n100 = simpleNoise(i.xy + vec2<f32>(1.0, i.z * 37.0));
-  let n010 = simpleNoise(i.xy + vec2<f32>(0.0, (i.z + 1.0) * 37.0 + 17.0));
-  let n110 = simpleNoise(i.xy + vec2<f32>(1.0, (i.z + 1.0) * 37.0 + 17.0));
-  let n001 = simpleNoise(i.xy + vec2<f32>(i.z * 37.0 + 59.0, 0.0));
-  let n101 = simpleNoise(i.xy + vec2<f32>(i.z * 37.0 + 60.0, 0.0));
-  let n011 = simpleNoise(i.xy + vec2<f32>((i.z + 1.0) * 37.0 + 59.0, 17.0));
-  let n111 = simpleNoise(i.xy + vec2<f32>((i.z + 1.0) * 37.0 + 60.0, 17.0));
+  let n000 = simpleNoise(i.xy + vec2<f32>(0.0, i[2] * 37.0));
+  let n100 = simpleNoise(i.xy + vec2<f32>(1.0, i[2] * 37.0));
+  let n010 = simpleNoise(i.xy + vec2<f32>(0.0, (i[2] + 1.0) * 37.0 + 17.0));
+  let n110 = simpleNoise(i.xy + vec2<f32>(1.0, (i[2] + 1.0) * 37.0 + 17.0));
+  let n001 = simpleNoise(i.xy + vec2<f32>(i[2] * 37.0 + 59.0, 0.0));
+  let n101 = simpleNoise(i.xy + vec2<f32>(i[2] * 37.0 + 60.0, 0.0));
+  let n011 = simpleNoise(i.xy + vec2<f32>((i[2] + 1.0) * 37.0 + 59.0, 17.0));
+  let n111 = simpleNoise(i.xy + vec2<f32>((i[2] + 1.0) * 37.0 + 60.0, 17.0));
 
-  let x0 = mix(mix(n000, n100, u.x), mix(n010, n110, u.x), u.y);
-  let x1 = mix(mix(n001, n101, u.x), mix(n011, n111, u.x), u.y);
-  return mix(x0, x1, u.z);
+  let x0 = mix(mix(n000, n100, u[0]), mix(n010, n110, u[0]), u[1]);
+  let x1 = mix(mix(n001, n101, u[0]), mix(n011, n111, u[0]), u[1]);
+  return mix(x0, x1, u[2]);
 }
 
 // Fractal Brownian Motion in 3D — layered noise octaves
@@ -983,7 +983,7 @@ fn volumeDensity(pos: vec3<f32>, baseDensity: f32, noiseScale: f32, noiseOctaves
 
 // Height fog density — exponential falloff with height
 fn heightFogDensity(pos: vec3<f32>, groundLevel: f32, density: f32, falloff: f32) -> f32 {
-  let height = pos.y - groundLevel;
+  let height = pos[1] - groundLevel;
   return density * exp(-max(height, 0.0) * falloff);
 }
 
@@ -997,10 +997,10 @@ fn fireDensity(pos: vec3<f32>, time: f32, turbulence: f32, riseSpeed: f32, scale
   // Base density from FBM
   let d = fbmNoise3D(distortedPos * scale, 4, 2.0, 0.5);
   // Height falloff — fire thins out as it rises
-  let heightFade = exp(-max(pos.y, 0.0) * 0.5);
+  let heightFade = exp(-max(pos[1], 0.0) * 0.5);
   let density = clamp(d * heightFade, 0.0, 1.0);
   // Temperature — hotter at base, cooler at top
-  let temperature = clamp(density * (1.0 - pos.y * 0.3) * 3000.0 + 800.0, 800.0, 3000.0);
+  let temperature = clamp(density * (1.0 - pos[1] * 0.3) * 3000.0 + 800.0, 800.0, 3000.0);
   return vec2<f32>(density, temperature);
 }
 
@@ -1043,8 +1043,8 @@ fn rayBoxIntersect(rayOrigin: vec3<f32>, rayDir: vec3<f32>, boxMin: vec3<f32>, b
   let t2 = (boxMax - rayOrigin) * invDir;
   let tMin = min(t1, t2);
   let tMax = max(t1, t2);
-  let tNear = max(max(tMin.x, tMin.y), tMin.z);
-  let tFar = min(min(tMax.x, tMax.y), tMax.z);
+  let tNear = max(max(tMin[0], tMin[1]), tMin[2]);
+  let tFar = min(min(tMax[0], tMax[1]), tMax[2]);
   return vec2<f32>(max(tNear, 0.0), tFar);
 }
 
@@ -1057,13 +1057,13 @@ fn rayMarchVolume(
 ) -> vec4<f32> {
   // Intersect unit cube [-1,1]^3
   let hit = rayBoxIntersect(rayOrigin, rayDir, vec3<f32>(-1.0), vec3<f32>(1.0));
-  if (hit.x > hit.y) {
+  if (hit[0] > hit[1]) {
     return vec4<f32>(0.0); // Miss
   }
 
   let stepCount = i32(steps);
-  let tStart = hit.x;
-  let tEnd = min(hit.y, maxDist);
+  let tStart = hit[0];
+  let tEnd = min(hit[1], maxDist);
   let stepLen = (tEnd - tStart) / f32(stepCount);
 
   var accColor = vec3<f32>(0.0);
@@ -1215,7 +1215,7 @@ fn parallaxOcclusionMap(
   let layerCount = i32(numLayers);
   let layerDepth = 1.0 / numLayers;
   var currentLayerDepth = 0.0;
-  let deltaUV = viewDir.xy / viewDir.z * heightScale / numLayers;
+  let deltaUV = viewDir.xy / viewDir[2] * heightScale / numLayers;
 
   var currentUV = uv;
   var currentDepthMapValue = simpleNoise(currentUV); // Use noise as height
@@ -1260,7 +1260,7 @@ fn screenSpaceReflect(
     sampleUV += screenStep;
 
     // Bounds check
-    if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) {
+    if (sampleUV[0] < 0.0 || sampleUV[0] > 1.0 || sampleUV[1] < 0.0 || sampleUV[1] > 1.0) {
       break;
     }
 
@@ -1278,7 +1278,7 @@ fn screenSpaceReflect(
       hitMask *= 1.0 - roughness;
 
       // Fade at screen edges
-      let edgeFade = 1.0 - pow(max(abs(sampleUV.x - 0.5), abs(sampleUV.y - 0.5)) * 2.0, 4.0);
+      let edgeFade = 1.0 - pow(max(abs(sampleUV[0] - 0.5), abs(sampleUV[1] - 0.5)) * 2.0, 4.0);
       hitMask *= max(edgeFade, 0.0);
       break;
     }
@@ -1342,7 +1342,7 @@ fn gerstnerWave(pos: vec2<f32>, time: f32, dir: vec2<f32>, steepness: f32, wavel
   let d = normalize(dir);
   let f = k * (dot(d, pos) - c * time);
   let a = steepness / k;
-  return vec3<f32>(d.x * a * cos(f), a * sin(f), d.y * a * cos(f));
+  return vec3<f32>(d[0] * a * cos(f), a * sin(f), d[1] * a * cos(f));
 }
 
 fn waterSurface(
@@ -1375,13 +1375,13 @@ fn waterSurface(
   dz += gerstnerWave(pz, scaledTime, vec2<f32>(0.3, -0.7), 0.1, 1.5);
   dz += gerstnerWave(pz, scaledTime, vec2<f32>(-0.8, -0.3), 0.08, 0.8);
   let waterNormal = normalize(vec3<f32>(
-    -(dx.y - displacement.y) / eps,
+    -(dx[1] - displacement[1]) / eps,
     1.0,
-    -(dz.y - displacement.y) / eps
+    -(dz[1] - displacement[1]) / eps
   ));
 
   // Foam: where wave crests converge (Jacobian < threshold)
-  let jacobian = 1.0 - abs(displacement.x) * waveScale;
+  let jacobian = 1.0 - abs(displacement[0]) * waveScale;
   let foam = smoothstep(foamThreshold, foamThreshold + 0.1, 1.0 - jacobian);
 
   // Caustics (project through water depth)

@@ -108,8 +108,8 @@ describe('SplinePath', () => {
     spline.addPoint(10, 0, 0);
     const start = spline.evaluate(0);
     const end = spline.evaluate(1);
-    expect(start.x).toBeCloseTo(0, 0);
-    expect(end.x).toBeCloseTo(10, 0);
+    expect(start[0]).toBeCloseTo(0, 0);
+    expect(end[0]).toBeCloseTo(10, 0);
   });
 
   // --- Looping ---
@@ -122,8 +122,8 @@ describe('SplinePath', () => {
     spline.addPoint(10, 10);
     // t=1 should bring us back near the start
     const end = spline.evaluate(1);
-    expect(end.x).toBeCloseTo(0, 0);
-    expect(end.y).toBeCloseTo(0, 0);
+    expect(end[0]).toBeCloseTo(0, 0);
+    expect(end[1]).toBeCloseTo(0, 0);
   });
 
   // --- Arc length ---

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIButtonConfig {
@@ -28,10 +29,10 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
     type: 'object',
     name: `ButtonBase_${id}`,
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       geometry: 'box',
-      scale: { x: width, y: height, z: 0.01 }, // Thin backplate
+      scale: [width, height, 0.01 ], // Thin backplate
       color: '#333333',
       physics: { type: 'kinematic' }, // Anchored base
     },
@@ -43,7 +44,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
         properties: {
           position: [0, 0, depth / 2], // Slightly protruding
           geometry: 'box',
-          scale: { x: width * 0.9, y: height * 0.9, z: depth },
+          scale: [width * 0.9, height * 0.9, depth ],
           color: config.color || '#007AFF',
           physics: { type: 'dynamic', mass: 0.1 },
           data: config.data,

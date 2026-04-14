@@ -289,8 +289,8 @@ extension StereoRenderPipeline {
         // Base layer (left eye) — HEVC Main Profile
         let baseSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: config.resolution.x,
-            AVVideoHeightKey: config.resolution.y,
+            AVVideoWidthKey: config.resolution[0],
+            AVVideoHeightKey: config.resolution[1],
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: config.bitrate,
                 AVVideoProfileLevelKey: "HEVC_Main_AutoLevel",
@@ -304,8 +304,8 @@ extension StereoRenderPipeline {
         // Tagged with kCMTagStereoInterpretation for spatial video
         let enhancementSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: config.resolution.x,
-            AVVideoHeightKey: config.resolution.y,
+            AVVideoWidthKey: config.resolution[0],
+            AVVideoHeightKey: config.resolution[1],
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: config.bitrate,
                 AVVideoProfileLevelKey: "HEVC_Main_AutoLevel",

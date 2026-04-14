@@ -67,8 +67,8 @@ export function registerBuiltInComponents(registry: ComponentRegistry): void {
     type: 'transform',
     defaultData: () => ({
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0, 1 ],
+      scale: [1, 1, 1 ],
     }),
     description: 'Position, rotation, and scale in 3D space.',
   });
@@ -81,7 +81,7 @@ export function registerBuiltInComponents(registry: ComponentRegistry): void {
 
   registry.register({
     type: 'collider',
-    defaultData: () => ({ type: 'box', size: { x: 1, y: 1, z: 1 }, isTrigger: false }),
+    defaultData: () => ({ type: 'box', size: [1, 1, 1 ], isTrigger: false }),
     description: 'Collision shape.',
   });
 
@@ -89,7 +89,7 @@ export function registerBuiltInComponents(registry: ComponentRegistry): void {
     type: 'rigidbody',
     defaultData: () => ({
       mass: 1,
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0 ],
       useGravity: true,
       isKinematic: false,
     }),

@@ -59,8 +59,8 @@ describe('JointSystem — Production', () => {
     const j = js.createJoint('spring', 'a', 'b', {
       stiffness: 100,
       damping: 0.5,
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 5, y: 0, z: 0 },
+      anchorA: [0, 0, 0 ],
+      anchorB: [5, 0, 0 ],
     });
     js.getState(j.id)!.currentDistance = 10; // stretched
     js.solve(1 / 60);
@@ -78,8 +78,8 @@ describe('JointSystem — Production', () => {
   it('solve distance updates state', () => {
     const js = new JointSystem();
     const j = js.createJoint('distance', 'a', 'b', {
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 3, y: 4, z: 0 },
+      anchorA: [0, 0, 0 ],
+      anchorB: [3, 4, 0 ],
     });
     js.solve(1 / 60);
     expect(js.getState(j.id)!.currentDistance).toBeCloseTo(5, 1);

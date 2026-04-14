@@ -34,9 +34,9 @@ describe('CameraRig', () => {
     const before = rig.getState();
     rig.update(1);
     const after = rig.getState();
-    expect(after.position.x).toBeCloseTo(before.position.x);
-    expect(after.position.y).toBeCloseTo(before.position.y);
-    expect(after.position.z).toBeCloseTo(before.position.z);
+    expect(after.position[0]).toBeCloseTo(before.position[0]);
+    expect(after.position[1]).toBeCloseTo(before.position[1]);
+    expect(after.position[2]).toBeCloseTo(before.position[2]);
   });
 
   // --- Dolly ---
@@ -48,7 +48,7 @@ describe('CameraRig', () => {
     ]);
     rig.update(1); // moves along path
     const state = rig.getState();
-    expect(state.position.x).toBeGreaterThan(0);
+    expect(state.position[0]).toBeGreaterThan(0);
   });
 
   it('dolly with single point does not crash', () => {
@@ -63,7 +63,7 @@ describe('CameraRig', () => {
     rig.setCraneParams(10, 45);
     const state = rig.update(0.016);
     // Y position should be raised by crane height
-    expect(state.position.y).toBeGreaterThan(0);
+    expect(state.position[1]).toBeGreaterThan(0);
   });
 
   // --- Steadicam ---
@@ -77,7 +77,7 @@ describe('CameraRig', () => {
     custom.update(0.016);
     const s2 = custom.getState();
     // Position should stay close (smoothing toward config)
-    expect(typeof s2.position.x).toBe('number');
+    expect(typeof s2.position[0]).toBe('number');
   });
 
   // --- Handheld ---
@@ -85,7 +85,7 @@ describe('CameraRig', () => {
     rig.setMode('handheld');
     const state = rig.update(0.016);
     // Handheld offsets by sin/cos, so position varies slightly from default
-    expect(typeof state.position.x).toBe('number');
+    expect(typeof state.position[0]).toBe('number');
   });
 
   // --- Shake ---
@@ -132,8 +132,8 @@ describe('CameraRig', () => {
     // Position should include shake offset
     const cfg = rig.getConfig();
     // The state position should differ from the config position when shaking
-    const dx = Math.abs(state.position.x - cfg.position.x);
-    const dy = Math.abs(state.position.y - cfg.position.y);
+    const dx = Math.abs(state.position[0] - cfg.position[0]);
+    const dy = Math.abs(state.position[1] - cfg.position[1]);
     expect(dx + dy).toBeGreaterThan(0);
   });
 

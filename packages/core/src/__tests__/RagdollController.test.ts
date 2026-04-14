@@ -70,13 +70,13 @@ describe('RagdollController', () => {
     rag.addBone('spine', null, 5, 1);
     rag.goRagdoll();
     rag.update(0.1);
-    expect(rag.getBone('spine')!.position.y).toBeLessThan(0);
+    expect(rag.getBone('spine')!.position[1]).toBeLessThan(0);
   });
 
   it('applyImpulse changes velocity inversely with mass', () => {
     rag.addBone('spine', null, 10, 1);
     rag.applyImpulse('spine', { x: 100, y: 0, z: 0 });
-    expect(rag.getBone('spine')!.velocity.x).toBe(10); // 100/10
+    expect(rag.getBone('spine')!.velocity[0]).toBe(10); // 100/10
   });
 
   it('constraint solving maintains bone distance', () => {

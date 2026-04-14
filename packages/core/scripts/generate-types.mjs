@@ -66,6 +66,27 @@ export class HoloScriptPlusParser {
   parseStatement(source: string): any;
 }
 
+export class HSPlusRuntime {
+  constructor(options?: any);
+  mount(container: any): void;
+  unmount(): void;
+  update(delta: number): void;
+  setState(updates: Record<string, any>): void;
+  getState(): Record<string, any>;
+  on(event: string, handler: (payload: any) => void): () => void;
+  emit(event: string, payload?: any): void;
+}
+
+export class World {
+  constructor();
+  createEntity(): string;
+  removeEntity(id: string): void;
+}
+
+export class ComponentRegistry {
+  static register(name: string, component: any): void;
+}
+
 export class HoloCompositionParser {
   parse(source: string): any;
 }
@@ -136,6 +157,7 @@ export interface HoloObjectTrait extends ASTNode {
   type: 'Trait';
   name: string;
   config?: any;
+  args?: any[];
 }
 
 export interface HoloSpatialGroup extends ASTNode {
@@ -436,12 +458,14 @@ export class AdvancedCompression {
 }
 
 export interface INeuralSplatPacket {
-  id: string;
-  frameId?: number;
-  count: number;
-  data: Uint8Array;
-  metadata?: Record<string, any>;
-  cameraState?: any;
+  frameId: number;
+  cameraState: {
+    viewProjectionMatrix: number[];
+    cameraPosition: number[];
+  };
+  splatCount: number;
+  compressedSplatsBuffer: ArrayBuffer;
+  sortedIndicesBuffer: ArrayBuffer;
 }
 
 // ============================================================================
@@ -823,6 +847,11 @@ export interface SafetyReport {
 }
 
 export type SafetyVerdict = 'safe' | 'warnings' | 'unsafe' | 'unchecked';
+export type VREffect = string;
+export type EffectCategory = string;
+export type EffectViolationSeverity = 'error' | 'warning' | 'info';
+export interface EffectViolation { effect: VREffect; severity: EffectViolationSeverity; [key: string]: any; }
+export interface EffectDeclaration { effects: VREffect[]; [key: string]: any; }
 
 // ============================================================================
 // PLATFORM TYPES
@@ -3224,6 +3253,11 @@ export interface SafetyReport { [key: string]: any; }
 export type SafetyVerdict = 'safe' | 'warnings' | 'unsafe' | 'unchecked';
 export interface LinearCheckerConfig { [key: string]: any; }
 export interface InferredEffects { [key: string]: any; }
+export type VREffect = string;
+export type EffectCategory = string;
+export type EffectViolationSeverity = 'error' | 'warning' | 'info';
+export interface EffectViolation { effect: VREffect; severity: EffectViolationSeverity; [key: string]: any; }
+export interface EffectDeclaration { effects: VREffect[]; [key: string]: any; }
 export type CompilePlatformTarget = string;
 
 export class USDZPipeline { [key: string]: any; }

@@ -91,7 +91,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
     // At time=50 (between 0 and 100), t=0.5 → x=5
     const state = ni.getInterpolatedState('e1', 50);
     expect(state).not.toBeNull();
-    expect(state!.position.x).toBeCloseTo(5, 1);
+    expect(state!.position[0]).toBeCloseTo(5, 1);
     expect(state!.isExtrapolating).toBe(false);
   });
 
@@ -103,7 +103,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
     const state = ni.getInterpolatedState('e1', 100);
     expect(state).not.toBeNull();
     expect(state!.isExtrapolating).toBe(true);
-    expect(state!.position.x).toBeCloseTo(0.1, 3);
+    expect(state!.position[0]).toBeCloseTo(0.1, 3);
   });
 
   it('returns last known position when extrapolation time exceeded', () => {
@@ -113,7 +113,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
     const state = ni.getInterpolatedState('e1', 300);
     expect(state).not.toBeNull();
     expect(state!.isExtrapolating).toBe(true);
-    expect(state!.position.x).toBeCloseTo(5, 1);
+    expect(state!.position[0]).toBeCloseTo(5, 1);
   });
 
   it('returns future snapshot when only ahead snapshots exist', () => {
@@ -122,7 +122,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
     // query at t=100 — only future snapshot available
     const state = ni.getInterpolatedState('e1', 100);
     expect(state).not.toBeNull();
-    expect(state!.position.x).toBeCloseTo(99, 1);
+    expect(state!.position[0]).toBeCloseTo(99, 1);
     expect(state!.isExtrapolating).toBe(false);
   });
 
@@ -138,7 +138,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
     ni.pushSnapshot(snap('e1', 100, { x: 10, y: 0, z: 0 }));
     // With 100ms buffer, renderTime at currentTime=150 is 150-100=50 → x≈5
     const state = ni.getInterpolatedState('e1', 150);
-    expect(state?.position.x).toBeCloseTo(5, 1);
+    expect(state?.position[0]).toBeCloseTo(5, 1);
   });
 });
 
@@ -231,7 +231,7 @@ describe('NetworkInterpolation — interpolation math', () => {
     ni.pushSnapshot(snap('e1', 100, { x: 10, y: 5, z: 0 }));
     const state = ni.getInterpolatedState('e1', 0);
     // renderTime = 0, before=snapshot@0, after=snapshot@100, t=0 → x=0
-    expect(state?.position.x).toBeCloseTo(0, 1);
+    expect(state?.position[0]).toBeCloseTo(0, 1);
   });
 
   it('full interpolation at t=1 returns end position', () => {

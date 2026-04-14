@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AudioTypes.ts
  *
@@ -15,11 +16,7 @@
 /**
  * 3D vector for audio positioning
  */
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type IVector3 = Vector3;
 
 /**
  * Orientation for audio listener (forward and up vectors)
@@ -691,7 +688,7 @@ export interface ISequencer {
  * Create a zero vector
  */
 export function zeroVector(): IVector3 {
-  return { x: 0, y: 0, z: 0 };
+  return [0, 0, 0 ];
 }
 
 /**
@@ -699,8 +696,8 @@ export function zeroVector(): IVector3 {
  */
 export function defaultOrientation(): IAudioOrientation {
   return {
-    forward: { x: 0, y: 0, z: -1 },
-    up: { x: 0, y: 1, z: 0 },
+    forward: [0, 0, -1 ],
+    up: [0, 1, 0 ],
   };
 }
 

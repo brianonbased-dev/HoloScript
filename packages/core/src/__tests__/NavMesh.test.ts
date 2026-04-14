@@ -34,8 +34,8 @@ describe('NavMesh', () => {
       { x: 0, z: 10 },
     ]);
     const p = nav.getPolygon(id)!;
-    expect(p.center.x).toBeCloseTo(5);
-    expect(p.center.z).toBeCloseTo(5);
+    expect(p.center[0]).toBeCloseTo(5);
+    expect(p.center[2]).toBeCloseTo(5);
   });
 
   it('connect links two polygons bidirectionally', () => {

@@ -25,8 +25,8 @@ describe('PersistentAnchorTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('pa');
-    node.position = { x: 0, y: 0, z: 0 };
-    node.rotation = { x: 0, y: 0, z: 0, w: 1 };
+    node.position = [0, 0, 0 ];
+    node.rotation = [0, 0, 0, 1 ];
     ctx = createMockContext();
     attachTrait(persistentAnchorHandler, node, cfg, ctx);
   });
@@ -63,7 +63,7 @@ describe('PersistentAnchorTrait', () => {
     sendEvent(persistentAnchorHandler, node, cfg, ctx, {
       type: 'persistent_anchor_pose_update',
       position: [5, 6, 7],
-      rotation: { x: 0, y: 1, z: 0, w: 0 },
+      rotation: [0, 1, 0, 0 ],
     });
     const s = (node as any).__persistentAnchorState;
     expect(s.state).toBe('tracking');

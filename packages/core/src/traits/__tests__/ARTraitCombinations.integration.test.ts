@@ -41,10 +41,10 @@ function makePlane(id: string, area = 1, normalY = 1, classification = 'floor') 
   return {
     id,
     classification: classification as any,
-    center: { x: 0, y: 0, z: 0 },
+    center: [0, 0, 0 ],
     extent: { width: Math.sqrt(area), height: Math.sqrt(area) },
-    normal: { x: 0, y: normalY, z: 0 },
-    vertices: [{ x: 0, y: 0, z: 0 }],
+    normal: [0, normalY, 0 ],
+    vertices: [[0, 0, 0 ]],
     area,
     lastUpdated: Date.now(),
     confidence: 0.9,
@@ -57,7 +57,7 @@ function makeMeshBlock(id: string, vertexCount = 100, triangleCount = 50) {
     vertices: new Float32Array(vertexCount * 3),
     indices: new Uint32Array(triangleCount * 3),
     normals: new Float32Array(vertexCount * 3),
-    bounds: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+    bounds: { min: [-1, -1, -1 ], max: [1, 1, 1 ] },
     lastUpdated: Date.now(),
     vertexCount,
     triangleCount,
@@ -81,12 +81,12 @@ function makeFaceData(jawOpen = 0, smileL = 0, smileR = 0) {
       cheekPuff: 0,
     },
     eyes: {
-      left: { direction: { x: 0, y: 0, z: -1 }, origin: { x: -0.03, y: 0, z: 0 }, confidence: 0.9 },
-      right: { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0.03, y: 0, z: 0 }, confidence: 0.9 },
+      left: { direction: [0, 0, -1 ], origin: [-0.03, 0, 0 ], confidence: 0.9 },
+      right: { direction: [0, 0, -1 ], origin: [0.03, 0, 0 ], confidence: 0.9 },
     },
     headPose: {
       position: [0, 1.6, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     },
   };
 }
@@ -131,7 +131,7 @@ describe('AR Trait Combination: Plane Detection + Light Estimation', () => {
       type: 'light_estimation_update',
       intensity: 0.8,
       colorTemperature: 5500,
-      direction: { x: 0.3, y: -0.9, z: 0.2 },
+      direction: [0.3, -0.9, 0.2 ],
     });
 
     // Verify both systems tracked their data
@@ -143,7 +143,7 @@ describe('AR Trait Combination: Plane Detection + Light Estimation', () => {
 
   it('hit test against detected planes works independently of light state', () => {
     const plane = makePlane('table-1', 1.5, 1, 'table');
-    plane.center = { x: 0, y: 0.75, z: -1 };
+    plane.center = [0, 0.75, -1 ];
     sendEvent(planeDetectionHandler, planeNode, planeCfg, planeCtx, {
       type: 'plane_detected',
       plane,
@@ -152,7 +152,7 @@ describe('AR Trait Combination: Plane Detection + Light Estimation', () => {
     // Perform hit test
     sendEvent(planeDetectionHandler, planeNode, planeCfg, planeCtx, {
       type: 'plane_hit_test',
-      ray: { origin: { x: 0, y: 5, z: -1 }, direction: { x: 0, y: -1, z: 0 } },
+      ray: { origin: [0, 5, -1 ], direction: [0, -1, 0 ] },
       queryId: 'furniture-placement',
     });
 
@@ -394,7 +394,7 @@ describe('AR Trait Combination: Geospatial + VPS + Light Estimation', () => {
       locationId: 'sf-downtown',
       pose: {
         position: [1, 0, -2],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
       },
     });
 
@@ -422,13 +422,13 @@ describe('AR Trait Combination: Geospatial + VPS + Light Estimation', () => {
     // Pose update with good accuracy
     sendEvent(geospatialAnchorHandler, geoNode, geoCfg, geoCtx, {
       type: 'geospatial_pose_update',
-      localPosition: { x: 5, y: 0, z: -3 },
+      localPosition: [5, 0, -3 ],
       accuracy: 1.5,
       headingAccuracy: 5,
     });
 
     expect(state.state).toBe('tracking');
-    expect(state.localPosition).toEqual({ x: 5, y: 0, z: -3 });
+    expect(state.localPosition).toEqual([5, 0, -3 ]);
   });
 
   it('geospatial distance query uses haversine correctly', () => {
@@ -461,7 +461,7 @@ describe('AR Trait Combination: Geospatial + VPS + Light Estimation', () => {
       type: 'light_estimation_update',
       intensity: 1.8, // Bright outdoor
       colorTemperature: 6500, // Daylight
-      direction: { x: 0.5, y: -0.8, z: 0.3 },
+      direction: [0.5, -0.8, 0.3 ],
     });
 
     const lightState = (lightNode as any).__lightEstimationState;

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HapticCue Trait
  *
@@ -168,12 +169,12 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
       }
 
       // Calculate spatial direction if enabled
-      let direction: { x: number; y: number; z: number } | undefined;
+      let direction: Vector3 | undefined;
       if (config.spatial_direction && node.position) {
         const pos = node.position;
-        const len = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+        const len = Math.sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
         if (len > 0) {
-          direction = { x: pos.x / len, y: pos.y / len, z: pos.z / len };
+          direction = [pos[0] / len, pos[1] / len, pos[2] / len ];
         }
       }
 

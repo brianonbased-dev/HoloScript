@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * PlaneDetection Trait
  *
@@ -19,10 +20,10 @@ type PlaneClassification = 'floor' | 'wall' | 'ceiling' | 'table' | 'door' | 'wi
 interface DetectedPlane {
   id: string;
   classification: PlaneClassification;
-  center: { x: number; y: number; z: number };
+  center: Vector3;
   extent: { width: number; height: number };
-  normal: { x: number; y: number; z: number };
-  vertices: Array<{ x: number; y: number; z: number }>;
+  normal: Vector3;
+  vertices: Array<[number, number, number]>;
   area: number;
   lastUpdated: number;
   confidence: number;
@@ -33,7 +34,7 @@ interface PlaneDetectionState {
   lastUpdateTime: number;
   isDetecting: boolean;
   selectedPlane: string | null;
-  hitTestResults: Array<{ planeId: string; point: { x: number; y: number; z: number } }>;
+  hitTestResults: Array<{ planeId: string; point: Vector3 }>;
 }
 
 interface PlaneDetectionConfig {
@@ -149,9 +150,9 @@ export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
 
       // Filter by mode
       if (config.mode === 'horizontal') {
-        if (Math.abs(planeData.normal.y) < 0.8) return;
+        if (Math.abs(planeData.normal[1]) < 0.8) return;
       } else if (config.mode === 'vertical') {
-        if (Math.abs(planeData.normal.y) > 0.2) return;
+        if (Math.abs(planeData.normal[1]) > 0.2) return;
       }
 
       // Filter by area
@@ -205,45 +206,45 @@ export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
     } else if (event.type === 'plane_hit_test') {
       // Perform hit test against planes
       const ray = event.ray as {
-        origin: { x: number; y: number; z: number };
-        direction: { x: number; y: number; z: number };
+        origin: Vector3;
+        direction: Vector3;
       };
       const results: Array<{
         planeId: string;
-        point: { x: number; y: number; z: number };
+        point: Vector3;
         distance: number;
       }> = [];
 
       for (const [id, plane] of state.planes) {
         // Simple plane-ray intersection
         const denom =
-          plane.normal.x * ray.direction.x +
-          plane.normal.y * ray.direction.y +
-          plane.normal.z * ray.direction.z;
+          plane.normal[0] * ray.direction[0] +
+          plane.normal[1] * ray.direction[1] +
+          plane.normal[2] * ray.direction[2];
 
         if (Math.abs(denom) < 0.0001) continue;
 
         const d = -(
-          plane.normal.x * plane.center.x +
-          plane.normal.y * plane.center.y +
-          plane.normal.z * plane.center.z
+          plane.normal[0] * plane.center[0] +
+          plane.normal[1] * plane.center[1] +
+          plane.normal[2] * plane.center[2]
         );
 
         const t =
           -(
-            plane.normal.x * ray.origin.x +
-            plane.normal.y * ray.origin.y +
-            plane.normal.z * ray.origin.z +
+            plane.normal[0] * ray.origin[0] +
+            plane.normal[1] * ray.origin[1] +
+            plane.normal[2] * ray.origin[2] +
             d
           ) / denom;
 
         if (t < 0) continue;
 
-        const point = {
-          x: ray.origin.x + t * ray.direction.x,
-          y: ray.origin.y + t * ray.direction.y,
-          z: ray.origin.z + t * ray.direction.z,
-        };
+        const point: Vector3 = [
+          ray.origin[0] + t * ray.direction[0],
+          ray.origin[1] + t * ray.direction[1],
+          ray.origin[2] + t * ray.direction[2],
+        ];
 
         results.push({ planeId: id, point, distance: t });
       }

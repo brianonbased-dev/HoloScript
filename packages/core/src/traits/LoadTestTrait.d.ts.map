@@ -1,0 +1,1 @@
+{"version":3,"file":"LoadTestTrait.d.ts","sourceRoot":"","sources":["LoadTestTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,cAAc;IAC7B,OAAO,EAAE,MAAM,CAAC;IAChB,mBAAmB,EAAE,MAAM,CAAC;CAC7B;AAED,eAAO,MAAM,eAAe,EAAE,YAAY,CAAC,cAAc,CA4CxD,CAAC;AACF,eAAe,eAAe,CAAC"}

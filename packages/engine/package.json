@@ -21,6 +21,11 @@
       "import": "./dist/rendering/index.js",
       "require": "./dist/rendering/index.cjs"
     },
+    "./materials": {
+      "types": "./dist/materials/index.d.ts",
+      "import": "./dist/materials/index.js",
+      "require": "./dist/materials/index.cjs"
+    },
     "./rendering/MaterialLibrary": {
       "types": "./dist/rendering/index.d.ts",
       "import": "./dist/rendering/index.js",

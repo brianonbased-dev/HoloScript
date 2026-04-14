@@ -63,9 +63,9 @@ export class SpatialHash {
   update(id: string, x: number, y: number, z: number): void {
     this.remove(id);
     const entry = this.entries.get(id) ?? { id, x, y, z, radius: 0 };
-    entry.x = x;
-    entry.y = y;
-    entry.z = z;
+    entry[0] = x;
+    entry[1] = y;
+    entry[2] = z;
     this.insert(entry);
   }
 
@@ -100,9 +100,9 @@ export class SpatialHash {
           for (const id of cell) {
             const entry = this.entries.get(id);
             if (entry) {
-              const dx = entry.x - x,
-                dy = entry.y - y,
-                dz = entry.z - z;
+              const dx = entry[0] - x,
+                dy = entry[1] - y,
+                dz = entry[2] - z;
               const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
               if (dist <= radius + entry.radius) results.add(id);
             }
@@ -140,12 +140,12 @@ export class SpatialHash {
 
   private getCellsForEntry(entry: SpatialEntry): string[] {
     const keys: string[] = [];
-    const minCx = Math.floor((entry.x - entry.radius) / this.cellSize);
-    const maxCx = Math.floor((entry.x + entry.radius) / this.cellSize);
-    const minCy = Math.floor((entry.y - entry.radius) / this.cellSize);
-    const maxCy = Math.floor((entry.y + entry.radius) / this.cellSize);
-    const minCz = Math.floor((entry.z - entry.radius) / this.cellSize);
-    const maxCz = Math.floor((entry.z + entry.radius) / this.cellSize);
+    const minCx = Math.floor((entry[0] - entry.radius) / this.cellSize);
+    const maxCx = Math.floor((entry[0] + entry.radius) / this.cellSize);
+    const minCy = Math.floor((entry[1] - entry.radius) / this.cellSize);
+    const maxCy = Math.floor((entry[1] + entry.radius) / this.cellSize);
+    const minCz = Math.floor((entry[2] - entry.radius) / this.cellSize);
+    const maxCz = Math.floor((entry[2] + entry.radius) / this.cellSize);
 
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cy = minCy; cy <= maxCy; cy++) {

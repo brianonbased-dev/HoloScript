@@ -86,6 +86,7 @@
   },
   "dependencies": {
     "@holoscript/config": "workspace:^",
+    "@holoscript/llm-provider": "workspace:^",
     "drizzle-orm": "^0.45.1",
     "openai": "^6.32.0",
     "zod": "^3.24.0"

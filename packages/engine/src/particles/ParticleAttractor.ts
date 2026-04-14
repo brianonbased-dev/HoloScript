@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ParticleAttractor.ts
  *
@@ -17,7 +18,7 @@ export interface Attractor {
   id: string;
   shape: AttractorShape;
   position: [number, number, number];
-  direction: { x: number; y: number; z: number }; // Used by line/plane
+  direction: Vector3; // Used by line/plane
   strength: number;
   radius: number; // Max influence radius
   killRadius: number; // Destroy particle if closer than this

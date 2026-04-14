@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Training Data Generator
  *
@@ -397,7 +398,7 @@ export interface GenerationStats {
  *   name: "Meeting Room",
  *   objects: [
  *     { id: "table", name: "Table", type: "cube", position: [0, 0.75, 0],
- *       bounds: { min: { x: -1.5, y: 0.7, z: -0.75 }, max: { x: 1.5, y: 0.8, z: 0.75 } } },
+ *       bounds: { min: [-1.5, 0.7, -0.75 ], max: [1.5, 0.8, 0.75 ] } },
  *     { id: "chair1", name: "Chair1", type: "cube", position: [-1, 0.5, 1.2] },
  *     { id: "chair2", name: "Chair2", type: "cube", position: [1, 0.5, 1.2] },
  *   ]
@@ -769,9 +770,9 @@ export class SpatialDataGenerator {
     if (obj.bounds) return obj;
 
     // Estimate bounds from type and scale
-    const sx = obj.scale?.x ?? 1;
-    const sy = obj.scale?.y ?? 1;
-    const sz = obj.scale?.z ?? 1;
+    const sx = obj.scale?.[0] ?? 1;
+    const sy = obj.scale?.[1] ?? 1;
+    const sz = obj.scale?.[2] ?? 1;
     const halfX = sx / 2;
     const halfY = sy / 2;
     const halfZ = sz / 2;
@@ -782,31 +783,31 @@ export class SpatialDataGenerator {
       case 'sphere': {
         const r = Math.max(halfX, halfY, halfZ);
         bounds = {
-          min: { x: obj.position.x - r, y: obj.position.y - r, z: obj.position.z - r },
-          max: { x: obj.position.x + r, y: obj.position.y + r, z: obj.position.z + r },
+          min: [obj.position[0] - r, obj.position[1] - r, obj.position[2] - r],
+          max: [obj.position[0] + r, obj.position[1] + r, obj.position[2] + r],
         };
         break;
       }
       case 'plane': {
         // Planes are thin
         bounds = {
-          min: { x: obj.position.x - halfX, y: obj.position.y - 0.01, z: obj.position.z - halfZ },
-          max: { x: obj.position.x + halfX, y: obj.position.y + 0.01, z: obj.position.z + halfZ },
+          min: [obj.position[0] - halfX, obj.position[1] - 0.01, obj.position[2] - halfZ],
+          max: [obj.position[0] + halfX, obj.position[1] + 0.01, obj.position[2] + halfZ],
         };
         break;
       }
       case 'cylinder': {
         bounds = {
-          min: { x: obj.position.x - halfX, y: obj.position.y - halfY, z: obj.position.z - halfX },
-          max: { x: obj.position.x + halfX, y: obj.position.y + halfY, z: obj.position.z + halfX },
+          min: [obj.position[0] - halfX, obj.position[1] - halfY, obj.position[2] - halfX],
+          max: [obj.position[0] + halfX, obj.position[1] + halfY, obj.position[2] + halfX],
         };
         break;
       }
       default: {
         // Default: cube-like bounds
         bounds = {
-          min: { x: obj.position.x - halfX, y: obj.position.y - halfY, z: obj.position.z - halfZ },
-          max: { x: obj.position.x + halfX, y: obj.position.y + halfY, z: obj.position.z + halfZ },
+          min: [obj.position[0] - halfX, obj.position[1] - halfY, obj.position[2] - halfZ],
+          max: [obj.position[0] + halfX, obj.position[1] + halfY, obj.position[2] + halfZ],
         };
         break;
       }
@@ -826,27 +827,27 @@ export class SpatialDataGenerator {
 
     const margin = this.config.containmentMargin;
     const containerBox: BoundingBox = {
-      min: {
-        x: container.bounds.min.x + margin,
-        y: container.bounds.min.y + margin,
-        z: container.bounds.min.z + margin,
-      },
-      max: {
-        x: container.bounds.max.x - margin,
-        y: container.bounds.max.y - margin,
-        z: container.bounds.max.z - margin,
-      },
+      min: [
+        container.bounds.min[0] + margin,
+        container.bounds.min[1] + margin,
+        container.bounds.min[2] + margin,
+      ],
+      max: [
+        container.bounds.max[0] - margin,
+        container.bounds.max[1] - margin,
+        container.bounds.max[2] - margin,
+      ],
     };
 
     if (this.config.strictContainment && target.bounds) {
       // Strict: full target bounds must be inside container
       const fullyInside =
-        target.bounds.min.x >= containerBox.min.x &&
-        target.bounds.min.y >= containerBox.min.y &&
-        target.bounds.min.z >= containerBox.min.z &&
-        target.bounds.max.x <= containerBox.max.x &&
-        target.bounds.max.y <= containerBox.max.y &&
-        target.bounds.max.z <= containerBox.max.z;
+        target.bounds.min[0] >= containerBox.min[0] &&
+        target.bounds.min[1] >= containerBox.min[1] &&
+        target.bounds.min[2] >= containerBox.min[2] &&
+        target.bounds.max[0] <= containerBox.max[0] &&
+        target.bounds.max[1] <= containerBox.max[1] &&
+        target.bounds.max[2] <= containerBox.max[2];
 
       const overlapRatio = this.computeOverlapRatio(containerBox, target.bounds);
       return { holds: fullyInside, overlapRatio };
@@ -868,12 +869,12 @@ export class SpatialDataGenerator {
    * Compute the ratio of target volume that overlaps with the container.
    */
   private computeOverlapRatio(container: BoundingBox, target: BoundingBox): number {
-    const overlapMinX = Math.max(container.min.x, target.min.x);
-    const overlapMinY = Math.max(container.min.y, target.min.y);
-    const overlapMinZ = Math.max(container.min.z, target.min.z);
-    const overlapMaxX = Math.min(container.max.x, target.max.x);
-    const overlapMaxY = Math.min(container.max.y, target.max.y);
-    const overlapMaxZ = Math.min(container.max.z, target.max.z);
+    const overlapMinX = Math.max(container.min[0], target.min[0]);
+    const overlapMinY = Math.max(container.min[1], target.min[1]);
+    const overlapMinZ = Math.max(container.min[2], target.min[2]);
+    const overlapMaxX = Math.min(container.max[0], target.max[0]);
+    const overlapMaxY = Math.min(container.max[1], target.max[1]);
+    const overlapMaxZ = Math.min(container.max[2], target.max[2]);
 
     if (overlapMinX >= overlapMaxX || overlapMinY >= overlapMaxY || overlapMinZ >= overlapMaxZ) {
       return 0;
@@ -883,7 +884,7 @@ export class SpatialDataGenerator {
       (overlapMaxX - overlapMinX) * (overlapMaxY - overlapMinY) * (overlapMaxZ - overlapMinZ);
 
     const targetVolume =
-      (target.max.x - target.min.x) * (target.max.y - target.min.y) * (target.max.z - target.min.z);
+      (target.max[0] - target.min[0]) * (target.max[1] - target.min[1]) * (target.max[2] - target.min[2]);
 
     if (targetVolume === 0) return 0;
 
@@ -906,7 +907,7 @@ export class SpatialDataGenerator {
     const from = source.position;
     const to = target.position;
     const dir = subtract(to, from);
-    const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+    const len = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
 
     if (len === 0) {
       return {
@@ -961,12 +962,11 @@ export class SpatialDataGenerator {
     let tmin = -Infinity;
     let tmax = Infinity;
 
-    const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
-    for (const axis of axes) {
-      const d = direction[axis];
-      const o = origin[axis];
-      const bmin = box.min[axis];
-      const bmax = box.max[axis];
+    for (let i = 0; i < 3; i++) {
+      const d = direction[i];
+      const o = origin[i];
+      const bmin = box.min[i];
+      const bmax = box.max[i];
 
       if (Math.abs(d) < 1e-10) {
         if (o < bmin || o > bmax) return false;
@@ -992,9 +992,9 @@ export class SpatialDataGenerator {
    */
   private computeDirections(from: Vector3, to: Vector3): DirectionLabel[] {
     const directions: DirectionLabel[] = [];
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dz = to.z - from.z;
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    const dz = to[2] - from[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist < 0.01) return ['overlapping'];
@@ -1308,7 +1308,7 @@ export class SpatialDataGenerator {
    * Format a Vector3 as a readable string.
    */
   private formatVec3(v: Vector3): string {
-    return `${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}`;
+    return `${v[0].toFixed(2)}, ${v[1].toFixed(2)}, ${v[2].toFixed(2)}`;
   }
 
   /**
@@ -1317,7 +1317,7 @@ export class SpatialDataGenerator {
   private hashComposition(comp: SpatialComposition): string {
     const str =
       comp.name +
-      comp.objects.map((o) => `${o.id}:${o.position.x},${o.position.y},${o.position.z}`).join('|');
+      comp.objects.map((o) => `${o.id}:${o.position[0]},${o.position[1]},${o.position[2]}`).join('|');
 
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -1474,19 +1474,19 @@ export function parseSimpleComposition(source: string): SpatialComposition {
     const sizeMatch = body.match(/size:\s*(\d+(?:\.\d+)?)/);
 
     const position: Vector3 = posMatch
-      ? { x: parseFloat(posMatch[1]), y: parseFloat(posMatch[2]), z: parseFloat(posMatch[3]) }
-      : { x: 0, y: 0, z: 0 };
+      ? [parseFloat(posMatch[1]), parseFloat(posMatch[2]), parseFloat(posMatch[3])]
+      : [0, 0, 0];
 
     let scaleVec: Vector3 | undefined;
     if (scaleMatch) {
-      scaleVec = {
-        x: parseFloat(scaleMatch[1]),
-        y: parseFloat(scaleMatch[2]),
-        z: parseFloat(scaleMatch[3]),
-      };
+      scaleVec = [
+        parseFloat(scaleMatch[1]),
+        parseFloat(scaleMatch[2]),
+        parseFloat(scaleMatch[3]),
+      ];
     } else if (sizeMatch) {
       const s = parseFloat(sizeMatch[1]);
-      scaleVec = { x: s, y: s, z: s };
+      scaleVec = [s, s, s];
     }
 
     const type = geoMatch ? geoMatch[1] : 'cube';

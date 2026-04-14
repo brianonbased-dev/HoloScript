@@ -41,15 +41,15 @@ describe('ropeHandler.onAttach', () => {
     const { node } = attach({ segments: 10 });
     expect(node.__ropeState.segments).toHaveLength(11);
   });
-  it('seg[0].position.y=0', () => {
+  it('seg[0].position[1]=0', () => {
     const { node } = attach({ segments: 5, length: 5 });
-    expect(node.__ropeState.segments[0].position.y).toBeCloseTo(0);
+    expect(node.__ropeState.segments[0].position[1]).toBeCloseTo(0);
   });
   it('segment spacing = length/segments downward', () => {
     const { node } = attach({ segments: 4, length: 4 });
     // segmentLength = 4/4 = 1.0
-    expect(node.__ropeState.segments[1].position.y).toBeCloseTo(-1.0);
-    expect(node.__ropeState.segments[4].position.y).toBeCloseTo(-4.0);
+    expect(node.__ropeState.segments[1].position[1]).toBeCloseTo(-1.0);
+    expect(node.__ropeState.segments[4].position[1]).toBeCloseTo(-4.0);
   });
   it('currentLength = config.length', () => {
     const { node } = attach({ length: 8 });
@@ -177,22 +177,22 @@ describe('ropeHandler.onEvent — rope_segment_update', () => {
   it('updates segment positions', () => {
     const { node, config, ctx } = attach({ segments: 3 });
     const positions = [
-      { x: 1, y: 0, z: 0 },
-      { x: 2, y: 0, z: 0 },
-      { x: 3, y: 0, z: 0 },
+      [1, 0, 0 ],
+      [2, 0, 0 ],
+      [3, 0, 0 ],
     ];
     ropeHandler.onEvent!(node, config, ctx, { type: 'rope_segment_update', positions, tension: 0 });
-    expect(node.__ropeState.segments[0].position.x).toBe(1);
-    expect(node.__ropeState.segments[2].position.x).toBe(3);
+    expect(node.__ropeState.segments[0].position[0]).toBe(1);
+    expect(node.__ropeState.segments[2].position[0]).toBe(3);
   });
   it('updates tension from event', () => {
     const { node, config, ctx } = attach({ segments: 2 });
     ropeHandler.onEvent!(node, config, ctx, {
       type: 'rope_segment_update',
       positions: [
-        { x: 0, y: 0, z: 0 },
-        { x: 0, y: -1, z: 0 },
-        { x: 0, y: -2, z: 0 },
+        [0, 0, 0 ],
+        [0, -1, 0 ],
+        [0, -2, 0 ],
       ],
       tension: 250,
     });
@@ -204,9 +204,9 @@ describe('ropeHandler.onEvent — rope_segment_update', () => {
     ropeHandler.onEvent!(node, config, ctx, {
       type: 'rope_segment_update',
       positions: [
-        { x: 0, y: 0, z: 0 },
-        { x: 0, y: -1, z: 0 },
-        { x: 0, y: -2, z: 0 },
+        [0, 0, 0 ],
+        [0, -1, 0 ],
+        [0, -2, 0 ],
       ],
       tension: 0,
     });
@@ -217,8 +217,8 @@ describe('ropeHandler.onEvent — rope_segment_update', () => {
     ropeHandler.onEvent!(node, config, ctx, {
       type: 'rope_segment_update',
       positions: [
-        { x: 0, y: 0, z: 0 },
-        { x: 0, y: -1, z: 0 },
+        [0, 0, 0 ],
+        [0, -1, 0 ],
       ],
       tension: 0,
     });
@@ -250,11 +250,11 @@ describe('ropeHandler.onEvent — rope_attach and rope_detach', () => {
       type: 'rope_attach',
       endpoint: 'end',
       targetNodeId: 'x',
-      offset: { x: 1, y: 0, z: 0 },
+      offset: [1, 0, 0 ],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'rope_create_attachment',
-      expect.objectContaining({ offset: { x: 1, y: 0, z: 0 } })
+      expect.objectContaining({ offset: [1, 0, 0 ] })
     );
   });
   it('rope_detach start sets startAttachment=null', () => {
@@ -281,13 +281,13 @@ describe('ropeHandler.onEvent — rope_apply_force', () => {
     ropeHandler.onEvent!(node, config, ctx, {
       type: 'rope_apply_force',
       segmentIndex: 4,
-      force: { x: 0, y: 50, z: 0 },
+      force: [0, 50, 0 ],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'rope_external_force',
       expect.objectContaining({
         segmentIndex: 4,
-        force: { x: 0, y: 50, z: 0 },
+        force: [0, 50, 0 ],
       })
     );
   });
@@ -295,7 +295,7 @@ describe('ropeHandler.onEvent — rope_apply_force', () => {
     const { node, config, ctx } = attach({ segments: 10 });
     ropeHandler.onEvent!(node, config, ctx, {
       type: 'rope_apply_force',
-      force: { x: 1, y: 0, z: 0 },
+      force: [1, 0, 0 ],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'rope_external_force',

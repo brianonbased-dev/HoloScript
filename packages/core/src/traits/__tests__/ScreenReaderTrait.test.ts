@@ -29,7 +29,7 @@ describe('ScreenReaderTrait', () => {
     node = createMockNode('sr');
     (node as any).name = 'TestButton';
     (node as any).type = 'button';
-    node.position = { x: 1, y: 2, z: 3 };
+    node.position = [1, 2, 3 ];
     ctx = createMockContext();
     attachTrait(screenReaderHandler, node, cfg, ctx);
   });

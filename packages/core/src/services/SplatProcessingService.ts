@@ -65,7 +65,7 @@ export class SplatProcessingService {
     const indices = new Uint32Array(data.count);
     const depths = new Float32Array(data.count);
 
-    const cp = Array.isArray(cameraPos) ? cameraPos : [cameraPos.x, cameraPos.y, cameraPos.z];
+    const cp = Array.isArray(cameraPos) ? cameraPos : [cameraPos[0], cameraPos[1], cameraPos[2]];
 
     for (let i = 0; i < data.count; i++) {
       indices[i] = i;
@@ -90,8 +90,8 @@ export class SplatProcessingService {
    * Returns index of the first splat hit and the hit distance.
    */
   public intersectRay(data: SplatData, origin: Vector3, direction: Vector3, threshold = 0.5): { index: number; distance: number } | null {
-    const o = Array.isArray(origin) ? origin : [origin.x, origin.y, origin.z];
-    const d = Array.isArray(direction) ? direction : [direction.x, direction.y, direction.z];
+    const o = Array.isArray(origin) ? origin : [origin[0], origin[1], origin[2]];
+    const d = Array.isArray(direction) ? direction : [direction[0], direction[1], direction[2]];
     
     // Normalize direction
     // @ts-expect-error

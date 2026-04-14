@@ -31,7 +31,7 @@ describe('CinematicDirector', () => {
     dir.addActorMark('s1', {
       actorId: 'hero',
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
     });
     const scene = dir.getScene('s1')!;
     expect(scene.actors).toHaveLength(1);
@@ -204,9 +204,9 @@ describe('CameraRig', () => {
       { x: 0, y: 0, z: 0 },
       { x: 10, y: 0, z: 0 },
     ]);
-    const before = rig.getState().position.x;
+    const before = rig.getState().position[0];
     rig.update(0.5);
-    const after = rig.getState().position.x;
+    const after = rig.getState().position[0];
     expect(after).toBeGreaterThan(before);
   });
 
@@ -215,6 +215,6 @@ describe('CameraRig', () => {
     rig.setCraneParams(20, 45);
     rig.update(0.016);
     const state = rig.getState();
-    expect(state.position.y).toBeGreaterThan(5); // default y is 5, crane adds
+    expect(state.position[1]).toBeGreaterThan(5); // default y is 5, crane adds
   });
 });

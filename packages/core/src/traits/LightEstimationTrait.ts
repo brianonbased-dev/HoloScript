@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * LightEstimation Trait
  *
@@ -24,7 +25,7 @@ interface LightEstimationState {
   intensity: number; // 0-2 (1 = normal)
   colorTemperature: number; // Kelvin
   colorCorrection: { r: number; g: number; b: number };
-  primaryDirection: { x: number; y: number; z: number };
+  primaryDirection: Vector3;
   sphericalHarmonics: Float32Array | null;
   environmentMap: unknown;
   updateAccumulator: number;
@@ -87,7 +88,7 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
       intensity: 1.0,
       colorTemperature: 6500,
       colorCorrection: { r: 1, g: 1, b: 1 },
-      primaryDirection: { x: 0, y: -1, z: 0 },
+      primaryDirection: [0, -1, 0 ],
       sphericalHarmonics: null,
       environmentMap: null,
       updateAccumulator: 0,
@@ -158,9 +159,9 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
       if (event.direction) {
         const dir = event.direction as typeof state.primaryDirection;
         state.primaryDirection = {
-          x: state.primaryDirection.x * config.smoothing + dir.x * (1 - config.smoothing),
-          y: state.primaryDirection.y * config.smoothing + dir.y * (1 - config.smoothing),
-          z: state.primaryDirection.z * config.smoothing + dir.z * (1 - config.smoothing),
+          x: state.primaryDirection[0] * config.smoothing + dir[0] * (1 - config.smoothing),
+          y: state.primaryDirection[1] * config.smoothing + dir[1] * (1 - config.smoothing),
+          z: state.primaryDirection[2] * config.smoothing + dir[2] * (1 - config.smoothing),
         };
       }
 

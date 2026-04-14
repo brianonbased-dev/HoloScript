@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 import { describe, it, expect } from 'vitest';
 import { SpatialQueryExecutor, SpatialQuery } from './SpatialQuery';
 import { SpatialEntity, Region, Vector3 } from './SpatialTypes';
@@ -5,10 +6,10 @@ import { SpatialEntity, Region, Vector3 } from './SpatialTypes';
 describe('SpatialQueryExecutor - Supplementary Tests', () => {
   const executor = new SpatialQueryExecutor();
   const entities: SpatialEntity[] = [
-    { id: '1', type: 'agent', position: {x: 0, y: 0, z: 0} },
-    { id: '2', type: 'object', position: {x: 10, y: 0, z: 0} },
-    { id: '3', type: 'object', position: {x: 5, y: 5, z: 0} },
-    { id: '4', type: 'agent', position: {x: -5, y: 0, z: 0} },
+    { id: '1', type: 'agent', position: [0, 0, 0] },
+    { id: '2', type: 'object', position: [10, 0, 0] },
+    { id: '3', type: 'object', position: [5, 5, 0] },
+    { id: '4', type: 'agent', position: [-5, 0, 0] },
   ];
 
   executor.updateEntities(entities);
@@ -19,14 +20,14 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
         {
           id: 'obs1',
           type: 'wall',
-          position: {x: 5, y: 0, z: 0},
-          bounds: { radius: 1, center: { x: 5, y: 0, z: 0 } },
+          position: [5, 0, 0],
+          bounds: { radius: 1, center: [5, 0, 0] },
         },
       ];
 
       const query: SpatialQuery = {
         type: 'reachable',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         maxDistance: 15,
         obstacles: obstacles,
       };
@@ -48,14 +49,14 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
         name: 'Box Region',
         type: 'box',
         bounds: {
-          min: { x: 8, y: -2, z: -2 },
-          max: { x: 12, y: 2, z: 2 },
+          min: [8, -2, -2],
+          max: [12, 2, 2],
         },
       };
 
       const query: SpatialQuery = {
         type: 'in_region',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         region: region,
       };
 
@@ -70,14 +71,14 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
         name: 'Sphere Region',
         type: 'sphere',
         bounds: {
-          center: { x: 5, y: 5, z: 0 },
+          center: [5, 5, 0],
           radius: 1,
         },
       };
 
       const query: SpatialQuery = {
         type: 'in_region',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         region: region,
       };
 
@@ -91,7 +92,7 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should filter by type and radius', () => {
       const query: SpatialQuery = {
         type: 'by_type',
-        from: { x: 0, y: 0, z: 0 },
+        from: [0, 0, 0],
         entityTypes: ['agent'],
         radius: 6,
       };
@@ -109,8 +110,8 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should hit entity in direction', () => {
       const query: SpatialQuery = {
         type: 'raycast',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 1, y: 0, z: 0 },
+        from: [0, 0, 0],
+        direction: [1, 0, 0],
         maxDistance: 20,
         hitFirst: true,
       };
@@ -123,8 +124,8 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should not hit if direction is wrong', () => {
       const query: SpatialQuery = {
         type: 'raycast',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 0, y: -1, z: 0 },
+        from: [0, 0, 0],
+        direction: [0, -1, 0],
         maxDistance: 20,
       };
 
@@ -137,8 +138,8 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should respect FOV in visible query', () => {
       const query: SpatialQuery = {
         type: 'visible',
-        from: { x: 0, y: 0, z: 0 },
-        direction: { x: 1, y: 0, z: 0 },
+        from: [0, 0, 0],
+        direction: [1, 0, 0],
         fov: 60, // 30 degrees each side
         maxDistance: 20,
       };

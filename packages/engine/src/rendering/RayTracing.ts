@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * RayTracing.ts
  *
@@ -20,8 +21,6 @@
 // =============================================================================
 // TYPES
 // =============================================================================
-
-export type Vec3 = { x: number; y: number; z: number };
 
 export type RTApi = 'dxr' | 'optix' | 'metal_rt' | 'vulkan_rt' | 'software';
 export type RTFeature = 'reflections' | 'shadows' | 'ao' | 'gi';
@@ -49,29 +48,29 @@ const DEFAULT_RT_CONFIG: RayTracingConfig = {
 // =============================================================================
 
 export interface AABB {
-  min: Vec3;
-  max: Vec3;
+  min: Vector3;
+  max: Vector3;
 }
 
 export interface Triangle {
-  v0: Vec3;
-  v1: Vec3;
-  v2: Vec3;
+  v0: Vector3;
+  v1: Vector3;
+  v2: Vector3;
   /** Pre-computed normal (optional, computed on demand) */
-  normal?: Vec3;
+  normal?: Vector3;
 }
 
 export interface Ray {
-  origin: Vec3;
-  direction: Vec3; // must be unit length
+  origin: Vector3;
+  direction: Vector3; // must be unit length
   tMin: number;
   tMax: number;
 }
 
 export interface HitRecord {
   t: number;
-  point: Vec3;
-  normal: Vec3;
+  point: Vector3;
+  normal: Vector3;
   triangleIndex: number;
 }
 
@@ -79,65 +78,57 @@ export interface HitRecord {
 // UTILITIES
 // =============================================================================
 
-function vec3Sub(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+function vec3Sub(a: Vector3, b: Vector3): Vector3 {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
-function vec3Dot(a: Vec3, b: Vec3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
+function vec3Dot(a: Vector3, b: Vector3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
-function vec3Cross(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+function vec3Cross(a: Vector3, b: Vector3): Vector3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
-function vec3Length(v: Vec3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+function vec3Length(v: Vector3): number {
+  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
-function vec3Normalize(v: Vec3): Vec3 {
+function vec3Normalize(v: Vector3): Vector3 {
   const len = vec3Length(v) || 1;
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
+  return [v[0] / len, v[1] / len, v[2] / len];
 }
-function vec3AtT(ray: Ray, t: number): Vec3 {
-  return {
-    x: ray.origin.x + ray.direction.x * t,
-    y: ray.origin.y + ray.direction.y * t,
-    z: ray.origin.z + ray.direction.z * t,
-  };
+function vec3AtT(ray: Ray, t: number): Vector3 {
+  return [ray.origin[0] + ray.direction[0] * t, ray.origin[1] + ray.direction[1] * t, ray.origin[2] + ray.direction[2] * t];
 }
 
-export function computeTriangleNormal(tri: Triangle): Vec3 {
+export function computeTriangleNormal(tri: Triangle): Vector3 {
   const e1 = vec3Sub(tri.v1, tri.v0);
   const e2 = vec3Sub(tri.v2, tri.v0);
   return vec3Normalize(vec3Cross(e1, e2));
 }
 
 export function computeAABB(triangles: Triangle[], start: number, end: number): AABB {
-  const min = { x: Infinity, y: Infinity, z: Infinity };
-  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  const min: Vector3 = [Infinity, Infinity, Infinity];
+  const max: Vector3 = [-Infinity, -Infinity, -Infinity];
   for (let i = start; i < end; i++) {
     for (const v of [triangles[i].v0, triangles[i].v1, triangles[i].v2]) {
-      if (v.x < min.x) min.x = v.x;
-      if (v.x > max.x) max.x = v.x;
-      if (v.y < min.y) min.y = v.y;
-      if (v.y > max.y) max.y = v.y;
-      if (v.z < min.z) min.z = v.z;
-      if (v.z > max.z) max.z = v.z;
+      if (v[0] < min[0]) min[0] = v[0];
+      if (v[0] > max[0]) max[0] = v[0];
+      if (v[1] < min[1]) min[1] = v[1];
+      if (v[1] > max[1]) max[1] = v[1];
+      if (v[2] < min[2]) min[2] = v[2];
+      if (v[2] > max[2]) max[2] = v[2];
     }
   }
   return { min, max };
 }
 
 export function aabbSurfaceArea(box: AABB): number {
-  const dx = box.max.x - box.min.x;
-  const dy = box.max.y - box.min.y;
-  const dz = box.max.z - box.min.z;
+  const dx = box.max[0] - box.min[0];
+  const dy = box.max[1] - box.min[1];
+  const dz = box.max[2] - box.min[2];
   return 2 * (dx * dy + dy * dz + dz * dx);
 }
 
-export function aabbCentroid(box: AABB): Vec3 {
-  return {
-    x: (box.min.x + box.max.x) * 0.5,
-    y: (box.min.y + box.max.y) * 0.5,
-    z: (box.min.z + box.max.z) * 0.5,
-  };
+export function aabbCentroid(box: AABB): Vector3 {
+  return [(box.min[0] + box.max[0]) * 0.5, (box.min[1] + box.max[1]) * 0.5, (box.min[2] + box.max[2]) * 0.5];
 }
 
 // =============================================================================
@@ -152,10 +143,10 @@ export function intersectRayAABB(ray: Ray, box: AABB): number {
   let tmin = ray.tMin,
     tmax = ray.tMax;
 
-  for (const axis of ['x', 'y', 'z'] as const) {
-    const invD = 1 / (ray.direction[axis] || 1e-10);
-    let t0 = (box.min[axis] - ray.origin[axis]) * invD;
-    let t1 = (box.max[axis] - ray.origin[axis]) * invD;
+  for (let i = 0; i < 3; i++) {
+    const invD = 1 / (ray.direction[i] || 1e-10);
+    let t0 = (box.min[i] - ray.origin[i]) * invD;
+    let t1 = (box.max[i] - ray.origin[i]) * invD;
     if (invD < 0) [t0, t1] = [t1, t0];
     tmin = Math.max(tmin, t0);
     tmax = Math.min(tmax, t1);
@@ -232,10 +223,10 @@ export class BVH {
     }
 
     // Choose split axis by longest extent
-    const dx = bound.max.x - bound.min.x;
-    const dy = bound.max.y - bound.min.y;
-    const dz = bound.max.z - bound.min.z;
-    const axis: 'x' | 'y' | 'z' = dx >= dy && dx >= dz ? 'x' : dy >= dz ? 'y' : 'z';
+    const dx = bound.max[0] - bound.min[0];
+    const dy = bound.max[1] - bound.min[1];
+    const dz = bound.max[2] - bound.min[2];
+    const axis = dx >= dy && dx >= dz ? 0 : dy >= dz ? 1 : 2;
 
     // SAH: try 8 bins, pick best
     const NUM_BINS = 8;
@@ -324,15 +315,15 @@ export interface PathTracerScene {
   /** Ambient (sky) radiance (RGB) for misses */
   skyColor: [number, number, number];
   /** Light positions for shadow rays */
-  lights: Array<{ position: Vec3; color: [number, number, number]; intensity: number }>;
+  lights: Array<{ position: Vector3; color: [number, number, number]; intensity: number }>;
 }
 
-function randomUnitHemisphere(normal: Vec3, seed: number): Vec3 {
+function randomUnitHemisphere(normal: Vector3, seed: number): Vector3 {
   const phi = seed * 6.283185;
   const cosTheta = 1 - 2 * ((seed * 1.618033) % 1);
   const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
-  const v = { x: sinTheta * Math.cos(phi), y: sinTheta * Math.sin(phi), z: cosTheta };
-  return vec3Dot(v, normal) < 0 ? { x: -v.x, y: -v.y, z: -v.z } : v;
+  const v: Vector3 = [sinTheta * Math.cos(phi), sinTheta * Math.sin(phi), cosTheta];
+  return vec3Dot(v, normal) < 0 ? [-v[0], -v[1], -v[2]] : v;
 }
 
 /**
@@ -519,8 +510,8 @@ export class RayTracer {
 
   /** Render a single pixel with multi-sample path tracing */
   renderPixel(
-    rayOrigin: Vec3,
-    rayDir: Vec3,
+    rayOrigin: Vector3,
+    rayDir: Vector3,
     pixelX: number,
     pixelY: number
   ): [number, number, number] {

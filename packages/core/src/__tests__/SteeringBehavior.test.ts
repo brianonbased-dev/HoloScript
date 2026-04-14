@@ -27,15 +27,15 @@ describe('SteeringBehavior', () => {
   it('seek steers toward target', () => {
     const agent = makeAgent();
     const force = SteeringBehavior.seek(agent, { x: 10, z: 0 });
-    expect(force.x).toBeGreaterThan(0);
-    expect(force.z).toBeCloseTo(0, 5);
+    expect(force[0]).toBeGreaterThan(0);
+    expect(force[2]).toBeCloseTo(0, 5);
   });
 
   it('seek returns zero when at target', () => {
     const agent = makeAgent({ position: { x: 5, z: 5 } });
     const force = SteeringBehavior.seek(agent, { x: 5, z: 5 });
-    expect(force.x).toBe(0);
-    expect(force.z).toBe(0);
+    expect(force[0]).toBe(0);
+    expect(force[2]).toBe(0);
   });
 
   // --- Flee ---
@@ -43,7 +43,7 @@ describe('SteeringBehavior', () => {
   it('flee steers away from target', () => {
     const agent = makeAgent();
     const force = SteeringBehavior.flee(agent, { x: 10, z: 0 });
-    expect(force.x).toBeLessThan(0); // moving away
+    expect(force[0]).toBeLessThan(0); // moving away
   });
 
   it('flee is opposite of seek', () => {
@@ -67,8 +67,8 @@ describe('SteeringBehavior', () => {
   it('arrive returns zero at target', () => {
     const agent = makeAgent({ position: { x: 5, z: 5 } });
     const force = SteeringBehavior.arrive(agent, { x: 5, z: 5 });
-    expect(force.x).toBe(0);
-    expect(force.z).toBe(0);
+    expect(force[0]).toBe(0);
+    expect(force[2]).toBe(0);
   });
 
   // --- Wander ---
@@ -85,22 +85,22 @@ describe('SteeringBehavior', () => {
     const agent = makeAgent({ velocity: { x: 5, z: 0 } });
     const obstacles = [{ position: { x: 3, z: 0 }, radius: 1 }];
     const force = SteeringBehavior.avoid(agent, obstacles, 5);
-    expect(force.x).toBeLessThan(0); // pushed backward
+    expect(force[0]).toBeLessThan(0); // pushed backward
   });
 
   it('avoid returns zero when no obstacles in range', () => {
     const agent = makeAgent();
     const obstacles = [{ position: { x: 100, z: 100 }, radius: 1 }];
     const force = SteeringBehavior.avoid(agent, obstacles, 5);
-    expect(force.x).toBe(0);
-    expect(force.z).toBe(0);
+    expect(force[0]).toBe(0);
+    expect(force[2]).toBe(0);
   });
 
   it('avoid handles empty obstacle list', () => {
     const agent = makeAgent();
     const force = SteeringBehavior.avoid(agent, [], 5);
-    expect(force.x).toBe(0);
-    expect(force.z).toBe(0);
+    expect(force[0]).toBe(0);
+    expect(force[2]).toBe(0);
   });
 
   // --- Blend ---

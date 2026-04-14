@@ -82,9 +82,9 @@ describe('ClothSim — Production', () => {
     const c = new ClothSim();
     c.createGrid(3, 3, 1.0);
     const aabb = c.getAABB();
-    expect(aabb.min.x).toBeLessThanOrEqual(aabb.max.x);
-    expect(aabb.min.y).toBeLessThanOrEqual(aabb.max.y);
-    expect(aabb.min.z).toBeLessThanOrEqual(aabb.max.z);
+    expect(aabb.min[0]).toBeLessThanOrEqual(aabb.max[0]);
+    expect(aabb.min[1]).toBeLessThanOrEqual(aabb.max[1]);
+    expect(aabb.min[2]).toBeLessThanOrEqual(aabb.max[2]);
   });
 
   // ─── Queries ──────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ import {
   PhysicsWorldImpl,
   createPhysicsWorld,
   IslandDetector,
-} from '../physics';
+} from '@holoscript/engine/physics';
 
 // ============================================================================
 // Type Constants Tests
@@ -36,22 +36,22 @@ import {
 describe('Physics Types', () => {
   describe('Constants', () => {
     it('should export zeroVector function', () => {
-      expect(zeroVector()).toEqual({ x: 0, y: 0, z: 0 });
+      expect(zeroVector()).toEqual([0, 0, 0]);
     });
 
     it('should export identityQuaternion function', () => {
-      expect(identityQuaternion()).toEqual({ x: 0, y: 0, z: 0, w: 1 });
+      expect(identityQuaternion()).toEqual([0, 0, 0, 1]);
     });
 
     it('should export defaultTransform function', () => {
       const transform = defaultTransform();
-      expect(transform.position).toEqual({ x: 0, y: 0, z: 0 });
-      expect(transform.rotation).toEqual({ x: 0, y: 0, z: 0, w: 1 });
-      expect(transform.scale).toEqual({ x: 1, y: 1, z: 1 });
+      expect(transform.position).toEqual([0, 0, 0]);
+      expect(transform.rotation).toEqual([0, 0, 0, 1]);
+      expect(transform.scale).toEqual([1, 1, 1]);
     });
 
     it('should export PHYSICS_DEFAULTS', () => {
-      expect(PHYSICS_DEFAULTS.gravity).toEqual({ x: 0, y: -9.81, z: 0 });
+      expect(PHYSICS_DEFAULTS.gravity).toEqual([0, -9.81, 0]);
       expect(PHYSICS_DEFAULTS.fixedTimestep).toBe(1 / 60);
       expect(PHYSICS_DEFAULTS.maxSubsteps).toBe(3);
       expect(PHYSICS_DEFAULTS.solverIterations).toBe(10);
@@ -73,9 +73,9 @@ describe('Physics Types', () => {
 
   describe('Shape Helpers', () => {
     it('should create box shape', () => {
-      const shape = boxShape({ x: 1, y: 1.5, z: 2 });
+      const shape = boxShape([1, 1.5, 2]);
       expect(shape.type).toBe('box');
-      expect(shape.halfExtents).toEqual({ x: 1, y: 1.5, z: 2 });
+      expect(shape.halfExtents).toEqual([1, 1.5, 2]);
     });
 
     it('should create sphere shape', () => {
@@ -107,17 +107,17 @@ describe('Physics Types', () => {
   describe('Body Configuration Helpers', () => {
     it('should create dynamic body config', () => {
       const shape = sphereShape(1);
-      const config = dynamicBody('ball', shape, 1, { x: 0, y: 5, z: 0 });
+      const config = dynamicBody('ball', shape, 1, [0, 5, 0]);
 
       expect(config.id).toBe('ball');
       expect(config.type).toBe('dynamic');
       expect(config.shape).toBe(shape);
       expect(config.mass).toBe(1);
-      expect(config.transform.position).toEqual({ x: 0, y: 5, z: 0 });
+      expect(config.transform.position).toEqual([0, 5, 0]);
     });
 
     it('should create static body config', () => {
-      const shape = boxShape({ x: 5, y: 0.5, z: 5 });
+      const shape = boxShape([5, 0.5, 5]);
       const config = staticBody('ground', shape);
 
       expect(config.id).toBe('ground');
@@ -127,7 +127,7 @@ describe('Physics Types', () => {
     });
 
     it('should create kinematic body config', () => {
-      const shape = boxShape({ x: 1, y: 1, z: 1 });
+      const shape = boxShape([1, 1, 1]);
       const config = kinematicBody('platform', shape);
 
       expect(config.id).toBe('platform');
@@ -188,21 +188,21 @@ describe('RigidBody', () => {
 
       expect(body.id).toBe('test');
       expect(body.type).toBe('dynamic');
-      expect(body.position).toEqual({ x: 0, y: 0, z: 0 });
+      expect(body.position).toEqual([0, 0, 0]);
       expect(body.rotation).toEqual(identityQuaternion());
       expect(body.isActive).toBe(true);
       expect(body.isSleeping).toBe(false);
     });
 
     it('should create with custom position', () => {
-      const config = dynamicBody('test', sphereShape(1), 1, { x: 1, y: 2, z: 3 });
+      const config = dynamicBody('test', sphereShape(1), 1, [1, 2, 3]);
       const body = new RigidBody(config);
 
-      expect(body.position).toEqual({ x: 1, y: 2, z: 3 });
+      expect(body.position).toEqual([1, 2, 3]);
     });
 
     it('should create static body with zero inverse mass', () => {
-      const body = new RigidBody(staticBody('ground', boxShape({ x: 5, y: 0.5, z: 5 })));
+      const body = new RigidBody(staticBody('ground', boxShape([5, 0.5, 5])));
 
       expect(body.inverseMass).toBe(0);
       expect(body.type).toBe('static');
@@ -218,12 +218,12 @@ describe('RigidBody', () => {
 
   describe('State', () => {
     it('should get state snapshot', () => {
-      const body = new RigidBody(dynamicBody('ball', sphereShape(1), 1, { x: 5, y: 10, z: 0 }));
+      const body = new RigidBody(dynamicBody('ball', sphereShape(1), 1, [5, 10, 0]));
       const state = body.getState();
 
       expect(state.id).toBe('ball');
       expect(body.type).toBe('dynamic'); // type is on body, not state
-      expect(state.position).toEqual({ x: 5, y: 10, z: 0 });
+      expect(state.position).toEqual([5, 10, 0]);
       expect(state.isSleeping).toBe(false);
     });
 
@@ -231,51 +231,51 @@ describe('RigidBody', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
       body.setTransform({
         position: [10, 20, 30],
-        rotation: { x: 0, y: 1, z: 0, w: 0 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 1, 0, 0],
+        scale: [1, 1, 1],
       });
 
-      expect(body.position).toEqual({ x: 10, y: 20, z: 30 });
-      expect(body.rotation).toEqual({ x: 0, y: 1, z: 0, w: 0 });
+      expect(body.position).toEqual([10, 20, 30]);
+      expect(body.rotation).toEqual([0, 1, 0, 0]);
     });
   });
 
   describe('Forces and Impulses', () => {
     it('should apply force', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.applyForce({ x: 100, y: 0, z: 0 });
-      body.integrateForces(1 / 60, { x: 0, y: 0, z: 0 });
+      body.applyForce([100, 0, 0]);
+      body.integrateForces(1 / 60, [0, 0, 0]);
 
-      expect(body.linearVelocity.x).toBeGreaterThan(0);
+      expect(body.linearVelocity[0]).toBeGreaterThan(0);
     });
 
     it('should apply impulse', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.applyImpulse({ x: 10, y: 0, z: 0 });
+      body.applyImpulse([10, 0, 0]);
 
-      expect(body.linearVelocity.x).toBeGreaterThan(0);
+      expect(body.linearVelocity[0]).toBeGreaterThan(0);
     });
 
     it('should apply torque', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.applyTorque({ x: 0, y: 100, z: 0 });
-      body.integrateForces(1 / 60, { x: 0, y: 0, z: 0 });
+      body.applyTorque([0, 100, 0]);
+      body.integrateForces(1 / 60, [0, 0, 0]);
 
-      expect(body.angularVelocity.y).toBeGreaterThan(0);
+      expect(body.angularVelocity[1]).toBeGreaterThan(0);
     });
 
     it('should apply torque impulse', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.applyTorqueImpulse({ x: 0, y: 10, z: 0 });
+      body.applyTorqueImpulse([0, 10, 0]);
 
-      expect(body.angularVelocity.y).toBeGreaterThan(0);
+      expect(body.angularVelocity[1]).toBeGreaterThan(0);
     });
 
     it('should not affect static bodies', () => {
-      const body = new RigidBody(staticBody('ground', boxShape({ x: 5, y: 0.5, z: 5 })));
-      body.applyImpulse({ x: 1000, y: 1000, z: 1000 });
+      const body = new RigidBody(staticBody('ground', boxShape([5, 0.5, 5])));
+      body.applyImpulse([1000, 1000, 1000]);
 
-      expect(body.linearVelocity).toEqual({ x: 0, y: 0, z: 0 });
+      expect(body.linearVelocity).toEqual([0, 0, 0]);
     });
 
     it('should wake body when force applied', () => {
@@ -285,14 +285,14 @@ describe('RigidBody', () => {
         body.updateSleep(1 / 60);
       }
 
-      body.applyForce({ x: 100, y: 0, z: 0 });
+      body.applyForce([100, 0, 0]);
       expect(body.isSleeping).toBe(false);
     });
   });
 
   describe('Integration', () => {
     it('should apply gravity', () => {
-      const body = new RigidBody(dynamicBody('ball', sphereShape(1), 1, { x: 0, y: 10, z: 0 }));
+      const body = new RigidBody(dynamicBody('ball', sphereShape(1), 1, [0, 10, 0]));
 
       // Simulate a few frames
       for (let i = 0; i < 10; i++) {
@@ -300,34 +300,34 @@ describe('RigidBody', () => {
         body.integrateVelocities(1 / 60);
       }
 
-      expect(body.position.y).toBeLessThan(10);
-      expect(body.linearVelocity.y).toBeLessThan(0);
+      expect(body.position[1]).toBeLessThan(10);
+      expect(body.linearVelocity[1]).toBeLessThan(0);
     });
 
     it('should update position from velocity', () => {
       const body = new RigidBody(dynamicBody('ball', sphereShape(1), 1));
-      body.linearVelocity = { x: 10, y: 0, z: 0 };
+      body.linearVelocity = [10, 0, 0];
 
       body.integrateVelocities(1);
 
-      expect(body.position.x).toBeCloseTo(10, 1);
+      expect(body.position[0]).toBeCloseTo(10, 1);
     });
 
     it('should apply damping', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.linearVelocity = { x: 100, y: 0, z: 0 };
+      body.linearVelocity = [100, 0, 0];
 
-      body.integrateForces(1 / 60, { x: 0, y: 0, z: 0 });
+      body.integrateForces(1 / 60, [0, 0, 0]);
 
-      expect(body.linearVelocity.x).toBeLessThan(100);
+      expect(body.linearVelocity[0]).toBeLessThan(100);
     });
   });
 
   describe('Sleeping', () => {
     it('should eventually sleep when at rest', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
-      body.linearVelocity = { x: 0, y: 0, z: 0 };
-      body.angularVelocity = { x: 0, y: 0, z: 0 };
+      body.linearVelocity = [0, 0, 0];
+      body.angularVelocity = [0, 0, 0];
 
       // Run enough frames to trigger sleep
       for (let i = 0; i < 60; i++) {
@@ -394,13 +394,13 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should create with custom gravity', () => {
-      const customWorld = new PhysicsWorldImpl({ gravity: { x: 0, y: -20, z: 0 } });
-      expect(customWorld.getGravity()).toEqual({ x: 0, y: -20, z: 0 });
+      const customWorld = new PhysicsWorldImpl({ gravity: [0, -20, 0] });
+      expect(customWorld.getGravity()).toEqual([0, -20, 0]);
     });
 
     it('should update gravity', () => {
-      world.setGravity({ x: 0, y: -5, z: 0 });
-      expect(world.getGravity()).toEqual({ x: 0, y: -5, z: 0 });
+      world.setGravity([0, -5, 0]);
+      expect(world.getGravity()).toEqual([0, -5, 0]);
     });
   });
 
@@ -411,12 +411,12 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should get body', () => {
-      world.createBody(dynamicBody('ball', sphereShape(1), 1, { x: 0, y: 5, z: 0 }));
+      world.createBody(dynamicBody('ball', sphereShape(1), 1, [0, 5, 0]));
       const state = world.getBody('ball');
 
       expect(state).toBeDefined();
       expect(state!.id).toBe('ball');
-      expect(state!.position).toEqual({ x: 0, y: 5, z: 0 });
+      expect(state!.position).toEqual([0, 5, 0]);
     });
 
     it('should return undefined for missing body', () => {
@@ -443,7 +443,7 @@ describe('PhysicsWorldImpl', () => {
     it('should get all bodies', () => {
       world.createBody(dynamicBody('ball1', sphereShape(1), 1));
       world.createBody(dynamicBody('ball2', sphereShape(1), 1));
-      world.createBody(staticBody('ground', boxShape({ x: 5, y: 0.5, z: 5 })));
+      world.createBody(staticBody('ground', boxShape([5, 0.5, 5])));
 
       const bodies = world.getAllBodies();
       expect(bodies).toHaveLength(3);
@@ -456,96 +456,96 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should set position', () => {
-      world.setPosition('ball', { x: 10, y: 20, z: 30 });
-      expect(world.getBody('ball')!.position).toEqual({ x: 10, y: 20, z: 30 });
+      world.setPosition('ball', [10, 20, 30]);
+      expect(world.getBody('ball')!.position).toEqual([10, 20, 30]);
     });
 
     it('should set rotation', () => {
-      world.setRotation('ball', { x: 0, y: 1, z: 0, w: 0 });
-      expect(world.getBody('ball')!.rotation).toEqual({ x: 0, y: 1, z: 0, w: 0 });
+      world.setRotation('ball', [0, 1, 0, 0]);
+      expect(world.getBody('ball')!.rotation).toEqual([0, 1, 0, 0]);
     });
 
     it('should set transform', () => {
       world.setTransform('ball', {
         position: [5, 5, 5],
         rotation: identityQuaternion(),
-        scale: { x: 1, y: 1, z: 1 },
+        scale: [1, 1, 1],
       });
-      expect(world.getBody('ball')!.position).toEqual({ x: 5, y: 5, z: 5 });
+      expect(world.getBody('ball')!.position).toEqual([5, 5, 5]);
     });
 
     it('should set linear velocity', () => {
-      world.setLinearVelocity('ball', { x: 10, y: 0, z: 0 });
-      expect(world.getBody('ball')!.linearVelocity).toEqual({ x: 10, y: 0, z: 0 });
+      world.setLinearVelocity('ball', [10, 0, 0]);
+      expect(world.getBody('ball')!.linearVelocity).toEqual([10, 0, 0]);
     });
 
     it('should set angular velocity', () => {
-      world.setAngularVelocity('ball', { x: 0, y: 5, z: 0 });
-      expect(world.getBody('ball')!.angularVelocity).toEqual({ x: 0, y: 5, z: 0 });
+      world.setAngularVelocity('ball', [0, 5, 0]);
+      expect(world.getBody('ball')!.angularVelocity).toEqual([0, 5, 0]);
     });
 
     it('should apply force', () => {
-      world.applyForce('ball', { x: 1000, y: 0, z: 0 });
+      world.applyForce('ball', [1000, 0, 0]);
       for (let i = 0; i < 10; i++) {
         world.step(1 / 60);
       }
 
-      expect(world.getBody('ball')!.linearVelocity.x).toBeGreaterThan(0);
+      expect(world.getBody('ball')!.linearVelocity[0]).toBeGreaterThan(0);
     });
 
     it('should apply impulse', () => {
-      world.applyImpulse('ball', { x: 10, y: 0, z: 0 });
-      expect(world.getBody('ball')!.linearVelocity.x).toBeGreaterThan(0);
+      world.applyImpulse('ball', [10, 0, 0]);
+      expect(world.getBody('ball')!.linearVelocity[0]).toBeGreaterThan(0);
     });
 
     it('should apply torque', () => {
-      world.applyTorque('ball', { x: 0, y: 1000, z: 0 });
+      world.applyTorque('ball', [0, 1000, 0]);
       for (let i = 0; i < 10; i++) {
         world.step(1 / 60);
       }
 
-      expect(world.getBody('ball')!.angularVelocity.y).toBeGreaterThan(0);
+      expect(world.getBody('ball')!.angularVelocity[1]).toBeGreaterThan(0);
     });
   });
 
   describe('Simulation', () => {
     it('should step simulation', () => {
-      world.createBody(dynamicBody('ball', sphereShape(1), 1, { x: 0, y: 10, z: 0 }));
+      world.createBody(dynamicBody('ball', sphereShape(1), 1, [0, 10, 0]));
 
-      const initialY = world.getBody('ball')!.position.y;
+      const initialY = world.getBody('ball')!.position[1];
       world.step(1 / 60);
-      const newY = world.getBody('ball')!.position.y;
+      const newY = world.getBody('ball')!.position[1];
 
       expect(newY).toBeLessThan(initialY);
     });
 
     it('should apply gravity over time', () => {
-      world.createBody(dynamicBody('ball', sphereShape(1), 1, { x: 0, y: 100, z: 0 }));
+      world.createBody(dynamicBody('ball', sphereShape(1), 1, [0, 100, 0]));
 
       for (let i = 0; i < 60; i++) {
         world.step(1 / 60);
       }
 
       const state = world.getBody('ball')!;
-      expect(state.position.y).toBeLessThan(100);
-      expect(state.linearVelocity.y).toBeLessThan(0);
+      expect(state.position[1]).toBeLessThan(100);
+      expect(state.linearVelocity[1]).toBeLessThan(0);
     });
 
     it('should not move static bodies', () => {
-      world.createBody(staticBody('ground', boxShape({ x: 5, y: 0.5, z: 5 })));
+      world.createBody(staticBody('ground', boxShape([5, 0.5, 5])));
 
       for (let i = 0; i < 60; i++) {
         world.step(1 / 60);
       }
 
-      expect(world.getBody('ground')!.position).toEqual({ x: 0, y: 0, z: 0 });
+      expect(world.getBody('ground')!.position).toEqual([0, 0, 0]);
     });
   });
 
   describe('Collision Detection', () => {
     it('should detect sphere-sphere collision', () => {
-      world.createBody(dynamicBody('ball1', sphereShape(1), 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBody('ball2', sphereShape(1), 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicBody('ball1', sphereShape(1), 1, [0, 0, 0]));
+      world.createBody(dynamicBody('ball2', sphereShape(1), 1, [1.5, 0, 0]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -554,8 +554,8 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should generate collision events', () => {
-      world.createBody(dynamicBody('ball1', sphereShape(1), 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBody('ball2', sphereShape(1), 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicBody('ball1', sphereShape(1), 1, [0, 0, 0]));
+      world.createBody(dynamicBody('ball2', sphereShape(1), 1, [1.5, 0, 0]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -565,24 +565,24 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should separate colliding bodies', () => {
-      world.createBody(dynamicBody('ball1', sphereShape(1), 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBody('ball2', sphereShape(1), 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicBody('ball1', sphereShape(1), 1, [0, 0, 0]));
+      world.createBody(dynamicBody('ball2', sphereShape(1), 1, [1.5, 0, 0]));
 
-      const pos1Before = world.getBody('ball1')!.position.x;
+      const pos1Before = world.getBody('ball1')!.position[0];
 
       for (let i = 0; i < 10; i++) {
         world.step(1 / 60);
       }
 
-      const pos1After = world.getBody('ball1')!.position.x;
+      const pos1After = world.getBody('ball1')!.position[0];
       expect(pos1After).not.toEqual(pos1Before);
     });
   });
 
   describe('Constraints', () => {
     it('should create distance constraint', () => {
-      world.createBody(dynamicBody('a', sphereShape(0.5), 1, { x: 0, y: 5, z: 0 }));
-      world.createBody(dynamicBody('b', sphereShape(0.5), 1, { x: 2, y: 5, z: 0 }));
+      world.createBody(dynamicBody('a', sphereShape(0.5), 1, [0, 5, 0]));
+      world.createBody(dynamicBody('b', sphereShape(0.5), 1, [2, 5, 0]));
 
       const id = world.createConstraint({
         type: 'distance',
@@ -666,10 +666,10 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('should maintain distance constraint', () => {
-      world.setGravity({ x: 0, y: 0, z: 0 }); // Disable gravity for this test
+      world.setGravity([0, 0, 0]); // Disable gravity for this test
 
-      world.createBody(dynamicBody('a', sphereShape(0.5), 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBody('b', sphereShape(0.5), 1, { x: 5, y: 0, z: 0 }));
+      world.createBody(dynamicBody('a', sphereShape(0.5), 1, [0, 0, 0]));
+      world.createBody(dynamicBody('b', sphereShape(0.5), 1, [5, 0, 0]));
 
       world.createConstraint({
         type: 'distance',
@@ -680,7 +680,7 @@ describe('PhysicsWorldImpl', () => {
       });
 
       // Apply force to separate them
-      world.applyImpulse('b', { x: 10, y: 0, z: 0 });
+      world.applyImpulse('b', [10, 0, 0]);
 
       for (let i = 0; i < 100; i++) {
         world.step(1 / 60);
@@ -688,9 +688,9 @@ describe('PhysicsWorldImpl', () => {
 
       const posA = world.getBody('a')!.position;
       const posB = world.getBody('b')!.position;
-      const dx = posB.x - posA.x;
-      const dy = posB.y - posA.y;
-      const dz = posB.z - posA.z;
+      const dx = posB[0] - posA[0];
+      const dy = posB[1] - posA[1];
+      const dz = posB[2] - posA[2];
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       // Should be close to constraint distance (with some tolerance)
@@ -700,15 +700,15 @@ describe('PhysicsWorldImpl', () => {
 
   describe('Spatial Queries', () => {
     beforeEach(() => {
-      world.createBody(dynamicBody('target', sphereShape(1), 1, { x: 5, y: 0, z: 0 }));
-      world.createBody(dynamicBody('far', sphereShape(1), 1, { x: 100, y: 0, z: 0 }));
+      world.createBody(dynamicBody('target', sphereShape(1), 1, [5, 0, 0]));
+      world.createBody(dynamicBody('far', sphereShape(1), 1, [100, 0, 0]));
     });
 
     describe('Raycast', () => {
       it('should hit body in path', () => {
         const hits = world.raycast({
-          origin: { x: 0, y: 0, z: 0 },
-          direction: { x: 1, y: 0, z: 0 },
+          origin: [0, 0, 0],
+          direction: [1, 0, 0],
         });
 
         expect(hits.length).toBeGreaterThan(0);
@@ -717,8 +717,8 @@ describe('PhysicsWorldImpl', () => {
 
       it('should return empty for miss', () => {
         const hits = world.raycast({
-          origin: { x: 0, y: 0, z: 0 },
-          direction: { x: 0, y: 1, z: 0 },
+          origin: [0, 0, 0],
+          direction: [0, 1, 0],
         });
 
         expect(hits).toHaveLength(0);
@@ -726,8 +726,8 @@ describe('PhysicsWorldImpl', () => {
 
       it('should respect max distance', () => {
         const hits = world.raycast({
-          origin: { x: 0, y: 0, z: 0 },
-          direction: { x: 1, y: 0, z: 0 },
+          origin: [0, 0, 0],
+          direction: [1, 0, 0],
           maxDistance: 3,
         });
 
@@ -735,10 +735,10 @@ describe('PhysicsWorldImpl', () => {
       });
 
       it('should return closest only', () => {
-        world.createBody(dynamicBody('near', sphereShape(1), 1, { x: 3, y: 0, z: 0 }));
+        world.createBody(dynamicBody('near', sphereShape(1), 1, [3, 0, 0]));
 
         const hits = world.raycast(
-          { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+          { origin: [0, 0, 0], direction: [1, 0, 0] },
           { closestOnly: true }
         );
 
@@ -748,7 +748,7 @@ describe('PhysicsWorldImpl', () => {
 
       it('should exclude specified bodies', () => {
         const hits = world.raycast(
-          { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+          { origin: [0, 0, 0], direction: [1, 0, 0] },
           { excludeBodies: ['target'] }
         );
 
@@ -759,19 +759,19 @@ describe('PhysicsWorldImpl', () => {
 
     describe('Sphere Overlap', () => {
       it('should find overlapping body', () => {
-        const results = world.sphereOverlap({ x: 5, y: 0, z: 0 }, 2);
+        const results = world.sphereOverlap([5, 0, 0], 2);
 
         expect(results.length).toBeGreaterThan(0);
         expect(results[0].bodyId).toBe('target');
       });
 
       it('should return empty for no overlap', () => {
-        const results = world.sphereOverlap({ x: 50, y: 50, z: 50 }, 1);
+        const results = world.sphereOverlap([50, 50, 50], 1);
         expect(results).toHaveLength(0);
       });
 
       it('should include penetration depth', () => {
-        const results = world.sphereOverlap({ x: 5, y: 0, z: 0 }, 2);
+        const results = world.sphereOverlap([5, 0, 0], 2);
 
         if (results.length > 0) {
           expect(results[0].penetration).toBeGreaterThan(0);
@@ -781,14 +781,14 @@ describe('PhysicsWorldImpl', () => {
 
     describe('Box Overlap', () => {
       it('should find overlapping body', () => {
-        const results = world.boxOverlap({ x: 5, y: 0, z: 0 }, { x: 2, y: 2, z: 2 });
+        const results = world.boxOverlap([5, 0, 0], [2, 2, 2]);
 
         expect(results.length).toBeGreaterThan(0);
         expect(results[0].bodyId).toBe('target');
       });
 
       it('should return empty for no overlap', () => {
-        const results = world.boxOverlap({ x: 50, y: 50, z: 50 }, { x: 1, y: 1, z: 1 });
+        const results = world.boxOverlap([50, 50, 50], [1, 1, 1]);
         expect(results).toHaveLength(0);
       });
     });
@@ -816,8 +816,8 @@ describe('createPhysicsWorld', () => {
   });
 
   it('should accept config in factory', () => {
-    const world = createPhysicsWorld({ gravity: { x: 0, y: -5, z: 0 } });
-    expect(world.getGravity()).toEqual({ x: 0, y: -5, z: 0 });
+    const world = createPhysicsWorld({ gravity: [0, -5, 0] });
+    expect(world.getGravity()).toEqual([0, -5, 0]);
   });
 });
 
@@ -890,9 +890,9 @@ describe('Physics Integration', () => {
   it('should simulate falling ball hitting ground', () => {
     const world = createPhysicsWorld();
 
-    world.createBody(dynamicBody('ball', sphereShape(1), 1, { x: 0, y: 10, z: 0 }));
+    world.createBody(dynamicBody('ball', sphereShape(1), 1, [0, 10, 0]));
     world.createBody(
-      staticBody('ground', boxShape({ x: 10, y: 0.5, z: 10 }), { x: 0, y: -0.5, z: 0 })
+      staticBody('ground', boxShape([10, 0.5, 10]), [0, -0.5, 0])
     );
 
     // Run simulation for 2 seconds
@@ -903,42 +903,42 @@ describe('Physics Integration', () => {
     const ball = world.getBody('ball')!;
 
     // Ball should have fallen and moved due to gravity
-    expect(ball.position.y).toBeLessThan(10);
-    expect(ball.linearVelocity.y).toBeLessThan(0); // Still falling (no collision response with box yet)
+    expect(ball.position[1]).toBeLessThan(10);
+    expect(ball.linearVelocity[1]).toBeLessThan(0); // Still falling (no collision response with box yet)
   });
 
   it('should handle multiple dynamic bodies', () => {
     const world = createPhysicsWorld();
 
     // Stack of balls
-    world.createBody(dynamicBody('ball1', sphereShape(0.5), 1, { x: 0, y: 5, z: 0 }));
-    world.createBody(dynamicBody('ball2', sphereShape(0.5), 1, { x: 0, y: 7, z: 0 }));
-    world.createBody(dynamicBody('ball3', sphereShape(0.5), 1, { x: 0, y: 9, z: 0 }));
-    world.createBody(staticBody('ground', boxShape({ x: 5, y: 0.5, z: 5 })));
+    world.createBody(dynamicBody('ball1', sphereShape(0.5), 1, [0, 5, 0]));
+    world.createBody(dynamicBody('ball2', sphereShape(0.5), 1, [0, 7, 0]));
+    world.createBody(dynamicBody('ball3', sphereShape(0.5), 1, [0, 9, 0]));
+    world.createBody(staticBody('ground', boxShape([5, 0.5, 5])));
 
     for (let i = 0; i < 180; i++) {
       world.step(1 / 60);
     }
 
     // All balls should have fallen
-    expect(world.getBody('ball1')!.position.y).toBeLessThan(5);
-    expect(world.getBody('ball2')!.position.y).toBeLessThan(7);
-    expect(world.getBody('ball3')!.position.y).toBeLessThan(9);
+    expect(world.getBody('ball1')!.position[1]).toBeLessThan(5);
+    expect(world.getBody('ball2')!.position[1]).toBeLessThan(7);
+    expect(world.getBody('ball3')!.position[1]).toBeLessThan(9);
   });
 
   it('should support kinematic platforms', () => {
     const world = createPhysicsWorld();
 
     world.createBody(
-      kinematicBody('platform', boxShape({ x: 2, y: 0.25, z: 2 }), { x: 0, y: 0, z: 0 })
+      kinematicBody('platform', boxShape([2, 0.25, 2]), [0, 0, 0])
     );
 
     // Move platform up
     for (let i = 0; i < 60; i++) {
-      world.setPosition('platform', { x: 0, y: i * 0.05, z: 0 });
+      world.setPosition('platform', [0, i * 0.05, 0]);
       world.step(1 / 60);
     }
 
-    expect(world.getBody('platform')!.position.y).toBeCloseTo(3, 0);
+    expect(world.getBody('platform')!.position[1]).toBeCloseTo(3, 0);
   });
 });

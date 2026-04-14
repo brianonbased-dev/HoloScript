@@ -271,7 +271,7 @@ export class InstancedRenderer {
         var output: VertexOutput;
 
         // Scale vertex by instance radius
-        let scaledPos = vertex.position * instance.instancePosition.w;
+        let scaledPos = vertex.position * instance.instancePosition[3];
 
         // Translate to instance position
         let worldPos = scaledPos + instance.instancePosition.xyz;

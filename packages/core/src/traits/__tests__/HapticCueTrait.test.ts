@@ -73,14 +73,14 @@ describe('HapticCueTrait', () => {
   it('spatial_direction includes direction vector', () => {
     const spatialCfg = { ...cfg, spatial_direction: true };
     const n2 = createMockNode('spat');
-    (n2 as any).position = { x: 3, y: 4, z: 0 };
+    (n2 as any).position = [3, 4, 0 ];
     const c2 = createMockContext();
     attachTrait(hapticCueHandler, n2, spatialCfg, c2);
     sendEvent(hapticCueHandler, n2, spatialCfg, c2, { type: 'interact' });
     const ev = getLastEvent(c2, 'haptic_play') as any;
     expect(ev.direction).toBeDefined();
-    expect(ev.direction.x).toBeCloseTo(0.6, 1);
-    expect(ev.direction.y).toBeCloseTo(0.8, 1);
+    expect(ev.direction[0]).toBeCloseTo(0.6, 1);
+    expect(ev.direction[1]).toBeCloseTo(0.8, 1);
   });
 
   it('cleans up on detach', () => {

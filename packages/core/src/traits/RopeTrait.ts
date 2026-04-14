@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * Rope Trait
  *
@@ -15,8 +16,8 @@ import type { TraitHandler } from './TraitTypes';
 
 interface RopeSegment {
   position: [number, number, number];
-  prevPosition: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
+  prevPosition: Vector3;
+  velocity: Vector3;
 }
 
 interface RopeState {
@@ -85,8 +86,8 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     for (let i = 0; i <= config.segments; i++) {
       state.segments.push({
         position: [0, -i * segmentLength, 0],
-        prevPosition: { x: 0, y: -i * segmentLength, z: 0 },
-        velocity: { x: 0, y: 0, z: 0 },
+        prevPosition: [0, -i * segmentLength, 0 ],
+        velocity: [0, 0, 0 ],
       });
     }
 
@@ -176,9 +177,9 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
       for (let i = 1; i < state.segments.length; i++) {
         const prev = state.segments[i - 1].position;
         const curr = state.segments[i].position;
-        const dx = curr.x - prev.x;
-        const dy = curr.y - prev.y;
-        const dz = curr.z - prev.z;
+        const dx = curr[0] - prev[0];
+        const dy = curr[1] - prev[1];
+        const dz = curr[2] - prev[2];
         length += Math.sqrt(dx * dx + dy * dy + dz * dz);
       }
       state.currentLength = length;
@@ -192,7 +193,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     } else if (event.type === 'rope_attach') {
       const endpoint = event.endpoint as 'start' | 'end';
       const targetNodeId = event.targetNodeId as string;
-      const offset = (event.offset as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 };
+      const offset = (event.offset as { x: number; y: number; z: number }) || [0, 0, 0 ];
 
       context.emit?.('rope_create_attachment', {
         node,

@@ -87,7 +87,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0, 1, 0],
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          rotation: [0, 0, 0, 1 ],
           radius: 0.02,
         },
       },
@@ -242,7 +242,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0, 0, 0],
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          rotation: [0, 0, 0, 1 ],
           radius: 0.02,
         },
       },
@@ -258,7 +258,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [1, 1, 1],
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          rotation: [0, 0, 0, 1 ],
           radius: 0.02,
         },
       },
@@ -270,7 +270,7 @@ describe('SpatialInputHandTrackingTrait', () => {
     const wrist = state.left.joints.get('wrist');
     expect(wrist).toBeDefined();
     // With 0.3 smoothing: prev * 0.3 + current * 0.7 = 0*0.3 + 1*0.7 = 0.7
-    expect(wrist!.position.x).toBeCloseTo(0.7, 1);
+    expect(wrist!.position[0]).toBeCloseTo(0.7, 1);
   });
 
   it('updates wrist pose for anchor reference', () => {
@@ -281,7 +281,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0.5, 1.2, -0.3],
-          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          rotation: [0, 0, 0, 1 ],
           radius: 0.02,
         },
       },
@@ -291,7 +291,7 @@ describe('SpatialInputHandTrackingTrait', () => {
 
     const state = (node as any).__spatialHandTrackingState as SpatialHandTrackingState;
     expect(state.right.wristPose).not.toBeNull();
-    expect(state.right.wristPose!.position.x).toBeCloseTo(0.5);
+    expect(state.right.wristPose!.position[0]).toBeCloseTo(0.5);
   });
 
   it('emits pose update on update when hands tracked', () => {
@@ -299,7 +299,7 @@ describe('SpatialInputHandTrackingTrait', () => {
     state.left.tracked = true;
     state.left.joints.set('wrist', {
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       radius: 0.02,
     });
 
@@ -355,7 +355,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
     const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
     state.active = true;
     state.isCommitted = true;
-    state.commitPoint = { x: 1, y: 2, z: 3 };
+    state.commitPoint = [1, 2, 3 ];
     state._dwellAccum = 500;
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
@@ -377,21 +377,21 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
       type: 'gaze_transient_pinch_commit',
-      point: { x: 1.5, y: 0.8, z: -2.0 },
-      normal: { x: 0, y: 1, z: 0 },
+      point: [1.5, 0.8, -2.0 ],
+      normal: [0, 1, 0 ],
       targetId: 'target-button-42',
     });
 
     expect(state.isCommitted).toBe(true);
-    expect(state.commitPoint).toEqual({ x: 1.5, y: 0.8, z: -2.0 });
-    expect(state.commitNormal).toEqual({ x: 0, y: 1, z: 0 });
+    expect(state.commitPoint).toEqual([1.5, 0.8, -2.0 ]);
+    expect(state.commitNormal).toEqual([0, 1, 0 ]);
     expect(state.commitTargetId).toBe('target-button-42');
     expect(state.lastCommitTime).toBeGreaterThan(0);
 
     expect(getEventCount(ctx, 'gaze_transient_commit')).toBe(1);
     const commitData = getLastEvent(ctx, 'gaze_transient_commit') as any;
     expect(commitData.method).toBe('pinch');
-    expect(commitData.point.x).toBe(1.5);
+    expect(commitData.point[0]).toBe(1.5);
     expect(commitData.targetId).toBe('target-button-42');
   });
 
@@ -401,7 +401,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
       type: 'gaze_transient_pinch_commit',
-      point: { x: 0, y: 0, z: 0 },
+      point: [0, 0, 0 ],
     });
 
     expect(getEventCount(ctx, 'haptic_pulse')).toBe(1);
@@ -413,7 +413,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
     const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
     state.active = true;
     state.isCommitted = true;
-    state.commitPoint = { x: 1, y: 1, z: 1 };
+    state.commitPoint = [1, 1, 1 ];
     state.commitTargetId = 'btn';
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
@@ -567,7 +567,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_resolved',
       pose: {
         position: [1, 0, -2],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.95,
       },
       cloudAnchorId: 'cloud-xyz-456',
@@ -576,7 +576,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
     expect(state.cloudAnchorId).toBe('cloud-xyz-456');
     expect(state.localPose).not.toBeNull();
-    expect(state.localPose!.position.x).toBe(1);
+    expect(state.localPose!.position[0]).toBe(1);
     expect(getEventCount(ctx, 'shared_anchor_ready')).toBe(1);
     // auto_share = true → transitions to sharing
     expect(state.resolveState).toBe('sharing');
@@ -610,13 +610,13 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_joined',
       pose: {
         position: [2, 1, -1],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.9,
       },
     });
 
     expect(state.resolveState).toBe('joined');
-    expect(state.localPose!.position.x).toBe(2);
+    expect(state.localPose!.position[0]).toBe(2);
     expect(getEventCount(ctx, 'shared_anchor_synced')).toBe(1);
   });
 
@@ -707,7 +707,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     state.resolveState = 'resolved';
     state.localPose = {
       position: [3, 0, -5],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 0.9,
     };
 
@@ -724,19 +724,19 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_pose_update',
       pose: {
         position: [5, 1, -3],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.8,
       },
     });
 
-    expect(state.localPose!.position.x).toBe(5);
+    expect(state.localPose!.position[0]).toBe(5);
   });
 
   it('ignores low-quality pose updates', () => {
     const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
     state.localPose = {
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
       confidence: 0.9,
     };
 
@@ -744,12 +744,12 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_pose_update',
       pose: {
         position: [99, 99, 99],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 0.2,
       },
     });
 
-    expect(state.localPose!.position.x).toBe(0); // unchanged
+    expect(state.localPose!.position[0]).toBe(0); // unchanged
   });
 
   // --- Transform sync ---
@@ -758,7 +758,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_transform_sync',
       peerId: 'peer-charlie',
-      transform: { position: [10, 0, -10], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [10, 0, -10], rotation: [0, 0, 0, 1 ] },
     });
 
     expect(getEventCount(ctx, 'shared_anchor_peer_transform')).toBe(1);
@@ -981,7 +981,7 @@ describe('SpatialInputControllerTrait', () => {
       connected: true,
       pose: {
         position: [-0.3, 1.0, -0.5],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1 ],
         confidence: 1.0,
       },
       thumbstick: { x: 0, y: 0 },
@@ -989,7 +989,7 @@ describe('SpatialInputControllerTrait', () => {
 
     const state = (node as any).__spatialControllerInputState as SpatialControllerInputState;
     expect(state.left.pose).not.toBeNull();
-    expect(state.left.pose!.position.x).toBeCloseTo(-0.3);
+    expect(state.left.pose!.position[0]).toBeCloseTo(-0.3);
   });
 
   // --- Axes event emission ---

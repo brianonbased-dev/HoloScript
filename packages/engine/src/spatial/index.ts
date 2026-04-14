@@ -6,7 +6,7 @@
  */
 
 // Types
-export {
+export type {
   Vector3,
   Vector2,
   Quaternion,
@@ -24,6 +24,9 @@ export {
   VisibilityChangedEvent,
   SpatialEvent,
   SpatialAwarenessConfig,
+} from './SpatialTypes';
+
+export {
   DEFAULT_SPATIAL_CONFIG,
   // Utility functions
   distance,
@@ -42,7 +45,7 @@ export {
 } from './SpatialTypes';
 
 // Query system
-export {
+export type {
   SpatialQueryType,
   SpatialQueryBase,
   NearestQuery,
@@ -55,8 +58,9 @@ export {
   SpatialQuery,
   QueryResult,
   RaycastHit,
-  SpatialQueryExecutor,
 } from './SpatialQuery';
+
+export { SpatialQueryExecutor } from './SpatialQuery';
 
 // Context provider
 export { SpatialContextProvider, SpatialContextProviderEvents } from './SpatialContextProvider';
@@ -74,6 +78,7 @@ export type {
   SpatialTemporalAdjacentConfig,
   SpatialTemporalReachableConstraint,
   SpatialTemporalReachableConfig,
+  SpatialTemporalAdjacentConfig as SpatialTemporalAdjacentConfig_alias, // avoid naming collision if any
   SpatialTrajectoryConstraint,
   SpatialTrajectoryConfig,
   SpatialTrajectoryMode,
@@ -95,12 +100,19 @@ export type {
 export { SpatialConstraintValidator } from './SpatialConstraintValidator';
 
 // Octree systems
-export { OctreeSystem, OctreeEntry } from './OctreeSystem';
+export { OctreeSystem } from './OctreeSystem';
+export type { OctreeEntry } from './OctreeSystem';
 export {
   OctreeLODSystem,
   GaussianAnchor,
+} from './OctreeLODSystem';
+export type {
   OctreeLODConfig,
   LODSelectionResult,
   LODLevelStats,
   OctreeLODMetrics,
 } from './OctreeLODSystem';
+
+// Graph and Culling systems
+export { TransformGraph } from './TransformGraph';
+export { FrustumCuller } from './FrustumCuller';

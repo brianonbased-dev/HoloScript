@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * GrabbableTrait.ts
  *
@@ -7,13 +8,12 @@
 
 import { Trait } from './Trait';
 import { TraitContext } from './VRTraitSystem';
-import { VRHand, Vector3 } from '../types/HoloScriptPlus';
 
 export class GrabbableTrait implements Trait {
   name = 'grabbable';
   private grabbedHands: Set<string> = new Set();
   private initialPinchDistance: number = 0;
-  private initialScale: Vector3 = { x: 1, y: 1, z: 1 };
+  private initialScale: Vector3 = [1, 1, 1];
 
   private lastHandPositions: Map<string, Vector3> = new Map();
   private lastHandTime: number = 0;
@@ -24,8 +24,8 @@ export class GrabbableTrait implements Trait {
     const now = performance.now();
 
     // Update history for velocity calculation
-    if (hands.left) this.lastHandPositions.set('left', { ...hands.left.position });
-    if (hands.right) this.lastHandPositions.set('right', { ...hands.right.position });
+    if (hands.left) this.lastHandPositions.set('left', [...hands.left.position]);
+    if (hands.right) this.lastHandPositions.set('right', [...hands.right.position]);
     this.lastHandTime = now;
 
     // Check Releases
@@ -76,8 +76,8 @@ export class GrabbableTrait implements Trait {
         this.initialPinchDistance = this.getDistance(hands.left.position, hands.right.position);
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         this.initialScale = node.properties.scale
-          ? { ...node.properties.scale }
-          : { x: 1, y: 1, z: 1 };
+          ? [...(node.properties.scale as Vector3)]
+          : [1, 1, 1];
 
         // Reset Rotation State
         this.initialHandAngle = null;
@@ -117,19 +117,19 @@ export class GrabbableTrait implements Trait {
     const currentDist = this.getDistance(left.position, right.position);
     const scaleFactor = currentDist / this.initialPinchDistance;
 
-    const newScale = {
-      x: (this.initialScale.x ?? 1) * scaleFactor,
-      y: (this.initialScale.y ?? 1) * scaleFactor,
-      z: (this.initialScale.z ?? 1) * scaleFactor,
-    };
+    const newScale = [
+      this.initialScale[0] * scaleFactor,
+      this.initialScale[1] * scaleFactor,
+      this.initialScale[2] * scaleFactor,
+    ];
 
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     node.properties.scale = newScale;
 
     // Rotation Logic (Steering Wheel)
     // Vector between hands
-    const dx = (right.position.x ?? 0) - (left.position.x ?? 0);
-    const dz = (right.position.z ?? 0) - (left.position.z ?? 0);
+    const dx = right.position[0] - left.position[0];
+    const dz = right.position[2] - left.position[2];
     const angle = Math.atan2(dz, dx);
 
     // We need initial angle to calculate delta.
@@ -146,19 +146,19 @@ export class GrabbableTrait implements Trait {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialObjectRotation = node.properties.rotation
         ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          { ...node.properties.rotation }
-        : { x: 0, y: 0, z: 0 };
+          [...(node.properties.rotation as Vector3)]
+        : [0, 0, 0];
     }
 
     const deltaAngle = angle - this.initialHandAngle;
     // Apply to Y axis
     if (this.initialObjectRotation) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      node.properties.rotation = {
-        x: this.initialObjectRotation.x ?? 0,
-        y: (this.initialObjectRotation.y ?? 0) + deltaAngle,
-        z: this.initialObjectRotation.z ?? 0,
-      };
+      node.properties.rotation = [
+        this.initialObjectRotation[0],
+        this.initialObjectRotation[1] + deltaAngle,
+        this.initialObjectRotation[2],
+      ];
     }
 
     // Scale update is applied to node.properties.scale above.
@@ -172,12 +172,12 @@ export class GrabbableTrait implements Trait {
     p1: { x?: number; y?: number; z?: number } | [number, number, number],
     p2: { x?: number; y?: number; z?: number } | [number, number, number]
   ): number {
-    const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
-    const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
-    const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
-    const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
-    const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
-    const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
+    const x1 = Array.isArray(p1) ? p1[0] : (p1[0] ?? 0);
+    const y1 = Array.isArray(p1) ? p1[1] : (p1[1] ?? 0);
+    const z1 = Array.isArray(p1) ? p1[2] : (p1[2] ?? 0);
+    const x2 = Array.isArray(p2) ? p2[0] : (p2[0] ?? 0);
+    const y2 = Array.isArray(p2) ? p2[1] : (p2[1] ?? 0);
+    const z2 = Array.isArray(p2) ? p2[2] : (p2[2] ?? 0);
     const dx = x1 - x2;
     const dy = y1 - y2;
     const dz = z1 - z2;
@@ -193,9 +193,9 @@ export class GrabbableTrait implements Trait {
     const delta = 0.016;
 
     const velocity: [number, number, number] = [
-      ((hand.position.x ?? 0) - (prevPos.x ?? 0)) / delta,
-      ((hand.position.y ?? 0) - (prevPos.y ?? 0)) / delta,
-      ((hand.position.z ?? 0) - (prevPos.z ?? 0)) / delta,
+      (hand.position[0] - prevPos[0]) / delta,
+      (hand.position[1] - prevPos[1]) / delta,
+      (hand.position[2] - prevPos[2]) / delta,
     ];
 
     // Clamp for sanity

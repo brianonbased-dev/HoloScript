@@ -92,8 +92,8 @@ const MINIMAL_SCENE: UnityScene = {
     {
       name: 'Cube',
       position: [1, 2, 3],
-      rotation: { x: 0, y: 45, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 45, 0 ],
+      scale: [1, 1, 1 ],
       components: [
         { type: 'MeshFilter', properties: { mesh: 'Cube' } },
         { type: 'MeshRenderer', properties: { material: 'mat1' } },

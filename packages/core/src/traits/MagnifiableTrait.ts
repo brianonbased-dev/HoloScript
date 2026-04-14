@@ -19,9 +19,9 @@ interface MagnifiableState {
   currentMagnification: number;
   targetMagnification: number;
   isZooming: boolean;
-  lensPosition: { x: number; y: number } | null;
-  originalScale: { x: number; y: number; z: number };
-  zoomCenter: { x: number; y: number; z: number };
+  lensPosition: [number, number] | null;
+  originalScale: [number, number, number];
+  zoomCenter: [number, number, number];
 }
 
 interface MagnifiableConfig {
@@ -61,15 +61,15 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
       targetMagnification: 1,
       isZooming: false,
       lensPosition: null,
-      originalScale: { x: 1, y: 1, z: 1 },
-      zoomCenter: { x: 0, y: 0, z: 0 },
+      originalScale: [1, 1, 1],
+      zoomCenter: [0, 0, 0],
     };
     node.__magnifiableState = state;
 
     // Store original scale
     if (node.scale) {
       const s = node.scale;
-      state.originalScale = { x: s.x || 1, y: s.y || 1, z: s.z || 1 };
+      state.originalScale = [s[0] ?? 1, s[1] ?? 1, s[2] ?? 1];
     }
 
     context.emit?.('magnifiable_register', {
@@ -84,9 +84,9 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
 
     // Restore original scale
     if (state && node.scale) {
-      node.scale.x = state.originalScale.x;
-      node.scale.y = state.originalScale.y;
-      node.scale.z = state.originalScale.z;
+      node.scale[0] = state.originalScale[0];
+      node.scale[1] = state.originalScale[1];
+      node.scale[2] = state.originalScale[2];
     }
 
     context.emit?.('magnifiable_unregister', { node });
@@ -204,12 +204,12 @@ function applyMagnification(
   const mag = state.currentMagnification;
 
   if (config.preserve_aspect) {
-    node.scale.x = state.originalScale.x * mag;
-    node.scale.y = state.originalScale.y * mag;
-    node.scale.z = state.originalScale.z * mag;
+    node.scale[0] = state.originalScale[0] * mag;
+    node.scale[1] = state.originalScale[1] * mag;
+    node.scale[2] = state.originalScale[2] * mag;
   } else {
-    node.scale.x = state.originalScale.x * mag;
-    node.scale.y = state.originalScale.y * mag;
+    node.scale[0] = state.originalScale[0] * mag;
+    node.scale[1] = state.originalScale[1] * mag;
     // Keep z unchanged for 2D-style magnification
   }
 }

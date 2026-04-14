@@ -36,7 +36,7 @@ export function fitsToGrid3D(fits: FITSFile): RegularGrid3D {
     throw new Error(`FITS: Cannot convert ${shape.length}D data to grid`);
   }
 
-  const grid = new RegularGrid3D(nx, ny, nz);
+  const grid = new RegularGrid3D([nx, ny, nz], [nx, ny, nz]);
 
   // FITS stores data in FORTRAN order (column-major: NAXIS1 varies fastest)
   // RegularGrid3D uses row-major (x varies fastest in our convention)

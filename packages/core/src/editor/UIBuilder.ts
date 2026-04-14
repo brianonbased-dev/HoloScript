@@ -9,9 +9,9 @@ function eulerToQuat(euler: { x: number; y: number; z: number }): {
   z: number;
   w: number;
 } {
-  const halfX = euler.x * 0.5;
-  const halfY = euler.y * 0.5;
-  const halfZ = euler.z * 0.5;
+  const halfX = euler[0] * 0.5;
+  const halfY = euler[1] * 0.5;
+  const halfZ = euler[2] * 0.5;
   const cx = Math.cos(halfX);
   const sx = Math.sin(halfX);
   const cy = Math.cos(halfY);
@@ -50,9 +50,9 @@ export class UIBuilder {
 
     // 1. Transform & Properties
     // Map common properties to Transform component
-    const position = node.properties?.position || { x: 0, y: 0, z: 0 };
-    const rotation = node.properties?.rotation || { x: 0, y: 0, z: 0 };
-    const scale = node.properties?.scale || { x: 1, y: 1, z: 1 };
+    const position = node.properties?.position || [0, 0, 0];
+    const rotation = node.properties?.rotation || [0, 0, 0];
+    const scale = node.properties?.scale || [1, 1, 1];
 
     this.world.addComponent(entity, 'Transform', {
       position,

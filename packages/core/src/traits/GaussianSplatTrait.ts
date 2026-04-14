@@ -59,7 +59,7 @@ interface GaussianSplatState {
   memoryUsage: number;
   boundingBox: { min: [number, number, number]; max: [number, number, number] };
   renderHandle: unknown;
-  lastCameraPosition: { x: number; y: number; z: number } | null;
+  lastCameraPosition: [number, number, number] | null;
   needsSort: boolean;
   /** Current LOD level index (0 = highest detail) */
   currentLODLevel: number;
@@ -161,19 +161,19 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
     if (!state || !state.isLoaded) return;
 
     // Check if camera moved and needs resort
-    const cameraPos = context.camera?.position;
+    const cameraPos = context.camera?.position as unknown as [number, number, number];
     if (cameraPos && state.lastCameraPosition) {
-      const dx = cameraPos.x - state.lastCameraPosition.x;
-      const dy = cameraPos.y - state.lastCameraPosition.y;
-      const dz = cameraPos.z - state.lastCameraPosition.z;
+      const dx = cameraPos[0] - state.lastCameraPosition[0];
+      const dy = cameraPos[1] - state.lastCameraPosition[1];
+      const dz = cameraPos[2] - state.lastCameraPosition[2];
       const distMoved = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (distMoved > 0.1) {
         state.needsSort = true;
-        state.lastCameraPosition = { ...cameraPos };
+        state.lastCameraPosition = [...cameraPos];
       }
     } else if (cameraPos) {
-      state.lastCameraPosition = { ...cameraPos };
+      state.lastCameraPosition = [...cameraPos];
     }
 
     // Request sort if needed
@@ -334,7 +334,7 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
  * Lower levels = higher detail (closer to camera).
  */
 function computeLODLevel(
-  cameraPos: { x: number; y: number; z: number },
+  cameraPos: [number, number, number],
   boundingBox: { min: [number, number, number]; max: [number, number, number] },
   lod: LODConfig
 ): number {
@@ -343,9 +343,9 @@ function computeLODLevel(
   const cy = (boundingBox.min[1] + boundingBox.max[1]) / 2;
   const cz = (boundingBox.min[2] + boundingBox.max[2]) / 2;
 
-  const dx = cameraPos.x - cx;
-  const dy = cameraPos.y - cy;
-  const dz = cameraPos.z - cz;
+  const dx = cameraPos[0] - cx;
+  const dy = cameraPos[1] - cy;
+  const dz = cameraPos[2] - cz;
   const distToCenter = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   // Walk thresholds: each threshold defines the distance at which we step

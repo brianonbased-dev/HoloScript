@@ -210,6 +210,62 @@ export interface ProgressiveLoaderProps {
   hud?: boolean;
 }
 export declare function ProgressiveLoader(props: ProgressiveLoaderProps): any;
+
+// ── Simulation Visualization ───────────────────────────────────────────────
+
+export interface SimulationProviderProps {
+  children: any;
+  autoStart?: boolean;
+}
+export interface SimulationContextValue {
+  solver: any;
+  isReady: boolean;
+  error: Error | null;
+}
+export declare function SimulationProvider(props: SimulationProviderProps): any;
+
+export type ColormapName = 'viridis' | 'inferno' | 'magma' | 'plasma' | 'warm' | 'cool' | 'rainbow' | 'jet';
+
+export interface ScalarFieldOverlayProps {
+  nodeId: string;
+  fieldId?: string;
+  colormap?: ColormapName;
+  opacity?: number;
+  minValue?: number;
+  maxValue?: number;
+}
+export declare function ScalarFieldOverlay(props: ScalarFieldOverlayProps): any;
+
+export interface SimResultsMeshProps {
+  nodeId: string;
+  fieldId: string;
+  mode: 'color' | 'deform' | 'both';
+  scale?: number;
+}
+export declare function SimResultsMesh(props: SimResultsMeshProps): any;
+
+// ── Spatial Toolkits & Measurement ──────────────────────────────────────────
+
+export interface SpatialMeasurementProps {
+  visible?: boolean;
+  units?: 'si' | 'imperial' | 'astronomical';
+}
+export declare function SpatialMeasurement(props: SpatialMeasurementProps): any;
+
+export interface SpatialAnnotationsProps {
+  nodeId: string;
+  visible?: boolean;
+}
+export declare function SpatialAnnotations(props: SpatialAnnotationsProps): any;
+
+export interface CoordinateOverlayProps {
+  system?: 'cartesian' | 'polar' | 'geodetic';
+  gridSize?: number;
+}
+export declare function CoordinateOverlay(props: CoordinateOverlayProps): any;
+
+export declare function getSpatialToolkit(id: string): any;
+export declare function listToolkits(): string[];
 `;
 
 writeFileSync(join(distDir, 'index.d.ts'), dts, 'utf8');

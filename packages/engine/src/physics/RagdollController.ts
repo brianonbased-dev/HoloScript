@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * RagdollController.ts
  *
@@ -16,14 +17,14 @@ export interface RagdollBone {
   name: string;
   parentId: string | null;
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
-  angularVelocity: { x: number; y: number; z: number };
+  rotation: Vector3;
+  velocity: Vector3;
+  angularVelocity: Vector3;
   mass: number;
   length: number;
   jointLimits: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: Vector3;
+    max: Vector3;
   };
 }
 
@@ -60,19 +61,19 @@ export class RagdollController {
     parentId: string | null,
     mass: number,
     length: number,
-    limits?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
+    limits?: { min: Vector3; max: Vector3 }
   ): RagdollBone {
     const bone: RagdollBone = {
       id: name,
       name,
       parentId,
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0 },
-      velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0 ],
+      velocity: [0, 0, 0 ],
+      angularVelocity: [0, 0, 0 ],
       mass,
       length,
-      jointLimits: limits ?? { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      jointLimits: limits ?? { min: [-1, -1, -1 ], max: [1, 1, 1 ] },
     };
     this.bones.set(name, bone);
     if (!parentId) this.rootBone = name;
@@ -124,10 +125,10 @@ export class RagdollController {
 
     // Apply gravity and integrate
     for (const bone of this.bones.values()) {
-      bone.velocity.y += this.config.gravity * dt * this.blendFactor;
-      bone.velocity.x *= this.config.damping;
-      bone.velocity.y *= this.config.damping;
-      bone.velocity.z *= this.config.damping;
+      bone.velocity[1] += this.config.gravity * dt * this.blendFactor;
+      bone.velocity[0] *= this.config.damping;
+      bone.velocity[1] *= this.config.damping;
+      bone.velocity[2] *= this.config.damping;
 
       bone.position[0] += bone.velocity[0] * dt;
       bone.position[1] += bone.velocity[1] * dt;
@@ -161,17 +162,17 @@ export class RagdollController {
         }
 
         // Joint limits
-        bone.rotation.x = Math.max(
-          bone.jointLimits.min.x,
-          Math.min(bone.jointLimits.max.x, bone.rotation.x)
+        bone.rotation[0] = Math.max(
+          bone.jointLimits.min[0],
+          Math.min(bone.jointLimits.max[0], bone.rotation[0])
         );
-        bone.rotation.y = Math.max(
-          bone.jointLimits.min.y,
-          Math.min(bone.jointLimits.max.y, bone.rotation.y)
+        bone.rotation[1] = Math.max(
+          bone.jointLimits.min[1],
+          Math.min(bone.jointLimits.max[1], bone.rotation[1])
         );
-        bone.rotation.z = Math.max(
-          bone.jointLimits.min.z,
-          Math.min(bone.jointLimits.max.z, bone.rotation.z)
+        bone.rotation[2] = Math.max(
+          bone.jointLimits.min[2],
+          Math.min(bone.jointLimits.max[2], bone.rotation[2])
         );
       }
     }
@@ -181,12 +182,12 @@ export class RagdollController {
   // Impulse
   // ---------------------------------------------------------------------------
 
-  applyImpulse(boneId: string, impulse: { x: number; y: number; z: number }): void {
+  applyImpulse(boneId: string, impulse: Vector3): void {
     const bone = this.bones.get(boneId);
     if (!bone) return;
-    bone.velocity.x += impulse.x / bone.mass;
-    bone.velocity.y += impulse.y / bone.mass;
-    bone.velocity.z += impulse.z / bone.mass;
+    bone.velocity[0] += impulse[0] / bone.mass;
+    bone.velocity[1] += impulse[1] / bone.mass;
+    bone.velocity[2] += impulse[2] / bone.mass;
   }
 
   // ---------------------------------------------------------------------------

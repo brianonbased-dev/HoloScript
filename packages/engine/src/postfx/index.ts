@@ -5,6 +5,7 @@
  */
 
 export * from '../rendering/postprocess';
-export * from '../rendering/PostProcessing';
-export * from '../rendering/PostProcessStack';
-export * from '../rendering/BloomEffect';
+export { PostProcessingStack as LegacyPostProcessing } from '../rendering/PostProcessing';
+export { PostProcessStack as LegacyPostProcessStack } from '../rendering/PostProcessStack';
+export { BloomEffect as LegacyBloomEffect } from '../rendering/BloomEffect';
+

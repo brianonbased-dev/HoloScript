@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * GLTF Trait
  *
@@ -8,7 +9,6 @@
  */
 
 import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // TYPES
@@ -565,13 +565,13 @@ function calculateCameraDistance(node: HSPlusNode, context: TraitContext): numbe
   const p1 = (node.properties?.position as Vector3) || [0, 0, 0];
   const p2 = context.vr.headset.position;
 
-  const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
-  const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
-  const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
+  const x1 = Array.isArray(p1) ? p1[0] : (p1[0] ?? 0);
+  const y1 = Array.isArray(p1) ? p1[1] : (p1[1] ?? 0);
+  const z1 = Array.isArray(p1) ? p1[2] : (p1[2] ?? 0);
 
-  const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
-  const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
-  const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
+  const x2 = Array.isArray(p2) ? p2[0] : (p2[0] ?? 0);
+  const y2 = Array.isArray(p2) ? p2[1] : (p2[1] ?? 0);
+  const z2 = Array.isArray(p2) ? p2[2] : (p2[2] ?? 0);
 
   // @ts-expect-error
   const dx = x1 - x2;

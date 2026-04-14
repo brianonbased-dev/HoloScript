@@ -45,7 +45,7 @@ describe('FluidTrait', () => {
       emitterId: 'e1',
       position: [0, 1, 0],
       rate: 200,
-      velocity: { x: 0, y: -2, z: 0 },
+      velocity: [0, -2, 0 ],
     });
     expect((node as any).__fluidState.emitters.size).toBe(1);
   });

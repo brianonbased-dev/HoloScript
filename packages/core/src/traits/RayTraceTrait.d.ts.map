@@ -1,0 +1,1 @@
+{"version":3,"file":"RayTraceTrait.d.ts","sourceRoot":"","sources":["RayTraceTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,cAAc;IAC7B,WAAW,EAAE,MAAM,CAAC;IACpB,iBAAiB,EAAE,MAAM,CAAC;CAC3B;AACD,eAAO,MAAM,eAAe,EAAE,YAAY,CAAC,cAAc,CAwCxD,CAAC;AACF,eAAe,eAAe,CAAC"}

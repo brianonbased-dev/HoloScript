@@ -62,9 +62,9 @@ interface InteractiveGraphState {
   /** Camera fly-to animation progress (0 = done) */
   flyToProgress: number;
   /** Camera fly-to target position */
-  flyToTarget: { x: number; y: number; z: number } | null;
+  flyToTarget: [number, number, number] | null;
   /** Camera fly-to start position */
-  flyToStart: { x: number; y: number; z: number } | null;
+  flyToStart: [number, number, number] | null;
 }
 
 // =============================================================================
@@ -147,9 +147,9 @@ export const InteractiveGraphTrait: TraitHandler<InteractiveGraphConfig> = {
       const ease = 1 - Math.pow(1 - t, 3);
 
       const pos = context.camera.position;
-      pos.x = state.flyToStart.x + (state.flyToTarget.x - state.flyToStart.x) * ease;
-      pos.y = state.flyToStart.y + (state.flyToTarget.y - state.flyToStart.y) * ease;
-      pos.z = state.flyToStart.z + (state.flyToTarget.z - state.flyToStart.z) * ease;
+      pos[0] = state.flyToStart[0] + (state.flyToTarget[0] - state.flyToStart[0]) * ease;
+      pos[1] = state.flyToStart[1] + (state.flyToTarget[1] - state.flyToStart[1]) * ease;
+      pos[2] = state.flyToStart[2] + (state.flyToTarget[2] - state.flyToStart[2]) * ease;
 
       if (state.flyToProgress <= 0) {
         state.flyToTarget = null;
@@ -247,7 +247,7 @@ function handlePointerMove(
       context.emit('graph:hover', {
         nodeId: hitNodeId,
         symbol,
-        position: [hit.point.x, hit.point.y, hit.point.z],
+        position: [hit.point[0], hit.point[1], hit.point[2]],
       });
 
       // Highlight connected edges
@@ -330,7 +330,7 @@ function handleDoubleClick(
 
   context.emit('graph:focus', {
     nodeId: hit.node.name,
-    cameraTarget: { x: hit.point.x, y: hit.point.y, z: hit.point.z },
+    cameraTarget: [hit.point[0], hit.point[1], hit.point[2]],
   });
 }
 
@@ -350,14 +350,14 @@ function performRaycast(context: TraitContext, config: InteractiveGraphConfig): 
   if (context.camera) {
     const origin = context.camera.position;
     // Default forward direction (negative Z)
-    const direction = { x: 0, y: 0, z: -1 };
+    const direction: [number, number, number] = [0, 0, -1];
     if (context.camera.rotation) {
       // Simple rotation-based direction (pitch + yaw)
-      const pitch = context.camera.rotation.x;
-      const yaw = context.camera.rotation.y;
-      direction.x = Math.sin(yaw) * Math.cos(pitch);
-      direction.y = -Math.sin(pitch);
-      direction.z = -Math.cos(yaw) * Math.cos(pitch);
+      const pitch = context.camera.rotation[0];
+      const yaw = context.camera.rotation[1];
+      direction[0] = Math.sin(yaw) * Math.cos(pitch);
+      direction[1] = -Math.sin(pitch);
+      direction[2] = -Math.cos(yaw) * Math.cos(pitch);
     }
     return context.physics?.raycast(origin, direction, config.raycastDistance) ?? null;
   }
@@ -377,16 +377,13 @@ function startFlyTo(
   const bodyPos = context.physics?.getBodyPosition?.(nodeId);
   if (!bodyPos) return;
 
-  state.flyToStart = { ...context.camera.position };
+  state.flyToStart = [...context.camera.position];
   // Offset camera slightly behind and above the target
-  state.flyToTarget = {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    x: bodyPos.x,
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    y: bodyPos.y + 2,
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    z: bodyPos.z + 5,
-  };
+  state.flyToTarget = [
+    bodyPos[0],
+    bodyPos[1] + 2,
+    bodyPos[2] + 5,
+  ];
   state.flyToProgress = 1;
 }
 

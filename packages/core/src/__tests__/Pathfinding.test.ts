@@ -125,7 +125,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   function makeAgent(x = 0, z = 0): SteeringAgent {
     return {
       position: { x, y: 0, z },
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0 ],
       maxSpeed: 10,
       maxForce: 5,
       mass: 1,
@@ -137,7 +137,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const agent = makeAgent(0, 0);
     const force = steering.seek(agent, { x: 10, y: 0, z: 0 });
 
-    expect(force.x).toBeGreaterThan(0); // Should push right
+    expect(force[0]).toBeGreaterThan(0); // Should push right
   });
 
   it('should flee away from target', () => {
@@ -145,7 +145,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const agent = makeAgent(0, 0);
     const force = steering.flee(agent, { x: 10, y: 0, z: 0 });
 
-    expect(force.x).toBeLessThan(0); // Should push left (away)
+    expect(force[0]).toBeLessThan(0); // Should push left (away)
   });
 
   it('should arrive and slow down near target', () => {
@@ -170,7 +170,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
 
     const force = steering.flock(agent, neighbors);
     // Force should be non-zero (some combination of separation/alignment/cohesion)
-    const mag = Math.sqrt(force.x ** 2 + force.y ** 2 + force.z ** 2);
+    const mag = Math.sqrt(force[0] ** 2 + force[1] ** 2 + force[2] ** 2);
     expect(mag).toBeGreaterThan(0);
   });
 });

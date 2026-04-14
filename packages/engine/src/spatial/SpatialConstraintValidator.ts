@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Constraint Validator
  *
@@ -426,16 +427,16 @@ export class SpatialConstraintValidator {
       // Box containment
       const box = bounds as BoundingBox;
       const shrunk: BoundingBox = {
-        min: {
-          x: box.min.x + margin,
-          y: box.min.y + margin,
-          z: box.min.z + margin,
-        },
-        max: {
-          x: box.max.x - margin,
-          y: box.max.y - margin,
-          z: box.max.z - margin,
-        },
+        min: [
+          box.min[0] + margin,
+          box.min[1] + margin,
+          box.min[2] + margin,
+        ],
+        max: [
+          box.max[0] - margin,
+          box.max[1] - margin,
+          box.max[2] - margin,
+        ],
       };
       isInside = isPointInBox(point, shrunk);
     }
@@ -445,7 +446,7 @@ export class SpatialConstraintValidator {
         'error',
         'HSP031',
         `spatial_contains violation: '${constraint.containedId}' ` +
-          `(at [${point.x}, ${point.y}, ${point.z}]) is outside ` +
+          `(at [${point[0]}, ${point[1]}, ${point[2]}]) is outside ` +
           `container '${container.entityId}'` +
           (margin > 0 ? ` (with margin ${margin}m)` : '') +
           `.${constraint.label ? ` (${constraint.label})` : ''}`,
@@ -478,25 +479,25 @@ export class SpatialConstraintValidator {
 
     // Shrink container by margin
     const shrunk: BoundingBox = {
-      min: {
-        x: containerBox.min.x + margin,
-        y: containerBox.min.y + margin,
-        z: containerBox.min.z + margin,
-      },
-      max: {
-        x: containerBox.max.x - margin,
-        y: containerBox.max.y - margin,
-        z: containerBox.max.z - margin,
-      },
+      min: [
+        containerBox.min[0] + margin,
+        containerBox.min[1] + margin,
+        containerBox.min[2] + margin,
+      ],
+      max: [
+        containerBox.max[0] - margin,
+        containerBox.max[1] - margin,
+        containerBox.max[2] - margin,
+      ],
     };
 
     const fullyInside =
-      containedBox.min.x >= shrunk.min.x &&
-      containedBox.min.y >= shrunk.min.y &&
-      containedBox.min.z >= shrunk.min.z &&
-      containedBox.max.x <= shrunk.max.x &&
-      containedBox.max.y <= shrunk.max.y &&
-      containedBox.max.z <= shrunk.max.z;
+      containedBox.min[0] >= shrunk.min[0] &&
+      containedBox.min[1] >= shrunk.min[1] &&
+      containedBox.min[2] >= shrunk.min[2] &&
+      containedBox.max[0] <= shrunk.max[0] &&
+      containedBox.max[1] <= shrunk.max[1] &&
+      containedBox.max[2] <= shrunk.max[2];
 
     if (!fullyInside) {
       this.addDiagnostic(
@@ -645,7 +646,7 @@ export class SpatialConstraintValidator {
     excludeB: string
   ): string | null {
     const dir = subtract(to, from);
-    const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+    const len = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
     if (len === 0) return null;
 
     const normalizedDir = normalize(dir);
@@ -1199,19 +1200,19 @@ export class SpatialConstraintValidator {
   computeAxisDistance(a: Vector3, b: Vector3, axis: SpatialAxis): number {
     switch (axis) {
       case 'x':
-        return Math.abs(b.x - a.x);
+        return Math.abs(b[0] - a[0]);
       case 'y':
-        return Math.abs(b.y - a.y);
+        return Math.abs(b[1] - a[1]);
       case 'z':
-        return Math.abs(b.z - a.z);
+        return Math.abs(b[2] - a[2]);
       case 'xy': {
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
+        const dx = b[0] - a[0];
+        const dy = b[1] - a[1];
         return Math.sqrt(dx * dx + dy * dy);
       }
       case 'xz': {
-        const dx = b.x - a.x;
-        const dz = b.z - a.z;
+        const dx = b[0] - a[0];
+        const dz = b[2] - a[2];
         return Math.sqrt(dx * dx + dz * dz);
       }
       case 'xyz':
@@ -1224,30 +1225,30 @@ export class SpatialConstraintValidator {
    * Convert any bounds type to a BoundingBox, optionally offset by position.
    */
   private toBoundingBox(bounds: BoundingBox | BoundingSphere, offset?: Vector3): BoundingBox {
-    const ox = offset?.x ?? 0;
-    const oy = offset?.y ?? 0;
-    const oz = offset?.z ?? 0;
+    const ox = offset?.[0] ?? 0;
+    const oy = offset?.[1] ?? 0;
+    const oz = offset?.[2] ?? 0;
 
     if ('radius' in bounds) {
       const sphere = bounds as BoundingSphere;
       return {
-        min: {
-          x: sphere.center.x + ox - sphere.radius,
-          y: sphere.center.y + oy - sphere.radius,
-          z: sphere.center.z + oz - sphere.radius,
-        },
-        max: {
-          x: sphere.center.x + ox + sphere.radius,
-          y: sphere.center.y + oy + sphere.radius,
-          z: sphere.center.z + oz + sphere.radius,
-        },
+        min: [
+          sphere.center[0] + ox - sphere.radius,
+          sphere.center[1] + oy - sphere.radius,
+          sphere.center[2] + oz - sphere.radius,
+        ],
+        max: [
+          sphere.center[0] + ox + sphere.radius,
+          sphere.center[1] + oy + sphere.radius,
+          sphere.center[2] + oz + sphere.radius,
+        ],
       };
     }
 
     const box = bounds as BoundingBox;
     return {
-      min: { x: box.min.x + ox, y: box.min.y + oy, z: box.min.z + oz },
-      max: { x: box.max.x + ox, y: box.max.y + oy, z: box.max.z + oz },
+      min: [box.min[0] + ox, box.min[1] + oy, box.min[2] + oz],
+      max: [box.max[0] + ox, box.max[1] + oy, box.max[2] + oz],
     };
   }
 
@@ -1263,12 +1264,11 @@ export class SpatialConstraintValidator {
     let tmin = -Infinity;
     let tmax = Infinity;
 
-    const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
-    for (const axis of axes) {
-      const d = direction[axis];
-      const o = origin[axis];
-      const bmin = box.min[axis];
-      const bmax = box.max[axis];
+    for (let i = 0; i < 3; i++) {
+      const d = direction[i];
+      const o = origin[i];
+      const bmin = box.min[i];
+      const bmax = box.max[i];
 
       if (Math.abs(d) < 1e-10) {
         // Ray parallel to slab
@@ -1305,16 +1305,16 @@ export class SpatialConstraintValidator {
 
     const box = bounds as BoundingBox;
     const expanded: BoundingBox = {
-      min: {
-        x: box.min.x - extraRadius,
-        y: box.min.y - extraRadius,
-        z: box.min.z - extraRadius,
-      },
-      max: {
-        x: box.max.x + extraRadius,
-        y: box.max.y + extraRadius,
-        z: box.max.z + extraRadius,
-      },
+      min: [
+        box.min[0] - extraRadius,
+        box.min[1] - extraRadius,
+        box.min[2] - extraRadius,
+      ],
+      max: [
+        box.max[0] + extraRadius,
+        box.max[1] + extraRadius,
+        box.max[2] + extraRadius,
+      ],
     };
     return isPointInBox(point, expanded);
   }

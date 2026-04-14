@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * VoiceProximity Trait
  *
@@ -18,7 +19,7 @@ type FalloffCurve = 'linear' | 'logarithmic' | 'exponential' | 'custom';
 interface VoiceZone {
   id: string;
   type: 'public' | 'private' | 'team';
-  bounds: { center: { x: number; y: number; z: number }; radius: number };
+  bounds: { center: Vector3; radius: number };
   volumeMultiplier: number;
 }
 
@@ -29,7 +30,7 @@ interface VoiceProximityState {
   isMuted: boolean;
   activeZone: string | null;
   voiceActive: boolean;
-  panningVector: { x: number; y: number; z: number };
+  panningVector: Vector3;
 }
 
 interface VoiceProximityConfig {
@@ -72,10 +73,10 @@ function calculateAttenuation(
   }
 }
 
-function isInZone(position: { x: number; y: number; z: number }, zone: VoiceZone): boolean {
-  const dx = position.x - zone.bounds.center.x;
-  const dy = position.y - zone.bounds.center.y;
-  const dz = position.z - zone.bounds.center.z;
+function isInZone(position: Vector3, zone: VoiceZone): boolean {
+  const dx = position[0] - zone.bounds.center[0];
+  const dy = position[1] - zone.bounds.center[1];
+  const dz = position[2] - zone.bounds.center[2];
   const distSq = dx * dx + dy * dy + dz * dz;
   return distSq <= zone.bounds.radius * zone.bounds.radius;
 }
@@ -108,7 +109,7 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
       isMuted: false,
       activeZone: null,
       voiceActive: false,
-      panningVector: { x: 0, y: 0, z: 0 },
+      panningVector: [0, 0, 0 ],
     };
     node.__voiceProximityState = state;
 
@@ -204,9 +205,9 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
       // Calculate panning vector
       if (distance > 0) {
         state.panningVector = {
-          x: (speakerPos.x - listenerPos.x) / distance,
-          y: (speakerPos.y - listenerPos.y) / distance,
-          z: (speakerPos.z - listenerPos.z) / distance,
+          x: (speakerPos[0] - listenerPos[0]) / distance,
+          y: (speakerPos[1] - listenerPos[1]) / distance,
+          z: (speakerPos[2] - listenerPos[2]) / distance,
         };
       }
 

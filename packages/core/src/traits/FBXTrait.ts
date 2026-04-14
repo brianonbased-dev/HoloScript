@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * FBX Trait
  *
@@ -8,7 +9,6 @@
  */
 
 import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // TYPES
@@ -804,15 +804,15 @@ function setMorphWeight(state: FBXState, target: string, weight: number): void {
 
 function v3x(v: Vector3): number {
   // @ts-expect-error
-  return Array.isArray(v) ? v[0] : (v.x ?? 0);
+  return Array.isArray(v) ? v[0] : (v[0] ?? 0);
 }
 function v3y(v: Vector3): number {
   // @ts-expect-error
-  return Array.isArray(v) ? v[1] : (v.y ?? 0);
+  return Array.isArray(v) ? v[1] : (v[1] ?? 0);
 }
 function v3z(v: Vector3): number {
   // @ts-expect-error
-  return Array.isArray(v) ? v[2] : (v.z ?? 0);
+  return Array.isArray(v) ? v[2] : (v[2] ?? 0);
 }
 
 function blendVec3(a: Vector3, b: Vector3, t: number): Vector3 {

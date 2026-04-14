@@ -1,0 +1,1 @@
+{"version":3,"file":"S3UploadTrait.d.ts","sourceRoot":"","sources":["S3UploadTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,cAAc;IAC7B,MAAM,EAAE,MAAM,CAAC;IACf,WAAW,EAAE,MAAM,CAAC;CACrB;AACD,eAAO,MAAM,eAAe,EAAE,YAAY,CAAC,cAAc,CA4BxD,CAAC;AACF,eAAe,eAAe,CAAC"}

@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SynthEngine } from '../audio/SynthEngine';
+import { Audio } from '@holoscript/engine';
+
+const { SynthEngine } = Audio;
 
 describe('SynthEngine', () => {
-  let synth: SynthEngine;
+  let synth: any; // Using any for local type since SynthEngine might not be exported as type directly
 
   beforeEach(() => {
     synth = new SynthEngine();

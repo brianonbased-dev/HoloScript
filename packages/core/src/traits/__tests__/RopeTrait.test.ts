@@ -132,14 +132,14 @@ describe('RopeTrait', () => {
       sendEvent(ropeHandler, node, {}, ctx, {
         type: 'rope_segment_update',
         positions: [
-          { x: 0, y: 0, z: 0 },
-          { x: 0, y: -0.2, z: 0 },
-          { x: 0, y: -0.4, z: 0 },
+          [0, 0, 0 ],
+          [0, -0.2, 0 ],
+          [0, -0.4, 0 ],
         ],
         tension: 5.0,
       });
 
-      expect(state.segments[0].position.x).toBe(0);
+      expect(state.segments[0].position[0]).toBe(0);
       expect(state.tension).toBe(5.0);
     });
   });
@@ -193,7 +193,7 @@ describe('RopeTrait', () => {
       sendEvent(ropeHandler, node, {}, ctx, {
         type: 'rope_apply_force',
         segmentIndex: 5,
-        force: { x: 2, y: 0, z: 0 },
+        force: [2, 0, 0 ],
       });
 
       expect(getEventCount(ctx, 'rope_external_force')).toBe(1);

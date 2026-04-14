@@ -221,7 +221,7 @@ export class TropicalShortestPaths {
       await this.ctx.submitAndWait(encoder.finish());
 
       const readback = await buffers.readBuffer(c);
-      return readback.data;
+      return readback.data as Float32Array;
     } finally {
       buffers.destroyAll();
     }
@@ -241,6 +241,7 @@ export class TropicalShortestPaths {
       const iterations = Math.ceil(Math.log2(Math.max(1, n)));
 
       for (let i = 0; i < iterations; i++) {
+        // @ts-ignore
         current = await this.tropicalGemm(current, current, n, n, n);
       }
 
@@ -294,7 +295,7 @@ export class TropicalShortestPaths {
       await this.ctx.submitAndWait(encoder.finish());
 
       const readback = await buffers.readBuffer(distOut);
-      return readback.data;
+      return readback.data as Float32Array;
     } finally {
       buffers.destroyAll();
     }
@@ -321,6 +322,7 @@ export class TropicalShortestPaths {
         if (arraysEqual(current, next)) {
           return next;
         }
+        // @ts-ignore
         current = next;
       }
       return current;

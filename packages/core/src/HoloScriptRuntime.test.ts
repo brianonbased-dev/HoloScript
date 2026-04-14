@@ -33,7 +33,7 @@ describe('HoloScriptRuntime', () => {
 
       expect(result.success).toBe(true);
       expect(result.output).toBeDefined();
-      expect(result.spatialPosition).toEqual({ x: 1, y: 2, z: 3 });
+      expect(result.spatialPosition).toEqual([1, 2, 3]);
     });
 
     it('should define a function', async () => {

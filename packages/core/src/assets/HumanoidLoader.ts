@@ -107,11 +107,7 @@ export type VRMExpressionName =
 /**
  * Vector3 type
  */
-export interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vector3 = [number, number, number];
 
 /**
  * Quaternion type
@@ -466,8 +462,8 @@ export class HumanoidLoader {
       format,
       transform: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: config.scale ?? 1, y: config.scale ?? 1, z: config.scale ?? 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [config.scale ?? 1, config.scale ?? 1, config.scale ?? 1],
       },
       visible: true,
       availableBones: [],

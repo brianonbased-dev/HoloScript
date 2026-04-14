@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * CinematicTrack.ts
  *
@@ -15,8 +16,8 @@ export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'smooth
 
 export interface CinematicKeyframe {
   time: number; // seconds
-  position?: { x: number; y: number; z: number };
-  rotation?: { pitch: number; yaw: number; roll: number };
+  position?: Vector3;
+  rotation?: Vector3;
   fov?: number;
   zoom?: number;
   easing: EasingType;
@@ -31,7 +32,7 @@ export interface CinematicCue {
 
 export interface CinematicState {
   position: [number, number, number];
-  rotation: { pitch: number; yaw: number; roll: number };
+  rotation: Vector3;
   fov: number;
   zoom: number;
 }
@@ -148,7 +149,7 @@ export class CinematicTrack {
   evaluate(time: number): CinematicState {
     const state: CinematicState = {
       position: [0, 0, 0],
-      rotation: { pitch: 0, yaw: 0, roll: 0 },
+      rotation: [0, 0, 0],
       fov: 60,
       zoom: 1,
     };
@@ -156,8 +157,8 @@ export class CinematicTrack {
     if (this.keyframes.length === 0) return state;
     if (this.keyframes.length === 1) {
       const k = this.keyframes[0];
-      if (k.position) state.position = { ...k.position } as any;
-      if (k.rotation) state.rotation = { ...k.rotation };
+      if (k.position) state.position = [...k.position  ] as any;
+      if (k.rotation) state.rotation = [...k.rotation  ] as Vector3;
       if (k.fov !== undefined) state.fov = k.fov;
       if (k.zoom !== undefined) state.zoom = k.zoom;
       return state;
@@ -185,15 +186,15 @@ export class CinematicTrack {
       state.position[1] = kA.position[1] + (kB.position[1] - kA.position[1]) * t;
       state.position[2] = kA.position[2] + (kB.position[2] - kA.position[2]) * t;
     } else if (kB.position) {
-      state.position = { ...kB.position } as any;
+      state.position = [...kB.position  ] as any;
     } else if (kA.position) {
-      state.position = { ...kA.position } as any;
+      state.position = [...kA.position  ] as any;
     }
 
     if (kA.rotation && kB.rotation) {
-      state.rotation.pitch = kA.rotation.pitch + (kB.rotation.pitch - kA.rotation.pitch) * t;
-      state.rotation.yaw = kA.rotation.yaw + (kB.rotation.yaw - kA.rotation.yaw) * t;
-      state.rotation.roll = kA.rotation.roll + (kB.rotation.roll - kA.rotation.roll) * t;
+      state.rotation[0] = kA.rotation[0] + (kB.rotation[0] - kA.rotation[0]) * t; // pitch
+      state.rotation[1] = kA.rotation[1] + (kB.rotation[1] - kA.rotation[1]) * t; // yaw
+      state.rotation[2] = kA.rotation[2] + (kB.rotation[2] - kA.rotation[2]) * t; // roll
     }
 
     if (kA.fov !== undefined && kB.fov !== undefined) {

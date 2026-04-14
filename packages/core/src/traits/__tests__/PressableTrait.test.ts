@@ -6,7 +6,7 @@ function createPressableMockContext() {
   return {
     emit: (type: string, data: any) => events.push({ type, data }),
     physics: {
-      getBodyPosition: (_id: string) => ({ x: 0, y: 0, z: 0 }),
+      getBodyPosition: (_id: string) => [0, 0, 0],
     },
     haptics: {
       pulse: (_hand: string, _intensity: number, _duration: number) => {},
@@ -60,7 +60,7 @@ describe('PressableTrait', () => {
     trait.onUpdate(node, ctx as any, 0.016); // capture initial pos
 
     // Simulate depression exceeding trigger point
-    ctx.physics.getBodyPosition = () => ({ x: 0, y: 0, z: 0.008 }); // 80% of 0.01
+    ctx.physics.getBodyPosition = () => [0, 0, 0.008]; // 80% of 0.01
     trait.onUpdate(node, ctx as any, 0.016);
     const pressEvents = ctx._events.filter((e: any) => e.type === 'ui_press_start');
     expect(pressEvents.length).toBe(1);
@@ -71,11 +71,11 @@ describe('PressableTrait', () => {
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Press
-    ctx.physics.getBodyPosition = () => ({ x: 0, y: 0, z: 0.008 });
+    ctx.physics.getBodyPosition = () => [0, 0, 0.008];
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Release
-    ctx.physics.getBodyPosition = () => ({ x: 0, y: 0, z: 0.001 }); // 10% < 30%
+    ctx.physics.getBodyPosition = () => [0, 0, 0.001]; // 10% < 30%
     trait.onUpdate(node, ctx as any, 0.016);
     const releaseEvents = ctx._events.filter((e: any) => e.type === 'ui_press_end');
     expect(releaseEvents.length).toBe(1);

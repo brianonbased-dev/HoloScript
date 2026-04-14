@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * HRTF Trait
  *
@@ -22,10 +23,10 @@ interface HRTFState {
   databaseLoaded: boolean;
   subjectId: number | null;
   headRadius: number;
-  listenerPosition: { x: number; y: number; z: number };
+  listenerPosition: Vector3;
   listenerOrientation: {
-    forward: { x: number; y: number; z: number };
-    up: { x: number; y: number; z: number };
+    forward: Vector3;
+    up: Vector3;
   };
 }
 
@@ -65,8 +66,8 @@ export const hrtfHandler: TraitHandler<HRTFConfig> = {
       databaseLoaded: false,
       subjectId: null,
       headRadius: config.head_radius,
-      listenerPosition: { x: 0, y: 0, z: 0 },
-      listenerOrientation: { forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } },
+      listenerPosition: [0, 0, 0 ],
+      listenerOrientation: { forward: [0, 0, -1 ], up: [0, 1, 0 ] },
     };
     node.__hrtfState = state;
 

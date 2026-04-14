@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AntiCheat â€” Server authority validation and cheat detection
  *
  * Implements speed/teleport detection, rate limiting, and
@@ -13,7 +13,7 @@
 
 export interface PlayerState {
   id: string;
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   lastUpdateAt: number;
   violations: Violation[];

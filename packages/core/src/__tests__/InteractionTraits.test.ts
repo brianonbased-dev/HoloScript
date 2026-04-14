@@ -32,8 +32,8 @@ function mockNode(id = 'obj-1', props: Record<string, any> = {}) {
     id,
     properties: {
       position: [0, 0, 0],
-      scale: { x: 1, y: 1, z: 1 },
-      rotation: { x: 0, y: 0, z: 0 },
+      scale: [1, 1, 1 ],
+      rotation: [0, 0, 0 ],
       ...props,
     },
   };
@@ -43,7 +43,7 @@ function mockHand(pos: { x: number; y: number; z: number }, pinch = 0): any {
   return {
     position: { ...pos },
     pinchStrength: pinch,
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    rotation: [0, 0, 0, 1 ],
   };
 }
 
@@ -158,7 +158,7 @@ describe('GrabbableTrait', () => {
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Scale should have increased
-    expect(node.properties.scale.x).toBeGreaterThan(1);
+    expect(node.properties.scale[0]).toBeGreaterThan(1);
   });
 
   it('cleans up on detach', () => {

@@ -1,0 +1,1 @@
+{"version":3,"file":"OnnxRuntimeTrait.d.ts","sourceRoot":"","sources":["OnnxRuntimeTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,iBAAiB;IAChC,kBAAkB,EAAE,MAAM,CAAC;CAC5B;AACD,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,iBAAiB,CAiC9D,CAAC;AACF,eAAe,kBAAkB,CAAC"}

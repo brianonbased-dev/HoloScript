@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * UIComponents.ts
  *
@@ -60,8 +61,8 @@ export const createTextInput = (config: TextInputConfig): HSPlusNode => {
     id: config.id || getID('input'),
     type: 'entity',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       // Tag it so KeyboardSystem can find it or we can bind to it
       tag: 'text_input',
       text: config.text || '',
@@ -107,8 +108,8 @@ export const createText = (config: TextConfig): HSPlusNode => {
     id: config.id || getID('text'),
     type: 'text',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       text: config.text,
       color: config.color || '#ffffff',
       fontSize: config.fontSize || 0.1,
@@ -124,9 +125,9 @@ export const createPanel = (config: PanelConfig): HSPlusNode => {
     id: config.id || getID('panel'),
     type: 'entity',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
-      scale: config.scale || { x: 1, y: 1, z: 1 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
+      scale: config.scale || [1, 1, 1],
     },
     traits: new Map([
       // Panel Visual
@@ -157,8 +158,8 @@ export const createButton = (config: ButtonConfig): HSPlusNode => {
     id: config.id || getID('btn'),
     type: 'entity',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       // Initial state
     },
     traits: new Map([
@@ -200,8 +201,8 @@ export const createSlider = (config: SliderConfig): HSPlusNode => {
     id: trackID,
     type: 'entity',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
     },
     traits: new Map([
       ['render', { type: 'box', color: '#555', size: [trackWidth, knobSize / 2, knobSize / 2] }],
@@ -238,8 +239,8 @@ export const createScrollView = (config: ScrollViewConfig): HSPlusNode => {
     id: config.id || getID('scrollview'),
     type: 'entity',
     properties: {
-      position: config.position || { x: 0, y: 0, z: 0 },
-      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
       scrollOffset: 0,
     },
     traits: new Map([

@@ -94,40 +94,40 @@ describe('RigidbodyTrait', () => {
 
   describe('force application', () => {
     it('should add force', () => {
-      trait.addForce({ x: 10, y: 0, z: 0 });
+      trait.addForce([10, 0, 0 ]);
       expect(trait.getState().isSleeping).toBe(false);
     });
 
     it('should add impulse', () => {
-      trait.addForce({ x: 0, y: 100, z: 0 }, 'impulse');
+      trait.addForce([0, 100, 0 ], 'impulse');
       expect(trait.getState().isSleeping).toBe(false);
     });
 
     it('should add torque', () => {
-      trait.addTorque({ x: 0, y: 5, z: 0 });
+      trait.addTorque([0, 5, 0 ]);
       expect(trait.getState().isSleeping).toBe(false);
     });
 
     it('should add force at position', () => {
-      trait.addForceAtPosition({ x: 10, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+      trait.addForceAtPosition([10, 0, 0 ], [0, 1, 0 ]);
       expect(trait.getState().isSleeping).toBe(false);
     });
   });
 
   describe('velocity', () => {
     it('should set velocity', () => {
-      trait.setVelocity({ x: 5, y: 0, z: 0 });
-      expect(trait.getState().velocity.x).toBe(5);
+      trait.setVelocity([5, 0, 0 ]);
+      expect(trait.getState().velocity[0]).toBe(5);
     });
 
     it('should get velocity', () => {
-      trait.setVelocity({ x: 5, y: 0, z: 0 });
+      trait.setVelocity([5, 0, 0 ]);
       const velocity = trait.getVelocity();
-      expect(velocity.x).toBe(5);
+      expect(velocity[0]).toBe(5);
     });
 
     it('should set angular velocity', () => {
-      trait.setAngularVelocity({ x: 0, y: 1, z: 0 });
+      trait.setAngularVelocity([0, 1, 0 ]);
       expect(trait.getState().angularVelocity.y).toBe(1);
     });
   });
@@ -136,16 +136,16 @@ describe('RigidbodyTrait', () => {
     it('should add collider', () => {
       trait.addCollider({
         shape: 'sphere',
-        size: { x: 1, y: 1, z: 1 },
+        size: [1, 1, 1 ],
       });
       const colliders = trait.getColliders();
       expect(colliders.length).toBe(1);
     });
 
     it('should support multiple collider shapes', () => {
-      trait.addCollider({ shape: 'box', size: { x: 1, y: 1, z: 1 } });
-      trait.addCollider({ shape: 'sphere', size: { x: 0.5, y: 0.5, z: 0.5 } });
-      trait.addCollider({ shape: 'capsule', size: { x: 0.5, y: 2, z: 0.5 } });
+      trait.addCollider({ shape: 'box', size: [1, 1, 1 ] });
+      trait.addCollider({ shape: 'sphere', size: [0.5, 0.5, 0.5 ] });
+      trait.addCollider({ shape: 'capsule', size: [0.5, 2, 0.5 ] });
       expect(trait.getColliders().length).toBe(3);
     });
   });

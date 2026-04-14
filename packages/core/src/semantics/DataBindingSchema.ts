@@ -94,7 +94,7 @@ export interface ReactiveExpression {
   /** Expression ID */
   id: string;
 
-  /** Expression string (e.g., "position.x + offset") */
+  /** Expression string (e.g., "position[0] + offset") */
   expression: string;
 
   /** Dependencies (property paths this expression reads) */
@@ -608,13 +608,13 @@ export function getBindingManager(): BindingManager {
 export function createFollowBinding(
   sourceEntity: string,
   targetEntity: string,
-  offset: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
+  offset: { x: number; y: number; z: number } = [0, 0, 0]
 ): BindingConfig {
   return createBinding(`${sourceEntity}.position`, `${targetEntity}.position`, 'entity', {
     transforms: [
       {
         type: 'custom',
-        fn: `(pos) => ({ x: pos.x + ${offset.x}, y: pos.y + ${offset.y}, z: pos.z + ${offset.z} })`,
+        fn: `(pos) => ({ x: pos[0] + ${offset[0]}, y: pos[1] + ${offset[1]}, z: pos[2] + ${offset[2]} })`,
       },
     ],
   });

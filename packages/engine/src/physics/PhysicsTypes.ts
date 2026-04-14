@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PhysicsTypes.ts
  *
@@ -15,21 +16,12 @@
 /**
  * 3D Vector
  */
-export interface IVector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type IVector3 = [number, number, number];
 
 /**
  * Quaternion rotation
  */
-export interface IQuaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+export type IQuaternion = [number, number, number, number];
 
 /**
  * Transform (position + rotation + scale)
@@ -48,7 +40,7 @@ export interface ITransform {
  * Default physics simulation settings
  */
 export const PHYSICS_DEFAULTS = {
-  gravity: { x: 0, y: -9.81, z: 0 } as IVector3,
+  gravity: [0, -9.81, 0] as IVector3,
   fixedTimestep: 1 / 60,
   maxSubsteps: 3,
   sleepThreshold: 0.005,
@@ -585,14 +577,14 @@ export type PhysicsWorldFactory = (config?: IPhysicsWorldConfig) => IPhysicsWorl
  * Create a default identity quaternion
  */
 export function identityQuaternion(): IQuaternion {
-  return { x: 0, y: 0, z: 0, w: 1 };
+  return [0, 0, 0, 1];
 }
 
 /**
  * Create a zero vector
  */
 export function zeroVector(): IVector3 {
-  return { x: 0, y: 0, z: 0 };
+  return [0, 0, 0];
 }
 
 /**
@@ -602,7 +594,7 @@ export function defaultTransform(): ITransform {
   return {
     position: zeroVector(),
     rotation: identityQuaternion(),
-    scale: { x: 1, y: 1, z: 1 },
+    scale: [1, 1, 1],
   };
 }
 

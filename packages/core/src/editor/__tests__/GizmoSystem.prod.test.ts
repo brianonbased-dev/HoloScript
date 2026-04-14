@@ -34,8 +34,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick(); // wait for reactive effect to fire
@@ -48,8 +48,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -62,8 +62,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -77,8 +77,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -91,8 +91,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -112,8 +112,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [5, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -128,8 +128,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick(); // create gizmos
@@ -146,8 +146,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [3, 4, 5],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
@@ -169,14 +169,14 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
       gizmo.dragHandle('x', 2.5);
       const tf = world.getComponent<any>(entity, 'Transform');
-      expect(tf.position.x).toBeCloseTo(2.5);
+      expect(tf.position[0]).toBeCloseTo(2.5);
     });
 
     it('moves target on y axis by delta', async () => {
@@ -184,14 +184,14 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
       gizmo.dragHandle('y', -1.0);
       const tf = world.getComponent<any>(entity, 'Transform');
-      expect(tf.position.y).toBeCloseTo(-1.0);
+      expect(tf.position[1]).toBeCloseTo(-1.0);
     });
 
     it('moves target on z axis by delta', async () => {
@@ -199,14 +199,14 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0, 1 ],
+        scale: [1, 1, 1 ],
       });
       selection.select(entity);
       await tick();
       gizmo.dragHandle('z', 3.0);
       const tf = world.getComponent<any>(entity, 'Transform');
-      expect(tf.position.z).toBeCloseTo(3.0);
+      expect(tf.position[2]).toBeCloseTo(3.0);
     });
 
     it('does nothing when no primary selection', () => {

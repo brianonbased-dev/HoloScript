@@ -32,7 +32,7 @@ function makeNode(overrides: any = {}) {
 function makeCtx(bodyZ = 0) {
   return {
     emit: vi.fn(),
-    physics: { getBodyPosition: vi.fn().mockReturnValue({ x: 0, y: 0, z: bodyZ }) },
+    physics: { getBodyPosition: vi.fn().mockReturnValue([0, 0, bodyZ ]) },
     haptics: { pulse: vi.fn() },
   };
 }
@@ -68,7 +68,7 @@ describe('PressableTrait.onAttach', () => {
     const ctx = makeCtx();
     t.onAttach(node, ctx as any);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'physics_add_constraint');
-    expect(call[1].axis).toEqual({ x: 0, y: 0, z: 1 });
+    expect(call[1].axis).toEqual([0, 0, 1 ]);
   });
 
   it('max = distance from node.properties', () => {
@@ -125,7 +125,7 @@ describe('PressableTrait.onUpdate — initialPos capture', () => {
   it('captures initialPos from node.properties on first call', () => {
     const t = makeTrait();
     const node = makeNode();
-    node.properties.position = { x: 1, y: 2, z: 3 };
+    node.properties.position = [1, 2, 3 ];
     // body at z=3 → no depression (same as initial)
     const ctx = makeCtx(3);
     t.onUpdate(node, ctx as any, 0.016);
@@ -185,7 +185,7 @@ describe('PressableTrait.onUpdate — press state machine', () => {
 
     // Frame 3: release (depression 0.1 < 0.3)
     ctxPress.emit.mockClear();
-    ctxPress.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.001 });
+    ctxPress.physics.getBodyPosition = vi.fn().mockReturnValue([0, 0, 0.001 ]);
     t.onUpdate(node, ctxPress as any, 0.016);
     expect(ctxPress.emit).toHaveBeenCalledWith(
       'ui_press_end',
@@ -198,10 +198,10 @@ describe('PressableTrait.onUpdate — press state machine', () => {
     const node = makeNode({ distance: 0.01, triggerPoint: 0.5, releasePoint: 0.3 });
     const ctx = makeCtx(0);
     t.onUpdate(node, ctx as any, 0.016); // init
-    ctx.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.008 });
+    ctx.physics.getBodyPosition = vi.fn().mockReturnValue([0, 0, 0.008 ]);
     t.onUpdate(node, ctx as any, 0.016); // press
     ctx.haptics.pulse.mockClear();
-    ctx.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.001 });
+    ctx.physics.getBodyPosition = vi.fn().mockReturnValue([0, 0, 0.001 ]);
     t.onUpdate(node, ctx as any, 0.016); // release
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', 0.3, 10);
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('right', 0.3, 10);
@@ -235,11 +235,11 @@ describe('PressableTrait.onUpdate — press state machine', () => {
     delete node.properties.releasePoint;
     const ctx = makeCtx(0);
     t.onUpdate(node, ctx as any, 0.016); // init
-    ctx.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.008 });
+    ctx.physics.getBodyPosition = vi.fn().mockReturnValue([0, 0, 0.008 ]);
     t.onUpdate(node, ctx as any, 0.016); // press
     ctx.emit.mockClear();
     // depression 0.002 / 0.01 = 0.2 < default 0.3 → release
-    ctx.physics.getBodyPosition = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0.002 });
+    ctx.physics.getBodyPosition = vi.fn().mockReturnValue([0, 0, 0.002 ]);
     t.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith('ui_press_end', expect.anything());
   });

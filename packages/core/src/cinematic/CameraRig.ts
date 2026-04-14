@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CameraRig.ts
  *
  * Camera rigs: dolly, crane, steadicam, and shake presets
@@ -66,7 +66,7 @@ export class CameraRig {
       ...config,
     };
     this.state = {
-      position: { ...this.config.position },
+      position: [...this.config.position],
       target: { ...this.config.target },
       fov: this.config.fov,
       shakeOffset: { x: 0, y: 0, z: 0 },
@@ -191,19 +191,20 @@ export class CameraRig {
     const a = this.dollyPath[Math.min(i, this.dollyPath.length - 1)];
     const b = this.dollyPath[Math.min(i + 1, this.dollyPath.length - 1)];
 
-    this.state.position = {
-      x: a.x + (b.x - a.x) * frac,
-      y: a.y + (b.y - a.y) * frac,
-      z: a.z + (b.z - a.z) * frac,
-    };
+    this.state.position = [
+      a.x + (b.x - a.x) * frac,
+      a.y + (b.y - a.y) * frac,
+      a.z + (b.z - a.z) * frac,
+    ];
   }
 
   private updateCrane(dt: number): void {
     const rad = (this.craneAngle * Math.PI) / 180;
-    this.state.position = {
-      ...this.config.position,
-      y: this.config.position.y + this.craneHeight,
-    };
+    this.state.position = [
+      this.config.position[0],
+      this.config.position[1] + this.craneHeight,
+      this.config.position[2]
+    ];
     this.state.target = {
       x: this.config.target.x + Math.sin(rad) * this.craneHeight,
       y: 0,
@@ -213,20 +214,20 @@ export class CameraRig {
 
   private updateSteadicam(dt: number): void {
     const s = this.config.smoothing;
-    this.state.position = {
-      x: this.state.position.x + (this.config.position.x - this.state.position.x) * s,
-      y: this.state.position.y + (this.config.position.y - this.state.position.y) * s,
-      z: this.state.position.z + (this.config.position.z - this.state.position.z) * s,
-    };
+    this.state.position = [
+      this.state.position[0] + (this.config.position[0] - this.state.position[0]) * s,
+      this.state.position[1] + (this.config.position[1] - this.state.position[1]) * s,
+      this.state.position[2] + (this.config.position[2] - this.state.position[2]) * s,
+    ];
   }
 
   private updateHandheld(dt: number): void {
     const t = Date.now() * 0.001;
-    this.state.position = {
-      x: this.config.position.x + Math.sin(t * 2.1) * 0.02,
-      y: this.config.position.y + Math.sin(t * 3.3) * 0.01,
-      z: this.config.position.z + Math.cos(t * 1.7) * 0.02,
-    };
+    this.state.position = [
+      this.config.position[0] + Math.sin(t * 2.1) * 0.02,
+      this.config.position[1] + Math.sin(t * 3.3) * 0.01,
+      this.config.position[2] + Math.cos(t * 1.7) * 0.02,
+    ];
   }
 
   // ---------------------------------------------------------------------------
@@ -235,7 +236,11 @@ export class CameraRig {
 
   getState(): RigState {
     return {
-      position: [this.state.position.x + this.state.shakeOffset.x, this.state.position.y + this.state.shakeOffset.y, this.state.position.z + this.state.shakeOffset.z,],
+      position: [
+        this.state.position[0] + this.state.shakeOffset.x,
+        this.state.position[1] + this.state.shakeOffset.y,
+        this.state.position[2] + this.state.shakeOffset.z,
+      ],
       target: { ...this.state.target },
       fov: this.state.fov,
       shakeOffset: { ...this.state.shakeOffset },

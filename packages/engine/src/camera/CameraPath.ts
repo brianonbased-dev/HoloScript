@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * CameraPath.ts
  *
@@ -12,12 +13,8 @@
 // =============================================================================
 
 export interface PathPoint {
-  x: number;
-  y: number;
-  z: number;
-  lookAtX?: number;
-  lookAtY?: number;
-  lookAtZ?: number;
+  position: Vector3;
+  lookAt?: Vector3;
   speedMultiplier?: number; // 1 = default speed
 }
 
@@ -74,8 +71,8 @@ export class CameraPath {
   }
 
   update(dt: number): {
-    position: [number, number, number];
-    lookAt: { x: number; y: number; z: number } | null;
+    position: Vector3;
+    lookAt: Vector3 | null;
   } | null {
     if (!this.playing || this.points.length < 2) return null;
 
@@ -107,12 +104,12 @@ export class CameraPath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): {
-    position: [number, number, number];
-    lookAt: { x: number; y: number; z: number } | null;
+    position: Vector3;
+    lookAt: Vector3 | null;
   } {
     const n = this.points.length;
     if (n === 0) return { position: [0, 0, 0], lookAt: null };
-    if (n === 1) return { position: { ...this.points[0] } as any, lookAt: null };
+    if (n === 1) return { position: [...this.points[0].position], lookAt: this.points[0].lookAt || null };
 
     const f = t * (n - 1);
     const i = Math.min(Math.floor(f), n - 2);
@@ -124,23 +121,23 @@ export class CameraPath {
     const p2 = this.points[Math.min(n - 1, i + 1)];
     const p3 = this.points[Math.min(n - 1, i + 2)];
 
-    const position = {
-      x: this.catmullRom(p0.x, p1.x, p2.x, p3.x, frac),
-      y: this.catmullRom(p0.y, p1.y, p2.y, p3.y, frac),
-      z: this.catmullRom(p0.z, p1.z, p2.z, p3.z, frac),
-    };
+    const position: Vector3 = [
+      this.catmullRom(p0.position[0], p1.position[0], p2.position[0], p3.position[0], frac),
+      this.catmullRom(p0.position[1], p1.position[1], p2.position[1], p3.position[1], frac),
+      this.catmullRom(p0.position[2], p1.position[2], p2.position[2], p3.position[2], frac),
+    ];
 
     // Look-at interpolation
-    let lookAt: { x: number; y: number; z: number } | null = null;
-    if (p1.lookAtX !== undefined && p2.lookAtX !== undefined) {
-      lookAt = {
-        x: p1.lookAtX! + (p2.lookAtX! - p1.lookAtX!) * frac,
-        y: (p1.lookAtY ?? 0) + ((p2.lookAtY ?? 0) - (p1.lookAtY ?? 0)) * frac,
-        z: (p1.lookAtZ ?? 0) + ((p2.lookAtZ ?? 0) - (p1.lookAtZ ?? 0)) * frac,
-      };
+    let lookAt: Vector3 | null = null;
+    if (p1.lookAt && p2.lookAt) {
+      lookAt = [
+        p1.lookAt[0] + (p2.lookAt[0] - p1.lookAt[0]) * frac,
+        p1.lookAt[1] + (p2.lookAt[1] - p1.lookAt[1]) * frac,
+        p1.lookAt[2] + (p2.lookAt[2] - p1.lookAt[2]) * frac,
+      ];
     }
 
-    return { position: position as any, lookAt };
+    return { position, lookAt };
   }
 
   private catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {

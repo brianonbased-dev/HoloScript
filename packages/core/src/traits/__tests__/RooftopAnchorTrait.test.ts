@@ -83,7 +83,7 @@ describe('RooftopAnchorTrait', () => {
   });
 
   it('update applies position when resolved', () => {
-    node.position = { x: 0, y: 0, z: 0 };
+    node.position = [0, 0, 0];
     sendEvent(rooftopAnchorHandler, node, cfg, ctx, {
       type: 'rooftop_anchor_resolved',
       handle: 'a',
@@ -91,7 +91,7 @@ describe('RooftopAnchorTrait', () => {
       position: [5, 20, 10],
     });
     updateTrait(rooftopAnchorHandler, node, cfg, ctx, 0.016);
-    expect(node.position.y).toBe(22); // 20 + 2 offset
+    expect((node.position as number[])[1]).toBe(22); // 20 + 2 offset
   });
 
   it('query emits info', () => {

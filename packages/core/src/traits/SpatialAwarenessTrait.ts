@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * Spatial Awareness Trait
  * Sprint 4 Priority 4 - Spatial Context Awareness
@@ -42,7 +43,7 @@ export interface SpatialAwarenessTraitConfig extends SpatialAwarenessConfig {
  */
 export const DEFAULT_TRAIT_CONFIG: SpatialAwarenessTraitConfig = {
   ...DEFAULT_SPATIAL_CONFIG,
-  initialPosition: { x: 0, y: 0, z: 0 },
+  initialPosition: [0, 0, 0 ],
   autoStart: true,
 };
 
@@ -102,7 +103,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
   private provider: SpatialContextProvider;
   private ownsProvider: boolean = false;
   private position: Vector3;
-  private velocity: Vector3 = { x: 0, y: 0, z: 0 };
+  private velocity: Vector3 = [0, 0, 0 ];
   private isActive: boolean = false;
   private lastContext: SpatialContext | null = null;
 
@@ -113,7 +114,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
     super();
     this.id = id;
     this.config = { ...DEFAULT_TRAIT_CONFIG, ...config };
-    this.position = this.config.initialPosition || { x: 0, y: 0, z: 0 };
+    this.position = this.config.initialPosition || [0, 0, 0 ];
 
     // Use shared provider or create own
     if (this.config.sharedProvider) {
@@ -218,9 +219,9 @@ export class SpatialAwarenessTrait extends EventEmitter {
    */
   move(delta: Vector3): void {
     this.setPosition({
-      x: this.position.x + delta.x,
-      y: this.position.y + delta.y,
-      z: this.position.z + delta.z,
+      x: this.position[0] + delta[0],
+      y: this.position[1] + delta[1],
+      z: this.position[2] + delta[2],
     });
   }
 
@@ -300,9 +301,9 @@ export class SpatialAwarenessTrait extends EventEmitter {
     const entity = entities.find((e) => e.id === entityId);
     if (!entity) return null;
 
-    const dx = entity.position.x - this.position.x;
-    const dy = entity.position.y - this.position.y;
-    const dz = entity.position.z - this.position.z;
+    const dx = entity.position[0] - this.position[0];
+    const dy = entity.position[1] - this.position[1];
+    const dz = entity.position[2] - this.position[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 

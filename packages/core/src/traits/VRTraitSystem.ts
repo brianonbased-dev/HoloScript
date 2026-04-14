@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * VR Trait System — Runtime trait handler registry.
  *
@@ -14,7 +15,7 @@ import type {
   VRTraitName,
   VRHand,
   Vector3,
-  Vector3Tuple,
+  Vector3,
   GrabbableTrait,
   ThrowableTrait,
   PointableTrait,
@@ -31,9 +32,8 @@ import type {
 } from '../types/HoloScriptPlus';
 
 /** Helper to convert Vector3 (object or tuple) to a tuple for indexed access */
-function vec3ToTuple(v: Vector3): Vector3Tuple {
-  if (Array.isArray(v)) return v as Vector3Tuple;
-  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
+function vec3ToTuple(v: Vector3): Vector3 {
+  return v;
 }
 
 import {
@@ -436,8 +436,8 @@ import { gotchaHandler } from './GotchaTrait';
 interface GrabState {
   isGrabbed: boolean;
   grabbingHand: VRHand | null;
-  grabOffset: Vector3Tuple;
-  grabRotationOffset: Vector3Tuple;
+  grabOffset: Vector3;
+  grabRotationOffset: Vector3;
   previousHandPositions: Vector3[];
   previousHandTimes: number[];
 }
@@ -462,8 +462,8 @@ interface ScaleState {
 
 interface RotateState {
   isRotating: boolean;
-  initialHandRotation: Vector3Tuple;
-  initialObjectRotation: Vector3Tuple;
+  initialHandRotation: Vector3;
+  initialObjectRotation: Vector3;
 }
 
 interface StackState {
@@ -473,9 +473,9 @@ interface StackState {
 
 /** Collision event data shape */
 interface CollisionData {
-  relativeVelocity: [number, number, number];
-  normal: [number, number, number];
-  point: [number, number, number];
+  relativeVelocity: Vector3;
+  normal: Vector3;
+  point: Vector3;
   target: HSPlusNode;
 }
 
@@ -532,10 +532,7 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
     }
 
     // Track velocity for throw
-    state.previousHandPositions.push(
-      // @ts-expect-error
-      Array.isArray(hand.position) ? [...hand.position] : { ...hand.position }
-    );
+    state.previousHandPositions.push([...hand.position]);
     state.previousHandTimes.push(Date.now());
 
     // Keep last 10 frames
@@ -609,7 +606,7 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
         if (dt > 0) {
           const last = vec3ToTuple(state.previousHandPositions[len - 1]);
           const first = vec3ToTuple(state.previousHandPositions[0]);
-          const velocity: Vector3Tuple = [
+          const velocity: Vector3 = [
             (last[0] - first[0]) / dt,
             (last[1] - first[1]) / dt,
             (last[2] - first[2]) / dt,
@@ -670,7 +667,6 @@ const throwableHandler: TraitHandler<ThrowableTrait> = {
       const velocity = collision.relativeVelocity;
       const normal = collision.normal;
       const dot = velocity[0] * normal[0] + velocity[1] * normal[1] + velocity[2] * normal[2];
-      // @ts-expect-error
       const reflected: Vector3 = [
         (velocity[0] - 2 * dot * normal[0]) * bounceFactor,
         (velocity[1] - 2 * dot * normal[1]) * bounceFactor,
@@ -979,7 +975,7 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
     const handRot = vec3ToTuple(hand.rotation);
     const initHandRot = state.initialHandRotation;
     const initObjRot = state.initialObjectRotation;
-    const deltaRotation: Vector3Tuple = [
+    const deltaRotation: Vector3 = [
       (handRot[0] - initHandRot[0]) * (config.speed || 1),
       (handRot[1] - initHandRot[1]) * (config.speed || 1),
       (handRot[2] - initHandRot[2]) * (config.speed || 1),
@@ -1135,7 +1131,7 @@ const stackableHandler: TraitHandler<StackableTrait> = {
 
         // Snap position
         const stackOffset = config.stack_offset || 0;
-        const newPos: Vector3Tuple = [...nodePosArr];
+        const newPos: Vector3 = [...nodePosArr];
         newPos[axisIndex] = nodePosArr[axisIndex] + stackOffset;
 
         if (other.properties) {

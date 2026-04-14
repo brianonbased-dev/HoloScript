@@ -3,11 +3,7 @@
  * Centralized implementation to avoid code duplication across modules
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type Vec3Array = [number, number, number];
 
@@ -32,9 +28,9 @@ export function vec3NormalizeInPlace(v: number[]): number {
  * @returns New normalized vector
  */
 export function vec3Normalize(v: Vec3): Vec3 {
-  const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-  if (len === 0) return { x: 0, y: 0, z: 0 };
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
+  const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  if (len === 0) return [0, 0, 0];
+  return [v[0] / len, v[1] / len, v[2] / len];
 }
 
 /**
@@ -43,7 +39,7 @@ export function vec3Normalize(v: Vec3): Vec3 {
  * @returns Length of the vector
  */
 export function vec3Length(v: Vec3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 /**
@@ -53,11 +49,11 @@ export function vec3Length(v: Vec3): number {
  * @returns Cross product result
  */
 export function vec3Cross(a: Vec3, b: Vec3): Vec3 {
-  return {
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  };
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
 }
 
 /**
@@ -77,7 +73,7 @@ export function vec3CrossArray(a: number[], b: number[]): number[] {
  * @returns Subtraction result
  */
 export function vec3Sub(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
 /**
@@ -97,7 +93,7 @@ export function vec3SubArray(a: number[], b: number[]): number[] {
  * @returns Addition result
  */
 export function vec3Add(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
 /**
@@ -107,7 +103,7 @@ export function vec3Add(a: Vec3, b: Vec3): Vec3 {
  * @returns Scaled vector
  */
 export function vec3Scale(v: Vec3, s: number): Vec3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
+  return [v[0] * s, v[1] * s, v[2] * s];
 }
 
 /**
@@ -127,9 +123,9 @@ export function vec3ScaleArray(v: number[], s: number): number[] {
  * @returns Distance between the vectors
  */
 export function vec3Distance(a: Vec3, b: Vec3): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -140,5 +136,5 @@ export function vec3Distance(a: Vec3, b: Vec3): number {
  * @returns Dot product result
  */
 export function vec3Dot(a: Vec3, b: Vec3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }

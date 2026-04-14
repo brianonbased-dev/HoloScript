@@ -87,7 +87,7 @@ describe('AudioOcclusionTrait', () => {
       type: 'source_position_update',
       position: [10, 0, 0],
     });
-    expect((node as any).__audioOcclusionState.sourcePosition).toEqual({ x: 10, y: 0, z: 0 });
+    expect((node as any).__audioOcclusionState.sourcePosition).toEqual([10, 0, 0 ]);
   });
 
   it('cleans up on detach', () => {

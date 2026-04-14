@@ -1,0 +1,1 @@
+{"version":3,"file":"SlackAlertTrait.d.ts","sourceRoot":"","sources":["SlackAlertTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,gBAAgB;IAC/B,eAAe,EAAE,MAAM,CAAC;CACzB;AACD,eAAO,MAAM,iBAAiB,EAAE,YAAY,CAAC,gBAAgB,CA2B5D,CAAC;AACF,eAAe,iBAAiB,CAAC"}

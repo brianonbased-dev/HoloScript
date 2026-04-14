@@ -33,12 +33,12 @@ import { VRTraitRegistry, vrTraitRegistry, TraitContext, TraitEvent } from '@hol
 import { eventBus } from './EventBus';
 import { ChunkLoader } from './loader';
 import { HotReloader, type TemplateInstance as _TemplateInstance } from './HotReloader';
-import { HSPlusStatement, HSPlusExpression as _HSPlusExpression } from '@holoscript/core';
+import { HoloStatement, HoloExpression as _HoloExpression } from '@holoscript/core';
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
 import { WebXRManager } from './WebXRManager';
 import { PhysicsWorldImpl } from '../physics/PhysicsWorldImpl';
-import { IVector3, IPhysicsWorld } from '../physics/PhysicsTypes';
+import { IVector3, IPhysicsWorld, IRaycastHit } from '../physics/PhysicsTypes';
 import { VRPhysicsBridge } from '../physics/VRPhysicsBridge';
 import { PhysicsDebugDrawer } from '../rendering/webgpu/PhysicsDebugDrawer';
 import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
@@ -99,9 +99,9 @@ export interface Renderer {
 /** Extended renderer interface for WebXR-capable renderers (e.g. WebGPURenderer). */
 
 export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
-  private ast: HSPlusAST;
+  private ast: any;
   private options: RuntimeOptions;
-  public state: ReactiveState<StateDeclaration>;
+  public state: any;
   private evaluator: ExpressionEvaluator;
   private builtins: HSPlusBuiltins;
   private traitRegistry: VRTraitRegistry;
@@ -149,8 +149,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       right: null,
     },
     headset: {
-      position: { x: 0, y: 1.6, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
+      position: [0, 1.6, 0],
+      rotation: [0, 0, 0],
     },
     controllers: {
       left: null,
@@ -176,7 +176,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Initialize Physics World (+ Bridge)
     console.log('[[TYPE OF PW]]', typeof PhysicsWorldImpl, PhysicsWorldImpl);
     this.physicsWorld = new PhysicsWorldImpl({
-      gravity: { x: 0, y: -9.81, z: 0 },
+      gravity: [0, -9.81, 0],
       maxSubsteps: 2,
     });
     this.vrPhysicsBridge = new VRPhysicsBridge(this.physicsWorld, (hand, intensity, duration) => {
@@ -208,8 +208,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           id: `grab_${handBodyId}_${nodeId}`,
           bodyA: handBodyId,
           bodyB: nodeId,
-          pivotA: { x: 0, y: 0, z: 0 }, // Center of hand
-          pivotB: { x: 0, y: 0, z: 0 }, // Should be relative offset
+          pivotA: [0, 0, 0], // Center of hand
+          pivotB: [0, 0, 0], // Should be relative offset
           // For simplicity, we snap center-to-center or need to calculate offset based on current positions
         });
       }
@@ -223,7 +223,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (velocity) {
         const body = this.physicsWorld.getBody(nodeId);
         if (body) {
-          body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
+          body.velocity = [velocity[0], velocity[1], velocity[2]];
         }
       }
     });
@@ -252,8 +252,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         id: `constraint_slider_${nodeId}`,
         bodyA: 'WORLD_ANCHOR', // Placeholder for "Static Anchor at start pos"
         bodyB: nodeId,
-        pivotA: { x: 0, y: 0, z: 0 },
-        axisA: axis || { x: 0, y: 1, z: 0 },
+        pivotA: [0, 0, 0],
+        axisA: axis || [0, 1, 0],
         limits: { low: min || 0, high: max || 0 },
       });
     });
@@ -270,14 +270,15 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Check for sync intent (P3 Pattern)
 
+    const rootAst = this.ast as unknown as HSPlusAST & { root: HSPlusNode };
     const isNetworked =
-      ast.root.traits?.has('networked') ||
-      ast.root.directives?.some(
-        (d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked'
+      rootAst.root.traits?.has('networked') ||
+      rootAst.root.directives?.some(
+        (d: any) => d.type === 'sync' || d.type === 'networked'
       );
-    const _syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
+    const _syncId = isNetworked ? (rootAst.root as any).id || 'global_session' : undefined;
 
-    this.state = createState({} as Record<string, unknown>);
+    this.state = createState({} as any) as any;
     this.traitRegistry = vrTraitRegistry;
     this.companions = options.companions || {};
     this.builtins = createBuiltins(this);
@@ -285,7 +286,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Create expression evaluator with context
     this.evaluator = new ExpressionEvaluator(
-      // @ts-expect-error - TS2554 structural type mismatch
       this.state.getSnapshot(),
       this.builtins as unknown as Record<string, unknown>
     );
@@ -483,7 +483,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const t4 = 1.0 - 2.0 * (y * y + z * z);
     const rz = Math.atan2(t3, t4);
 
-    return { x: rx, y: ry, z: rz };
+    return [rx, ry, rz];
   }
 
   private updateVRInput(frame?: XRFrame): void {
@@ -500,17 +500,17 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       const viewerPose = frame.getViewerPose(refSpace as any);
       if (viewerPose) {
         const { position, orientation } = (viewerPose as any).transform;
-        this.vrContext.headset.position = { x: position.x, y: position.y, z: position.z };
+        this.vrContext.headset.position = [position[0], position[1], position[2]];
 
         // Convert Quaternion to Euler for HoloScript compatibility
         // HoloScript uses [x, y, z] Euler angles (radians)
         const eulerH = this.quaternionToEuler([
-          orientation.x,
-          orientation.y,
-          orientation.z,
-          orientation.w,
+          orientation[0],
+          orientation[1],
+          orientation[2],
+          orientation[3],
         ]);
-        this.vrContext.headset.rotation = { x: eulerH[0], y: eulerH[1], z: eulerH[2] };
+        this.vrContext.headset.rotation = [eulerH[0], eulerH[1], eulerH[2]];
       }
     }
 
@@ -533,14 +533,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           id: `${handSide}_hand`,
           grip: 0,
           trigger: 0,
-          position: [position.x, position.y, position.z],
+          position: [position[0], position[1], position[2]],
           rotation: this.quaternionToEuler([
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w,
-          ]) as any,
-          velocity: { x: 0, y: 0, z: 0 } as any, // Not provided by WebXR directly without previous frame diff
+            orientation[0],
+            orientation[1],
+            orientation[2],
+            orientation[3],
+          ]),
+          velocity: [0, 0, 0] as any, // Not provided by WebXR directly without previous frame diff
           pinchStrength: 0,
           gripStrength: 0,
         } as unknown as VRHand;
@@ -847,8 +847,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         const stateBody =
           ((directive as unknown as Record<string, unknown>).body as Record<string, unknown>) || {};
         for (const [key, value] of Object.entries(stateBody)) {
-          if (!this.state.has(key as keyof StateDeclaration)) {
-            this.state.set(key as keyof StateDeclaration, value);
+          if (!this.state.has(key as any)) {
+            this.state.set(key as any, value);
           }
         }
       }
@@ -872,7 +872,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       }
 
       // Evaluate body
-      // @ts-expect-error - TS2339 structural type mismatch
       this.evaluator.updateContext({
         ...this.state.getSnapshot(),
         ...paramContext,
@@ -1032,7 +1031,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private interpolateString(str: string, context: Record<string, unknown>): string {
     return str.replace(/\$\{([^}]+)\}/g, (_match, expr) => {
-      // @ts-expect-error - TS2339 structural type mismatch
       this.evaluator.updateContext(context);
       const value = this.evaluator.evaluate(expr);
       return String(value ?? '');
@@ -1049,7 +1047,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (typeof value === 'string') {
         result[key] = this.interpolateString(value, context);
       } else if (value && typeof value === 'object' && '__expr' in value) {
-        // @ts-expect-error - TS2339 structural type mismatch
         this.evaluator.updateContext(context);
         result[key] = this.evaluator.evaluate((value as unknown as { __raw: string }).__raw);
       } else {
@@ -1065,7 +1062,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // ==========================================================================
 
   private evaluateExpression(expr: string): unknown {
-    // @ts-expect-error - TS2339 structural type mismatch
     this.evaluator.updateContext(this.state.getSnapshot());
     return this.evaluator.evaluate(expr);
   }
@@ -1083,7 +1079,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       } else if (value && typeof value === 'object' && '__ref' in value) {
         // Reference to state or companion
         const ref = (value as { __ref: string }).__ref;
-        result[key] = this.state.get(ref as keyof StateDeclaration) ?? ref;
+        result[key] = this.state.get(ref as any) ?? ref;
       } else if (typeof value === 'string' && value.includes('${')) {
         // String interpolation
         result[key] = this.interpolateString(value, this.state.getSnapshot());
@@ -1211,7 +1207,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     if (typeof argument === 'object' && '__ref' in argument) {
       const ref = (argument as { __ref: string }).__ref;
       // Try state
-      const stateValue = this.state.get(ref as keyof StateDeclaration);
+      const stateValue = this.state.get(ref as any);
       if (stateValue !== undefined) {
         return stateValue;
       }
@@ -1234,7 +1230,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // String reference
     if (typeof argument === 'string') {
-      return this.state.get(argument as keyof StateDeclaration);
+      return this.state.get(argument as any);
     }
 
     return argument;
@@ -1395,16 +1391,16 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
         if (interpolated.position) {
           (instance.node.properties as Record<string, unknown>).position = [
-            (interpolated.position as Record<string, number>).x,
-            (interpolated.position as Record<string, number>).y,
-            (interpolated.position as Record<string, number>).z,
+            interpolated.position[0],
+            interpolated.position[1],
+            interpolated.position[2],
           ];
         }
         if (interpolated.rotation) {
           (instance.node.properties as Record<string, unknown>).rotation = [
-            (interpolated.rotation as Record<string, number>).x,
-            (interpolated.rotation as Record<string, number>).y,
-            (interpolated.rotation as Record<string, number>).z,
+            interpolated.rotation[0],
+            interpolated.rotation[1],
+            interpolated.rotation[2],
           ];
         }
 
@@ -1420,23 +1416,21 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             body.type = 'kinematic';
           }
           if (interpolated.position) {
-            const pos = interpolated.position;
-            body.position = {
-              x: pos.x,
-              y: pos.y,
-              z: pos.z,
-            };
-            body.velocity = { x: 0, y: 0, z: 0 };
+            body.position = [
+              interpolated.position[0],
+              interpolated.position[1],
+              interpolated.position[2],
+            ];
+            body.linearVelocity = [0, 0, 0];
           }
           if (interpolated.rotation) {
-            const rot = interpolated.rotation;
-            body.rotation = {
-              x: rot.x,
-              y: rot.y,
-              z: rot.z,
-              w: rot.w || 1,
-            };
-            body.angularVelocity = { x: 0, y: 0, z: 0 };
+            body.rotation = [
+              interpolated.rotation[0],
+              interpolated.rotation[1],
+              interpolated.rotation[2],
+              interpolated.rotation[3],
+            ] as [number, number, number, number];
+            body.angularVelocity = [0, 0, 0];
           }
         }
       } else if (
@@ -1630,7 +1624,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           if (!vrHand) return null;
           return {
             origin: vrHand.position,
-            direction: { x: 0, y: 0, z: -1 }, // Forward direction - should be calculated from rotation
+            direction: [0, 0, -1], // Forward direction - should be calculated from rotation
           };
         },
         getDominantHand: () => this.vrContext.hands.right || this.vrContext.hands.left,
@@ -1640,22 +1634,22 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-            body.velocity = {
-              x: velocity[0] as number,
-              y: velocity[1] as number,
-              z: velocity[2] as number,
-            };
+            body.velocity = [
+              velocity[0] as number,
+              velocity[1] as number,
+              velocity[2] as number,
+            ];
           }
         },
         applyAngularVelocity: (node, angularVelocity) => {
           // this.emit('apply_angular_velocity', { node, angularVelocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-            body.angularVelocity = {
-              x: angularVelocity[0] as number,
-              y: angularVelocity[1] as number,
-              z: angularVelocity[2] as number,
-            };
+            body.angularVelocity = [
+              angularVelocity[0] as number,
+              angularVelocity[1] as number,
+              angularVelocity[2] as number,
+            ];
           }
         },
         setKinematic: (node, kinematic) => {
@@ -1667,36 +1661,34 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         },
         raycast: (origin, direction, maxDistance) => {
           const hit = this.physicsWorld.raycastClosest({
-            origin: { x: origin[0] as number, y: origin[1] as number, z: origin[2] as number },
-            direction: {
-              x: direction[0] as number,
-              y: direction[1] as number,
-              z: direction[2] as number,
-            },
+            origin: [origin[0] as number, origin[1] as number, origin[2] as number],
+            direction: [
+              direction[0] as number,
+              direction[1] as number,
+              direction[2] as number,
+            ],
             maxDistance,
           });
 
           if (hit) {
-            const h = hit as RaycastHit;
+            const h = hit as IRaycastHit;
             return {
-              point: { x: h.point.x || 0, y: h.point.y || 0, z: h.point.z || 0 },
-              normal: { x: h.normal.x || 0, y: h.normal.y || 0, z: h.normal.z || 0 },
+              node: { id: h.bodyId } as HSPlusNode,
+              point: [h.point[0], h.point[1], h.point[2]],
+              normal: [h.normal[0], h.normal[1], h.normal[2]],
               distance: h.distance,
-              bodyId: h.bodyId,
-              nodeId: h.bodyId,
-              node: h.bodyId as unknown,
             };
           }
           return null;
         },
         getBodyPosition: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body && body.position) return { x: body.position.x || 0, y: body.position.y || 0, z: body.position.z || 0 };
+          if (body && body.position) return [body.position[0] || 0, body.position[1] || 0, body.position[2] || 0];
           return null;
         },
         getBodyVelocity: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body && body.velocity) return { x: body.velocity.x || 0, y: body.velocity.y || 0, z: body.velocity.z || 0 };
+          if (body && body.velocity) return [body.velocity[0] || 0, body.velocity[1] || 0, body.velocity[2] || 0];
           return null;
         },
       },
@@ -1818,11 +1810,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // ==========================================================================
 
   getVariable(name: string): unknown {
-    return this.state.get(name as keyof StateDeclaration);
+    return this.state.get(name as any);
   }
 
   setVariable(name: string, value: unknown): void {
-    this.state.set(name as keyof StateDeclaration, value);
+    this.state.set(name as any, value);
   }
 
   getContext(): Record<string, unknown> {
@@ -1834,7 +1826,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (instance.node.id && instance.node.properties) {
         spatialMemory.set(
           instance.node.id,
-          instance.node.properties.position || { x: 0, y: 0, z: 0 }
+          instance.node.properties.position || [0, 0, 0]
         );
         hologramState.set(instance.node.id, {
           shape: instance.node.properties.shape || instance.node.type,
@@ -1860,7 +1852,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   reset(): void {
     this.unmount();
-    this.state = createState({} as StateDeclaration);
+    this.state = createState({} as any);
     this.mounted = false;
   }
 
@@ -1876,7 +1868,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     return this.getContext().hologramState as Map<string, Record<string, unknown>>;
   }
 
-  setState(updates: Partial<StateDeclaration>): void {
+  setState(updates: any): void {
     this.state.update(updates);
   }
 
@@ -1991,17 +1983,17 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const runtime = this;
     return {
       get(key: string) {
-        return runtime.state.get(key as keyof StateDeclaration);
+        return runtime.state.get(key as any);
       },
       set(key: string, value: unknown) {
-        runtime.state.set(key as keyof StateDeclaration, value);
+        runtime.state.set(key as any, value);
         return this;
       },
       has(key: string) {
-        return runtime.state.get(key as keyof StateDeclaration) !== undefined;
+        return runtime.state.get(key as any) !== undefined;
       },
       delete(key: string) {
-        runtime.state.set(key as keyof StateDeclaration, undefined);
+        runtime.state.set(key as any, undefined);
         return true;
       },
       clear() {
@@ -2051,7 +2043,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
    */
   public async executeStatementBlock(
     instance: NodeInstance,
-    body: HSPlusStatement[]
+    body: HoloStatement[]
   ): Promise<void> {
     for (const stmt of body) {
       await this.executeStatement(instance, stmt);
@@ -2061,14 +2053,13 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   /**
    * Executes a single HoloScript+ statement
    */
-  public async executeStatement(instance: NodeInstance, stmt: HSPlusStatement): Promise<void> {
+  public async executeStatement(instance: NodeInstance, stmt: HoloStatement): Promise<void> {
     const context = {
       ...this.state.getSnapshot(),
       node: instance.node,
       self: instance.node,
       props: instance.node.properties || {},
     };
-    // @ts-expect-error - TS2339 structural type mismatch
     this.evaluator.updateContext(context);
 
     try {
@@ -2084,7 +2075,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             }
           } else if (target.startsWith('state.')) {
             const stateKey = target.split('.')[1];
-            this.state.set(stateKey as keyof StateDeclaration, value);
+            this.state.set(stateKey as any, value);
           } else {
             // Local or unknown target
             (context as Record<string, unknown>)[target] = value;
@@ -2106,9 +2097,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         case 'IfStatement': {
           const condition = this.evaluator.evaluate(String(stmt.condition));
           if (condition) {
-            await this.executeStatementBlock(instance, stmt.consequent as any as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.consequent as any as HoloStatement[]);
           } else if (stmt.alternate) {
-            await this.executeStatementBlock(instance, stmt.alternate as any as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.alternate as any as HoloStatement[]);
           }
           break;
         }
@@ -2207,10 +2198,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         ) {
           return ((target as unknown as Record<string, unknown>)[prop] as Function).bind(target);
         }
-        return target.get(String(prop) as keyof StateDeclaration);
+        return target.get(String(prop) as any);
       },
       set: (target, prop, value) => {
-        target.set(String(prop) as keyof StateDeclaration, value);
+        target.set(String(prop) as any, value);
         return true;
       },
     });
@@ -2416,9 +2407,9 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
     distance_to: (point: Vector3): number => {
       const viewer = runtime.vrContext.headset.position;
       return Math.sqrt(
-        Math.pow(point.x - viewer.x, 2) +
-          Math.pow(point.y - viewer.y, 2) +
-          Math.pow(point.z - viewer.z, 2)
+        Math.pow(point[0] - viewer[0], 2) +
+          Math.pow(point[1] - viewer[1], 2) +
+          Math.pow(point[2] - viewer[2], 2)
       );
     },
 
@@ -2428,12 +2419,12 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
 
     hand_position: (handId: string): Vector3 => {
       const hand = handId === 'left' ? runtime.vrContext.hands.left : runtime.vrContext.hands.right;
-      return hand?.position || { x: 0, y: 0, z: 0 };
+      return hand?.position || [0, 0, 0];
     },
 
     hand_velocity: (handId: string): Vector3 => {
       const hand = handId === 'left' ? runtime.vrContext.hands.left : runtime.vrContext.hands.right;
-      return (hand?.velocity as unknown as Vector3) || { x: 0, y: 0, z: 0 };
+      return (hand?.velocity as unknown as Vector3) || [0, 0, 0];
     },
 
     dominant_hand: (): VRHand => {
@@ -2444,8 +2435,8 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
         ({
           id: 'right',
           position: [0, 0, 0],
-          rotation: { x: 0, y: 0, z: 0 },
-          velocity: { x: 0, y: 0, z: 0 },
+          rotation: [0, 0, 0],
+          velocity: [0, 0, 0],
           gripStrength: 0,
           pinchStrength: 0,
         } as unknown as VRHand)

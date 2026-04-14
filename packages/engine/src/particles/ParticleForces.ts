@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * ParticleForces.ts
  *
@@ -37,7 +38,7 @@ export interface ForceField {
 // =============================================================================
 
 function _vec3Length(v: IVector3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 function computeFalloff(
@@ -56,11 +57,7 @@ function simpleNoise3D(x: number, y: number, z: number): IVector3 {
   const px = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
   const py = Math.sin(y * 12.9898 + z * 78.233) * 43758.5453;
   const pz = Math.sin(z * 12.9898 + x * 78.233) * 43758.5453;
-  return {
-    x: (px - Math.floor(px)) * 2 - 1,
-    y: (py - Math.floor(py)) * 2 - 1,
-    z: (pz - Math.floor(pz)) * 2 - 1,
-  };
+  return [(px - Math.floor(px)) * 2 - 1, (py - Math.floor(py)) * 2 - 1, (pz - Math.floor(pz)) * 2 - 1, ];
 }
 
 // =============================================================================
@@ -140,75 +137,75 @@ export class ParticleForceSystem {
   }
 
   private applyGravity(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const dir = cfg.direction ?? { x: 0, y: -1, z: 0 };
-    p.velocity.x += dir.x * cfg.strength * dt;
-    p.velocity.y += dir.y * cfg.strength * dt;
-    p.velocity.z += dir.z * cfg.strength * dt;
+    const dir = cfg.direction ?? [0, -1, 0 ];
+    p.velocity[0] += dir[0] * cfg.strength * dt;
+    p.velocity[1] += dir[1] * cfg.strength * dt;
+    p.velocity[2] += dir[2] * cfg.strength * dt;
   }
 
   private applyWind(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const dir = cfg.direction ?? { x: 1, y: 0, z: 0 };
+    const dir = cfg.direction ?? [1, 0, 0 ];
     const falloff = this.getPositionalFalloff(p, cfg);
-    p.velocity.x += dir.x * cfg.strength * falloff * dt;
-    p.velocity.y += dir.y * cfg.strength * falloff * dt;
-    p.velocity.z += dir.z * cfg.strength * falloff * dt;
+    p.velocity[0] += dir[0] * cfg.strength * falloff * dt;
+    p.velocity[1] += dir[1] * cfg.strength * falloff * dt;
+    p.velocity[2] += dir[2] * cfg.strength * falloff * dt;
   }
 
   private applyTurbulence(p: Particle, cfg: ForceFieldConfig, dt: number): void {
     const freq = cfg.frequency ?? 1;
     const noise = simpleNoise3D(
-      p.position.x * freq + this.time,
-      p.position.y * freq + this.time * 0.7,
-      p.position.z * freq + this.time * 1.3
+      p.position[0] * freq + this.time,
+      p.position[1] * freq + this.time * 0.7,
+      p.position[2] * freq + this.time * 1.3
     );
     const falloff = this.getPositionalFalloff(p, cfg);
-    p.velocity.x += noise.x * cfg.strength * falloff * dt;
-    p.velocity.y += noise.y * cfg.strength * falloff * dt;
-    p.velocity.z += noise.z * cfg.strength * falloff * dt;
+    p.velocity[0] += noise[0] * cfg.strength * falloff * dt;
+    p.velocity[1] += noise[1] * cfg.strength * falloff * dt;
+    p.velocity[2] += noise[2] * cfg.strength * falloff * dt;
   }
 
   private applyAttractor(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const target = cfg.position ?? { x: 0, y: 0, z: 0 };
-    const dx = target.x - p.position.x;
-    const dy = target.y - p.position.y;
-    const dz = target.z - p.position.z;
+    const target = cfg.position ?? [0, 0, 0 ];
+    const dx = target[0] - p.position[0];
+    const dy = target[1] - p.position[1];
+    const dz = target[2] - p.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist < 0.001) return;
 
     const falloff = this.getPositionalFalloff(p, cfg);
     const force = (cfg.strength * falloff) / dist;
-    p.velocity.x += dx * force * dt;
-    p.velocity.y += dy * force * dt;
-    p.velocity.z += dz * force * dt;
+    p.velocity[0] += dx * force * dt;
+    p.velocity[1] += dy * force * dt;
+    p.velocity[2] += dz * force * dt;
   }
 
   private applyVortex(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const center = cfg.position ?? { x: 0, y: 0, z: 0 };
-    const dx = p.position.x - center.x;
-    const dz = p.position.z - center.z;
+    const center = cfg.position ?? [0, 0, 0 ];
+    const dx = p.position[0] - center[0];
+    const dz = p.position[2] - center[2];
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist < 0.001) return;
 
     const falloff = this.getPositionalFalloff(p, cfg);
     // Tangential force (perpendicular to radius in XZ plane)
     const force = (cfg.strength * falloff) / dist;
-    p.velocity.x += -dz * force * dt;
-    p.velocity.z += dx * force * dt;
+    p.velocity[0] += -dz * force * dt;
+    p.velocity[2] += dx * force * dt;
   }
 
   private applyDrag(p: Particle, cfg: ForceFieldConfig, dt: number): void {
     const drag = cfg.dragCoefficient ?? 0.1;
     const factor = Math.max(0, 1 - drag * dt);
-    p.velocity.x *= factor;
-    p.velocity.y *= factor;
-    p.velocity.z *= factor;
+    p.velocity[0] *= factor;
+    p.velocity[1] *= factor;
+    p.velocity[2] *= factor;
   }
 
   private getPositionalFalloff(p: Particle, cfg: ForceFieldConfig): number {
     if (!cfg.position || !cfg.radius) return 1;
-    const dx = p.position.x - cfg.position.x;
-    const dy = p.position.y - cfg.position.y;
-    const dz = p.position.z - cfg.position.z;
+    const dx = p.position[0] - cfg.position[0];
+    const dy = p.position[1] - cfg.position[1];
+    const dz = p.position[2] - cfg.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     return computeFalloff(dist, cfg.radius, cfg.falloff ?? 'linear');
   }

@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * GlobalIlluminationTrait
  *
@@ -294,15 +295,15 @@ fn evaluateSH(normal: vec3<f32>) -> vec3<f32> {
     // L0
     var irradiance = sh.L00 * 0.282095;
     // L1
-    irradiance += sh.L10 * 0.488603 * normal.y;
-    irradiance += sh.L11 * 0.488603 * normal.z;
-    irradiance += sh.L12 * 0.488603 * normal.x;
+    irradiance += sh.L10 * 0.488603 * normal[1];
+    irradiance += sh.L11 * 0.488603 * normal[2];
+    irradiance += sh.L12 * 0.488603 * normal[0];
     // L2
-    irradiance += sh.L20 * 1.092548 * normal.x * normal.y;
-    irradiance += sh.L21 * 1.092548 * normal.y * normal.z;
-    irradiance += sh.L22 * 0.315392 * (3.0 * normal.z * normal.z - 1.0);
-    irradiance += sh.L23 * 1.092548 * normal.x * normal.z;
-    irradiance += sh.L24 * 0.546274 * (normal.x * normal.x - normal.y * normal.y);
+    irradiance += sh.L20 * 1.092548 * normal[0] * normal[1];
+    irradiance += sh.L21 * 1.092548 * normal[1] * normal[2];
+    irradiance += sh.L22 * 0.315392 * (3.0 * normal[2] * normal[2] - 1.0);
+    irradiance += sh.L23 * 1.092548 * normal[0] * normal[2];
+    irradiance += sh.L24 * 0.546274 * (normal[0] * normal[0] - normal[1] * normal[1]);
     return max(irradiance * ${config.skyIntensity ?? 1.0}, vec3<f32>(0.0));
 }
 

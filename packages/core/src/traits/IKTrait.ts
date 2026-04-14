@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core IK Trait (Inverse Kinematics)
  *
@@ -24,21 +25,12 @@ export type IKSolverType = 'fabrik' | 'ccd' | 'two-bone' | 'full-body';
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+
 
 /**
  * Quaternion rotation
  */
-export interface Quaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+export type Quaternion = [number, number, number, number];
 
 /**
  * Transform
@@ -313,7 +305,7 @@ export class IKTrait {
     const totalLength = bones.reduce((sum, bone) => sum + bone.length, 0);
 
     // Get root position
-    const rootPos = bones[0].transform?.position || { x: 0, y: 0, z: 0 };
+    const rootPos = bones[0].transform?.position || [0, 0, 0 ];
 
     // Calculate distance to target
     const distToTarget = this.distance(rootPos, targetPosition);
@@ -359,15 +351,15 @@ export class IKTrait {
     const positions: Vector3[] = [];
 
     // Initialize positions
-    let currentPos = bones[0].transform?.position || { x: 0, y: 0, z: 0 };
+    let currentPos = bones[0].transform?.position || [0, 0, 0 ];
     positions.push({ ...currentPos });
 
     for (let i = 0; i < bones.length; i++) {
-      const dir = { x: 0, y: 1, z: 0 }; // Default direction
+      const dir = [0, 1, 0 ]; // Default direction
       positions.push({
-        x: currentPos.x + dir.x * bones[i].length,
-        y: currentPos.y + dir.y * bones[i].length,
-        z: currentPos.z + dir.z * bones[i].length,
+        x: currentPos[0] + dir[0] * bones[i].length,
+        y: currentPos[1] + dir[1] * bones[i].length,
+        z: currentPos[2] + dir[2] * bones[i].length,
       });
       currentPos = positions[positions.length - 1];
     }
@@ -393,9 +385,9 @@ export class IKTrait {
 
         const dir = this.normalize(this.subtract(p0, p1));
         positions[i] = {
-          x: p1.x + dir.x * length,
-          y: p1.y + dir.y * length,
-          z: p1.z + dir.z * length,
+          x: p1[0] + dir[0] * length,
+          y: p1[1] + dir[1] * length,
+          z: p1[2] + dir[2] * length,
         };
       }
 
@@ -411,9 +403,9 @@ export class IKTrait {
 
         const dir = this.normalize(this.subtract(p1, p0));
         positions[i + 1] = {
-          x: p0.x + dir.x * length,
-          y: p0.y + dir.y * length,
-          z: p0.z + dir.z * length,
+          x: p0[0] + dir[0] * length,
+          y: p0[1] + dir[1] * length,
+          z: p0[2] + dir[2] * length,
         };
       }
     }
@@ -426,16 +418,16 @@ export class IKTrait {
    */
   private stretchTowardTarget(bones: IKBone[], target: Vector3): Map<string, Transform> {
     const transforms = new Map<string, Transform>();
-    const rootPos = bones[0].transform?.position || { x: 0, y: 0, z: 0 };
+    const rootPos = bones[0].transform?.position || [0, 0, 0 ];
 
     const dir = this.normalize(this.subtract(target, rootPos));
     let currentPos = { ...rootPos };
 
     for (const bone of bones) {
       const nextPos = {
-        x: currentPos.x + dir.x * bone.length,
-        y: currentPos.y + dir.y * bone.length,
-        z: currentPos.z + dir.z * bone.length,
+        x: currentPos[0] + dir[0] * bone.length,
+        y: currentPos[1] + dir[1] * bone.length,
+        z: currentPos[2] + dir[2] * bone.length,
       };
 
       transforms.set(bone.name, {
@@ -473,9 +465,9 @@ export class IKTrait {
    * Calculate distance between two points
    */
   private distance(a: Vector3, b: Vector3): number {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const dz = b.z - a.z;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const dz = b[2] - a[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
@@ -484,9 +476,9 @@ export class IKTrait {
    */
   private subtract(a: Vector3, b: Vector3): Vector3 {
     return {
-      x: a.x - b.x,
-      y: a.y - b.y,
-      z: a.z - b.z,
+      x: a[0] - b[0],
+      y: a[1] - b[1],
+      z: a[2] - b[2],
     };
   }
 
@@ -494,12 +486,12 @@ export class IKTrait {
    * Normalize a vector
    */
   private normalize(v: Vector3): Vector3 {
-    const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    if (len === 0) return { x: 0, y: 1, z: 0 };
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (len === 0) return [0, 1, 0 ];
     return {
-      x: v.x / len,
-      y: v.y / len,
-      z: v.z / len,
+      x: v[0] / len,
+      y: v[1] / len,
+      z: v[2] / len,
     };
   }
 
@@ -508,32 +500,32 @@ export class IKTrait {
    */
   private lookRotation(forward: Vector3): Quaternion {
     // Simplified look rotation (proper implementation would be more complex)
-    const up = { x: 0, y: 1, z: 0 };
+    const up = [0, 1, 0 ];
 
     // Cross product for right vector
-    const right = this.normalize({
-      x: up.y * forward.z - up.z * forward.y,
-      y: up.z * forward.x - up.x * forward.z,
-      z: up.x * forward.y - up.y * forward.x,
-    });
+    const right = this.normalize([
+      up[1] * forward[2] - up[2] * forward[1],
+      up[2] * forward[0] - up[0] * forward[2],
+      up[0] * forward[1] - up[1] * forward[0],
+    ]);
 
     // Recalculate up
-    const newUp = this.normalize({
-      x: forward.y * right.z - forward.z * right.y,
-      y: forward.z * right.x - forward.x * right.z,
-      z: forward.x * right.y - forward.y * right.x,
-    });
+    const newUp = this.normalize([
+      forward[1] * right[2] - forward[2] * right[1],
+      forward[2] * right[0] - forward[0] * right[2],
+      forward[0] * right[1] - forward[1] * right[0],
+    ]);
 
     // Convert rotation matrix to quaternion (simplified)
-    const trace = right.x + newUp.y + forward.z;
+    const trace = right[0] + newUp[1] + forward[2];
     let w: number, x: number, y: number, z: number;
 
     if (trace > 0) {
       const s = 0.5 / Math.sqrt(trace + 1.0);
       w = 0.25 / s;
-      x = (newUp.z - forward.y) * s;
-      y = (forward.x - right.z) * s;
-      z = (right.y - newUp.x) * s;
+      x = (newUp[2] - forward[1]) * s;
+      y = (forward[0] - right[2]) * s;
+      z = (right[1] - newUp[0]) * s;
     } else {
       w = 1;
       x = 0;
@@ -541,7 +533,7 @@ export class IKTrait {
       z = 0;
     }
 
-    return { x, y, z, w };
+    return [x, y, z, w];
   }
 
   /**

@@ -4,7 +4,7 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM"],
     "moduleResolution": "bundler",
-    "types": ["@webgpu/types", "node"],
+    "types": ["node", "@webgpu/types"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -17,7 +17,15 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "baseUrl": ".",
-    "paths": {},
+    "paths": {
+      "@holoscript/core": ["../core/src"],
+      "@holoscript/core/*": ["../core/src/*"],
+      "@holoscript/framework": ["../framework/src"],
+      "@holoscript/framework/*": ["../framework/src/*"],
+      "@holoscript/crdt-spatial": ["../crdt-spatial/src"],
+      "@holoscript/snn-webgpu": ["../snn-webgpu/src"],
+      "@holoscript/uaal": ["../uaal/src"]
+    },
     "noImplicitAny": false
   },
   "include": ["src/**/*"],

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CopilotPanel.ts
  *
  * Editor UI panel for AI Copilot interaction.
@@ -66,12 +66,13 @@ export class CopilotPanel {
   generateUI(): CopilotUIEntity[] {
     const entities: CopilotUIEntity[] = [];
     const { position, width, height } = this.config;
+    const [x, y, z] = position;
 
     // Background panel
     entities.push({
       id: 'copilot_bg',
       type: 'panel',
-      position: { ...position },
+      position: [...position],
       size: { width, height },
       color: '#0f0f23',
       data: { role: 'background' },
@@ -81,14 +82,14 @@ export class CopilotPanel {
     entities.push({
       id: 'copilot_title',
       type: 'label',
-      position: [position.x, position.y + height * 0.45, position.z + 0.001],
+      position: [x, y + height * 0.45, z + 0.001],
       text: 'ðŸ¤– AI Copilot',
       color: '#00d4ff',
       data: { role: 'title' },
     });
 
     // Message display area
-    const messageAreaTop = position.y + height * 0.35;
+    const messageAreaTop = y + height * 0.35;
     const messageLineHeight = 0.035;
     const visibleMessages = this.messages.slice(-this.config.maxMessages);
 
@@ -97,7 +98,7 @@ export class CopilotPanel {
       entities.push({
         id: `copilot_msg_${i}`,
         type: 'message',
-        position: [position.x, yPos, position.z + 0.001],
+        position: [x, yPos, z + 0.001],
         text: `${msg.role === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'} ${msg.text}`,
         color: msg.role === 'user' ? '#e0e0e0' : '#00d4ff',
         data: { role: 'message', messageIndex: i },
@@ -108,7 +109,7 @@ export class CopilotPanel {
     entities.push({
       id: 'copilot_input',
       type: 'input',
-      position: [position.x, position.y - height * 0.35, position.z + 0.001],
+      position: [x, y - height * 0.35, z + 0.001],
       size: { width: width * 0.7, height: 0.04 },
       text: this.inputText || 'Type a prompt...',
       color: '#1a1a3e',
@@ -126,7 +127,7 @@ export class CopilotPanel {
       entities.push({
         id: `copilot_${btn.id}`,
         type: 'button',
-        position: [position.x - width * 0.3 + i * (width * 0.3), position.y - height * 0.45, position.z + 0.001,],
+        position: [x - width * 0.3 + i * (width * 0.3), y - height * 0.45, z + 0.001,],
         size: { width: width * 0.25, height: 0.035 },
         text: btn.text,
         color: '#16213e',

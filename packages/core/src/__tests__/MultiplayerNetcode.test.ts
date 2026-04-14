@@ -35,7 +35,7 @@ describe('ReplicationManager', () => {
     rm.updateSnapshot('p1', { position: [10, 0, 0] });
     const e = rm.getEntity('p1')!;
     expect(e.isDirty).toBe(true);
-    expect(e.snapshot.position.x).toBe(10);
+    expect(e.snapshot.position[0]).toBe(10);
   });
 
   it('setCustomState stores key-value', () => {
@@ -80,7 +80,7 @@ describe('ReplicationManager', () => {
       fields: { position: [99, 0, 0] },
       isFullSnapshot: true,
     });
-    expect(rm.getEntity('p1')!.snapshot.position.x).toBe(99);
+    expect(rm.getEntity('p1')!.snapshot.position[0]).toBe(99);
   });
 
   it('getStats returns entity counts', () => {

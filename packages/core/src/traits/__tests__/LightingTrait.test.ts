@@ -33,7 +33,7 @@ describe('LightingTrait', () => {
   });
 
   it('createDirectionalLight creates sun with shadows', () => {
-    const id = lighting.createDirectionalLight({ x: 0, y: -1, z: 0 }, { r: 1, g: 1, b: 0.9 });
+    const id = lighting.createDirectionalLight([0, -1, 0 ], { r: 1, g: 1, b: 0.9 });
     const light = lighting.getLight(id);
     expect(light).toBeDefined();
     expect(light!.type).toBe('directional');
@@ -42,7 +42,7 @@ describe('LightingTrait', () => {
   });
 
   it('createPointLight creates point light', () => {
-    const id = lighting.createPointLight({ x: 0, y: 3, z: 0 }, { r: 1, g: 1, b: 1 }, 2, 10);
+    const id = lighting.createPointLight([0, 3, 0 ], { r: 1, g: 1, b: 1 }, 2, 10);
     const light = lighting.getLight(id);
     expect(light!.type).toBe('point');
     expect(light!.range).toBe(10);
@@ -50,8 +50,8 @@ describe('LightingTrait', () => {
 
   it('createSpotLight creates spot with shadow', () => {
     const id = lighting.createSpotLight(
-      { x: 0, y: 5, z: 0 },
-      { x: 0, y: -1, z: 0 },
+      [0, 5, 0 ],
+      [0, -1, 0 ],
       { r: 1, g: 1, b: 1 },
       3,
       15,
@@ -80,33 +80,33 @@ describe('LightingTrait', () => {
   });
 
   it('getLightsByType filters', () => {
-    lighting.createDirectionalLight({ x: 0, y: -1, z: 0 }, { r: 1, g: 1, b: 1 });
-    lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 0, b: 0 }, 1, 5);
+    lighting.createDirectionalLight([0, -1, 0 ], { r: 1, g: 1, b: 1 });
+    lighting.createPointLight([0, 0, 0 ], { r: 1, g: 0, b: 0 }, 1, 5);
     expect(lighting.getLightsByType('directional')).toHaveLength(1);
     expect(lighting.getLightsByType('point')).toHaveLength(1);
   });
 
   it('getShadowCastingLights returns only shadow lights', () => {
-    lighting.createDirectionalLight({ x: 0, y: -1, z: 0 }, { r: 1, g: 1, b: 1 }, 1, true);
-    lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 0, b: 0 }, 1, 5, false);
+    lighting.createDirectionalLight([0, -1, 0 ], { r: 1, g: 1, b: 1 }, 1, true);
+    lighting.createPointLight([0, 0, 0 ], { r: 1, g: 0, b: 0 }, 1, 5, false);
     expect(lighting.getShadowCastingLights()).toHaveLength(1);
   });
 
   it('getLightCount returns per-type totals', () => {
-    lighting.createDirectionalLight({ x: 0, y: -1, z: 0 }, { r: 1, g: 1, b: 1 });
-    lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 0, b: 0 }, 1, 5);
+    lighting.createDirectionalLight([0, -1, 0 ], { r: 1, g: 1, b: 1 });
+    lighting.createPointLight([0, 0, 0 ], { r: 1, g: 0, b: 0 }, 1, 5);
     const counts = lighting.getLightCount();
     expect(counts.directional).toBe(1);
     expect(counts.point).toBe(1);
   });
 
   it('getPerformanceImpact returns low for few lights', () => {
-    lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 1, b: 1 }, 1, 5);
+    lighting.createPointLight([0, 0, 0 ], { r: 1, g: 1, b: 1 }, 1, 5);
     expect(lighting.getPerformanceImpact().estimatedGPUCost).toBe('low');
   });
 
   it('clearLights removes all', () => {
-    lighting.createDirectionalLight({ x: 0, y: -1, z: 0 }, { r: 1, g: 1, b: 1 });
+    lighting.createDirectionalLight([0, -1, 0 ], { r: 1, g: 1, b: 1 });
     lighting.clearLights();
     expect(lighting.getLights()).toHaveLength(0);
   });
@@ -133,7 +133,7 @@ describe('LightingTrait', () => {
   });
 
   it('dispose cleans up', () => {
-    lighting.createPointLight({ x: 0, y: 0, z: 0 }, { r: 1, g: 1, b: 1 }, 1, 5);
+    lighting.createPointLight([0, 0, 0 ], { r: 1, g: 1, b: 1 }, 1, 5);
     lighting.dispose();
     expect(lighting.getLights()).toHaveLength(0);
   });

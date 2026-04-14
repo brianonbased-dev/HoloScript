@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 ﻿/**
  * ControllerInput Trait
  *
@@ -35,9 +36,9 @@ type ControllerHand = 'left' | 'right';
  * ```typescript
  * const pose: ControllerPose = {
  *   position: [0.5, 1.2, -0.8],
- *   rotation: { x: 0, y: 0, z: 0, w: 1 }, // Identity quaternion
- *   velocity: { x: 0, y: 0, z: 0 }, // Stationary
- *   angularVelocity: { x: 0, y: 0, z: 0 }
+ *   rotation: [0, 0, 0, 1 ], // Identity quaternion
+ *   velocity: [0, 0, 0 ], // Stationary
+ *   angularVelocity: [0, 0, 0 ]
  * };
  * ```
  */
@@ -47,9 +48,9 @@ interface ControllerPose {
   /** Orientation as a quaternion (x, y, z, w) - normalized unit quaternion */
   rotation: { x: number; y: number; z: number; w: number };
   /** Linear velocity in meters per second */
-  velocity: { x: number; y: number; z: number };
+  velocity: Vector3;
   /** Angular velocity in radians per second around each axis */
-  angularVelocity: { x: number; y: number; z: number };
+  angularVelocity: Vector3;
 }
 
 interface ButtonState {
@@ -113,9 +114,9 @@ function createEmptyControllerData(): ControllerData {
     connected: false,
     pose: {
       position: [0, 0, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      velocity: { x: 0, y: 0, z: 0 },
-      angularVelocity: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0, 1 ],
+      velocity: [0, 0, 0 ],
+      angularVelocity: [0, 0, 0 ],
     },
     buttons: new Map(),
     thumbstick: { x: 0, y: 0 },
@@ -260,9 +261,9 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
 
       // Thumbstick movement
       const stickX =
-        applyDeadzone(controller.thumbstick.x, config.deadzone) * config.thumbstick_sensitivity;
+        applyDeadzone(controller.thumbstick[0], config.deadzone) * config.thumbstick_sensitivity;
       const stickY =
-        applyDeadzone(controller.thumbstick.y, config.deadzone) *
+        applyDeadzone(controller.thumbstick[1], config.deadzone) *
         config.thumbstick_sensitivity *
         (config.invert_y ? -1 : 1);
 

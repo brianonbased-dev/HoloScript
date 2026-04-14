@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Context Provider
  * Sprint 4 Priority 4 - Spatial Context Awareness
@@ -8,7 +9,6 @@
 
 import { EventEmitter } from 'events';
 import {
-  Vector3,
   SpatialContext,
   SpatialEntity,
   Region,
@@ -537,11 +537,11 @@ export class SpatialContextProvider extends EventEmitter {
 
       if (projection < 0 || projection > maxDist) continue;
 
-      const closest = {
-        x: from.x + dir.x * projection,
-        y: from.y + dir.y * projection,
-        z: from.z + dir.z * projection,
-      };
+      const closest: Vector3 = [
+        from[0] + dir[0] * projection,
+        from[1] + dir[1] * projection,
+        from[2] + dir[2] * projection,
+      ];
 
       const distToLine = distance(closest, entity.position);
       if (distToLine < radius) {
@@ -561,9 +561,9 @@ export class SpatialContextProvider extends EventEmitter {
       return (entity.bounds as BoundingSphere).radius;
     }
     const box = entity.bounds as BoundingBox;
-    const dx = box.max.x - box.min.x;
-    const dy = box.max.y - box.min.y;
-    const dz = box.max.z - box.min.z;
+    const dx = box.max[0] - box.min[0];
+    const dy = box.max[1] - box.min[1];
+    const dz = box.max[2] - box.min[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz) / 2;
   }
 
@@ -571,7 +571,7 @@ export class SpatialContextProvider extends EventEmitter {
    * Dot product
    */
   private dot3(a: Vector3, b: Vector3): number {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   }
 
   /**

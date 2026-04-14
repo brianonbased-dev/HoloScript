@@ -28,7 +28,7 @@ describe('TransformGraph: production', () => {
   });
 
   it('addNode accepts initial local transform', () => {
-    graph.addNode('n', { x: 5, y: 3, z: 1 });
+    graph.addNode('n', [5, 3, 1 ]);
     const local = graph.getLocalTransform('n');
     expect(local).not.toBeNull();
     expect(local!.x).toBe(5);
@@ -94,7 +94,7 @@ describe('TransformGraph: production', () => {
 
   // ─── World Position ──────────────────────────────────────────────────────
   it('root world position equals local position', () => {
-    graph.addNode('root', { x: 10, y: 5, z: -3 });
+    graph.addNode('root', [10, 5, -3 ]);
     const wp = graph.getWorldPosition('root');
     expect(wp).not.toBeNull();
     expect(wp!.x).toBe(10);
@@ -103,8 +103,8 @@ describe('TransformGraph: production', () => {
   });
 
   it('child world position = parent.local + child.local (unit scale)', () => {
-    graph.addNode('p', { x: 10, y: 0, z: 0 });
-    graph.addNode('c', { x: 5, y: 0, z: 0 });
+    graph.addNode('p', [10, 0, 0 ]);
+    graph.addNode('c', [5, 0, 0 ]);
     graph.setParent('c', 'p');
     graph.updateAll();
     const wp = graph.getWorldPosition('c');
@@ -113,7 +113,7 @@ describe('TransformGraph: production', () => {
 
   it('parent scale multiplies child local offset', () => {
     graph.addNode('p', { x: 0, y: 0, z: 0, sx: 2, sy: 2, sz: 2 });
-    graph.addNode('c', { x: 3, y: 0, z: 0 });
+    graph.addNode('c', [3, 0, 0 ]);
     graph.setParent('c', 'p');
     graph.updateAll();
     const wp = graph.getWorldPosition('c');
@@ -136,7 +136,7 @@ describe('TransformGraph: production', () => {
 
   it('setPosition on parent propagates to child world position', () => {
     graph.addNode('p');
-    graph.addNode('c', { x: 1, y: 0, z: 0 });
+    graph.addNode('c', [1, 0, 0 ]);
     graph.setParent('c', 'p');
     graph.setPosition('p', 10, 0, 0);
     const wp = graph.getWorldPosition('c');
@@ -157,9 +157,9 @@ describe('TransformGraph: production', () => {
 
   // ─── updateAll ───────────────────────────────────────────────────────────
   it('updateAll resolves entire hierarchy', () => {
-    graph.addNode('a', { x: 2, y: 0, z: 0 });
-    graph.addNode('b', { x: 3, y: 0, z: 0 });
-    graph.addNode('c', { x: 4, y: 0, z: 0 });
+    graph.addNode('a', [2, 0, 0 ]);
+    graph.addNode('b', [3, 0, 0 ]);
+    graph.addNode('c', [4, 0, 0 ]);
     graph.setParent('b', 'a');
     graph.setParent('c', 'b');
     graph.updateAll();
@@ -167,8 +167,8 @@ describe('TransformGraph: production', () => {
   });
 
   it('updateAll handles multiple independent roots', () => {
-    graph.addNode('r1', { x: 1, y: 0, z: 0 });
-    graph.addNode('r2', { x: -1, y: 0, z: 0 });
+    graph.addNode('r1', [1, 0, 0 ]);
+    graph.addNode('r2', [-1, 0, 0 ]);
     graph.updateAll();
     expect(graph.getWorldPosition('r1')!.x).toBe(1);
     expect(graph.getWorldPosition('r2')!.x).toBe(-1);
@@ -177,7 +177,7 @@ describe('TransformGraph: production', () => {
   // ─── Deep Hierarchy ─────────────────────────────────────────────────────
   it('handles 5-level hierarchy', () => {
     for (let i = 0; i < 5; i++) {
-      graph.addNode(`n${i}`, { x: 1, y: 0, z: 0 });
+      graph.addNode(`n${i}`, [1, 0, 0 ]);
       if (i > 0) graph.setParent(`n${i}`, `n${i - 1}`);
     }
     graph.updateAll();

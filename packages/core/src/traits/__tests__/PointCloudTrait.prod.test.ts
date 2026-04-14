@@ -32,13 +32,13 @@ function makeNode() {
   return { id: 'pc_node', properties: {} };
 }
 
-function makeCtx(cameraPos = { x: 0, y: 0, z: 0 }) {
+function makeCtx(cameraPos = [0, 0, 0 ]) {
   return { emit: vi.fn(), camera: { position: cameraPos } };
 }
 
 function attach(
   cfg: Partial<typeof pointCloudHandler.defaultConfig> = {},
-  camera = { x: 0, y: 0, z: 0 }
+  camera = [0, 0, 0 ]
 ) {
   const node = makeNode();
   const ctx = makeCtx(camera);

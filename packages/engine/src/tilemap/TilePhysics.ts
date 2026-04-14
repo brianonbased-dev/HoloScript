@@ -49,10 +49,10 @@ export class TilePhysics {
     const tileSize = this.map.getTileSize();
 
     // Determine tile range overlapped by AABB
-    const minTX = Math.floor(aabb.x / tileSize);
-    const maxTX = Math.floor((aabb.x + aabb.w - 0.001) / tileSize);
-    const minTY = Math.floor(aabb.y / tileSize);
-    const maxTY = Math.floor((aabb.y + aabb.h - 0.001) / tileSize);
+    const minTX = Math.floor(aabb[0] / tileSize);
+    const maxTX = Math.floor((aabb[0] + aabb[3] - 0.001) / tileSize);
+    const minTY = Math.floor(aabb[1] / tileSize);
+    const maxTY = Math.floor((aabb[1] + aabb.h - 0.001) / tileSize);
 
     for (let tx = minTX; tx <= maxTX; tx++) {
       for (let ty = minTY; ty <= maxTY; ty++) {
@@ -68,10 +68,10 @@ export class TilePhysics {
         // Compute push-out
         const tileCX = tx * tileSize + tileSize / 2;
         const tileCY = ty * tileSize + tileSize / 2;
-        const aabbCX = aabb.x + aabb.w / 2;
-        const aabbCY = aabb.y + aabb.h / 2;
+        const aabbCX = aabb[0] + aabb[3] / 2;
+        const aabbCY = aabb[1] + aabb.h / 2;
 
-        const overlapX = aabb.w / 2 + tileSize / 2 - Math.abs(aabbCX - tileCX);
+        const overlapX = aabb[3] / 2 + tileSize / 2 - Math.abs(aabbCX - tileCX);
         const overlapY = aabb.h / 2 + tileSize / 2 - Math.abs(aabbCY - tileCY);
 
         let pushX = 0,

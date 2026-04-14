@@ -119,7 +119,7 @@ describe('NerfTrait — onUpdate', () => {
   it('no-op when isReady=false', () => {
     const node = makeNode();
     const { cfg } = attach(node);
-    const ctx = makeCtx({ position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 } });
+    const ctx = makeCtx({ position: [0, 0, 0], rotation: [0, 0, 0 ] });
     // isReady is false after attach with no URL
     nerfHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
@@ -136,7 +136,7 @@ describe('NerfTrait — onUpdate', () => {
   it('emits nerf_render on new camera hash', () => {
     const node = makeNode();
     const { cfg } = attach(node, { resolution: 1024, quality: 'quality', cache_frames: true });
-    const cam = { position: [1.0, 2.0, 3.0], rotation: { x: 0, y: 0, z: 0 }, fov: 60 };
+    const cam = { position: [1.0, 2.0, 3.0], rotation: [0, 0, 0 ], fov: 60 };
     const ctx = makeCtx(cam);
     st(node).isReady = true;
     nerfHandler.onUpdate!(node, cfg, ctx as any, 0.016);
@@ -152,7 +152,7 @@ describe('NerfTrait — onUpdate', () => {
   it('does NOT re-render on same camera hash (no change)', () => {
     const node = makeNode();
     const { cfg } = attach(node, { cache_frames: true });
-    const cam = { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 }, fov: 60 };
+    const cam = { position: [0, 0, 0], rotation: [0, 0, 0 ], fov: 60 };
     const ctx = makeCtx(cam);
     st(node).isReady = true;
     // First update sets the hash
@@ -166,7 +166,7 @@ describe('NerfTrait — onUpdate', () => {
   it('emits nerf_use_cached when frame in cache and camera hash matches', () => {
     const node = makeNode();
     const { cfg } = attach(node, { cache_frames: true });
-    const cam = { position: [5, 5, 5], rotation: { x: 0, y: 0, z: 0 }, fov: 60 };
+    const cam = { position: [5, 5, 5], rotation: [0, 0, 0 ], fov: 60 };
     const ctx = makeCtx(cam);
     st(node).isReady = true;
     // Pre-populate cache with the hash
@@ -182,7 +182,7 @@ describe('NerfTrait — onUpdate', () => {
   it('cacheKey is undefined in nerf_render when cache_frames=false', () => {
     const node = makeNode();
     const { cfg } = attach(node, { cache_frames: false });
-    const cam = { position: [1, 0, 0], rotation: { x: 0, y: 0, z: 0 }, fov: 60 };
+    const cam = { position: [1, 0, 0], rotation: [0, 0, 0 ], fov: 60 };
     const ctx = makeCtx(cam);
     st(node).isReady = true;
     nerfHandler.onUpdate!(node, cfg, ctx as any, 0.016);

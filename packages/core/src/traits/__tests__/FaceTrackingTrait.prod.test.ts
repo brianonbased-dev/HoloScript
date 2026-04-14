@@ -110,7 +110,7 @@ describe('faceTrackingHandler.onUpdate', () => {
   it('emits avatar_eye_gaze when tracking and eye_tracking=true and leftEye set', () => {
     const { node, config, ctx } = attach({ eye_tracking: true });
     node.__faceTrackingState.isTracking = true;
-    const eye = { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0, y: 0, z: 0 }, confidence: 0.9 };
+    const eye = { direction: [0, 0, -1 ], origin: [0, 0, 0 ], confidence: 0.9 };
     node.__faceTrackingState.leftEye = eye;
     ctx.emit.mockClear();
     faceTrackingHandler.onUpdate!(node, config, ctx, 0.016);
@@ -123,8 +123,8 @@ describe('faceTrackingHandler.onUpdate', () => {
     const { node, config, ctx } = attach({ eye_tracking: false });
     node.__faceTrackingState.isTracking = true;
     node.__faceTrackingState.leftEye = {
-      direction: { x: 0, y: 0, z: -1 },
-      origin: { x: 0, y: 0, z: 0 },
+      direction: [0, 0, -1 ],
+      origin: [0, 0, 0 ],
       confidence: 0.9,
     };
     ctx.emit.mockClear();
@@ -136,7 +136,7 @@ describe('faceTrackingHandler.onUpdate', () => {
     node.__faceTrackingState.isTracking = true;
     node.__faceTrackingState.headPose = {
       position: [0, 1.7, 0],
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      rotation: [0, 0, 0, 1 ],
     };
     ctx.emit.mockClear();
     faceTrackingHandler.onUpdate!(node, config, ctx, 0.016);
@@ -236,13 +236,13 @@ describe('faceTrackingHandler.onEvent — face_data_update', () => {
   it('stores left/right eye when eye_tracking=true', () => {
     const { node, config, ctx } = attach({ eye_tracking: true });
     const lEye = {
-      direction: { x: 0, y: 0, z: -1 },
-      origin: { x: -0.03, y: 0, z: 0 },
+      direction: [0, 0, -1 ],
+      origin: [-0.03, 0, 0 ],
       confidence: 0.9,
     };
     const rEye = {
-      direction: { x: 0, y: 0, z: -1 },
-      origin: { x: 0.03, y: 0, z: 0 },
+      direction: [0, 0, -1 ],
+      origin: [0.03, 0, 0 ],
       confidence: 0.9,
     };
     faceTrackingHandler.onEvent!(node, config, ctx, {
@@ -254,7 +254,7 @@ describe('faceTrackingHandler.onEvent — face_data_update', () => {
   });
   it('does NOT store eyes when eye_tracking=false', () => {
     const { node, config, ctx } = attach({ eye_tracking: false });
-    const lEye = { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0, y: 0, z: 0 }, confidence: 1 };
+    const lEye = { direction: [0, 0, -1 ], origin: [0, 0, 0 ], confidence: 1 };
     faceTrackingHandler.onEvent!(node, config, ctx, {
       type: 'face_data_update',
       eyes: { left: lEye },
@@ -263,7 +263,7 @@ describe('faceTrackingHandler.onEvent — face_data_update', () => {
   });
   it('stores headPose when provided', () => {
     const { node, config, ctx } = attach();
-    const hp = { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } };
+    const hp = { position: [0, 1.6, 0], rotation: [0, 0, 0, 1 ] };
     faceTrackingHandler.onEvent!(node, config, ctx, { type: 'face_data_update', headPose: hp });
     expect(node.__faceTrackingState.headPose).toEqual(hp);
   });

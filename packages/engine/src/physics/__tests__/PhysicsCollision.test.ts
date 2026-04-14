@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Physics Collision Detection Tests
  *
@@ -45,7 +46,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   beforeEach(() => {
     world = createPhysicsWorld({
-      gravity: { x: 0, y: 0, z: 0 }, // disable gravity for collision tests
+      gravity: [0, 0, 0 ], // disable gravity for collision tests
       fixedTimestep: 1 / 60,
       maxSubsteps: 1,
     });
@@ -57,8 +58,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Sphere-Sphere Collisions', () => {
     it('should detect collision between overlapping spheres', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [1.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -71,8 +72,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should not detect collision between separated spheres', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -82,8 +83,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should report correct contact normal for sphere-sphere', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [1.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -93,14 +94,14 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
       const contact = beginEvents[0].contacts[0];
 
       // Normal should be roughly along +X (from A to B)
-      expect(Math.abs(contact.normal.x)).toBeGreaterThan(0.9);
+      expect(Math.abs(contact.normal[0])).toBeGreaterThan(0.9);
       expect(contact.penetration).toBeGreaterThan(0);
       expect(contact.penetration).toBeCloseTo(0.5, 1);
     });
 
     it('should handle touching spheres (zero penetration edge case)', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 2.001, y: 0, z: 0 })); // just barely separated
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [2.001, 0, 0 ])); // just barely separated
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -109,8 +110,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should detect collision between concentric spheres', () => {
-      world.createBody(dynamicSphere('a', 2, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 0, y: 0, z: 0 })); // same center
+      world.createBody(dynamicSphere('a', 2, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [0, 0, 0 ])); // same center
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -126,8 +127,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Box-Box Collisions (GJK/EPA)', () => {
     it('should detect collision between overlapping boxes', () => {
-      world.createBody(dynamicBox('a', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('b', { x: 1, y: 1, z: 1 }, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicBox('a', [1, 1, 1 ], [0, 0, 0 ]));
+      world.createBody(dynamicBox('b', [1, 1, 1 ], [1.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -138,8 +139,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should not detect collision between separated boxes', () => {
-      world.createBody(dynamicBox('a', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('b', { x: 1, y: 1, z: 1 }, { x: 5, y: 0, z: 0 }));
+      world.createBody(dynamicBox('a', [1, 1, 1 ], [0, 0, 0 ]));
+      world.createBody(dynamicBox('b', [1, 1, 1 ], [5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -148,8 +149,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should report penetration depth for box-box overlap', () => {
-      world.createBody(dynamicBox('a', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('b', { x: 1, y: 1, z: 1 }, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicBox('a', [1, 1, 1 ], [0, 0, 0 ]));
+      world.createBody(dynamicBox('b', [1, 1, 1 ], [1.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -165,8 +166,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
       // Floor box: center at y=0.5, halfExtent y=0.5 => AABB y=[0, 1]
       // Cube: center at y=1.3, halfExtent y=0.5 => AABB y=[0.8, 1.8]
       // Overlap on Y = min(1.0, 1.8) - max(0, 0.8) = 1.0 - 0.8 = 0.2
-      world.createBody(staticBox('floor', { x: 5, y: 0.5, z: 5 }, { x: 0, y: 0.5, z: 0 }));
-      world.createBody(dynamicBox('cube', { x: 0.5, y: 0.5, z: 0.5 }, { x: 0, y: 1.3, z: 0 }));
+      world.createBody(staticBox('floor', [5, 0.5, 5 ], [0, 0.5, 0 ]));
+      world.createBody(dynamicBox('cube', [0.5, 0.5, 0.5 ], [0, 1.3, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -184,8 +185,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Sphere-Box Collisions (GJK/EPA)', () => {
     it('should detect collision between a sphere and a box', () => {
-      world.createBody(dynamicSphere('sphere', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('box', { x: 1, y: 1, z: 1 }, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('sphere', 1, [0, 0, 0 ]));
+      world.createBody(dynamicBox('box', [1, 1, 1 ], [1.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -196,8 +197,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should not detect collision between separated sphere and box', () => {
-      world.createBody(dynamicSphere('sphere', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('box', { x: 1, y: 1, z: 1 }, { x: 5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('sphere', 1, [0, 0, 0 ]));
+      world.createBody(dynamicBox('box', [1, 1, 1 ], [5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -206,8 +207,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should handle sphere resting on top of a box', () => {
-      world.createBody(staticBox('floor', { x: 5, y: 0.5, z: 5 }, { x: 0, y: 0.5, z: 0 }));
-      world.createBody(dynamicSphere('ball', 0.5, { x: 0, y: 1.3, z: 0 }));
+      world.createBody(staticBox('floor', [5, 0.5, 5 ], [0, 0.5, 0 ]));
+      world.createBody(dynamicSphere('ball', 0.5, [0, 1.3, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -226,8 +227,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Capsule Collisions (GJK/EPA)', () => {
     it('should detect collision between overlapping capsules', () => {
-      world.createBody(dynamicCapsule('a', 0.5, 2, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicCapsule('b', 0.5, 2, { x: 0.8, y: 0, z: 0 }));
+      world.createBody(dynamicCapsule('a', 0.5, 2, [0, 0, 0 ]));
+      world.createBody(dynamicCapsule('b', 0.5, 2, [0.8, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -238,8 +239,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should detect collision between a capsule and a box', () => {
-      world.createBody(dynamicCapsule('capsule', 0.5, 2, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('box', { x: 1, y: 1, z: 1 }, { x: 1, y: 0, z: 0 }));
+      world.createBody(dynamicCapsule('capsule', 0.5, 2, [0, 0, 0 ]));
+      world.createBody(dynamicBox('box', [1, 1, 1 ], [1, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -249,8 +250,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should not detect collision between separated capsules', () => {
-      world.createBody(dynamicCapsule('a', 0.5, 2, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicCapsule('b', 0.5, 2, { x: 5, y: 0, z: 0 }));
+      world.createBody(dynamicCapsule('a', 0.5, 2, [0, 0, 0 ]));
+      world.createBody(dynamicCapsule('b', 0.5, 2, [5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();
@@ -338,8 +339,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Collision Event Lifecycle', () => {
     it('should report begin, persist, and end events', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [1.5, 0, 0 ]));
 
       // First step: begin
       world.step(1 / 60);
@@ -356,15 +357,15 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should report end when bodies separate', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 1.5, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [1.5, 0, 0 ]));
 
       // First step: begin
       world.step(1 / 60);
 
       // Move bodies far apart
-      world.setPosition('a', { x: -10, y: 0, z: 0 });
-      world.setPosition('b', { x: 10, y: 0, z: 0 });
+      world.setPosition('a', [-10, 0, 0 ]);
+      world.setPosition('b', [10, 0, 0 ]);
 
       // Next step: should report end
       world.step(1 / 60);
@@ -380,8 +381,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
   describe('Collision Response', () => {
     it('should push overlapping dynamic spheres apart', () => {
-      world.createBody(dynamicSphere('a', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicSphere('b', 1, { x: 1.0, y: 0, z: 0 })); // heavily overlapping
+      world.createBody(dynamicSphere('a', 1, [0, 0, 0 ]));
+      world.createBody(dynamicSphere('b', 1, [1.0, 0, 0 ])); // heavily overlapping
 
       const stateABefore = world.getBody('a')!;
       const stateBBefore = world.getBody('b')!;
@@ -395,14 +396,14 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
       const stateBAfter = world.getBody('b')!;
 
       // Bodies should have moved apart
-      const distBefore = Math.abs(stateBBefore.position.x - stateABefore.position.x);
-      const distAfter = Math.abs(stateBAfter.position.x - stateAAfter.position.x);
+      const distBefore = Math.abs(stateBBefore.position[0] - stateABefore.position[0]);
+      const distAfter = Math.abs(stateBAfter.position[0] - stateAAfter.position[0]);
       expect(distAfter).toBeGreaterThan(distBefore);
     });
 
     it('should push overlapping box and sphere apart via GJK/EPA', () => {
-      world.createBody(dynamicSphere('sphere', 1, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('box', { x: 1, y: 1, z: 1 }, { x: 1.0, y: 0, z: 0 }));
+      world.createBody(dynamicSphere('sphere', 1, [0, 0, 0 ]));
+      world.createBody(dynamicBox('box', [1, 1, 1 ], [1.0, 0, 0 ]));
 
       const sphereBefore = world.getBody('sphere')!;
       const boxBefore = world.getBody('box')!;
@@ -414,23 +415,23 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
       const sphereAfter = world.getBody('sphere')!;
       const boxAfter = world.getBody('box')!;
 
-      const distBefore = Math.abs(boxBefore.position.x - sphereBefore.position.x);
-      const distAfter = Math.abs(boxAfter.position.x - sphereAfter.position.x);
+      const distBefore = Math.abs(boxBefore.position[0] - sphereBefore.position[0]);
+      const distAfter = Math.abs(boxAfter.position[0] - sphereAfter.position[0]);
       expect(distAfter).toBeGreaterThan(distBefore);
     });
 
     it('should not move static bodies during collision', () => {
-      world.createBody(staticBox('floor', { x: 5, y: 0.5, z: 5 }, { x: 0, y: 0.5, z: 0 }));
-      world.createBody(dynamicSphere('ball', 0.5, { x: 0, y: 1.3, z: 0 }));
+      world.createBody(staticBox('floor', [5, 0.5, 5 ], [0, 0.5, 0 ]));
+      world.createBody(dynamicSphere('ball', 0.5, [0, 1.3, 0 ]));
 
       for (let i = 0; i < 10; i++) {
         world.step(1 / 60);
       }
 
       const floorState = world.getBody('floor')!;
-      expect(floorState.position.x).toBeCloseTo(0, 5);
-      expect(floorState.position.y).toBeCloseTo(0.5, 5);
-      expect(floorState.position.z).toBeCloseTo(0, 5);
+      expect(floorState.position[0]).toBeCloseTo(0, 5);
+      expect(floorState.position[1]).toBeCloseTo(0.5, 5);
+      expect(floorState.position[2]).toBeCloseTo(0, 5);
     });
   });
 
@@ -442,7 +443,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     it('should handle many simultaneous collisions', () => {
       // Create a cluster of overlapping spheres
       for (let i = 0; i < 5; i++) {
-        world.createBody(dynamicSphere(`s${i}`, 1, { x: i * 0.5, y: 0, z: 0 }));
+        world.createBody(dynamicSphere(`s${i}`, 1, [i * 0.5, 0, 0 ]));
       }
 
       // Should not throw
@@ -456,8 +457,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
 
     it('should handle box-box GJK/EPA with identical positions', () => {
       // Two boxes at the exact same position
-      world.createBody(dynamicBox('a', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
-      world.createBody(dynamicBox('b', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
+      world.createBody(dynamicBox('a', [1, 1, 1 ], [0, 0, 0 ]));
+      world.createBody(dynamicBox('b', [1, 1, 1 ], [0, 0, 0 ]));
 
       // Should not throw, and should detect collision
       expect(() => {
@@ -470,8 +471,8 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
 
     it('should skip collisions between two static bodies', () => {
-      world.createBody(staticBox('a', { x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 }));
-      world.createBody(staticBox('b', { x: 1, y: 1, z: 1 }, { x: 0.5, y: 0, z: 0 }));
+      world.createBody(staticBox('a', [1, 1, 1 ], [0, 0, 0 ]));
+      world.createBody(staticBox('b', [1, 1, 1 ], [0.5, 0, 0 ]));
 
       world.step(1 / 60);
       const contacts = world.getContacts();

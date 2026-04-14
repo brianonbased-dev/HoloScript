@@ -1,4 +1,4 @@
-import { VRHand, Vector3 } from '../types/HoloScriptPlus';
+import type { Vector3 } from '../types';
 import { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 
 export type GestureType =

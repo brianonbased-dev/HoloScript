@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AudioContextImpl.ts
  *
@@ -187,28 +188,28 @@ export class AudioContextImpl implements IAudioContext {
   // ==========================================================================
 
   public setListenerPosition(position: IVector3): void {
-    this.listenerPosition = { ...position };
+    this.listenerPosition = [...position];
   }
 
   public setListenerOrientation(orientation: IAudioOrientation): void {
     this.listenerOrientation = {
-      forward: { ...orientation.forward },
-      up: { ...orientation.up },
+      forward: [...orientation.forward],
+      up: [...orientation.up],
     };
   }
 
   public setListenerVelocity(velocity: IVector3): void {
-    this.listenerVelocity = { ...velocity };
+    this.listenerVelocity = [...velocity];
   }
 
   public getListenerConfig(): IAudioListenerConfig {
     return {
-      position: { ...this.listenerPosition },
+      position: [...this.listenerPosition],
       orientation: {
-        forward: { ...this.listenerOrientation.forward },
-        up: { ...this.listenerOrientation.up },
+        forward: [...this.listenerOrientation.forward],
+        up: [...this.listenerOrientation.up],
       },
-      velocity: { ...this.listenerVelocity },
+      velocity: [...this.listenerVelocity],
     };
   }
 
@@ -274,7 +275,7 @@ export class AudioContextImpl implements IAudioContext {
       volume: source.volume,
       pitch: source.pitch,
       loop: source.loop,
-      position: { ...source.position },
+      position: [...source.position],
       currentTime: source.currentTime,
       duration: source.duration,
       spatial: source.config.spatial ?? false,
@@ -289,7 +290,7 @@ export class AudioContextImpl implements IAudioContext {
       volume: source.volume,
       pitch: source.pitch,
       loop: source.loop,
-      position: { ...source.position },
+      position: [...source.position],
       currentTime: source.currentTime,
       duration: source.duration,
       spatial: source.config.spatial ?? false,
@@ -417,14 +418,14 @@ export class AudioContextImpl implements IAudioContext {
   public setPosition(sourceId: string, position: IVector3): void {
     const source = this.sources.get(sourceId);
     if (source) {
-      source.position = { ...position };
+      source.position = [...position];
     }
   }
 
   public setOrientation(sourceId: string, orientation: IVector3): void {
     const source = this.sources.get(sourceId);
     if (source) {
-      source.config.orientation = { ...orientation };
+      source.config.orientation = [...orientation];
     }
   }
 
@@ -683,9 +684,9 @@ export class AudioContextImpl implements IAudioContext {
    * Calculate spatial audio gain based on distance
    */
   public calculateSpatialGain(sourcePosition: IVector3): number {
-    const dx = sourcePosition.x - this.listenerPosition.x;
-    const dy = sourcePosition.y - this.listenerPosition.y;
-    const dz = sourcePosition.z - this.listenerPosition.z;
+    const dx = sourcePosition[0] - this.listenerPosition[0];
+    const dy = sourcePosition[1] - this.listenerPosition[1];
+    const dz = sourcePosition[2] - this.listenerPosition[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     const refDistance = this.config.defaultRefDistance;

@@ -28,7 +28,7 @@ describe('HoloScript Scaling & Context', () => {
     const star = context.variables.get('Star') as any;
     expect(star).toBeDefined();
 
-    expect(star.position.x).toBe(1000000); // 1 * 1,000,000
+    expect(star.position[0]).toBe(1000000); // 1 * 1,000,000
     expect(star.hologram.size).toBe(0.5 * 1000000);
   });
 
@@ -50,8 +50,8 @@ describe('HoloScript Scaling & Context', () => {
     expect(planet).toBeDefined();
     expect(moon).toBeDefined();
 
-    expect((planet as any).position.x).toBe(1000);
-    expect((moon as any).position.x).toBe(1); // Restored to 1.0 multiplier
+    expect((planet as any).position[0]).toBe(1000);
+    expect((moon as any).position[0]).toBe(1); // Restored to 1.0 multiplier
   });
 
   it('should handle focus history', async () => {

@@ -43,15 +43,15 @@ describe('RagdollController', () => {
 
     it('bone default limits set when not provided', () => {
       const b = rc.getBone('spine')!;
-      expect(b.jointLimits.min.x).toBe(-1);
+      expect(b.jointLimits.min[0]).toBe(-1);
     });
 
     it('custom limits are respected', () => {
       rc.addBone('lhand', 'spine', 1, 0.2, {
-        min: { x: -0.5, y: -0.3, z: -0.1 },
-        max: { x: 0.5, y: 0.3, z: 0.1 },
+        min: [-0.5, -0.3, -0.1 ],
+        max: [0.5, 0.3, 0.1 ],
       });
-      expect(rc.getBone('lhand')!.jointLimits.min.x).toBe(-0.5);
+      expect(rc.getBone('lhand')!.jointLimits.min[0]).toBe(-0.5);
     });
 
     it('removeBone returns true', () => {
@@ -118,9 +118,9 @@ describe('RagdollController', () => {
     it('active state: update does not move bones', () => {
       // state is 'active', so bones should not change
       const spine = rc.getBone('spine')!;
-      const origY = spine.position.y;
+      const origY = spine.position[1];
       rc.update(0.1);
-      expect(spine.position.y).toBe(origY);
+      expect(spine.position[1]).toBe(origY);
     });
   });
 
@@ -132,15 +132,15 @@ describe('RagdollController', () => {
       rc.goRagdoll();
       const spine = rc.getBone('spine')!;
       rc.update(0.1);
-      // Gravity is negative, so velocity.y becomes negative
-      expect(rc.getBone('spine')!.velocity.y).toBeLessThan(0);
+      // Gravity is negative, so velocity[1] becomes negative
+      expect(rc.getBone('spine')!.velocity[1]).toBeLessThan(0);
     });
 
     it('positions change over time in ragdoll mode', () => {
       rc.goRagdoll();
-      const origY = rc.getBone('spine')!.position.y;
+      const origY = rc.getBone('spine')!.position[1];
       rc.update(0.5);
-      expect(rc.getBone('spine')!.position.y).toBeLessThan(origY);
+      expect(rc.getBone('spine')!.position[1]).toBeLessThan(origY);
     });
   });
 
@@ -151,13 +151,13 @@ describe('RagdollController', () => {
     it('adds velocity to a bone proportional to impulse/mass', () => {
       rc.goRagdoll();
       const spine = rc.getBone('spine')!;
-      rc.applyImpulse('spine', { x: 10, y: 0, z: 0 });
-      // velocity.x += 10 / mass(5) = 2
-      expect(spine.velocity.x).toBeCloseTo(2);
+      rc.applyImpulse('spine', [10, 0, 0 ]);
+      // velocity[0] += 10 / mass(5) = 2
+      expect(spine.velocity[0]).toBeCloseTo(2);
     });
 
     it('no-op for unknown bone id', () => {
-      expect(() => rc.applyImpulse('ghost', { x: 1, y: 0, z: 0 })).not.toThrow();
+      expect(() => rc.applyImpulse('ghost', [1, 0, 0 ])).not.toThrow();
     });
   });
 });

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Hash Grid for GPU Particle Collision Detection
  *
@@ -17,7 +18,7 @@ export interface SpatialGridOptions {
   cellSize: number;
 
   /** Grid dimensions (cells in X/Y/Z) */
-  gridDimensions: { x: number; y: number; z: number };
+  gridDimensions: Vector3;
 
   /** Max particles per cell (for array sizing) */
   maxParticlesPerCell?: number;
@@ -35,7 +36,7 @@ export interface SpatialGridOptions {
  * ```typescript
  * const grid = new SpatialGrid(context, particleCount, {
  *   cellSize: 0.2,  // 2× max particle radius
- *   gridDimensions: { x: 50, y: 50, z: 50 },
+ *   gridDimensions: [50, 50, 50 ],
  *   shaderCode: spatialGridWGSL,
  * });
  *
@@ -86,7 +87,7 @@ export class SpatialGrid {
     };
 
     this.totalCells =
-      this.options.gridDimensions.x * this.options.gridDimensions.y * this.options.gridDimensions.z;
+      this.options.gridDimensions[0] * this.options.gridDimensions[1] * this.options.gridDimensions[2];
   }
 
   /**
@@ -174,9 +175,9 @@ export class SpatialGrid {
     const uintView = new Uint32Array(data);
 
     floatView[0] = this.options.cellSize;
-    uintView[1] = this.options.gridDimensions.x;
-    uintView[2] = this.options.gridDimensions.y;
-    uintView[3] = this.options.gridDimensions.z;
+    uintView[1] = this.options.gridDimensions[0];
+    uintView[2] = this.options.gridDimensions[1];
+    uintView[3] = this.options.gridDimensions[2];
     uintView[4] = this.particleCount;
     uintView[5] = this.options.maxParticlesPerCell;
     uintView[6] = 0; // padding
@@ -480,7 +481,7 @@ export class SpatialGrid {
    */
   getStats(): {
     cellSize: number;
-    gridDimensions: { x: number; y: number; z: number };
+    gridDimensions: Vector3;
     totalCells: number;
     maxParticlesPerCell: number;
     memoryUsage: string;

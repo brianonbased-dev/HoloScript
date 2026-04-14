@@ -87,8 +87,8 @@ describe('Feature 1: PerformanceTracker', () => {
 // =============================================================================
 describe('Feature 2: FrustumCuller', () => {
   const pos = { x: 0, y: 0, z: -5 };
-  const forward = { x: 0, y: 0, z: 1 };
-  const up = { x: 0, y: 1, z: 0 };
+  const forward = [0, 0, 1 ];
+  const up = [0, 1, 0 ];
 
   function makeSphere(id: string, x: number, y: number, z: number, r = 1) {
     return { id, x, y, z, radius: r };

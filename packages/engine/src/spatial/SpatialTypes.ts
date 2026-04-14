@@ -1,41 +1,4 @@
-/**
- * Spatial Types for Agent Context Awareness
- * Sprint 4 Priority 4 - Spatial Context Awareness
- *
- * Enables agents to understand and reason about spatial relationships
- * in XR environments.
- */
-
-// =============================================================================
-// VECTOR & GEOMETRY TYPES
-// =============================================================================
-
-/**
- * 3D Vector representation
- */
-export interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-/**
- * 2D Vector for screen/UI space
- */
-export interface Vector2 {
-  x: number;
-  y: number;
-}
-
-/**
- * Quaternion for rotation
- */
-export interface Quaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+export type { Vector3, Vector2, Quaternion } from '@holoscript/core';
 
 /**
  * Axis-aligned bounding box
@@ -254,9 +217,9 @@ export const DEFAULT_SPATIAL_CONFIG: SpatialAwarenessConfig = {
  * Calculate distance between two points
  */
 export function distance(a: Vector3, b: Vector3): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -264,9 +227,9 @@ export function distance(a: Vector3, b: Vector3): number {
  * Calculate squared distance (faster when comparing)
  */
 export function distanceSquared(a: Vector3, b: Vector3): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dz = b.z - a.z;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
   return dx * dx + dy * dy + dz * dz;
 }
 
@@ -275,12 +238,12 @@ export function distanceSquared(a: Vector3, b: Vector3): number {
  */
 export function isPointInBox(point: Vector3, box: BoundingBox): boolean {
   return (
-    point.x >= box.min.x &&
-    point.x <= box.max.x &&
-    point.y >= box.min.y &&
-    point.y <= box.max.y &&
-    point.z >= box.min.z &&
-    point.z <= box.max.z
+    point[0] >= box.min[0] &&
+    point[0] <= box.max[0] &&
+    point[1] >= box.min[1] &&
+    point[1] <= box.max[1] &&
+    point[2] >= box.min[2] &&
+    point[2] <= box.max[2]
   );
 }
 
@@ -295,11 +258,11 @@ export function isPointInSphere(point: Vector3, sphere: BoundingSphere): boolean
  * Get center of bounding box
  */
 export function getBoxCenter(box: BoundingBox): Vector3 {
-  return {
-    x: (box.min.x + box.max.x) / 2,
-    y: (box.min.y + box.max.y) / 2,
-    z: (box.min.z + box.max.z) / 2,
-  };
+  return [
+    (box.min[0] + box.max[0]) / 2,
+    (box.min[1] + box.max[1]) / 2,
+    (box.min[2] + box.max[2]) / 2,
+  ];
 }
 
 /**
@@ -307,12 +270,12 @@ export function getBoxCenter(box: BoundingBox): Vector3 {
  */
 export function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
   return (
-    a.min.x <= b.max.x &&
-    a.max.x >= b.min.x &&
-    a.min.y <= b.max.y &&
-    a.max.y >= b.min.y &&
-    a.min.z <= b.max.z &&
-    a.max.z >= b.min.z
+    a.min[0] <= b.max[0] &&
+    a.max[0] >= b.min[0] &&
+    a.min[1] <= b.max[1] &&
+    a.max[1] >= b.min[1] &&
+    a.min[2] <= b.max[2] &&
+    a.max[2] >= b.min[2]
   );
 }
 
@@ -320,57 +283,57 @@ export function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
  * Normalize a vector
  */
 export function normalize(v: Vector3): Vector3 {
-  const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-  if (len === 0) return { x: 0, y: 0, z: 0 };
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
+  const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  if (len === 0) return [0, 0, 0];
+  return [v[0] / len, v[1] / len, v[2] / len];
 }
 
 /**
  * Subtract two vectors
  */
 export function subtract(a: Vector3, b: Vector3): Vector3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 
 /**
  * Add two vectors
  */
 export function add(a: Vector3, b: Vector3): Vector3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
 /**
  * Scale a vector
  */
 export function scale(v: Vector3, s: number): Vector3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
+  return [v[0] * s, v[1] * s, v[2] * s];
 }
 
 /**
  * Dot product of two vectors
  */
 export function dot(a: Vector3, b: Vector3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
 /**
  * Cross product of two vectors
  */
 export function cross(a: Vector3, b: Vector3): Vector3 {
-  return {
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  };
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
 }
 
 /**
  * Linear interpolation between two vectors
  */
 export function lerp(a: Vector3, b: Vector3, t: number): Vector3 {
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t,
-  };
+  return [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ];
 }

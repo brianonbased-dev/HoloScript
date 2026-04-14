@@ -36,7 +36,7 @@ describe('clothHandler.onAttach', () => {
   it('isSimulating=true', () => expect(attach().node.__clothState.isSimulating).toBe(true));
   it('isTorn=false', () => expect(attach().node.__clothState.isTorn).toBe(false));
   it('windForce={0,0,0}', () =>
-    expect(attach().node.__clothState.windForce).toEqual({ x: 0, y: 0, z: 0 }));
+    expect(attach().node.__clothState.windForce).toEqual([0, 0, 0 ]));
   it('vertices grid is res×res', () => {
     const { node } = attach({ resolution: 4 });
     expect(node.__clothState.vertices.length).toBe(4);
@@ -95,17 +95,17 @@ describe('clothHandler.onDetach', () => {
 describe('clothHandler.onUpdate', () => {
   it('emits cloth_apply_force with scaled wind', () => {
     const { node, config, ctx } = attach({ wind_response: 0.5 });
-    node.__clothState.windForce = { x: 4, y: 0, z: 2 };
+    node.__clothState.windForce = [4, 0, 2 ];
     ctx.emit.mockClear();
     clothHandler.onUpdate!(node, config, ctx, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'cloth_apply_force',
-      expect.objectContaining({ force: { x: 2, y: 0, z: 1 } })
+      expect.objectContaining({ force: [2, 0, 1 ] })
     );
   });
   it('no cloth_apply_force when wind_response=0', () => {
     const { node, config, ctx } = attach({ wind_response: 0 });
-    node.__clothState.windForce = { x: 5, y: 0, z: 0 };
+    node.__clothState.windForce = [5, 0, 0 ];
     ctx.emit.mockClear();
     clothHandler.onUpdate!(node, config, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('cloth_apply_force', expect.any(Object));
@@ -130,16 +130,16 @@ describe('clothHandler.onEvent', () => {
     const { node, config, ctx } = attach();
     clothHandler.onEvent!(node, config, ctx, {
       type: 'wind_update',
-      direction: { x: 3, y: 0, z: -1 },
+      direction: [3, 0, -1 ],
     });
-    expect(node.__clothState.windForce).toEqual({ x: 3, y: 0, z: -1 });
+    expect(node.__clothState.windForce).toEqual([3, 0, -1 ]);
   });
   it('cloth_apply_force emits cloth_external_force with radius', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     clothHandler.onEvent!(node, config, ctx, {
       type: 'cloth_apply_force',
-      force: { x: 1, y: 0, z: 0 },
+      force: [1, 0, 0 ],
       radius: 1.5,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe('clothHandler.onEvent', () => {
     ctx.emit.mockClear();
     clothHandler.onEvent!(node, config, ctx, {
       type: 'cloth_apply_force',
-      force: { x: 1, y: 0, z: 0 },
+      force: [1, 0, 0 ],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'cloth_external_force',
@@ -247,21 +247,21 @@ describe('clothHandler.onEvent', () => {
   it('cloth_vertex_update patches vertex positions', () => {
     const { node, config, ctx } = attach({ resolution: 2 });
     const positions = [
-      { x: 1, y: 2, z: 3 },
-      { x: 4, y: 5, z: 6 },
-      { x: 7, y: 8, z: 9 },
-      { x: 10, y: 11, z: 12 },
+      [1, 2, 3 ],
+      [4, 5, 6 ],
+      [7, 8, 9 ],
+      [10, 11, 12 ],
     ];
     clothHandler.onEvent!(node, config, ctx, { type: 'cloth_vertex_update', positions });
-    expect(node.__clothState.vertices[0][0].position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(node.__clothState.vertices[0][0].position).toEqual([1, 2, 3 ]);
   });
   it('cloth_vertex_update emits cloth_mesh_update', () => {
     const { node, config, ctx } = attach({ resolution: 2 });
     const positions = [
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      { x: 0, y: 0, z: 1 },
-      { x: 1, y: 0, z: 1 },
+      [0, 0, 0 ],
+      [1, 0, 0 ],
+      [0, 0, 1 ],
+      [1, 0, 1 ],
     ];
     ctx.emit.mockClear();
     clothHandler.onEvent!(node, config, ctx, { type: 'cloth_vertex_update', positions });

@@ -60,6 +60,12 @@ export {
 // Consensus
 export * from './consensus';
 
+// Social
+export * from './social';
+
+// Multiplayer
+export * from './multiplayer';
+
 // Sync — exclude JitterBuffer (already exported from network)
 export {
   type QuantizedPosition,

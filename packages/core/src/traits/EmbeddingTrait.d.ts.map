@@ -1,0 +1,1 @@
+{"version":3,"file":"EmbeddingTrait.d.ts","sourceRoot":"","sources":["EmbeddingTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,eAAe;IAC9B,aAAa,EAAE,MAAM,CAAC;IACtB,kBAAkB,EAAE,MAAM,CAAC;CAC5B;AAED,eAAO,MAAM,gBAAgB,EAAE,YAAY,CAAC,eAAe,CA+B1D,CAAC;AAEF,eAAe,gBAAgB,CAAC"}

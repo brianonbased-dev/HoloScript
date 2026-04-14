@@ -86,8 +86,8 @@ export const spatialNavigationHandler: TraitHandler<SpatialNavigationConfig> = {
     const playerPos = context.player?.position;
     if (!playerPos) return;
 
-    const dx = playerPos.x - current.position[0];
-    const dz = playerPos.z - current.position[2];
+    const dx = playerPos[0] - current.position[0];
+    const dz = playerPos[2] - current.position[2];
     const dist = Math.sqrt(dx * dx + dz * dz);
     state.distanceToNext = dist;
 

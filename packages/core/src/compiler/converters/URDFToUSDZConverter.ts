@@ -29,7 +29,7 @@
  */
 
 import { CompilerBase } from '../CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 
 // =============================================================================
 // TYPES - Parsed URDF Intermediate Representation

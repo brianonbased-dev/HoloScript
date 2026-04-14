@@ -31,9 +31,9 @@ export function importScalarFieldCSV(csv: string): { grid: RegularGrid3D; range:
   if (points.length === 0) throw new Error('CSV: No valid data rows');
 
   // Detect unique coordinates per axis
-  const xs = [...new Set(points.map((p) => round6(p.x)))].sort((a, b) => a - b);
-  const ys = [...new Set(points.map((p) => round6(p.y)))].sort((a, b) => a - b);
-  const zs = [...new Set(points.map((p) => round6(p.z)))].sort((a, b) => a - b);
+  const xs = [...new Set(points.map((p) => round6(p[0])))].sort((a, b) => a - b);
+  const ys = [...new Set(points.map((p) => round6(p[1])))].sort((a, b) => a - b);
+  const zs = [...new Set(points.map((p) => round6(p[2])))].sort((a, b) => a - b);
 
   const nx = xs.length;
   const ny = ys.length;
@@ -53,9 +53,9 @@ export function importScalarFieldCSV(csv: string): { grid: RegularGrid3D; range:
   let min = Infinity, max = -Infinity;
 
   for (const p of points) {
-    const i = xMap.get(round6(p.x));
-    const j = yMap.get(round6(p.y));
-    const k = zMap.get(round6(p.z));
+    const i = xMap.get(round6(p[0]));
+    const j = yMap.get(round6(p[1]));
+    const k = zMap.get(round6(p[2]));
     if (i !== undefined && j !== undefined && k !== undefined) {
       grid.set(i, j, k, p.v);
       if (p.v < min) min = p.v;

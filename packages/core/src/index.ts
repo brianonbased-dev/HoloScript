@@ -1,3 +1,4 @@
+import type { Vector3 } from '../types';
 /**
  * @holoscript/core
  *
@@ -37,6 +38,41 @@ import { HoloScriptRuntime } from './HoloScriptRuntime';
 
 // Composition Parser (Tier 3 migration from Hololand — pure language-level AST traversal)
 export * from './legacy-exports';
+
+// HoloScript+ Runtime (Phase 1)
+export type {
+  HSPlusRuntime,
+  HSPlusNode,
+  HSPlusAST,
+  HSPlusBuiltins,
+  StateDeclaration,
+  VRHand,
+  Vector3,
+  Quaternion,
+  Color,
+  Transform,
+  ReactiveState,
+  ThrowVelocity,
+  CollisionEvent,
+} from './types/HoloScriptPlus';
+export type {
+  HSPlusDirective,
+  HSPlusIfDirective,
+  HSPlusForDirective,
+  HSPlusWhileDirective,
+  HSPlusForEachDirective,
+  HSPlusStateDirective,
+  HSPlusTraitDirective,
+} from './types/AdvancedTypeSystem';
+
+// Engine primitives (Phase 2)
+export { World, ComponentRegistry } from '@holoscript/engine/ecs';
+
+// Trait System types
+export { TraitContext, TraitEvent, type RaycastHit } from './traits/TraitTypes';
+
+// Neural Streaming types (Pillar 2)
+export type { INeuralSplatPacket, INeuralPacket } from '@holoscript/mesh';
 // Version is now exported from './version' (build-time injected)
 
 // Logger utilities
@@ -717,13 +753,8 @@ export type {
 // ═══════════════════════════════════════════════════════════════════
 
 export { EffectRow } from './types/effects';
-export type {
-  VREffect,
-  EffectCategory,
-  EffectViolation,
-  EffectViolationSeverity,
-  EffectDeclaration,
-} from './types/effects';
+export * from './types/effects';
+export type { VREffect } from './types/effects';
 
 export {
   TRAIT_EFFECTS,
@@ -779,7 +810,6 @@ export {
 } from './compiler/safety/SafetyReport';
 export type { SafetyReport, SafetyVerdict } from './compiler/safety/SafetyReport';
 
-export type { EffectCertificate, EffectTrustLevel } from './types/effects';
 
 // Linear Resource Types (Layer 6 — Move-inspired ownership)
 export {
@@ -1640,3 +1670,4 @@ export {
 } from './events/EventBus';
 // Analysis 
 // Exported via legacy-exports.ts
+export { WebRTCTransport } from '@holoscript/mesh';

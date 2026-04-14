@@ -74,7 +74,7 @@ describe('AltTextTrait', () => {
   });
 
   it('spatial context appends position', () => {
-    node.position = { x: 1, y: 2, z: 3 };
+    node.position = [1, 2, 3 ];
     const spatialCfg = { ...cfg, include_spatial: true };
     sendEvent(altTextHandler, node, spatialCfg, ctx, { type: 'alt_text_query', queryId: 'q3' });
     const resp = getLastEvent(ctx, 'alt_text_response');

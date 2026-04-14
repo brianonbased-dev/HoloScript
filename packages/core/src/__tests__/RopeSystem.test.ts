@@ -25,9 +25,9 @@ describe('RopeSystem', () => {
   it('nodes are interpolated between start and end', () => {
     rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { segmentCount: 2 });
     const nodes = rs.getRopeNodes('r1');
-    expect(nodes[0].position.x).toBeCloseTo(0);
-    expect(nodes[1].position.x).toBeCloseTo(5);
-    expect(nodes[2].position.x).toBeCloseTo(10);
+    expect(nodes[0].position[0]).toBeCloseTo(0);
+    expect(nodes[1].position[0]).toBeCloseTo(5);
+    expect(nodes[2].position[0]).toBeCloseTo(10);
   });
 
   it('pinNode prevents movement', () => {
@@ -51,9 +51,9 @@ describe('RopeSystem', () => {
 
   it('update applies gravity to unpinned nodes', () => {
     rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 10, y: 10, z: 0 }, { segmentCount: 2 });
-    const yBefore = rs.getRopeNodes('r1')[1].position.y;
+    const yBefore = rs.getRopeNodes('r1')[1].position[1];
     rs.update(0.1);
-    const yAfter = rs.getRopeNodes('r1')[1].position.y;
+    const yAfter = rs.getRopeNodes('r1')[1].position[1];
     // Gravity pulls down (default y=-9.81)
     expect(yAfter).toBeLessThan(yBefore);
   });

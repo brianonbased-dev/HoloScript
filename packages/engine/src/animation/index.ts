@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 export {
   AnimClip,
   type InterpolationMode,

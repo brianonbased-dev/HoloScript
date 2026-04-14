@@ -135,10 +135,10 @@ export class InputManager {
   // ---------------------------------------------------------------------------
 
   setMousePosition(x: number, y: number): void {
-    this.mouse.deltaX = x - this.mouse.x;
-    this.mouse.deltaY = y - this.mouse.y;
-    this.mouse.x = x;
-    this.mouse.y = y;
+    this.mouse.deltaX = x - this.mouse[0];
+    this.mouse.deltaY = y - this.mouse[1];
+    this.mouse[0] = x;
+    this.mouse[1] = y;
   }
 
   mouseButtonDown(button: number): void {
@@ -163,7 +163,7 @@ export class InputManager {
   }
 
   getMousePosition(): { x: number; y: number } {
-    return { x: this.mouse.x, y: this.mouse.y };
+    return { x: this.mouse[0], y: this.mouse[1] };
   }
 
   getMouseDelta(): { x: number; y: number } {

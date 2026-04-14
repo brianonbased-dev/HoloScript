@@ -1,4 +1,5 @@
-﻿/**
+import type { Vector3 } from '../types';
+/**
  * BodyTracking Trait
  *
  * Full-body skeleton tracking for avatars and motion capture.
@@ -43,7 +44,7 @@ interface JointPose {
   position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   confidence: number;
-  velocity?: { x: number; y: number; z: number };
+  velocity?: Vector3;
 }
 
 interface BodyTrackingState {
@@ -117,12 +118,16 @@ function smoothPose(current: JointPose, prev: JointPose, smoothing: number): Joi
   const s = smoothing;
   const inv = 1 - s;
   return {
-    position: [prev.position.x * s + current.position.x * inv, prev.position.y * s + current.position.y * inv, prev.position.z * s + current.position.z * inv,],
+    position: [
+      prev.position[0] * s + current.position[0] * inv,
+      prev.position[1] * s + current.position[1] * inv,
+      prev.position[2] * s + current.position[2] * inv,
+    ],
     rotation: {
-      x: prev.rotation.x * s + current.rotation.x * inv,
-      y: prev.rotation.y * s + current.rotation.y * inv,
-      z: prev.rotation.z * s + current.rotation.z * inv,
-      w: prev.rotation.w * s + current.rotation.w * inv,
+      x: prev.rotation[0] * s + current.rotation[0] * inv,
+      y: prev.rotation[1] * s + current.rotation[1] * inv,
+      z: prev.rotation[2] * s + current.rotation[2] * inv,
+      w: prev.rotation[3] * s + current.rotation[3] * inv,
     },
     confidence: current.confidence,
     velocity: current.velocity,
@@ -244,12 +249,12 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
       const rightHand = state.joints.get('hand_right');
 
       if (head && feet) {
-        state.bodyHeight = head.position.y - feet.position.y;
+        state.bodyHeight = head.position[1] - feet.position[1];
       }
       if (leftHand && rightHand) {
-        const dx = rightHand.position.x - leftHand.position.x;
-        const dy = rightHand.position.y - leftHand.position.y;
-        const dz = rightHand.position.z - leftHand.position.z;
+        const dx = rightHand.position[0] - leftHand.position[0];
+        const dy = rightHand.position[1] - leftHand.position[1];
+        const dz = rightHand.position[2] - leftHand.position[2];
         state.armSpan = Math.sqrt(dx * dx + dy * dy + dz * dz);
       }
       state.calibrated = true;

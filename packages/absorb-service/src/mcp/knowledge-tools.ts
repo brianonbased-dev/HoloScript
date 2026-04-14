@@ -133,8 +133,8 @@ export async function handleKnowledgeToolCall(
       const { eq } = await import('drizzle-orm');
       const now = new Date();
 
-      // @ts-ignore - Automatic remediation for TS2339
-      await deps.db.insert(knowledgeEntries).values({
+      const db = deps.db as any;
+      await db.insert(knowledgeEntries).values({
         id: input.id,
         workspaceId: input.workspace_id,
         walletAddress: input.wallet_address || null,
@@ -191,12 +191,10 @@ export async function handleKnowledgeToolCall(
         conditions.push(eq(knowledgeEntries.type, input.type));
       }
 
-      // @ts-ignore - Automatic remediation for TS2345
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const where = conditions.length > 0 ? and(...(conditions as any)) : undefined;
 
        
-      // @ts-ignore - Automatic remediation for TS2571
-      const rows: Record<string, unknown>[] = await (deps.db as Record<string, unknown> & { select: () => unknown })
+      const rows: any[] = await (deps.db as any)
         .select()
         .from(knowledgeEntries)
         .where(where)
@@ -230,7 +228,6 @@ export async function handleKnowledgeToolCall(
             if (deducted && row.walletAddress) {
               // 80% to author, 20% platform
               const authorShare = Math.floor(cost * 0.8);
-              // @ts-ignore - Automatic remediation for TS2345
               await deps.addCredits(row.walletAddress, authorShare, `knowledge_revenue:${row.id}`);
               totalCostCents += cost;
 

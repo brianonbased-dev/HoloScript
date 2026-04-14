@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * PBDSolver.ts
  *
@@ -60,7 +61,7 @@ struct SimParams {
 
 @compute @workgroup_size(256)
 fn cs_predict(@builtin(global_invocation_id) gid: vec3u) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let mass = masses[idx];
@@ -86,9 +87,9 @@ fn cs_predict(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   // Store predicted position
-  predicted[i3]      = pos.x;
-  predicted[i3 + 1u] = pos.y;
-  predicted[i3 + 2u] = pos.z;
+  predicted[i3]      = pos[0];
+  predicted[i3 + 1u] = pos[1];
+  predicted[i3 + 2u] = pos[2];
 }
 `;
 
@@ -117,7 +118,7 @@ struct SolveParams {
 
 @compute @workgroup_size(256)
 fn cs_solve_distance(@builtin(global_invocation_id) gid: vec3u) {
-  let cIdx = gid.x;
+  let cIdx = gid[0];
   if (cIdx >= params.numConstraints) { return; }
 
   let c = constraints[cIdx];
@@ -149,14 +150,14 @@ fn cs_solve_distance(@builtin(global_invocation_id) gid: vec3u) {
 
   // Apply corrections
   if (invMassA > 0.0) {
-    predicted[iA]      -= correction.x * invMassA;
-    predicted[iA + 1u] -= correction.y * invMassA;
-    predicted[iA + 2u] -= correction.z * invMassA;
+    predicted[iA]      -= correction[0] * invMassA;
+    predicted[iA + 1u] -= correction[1] * invMassA;
+    predicted[iA + 2u] -= correction[2] * invMassA;
   }
   if (invMassB > 0.0) {
-    predicted[iB]      += correction.x * invMassB;
-    predicted[iB + 1u] += correction.y * invMassB;
-    predicted[iB + 2u] += correction.z * invMassB;
+    predicted[iB]      += correction[0] * invMassB;
+    predicted[iB + 1u] += correction[1] * invMassB;
+    predicted[iB + 2u] += correction[2] * invMassB;
   }
 }
 `;
@@ -194,14 +195,14 @@ fn loadPos(idx: u32) -> vec3f {
 
 fn storePos(idx: u32, p: vec3f) {
   let i = idx * 3u;
-  predicted[i]      = p.x;
-  predicted[i + 1u] = p.y;
-  predicted[i + 2u] = p.z;
+  predicted[i]      = p[0];
+  predicted[i + 1u] = p[1];
+  predicted[i + 2u] = p[2];
 }
 
 @compute @workgroup_size(64)
 fn cs_solve_volume(@builtin(global_invocation_id) gid: vec3u) {
-  let cIdx = gid.x;
+  let cIdx = gid[0];
   if (cIdx >= params.numConstraints) { return; }
 
   let c = constraints[cIdx];
@@ -276,7 +277,7 @@ fn sampleSDF(pos: vec3f) -> f32 {
   let f = fract(local);
 
   // Trilinear interpolation
-  let idx000 = gi.x + gi.y * params.gridSizeX + gi.z * params.gridSizeX * params.gridSizeY;
+  let idx000 = gi[0] + gi[1] * params.gridSizeX + gi[2] * params.gridSizeX * params.gridSizeY;
   let idx100 = idx000 + 1u;
   let idx010 = idx000 + params.gridSizeX;
   let idx110 = idx010 + 1u;
@@ -285,13 +286,13 @@ fn sampleSDF(pos: vec3f) -> f32 {
   let idx011 = idx001 + params.gridSizeX;
   let idx111 = idx011 + 1u;
 
-  let c00 = mix(sdfData[idx000], sdfData[idx100], f.x);
-  let c10 = mix(sdfData[idx010], sdfData[idx110], f.x);
-  let c01 = mix(sdfData[idx001], sdfData[idx101], f.x);
-  let c11 = mix(sdfData[idx011], sdfData[idx111], f.x);
-  let c0 = mix(c00, c10, f.y);
-  let c1 = mix(c01, c11, f.y);
-  return mix(c0, c1, f.z);
+  let c00 = mix(sdfData[idx000], sdfData[idx100], f[0]);
+  let c10 = mix(sdfData[idx010], sdfData[idx110], f[0]);
+  let c01 = mix(sdfData[idx001], sdfData[idx101], f[0]);
+  let c11 = mix(sdfData[idx011], sdfData[idx111], f[0]);
+  let c0 = mix(c00, c10, f[1]);
+  let c1 = mix(c01, c11, f[1]);
+  return mix(c0, c1, f[2]);
 }
 
 fn sdfGradient(pos: vec3f) -> vec3f {
@@ -305,7 +306,7 @@ fn sdfGradient(pos: vec3f) -> vec3f {
 
 @compute @workgroup_size(256)
 fn cs_solve_collision(@builtin(global_invocation_id) gid: vec3u) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
   if (masses[idx] <= 0.0) { return; }
 
@@ -323,9 +324,9 @@ fn cs_solve_collision(@builtin(global_invocation_id) gid: vec3u) {
 
     // Push vertex out along SDF gradient
     let correction = normal * penetration;
-    predicted[i3]      += correction.x;
-    predicted[i3 + 1u] += correction.y;
-    predicted[i3 + 2u] += correction.z;
+    predicted[i3]      += correction[0];
+    predicted[i3 + 1u] += correction[1];
+    predicted[i3 + 2u] += correction[2];
   }
 }
 `;
@@ -348,7 +349,7 @@ struct VelParams {
 
 @compute @workgroup_size(256)
 fn cs_update_velocity(@builtin(global_invocation_id) gid: vec3u) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let i3 = idx * 3u;
@@ -375,7 +376,7 @@ struct FinalizeParams {
 
 @compute @workgroup_size(256)
 fn cs_finalize(@builtin(global_invocation_id) gid: vec3u) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let i3 = idx * 3u;
@@ -409,14 +410,14 @@ fn loadPos(idx: u32) -> vec3f {
 fn atomicAddNormal(vertIdx: u32, n: vec3f) {
   let i = vertIdx * 3u;
   let scale = 1000000.0;
-  atomicAdd(&normals[i],      i32(n.x * scale));
-  atomicAdd(&normals[i + 1u], i32(n.y * scale));
-  atomicAdd(&normals[i + 2u], i32(n.z * scale));
+  atomicAdd(&normals[i],      i32(n[0] * scale));
+  atomicAdd(&normals[i + 1u], i32(n[1] * scale));
+  atomicAdd(&normals[i + 2u], i32(n[2] * scale));
 }
 
 @compute @workgroup_size(256)
 fn cs_compute_normals(@builtin(global_invocation_id) gid: vec3u) {
-  let triIdx = gid.x;
+  let triIdx = gid[0];
   if (triIdx >= params.numTriangles) { return; }
 
   let i0 = indices[triIdx * 3u];
@@ -450,7 +451,7 @@ struct NormalizeParams {
 
 @compute @workgroup_size(256)
 fn cs_normalize_normals(@builtin(global_invocation_id) gid: vec3u) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let i3 = idx * 3u;
@@ -468,9 +469,9 @@ fn cs_normalize_normals(@builtin(global_invocation_id) gid: vec3u) {
     n = vec3f(0.0, 1.0, 0.0);
   }
 
-  normalsF32[i3]      = n.x;
-  normalsF32[i3 + 1u] = n.y;
-  normalsF32[i3 + 2u] = n.z;
+  normalsF32[i3]      = n[0];
+  normalsF32[i3 + 1u] = n[1];
+  normalsF32[i3 + 2u] = n[2];
 
   // Reset atomic accumulator for next frame
   normalsI32[i3]      = 0;
@@ -513,14 +514,14 @@ fn loadPos(i: u32) -> vec3<f32> {
 }
 
 fn storePos(i: u32, p: vec3<f32>) {
-  positions[i * 3u] = p.x;
-  positions[i * 3u + 1u] = p.y;
-  positions[i * 3u + 2u] = p.z;
+  positions[i * 3u] = p[0];
+  positions[i * 3u + 1u] = p[1];
+  positions[i * 3u + 2u] = p[2];
 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numConstraints) { return; }
 
   // v0-v1 = shared edge, v2 = opposite on face 1, v3 = opposite on face 2
@@ -637,7 +638,7 @@ struct Params {
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numConstraints) { return; }
 
   let vi = vertexIndices[idx];
@@ -735,7 +736,7 @@ fn loadPos(idx: u32) -> vec3f {
 
 @compute @workgroup_size(256)
 fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
-  let pIdx = gid.x;
+  let pIdx = gid[0];
   if (pIdx >= params.numParticles) { return; }
 
   let vi = particleIdx[pIdx];
@@ -783,7 +784,7 @@ fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
 
 @compute @workgroup_size(256)
 fn cs_apply_density(@builtin(global_invocation_id) gid: vec3u) {
-  let pIdx = gid.x;
+  let pIdx = gid[0];
   if (pIdx >= params.numParticles) { return; }
 
   let vi = particleIdx[pIdx];
@@ -808,9 +809,9 @@ fn cs_apply_density(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   let i3 = vi * 3u;
-  predicted[i3]      += correction.x;
-  predicted[i3 + 1u] += correction.y;
-  predicted[i3 + 2u] += correction.z;
+  predicted[i3]      += correction[0];
+  predicted[i3 + 1u] += correction[1];
+  predicted[i3 + 2u] += correction[2];
 }
 `;
 
@@ -851,7 +852,7 @@ fn hashCell(ix: u32, iy: u32, iz: u32) -> u32 {
 
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let px = positions[idx * 3u];
@@ -911,7 +912,7 @@ fn hashCell(ix: u32, iy: u32, iz: u32) -> u32 {
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
+  let idx = gid[0];
   if (idx >= params.numVertices) { return; }
 
   let mi = masses[idx];
@@ -1408,8 +1409,8 @@ export function generateSDF(
     bodyId: 'sdf_' + Date.now(),
     gridSize: [gx, gy, gz],
     sdfData,
-    boundsMin: { x: minX, y: minY, z: minZ },
-    boundsMax: { x: maxX, y: maxY, z: maxZ },
+    boundsMin: [minX, minY, minZ ],
+    boundsMax: [maxX, maxY, maxZ ],
     cellSize,
     friction: 0.5,
   };
@@ -1542,7 +1543,7 @@ export class PBDSolverCPU {
       volume: 0,
       restVolume: 0,
       deformationAmount: 0,
-      centerOfMass: { x: 0, y: 0, z: 0 },
+      centerOfMass: [0, 0, 0 ],
       isActive: true,
     };
 
@@ -1680,16 +1681,16 @@ export class PBDSolverCPU {
 
     for (let i = 0; i < numVerts; i++) {
       if (masses[i] <= 0) continue;
-      const dx = pos[i * 3] - position.x;
-      const dy = pos[i * 3 + 1] - position.y;
-      const dz = pos[i * 3 + 2] - position.z;
+      const dx = pos[i * 3] - position[0];
+      const dy = pos[i * 3 + 1] - position[1];
+      const dz = pos[i * 3 + 2] - position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist < radius) {
         const falloff = 1 - dist / radius;
         const invMass = 1 / masses[i];
-        vel[i * 3] += force.x * falloff * invMass;
-        vel[i * 3 + 1] += force.y * falloff * invMass;
-        vel[i * 3 + 2] += force.z * falloff * invMass;
+        vel[i * 3] += force[0] * falloff * invMass;
+        vel[i * 3 + 1] += force[1] * falloff * invMass;
+        vel[i * 3 + 2] += force[2] * falloff * invMass;
       }
     }
   }
@@ -1705,12 +1706,12 @@ export class PBDSolverCPU {
     const masses = this.config.masses;
     const numVerts = positions.length / 3;
 
-    const gx = gravity?.x ?? 0;
-    const gy = gravity?.y ?? -9.81;
-    const gz = gravity?.z ?? 0;
-    const wx = wind?.x ?? 0;
-    const wy = wind?.y ?? 0;
-    const wz = wind?.z ?? 0;
+    const gx = gravity?.[0] ?? 0;
+    const gy = gravity?.[1] ?? -9.81;
+    const gz = gravity?.[2] ?? 0;
+    const wx = wind?.[0] ?? 0;
+    const wy = wind?.[1] ?? 0;
+    const wz = wind?.[2] ?? 0;
 
     // [1] Apply forces + predict
     for (let i = 0; i < numVerts; i++) {
@@ -1817,7 +1818,7 @@ export class PBDSolverCPU {
     }
     this.state.deformationAmount = totalDeform / numVerts;
     if (totalMass > 0) {
-      this.state.centerOfMass = { x: comX / totalMass, y: comY / totalMass, z: comZ / totalMass };
+      this.state.centerOfMass = [comX / totalMass, comY / totalMass, comZ / totalMass ];
     }
 
     // [6] Recompute normals
@@ -2093,9 +2094,9 @@ export class PBDSolverCPU {
     const px = pred[i3],
       py = pred[i3 + 1],
       pz = pred[i3 + 2];
-    const tx = c.targetPosition.x,
-      ty = c.targetPosition.y,
-      tz = c.targetPosition.z;
+    const tx = c.targetPosition[0],
+      ty = c.targetPosition[1],
+      tz = c.targetPosition[2];
 
     // Hard pin when compliance=0 or mass=0
     if (c.compliance <= 0 || m <= 0) {
@@ -2351,19 +2352,19 @@ export class PBDSolverCPU {
         pz = pred[i * 3 + 2];
 
       if (
-        px < boundsMin.x ||
-        px > boundsMax.x ||
-        py < boundsMin.y ||
-        py > boundsMax.y ||
-        pz < boundsMin.z ||
-        pz > boundsMax.z
+        px < boundsMin[0] ||
+        px > boundsMax[0] ||
+        py < boundsMin[1] ||
+        py > boundsMax[1] ||
+        pz < boundsMin[2] ||
+        pz > boundsMax[2]
       )
         continue;
 
       // Sample SDF via trilinear interpolation
-      const lx = (px - boundsMin.x) / cellSize;
-      const ly = (py - boundsMin.y) / cellSize;
-      const lz = (pz - boundsMin.z) / cellSize;
+      const lx = (px - boundsMin[0]) / cellSize;
+      const ly = (py - boundsMin[1]) / cellSize;
+      const lz = (pz - boundsMin[2]) / cellSize;
       const gix = Math.min(Math.max(Math.floor(lx), 0), gridSize[0] - 2);
       const giy = Math.min(Math.max(Math.floor(ly), 0), gridSize[1] - 2);
       const giz = Math.min(Math.max(Math.floor(lz), 0), gridSize[2] - 2);
@@ -2389,9 +2390,9 @@ export class PBDSolverCPU {
         // Compute gradient (finite difference)
         const eps = cellSize * 0.5;
         const sampleAt = (ox: number, oy: number, oz: number) => {
-          const sx = (px + ox - boundsMin.x) / cellSize;
-          const sy = (py + oy - boundsMin.y) / cellSize;
-          const sz = (pz + oz - boundsMin.z) / cellSize;
+          const sx = (px + ox - boundsMin[0]) / cellSize;
+          const sy = (py + oy - boundsMin[1]) / cellSize;
+          const sz = (pz + oz - boundsMin[2]) / cellSize;
           const si =
             Math.min(Math.max(Math.floor(sx), 0), gridSize[0] - 1) +
             Math.min(Math.max(Math.floor(sy), 0), gridSize[1] - 1) * stride +
@@ -2550,7 +2551,7 @@ export class PBDSolverGPU {
       volume: 0,
       restVolume: 0,
       deformationAmount: 0,
-      centerOfMass: { x: 0, y: 0, z: 0 },
+      centerOfMass: [0, 0, 0 ],
       isActive: true,
     };
   }
@@ -2745,9 +2746,9 @@ export class PBDSolverGPU {
 
     // Update Uniforms
     const simParams = new Float32Array([
-      gravity?.x ?? 0,
-      gravity?.y ?? -9.81,
-      gravity?.z ?? 0,
+      gravity?.[0] ?? 0,
+      gravity?.[1] ?? -9.81,
+      gravity?.[2] ?? 0,
       dt,
       0,
       0,

@@ -1,3 +1,4 @@
+import type { Vector3 } from '@holoscript/core';
 /**
  * AudioEngine.ts
  *
@@ -18,7 +19,7 @@ export type DistanceModel = 'linear' | 'inverse' | 'exponential';
 
 export interface AudioSourceConfig {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: Vector3;
   volume: number; // 0-1
   pitch: number; // Playback rate multiplier
   loop: boolean;
@@ -40,9 +41,9 @@ export interface AudioSource {
 }
 
 export interface ListenerState {
-  position: { x: number; y: number; z: number };
-  forward: { x: number; y: number; z: number };
-  up: { x: number; y: number; z: number };
+  position: Vector3;
+  forward: Vector3;
+  up: Vector3;
 }
 
 // =============================================================================
@@ -73,26 +74,26 @@ function computeAttenuation(
 }
 
 function vec3Dist(
-  a: { x: number; y: number; z: number },
-  b: { x: number; y: number; z: number }
+  a: Vector3,
+  b: Vector3
 ): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 function computePan(
   listener: ListenerState,
-  sourcePos: { x: number; y: number; z: number }
+  sourcePos: Vector3
 ): number {
   // Project source position onto listener's left-right axis
   // Right = cross(forward, up)
-  const rx = listener.forward.y * listener.up.z - listener.forward.z * listener.up.y;
-  const rz = listener.forward.x * listener.up.y - listener.forward.y * listener.up.x;
+  const rx = listener.forward[1] * listener.up[2] - listener.forward[2] * listener.up[1];
+  const rz = listener.forward[0] * listener.up[1] - listener.forward[1] * listener.up[0];
 
-  const dx = sourcePos.x - listener.position.x;
-  const dz = sourcePos.z - listener.position.z;
+  const dx = sourcePos[0] - listener.position[0];
+  const dz = sourcePos[2] - listener.position[2];
 
   const dist = Math.sqrt(dx * dx + dz * dz);
   if (dist < 0.001) return 0;
@@ -112,9 +113,9 @@ function computePan(
 export class AudioEngine {
   private sources: Map<string, AudioSource> = new Map();
   private listener: ListenerState = {
-    position: { x: 0, y: 0, z: 0 },
-    forward: { x: 0, y: 0, z: -1 },
-    up: { x: 0, y: 1, z: 0 },
+    position: [0, 0, 0 ],
+    forward: [0, 0, -1 ],
+    up: [0, 1, 0 ],
   };
   private masterVolume: number = 1.0;
   private muted: boolean = false;
@@ -122,20 +123,24 @@ export class AudioEngine {
   /**
    * Update the listener position (typically from VR headset).
    */
-  setListenerPosition(pos: { x: number; y: number; z: number }): void {
-    this.listener.position = { ...pos };
+  setListenerPosition(pos: Vector3): void {
+    this.listener.position = [...pos ];
   }
 
   setListenerOrientation(
-    forward: { x: number; y: number; z: number },
-    up: { x: number; y: number; z: number }
+    forward: Vector3,
+    up: Vector3
   ): void {
-    this.listener.forward = { ...forward };
-    this.listener.up = { ...up };
+    this.listener.forward = [...forward ];
+    this.listener.up = [...up ];
   }
 
   getListener(): ListenerState {
-    return { ...this.listener };
+    return {
+      position: [...this.listener.position ],
+      forward: [...this.listener.forward ],
+      up: [...this.listener.up ],
+    };
   }
 
   /**
@@ -146,7 +151,7 @@ export class AudioEngine {
 
     const fullConfig: AudioSourceConfig = {
       id,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0 ],
       volume: 1,
       pitch: 1,
       loop: false,
@@ -186,9 +191,9 @@ export class AudioEngine {
   /**
    * Update a source's position.
    */
-  setSourcePosition(sourceId: string, pos: { x: number; y: number; z: number }): void {
+  setSourcePosition(sourceId: string, pos: Vector3): void {
     const source = this.sources.get(sourceId);
-    if (source) source.config.position = { ...pos };
+    if (source) source.config.position = [...pos ];
   }
 
   /**
