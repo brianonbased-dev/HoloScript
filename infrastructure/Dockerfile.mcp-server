@@ -9,11 +9,15 @@ FROM node:20-alpine AS base
 ARG PNPM_VERSION
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
-# Collect all package.json for full workspace lockfile resolution
+# Collect all package manifests (package.json + tsconfig*.json) for workspace-aware install
+# tsconfig.json files are included so TypeScript project references resolve for all packages,
+# including those not explicitly COPY'd in the builder stage.
 FROM base AS manifests
 WORKDIR /app
 COPY . .
-RUN find packages services benchmarks -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+RUN find packages services benchmarks \( -name "package.json" -o -name "tsconfig*.json" \) \
+  -not -path "*/node_modules/*" \
+  -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
 
 FROM base AS builder
 WORKDIR /app

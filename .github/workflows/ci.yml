@@ -128,11 +128,11 @@ jobs:
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v6
-        if: always()
+        if: ${{ always() && secrets.CODECOV_TOKEN != '' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info,./packages/*/coverage/lcov.info
-          fail_ci_if_error: false  # Codecov is informational — third-party outages should not block CI
+          fail_ci_if_error: false  # Codecov is informational — outages and missing tokens should not block CI
           verbose: true
           flags: ${{ matrix.package || 'all' }}
 
@@ -414,10 +414,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dockerfile: [mcp-server, absorb-service]
+        include:
+          - path: infrastructure/Dockerfile.mcp-server
+            target: builder
+          - path: infrastructure/Dockerfile.absorb-service
+            target: builder
+          - path: infrastructure/Dockerfile.export-api
+            target: builder
+          - path: services/holoscript-net/Dockerfile
+            target: builder
     steps:
       - uses: actions/checkout@v6
 
       - name: Build Docker Image (Builder Stage)
-        run: docker build -f infrastructure/Dockerfile.${{ matrix.dockerfile }} --target builder .
+        run: docker build -f ${{ matrix.path }} --target ${{ matrix.target }} .
+
+  docker-compose-validate:
+    name: Validate Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate docker-compose.yml syntax
+        run: docker compose -f docker-compose.yml config --quiet
 

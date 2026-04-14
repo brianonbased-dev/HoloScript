@@ -5,9 +5,11 @@ version: '3.8'
 #
 # Services:
 #   studio     - Frontend (port 3100) — scene editor, node graph, 3D viewport
-#   studio-api - Backend API (port 3105) — 70 REST routes, auth, MCP proxy
-#   academy    - Tutorial app (port 3102) — Learn/Play modes
+#   mcp-server - HoloScript MCP tools (port 3101) — compilation, generation, parsing
 #   postgres   - Database (port 5432) — session storage, projects, assets
+#
+# Secrets: copy .env.example to .env.local and set HOLOSCRIPT_API_KEY + HOLOMESH_API_KEY
+# Local MCP: studio talks to the mcp-server container via HOLOSCRIPT_MCP_URL
 
 services:
   postgres:
@@ -26,23 +28,26 @@ services:
       timeout: 3s
       retries: 5
 
-  studio-api:
+  mcp-server:
     build:
       context: .
-      dockerfile: services/studio-api/Dockerfile
+      dockerfile: infrastructure/Dockerfile.mcp-server
     ports:
-      - '3105:3105'
+      - '3101:3000'
     environment:
-      - DATABASE_URL=postgresql://holoscript:holoscript_dev@postgres:5432/holoscript_studio
-      - NEXTAUTH_SECRET=dev-secret-change-in-production
-      - NEXTAUTH_URL=http://localhost:3105
-      - MCP_ORCHESTRATOR_URL=${MCP_ORCHESTRATOR_URL:-https://mcp-orchestrator-production-45f9.up.railway.app}
-      - HOLOSCRIPT_API_KEY=${HOLOSCRIPT_API_KEY:-}
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - NODE_ENV=development
+      - PORT=3000
+      - HOLOSCRIPT_CACHE_DIR=/app/.holoscript
+    env_file:
+      - path: .env.local
+        required: false
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3000/health\",(r)=>process.exit(r.statusCode===200?0:1))"']
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
 
   studio:
     build:
@@ -50,12 +55,19 @@ services:
       dockerfile: packages/studio/Dockerfile
     ports:
       - '3100:3000'
-    environment:
-      - NEXT_PUBLIC_API_URL=http://studio-api:3105
-      - NEXT_PUBLIC_STUDIO_URL=http://localhost:3100
-      - NEXT_PUBLIC_ACADEMY_URL=http://localhost:3102
     depends_on:
-      - studio-api
+      postgres:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3100/api
+      - NEXT_PUBLIC_STUDIO_URL=http://localhost:3100
+      - HOLOSCRIPT_MCP_URL=http://mcp-server:3000
+      - DATABASE_URL=postgresql://holoscript:holoscript_dev@postgres:5432/holoscript_studio
+    env_file:
+      - path: .env.local
+        required: false
 
 volumes:
   pgdata:

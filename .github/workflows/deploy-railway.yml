@@ -88,6 +88,13 @@ jobs:
             exit 1
           fi
 
+      - name: Validate HOLOSCRIPT_API_KEY secret
+        run: |
+          if [ -z "${{ secrets.HOLOSCRIPT_API_KEY }}" ]; then
+            echo "❌ HOLOSCRIPT_API_KEY secret is missing. Studio/Absorb deploys require it."
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -174,6 +181,13 @@ jobs:
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+
+      - name: Ensure HOLOSCRIPT_API_KEY on studio service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway variables --set "HOLOSCRIPT_API_KEY=${{ secrets.HOLOSCRIPT_API_KEY }}" --service studio || \
+          railway variables set HOLOSCRIPT_API_KEY="${{ secrets.HOLOSCRIPT_API_KEY }}" --service studio
 
       - name: Deploy HoloScript Studio
         env:
@@ -336,6 +350,13 @@ jobs:
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+
+      - name: Ensure HOLOSCRIPT_API_KEY on absorb-service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway variables --set "HOLOSCRIPT_API_KEY=${{ secrets.HOLOSCRIPT_API_KEY }}" --service absorb-service || \
+          railway variables set HOLOSCRIPT_API_KEY="${{ secrets.HOLOSCRIPT_API_KEY }}" --service absorb-service
 
       - name: Deploy Absorb Service
         env:
