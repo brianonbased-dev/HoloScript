@@ -291,7 +291,7 @@ app.use('/api/workspaces', workspacesRouter);
 const BOOTSTRAP_TOKEN = process.env.REGISTRY_BOOTSTRAP_TOKEN;
 if (BOOTSTRAP_TOKEN) {
   // Create an admin token for initial setup
-  const { _rawToken } = tokenManager.create({
+  const { rawToken } = tokenManager.create({
     name: 'bootstrap-admin',
     orgScope: 'holoscript',
     permissions: ['admin'],

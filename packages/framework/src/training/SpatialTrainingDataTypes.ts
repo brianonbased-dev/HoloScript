@@ -44,7 +44,7 @@ export interface SceneObject {
   /** Object type (e.g., 'cube', 'sphere', 'zone', 'npc') */
   type: string;
   /** 3D position */
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   /** 3D scale */
   scale: { x: number; y: number; z: number };
   /** Bounding box (for containment checks) */

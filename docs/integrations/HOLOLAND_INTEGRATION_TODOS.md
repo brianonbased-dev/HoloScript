@@ -193,7 +193,7 @@ HoloScript needs to support Hololand's vision of a browser-accessible metaverse 
 
 #### 🔧 MEDIUM PRIORITY: Update AgentTypes.ts
 
-**File**: `packages/core/src/agents/AgentTypes.ts`
+**File**: `packages/marketplace-api/src/types/AgentTypes.ts`
 
 **TODO**:
 

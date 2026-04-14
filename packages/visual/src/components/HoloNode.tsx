@@ -4,7 +4,7 @@
  * Custom React Flow node component for HoloScript nodes.
  */
 
-import React, { memo, _useCallback } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import type { HoloNodeData, PortDefinition } from '../types';
 import { CATEGORY_COLORS } from '../types';
@@ -88,7 +88,7 @@ OutputHandle.displayName = 'OutputHandle';
 /**
  * HoloNode component
  */
-const HoloNode: React.FC<HoloNodeProps> = ({ _id, data, selected }) => {
+const HoloNode: React.FC<HoloNodeProps> = ({ id: _id, data, selected }) => {
   const categoryColor = CATEGORY_COLORS[data.category];
 
   return (

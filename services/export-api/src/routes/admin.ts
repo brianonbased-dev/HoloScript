@@ -14,6 +14,7 @@ import { authorize } from '../middleware/authorize.js';
 import { validateBody } from '../middleware/validateBody.js';
 import { generateApiKey } from '../middleware/authenticate.js';
 import { auditService } from '../services/auditService.js';
+import { apiKeyStore } from '../services/apiKeyStore.js';
 import { _logger } from '../utils/logger.js';
 import { logSecurityEvent } from '../utils/logger.js';
 
@@ -40,8 +41,7 @@ adminRouter.post(
 
     const { raw, hash } = generateApiKey();
 
-    // TODO: Store hash, name, role, expiresAt in database
-    // await db.apiKeys.create({ hash, name, role, expiresAt, createdBy: req.identity.sub });
+    apiKeyStore.create(hash, name, role, req.identity!.sub, expiresAt);
 
     logSecurityEvent('api_key_created', {
       requestId: req.requestId,
@@ -72,12 +72,11 @@ adminRouter.get(
   '/keys',
   authorize('admin:keys'),
   (_req: Request, res: Response) => {
-    // TODO: Fetch from database
-    // const keys = await db.apiKeys.list();
+    const keys = apiKeyStore.list();
     res.status(200).json({
-      keys: [],
-      count: 0,
-      message: 'API key listing requires database integration.',
+      keys,
+      count: keys.length,
+      message: 'API keys retrieved successfully.',
     });
   }
 );
@@ -98,8 +97,10 @@ adminRouter.delete(
       revokedBy: req.identity!.sub,
     });
 
-    // TODO: Deactivate in database
-    // await db.apiKeys.revoke(keyId);
+    const revoked = apiKeyStore.revoke(keyId, req.identity!.sub);
+    if (!revoked) {
+      return res.status(404).json({ error: 'API key not found or already revoked.' });
+    }
 
     res.status(200).json({
       message: `API key ${keyId} has been revoked.`,
@@ -170,13 +171,13 @@ adminRouter.get(
   (_req: Request, res: Response) => {
     const auditStats = auditService.getStats();
 
-    // TODO: Fetch from usage_records table
     res.status(200).json({
       totalRequests: auditStats.totalEntries,
       auditIntegrity: auditStats.integrityValid,
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      message: 'Detailed usage metrics require database integration (usage_records table).',
+      activeKeys: apiKeyStore.activeCount,
+      totalKeys: apiKeyStore.size,
     });
   }
 );

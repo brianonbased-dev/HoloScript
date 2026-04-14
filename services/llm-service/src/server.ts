@@ -22,7 +22,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService';
-import { InferenceRouter, type ChatRequest, type _StreamEvent } from './services/InferenceRouter';
+import { InferenceRouter, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
 import { RateLimiter } from './services/RateLimiter';
 import { UsageTracker } from './services/UsageTracker';
 import { BuildService } from './services/BuildService';

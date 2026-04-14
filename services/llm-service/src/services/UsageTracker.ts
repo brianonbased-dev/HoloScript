@@ -5,7 +5,7 @@
  * File-based persistence (migrate to Supabase later).
  */
 
-import { _logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

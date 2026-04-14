@@ -408,3 +408,16 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "*Snapshot drift = compiler output changed without a deliberate update.*" >> "$GITHUB_STEP_SUMMARY"
           echo "*To regenerate: \`pnpm --filter @holoscript/core exec vitest run -u src/compiler/__tests__/golden-output/golden.test.ts\`*" >> "$GITHUB_STEP_SUMMARY"
+
+  docker-build-test:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dockerfile: [mcp-server, absorb-service]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Docker Image (Builder Stage)
+        run: docker build -f infrastructure/Dockerfile.${{ matrix.dockerfile }} --target builder .
+

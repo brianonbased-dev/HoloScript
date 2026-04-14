@@ -917,27 +917,28 @@ export async function runDaemonJob(
   if (currentQuality.typeErrors > 0 && qualityDelta <= 0.01) {
     log('info', `Daemon plateaued with ${currentQuality.typeErrors} lingering errors. Escalating to Team Board...`);
     const teamId = process.env.HOLOMESH_TEAM_ID;
-    const authKey = process.env.GEMINI_HOLOMESH_KEY || process.env.HOLOMESH_API_KEY;
-    
+    const authKey = process.env.HOLOMESH_API_KEY || process.env.GEMINI_HOLOMESH_KEY;
+
     if (teamId && authKey) {
       try {
-        const payload = {
-          title: `[Daemon] Resolve Plateaued Errors (${currentQuality.typeErrors} type errors remain)`,
-          description: `### Absorb Daemon Reached Optimization Plateau\n\nThe self-improvement daemon encountered unresolved errors after completing its structural cycles.\n\n**Remaining Errors:** \`${currentQuality.typeErrors} type errors\`\n**Lint Errors:** \`${currentQuality.lintErrors}\`\n**Quality Delta:** ${qualityDelta}\n\nLocal agent should claim this and patch the structural failures manually.`,
-          priority: "high",
-          type: "codebase",
-          agent: null
-        };
         const res = await fetch(`https://mcp.holoscript.net/api/holomesh/team/${teamId}/board`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            action: 'seed',
+            tasks: [{
+              title: `[daemon] ${currentQuality.typeErrors} type errors remain after optimization plateau`,
+              description: `Absorb daemon completed ${cyclesCompleted} cycle(s) but could not auto-fix remaining errors.\n\n**Type errors:** ${currentQuality.typeErrors}\n**Lint errors:** ${currentQuality.lintErrors}\n**Quality delta:** ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}\n\nClaim this task, run \`pnpm --filter @holoscript/core tsc --noEmit\`, and fix the structural failures manually.`,
+              priority: 2,
+              source: 'absorb-daemon',
+            }],
+          }),
         });
         if (res.ok) {
-          log('info', `Escalated to Team Board successfully`);
+          log('info', 'Escalated plateau to Team Board');
         } else {
           log('warn', `Board escalation rejected: HTTP ${res.status}`);
         }
@@ -945,7 +946,7 @@ export async function runDaemonJob(
         log('warn', `Board escalation failed: ${e.message}`);
       }
     } else {
-      log('warn', 'Skipping board escalation: missing HOLOMESH_TEAM_ID or Auth Key');
+      log('warn', 'Skipping board escalation: HOLOMESH_TEAM_ID or auth key not set');
     }
   }
 

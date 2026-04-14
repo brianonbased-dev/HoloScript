@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.mcp-server"
+dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 watchPatterns = ["packages/mcp-server/**", "packages/core/**"]
 
 [deploy]

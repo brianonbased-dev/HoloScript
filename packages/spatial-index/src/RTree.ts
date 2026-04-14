@@ -24,14 +24,14 @@ import type {
 import {
   bboxArea,
   bboxIntersectionArea,
-  _bboxMargin,
+  bboxMargin,
   bboxContainsPoint,
   bboxIntersects,
   bboxEnlargement,
   createBBoxFromAnchor,
   extendBBox,
   mergeBBox,
-  _createContainingBBox,
+  createContainingBBox,
   haversineDistance,
   minDistanceToBBox,
   createRadiusBBox,
@@ -203,7 +203,7 @@ export class RTree {
   getStats(): RTreeStats {
     let totalNodes = 0;
     let totalAnchors = 0;
-    const _totalArea = 0;
+    let totalArea = 0;
     let totalOverlap = 0;
 
     const traverse = (node: RTreeNode) => {

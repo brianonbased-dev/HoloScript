@@ -39,6 +39,10 @@ import { HoloScriptRuntime } from './HoloScriptRuntime';
 export * from './legacy-exports';
 // Version is now exported from './version' (build-time injected)
 
+// Logger utilities
+export { logger, setHoloScriptLogger, enableConsoleLogging, resetLogger, NoOpLogger, ConsoleLogger } from './logger';
+export type { HoloScriptLogger } from './logger';
+
 // Supported Platforms
 export const HOLOSCRIPT_SUPPORTED_PLATFORMS = [
   'WebXR',
@@ -294,12 +298,6 @@ export {
 } from '@holoscript/framework/ai';
 
 // =============================================================================
-// Asset System (Hololand Integration)
-// =============================================================================
-
-export * from './assets';
-
-// =============================================================================
 // Semantic Annotation System (Hololand Integration)
 // =============================================================================
 
@@ -394,45 +392,6 @@ export {
 // Real-time Sync Protocol (Sprint 3 - Priority 7)
 // =============================================================================
 
-export {
-  // Protocol
-  SyncProtocol,
-  createSyncProtocol,
-  createLocalSync,
-  // Delta Encoding
-  DeltaEncoder,
-  // Interest Management
-  InterestManager,
-  // Transports
-  type Transport,
-  WebSocketTransport,
-  WebRTCTransport,
-  LocalBroadcastTransport,
-  // Types
-  type TransportType,
-  type SerializationType,
-  type ConflictStrategy,
-  type SyncProtocolConfig,
-  type SyncOptimizations,
-  type SyncState,
-  type SyncDelta,
-  type DeltaChange,
-  type SyncMessage,
-  type PresenceInfo,
-  type InterestArea,
-  type SyncStats,
-  type SyncEventType,
-  type SyncEventCallback,
-} from '@holoscript/mesh';
-
-// Local Network Adapter (existing)
-export {
-  LocalNetworkAdapter,
-  createLocalNetworkAdapter,
-  type NetworkUpdate,
-  type UpdateCallback,
-} from '@holoscript/mesh';
-
 // =============================================================================
 // Package Certification (Sprint 9-10)
 // =============================================================================
@@ -476,12 +435,6 @@ export {
 } from '@holoscript/platform';
 
 // =============================================================================
-// Agents Module (v3.1 Agentic Choreography)
-// =============================================================================
-
-export * from '@holoscript/framework/agents';
-
-// =============================================================================
 // Choreography Module (v3.1 Agentic Choreography)
 // =============================================================================
 
@@ -504,40 +457,12 @@ export * from '@holoscript/framework/negotiation';
 // Recovery Module (v3.2 Self-Healing Infrastructure)
 // =============================================================================
 
-export * from './recovery';
-
-// =============================================================================
-// Render Module (v3.3 WebGPU Rendering)
-// =============================================================================
-
-// =============================================================================
-// Shader Module (v3.3 Visual Shader Graph)
-// =============================================================================
-
-export * from '@holoscript/engine/shader';
-
-// =============================================================================
-// Post-Processing Module (v3.3 Screen-Space Effects)
-// =============================================================================
-
-export * from '@holoscript/engine/postfx';
-
 // =============================================================================
 // Physics Module (v3.3 Rigid Body Dynamics)
 // =============================================================================
 
 // Explicit re-exports to resolve conflicts between physics and audio modules
 // (both define IVector3 and zeroVector — physics is canonical source)
-
-// =============================================================================
-// Audio Module (v3.3 Spatial Audio & Sequencing)
-// =============================================================================
-
-// =============================================================================
-// Network Module (v3.3 State Synchronization)
-// =============================================================================
-
-export * as network from '@holoscript/mesh';
 
 // =============================================================================
 // WASM Parser Bridge (v3.3 Performance Optimization)
@@ -550,8 +475,6 @@ export { WasmParserBridge, type ParseResult, type WasmParserConfig } from './was
 // =============================================================================
 // High-Frequency Sync (v3.3 60Hz Spatial Optimization)
 // =============================================================================
-
-export * as sync from '@holoscript/mesh';
 
 // =============================================================================
 // LOD Module — MOVED to @holoscript/engine (A.011 migration)
@@ -600,30 +523,7 @@ export { createEmptySceneGraph, createEmptyNode, createDefaultMaterial } from '.
 // USDZ Pipeline
 export { USDZPipeline, type USDZPipelineOptions } from './compiler/USDZPipeline';
 
-// Semantic Caching System
-export {
-  type MessageHandler,
-  type BroadcastHandler,
-  type ChannelEventHandler,
-  type ChannelEventType,
-  type ChannelEventBase,
-  type ChannelLifecycleEvent,
-  type ChannelMembershipEvent,
-  type MessageEvent,
-  type ChannelEvent,
-  type ChannelSubscription,
-  type BroadcastSubscription,
-  generateMessageId,
-  generateChannelId,
-  isMessageExpired,
-  validateMessageSchema,
-} from '@holoscript/mesh';
-export { AgentMessaging } from '@holoscript/mesh';
-export {
-  ProtocolBridgeRegistry,
-  type IAgentProtocolBridge,
-  type GenericAgentMessage,
-} from '@holoscript/mesh';
+// Semantic Caching System - explicit exports moved to @holoscript/mesh natively
 
 // =============================================================================
 // Audit Logging & Compliance (Sprint 9 - Priority 6)
@@ -1120,13 +1020,7 @@ export { CameraRig } from './cinematic/CameraRig';
 export { SequenceTrack } from './cinematic/SequenceTrack';
 
 // ── Collaboration ──────────────────────────────────────────────────
-export { CollaborationSession } from '@holoscript/mesh';
-export type {
-  SessionPeer,
-  SessionConfig,
-  SessionStats,
-  SessionState,
-} from '@holoscript/mesh';
+// CollaborationSession migrated natively to @holoscript/mesh
 
 // ── Security / Sandbox ─────────────────────────────────────────────
 export {
@@ -1239,8 +1133,7 @@ export type { StateConfig, TransitionConfig, StateAction, GuardFn } from '@holos
 // ── Input ──────────────────────────────────────────────────────────
 
 // ── Network ────────────────────────────────────────────────────────
-export { NetworkManager } from '@holoscript/mesh';
-export type { NetworkMessage, PeerInfo, MessageType } from '@holoscript/mesh';
+// NetworkManager migrated natively to @holoscript/mesh
 
 // ── Animation Timeline ─────────────────────────────────────────────
 
@@ -1381,9 +1274,7 @@ export type {
 } from './compiler/PipelineNodeCompiler';
 
 // ── NextJS Compiler (.holo → Next.js App Router pages) ─────────────────────
-export { compileToNextJS, compileAllToNextJS } from './compiler/NextJSCompiler';
-
-export type { NextJSCompilerOptions, NextJSCompileResult } from './compiler/NextJSCompiler';
+// NextJSCompiler stub removed.
 
 // =============================================================================
 // Trait Runtime Integration (migrated from Hololand platform-core)
@@ -1747,7 +1638,5 @@ export {
   setSharedEventBus,
   type EventCallback,
 } from './events/EventBus';
-// Analysis
-export * from './analysis';
-
-// --- PHASE 3: DECOUPLED BARREL COMPLETED ---
+// Analysis 
+// Exported via legacy-exports.ts

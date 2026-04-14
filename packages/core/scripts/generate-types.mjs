@@ -967,6 +967,24 @@ export interface HSPlusNode extends ASTNode {
   [key: string]: any;
 }
 
+export interface TraitBehavior {
+  readonly traitId: string;
+  readonly name: string;
+  enabled: boolean;
+  initialize?(): void | Promise<void>;
+  update?(deltaTime: number): void;
+  dispose?(): void | Promise<void>;
+}
+
+export class ProceduralSkill {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  constructor(config: { id: string; name: string; category: string; description: string });
+  execute(input: unknown): unknown;
+}
+
 export type VRTraitName = string;
 
 export class VRTraitRegistry {
@@ -1619,6 +1637,7 @@ export type HoloScriptLogger = Logger;
 export function setHoloScriptLogger(logger: Logger): void;
 export function resetLogger(): void;
 export function enableConsoleLogging(): void;
+export const logger: HoloScriptLogger;
 export function isHoloScriptSupported(): boolean;
 
 // ============================================================================

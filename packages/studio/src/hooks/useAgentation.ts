@@ -81,7 +81,7 @@ export function useAgentation() {
       );
       if (worth.length === 0) return;
 
-      const apiKey = process.env.NEXT_PUBLIC_MCP_API_KEY;
+      const apiKey = process.env.NEXT_PUBLIC_MCP_API_KEY || process.env.HOLOSCRIPT_API_KEY;
       if (!apiKey) return;
 
       const entries = worth.map((a) => ({

@@ -444,7 +444,7 @@ export class PluginBridge {
   // ── Clipboard Handling ──────────────────────────────────────────────────
 
   private async handleClipboard(message: PluginClipboardMessage): Promise<void> {
-    const { operation, data, _mimeType } = message.payload;
+    const { operation, data, mimeType: _mimeType } = message.payload;
     const pluginId = this.sandbox.getPluginId();
 
     // Check rate limit

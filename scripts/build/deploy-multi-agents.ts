@@ -11,8 +11,8 @@
  * - LLMAgentTrait.ts operational ✅
  */
 
-import { MultiAgentTrait } from '../packages/core/src/traits/MultiAgentTrait';
-import { HITLTrait } from '../packages/core/src/traits/HITLTrait';
+import { MultiAgentTrait } from '../../packages/core/src/traits/MultiAgentTrait';
+import { HITLTrait } from '../../packages/core/src/traits/HITLTrait';
 
 interface AgentConfig {
   id: string;

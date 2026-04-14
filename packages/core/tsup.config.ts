@@ -93,7 +93,7 @@ export default defineConfig({
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   format: ['cjs', 'esm'],
-  dts: true,
+  dts: false, // Hand-crafted by scripts/generate-types.mjs (runs after tsup)
   clean: true,
   sourcemap: true,
   splitting: true, // Enable code splitting for shared chunks

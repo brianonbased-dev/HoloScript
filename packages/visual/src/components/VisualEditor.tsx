@@ -78,7 +78,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   initialGraph,
   objectName = 'myObject',
   onChange,
-  _onCodeGenerated,
+  onCodeGenerated: _onCodeGenerated,
   sidebarWidth = 260,
   codePreviewWidth = 300,
   showToolbar = true,

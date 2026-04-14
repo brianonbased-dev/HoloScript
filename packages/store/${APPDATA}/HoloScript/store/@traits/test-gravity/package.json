@@ -1,0 +1,44 @@
+{
+	"name": "@traits/test-gravity",
+	"versions": {
+		"0.1.0": {
+			"name": "@traits/test-gravity",
+			"version": "0.1.0",
+			"description": "Test trait for gravity simulation",
+			"main": "index.js",
+			"holoscript": {
+				"type": "trait",
+				"category": "physics"
+			},
+			"_id": "@traits/test-gravity@0.1.0",
+			"_nodeVersion": "22.20.0",
+			"_npmVersion": "11.6.2",
+			"dist": {
+				"integrity": "sha512-dV2GARARdQFXVB+Tn81f2qzPwEt+FChwxITKYIESDmr1Ll4tYwImbM91yDtpK1kfURzWYgwbiEQeq7w/39Hu3w==",
+				"shasum": "04c05d705296f637b544d6df77d005313ce2aa70",
+				"tarball": "http://localhost:4873/@traits/test-gravity/-/@traits/test-gravity-0.1.0.tgz"
+			},
+			"contributors": []
+		}
+	},
+	"time": {
+		"modified": "2026-04-13T22:41:16.795Z",
+		"created": "2026-04-13T22:41:16.795Z",
+		"0.1.0": "2026-04-13T22:41:16.795Z"
+	},
+	"users": {},
+	"dist-tags": {
+		"latest": "0.1.0"
+	},
+	"_uplinks": {},
+	"_distfiles": {},
+	"_attachments": {
+		"test-gravity-0.1.0.tgz": {
+			"shasum": "04c05d705296f637b544d6df77d005313ce2aa70",
+			"version": "0.1.0"
+		}
+	},
+	"_rev": "3-a59777fc452485ac",
+	"_id": "@traits/test-gravity",
+	"readme": "ERROR: No README data found!"
+}

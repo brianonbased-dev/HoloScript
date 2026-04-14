@@ -81,6 +81,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate RAILWAY_TOKEN secret
+        run: |
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "❌ RAILWAY_TOKEN secret is missing. Deploys will fail."
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
