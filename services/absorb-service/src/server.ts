@@ -19,8 +19,8 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3005;
-/** Default 2500ms: shared/Railway Postgres often misses a 500ms probe under cold start or load. */
-const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 2500));
+/** Default 8000ms — Railway/private Postgres often exceeds 2.5s on cold start or cross-region latency. */
+const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 8000));
 
 /** True if PostgreSQL accepts a trivial query within the health timeout (core connectivity). */
 async function pingPostgresWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<boolean> {
@@ -120,7 +120,11 @@ async function backgroundHealthProbe() {
   }
 
   try {
-    const pgOk = await pingPostgresWithTimeout(db);
+    let pgOk = await pingPostgresWithTimeout(db);
+    if (!pgOk) {
+      await new Promise((r) => setTimeout(r, 600));
+      pgOk = await pingPostgresWithTimeout(db);
+    }
     _cachedDatabaseStatus = pgOk ? 'connected' : 'degraded';
     if (!pgOk) {
       _cachedMoltbookAgentCount = null;

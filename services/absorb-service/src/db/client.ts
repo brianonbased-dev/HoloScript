@@ -29,6 +29,9 @@ export function getDb() {
     connectionString,
     ssl: isPrivate ? false : { rejectUnauthorized: false },
     max: 10,
+    /** First connection on cold deploy can exceed default; avoids flaky /health + API 5xx. */
+    connectionTimeoutMillis: Math.max(5000, Number(process.env.PG_CONNECTION_TIMEOUT_MS || 15000)),
+    idleTimeoutMillis: 60_000,
   });
 
   _db = drizzle(_pool, { schema });
