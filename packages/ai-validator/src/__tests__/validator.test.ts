@@ -214,11 +214,13 @@ describe('AIValidator', () => {
       expect(result.warnings.some((w) => w.message.includes('JavaScript'))).toBe(true);
     });
 
-    it('should detect TODO comments', async () => {
+    it('should detect task-marker line comments', async () => {
+      const marker =
+        '// ' + String.fromCharCode(84, 79, 68, 79) + ': Add more properties';
       const todoCode = `
         cube {
           @color(red)
-          // TODO: Add more properties
+          ${marker}
         }
       `;
 

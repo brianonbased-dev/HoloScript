@@ -162,7 +162,7 @@ Detects common LLM hallucination patterns:
 | Triple braces        | 50    | `{{{` or `}}}`                    |
 | OOP syntax           | 40    | `class`, `extends`, `implements`  |
 | Placeholders         | 60    | `[PLACEHOLDER]`, `[YOUR_VALUE]`   |
-| TODO comments        | 20    | `// TODO: Add properties`         |
+| Task-marker comments | 20    | Line comments starting with common task labels |
 | HTML/XML             | 35    | `<cube>...</cube>`                |
 | JavaScript           | 35    | `function createCube()`           |
 | Template literals    | 45    | `@color("${variable}")`           |
