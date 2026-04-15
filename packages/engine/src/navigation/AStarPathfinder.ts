@@ -50,21 +50,29 @@ export class AStarPathfinder {
     this.navMesh = navMesh;
   }
 
+  private toArr3(v: NavPoint | { x: number; y: number; z: number }): [number, number, number] {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
+    const o = v as { x: number; y: number; z: number };
+    return [o.x, o.y, o.z];
+  }
+
   // ---------------------------------------------------------------------------
   // Pathfinding
   // ---------------------------------------------------------------------------
 
-  findPath(start: NavPoint, goal: NavPoint): PathResult {
+  findPath(start: NavPoint | { x: number; y: number; z: number }, goal: NavPoint | { x: number; y: number; z: number }): PathResult {
     const t0 = performance.now();
+    const startP = this.toArr3(start);
+    const goalP = this.toArr3(goal);
 
     // Check cache
-    const cacheKey = this.makeCacheKey(start, goal);
+    const cacheKey = this.makeCacheKey(startP, goalP);
     const cached = this.pathCache.get(cacheKey);
     if (cached) return cached;
 
     const startPoly =
-      this.navMesh.findPolygonAtPoint(start) ?? this.navMesh.findNearestPolygon(start);
-    const goalPoly = this.navMesh.findPolygonAtPoint(goal) ?? this.navMesh.findNearestPolygon(goal);
+      this.navMesh.findPolygonAtPoint(startP) ?? this.navMesh.findNearestPolygon(startP);
+    const goalPoly = this.navMesh.findPolygonAtPoint(goalP) ?? this.navMesh.findNearestPolygon(goalP);
 
     if (!startPoly || !goalPoly) {
       return {
@@ -79,8 +87,8 @@ export class AStarPathfinder {
     if (startPoly.id === goalPoly.id) {
       return {
         found: true,
-        path: [start, goal],
-        cost: this.dist(start, goal),
+        path: [startP, goalP],
+        cost: this.dist(startP, goalP),
         polygonsVisited: 1,
         timeMs: performance.now() - t0,
       };
@@ -116,7 +124,7 @@ export class AStarPathfinder {
 
       // Goal reached
       if (current.polyId === goalPoly.id) {
-        const path = this.reconstructPath(current, start, goal);
+        const path = this.reconstructPath(current, startP, goalP);
         const result: PathResult = {
           found: true,
           path,
@@ -246,12 +254,16 @@ export class AStarPathfinder {
     return path;
   }
 
-  private dist(a: NavPoint, b: NavPoint): number {
-    return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+  private dist(a: NavPoint | { x: number; y: number; z: number }, b: NavPoint | { x: number; y: number; z: number }): number {
+    const av = this.toArr3(a);
+    const bv = this.toArr3(b);
+    return Math.sqrt((av[0] - bv[0]) ** 2 + (av[1] - bv[1]) ** 2 + (av[2] - bv[2]) ** 2);
   }
 
-  private makeCacheKey(a: NavPoint, b: NavPoint): string {
-    return `${a[0].toFixed(1)},${a[1].toFixed(1)},${a[2].toFixed(1)}->${b[0].toFixed(1)},${b[1].toFixed(1)},${b[2].toFixed(1)}`;
+  private makeCacheKey(a: NavPoint | { x: number; y: number; z: number }, b: NavPoint | { x: number; y: number; z: number }): string {
+    const av = this.toArr3(a);
+    const bv = this.toArr3(b);
+    return `${av[0].toFixed(1)},${av[1].toFixed(1)},${av[2].toFixed(1)}->${bv[0].toFixed(1)},${bv[1].toFixed(1)},${bv[2].toFixed(1)}`;
   }
 
   clearCache(): void {

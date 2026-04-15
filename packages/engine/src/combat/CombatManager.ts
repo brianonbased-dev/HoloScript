@@ -93,6 +93,12 @@ export class CombatManager {
     if (hb) hb.active = active;
   }
 
+  private toArr3(v: Vector3 | [number, number, number] | { x: number; y: number; z: number }): [number, number, number] {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
+    const o = v as { x: number; y: number; z: number };
+    return [o.x, o.y, o.z];
+  }
+
   checkCollisions(): Array<{ hitbox: HitBox; hurtbox: HurtBox }> {
     const hits: Array<{ hitbox: HitBox; hurtbox: HurtBox }> = [];
 
@@ -118,10 +124,14 @@ export class CombatManager {
     posB: Vector3,
     sizeB: Vector3
   ): boolean {
+    const pa = this.toArr3(posA as unknown as [number, number, number] | { x: number; y: number; z: number });
+    const sa = this.toArr3(sizeA as unknown as [number, number, number] | { x: number; y: number; z: number });
+    const pb = this.toArr3(posB as unknown as [number, number, number] | { x: number; y: number; z: number });
+    const sb = this.toArr3(sizeB as unknown as [number, number, number] | { x: number; y: number; z: number });
     return (
-      Math.abs(posA[0] - posB[0]) < (sizeA[0] + sizeB[0]) / 2 &&
-      Math.abs(posA[1] - posB[1]) < (sizeA[1] + sizeB[1]) / 2 &&
-      Math.abs(posA[2] - posB[2]) < (sizeA[2] + sizeB[2]) / 2
+      Math.abs(pa[0] - pb[0]) < (sa[0] + sb[0]) / 2 &&
+      Math.abs(pa[1] - pb[1]) < (sa[1] + sb[1]) / 2 &&
+      Math.abs(pa[2] - pb[2]) < (sa[2] + sb[2]) / 2
     );
   }
 
@@ -203,7 +213,7 @@ export class CombatManager {
   // ---------------------------------------------------------------------------
 
   findTargets(
-    position: [number, number, number],
+    position: [number, number, number] | { x: number; y: number; z: number },
     candidates: Array<{
       entityId: string;
       position: [number, number, number];
@@ -211,11 +221,12 @@ export class CombatManager {
     }>,
     maxRange: number
   ): CombatTarget[] {
+    const p = this.toArr3(position);
     return candidates
       .map((c) => {
-        const dx = c.position[0] - position[0];
-        const dy = c.position[1] - position[1];
-        const dz = c.position[2] - position[2];
+        const dx = c.position[0] - p[0];
+        const dy = c.position[1] - p[1];
+        const dz = c.position[2] - p[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         return { entityId: c.entityId, position: c.position, priority: c.priority ?? 0, distance };
       })

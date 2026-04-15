@@ -38,15 +38,21 @@ let _polyId = 0;
 export class NavMesh {
   private polygons: Map<string, NavPolygon> = new Map();
 
+  private toArr3(v: NavPoint | { x: number; y: number; z: number }): [number, number, number] {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
+    return [v.x, v.y, v.z];
+  }
+
   // ---------------------------------------------------------------------------
   // Polygon Management
   // ---------------------------------------------------------------------------
 
-  addPolygon(vertices: NavPoint[], walkable = true, cost = 1): NavPolygon {
-    const center = this.computeCenter(vertices);
+  addPolygon(vertices: Array<NavPoint | { x: number; y: number; z: number }>, walkable = true, cost = 1): NavPolygon {
+    const normalized = vertices.map((v) => this.toArr3(v));
+    const center = this.computeCenter(normalized);
     const poly: NavPolygon = {
       id: `poly_${_polyId++}`,
-      vertices: [...vertices],
+      vertices: normalized,
       neighbors: [],
       walkable,
       cost,
@@ -93,10 +99,11 @@ export class NavMesh {
    * Find which polygon contains the given point (2D, ignoring Y/altitude).
    * Note: HoloScript standard is [x, y, z] where y is up.
    */
-  findPolygonAtPoint(point: NavPoint): NavPolygon | null {
+  findPolygonAtPoint(point: NavPoint | { x: number; y: number; z: number }): NavPolygon | null {
+    const p = this.toArr3(point);
     for (const poly of this.polygons.values()) {
       if (!poly.walkable) continue;
-      if (this.isPointInPolygon2D(point, poly.vertices)) {
+      if (this.isPointInPolygon2D(p, poly.vertices)) {
         return poly;
       }
     }
@@ -106,13 +113,14 @@ export class NavMesh {
   /**
    * Find the nearest walkable polygon center to a point.
    */
-  findNearestPolygon(point: NavPoint): NavPolygon | null {
+  findNearestPolygon(point: NavPoint | { x: number; y: number; z: number }): NavPolygon | null {
+    const p = this.toArr3(point);
     let nearest: NavPolygon | null = null;
     let minDist = Infinity;
 
     for (const poly of this.polygons.values()) {
       if (!poly.walkable) continue;
-      const d = this.dist(point, poly.center);
+      const d = this.dist(p, poly.center);
       if (d < minDist) {
         minDist = d;
         nearest = poly;
@@ -143,12 +151,13 @@ export class NavMesh {
     const max: NavPoint = [-Infinity, -Infinity, -Infinity];
     for (const p of polys) {
       for (const v of p.vertices) {
-        min[0] = Math.min(min[0], v[0]);
-        min[1] = Math.min(min[1], v[1]);
-        min[2] = Math.min(min[2], v[2]);
-        max[0] = Math.max(max[0], v[0]);
-        max[1] = Math.max(max[1], v[1]);
-        max[2] = Math.max(max[2], v[2]);
+        const vv = this.toArr3(v);
+        min[0] = Math.min(min[0], vv[0]);
+        min[1] = Math.min(min[1], vv[1]);
+        min[2] = Math.min(min[2], vv[2]);
+        max[0] = Math.max(max[0], vv[0]);
+        max[1] = Math.max(max[1], vv[1]);
+        max[2] = Math.max(max[2], vv[2]);
       }
     }
     return { polygons: polys, bounds: { min, max } };
@@ -158,29 +167,33 @@ export class NavMesh {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private computeCenter(vertices: NavPoint[]): NavPoint {
+  private computeCenter(vertices: Array<NavPoint | { x: number; y: number; z: number }>): NavPoint {
     const c = [0, 0, 0];
     for (const v of vertices) {
-      c[0] += v[0];
-      c[1] += v[1];
-      c[2] += v[2];
+      const vv = this.toArr3(v);
+      c[0] += vv[0];
+      c[1] += vv[1];
+      c[2] += vv[2];
     }
     const n = vertices.length || 1;
     return [c[0] / n, c[1] / n, c[2] / n];
   }
 
-  private isPointInPolygon2D(point: NavPoint, vertices: NavPoint[]): boolean {
+  private isPointInPolygon2D(point: NavPoint | { x: number; y: number; z: number }, vertices: Array<NavPoint | { x: number; y: number; z: number }>): boolean {
+    const p = this.toArr3(point);
     let inside = false;
     const n = vertices.length;
     for (let i = 0, j = n - 1; i < n; j = i++) {
         // Projecting to X/Z plane (ground plane in HoloScript standard)
-      const xi = vertices[i][0],
-        zi = vertices[i][2];
-      const xj = vertices[j][0],
-        zj = vertices[j][2];
+      const vi = this.toArr3(vertices[i]);
+      const vj = this.toArr3(vertices[j]);
+      const xi = vi[0],
+        zi = vi[2];
+      const xj = vj[0],
+        zj = vj[2];
       if (
-        zi > point[2] !== zj > point[2] &&
-        point[0] < ((xj - xi) * (point[2] - zi)) / (zj - zi) + xi
+        zi > p[2] !== zj > p[2] &&
+        p[0] < ((xj - xi) * (p[2] - zi)) / (zj - zi) + xi
       ) {
         inside = !inside;
       }

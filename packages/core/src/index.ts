@@ -1055,6 +1055,9 @@ export { ShaderGraph, SHADER_NODES } from '@holoscript/engine/rendering';
 export { CombatManager } from '@holoscript/engine/combat';
 export { AStarPathfinder, NavMesh } from '@holoscript/engine/navigation';
 export { ParticleSystem } from '@holoscript/engine/particles';
+export { LODManager } from '@holoscript/engine/lod';
+export { InputManager } from '@holoscript/engine/input';
+export { CultureRuntime } from '@holoscript/engine/runtime';
 
 export type { ActorMark, CuePoint, CinematicScene } from './cinematic/CinematicDirector';
 export { CameraRig } from './cinematic/CameraRig';
@@ -1063,6 +1066,7 @@ export { SequenceTrack } from './cinematic/SequenceTrack';
 // ── Collaboration ──────────────────────────────────────────────────
 // CollaborationSession migrated natively to @holoscript/mesh
 export { CollaborationSession } from '@holoscript/mesh';
+export { NetworkManager } from '@holoscript/mesh';
 
 // ── Security / Sandbox ─────────────────────────────────────────────
 export {
