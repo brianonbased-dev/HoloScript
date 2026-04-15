@@ -5,6 +5,12 @@ export default defineConfig({
   description:
     'Open spatial computing platform — 3 languages, 45+ compile targets, AI agent runtime, visual studio, and 60+ packages',
 
+  lastUpdated: true,
+
+  sitemap: {
+    hostname: 'https://holoscript.net',
+  },
+
   markdown: {
     // Keep custom HoloScript fence names while routing them through a loaded lexer.
     languageAlias: {
@@ -69,6 +75,14 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', href: '/logo.svg' }],
+    [
+      'meta',
+      {
+        name: 'description',
+        content:
+          'Create with AI. Own what you build. Ship everywhere. Open platform for spatial worlds — interactive 3D, AI agents, open marketplace. Works with Unity, Unreal, WebGPU, and 20+ more.',
+      },
+    ],
     ['meta', { name: 'theme-color', content: '#00ffff' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:url', content: 'https://holoscript.net' }],

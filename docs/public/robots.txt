@@ -1,0 +1,5 @@
+# HoloScript documentation (holoscript.net) — allow indexing of public docs
+User-agent: *
+Allow: /
+
+Sitemap: https://holoscript.net/sitemap.xml
