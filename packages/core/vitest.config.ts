@@ -27,6 +27,7 @@ export default defineConfig({
       '@holoscript/framework': resolve(__dirname, '../framework/src/index.ts'),
       '@holoscript/engine/materials': resolve(__dirname, '../engine/src/materials/index.ts'),
       '@holoscript/engine': resolve(__dirname, '../engine/src'),
+      '@holoscript/platform': resolve(__dirname, '../platform/src/index.ts'),
     },
   },
   test: {

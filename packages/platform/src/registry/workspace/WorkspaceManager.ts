@@ -23,6 +23,16 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, string[]> = {
     'packages:read',
     'secrets:manage',
     'secrets:read',
+    // dot-notation aliases
+    'workspace.delete',
+    'workspace.settings',
+    'billing.manage',
+    'members.manage',
+    'package.publish',
+    'workspace.read',
+    'package.read',
+    'secrets.manage',
+    'secrets.read',
   ],
   admin: [
     'workspace:settings',
@@ -31,9 +41,31 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, string[]> = {
     'packages:read',
     'secrets:manage',
     'secrets:read',
+    // dot-notation aliases
+    'workspace.settings',
+    'members.manage',
+    'package.publish',
+    'workspace.read',
+    'package.read',
+    'secrets.manage',
+    'secrets.read',
   ],
-  developer: ['packages:publish', 'packages:read', 'secrets:read'],
-  viewer: ['packages:read'],
+  developer: [
+    'packages:publish',
+    'packages:read',
+    'secrets:read',
+    // dot-notation aliases
+    'package.publish',
+    'workspace.read',
+    'package.read',
+    'secrets.read',
+  ],
+  viewer: [
+    'packages:read',
+    // dot-notation aliases
+    'workspace.read',
+    'package.read',
+  ],
 };
 
 /**

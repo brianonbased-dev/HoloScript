@@ -323,13 +323,45 @@ export const ROLES: Record<string, Permission[]> = {
 /**
  * Check if user has permission
  */
-export function hasPermission(userRole: string, permission: Permission): boolean {
+export function hasPermission(userRole: string, permission: Permission | string): boolean {
   if (userRole === 'admin') {
     return true; // Admins have all permissions
   }
 
+  // Check Security ROLES (Permission enum values)
   const rolePermissions = ROLES[userRole] || [];
-  return rolePermissions.includes(permission);
+  if (rolePermissions.includes(permission as Permission)) {
+    return true;
+  }
+
+  // Check workspace ROLE_PERMISSIONS (dot-notation strings like 'package.publish')
+  const workspacePerms: Record<string, string[]> = {
+    owner: [
+      'workspace.delete', 'workspace.settings', 'billing.manage', 'members.manage',
+      'package.publish', 'workspace.read', 'package.read', 'secrets.manage', 'secrets.read',
+    ],
+    admin: [
+      'workspace.settings', 'members.manage', 'package.publish',
+      'workspace.read', 'package.read', 'secrets.manage', 'secrets.read',
+    ],
+    developer: ['package.publish', 'workspace.read', 'package.read', 'secrets.read'],
+    viewer: ['workspace.read', 'package.read'],
+  };
+  return (workspacePerms[userRole] || []).includes(permission as string);
+}
+
+/**
+ * Check if role can manage workspace members
+ */
+export function canManageMembers(role: string): boolean {
+  return hasPermission(role, 'members.manage') || hasPermission(role, 'members:manage');
+}
+
+/**
+ * Check if role can publish packages
+ */
+export function canPublishPackages(role: string): boolean {
+  return hasPermission(role, 'package.publish') || hasPermission(role, 'packages:publish');
 }
 
 /**
