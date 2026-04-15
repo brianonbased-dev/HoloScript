@@ -105,24 +105,28 @@ export class ProductionWebRTCTransport implements Transport {
     // Connect to signaling server
     await this.signalingClient.connect();
 
-    // Wait for at least one peer connection or room-state
+    // Wait for at least one peer connection or room-state (bounded polling, no recursive timer chain)
     return new Promise((resolve) => {
-      const checkReady = () => {
-        if (this.connectedPeers > 0 || this.isFullyConnected) {
-          resolve();
-        } else {
-          setTimeout(checkReady, 100);
-        }
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(poll);
+        clearTimeout(maxWait);
+        resolve();
       };
 
-      // Set a timeout to resolve anyway
-      setTimeout(() => {
+      const poll = setInterval(() => {
+        if (this.connectedPeers > 0 || this.isFullyConnected) {
+          finish();
+        }
+      }, 100);
+
+      const maxWait = setTimeout(() => {
         this.isFullyConnected = true;
         this.connectCallbacks.forEach((cb) => cb());
-        resolve();
+        finish();
       }, 2000);
-
-      checkReady();
     });
   }
 
@@ -176,8 +180,12 @@ export class ProductionWebRTCTransport implements Transport {
     if (!state) return;
 
     const channel = state.reliableChannel;
-    if (channel?.readyState === 'open') {
+    if (channel?.readyState !== 'open') return;
+
+    try {
       channel.send(JSON.stringify(message));
+    } catch (err) {
+      logger.warn(`[WebRTCTransport] sendToPeer failed:`, { error: String(err) });
     }
   }
 
@@ -203,17 +211,24 @@ export class ProductionWebRTCTransport implements Transport {
 
   getLatency(): number {
     if (this.latencies.size === 0) return 0;
-    const latencyValues = Array.from(this.latencies.values());
-    return latencyValues.reduce((a, b) => a + b, 0) / latencyValues.length;
+    let sum = 0;
+    let count = 0;
+    for (const v of this.latencies.values()) {
+      sum += v;
+      count++;
+    }
+    return count > 0 ? sum / count : 0;
   }
 
   /**
    * Get connected peer IDs
    */
   getConnectedPeers(): string[] {
-    return Array.from(this.peers.entries())
-      .filter(([, state]) => state.connectedAt !== null)
-      .map(([peerId]) => peerId);
+    const out: string[] = [];
+    for (const [peerId, state] of this.peers) {
+      if (state.connectedAt !== null) out.push(peerId);
+    }
+    return out;
   }
 
   /**
@@ -439,8 +454,11 @@ export class ProductionWebRTCTransport implements Transport {
 
     channel.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data as string) as SyncMessage;
-        this.messageCallbacks.forEach((cb) => cb(message));
+        const raw = typeof event.data === 'string' ? event.data : String(event.data);
+        const message = JSON.parse(raw) as SyncMessage;
+        for (const cb of this.messageCallbacks) {
+          cb(message);
+        }
       } catch (err) {
         logger.warn(`[WebRTCTransport] Failed to parse message:`, { error: String(err) });
       }

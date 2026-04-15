@@ -99,15 +99,46 @@ export class NetworkInterpolation {
       this.snapshotBuffers.set(snapshot.entityId, buffer);
     }
 
-    buffer.push(snapshot);
+    this.insertSnapshotOrdered(buffer, snapshot);
 
-    // Keep buffer bounded
-    if (buffer.length > this.maxBufferSize) {
+    while (buffer.length > this.maxBufferSize) {
       buffer.shift();
     }
+  }
 
-    // Keep sorted by timestamp
-    buffer.sort((a, b) => a.timestamp - b.timestamp);
+  /**
+   * Insert snapshot in timestamp order without sorting the whole buffer each time.
+   * In-order packets: O(1). Out-of-order: O(log n) + splice.
+   */
+  private insertSnapshotOrdered(buffer: NetworkSnapshot[], snap: NetworkSnapshot): void {
+    const t = snap.timestamp;
+    const n = buffer.length;
+    if (n === 0) {
+      buffer.push(snap);
+      return;
+    }
+    const last = buffer[n - 1]!;
+    if (t > last.timestamp) {
+      buffer.push(snap);
+      return;
+    }
+    if (t === last.timestamp) {
+      buffer[n - 1] = snap;
+      return;
+    }
+
+    let lo = 0;
+    let hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (buffer[mid]!.timestamp < t) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo < n && buffer[lo]!.timestamp === t) {
+      buffer[lo] = snap;
+    } else {
+      buffer.splice(lo, 0, snap);
+    }
   }
 
   // ---------------------------------------------------------------------------

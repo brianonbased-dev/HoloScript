@@ -167,7 +167,7 @@ export function createMessagingTrait(
     getPendingCount(): number {
       return messaging.getPendingCount();
     },
-  };
+  } satisfies MessagingTraitBehavior;
 }
 
 // =============================================================================
