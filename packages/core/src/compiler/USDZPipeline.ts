@@ -60,6 +60,21 @@ import {
 } from './DomainBlockCompilerMixin';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 
+function presetString(p: Record<string, unknown>, k: string): string | undefined {
+  const v = p[k];
+  return typeof v === 'string' ? v : undefined;
+}
+
+function presetNumber(p: Record<string, unknown>, k: string): number | undefined {
+  const v = p[k];
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+
+function presetBoolean(p: Record<string, unknown>, k: string): boolean | undefined {
+  const v = p[k];
+  return typeof v === 'boolean' ? v : undefined;
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -454,32 +469,48 @@ export class USDZPipeline {
             ? materialPreset
             : undefined;
       if (presetName && MATERIAL_PRESETS[presetName]) {
-        const preset = MATERIAL_PRESETS[presetName];
-        if (preset.color) mat.baseColor = this.hexToRGB(preset.color);
-        if (preset.metalness !== undefined) mat.metallic = preset.metalness;
-        if (preset.roughness !== undefined) mat.roughness = preset.roughness;
-        if (preset.opacity !== undefined) mat.opacity = preset.opacity;
-        if (preset.emissive) mat.emissiveColor = this.hexToRGB(preset.emissive);
-        if (preset.emissiveIntensity !== undefined)
-          mat.emissiveIntensity = preset.emissiveIntensity;
-        if (preset.transmission !== undefined) mat.transmission = preset.transmission;
-        if (preset.ior !== undefined) mat.ior = preset.ior;
-        if (preset.thickness !== undefined) mat.thickness = preset.thickness;
-        if (preset.clearcoat !== undefined) mat.clearcoat = preset.clearcoat;
-        if (preset.clearcoatRoughness !== undefined)
-          mat.clearcoatRoughness = preset.clearcoatRoughness;
-        if (preset.sheen !== undefined) mat.sheen = preset.sheen;
-        if (preset.sheenRoughness !== undefined) mat.sheenRoughness = preset.sheenRoughness;
-        if (preset.sheenColor) mat.sheenColor = this.hexToRGB(preset.sheenColor);
-        if (preset.iridescence !== undefined) mat.iridescence = preset.iridescence;
-        if (preset.iridescenceIOR !== undefined) mat.iridescenceIOR = preset.iridescenceIOR;
-        if (preset.anisotropy !== undefined) mat.anisotropy = preset.anisotropy;
-        if (preset.anisotropyRotation !== undefined)
-          mat.anisotropyRotation = preset.anisotropyRotation;
-        if (preset.attenuationColor) mat.attenuationColor = this.hexToRGB(preset.attenuationColor);
-        if (preset.attenuationDistance !== undefined)
-          mat.attenuationDistance = preset.attenuationDistance;
-        if (preset.transparent && mat.opacity === undefined) mat.opacity = 0.99;
+        const preset = MATERIAL_PRESETS[presetName] as Record<string, unknown>;
+        const colorStr = presetString(preset, 'color');
+        if (colorStr) mat.baseColor = this.hexToRGB(colorStr);
+        const metal = presetNumber(preset, 'metalness');
+        if (metal !== undefined) mat.metallic = metal;
+        const rough = presetNumber(preset, 'roughness');
+        if (rough !== undefined) mat.roughness = rough;
+        const op = presetNumber(preset, 'opacity');
+        if (op !== undefined) mat.opacity = op;
+        const emissiveStr = presetString(preset, 'emissive');
+        if (emissiveStr) mat.emissiveColor = this.hexToRGB(emissiveStr);
+        const emissiveInt = presetNumber(preset, 'emissiveIntensity');
+        if (emissiveInt !== undefined) mat.emissiveIntensity = emissiveInt;
+        const trans = presetNumber(preset, 'transmission');
+        if (trans !== undefined) mat.transmission = trans;
+        const ior = presetNumber(preset, 'ior');
+        if (ior !== undefined) mat.ior = ior;
+        const thick = presetNumber(preset, 'thickness');
+        if (thick !== undefined) mat.thickness = thick;
+        const cc = presetNumber(preset, 'clearcoat');
+        if (cc !== undefined) mat.clearcoat = cc;
+        const ccr = presetNumber(preset, 'clearcoatRoughness');
+        if (ccr !== undefined) mat.clearcoatRoughness = ccr;
+        const sheen = presetNumber(preset, 'sheen');
+        if (sheen !== undefined) mat.sheen = sheen;
+        const sheenR = presetNumber(preset, 'sheenRoughness');
+        if (sheenR !== undefined) mat.sheenRoughness = sheenR;
+        const sheenColorStr = presetString(preset, 'sheenColor');
+        if (sheenColorStr) mat.sheenColor = this.hexToRGB(sheenColorStr);
+        const irid = presetNumber(preset, 'iridescence');
+        if (irid !== undefined) mat.iridescence = irid;
+        const iridIor = presetNumber(preset, 'iridescenceIOR');
+        if (iridIor !== undefined) mat.iridescenceIOR = iridIor;
+        const aniso = presetNumber(preset, 'anisotropy');
+        if (aniso !== undefined) mat.anisotropy = aniso;
+        const anisoRot = presetNumber(preset, 'anisotropyRotation');
+        if (anisoRot !== undefined) mat.anisotropyRotation = anisoRot;
+        const attColorStr = presetString(preset, 'attenuationColor');
+        if (attColorStr) mat.attenuationColor = this.hexToRGB(attColorStr);
+        const attDist = presetNumber(preset, 'attenuationDistance');
+        if (attDist !== undefined) mat.attenuationDistance = attDist;
+        if (presetBoolean(preset, 'transparent') && mat.opacity === undefined) mat.opacity = 0.99;
       }
 
       // 2. Direct color override

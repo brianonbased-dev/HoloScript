@@ -167,6 +167,23 @@ const TRI_ESTIMATES: Record<string, number> = {
 const VRAM_PER_TEXTURE_MB = 4; // 1024x1024 RGBA
 const VRAM_PER_HIRES_TEXTURE_MB = 16; // 2048x2048
 
+function asMaterialProps(raw: unknown): Record<string, unknown> | undefined {
+  if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function meshHsType(node: R3FNode): string {
+  const t = node.props?.hsType;
+  return typeof t === 'string' && t.length > 0 ? t : 'box';
+}
+
+function meshArgsFirst(node: R3FNode): unknown {
+  const a = node.props?.args;
+  return Array.isArray(a) && a.length > 0 ? a[0] : undefined;
+}
+
 // =============================================================================
 // OPTIMIZATION PASS
 // =============================================================================
@@ -269,16 +286,18 @@ export class OptimizationPass {
         stats.estimatedDrawCalls++;
 
         // Estimate triangles
-        const hsType = node.props?.hsType || 'box';
-        stats.estimatedTriangles += TRI_ESTIMATES[hsType] || 12;
+        const hsType = meshHsType(node);
+        stats.estimatedTriangles += TRI_ESTIMATES[hsType] ?? 12;
 
         // Track materials
-        const matProps = node.props?.materialProps;
+        const matProps = asMaterialProps(node.props?.materialProps);
         if (matProps) {
           const matKey = JSON.stringify(matProps);
           materialKeys.add(matKey);
 
-          if (matProps.transparent || matProps.opacity < 1 || matProps.transmission) {
+          const opacity = matProps['opacity'];
+          const opacityLt1 = typeof opacity === 'number' && opacity < 1;
+          if (matProps['transparent'] || opacityLt1 || matProps['transmission']) {
             stats.transparentCount++;
           }
 
@@ -380,7 +399,7 @@ export class OptimizationPass {
     // Check for objects with shadows but no receiver nearby
     this.walkTree(tree, (node) => {
       if (node.type === 'mesh' && node.props?.castShadow && !node.props?.receiveShadow) {
-        const size = node.props?.size || node.props?.args?.[0] || 1;
+        const size = node.props?.size ?? meshArgsFirst(node) ?? 1;
         if (typeof size === 'number' && size < 0.3) {
           hints.push({
             category: 'shadows',
@@ -451,11 +470,11 @@ export class OptimizationPass {
     if (this.options.platform === 'vr' || this.options.platform === 'mobile') {
       const transparentNodes: R3FNode[] = [];
       this.walkTree(tree, (node) => {
-        const mat = node.props?.materialProps;
-        if (
-          mat &&
-          (mat.transparent || mat.transmission || (mat.opacity !== undefined && mat.opacity < 1))
-        ) {
+        const mat = asMaterialProps(node.props?.materialProps);
+        if (!mat) return;
+        const opacity = mat['opacity'];
+        const opacityLt1 = typeof opacity === 'number' && opacity < 1;
+        if (mat['transparent'] || mat['transmission'] || opacityLt1) {
           transparentNodes.push(node);
         }
       });
@@ -528,8 +547,8 @@ export class OptimizationPass {
     this.walkTree(tree, (node) => {
       if (node.type !== 'mesh' && node.type !== 'gltfModel') return;
 
-      const hsType = node.props?.hsType || 'box';
-      const triEstimate = node.type === 'gltfModel' ? 5000 : TRI_ESTIMATES[hsType] || 12;
+      const hsType = meshHsType(node);
+      const triEstimate = node.type === 'gltfModel' ? 5000 : TRI_ESTIMATES[hsType] ?? 12;
 
       // Only recommend LOD for high-poly objects
       if (triEstimate >= 500) {
@@ -573,9 +592,9 @@ export class OptimizationPass {
     this.walkTree(tree, (node) => {
       if (node.type !== 'mesh') return;
 
-      const matProps = node.props?.materialProps;
+      const matProps = asMaterialProps(node.props?.materialProps);
       const matKey = matProps ? JSON.stringify(matProps) : '__default';
-      const hsType = node.props?.hsType || 'box';
+      const hsType = meshHsType(node);
 
       if (!materialGroups.has(matKey)) {
         materialGroups.set(matKey, { nodes: [], canInstance: true });
@@ -643,8 +662,8 @@ export class OptimizationPass {
 
     // High-res material presets that could use mipmaps
     const highDetailMaterials = materialNodes.filter((n) => {
-      const mat = n.props?.materialProps;
-      return mat && (mat.iridescence || mat.clearcoat || mat.transmission);
+      const mat = asMaterialProps(n.props?.materialProps);
+      return !!(mat && (mat['iridescence'] || mat['clearcoat'] || mat['transmission']));
     });
 
     if (highDetailMaterials.length > 2) {
