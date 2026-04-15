@@ -2,11 +2,17 @@
 /**
  * Lists packages under packages/plugins and checks the npm registry for each @holoscript/* name.
  * No auth required. Bulk publish still needs npm login and workspace:* → semver peer fixes.
+ *
+ * Loads NPM_TOKEN etc. from .env (HoloScript/.env then ~/.ai-ecosystem/.env) for consistency
+ * with publish-unpublished-plugins.mjs — not required for npm view.
  */
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { loadDotenv } from './load-dotenv.mjs';
+
+loadDotenv();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');

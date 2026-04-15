@@ -5,8 +5,10 @@
  * the semver from packages/core/package.json.
  *
  * Requirements:
- *   - NPM_TOKEN in env (classic token with publish) or interactive npm login
+ *   - NPM_TOKEN in .env or env (classic token with publish) or interactive npm login
  *   - Package must look publish-ready: main/types point to dist/, or "files" includes dist/
+ *
+ * Loads env from HoloScript/.env then ~/.ai-ecosystem/.env (first file found wins for unset keys).
  *
  * Usage:
  *   node scripts/publish-unpublished-plugins.mjs           # dry-run (default)
@@ -16,6 +18,12 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, unlinkSync, copyF
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { loadDotenv } from './load-dotenv.mjs';
+
+const { loadedFrom } = loadDotenv();
+if (loadedFrom) {
+  console.error(`[publish-unpublished-plugins] Loaded env from ${loadedFrom}`);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
