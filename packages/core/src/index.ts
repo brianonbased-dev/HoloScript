@@ -1018,6 +1018,7 @@ export type { BTStatus } from '@holoscript/framework/ai';
 export { Blackboard } from '@holoscript/framework/ai';
 
 // ── Dialogue ───────────────────────────────────────────────────────
+export { DialogueGraph, DialogueRunner } from '@holoscript/engine/dialogue';
 export type {
   GraphDialogueNode as DialogueGraphNode,
   GraphDialogueNodeType,
@@ -1671,3 +1672,24 @@ export {
 // Analysis 
 // Exported via legacy-exports.ts
 export { WebRTCTransport } from '@holoscript/mesh';
+
+// ── Animation, Audio, TileMap ─────────────────────────────────────────────
+export {
+  AnimationEngine,
+  Easing,
+  type AnimClip,
+  type Keyframe,
+} from './animation/AnimationEngine';
+
+export {
+  AudioEngine,
+  type AudioSource,
+  type AudioSourceOptions,
+} from './audio/AudioEngine';
+
+export {
+  TileMap,
+  TileFlags,
+  type Tile,
+  type AutoTileRule,
+} from './tilemap/TileMap';

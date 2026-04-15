@@ -7,6 +7,9 @@ export interface SoundDef {
   loop: boolean;
 }
 
+/** Alias for backwards-compatible test imports */
+export type SoundDefinition = SoundDef;
+
 export class SoundPool {
   private sounds: Map<string, SoundDef> = new Map();
 
@@ -34,5 +37,15 @@ export class SoundPool {
 
   getByCategory(category: string): SoundDef[] {
     return [...this.sounds.values()].filter((s) => s.category === category);
+  }
+
+  getRandomFromCategory(category: string): SoundDef | undefined {
+    const matches = this.getByCategory(category);
+    if (matches.length === 0) return undefined;
+    return matches[Math.floor(Math.random() * matches.length)];
+  }
+
+  listIds(): string[] {
+    return Array.from(this.sounds.keys());
   }
 }

@@ -49,7 +49,7 @@ export class AudioEngine {
       id,
       soundId,
       volume: options.volume ?? 1,
-      spatialize: options.spatialize ?? false,
+      spatialize: options.spatialize ?? (options.position !== undefined),
       position: toTuple(options.position),
       refDistance: options.refDistance ?? 1,
       maxDistance: options.maxDistance ?? 10000,
@@ -76,8 +76,20 @@ export class AudioEngine {
     return this.sources.size;
   }
 
+  getActiveSources(): AudioSource[] {
+    return Array.from(this.sources.values());
+  }
+
   getSource(id: string): AudioSource | undefined {
     return this.sources.get(id);
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  isMuted(): boolean {
+    return this.masterMuted;
   }
 
   setListenerPosition(pos: Vec3): void {
@@ -87,6 +99,14 @@ export class AudioEngine {
   setListenerOrientation(forward: Vec3, up: Vec3): void {
     this.listenerForward = forward;
     this.listenerUp = up;
+  }
+
+  getListener(): { position: Vec3Tuple; forward: Vec3Tuple; up: Vec3Tuple } {
+    return {
+      position: [this.listenerPos.x, this.listenerPos.y, this.listenerPos.z],
+      forward: [this.listenerForward.x, this.listenerForward.y, this.listenerForward.z],
+      up: [this.listenerUp.x, this.listenerUp.y, this.listenerUp.z],
+    };
   }
 
   setMasterVolume(v: number): void {
