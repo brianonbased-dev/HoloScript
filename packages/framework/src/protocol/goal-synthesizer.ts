@@ -148,7 +148,8 @@ export class GoalSynthesizer {
   synthesize(agentDomain: string = 'general', source: Goal['source'] = 'autonomous-boredom'): Goal {
     const goals = this.synthesizeHeuristic({ domain: agentDomain }, [], 1);
     if (goals.length > 0) {
-      return { ...goals[0], source };
+      // Single-goal boredom API keeps low priority regardless of heuristic list ranking.
+      return { ...goals[0], source, priority: 'low' };
     }
     // Ultimate fallback
     const description = GENERIC_GOALS[Math.floor(Math.random() * GENERIC_GOALS.length)];

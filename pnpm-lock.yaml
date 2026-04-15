@@ -280,6 +280,9 @@ importers:
         specifier: workspace:*
         version: link:../framework
     devDependencies:
+      '@holoscript/uaal':
+        specifier: workspace:*
+        version: link:../uaal
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13

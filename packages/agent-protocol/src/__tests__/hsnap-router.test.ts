@@ -6,7 +6,6 @@ import {
   parseHSNAPPayload,
   type HSNAPDispatchMessage,
 } from '../hsnap-router';
-import { UAALOpCode } from '../../../uaal/src/opcodes';
 
 describe('HSNAPRouter', () => {
   it('registers agents from @agent metadata and routes by explicit name', async () => {
@@ -132,8 +131,10 @@ describe('HSNAPRouter', () => {
     expect(receipt.lifecycle.at(-1)?.type).toBe('task.fail');
   });
 
-  it('uses the built-in hsplus to UAAL compiler when no custom hook is provided', async () => {
-    const dispatch = vi.fn(async (message: HSNAPDispatchMessage) => message.compiled);
+  it('passes compiled as undefined when no compile hook is provided (HSNAP compile lives in @holoscript/hsnap-compiler)', async () => {
+    const dispatch = vi.fn(async (message: HSNAPDispatchMessage) => ({
+      echoedCompiled: message.compiled,
+    }));
 
     const router = new HSNAPRouter();
     router.registerAgent({
@@ -148,15 +149,7 @@ describe('HSNAPRouter', () => {
 
     expect(receipt.status).toBe('completed');
     expect(dispatch).toHaveBeenCalledTimes(1);
-    expect(
-      (receipt.result as { instructions: Array<{ opCode: UAALOpCode }> }).instructions
-    ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ opCode: UAALOpCode.OP_STATE_SET }),
-        expect.objectContaining({ opCode: UAALOpCode.OP_ROUTE_MATCH }),
-        expect.objectContaining({ opCode: UAALOpCode.OP_EMIT_SIGNAL }),
-      ])
-    );
+    expect((receipt.result as { echoedCompiled: unknown }).echoedCompiled).toBeUndefined();
   });
 });
 
