@@ -184,7 +184,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Get current position
    */
   getPosition(): Vector3 {
-    return { ...this.position };
+    return [...this.position] as Vector3;
   }
 
   /**
@@ -201,7 +201,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Get current velocity
    */
   getVelocity(): Vector3 {
-    return { ...this.velocity };
+    return [...this.velocity] as Vector3;
   }
 
   /**
@@ -218,11 +218,11 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Move by delta
    */
   move(delta: Vector3): void {
-    this.setPosition({
-      x: this.position[0] + delta[0],
-      y: this.position[1] + delta[1],
-      z: this.position[2] + delta[2],
-    });
+    this.setPosition([
+      this.position[0] + delta[0],
+      this.position[1] + delta[1],
+      this.position[2] + delta[2],
+    ] as Vector3);
   }
 
   // ===========================================================================

@@ -21,8 +21,9 @@ import { EventEmitter } from 'events';
 // ─── Mock SpatialContextProvider ─────────────────────────────────────────────
 // We mock the entire module so the constructor captures a controlled instance
 
-vi.mock('../../spatial/SpatialContextProvider', () => {
-  const { EventEmitter } = require('events');
+vi.mock('@holoscript/engine/spatial', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  const { EventEmitter } = await import('events');
   class MockProvider extends EventEmitter {
     registerAgent = vi.fn();
     unregisterAgent = vi.fn();
@@ -41,7 +42,7 @@ vi.mock('../../spatial/SpatialContextProvider', () => {
     subscribeToRegion = vi.fn();
     unsubscribeFromRegion = vi.fn();
   }
-  return { SpatialContextProvider: MockProvider };
+  return { ...actual, SpatialContextProvider: MockProvider };
 });
 
 import {
@@ -187,8 +188,8 @@ describe('SpatialAwarenessTrait position & velocity', () => {
   it('getPosition returns copy of position', () => {
     const t = makeTrait('a', { initialPosition: [5, 10, 15 ] });
     const pos = t.getPosition();
-    pos.x = 999;
-    expect(t.getPosition().x).toBe(5); // copy, not reference
+    (pos as number[])[0] = 999;
+    expect(t.getPosition()[0]).toBe(5); // copy, not reference
   });
 
   it('setPosition updates internal position', () => {
@@ -217,8 +218,8 @@ describe('SpatialAwarenessTrait position & velocity', () => {
   it('getVelocity returns copy of velocity', () => {
     const t = makeTrait('a');
     const vel = t.getVelocity();
-    vel.x = 999;
-    expect(t.getVelocity().x).toBe(0);
+    (vel as number[])[0] = 999;
+    expect(t.getVelocity()[0]).toBe(0);
   });
 
   it('setVelocity updates internal velocity', () => {

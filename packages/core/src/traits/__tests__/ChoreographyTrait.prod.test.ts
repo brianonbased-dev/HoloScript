@@ -54,6 +54,38 @@ vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
     plan: vi.fn().mockReturnValue(mockPlanBuilder),
   };
 });
+// Mock ChoreographyEngine and ChoreographyPlanner to prevent real async work
+vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => {
+  const MockEngine = vi.fn().mockImplementation(function () {
+    return {
+      setActionHandler: vi.fn(),
+      on: vi.fn(),
+      execute: vi.fn().mockResolvedValue({ planId: 'p1', status: 'completed', outputs: {} }),
+      pause: vi.fn().mockResolvedValue(undefined),
+      resume: vi.fn().mockResolvedValue(undefined),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      approveHitl: vi.fn(),
+      rejectHitl: vi.fn(),
+    };
+  });
+  return { ChoreographyEngine: MockEngine };
+});
+
+vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
+  const MockPlanner = vi.fn().mockImplementation(function () {
+    return {
+      createPlan: vi
+        .fn()
+        .mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] }),
+    };
+  });
+  const mockPlanBuilder = { step: vi.fn().mockReturnThis(), build: vi.fn() };
+  return {
+    ChoreographyPlanner: MockPlanner,
+    PlanBuilder: vi.fn().mockImplementation(function () { return mockPlanBuilder; }),
+    plan: vi.fn().mockReturnValue(mockPlanBuilder),
+  };
+});
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

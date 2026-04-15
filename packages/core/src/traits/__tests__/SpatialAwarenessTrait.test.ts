@@ -156,9 +156,9 @@ describe('SpatialAwarenessTrait - Position & Movement', () => {
 
   it('should return copy of position (not reference)', () => {
     const pos = trait.getPosition();
-    pos.x = 999;
+    (pos as number[])[0] = 999;
 
-    expect(trait.getPosition().x).toBe(0);
+    expect(trait.getPosition()[0]).toBe(0);
   });
 
   it('should get velocity', () => {
@@ -174,9 +174,9 @@ describe('SpatialAwarenessTrait - Position & Movement', () => {
   it('should return copy of velocity (not reference)', () => {
     trait.setVelocity([1, 2, 3 ]);
     const vel = trait.getVelocity();
-    vel.x = 999;
+    (vel as number[])[0] = 999;
 
-    expect(trait.getVelocity().x).toBe(1);
+    expect(trait.getVelocity()[0]).toBe(1);
   });
 
   it('should move by delta', () => {
