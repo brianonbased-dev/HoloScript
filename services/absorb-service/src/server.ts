@@ -21,23 +21,47 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 500));
 
-async function fetchActiveMoltbookAgentsWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<number | null> {
-  const dbProbe = (async () => {
+/** True if PostgreSQL accepts a trivial query within the health timeout (core connectivity). */
+async function pingPostgresWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<boolean> {
+  const p = (async () => {
+    try {
+      const { sql } = await import('drizzle-orm');
+      await db.execute(sql`SELECT 1`);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+  const timeoutProbe = new Promise<boolean>((resolve) => {
+    setTimeout(() => resolve(false), HEALTH_DB_TIMEOUT_MS);
+  });
+  return Promise.race([p, timeoutProbe]);
+}
+
+type MoltbookProbeResult =
+  | { status: 'ok'; count: number }
+  | { status: 'timeout' }
+  | { status: 'error' };
+
+async function fetchActiveMoltbookAgentsWithTimeout(
+  db: NonNullable<ReturnType<typeof getDb>>,
+): Promise<MoltbookProbeResult> {
+  const dbProbe = (async (): Promise<MoltbookProbeResult> => {
     try {
       const { moltbookAgents } = await import('./db/schema.js');
       const { sql } = await import('drizzle-orm');
       const [row] = await db
         .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
         .from(moltbookAgents);
-      return row?.count ?? 0;
-    } catch (e: any) {
-      // Suppress noisy log because table might not exist
-      return null;
+      return { status: 'ok', count: row?.count ?? 0 };
+    } catch {
+      // Table missing or query failed — not the same as Postgres being down
+      return { status: 'error' };
     }
   })();
 
-  const timeoutProbe = new Promise<null>((resolve) => {
-    setTimeout(() => resolve(null), HEALTH_DB_TIMEOUT_MS);
+  const timeoutProbe = new Promise<MoltbookProbeResult>((resolve) => {
+    setTimeout(() => resolve({ status: 'timeout' }), HEALTH_DB_TIMEOUT_MS);
   });
 
   return Promise.race([dbProbe, timeoutProbe]);
@@ -80,26 +104,40 @@ app.get('/', (req, res) => {
 
 // --- Background Health Sampling ---
 let _cachedMoltbookAgentCount: number | null = null;
+/** PostgreSQL connectivity (SELECT 1). Kept separate from optional Moltbook table probe. */
 let _cachedDatabaseStatus: 'connected' | 'degraded' | 'not configured' = 'not configured';
+/** Why moltbookActiveAgents may be null: ok = count present; timeout/error = probe issue, not necessarily DB down. */
+let _cachedMoltbookProbeStatus: 'ok' | 'timeout' | 'error' | 'unavailable' = 'unavailable';
 
 async function backgroundHealthProbe() {
   const db = getDb();
   if (!db) {
     _cachedDatabaseStatus = 'not configured';
     _cachedMoltbookAgentCount = null;
+    _cachedMoltbookProbeStatus = 'unavailable';
     return;
   }
-  
-  _cachedDatabaseStatus = 'connected';
+
   try {
-    const maybeCount = await fetchActiveMoltbookAgentsWithTimeout(db);
-    if (maybeCount === null) {
-      _cachedDatabaseStatus = 'degraded';
+    const pgOk = await pingPostgresWithTimeout(db);
+    _cachedDatabaseStatus = pgOk ? 'connected' : 'degraded';
+    if (!pgOk) {
+      _cachedMoltbookAgentCount = null;
+      _cachedMoltbookProbeStatus = 'unavailable';
+      return;
+    }
+
+    const molt = await fetchActiveMoltbookAgentsWithTimeout(db);
+    _cachedMoltbookProbeStatus = molt.status;
+    if (molt.status === 'ok') {
+      _cachedMoltbookAgentCount = molt.count;
     } else {
-      _cachedMoltbookAgentCount = maybeCount;
+      _cachedMoltbookAgentCount = null;
     }
   } catch {
     _cachedDatabaseStatus = 'degraded';
+    _cachedMoltbookAgentCount = null;
+    _cachedMoltbookProbeStatus = 'error';
   }
 }
 
@@ -116,6 +154,8 @@ app.get('/health', (_req, res) => {
     version: '6.0.0',
     uptime: process.uptime(),
     database: _cachedDatabaseStatus,
+    // Secondary probe: COUNT on moltbook table (slow/missing table ≠ Postgres down).
+    moltbookAgentCountProbe: _cachedMoltbookProbeStatus,
     mcpSessions: getActiveSessionCount(),
     moltbookActiveAgents: _cachedMoltbookAgentCount,
     timestamp: new Date().toISOString(),
