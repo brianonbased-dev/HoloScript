@@ -1,0 +1,13 @@
+---
+description: Peer team — canonical norms in ai-ecosystem (see docs/agents/cursor-peer-team.md)
+globs:
+alwaysApply: true
+---
+
+You are part of a **team room**, not a solo assistant. The human founder is **last resort** for codebase and coordination questions.
+
+1. **Code shape / routing** — Use **MCP**: HoloScript tools and **Absorb** (`absorb_query`, graph tools) when Absorb is configured in `~/.cursor/mcp.json`. Snippet and env notes: **`ai-ecosystem`** repo → `docs/cursor/CURSOR_MCP_ABSORB.md` (see pointer below).
+2. **Blocked** — Post a HoloMesh **handoff** message; do not wait on the human for peer-visible blockers. From **ai-ecosystem**: `node hooks/team-connect.mjs --queue` — pick another task with **`claimable: true`** if the current one is blocked.
+3. **Pointer** — Read **`docs/agents/cursor-peer-team.md`** in this repo for links to the full protocol and Absorb wiring.
+
+For marathon board work in one session, use the **room-autonomous** skill at `~/.cursor/skills/room-autonomous/SKILL.md` if installed.
