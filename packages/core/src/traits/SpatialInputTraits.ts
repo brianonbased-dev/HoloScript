@@ -1038,16 +1038,16 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       if ((event as Record<string, unknown>).thumbstick) {
         const ts = (event as Record<string, unknown>).thumbstick as { x: number; y: number };
         ctrl.thumbstick = {
-          x: applyDeadzone(ts[0], config.deadzone),
-          y: applyDeadzone(ts[1], config.deadzone),
+          x: applyDeadzone(ts.x, config.deadzone),
+          y: applyDeadzone(ts.y, config.deadzone),
         };
       }
 
       if ((event as Record<string, unknown>).touchpad) {
         const tp = (event as Record<string, unknown>).touchpad as { x: number; y: number };
         ctrl.touchpad = {
-          x: applyDeadzone(tp[0], config.deadzone),
-          y: applyDeadzone(tp[1], config.deadzone),
+          x: applyDeadzone(tp.x, config.deadzone),
+          y: applyDeadzone(tp.y, config.deadzone),
         };
       }
 

@@ -23,9 +23,9 @@ export class SlidableTrait implements Trait {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const length = node.properties.length || 0.1;
 
-    let axisVec = [1, 0, 0 ];
-    if (axis === 'y') axisVec = [0, 1, 0 ];
-    if (axis === 'z') axisVec = [0, 0, 1 ];
+    let axisVec: { x: number; y: number; z: number } = { x: 1, y: 0, z: 0 };
+    if (axis === 'y') axisVec = { x: 0, y: 1, z: 0 };
+    if (axis === 'z') axisVec = { x: 0, y: 0, z: 1 };
 
     // Request Prismatic Constraint without spring (or weak spring/friction for "feel")
     context.emit('physics_add_constraint', {
@@ -47,9 +47,8 @@ export class SlidableTrait implements Trait {
     if (!this.initialPos) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialPos = node.properties.position
-        ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          { ...node.properties.position }
-        : [0, 0, 0 ];
+        ? [...(node.properties.position as number[])] as [number, number, number]
+        : [0, 0, 0];
     }
 
     const currentPos = context.physics.getBodyPosition(node.id as string);
@@ -62,12 +61,11 @@ export class SlidableTrait implements Trait {
 
     // Project position difference onto axis
     let delta = 0;
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'x') delta = currentPos[0] - this.initialPos[0];
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'y') delta = currentPos[1] - this.initialPos[1];
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (axis === 'z') delta = currentPos[2] - this.initialPos[2];
+    const cp = currentPos as any;
+    const ip = this.initialPos;
+    if (axis === 'x') delta = (cp.x ?? cp[0]) - ip[0];
+    if (axis === 'y') delta = (cp.y ?? cp[1]) - ip[1];
+    if (axis === 'z') delta = (cp.z ?? cp[2]) - ip[2];
 
     // Normalize to 0-1 based on length (-length/2 to length/2)
     // Constraint min = -length/2, max = length/2

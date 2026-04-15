@@ -261,9 +261,9 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
 
       // Thumbstick movement
       const stickX =
-        applyDeadzone(controller.thumbstick[0], config.deadzone) * config.thumbstick_sensitivity;
+        applyDeadzone(controller.thumbstick.x, config.deadzone) * config.thumbstick_sensitivity;
       const stickY =
-        applyDeadzone(controller.thumbstick[1], config.deadzone) *
+        applyDeadzone(controller.thumbstick.y, config.deadzone) *
         config.thumbstick_sensitivity *
         (config.invert_y ? -1 : 1);
 

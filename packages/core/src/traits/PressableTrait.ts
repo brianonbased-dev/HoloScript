@@ -33,7 +33,7 @@ export class PressableTrait implements Trait {
     context.emit('physics_add_constraint', {
       type: 'prismatic',
       nodeId: node.id,
-      axis: [0, 0, 1 ], // Local Z
+      axis: { x: 0, y: 0, z: 1 }, // Local Z
       min: 0,
       max: distance,
       spring: { stiffness, damping, restLength: 0 }, // Spring pulls back to 0
@@ -63,9 +63,8 @@ export class PressableTrait implements Trait {
     // NOTE: Assumes world-aligned button (Z-axis depression). Rotated buttons would need
     // inverse-transform of currentPos into local space before measuring depression.
 
-    // @ts-expect-error During migration
-    // @ts-expect-error During migration
-    const dist = Math.abs((currentPos[2] ?? currentPos[2]) - this.initialPos[2]);
+    const posZ = Array.isArray(currentPos) ? currentPos[2] : (currentPos as any).z ?? 0;
+    const dist = Math.abs(posZ - this.initialPos[2]);
 
     // Config
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2

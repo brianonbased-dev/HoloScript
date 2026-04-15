@@ -47,10 +47,10 @@ export class VRLocomotion {
    */
   teleport(target: TeleportTarget): boolean {
     if (!target.valid) return false;
-    const dist = Math.sqrt((target[0] - this.position[0]) ** 2 + (target[2] - this.position[2]) ** 2);
+    const dist = Math.sqrt((target.x - this.position[0]) ** 2 + (target.z - this.position[2]) ** 2);
     if (dist > this.config.teleportRange) return false;
 
-    this.position = [target[0], target[1], target[2] ];
+    this.position = [target.x, target.y, target.z];
     this.teleportHistory.push(target);
     return true;
   }
@@ -96,8 +96,8 @@ export class VRLocomotion {
     return this.config.comfortVignette && this.config.mode === 'smooth';
   }
 
-  getPosition(): Vector3 {
-    return [this.position[0], this.position[1], this.position[2] ];
+  getPosition(): { x: number; y: number; z: number } {
+    return { x: this.position[0], y: this.position[1], z: this.position[2] };
   }
   getRotation(): number {
     return this.rotation;

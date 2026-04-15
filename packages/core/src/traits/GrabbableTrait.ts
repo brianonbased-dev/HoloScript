@@ -24,8 +24,8 @@ export class GrabbableTrait implements Trait {
     const now = performance.now();
 
     // Update history for velocity calculation
-    if (hands.left) this.lastHandPositions.set('left', [...hands.left.position]);
-    if (hands.right) this.lastHandPositions.set('right', [...hands.right.position]);
+    if (hands.left) this.lastHandPositions.set('left', this.toArr3(hands.left.position));
+    if (hands.right) this.lastHandPositions.set('right', this.toArr3(hands.right.position));
     this.lastHandTime = now;
 
     // Check Releases
@@ -128,8 +128,10 @@ export class GrabbableTrait implements Trait {
 
     // Rotation Logic (Steering Wheel)
     // Vector between hands
-    const dx = right.position[0] - left.position[0];
-    const dz = right.position[2] - left.position[2];
+    const [rx, , rz] = this.toArr3(right.position);
+    const [lx, , lz] = this.toArr3(left.position);
+    const dx = rx - lx;
+    const dz = rz - lz;
     const angle = Math.atan2(dz, dx);
 
     // We need initial angle to calculate delta.
@@ -168,16 +170,22 @@ export class GrabbableTrait implements Trait {
   private initialHandAngle: number | null = null;
   private initialObjectRotation: Vector3 | null = null;
 
+  private toArr3(
+    v: [number, number, number] | { x: number; y: number; z: number }
+  ): [number, number, number] {
+    return Array.isArray(v) ? v : [v.x, v.y, v.z];
+  }
+
   private getDistance(
     p1: { x?: number; y?: number; z?: number } | [number, number, number],
     p2: { x?: number; y?: number; z?: number } | [number, number, number]
   ): number {
-    const x1 = Array.isArray(p1) ? p1[0] : (p1[0] ?? 0);
-    const y1 = Array.isArray(p1) ? p1[1] : (p1[1] ?? 0);
-    const z1 = Array.isArray(p1) ? p1[2] : (p1[2] ?? 0);
-    const x2 = Array.isArray(p2) ? p2[0] : (p2[0] ?? 0);
-    const y2 = Array.isArray(p2) ? p2[1] : (p2[1] ?? 0);
-    const z2 = Array.isArray(p2) ? p2[2] : (p2[2] ?? 0);
+    const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
+    const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
+    const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
+    const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
+    const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
+    const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
     const dx = x1 - x2;
     const dy = y1 - y2;
     const dz = z1 - z2;
@@ -192,10 +200,11 @@ export class GrabbableTrait implements Trait {
     // Assuming rough delta of 16ms if not passed
     const delta = 0.016;
 
+    const hp = this.toArr3(hand.position);
     const velocity: [number, number, number] = [
-      (hand.position[0] - prevPos[0]) / delta,
-      (hand.position[1] - prevPos[1]) / delta,
-      (hand.position[2] - prevPos[2]) / delta,
+      (hp[0] - prevPos[0]) / delta,
+      (hp[1] - prevPos[1]) / delta,
+      (hp[2] - prevPos[2]) / delta,
     ];
 
     // Clamp for sanity
