@@ -46,16 +46,28 @@ export class AnimationTransitionSystem {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
+  /** Normalize position: supports [x,y,z] arrays and {x,y,z} objects */
+  private toVec3(v: IVector3 | { x: number; y: number; z: number }): IVector3 {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
+    return [(v as { x: number; y: number; z: number }).x ?? 0,
+            (v as { x: number; y: number; z: number }).y ?? 0,
+            (v as { x: number; y: number; z: number }).z ?? 0];
+  }
+
+  private normalizePose(pose: BonePose[]): BonePose[] {
+    return pose.map((p) => ({
+      ...p,
+      position: this.toVec3(p.position as IVector3 | { x: number; y: number; z: number }),
+      rotation: [...p.rotation] as [number, number, number, number],
+    }));
+  }
+
   startAnimToRagdoll(entityId: string, currentPose: BonePose[]): void {
     this.activeBlends.set(entityId, {
       direction: 'animation_to_ragdoll',
       progress: 0,
       duration: this.config.duration,
-      sourcePose: currentPose.map((p) => ({
-        ...p,
-        position: [...p.position] as IVector3,
-        rotation: [...p.rotation] as [number, number, number, number],
-      })),
+      sourcePose: this.normalizePose(currentPose),
       isComplete: false,
     });
   }
@@ -65,11 +77,7 @@ export class AnimationTransitionSystem {
       direction: 'ragdoll_to_animation',
       progress: 0,
       duration: this.config.duration,
-      sourcePose: currentPose.map((p) => ({
-        ...p,
-        position: [...p.position] as IVector3,
-        rotation: [...p.rotation] as [number, number, number, number],
-      })),
+      sourcePose: this.normalizePose(currentPose),
       isComplete: false,
     });
   }
@@ -100,7 +108,11 @@ export class AnimationTransitionSystem {
 
         blended.push({
           boneId: source.boneId,
-          position: this.lerpVec3(fromBone.position, toBone.position, t),
+          position: this.lerpVec3(
+            this.toVec3(fromBone.position as IVector3 | { x: number; y: number; z: number }),
+            this.toVec3(toBone.position as IVector3 | { x: number; y: number; z: number }),
+            t
+          ),
           rotation: this.slerpQuat(fromBone.rotation, toBone.rotation, t),
         });
       }
