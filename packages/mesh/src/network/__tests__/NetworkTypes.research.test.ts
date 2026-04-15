@@ -1,7 +1,7 @@
 /**
  * NetworkTypes Research Implementation Tests
  *
- * Tests for all exports added during the multiplayer research TODO implementation:
+ * Tests for all exports added during the multiplayer research-track implementation:
  * - Sync tier defaults, delivery modes, rates
  * - resolveSyncConfig()
  * - CRDT functions: mergeLWW, mergeGCounter, gcounterValue, incrementGCounter

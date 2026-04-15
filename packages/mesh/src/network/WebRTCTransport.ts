@@ -11,7 +11,7 @@
  * - Data channel for message passing
  * - ICE candidate gathering
  *
- * TODO: HOLOLAND INTEGRATION - VRR Multiplayer & VR Voice Chat
+ * Roadmap (HoloLand): VRR multiplayer and VR voice chat integration
  *
  * REQUIRED ENHANCEMENTS FOR HOLOLAND:
  * 1. VRR Twin Multiplayer (1000+ concurrent players per twin)
@@ -84,7 +84,7 @@
  * - AgentKitIntegration.ts (AI agent voice synthesis)
  *
  * RESEARCH REFERENCES:
- * - HOLOLAND_INTEGRATION_TODOS.md (WebRTC multiplayer section)
+ * - examples/hololand/README.md (WebRTC multiplayer pointers)
  * - uAA2++_Protocol/5.GROW P.029: "Machine Customers for VR Platforms"
  */
 
