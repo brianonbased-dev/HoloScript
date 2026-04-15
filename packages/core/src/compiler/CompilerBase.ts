@@ -137,6 +137,8 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   QuiltCompiler: 'quilt',
   MVHEVCCompiler: 'mv-hevc',
   NodeServiceCompiler: 'node-service',
+  NextJSAPICompiler: 'nextjs-api',
+  MCPConfigCompiler: 'domain-block',
   AgentInferenceCompiler: 'agent-inference',
 };
 

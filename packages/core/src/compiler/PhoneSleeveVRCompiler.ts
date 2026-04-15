@@ -1099,9 +1099,13 @@ ${handTrackingFrame}
   }
 
   private resolveColor(obj: HoloObjectDecl): string {
-    // @ts-expect-error
-    const color =
-      this.getProp(obj.properties, 'color') || this.getProp(obj.properties, 'material')?.color;
+    const colorDirect = this.getProp(obj.properties, 'color');
+    const material = this.getProp(obj.properties, 'material');
+    const materialColor =
+      material && typeof material === 'object' && material !== null && 'color' in material
+        ? (material as { color?: unknown }).color
+        : undefined;
+    const color = colorDirect ?? materialColor;
     if (typeof color === 'string') {
       if (color.startsWith('#')) return `0x${color.slice(1)}`;
       if (color.startsWith('0x')) return color;

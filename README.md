@@ -179,6 +179,8 @@ git clone https://github.com/brianonbased-dev/HoloScript.git
 cd HoloScript && pnpm install && pnpm build && pnpm test
 ```
 
+**Agent validation (TypeScript):** After touching `packages/*`, run `pnpm preflight` so only **changed** packages are typechecked (fast, Windows-safe spawns). Narrow to TS only with `pnpm preflight --check=typescript,ts`. Before a large merge, use `pnpm preflight --full` (all packages; slower). Flags and checks live in `scripts/preflight.mjs`.
+
 ## Three file formats
 
 | Extension | Purpose | Examples |
@@ -196,6 +198,8 @@ npm and PyPI packages share the same major version. See the [Release Versioning 
 ## Agent quick reference
 
 For agents connecting via MCP — what's available beyond the problems listed above.
+
+**Local checks:** `pnpm preflight` (changed packages) · `pnpm preflight --check=typescript,ts` (TS only) · `pnpm preflight --full` (entire monorepo TS sweep).
 
 **Connectors** (deploy anywhere): `connector-github` (repos, PRs, CI/CD), `connector-railway` (deploy, envs, logs, costs), `connector-appstore` (TestFlight, Play Store), `connector-upstash` (Redis, vector search, QStash), `connector-vscode` (IDE sync), `connector-core` (build your own).
 

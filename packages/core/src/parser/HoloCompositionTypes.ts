@@ -1207,6 +1207,7 @@ export type HoloDomainType =
   | 'resilience' // circuit_breaker, retry, timeout, fallback, bulkhead
   // Simulation domains (v6.1 — PDE solvers)
   | 'simulation' // simulation block: thermal, structural, hydraulic
+  | 'mcp_servers' // IDE MCP server definitions (MCPConfigCompiler)
   | 'custom'; // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {

@@ -54,6 +54,7 @@ export type DialectDomain =
   | 'xr'
   | 'mobile'
   | 'web3d'
+  | 'web' // HTTP / Next.js style stacks (e.g. nextjs-api dialect)
   | 'runtime'
   | 'shader'
   | 'interchange'
@@ -61,7 +62,8 @@ export type DialectDomain =
   | 'neuromorphic'
   | 'meta'
   | 'mixin'
-  | 'observability';
+  | 'observability'
+  | 'configuration'; // IDE / toolchain config emitters (e.g. mcp-config)
 
 export type DialectRiskTier = 'standard' | 'high' | 'critical';
 

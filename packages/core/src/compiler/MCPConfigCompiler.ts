@@ -131,7 +131,7 @@ export class MCPConfigCompiler extends CompilerBase {
   private extractServersFromBlock(block: HoloDomainBlock): void {
     if (!block.children) return;
     for (const child of block.children) {
-      if ('type' in child && (child as HoloObjectDecl).type === 'ObjectDecl') {
+      if ('type' in child && (child as HoloObjectDecl).type === 'Object') {
         const obj = child as HoloObjectDecl;
         this.servers.push(this.extractServerFromObject(obj));
       }
@@ -339,7 +339,7 @@ DialectRegistry.register({
   domain: 'configuration',
   description: 'Compiles .holo server definitions to IDE-specific MCP config JSON',
   supportedTraits: ['connector', 'env'],
+  riskTier: 'standard',
   factory: (options) => new MCPConfigCompiler(options as MCPConfigCompilerOptions),
-  inputFormats: ['.holo'],
-  outputFormat: '.json',
+  outputExtensions: ['.json'],
 });

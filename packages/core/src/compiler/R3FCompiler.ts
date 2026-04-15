@@ -1,4 +1,5 @@
-import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName, HoloComposition, CompositionChild } from '../types';
+import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
+import type { HoloComposition, CompositionChild } from '../types/index';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { ProvenanceSemiring, type ProvenanceContext } from './traits/ProvenanceSemiring';
 // Side-effect import: registers all preset visuals into the registry
@@ -3721,14 +3722,12 @@ export class R3FCompiler {
         effects.push(this.createNode('Vignette', ppTrait.vignette as Record<string, unknown>));
     }
     if (node.props.bloom) {
-      effects.push(
-        this.createNode(
-          'Bloom',
-          typeof node.props.bloom === 'object'
-            ? node.props.bloom
-            : ({ intensity: 1.0 } as Record<string, unknown>)
-        )
-      );
+      const bloom = node.props.bloom;
+      const bloomProps: Record<string, unknown> =
+        typeof bloom === 'object' && bloom !== null
+          ? (bloom as Record<string, unknown>)
+          : { intensity: 1.0 };
+      effects.push(this.createNode('Bloom', bloomProps));
     }
 
     node.children?.forEach((child) => effects.push(...this.extractPostProcessingNodes(child)));
@@ -3936,7 +3935,8 @@ export class R3FCompiler {
         if (m.pbr.iridescence !== undefined) materialProps['iridescence'] = m.pbr.iridescence;
       }
 
-      r3fNode.props.materialProps = { ...r3fNode.props.materialProps, ...materialProps };
+      const prior = (r3fNode.props.materialProps ?? {}) as Record<string, unknown>;
+      r3fNode.props.materialProps = { ...prior, ...materialProps };
     }
 
     if (graphics.lighting) {

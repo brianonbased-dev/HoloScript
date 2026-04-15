@@ -157,6 +157,7 @@ export type CompilerName =
   // runtime
   | 'wasm'
   | 'node-service'
+  | 'nextjs-api'
   // shader
   | 'tsl'
   // robotics
@@ -233,6 +234,7 @@ export const ANSCapabilityPath = {
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',
+  NEXTJS_API: '/compile/runtime/nextjs-api',
 
   // ── shader ───────────────────────────────────────────────────────────
   TSL: '/compile/shader/tsl',
@@ -306,6 +308,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   // runtime
   wasm: ANSDomain.RUNTIME,
   'node-service': ANSDomain.RUNTIME,
+  'nextjs-api': ANSDomain.RUNTIME,
   // shader
   tsl: ANSDomain.SHADER,
   // robotics
@@ -362,6 +365,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   playcanvas: ANSCapabilityPath.PLAYCANVAS,
   wasm: ANSCapabilityPath.WASM,
   'node-service': ANSCapabilityPath.NODE_SERVICE,
+  'nextjs-api': ANSCapabilityPath.NEXTJS_API,
   tsl: ANSCapabilityPath.TSL,
   urdf: ANSCapabilityPath.URDF,
   sdf: ANSCapabilityPath.SDF,

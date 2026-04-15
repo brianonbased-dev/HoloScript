@@ -41,6 +41,8 @@
 
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
 import type { HoloValue } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
+import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 
 // ── Public Types ───────────────────────────────────────────────────────────
 
@@ -53,6 +55,14 @@ export interface NextJSAPICompilerOptions {
   includeJsDoc?: boolean;
   /** Generate a runtime-check for the HTTP method (default: false) */
   strictMethodCheck?: boolean;
+  /** Include middleware comments in output (class API; reserved for future emit) */
+  includeMiddleware?: boolean;
+  /** Include auth guard comments */
+  includeAuth?: boolean;
+  /** Include request validation stubs */
+  includeValidation?: boolean;
+  /** Include response type interfaces */
+  includeResponseTypes?: boolean;
 }
 
 export interface NextJSAPICompileResult {
@@ -359,46 +369,39 @@ export function compileAllToNextJSAPI(
 // CLASS-BASED API (extends CompilerBase pattern)
 // =============================================================================
 
-import { CompilerBase } from './CompilerBase';
-
-export interface NextJSAPICompilerOptions {
-  /** Include middleware comments in output */
-  includeMiddleware?: boolean;
-  /** Include auth guard comments */
-  includeAuth?: boolean;
-  /** Include request validation stubs */
-  includeValidation?: boolean;
-  /** Include response type interfaces */
-  includeResponseTypes?: boolean;
-}
-
 /**
  * Class-based NextJS API compiler extending CompilerBase.
- * Wraps the functional compileToNextJSAPI/compileAllToNextJSAPI.
+ * Wraps the functional compileToNextJSAPI / compileAllToNextJSAPI.
  */
 export class NextJSAPICompiler extends CompilerBase {
-  private options: NextJSAPICompilerOptions;
+  protected readonly compilerName = 'NextJSAPICompiler';
 
-  constructor(options: NextJSAPICompilerOptions = {}) {
+  constructor(private readonly options: NextJSAPICompilerOptions = {}) {
     super();
-    this.options = options;
   }
 
-  get name(): string {
-    return 'nextjs-api';
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string,
+    _sceneGraph?: JsonLdSceneGraph
+  ): Record<string, string> {
+    this.validateCompilerAccess(agentToken, outputPath);
+    const result = compileToNextJSAPI(composition, this.options);
+    return { [result.path]: result.code };
   }
 
-  compile(composition: unknown, agentToken?: string): { code: string; files: Array<{ path: string; content: string }> } {
-    const comp = composition as import('../types/HoloScriptPlus').HSPlusAST;
-    const result = compileAllToNextJSAPI(comp);
-    return {
-      code: result.map(r => r.code).join('\n\n'),
-      files: result.map(r => ({ path: r.routePath, content: r.code })),
-    };
-  }
-
-  compileSingle(composition: unknown, agentToken?: string): { routePath: string; code: string } {
-    const comp = composition as Parameters<typeof compileToNextJSAPI>[0];
-    return compileToNextJSAPI(comp);
+  /** Multi-composition helper (not used by CompilerBase). */
+  compileAll(
+    compositions: Array<{ name: string; composition: HoloComposition }>,
+    agentToken: string,
+    outputPath?: string
+  ): Record<string, string> {
+    this.validateCompilerAccess(agentToken, outputPath);
+    const files: Record<string, string> = {};
+    for (const row of compileAllToNextJSAPI(compositions, this.options)) {
+      files[row.path] = row.code;
+    }
+    return files;
   }
 }

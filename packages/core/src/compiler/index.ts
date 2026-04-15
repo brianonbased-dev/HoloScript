@@ -82,7 +82,7 @@ export { COCOExporter } from './COCOExporter';
 // Next.js compilers (public barrel exports)
 export { NextJSCompiler } from './NextJSCompiler';
 export type { NextJSCompilerOptions, NextJSCompileResult } from './NextJSCompiler';
-export { compileToNextJSAPI, compileAllToNextJSAPI } from './NextJSAPICompiler';
+export { compileToNextJSAPI, compileAllToNextJSAPI, NextJSAPICompiler } from './NextJSAPICompiler';
 export type { NextJSAPICompilerOptions, NextJSAPICompileResult } from './NextJSAPICompiler';
 export { GLTF_PIPELINE_TOOLS, registerGLTFTools } from './GLTFPipelineMCPTool';
 export { NodeToyMapper, mapNodeToyToShader } from './NodeToyMapping';
