@@ -43,7 +43,7 @@ state API_VERSION: dynamic = "2.1"`;
   it('parses generated on handler (method)', () => {
     const hsplus = `template "Service" {
   on process_event(event) {
-    // TODO: port process_event logic
+    // Stub: absorbed handler body (parse fixture)
   }
 }`;
 
@@ -53,7 +53,7 @@ state API_VERSION: dynamic = "2.1"`;
 
   it('parses generated async fn declaration', () => {
     const hsplus = `async fn health_check() -> dict {
-  // TODO: port health_check logic from python
+  // Stub: absorbed async fn body (parse fixture)
 }`;
 
     const ast = parse(hsplus);
@@ -62,7 +62,7 @@ state API_VERSION: dynamic = "2.1"`;
 
   it('parses generated fn declaration', () => {
     const hsplus = `fn create_app(config) -> Flask {
-  // TODO: port create_app logic from python
+  // Stub: absorbed fn body (parse fixture)
 }`;
 
     const ast = parse(hsplus);
