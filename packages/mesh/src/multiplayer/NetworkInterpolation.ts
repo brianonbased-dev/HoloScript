@@ -14,6 +14,11 @@
 
 import { IVector3 } from '@holoscript/engine/physics/PhysicsTypes';
 
+/** Tuple vec3 copy — `IVector3` is `[x,y,z]`, not `{x,y,z}`. */
+function v3clone(v: IVector3): IVector3 {
+  return [v[0], v[1], v[2]];
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -148,7 +153,7 @@ export class NetworkInterpolation {
       if (timeSince > this.config.maxExtrapolationMs) {
         // Stale — return last known position
         return {
-          position: { ...before.position },
+          position: v3clone(before.position),
           rotation: { ...before.rotation },
           isExtrapolating: true,
         };
@@ -156,17 +161,16 @@ export class NetworkInterpolation {
 
       if (before.velocity) {
         const dtSec = timeSince / 1000;
-        const position = {
-          x: before.position.x + before.velocity.x * dtSec,
-          y: before.position.y + before.velocity.y * dtSec,
-          z: before.position.z + before.velocity.z * dtSec,
-        };
+        const px = before.position[0] + before.velocity[0] * dtSec;
+        const py = before.position[1] + before.velocity[1] * dtSec;
+        const pz = before.position[2] + before.velocity[2] * dtSec;
+        const position: IVector3 = [px, py, pz];
 
         let rotation = { ...before.rotation };
         if (before.angularVelocity) {
-          const wx = before.angularVelocity.x * dtSec;
-          const wy = before.angularVelocity.y * dtSec;
-          const wz = before.angularVelocity.z * dtSec;
+          const wx = before.angularVelocity[0] * dtSec;
+          const wy = before.angularVelocity[1] * dtSec;
+          const wz = before.angularVelocity[2] * dtSec;
           const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
           if (len > 0.0001) {
             const halfLen = len * 0.5;
@@ -200,7 +204,7 @@ export class NetworkInterpolation {
       }
 
       return {
-        position: { ...before.position },
+        position: v3clone(before.position),
         rotation: { ...before.rotation },
         isExtrapolating: true,
       };
@@ -209,7 +213,7 @@ export class NetworkInterpolation {
     // Case 3: We only have future snapshots → use first
     if (after) {
       return {
-        position: { ...after.position },
+        position: v3clone(after.position),
         rotation: { ...after.rotation },
         isExtrapolating: false,
       };
@@ -226,23 +230,23 @@ export class NetworkInterpolation {
    * Smooth correction: instead of snapping, blend toward the server position.
    */
   smoothCorrection(currentPos: IVector3, serverPos: IVector3, dt: number): IVector3 {
-    const dx = serverPos.x - currentPos.x;
-    const dy = serverPos.y - currentPos.y;
-    const dz = serverPos.z - currentPos.z;
+    const dx = serverPos[0] - currentPos[0];
+    const dy = serverPos[1] - currentPos[1];
+    const dz = serverPos[2] - currentPos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Snap if too far (teleported)
     if (dist > this.config.snapThreshold) {
-      return { ...serverPos };
+      return v3clone(serverPos);
     }
 
     // Smooth lerp
     const t = Math.min(1, this.config.lerpSpeed * dt);
-    return {
-      x: currentPos.x + dx * t,
-      y: currentPos.y + dy * t,
-      z: currentPos.z + dz * t,
-    };
+    return [
+      currentPos[0] + dx * t,
+      currentPos[1] + dy * t,
+      currentPos[2] + dz * t,
+    ];
   }
 
   // ---------------------------------------------------------------------------
@@ -271,11 +275,11 @@ export class NetworkInterpolation {
   // ---------------------------------------------------------------------------
 
   private lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
-    return {
-      x: a.x + (b.x - a.x) * t,
-      y: a.y + (b.y - a.y) * t,
-      z: a.z + (b.z - a.z) * t,
-    };
+    return [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t,
+    ];
   }
 
   private nlerp(

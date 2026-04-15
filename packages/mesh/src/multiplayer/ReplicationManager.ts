@@ -88,9 +88,9 @@ export class ReplicationManager {
       sentFullSnapshot: false,
       snapshot: {
         timestamp: 0,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        velocity: { x: 0, y: 0, z: 0 },
+        velocity: [0, 0, 0],
         customState: {},
       },
       previousSnapshot: null,
@@ -278,9 +278,9 @@ export class ReplicationManager {
 
   private vec3Differs(a: IVector3, b: IVector3, threshold: number): boolean {
     return (
-      Math.abs(a.x - b.x) > threshold ||
-      Math.abs(a.y - b.y) > threshold ||
-      Math.abs(a.z - b.z) > threshold
+      Math.abs(a[0] - b[0]) > threshold ||
+      Math.abs(a[1] - b[1]) > threshold ||
+      Math.abs(a[2] - b[2]) > threshold
     );
   }
 
