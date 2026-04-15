@@ -36,7 +36,7 @@ export enum AgenticFailureMode {
   FM02_INSTRUCTION_OVERRIDE = 'FM02_INSTRUCTION_OVERRIDE',
   FM03_OBJECTIVE_MISALIGNMENT = 'FM03_OBJECTIVE_MISALIGNMENT',
   FM04_CONSTRAINT_VIOLATION = 'FM04_CONSTRAINT_VIOLATION',
-  FM05_REWARD_HACKING = 'FM05_REWARD_HACKING',
+  FM05_INCENTIVE_GAMING = 'FM05_INCENTIVE_GAMING',
   FM06_SCOPE_CREEP = 'FM06_SCOPE_CREEP',
 
   // === B. Knowledge & Context Failures ===
@@ -240,8 +240,8 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
     ],
   },
   {
-    failureMode: AgenticFailureMode.FM05_REWARD_HACKING,
-    name: 'Reward Hacking',
+    failureMode: AgenticFailureMode.FM05_INCENTIVE_GAMING,
+    name: 'Incentive gaming',
     description: 'Agent games quality metrics without genuine improvement',
     category: 'goal_instruction',
     severity: 3,

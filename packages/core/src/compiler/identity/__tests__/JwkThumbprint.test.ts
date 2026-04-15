@@ -174,7 +174,7 @@ describe('JwkThumbprint', () => {
 
     it('should return false for a non-matching thumbprint', () => {
       const pem = generateEd25519KeyPem();
-      expect(verifyJwkThumbprint(pem, 'wrong-thumbprint-value-xxxxxxxxxx')).toBe(false);
+      expect(verifyJwkThumbprint(pem, 'wrong-thumbprint-value-notvalid')).toBe(false);
     });
 
     it('should return false for invalid PEM', () => {

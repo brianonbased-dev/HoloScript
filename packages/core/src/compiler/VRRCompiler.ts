@@ -84,7 +84,7 @@
  * // Business quest hub
  * const phoenix_brew = createBusinessHub({
  *   position: geoToSceneCoords(33.4484, -112.0740),
- *   inventory: new SquarePOSSync('sq_xxx'),
+ *   inventory: new SquarePOSSync('sq_placeholder'),
  *   quests: [latteQuest]
  * });
  *
@@ -92,13 +92,13 @@
  * ```
  *
  * INTEGRATION POINTS:
- * - packages/std/src/traits/VRRTraits.ts (TODO: Create trait definitions)
- * - packages/runtime/src/VRRRuntime.ts (TODO: Create runtime for real-time sync)
+ * - packages/std/src/traits/VRRTraits.ts (planned: trait definitions)
+ * - packages/runtime/src/VRRRuntime.ts (planned: runtime for real-time sync)
  * - packages/marketplace-api (x402 payment endpoints)
  * - External APIs: weather.gov, Eventbrite, Square POS
  *
  * RESEARCH REFERENCES:
- * - HOLOLAND_INTEGRATION_TODOS.md (VRRCompiler section)
+ * - Hololand integration backlog notes (VRRCompiler section)
  * - uAA2++_Protocol/5.GROW/research/2026-02-19_base-coinbase-ai-agent-wallets-growth.md (P.029)
  * - Grok conversation (VRR = Virtual Reality Reality, 1:1 digital twin concept)
  *

@@ -218,7 +218,7 @@ describe('TraceContextPropagator', () => {
 
     it('rejects non-hex characters', () => {
       expect(
-        propagator.parseTraceparent('00-XXXX' + '0'.repeat(28) + '-' + '1'.repeat(16) + '-01')
+        propagator.parseTraceparent('00-uuuu' + '0'.repeat(28) + '-' + '1'.repeat(16) + '-01')
       ).toBeNull();
     });
   });

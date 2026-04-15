@@ -3,6 +3,7 @@ import { NodeServiceCompiler } from '../NodeServiceCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import { DialectRegistry } from '../DialectRegistry';
 
+/** Route generation tests align with NodeServiceCompiler generated stub markers. */
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
   return {

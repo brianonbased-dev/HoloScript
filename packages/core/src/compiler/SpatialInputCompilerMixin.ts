@@ -8,7 +8,7 @@
  * Follows the same pattern as DomainBlockCompilerMixin.ts:
  *   1. Intermediate compiled representation (CompiledSpatialInput*)
  *   2. Compile functions that extract from AST domain blocks
- *   3. Platform-specific code generation functions (xxxToARCore, xxxToARKit, etc.)
+ *   3. Platform-specific code generation functions (compileToARCore, compileToARKit, etc.)
  *
  * @version 1.0.0
  */
