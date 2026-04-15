@@ -1046,12 +1046,23 @@ export { ComponentType } from './traits/ECSWorldTrait';
 
 // ── Cinematic ──────────────────────────────────────────────────────
 export { CinematicDirector } from './cinematic/CinematicDirector';
+// ── Camera / Gameplay / Environment / Lighting (engine re-exports) ───────────
+export { CameraController } from '@holoscript/engine/camera';
+export { InventorySystem } from '@holoscript/engine/gameplay';
+export { TerrainSystem } from '@holoscript/engine/environment';
+export { LightingModel } from '@holoscript/engine/rendering';
+export { ShaderGraph, SHADER_NODES } from '@holoscript/engine/rendering';
+export { CombatManager } from '@holoscript/engine/combat';
+export { AStarPathfinder, NavMesh } from '@holoscript/engine/navigation';
+export { ParticleSystem } from '@holoscript/engine/particles';
+
 export type { ActorMark, CuePoint, CinematicScene } from './cinematic/CinematicDirector';
 export { CameraRig } from './cinematic/CameraRig';
 export { SequenceTrack } from './cinematic/SequenceTrack';
 
 // ── Collaboration ──────────────────────────────────────────────────
 // CollaborationSession migrated natively to @holoscript/mesh
+export { CollaborationSession } from '@holoscript/mesh';
 
 // ── Security / Sandbox ─────────────────────────────────────────────
 export {
