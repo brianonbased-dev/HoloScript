@@ -51,6 +51,12 @@ export interface Collider {
 // =============================================================================
 
 export class RaycastSystem {
+  private toArr(v: Vector3 | { x: number; y: number; z: number }): Vector3 {
+    if (Array.isArray(v)) return v as Vector3;
+    const o = v as { x: number; y: number; z: number };
+    return [o.x ?? 0, o.y ?? 0, o.z ?? 0];
+  }
+
   private colliders: Map<string, Collider> = new Map();
 
   // ---------------------------------------------------------------------------
@@ -78,7 +84,8 @@ export class RaycastSystem {
 
   raycastAll(ray: Ray, maxDistance = Infinity, layerMask = 0xffffffff): RayHit[] {
     const hits: RayHit[] = [];
-    const dir = this.normalize(ray.direction);
+    const origin = this.toArr(ray.origin);
+    const dir = this.normalize(this.toArr(ray.direction));
 
     for (const collider of this.colliders.values()) {
       if ((collider.layer & layerMask) === 0) continue;
@@ -86,13 +93,13 @@ export class RaycastSystem {
       let hit: RayHit | null = null;
       switch (collider.type) {
         case 'aabb':
-          hit = this.rayAABB(ray.origin, dir, collider.shape as AABB, collider.entityId);
+          hit = this.rayAABB(origin, dir, collider.shape as AABB, collider.entityId);
           break;
         case 'sphere':
-          hit = this.raySphere(ray.origin, dir, collider.shape as Sphere, collider.entityId);
+          hit = this.raySphere(origin, dir, collider.shape as Sphere, collider.entityId);
           break;
         case 'plane':
-          hit = this.rayPlane(ray.origin, dir, collider.shape as Plane, collider.entityId);
+          hit = this.rayPlane(origin, dir, collider.shape as Plane, collider.entityId);
           break;
       }
 
@@ -112,18 +119,20 @@ export class RaycastSystem {
     aabb: AABB,
     entityId: string
   ): RayHit | null {
+      const minV = this.toArr(aabb.min);
+      const maxV = this.toArr(aabb.max);
     let tmin = -Infinity,
       tmax = Infinity;
     let hitNormal: Vector3 = [0, 0, 0];
 
     for (let axis = 0; axis < 3; axis++) {
       if (Math.abs(dir[axis]) < 1e-10) {
-        if (origin[axis] < aabb.min[axis] || origin[axis] > aabb.max[axis]) return null;
+          if (origin[axis] < minV[axis] || origin[axis] > maxV[axis]) return null;
         continue;
       }
 
-      const t1 = (aabb.min[axis] - origin[axis]) / dir[axis];
-      const t2 = (aabb.max[axis] - origin[axis]) / dir[axis];
+        const t1 = (minV[axis] - origin[axis]) / dir[axis];
+        const t2 = (maxV[axis] - origin[axis]) / dir[axis];
       const tNear = Math.min(t1, t2);
       const tFar = Math.max(t1, t2);
 
@@ -154,9 +163,10 @@ export class RaycastSystem {
     sphere: Sphere,
     entityId: string
   ): RayHit | null {
-    const ox = origin[0] - sphere.center[0],
-      oy = origin[1] - sphere.center[1],
-      oz = origin[2] - sphere.center[2];
+      const centerV = this.toArr(sphere.center);
+      const ox = origin[0] - centerV[0],
+        oy = origin[1] - centerV[1],
+        oz = origin[2] - centerV[2];
     const a = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
     const b = 2 * (ox * dir[0] + oy * dir[1] + oz * dir[2]);
     const c = ox * ox + oy * oy + oz * oz - sphere.radius * sphere.radius;
@@ -170,9 +180,9 @@ export class RaycastSystem {
     if (t < 0) return null;
 
     const point: Vector3 = [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t];
-    const nx = point[0] - sphere.center[0],
-      ny = point[1] - sphere.center[1],
-      nz = point[2] - sphere.center[2];
+    const nx = point[0] - centerV[0],
+      ny = point[1] - centerV[1],
+      nz = point[2] - centerV[2];
     const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
 
     return {
@@ -189,14 +199,15 @@ export class RaycastSystem {
     plane: Plane,
     entityId: string
   ): RayHit | null {
-    const denom = plane.normal[0] * dir[0] + plane.normal[1] * dir[1] + plane.normal[2] * dir[2];
+      const normalV = this.toArr(plane.normal);
+      const denom = normalV[0] * dir[0] + normalV[1] * dir[1] + normalV[2] * dir[2];
     if (Math.abs(denom) < 1e-10) return null;
 
     const t =
       -(
-        plane.normal[0] * origin[0] +
-        plane.normal[1] * origin[1] +
-        plane.normal[2] * origin[2] +
+          normalV[0] * origin[0] +
+          normalV[1] * origin[1] +
+          normalV[2] * origin[2] +
         plane.distance
       ) / denom;
     if (t < 0) return null;
@@ -205,7 +216,7 @@ export class RaycastSystem {
       entityId,
       distance: t,
       point: [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t],
-      normal: [plane.normal[0], plane.normal[1], plane.normal[2]],
+        normal: [normalV[0], normalV[1], normalV[2]],
     };
   }
 

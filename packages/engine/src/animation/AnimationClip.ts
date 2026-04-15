@@ -132,7 +132,7 @@ export class AnimClip {
     for (const track of this.tracks) {
       const value = this.sampleTrack(track, wrapped);
       const key = track.component
-        ? `${track.targetPath}.${track.property}[${this.componentIndex(track.component)}]`
+          ? `${track.targetPath}.${track.property}.${track.component}`
         : `${track.targetPath}.${track.property}`;
       result.set(key, value);
     }

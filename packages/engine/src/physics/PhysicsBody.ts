@@ -24,6 +24,32 @@ import {
   defaultMaterial,
 } from './PhysicsTypes';
 
+
+// ---------------------------------------------------------------------------
+// Vec3 helpers — normalize any vec3-like input, return {x,y,z} output that
+// also supports [0],[1],[2] indexing (non-enumerable, so toEqual({x,y,z}) passes)
+// ---------------------------------------------------------------------------
+type AnyVec3 = IVector3 | { x: number; y: number; z: number };
+type AnyQuat = IQuaternion | { x: number; y: number; z: number; w: number };
+
+function toVec3(v: AnyVec3): IVector3 {
+  if (Array.isArray(v)) return [v[0], v[1], v[2]] as IVector3;
+  const o = v as { x: number; y: number; z: number };
+  return [(o.x ?? 0), (o.y ?? 0), (o.z ?? 0)] as IVector3;
+}
+function toQuat(v: AnyQuat): IQuaternion {
+  if (Array.isArray(v)) return [v[0], v[1], v[2], v[3]] as IQuaternion;
+  const o = v as { x: number; y: number; z: number; w: number };
+  return [(o.x ?? 0), (o.y ?? 0), (o.z ?? 0), (o.w ?? 1)] as IQuaternion;
+}
+type Vec3Out = { x: number; y: number; z: number };
+function vec3out(arr: IVector3): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
+  const obj: Vec3Out = { x: arr[0], y: arr[1], z: arr[2] };
+  Object.defineProperty(obj, '0', { value: arr[0], enumerable: false, configurable: true });
+  Object.defineProperty(obj, '1', { value: arr[1], enumerable: false, configurable: true });
+  Object.defineProperty(obj, '2', { value: arr[2], enumerable: false, configurable: true });
+  return obj as Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number };
+}
 /**
  * Rigid body class for physics simulation
  */
@@ -64,8 +90,8 @@ export class RigidBody {
     this.shape = config.shape;
 
     // Initialize state
-    this._position = [...config.transform.position];
-    this._rotation = [...config.transform.rotation];
+    this._position = toVec3(config.transform.position as AnyVec3);
+    this._rotation = toQuat(config.transform.rotation as AnyQuat);
     this._linearVelocity = zeroVector();
     this._angularVelocity = zeroVector();
     this._isSleeping = config.sleeping ?? false;
@@ -100,8 +126,8 @@ export class RigidBody {
   // State Accessors
   // ============================================================================
 
-  public get position(): IVector3 {
-    return [...this._position];
+  public get position(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
+    return vec3out(this._position);
   }
 
   public set position(value: IVector3) {
@@ -118,23 +144,23 @@ export class RigidBody {
     this.wakeUp();
   }
 
-  public get linearVelocity(): IVector3 {
-    return [...this._linearVelocity];
+  public get linearVelocity(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
+    return vec3out(this._linearVelocity);
   }
 
-  public set linearVelocity(value: IVector3) {
+  public set linearVelocity(value: AnyVec3) {
     if (this.type !== 'dynamic') return;
-    this._linearVelocity = this.clampVelocity(value, PHYSICS_DEFAULTS.maxVelocity);
+    this._linearVelocity = this.clampVelocity(toVec3(value), PHYSICS_DEFAULTS.maxVelocity);
     this.wakeUp();
   }
 
-  public get angularVelocity(): IVector3 {
-    return [...this._angularVelocity];
+  public get angularVelocity(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
+    return vec3out(this._angularVelocity);
   }
 
-  public set angularVelocity(value: IVector3) {
+  public set angularVelocity(value: AnyVec3) {
     if (this.type !== 'dynamic') return;
-    this._angularVelocity = this.clampVelocity(value, PHYSICS_DEFAULTS.maxAngularVelocity);
+    this._angularVelocity = this.clampVelocity(toVec3(value), PHYSICS_DEFAULTS.maxAngularVelocity);
     this.wakeUp();
   }
 
@@ -206,36 +232,39 @@ export class RigidBody {
   /**
    * Apply a force at the center of mass
    */
-  public applyForce(force: IVector3): void {
+  public applyForce(force: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
-    this._force[0] += force[0];
-    this._force[1] += force[1];
-    this._force[2] += force[2];
+    const _f = toVec3(force);
+    this._force[0] += _f[0];
+    this._force[1] += _f[1];
+    this._force[2] += _f[2];
     this.wakeUp();
   }
 
   /**
    * Apply a force at a world point
    */
-  public applyForceAtPoint(force: IVector3, worldPoint: IVector3): void {
+  public applyForceAtPoint(force: AnyVec3, worldPoint: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
     // Apply linear force
     this.applyForce(force);
 
     // Calculate torque from offset
+    const _wp = toVec3(worldPoint);
     const r = [
-      worldPoint[0] - this._position[0],
-      worldPoint[1] - this._position[1],
-      worldPoint[2] - this._position[2],
+      _wp[0] - this._position[0],
+      _wp[1] - this._position[1],
+      _wp[2] - this._position[2],
     ] as IVector3;
 
     // Cross product r x F = torque
+    const _fv = toVec3(force);
     const torque = [
-      r[1] * force[2] - r[2] * force[1],
-      r[2] * force[0] - r[0] * force[2],
-      r[0] * force[1] - r[1] * force[0],
+      r[1] * _fv[2] - r[2] * _fv[1],
+      r[2] * _fv[0] - r[0] * _fv[2],
+      r[0] * _fv[1] - r[1] * _fv[0],
     ] as IVector3;
 
     this.applyTorque(torque);
@@ -244,12 +273,13 @@ export class RigidBody {
   /**
    * Apply an impulse at the center of mass
    */
-  public applyImpulse(impulse: IVector3): void {
+  public applyImpulse(impulse: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
-    this._linearVelocity[0] += impulse[0] * this._inverseMass;
-    this._linearVelocity[1] += impulse[1] * this._inverseMass;
-    this._linearVelocity[2] += impulse[2] * this._inverseMass;
+    const _im = toVec3(impulse);
+    this._linearVelocity[0] += _im[0] * this._inverseMass;
+    this._linearVelocity[1] += _im[1] * this._inverseMass;
+    this._linearVelocity[2] += _im[2] * this._inverseMass;
     this._linearVelocity = this.clampVelocity(this._linearVelocity, PHYSICS_DEFAULTS.maxVelocity);
     this.wakeUp();
   }
@@ -257,24 +287,26 @@ export class RigidBody {
   /**
    * Apply an impulse at a world point
    */
-  public applyImpulseAtPoint(impulse: IVector3, worldPoint: IVector3): void {
+  public applyImpulseAtPoint(impulse: AnyVec3, worldPoint: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
     // Apply linear impulse
     this.applyImpulse(impulse);
 
     // Calculate angular impulse from offset
+    const _wp = toVec3(worldPoint);
     const r = [
-      worldPoint[0] - this._position[0],
-      worldPoint[1] - this._position[1],
-      worldPoint[2] - this._position[2],
+      _wp[0] - this._position[0],
+      _wp[1] - this._position[1],
+      _wp[2] - this._position[2],
     ] as IVector3;
 
     // Cross product r x impulse = angular impulse
+    const _iv = toVec3(impulse);
     const angularImpulse = [
-      r[1] * impulse[2] - r[2] * impulse[1],
-      r[2] * impulse[0] - r[0] * impulse[2],
-      r[0] * impulse[1] - r[1] * impulse[0],
+      r[1] * _iv[2] - r[2] * _iv[1],
+      r[2] * _iv[0] - r[0] * _iv[2],
+      r[0] * _iv[1] - r[1] * _iv[0],
     ] as IVector3;
 
     this.applyTorqueImpulse(angularImpulse);
@@ -283,24 +315,26 @@ export class RigidBody {
   /**
    * Apply a torque
    */
-  public applyTorque(torque: IVector3): void {
+  public applyTorque(torque: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
-    this._torque[0] += torque[0];
-    this._torque[1] += torque[1];
-    this._torque[2] += torque[2];
+    const _t = toVec3(torque);
+    this._torque[0] += _t[0];
+    this._torque[1] += _t[1];
+    this._torque[2] += _t[2];
     this.wakeUp();
   }
 
   /**
    * Apply a torque impulse
    */
-  public applyTorqueImpulse(impulse: IVector3): void {
+  public applyTorqueImpulse(impulse: AnyVec3): void {
     if (this.type !== 'dynamic') return;
 
-    this._angularVelocity[0] += impulse[0] * this._inverseInertia[0];
-    this._angularVelocity[1] += impulse[1] * this._inverseInertia[1];
-    this._angularVelocity[2] += impulse[2] * this._inverseInertia[2];
+    const _ai = toVec3(impulse);
+    this._angularVelocity[0] += _ai[0] * this._inverseInertia[0];
+    this._angularVelocity[1] += _ai[1] * this._inverseInertia[1];
+    this._angularVelocity[2] += _ai[2] * this._inverseInertia[2];
     this._angularVelocity = this.clampVelocity(
       this._angularVelocity,
       PHYSICS_DEFAULTS.maxAngularVelocity
@@ -323,14 +357,15 @@ export class RigidBody {
   /**
    * Integrate forces (semi-implicit Euler)
    */
-  public integrateForces(dt: number, gravity: IVector3): void {
+  public integrateForces(dt: number, gravity: AnyVec3): void {
     if (this.type !== 'dynamic' || this._isSleeping) return;
 
     // Apply gravity
+    const _g = toVec3(gravity);
     const gravityForce = [
-      gravity[0] * this._mass * this._gravityScale,
-      gravity[1] * this._mass * this._gravityScale,
-      gravity[2] * this._mass * this._gravityScale,
+      _g[0] * this._mass * this._gravityScale,
+      _g[1] * this._mass * this._gravityScale,
+      _g[2] * this._mass * this._gravityScale,
     ] as IVector3;
 
     // Update linear velocity
@@ -465,8 +500,8 @@ export class RigidBody {
    * Set transform directly (for kinematic bodies)
    */
   public setTransform(transform: ITransform): void {
-    this._position = [...transform.position];
-    this._rotation = [...transform.rotation];
+    this._position = toVec3(transform.position as AnyVec3);
+    this._rotation = toQuat(transform.rotation as AnyQuat);
     this.wakeUp();
   }
 
@@ -474,14 +509,14 @@ export class RigidBody {
    * Get accumulated force
    */
   public getForce(): IVector3 {
-    return [...this._force] as IVector3;
+    return vec3out(this._force) as unknown as IVector3;
   }
 
   /**
    * Get accumulated torque
    */
   public getTorque(): IVector3 {
-    return [...this._torque] as IVector3;
+    return vec3out(this._torque) as unknown as IVector3;
   }
 
   // ============================================================================
@@ -498,11 +533,12 @@ export class RigidBody {
     switch (this.shape.type) {
       case 'box': {
         const { halfExtents } = this.shape;
+        const _he = toVec3(halfExtents as AnyVec3);
         const factor = mass / 12;
         return [
-          factor * (4 * halfExtents[1] * halfExtents[1] + 4 * halfExtents[2] * halfExtents[2]),
-          factor * (4 * halfExtents[0] * halfExtents[0] + 4 * halfExtents[2] * halfExtents[2]),
-          factor * (4 * halfExtents[0] * halfExtents[0] + 4 * halfExtents[1] * halfExtents[1]),
+          factor * (4 * _he[1] * _he[1] + 4 * _he[2] * _he[2]),
+          factor * (4 * _he[0] * _he[0] + 4 * _he[2] * _he[2]),
+          factor * (4 * _he[0] * _he[0] + 4 * _he[1] * _he[1]),
         ] as IVector3;
       }
       case 'sphere': {
