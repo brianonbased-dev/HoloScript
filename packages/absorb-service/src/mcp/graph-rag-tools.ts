@@ -225,7 +225,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             llmAdapter = new llmPkg.OpenAIAdapter({
               apiKey: apiKey || process.env.OPENROUTER_API_KEY || '',
               defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
-              baseUrl: 'https://openrouter.ai/api/v1',
+              baseURL: 'https://openrouter.ai/api/v1',
             });
             break;
           case 'openai':
