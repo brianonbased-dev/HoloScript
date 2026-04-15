@@ -98,7 +98,7 @@ describe('Cycle 121: Networking & Replication', () => {
     // Server is the authority (registered it)
     expect(rep.setProperty('obj', 'val', 2, 'server')).toBe(true);
     // Another peer should be blocked
-    expect(rep.setProperty('obj', 'val', 99, 'hacker')).toBe(false);
+    expect(rep.setProperty('obj', 'val', 99, 'untrustedPeer')).toBe(false);
     expect(rep.getProperty('obj', 'val')).toBe(2);
   });
 
