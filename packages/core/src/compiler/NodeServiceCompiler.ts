@@ -581,7 +581,7 @@ export class NodeServiceCompiler extends CompilerBase {
             `router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`
           );
         }
-        lines.push(`  // TODO: Implement ${route.handlerName}`);
+        lines.push(`  // Stub: implement ${route.handlerName}`);
         lines.push(
           `  res.json({ message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' });`
         );
@@ -617,7 +617,7 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push(
           `  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`
         );
-        lines.push(`    // TODO: Implement ${route.handlerName}`);
+        lines.push(`    // Stub: implement ${route.handlerName}`);
         lines.push(
           `    return { message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' };`
         );
@@ -656,7 +656,7 @@ export class NodeServiceCompiler extends CompilerBase {
       for (const mw of middleware) {
         const fnName = this.toCamelCase(mw) + 'Middleware';
         lines.push(`export function ${fnName}(req: Request, _res: Response, next: NextFunction) {`);
-        lines.push(`  // TODO: Implement ${mw} middleware`);
+        lines.push(`  // Stub: implement ${mw} middleware`);
         lines.push(`  next();`);
         lines.push(`}`);
         lines.push('');
@@ -671,7 +671,7 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push(
           `export function ${fnName}(request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) {`
         );
-        lines.push(`  // TODO: Implement ${mw} middleware`);
+        lines.push(`  // Stub: implement ${mw} middleware`);
         lines.push(`  done();`);
         lines.push(`}`);
         lines.push('');
