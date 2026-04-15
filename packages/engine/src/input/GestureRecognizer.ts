@@ -112,7 +112,7 @@ export class GestureRecognizer {
         if (touch) {
           this.emit({
             type: 'longPress',
-            position: { x: touch[0], y: touch[1] },
+            position: { x: touch.x, y: touch.y },
             timestamp: Date.now(),
           });
         }
@@ -131,8 +131,8 @@ export class GestureRecognizer {
     const touch = this.activeTouches.get(id);
     if (!touch) return;
 
-    const dx = x - touch[0];
-    const dy = y - touch[1];
+    const dx = x - touch.x;
+    const dy = y - touch.y;
 
     // Cancel long press if moved too far
     if (Math.sqrt(dx * dx + dy * dy) > this.config.tapMaxDistance) {
@@ -145,18 +145,18 @@ export class GestureRecognizer {
         type: 'pan',
         position: { x, y },
         timestamp: Date.now(),
-        deltaX: x - touch[0],
-        deltaY: y - touch[1],
+        deltaX: x - touch.x,
+        deltaY: y - touch.y,
       });
     }
 
     // Pinch detection (two fingers)
     if (this.activeTouches.size === 2) {
       // Update this touch position temporarily
-      const oldX = touch[0],
-        oldY = touch[1];
-      touch[0] = x;
-      touch[1] = y;
+      const oldX = touch.x,
+        oldY = touch.y;
+      touch.x = x;
+      touch.y = y;
       const points = [...this.activeTouches.values()];
       const currentDist = this.distance(points[0], points[1]);
 
@@ -175,13 +175,13 @@ export class GestureRecognizer {
         }
       }
       // Restore for proper end detection
-      touch[0] = oldX;
-      touch[1] = oldY;
+      touch.x = oldX;
+      touch.y = oldY;
     }
 
     // Update stored position
-    touch[0] = x;
-    touch[1] = y;
+    touch.x = x;
+    touch.y = y;
   }
 
   touchEnd(id: number, x: number, y: number): void {
@@ -192,8 +192,8 @@ export class GestureRecognizer {
     this.cancelLongPress();
     const now = Date.now();
     const duration = Math.max(1, now - startTouch.timestamp); // min 1ms
-    const totalDx = x - startTouch[0];
-    const totalDy = y - startTouch[1];
+    const totalDx = x - startTouch.x;
+    const totalDy = y - startTouch.y;
     const totalDist = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
 
     this.activeTouches.delete(id);
@@ -220,7 +220,7 @@ export class GestureRecognizer {
       // Double tap check
       const timeSinceLastTap = now - this.lastTapTime;
       const distFromLastTap = Math.sqrt(
-        (x - this.lastTapPosition[0]) ** 2 + (y - this.lastTapPosition[1]) ** 2
+        (x - this.lastTapPosition.x) ** 2 + (y - this.lastTapPosition.y) ** 2
       );
 
       if (
@@ -267,7 +267,7 @@ export class GestureRecognizer {
   }
 
   private distance(a: TouchPoint, b: TouchPoint): number {
-    return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2);
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
   }
 
   // ---------------------------------------------------------------------------

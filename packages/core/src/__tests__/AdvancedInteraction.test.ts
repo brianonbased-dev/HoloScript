@@ -20,6 +20,16 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
   };
 });
 vi.mock('@holoscript/engine/rendering/webgpu/WebGPURenderer', () => {
+  return {
+    WebGPURenderer: class {
+      constructor() {}
+      initialize = vi.fn();
+      render = vi.fn();
+      resize = vi.fn();
+      destroy = vi.fn();
+    },
+  };
+});
 
 describe('Advanced Interaction System', () => {
   let runtime: HoloScriptPlusRuntimeImpl;

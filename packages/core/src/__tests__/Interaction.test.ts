@@ -38,6 +38,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
         removeConstraint: vi.fn(),
         removeConstraints: vi.fn(),
         setPosition: vi.fn(),
+        setRotation: vi.fn(),
         setLinearVelocity: vi.fn(),
         getContacts: vi.fn().mockReturnValue([]),
         raycast: vi.fn(),
