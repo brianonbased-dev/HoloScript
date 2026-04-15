@@ -65,6 +65,10 @@ export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = ne
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
 export const agentTeamIndex: Map<string, string[]> = new Map(); // agentId → teamIds[]
 
+/** HoloDoor — per-team merged policy (owner PATCH) + telemetry ring buffer */
+export const holoDoorPolicyByTeam: Map<string, Record<string, unknown>> = new Map();
+export const holoDoorEventsByTeam: Map<string, Record<string, unknown>[]> = new Map();
+
 // Social & Discussion
 export const commentStore: Map<string, StoredComment[]> = new Map(); // entryId → comments
 export const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
@@ -89,6 +93,16 @@ const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
 const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
 const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
 const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
+const HOLODOOR_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'holodoor-store.json');
+
+export function persistHoloDoorStore(): void {
+  atomicWriteJSON(HOLODOOR_STORE_PATH, {
+    version: 1,
+    policies: Object.fromEntries(holoDoorPolicyByTeam),
+    events: Object.fromEntries(holoDoorEventsByTeam),
+    savedAt: new Date().toISOString(),
+  });
+}
 
 export function persistTeamStore(): void {
   const teams = Array.from(teamStore.values()).map((t) => ({
@@ -279,6 +293,19 @@ export function initStores(): void {
           }
         }
       }
+    }
+  }
+
+  const holoDoorData = readJSON(HOLODOOR_STORE_PATH);
+  if (holoDoorData?.policies && typeof holoDoorData.policies === 'object') {
+    for (const [tid, pol] of Object.entries(holoDoorData.policies as Record<string, unknown>)) {
+      holoDoorPolicyByTeam.set(tid, pol as Record<string, unknown>);
+    }
+  }
+  if (holoDoorData?.events && typeof holoDoorData.events === 'object') {
+    for (const [tid, evs] of Object.entries(holoDoorData.events as Record<string, unknown[]>)) {
+      const list = Array.isArray(evs) ? (evs as Record<string, unknown>[]) : [];
+      holoDoorEventsByTeam.set(tid, list);
     }
   }
 }
