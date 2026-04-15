@@ -201,7 +201,7 @@ For agents connecting via MCP — what's available beyond the problems listed ab
 
 **Local checks:** `pnpm preflight` (changed packages) · `pnpm preflight --check=typescript,ts` (TS only) · `pnpm preflight --full` (entire monorepo TS sweep).
 
-**Corridor MCP:** If your Cursor rules require the Corridor tool, wire the server per [docs/agents/corridor-mcp.md](./docs/agents/corridor-mcp.md) (otherwise `corridor` is absent from MCP and agent calls fail).
+**HoloDoor (security guardrails):** Use [docs/agents/holodoor-mcp.md](./docs/agents/holodoor-mcp.md). Corridor is deprecated; policy, hooks, and MCP validation live in the ai-ecosystem repo.
 
 **Connectors** (deploy anywhere): `connector-github` (repos, PRs, CI/CD), `connector-railway` (deploy, envs, logs, costs), `connector-appstore` (TestFlight, Play Store), `connector-upstash` (Redis, vector search, QStash), `connector-vscode` (IDE sync), `connector-core` (build your own).
 
