@@ -153,15 +153,18 @@ export class LightingModel {
   // Light Calculations
   // ---------------------------------------------------------------------------
 
-  calculateAttenuation(lightId: string, worldPos: Vector3): number {
+  calculateAttenuation(lightId: string, worldPos: Vector3 | { x: number; y: number; z: number }): number {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return 0;
 
     if (light.type === 'directional') return 1; // No distance falloff
 
-    const dx = worldPos[0] - light.position[0];
-    const dy = worldPos[1] - light.position[1];
-    const dz = worldPos[2] - light.position[2];
+    const wpx = Array.isArray(worldPos) ? (worldPos as Vector3)[0] : (worldPos as { x: number }).x;
+    const wpy = Array.isArray(worldPos) ? (worldPos as Vector3)[1] : (worldPos as { y: number }).y;
+    const wpz = Array.isArray(worldPos) ? (worldPos as Vector3)[2] : (worldPos as { z: number }).z;
+    const dx = wpx - light.position[0];
+    const dy = wpy - light.position[1];
+    const dz = wpz - light.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist >= light.range) return 0;
