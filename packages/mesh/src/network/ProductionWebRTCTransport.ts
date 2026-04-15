@@ -73,6 +73,11 @@ export class ProductionWebRTCTransport implements Transport {
   private connectedPeers = 0;
   private isFullyConnected = false;
 
+  /** `connect()` waits on first peer `connected` or room ready; cleared after resolve or disconnect */
+  private connectWaitResolver: (() => void) | null = null;
+  private connectWaitTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectWaitSettled = false;
+
   constructor(config: WebRTCTransportConfig) {
     this.config = {
       signalingUrl: config.signalingUrl,
@@ -91,6 +96,9 @@ export class ProductionWebRTCTransport implements Transport {
    * Connect to peers via WebRTC
    */
   async connect(): Promise<void> {
+    this.clearConnectWait();
+    this.connectWaitSettled = false;
+
     // Initialize signaling
     this.signalingClient = new SignalingClient({
       serverUrl: this.config.signalingUrl,
@@ -102,32 +110,15 @@ export class ProductionWebRTCTransport implements Transport {
     // Set up signaling event handlers
     this.setupSignalingHandlers();
 
-    // Connect to signaling server
-    await this.signalingClient.connect();
-
-    // Wait for at least one peer connection or room-state (bounded polling, no recursive timer chain)
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        clearInterval(poll);
-        clearTimeout(maxWait);
-        resolve();
-      };
-
-      const poll = setInterval(() => {
-        if (this.connectedPeers > 0 || this.isFullyConnected) {
-          finish();
-        }
-      }, 100);
-
-      const maxWait = setTimeout(() => {
-        this.isFullyConnected = true;
-        this.connectCallbacks.forEach((cb) => cb());
-        finish();
-      }, 2000);
+    // Connect to signaling server, then wait for first WebRTC `connected` or room-state (no polling)
+    const wait = new Promise<void>((resolve) => {
+      this.connectWaitResolver = resolve;
+      this.connectWaitTimer = setTimeout(() => this.onConnectWaitTimeout(), 2000);
     });
+
+    await this.signalingClient.connect();
+    this.tryResolveConnectWait();
+    await wait;
   }
 
   /**
@@ -146,7 +137,10 @@ export class ProductionWebRTCTransport implements Transport {
 
     this.isFullyConnected = false;
     this.connectedPeers = 0;
-    this.disconnectCallbacks.forEach((cb) => cb('Disconnected'));
+    this.clearConnectWait();
+    for (const cb of this.disconnectCallbacks) {
+      cb('Disconnected');
+    }
   }
 
   /**
@@ -155,7 +149,7 @@ export class ProductionWebRTCTransport implements Transport {
   send(message: SyncMessage): void {
     const data = JSON.stringify(message);
 
-    for (const [, state] of this.peers) {
+    for (const state of this.peers.values()) {
       // Use unreliable channel for position updates, reliable for state changes
       const channel =
         message.type === 'delta' && state.unreliableChannel?.readyState === 'open'
@@ -240,6 +234,52 @@ export class ProductionWebRTCTransport implements Transport {
 
   // === Private Methods ===
 
+  /** Resolve `connect()` wait when the first peer is up or signaling reports room ready */
+  private tryResolveConnectWait(): void {
+    if (this.connectWaitSettled || !this.connectWaitResolver) return;
+    if (this.connectedPeers > 0 || this.isFullyConnected) {
+      this.connectWaitSettled = true;
+      if (this.connectWaitTimer !== null) {
+        clearTimeout(this.connectWaitTimer);
+        this.connectWaitTimer = null;
+      }
+      const r = this.connectWaitResolver;
+      this.connectWaitResolver = null;
+      r();
+    }
+  }
+
+  /** Fallback: same as legacy 2s timeout — mark ready and fire connect callbacks */
+  private onConnectWaitTimeout(): void {
+    if (this.connectWaitSettled || !this.connectWaitResolver) return;
+    this.connectWaitSettled = true;
+    this.isFullyConnected = true;
+    for (const cb of this.connectCallbacks) {
+      cb();
+    }
+    if (this.connectWaitTimer !== null) {
+      clearTimeout(this.connectWaitTimer);
+      this.connectWaitTimer = null;
+    }
+    const r = this.connectWaitResolver;
+    this.connectWaitResolver = null;
+    r();
+  }
+
+  /** Unblock an in-flight `connect()` wait (e.g. on disconnect) without running timeout side effects */
+  private clearConnectWait(): void {
+    if (this.connectWaitTimer !== null) {
+      clearTimeout(this.connectWaitTimer);
+      this.connectWaitTimer = null;
+    }
+    const r = this.connectWaitResolver;
+    this.connectWaitResolver = null;
+    if (r && !this.connectWaitSettled) {
+      this.connectWaitSettled = true;
+      r();
+    }
+  }
+
   private setupSignalingHandlers(): void {
     if (!this.signalingClient) return;
 
@@ -255,8 +295,11 @@ export class ProductionWebRTCTransport implements Transport {
 
       this.isFullyConnected = true;
       if (this.connectedPeers === 0 && (event.peers?.length ?? 0) <= 1) {
-        this.connectCallbacks.forEach((cb) => cb());
+        for (const cb of this.connectCallbacks) {
+          cb();
+        }
       }
+      this.tryResolveConnectWait();
     });
 
     this.signalingClient.on('peer-joined', (event) => {
@@ -351,7 +394,9 @@ export class ProductionWebRTCTransport implements Transport {
 
     this.signalingClient.on('error', (event) => {
       const error = new Error(event.error?.message ?? 'Unknown signaling error');
-      this.errorCallbacks.forEach((cb) => cb(error));
+      for (const cb of this.errorCallbacks) {
+        cb(error);
+      }
     });
   }
 
@@ -390,7 +435,10 @@ export class ProductionWebRTCTransport implements Transport {
       if (connection.connectionState === 'connected') {
         state.connectedAt = Date.now();
         this.connectedPeers++;
-        this.connectCallbacks.forEach((cb) => cb());
+        for (const cb of this.connectCallbacks) {
+          cb();
+        }
+        this.tryResolveConnectWait();
       } else if (
         connection.connectionState === 'failed' ||
         connection.connectionState === 'disconnected'
