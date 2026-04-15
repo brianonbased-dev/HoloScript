@@ -201,6 +201,8 @@ For agents connecting via MCP — what's available beyond the problems listed ab
 
 **Local checks:** `pnpm preflight` (changed packages) · `pnpm preflight --check=typescript,ts` (TS only) · `pnpm preflight --full` (entire monorepo TS sweep).
 
+**Corridor MCP:** If your Cursor rules require the Corridor tool, wire the server per [docs/agents/corridor-mcp.md](./docs/agents/corridor-mcp.md) (otherwise `corridor` is absent from MCP and agent calls fail).
+
 **Connectors** (deploy anywhere): `connector-github` (repos, PRs, CI/CD), `connector-railway` (deploy, envs, logs, costs), `connector-appstore` (TestFlight, Play Store), `connector-upstash` (Redis, vector search, QStash), `connector-vscode` (IDE sync), `connector-core` (build your own).
 
 **IDE intelligence** (9 MCP tools): `hs_scan_project`, `hs_diagnostics`, `hs_autocomplete`, `hs_refactor`, `hs_docs`, `hs_code_action`, `hs_hover`, `hs_go_to_definition`, `hs_find_references` — full LSP-equivalent over MCP.
