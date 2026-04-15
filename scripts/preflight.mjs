@@ -22,6 +22,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..');
 
+/** Windows: spawning `pnpm` / `npx` without a shell often fails (ENOENT). Agents on Win32 hit this constantly. */
+const WIN32_SPAWN = process.platform === 'win32' ? { shell: true } : {};
+
 // ── CLI Args ────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -106,6 +109,7 @@ function checkLockfile() {
     encoding: 'utf8',
     timeout: 30000,
     stdio: 'pipe',
+    ...WIN32_SPAWN,
   });
 
   const duration = Date.now() - start;
@@ -118,12 +122,16 @@ function checkLockfile() {
       : 'Lockfile check failed';
 
     if (FLAGS.fix) {
-      spawnSync('pnpm', ['install'], { cwd: ROOT, stdio: 'pipe', timeout: 60000 });
+      spawnSync('pnpm', ['install'], { cwd: ROOT, stdio: 'pipe', timeout: 60000, ...WIN32_SPAWN });
       record('lockfile', 'pass', 'Lockfile fixed (ran pnpm install)', [], Date.now() - start);
     } else {
       const details = [];
       const match = (result.stderr || '').match(/not up to date with (.+?)$/m);
       if (match) details.push({ file: match[1], reason: 'lockfile drift' });
+      const combined = `${result.stderr || ''}${result.stdout || ''}`.trim();
+      if (combined && details.length === 0) {
+        details.push({ file: 'pnpm-output', reason: combined.slice(0, 1200) });
+      }
       record('lockfile', 'fail', msg, details, duration);
     }
   }
@@ -287,6 +295,7 @@ function checkTypeScript() {
       timeout: 30000,
       stdio: 'pipe',
       env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' },
+      ...WIN32_SPAWN,
     });
 
     checked.push(pkg);
@@ -344,18 +353,30 @@ function checkDTS() {
     const result = spawnSync('npx', ['tsup', '--dts-only'], {
       cwd: pkgDir,
       encoding: 'utf8',
-      timeout: 30000,
+      timeout: 120000,
       stdio: 'pipe',
+      ...WIN32_SPAWN,
     });
 
     if (result.status !== 0) {
-      const stderr = result.stderr || result.stdout || '';
-      const errors = stderr.split('\n')
-        .filter(l => l.includes('error TS'))
-        .slice(0, 3);
+      const raw = `${result.stderr || ''}\n${result.stdout || ''}`.trim();
+      const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+      const errorsFromTs = lines.filter((l) => l.includes('error TS')).slice(0, 4);
+      const errorsHint = lines
+        .filter((l) => /error|Error|ERR_|failed|Cannot find|TS\d+|DTS/i.test(l))
+        .slice(0, 6);
+      const fallback = raw ? raw.split('\n').slice(0, 4) : [];
+      const errors =
+        errorsFromTs.length > 0
+          ? errorsFromTs
+          : errorsHint.length > 0
+            ? errorsHint
+            : fallback.length > 0
+              ? fallback
+              : ['DTS build failed (no output — try: cd packages/' + pkg + ' && npx tsup --dts-only)'];
       issues.push({
         package: pkg,
-        errors: errors.length > 0 ? errors : ['DTS build failed (check output)'],
+        errors,
       });
     }
   }
@@ -384,6 +405,7 @@ function checkCircular() {
       encoding: 'utf8',
       timeout: 15000,
       stdio: 'pipe',
+      ...WIN32_SPAWN,
     });
 
     const duration = Date.now() - start;
