@@ -118,7 +118,7 @@ export interface GRPOHyperparameters {
 
   /**
    * Weight decay coefficient.
-   * Mild regularisation to prevent overfitting to reward hacking.
+   * Mild regularisation to prevent overfitting to reward exploitation.
    */
   weightDecay: number;
 

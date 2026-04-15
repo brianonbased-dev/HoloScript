@@ -30,7 +30,7 @@ const DECISION_TREES: Record<string, string> = {
     'Use MCP if reachable (richer, composable). CLI as fallback. Prefer MCP for multi-step workflows; CLI for quick single-file ops.',
   'cache-staleness':
     '<12h fresh. 12-24h OK. 24-48h stale (re-absorb if task depends on it). >48h force refresh. NEVER force:true unless cache corrupt.',
-  'todo-priority':
+  'task-priority':
     '1. Security 2. Fix-now 3. Blocking 4. Performance regression 5. Tech debt 6. Nice-to-have. Max 3 per cycle.',
   semver:
     "Breaking API change = MAJOR. New feature = MINOR. Bug fix/refactor = PATCH. Don't bump unless releasing.",

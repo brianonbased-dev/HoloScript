@@ -131,7 +131,7 @@ Skills are concentrated knowledge files for each domain. **Read the relevant ski
 | Domain | Skill File | What It Knows |
 |--------|-----------|---------------|
 | Project work | \`.claude/skills/dev/SKILL.md\` | Build, test, ship workflow |
-| Code scanning | \`.claude/skills/scan/SKILL.md\` | TODOs, health, coverage |
+| Code scanning | \`.claude/skills/scan/SKILL.md\` | Markers, health, coverage |
 | Documentation | \`.claude/skills/documenter/SKILL.md\` | Voice, staleness, versions |
 | Code review | \`.claude/skills/review/SKILL.md\` | Conventions, security, perf |
 

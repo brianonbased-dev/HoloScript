@@ -100,7 +100,7 @@ Your output MUST be valid JSON matching this shape:
   "wisdomEntries": [
     {
       "category": "pattern" | "gotcha" | "wisdom",
-      "content": "W.XXX: description",
+      "content": "W.<id>: description",
       "confidence": 0.9
     }
   ]
@@ -113,7 +113,7 @@ Skills must be valid HoloScript .hsplus compositions with:
 - Proper HoloScript syntax
 
 Keep skill count between 0-3. Only generate skills for clear gaps.
-Wisdom entries should follow the W.XXX format convention.`;
+Wisdom entries should follow the W.<id> format convention.`;
 
 function buildL2Prompt(trends: TrendSummary, l1History: LayerCycleResult[]): string {
   const l1Summary = l1History

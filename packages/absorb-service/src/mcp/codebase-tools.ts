@@ -1060,7 +1060,7 @@ async function runIncrementalPatch(
     let index: any = null;
 
     if (cachedGraph && cachedGraph === graph && false) {
-      // In-memory cache hit (todo: global cached index not implemented)
+      // In-memory cache hit (planned: global cached index not implemented)
     } else {
       const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
       const providerObj = await mod.createEmbeddingProvider({
