@@ -18,23 +18,23 @@ import {
 describe('vec3 utilities', () => {
   describe('vec3Normalize', () => {
     it('normalizes a unit vector', () => {
-      const v: Vec3 = { x: 1, y: 0, z: 0 };
+      const v: Vec3 = [1, 0, 0];
       const result = vec3Normalize(v);
-      expect(result).toEqual({ x: 1, y: 0, z: 0 });
+      expect(result).toEqual([1, 0, 0]);
       expect(vec3Length(result)).toBeCloseTo(1, 6);
     });
 
     it('normalizes a non-unit vector', () => {
-      const v: Vec3 = { x: 3, y: 4, z: 0 };
+      const v: Vec3 = [3, 4, 0];
       const result = vec3Normalize(v);
-      expect(result).toEqual({ x: 0.6, y: 0.8, z: 0 });
+      expect(result).toEqual([0.6, 0.8, 0]);
       expect(vec3Length(result)).toBeCloseTo(1, 6);
     });
 
     it('handles zero vector', () => {
-      const v: Vec3 = { x: 0, y: 0, z: 0 };
+      const v: Vec3 = [0, 0, 0];
       const result = vec3Normalize(v);
-      expect(result).toEqual({ x: 0, y: 0, z: 0 });
+      expect(result).toEqual([0, 0, 0]);
     });
   });
 
@@ -60,18 +60,18 @@ describe('vec3 utilities', () => {
 
   describe('vec3Length', () => {
     it('calculates length correctly', () => {
-      expect(vec3Length({ x: 3, y: 4, z: 0 })).toBe(5);
-      expect(vec3Length({ x: 1, y: 1, z: 1 })).toBeCloseTo(Math.sqrt(3), 6);
-      expect(vec3Length({ x: 0, y: 0, z: 0 })).toBe(0);
+      expect(vec3Length([3, 4, 0])).toBe(5);
+      expect(vec3Length([1, 1, 1])).toBeCloseTo(Math.sqrt(3), 6);
+      expect(vec3Length([0, 0, 0])).toBe(0);
     });
   });
 
   describe('vec3Cross', () => {
     it('calculates cross product correctly', () => {
-      const a: Vec3 = { x: 1, y: 0, z: 0 };
-      const b: Vec3 = { x: 0, y: 1, z: 0 };
+      const a: Vec3 = [1, 0, 0];
+      const b: Vec3 = [0, 1, 0];
       const result = vec3Cross(a, b);
-      expect(result).toEqual({ x: 0, y: 0, z: 1 });
+      expect(result).toEqual([0, 0, 1]);
     });
 
     it('handles array version', () => {
@@ -84,9 +84,9 @@ describe('vec3 utilities', () => {
 
   describe('vec3Sub', () => {
     it('subtracts vectors correctly', () => {
-      const a: Vec3 = { x: 5, y: 3, z: 1 };
-      const b: Vec3 = { x: 2, y: 1, z: 1 };
-      expect(vec3Sub(a, b)).toEqual({ x: 3, y: 2, z: 0 });
+      const a: Vec3 = [5, 3, 1];
+      const b: Vec3 = [2, 1, 1];
+      expect(vec3Sub(a, b)).toEqual([3, 2, 0]);
     });
 
     it('handles array version', () => {
@@ -98,16 +98,16 @@ describe('vec3 utilities', () => {
 
   describe('vec3Add', () => {
     it('adds vectors correctly', () => {
-      const a: Vec3 = { x: 1, y: 2, z: 3 };
-      const b: Vec3 = { x: 4, y: 5, z: 6 };
-      expect(vec3Add(a, b)).toEqual({ x: 5, y: 7, z: 9 });
+      const a: Vec3 = [1, 2, 3];
+      const b: Vec3 = [4, 5, 6];
+      expect(vec3Add(a, b)).toEqual([5, 7, 9]);
     });
   });
 
   describe('vec3Scale', () => {
     it('scales vectors correctly', () => {
-      const v: Vec3 = { x: 1, y: 2, z: 3 };
-      expect(vec3Scale(v, 2)).toEqual({ x: 2, y: 4, z: 6 });
+      const v: Vec3 = [1, 2, 3];
+      expect(vec3Scale(v, 2)).toEqual([2, 4, 6]);
     });
 
     it('handles array version', () => {
@@ -118,34 +118,34 @@ describe('vec3 utilities', () => {
 
   describe('vec3Dot', () => {
     it('calculates dot product correctly', () => {
-      const a: Vec3 = { x: 1, y: 2, z: 3 };
-      const b: Vec3 = { x: 4, y: 5, z: 6 };
+      const a: Vec3 = [1, 2, 3];
+      const b: Vec3 = [4, 5, 6];
       expect(vec3Dot(a, b)).toBe(32); // 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
     });
 
     it('handles perpendicular vectors', () => {
-      const a: Vec3 = { x: 1, y: 0, z: 0 };
-      const b: Vec3 = { x: 0, y: 1, z: 0 };
+      const a: Vec3 = [1, 0, 0];
+      const b: Vec3 = [0, 1, 0];
       expect(vec3Dot(a, b)).toBe(0);
     });
   });
 
   describe('vec3Distance', () => {
     it('calculates distance between two vectors', () => {
-      const a: Vec3 = { x: 0, y: 0, z: 0 };
-      const b: Vec3 = { x: 3, y: 4, z: 0 };
+      const a: Vec3 = [0, 0, 0];
+      const b: Vec3 = [3, 4, 0];
       expect(vec3Distance(a, b)).toBe(5);
     });
 
     it('handles same vector (zero distance)', () => {
-      const a: Vec3 = { x: 1, y: 2, z: 3 };
-      const b: Vec3 = { x: 1, y: 2, z: 3 };
+      const a: Vec3 = [1, 2, 3];
+      const b: Vec3 = [1, 2, 3];
       expect(vec3Distance(a, b)).toBe(0);
     });
 
     it('calculates 3D distance correctly', () => {
-      const a: Vec3 = { x: 1, y: 1, z: 1 };
-      const b: Vec3 = { x: 4, y: 5, z: 5 };
+      const a: Vec3 = [1, 1, 1];
+      const b: Vec3 = [4, 5, 5];
       expect(vec3Distance(a, b)).toBeCloseTo(Math.sqrt(9 + 16 + 16), 6); // sqrt(3² + 4² + 4²) = sqrt(41)
     });
   });

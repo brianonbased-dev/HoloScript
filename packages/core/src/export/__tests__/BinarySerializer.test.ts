@@ -77,7 +77,7 @@ describe('BinaryWriter', () => {
   describe('Vector Writing', () => {
     it('should write vector3', () => {
       const writer = new BinaryWriter(32);
-      writer.writeVector3({ x: 1.5, y: 2.5, z: 3.5 });
+      writer.writeVector3([1.5, 2.5, 3.5]);
 
       const buffer = writer.getBuffer();
       const view = new DataView(buffer);
@@ -196,13 +196,13 @@ describe('BinaryReader', () => {
   describe('Vector Reading', () => {
     it('should read vector3', () => {
       const writer = new BinaryWriter(32);
-      writer.writeVector3({ x: 1, y: 2, z: 3 });
+      writer.writeVector3([1, 2, 3]);
       const reader = new BinaryReader(writer.getBuffer());
 
       const vec = reader.readVector3();
-      expect(vec.x).toBe(1);
-      expect(vec.y).toBe(2);
-      expect(vec.z).toBe(3);
+      expect(vec[0]).toBe(1);
+      expect(vec[1]).toBe(2);
+      expect(vec[2]).toBe(3);
     });
 
     it('should read quaternion', () => {

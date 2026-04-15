@@ -100,7 +100,7 @@ describe('BinaryWriter: production', () => {
   });
 
   it('writeVector3 stores x/y/z as three float32s', () => {
-    writer.writeVector3({ x: 1, y: 2, z: 3 });
+    writer.writeVector3([1, 2, 3]);
     const view = new DataView(writer.getBuffer());
     expect(view.getFloat32(0, true)).toBeCloseTo(1);
     expect(view.getFloat32(4, true)).toBeCloseTo(2);

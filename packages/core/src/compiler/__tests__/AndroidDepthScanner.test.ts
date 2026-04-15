@@ -265,7 +265,7 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
         objects: [createObject('Scanner', ['depth_export'])],
       });
       const result = compiler.compile(composition);
-      expect(result.activityFile).toContain('appendLine("v ${v.x} ${v.y} ${v.z}")');
+      expect(result.activityFile).toContain('appendLine("v ${v[0]} ${v[1]} ${v[2]}")');
       expect(result.activityFile).toContain('appendLine("f ');
     });
 

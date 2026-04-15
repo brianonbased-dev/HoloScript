@@ -315,7 +315,7 @@ describe('IOSCompiler — TrueDepth Face Tracking', () => {
         objects: [createObject('Avatar', ['face_gaze_direction'])],
       });
       const file = compiler.compile(composition).faceTrackingFile!;
-      expect(file).toContain('gazeDirection.x');
+      expect(file).toContain('manager.gazeDirection[0]');
     });
 
     it('should include tongue display when face_tongue_detect is present', () => {

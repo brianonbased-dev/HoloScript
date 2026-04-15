@@ -27,6 +27,11 @@
 export type Vector3 = [number, number, number];
 
 /**
+ * 3D Vector as object with x/y/z properties
+ */
+export type Vector3Object = { x: number; y: number; z: number };
+
+/**
  * Movement mode
  */
 export type MovementMode =
@@ -366,7 +371,8 @@ export class CharacterTrait {
    * Get position
    */
   public getPosition(): Vector3 {
-    return [...this.state.position];
+    const [x, y, z] = this.state.position;
+    return { x, y, z } as unknown as Vector3;
   }
 
   /**
@@ -380,7 +386,8 @@ export class CharacterTrait {
    * Get velocity
    */
   public getVelocity(): Vector3 {
-    return [...this.state.velocity];
+    const [x, y, z] = this.state.velocity;
+    return { x, y, z } as unknown as Vector3;
   }
 
   /**

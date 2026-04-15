@@ -31,7 +31,7 @@ describe('SceneGraph', () => {
   describe('createIdentityTransform', () => {
     it('should create transform at origin', () => {
       const transform = createIdentityTransform();
-      expect(transform.position).toEqual({ x: 0, y: 0, z: 0 });
+      expect(transform.position).toEqual([0, 0, 0]);
     });
 
     it('should create identity rotation', () => {
@@ -41,7 +41,7 @@ describe('SceneGraph', () => {
 
     it('should create unit scale', () => {
       const transform = createIdentityTransform();
-      expect(transform.scale).toEqual({ x: 1, y: 1, z: 1 });
+      expect(transform.scale).toEqual([1, 1, 1]);
     });
   });
 

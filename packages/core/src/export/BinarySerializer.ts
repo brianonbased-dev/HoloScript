@@ -274,10 +274,10 @@ export class BinaryWriter {
    * Write a quaternion
    */
   writeQuaternion(q: IQuaternion): void {
-    this.writeFloat32(q[0]);
-    this.writeFloat32(q[1]);
-    this.writeFloat32(q[2]);
-    this.writeFloat32(q[3]);
+    this.writeFloat32(q.x);
+    this.writeFloat32(q.y);
+    this.writeFloat32(q.z);
+    this.writeFloat32(q.w);
   }
 
   /**

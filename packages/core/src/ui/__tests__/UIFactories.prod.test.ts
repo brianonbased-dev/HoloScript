@@ -19,8 +19,8 @@ describe('createUIPanel — Production', () => {
 
   it('custom dimensions and color', () => {
     const panel = createUIPanel('p', { width: 1.0, height: 0.5, color: '#ff0000' });
-    expect(panel.properties?.scale?.x).toBe(1.0);
-    expect(panel.properties?.scale?.y).toBe(0.5);
+    expect((panel.properties?.scale as number[])?.[0]).toBe(1.0);
+    expect((panel.properties?.scale as number[])?.[1]).toBe(0.5);
     expect(panel.properties?.color).toBe('#ff0000');
   });
 
@@ -59,9 +59,9 @@ describe('createUIButton — Production', () => {
   it('custom dimensions', () => {
     const btn = createUIButton('b', { width: 0.5, height: 0.2, depth: 0.1 });
     // Base width
-    expect(btn.properties?.scale?.x).toBe(0.5);
+    expect((btn.properties?.scale as number[])?.[0]).toBe(0.5);
     // Inner button width scaled to 0.9
-    expect(btn.children![0].properties?.scale?.x).toBeCloseTo(0.45);
+    expect((btn.children![0].properties?.scale as number[])?.[0]).toBeCloseTo(0.45);
   });
 });
 
@@ -92,6 +92,8 @@ describe('createVirtualKeyboard — Production', () => {
     const kb1 = createVirtualKeyboard('kb1', { scale: 1.0 });
     const kb2 = createVirtualKeyboard('kb2', { scale: 2.0 });
     // Larger scale = larger panel
-    expect(kb2.properties?.scale?.x).toBeGreaterThan(kb1.properties!.scale!.x);
+    expect((kb2.properties?.scale as number[])?.[0]).toBeGreaterThan(
+      (kb1.properties?.scale as number[])?.[0]
+    );
   });
 });

@@ -409,8 +409,8 @@ describe('Utility Functions', () => {
       const worldTransform = getWorldTransform(scene.root, scene.root.id);
 
       expect(worldTransform).toBeTruthy();
-      expect(worldTransform!.position).toEqual({ x: 0, y: 0, z: 0 });
-      expect(worldTransform!.scale).toEqual({ x: 1, y: 1, z: 1 });
+      expect(worldTransform!.position).toEqual([0, 0, 0]);
+      expect(worldTransform!.scale).toEqual([1, 1, 1]);
     });
 
     it('should accumulate translations', () => {

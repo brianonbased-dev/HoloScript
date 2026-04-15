@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GEO_ANCHOR_TRAITS } from '../geo-anchor';
+import { GEO_ANCHOR_TRAITS } from '../mobile/geo-anchor';
 import { VR_TRAITS } from '../index';
 
 describe('Geo-Anchor Traits', () => {

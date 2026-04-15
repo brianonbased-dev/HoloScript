@@ -5958,6 +5958,24 @@ export class HoloCompositionParser {
       }
     }
 
+    // Module blocks are intentionally opaque at this parser level.
+    // Their internals can contain JS-like statements (function/let/export/etc.)
+    // that do not follow domain property grammar key: value.
+    if (token.type === 'MODULE') {
+      if (this.check('LBRACE')) {
+        this.skipBlock();
+      }
+      this.popContext();
+      return {
+        type: 'DomainBlock',
+        domain,
+        keyword,
+        name,
+        traits,
+        properties: {},
+      };
+    }
+
     // ── Pipeline fast-path: delegate to PipelineParser for structured AST ──
     if (domain === 'pipeline' && keyword === 'pipeline') {
       return this.parsePipelineDomainBlock(name, traits);

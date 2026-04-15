@@ -112,6 +112,10 @@ build_log.txt
 build_output.txt
 compile_output.txt
 full-run.txt
+
+# packages/core — local vitest/jest failure lists (regenerate anytime)
+packages/core/core-failing*.txt
+packages/core/core-results*.txt
 full-test-output.txt
 full-test-results.txt
 test-results.txt

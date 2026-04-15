@@ -50,21 +50,10 @@ export interface RegistrationResult {
 // DEFAULT CONFIG
 // =============================================================================
 
-function requireApiKey(): string {
-  const key = process.env.HOLOSCRIPT_API_KEY;
-  if (!key) {
-    throw new Error(
-      'HOLOSCRIPT_API_KEY environment variable is required. ' +
-        'Set it in .env or pass --api-key on the command line.'
-    );
-  }
-  return key;
-}
-
 const DEFAULT_CONFIG: RegistrationConfig = {
   orchestratorUrl:
     process.env.MCP_ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app',
-  apiKey: requireApiKey(),
+  apiKey: process.env.HOLOSCRIPT_API_KEY ?? '',
   serverName: process.env.MCP_SERVER_NAME ?? 'holoscript-tools',
   serverDescription:
     'HoloScript core tools: NIR compiler, WGSL shader generation, spatial training data, ' +

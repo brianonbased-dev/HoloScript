@@ -15,7 +15,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { AccessDecision } from '@holoscript/platform';
 import { ResourceType } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
 
 // ── Mock getRBAC with controllable checkAccess ─────────────────────────────
 const mockCheckAccess = vi.fn<(...args: any[]) => AccessDecision>();
@@ -124,7 +123,7 @@ describe('RBAC Enforcement — StateCompiler', () => {
       token: FAKE_TOKEN,
       resourceType: ResourceType.AST,
       operation: 'read',
-      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+      expectedWorkflowStep: 'generate_assembly',
     });
   });
 
@@ -197,7 +196,7 @@ describe('RBAC Enforcement — TraitCompositionCompiler', () => {
       token: FAKE_TOKEN,
       resourceType: ResourceType.AST,
       operation: 'read',
-      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+      expectedWorkflowStep: 'generate_assembly',
     });
   });
 
@@ -274,7 +273,7 @@ describe('RBAC Enforcement — IncrementalCompiler', () => {
       token: FAKE_TOKEN,
       resourceType: ResourceType.AST,
       operation: 'read',
-      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+      expectedWorkflowStep: 'generate_assembly',
     });
   });
 

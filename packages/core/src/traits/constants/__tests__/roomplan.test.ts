@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ROOMPLAN_TRAITS } from '../roomplan';
+import { ROOMPLAN_TRAITS } from '../mobile/roomplan';
 import { VR_TRAITS } from '../index';
 
 describe('RoomPlan Traits', () => {

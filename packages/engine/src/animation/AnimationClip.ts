@@ -132,12 +132,17 @@ export class AnimClip {
     for (const track of this.tracks) {
       const value = this.sampleTrack(track, wrapped);
       const key = track.component
-        ? `${track.targetPath}.${track.property}.${track.component}`
+        ? `${track.targetPath}.${track.property}[${this.componentIndex(track.component)}]`
         : `${track.targetPath}.${track.property}`;
       result.set(key, value);
     }
 
     return result;
+  }
+
+  private componentIndex(component: string): number {
+    const map: Record<string, number> = { x: 0, y: 1, z: 2, w: 3 };
+    return map[component] ?? parseInt(component, 10);
   }
 
   private sampleTrack(track: ClipTrack, time: number): number {

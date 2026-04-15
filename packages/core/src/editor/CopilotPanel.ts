@@ -44,6 +44,9 @@ const DEFAULT_CONFIG: CopilotPanelConfig = {
   maxMessages: 20,
 };
 
+const USER_ICON = '\u{1F464}';
+const ASSISTANT_ICON = '\u{1F916}';
+
 // =============================================================================
 // COPILOT PANEL
 // =============================================================================
@@ -83,7 +86,7 @@ export class CopilotPanel {
       id: 'copilot_title',
       type: 'label',
       position: [x, y + height * 0.45, z + 0.001],
-      text: 'ðŸ¤– AI Copilot',
+      text: `${ASSISTANT_ICON} AI Copilot`,
       color: '#00d4ff',
       data: { role: 'title' },
     });
@@ -99,7 +102,7 @@ export class CopilotPanel {
         id: `copilot_msg_${i}`,
         type: 'message',
         position: [x, yPos, z + 0.001],
-        text: `${msg.role === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'} ${msg.text}`,
+        text: `${msg.role === 'user' ? USER_ICON : ASSISTANT_ICON} ${msg.text}`,
         color: msg.role === 'user' ? '#e0e0e0' : '#00d4ff',
         data: { role: 'message', messageIndex: i },
       });
@@ -118,9 +121,9 @@ export class CopilotPanel {
 
     // Quick action buttons
     const buttonConfigs = [
-      { id: 'btn_suggest', text: 'ðŸ’¡ Suggest', action: 'suggest' },
-      { id: 'btn_explain', text: 'ðŸ“– Explain', action: 'explain' },
-      { id: 'btn_fix', text: 'ðŸ”§ Fix', action: 'fix' },
+      { id: 'btn_suggest', text: '\u{1F4A1} Suggest', action: 'suggest' },
+      { id: 'btn_explain', text: '\u{1F4D6} Explain', action: 'explain' },
+      { id: 'btn_fix', text: '\u{1F527} Fix', action: 'fix' },
     ];
 
     buttonConfigs.forEach((btn, i) => {

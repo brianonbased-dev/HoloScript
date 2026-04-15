@@ -104,7 +104,9 @@ function vec3ToString(
   v: Vector3 | undefined,
   def = [0, 0, 0 ]
 ): string {
-  const { x, y, z } = v ?? def;
+  const x = Array.isArray(v) ? (v[0] ?? def[0]) : ((v as { x?: number } | undefined)?.x ?? def[0]);
+  const y = Array.isArray(v) ? (v[1] ?? def[1]) : ((v as { y?: number } | undefined)?.y ?? def[1]);
+  const z = Array.isArray(v) ? (v[2] ?? def[2]) : ((v as { z?: number } | undefined)?.z ?? def[2]);
   return `[${x}, ${y}, ${z}]`;
 }
 

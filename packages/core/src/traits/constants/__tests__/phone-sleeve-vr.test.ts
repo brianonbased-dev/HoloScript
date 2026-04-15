@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PHONE_SLEEVE_VR_TRAITS } from '../phone-sleeve-vr';
+import { PHONE_SLEEVE_VR_TRAITS } from '../mobile/phone-sleeve-vr';
 import { VR_TRAITS } from '../index';
 
 describe('Phone Sleeve VR Traits', () => {

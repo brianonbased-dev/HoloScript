@@ -679,7 +679,7 @@ export interface ISceneMetadata {
 export function createIdentityTransform(): ITransform {
   return {
     position: [0, 0, 0],
-    rotation: [0, 0, 0, 1 ],
+    rotation: { x: 0, y: 0, z: 0, w: 1 },
     scale: [1, 1, 1],
   };
 }

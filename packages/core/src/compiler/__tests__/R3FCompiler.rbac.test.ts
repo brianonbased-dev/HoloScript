@@ -14,7 +14,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { R3FCompiler } from '../R3FCompiler';
 import { UnauthorizedCompilerAccessError } from '../CompilerBase';
 import { ResourceType, type AccessDecision } from '@holoscript/platform';
-import { WorkflowStep } from '@holoscript/platform';
 
 // ---------------------------------------------------------------------------
 // Mock getRBAC so we can control checkAccess() per-test
@@ -96,7 +95,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         token: FAKE_TOKEN,
         resourceType: ResourceType.AST,
         operation: 'read',
-        expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+        expectedWorkflowStep: 'generate_assembly',
       });
     });
 
@@ -109,7 +108,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         token: FAKE_TOKEN,
         resourceType: ResourceType.CODE,
         operation: 'write',
-        expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+        expectedWorkflowStep: 'generate_assembly',
       });
     });
 
@@ -180,7 +179,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         resourceType: ResourceType.OUTPUT,
         operation: 'write',
         resourcePath: '/output/scene.r3f',
-        expectedWorkflowStep: WorkflowStep.SERIALIZE,
+        expectedWorkflowStep: 'serialize',
       });
     });
 
@@ -249,7 +248,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         resourceType: ResourceType.OUTPUT,
         operation: 'write',
         resourcePath: '/output/scene.r3f',
-        expectedWorkflowStep: WorkflowStep.SERIALIZE,
+        expectedWorkflowStep: 'serialize',
       });
     });
 
@@ -288,7 +287,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
         compiler.compile(minimalAST(), FAKE_TOKEN);
       } catch (e) {
         const err = e as UnauthorizedCompilerAccessError;
-        expect(err.message).toContain('Agent Role: syntax_analyzer');
+        expect(err.decision.agentRole).toBe('syntax_analyzer');
       }
     });
 

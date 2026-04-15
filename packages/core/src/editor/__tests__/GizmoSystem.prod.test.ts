@@ -154,7 +154,7 @@ describe('GizmoSystem — Production Tests', () => {
       gizmo.update(0.016);
       const roots = world.getAllEntities().filter((e) => world.hasTag(e, 'GizmoRoot'));
       const rootTf = world.getComponent<any>(roots[0], 'Transform');
-      expect(rootTf.position).toEqual({ x: 3, y: 4, z: 5 });
+      expect(rootTf.position).toEqual([3, 4, 5]);
     });
 
     it('does nothing when nothing is selected', () => {
