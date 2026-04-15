@@ -117,7 +117,26 @@ export class CameraController {
    * ```
    */
   constructor(config?: Partial<CameraConfig>) {
-    this.config = { ...DEFAULT_CAMERA, ...config };
+    const merged = { ...DEFAULT_CAMERA, ...config };
+    // Normalize followOffset: support both [x,y,z] arrays and {x,y,z} objects
+    if (merged.followOffset && !Array.isArray(merged.followOffset)) {
+      const o = merged.followOffset as unknown as { x: number; y: number; z: number };
+      merged.followOffset = [o.x ?? 0, o.y ?? 0, o.z ?? 0];
+    }
+    // Normalize bounds: support both array and {x,y,z} object vectors
+    if (merged.bounds) {
+      const mn = merged.bounds.min;
+      const mx = merged.bounds.max;
+      if (!Array.isArray(mn)) {
+        const m = mn as unknown as { x: number; y: number; z: number };
+        merged.bounds = { ...merged.bounds, min: [m.x ?? 0, m.y ?? 0, m.z ?? 0] };
+      }
+      if (!Array.isArray(mx)) {
+        const m = mx as unknown as { x: number; y: number; z: number };
+        merged.bounds = { ...merged.bounds, max: [m.x ?? 0, m.y ?? 0, m.z ?? 0] };
+      }
+    }
+    this.config = merged;
     this.state = {
       position: [0, 5, -10],
       rotation: [0, 0, 0],

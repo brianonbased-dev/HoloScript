@@ -50,7 +50,7 @@ let _effectId = 0;
 
 export class CameraEffects {
   private effects: ActiveEffect[] = [];
-  private shakeOffset = { x: 0, y: 0 };
+  private shakeOffset: [number, number] = [0, 0];
   private zoomMultiplier = 1;
   private flashAlpha = 0;
   private flashColor = { r: 1, g: 1, b: 1 };
@@ -102,7 +102,7 @@ export class CameraEffects {
   // ---------------------------------------------------------------------------
 
   update(dt: number): void {
-    this.shakeOffset = { x: 0, y: 0 };
+    this.shakeOffset = [0, 0];
     this.zoomMultiplier = 1;
     this.flashAlpha = 0;
     this.vignetteIntensity = 0;
@@ -167,7 +167,7 @@ export class CameraEffects {
   // ---------------------------------------------------------------------------
 
   getShakeOffset(): { x: number; y: number } {
-    return { ...this.shakeOffset };
+    return this.shakeOffset;
   }
   getZoomMultiplier(): number {
     return this.zoomMultiplier;
