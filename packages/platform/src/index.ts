@@ -15,3 +15,7 @@ export * from './ans';
 
 // RBAC types — compiler identity/authorization
 export * from './rbac';
+
+// Sprint 6: Token management and access control
+export * from './tokens';
+export * from './access-control';
