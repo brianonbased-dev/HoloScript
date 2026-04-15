@@ -76,7 +76,7 @@
  * - External APIs: weather.gov, Eventbrite, Square POS, Shopify
  *
  * RESEARCH REFERENCES:
- * - HOLOLAND_INTEGRATION_TODOS.md (VRRRuntime section)
+ * - examples/hololand/README.md (VRR runtime pointers)
  * - VRRCompiler.ts (runtime initialization requirements)
  * - uAA2++_Protocol/5.GROW P.029: "Machine Customers for VR Platforms"
  *

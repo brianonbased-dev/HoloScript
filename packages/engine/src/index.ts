@@ -102,16 +102,16 @@ export * as VMBridge from './vm-bridge';
 // DONE(A.011.01g): terrain — heightmap, voxel, infinite terrain, LOD chunks
 // DONE(A.011.01g): tilemap — 2D/isometric tile layers, auto-tiling
 // DONE(A.011.01g): procedural — noise, L-systems, WFC, dungeon gen
-// TODO(A.011): combat — hitbox, damage, projectile, targeting
-// TODO(A.011): dialogue — dialogue trees, branching, localization hooks
-// TODO(A.011): gameplay — inventory, quest, scoring, state machines
-// TODO(A.011): character — character controller, movement, stats
+// ROADMAP(A.011): combat — hitbox, damage, projectile, targeting
+// ROADMAP(A.011): dialogue — dialogue trees, branching, localization hooks
+// ROADMAP(A.011): gameplay — inventory, quest, scoring, state machines
+// ROADMAP(A.011): character — character controller, movement, stats
 // DONE(A.011.01i): ecs — entity-component-system core, archetype storage
 // DONE(A.011.01i): scene — scene graph, hierarchy, transform propagation
 // DONE(A.011.01i): environment — skybox, fog, weather, day-night cycle
 // DONE(A.011.01i): world — world streaming, spatial indexing, octree
 // DONE(A.011.01i): orbital — orbital mechanics, celestial bodies, gravity wells
-// TODO(A.011): hologram — depth estimation, quilt compiler, looking glass
+// ROADMAP(A.011): hologram — depth estimation, quilt compiler, looking glass
 // DONE(A.011.01a): shader — shader graph, custom materials, uniforms (in rendering)
 // DONE(A.011.01a): materials — PBR, toon, unlit, material library (in rendering)
 // DONE(A.011): lod — level of detail, imposters, distance culling

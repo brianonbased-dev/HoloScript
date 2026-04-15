@@ -379,7 +379,7 @@ export class ErosionRuntimeExecutor {
     // Update terrain mesh
     if (this.rendererTerrainId) {
       const _terrainMesh = this.scene.getTerrainMesh();
-      // TODO: Update mesh geometry in renderer
+      // Planned: push terrain mesh updates through renderer when API is wired
       // this.renderer.updateMeshGeometry(this.rendererTerrainId, terrainMesh);
     }
 

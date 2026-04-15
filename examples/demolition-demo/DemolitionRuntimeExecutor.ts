@@ -466,7 +466,7 @@ export class DemolitionRuntimeExecutor {
         // Update element color based on load
         // Note: This requires adding updateObjectMaterial() to RuntimeRenderer interface
         // For now, we can just update the whole object
-        // TODO: Add updateObjectMaterial() method to renderer
+        // Planned: add updateObjectMaterial() on RuntimeRenderer when API exists
         if (this.config.debug && this.currentFrame % 60 === 0) {
           console.log(
             `[HoloScript Runtime] Element ${element.id} load: ${(loadPercentage * 100).toFixed(0)}%`
