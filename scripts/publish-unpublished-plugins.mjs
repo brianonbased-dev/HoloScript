@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, unlinkSync, copyFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
 import { execSync } from 'child_process';
 import { loadDotenv } from './load-dotenv.mjs';
 
@@ -94,7 +95,8 @@ for (const dir of dirs.sort()) {
   }
 
   const patched = replaceWorkspace(JSON.parse(raw), semver);
-  const backup = pkgPath + '.prepublish.bak';
+  /** Keep backup outside the package dir so npm pack never ships it. */
+  const backup = join(tmpdir(), `holoscript-prepublish-${dir}-${process.pid}.json`);
   if (dryRun) {
     results.push({ dir, name, skipped: 'dry-run: would patch workspace + npm publish' });
     continue;
