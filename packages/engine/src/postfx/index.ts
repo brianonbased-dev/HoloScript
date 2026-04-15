@@ -9,3 +9,5 @@ export { PostProcessingStack as LegacyPostProcessing } from '../rendering/PostPr
 export { PostProcessStack as LegacyPostProcessStack } from '../rendering/PostProcessStack';
 export { BloomEffect as LegacyBloomEffect } from '../rendering/BloomEffect';
 
+export * from './postfx-config';
+
