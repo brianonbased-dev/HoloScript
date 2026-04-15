@@ -66,17 +66,20 @@ export class SceneNode {
     this.markDirty();
   }
 
-  getLocalTransform(): Transform {
+  getLocalTransform(): { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number; y: number; z: number } } {
+    const [px, py, pz] = this.local.position;
+    const [rx, ry, rz] = this.local.rotation;
+    const [sx, sy, sz] = this.local.scale;
     return {
-      position: [...this.local.position] as [number, number, number],
-      rotation: [...this.local.rotation] as [number, number, number],
-      scale: [...this.local.scale] as [number, number, number],
+      position: { x: px, y: py, z: pz },
+      rotation: { x: rx, y: ry, z: rz },
+      scale: { x: sx, y: sy, z: sz },
     };
   }
 
-  getWorldPosition(): [number, number, number] {
+  getWorldPosition(): { x: number; y: number; z: number } {
     this.updateWorldMatrix();
-    return [this.worldMatrix[12], this.worldMatrix[13], this.worldMatrix[14]];
+    return { x: this.worldMatrix[12], y: this.worldMatrix[13], z: this.worldMatrix[14] };
   }
 
   getWorldMatrix(): Matrix4 {
