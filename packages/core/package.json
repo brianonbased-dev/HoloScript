@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core",
   "version": "6.0.4",
-  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript â€” the open AI-spatial reality protocol for 3D/XR/IoT",
+  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript — the open AI-spatial reality protocol for 3D/XR/IoT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -104,6 +104,7 @@
     "holoscript": "./dist/cli/holoscript-runner.js"
   },
   "scripts": {
+    "prepublishOnly": "pnpm run build",
     "build": "tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",
