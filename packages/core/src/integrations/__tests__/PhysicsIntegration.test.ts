@@ -188,7 +188,7 @@ describe('PhysicsIntegration', () => {
       stressHandler = new GranularToDestructionStress();
       fractureSystem = new VoronoiFractureSystem({
         voronoiSites: 5,
-        bounds: { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: 2, z: 1 } },
+        bounds: { min: [-1, 0, -1], max: [1, 2, 1] },
       });
       granularSystem = new GranularMaterialSystem();
 
@@ -264,7 +264,7 @@ describe('PhysicsIntegration', () => {
       // Use fragments at specific positions to ensure clear separation
       const tempFracture = new VoronoiFractureSystem({
         voronoiSites: 2,
-        bounds: { min: { x: -5, y: 0, z: -5 }, max: { x: 5, y: 2, z: 5 } },
+        bounds: { min: [-5, 0, -5], max: [5, 2, 5] },
       });
       tempFracture.generateVoronoiFracture();
 
@@ -345,7 +345,7 @@ describe('PhysicsIntegration', () => {
     it('updates granular to destruction stress', () => {
       const fractureSystem = new VoronoiFractureSystem({
         voronoiSites: 5,
-        bounds: { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: 2, z: 1 } },
+        bounds: { min: [-1, 0, -1], max: [1, 2, 1] },
       });
       const granularSystem = new GranularMaterialSystem();
 

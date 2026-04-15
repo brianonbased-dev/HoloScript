@@ -264,16 +264,19 @@ export class VoronoiFractureSystem {
     // Simplified fragment creation (bounding box around site)
     // In a full implementation, this would compute actual Voronoi cell boundaries
     const size = 0.2; // Approximate fragment size
+    const sx = (site.position as unknown as { x: number }).x ?? (site.position as unknown as number[])[0];
+    const sy = (site.position as unknown as { y: number }).y ?? (site.position as unknown as number[])[1];
+    const sz = (site.position as unknown as { z: number }).z ?? (site.position as unknown as number[])[2];
     const vertices = [
       // Cube vertices around site
-      [site.position[0] - size, site.position[1] - size, site.position[2] - size ],
-      [site.position[0] + size, site.position[1] - size, site.position[2] - size ],
-      [site.position[0] + size, site.position[1] + size, site.position[2] - size ],
-      [site.position[0] - size, site.position[1] + size, site.position[2] - size ],
-      [site.position[0] - size, site.position[1] - size, site.position[2] + size ],
-      [site.position[0] + size, site.position[1] - size, site.position[2] + size ],
-      [site.position[0] + size, site.position[1] + size, site.position[2] + size ],
-      [site.position[0] - size, site.position[1] + size, site.position[2] + size ],
+      [sx - size, sy - size, sz - size],
+      [sx + size, sy - size, sz - size],
+      [sx + size, sy + size, sz - size],
+      [sx - size, sy + size, sz - size],
+      [sx - size, sy - size, sz + size],
+      [sx + size, sy - size, sz + size],
+      [sx + size, sy + size, sz + size],
+      [sx - size, sy + size, sz + size],
     ];
 
     // Cube triangle indices (12 triangles, 2 per face)
@@ -321,7 +324,7 @@ export class VoronoiFractureSystem {
 
     return {
       id: this.nextFragmentId++,
-      position: { ...site.position },
+      position: [sx, sy, sz] as unknown as Vector3,
       boundsMin: bounds.min,
       boundsMax: bounds.max,
       vertices,

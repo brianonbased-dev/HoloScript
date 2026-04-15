@@ -40,22 +40,22 @@ export class FrustumCuller {
   ): void {
     // Near plane: normal = forward, point on plane = pos + forward*near
     const nearPlane = this.makePlane(
-      forward[0],
-      forward[1],
-      forward[2],
-      pos[0] + forward[0] * near,
-      pos[1] + forward[1] * near,
-      pos[2] + forward[2] * near
+      forward.x,
+      forward.y,
+      forward.z,
+      pos.x + forward.x * near,
+      pos.y + forward.y * near,
+      pos.z + forward.z * near
     );
 
     // Far plane: normal = -forward, point on plane = pos + forward*far
     const farPlane = this.makePlane(
-      -forward[0],
-      -forward[1],
-      -forward[2],
-      pos[0] + forward[0] * far,
-      pos[1] + forward[1] * far,
-      pos[2] + forward[2] * far
+      -forward.x,
+      -forward.y,
+      -forward.z,
+      pos.x + forward.x * far,
+      pos.y + forward.y * far,
+      pos.z + forward.z * far
     );
 
     this.planes = [nearPlane, farPlane];
@@ -66,7 +66,7 @@ export class FrustumCuller {
    */
   isVisible(sphere: BoundingSphere): boolean {
     for (const plane of this.planes) {
-      const dist = plane.nx * sphere[0] + plane.ny * sphere[1] + plane.nz * sphere[2] + plane.d;
+      const dist = plane.nx * sphere.x + plane.ny * sphere.y + plane.nz * sphere.z + plane.d;
       if (dist < -sphere.radius) return false; // Fully behind this plane
     }
     return true;

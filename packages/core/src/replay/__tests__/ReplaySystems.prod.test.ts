@@ -322,8 +322,8 @@ describe('GhostRunner', () => {
     ghost.sample(0.1, { x: 1, y: 0, z: 0 }, 0, 5);
     const run = ghost.finishRecording('run1');
     expect(run.samples).toHaveLength(2);
-    expect(run.samples[0].position).toEqual({ x: 0, y: 0, z: 0 });
-    expect(run.samples[1].position).toEqual({ x: 1, y: 0, z: 0 });
+    expect(run.samples[0].position).toEqual([0, 0, 0]);
+    expect(run.samples[1].position).toEqual([1, 0, 0]);
   });
 
   it('sample() is ignored when not recording', () => {

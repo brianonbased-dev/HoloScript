@@ -57,9 +57,9 @@ export class LODSystem {
       const pos = entityPositions.get(entityId);
       if (!pos) continue;
 
-      const dx = pos[0] - cameraPos[0];
-      const dy = pos[1] - cameraPos[1];
-      const dz = pos[2] - cameraPos[2];
+      const dx = pos.x - cameraPos.x;
+      const dy = pos.y - cameraPos.y;
+      const dz = pos.z - cameraPos.z;
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       // Find the appropriate LOD level

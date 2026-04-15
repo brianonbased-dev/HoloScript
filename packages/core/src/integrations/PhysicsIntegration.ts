@@ -99,8 +99,12 @@ export class DestructionToGranularConverter {
         continue;
       }
 
+      const fragmentVolume = Number.isFinite(fragment.volume) && fragment.volume > 0
+        ? fragment.volume
+        : 0.064;
+
       // Skip fragments that are too small
-      if (fragment.volume < this.config.minFragmentSize) {
+      if (fragmentVolume < this.config.minFragmentSize) {
         if (recycleFragments) {
           fractureSystem.recycleFragment(fragment.id);
         }
@@ -110,11 +114,10 @@ export class DestructionToGranularConverter {
       // Calculate particle radius from fragment volume
       // Volume of sphere: V = (4/3) * π * r³
       // r = ³√(3V / 4π)
-      const radius =
-        Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius = Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Add particle at fragment centroid
-      const particleId = granularSystem.addParticle(fragment.position, radius);
+      const particleId = granularSystem.addParticle(fragment.position as any, radius);
 
       // Mark fragment as converted
       this.convertedFragmentIds.add(fragment.id);
@@ -122,7 +125,7 @@ export class DestructionToGranularConverter {
       // Update statistics
       convertedCount++;
       particlesCreated++;
-      totalVolume += fragment.volume;
+      totalVolume += fragmentVolume;
       totalParticleSize += radius;
 
       // Recycle fragment back to pool
@@ -166,45 +169,50 @@ export class DestructionToGranularConverter {
     let totalParticleSize = 0;
 
     for (const fragment of destroyedFragments) {
-      if (fragment.volume < this.config.minFragmentSize) {
+      const fragmentVolume = Number.isFinite(fragment.volume) && fragment.volume > 0
+        ? fragment.volume
+        : 0.064;
+
+      if (fragmentVolume < this.config.minFragmentSize) {
         if (recycleFragments) {
           fractureSystem.recycleFragment(fragment.id);
         }
         continue;
       }
-
-      const radius =
-        Math.cbrt((3 * fragment.volume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius = Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Calculate direction from explosion center
-      const dir = {
-        x: fragment.position[0] - explosionCenter[0],
-        y: fragment.position[1] - explosionCenter[1],
-        z: fragment.position[2] - explosionCenter[2],
-      };
+      const fx = (fragment.position as any).x ?? (fragment.position as any)[0] ?? 0;
+      const fy = (fragment.position as any).y ?? (fragment.position as any)[1] ?? 0;
+      const fz = (fragment.position as any).z ?? (fragment.position as any)[2] ?? 0;
+      const ex = (explosionCenter as any).x ?? (explosionCenter as any)[0] ?? 0;
+      const ey = (explosionCenter as any).y ?? (explosionCenter as any)[1] ?? 0;
+      const ez = (explosionCenter as any).z ?? (explosionCenter as any)[2] ?? 0;
 
-      const dist = Math.sqrt(dir[0] ** 2 + dir[1] ** 2 + dir[2] ** 2);
+      const dir = { x: fx - ex, y: fy - ey, z: fz - ez };
+
+      const dist = Math.sqrt(dir.x ** 2 + dir.y ** 2 + dir.z ** 2);
       if (dist > 0) {
-        dir[0] /= dist;
-        dir[1] /= dist;
-        dir[2] /= dist;
+        dir.x /= dist;
+        dir.y /= dist;
+        dir.z /= dist;
       }
 
       // Add particle with velocity
-      const particleId = granularSystem.addParticle(fragment.position, radius);
+      const particleId = granularSystem.addParticle(fragment.position as any, radius);
       const particle = granularSystem.getParticle(particleId);
 
       if (particle) {
         // Set initial velocity based on distance from explosion
         const velocityMag = explosionStrength / Math.max(dist, 0.1);
-        particle.velocity[0] = dir[0] * velocityMag;
-        particle.velocity[1] = dir[1] * velocityMag;
-        particle.velocity[2] = dir[2] * velocityMag;
+        particle.velocity[0] = dir.x * velocityMag;
+        particle.velocity[1] = dir.y * velocityMag;
+        particle.velocity[2] = dir.z * velocityMag;
       }
 
       convertedCount++;
       particlesCreated++;
-      totalVolume += fragment.volume;
+      totalVolume += fragmentVolume;
       totalParticleSize += radius;
 
       if (recycleFragments) {
@@ -292,12 +300,19 @@ export class GranularToDestructionStress {
 
       // Check particles within horizontal range
       for (const particle of particles) {
-        const dx = particle.position[0] - fragment.position[0];
-        const dz = particle.position[2] - fragment.position[2];
+        const px = (particle.position as unknown as { x: number }).x ?? (particle.position as unknown as number[])[0] ?? 0;
+        const py = (particle.position as unknown as { y: number }).y ?? (particle.position as unknown as number[])[1] ?? 0;
+        const pz = (particle.position as unknown as { z: number }).z ?? (particle.position as unknown as number[])[2] ?? 0;
+        const fx = fragment.position[0];
+        const fy = fragment.position[1];
+        const fz = fragment.position[2];
+
+        const dx = px - fx;
+        const dz = pz - fz;
         const horizontalDist = Math.sqrt(dx ** 2 + dz ** 2);
 
         // Only consider particles above and within radius
-        if (particle.position[1] > fragment.position[1] && horizontalDist < 1.0) {
+        if (py > fy && horizontalDist < 1.0) {
           totalMassAbove += particle.mass;
         }
       }

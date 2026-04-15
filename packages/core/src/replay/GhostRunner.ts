@@ -64,7 +64,7 @@ export class GhostRunner {
     this.recordTime += dt;
     this.activeRecording.push({
       time: this.recordTime,
-      position: { ...pos },
+      position: [pos.x, pos.y, pos.z],
       rotation,
       speed,
     });
