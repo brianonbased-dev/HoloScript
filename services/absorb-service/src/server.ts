@@ -19,7 +19,8 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3005;
-const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 500));
+/** Default 2500ms: shared/Railway Postgres often misses a 500ms probe under cold start or load. */
+const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 2500));
 
 /** True if PostgreSQL accepts a trivial query within the health timeout (core connectivity). */
 async function pingPostgresWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<boolean> {
