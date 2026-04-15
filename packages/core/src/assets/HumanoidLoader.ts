@@ -462,7 +462,7 @@ export class HumanoidLoader {
       format,
       transform: {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: [config.scale ?? 1, config.scale ?? 1, config.scale ?? 1],
       },
       visible: true,

@@ -11,7 +11,6 @@
 
 import { CircuitState, CircuitMetrics } from './CircuitBreaker';
 import { GraphQLCircuitBreakerClient, CircuitBreakerStats } from './GraphQLCircuitBreakerClient';
-import type { Extensible } from './types/utility-types';
 
 export interface MetricsSnapshot {
   timestamp: Date;
@@ -87,11 +86,7 @@ export class CircuitBreakerMetrics {
     const systemHealth = this.client.getSystemHealth();
 
     const circuits: CircuitMetricsReport[] = circuitStats.map((stat) => {
-      // @ts-expect-error During migration
-      const circuitManager = (this.client as Extensible<GraphQLCircuitBreakerClient>)
-        .circuitManager as { getCircuit(name: string): { getMetrics(): CircuitMetrics } };
-      const circuit = circuitManager.getCircuit(stat.operationName);
-      const metrics = circuit.getMetrics();
+      const metrics = this.client.getCircuitMetrics(stat.operationName);
 
       return {
         operationName: stat.operationName,

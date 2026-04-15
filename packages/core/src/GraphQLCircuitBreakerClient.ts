@@ -9,7 +9,12 @@
  * - Comprehensive metrics tracking
  */
 
-import { CircuitBreakerManager, CircuitState, RequestResult } from './CircuitBreaker';
+import {
+  CircuitBreakerManager,
+  CircuitState,
+  RequestResult,
+  type CircuitMetrics,
+} from './CircuitBreaker';
 
 export interface GraphQLClientOptions {
   /** Base GraphQL endpoint URL */
@@ -378,6 +383,13 @@ export class GraphQLCircuitBreakerClient {
     }
 
     return stats;
+  }
+
+  /**
+   * Detailed metrics for one operation (used by CircuitBreakerMetrics).
+   */
+  public getCircuitMetrics(operationName: string): CircuitMetrics {
+    return this.circuitManager.getCircuit(operationName).getMetrics();
   }
 
   /**

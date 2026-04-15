@@ -63,7 +63,10 @@ export class ModelImporter {
         vertexCount: 1024,
         indexCount: 2048,
         materialId: 'mat_0',
-        bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+        bounds: {
+          min: { x: -1, y: -1, z: -1 },
+          max: { x: 1, y: 1, z: 1 },
+        },
       });
       materials.push({
         id: 'mat_0',
@@ -80,7 +83,10 @@ export class ModelImporter {
         vertexCount: 512,
         indexCount: 1024,
         materialId: null,
-        bounds: { min: [-1, 0, -1], max: [1, 2, 1] },
+        bounds: {
+          min: { x: -1, y: 0, z: -1 },
+          max: { x: 1, y: 2, z: 1 },
+        },
       });
       warnings.push('OBJ format does not support PBR materials');
     } else {
@@ -90,7 +96,10 @@ export class ModelImporter {
         vertexCount: 2048,
         indexCount: 4096,
         materialId: 'mat_0',
-        bounds: { min: [-2, -2, -2], max: [2, 2, 2] },
+        bounds: {
+          min: { x: -2, y: -2, z: -2 },
+          max: { x: 2, y: 2, z: 2 },
+        },
       });
       materials.push({
         id: 'mat_0',
