@@ -1,7 +1,7 @@
 /**
  * MaterialPresetAudit — Audit 78 material presets against R3F renderer support
  *
- * TODO-038: Material Preset Audit
+ * AUDIT-038: Material Preset Audit
  *
  * Purpose:
  *   The HoloScript language supports 78 material presets with advanced PBR
