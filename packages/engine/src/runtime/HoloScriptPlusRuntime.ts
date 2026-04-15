@@ -33,7 +33,7 @@ import { VRTraitRegistry, vrTraitRegistry, TraitContext, TraitEvent } from '@hol
 import { eventBus } from './EventBus';
 import { ChunkLoader } from './loader';
 import { HotReloader, type TemplateInstance as _TemplateInstance } from './HotReloader';
-import { HoloStatement, HoloExpression as _HoloExpression } from '@holoscript/core';
+import { HoloStatement } from '@holoscript/core';
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
 import { WebXRManager } from './WebXRManager';
