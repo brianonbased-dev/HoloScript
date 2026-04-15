@@ -232,11 +232,11 @@ export class WebRTCTransport {
   addStream(stream: MediaStream): void {
     this.localStream = stream;
 
-    // Add tracks to all existing peers
+    const tracks = stream.getTracks();
     this.peers.forEach((peer) => {
-      stream.getTracks().forEach((track) => {
+      for (const track of tracks) {
         peer.connection.addTrack(track, stream);
-      });
+      }
       // Re-negotiate if needed (simplified for this implementation)
       // In a real impl, we'd check negotiationneeded
     });
@@ -292,7 +292,12 @@ export class WebRTCTransport {
         };
 
         this.signalingWs.onmessage = (evt) => {
-          this.handleSignalingMessage(JSON.parse(evt.data));
+          try {
+            const raw = typeof evt.data === 'string' ? evt.data : String(evt.data);
+            this.handleSignalingMessage(JSON.parse(raw));
+          } catch {
+            console.warn('[WebRTCTransport] Ignoring non-JSON signaling message');
+          }
         };
 
         this.signalingWs.onerror = (evt) => {
@@ -310,13 +315,10 @@ export class WebRTCTransport {
   }
 
   /**
-   * Connect to a peer
+   * Create `RTCPeerConnection`, wire handlers, register peer — without starting negotiation.
+   * Used for outbound offers and for inbound offers (answer flow must not send a competing offer).
    */
-  async connectToPeer(remotePeerId: string): Promise<void> {
-    if (this.peers.has(remotePeerId)) {
-      return; // Already connected
-    }
-
+  private createAndRegisterPeer(remotePeerId: string): WebRTCPeer {
     const config: RTCConfiguration = {
       iceServers: this.config.iceServers || [
         { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
@@ -325,21 +327,21 @@ export class WebRTCTransport {
 
     const pc = new RTCPeerConnection(config);
 
-    // Add local stream tracks to new connection
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
-        pc.addTrack(track, this.localStream!);
-      });
+      const tracks = this.localStream.getTracks();
+      for (const track of tracks) {
+        pc.addTrack(track, this.localStream);
+      }
     }
 
-    this.peers.set(remotePeerId, {
+    const peer: WebRTCPeer = {
       peerId: remotePeerId,
       connection: pc,
       dataChannels: new Map(),
       isConnected: false,
-    });
+    };
+    this.peers.set(remotePeerId, peer);
 
-    // Handle incoming tracks (Voice Chat)
     pc.ontrack = (evt) => {
       this.emit('stream-added', {
         peerId: remotePeerId,
@@ -348,7 +350,6 @@ export class WebRTCTransport {
       });
     };
 
-    // Handle ICE candidates
     pc.onicecandidate = (evt) => {
       if (evt.candidate) {
         this.signalingWs?.send(
@@ -362,23 +363,33 @@ export class WebRTCTransport {
       }
     };
 
-    // Handle connection state changes
     pc.onconnectionstatechange = () => {
-      const peer = this.peers.get(remotePeerId);
-      if (peer) peer.isConnected = pc.connectionState === 'connected';
+      const p = this.peers.get(remotePeerId);
+      if (p) p.isConnected = pc.connectionState === 'connected';
     };
 
-    // Handle incoming data channels
     pc.ondatachannel = (evt) => {
       this.setupDataChannel(remotePeerId, evt.channel);
     };
 
-    // Create offer
+    return peer;
+  }
+
+  /**
+   * Connect to a peer (outbound offer).
+   */
+  async connectToPeer(remotePeerId: string): Promise<void> {
+    if (this.peers.has(remotePeerId)) {
+      return; // Already connected
+    }
+
+    const peer = this.createAndRegisterPeer(remotePeerId);
+    const { connection: pc } = peer;
+
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // Send offer via signaling
       this.signalingWs?.send(
         JSON.stringify({
           type: 'offer',
@@ -462,7 +473,7 @@ export class WebRTCTransport {
     // If we have multiple SOCIAL_STATUS in queue, only send the last one.
 
     const lastStatus = this.socialBatchQueue.pop(); // Get latest
-    this.socialBatchQueue = []; // Clear rest (intermediate states don't matter)
+    this.socialBatchQueue.length = 0; // Clear rest (reuse array allocation)
 
     if (lastStatus) {
       const msg = {
@@ -537,12 +548,7 @@ export class WebRTCTransport {
   }
 
   private async handleOffer(peerId: string, offer: RTCSessionDescriptionInit): Promise<void> {
-    // Ensure peer connection exists
-    if (!this.peers.has(peerId)) {
-      await this.connectToPeer(peerId);
-    }
-
-    const peer = this.peers.get(peerId)!;
+    const peer = this.peers.has(peerId) ? this.peers.get(peerId)! : this.createAndRegisterPeer(peerId);
     try {
       await peer.connection.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peer.connection.createAnswer();
@@ -612,7 +618,7 @@ export class WebRTCTransport {
   }
 
   private generatePeerId(): string {
-    return `peer-${Math.random().toString(36).substr(2, 9)}`;
+    return `peer-${Math.random().toString(36).slice(2, 11)}`;
   }
 }
 
