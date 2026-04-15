@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "holoscript"
 # Local development version. Release version is derived from git tag (vX.Y.Z)
 # by the publish-pypi.yml workflow. PyPI major tracks npm platform major.
-version = "6.0.6"
+version = "6.0.7"
 description = "Python bindings for HoloScript — parsing, validation, and domain bridges for scientific computing"
 readme = "README.md"
 requires-python = ">=3.8"
