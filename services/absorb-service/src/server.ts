@@ -153,6 +153,24 @@ setTimeout(backgroundHealthProbe, 0).unref();
 
 // --- Public endpoints (no auth) ---
 app.get('/health', (_req, res) => {
+  const db = _cachedDatabaseStatus;
+  const diagnostics =
+    db === 'degraded'
+      ? {
+          likely502Cause:
+            'Edge proxy timeout or Postgres probe slow; check Railway logs and DATABASE_URL pool.',
+          dbLayer: 'Postgres SELECT 1 probe failed or exceeded HEALTH_DB_TIMEOUT_MS.',
+        }
+      : db === 'not configured'
+        ? {
+            likely502Cause: 'App up without DATABASE_URL; API routes that require DB may error.',
+            dbLayer: 'No database configured.',
+          }
+        : {
+            likely502Cause: 'If clients still see 502, fault is usually upstream proxy or app crash — compare with this JSON.',
+            dbLayer: 'Postgres probe succeeded recently.',
+          };
+
   res.json({
     status: 'ok',
     service: 'absorb-service',
@@ -163,6 +181,7 @@ app.get('/health', (_req, res) => {
     moltbookAgentCountProbe: _cachedMoltbookProbeStatus,
     mcpSessions: getActiveSessionCount(),
     moltbookActiveAgents: _cachedMoltbookAgentCount,
+    diagnostics,
     timestamp: new Date().toISOString(),
   });
 });

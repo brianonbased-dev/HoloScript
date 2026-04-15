@@ -16,6 +16,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { setGraphRAGState } from './graph-rag-tools';
+import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 
 // =============================================================================
@@ -1414,7 +1415,8 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
     return {
-      error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.',
+      error: ABSORB_CODEBASE_LOAD_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
   const fromCache = graphState.source === 'disk-cache';
@@ -1562,7 +1564,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
-    return { error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.' };
+    return { error: ABSORB_CODEBASE_LOAD_ERROR, hint: ABSORB_HOLO_ABSORB_REPO_HINT };
   }
   const cacheNote =
     graphState.source === 'disk-cache'
@@ -1670,7 +1672,7 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
-    return { error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.' };
+    return { error: ABSORB_CODEBASE_LOAD_ERROR, hint: ABSORB_HOLO_ABSORB_REPO_HINT };
   }
 
   const rootDir = args.rootDir as string;

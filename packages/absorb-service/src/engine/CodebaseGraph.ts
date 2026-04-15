@@ -70,6 +70,23 @@ interface SerializedGraph {
   nodePositions?: Record<string, [number, number, number]>;
 }
 
+function callEdgeDedupeKey(e: CallEdge): string {
+  return `${e.callerId}|${e.calleeOwner ?? ''}|${e.calleeName}|${e.filePath}|${e.line}|${e.column}`;
+}
+
+/** Stable dedupe when merging qualified + unqualified caller indexes. */
+function dedupeCallEdges(edges: CallEdge[]): CallEdge[] {
+  const seen = new Set<string>();
+  const out: CallEdge[] = [];
+  for (const e of edges) {
+    const k = callEdgeDedupeKey(e);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
+  }
+  return out;
+}
+
 // =============================================================================
 // CODEBASE GRAPH
 // =============================================================================
@@ -236,12 +253,13 @@ export class CodebaseGraph {
    */
   getCallersOf(symbolName: string, owner?: string): CallEdge[] {
     const key = owner ? `${owner}.${symbolName}` : symbolName;
-    // Check both qualified and unqualified
     const qualified = this.callerIndex.get(key) ?? [];
-    if (owner) return qualified;
-    // Also check unqualified matches
+    if (!owner) {
+      // Without owner, key === symbolName — avoid duplicate lookup (same array twice).
+      return dedupeCallEdges(qualified);
+    }
     const unqualified = this.callerIndex.get(symbolName) ?? [];
-    return [...qualified, ...unqualified];
+    return dedupeCallEdges([...qualified, ...unqualified]);
   }
 
   /**

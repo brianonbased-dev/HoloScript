@@ -20,6 +20,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ABSORB_GRAPH_RAG_ENGINE_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 
 // =============================================================================
 // CONFIGURATION
@@ -425,9 +426,8 @@ async function handleFreeQuery(args: Record<string, unknown>): Promise<unknown> 
 
   if (!isGraphRAGReady()) {
     return {
-      error:
-        'No codebase loaded. Call holo_absorb_repo first to scan a codebase (free, runs locally).',
-      hint: 'Example: holo_absorb_repo with rootDir pointing to your project directory.',
+      error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 

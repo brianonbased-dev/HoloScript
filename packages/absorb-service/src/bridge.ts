@@ -37,6 +37,10 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineTriggerConfig = {
   notifyOnComplete: true,
 };
 
+/** projectPath -> last POST timestamp — avoids duplicate pipeline POSTs in rapid absorb cycles. */
+const recentPipelineTriggers = new Map<string, number>();
+const PIPELINE_TRIGGER_DEDUP_MS = 5000;
+
 // ─── Bridge Functions ────────────────────────────────────────────────────────
 
 /**
@@ -51,6 +55,14 @@ export async function onAbsorbComplete(
   if (!config.autoStart) {
     return { success: true };
   }
+
+  const target = config.targetProject || event.projectPath;
+  const now = Date.now();
+  const last = recentPipelineTriggers.get(target) ?? 0;
+  if (now - last < PIPELINE_TRIGGER_DEDUP_MS) {
+    return { success: true, pipelineId: undefined };
+  }
+  recentPipelineTriggers.set(target, now);
 
   try {
     // Start pipeline

@@ -966,11 +966,15 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   // Import graph-rag-tools to check readiness
   const { isGraphRAGReady } = await import('@holoscript/absorb-service/mcp');
   if (!isGraphRAGReady()) {
+    const {
+      ABSORB_GRAPH_RAG_ENGINE_ERROR,
+      ABSORB_HOLO_ABSORB_REPO_HINT,
+    } = await import('@holoscript/absorb-service/mcp');
     return {
       error:
-        'No Graph RAG engine initialized. Call holo_absorb_repo first. ' +
-        'Embedding provider is configured via EMBEDDING_PROVIDER env var (bm25 | xenova | openai | ollama).',
-      hint: 'Run: holo_absorb_repo with rootDir pointing to the project root.',
+        ABSORB_GRAPH_RAG_ENGINE_ERROR +
+        ' Embedding provider is configured via EMBEDDING_PROVIDER env var (bm25 | xenova | openai | ollama).',
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 

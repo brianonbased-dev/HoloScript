@@ -13,6 +13,11 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
+import {
+  ABSORB_EMBEDDING_INDEX_ERROR,
+  ABSORB_GRAPH_RAG_ENGINE_ERROR,
+  ABSORB_HOLO_ABSORB_REPO_HINT,
+} from './graph-rag-prerequisite';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -153,8 +158,8 @@ function detectDefaultLLMProvider(): string {
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
   if (!cachedEmbeddingIndex) {
     return {
-      error:
-        'No embedding index built. Call holo_absorb_repo first (embeddings are built automatically).',
+      error: ABSORB_EMBEDDING_INDEX_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 
@@ -198,7 +203,8 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
   if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
     return {
-      error: 'No Graph RAG engine initialized. Call holo_absorb_repo first.',
+      error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 

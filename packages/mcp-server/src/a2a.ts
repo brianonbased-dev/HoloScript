@@ -479,9 +479,10 @@ function deriveSkillExamples(tool: Tool): string[] {
   } else if (name === 'render_preview') {
     examples.push('Render a preview of my 3D scene as PNG');
   } else if (name === 'holo_absorb_repo') {
-    examples.push('Scan and index this repository for code intelligence');
+    examples.push('Scan and index this repository for code intelligence (call this before holo_ask_codebase)');
+    examples.push('holo_absorb_repo with rootDir set to the monorepo root, then run holo_semantic_search');
   } else if (name === 'holo_ask_codebase') {
-    examples.push('How does the compiler pipeline work?');
+    examples.push('After holo_absorb_repo: how does the compiler pipeline work?');
   }
 
   return examples;

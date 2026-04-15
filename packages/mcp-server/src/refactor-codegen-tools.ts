@@ -149,9 +149,12 @@ async function handleGenerateRefactorPlan(args: Record<string, unknown>): Promis
   // Import graph-rag-tools to check readiness
   const { isGraphRAGReady } = await import('@holoscript/absorb-service/mcp');
   if (!isGraphRAGReady()) {
+    const { ABSORB_GRAPH_RAG_ENGINE_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } = await import(
+      '@holoscript/absorb-service/mcp'
+    );
     return {
-      error: 'No Graph RAG engine initialized. Call holo_absorb_repo first.',
-      hint: 'The refactor plan generator needs the knowledge graph to analyze dependencies.',
+      error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 

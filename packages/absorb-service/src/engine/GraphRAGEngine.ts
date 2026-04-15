@@ -162,6 +162,15 @@ export class GraphRAGEngine {
       ? await this.index.searchWithFilters(naturalLanguage, topK, filters)
       : await this.index.search(naturalLanguage, topK);
 
+    if (semanticResults.length === 0) {
+      return {
+        query: naturalLanguage,
+        results: [],
+        totalMatches: 0,
+        communities: [],
+      };
+    }
+
     // 2. Enrich each result with graph context
     const enriched: EnrichedResult[] = [];
     const communitySet = new Set<string>();
