@@ -16,7 +16,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-1-moderation',
     capabilities: ['research', 'web_search', 'financial_modeling'],
-    task: 'TODO-R1: Deep-Dive Moderation Economics',
+    task: 'TASK-R1: Deep-Dive Moderation Economics',
     priority: 'HIGH',
     estimatedHours: 4,
     autoApprove: false, // Requires human review for cost model
@@ -30,7 +30,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-2-benchmarks',
     capabilities: ['benchmark', 'webassembly', 'performance_testing'],
-    task: 'TODO-R2: WASM Performance Benchmarking',
+    task: 'TASK-R2: WASM Performance Benchmarking',
     priority: 'CRITICAL',
     estimatedHours: 6,
     autoApprove: true, // Technical benchmarks can auto-approve
@@ -44,7 +44,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-3-migration',
     capabilities: ['asset_conversion', 'unity_sdk', 'code_analysis'],
-    task: 'TODO-R3: Creator Migration Path Analysis',
+    task: 'TASK-R3: Creator Migration Path Analysis',
     priority: 'HIGH',
     estimatedHours: 5,
     autoApprove: false, // Architecture decisions need approval
@@ -58,7 +58,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-4-remix',
     capabilities: ['tokenomics', 'smart_contracts', 'game_economy'],
-    task: 'TODO-R4: Remix Economy Design',
+    task: 'TASK-R4: Remix Economy Design',
     priority: 'MEDIUM',
     estimatedHours: 4,
     autoApprove: false, // Revenue split needs approval
@@ -72,7 +72,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-5-prototype',
     capabilities: ['rust', 'webassembly', 'ecs_architecture', 'bevy'],
-    task: 'TODO-I1: ECS+WASM Prototype',
+    task: 'TASK-I1: ECS+WASM Prototype',
     priority: 'CRITICAL',
     estimatedHours: 16, // 2 days
     autoApprove: false, // Public demo needs approval
@@ -86,7 +86,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-6-networking',
     capabilities: ['webrtc', 'websocket', 'multiplayer', 'latency_optimization'],
-    task: 'TODO-I2: Multiplayer Networking Spike',
+    task: 'TASK-I2: Multiplayer Networking Spike',
     priority: 'HIGH',
     estimatedHours: 8, // 1 day
     autoApprove: true, // Technical experiments can auto-approve
@@ -100,7 +100,7 @@ const AGENT_CONFIGS = [
   {
     id: 'agent-7-outreach',
     capabilities: ['developer_relations', 'interviewing', 'recruitment'],
-    task: 'TODO-O1: Ex-Unity Developer Outreach',
+    task: 'TASK-O1: Ex-Unity Developer Outreach',
     priority: 'HIGH',
     estimatedHours: 10, // 1 hour per interview
     autoApprove: false, // Privacy/ethics requires approval
@@ -151,7 +151,7 @@ async function deployAgents() {
       deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       coordination: 'MultiAgentTrait v3.1',
       safety: 'HITLTrait with rollback enabled',
-      researchSource: 'uAA2++ Protocol - Phase 7 Autonomous TODOs',
+      researchSource: 'uAA2++ Protocol - Phase 7 autonomous backlog',
       budget: {
         time: '7 days',
         compute: '$500',

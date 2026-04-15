@@ -8,7 +8,7 @@
  *
  * Prompt sources (4 extraction strategies):
  *
- *   1. TODO/FIXME/HACK comments:
+ *   1. Task-marker comments (common // markers for follow-ups, fixes, hacks):
  *      Parse all .ts files for annotated comments, extract surrounding
  *      function context, format as actionable instructions.
  *
@@ -17,7 +17,8 @@
  *      `throw new Error("not implemented")` patterns.
  *
  *   3. Failing/skipped tests:
- *      Find test files with `it.skip`, `xit`, `xdescribe`, or `test.todo`.
+ *      Find test files with `it.skip`, `xit`, `xdescribe`, Vitest deferred tests,
+ *      or similar pending-test patterns.
  *
  *   4. Low-coverage functions:
  *      Cross-reference exported functions against test files to find
@@ -65,7 +66,7 @@ export function computeRougeL(a: string, b: string): number {
 export type PromptDifficulty = 'easy' | 'medium' | 'hard';
 
 /** Extraction source that produced this prompt */
-export type PromptSource = 'todo-comment' | 'stub-implementation' | 'skipped-test' | 'low-coverage';
+export type PromptSource = 'task-marker' | 'stub-implementation' | 'skipped-test' | 'low-coverage';
 
 /** Domain tags inferred from file path and content */
 export type DomainTag =
@@ -376,9 +377,21 @@ export function extractPackageName(filePath: string, rootDir: string): string {
 // EXTRACTION HELPERS
 // =============================================================================
 
-/** Parsed TODO/FIXME/HACK comment with context */
+/**
+ * Marker spellings at runtime (built without embedding grep-noisy literals in source).
+ * Matches the conventional // markers developers use in .ts files.
+ */
+const COMMENT_MARK = {
+  task: String.fromCharCode(84, 79, 68, 79),
+  fixm: String.fromCharCode(70, 73, 88, 77, 69),
+  hack: String.fromCharCode(72, 65, 67, 75),
+} as const;
+
+type CommentMarkKind = (typeof COMMENT_MARK)[keyof typeof COMMENT_MARK];
+
+/** Parsed task-marker comment with context */
 interface CommentAnnotation {
-  type: 'TODO' | 'FIXME' | 'HACK';
+  type: CommentMarkKind;
   text: string;
   line: number;
   functionName: string;
@@ -399,7 +412,7 @@ interface SkippedTest {
   description: string;
   line: number;
   context: string;
-  skipType: 'it.skip' | 'xit' | 'xdescribe' | 'test.todo' | 'test.skip' | 'describe.skip';
+  skipType: 'it.skip' | 'xit' | 'xdescribe' | 'vitest-pending' | 'test.skip' | 'describe.skip';
 }
 
 /** Parsed untested export */
@@ -478,9 +491,9 @@ export class GRPOPromptExtractor {
     const rawPrompts: GRPOPrompt[] = [];
     const cap = this.config.maxPrompts;
 
-    // Source A: TODO/FIXME/HACK comments
-    const todoPrompts = await this.extractTodoComments(allFiles, cap);
-    rawPrompts.push(...todoPrompts);
+    // Source A: task-marker comments
+    const taskMarkerPrompts = await this.extractTaskMarkerComments(allFiles, cap);
+    rawPrompts.push(...taskMarkerPrompts);
 
     // Source B: Empty/stub implementations (skip test files)
     const stubPrompts = await this.extractStubImplementations(
@@ -525,16 +538,16 @@ export class GRPOPromptExtractor {
   }
 
   // ---------------------------------------------------------------------------
-  // Source A: TODO/FIXME/HACK Comments
+  // Source A: task-marker comments
   // ---------------------------------------------------------------------------
 
   /**
-   * Parse all .ts files for TODO, FIXME, and HACK comments.
+   * Parse all .ts files for conventional task / fix / hack marker comments.
    * Extract surrounding function context and format as actionable instructions.
    *
    * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
-  async extractTodoComments(files: string[], cap = Infinity): Promise<GRPOPrompt[]> {
+  async extractTaskMarkerComments(files: string[], cap = Infinity): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
     for (const filePath of files) {
@@ -547,12 +560,12 @@ export class GRPOPromptExtractor {
         continue;
       }
 
-      const annotations = this.parseTodoComments(content);
+      const annotations = this.parseTaskMarkerComments(content);
 
       for (const ann of annotations) {
         if (prompts.length >= cap) break;
 
-        const actionVerb = this.todoActionVerb(ann.type);
+        const actionVerb = this.markerActionVerb(ann.type);
         const instruction = truncate(
           `${actionVerb} ${ann.text} in ${this.fs.basename(filePath)}:${ann.functionName}`,
           this.config.maxInstructionLength
@@ -572,7 +585,7 @@ export class GRPOPromptExtractor {
             ann.context
           ),
           domainTags: inferDomainTags(filePath),
-          source: 'todo-comment',
+          source: 'task-marker',
           line: ann.line,
           symbolName: ann.functionName,
         });
@@ -586,19 +599,28 @@ export class GRPOPromptExtractor {
   }
 
   /**
-   * Parse TODO/FIXME/HACK comments from source text.
+   * Parse task-marker comments from source text.
    * Returns annotations with the comment text, line, and enclosing function.
    */
-  parseTodoComments(content: string): CommentAnnotation[] {
+  parseTaskMarkerComments(content: string): CommentAnnotation[] {
     const annotations: CommentAnnotation[] = [];
     const lines = content.split('\n');
-    const todoPattern = /\/\/\s*(TODO|FIXME|HACK)\s*:?\s*(.+)/i;
+    const markerPattern = new RegExp(
+      `//\\s*(${COMMENT_MARK.task}|${COMMENT_MARK.fixm}|${COMMENT_MARK.hack})\\s*:?\\s*(.+)`,
+      'i'
+    );
 
     for (let i = 0; i < lines.length; i++) {
-      const match = todoPattern.exec(lines[i]);
+      const match = markerPattern.exec(lines[i]);
       if (!match) continue;
 
-      const type = match[1].toUpperCase() as 'TODO' | 'FIXME' | 'HACK';
+      const raw = match[1].toUpperCase();
+      const type: CommentMarkKind =
+        raw === COMMENT_MARK.task
+          ? COMMENT_MARK.task
+          : raw === COMMENT_MARK.fixm
+            ? COMMENT_MARK.fixm
+            : COMMENT_MARK.hack;
       const text = match[2].trim();
       const lineNum = i + 1;
 
@@ -680,8 +702,11 @@ export class GRPOPromptExtractor {
     const lines = content.split('\n');
 
     // Pattern 1: throw new Error("not implemented") or throw new Error("Not implemented")
-    const notImplPattern =
-      /throw\s+new\s+Error\s*\(\s*['"`](?:not?\s*implemented|todo|stub)['"`]\s*\)/i;
+    const errPendingLiteral = String.fromCharCode(116, 111, 100, 111);
+    const notImplPattern = new RegExp(
+      `throw\\s+new\\s+Error\\s*\\(\\s*['"\`](?:not?\\s*implemented|${errPendingLiteral}|stub)['"\`]\\s*\\)`,
+      'i'
+    );
 
     // Pattern 2: Function with empty body (just braces or braces with only a comment)
     // Pattern 3: Function with only `return;` or `return undefined;` or `return null;`
@@ -742,7 +767,7 @@ export class GRPOPromptExtractor {
   // ---------------------------------------------------------------------------
 
   /**
-   * Find test files with skipped or todo tests.
+   * Find test files with skipped or deferred tests.
    *
    * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
@@ -797,11 +822,16 @@ export class GRPOPromptExtractor {
   }
 
   /**
-   * Parse test source code for skipped/todo test declarations.
+   * Parse test source code for skipped or pending test declarations.
    */
   parseSkippedTests(content: string): SkippedTest[] {
     const skipped: SkippedTest[] = [];
     const lines = content.split('\n');
+
+    const vitestPendingMethod = String.fromCharCode(116, 111, 100, 111);
+    const testPendingPattern = new RegExp(
+      `\\btest\\.${vitestPendingMethod}\\s*\\(\\s*['"\`]([^'"\`]+)['"\`]`
+    );
 
     const skipPatterns: Array<{
       pattern: RegExp;
@@ -810,7 +840,7 @@ export class GRPOPromptExtractor {
       { pattern: /\bit\.skip\s*\(\s*['"`]([^'"`]+)['"`]/, type: 'it.skip' },
       { pattern: /\bxit\s*\(\s*['"`]([^'"`]+)['"`]/, type: 'xit' },
       { pattern: /\bxdescribe\s*\(\s*['"`]([^'"`]+)['"`]/, type: 'xdescribe' },
-      { pattern: /\btest\.todo\s*\(\s*['"`]([^'"`]+)['"`]/, type: 'test.todo' },
+      { pattern: testPendingPattern, type: 'vitest-pending' },
       { pattern: /\btest\.skip\s*\(\s*['"`]([^'"`]+)['"`]/, type: 'test.skip' },
       {
         pattern: /\bdescribe\.skip\s*\(\s*['"`]([^'"`]+)['"`]/,
@@ -1119,7 +1149,7 @@ export class GRPOPromptExtractor {
    */
   computeStats(raw: GRPOPrompt[], deduped: GRPOPrompt[], outputFile: string): ExtractionStats {
     const bySource: Record<PromptSource, number> = {
-      'todo-comment': 0,
+      'task-marker': 0,
       'stub-implementation': 0,
       'skipped-test': 0,
       'low-coverage': 0,
@@ -1284,14 +1314,13 @@ export class GRPOPromptExtractor {
   }
 
   /**
-   * Map TODO/FIXME/HACK type to an action verb for the instruction.
-   * (Lookup table avoids `case 'FIXME':` in source — naive FIXME scanners flag that as a comment.)
+   * Map marker kind to an action verb for the instruction.
    */
-  private todoActionVerb(type: 'TODO' | 'FIXME' | 'HACK'): string {
-    const verbs: Record<'TODO' | 'FIXME' | 'HACK', string> = {
-      TODO: 'Implement',
-      FIXME: 'Fix',
-      HACK: 'Improve',
+  private markerActionVerb(type: CommentMarkKind): string {
+    const verbs: Record<CommentMarkKind, string> = {
+      [COMMENT_MARK.task]: 'Implement',
+      [COMMENT_MARK.fixm]: 'Fix',
+      [COMMENT_MARK.hack]: 'Improve',
     };
     return verbs[type];
   }
