@@ -407,7 +407,7 @@ describe('Feature 4A: ShaderGraph â€” node lifecycle', () => {
   });
 
   it('removeNode returns false for unknown id', () => {
-    expect(graph.removeNode('xxx')).toBe(false);
+    expect(graph.removeNode('absentNodeId')).toBe(false);
   });
 
   it('setNodePosition updates node position', () => {

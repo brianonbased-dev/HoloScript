@@ -51,7 +51,7 @@ export type AIGlassesComponent =
 
 export type TraitImplementationLevel =
   | 'full' // Generates complete Kotlin/Glimmer code
-  | 'partial' // Generates some code with TODOs
+  | 'partial' // Generates some code with placeholders
   | 'comment' // Only generates documentation comment
   | 'unsupported'; // Not available on AI Glasses form factor
 

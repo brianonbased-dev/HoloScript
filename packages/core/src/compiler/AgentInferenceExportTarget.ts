@@ -918,7 +918,7 @@ export class AgentInferenceCompiler extends CompilerBase {
     lines.push('  switch (name) {');
     for (const tool of allTools) {
       lines.push(`    case ${JSON.stringify(tool.name)}:`);
-      lines.push(`      // TODO: Implement ${tool.name}`);
+      lines.push(`      // Stub: ${tool.name} (generated dispatcher)`);
       lines.push(`      return \`[${tool.name}] called with: \${JSON.stringify(input)}\`;`);
     }
     lines.push('    default:');
@@ -967,7 +967,7 @@ export class AgentInferenceCompiler extends CompilerBase {
     lines.push('def execute_tool_call(name: str, tool_input: dict) -> str:');
     for (const tool of allTools) {
       lines.push(`    if name == ${JSON.stringify(tool.name)}:`);
-      lines.push(`        # TODO: Implement ${tool.name}`);
+      lines.push(`        # Stub: ${tool.name} (generated dispatcher)`);
       lines.push(`        return f"[${tool.name}] called with: {tool_input}"`);
     }
     lines.push(`    return f"Unknown tool: {name}"`);

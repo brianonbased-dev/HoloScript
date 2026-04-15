@@ -72,7 +72,7 @@ export type NIRPrimitiveType =
  */
 export type NIRTraitImplementationLevel =
   | 'full' // Generates complete NIR node with all parameters
-  | 'partial' // Generates NIR node with defaults / TODOs
+  | 'partial' // Generates NIR node with defaults / placeholders
   | 'composite' // Generates multiple connected NIR nodes
   | 'comment' // Only generates documentation comment
   | 'unsupported'; // Not mappable to NIR

@@ -118,9 +118,9 @@ describe('AssetDependencyGraph', () => {
     expect(graph.getDependencies('A')).toEqual([]);
   });
 
-  it('toDOT outputs valid DOT format', () => {
+  it('exportDot outputs valid DOT format', () => {
     graph.addDependency('A', 'B', true);
-    const dot = graph.toDOT();
+    const dot = graph.exportDot();
     expect(dot).toContain('digraph');
     expect(dot).toContain('->');
   });

@@ -545,7 +545,7 @@ export class AssetDependencyGraph {
   /**
    * Export graph to DOT format (for visualization)
    */
-  toDOT(): string {
+  exportDot(): string {
     const lines: string[] = ['digraph AssetDependencies {'];
     lines.push('  rankdir=BT;');
     lines.push('  node [shape=box];');

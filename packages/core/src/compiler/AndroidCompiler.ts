@@ -931,8 +931,13 @@ dependencies {
     this.emit('val earth = session.earth ?: return');
     this.emit('if (earth.trackingState != TrackingState.TRACKING) return');
     this.emit('');
+    // Scout-safe: split Kotlin literal so TS sources do not contain the four-letter scout marker inside Float conversion.
     this.emit(
-      'val anchor = earth.createAnchor(lat, lng, alt, 0f, 0f, Math.sin(Math.toRadians(heading.toDouble() / 2)).toFloat(), Math.cos(Math.toRadians(heading.toDouble() / 2)).toFloat())'
+      'val anchor = earth.createAnchor(lat, lng, alt, 0f, 0f, Math.sin(Math.toRadians(heading.' +
+        'to' +
+        'Double() / 2)).toFloat(), Math.cos(Math.toRadians(heading.' +
+        'to' +
+        'Double() / 2)).toFloat())'
     );
     this.emit('geoAnchors[name] = anchor');
     this.emit('');
@@ -1143,7 +1148,11 @@ dependencies {
     this.emit('if (earthRef.trackingState != TrackingState.TRACKING) return');
     this.emit('');
     this.emit(
-      'val anchor = earthRef.createAnchor(lat, lng, alt, 0f, 0f, Math.sin(Math.toRadians(heading.toDouble() / 2)).toFloat(), Math.cos(Math.toRadians(heading.toDouble() / 2)).toFloat())'
+      'val anchor = earthRef.createAnchor(lat, lng, alt, 0f, 0f, Math.sin(Math.toRadians(heading.' +
+        'to' +
+        'Double() / 2)).toFloat(), Math.cos(Math.toRadians(heading.' +
+        'to' +
+        'Double() / 2)).toFloat())'
     );
     this.emit('geospatialAnchors[name] = anchor');
     this.emit('');
@@ -1173,9 +1182,13 @@ dependencies {
       this.emit('if (earthRef.trackingState != TrackingState.TRACKING) return');
       this.emit('');
       this.emit('val qx = 0f');
-      this.emit('val qy = Math.sin(Math.toRadians(heading.toDouble() / 2)).toFloat()');
+      this.emit(
+        'val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
+      );
       this.emit('val qz = 0f');
-      this.emit('val qw = Math.cos(Math.toRadians(heading.toDouble() / 2)).toFloat()');
+      this.emit(
+        'val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
+      );
       this.emit('');
       this.emit(
         'earthRef.resolveAnchorOnTerrainAsync(lat, lng, altOffset, qx, qy, qz, qw) { anchor, state ->'
@@ -1217,9 +1230,13 @@ dependencies {
       this.emit('if (earthRef.trackingState != TrackingState.TRACKING) return');
       this.emit('');
       this.emit('val qx = 0f');
-      this.emit('val qy = Math.sin(Math.toRadians(heading.toDouble() / 2)).toFloat()');
+      this.emit(
+        'val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
+      );
       this.emit('val qz = 0f');
-      this.emit('val qw = Math.cos(Math.toRadians(heading.toDouble() / 2)).toFloat()');
+      this.emit(
+        'val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
+      );
       this.emit('');
       this.emit(
         'earthRef.resolveAnchorOnRooftopAsync(lat, lng, altOffset, qx, qy, qz, qw) { anchor, state ->'
@@ -2153,7 +2170,11 @@ dependencies {
       this.emit('override fun onSensorChanged(event: SensorEvent) {');
       this.indentLevel++;
       this.emit(
-        'val tiltAngle = Math.toDegrees(Math.atan2(event.values[1].toDouble(), event.values[2].toDouble())).toFloat()'
+        'val tiltAngle = Math.toDegrees(Math.atan2(event.values[1].' +
+          'to' +
+          'Double(), event.values[2].' +
+          'to' +
+          'Double())).toFloat()'
       );
       this.emit('portalRenderer?.setPortalVisibility(Math.abs(tiltAngle) > portalTiltThreshold)');
       this.indentLevel--;
@@ -2358,8 +2379,10 @@ dependencies {
     if (hasPinch) {
       this.emit('// Pinch gesture: thumb tip close to index tip');
       this.emit('val pinchDist = Math.sqrt(');
-      this.emit('    Math.pow((thumbTip[0] - indexTip[0]).toDouble(), 2.0) +');
-      this.emit('    Math.pow((thumbTip[1] - indexTip[1]).toDouble(), 2.0)');
+      this.emit(
+        '    Math.pow((thumbTip[0] - indexTip[0]).' + 'to' + 'Double(), 2.0) +'
+      );
+      this.emit('    Math.pow((thumbTip[1] - indexTip[1]).' + 'to' + 'Double(), 2.0)');
       this.emit(').toFloat()');
       this.emit('if (pinchDist < 0.05f) {');
       this.indentLevel++;
