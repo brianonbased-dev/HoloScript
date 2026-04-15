@@ -11,6 +11,7 @@
  *   pnpm preflight --fix      # auto-fix lockfile + prefixed imports
  *   pnpm preflight --json     # structured output for /scan skill
  *   pnpm preflight --check=lockfile,imports  # specific checks only
+ *   pnpm preflight --check=typescript,ts    # TypeScript only (changed packages, max 8)
  */
 
 import { execSync, spawnSync } from 'child_process';
@@ -300,8 +301,11 @@ function checkTypeScript() {
 
     checked.push(pkg);
 
-    if (result.status !== 0 && result.stdout) {
-      const errors = result.stdout.split('\n')
+    if (result.status !== 0) {
+      // tsc may write diagnostics to stdout or stderr depending on version / OS.
+      const combined = `${result.stdout || ''}\n${result.stderr || ''}`;
+      const errors = combined
+        .split('\n')
         .filter(l => l.includes('error TS'))
         .map(l => {
           const m = l.match(/(.+)\((\d+),(\d+)\): error (TS\d+): (.+)/);
@@ -318,6 +322,20 @@ function checkTypeScript() {
           ...e,
           package: pkg,
         })));
+      } else if (combined.trim()) {
+        issues.push({
+          package: pkg,
+          file: `${pkg}/tsc`,
+          code: 'TS_FAIL',
+          message: combined.trim().slice(0, 500),
+        });
+      } else {
+        issues.push({
+          package: pkg,
+          file: `${pkg}/tsc`,
+          code: 'TS_FAIL',
+          message: 'tsc exited non-zero with no captured output (timeout or spawn failure)',
+        });
       }
     }
   }
