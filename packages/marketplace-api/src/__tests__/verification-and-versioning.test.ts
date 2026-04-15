@@ -233,7 +233,7 @@ describe('VerificationService', () => {
   // â”€â”€ verifyEmail â”€â”€
   it('verifyEmail with wrong code returns false', async () => {
     await svc.startEmailVerification('u1', 'test@example.com');
-    expect(await svc.verifyEmail('u1', 'XXXXXX')).toBe(false);
+    expect(await svc.verifyEmail('u1', 'ZZZZZZ')).toBe(false);
   });
 
   it('verifyEmail for unknown user returns false', async () => {

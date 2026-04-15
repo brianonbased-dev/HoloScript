@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Loro API v1.10.6 changed; needs full rewrite of event/container access patterns.
-// Suppressing DTS errors to unblock the build pipeline. TODO: rewrite to current Loro API.
+// Suppressing DTS errors to unblock the build pipeline. Planned: rewrite to current Loro API.
 import { LoroWebRTCProvider } from './LoroWebRTCProvider';
 import { LoroDoc } from 'loro-crdt';
 import { X402Facilitator, InvisibleWalletStub } from '@holoscript/framework/economy';

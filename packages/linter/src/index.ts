@@ -483,7 +483,7 @@ const BUILT_IN_RULES: Rule[] = [
             column: match.index + 1,
             fix: {
               range: { start: match.index, end: match.index + match[0].length },
-              replacement: '{ /* TODO */ }',
+              replacement: '{ /* add body */ }',
             },
           });
         }

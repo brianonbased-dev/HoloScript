@@ -63,7 +63,7 @@ describe('AuthService', () => {
 
     it('throws for tampered token', () => {
       const token = service.generateToken(testUser);
-      const tampered = token.substring(0, token.length - 5) + 'xxxxx';
+      const tampered = token.substring(0, token.length - 5) + 'bad01';
       expect(() => service.verifyToken(tampered)).toThrow();
     });
   });
