@@ -77,4 +77,72 @@ describe('x402 boundary schemas', () => {
     const r = safeParseX402PaymentRequired(pr);
     expect(r.success).toBe(true);
   });
+
+  describe('validateX402PaymentRequiredBoundary edge cases', () => {
+    const validPR = {
+      x402Version: 1,
+      accepts: [
+        {
+          scheme: 'exact',
+          network: 'base',
+          maxAmountRequired: '1000',
+          resource: '/api/test',
+          description: 'test description',
+          payTo: '0x123',
+          asset: '0x456',
+          maxTimeoutSeconds: 300,
+        },
+      ],
+      error: 'test error',
+    };
+
+    it('rejects empty accepts array', () => {
+      const emptyAccepts = { ...validPR, accepts: [] };
+      const r = safeParseX402PaymentRequired(emptyAccepts);
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.error).toContain('accepts: Array must contain at least 1 element(s)');
+    });
+
+    it('rejects oversized accepts array (>16)', () => {
+      const oversizedAccepts = { ...validPR, accepts: Array(17).fill(validPR.accepts[0]) };
+      const r = safeParseX402PaymentRequired(oversizedAccepts);
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.error).toContain('accepts: Array must contain at most 16 element(s)');
+    });
+
+    it('rejects invalid network in accepts', () => {
+      const badNetwork = {
+        ...validPR,
+        accepts: [{ ...validPR.accepts[0], network: 'bitcoin' }],
+      };
+      const r = safeParseX402PaymentRequired(badNetwork);
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects non-numeric maxAmountRequired', () => {
+      const badAmount = {
+        ...validPR,
+        accepts: [{ ...validPR.accepts[0], maxAmountRequired: '1000.5' }], // no decimals allowed
+      };
+      const r = safeParseX402PaymentRequired(badAmount);
+      expect(r.success).toBe(false);
+    });
+
+    it('rejects prototype pollution and extra injected keys on root', () => {
+      const injected = { ...validPR, maliciousFlag: true };
+      const r = safeParseX402PaymentRequired(injected);
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.error).toContain('Unrecognized key(s)');
+    });
+
+    it('rejects extra injected keys inside accepts options', () => {
+      const injectedAccept = {
+        ...validPR,
+        accepts: [{ ...validPR.accepts[0], extraKey: 'hacked' }],
+      };
+      const r = safeParseX402PaymentRequired(injectedAccept);
+      expect(r.success).toBe(false);
+    });
+  });
 });
+
