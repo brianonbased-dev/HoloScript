@@ -66,6 +66,7 @@
  * [x] Sanitize error messages - No internal detail leaks
  * [x] Implement agentKitIntegration() - AI agent autonomous payment handling
  * [x] Add tests (x402PaymentService.test.ts)
+ * [x] Consolidate duplicate `services/x402PaymentService` into this module + framework facilitator
  * [x] Add E2E test (simulate AR -> VRR payment flow)
  * [ ] Add webhook endpoint (/api/payments/x402/callback)
  *
@@ -81,8 +82,18 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
-import { createPublicClient, http, parseAbiItem, decodeEventLog } from 'viem';
+import {
+  createPublicClient,
+  http,
+  parseAbiItem,
+  decodeEventLog,
+  verifyMessage,
+} from 'viem';
 import { base, mainnet } from 'viem/chains';
+import {
+  X402Facilitator,
+  InvisibleWalletStub,
+} from '@holoscript/framework/economy';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -136,6 +147,16 @@ export interface x402PaymentServiceOptions {
   webhook_endpoint: string; // /api/payments/x402/callback
   /** Platform wallet address that receives payments */
   platform_wallet?: string;
+  /**
+   * Optional framework x402 facilitator — merged into 402 JSON via `createPaymentRequired`
+   * when present (single protocol surface with `@holoscript/framework/economy`).
+   */
+  facilitator?: X402Facilitator;
+  /**
+   * Optional Hololand / platform wallet stub. When `platform_wallet` is omitted,
+   * on-chain recipient checks use `getAddress()`.
+   */
+  wallet?: InvisibleWalletStub;
 }
 
 export interface x402PaymentRequest {
@@ -179,6 +200,13 @@ export interface SubscriptionGrant {
   expires_at: number;
   tier: 'monthly' | 'annual';
   active: boolean;
+}
+
+/** Validated `x-payment-receipt` JSON (M2M / autonomous middleware). */
+interface ValidatedM2MReceipt {
+  txHash: string;
+  signature: string;
+  agentWallet: string;
 }
 
 // ─── Rate Limiter (in-memory sliding window) ─────────────────────────────────
@@ -244,6 +272,8 @@ export class x402PaymentService {
   private rateLimiter: SlidingWindowRateLimiter;
   /** Set of consumed transaction hashes to prevent replay attacks */
   private consumedNonces = new Set<string>();
+  /** Replay set for autonomous M2M middleware (`x-payment-receipt` flow). */
+  private m2mConsumedTxHashes = new Set<string>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: x402PaymentServiceOptions) {
@@ -348,21 +378,33 @@ export class x402PaymentService {
 
   /** Return HTTP 402 Payment Required response with WWW-Authenticate header */
   return402Response(res: Response, request: x402PaymentRequest): void {
+    const resource =
+      request.content_id.startsWith('/') ? request.content_id : `/${request.content_id}`;
+    const body: Record<string, unknown> = {
+      error: 'Payment required',
+      price: request.price,
+      asset: request.asset,
+      network: request.network,
+      facilitator: request.facilitator,
+      payment_id: request.payment_id,
+      content_id: request.content_id,
+    };
+
+    if (this.options.facilitator) {
+      body.x402 = this.options.facilitator.createPaymentRequired(
+        resource,
+        request.price,
+        `x402: ${request.content_id}`
+      );
+    }
+
     res
       .status(402)
       .header(
         'WWW-Authenticate',
         `x402 facilitator="${request.facilitator}" price="${request.price}" asset="${request.asset}" network="${request.network}"`
       )
-      .json({
-        error: 'Payment required',
-        price: request.price,
-        asset: request.asset,
-        network: request.network,
-        facilitator: request.facilitator,
-        payment_id: request.payment_id,
-        content_id: request.content_id,
-      });
+      .json(body);
   }
 
   // ─── On-Chain Verification ───────────────────────────────────────────────
@@ -405,8 +447,8 @@ export class x402PaymentService {
       }
 
       // Validate recipient: on-chain recipient must match expected wallet
-      const expectedRecipient = (
-        this.options.platform_wallet ?? payment.recipient_address
+      const expectedRecipient = this.resolvePlatformRecipientAddress(
+        payment.recipient_address
       ).toLowerCase();
       if (onChainResult.recipient.toLowerCase() !== expectedRecipient) {
         return null;
@@ -794,5 +836,185 @@ export class x402PaymentService {
       [payerAddress, contentId]
     );
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // ─── Platform recipient + M2M (consolidated from services/x402PaymentService) ─
+
+  /** Resolve platform recipient: explicit address → wallet stub → receipt fallback. */
+  private resolvePlatformRecipientAddress(fallbackFromReceipt: string): string {
+    return (
+      this.options.platform_wallet ??
+      this.options.wallet?.getAddress() ??
+      fallbackFromReceipt
+    );
+  }
+
+  /**
+   * M2M middleware: requires `x-payment-receipt` JSON (tx + EIP-191 signature) or returns 402.
+   * Shares the instance rate limiter with `requirePayment`; payee uses `InvisibleWalletStub`.
+   */
+  autonomousPaymentMiddleware(costInWei: bigint, recipient: InvisibleWalletStub) {
+    const recipientWallet = recipient.getAddress();
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const clientIp = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
+        if (!this.rateLimiter.isAllowed(clientIp)) {
+          res.status(429).json({ error: 'Too many requests. Please try again later.' });
+          return;
+        }
+
+        const paymentReceipt = req.headers['x-payment-receipt'];
+
+        if (!paymentReceipt) {
+          if (this.options.facilitator) {
+            const resource = req.path.startsWith('/') ? req.path : `/${req.path}`;
+            res.status(402).json({
+              error: 'Payment Required',
+              message: 'This endpoint requires an autonomous M2M payment.',
+              x402: this.options.facilitator.createPaymentRequired(
+                resource,
+                Number(costInWei) / 1_000_000,
+                `M2M payment: ${req.path}`
+              ),
+              challenge: {
+                cost: costInWei.toString(),
+                currency: 'ETH',
+                network: 'base-sepolia',
+                recipient: recipientWallet,
+                memo: `Payment for HoloScript Asset: ${req.path}`,
+              },
+            });
+          } else {
+            res.status(402).json({
+              error: 'Payment Required',
+              message: 'This endpoint requires an autonomous M2M payment.',
+              challenge: {
+                cost: costInWei.toString(),
+                currency: 'ETH',
+                network: 'base-sepolia',
+                recipient: recipientWallet,
+                memo: `Payment for HoloScript Asset: ${req.path}`,
+              },
+            });
+          }
+          return;
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(paymentReceipt as string);
+        } catch {
+          res.status(400).json({ error: 'Malformed payment receipt' });
+          return;
+        }
+
+        const receipt = this.validateM2MReceipt(parsed);
+        if (!receipt) {
+          res.status(400).json({ error: 'Invalid receipt format or missing required fields' });
+          return;
+        }
+
+        if (this.m2mConsumedTxHashes.has(receipt.txHash)) {
+          res.status(409).json({ error: 'Transaction has already been used for payment' });
+          return;
+        }
+
+        const onChainResult = await this.verifyOnChainM2M(
+          receipt.txHash as `0x${string}`,
+          recipientWallet,
+          costInWei
+        );
+
+        if (!onChainResult.verified) {
+          res.status(402).json({ error: 'On-chain payment verification failed' });
+          return;
+        }
+
+        const canonicalPath = req.path.replace(/\/+/g, '/').replace(/\.\./g, '');
+        const isValid = await verifyMessage({
+          address: receipt.agentWallet as `0x${string}`,
+          message: `Authorized payment of ${costInWei.toString()} wei for ${canonicalPath}`,
+          signature: receipt.signature as `0x${string}`,
+        });
+
+        if (!isValid) {
+          res.status(401).json({ error: 'Payment signature verification failed' });
+          return;
+        }
+
+        this.m2mConsumedTxHashes.add(receipt.txHash);
+        (req.app.locals as Record<string, unknown>).verifiedPayer = receipt.agentWallet;
+        next();
+      } catch (err) {
+        console.error('[x402] Payment verification error:', err);
+        res.status(500).json({ error: 'Payment verification failed' });
+      }
+    };
+  }
+
+  /** @internal Vitest / integration only — clears M2M replay set. */
+  resetAutonomousNoncesForTest(): void {
+    this.m2mConsumedTxHashes.clear();
+  }
+
+  private validateM2MReceipt(raw: unknown): ValidatedM2MReceipt | null {
+    if (typeof raw !== 'object' || raw === null) return null;
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.txHash !== 'string' || !obj.txHash) return null;
+    if (typeof obj.signature !== 'string' || !obj.signature) return null;
+    if (typeof obj.agentWallet !== 'string' || !obj.agentWallet) return null;
+    if (!/^0x[0-9a-fA-F]{64}$/.test(obj.txHash)) return null;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(obj.agentWallet)) return null;
+    if (!/^0x[0-9a-fA-F]+$/.test(obj.signature)) return null;
+    return {
+      txHash: obj.txHash,
+      signature: obj.signature,
+      agentWallet: obj.agentWallet,
+    };
+  }
+
+  private async verifyOnChainM2M(
+    txHash: `0x${string}`,
+    recipientWallet: string,
+    costInWei: bigint
+  ): Promise<{ verified: boolean; error?: string }> {
+    try {
+      const client = this.viemClients['base'];
+      if (!client) {
+        return { verified: false, error: 'Base network client not configured' };
+      }
+
+      const receipt = await client.getTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        return { verified: false, error: 'Transaction failed on-chain' };
+      }
+
+      let totalToRecipient = 0n;
+      for (const log of receipt.logs) {
+        try {
+          const decoded = decodeEventLog({
+            abi: [ERC20_TRANSFER_EVENT],
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'Transfer') {
+            const args = decoded.args as { from: string; to: string; value: bigint };
+            if (args.to.toLowerCase() === recipientWallet.toLowerCase()) {
+              totalToRecipient += args.value;
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (totalToRecipient < costInWei) {
+        return { verified: false, error: 'Insufficient payment amount' };
+      }
+
+      return { verified: true };
+    } catch {
+      return { verified: false, error: 'On-chain verification failed' };
+    }
   }
 }

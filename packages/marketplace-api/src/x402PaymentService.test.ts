@@ -16,6 +16,7 @@ vi.mock('pg', () => ({
   },
 }));
 
+import { X402Facilitator, InvisibleWalletStub } from '@holoscript/framework/economy';
 import { x402PaymentService, type x402PaymentServiceOptions } from './x402PaymentService.js';
 
 function createBaseOptions(
@@ -93,6 +94,35 @@ describe('x402PaymentService', () => {
       );
     });
 
+    it('return402Response merges framework PaymentRequired when X402Facilitator is configured', async () => {
+      const facilitator = new X402Facilitator({
+        recipientAddress: '0x0000000000000000000000000000000000000001',
+        chain: 'base',
+      });
+      const svc = new x402PaymentService(createBaseOptions({ facilitator }));
+      const res = createMockRes();
+      svc.return402Response(res, {
+        payment_id: 'pay_spec',
+        price: 2.5,
+        asset: 'USDC',
+        network: 'base',
+        facilitator: 'https://facilitator.example/x402',
+        content_id: '/vrr/twin',
+      });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Payment required',
+          x402: expect.objectContaining({
+            x402Version: 1,
+            accepts: expect.arrayContaining([
+              expect.objectContaining({ scheme: 'exact', network: 'base' }),
+            ]),
+          }),
+        })
+      );
+      await svc.destroy();
+    });
+
     it('requirePayment uses options.facilitators[0].endpoint in the 402 response when no payment id', async () => {
       const middleware = service.requirePayment({
         price: 10,
@@ -146,6 +176,19 @@ describe('x402PaymentService', () => {
       await expect(service.verifyPayment('')).resolves.toBeNull();
       await expect(service.verifyPayment('unknown')).resolves.toBeNull();
       expect(mockQuery).toHaveBeenCalled();
+    });
+
+    it('uses InvisibleWalletStub address when platform_wallet is omitted', async () => {
+      const wallet = InvisibleWalletStub.fromAddress('0x1111111111111111111111111111111111111111');
+      const svc = new x402PaymentService(
+        createBaseOptions({
+          platform_wallet: undefined,
+          wallet,
+        })
+      );
+      mockQuery.mockResolvedValue({ rows: [] });
+      await expect(svc.verifyPayment('missing')).resolves.toBeNull();
+      await svc.destroy();
     });
   });
 });
