@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HSPlusNode } from '@holoscript/core';
-import { createAgentMarketplaceTemplateCommands } from '../PaletteCommands';
+import {
+  createAgentMarketplaceTemplateCommands,
+  createLiveSwarmNodeViewerCommand,
+} from '../PaletteCommands';
 import type { SceneTemplate } from '../../data/sceneTemplates';
 
 class TestCustomEvent {
@@ -94,6 +97,65 @@ describe('createAgentMarketplaceTemplateCommands', () => {
         templateId: 'alpha',
         templateName: 'Alpha',
         source: 'palette-shortcut',
+      })
+    );
+  });
+});
+
+describe('createLiveSwarmNodeViewerCommand', () => {
+  it('opens SSE stream and dispatches swarm topology event', async () => {
+    const dispatchEvent = vi.fn();
+    const appendChild = vi.fn();
+    const getElementById = vi.fn().mockReturnValue(null);
+
+    const container = {
+      id: '',
+      style: {},
+      innerHTML: '',
+      setAttribute: vi.fn(),
+    } as unknown as HTMLElement;
+
+    const createElement = vi.fn().mockReturnValue(container);
+
+    vi.stubGlobal('document', {
+      dispatchEvent,
+      getElementById,
+      createElement,
+      body: { appendChild },
+    });
+    vi.stubGlobal('CustomEvent', TestCustomEvent);
+
+    const source = {
+      onmessage: undefined as ((event: MessageEvent<string>) => void) | undefined,
+      onerror: undefined as (() => void) | undefined,
+      close: vi.fn(),
+    } as unknown as EventSource;
+
+    const command = createLiveSwarmNodeViewerCommand({
+      streamUrl: '/test/sse',
+      eventSourceFactory: () => source,
+    });
+
+    await command.action();
+
+    expect(createElement).toHaveBeenCalledWith('section');
+    expect(appendChild).toHaveBeenCalled();
+    expect(source.onmessage).toBeTypeOf('function');
+
+    source.onmessage?.({
+      data: JSON.stringify({
+        roomId: 'room-alpha',
+        updatedAt: '2026-04-16T06:00:00Z',
+        nodes: [{ id: 'n1', label: 'Node 1', status: 'online', role: 'builder' }],
+      }),
+    } as MessageEvent<string>);
+
+    expect(dispatchEvent).toHaveBeenCalledTimes(1);
+    const eventArg = dispatchEvent.mock.calls[0]?.[0] as { type?: string; detail?: unknown };
+    expect(eventArg.type).toBe('hs:swarm_topology');
+    expect(eventArg.detail).toEqual(
+      expect.objectContaining({
+        roomId: 'room-alpha',
       })
     );
   });
