@@ -136,6 +136,78 @@ describe('ContentDetailModal', () => {
     expect(screen.getByRole('button', { name: /publish to holomesh/i })).toBeDisabled();
   });
 
+  it('shows Publish to HoloMesh for non-template content when templateMetrics exist', () => {
+    const item = baseItem({
+      type: 'scene',
+      templateMetrics: orchestratorTemplateMetrics,
+    });
+
+    render(
+      <ContentDetailModal
+        item={item}
+        onClose={() => {}}
+        onDownload={() => {}}
+        onFavorite={() => {}}
+        isFavorited={false}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /^install$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /publish to holomesh/i })).toBeInTheDocument();
+  });
+
+  it('does not render HoloMesh agent profile section when cognitiveHz and capabilities are absent', () => {
+    const item = baseItem({
+      templateMetrics: {
+        priceCents: 500,
+        rating: 4.4,
+        installs: 42,
+        computeMultiplier: 1,
+      },
+    });
+
+    render(
+      <ContentDetailModal
+        item={item}
+        onClose={() => {}}
+        onDownload={() => {}}
+        onFavorite={() => {}}
+        isFavorited={false}
+      />
+    );
+
+    expect(screen.queryByRole('heading', { name: /holomesh agent profile/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cognitive-hz-tag')).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId('capability-tag')).toHaveLength(0);
+  });
+
+  it('formats zero-valued metrics correctly (price and compute multiplier)', () => {
+    const item = baseItem({
+      templateMetrics: {
+        priceCents: 0,
+        rating: 0,
+        installs: 0,
+        computeMultiplier: 0,
+        capabilities: [],
+      },
+    });
+
+    render(
+      <ContentDetailModal
+        item={item}
+        onClose={() => {}}
+        onDownload={() => {}}
+        onFavorite={() => {}}
+        isFavorited={false}
+      />
+    );
+
+    const metrics = screen.getByRole('region', { name: /template metrics/i });
+    expect(within(metrics).getByText('$0.00')).toBeInTheDocument();
+    expect(within(metrics).getByText('0.00×')).toBeInTheDocument();
+    expect(within(metrics).getByText('0')).toBeInTheDocument();
+  });
+
   it('uses Install (not Install Template) for non-template content', () => {
     const item = baseItem({
       type: 'scene',
