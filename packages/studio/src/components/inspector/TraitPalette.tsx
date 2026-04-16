@@ -280,6 +280,22 @@ const TRAIT_CATALOG: Array<{
       },
     ],
   },
+  {
+    category: 'Economy & Governance',
+    color: 'text-amber-400',
+    traits: [
+      {
+        name: 'foundation_dao',
+        description: 'Sovereign treasury & token governance (Foundation DAO)',
+        defaultProps: {
+          quorumThreshold: 0.1,
+          votingPeriod: 259200,
+          liquidDemocracy: false,
+          tokenAddress: '',
+        },
+      },
+    ],
+  },
 ];
 
 // ─── TraitPalette ─────────────────────────────────────────────────────────────
@@ -352,6 +368,8 @@ export function TraitPalette({ open, onClose }: TraitPaletteProps) {
             />
           </div>
           <button
+            type="button"
+            aria-label="Close trait palette"
             onClick={onClose}
             className="rounded-lg p-1.5 text-studio-muted hover:bg-studio-surface hover:text-studio-text"
           >
