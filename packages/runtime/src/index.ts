@@ -277,10 +277,12 @@ if (typeof window !== 'undefined') {
 // VRR Runtime
 export {
   VRRRuntime,
+  QuestHubHandle,
   type VRRRuntimeOptions,
   type WeatherData,
   type InventoryData,
   type PlayerData,
+  type EventData,
 } from './VRRRuntime.js';
 
 // AR Runtime

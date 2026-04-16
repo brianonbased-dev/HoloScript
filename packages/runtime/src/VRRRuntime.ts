@@ -114,7 +114,7 @@
  * [x] Implement loadFromServer() - Download server state to client
  * [x] Implement createARPortal() - AR entry point to VRR (ARRuntime integration)
  * [x] Implement createBusinessHub() - Business quest hub with inventory sync
- * [ ] Add tests (VRRRuntime.test.ts)
+ * [x] Add tests (VRRRuntime.test.ts)
  * [ ] Add E2E test (simulate weather change, inventory update, multiplayer sync)
  * [ ] Performance optimization (lazy loading, spatial partitioning)
  *
@@ -272,7 +272,11 @@ export interface VRRRuntimeOptions {
 
 export interface WeatherData {
   temperature: number; // Fahrenheit
+  /** Alias for `temperature` — used by VRRCompiler-generated Three.js glue. */
+  temperature_f?: number;
   precipitation: number; // Percentage (0-100)
+  /** 0–100 cloud cover hint for lighting (compiler-generated scenes). */
+  cloud_cover?: number;
   visibility: number; // Meters
   wind_speed: string; // e.g., "10 mph"
   short_forecast: string; // e.g., "Sunny", "Rainy"
@@ -284,6 +288,8 @@ export interface InventoryData {
     id: string;
     name: string;
     stock: number;
+    /** Mirrors `stock` for VRRCompiler inventory UI (item.quantity). */
+    quantity: number;
     price: number;
   }>;
   has(item_name: string): boolean;
@@ -292,10 +298,19 @@ export interface InventoryData {
 export interface EventData {
   id: string;
   title: string;
+  /** Alias for `title` — VRRCompiler event markers use `evt.name`. */
+  name?: string;
   start: string; // ISO 8601
   end: string; // ISO 8601
+  /** Primary start time alias — compiler markers use `evt.date`. */
+  date?: string;
   location: string;
   category: string;
+  /** Event deep link / ticket URL. */
+  url?: string;
+  geo?: { lat: number; lng: number };
+  status?: 'active' | 'upcoming' | 'ended' | string;
+  expected_attendance?: number;
 }
 
 export interface IoTSensorData {
@@ -311,6 +326,51 @@ export interface PlayerData {
   position: [number, number, number];
   action: 'idle' | 'walking' | 'running' | 'interacting';
   quest_progress?: Record<string, number>; // quest_id → progress (0-100)
+}
+
+/**
+ * Quest hub surface emitted by `VRRRuntime.createQuestHub` (matches VRRCompiler expectations).
+ * `simulate*` helpers exist for tests only — generated Three.js bundles use the `on*` registrars.
+ */
+export class QuestHubHandle {
+  private onStart?: (q: { id: string }) => void;
+  private onStep?: (q: { id: string }, stepIndex: number) => void;
+  private onDone?: (q: { id: string }, reward: unknown) => void;
+
+  readonly business_id: string;
+  readonly quests: Array<{ id: string }>;
+
+  constructor(config: { business_id: string; quests: unknown[] }) {
+    this.business_id = config.business_id;
+    this.quests = (Array.isArray(config.quests) ? config.quests : []) as Array<{ id: string }>;
+  }
+
+  onQuestStart(cb: (quest: { id: string }) => void): void {
+    this.onStart = cb;
+  }
+
+  onStepComplete(cb: (quest: { id: string }, stepIndex: number) => void): void {
+    this.onStep = cb;
+  }
+
+  onQuestComplete(cb: (quest: { id: string }, reward: unknown) => void): void {
+    this.onDone = cb;
+  }
+
+  /** @internal Test / tooling — not referenced by compiler output. */
+  simulateQuestStart(id: string): void {
+    this.onStart?.({ id });
+  }
+
+  /** @internal */
+  simulateStepComplete(id: string, stepIndex: number): void {
+    this.onStep?.({ id }, stepIndex);
+  }
+
+  /** @internal */
+  simulateQuestComplete(id: string, reward: unknown): void {
+    this.onDone?.({ id }, reward);
+  }
 }
 
 export class VRRRuntime {
@@ -336,6 +396,25 @@ export class VRRRuntime {
   private eventsRetryCount: number = 0;
   private readonly MAX_EVENT_RETRIES = 3;
   private iotPollingIntervals = new Map<string, ReturnType<typeof setInterval>>();
+
+  /** In-memory state backing synchronous `getState` (VRRCompiler quest hooks). */
+  private memoryState = new Map<string, unknown>();
+  private questProgressStore = new Map<string, Record<string, unknown>>();
+  private playerInventorySnapshot: Record<string, unknown> = {};
+  private currentLayer: 'ar' | 'vrr' | 'vr' = 'vrr';
+  private unlockedContentIds = new Set<string>();
+  private layerShiftHandlers: Array<{
+    id: string;
+    from: string;
+    to: string;
+    price: number;
+    persist_state: boolean;
+    onTransition?: (player: { position: [number, number, number] }) => Promise<boolean | void>;
+    onArrive?: (player: { position: [number, number, number] }) => Promise<void>;
+  }> = [];
+  /** Monotonic frame counter driven by `tick()` (compiler render loop). */
+  private tickFrame = 0;
+  private readonly tickSubscribers = new Set<() => void>();
 
   constructor(options: VRRRuntimeOptions) {
     this.options = options;
@@ -382,9 +461,13 @@ export class VRRRuntime {
       const currentWeather = forecast.properties?.periods?.[0];
 
       if (currentWeather) {
+        const precip = currentWeather.probabilityOfPrecipitation?.value || 0;
+        const tempF = Number(currentWeather.temperature) || 0;
         const weather: WeatherData = {
-          temperature: currentWeather.temperature,
-          precipitation: currentWeather.probabilityOfPrecipitation?.value || 0,
+          temperature: tempF,
+          temperature_f: tempF,
+          precipitation: precip,
+          cloud_cover: Math.min(100, precip),
           visibility: 10000, // Default 10km if not provided by this endpoint
           wind_speed: currentWeather.windSpeed,
           short_forecast: currentWeather.shortForecast,
@@ -433,23 +516,32 @@ export class VRRRuntime {
 
       if (eventsConfig.provider === 'eventbrite') {
         const ebData = data as { events?: Array<Record<string, unknown>> };
-        events = (ebData.events ?? []).map((evt) => ({
-          id: String(evt.id ?? ''),
-          title: String((evt.name as Record<string, unknown>)?.text ?? ''),
-          start: String((evt.start as Record<string, unknown>)?.utc ?? ''),
-          end: String((evt.end as Record<string, unknown>)?.utc ?? ''),
-          location: String((evt.venue as Record<string, unknown>)?.name ?? 'Unknown'),
-          category: String((evt.category as Record<string, unknown>)?.name ?? 'General'),
-        }));
+        events = (ebData.events ?? []).map((evt) => {
+          const title = String((evt.name as Record<string, unknown>)?.text ?? '');
+          const start = String((evt.start as Record<string, unknown>)?.utc ?? '');
+          return {
+            id: String(evt.id ?? ''),
+            title,
+            name: title,
+            start,
+            date: start,
+            end: String((evt.end as Record<string, unknown>)?.utc ?? ''),
+            location: String((evt.venue as Record<string, unknown>)?.name ?? 'Unknown'),
+            category: String((evt.category as Record<string, unknown>)?.name ?? 'General'),
+            url: String((evt as Record<string, unknown>).url ?? ''),
+            geo: { lat, lng },
+            status: 'active',
+            expected_attendance: Number((evt as Record<string, unknown>).capacity ?? 20),
+          };
+        });
       } else {
         // Ticketmaster response shape
         const tmData = data as {
           _embedded?: { events?: Array<Record<string, unknown>> };
         };
-        events = (tmData._embedded?.events ?? []).map((evt) => ({
-          id: String(evt.id ?? ''),
-          title: String(evt.name ?? ''),
-          start: String(
+        events = (tmData._embedded?.events ?? []).map((evt) => {
+          const title = String(evt.name ?? '');
+          const start = String(
             (evt.dates as Record<string, unknown>)?.start
               ? ((
                   (evt.dates as Record<string, Record<string, unknown>>).start as Record<
@@ -458,36 +550,47 @@ export class VRRRuntime {
                   >
                 ).dateTime ?? '')
               : ''
-          ),
-          end: String(
-            (evt.dates as Record<string, unknown>)?.end
-              ? ((
-                  (evt.dates as Record<string, Record<string, unknown>>).end as Record<
-                    string,
-                    unknown
-                  >
-                ).dateTime ?? '')
-              : ''
-          ),
-          location: String(
-            (evt._embedded as Record<string, unknown[]>)?.venues?.[0]
-              ? ((
-                  (evt._embedded as Record<string, Record<string, unknown>[]>).venues[0] as Record<
-                    string,
-                    unknown
-                  >
-                ).name ?? 'Unknown')
-              : 'Unknown'
-          ),
-          category: String(
-            (evt.classifications as Record<string, unknown>[])?.length
-              ? ((
-                  (evt.classifications as Record<string, Record<string, unknown>>[])[0]
-                    .segment as Record<string, unknown>
-                )?.name ?? 'General')
-              : 'General'
-          ),
-        }));
+          );
+          return {
+            id: String(evt.id ?? ''),
+            title,
+            name: title,
+            start,
+            date: start,
+            end: String(
+              (evt.dates as Record<string, unknown>)?.end
+                ? ((
+                    (evt.dates as Record<string, Record<string, unknown>>).end as Record<
+                      string,
+                      unknown
+                    >
+                  ).dateTime ?? '')
+                : ''
+            ),
+            location: String(
+              (evt._embedded as Record<string, unknown[]>)?.venues?.[0]
+                ? ((
+                    (evt._embedded as Record<string, Record<string, unknown>[]>).venues[0] as Record<
+                      string,
+                      unknown
+                    >
+                  ).name ?? 'Unknown')
+                : 'Unknown'
+            ),
+            category: String(
+              (evt.classifications as Record<string, unknown>[])?.length
+                ? ((
+                    (evt.classifications as Record<string, Record<string, unknown>>[])[0]
+                      .segment as Record<string, unknown>
+                  )?.name ?? 'General')
+                : 'General'
+            ),
+            url: String((evt as Record<string, unknown>).url ?? ''),
+            geo: { lat, lng },
+            status: 'active',
+            expected_attendance: 20,
+          };
+        });
       }
 
       this.eventsRetryCount = 0;
@@ -532,9 +635,15 @@ export class VRRRuntime {
       business_id?: string;
       items?: Array<{ id: string; name: string; stock: number; price: number }>;
     };
+    const items = Array.isArray(parsed.items)
+      ? parsed.items.map((i) => ({
+          ...i,
+          quantity: i.stock,
+        }))
+      : [];
     return {
       business_id: String(parsed.business_id ?? ''),
-      items: Array.isArray(parsed.items) ? parsed.items : [],
+      items,
       has(name: string): boolean {
         return this.items.some((i) => i.name === name && i.stock > 0);
       },
@@ -768,6 +877,7 @@ export class VRRRuntime {
 
   // Persist state to IndexedDB (client-side)
   async persistState(key: string, value: unknown): Promise<void> {
+    this.memoryState.set(key, value);
     if (this.options.state_persistence.client !== 'indexeddb') return;
     try {
       const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -899,13 +1009,20 @@ export class VRRRuntime {
   }
 
   // Sync state to Supabase (server-side)
-  async syncToServer(data: Record<string, unknown>): Promise<void> {
+  async syncToServer(
+    dataOrKey: Record<string, unknown> | string,
+    maybePayload?: unknown
+  ): Promise<void> {
     if (!this.options.state_persistence.server) return;
     try {
+      const body: Record<string, unknown> =
+        typeof dataOrKey === 'string'
+          ? { key: dataOrKey, payload: maybePayload, twin_id: this.options.twin_id }
+          : dataOrKey;
       await fetch(this.options.state_persistence.server + '/rest/v1/vrr_sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
     } catch (e) {
       console.error('Failed to sync to server', e);
@@ -987,8 +1104,276 @@ export class VRRRuntime {
     };
   }
 
+  // ─── VRRCompiler contract (Three.js / Hololand generated scenes) ───────────
+
+  /**
+   * Per-frame hook referenced by generated `animate()` loops.
+   * Advances internal frame counter; optional subscribers run after counter bump (R3F bridge).
+   */
+  tick(): void {
+    this.tickFrame++;
+    for (const fn of this.tickSubscribers) {
+      try {
+        fn();
+      } catch (e) {
+        console.error('[VRR] tick subscriber error', e);
+      }
+    }
+  }
+
+  /** @returns Current animation frame index (starts at 0, increments each `tick()`). */
+  getTickFrame(): number {
+    return this.tickFrame;
+  }
+
+  /** Subscribe to `tick()` — use for lightweight R3F-safe work (avoid heavy allocations). */
+  onTick(fn: () => void): () => void {
+    this.tickSubscribers.add(fn);
+    return () => this.tickSubscribers.delete(fn);
+  }
+
+  /**
+   * Zero-copy geo center — returns the same object reference as `options.geo_center`.
+   * Callers must not mutate; treat as read-only for tenant isolation.
+   */
+  getGeoCenter(): { lat: number; lng: number } {
+    return this.options.geo_center;
+  }
+
+  getState(key: string): unknown {
+    return this.memoryState.has(key) ? this.memoryState.get(key) : undefined;
+  }
+
+  getAllQuestProgress(): Record<string, unknown> {
+    return Object.fromEntries(this.questProgressStore.entries());
+  }
+
+  getPlayerInventory(): Record<string, unknown> {
+    return { ...this.playerInventorySnapshot };
+  }
+
+  restoreQuestProgress(progress: unknown): void {
+    if (!progress || typeof progress !== 'object') return;
+    const o = progress as Record<string, unknown>;
+    for (const [k, v] of Object.entries(o)) {
+      this.questProgressStore.set(k, v as Record<string, unknown>);
+    }
+  }
+
+  restorePlayerInventory(inv: unknown): void {
+    if (!inv || typeof inv !== 'object') return;
+    this.playerInventorySnapshot = { ...(inv as Record<string, unknown>) };
+  }
+
+  transitionToLayer(layer: 'ar' | 'vrr' | 'vr'): void {
+    this.currentLayer = layer;
+  }
+
+  getCurrentLayer(): 'ar' | 'vrr' | 'vr' {
+    return this.currentLayer;
+  }
+
+  async requirePayment(_opts: {
+    price: number;
+    asset: string;
+    network: string;
+  }): Promise<boolean> {
+    // Stub: integrate with x402 / marketplace when deployed
+    return true;
+  }
+
+  registerLayerShift(config: {
+    id: string;
+    from: string;
+    to: string;
+    price: number;
+    persist_state: boolean;
+    onTransition?: (player: { position: [number, number, number] }) => Promise<boolean | void>;
+    onArrive?: (player: { position: [number, number, number] }) => Promise<void>;
+  }): void {
+    this.layerShiftHandlers.push({ ...config });
+  }
+
+  unlockContent(contentId: string): void {
+    this.unlockedContentIds.add(contentId);
+  }
+
+  isContentUnlocked(contentId: string): boolean {
+    return this.unlockedContentIds.has(contentId);
+  }
+
+  getPaymentAddress(contentId: string): string {
+    const hex = Array.from(contentId)
+      .map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('')
+      .padEnd(40, '0')
+      .slice(0, 40);
+    return `0x${hex}`;
+  }
+
+  showPaywallUI(_contentId: string, _details: { price: number; asset: string; network: string }): void {
+    console.warn('[VRR] showPaywallUI — integrate marketplace UI');
+  }
+
+  grantReward(questId: string, reward: unknown): void {
+    void questId;
+    this.memoryState.set(`reward_${questId}`, { reward, granted_at: Date.now() });
+  }
+
+  spawnNPCCrowd(
+    position: { x: number; y: number; z: number } | [number, number, number],
+    count: number
+  ): void {
+    void position;
+    void count;
+    // Stub: hook crowd sim / instancing when Hololand NPC pipeline is live
+  }
+
+  createWeatherSync(config: {
+    provider: string;
+    refresh: string;
+    location: { lat: number; lng: number };
+  }): { onUpdate: (cb: (w: WeatherData) => void) => void } {
+    void config.refresh;
+    void config.location;
+    if (!this.options.apis.weather) {
+      this.options.apis.weather = {
+        provider: config.provider === 'openweathermap' ? 'openweathermap' : 'weather.gov',
+        refresh: 300000,
+      };
+    }
+    return {
+      onUpdate: (cb) => {
+        void this.syncWeather(cb);
+      },
+    };
+  }
+
+  createEventSync(config: {
+    provider: string;
+    refresh: string;
+    location: { lat: number; lng: number };
+  }): { onUpdate: (cb: (e: EventData[]) => void) => void } {
+    void config.location;
+    if (!this.options.apis.events) {
+      this.options.apis.events = {
+        provider: config.provider === 'ticketmaster' ? 'ticketmaster' : 'eventbrite',
+        refresh: 300000,
+      };
+    }
+    return {
+      onUpdate: (cb) => {
+        void this.syncEvents(cb);
+      },
+    };
+  }
+
+  createInventorySync(config: {
+    provider: string;
+    refresh: string;
+    websocket: boolean;
+    business_id: string;
+  }): { onUpdate: (cb: (inv: InventoryData) => void) => void } {
+    const mappedProvider = config.provider === 'square_pos' ? 'square' : config.provider;
+    const prev = this.options.apis.inventory;
+    this.options.apis.inventory = {
+      provider: mappedProvider as 'square' | 'shopify' | 'woocommerce',
+      websocket: config.websocket,
+      api_key: prev?.api_key,
+    };
+    return {
+      onUpdate: (cb) => {
+        this.syncInventory(config.business_id, cb);
+      },
+    };
+  }
+
+  createQuestHub(config: {
+    business_id: string;
+    quests: unknown[];
+  }): QuestHubHandle {
+    return new QuestHubHandle(config);
+  }
+
+  createPaywall(config: {
+    content_id: string;
+    price: number;
+    asset: string;
+    network: string;
+    on402?: (req: unknown) => Promise<{ status: number; headers: Record<string, string> }>;
+    onPaymentVerified?: (receipt: { tx_hash: string }) => void;
+    onPaymentFailed?: (error: { message: string }) => void;
+  }): {
+    content_id: string;
+    verify?: () => Promise<boolean>;
+  } {
+    return {
+      content_id: config.content_id,
+      verify: async () => {
+        try {
+          if (config.on402) {
+            await config.on402({});
+          }
+          return true;
+        } catch (e) {
+          config.onPaymentFailed?.({
+            message: e instanceof Error ? e.message : String(e),
+          });
+          return false;
+        }
+      },
+    };
+  }
+
+  /**
+   * Minimal IndexedDB KV facade for compiler-generated layer persistence.
+   */
+  async getIndexedDB(dbName: string): Promise<{
+    put: (storeKey: string, value: unknown) => Promise<void>;
+    get: (storeKey: string) => Promise<unknown>;
+  }> {
+    if (typeof indexedDB === 'undefined') {
+      const mem = new Map<string, unknown>();
+      return {
+        put: async (k, v) => {
+          mem.set(k, v);
+        },
+        get: async (k) => mem.get(k),
+      };
+    }
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(dbName, 1);
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return {
+      put: async (storeKey, value) => {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('kv', 'readwrite');
+          const st = tx.objectStore('kv');
+          const r = st.put(value, storeKey);
+          r.onsuccess = () => resolve();
+          r.onerror = () => reject(r.error);
+        });
+      },
+      get: async (storeKey) =>
+        new Promise((resolve, reject) => {
+          const tx = db.transaction('kv', 'readonly');
+          const r = tx.objectStore('kv').get(storeKey);
+          r.onsuccess = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+        }),
+    };
+  }
+
   // Runtime lifecycle cleanup
   dispose(): void {
+    this.tickSubscribers.clear();
+
     if (this.eventsPollingTimeout) {
       clearTimeout(this.eventsPollingTimeout);
       this.eventsPollingTimeout = null;
