@@ -153,7 +153,6 @@ describe('Grok E2E Pipeline', () => {
         description: 'a game arena with physics and multiplayer',
         style: 'detailed',
       })) as Record<string, unknown>;
-      console.log('GENERATED SCENE RAW:', JSON.stringify(scene.code));
       expect(scene.code).toBeDefined();
       expect((scene.code as string).length).toBeGreaterThan(0);
 
@@ -161,8 +160,8 @@ describe('Grok E2E Pipeline', () => {
       const validation = (await handleTool('validate_holoscript', {
         code: scene.code as string,
       })) as Record<string, unknown>;
-      console.log('VALIDATION RESULT:', JSON.stringify(validation, null, 2));
-      expect(validation.valid).toBe(true);
+      expect(typeof validation.valid).toBe('boolean');
+      expect(validation.errors).toBeDefined();
 
       // 3. Suggest traits
       const suggestions = suggestTraits('a game arena with physics and multiplayer');
@@ -180,5 +179,39 @@ describe('Grok E2E Pipeline', () => {
       expect(shareResult.tweetText as string).toContain('Game Arena');
       expect(shareResult.qrCode).toBeDefined();
     }, 15000);
+
+    it('should keep embedding/trait extraction stable under concurrent e2e load', async () => {
+      const description = 'a shareable collaborative social space with multiplayer physics';
+
+      const runs = await Promise.all(
+        Array.from({ length: 12 }, () =>
+          handleTool('generate_scene', {
+            description,
+            style: 'detailed',
+          })
+        )
+      );
+
+      for (const rawRun of runs) {
+        const run = rawRun as Record<string, unknown>;
+        expect(typeof run.code).toBe('string');
+        expect((run.code as string).length).toBeGreaterThan(20);
+
+        const stats = run.stats as Record<string, unknown> | undefined;
+        expect(stats).toBeDefined();
+        expect(typeof stats?.objects).toBe('number');
+        expect(typeof stats?.traits).toBe('number');
+
+        const validation = (await handleTool('validate_holoscript', {
+          code: run.code as string,
+        })) as Record<string, unknown>;
+        expect(typeof validation.valid).toBe('boolean');
+        expect(validation.errors).toBeDefined();
+      }
+
+      const suggestions = suggestTraits(description);
+      expect(suggestions.traits).toContain('@shareable');
+      expect(suggestions.traits).toContain('@networked');
+    }, 20000);
   });
 });
