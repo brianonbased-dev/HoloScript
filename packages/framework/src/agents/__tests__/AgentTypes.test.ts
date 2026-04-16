@@ -322,7 +322,7 @@ describe('AgentTypes — AgentConfig', () => {
     const curiosity: CuriosityConfig = {
       enabled: true,
       depth: 'deep',
-      sources: ['todo', 'codebase', 'pattern'],
+      sources: ['markers', 'codebase', 'pattern'],
       auto_continue: false,
       max_results: 5,
     };

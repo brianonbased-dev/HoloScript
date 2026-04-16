@@ -284,7 +284,7 @@ export interface PhaseConfig {
 export interface CuriosityConfig {
   enabled: boolean;
   depth: 'shallow' | 'medium' | 'deep';
-  sources: Array<'todo' | 'handoff' | 'codebase' | 'related' | 'improvement' | 'pattern'>;
+  sources: Array<'markers' | 'handoff' | 'codebase' | 'related' | 'improvement' | 'pattern'>;
   auto_continue: boolean;
   max_results: number;
 }
