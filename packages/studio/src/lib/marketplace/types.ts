@@ -67,6 +67,23 @@ export interface MarketplaceItem {
   version?: string;
   compatibility?: string; // "HoloScript 3.42.0+"
   priceSats?: number; // x402 price in satoshis
+  /**
+   * Orchestrator / HoloMesh listing fields for agent templates (optional).
+   * When present, Studio surfaces distribution UX (price, installs, compute, cognitive Hz, capabilities).
+   */
+  templateMetrics?: MarketplaceTemplateMetrics;
+}
+
+/** Agent marketplace template row shape (orchestrator-aligned). */
+export interface MarketplaceTemplateMetrics {
+  priceCents: number;
+  rating: number;
+  installs: number;
+  computeMultiplier: number;
+  /** Cognitive throughput label for HoloMesh agent listings */
+  cognitiveHz?: number;
+  /** Declared capability tags (e.g. reasoning, tools, mesh-sync) */
+  capabilities?: string[];
 }
 
 export interface MarketplaceCategory {

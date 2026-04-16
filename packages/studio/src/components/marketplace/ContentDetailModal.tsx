@@ -26,6 +26,8 @@ interface ContentDetailModalProps {
   onDownload: (id: string) => void;
   onFavorite: (id: string) => void;
   onRemix?: (item: MarketplaceItem) => void;
+  /** HoloMesh distribution — wired when orchestrator / mesh publish is available */
+  onPublishToHoloMesh?: (item: MarketplaceItem) => void;
   isFavorited: boolean;
 }
 
@@ -35,6 +37,7 @@ export function ContentDetailModal({
   onDownload,
   onFavorite,
   onRemix,
+  onPublishToHoloMesh,
   isFavorited,
 }: ContentDetailModalProps) {
   const metadata = CONTENT_TYPE_METADATA[item.type];
@@ -55,6 +58,17 @@ export function ContentDetailModal({
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
+  const formatPriceCents = (cents: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100);
+  };
+
+  const isTemplate = item.type === 'template';
+  const tm = item.templateMetrics;
+  const showHoloMeshDistribution = isTemplate || Boolean(tm);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-xl border border-studio-border bg-studio-panel shadow-2xl">
@@ -70,6 +84,8 @@ export function ContentDetailModal({
             </div>
           </div>
           <button
+            type="button"
+            aria-label="Close"
             onClick={onClose}
             className="rounded-lg p-2 text-studio-muted hover:bg-studio-surface hover:text-studio-text"
           >
@@ -112,16 +128,34 @@ export function ContentDetailModal({
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Actions — HoloMesh agent marketplace */}
               <div className="flex flex-col gap-2">
                 <button
+                  type="button"
                   onClick={() => onDownload(item.id)}
                   className="flex items-center justify-center gap-2 rounded-lg bg-studio-accent px-4 py-3 font-medium text-white hover:bg-studio-accent/90 transition-colors"
                 >
                   <Download className="h-4 w-4" />
-                  Install
+                  {isTemplate ? 'Install Template' : 'Install'}
                 </button>
+                {showHoloMeshDistribution && (
+                  <button
+                    type="button"
+                    disabled={!onPublishToHoloMesh}
+                    title={
+                      onPublishToHoloMesh
+                        ? undefined
+                        : 'Link your workspace to HoloMesh to publish this listing.'
+                    }
+                    onClick={() => onPublishToHoloMesh?.(item)}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-4 py-3 font-medium text-studio-text transition-colors hover:bg-studio-border disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Publish to HoloMesh
+                  </button>
+                )}
                 <button
+                  type="button"
                   onClick={() => onFavorite(item.id)}
                   className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors ${
                     isFavorited
@@ -134,6 +168,7 @@ export function ContentDetailModal({
                 </button>
                 {onRemix && (
                   <button
+                    type="button"
                     onClick={() => onRemix(item)}
                     className="flex items-center justify-center gap-2 rounded-lg bg-purple-500/20 px-4 py-3 font-medium text-purple-400 hover:bg-purple-500/30 transition-colors"
                   >
@@ -142,6 +177,50 @@ export function ContentDetailModal({
                   </button>
                 )}
               </div>
+
+              {/* Orchestrator template metrics (HoloMesh distribution) */}
+              {tm && (
+                <div
+                  role="region"
+                  aria-label="Template metrics"
+                  className="flex flex-col gap-2 rounded-lg border border-studio-border bg-studio-surface p-3"
+                  aria-labelledby="template-metrics-heading"
+                >
+                  <h3
+                    id="template-metrics-heading"
+                    className="text-xs font-semibold uppercase tracking-wide text-studio-muted"
+                  >
+                    Template metrics
+                  </h3>
+                  <dl className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-studio-muted">Price</dt>
+                      <dd className="font-mono font-semibold text-studio-text">
+                        {formatPriceCents(tm.priceCents)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-studio-muted">Rating</dt>
+                      <dd className="flex items-center gap-1 font-semibold text-studio-text">
+                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        {tm.rating.toFixed(1)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-studio-muted">Installs</dt>
+                      <dd className="font-semibold text-studio-text">
+                        {tm.installs.toLocaleString()}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-studio-muted">Compute multiplier</dt>
+                      <dd className="font-mono font-semibold text-studio-text">
+                        {tm.computeMultiplier.toFixed(2)}×
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
 
               {/* Stats */}
               <div className="flex flex-col gap-2 rounded-lg border border-studio-border bg-studio-surface p-3">
@@ -241,6 +320,37 @@ export function ContentDetailModal({
                         className="rounded-full bg-studio-surface px-3 py-1 text-xs text-studio-muted"
                       >
                         {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* HoloMesh listing: cognitive Hz + capability tags (orchestrator) */}
+              {tm && (tm.cognitiveHz != null || (tm.capabilities && tm.capabilities.length > 0)) && (
+                <div aria-labelledby="holomesh-agent-tags-heading">
+                  <h3
+                    id="holomesh-agent-tags-heading"
+                    className="mb-2 text-sm font-semibold text-studio-text"
+                  >
+                    HoloMesh agent profile
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tm.cognitiveHz != null && (
+                      <span
+                        data-testid="cognitive-hz-tag"
+                        className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
+                      >
+                        {tm.cognitiveHz} cognitiveHz
+                      </span>
+                    )}
+                    {tm.capabilities?.map((cap) => (
+                      <span
+                        key={cap}
+                        data-testid="capability-tag"
+                        className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200"
+                      >
+                        {cap}
                       </span>
                     ))}
                   </div>
