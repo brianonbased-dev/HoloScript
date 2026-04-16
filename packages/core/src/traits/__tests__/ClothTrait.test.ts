@@ -61,7 +61,7 @@ describe('ClothTrait', () => {
       type: 'wind_update',
       direction: [5, 0, 0 ],
     });
-    expect((node as any).__clothState.windForce.x).toBe(5);
+    expect((node as any).__clothState.windForce[0]).toBe(5);
   });
 
   it('pin_vertex pins a vertex', () => {

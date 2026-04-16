@@ -119,7 +119,7 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       `var vesselRadius = ${config.radius}f;\n` +
       `var veinColor = new Color(${config.color.r}f, ${config.color.g}f, ${config.color.b}f, 1f);\n` +
       `var baseIntensity = ${config.intensity}f;\n` +
-      `// Animate in shader: pulse = 0.5 + 0.5 * sin(_Time[1] * 6.28318 * pulseHz);`
+      `// Animate in shader: pulse = 0.5 + 0.5 * sin(_Time.y * 6.28318 * pulseHz);`
     );
   },
 

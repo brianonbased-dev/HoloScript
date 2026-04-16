@@ -70,7 +70,7 @@ describe('LightEstimationTrait', () => {
     });
     const s = (node as any).__lightEstimationState;
     // smoothed x: 0 * 0.8 + 1 * 0.2 = 0.2
-    expect(s.primaryDirection.x).toBeCloseTo(0.2, 2);
+    expect(s.primaryDirection[0]).toBeCloseTo(0.2, 2);
   });
 
   it('env_map updates environment map', () => {

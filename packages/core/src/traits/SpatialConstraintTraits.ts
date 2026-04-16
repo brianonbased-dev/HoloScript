@@ -215,11 +215,11 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
       if (config.enforcement === 'correct' && dist > config.maxDistance) {
         // Snap toward target
         const ratio = config.maxDistance / dist;
-        const corrected = {
-          x: targetPos[0] + (nodePos[0] - targetPos[0]) * ratio,
-          y: targetPos[1] + (nodePos[1] - targetPos[1]) * ratio,
-          z: targetPos[2] + (nodePos[2] - targetPos[2]) * ratio,
-        };
+        const corrected: [number, number, number] = [
+          targetPos[0] + (nodePos[0] - targetPos[0]) * ratio,
+          targetPos[1] + (nodePos[1] - targetPos[1]) * ratio,
+          targetPos[2] + (nodePos[2] - targetPos[2]) * ratio,
+        ];
         if (node.position) {
           node.position[0] = corrected[0];
           node.position[1] = corrected[1];

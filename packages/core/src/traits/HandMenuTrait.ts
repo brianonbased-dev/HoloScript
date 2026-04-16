@@ -12,11 +12,11 @@ import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/Spri
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>
   (Array.isArray(v) ? v[idx] : v[key]) ?? 0;
-const add = (v1: Vector3, v2: Vector3) => ({
-  x: getCoord(v1, 0, 'x') + getCoord(v2, 0, 'x'),
-  y: getCoord(v1, 1, 'y') + getCoord(v2, 1, 'y'),
-  z: getCoord(v1, 2, 'z') + getCoord(v2, 2, 'z'),
-});
+const add = (v1: Vector3, v2: Vector3): [number, number, number] => [
+  getCoord(v1, 0, 'x') + getCoord(v2, 0, 'x'),
+  getCoord(v1, 1, 'y') + getCoord(v2, 1, 'y'),
+  getCoord(v1, 2, 'z') + getCoord(v2, 2, 'z'),
+];
 
 // Per-node spring state
 const menuSprings = new Map<string, SpringAnimator>();
@@ -69,17 +69,14 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     }
 
     // Position: Smooth follow via lerp
-    const targetPos = add(hand.position, config.offset || [0, 0.2, 0 ]);
-    const currentPos: unknown = node.properties?.position || targetPos;
+const targetPos = add(hand.position, config.offset || [0, 0.2, 0 ]);
+    const currentPos = (node.properties?.position as Vector3 | undefined) || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
-    const newPos = {
-      // @ts-expect-error
-      x: (currentPos[0] ?? 0) + ((targetPos[0] ?? 0) - (currentPos[0] ?? 0)) * lerpFactor,
-      // @ts-expect-error
-      y: (currentPos[1] ?? 0) + ((targetPos[1] ?? 0) - (currentPos[1] ?? 0)) * lerpFactor,
-      // @ts-expect-error
-      z: (currentPos[2] ?? 0) + ((targetPos[2] ?? 0) - (currentPos[2] ?? 0)) * lerpFactor,
-    };
+    const newPos: [number, number, number] = [
+      getCoord(currentPos, 0, 'x') + (getCoord(targetPos, 0, 'x') - getCoord(currentPos, 0, 'x')) * lerpFactor,
+      getCoord(currentPos, 1, 'y') + (getCoord(targetPos, 1, 'y') - getCoord(currentPos, 1, 'y')) * lerpFactor,
+      getCoord(currentPos, 2, 'z') + (getCoord(targetPos, 2, 'z') - getCoord(currentPos, 2, 'z')) * lerpFactor,
+    ];
 
     if (node.properties) {
       node.properties.position = newPos;

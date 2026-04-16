@@ -80,7 +80,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
     for (let i = 0; i < config.links; i++) {
       state.links.push({
         position: [0, -i * config.link_length, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
         bodyHandle: null,
       });
     }
@@ -138,11 +138,16 @@ export const chainHandler: TraitHandler<ChainConfig> = {
 
     if (event.type === 'chain_link_update') {
       const linkIndex = event.linkIndex as number;
-      const position = event.position as { x: number; y: number; z: number };
+      const position = event.position as
+        | { x?: number; y?: number; z?: number }
+        | [number, number, number];
       const rotation = event.rotation as { x: number; y: number; z: number; w: number };
+      const normalizedPos: [number, number, number] = Array.isArray(position)
+        ? position
+        : [position.x ?? 0, position.y ?? 0, position.z ?? 0];
 
       if (state.links[linkIndex]) {
-        state.links[linkIndex].position = position;
+        state.links[linkIndex].position = normalizedPos;
         state.links[linkIndex].rotation = rotation;
       }
 
@@ -150,15 +155,21 @@ export const chainHandler: TraitHandler<ChainConfig> = {
       context.emit?.('chain_mesh_update', {
         node,
         linkIndex,
-        position,
+        position: normalizedPos,
         rotation,
       });
     } else if (event.type === 'chain_full_update') {
-      const positions = event.positions as Array<{ x: number; y: number; z: number }>;
+      const positions = event.positions as Array<
+        { x?: number; y?: number; z?: number } | [number, number, number]
+      >;
       const rotations = event.rotations as Array<{ x: number; y: number; z: number; w: number }>;
 
       for (let i = 0; i < state.links.length && i < positions.length; i++) {
-        state.links[i].position = positions[i];
+        const p = positions[i];
+        const px = Array.isArray(p) ? (p[0] ?? 0) : (p.x ?? 0);
+        const py = Array.isArray(p) ? (p[1] ?? 0) : (p.y ?? 0);
+        const pz = Array.isArray(p) ? (p[2] ?? 0) : (p.z ?? 0);
+        state.links[i].position = [px, py, pz];
         state.links[i].rotation = rotations[i] || state.links[i].rotation;
       }
 

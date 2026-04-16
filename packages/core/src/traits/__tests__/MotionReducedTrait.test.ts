@@ -65,7 +65,7 @@ describe('MotionReducedTrait', () => {
     (node as any).velocity = [3, 0, 4 ]; // speed = 5
     updateTrait(motionReducedHandler, node, cfg, ctx, 0.016);
     const vel = (node as any).velocity;
-    const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
+    const speed = Math.sqrt(vel[0] ** 2 + vel[1] ** 2 + vel[2] ** 2);
     expect(speed).toBeCloseTo(2, 1);
     expect(getEventCount(ctx, 'on_motion_clamped')).toBe(1);
   });

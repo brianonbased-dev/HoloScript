@@ -199,7 +199,7 @@ describe('TerrainAnchorTrait — Production', () => {
     const s = st(node);
     expect(s.surfaceNormal).toEqual(angled);
     // Rotation quaternion should be computed and have w component
-    expect(typeof s.localRotation.w).toBe('number');
+    expect(typeof s.localRotation[3]).toBe('number');
   });
 
   it('resolved with perfect up-normal does not change rotation (angle≈0)', () => {
@@ -213,7 +213,7 @@ describe('TerrainAnchorTrait — Production', () => {
     });
     // When normal is straight up, len < 0.001 → rotation unchanged (identity)
     const s = st(node);
-    expect(s.localRotation.w).toBe(1); // identity quaternion unchanged
+    expect(s.localRotation[3]).toBe(1); // identity quaternion unchanged
   });
 
   // ─── onEvent: terrain_pose_update ───────────────────────────────────
@@ -326,9 +326,9 @@ describe('TerrainAnchorTrait — Production', () => {
       surfaceNormal: angled,
     });
     terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);
-    // With smoothing=0, rotation[0] should match state.localRotation.x exactly
+    // With smoothing=0, rotation[0] should match state.localRotation[0] exactly
     const s = st(node);
-    expect(node.rotation[0]).toBeCloseTo(s.localRotation.x, 5);
+    expect(node.rotation[0]).toBeCloseTo(s.localRotation[0], 5);
   });
 
   // ─── Unknown event ───────────────────────────────────────────────────

@@ -157,12 +157,12 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
 
       // Directional light
       if (event.direction) {
-        const dir = event.direction as typeof state.primaryDirection;
-        state.primaryDirection = {
-          x: state.primaryDirection[0] * config.smoothing + dir[0] * (1 - config.smoothing),
-          y: state.primaryDirection[1] * config.smoothing + dir[1] * (1 - config.smoothing),
-          z: state.primaryDirection[2] * config.smoothing + dir[2] * (1 - config.smoothing),
-        };
+        const dir = event.direction as Vector3;
+        state.primaryDirection = [
+          state.primaryDirection[0] * config.smoothing + dir[0] * (1 - config.smoothing),
+          state.primaryDirection[1] * config.smoothing + dir[1] * (1 - config.smoothing),
+          state.primaryDirection[2] * config.smoothing + dir[2] * (1 - config.smoothing),
+        ];
       }
 
       // Spherical harmonics

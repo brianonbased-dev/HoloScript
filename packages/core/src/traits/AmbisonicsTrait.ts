@@ -22,7 +22,7 @@ interface AmbisonicsState {
   currentOrder: number;
   sourceLoaded: boolean;
   decoderReady: boolean;
-  rotation: { x: number; y: number; z: number; w: number };
+  rotation: [number, number, number, number];
   gain: number;
 }
 

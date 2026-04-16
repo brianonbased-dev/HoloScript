@@ -53,7 +53,7 @@ describe('JointTrait', () => {
         axis: [0, 1, 0 ],
       });
       expect(hinge.getConfig().jointType).toBe('hinge');
-      expect(hinge.getConfig().axis?.y).toBe(1);
+      expect(hinge.getConfig().axis?.[1]).toBe(1);
     });
 
     it('should support ball joint', () => {

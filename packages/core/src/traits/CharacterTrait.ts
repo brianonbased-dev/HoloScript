@@ -31,6 +31,34 @@ export type Vector3 = [number, number, number];
  */
 export type Vector3Object = { x: number; y: number; z: number };
 
+function withVectorAliases(v: [number, number, number]): Vector3 {
+  Object.defineProperty(v, 'x', {
+    get: () => v[0],
+    set: (value: number) => {
+      v[0] = value;
+    },
+    enumerable: false,
+    configurable: true,
+  });
+  Object.defineProperty(v, 'y', {
+    get: () => v[1],
+    set: (value: number) => {
+      v[1] = value;
+    },
+    enumerable: false,
+    configurable: true,
+  });
+  Object.defineProperty(v, 'z', {
+    get: () => v[2],
+    set: (value: number) => {
+      v[2] = value;
+    },
+    enumerable: false,
+    configurable: true,
+  });
+  return v as Vector3;
+}
+
 /**
  * Movement mode
  */
@@ -371,8 +399,7 @@ export class CharacterTrait {
    * Get position
    */
   public getPosition(): Vector3 {
-    const [x, y, z] = this.state.position;
-    return { x, y, z } as unknown as Vector3;
+    return withVectorAliases([...this.state.position]);
   }
 
   /**
@@ -386,8 +413,7 @@ export class CharacterTrait {
    * Get velocity
    */
   public getVelocity(): Vector3 {
-    const [x, y, z] = this.state.velocity;
-    return { x, y, z } as unknown as Vector3;
+    return withVectorAliases([...this.state.velocity]);
   }
 
   /**

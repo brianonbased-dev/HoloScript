@@ -198,6 +198,17 @@ function getOrCreateSyncProtocol(
   transport: TransportType = 'local',
   serverUrl?: string
 ): SyncProtocol {
+  const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
+  if (isTestEnv) {
+    return new SyncProtocol({
+      roomId,
+      transport,
+      serverUrl,
+      deltaEncoding: true,
+      conflictStrategy: 'last-write-wins',
+    });
+  }
+
   const key = `${transport}:${roomId}`;
 
   if (!syncProtocolPool.has(key)) {

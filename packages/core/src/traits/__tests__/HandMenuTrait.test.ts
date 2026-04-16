@@ -80,7 +80,7 @@ describe('HandMenuTrait', () => {
     updateTrait(handMenuHandler, node, {}, ctx, 0.016);
     const pos = (node as any).properties.position;
     // Should have moved towards hand position + offset
-    expect(pos.y).toBeGreaterThan(0);
+    expect(pos[1]).toBeGreaterThan(0);
   });
 
   it('has correct handler name', () => {

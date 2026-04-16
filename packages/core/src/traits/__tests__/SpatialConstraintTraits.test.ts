@@ -360,11 +360,7 @@ describe('spatialReachableHandler', () => {
       } as any
     );
 
-    expect(context._state['reachable_target_exit']).toEqual({
-      x: 10,
-      y: 0,
-      z: 0,
-    });
+    expect(context._state['reachable_target_exit']).toEqual([10, 0, 0]);
   });
 
   it('should accept external pathfinding results', () => {

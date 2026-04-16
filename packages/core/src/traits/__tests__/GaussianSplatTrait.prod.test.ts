@@ -171,7 +171,7 @@ describe('gaussianSplatHandler.onUpdate', () => {
     state.isLoaded = true;
     ctx.camera.position = [1, 2, 3 ];
     gaussianSplatHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(state.lastCameraPosition).toEqual([1, 2, 3 ]);
+    expect(state.lastCameraPosition).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('sets needsSort=true when camera moves >0.1 units (verified via radix mode)', () => {

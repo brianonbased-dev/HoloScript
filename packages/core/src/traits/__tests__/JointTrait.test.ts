@@ -18,7 +18,7 @@ describe('JointTrait', () => {
     const cfg = joint.getConfig();
     expect(cfg.jointType).toBe('hinge');
     expect(cfg.connectedBody).toBe('Frame');
-    expect(cfg.anchor?.x).toBe(-0.5);
+    expect(cfg.anchor?.[0]).toBe(-0.5);
   });
 
   it('initial state is not broken', () => {

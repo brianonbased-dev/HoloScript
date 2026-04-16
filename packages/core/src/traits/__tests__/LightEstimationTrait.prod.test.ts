@@ -207,9 +207,9 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
       direction: [1, 0, 0 ],
     });
     // x: 0*0.8 + 1*0.2 = 0.2
-    expect(st(node).primaryDirection.x).toBeCloseTo(0.2);
+    expect(st(node).primaryDirection[0]).toBeCloseTo(0.2);
     // y: -1*0.8 + 0*0.2 = -0.8
-    expect(st(node).primaryDirection.y).toBeCloseTo(-0.8);
+    expect(st(node).primaryDirection[1]).toBeCloseTo(-0.8);
   });
 
   it('stores sphericalHarmonics when provided', () => {

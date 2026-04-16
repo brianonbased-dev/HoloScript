@@ -99,25 +99,25 @@ function makeMockRaft() {
 // ─── Mock consensus backends ──────────────────────────────────────────────────
 // Must use class or function (not arrow) as mock constructor, per vitest requirements.
 
-vi.mock('../../consensus/ConsensusManager', () => {
+vi.mock('@holoscript/mesh', async () => {
+  const actual = await vi.importActual<typeof import('@holoscript/mesh')>('@holoscript/mesh');
+
   function ConsensusManager() {
     _mockManagerInstance = makeMockManager();
     return _mockManagerInstance;
   }
-  return { ConsensusManager };
-});
 
-vi.mock('../../consensus/RaftConsensus', () => {
   function RaftConsensus() {
     _mockRaftInstance = makeMockRaft();
     return _mockRaftInstance;
   }
-  return { RaftConsensus };
-});
 
-vi.mock('../../consensus/ConsensusTypes', () => ({
-  // types only — no runtime values needed
-}));
+  return {
+    ...actual,
+    ConsensusManager,
+    RaftConsensus,
+  };
+});
 
 import { ConsensusTrait, createConsensusTrait } from '../ConsensusTrait';
 

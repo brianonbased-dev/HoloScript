@@ -55,7 +55,7 @@ describe('PersistentAnchorTrait', () => {
     }
     const s = (node as any).__persistentAnchorState;
     expect(s.state).toBe('unresolved');
-    expect(s.localPosition.x).toBe(1);
+    expect(s.localPosition[0]).toBe(1);
     expect(getEventCount(ctx, 'on_persistent_anchor_fallback')).toBe(1);
   });
 
@@ -67,7 +67,7 @@ describe('PersistentAnchorTrait', () => {
     });
     const s = (node as any).__persistentAnchorState;
     expect(s.state).toBe('tracking');
-    expect(s.localPosition.x).toBe(5);
+    expect(s.localPosition[0]).toBe(5);
   });
 
   it('create request emits creation event', () => {

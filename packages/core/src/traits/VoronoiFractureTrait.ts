@@ -131,11 +131,11 @@ function randomPointInBounds(bounds: {
   min: Vector3;
   max: Vector3;
 }): Vector3 {
-  return {
-    x: bounds.min[0] + Math.random() * (bounds.max[0] - bounds.min[0]),
-    y: bounds.min[1] + Math.random() * (bounds.max[1] - bounds.min[1]),
-    z: bounds.min[2] + Math.random() * (bounds.max[2] - bounds.min[2]),
-  };
+  return [
+    bounds.min[0] + Math.random() * (bounds.max[0] - bounds.min[0]),
+    bounds.min[1] + Math.random() * (bounds.max[1] - bounds.min[1]),
+    bounds.min[2] + Math.random() * (bounds.max[2] - bounds.min[2]),
+  ];
 }
 
 /**
@@ -152,16 +152,16 @@ function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>
     };
   }
 
-  const min = { ...vertices[0] };
-  const max = { ...vertices[0] };
+  const min: Vector3 = [vertices[0].x, vertices[0].y, vertices[0].z];
+  const max: Vector3 = [vertices[0].x, vertices[0].y, vertices[0].z];
 
   for (const v of vertices) {
-    min[0] = Math.min(min[0], v[0]);
-    min[1] = Math.min(min[1], v[1]);
-    min[2] = Math.min(min[2], v[2]);
-    max[0] = Math.max(max[0], v[0]);
-    max[1] = Math.max(max[1], v[1]);
-    max[2] = Math.max(max[2], v[2]);
+    min[0] = Math.min(min[0], v.x);
+    min[1] = Math.min(min[1], v.y);
+    min[2] = Math.min(min[2], v.z);
+    max[0] = Math.max(max[0], v.x);
+    max[1] = Math.max(max[1], v.y);
+    max[2] = Math.max(max[2], v.z);
   }
 
   return { min, max };
@@ -227,7 +227,7 @@ export class VoronoiFractureSystem {
   }
 
   setCameraPosition(position: Vector3): void {
-    this.cameraPosition = { ...position };
+    this.cameraPosition = [...position];
   }
 
   // ==========================================================================
@@ -269,14 +269,14 @@ export class VoronoiFractureSystem {
     const sz = (site.position as unknown as { z: number }).z ?? (site.position as unknown as number[])[2];
     const vertices = [
       // Cube vertices around site
-      [sx - size, sy - size, sz - size],
-      [sx + size, sy - size, sz - size],
-      [sx + size, sy + size, sz - size],
-      [sx - size, sy + size, sz - size],
-      [sx - size, sy - size, sz + size],
-      [sx + size, sy - size, sz + size],
-      [sx + size, sy + size, sz + size],
-      [sx - size, sy + size, sz + size],
+      { x: sx - size, y: sy - size, z: sz - size },
+      { x: sx + size, y: sy - size, z: sz - size },
+      { x: sx + size, y: sy + size, z: sz - size },
+      { x: sx - size, y: sy + size, z: sz - size },
+      { x: sx - size, y: sy - size, z: sz + size },
+      { x: sx + size, y: sy - size, z: sz + size },
+      { x: sx + size, y: sy + size, z: sz + size },
+      { x: sx - size, y: sy + size, z: sz + size },
     ];
 
     // Cube triangle indices (12 triangles, 2 per face)

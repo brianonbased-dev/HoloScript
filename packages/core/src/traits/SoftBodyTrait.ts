@@ -272,22 +272,19 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
         radius,
       });
     } else if (event.type === 'soft_body_poke') {
-      const position = event.position as { x: number; y: number; z: number };
+      const position = event.position as { x: number; y: number; z: number } | [number, number, number];
       const force = (event.force as number) || 10;
-      const direction = (event.direction as { x: number; y: number; z: number }) || {
-        x: 0,
-        y: -1,
-        z: 0,
-      };
+      const dirInput =
+        (event.direction as { x?: number; y?: number; z?: number } | [number, number, number]) ||
+        [0, -1, 0 ];
+      const direction: [number, number, number] = Array.isArray(dirInput)
+        ? [dirInput[0] ?? 0, dirInput[1] ?? -1, dirInput[2] ?? 0]
+        : [dirInput.x ?? 0, dirInput.y ?? -1, dirInput.z ?? 0];
 
       context.emit?.('soft_body_impulse', {
         node,
         position,
-        force: {
-          x: direction[0] * force,
-          y: direction[1] * force,
-          z: direction[2] * force,
-        },
+        force: [direction[0] * force, direction[1] * force, direction[2] * force],
       });
     } else if (event.type === 'soft_body_set_anchor') {
       const vertexIndex = event.vertexIndex as number;

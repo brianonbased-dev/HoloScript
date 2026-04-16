@@ -173,14 +173,14 @@ describe('VoronoiFractureTrait', () => {
       if (damaged.length > 1) {
         const sorted = [...damaged].sort((a, b) => {
           const distA = Math.sqrt(
-            Math.pow(a.position[0] - damagePoint.x, 2) +
-              Math.pow(a.position[1] - damagePoint.y, 2) +
-              Math.pow(a.position[2] - damagePoint.z, 2)
+            Math.pow(a.position[0] - damagePoint[0], 2) +
+              Math.pow(a.position[1] - damagePoint[1], 2) +
+              Math.pow(a.position[2] - damagePoint[2], 2)
           );
           const distB = Math.sqrt(
-            Math.pow(b.position[0] - damagePoint.x, 2) +
-              Math.pow(b.position[1] - damagePoint.y, 2) +
-              Math.pow(b.position[2] - damagePoint.z, 2)
+            Math.pow(b.position[0] - damagePoint[0], 2) +
+              Math.pow(b.position[1] - damagePoint[1], 2) +
+              Math.pow(b.position[2] - damagePoint[2], 2)
           );
           return distA - distB;
         });

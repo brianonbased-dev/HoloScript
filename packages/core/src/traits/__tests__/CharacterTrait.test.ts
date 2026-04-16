@@ -68,9 +68,9 @@ describe('CharacterTrait', () => {
       character.setPosition([1, 2, 3 ]);
 
       const pos = character.getPosition();
-      expect(pos.x).toBe(1);
-      expect(pos.y).toBe(2);
-      expect(pos.z).toBe(3);
+      expect(pos[0]).toBe(1);
+      expect(pos[1]).toBe(2);
+      expect(pos[2]).toBe(3);
     });
   });
 
@@ -86,9 +86,9 @@ describe('CharacterTrait', () => {
       character.setVelocity([1, 2, 3 ]);
 
       const vel = character.getVelocity();
-      expect(vel.x).toBe(1);
-      expect(vel.y).toBe(2);
-      expect(vel.z).toBe(3);
+      expect(vel[0]).toBe(1);
+      expect(vel[1]).toBe(2);
+      expect(vel[2]).toBe(3);
     });
   });
 
@@ -215,9 +215,9 @@ describe('CharacterTrait', () => {
       character.teleport([100, 50, 200 ]);
 
       const pos = character.getPosition();
-      expect(pos.x).toBe(100);
-      expect(pos.y).toBe(50);
-      expect(pos.z).toBe(200);
+      expect(pos[0]).toBe(100);
+      expect(pos[1]).toBe(50);
+      expect(pos[2]).toBe(200);
     });
 
     it('should reset velocity on teleport', () => {
@@ -225,9 +225,9 @@ describe('CharacterTrait', () => {
       character.teleport([0, 0, 0 ]);
 
       const vel = character.getVelocity();
-      expect(vel.x).toBe(0);
-      expect(vel.y).toBe(0);
-      expect(vel.z).toBe(0);
+      expect(vel[0]).toBe(0);
+      expect(vel[1]).toBe(0);
+      expect(vel[2]).toBe(0);
     });
 
     it('should optionally keep velocity on teleport', () => {
@@ -235,7 +235,7 @@ describe('CharacterTrait', () => {
       character.teleport([0, 0, 0 ], false);
 
       const vel = character.getVelocity();
-      expect(vel.x).toBe(10);
+      expect(vel[0]).toBe(10);
     });
   });
 
@@ -255,9 +255,9 @@ describe('CharacterTrait', () => {
       });
 
       const pos = character.getPosition();
-      expect(pos.x).toBe(10);
-      expect(pos.y).toBe(20);
-      expect(pos.z).toBe(30);
+      expect(pos[0]).toBe(10);
+      expect(pos[1]).toBe(20);
+      expect(pos[2]).toBe(30);
     });
   });
 });

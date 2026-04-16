@@ -50,6 +50,11 @@ interface ClothConfig {
   pin_vertices: Array<[number, number]>; // Grid coordinates to pin
 }
 
+function vecToTuple(v: { x?: number; y?: number; z?: number } | [number, number, number]): [number, number, number] {
+  if (Array.isArray(v)) return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
+  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
+}
+
 // =============================================================================
 // HANDLER
 // =============================================================================
@@ -116,11 +121,11 @@ export const clothHandler: TraitHandler<ClothConfig> = {
     if (config.wind_response > 0) {
       context.emit?.('cloth_apply_force', {
         node,
-        force: {
-          x: state.windForce[0] * config.wind_response,
-          y: state.windForce[1] * config.wind_response,
-          z: state.windForce[2] * config.wind_response,
-        },
+        force: [
+          state.windForce[0] * config.wind_response,
+          state.windForce[1] * config.wind_response,
+          state.windForce[2] * config.wind_response,
+        ],
       });
     }
 
@@ -137,14 +142,15 @@ export const clothHandler: TraitHandler<ClothConfig> = {
 
     if (event.type === 'cloth_vertex_update') {
       // Update vertex positions from physics
-      const positions = event.positions as Array<{ x: number; y: number; z: number }>;
+      const positions = event.positions as Array<{ x?: number; y?: number; z?: number } | [number, number, number]>;
       const res = config.resolution;
 
       for (let i = 0; i < res && i < positions.length / res; i++) {
         for (let j = 0; j < res; j++) {
           const idx = i * res + j;
           if (idx < positions.length && state.vertices[i]?.[j]) {
-            state.vertices[i][j].position = positions[idx];
+            const v = positions[idx];
+            state.vertices[i][j].position = vecToTuple(v);
           }
         }
       }
@@ -155,7 +161,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
         vertices: state.vertices,
       });
     } else if (event.type === 'wind_update') {
-      state.windForce = event.direction as typeof state.windForce;
+      state.windForce = vecToTuple(event.direction as { x?: number; y?: number; z?: number } | [number, number, number]);
     } else if (event.type === 'cloth_apply_force') {
       const force = event.force as { x: number; y: number; z: number };
       const position = event.position as { x: number; y: number; z: number } | undefined;
