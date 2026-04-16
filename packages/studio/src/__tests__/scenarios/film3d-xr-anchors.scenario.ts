@@ -1,16 +1,16 @@
 import { describe, test, expect } from 'vitest';
 
 /**
- * Film3 XR anchors — host-side contract tests for Ticket 1/2 (depth occlusion + UI vs world).
+ * Film3D XR anchors — host-side contract tests for Ticket 1/2 (depth occlusion + UI vs world).
  * Does not run on Quest; validates policy we expect AndroidXRCompiler + runtime to honor.
  *
- * **On-device:** Use {@link FILM3_XR_MINIMAL_TEST_SCENE} as the narrative checklist when compiling
- * a `.holo` composition for Android XR and sideloading to Quest 3 (see `FILM3_XR_GROUNDING_SPRINT.md`).
+ * **On-device:** Use {@link FILM3D_XR_MINIMAL_TEST_SCENE} as the narrative checklist when compiling
+ * a `.holo` composition for Android XR and sideloading to Quest 3 (see `FILM3D_XR_GROUNDING_SPRINT.md`).
  */
 
-/** Minimal object/traits set for Quest 3 validation of the three prioritized Film3 primitives. */
-export const FILM3_XR_MINIMAL_TEST_SCENE = {
-  name: 'film3-depth-probe-gaze',
+/** Minimal object/traits set for Quest 3 validation of the three prioritized Film3D primitives. */
+export const FILM3D_XR_MINIMAL_TEST_SCENE = {
+  name: 'film3d-depth-probe-gaze',
   description:
     'One world-anchored depth occluder, one environment probe for HDR/sh, one gaze+pinch interactable panel.',
   objects: [
@@ -20,11 +20,11 @@ export const FILM3_XR_MINIMAL_TEST_SCENE = {
   ],
 } as const;
 
-export type Film3LayerKind = 'depth_wall' | 'hologram' | 'ui';
+export type Film3DLayerKind = 'depth_wall' | 'hologram' | 'ui';
 
-export interface Film3Layer {
+export interface Film3DLayer {
   id: string;
-  kind: Film3LayerKind;
+  kind: Film3DLayerKind;
   /** Eye-space Z (smaller = closer to camera when camera looks down -Z). */
   z: number;
 }
@@ -33,9 +33,9 @@ export interface Film3Layer {
  * Painter order: last = drawn on top. Depth wall + hologram use mesh pass; UI uses overlay pass after.
  * When depth is off, hologram is not culled by synthetic wall (no reliable occlusion).
  */
-export function computeFilm3PainterOrder(
+export function computeFilm3DPainterOrder(
   depthSupported: boolean,
-  layers: Film3Layer[]
+  layers: Film3DLayer[]
 ): { painterOrder: string[]; hologramCulledByDepth: boolean } {
   const wall = layers.find((l) => l.kind === 'depth_wall');
   const holo = layers.find((l) => l.kind === 'hologram');
@@ -66,7 +66,7 @@ export function applyDepthGuard(session: { isDepthSupported: boolean }, out: str
   }
 }
 
-describe('Film3 XR anchor scenarios', () => {
+describe('Film3D XR anchor scenarios', () => {
   test('depth-disabled path does not configure depth (no silent crash contract)', () => {
     const lines: string[] = [];
     applyDepthGuard({ isDepthSupported: false }, lines);
@@ -80,7 +80,7 @@ describe('Film3 XR anchor scenarios', () => {
   });
 
   test('hologram behind depth wall is culled from painter order when depth is supported', () => {
-    const { painterOrder, hologramCulledByDepth } = computeFilm3PainterOrder(true, [
+    const { painterOrder, hologramCulledByDepth } = computeFilm3DPainterOrder(true, [
       { id: 'wall', kind: 'depth_wall', z: -1 },
       { id: 'holo', kind: 'hologram', z: -2 },
       { id: 'panel', kind: 'ui', z: 0 },
@@ -92,7 +92,7 @@ describe('Film3 XR anchor scenarios', () => {
   });
 
   test('UI stays last in painter order (overlay), not treated as world overlap with hologram', () => {
-    const { painterOrder } = computeFilm3PainterOrder(true, [
+    const { painterOrder } = computeFilm3DPainterOrder(true, [
       { id: 'wall', kind: 'depth_wall', z: -1 },
       { id: 'holo', kind: 'hologram', z: 0 },
       { id: 'panel', kind: 'ui', z: 0 },
@@ -101,7 +101,7 @@ describe('Film3 XR anchor scenarios', () => {
   });
 
   test('without depth, hologram is not culled (no mesh occlusion)', () => {
-    const { painterOrder, hologramCulledByDepth } = computeFilm3PainterOrder(false, [
+    const { painterOrder, hologramCulledByDepth } = computeFilm3DPainterOrder(false, [
       { id: 'wall', kind: 'depth_wall', z: -1 },
       { id: 'holo', kind: 'hologram', z: -2 },
       { id: 'panel', kind: 'ui', z: 0 },

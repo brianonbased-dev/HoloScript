@@ -242,7 +242,7 @@ packages/studio/src/
 │   ├── RevenueChart.tsx           (188 lines)
 │   ├── NFTGallery.tsx             (177 lines)
 │   ├── AnalyticsPanel.tsx         (261 lines)
-│   └── FILM3_DASHBOARD_README.md  (this file)
+│   └── FILM3D_DASHBOARD_README.md  (this file)
 └── hooks/
     └── useCreatorStats.ts         (132 lines)
 ```

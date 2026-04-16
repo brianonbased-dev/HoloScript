@@ -469,7 +469,7 @@ describe('AndroidXRCompiler', () => {
     expect(result.manifestFile).toContain('android.permission.FACE_TRACKING');
   });
 
-  it('adds optional android.hardware.camera.ar when occlusion_mesh trait is used (Film3 ARCore depth)', () => {
+  it('adds optional android.hardware.camera.ar when occlusion_mesh trait is used (Film3D ARCore depth)', () => {
     const comp = minimalComposition({
       objects: [
         {

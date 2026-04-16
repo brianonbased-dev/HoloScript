@@ -34,7 +34,7 @@ Successfully built a complete React-based creator dashboard for Film3D economy w
 
 ### Documentation (4 files)
 
-7. **FILM3_DASHBOARD_README.md** - Comprehensive documentation
+7. **FILM3D_DASHBOARD_README.md** - Comprehensive documentation
 8. **COMPONENT_TREE.md** - Architecture documentation
 9. **film3-dashboard.d.ts** - TypeScript type definitions
 10. **creator-dashboard-example.tsx** - Integration example
@@ -132,7 +132,7 @@ import { CreatorDashboard } from '@/components/CreatorDashboard';
 
 **Documentation:**
 
-- `packages/studio/src/components/FILM3_DASHBOARD_README.md`
+- `packages/studio/src/components/FILM3D_DASHBOARD_README.md`
 - `packages/studio/src/components/COMPONENT_TREE.md`
 
 ---

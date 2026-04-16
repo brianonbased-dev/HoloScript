@@ -212,7 +212,7 @@ async function deployAgents() {
   console.log('  - HITL approvals: Check Slack webhook notifications\n');
   console.log('🔗 Integration:');
   console.log('  - Findings auto-merge to: C:/Users/josep/Documents/GitHub/AI_Workspace/');
-  console.log('  - Deliverables feed into: HoloScript Roadmap v3.2+ (Zora Coins, Film3)\n');
+  console.log('  - Deliverables feed into: HoloScript Roadmap v3.2+ (Zora Coins, Film3D)\n');
   console.log('⏭️  Next: Wait for agent completion or approve HITL requests as they arrive\n');
 }
 // Execute deployment
