@@ -24,7 +24,8 @@ export function getDb() {
     return null;
   }
 
-  const isPrivate = connectionString.includes('.railway.internal');
+  // If it's not a public .railway.app domain, assume it's a private network alias or IP
+  const isPrivate = !connectionString.includes('.railway.app');
   _pool = new Pool({
     connectionString,
     ssl: isPrivate ? false : { rejectUnauthorized: false },
