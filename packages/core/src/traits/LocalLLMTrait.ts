@@ -13,12 +13,12 @@ import type { HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
  *   Type defined in LLMBackend union. Implementation pending:
  *   BitNet 2B at 1.58-bit, ternary weights, SNN perception convergence.
  *
- * TODO(P.XR.07): Dynamic memory budget manager integration.
+ * Design backlog (P.XR.07): Dynamic memory budget manager integration.
  *   GS primitives vs KV cache is zero-sum on 8GB Quest 3.
  *   LocalLLMTrait must communicate memory pressure to GaussianBudgetAnalyzer.
  *   Expose getKVCacheSize_MB(): number for the budget manager to monitor.
  *
- * TODO(P.XR.03): Speculative decoding with cloud verifier.
+ * Design backlog (P.XR.03): Speculative decoding with cloud verifier.
  *   When WiFi available, use on-device model as draft + cloud 70B as verifier.
  *   SLED framework pattern: 2.2x throughput, 3.5x with cost reduction.
  *   Add speculativeConfig: { cloudEndpoint, verifierModel, batchSize } to config.

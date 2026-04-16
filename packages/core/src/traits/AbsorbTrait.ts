@@ -347,7 +347,7 @@ export class AbsorbProcessor {
       for (const method of cls.methods) {
         const params = method.params.map((p) => p.name).join(', ');
         lines.push(`  on ${method.name}(${params}) {`);
-        lines.push(`    // TODO: port ${method.name} logic`);
+        lines.push(`    // ABSORB-STUB: port ${method.name} logic`);
         lines.push(`  }`);
       }
       lines.push(`}`);
@@ -362,7 +362,7 @@ export class AbsorbProcessor {
       lines.push(
         `${asyncPrefix}fn ${fn.name}(${params})${fn.returnType ? ` -> ${fn.returnType}` : ''} {`
       );
-      lines.push(`  // TODO: port ${fn.name} logic from ${result.sourceLanguage}`);
+      lines.push(`  // ABSORB-STUB: port ${fn.name} logic from ${result.sourceLanguage}`);
       lines.push(`}`);
       lines.push('');
     }

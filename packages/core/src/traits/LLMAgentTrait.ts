@@ -4,18 +4,18 @@
  * LLM-powered decision-making with bounded autonomy.
  * Supports tool calling, conversation history, and escalation policies.
  *
- * TODO(G.XR.04): KV cache explosion guard for XR.
+ * Design backlog (G.XR.04): KV cache explosion guard for XR.
  *   context_window is 4096 by default. On Quest 3 (8GB), a 3B model with
  *   32K context needs 2-4GB KV cache — leaves NO room for VR rendering.
  *   Add xr_context_limit: number to LLMConfig (default 4096 for XR, 32K for cloud).
  *   Implement aggressive context compression (COMPRESS phase) or KVSwap to flash.
  *
- * TODO(P.XR.05): Multi-agent spatial verification.
+ * Design backlog (P.XR.05): Multi-agent spatial verification.
  *   When multiple @llm_agent nodes exist in a scene, add cross-verification:
  *   Agent A asserts "door is open" → verify against Agent B's spatial model.
  *   Prevents hallucination-induced state divergence in multi-user VR.
  *
- * TODO(P.XR.02): Compile tool schemas for on-device function calling.
+ * Design backlog (P.XR.02): Compile tool schemas for on-device function calling.
  *   LLMTool definitions should compile to ExecuTorch inference packages.
  *   Llama 3.2 1B/3B supports native function calling — compile tools[] to
  *   the Llama tool_use format at build time, not runtime.
