@@ -1088,7 +1088,8 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
       `xrSession.scene.configure { config ->`,
       `    config.depthMode = Config.DepthMode.AUTOMATIC`,
       `}`,
-      `// TODO: process depth frames for scene mesh reconstruction for ${varName}`,
+      `val ${varName}Mesh = xrSession.scene.perceptionSpace.createMeshReconstruction()`,
+      `${varName}.addComponent(${varName}Mesh)`,
     ],
   },
 
@@ -1723,6 +1724,18 @@ export const ACCESSIBILITY_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 // =============================================================================
 
 export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
+  gaze_interactable: {
+    trait: 'gaze_interactable',
+    components: ['InteractableComponent'],
+    level: 'full',
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InteractableType'],
+    generate: (varName) => [
+      `// Combine Android SceneCore Gaze entity with Hand tracking pinch`,
+      `${varName}.addComponent(InteractableComponent(InteractableType.GAZE_AND_PINCH))`,
+      `${varName}.setOnClickListener { event -> handleUaalEvent(event) }`,
+    ],
+  },
+
   ui_floating: {
     trait: 'ui_floating',
     components: ['PanelEntity'],
@@ -1804,7 +1817,7 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
       `SpatialPanel(SubspaceModifier.width(400f).height(300f)) {`,
       `    // ${varName} billboard UI content`,
       `}`,
-      `// TODO: update ${varName} rotation to face camera each frame`,
+      `${varName}.addComponent(BillboardComponent(BillboardMode.BILLBOARD_ALL_AXES))`,
     ],
   },
 
@@ -1838,6 +1851,31 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 // =============================================================================
 
 export const ENVIRONMENT_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
+  occlusion_mesh: {
+    trait: 'occlusion_mesh',
+    components: [],
+    level: 'full',
+    imports: ['com.google.ar.core.Config', 'androidx.xr.scenegraph.PerceptionSpace'],
+    generate: (varName) => [
+      `// Activate strictly if depth API is physically supported on-device`,
+      `if (xrSession.isDepthSupported) {`,
+      `    xrSession.scene.configure { config -> config.depthMode = Config.DepthMode.AUTOMATIC }`,
+      `    ${varName}.enableDepthOcclusion(true)`,
+      `}`,
+    ],
+  },
+
+  environment_probe: {
+    trait: 'environment_probe',
+    components: [],
+    level: 'full',
+    generate: (varName) => [
+      `// Attach HDR environmental projection to scene root`,
+      `val ${varName}Probe = xrSession.scene.perceptionSpace.createEnvironmentProbe()`,
+      `sceneRoot.addComponent(${varName}Probe)`,
+    ],
+  },
+
   portal: {
     trait: 'portal',
     components: ['GltfModelEntity'],
@@ -2565,10 +2603,10 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     imports: ['com.google.ar.core.Config'],
     generate: () => [
       `// @spatial_awareness -- spatial scene understanding`,
-      `// TODO: combine plane detection + depth mode for scene understanding`,
       `xrSession.scene.configure { config ->`,
       `    config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL`,
       `    config.depthMode = Config.DepthMode.AUTOMATIC`,
+      `    config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR`,
       `}`,
     ],
   },
