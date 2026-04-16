@@ -469,6 +469,42 @@ describe('AndroidXRCompiler', () => {
     expect(result.manifestFile).toContain('android.permission.FACE_TRACKING');
   });
 
+  it('adds optional android.hardware.camera.ar when occlusion_mesh trait is used (Film3 ARCore depth)', () => {
+    const comp = minimalComposition({
+      objects: [
+        {
+          name: 'stage',
+          properties: [],
+          traits: [{ name: 'occlusion_mesh', config: {} }],
+          children: [],
+        },
+      ],
+    });
+    const result = compiler.compile(comp, 'test-token');
+    expect(result.manifestFile).toContain('android.hardware.camera.ar');
+    expect(result.manifestFile).toMatch(/android\.hardware\.camera\.ar" android:required="false"/);
+  });
+
+  it('adds required android.hardware.camera.ar when arCameraHardwareRequired is true', () => {
+    const c = new AndroidXRCompiler({
+      packageName: 'com.test.app',
+      activityName: 'TestActivity',
+      arCameraHardwareRequired: true,
+    });
+    const comp = minimalComposition({
+      objects: [
+        {
+          name: 'stage',
+          properties: [],
+          traits: [{ name: 'environment_probe', config: {} }],
+          children: [],
+        },
+      ],
+    });
+    const result = c.compile(comp, 'test-token');
+    expect(result.manifestFile).toMatch(/android\.hardware\.camera\.ar" android:required="true"/);
+  });
+
   // ─── Build Gradle file ────────────────────────────────────────────
 
   it('generates build.gradle.kts with dependencies', () => {
