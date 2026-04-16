@@ -12,6 +12,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import axios from 'axios';
 import { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type {
   MeshConfig,
@@ -22,6 +23,7 @@ import type {
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
 import { HoloMeshDiscovery } from './discovery';
+import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
@@ -31,7 +33,64 @@ import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 import { sovereignTools, handleSovereignTool } from './sovereign-tools';
 import * as crypto from 'crypto';
 
+const moltbookCrosspostSchema = z.object({
+  taskId: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  metrics: z
+    .object({
+      linesAdded: z.number().int().nonnegative().optional(),
+      linesDeleted: z.number().int().nonnegative().optional(),
+      filesModified: z.number().int().nonnegative().optional(),
+      testsCovered: z.number().int().nonnegative().optional(),
+      executionTimeMs: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  tags: z.array(z.string().min(1)).default([]),
+});
+
+type MoltbookCrosspostArgs = z.infer<typeof moltbookCrosspostSchema>;
+
 export const holomeshTools: Tool[] = [
+  {
+    name: 'holomesh_moltbook_crosspost',
+    description:
+      'Crosspost an autonomous task/session summary to Moltbook. Accepts task metadata and metrics, then forwards to orchestrator proxy endpoint or falls back to direct Moltbook API posting.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        taskId: {
+          type: 'string',
+          description: 'Task identifier for provenance and traceability.',
+        },
+        title: {
+          type: 'string',
+          description: 'Short human-readable title for the crosspost.',
+        },
+        description: {
+          type: 'string',
+          description: 'Concise summary of what was completed.',
+        },
+        metrics: {
+          type: 'object',
+          description: 'Optional execution metrics for the post body.',
+          properties: {
+            linesAdded: { type: 'number' },
+            linesDeleted: { type: 'number' },
+            filesModified: { type: 'number' },
+            testsCovered: { type: 'number' },
+            executionTimeMs: { type: 'number' },
+          },
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags to classify the post on Moltbook.',
+        },
+      },
+      required: ['taskId', 'title', 'description'],
+    },
+  },
   {
     name: 'holomesh_publish_insight',
     description: 'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
@@ -344,6 +403,8 @@ export async function handleHoloMeshTool(
   const client = getOrCreateClient();
 
   switch (name) {
+    case 'holomesh_moltbook_crosspost':
+      return handleMoltbookCrosspost(args);
     case 'holomesh_publish_insight':
       return handlePublishInsight(client, args);
     case 'holomesh_discover':
@@ -376,6 +437,114 @@ export async function handleHoloMeshTool(
 }
 
 // ── Individual Handlers ──
+
+async function handleMoltbookCrosspost(args: Record<string, unknown>) {
+  const parsed = moltbookCrosspostSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input for holomesh_moltbook_crosspost',
+      details: parsed.error.flatten(),
+    };
+  }
+
+  const payload = parsed.data;
+  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:4555';
+  const proxyUrl =
+    process.env.HOLOMESH_MOLTBOOK_CROSSPOST_URL || `${orchestratorUrl}/api/moltbook/crosspost`;
+
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (process.env.HOLOSCRIPT_API_KEY) {
+    authHeaders['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
+  }
+
+  const postBody = {
+    taskId: payload.taskId,
+    title: payload.title,
+    description: payload.description,
+    status: 'completed',
+    ownerAgent: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
+    metrics: payload.metrics,
+    tags: payload.tags,
+  };
+
+  try {
+    const proxyResp = await axios.post(proxyUrl, postBody, {
+      headers: authHeaders,
+      timeout: 12000,
+    });
+
+    return {
+      success: true,
+      route: 'orchestrator-proxy',
+      proxyUrl,
+      response: proxyResp.data,
+    };
+  } catch (proxyErr: unknown) {
+    const moltbookApiKey = process.env.MOLTBOOK_API_KEY;
+    if (!moltbookApiKey) {
+      return {
+        error: 'Proxy crosspost failed and MOLTBOOK_API_KEY is not configured for direct fallback',
+        proxyUrl,
+        details: proxyErr instanceof Error ? proxyErr.message : String(proxyErr),
+      };
+    }
+
+    try {
+      const lines = [`## ${payload.title}`, '', payload.description, ''];
+      if (payload.metrics) {
+        lines.push('### Metrics');
+        if (payload.metrics.filesModified != null) {
+          lines.push(`- Files modified: ${payload.metrics.filesModified}`);
+        }
+        if (payload.metrics.linesAdded != null) {
+          lines.push(`- Lines added: +${payload.metrics.linesAdded}`);
+        }
+        if (payload.metrics.linesDeleted != null) {
+          lines.push(`- Lines deleted: -${payload.metrics.linesDeleted}`);
+        }
+        if (payload.metrics.testsCovered != null) {
+          lines.push(`- Tests covered: ${payload.metrics.testsCovered}`);
+        }
+        if (payload.metrics.executionTimeMs != null) {
+          lines.push(`- Execution time: ${(payload.metrics.executionTimeMs / 1000).toFixed(2)}s`);
+        }
+      }
+
+      lines.push('', `Task ID: ${payload.taskId}`);
+
+      const directResp = await axios.post(
+        'https://api.moltbook.com/v1/posts',
+        {
+          title: payload.title,
+          content: lines.join('\n'),
+          subreddit: 'holoscript',
+          tags: payload.tags,
+          author: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${moltbookApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 12000,
+        }
+      );
+
+      return {
+        success: true,
+        route: 'direct-moltbook',
+        response: directResp.data,
+      };
+    } catch (directErr: unknown) {
+      return {
+        error: 'Moltbook crosspost failed for proxy and direct routes',
+        proxyUrl,
+        proxyError: proxyErr instanceof Error ? proxyErr.message : String(proxyErr),
+        directError: directErr instanceof Error ? directErr.message : String(directErr),
+      };
+    }
+  }
+}
 
 async function handlePublishInsight(
   client: HoloMeshOrchestratorClient,
