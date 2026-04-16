@@ -42,6 +42,23 @@ export interface GenerateResult {
 }
 
 /**
+ * Result of 3D world generation (3DGS/Mesh)
+ */
+export interface WorldGenerateResult {
+  /** URL or path to the generated asset */
+  assetUrl: string;
+  /** Format of the asset (3dgs, mesh, both) */
+  format: string;
+  /** Confidence score (0-1) */
+  confidence?: number;
+  /** Performance metrics (face count, Gaussian count) */
+  metrics?: {
+    gaussianCount?: number;
+    faceCount?: number;
+  };
+}
+
+/**
  * Result of HoloScript explanation
  */
 export interface ExplainResult {
@@ -176,6 +193,13 @@ export interface AIAdapter {
    * @param text Text to embed
    */
   getEmbeddings?(text: string | string[]): Promise<number[][]>;
+
+  /**
+   * Generate a 3D world (3DGS/Mesh) from natural language
+   * @param prompt User's description of the world
+   * @param options Generation options
+   */
+  generateWorld?(prompt: string, options?: GenerateOptions): Promise<WorldGenerateResult>;
 }
 
 // ============================================================================

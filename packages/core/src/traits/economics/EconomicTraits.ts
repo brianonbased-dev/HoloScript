@@ -1,7 +1,9 @@
 /**
- * Economic Primitive Traits: Tradeable, Depreciating, BondingCurved, TaxableWealth
- * @version 1.0.0
+ * Economic Primitive Traits: Tradeable, Depreciating, BondingCurved, TaxableWealth, X402Paywall, FoundationDAO
+ * @version 1.1.0
  */
+export * from './X402PaywallTrait';
+export * from './FoundationDAOTrait';
 export type Currency = string;
 export interface PriceQuote {
   amount: number;

@@ -20,6 +20,7 @@ import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
 import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
 import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
+import { useSession } from 'next-auth/react';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -66,6 +67,7 @@ export function BrittneyChatPanel() {
   const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
   const code = useSceneStore((s) => s.code) ?? '';
+  const { data: session } = useSession();
   const addTrait = useSceneGraphStore((s) => s.addTrait);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
@@ -196,7 +198,10 @@ export function BrittneyChatPanel() {
     setIsThinking(true);
 
     // Build rich scene context (code + node graph + selection)
-    const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
+    let sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
+    if (session?.user?.githubUsername) {
+      sceneContext += `\n\n[Authenticated User Context]: You are pairing with @${session.user.githubUsername}.`;
+    }
 
     // Create streaming Brittney message placeholder
     const brittMsgId = (Date.now() + 1).toString();

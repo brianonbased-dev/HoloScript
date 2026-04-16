@@ -214,6 +214,12 @@ const VRRTraitDefs: Record<string, { validator?: (params: Record<string, unknown
       ['base', 'ethereum', 'solana'].includes(String(p.network || 'base')),
   },
   geo_sync: { validator: (p) => !!p.center && Number(p.radius || 0) >= 0 },
+  foundation_dao: {
+    validator: (p) =>
+      typeof p.quorumThreshold === 'number' &&
+      typeof p.votingPeriod === 'number' &&
+      typeof p.liquidDemocracy === 'boolean',
+  },
 };
 
 /**
@@ -238,8 +244,9 @@ export interface VRRCompositionData {
   inventoryNodes: VRRAstNode[];
   questNodes: VRRAstNode[];
   layerShiftNodes: VRRAstNode[];
-  paywallNodes: VRRAstNode[];
   geoAnchorNodes: VRRAstNode[];
+  worldNodes: VRRAstNode[];
+  daoNodes: VRRAstNode[];
 }
 
 export class VRRCompiler extends CompilerBase {
@@ -272,8 +279,9 @@ export class VRRCompiler extends CompilerBase {
       inventoryNodes: [],
       questNodes: [],
       layerShiftNodes: [],
-      paywallNodes: [],
       geoAnchorNodes: [],
+      worldNodes: [],
+      daoNodes: [],
     };
 
     const traitToField: Record<string, keyof VRRCompositionData> = {
@@ -285,6 +293,7 @@ export class VRRCompiler extends CompilerBase {
       layer_shift: 'layerShiftNodes',
       x402_paywall: 'paywallNodes',
       geo_anchor: 'geoAnchorNodes',
+      foundation_dao: 'daoNodes',
     };
 
     const traverse = (node: unknown): void => {
@@ -303,6 +312,11 @@ export class VRRCompiler extends CompilerBase {
             data[field].push(n);
           }
         }
+      }
+
+      // Handle 'World' nodes specifically
+      if (n.type === 'World') {
+        data.worldNodes.push(n);
       }
 
       for (const key of Object.keys(n)) {
@@ -332,7 +346,18 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`\n// === Three.js Scene Generation ===`);
 
     // Ambient + directional lighting
-    this.generatedCode.push(`const ambientLight = new THREE.AmbientLight(0x404040, 0.6);`);
+    let ambientIntensity = 0.6;
+    let skyboxColor = 0x87ceeb;
+    let gravity = 9.81;
+
+    const mainWorld = compositionData.worldNodes[0];
+    if (mainWorld) {
+      ambientIntensity = Number(this.findWorldProperty(mainWorld, 'ambient_light') ?? 0.6);
+      skyboxColor = Number(this.findWorldProperty(mainWorld, 'skybox_color') ?? 0x87ceeb);
+      gravity = Number(this.findWorldProperty(mainWorld, 'gravity') ?? 9.81);
+    }
+
+    this.generatedCode.push(`const ambientLight = new THREE.AmbientLight(0x404040, ${ambientIntensity});`);
     this.generatedCode.push(`scene.add(ambientLight);`);
     this.generatedCode.push(`const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);`);
     this.generatedCode.push(`directionalLight.position.set(50, 200, 100);`);
@@ -348,6 +373,7 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`ground.rotation[0] = -Math.PI / 2;`);
     this.generatedCode.push(`ground.receiveShadow = true;`);
     this.generatedCode.push(`scene.add(ground);`);
+    this.generatedCode.push(`scene.userData.gravity = ${gravity};`);
 
     // Camera positioning
     this.generatedCode.push(`camera.position.set(0, 50, 100);`);
@@ -373,7 +399,7 @@ export class VRRCompiler extends CompilerBase {
 
     // Skybox
     this.generatedCode.push(`\n// Skybox`);
-    this.generatedCode.push(`scene.background = new THREE.Color(0x87ceeb);`);
+    this.generatedCode.push(`scene.background = new THREE.Color(${skyboxColor});`);
 
     // Render loop
     this.generatedCode.push(`\n// Render loop`);
@@ -385,6 +411,11 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`  renderer.render(scene, camera);`);
     this.generatedCode.push(`}`);
     this.generatedCode.push(`animate();`);
+
+    this.generateWeatherSync(compositionData.weatherNodes);
+    this.generateX402Paywall(compositionData.paywallNodes);
+    this.generateFoundationDAO(compositionData.daoNodes);
+    this.generateAPIHooks(compositionData.twinNodes as unknown[]);
   }
 
   // ─── 3. generateWeatherSync ───────────────────────────────────────────
@@ -782,6 +813,31 @@ export class VRRCompiler extends CompilerBase {
     }
   }
 
+  // ─── 8. generateFoundationDAO ─────────────────────────────────────────
+  private generateFoundationDAO(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @foundation_dao — Governance & Treasury ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'foundation_dao');
+      if (!trait) continue;
+
+      const quorum = Number(trait.params.quorumThreshold) || 0.1;
+      const period = Number(trait.params.votingPeriod) || 259200;
+      const liquid = !!trait.params.liquidDemocracy;
+      const safeName = this.escapeStringValue(String(node.name || 'dao'), 'TypeScript');
+
+      this.generatedCode.push(`// DAO: "${safeName}" — Quorum: ${quorum * 100}%, Period: ${period}s`);
+      this.generatedCode.push(`const dao_${safeName} = vrr.createDAO({`);
+      this.generatedCode.push(`  id: '${safeName}',`);
+      this.generatedCode.push(`  quorumThreshold: ${quorum},`);
+      this.generatedCode.push(`  votingPeriod: ${period},`);
+      this.generatedCode.push(`  liquidDemocracy: ${liquid},`);
+      this.generatedCode.push(`});`);
+    }
+  }
+
   // ─── Utility: find trait on node ──────────────────────────────────────
   private findTrait(
     node: VRRAstNode,
@@ -789,6 +845,13 @@ export class VRRCompiler extends CompilerBase {
   ): { name: string; params: Record<string, unknown> } | undefined {
     if (!node.traits) return undefined;
     return node.traits.find((t) => t.name === traitName);
+  }
+
+  // ─── Utility: find world property ─────────────────────────────────────
+  private findWorldProperty(node: VRRAstNode, key: string): unknown {
+    if (!node.properties || !Array.isArray(node.properties)) return undefined;
+    const prop = (node.properties as any[]).find((p) => p.key === key);
+    return prop?.value;
   }
 
   // ─── Main compile() ──────────────────────────────────────────────────

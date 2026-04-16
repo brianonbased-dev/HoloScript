@@ -364,6 +364,13 @@ This era is covered by the existing CHANGELOG (v6.0.0, v6.0.2, v6.1.0). Key even
 - **Apr 10**: 86 commits. HoloMesh marketplace, Ed25519 knowledge signing, http-routes modularization.
 - **`a2d21791`** (599 files): "global maintenance sweep for eslint and type safety." The team era's largest mega-commit.
 
+**Session 44** (Apr 16): `gemini-holoscript`
+- **The Sovereign Pivot (v6.1.0)**: Strategically rejected the integration of external competitors (Tencent HY-World/Spatial-TTT).
+- Pruned `HYWorldAdapter` and all related external bridges from `@holoscript/llm-provider`.
+- Repurposed the `world` node as a first-class declarative construct for sovereign simulation.
+- Updated `WorldGeneratorTrait` to default to the `sovereign-3d` native engine (Brittney v43).
+- Hardened AST types in `HoloCompositionTypes.ts` to include `HoloWorld`.
+
 The team system didn't eliminate mega-commits (43 commits still touch 50+ files), but they're now labeled better and mixed with genuinely granular work.
 
 ---

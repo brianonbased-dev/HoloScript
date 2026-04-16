@@ -12,6 +12,10 @@ import { NFTAsset } from '@holoscript/platform';
 import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
 import { Vector3, Quaternion } from '../types/HoloScriptPlus';
+import { PlayModeController } from './PlayModeController';
+import { CopilotPanel } from './CopilotPanel';
+import { AICopilotAdapter } from '@holoscript/framework/ai';
+import { AICopilot } from '@holoscript/framework/ai';
 
 /**
  * EditorUI
@@ -29,9 +33,12 @@ export class EditorUI {
   public assetBrowser: AssetBrowserPanel;
   public marketplace: MarketplacePanel;
   public persistence: EditorPersistence;
+  public playModeController: PlayModeController;
+  public copilotPanel: CopilotPanel | undefined;
   private uiBuilder: UIBuilder;
 
   private systemMenuRoot: Entity | undefined;
+  private playToolbarRoot: Entity | undefined;
 
   constructor(world: World) {
     this.world = world;
@@ -101,7 +108,28 @@ export class EditorUI {
       this.selectionManager.select(entity);
     };
 
+    // Instantiate PlayModeController
+    this.playModeController = new PlayModeController({
+      world: this.world,
+      persistence: this.persistence,
+    });
+
+    // Wire up CopilotPanel to hook into PlayMode execution
+    try {
+      const adapter = new AICopilotAdapter('mock-key'); 
+      const copilot = new AICopilot(adapter);
+      this.copilotPanel = new CopilotPanel(copilot, {
+        onCodeGenerated: async (holoScript) => {
+          await this.playModeController.executeGeneratedScript(holoScript);
+        }
+      });
+      // In a real scenario, we might also render the CopilotPanel UI using uiBuilder.
+    } catch (e) {
+      console.warn('[EditorUI] Failed to initialize CopilotPanel:', e);
+    }
+
     this.createSystemMenu();
+    this.createPlayToolbar();
   }
 
   private createSystemMenu() {
@@ -151,6 +179,31 @@ export class EditorUI {
     this.world.addTag(marketEntity, 'UI_System_Market');
   }
 
+  private createPlayToolbar() {
+    const toolbarNode = createPanel({
+      id: 'play_toolbar',
+      width: 0.4,
+      height: 0.15,
+      position: [0, 2.2, -1], // Above System menu
+      color: '#333',
+    });
+    this.playToolbarRoot = this.uiBuilder.spawn(toolbarNode);
+    this.world.addTag(this.playToolbarRoot, 'NoSelect');
+
+    const playBtn = createButton({ text: 'Play', width: 0.1, height: 0.08, position: [-0.1, 0, 0.01], color: '#28a745' });
+    const pauseBtn = createButton({ text: 'Pause', width: 0.1, height: 0.08, position: [0, 0, 0.01], color: '#ffc107' });
+    const stopBtn = createButton({ text: 'Stop', width: 0.1, height: 0.08, position: [0.1, 0, 0.01], color: '#dc3545' });
+
+    const playEntity = this.uiBuilder.spawn(playBtn, this.playToolbarRoot);
+    this.world.addTag(playEntity, 'UI_Toolbar_Play');
+
+    const pauseEntity = this.uiBuilder.spawn(pauseBtn, this.playToolbarRoot);
+    this.world.addTag(pauseEntity, 'UI_Toolbar_Pause');
+
+    const stopEntity = this.uiBuilder.spawn(stopBtn, this.playToolbarRoot);
+    this.world.addTag(stopEntity, 'UI_Toolbar_Stop');
+  }
+
   /**
    * Update loop for editor systems.
    * Should be called by the main Runtime loop if editor mode is active.
@@ -181,6 +234,20 @@ export class EditorUI {
       // Toggle visibility?
       // Currently panels are always spawned.
       // We just let them coexist.
+      return;
+    }
+
+    // Play/Pause/Stop interaction logic
+    if (this.world.hasTag(entity, 'UI_Toolbar_Play')) {
+      this.playModeController.play();
+      return;
+    }
+    if (this.world.hasTag(entity, 'UI_Toolbar_Pause')) {
+      this.playModeController.pause();
+      return;
+    }
+    if (this.world.hasTag(entity, 'UI_Toolbar_Stop')) {
+      this.playModeController.stop();
       return;
     }
 

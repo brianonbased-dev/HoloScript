@@ -1,14 +1,11 @@
 /**
  * Node Graph Execution Bridge
  *
- * Maps Studio visual node graph (GraphNode/GraphEdge) to core executable node graph runtime.
- * Enables one-click "Run Graph" execution with deterministic output + error handling.
- *
- * @packageDocumentation
+ * Lightweight execution bridge for Studio visual node graphs.
+ * Produces deterministic execution order + output/state/event snapshots.
  */
 
-import type { NodeType, NodeInput, NodeOutput, GNode, GEdge } from './nodeGraphStore';
-import type { ExecutionResult, NodeGraphExecutionState } from '@holoscript/core/editor';
+import type { GraphNode, GraphEdge } from '@/hooks/useNodeGraph';
 
 /**
  * Result shape returned after graph execution via bridge.
@@ -18,7 +15,7 @@ export interface StudioGraphExecutionResult {
   success: boolean;
   nodeOrder: string[];
   outputs: Record<string, unknown>;
-  state: NodeGraphExecutionState;
+  state: Record<string, unknown>;
   emittedEvents: Array<{ nodeId: string; event: string; data?: unknown }>;
   errorMessage?: string;
   errorNodeId?: string;
@@ -29,50 +26,56 @@ export interface StudioGraphExecutionResult {
  * Validates graph connectivity before execution.
  * Returns list of validation errors (empty if valid).
  */
-export function validateGraph(nodes: GNode[], edges: GEdge[]): string[] {
+export function validateGraph(nodes: GraphNode[], edges: GraphEdge[]): string[] {
   const errors: string[] = [];
   const nodeIds = new Set(nodes.map((n) => n.id));
 
   // Check 1: Each edge source/target must reference existing nodes
   for (const edge of edges) {
-    if (!nodeIds.has(edge.source)) {
-      errors.push(`Edge references non-existent source node: ${edge.source}`);
+    if (!nodeIds.has(edge.fromNodeId)) {
+      errors.push(`Edge references non-existent source node: ${edge.fromNodeId}`);
     }
-    if (!nodeIds.has(edge.target)) {
-      errors.push(`Edge references non-existent target node: ${edge.target}`);
+    if (!nodeIds.has(edge.toNodeId)) {
+      errors.push(`Edge references non-existent target node: ${edge.toNodeId}`);
     }
   }
 
-  // Check 2: Detect cycles (simplified: DFS from each node)
-  for (const node of nodes) {
-    const visited = new Set<string>();
-    const stack = [node.id];
-    let hasCycle = false;
+  // Check 2: Detect cycles with Kahn's algorithm
+  const inDegree = new Map<string, number>(nodes.map((n) => [n.id, 0]));
+  const outgoing = new Map<string, string[]>();
 
-    while (stack.length && !hasCycle) {
-      const current = stack.pop()!;
-      if (visited.has(current)) {
-        hasCycle = true;
-        break;
-      }
-      visited.add(current);
+  for (const edge of edges) {
+    inDegree.set(edge.toNodeId, (inDegree.get(edge.toNodeId) ?? 0) + 1);
+    const list = outgoing.get(edge.fromNodeId) ?? [];
+    list.push(edge.toNodeId);
+    outgoing.set(edge.fromNodeId, list);
+  }
 
-      for (const edge of edges) {
-        if (edge.source === current && !visited.has(edge.target)) {
-          stack.push(edge.target);
-        }
+  const queue = nodes.filter((n) => (inDegree.get(n.id) ?? 0) === 0).map((n) => n.id);
+  let visitedCount = 0;
+
+  while (queue.length) {
+    const current = queue.shift()!;
+    visitedCount++;
+    for (const next of outgoing.get(current) ?? []) {
+      const nextDeg = (inDegree.get(next) ?? 0) - 1;
+      inDegree.set(next, nextDeg);
+      if (nextDeg === 0) {
+        queue.push(next);
       }
     }
+  }
 
-    if (hasCycle) {
-      errors.push(`Cycle detected starting from node: ${node.id}`);
-    }
+  if (visitedCount !== nodes.length) {
+    errors.push('Cycle detected in graph');
   }
 
   // Check 3: Output nodes must have inputs
-  const outputNodes = nodes.filter((n) => n.type === 'output');
+  const outputNodes = nodes.filter(
+    (n) => n.category.toLowerCase() === 'output' || n.type.toLowerCase().includes('output')
+  );
   for (const outNode of outputNodes) {
-    const incoming = edges.filter((e) => e.target === outNode.id);
+    const incoming = edges.filter((e) => e.toNodeId === outNode.id);
     if (incoming.length === 0) {
       errors.push(`Output node "${outNode.id}" has no incoming connections`);
     }
@@ -95,8 +98,8 @@ export function validateGraph(nodes: GNode[], edges: GEdge[]): string[] {
  * @throws Error if graph validation fails (cycles, disconnected nodes, etc.)
  */
 export async function executeStudioGraph(
-  nodes: GNode[],
-  edges: GEdge[],
+  nodes: GraphNode[],
+  edges: GraphEdge[],
   initialState?: Record<string, unknown>,
 ): Promise<StudioGraphExecutionResult> {
   const startTime = performance.now();
@@ -115,39 +118,90 @@ export async function executeStudioGraph(
       };
     }
 
-    // Import core runtime (lazy to avoid circular deps)
-    const { executeGraph } = await import('@holoscript/core/editor/NodeGraphPanel');
+    // Build topological order (deterministic)
+    const inDegree = new Map<string, number>(nodes.map((n) => [n.id, 0]));
+    const outgoing = new Map<string, string[]>();
+    for (const edge of edges) {
+      inDegree.set(edge.toNodeId, (inDegree.get(edge.toNodeId) ?? 0) + 1);
+      const list = outgoing.get(edge.fromNodeId) ?? [];
+      list.push(edge.toNodeId);
+      outgoing.set(edge.fromNodeId, list);
+    }
 
-    // Convert Studio graph format to core format
-    // Studio nodes have: id, type, position, data (contains inputs/outputs)
-    // Core graph expects: nodes[], edges[], computeFunctions
-    const coreGraph = {
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        type: n.type,
-        inputs: n.data?.inputs || {},
-        outputs: n.data?.outputs || {},
-      })),
-      edges: edges.map((e) => ({
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle || 'default',
-        targetHandle: e.targetHandle || 'default',
-      })),
+    const queue = nodes
+      .filter((n) => (inDegree.get(n.id) ?? 0) === 0)
+      .map((n) => n.id)
+      .sort();
+
+    const nodeOrder: string[] = [];
+    while (queue.length) {
+      const current = queue.shift()!;
+      nodeOrder.push(current);
+      for (const next of outgoing.get(current) ?? []) {
+        const nextDeg = (inDegree.get(next) ?? 0) - 1;
+        inDegree.set(next, nextDeg);
+        if (nextDeg === 0) {
+          queue.push(next);
+          queue.sort();
+        }
+      }
+    }
+
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+    const outputs: Record<string, unknown> = {};
+    const emittedEvents: Array<{ nodeId: string; event: string; data?: unknown }> = [];
+    const state: Record<string, unknown> = {
+      ...(initialState ?? {}),
+      lastNodeCount: nodes.length,
+      lastEdgeCount: edges.length,
     };
 
-    // Execute via core runtime
-    const coreResult = await executeGraph(coreGraph, initialState);
+    for (const nodeId of nodeOrder) {
+      const node = nodeById.get(nodeId);
+      if (!node) continue;
+
+      const incoming = edges
+        .filter((e) => e.toNodeId === nodeId)
+        .map((e) => ({
+          fromNodeId: e.fromNodeId,
+          fromPortId: e.fromPortId,
+          value: outputs[`${e.fromNodeId}.${e.fromPortId}`],
+        }));
+
+      for (const outPort of node.outputs) {
+        outputs[`${nodeId}.${outPort.id}`] = {
+          nodeType: node.type,
+          from: incoming.map((i) => `${i.fromNodeId}.${i.fromPortId}`),
+          value: incoming.length ? incoming[0].value ?? `${node.type}:${outPort.id}` : `${node.type}:${outPort.id}`,
+        };
+      }
+
+      if (node.type.toLowerCase().includes('event') || node.type.toLowerCase().includes('trigger')) {
+        emittedEvents.push({
+          nodeId,
+          event: `${node.type}:executed`,
+          data: { inputCount: incoming.length },
+        });
+      }
+    }
+
+    const outputNodes = nodes.filter(
+      (n) => n.category.toLowerCase() === 'output' || n.type.toLowerCase().includes('output')
+    );
+    for (const outNode of outputNodes) {
+      const incoming = edges.filter((e) => e.toNodeId === outNode.id);
+      state[`output:${outNode.id}`] = incoming.map((e) => outputs[`${e.fromNodeId}.${e.fromPortId}`]);
+    }
 
     // Map core result back to Studio shape
     const executionTimeMs = performance.now() - startTime;
 
     return {
       success: true,
-      nodeOrder: coreResult.nodeOrder,
-      outputs: coreResult.outputs,
-      state: coreResult.state,
-      emittedEvents: coreResult.emittedEvents || [],
+      nodeOrder,
+      outputs,
+      state,
+      emittedEvents,
       executionTimeMs,
     };
   } catch (error) {

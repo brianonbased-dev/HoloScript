@@ -334,6 +334,66 @@ export class HoloScriptGenerator {
   }
 
   /**
+   * Generate a 3D world (3DGS/Mesh) from natural language
+   */
+  async generateWorld(prompt: string, session?: GenerationSession): Promise<GeneratedCode & { assetUrl?: string }> {
+    const s = session || this.currentSession;
+    if (!s) {
+      throw new Error('No generation session created. Call createSession first.');
+    }
+
+    if (!s.adapter.generateWorld) {
+       // If the adapter doesn't support generateWorld directly, we might try to 
+       // generate HoloScript code that uses the @world_generator trait.
+       const code = await this.generate(`Generate a scene with a world described as: ${prompt}`, s);
+       return code;
+    }
+
+    const startTime = performance.now();
+    const result = await s.adapter.generateWorld(prompt, {
+      targetPlatform: s.config.targetPlatform
+    });
+    const responseTimeMs = performance.now() - startTime;
+
+    // Create a virtual HoloScript snippet that represents this world
+    const holoScript = `world #generatedWorld {\n  @world_generator(prompt: "${prompt.replace(/"/g, '\\"')}", engine: "${s.adapter.id}")\n}`;
+    const parseResult = this.parser.parse(holoScript);
+
+    const generated: GeneratedCode & { assetUrl?: string } = {
+      holoScript,
+      assetUrl: result.assetUrl,
+      aiConfidence: result.confidence ?? 0.8,
+      parseResult,
+      wasFixed: false,
+      attempts: 1,
+    };
+
+    // Record metrics
+    this.analytics.recordMetric({
+      promptLength: prompt.length,
+      codeLength: holoScript.length,
+      confidence: generated.aiConfidence,
+      parseSuccess: parseResult.success,
+      errorCount: parseResult.errors.length,
+      wasFixed: false,
+      responseTimeMs,
+      attemptsNeeded: 1,
+      adapterName: s.adapter.name,
+      timestamp: new Date(),
+    });
+
+    // Record in history
+    s.history.push({
+      prompt,
+      generated,
+      timestamp: new Date(),
+      sessionAttempt: s.history.length + 1,
+    });
+
+    return generated;
+  }
+
+  /**
    * Optimize generated code for a target platform
    */
   async optimize(

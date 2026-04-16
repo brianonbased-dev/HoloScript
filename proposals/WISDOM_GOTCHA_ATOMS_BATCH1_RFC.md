@@ -44,7 +44,7 @@ In scope:
 Out of scope:
 
 - DAO voting semantics for wisdom updates (covered in governance RFC)
-- Film3-specific rendering controls (covered in narrative batch)
+- Film3D-specific rendering controls (covered in narrative batch)
 - Python package extras implementation details
 
 ## Trait Specifications
