@@ -1,5 +1,5 @@
 /**
- * Trait & Rendering Benchmarks -- Performance benchmark expansion (TODO-R2)
+ * Trait & Rendering Benchmarks -- Performance benchmark expansion (R2 backlog)
  *
  * TARGET: packages/benchmark/src/suites/trait-rendering.bench.ts
  *
