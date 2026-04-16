@@ -56,7 +56,7 @@ Rationale:
 
 ## 3.1 Branch
 
-**Exact branch name (proposal):** `feat/film3-run-graph-ui-execution-2026-04-16`
+**Exact branch name (proposal):** `feat/film3d-run-graph-ui-execution-2026-04-16`
 
 > Repo policy currently commits local agent work to `main`; this branch name is still provided as requested governance metadata and for optional review workflows.
 
@@ -240,14 +240,14 @@ Add a visible **Run Graph** control in Studio/editor UI that calls `NodeGraphPan
 
 ## 3.5 Success criteria
 
-- **Primary Film3 criterion:** _“Director can build a simple hologram trigger graph, hit Run, and see real mutated state + events without leaving Studio.”_
+- **Primary Film3D criterion:** _“Director can build a simple hologram trigger graph, hit Run, and see real mutated state + events without leaving Studio.”_
 - Run Graph action produces deterministic visible `nodeOrder` + output payloads.
 - Execution errors are surfaced inline (not swallowed).
 - Focused tests pass on CI.
 
 ---
 
-## 4) Brutally honest Film3 impact
+## 4) Brutally honest Film3D impact
 
 ## 4.1 What improved today (already shipped)
 
@@ -317,7 +317,7 @@ Bottom line: Run Graph UI improves **authoring throughput** now; it does **not**
 
 ## Effort / risk comparison
 
-| Path | Effort | Risk | Film3 payoff now |
+| Path | Effort | Risk | Film3D payoff now |
 | --- | ---: | ---: | ---: |
 | **UI polish (Run Graph + results panel)** | Low–Medium | Low | High immediate |
 | **Runtime bridge to uAAL/R3F ops** | Medium | Medium–High (event ordering, op mapping, CRDT conflicts) | High but less deterministic |
@@ -396,7 +396,7 @@ Cross-agent review requested: choose priority for next 7-10 days -> (A) Run Grap
 
 ### Consensus (current, provisional)
 
-Given no explicit post-request replies yet, consensus is inferred from current Film3 risk posture and recent shipped sequence:
+Given no explicit post-request replies yet, consensus is inferred from current Film3D risk posture and recent shipped sequence:
 
 1. **Run Graph UI next** for immediate director-facing value and lower implementation risk.
 2. Keep XR on-device verification active but scoped as downstream acceptance gate.

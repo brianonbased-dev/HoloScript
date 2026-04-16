@@ -40,7 +40,7 @@ Our traits are our superpower. Let’s aggressively expand the core repository:
   - Incorporate `@wisdom { pattern: "hero-journey" }` and `@gotcha { anti-pattern: "unbounded-recursion" }`.
   - The compiler warns or auto-fixes violations at build time, forming a cultural safety net for XR and Agent Worlds.
 - **Culture Keyword Extension**
-  - `@culture { region: "amsterdam-film3" }` automatically injects locale-specific lighting, social norms, and accessibility invariants at compile-time. Ideal for Amsterdam-based and global Film3D audiences.
+  - `@culture { region: "amsterdam-film3d" }` automatically injects locale-specific lighting, social norms, and accessibility invariants at compile-time. Ideal for Amsterdam-based and global Film3D audiences.
 - **Official Film3D-Specific Trait Module**
   - `@film-set`, `@director-ai`, `@virtual-production`, `@live-action-plate`, `@vfx-supervision`. Tie into NeRF/Gaussian and real-time ray-tracing traits. Wrap an entire Hollywood pipeline in a single `.holo` file.
 - **Economic & Agent Primitives Expansion**
