@@ -55,8 +55,11 @@ export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> 
          const pid = e.payload?.proposalId as string;
          const prop = s.activeProposals.find(p => p.id === pid);
          if (prop && prop.status === 'active') {
-           if (e.payload?.support) prop.votesFor += e.payload.weight as number;
-           else prop.votesAgainst += e.payload.weight as number;
+           const w = e.payload?.weight;
+           if (typeof w === 'number') {
+             if (e.payload?.support) prop.votesFor += w;
+             else prop.votesAgainst += w;
+           }
            
            // Check quorum completion mocked
            if ((prop.votesFor + prop.votesAgainst) > (s.membersCount * (c.quorumPercent / 100))) {
