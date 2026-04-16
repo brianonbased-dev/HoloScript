@@ -105,6 +105,7 @@
   },
   "scripts": {
     "prepublishOnly": "pnpm run build",
+    "verify:workspace": "node scripts/verify-internal-workspace-protocol.mjs",
     "build": "node scripts/verify-internal-workspace-protocol.mjs && tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",

@@ -16,7 +16,7 @@ const REQUIRED = 'workspace:*';
 
 /** Packages published/managed inside this monorepo (not npm semver). */
 function isInternalWorkspaceDep(name) {
-  return name.startsWith('@holoscript/') || name === 'holoscript-web-preview';
+  return name.startsWith('@holoscript/') || name.startsWith('holoscript-');
 }
 
 const sections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
