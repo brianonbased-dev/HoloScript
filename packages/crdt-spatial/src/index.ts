@@ -50,6 +50,21 @@ export {
 export { LoroWebSocketProvider } from './LoroWebSocketProvider.js';
 export { LoroWebRTCProvider } from './LoroWebRTCProvider.js';
 export { MeshNodeIntegrator } from './MeshNodeIntegrator.js';
+export {
+  ECONOMIC_TRAIT_NAMES,
+  isEconomicTraitName,
+  loroBatchTouchesEconomicTrait,
+  loroEventTouchesEconomicTrait,
+  type EconomicTraitName,
+} from './loroSpatialTraitEvents.js';
+export {
+  FILM3D_VOLUMETRICS_ROOT,
+  ensureFilm3dVolumetricsRoot,
+  registerVolumetricNode,
+  setVolumetricChunk,
+  setVolumetricVoxelPayload,
+  unregisterVolumetricNode,
+} from './film3dVolumetricCrdt.js';
 
 // WorldState - Full world state CRDT document (objects, terrain, NPC memory, inventory)
 export {

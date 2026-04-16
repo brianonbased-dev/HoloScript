@@ -2,8 +2,21 @@
   "name": "@holoscript/plugin-film3d-volumetrics",
   "version": "1.0.0",
   "main": "src/index.ts",
+  "dependencies": {
+    "@holoscript/crdt-spatial": "workspace:^"
+  },
   "peerDependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:*",
+    "loro-crdt": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "loro-crdt": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "loro-crdt": "^1.0.0",
+    "typescript": "~5.9.3"
   },
   "license": "MIT"
 }

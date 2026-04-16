@@ -2239,6 +2239,16 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
+      '@holoscript/crdt-spatial':
+        specifier: workspace:^
+        version: link:../../crdt-spatial
+    devDependencies:
+      loro-crdt:
+        specifier: ^1.0.0
+        version: 1.10.6
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
 
   packages/plugins/fitness-wellness-plugin:
     dependencies:
@@ -24359,7 +24369,6 @@ packages:
 
   /loro-crdt@1.10.6:
     resolution: {integrity: sha512-ije6m7wrSRtzdyEd7n+rjgA+UCzfvz2PkjLk5Lf86zf1LgcbWY3g2nE3+7TDADiiX/ziYTovHnGRBiylPt2ipw==}
-    dev: false
 
   /loupe@2.3.7:
     resolution: {integrity: sha512-zSMINGVYkdpYSOBmLi0D1Uo7JU9nVdQKrHxC8eYlV+9YKK9WePqAlL7lSlorG/U2Fw1w0hTBmaa/jrQ3UbPHtA==}

@@ -1,8 +1,6 @@
-// @ts-nocheck
-// Loro API v1.10.6 changed; needs full rewrite of event/container access patterns.
-// Suppressing DTS errors to unblock the build pipeline. Planned: rewrite to current Loro API.
 import { LoroWebRTCProvider } from './LoroWebRTCProvider';
-import { LoroDoc } from 'loro-crdt';
+import type { LoroDoc, LoroEventBatch } from 'loro-crdt';
+import { loroBatchTouchesEconomicTrait } from './loroSpatialTraitEvents.js';
 import { X402Facilitator, InvisibleWalletStub } from '@holoscript/framework/economy';
 
 export class MeshNodeIntegrator {
@@ -10,12 +8,12 @@ export class MeshNodeIntegrator {
   private doc: LoroDoc;
   private teamId: string;
   private apiKey: string;
-  
+
   constructor(room: string, teamId: string, apiKey: string) {
     this.doc = new LoroDoc();
     this.teamId = teamId;
     this.apiKey = apiKey;
-    
+
     // Bind the WebRTC provider leveraging the internal secure signaling
     this.webrtcProvider = new LoroWebRTCProvider(this.doc, room, {
       signalingServerUrl: 'wss://mcp.holoscript.net/signaling/v1',
@@ -35,25 +33,13 @@ export class MeshNodeIntegrator {
     const x402 = new X402Facilitator({ allowMicropayments: true });
     x402.setWallet(wallet);
 
-    // 2. Intercept spatial CRDT modifications
-    this.doc.subscribe((event) => {
-      // Analyze events for trait mutations related to Economic Primitives
-      const hasEconomicChange = event.events.find(e => {
-        if (e.target.isMap()) {
-          const m = e.target.getMap();
-          // Check for trait assignments: "marketplace_listing" or "agent_owned_entity"
-          // We assume traits are stored as map nodes with "name" keys in our spatial tree representation.
-          const name = m.get('name');
-          return name === 'marketplace_listing' || name === 'agent_owned_entity';
-        }
-        return false;
-      });
+    // 2. Intercept spatial CRDT modifications (Loro v1.x: use batch.events[].diff + doc.getMap)
+    this.doc.subscribe((batch: LoroEventBatch) => {
+      const hasEconomicChange = loroBatchTouchesEconomicTrait(this.doc, batch);
 
       if (hasEconomicChange) {
         console.log('[Sovereignty] Economic state change intercepted on CRDT graph.');
-        // Trigger verification via the x402 facilitator for Proof-of-Play economy enforcement
         try {
-          // This represents a broadcast or enforcement operation, gating local state onto the ledger 
           x402.enforceEscrowState({ docHash: this.doc.timestamp().toString() });
         } catch (err) {
           console.error('[Sovereignty] Escrow verification failed for CRDT mutation.', err);
@@ -63,12 +49,11 @@ export class MeshNodeIntegrator {
   }
 
   private registerAgentPresence() {
-    // Standard HoloMesh presence heartbeat indicating WebRTC capability
     const heartbeat = () => {
       fetch(`https://mcp.holoscript.net/api/holomesh/team/${this.teamId}/presence`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -76,13 +61,13 @@ export class MeshNodeIntegrator {
           status: 'active',
           capabilities: ['webrtc_crdt_sync', 'text_to_universe']
         })
-      }).catch(err => console.error('Failed to heartbeat HoloMesh presence', err));
+      }).catch((err) => console.error('Failed to heartbeat HoloMesh presence', err));
     };
 
     heartbeat();
-    setInterval(heartbeat, 60000); // 60s cadence
+    setInterval(heartbeat, 60000);
   }
-  
+
   public get SpatialDoc() {
     return this.doc;
   }

@@ -1,4 +1,6 @@
 import { LoroDoc } from 'loro-crdt';
+import type { LoroEventBatch } from 'loro-crdt';
+import { FILM3D_VOLUMETRICS_ROOT, ensureFilm3dVolumetricsRoot } from './film3dVolumetricCrdt.js';
 
 export interface WebRTCProviderConfig {
   signalingServerUrl: string;
@@ -29,11 +31,16 @@ export class LoroWebRTCProvider {
     this.peerConnections = new Map();
     this.dataChannels = new Map();
 
-    console.log(`[LoroWebRTC] Initialized hardened multiplayer semantic canvas for room: ${room}`);
+    console.log(
+      `[LoroWebRTC] Initialized hardened multiplayer semantic canvas for room: ${room} (volumetric payloads: root map "${FILM3D_VOLUMETRICS_ROOT}")`
+    );
+
+    // Pre-initialize the volumetrics root map so it is included in all exports from t=0.
+    ensureFilm3dVolumetricsRoot(this.doc);
 
     // Subscribe to Loro local changes to broadcast
-    this.doc.subscribe((event: any) => {
-      if (event.local) {
+    this.doc.subscribe((batch: LoroEventBatch) => {
+      if (batch.local) {
         const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
         this.sync(update);
       }

@@ -8,5 +8,8 @@ export default defineConfig({
     exclude: ['**/dist/**', '**/node_modules/**'],
     environment: 'node',
     passWithNoTests: true,
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 });
