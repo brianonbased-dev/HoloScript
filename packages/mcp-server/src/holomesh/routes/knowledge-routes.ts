@@ -26,6 +26,7 @@ import {
 } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
+import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import type {
   MeshKnowledgeEntry,
   StoredComment,
@@ -1395,11 +1396,44 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
+    let built: { title: string; content: string; submolt: string };
+    try {
+      built = buildMoltbookCrosspostPayload({
+        type: entry.type,
+        id: entry.id,
+        content: entry.content,
+        domain: entry.domain ?? 'general',
+        tags: entry.tags ?? [],
+        title: (entry.metadata?.title as string) || undefined,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      json(res, 400, { error: 'Could not build Moltbook payload', detail: msg });
+      return true;
+    }
+
+    const posted = await createMoltbookPost({
+      apiKey: moltbookKey,
+      title: built.title,
+      content: built.content,
+      submolt: built.submolt,
+    });
+
+    if (!posted.success) {
+      json(res, 502, {
+        error: 'Moltbook API rejected the post',
+        details: posted.details,
+        entry_id: entryId,
+      });
+      return true;
+    }
+
     json(res, 200, {
       success: true,
       crossposted: true,
       entry_id: entryId,
       platform: 'moltbook',
+      moltbook: posted.data,
     });
     return true;
   }
