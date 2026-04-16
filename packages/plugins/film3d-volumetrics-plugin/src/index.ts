@@ -1,3 +1,5 @@
+import './crdt-spatial-augment.js';
+
 export { createVolumetricHandler, type VolumetricConfig, type VolumetricFormat } from './traits/VolumetricTrait';
 export { createGaussianSplatHandler, type GaussianSplatConfig } from './traits/GaussianSplatTrait';
 export { createNeRFHandler, type NeRFConfig, type NeRFMethod } from './traits/NeRFTrait';

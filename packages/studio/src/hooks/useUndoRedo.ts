@@ -15,7 +15,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTemporalStore, useHistoryStore } from '@/lib/historyStore';
+import {
+  useTemporalStore,
+  useHistoryStore,
+  beginHistoryReplay,
+  endHistoryReplay,
+  installSpatialTraitHistoryBridge
+} from '@/lib/historyStore';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 
 export function useUndoRedo() {
@@ -45,18 +51,27 @@ export function useUndoRedo() {
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
 
+  // Forward bridge: scene graph spatial trait edits (e.g. TraitInspector) → temporal history snapshots
+  useEffect(() => {
+    return installSpatialTraitHistoryBridge();
+  }, []);
+
   // Backward sync bridge: when historyStore changes (via undo/redo), reflect onto standard stores
   useEffect(() => {
     return useHistoryStore.subscribe((state) => {
-      const currentNodes = useSceneGraphStore.getState().nodes;
-      if (state.nodes !== currentNodes) {
-        useSceneGraphStore.setState({ nodes: state.nodes });
-      }
-      
-      const currentCode = useSceneStore.getState().code;
-      if (state.code && state.code !== currentCode) {
-        // Prevent code change from bumping sceneStore timestamp endlessly if identical
-        useSceneStore.getState().setCode(state.code);
+      beginHistoryReplay();
+      try {
+        const currentNodes = useSceneGraphStore.getState().nodes;
+        if (state.nodes !== currentNodes) {
+          useSceneGraphStore.setState({ nodes: state.nodes });
+        }
+
+        const currentCode = useSceneStore.getState().code;
+        if (state.code && state.code !== currentCode) {
+          useSceneStore.getState().setCode(state.code);
+        }
+      } finally {
+        endHistoryReplay();
       }
     });
   }, []);
