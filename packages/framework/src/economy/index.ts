@@ -6,6 +6,14 @@
  */
 
 export {
+  safeParseX402PaymentPayload,
+  x402PaymentPayloadSchema,
+  x402SettlementChainSchema,
+  x402RequiredAmountSchema,
+  formatX402ParseError,
+} from './x402-boundary-schemas';
+
+export {
   // x402 Facilitator
   X402_VERSION,
   type SettlementChain,

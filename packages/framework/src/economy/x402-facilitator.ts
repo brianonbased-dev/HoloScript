@@ -26,6 +26,7 @@
 
 // Import real trait types from @holoscript/core
 import type { HSPlusNode, TraitHandler, TraitContext, TraitEvent } from '@holoscript/core';
+import { safeParseX402PaymentPayload, x402RequiredAmountSchema } from './x402-boundary-schemas';
 
 // =============================================================================
 // x402 PROTOCOL TYPES
@@ -458,6 +459,17 @@ export class X402Facilitator {
    * @returns Verification result
    */
   verifyPayment(payment: X402PaymentPayload, requiredAmount: string): X402VerificationResult {
+    const boundary = safeParseX402PaymentPayload(payment);
+    if (!boundary.success) {
+      return { isValid: false, invalidReason: boundary.error };
+    }
+    payment = boundary.data as X402PaymentPayload;
+
+    const amountCheck = x402RequiredAmountSchema.safeParse(requiredAmount);
+    if (!amountCheck.success) {
+      return { isValid: false, invalidReason: amountCheck.error.issues.map((i) => i.message).join('; ') };
+    }
+
     // Check protocol version
     if (payment.x402Version !== X402_VERSION) {
       return { isValid: false, invalidReason: `Unsupported x402 version: ${payment.x402Version}` };
@@ -835,7 +847,9 @@ export class X402Facilitator {
     try {
       const decoded =
         typeof atob === 'function' ? atob(header) : Buffer.from(header, 'base64').toString('utf-8');
-      return JSON.parse(decoded) as X402PaymentPayload;
+      const raw: unknown = JSON.parse(decoded);
+      const parsed = safeParseX402PaymentPayload(raw);
+      return parsed.success ? (parsed.data as X402PaymentPayload) : null;
     } catch {
       return null;
     }
@@ -1123,11 +1137,14 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
           return;
         }
 
-        // Decode the X-PAYMENT header
-        const paymentPayload =
-          typeof xPaymentHeader === 'string'
-            ? X402Facilitator.decodeXPaymentHeader(xPaymentHeader)
-            : (xPaymentHeader as X402PaymentPayload);
+        // Decode the X-PAYMENT header (string base64 or strict trait object — no unsafe casts)
+        let paymentPayload: X402PaymentPayload | null = null;
+        if (typeof xPaymentHeader === 'string') {
+          paymentPayload = X402Facilitator.decodeXPaymentHeader(xPaymentHeader);
+        } else {
+          const parsed = safeParseX402PaymentPayload(xPaymentHeader);
+          paymentPayload = parsed.success ? (parsed.data as X402PaymentPayload) : null;
+        }
 
         if (!paymentPayload) {
           context.emit?.('credit:access_denied', {
@@ -1550,17 +1567,21 @@ export class PaymentGateway {
     payment: string | X402PaymentPayload,
     requiredAmount: string
   ): X402VerificationResult & { decodedPayload: X402PaymentPayload | null } {
-    // Decode if string
-    const payload: X402PaymentPayload | null =
-      typeof payment === 'string' ? X402Facilitator.decodeXPaymentHeader(payment) : payment;
+    let payload: X402PaymentPayload | null = null;
+    if (typeof payment === 'string') {
+      payload = X402Facilitator.decodeXPaymentHeader(payment);
+    } else {
+      const parsed = safeParseX402PaymentPayload(payment);
+      payload = parsed.success ? (parsed.data as X402PaymentPayload) : null;
+    }
 
     if (!payload) {
       this.emit('payment:verification_failed', {
-        metadata: { reason: 'Failed to decode X-PAYMENT header' },
+        metadata: { reason: 'Failed to decode or validate X-PAYMENT payload' },
       });
       return {
         isValid: false,
-        invalidReason: 'Failed to decode X-PAYMENT header',
+        invalidReason: 'Failed to decode or validate X-PAYMENT payload',
         decodedPayload: null,
       };
     }
@@ -1615,9 +1636,13 @@ export class PaymentGateway {
     resource: string,
     requiredAmount: string
   ): Promise<X402SettlementResult> {
-    // Decode if string
-    const payload: X402PaymentPayload | null =
-      typeof payment === 'string' ? X402Facilitator.decodeXPaymentHeader(payment) : payment;
+    let payload: X402PaymentPayload | null = null;
+    if (typeof payment === 'string') {
+      payload = X402Facilitator.decodeXPaymentHeader(payment);
+    } else {
+      const parsed = safeParseX402PaymentPayload(payment);
+      payload = parsed.success ? (parsed.data as X402PaymentPayload) : null;
+    }
 
     if (!payload) {
       return {
@@ -1625,7 +1650,7 @@ export class PaymentGateway {
         transaction: null,
         network: this.config.chain,
         payer: 'unknown',
-        errorReason: 'Failed to decode payment payload',
+        errorReason: 'Failed to decode or validate payment payload',
         mode: 'on_chain',
         settledAt: Date.now(),
       };
