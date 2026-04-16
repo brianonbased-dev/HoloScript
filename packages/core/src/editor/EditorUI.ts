@@ -13,6 +13,9 @@ import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
 import { Vector3, Quaternion } from '../types/HoloScriptPlus';
 import { PlayModeController } from './PlayModeController';
+import { NodeGraph } from '../logic/NodeGraph';
+import { NodeGraphPanel } from './NodeGraphPanel';
+import { emitPreviewHoloScriptFromNodeGraphExecution } from './nodeGraphPlayPreview';
 import { CopilotPanel } from './CopilotPanel';
 import { AICopilotAdapter } from '@holoscript/framework/ai';
 import { AICopilot } from '@holoscript/framework/ai';
@@ -130,6 +133,17 @@ export class EditorUI {
 
     this.createSystemMenu();
     this.createPlayToolbar();
+  }
+
+  /**
+   * Phase 2 — run the same preview pipeline as Copilot: evaluate the logic graph,
+   * emit minimal HoloScript, then drive PlayModeController.executeGeneratedScript.
+   */
+  public async runNodeGraphPreview(graph: NodeGraph): Promise<void> {
+    const panel = new NodeGraphPanel(graph);
+    const execution = panel.executeGraph();
+    const holo = emitPreviewHoloScriptFromNodeGraphExecution(execution, graph);
+    await this.playModeController.executeGeneratedScript(holo);
   }
 
   private createSystemMenu() {

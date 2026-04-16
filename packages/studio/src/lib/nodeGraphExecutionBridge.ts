@@ -3,9 +3,58 @@
  *
  * Lightweight execution bridge for Studio visual node graphs.
  * Produces deterministic execution order + output/state/event snapshots.
+ * When the graph only uses mapped math nodes, aligns preview HoloScript with
+ * the core NodeGraphPanel.executeGraph evaluator (Phase 2).
  */
 
 import type { GraphNode, GraphEdge } from '@/hooks/useNodeGraph';
+import {
+  NodeGraph,
+  NodeGraphPanel,
+  emitPreviewHoloScriptFromNodeGraphExecution,
+} from '@holoscript/core';
+
+/**
+ * Builds a core NodeGraph from Studio nodes when every node type maps
+ * to a built-in logic evaluator. Returns null if any node is unmapped (e.g. output_surface).
+ */
+export function tryBuildCoreGraphFromStudio(nodes: GraphNode[], edges: GraphEdge[]): NodeGraph | null {
+  const typeMap: Record<string, string> = {
+    add: 'MathAdd',
+    multiply: 'MathMultiply',
+    mul: 'MathMultiply',
+  };
+
+  const studioIdToCore = new Map<string, string>();
+  const graph = new NodeGraph('studio_execution_bridge');
+
+  for (const n of nodes) {
+    const coreType = typeMap[n.type.toLowerCase()];
+    if (!coreType) return null;
+    const coreNode = graph.addNode(coreType, { x: n.x / 120, y: n.y / 120 });
+    studioIdToCore.set(n.id, coreNode.id);
+    const aIn = coreNode.inputs.find((p) => p.name === 'a');
+    const bIn = coreNode.inputs.find((p) => p.name === 'b');
+    if (coreType === 'MathAdd' || coreType === 'MathMultiply') {
+      if (aIn) aIn.defaultValue = 0;
+      if (bIn) bIn.defaultValue = coreType === 'MathMultiply' ? 1 : 0;
+    }
+  }
+
+  for (const e of edges) {
+    const fromCore = studioIdToCore.get(e.fromNodeId);
+    const toCore = studioIdToCore.get(e.toNodeId);
+    if (!fromCore || !toCore) continue;
+    const fromPort = e.fromPortId === 'out' || e.fromPortId === 'Out' ? 'result' : e.fromPortId;
+    let toPort = e.toPortId;
+    if (toPort === 'in' || toPort === 'In') toPort = 'a';
+    if (toPort === 'inA') toPort = 'a';
+    if (toPort === 'inB') toPort = 'b';
+    graph.connect(fromCore, fromPort, toCore, toPort);
+  }
+
+  return graph;
+}
 
 /**
  * Result shape returned after graph execution via bridge.
@@ -20,6 +69,19 @@ export interface StudioGraphExecutionResult {
   errorMessage?: string;
   errorNodeId?: string;
   executionTimeMs?: number;
+  /** Minimal HoloScript for PlayModeController / Copilot-equivalent preview path (Phase 2). */
+  previewHoloScript?: string;
+}
+
+/** Minimal HoloScript for the same preview pipeline as core node graphs / Copilot. */
+export function emitStudioGraphPreviewHoloScriptFromOrder(nodeOrder: string[]): string {
+  let slug =
+    nodeOrder
+      .join('_')
+      .replace(/[^\w]+/g, '')
+      .slice(0, 48) || 'Run';
+  if (!/^[A-Za-z_]/.test(slug)) slug = `g_${slug}`;
+  return `composition "StudioGraph_${slug}" {\n  object "StudioGraphMarker" {\n    position: [0, 1.45, -0.8]\n  }\n}\n`;
 }
 
 /**
@@ -196,6 +258,18 @@ export async function executeStudioGraph(
     // Map core result back to Studio shape
     const executionTimeMs = performance.now() - startTime;
 
+    let previewHoloScript = emitStudioGraphPreviewHoloScriptFromOrder(nodeOrder);
+    try {
+      const coreGraph = tryBuildCoreGraphFromStudio(nodes, edges);
+      if (coreGraph) {
+        const corePanel = new NodeGraphPanel(coreGraph);
+        const coreExec = corePanel.executeGraph();
+        previewHoloScript = emitPreviewHoloScriptFromNodeGraphExecution(coreExec, coreGraph);
+      }
+    } catch {
+      /* keep studio-derived preview */
+    }
+
     return {
       success: true,
       nodeOrder,
@@ -203,6 +277,7 @@ export async function executeStudioGraph(
       state,
       emittedEvents,
       executionTimeMs,
+      previewHoloScript,
     };
   } catch (error) {
     const executionTimeMs = performance.now() - startTime;

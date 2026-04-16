@@ -13,17 +13,6 @@ import {
   type StudioGraphExecutionResult,
 } from '@/lib/nodeGraphExecutionBridge';
 import { logger } from '@/lib/logger';
-import { useState, useRef, _useCallback, useEffect } from 'react';
-import { Network, X, Search, Plus, _Trash2, RotateCcw, Play, ChevronDown } from 'lucide-react';
-import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
-import { executeStudioGraph, formatExecutionResult, type StudioGraphExecutionResult } from '@/lib/nodeGraphExecutionBridge';
-import { logger } from '@/lib/logger';@@
-  transform: '#44bb88',
-  material: '#cc6644',
-  geometry: '#8855cc',
-  light: '#eeaa22',
-  output: '#ff4466',
-};
 
 interface NodeGraphPanelProps {
   onClose: () => void;
