@@ -2978,6 +2978,89 @@ export type HoloDomainType = string;
 export class TraitConstraint { [key: string]: any; }
 export interface ISignalingBridge { [key: string]: any; }
 export interface NeuralSignalPayload { [key: string]: any; }
+
+// ============================================================================
+// Visual logic graph (Studio bridge + PlayMode preview path)
+// ============================================================================
+export type PortType = 'number' | 'string' | 'boolean' | 'vec3' | 'any' | 'event';
+export interface PortDefinition {
+  name: string;
+  type: PortType;
+  defaultValue?: unknown;
+}
+export interface LogicNode {
+  id: string;
+  type: string;
+  inputs: PortDefinition[];
+  outputs: PortDefinition[];
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+export interface LogicConnection {
+  id: string;
+  fromNode: string;
+  fromPort: string;
+  toNode: string;
+  toPort: string;
+}
+export interface EvaluationContext {
+  state: Record<string, unknown>;
+  deltaTime: number;
+  events: Map<string, unknown[]>;
+  emittedEvents: Map<string, unknown[]>;
+}
+export declare class NodeGraph {
+  readonly id: string;
+  constructor(id?: string);
+  addNode(
+    type: string,
+    position?: { x: number; y: number },
+    data?: Record<string, unknown>
+  ): LogicNode;
+  connect(
+    fromNode: string,
+    fromPort: string,
+    toNode: string,
+    toPort: string
+  ): LogicConnection | null;
+  getNode(nodeId: string): LogicNode | undefined;
+  getNodes(): LogicNode[];
+  getConnections(): LogicConnection[];
+  topologicalSort(): string[];
+  evaluate(context: EvaluationContext): Map<string, Record<string, unknown>>;
+}
+export interface NodeGraphExecutionResult {
+  nodeOrder: string[];
+  outputs: Map<string, Record<string, unknown>>;
+  state: Record<string, unknown>;
+  emittedEvents: Map<string, unknown[]>;
+}
+export interface NodeGraphPanelConfig {
+  position: [number, number, number];
+  nodeWidth: number;
+  nodeHeight: number;
+  gridSpacing: number;
+}
+export interface UIEntity {
+  id: string;
+  type: 'panel' | 'label' | 'port' | 'connection_line';
+  position: [number, number, number];
+  size?: { width: number; height: number };
+  text?: string;
+  color?: string;
+  data?: Record<string, unknown>;
+}
+export declare class NodeGraphPanel {
+  constructor(graph: NodeGraph, config?: Partial<NodeGraphPanelConfig>);
+  generateUI(): UIEntity[];
+  selectNode(nodeId: string | null): void;
+  getSelectedNode(): string | null;
+  executeGraph(contextOverrides?: Partial<EvaluationContext>): NodeGraphExecutionResult;
+}
+export declare function emitPreviewHoloScriptFromNodeGraphExecution(
+  execution: NodeGraphExecutionResult,
+  graph: NodeGraph
+): string;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

@@ -4,24 +4,19 @@
  * NodeGraphPanel — visual node graph editor with drag-canvas, node cards, and SVG edges.
  */
 
-import { useState, useRef, _useCallback, useEffect } from 'react';
-import { Network, X, Search, Plus, _Trash2, RotateCcw } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Network, X, Search, Plus, RotateCcw, Play, ChevronDown } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
+import {
+  executeStudioGraph,
+  formatExecutionResult,
+  type StudioGraphExecutionResult,
+} from '@/lib/nodeGraphExecutionBridge';
 import { logger } from '@/lib/logger';
-import { useState, useRef, _useCallback, useEffect } from 'react';
-import { Network, X, Search, Plus, _Trash2, RotateCcw, Play, ChevronDown } from 'lucide-react';
-import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
-import { executeStudioGraph, formatExecutionResult, type StudioGraphExecutionResult } from '@/lib/nodeGraphExecutionBridge';
-import { logger } from '@/lib/logger';@@
-  transform: '#44bb88',
-  material: '#cc6644',
-  geometry: '#8855cc',
-  light: '#eeaa22',
-  output: '#ff4466',
-};
 
 interface NodeGraphPanelProps {
   onClose: () => void;
+  onExecutionResult?: (result: StudioGraphExecutionResult) => void;
 }
 
 function NodeCard({
@@ -116,12 +111,16 @@ function NodeCard({
   );
 }
 
-export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
+export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelProps) {
   const { nodes, edges, selected, setSelected, addNode, removeNode, moveNode, clearGraph } =
     useNodeGraph();
   const [catalog, setCatalog] = useState<NodeDef[]>([]);
   const [q, setQ] = useState('');
   const [showPicker, setShowPicker] = useState(false);
+  const [execResult, setExecResult] = useState<StudioGraphExecutionResult | null>(null);
+  const [execError, setExecError] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -139,6 +138,25 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
   );
 
   const handleCanvasClick = () => setSelected(null);
+
+  const handleRunGraph = async () => {
+    setIsExecuting(true);
+    setExecError(null);
+    try {
+      const result = await executeStudioGraph(nodes, edges);
+      setExecResult(result);
+      setShowResults(true);
+      onExecutionResult?.(result);
+      if (!result.success) {
+        setExecError(result.errorMessage || 'Execution failed');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setExecError(msg);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   // Simple edge SVG lines (straight)
   const edgeLines = edges.map((e) => {
@@ -168,6 +186,15 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
         <Network className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Node Graph</span>
         <div className="ml-auto flex gap-1">
+          <button
+            onClick={handleRunGraph}
+            disabled={nodes.length === 0 || isExecuting}
+            className="flex items-center gap-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/30 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-1 text-[10px] font-semibold text-green-400 transition-colors"
+            title="Execute the node graph and show results"
+          >
+            <Play className="h-3 w-3" />
+            {isExecuting ? 'Running...' : 'Run Graph'}
+          </button>
           <button
             onClick={() => setShowPicker((v) => !v)}
             className="flex items-center gap-1 rounded-lg border border-studio-border px-2 py-1 text-[9px] text-studio-muted hover:text-studio-text"
@@ -261,6 +288,76 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
           </span>
         )}
       </div>
+
+      {execResult && (
+        <div className="shrink-0 border-t border-studio-border bg-[#0a0a18]/80">
+          <button
+            onClick={() => setShowResults((v) => !v)}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-studio-surface/30 transition-colors"
+          >
+            <ChevronDown
+              className="h-3 w-3 transition-transform"
+              style={{ transform: showResults ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+            />
+            <span
+              className={`text-[10px] font-semibold ${execResult.success ? 'text-green-400' : 'text-red-400'}`}
+            >
+              {formatExecutionResult(execResult).summary}
+            </span>
+          </button>
+
+          {showResults && (
+            <div className="px-3 py-2 border-t border-studio-border/50 max-h-48 overflow-y-auto text-[8px] text-studio-muted space-y-1.5">
+              <div className="text-studio-text/70">{formatExecutionResult(execResult).details}</div>
+
+              {execResult.nodeOrder.length > 0 && (
+                <div>
+                  <span className="text-studio-accent">Execution order:</span>
+                  <div className="ml-2 text-studio-text/60">{execResult.nodeOrder.join(' → ')}</div>
+                </div>
+              )}
+
+              {Object.keys(execResult.outputs).length > 0 && (
+                <div>
+                  <span className="text-studio-accent">Outputs:</span>
+                  <div className="ml-2 space-y-0.5">
+                    {Object.entries(execResult.outputs)
+                      .slice(0, 10)
+                      .map(([key, val]) => {
+                        const serialized = JSON.stringify(val);
+                        return (
+                          <div key={key} className="text-studio-text/60">
+                            {key}: {serialized.slice(0, 72)}
+                            {serialized.length > 72 ? '…' : ''}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {execResult.emittedEvents.length > 0 && (
+                <div>
+                  <span className="text-studio-accent">Events ({execResult.emittedEvents.length}):</span>
+                  <div className="ml-2 space-y-0.5">
+                    {execResult.emittedEvents.slice(0, 8).map((evt, i) => (
+                      <div key={`${evt.nodeId}-${evt.event}-${i}`} className="text-studio-text/60">
+                        {evt.nodeId}: {evt.event}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {execError && (
+                <div className="rounded-lg bg-red-900/20 border border-red-700/30 p-1.5 text-red-400">
+                  {execError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
