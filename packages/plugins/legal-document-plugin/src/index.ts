@@ -234,7 +234,7 @@ export function validateSpatialLegalContract(input: unknown): ValidationResult<S
 	if (!isString(input.jurisdiction)) {
 		issues.push({ path: 'jurisdiction', message: 'jurisdiction is required' });
 	}
-	if (!isStringArray(input.parties)) {
+	if (!isStringArray(input.parties) || (input.parties as unknown[]).length === 0) {
 		issues.push({ path: 'parties', message: 'parties must be a non-empty string array' });
 	}
 
