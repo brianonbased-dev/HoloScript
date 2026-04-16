@@ -88,7 +88,15 @@ const IS_RAILWAY = Boolean(
     process.env.RAILWAY_PROJECT_ID ||
     process.env.RAILWAY_ENVIRONMENT
 );
+/** SSE MCP session mode: off on Railway unless opted in (multi-replica routing can split GET/POST). */
 const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY;
+
+/** Anti-buffering headers for long-lived SSE through Railway / nginx / CDN edges. */
+function applyEdgeSafeSseHeaders(res: http.ServerResponse): void {
+  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('X-Accel-Buffering', 'no');
+}
 
 // Protocol Registry — in-memory store (production: back with PostgreSQL)
 const protocolRecords = new Map<string, Record<string, unknown>>();
@@ -238,6 +246,7 @@ async function createAndStoreSessionTransport(
   const host = req.headers.host || `localhost:${PORT}`;
   const protocol = req.headers['x-forwarded-proto'] || 'http';
   const baseUrl = `${protocol}://${host}`;
+  applyEdgeSafeSseHeaders(res);
   const transport = new SSEServerTransport(`${baseUrl}/mcp/messages?sessionId=${sid}`, res);
 
   const server = createMcpServer(auth);
@@ -1282,8 +1291,9 @@ const httpServer = http.createServer(async (req, res) => {
         JSON.stringify({
           error: 'SSE transport disabled',
           reason:
-            'Railway edge routing can split GET /mcp and POST /mcp/messages across nodes, causing hanging sessions.',
-          hint: 'Use stateless MCP over POST /mcp (tools/list, tools/call).',
+            'On Railway, MCP SSE is off by default: edge routing can send GET /mcp and POST /mcp/messages to different replicas so the session map misses.',
+          hint:
+            'Prefer stateless MCP: POST /mcp (streamable HTTP). To force classic SSE here, set MCP_ENABLE_SSE=true and run a single replica (or sticky routing), and keep CDN/proxy buffering disabled for /mcp*.',
           transport: 'streamable-http',
         })
       );
@@ -1339,7 +1349,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           error: 'SSE message endpoint disabled',
-          hint: 'Use stateless MCP over POST /mcp.',
+          hint: 'Use stateless MCP over POST /mcp, or enable MCP_ENABLE_SSE with a single MCP replica.',
           transport: 'streamable-http',
         })
       );

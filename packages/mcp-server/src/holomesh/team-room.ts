@@ -131,14 +131,20 @@ export function handleTeamRoomConnection(
   const ide = query.get('ide') || undefined;
   const since = query.get('since') ? new Date(query.get('since')!).getTime() : 0;
 
-  // SSE headers
+  // SSE headers — CDNs and reverse proxies often buffer unless explicitly told not to.
   res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform',
+    'Pragma': 'no-cache',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
-    'X-Accel-Buffering': 'no', // Disable nginx/Railway buffering
+    'X-Accel-Buffering': 'no',
   });
+  try {
+    res.flushHeaders?.();
+  } catch {
+    // ignore — some adapters omit flushHeaders
+  }
 
   // Create client entry
   const client: RoomClient = {
