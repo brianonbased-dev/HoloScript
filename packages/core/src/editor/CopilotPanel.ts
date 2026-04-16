@@ -172,6 +172,12 @@ export class CopilotPanel {
       text: response.text,
       suggestions: response.suggestions,
     });
+
+    // Keep suggestion-only flows bounded too
+    if (this.messages.length > this.config.maxMessages * 2) {
+      this.messages = this.messages.slice(-this.config.maxMessages);
+    }
+
     return response;
   }
 

@@ -200,6 +200,16 @@ describe('CopilotPanel — requestSuggestion', () => {
     const res = await panel.requestSuggestion();
     expect(res).toBeDefined();
   });
+
+  it('trims history when repeated suggestion calls exceed maxMessages * 2', async () => {
+    const panel = new CopilotPanel(makeCopilot('suggested'), { maxMessages: 2 });
+    await panel.requestSuggestion();
+    await panel.requestSuggestion();
+    await panel.requestSuggestion();
+    await panel.requestSuggestion();
+    await panel.requestSuggestion();
+    expect(panel.getMessages().length).toBeLessThanOrEqual(2);
+  });
 });
 
 // =============================================================================
