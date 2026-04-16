@@ -10,9 +10,100 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const ORCHESTRATOR_URL = 'http://localhost:5555';
-const SERVER_ID = 'brittney-service';
-const TOOL_NAME = 'generate_holoscript';
+const ORCHESTRATOR_URL = process.env['MCP_ORCHESTRATOR_URL'] ?? 'http://localhost:5555';
+const SERVER_ID = process.env['BRITTNEY_SERVER_ID'] ?? 'brittney-service';
+const TOOL_NAME = process.env['BRITTNEY_TOOL_NAME'] ?? 'generate_holoscript';
+const MCP_SERVER_URL = process.env['HOLOSCRIPT_MCP_URL'] ?? 'https://mcp.holoscript.net';
+const MCP_API_KEY = process.env['HOLOSCRIPT_API_KEY'] ?? '';
+
+type JsonMap = Record<string, unknown>;
+
+interface JsonRpcToolResponse {
+  result?: unknown;
+  error?: {
+    code?: number;
+    message?: string;
+    data?: unknown;
+  };
+}
+
+function extractGeneratedCode(payload: unknown): string | null {
+  if (!payload) return null;
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const fromItem = extractGeneratedCode(item);
+      if (fromItem) return fromItem;
+    }
+    return null;
+  }
+  if (typeof payload === 'object') {
+    const obj = payload as JsonMap;
+
+    const content = obj['content'];
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (typeof c === 'object' && c) {
+          const textValue = (c as JsonMap)['text'];
+          if (typeof textValue === 'string' && textValue.trim().length > 0) {
+            return textValue;
+          }
+        }
+      }
+    }
+
+    const directKeys = ['result', 'output', 'code', 'text'];
+    for (const key of directKeys) {
+      const value = obj[key];
+      const extracted = extractGeneratedCode(value);
+      if (extracted) return extracted;
+    }
+  }
+  return null;
+}
+
+async function callMcpJsonRpc(prompt: GenerationRequest): Promise<string | null> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (MCP_API_KEY) {
+    headers['Authorization'] = `Bearer ${MCP_API_KEY}`;
+    headers['x-mcp-api-key'] = MCP_API_KEY;
+  }
+
+  const response = await fetch(`${MCP_SERVER_URL}/mcp`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tools/call',
+      params: {
+        name: TOOL_NAME,
+        arguments: {
+          description: prompt.description,
+          category: prompt.category,
+          complexity: prompt.complexity,
+          patterns: prompt.patterns,
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`MCP JSON-RPC failed: ${response.status} ${response.statusText}`);
+  }
+
+  const json = (await response.json()) as JsonRpcToolResponse;
+  if (json.error) {
+    throw new Error(`MCP error: ${json.error.message ?? 'Unknown MCP error'}`);
+  }
+
+  return extractGeneratedCode(json.result);
+}
 
 interface GenerationRequest {
   description: string;
@@ -70,9 +161,12 @@ interface TrainingExample {
 
 async function callOrchestrator(prompt: GenerationRequest): Promise<string | null> {
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (MCP_API_KEY) headers['x-mcp-api-key'] = MCP_API_KEY;
+
     const response = await fetch(`${ORCHESTRATOR_URL}/tools/call`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         server: SERVER_ID,
         tool: TOOL_NAME,
@@ -86,37 +180,42 @@ async function callOrchestrator(prompt: GenerationRequest): Promise<string | nul
     if (!response.ok) {
       const err = await response.text();
       console.error(`Error calling orchestrator: ${response.status} ${err}`);
-      return null;
+      return await callMcpJsonRpc(prompt);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as JsonMap;
+    const orchestratorResult = extractGeneratedCode(data);
+    const pendingRoute =
+      data['status'] === 'routed' &&
+      typeof data['note'] === 'string' &&
+      String(data['note']).toLowerCase().includes('pending');
 
-    // Parse the inner content from Brittney (simulated or real)
-    // The orchestrator returns { success: true, ... note: '...' }
-    // BUT since we saw in the orchestrator source that it returns a placeholder,
-    // we need to handle that.
-    // WAIT! The orchestrator source I read had a TODO for tool execution!
-    // "TODO: Implement actual tool execution via MCP protocol"
-    // "For now, we validate and log the request"
+    if (orchestratorResult) {
+      return orchestratorResult;
+    }
 
-    // Ah, if the orchestrator is running the version I read, it won't actually call Brittney yet.
-    // It returns a "routed" status.
-
-    // If the orchestrator is fully implemented in the running instance (version 1.0.0 operational),
-    // it *might* have the implementation. Let's assume for a moment it does or we mock it if it returns the placeholder.
-
-    if (data.status === 'routed' && data.note?.includes('pending')) {
-      // Fallback simulation if Orchestrator isn't fully forwarding yet
+    if (pendingRoute) {
       console.warn(
-        `[Orchestrator] Tool execution pending. Simulating Brittney response for: ${prompt.description}`
+        `[Orchestrator] Route acknowledged but no execution payload returned; attempting direct MCP tool call for: ${prompt.description}`
       );
-      return simulateBrittneyResponse(prompt);
     }
 
-    return data.result || data.content?.[0]?.text || null;
+    const directResult = await callMcpJsonRpc(prompt);
+    if (directResult) return directResult;
+
+    console.warn(
+      `[MCP] Tool response was empty. Falling back to deterministic local simulation for: ${prompt.description}`
+    );
+    return simulateBrittneyResponse(prompt);
   } catch (err) {
-    console.error('Failed to connect to orchestrator:', err);
-    return null;
+    console.error('Failed to connect to orchestrator, attempting direct MCP call:', err);
+    try {
+      const directResult = await callMcpJsonRpc(prompt);
+      if (directResult) return directResult;
+    } catch (mcpErr) {
+      console.error('Direct MCP call failed:', mcpErr);
+    }
+    return simulateBrittneyResponse(prompt);
   }
 }
 

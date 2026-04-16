@@ -425,6 +425,10 @@ function toCamelCase(name: string): string {
   return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 }
 
+function escapeForCSharpString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 function formatCSharpVector3(vec: unknown): string {
   if (Array.isArray(vec) && vec.length >= 3) {
     return `new Vector3(${vec[0]}f, ${vec[1]}f, ${vec[2]}f)`;
@@ -462,6 +466,36 @@ interface UnityComponentMapping {
   usings: string[];
   componentCode: string;
 }
+
+const BUILTIN_UNITY_TRAITS = new Set<string>([
+  'grabbable',
+  'physics',
+  'rigidbody',
+  'rigid',
+  'collidable',
+  'glowing',
+  'emissive',
+  'clickable',
+  'spinning',
+  'animated',
+  'networked',
+  'transparent',
+  'kinematic',
+  'trigger',
+  'spatial_audio',
+  'particle_emitter',
+  'reflective',
+  'billboard',
+  'throwable',
+  'destructible',
+  'portal',
+  'cloth',
+  'soft_body',
+  'particle_system',
+  'joint',
+  'look_at',
+  'patrol',
+]);
 
 function mapTraitToUnityComponents(trait: HoloTrait, obj: HoloObject): UnityComponentMapping {
   switch (trait.name) {
@@ -906,9 +940,15 @@ function mapTraitToUnityComponents(trait: HoloTrait, obj: HoloObject): UnityComp
       };
 
     default:
+      const serializedParams = escapeForCSharpString(JSON.stringify(trait.params ?? {}));
       return {
         usings: [],
-        componentCode: `        // @${trait.name} -> Custom trait (no built-in Unity mapping)\n        // TODO: Implement ${toPascalCase(trait.name)} component`,
+        componentCode: [
+          `        // @${trait.name} -> HoloTraitAdapter fallback`,
+          '        var traitAdapter = gameObject.GetComponent<HoloTraitAdapter>();',
+          '        if (traitAdapter == null) traitAdapter = gameObject.AddComponent<HoloTraitAdapter>();',
+          `        traitAdapter.RegisterTrait("${escapeForCSharpString(trait.name)}", "${serializedParams}");`,
+        ].join('\n'),
       };
   }
 }
@@ -1503,6 +1543,53 @@ namespace HoloScript.Generated
         }
     }
 }
+
+function generateHoloTraitAdapter(): string {
+  return `using UnityEngine;
+using System;
+using System.Collections.Generic;
+
+namespace HoloScript.Generated
+{
+  /// <summary>
+  /// Generic adapter for HoloScript traits that don't yet have a dedicated Unity component.
+  /// Stores normalized trait metadata for runtime systems and future migration.
+  /// </summary>
+  public class HoloTraitAdapter : MonoBehaviour
+  {
+    [Serializable]
+    public class TraitEntry
+    {
+      public string Name = "";
+      [TextArea(1, 6)]
+      public string ParamsJson = "{}";
+    }
+
+    [SerializeField] private List<TraitEntry> _traits = new List<TraitEntry>();
+
+    public IReadOnlyList<TraitEntry> Traits => _traits;
+
+    public void RegisterTrait(string name, string paramsJson)
+    {
+      if (string.IsNullOrWhiteSpace(name)) return;
+
+      var existing = _traits.Find((t) => t.Name == name);
+      if (existing != null)
+      {
+        existing.ParamsJson = paramsJson;
+        return;
+      }
+
+      _traits.Add(new TraitEntry
+      {
+        Name = name,
+        ParamsJson = string.IsNullOrWhiteSpace(paramsJson) ? "{}" : paramsJson,
+      });
+    }
+  }
+}
+`;
+}
 `;
 }
 
@@ -1634,6 +1721,11 @@ export function exportToUnity(holoCode: string, outputDir: string): void {
         case 'patrol':
           neededHelpers.add('HoloPatrol');
           break;
+        default:
+          if (!BUILTIN_UNITY_TRAITS.has(trait.name)) {
+            neededHelpers.add('HoloTraitAdapter');
+          }
+          break;
       }
     }
   }
@@ -1655,6 +1747,7 @@ export function exportToUnity(holoCode: string, outputDir: string): void {
     HoloPortal: generateHoloPortal,
     HoloLookAt: generateHoloLookAt,
     HoloPatrol: generateHoloPatrol,
+    HoloTraitAdapter: generateHoloTraitAdapter,
   };
 
   for (const helperName of neededHelpers) {

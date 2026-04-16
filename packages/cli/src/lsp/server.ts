@@ -292,9 +292,14 @@ export class HoloScriptLanguageServer {
   }
 
   /**
-   * Update document content
+   * Upsert document with monotonic version protection.
    */
-  updateDocument(uri: string, content: string, version: number): void {
+  upsertDocument(uri: string, content: string, version: number): void {
+    const existing = this.documentCache.get(uri);
+    if (existing && version < existing.version) {
+      return;
+    }
+
     const isHolo = uri.endsWith('.holo');
     const parseResult = isHolo ? this.holoParser.parse(content) : this.parser.parse(content);
 
@@ -303,6 +308,20 @@ export class HoloScriptLanguageServer {
       ast: parseResult.ast,
       version,
     });
+  }
+
+  /**
+   * Remove document from cache when closed.
+   */
+  removeDocument(uri: string): void {
+    this.documentCache.delete(uri);
+  }
+
+  /**
+   * Update document content
+   */
+  updateDocument(uri: string, content: string, version: number): void {
+    this.upsertDocument(uri, content, version);
   }
 
   /**
@@ -693,7 +712,7 @@ export class HoloScriptLanguageServer {
       // Quick fix for empty blocks
       if (diagnostic.message.includes('Empty block')) {
         actions.push({
-          title: 'Add TODO comment',
+          title: 'Add implementation stub',
           kind: CodeActionKind.QuickFix,
           diagnostics: [diagnostic],
           edit: {
@@ -701,7 +720,7 @@ export class HoloScriptLanguageServer {
               [uri]: [
                 {
                   range: diagnostic.range,
-                  newText: '{ /* TODO */ }',
+                  newText: '{\n  throw new Error("Not implemented");\n}',
                 },
               ],
             },
@@ -766,7 +785,7 @@ export class HoloScriptLanguageServer {
         const paramName = this.getWordFromMessage(diagnostic.message);
         if (paramName) {
           actions.push({
-            title: `Add type annotation: ${paramName}: any`,
+            title: `Add type annotation: ${paramName}: unknown`,
             kind: CodeActionKind.QuickFix,
             diagnostics: [diagnostic],
             edit: {
@@ -774,7 +793,7 @@ export class HoloScriptLanguageServer {
                 [uri]: [
                   {
                     range: diagnostic.range,
-                    newText: `${paramName}: any`,
+                    newText: `${paramName}: unknown`,
                   },
                 ],
               },
