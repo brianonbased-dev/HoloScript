@@ -55,6 +55,7 @@ export class CopilotPanel {
   private copilot: AICopilot;
   private messages: DisplayMessage[] = [];
   private inputText: string = '';
+  private isSending: boolean = false;
 
   constructor(copilot: AICopilot, config: Partial<CopilotPanelConfig> = {}) {
     this.copilot = copilot;
@@ -163,6 +164,14 @@ export class CopilotPanel {
   }
 
   async sendMessage(text: string): Promise<CopilotResponse> {
+    if (this.isSending) {
+      return {
+        text: 'Copilot is already processing a request. Please wait a moment.',
+        suggestions: [],
+        error: 'BUSY',
+      };
+    }
+
     const prompt = text.trim();
     if (!prompt) {
       return {
@@ -174,12 +183,15 @@ export class CopilotPanel {
 
     this.inputText = '';
     this.messages.push({ role: 'user', text: prompt });
+    this.isSending = true;
 
     let response: CopilotResponse;
     try {
       response = await this.copilot.generateFromPrompt(prompt);
     } catch (error) {
       response = this.buildErrorResponse(this.toErrorMessage(error));
+    } finally {
+      this.isSending = false;
     }
 
     this.messages.push({

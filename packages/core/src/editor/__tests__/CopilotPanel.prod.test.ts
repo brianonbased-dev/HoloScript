@@ -35,6 +35,16 @@ function makeCopilot(text = 'ok'): AICopilot {
   return new AICopilot(makeAdapter(text));
 }
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 // =============================================================================
 // CONSTRUCTION
 // =============================================================================
@@ -217,6 +227,27 @@ describe('CopilotPanel — sendMessage', () => {
     expect(msgs[0].role).toBe('user');
     expect(msgs[1].role).toBe('assistant');
     expect(msgs[1].text).toContain('model unavailable');
+  });
+
+  it('returns BUSY when sendMessage is called while a request is already in-flight', async () => {
+    const hold = deferred<{ holoScript: string; confidence: number; objectCount: number; warnings: string[] }>();
+    const adapter = makeAdapter();
+    adapter.generateHoloScript = vi.fn().mockReturnValue(hold.promise) as any;
+    const panel = new CopilotPanel(new AICopilot(adapter));
+
+    const firstRequest = panel.sendMessage('first');
+    const secondResponse = await panel.sendMessage('second');
+
+    expect(secondResponse.error).toBe('BUSY');
+    expect(secondResponse.text).toContain('already processing');
+    expect(panel.getMessages()).toHaveLength(1);
+    expect(panel.getMessages()[0].text).toBe('first');
+
+    hold.resolve({ holoScript: 'object X {}', confidence: 0.9, objectCount: 1, warnings: [] });
+    await firstRequest;
+
+    expect(panel.getMessages()).toHaveLength(2);
+    expect(panel.getMessages()[1].role).toBe('assistant');
   });
 });
 
