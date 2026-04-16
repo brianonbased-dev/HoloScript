@@ -1,7 +1,7 @@
 /**
  * MoMETraitDatabase — Mixture of Memory Experts for Trait Queries
  *
- * TODO-005: MoME Prototype for Trait Database
+ * Prototype index: RFC-005 (MoME trait database); follow-up work tracked outside inline TODOs.
  *
  * Architecture:
  *   A router receives trait queries and dispatches them to the most relevant
