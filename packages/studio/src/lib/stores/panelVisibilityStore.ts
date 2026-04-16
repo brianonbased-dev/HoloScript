@@ -93,7 +93,9 @@ export type PanelKey =
   | 'syntheticData'
   | 'compilationPipeline'
   | 'confidenceXR'
-  | 'operationsHub';
+  | 'operationsHub'
+  /** FoundationDAO / sovereign economy governance (@foundation_dao) */
+  | 'foundationDao';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -195,6 +197,7 @@ const PANEL_KEYS: PanelKey[] = [
   'compilationPipeline',
   'confidenceXR',
   'operationsHub',
+  'foundationDao',
 ];
 
 /** Panels that default to *open*. */

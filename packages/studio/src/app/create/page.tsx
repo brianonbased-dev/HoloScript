@@ -72,6 +72,7 @@ import {
   Move3d,
   Bot,
   Sun,
+  Landmark,
   SlidersHorizontal,
   Puzzle,
   Keyboard,
@@ -405,6 +406,14 @@ const EnvironmentPanel = dynamic(
   () =>
     import('@/components/environment/EnvironmentPanel').then((m) => ({
       default: m.EnvironmentPanel,
+    })),
+  { ssr: false }
+);
+
+const FoundationDAOPanel = dynamic(
+  () =>
+    import('@/components/governance/FoundationDAOPanel').then((m) => ({
+      default: m.FoundationDAOPanel,
     })),
   { ssr: false }
 );
@@ -869,6 +878,9 @@ export default function CreatePage() {
   const environmentOpen = usePanelVisibilityStore((s) => s.environmentOpen);
   const setEnvironmentOpen = usePanelVisibilityStore((s) => s.setEnvironmentOpen);
   const toggleEnvironmentOpen = usePanelVisibilityStore((s) => s.toggleEnvironmentOpen);
+  const foundationDaoOpen = usePanelVisibilityStore((s) => s.foundationDaoOpen);
+  const setFoundationDaoOpen = usePanelVisibilityStore((s) => s.setFoundationDaoOpen);
+  const toggleFoundationDaoOpen = usePanelVisibilityStore((s) => s.toggleFoundationDaoOpen);
   const inspectorOpen = usePanelVisibilityStore((s) => s.inspectorOpen);
   const setInspectorOpen = usePanelVisibilityStore((s) => s.setInspectorOpen);
   const toggleInspectorOpen = usePanelVisibilityStore((s) => s.toggleInspectorOpen);
@@ -1644,6 +1656,13 @@ export default function CreatePage() {
             </div>
           )}
 
+          {/* RIGHT RAIL: Foundation DAO (@foundation_dao) */}
+          {foundationDaoOpen && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+              <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} />
+            </div>
+          )}
+
           {/* RIGHT RAIL: Asset Pack Store */}
           {assetPackOpen && (
             <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
@@ -2090,6 +2109,14 @@ export default function CreatePage() {
               className={`transition ${environmentOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
               <Sun className="h-4 w-4" />
+            </button>
+            {/* Foundation DAO governance */}
+            <button
+              onClick={toggleFoundationDaoOpen}
+              title={foundationDaoOpen ? 'Close Foundation DAO' : 'Foundation DAO (governance)'}
+              className={`transition ${foundationDaoOpen ? 'text-amber-400' : 'text-studio-muted hover:text-studio-text'}`}
+            >
+              <Landmark className="h-4 w-4" />
             </button>
             {/* Asset Pack Store toggle */}
             <button
