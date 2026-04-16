@@ -163,4 +163,4 @@ export type {
   UsePerformanceRegressionResult,
 } from './hooks/usePerformanceRegression';
 export { useGpuSplatSort } from './hooks/useGpuSplatSort';
-export type { GpuSplatSortOptions, GpuSplatSortResult } from './hooks/useGpuSplatSort';
+export type { GpuSplatSortOptions, GpuSplatSortResult, SplatUploadPayload } from './hooks/useGpuSplatSort';

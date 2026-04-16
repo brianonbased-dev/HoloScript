@@ -1,12 +1,9 @@
 /**
- * useGpuSplatSort — R3F hook bridging Three.js camera to GaussianSplatSorter.
+ * useGpuSplatSort — R3F hook bridging Three.js camera to engine GaussianSplatSorter.
  *
- * Provides GPU-accelerated radix sort for Gaussian splats when WebGPU is
- * available. Falls back gracefully when WebGPU is not supported.
- *
- * The sorter lives in @holoscript/core (GaussianSplatSorter) and uses WGSL
- * shaders for O(n) 4-pass 8-bit radix sorting. This hook extracts the camera
- * matrices from Three.js and feeds them to the sorter each frame.
+ * Loads {@link GaussianSplatSorter} from `@holoscript/engine/gpu`, uploads WGSL-aligned
+ * raw splat buffers, runs radix sort each frame, and **submits** the WebGPU command
+ * buffer so the GPU pipeline actually executes.
  *
  * @see W.035: Radix sort outperforms bitonic for N > 64K splats
  */
@@ -15,6 +12,8 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
+import type { CameraState, GaussianSplatSorter, WebGPUContext } from '@holoscript/engine/gpu';
+
 export interface GpuSplatSortOptions {
   /** Maximum number of splats. Must match buffer allocation. */
   maxSplats: number;
@@ -22,46 +21,77 @@ export interface GpuSplatSortOptions {
   enableTimestamps?: boolean;
 }
 
+/** Raw splat arrays matching engine `SplatRaw` / WGSL layout (64 bytes per splat). */
+export interface SplatUploadPayload {
+  positions: Float32Array;
+  scales: Float32Array;
+  rotations: Float32Array;
+  colors: Float32Array;
+  count: number;
+}
+
 export interface GpuSplatSortResult {
   /** Whether WebGPU sort is available and initialized */
   available: boolean;
-  /** Sort splats by depth for current camera. Returns sorted index buffer. */
+  /** Sort splats by depth for current camera (submits GPU work). */
   sort: () => Float32Array | null;
-  /** Upload raw splat data to GPU */
-  uploadSplats: (positions: Float32Array, count: number) => void;
+  /** Pack and upload raw splat data to GPU (64-byte WGSL layout per splat). */
+  uploadSplats: (payload: SplatUploadPayload) => void;
   /** Dispose GPU resources */
   dispose: () => void;
 }
 
-/**
- * Hook that provides GPU-accelerated splat depth sorting via WebGPU.
- *
- * When WebGPU is unavailable, `available` is false and `sort()` returns null,
- * allowing the component to fall back to CPU sorting or skip entirely.
- */
+/** WGSL `SplatRaw` storage layout: vec3+pad, vec3+pad, vec4, vec4 = 64 bytes. */
+function packWgslSplatRaw64(payload: SplatUploadPayload, reuse: Float32Array | null): Float32Array {
+  const { positions, scales, rotations, colors, count } = payload;
+  const floatsPerSplat = 16; // 64 bytes
+  const need = count * floatsPerSplat;
+  const buf =
+    reuse && reuse.length >= need ? reuse : new Float32Array(Math.max(need, floatsPerSplat * Math.max(count, 1)));
+
+  for (let i = 0; i < count; i++) {
+    const o = i * floatsPerSplat;
+    buf[o + 0] = positions[i * 3];
+    buf[o + 1] = positions[i * 3 + 1];
+    buf[o + 2] = positions[i * 3 + 2];
+    buf[o + 3] = 0; // pad
+    buf[o + 4] = scales[i * 3];
+    buf[o + 5] = scales[i * 3 + 1];
+    buf[o + 6] = scales[i * 3 + 2];
+    buf[o + 7] = 0;
+    buf[o + 8] = rotations[i * 4];
+    buf[o + 9] = rotations[i * 4 + 1];
+    buf[o + 10] = rotations[i * 4 + 2];
+    buf[o + 11] = rotations[i * 4 + 3];
+    buf[o + 12] = colors[i * 4];
+    buf[o + 13] = colors[i * 4 + 1];
+    buf[o + 14] = colors[i * 4 + 2];
+    buf[o + 15] = colors[i * 4 + 3];
+  }
+  return buf;
+}
+
 export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResult {
   const { camera, gl } = useThree();
-  // Typed to the runtime shape; dynamic import means we can't import the type statically.
-  const sorterRef = useRef<{ sort: (params: unknown) => void; dispose: () => void; initialize: () => Promise<void> } | null>(null);
+  const sorterRef = useRef<GaussianSplatSorter | null>(null);
+  const deviceRef = useRef<GPUDevice | null>(null);
   const [available, setAvailable] = useState(false);
-  const positionsRef = useRef<Float32Array | null>(null);
+  const packedRef = useRef<Float32Array | null>(null);
   const countRef = useRef(0);
-  // Persistent scratch objects — hoisted here so sort() makes zero heap allocations per frame.
+
   const vpMatrixScratch = useRef(new THREE.Matrix4());
   const viewMatrixBuf = useRef(new Float32Array(16));
   const projMatrixBuf = useRef(new Float32Array(16));
-  const vpMatrixBuf   = useRef(new Float32Array(16));
+  const vpMatrixBuf = useRef(new Float32Array(16));
 
-  // Attempt WebGPU initialization
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      // Check WebGPU availability
       if (typeof navigator === 'undefined' || !('gpu' in navigator)) return;
 
       try {
-        const adapter = await (navigator as any).gpu.requestAdapter();
+        const adapter = await (navigator as Navigator & { gpu: GPU }).gpu.requestAdapter();
         if (!adapter || cancelled) return;
 
         const device = await adapter.requestDevice();
@@ -70,20 +100,16 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
           return;
         }
 
-        // Dynamically import the core sorter to avoid hard dependency (cast to any for TS2339)
-        const { GaussianSplatSorter } = (await import('@holoscript/core')) as any;
+        const { GaussianSplatSorter } = await import('@holoscript/engine/gpu');
         if (cancelled) {
           device.destroy();
           return;
         }
 
         const canvas = gl.domElement;
-        const context = {
-          getDevice: () => device,
-          getCanvas: () => canvas,
-        };
+        const gpuContext = { getDevice: () => device } as WebGPUContext;
 
-        const sorter = new GaussianSplatSorter(context, {
+        const sorter = new GaussianSplatSorter(gpuContext, {
           maxSplats: options.maxSplats,
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
@@ -97,11 +123,11 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
           return;
         }
 
+        deviceRef.current = device;
         sorterRef.current = sorter;
         setAvailable(true);
       } catch {
-        // WebGPU not available or initialization failed — CPU fallback
-          setAvailable(false);
+        setAvailable(false);
       }
     }
 
@@ -113,47 +139,58 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
         sorterRef.current.dispose();
         sorterRef.current = null;
       }
-        setAvailable(false);
+      if (deviceRef.current) {
+        deviceRef.current = null;
+      }
+      setAvailable(false);
     };
   }, [options.maxSplats, options.enableTimestamps, gl]);
 
-  const uploadSplats = useCallback((positions: Float32Array, count: number) => {
-    positionsRef.current = positions;
-    countRef.current = count;
+  const uploadSplats = useCallback((payload: SplatUploadPayload) => {
+    const sorter = sorterRef.current;
+    if (!sorter) return;
+
+    const packed = packWgslSplatRaw64(payload, packedRef.current);
+    packedRef.current = packed;
+    countRef.current = payload.count;
+
+    sorter.uploadSplatData(packed, payload.count);
   }, []);
 
   const sort = useCallback((): Float32Array | null => {
-    if (!sorterRef.current || !positionsRef.current) return null;
+    const sorter = sorterRef.current;
+    const device = deviceRef.current;
+    if (!sorter || !device || countRef.current === 0) return null;
 
     try {
-      // Write into pre-allocated buffers — no heap allocation on the hot path.
       const viewMatrix = viewMatrixBuf.current;
       const projMatrix = projMatrixBuf.current;
-      const vpMatrix   = vpMatrixBuf.current;
+      const vpMatrix = vpMatrixBuf.current;
 
+      camera.updateMatrixWorld(true);
       camera.matrixWorldInverse.toArray(viewMatrix);
-      (camera as THREE.PerspectiveCamera).projectionMatrix.toArray(projMatrix);
-
-      // Reuse the persistent scratch Matrix4 — eliminates one alloc per frame.
+      camera.projectionMatrix.toArray(projMatrix);
       vpMatrixScratch.current
-        .multiplyMatrices(
-          (camera as THREE.PerspectiveCamera).projectionMatrix,
-          camera.matrixWorldInverse
-        )
+        .multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
         .toArray(vpMatrix);
 
       const cameraPos = camera.position;
+      const w = gl.domElement.width || 1;
+      const h = gl.domElement.height || 1;
 
-      sorterRef.current.sort({
+      const cam: CameraState = {
         viewMatrix,
         projMatrix,
         viewProjectionMatrix: vpMatrix,
-        cameraPosition: [cameraPos.x, cameraPos.y, cameraPos.z] as [number, number, number],
-        focalX: (projMatrix[0] * gl.domElement.width) / 2,
-        focalY: (projMatrix[5] * gl.domElement.height) / 2,
-      });
+        cameraPosition: [cameraPos.x, cameraPos.y, cameraPos.z],
+        focalX: (projMatrix[0] * w) / 2,
+        focalY: (projMatrix[5] * h) / 2,
+      };
 
-      return null; // Sort modifies GPU buffers in-place
+      const encoder = sorter.sort(cam);
+      device.queue.submit([encoder.finish()]);
+
+      return null;
     } catch {
       return null;
     }
@@ -164,7 +201,8 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
       sorterRef.current.dispose();
       sorterRef.current = null;
     }
-    availableRef.current = false;
+    deviceRef.current = null;
+    setAvailable(false);
   }, []);
 
   return {

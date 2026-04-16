@@ -10,7 +10,7 @@
  */
 
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGpuSplatSort } from '../hooks/useGpuSplatSort';
 
@@ -62,7 +62,6 @@ export function GaussianSplatViewer({
   onError,
 }: GaussianSplatViewerProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { _camera } = useThree();
   const [splatData, setSplatData] = useState<SplatData | null>(null);
   const [loading, setLoading] = useState(true);
   const gpuSort = useGpuSplatSort({ maxSplats });
@@ -165,12 +164,18 @@ export function GaussianSplatViewer({
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }, [instanceData]);
 
-  // Upload splat positions to GPU sorter when data is available
+  // Upload full WGSL-aligned splat payload to GPU sorter when data is available
   useEffect(() => {
     if (splatData && gpuSort.available) {
-      gpuSort.uploadSplats(splatData.positions, splatData.count);
+      gpuSort.uploadSplats({
+        positions: splatData.positions,
+        scales: splatData.scales,
+        rotations: splatData.rotations,
+        colors: splatData.colors,
+        count: splatData.count,
+      });
     }
-  }, [splatData, gpuSort.available]);
+  }, [splatData, gpuSort.available, gpuSort.uploadSplats]);
 
   // Depth sorting (back-to-front for alpha blending)
   useFrame(() => {
