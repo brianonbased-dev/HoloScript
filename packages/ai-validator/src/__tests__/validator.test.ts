@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AIValidator, validateAICode } from '../index';
+import { AIValidator, validateAICode, ValidationResultSchema } from '../index';
 
 describe('AIValidator', () => {
   let validator: AIValidator;
@@ -215,18 +215,41 @@ describe('AIValidator', () => {
     });
 
     it('should detect task-marker line comments', async () => {
-      const marker =
-        '// ' + String.fromCharCode(84, 79, 68, 79) + ': Add more properties';
-      const todoCode = `
+      const malformedMarkerCode = `
         cube {
           @color(red)
-          ${marker}
+          @position(0, 1, )
+          // TODO: complete interaction block
         }
       `;
 
-      const result = await validator.validate(todoCode);
+      const result = await validator.validate(malformedMarkerCode);
+      const schema = ValidationResultSchema.safeParse(result);
 
+      expect(schema.success).toBe(true);
       expect(result.warnings.some((w) => w.message.includes('Incomplete'))).toBe(true);
+    });
+
+    it('should validate malformed trait payloads against zod output schema', async () => {
+      const invalidTraitSyntax = `
+        cube {
+          @color()
+          @position(0, , 0)
+          @grabbable
+        }
+      `;
+
+      const result = await validator.validate(invalidTraitSyntax);
+      const parsed = ValidationResultSchema.safeParse(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.data.valid).toBe(false);
+      expect(parsed.data.errors.length).toBeGreaterThan(0);
+      expect(parsed.data.errors.some((e) => e.type === 'syntax' || e.type === 'structural')).toBe(
+        true
+      );
+      expect(parsed.data.metadata.hallucinationScore).toBeGreaterThanOrEqual(0);
+      expect(parsed.data.metadata.hallucinationScore).toBeLessThanOrEqual(100);
     });
 
     it('should detect OOP syntax hallucinations', async () => {
