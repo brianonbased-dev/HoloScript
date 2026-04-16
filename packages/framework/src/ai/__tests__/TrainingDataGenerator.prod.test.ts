@@ -172,7 +172,7 @@ describe('TrainingDataGenerator — getByTag', () => {
 
   it('returns empty for unknown tag', () => {
     const gen = new TrainingDataGenerator();
-    expect(gen.getByTag('zzz-unknown-xxx')).toHaveLength(0);
+    expect(gen.getByTag('zzz-unknown-tag')).toHaveLength(0);
   });
 
   it('tag "basic" matches examples with that tag', () => {
