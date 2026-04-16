@@ -57,6 +57,9 @@ jobs:
       - name: Connector dependency guard (studio docker parity)
         run: pnpm --filter @holoscript/studio test -- src/__tests__/studio-docker-connectors.test.ts
 
+      - name: Node graph execution bridge
+        run: pnpm --filter @holoscript/studio exec vitest run src/__tests__/node-graph/NodeGraphPanel.execution.test.ts
+
       - name: Lint (studio)
         run: pnpm --filter @holoscript/studio exec next lint --max-warnings 0
         continue-on-error: true # lint warnings are advisory
