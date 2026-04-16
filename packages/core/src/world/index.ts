@@ -11,7 +11,7 @@ export {
   type WorldMetadata,
 } from './WorldGeneratorAdapter';
 
-export { HYWorldAdapter, type HYWorldAdapterOptions } from './adapters/HYWorldAdapter';
+export { SovereignWorldAdapter, type SovereignWorldAdapterOptions } from './adapters/SovereignWorldAdapter';
 
 export {
   WorldGeneratorService,

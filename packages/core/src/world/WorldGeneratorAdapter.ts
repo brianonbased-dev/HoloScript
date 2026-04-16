@@ -2,8 +2,8 @@
  * WorldGeneratorAdapter — contract for world generation backends
  *
  * Implementations:
- *   HYWorldAdapter   — Tencent HY-World 2.0 (WorldMirror 2.0, public today)
- *   StableWorldAdapter — future: Stable World / custom endpoint
+ *   SovereignWorldAdapter — native Brittney v43 generative model (sovereign-3d engine)
+ *   StableWorldAdapter    — future: stable-world / custom endpoint
  *
  * The trait emits 'world:generate'; WorldGeneratorService routes it here.
  */

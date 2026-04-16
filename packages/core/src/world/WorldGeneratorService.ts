@@ -27,7 +27,7 @@ import {
   type WorldAdapterRegistry,
   type WorldGenerationRequest,
 } from './WorldGeneratorAdapter';
-import { HYWorldAdapter } from './adapters/HYWorldAdapter';
+import { SovereignWorldAdapter } from './adapters/SovereignWorldAdapter';
 
 // =============================================================================
 // EVENT SHAPE (matches WorldGeneratorTrait expected events)
@@ -95,12 +95,12 @@ export class WorldGeneratorService {
   }
 
   /**
-   * Register the built-in adapters (HYWorldAdapter).
+  * Register the built-in sovereign adapter (SovereignWorldAdapter — Brittney v43+).
    * Call once during scene/runtime bootstrap.
    */
   registerDefaultAdapters(): void {
     if (this.defaultAdaptersRegistered) return;
-    this.registry.register(new HYWorldAdapter());
+    this.registry.register(new SovereignWorldAdapter());
     this.defaultAdaptersRegistered = true;
   }
 

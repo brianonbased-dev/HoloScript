@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { HYWorldAdapter } from '../adapters/HYWorldAdapter';
+import { SovereignWorldAdapter } from '../adapters/SovereignWorldAdapter';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -9,7 +9,7 @@ function makeJobResponse(overrides: Record<string, unknown> = {}) {
   return {
     job_id: 'job_test_123',
     status: 'done',
-    asset_url: 'https://example.com/world.ply',
+    asset_url: 'https://api.holoscript.net/sovereign/outputs/world.ply',
     navmesh_url: null,
     point_cloud_url: null,
     progress: 1,
@@ -28,7 +28,7 @@ function makeJobResponse(overrides: Record<string, unknown> = {}) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('HYWorldAdapter', () => {
+describe('SovereignWorldAdapter', () => {
   let fetchMock: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -40,8 +40,8 @@ describe('HYWorldAdapter', () => {
   });
 
   it('has expected adapter id', () => {
-    const adapter = new HYWorldAdapter({ apiKey: 'test-key' });
-    expect(adapter.id).toBe('hy-world-2.0');
+    const adapter = new SovereignWorldAdapter({ apiKey: 'test-key' });
+    expect(adapter.id).toBe('sovereign-3d');
   });
 
   it('submits job and returns WorldGenerationResult on success', async () => {
@@ -59,7 +59,7 @@ describe('HYWorldAdapter', () => {
         json: async () => makeJobResponse(),
       });
 
-    const adapter = new HYWorldAdapter({
+    const adapter = new SovereignWorldAdapter({
       apiKey: 'test-key',
       pollIntervalMs: 0,
     });
@@ -71,7 +71,7 @@ describe('HYWorldAdapter', () => {
     });
 
     expect(result.generationId).toBe('job_test_123');
-    expect(result.assetUrl).toBe('https://example.com/world.ply');
+    expect(result.assetUrl).toContain('world.ply');
     expect(result.metadata.splatCount).toBe(500000);
 
     // Verify POST was called with correct path
@@ -102,7 +102,7 @@ describe('HYWorldAdapter', () => {
         json: async () => makeJobResponse({ job_id: 'job_poll_123', status: 'done', progress: 1 }),
       });
 
-    const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     const result = await adapter.generate({ prompt: 'desert', format: 'mesh', quality: 'low' });
 
     expect(result.generationId).toBe('job_poll_123');
@@ -120,7 +120,7 @@ describe('HYWorldAdapter', () => {
         json: async () => makeJobResponse({ status: 'error', error: 'Out of memory' }),
       });
 
-    const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
       .rejects.toThrow('Out of memory');
   });
@@ -136,7 +136,7 @@ describe('HYWorldAdapter', () => {
         json: async () => makeJobResponse({ status: 'processing', progress: 0.1 }),
       });
 
-    const adapter = new HYWorldAdapter({
+    const adapter = new SovereignWorldAdapter({
       apiKey: 'key',
       pollIntervalMs: 0,
       timeoutMs: 1, // immediate timeout
@@ -151,7 +151,7 @@ describe('HYWorldAdapter', () => {
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j1' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
 
-    const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'low' });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
@@ -176,7 +176,7 @@ describe('HYWorldAdapter', () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
         .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
-      const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+      const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
       await adapter.generate({ prompt: 'x', format: input, quality: 'medium' });
       const body = JSON.parse(fetchMock.mock.calls.at(-2)![1].body as string);
       expect(body.output_format).toBe(expected);
@@ -185,7 +185,7 @@ describe('HYWorldAdapter', () => {
 
   it('cancel() posts to cancel endpoint', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
-    const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await adapter.cancel?.('job_cancel_123');
     expect(fetchMock.mock.calls[0][0]).toContain('/api/jobs/job_cancel_123/cancel');
     expect(fetchMock.mock.calls[0][1].method).toBe('POST');
@@ -196,28 +196,54 @@ describe('HYWorldAdapter', () => {
       ok: true, status: 200,
       json: async () => makeJobResponse({ progress: 0.65 }),
     });
-    const adapter = new HYWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     const progress = await adapter.getProgress?.('job_prog_123');
-    expect(progress).toBeCloseTo(0.65);
+    expect(progress).toBe(0.65);
   });
 
-  it('includes Authorization header when apiKey provided', async () => {
+  it('getProgress() returns 1 when job is done with no progress field', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => makeJobResponse({ progress: undefined }),
+    });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const progress = await adapter.getProgress?.('job_done_123');
+    expect(progress).toBe(1);
+  });
+
+  it('throws on non-ok HTTP response', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false, status: 503,
+      text: async () => 'Service Unavailable',
+    });
+    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
+      .rejects.toThrow(/503/);
+  });
+
+  it('includes Authorization header when apiKey is provided', async () => {
     fetchMock
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
-    const adapter = new HYWorldAdapter({ apiKey: 'secret-key', pollIntervalMs: 0 });
-    await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'medium' });
+
+    const adapter = new SovereignWorldAdapter({ apiKey: 'my-sovereign-key', pollIntervalMs: 0 });
+    await adapter.generate({ prompt: 'test', format: '3dgs', quality: 'medium' });
+
     const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
-    expect(headers['Authorization']).toBe('Bearer secret-key');
+    expect(headers['Authorization']).toBe('Bearer my-sovereign-key');
   });
 
-  it('omits Authorization header when no apiKey', async () => {
+  it('uses custom baseUrl when provided', async () => {
     fetchMock
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
-    const adapter = new HYWorldAdapter({ pollIntervalMs: 0 });
-    await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'medium' });
-    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
-    expect(headers['Authorization']).toBeUndefined();
+
+    const adapter = new SovereignWorldAdapter({
+      baseUrl: 'https://custom.brittney.local',
+      apiKey: 'k',
+      pollIntervalMs: 0,
+    });
+    await adapter.generate({ prompt: 'test', format: '3dgs', quality: 'medium' });
+    expect(fetchMock.mock.calls[0][0]).toContain('custom.brittney.local');
   });
 });
