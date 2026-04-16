@@ -5,7 +5,7 @@
  * Uses WebRTCTransport for high-frequency low-latency updates.
  */
 
-import { TraitHandler } from '../traits/TraitTypes';
+import type { TraitHandler } from './TraitTypes';
 import { BoneSystem, BoneTransform } from '@holoscript/engine/animation/BoneSystem';
 import { IKSolver } from '@holoscript/engine/animation/IKSolver';
 import { AvatarController } from '@holoscript/engine/animation/AvatarController';
@@ -48,17 +48,17 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'LeftArm',
           length: 0.3,
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
         }, // Placeholder
         {
           id: 'LeftForeArm',
           length: 0.3,
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
-      target: [-0.5, 1.0, 0.3 ],
+      target: { x: -0.5, y: 1.0, z: 0.3 },
       weight: 1.0,
       iterations: 3,
     });
@@ -69,17 +69,17 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'RightArm',
           length: 0.3,
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
         {
           id: 'RightForeArm',
           length: 0.3,
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
-      target: [0.5, 1.0, 0.3 ],
+      target: { x: 0.5, y: 1.0, z: 0.3 },
       weight: 1.0,
       iterations: 3,
     });

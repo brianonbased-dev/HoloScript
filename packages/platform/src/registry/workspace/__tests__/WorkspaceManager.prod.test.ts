@@ -2,7 +2,7 @@
  * WorkspaceManager — Production Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WorkspaceManager, createWorkspaceManager, ROLE_PERMISSIONS } from '@holoscript/core';
+import { WorkspaceManager, createWorkspaceManager, ROLE_PERMISSIONS } from '../../index';
 
 function setup() {
   const mgr = new WorkspaceManager();

@@ -30,7 +30,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ─── Mock AgentRegistry module ────────────────────────────────────────────────
 // Must use require() inside factory to avoid TDZ error (vi.mock is hoisted)
 
-vi.mock('../../agents/AgentRegistry', () => {
+vi.mock('@holoscript/framework/agents', () => {
   const mockRegistry = {
     register: vi.fn().mockResolvedValue(undefined),
     deregister: vi.fn().mockResolvedValue(undefined),

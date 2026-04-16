@@ -6,6 +6,16 @@ import {
   ensureFilm3dVolumetricsRoot,
   isWithinVolumetricWebRtcSyncBudget,
 } from './film3dVolumetricCrdt.js';
+import {
+  LEGAL_DOCUMENT_CONTRACTS_ROOT,
+  appendLegalAuditTrailEntry,
+  ensureLegalDocumentContractsRoot,
+  setLegalContractSnapshot,
+  setLegalSignatureBlock,
+  type AuditTrailEntrySnapshot,
+  type LegalContractSpatialSnapshot,
+  type SignatureBlockSnapshot,
+} from './legalDocumentCrdt.js';
 
 export interface WebRTCProviderConfig {
   signalingServerUrl: string;
@@ -37,11 +47,13 @@ export class LoroWebRTCProvider {
     this.dataChannels = new Map();
 
     console.log(
-      `[LoroWebRTC] Initialized hardened multiplayer semantic canvas for room: ${room} (volumetric payloads: root map "${FILM3D_VOLUMETRICS_ROOT}")`
+      `[LoroWebRTC] Initialized hardened multiplayer semantic canvas for room: ${room} (volumetric root: "${FILM3D_VOLUMETRICS_ROOT}", legal root: "${LEGAL_DOCUMENT_CONTRACTS_ROOT}")`
     );
 
     // Pre-initialize the volumetrics root map so it is included in all exports from t=0.
     ensureFilm3dVolumetricsRoot(this.doc);
+    // Pre-initialize legal contracts root map for SignatureBlock / AuditTrail multi-agent sync.
+    ensureLegalDocumentContractsRoot(this.doc);
 
     // Subscribe to Loro local changes to broadcast
     this.doc.subscribe((batch: LoroEventBatch) => {
@@ -224,5 +236,27 @@ export class LoroWebRTCProvider {
     for (const peer of Array.from(this.peerConnections.keys())) {
       this.removePeer(peer);
     }
+  }
+
+  /**
+   * Sync SignatureBlock state for a legal contract into the shared CRDT graph.
+   * Replication to peers is handled by the provider's local-change subscription.
+   */
+  public syncLegalSignatureBlock(documentId: string, signatureBlock: SignatureBlockSnapshot): void {
+    setLegalSignatureBlock(this.doc, documentId, signatureBlock);
+  }
+
+  /**
+   * Append a legal audit trail event for multi-agent contract execution traces.
+   */
+  public appendLegalAuditEvent(documentId: string, entry: AuditTrailEntrySnapshot): void {
+    appendLegalAuditTrailEntry(this.doc, documentId, entry);
+  }
+
+  /**
+   * Sync a full legal contract snapshot (meta + SignatureBlock + AuditTrail).
+   */
+  public syncLegalContractSnapshot(snapshot: LegalContractSpatialSnapshot): void {
+    setLegalContractSnapshot(this.doc, snapshot);
   }
 }

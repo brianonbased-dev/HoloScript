@@ -28,22 +28,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let _mockProtocol: any;
 const _protocolListeners: Record<string, ((...args: any[]) => void)[]> = {};
 
-vi.mock('../../negotiation/NegotiationProtocol', () => {
+vi.mock('@holoscript/framework/negotiation', () => {
   function NegotiationProtocolImpl() {
     return _mockProtocol;
   }
   function getNegotiationProtocol() {
     return _mockProtocol;
   }
-  return { NegotiationProtocol: NegotiationProtocolImpl, getNegotiationProtocol };
+  return {
+    NegotiationProtocol: NegotiationProtocolImpl,
+    getNegotiationProtocol,
+    getTrustWeight: vi.fn().mockReturnValue(1.0),
+  };
 });
 
-vi.mock('../../negotiation/VotingMechanisms', () => ({
-  getTrustWeight: vi.fn().mockReturnValue(1.0),
-}));
-
 // Stub AgentManifest (type only, no runtime code needed)
-vi.mock('../../agents/AgentManifest', () => ({}));
+vi.mock('@holoscript/framework/agents', () => ({}));
 
 import {
   negotiationHandler,

@@ -199,7 +199,7 @@ describe('PressableTrait', () => {
       expect.objectContaining({
         type: 'prismatic',
         nodeId: 'btn-1',
-        axis: { x: 0, y: 0, z: 1 },
+        axis: [0, 0, 1],
       })
     );
   });
@@ -281,7 +281,7 @@ describe('SlidableTrait', () => {
       expect.objectContaining({
         type: 'prismatic',
         nodeId: 'slider-1',
-        axis: { x: 1, y: 0, z: 0 },
+        axis: [1, 0, 0],
         min: -0.1,
         max: 0.1,
       })
@@ -291,12 +291,12 @@ describe('SlidableTrait', () => {
   it('supports y and z axes', () => {
     const ctx = mockContext();
     trait.onAttach(mockNode('s', { axis: 'y', length: 0.1 }), ctx as any);
-    expect(ctx.emit.mock.calls[0][1].axis).toEqual({ x: 0, y: 1, z: 0 });
+    expect(ctx.emit.mock.calls[0][1].axis).toEqual([0, 1, 0]);
 
     const trait2 = new SlidableTrait();
     const ctx2 = mockContext();
     trait2.onAttach(mockNode('s2', { axis: 'z', length: 0.1 }), ctx2 as any);
-    expect(ctx2.emit.mock.calls[0][1].axis).toEqual({ x: 0, y: 0, z: 1 });
+    expect(ctx2.emit.mock.calls[0][1].axis).toEqual([0, 0, 1]);
   });
 
   it('maps position to value 0-1', () => {

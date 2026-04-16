@@ -206,6 +206,62 @@ function compileNode(node: SDFNode): string {
       case 'mandelbulb':
         lines += `  float d${id} = sdMandelbulb(${p});\n`;
         break;
+      case 'rounded_box': {
+        const w = (params.width ?? 1).toFixed(4);
+        const h = (params.height ?? 1).toFixed(4);
+        const d = (params.depth ?? 1).toFixed(4);
+        const r = (params.radius ?? 0.1).toFixed(4);
+        lines += `  float d${id} = sdRoundBox(${p}, vec3(${w}, ${h}, ${d}), ${r});\n`;
+        break;
+      }
+      case 'cone': {
+        const c0 = (params.c0 ?? 0.45).toFixed(4);
+        const c1 = (params.c1 ?? 0.35).toFixed(4);
+        const ch = (params.height ?? 1).toFixed(4);
+        lines += `  float d${id} = sdCone(${p}, vec2(${c0}, ${c1}), ${ch});\n`;
+        break;
+      }
+      case 'ellipsoid': {
+        const rx = (params.rx ?? params.radius ?? 1).toFixed(4);
+        const ry = (params.ry ?? params.radius ?? 1).toFixed(4);
+        const rz = (params.rz ?? params.radius ?? 1).toFixed(4);
+        lines += `  float d${id} = sdEllipsoid(${p}, vec3(${rx}, ${ry}, ${rz}));\n`;
+        break;
+      }
+      case 'plane': {
+        const nx = (params.nx ?? 0).toFixed(4);
+        const ny = (params.ny ?? 1).toFixed(4);
+        const nz = (params.nz ?? 0).toFixed(4);
+        const h = (params.h ?? 0).toFixed(4);
+        lines += `  float d${id} = sdPlane(${p}, vec3(${nx}, ${ny}, ${nz}), ${h});\n`;
+        break;
+      }
+      case 'hex_prism': {
+        const hx = (params.hx ?? 1).toFixed(4);
+        const hy = (params.hy ?? 0.5).toFixed(4);
+        lines += `  float d${id} = sdHexPrism(${p}, vec2(${hx}, ${hy}));\n`;
+        break;
+      }
+      case 'octahedron': {
+        const s = (params.size ?? 1).toFixed(4);
+        lines += `  float d${id} = sdOctahedron(${p}, ${s});\n`;
+        break;
+      }
+      case 'pyramid': {
+        const ph = (params.height ?? 1).toFixed(4);
+        lines += `  float d${id} = sdPyramid(${p}, ${ph});\n`;
+        break;
+      }
+      case 'link': {
+        const le = (params.le ?? 0.25).toFixed(4);
+        const r1 = (params.r1 ?? 0.4).toFixed(4);
+        const r2 = (params.r2 ?? 0.1).toFixed(4);
+        lines += `  float d${id} = sdLink(${p}, ${le}, ${r1}, ${r2});\n`;
+        break;
+      }
+      case 'menger':
+        lines += `  float d${id} = sdMenger(${p}, ${Math.min(4, Math.max(0, Math.floor(params.iterations ?? 3)))});\n`;
+        break;
       default:
         lines += `  float d${id} = sdSphere(${p}, 1.0);\n`;
     }
@@ -238,17 +294,16 @@ function compileNode(node: SDFNode): string {
     const op = node.operation as CSGOperation;
     let lines = '';
 
-    lines += compileNode(node.children[0]);
-    const firstId = _nodeCounter - 1;
+    lines += compileNode(node.children[0]!);
+    let accId = _nodeCounter - 1;
 
     for (let i = 1; i < node.children.length; i++) {
-      lines += compileNode(node.children[i]);
+      lines += compileNode(node.children[i]!);
       const secondId = _nodeCounter - 1;
       const resultId = _nodeCounter++;
 
       const isSmooth = op.startsWith('smooth_');
       const k = (node.smoothness || 0.1).toFixed(4);
-      const prevId = i === 1 ? firstId : resultId - 2;
 
       if (isSmooth) {
         const fnName =
@@ -259,7 +314,7 @@ function compileNode(node: SDFNode): string {
               : op === 'smooth_subtract'
                 ? 'opSmoothSubtract'
                 : 'opSmoothDifference';
-        lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId}, ${k});\n`;
+        lines += `  float d${resultId} = ${fnName}(d${accId}, d${secondId}, ${k});\n`;
       } else {
         const fnName =
           op === 'union'
@@ -269,8 +324,9 @@ function compileNode(node: SDFNode): string {
               : op === 'subtract'
                 ? 'opSubtract'
                 : 'opDifference';
-        lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId});\n`;
+        lines += `  float d${resultId} = ${fnName}(d${accId}, d${secondId});\n`;
       }
+      accId = resultId;
     }
 
     return lines;

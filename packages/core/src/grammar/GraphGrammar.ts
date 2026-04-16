@@ -583,8 +583,8 @@ export function createNonTerminal(
     config: {},
     transform: {
       position,
-      rotation: [0, 0, 0 ],
-      scale: [1, 1, 1 ],
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
       positionMode: 'relative',
     },
     children: [],
@@ -611,8 +611,8 @@ export function createTerminal(
     config,
     transform: {
       position,
-      rotation: [0, 0, 0 ],
-      scale: [1, 1, 1 ],
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
       positionMode: 'relative',
     },
     children: [],
@@ -637,8 +637,8 @@ export function createAnchor(
     config: {},
     transform: {
       position,
-      rotation: [0, 0, 0 ],
-      scale: [1, 1, 1 ],
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
       positionMode: bounds ? 'random_in_bounds' : 'absolute',
       bounds,
     },
@@ -740,24 +740,14 @@ export function createVillageGrammar(): GraphGrammar {
         const angle = (i / houseCount) * Math.PI * 2;
         const radius = rng.float(15, 30);
         nodes.push(
-          createNonTerminal('House', {
-            x: Math.cos(angle) * radius,
-            y: 0,
-            z: Math.sin(angle) * radius,
-          })
+          createNonTerminal('House', [Math.cos(angle) * radius, 0, Math.sin(angle) * radius])
         );
       }
 
       // Add trees
       const treeCount = rng.int(5, 15);
       for (let i = 0; i < treeCount; i++) {
-        nodes.push(
-          createNonTerminal('Tree', {
-            x: rng.float(-50, 50),
-            y: 0,
-            z: rng.float(-50, 50),
-          })
-        );
+        nodes.push(createNonTerminal('Tree', [rng.float(-50, 50), 0, rng.float(-50, 50)]));
       }
 
       return nodes;
@@ -780,11 +770,11 @@ export function createVillageGrammar(): GraphGrammar {
       for (let i = 0; i < benchCount; i++) {
         const angle = (i / benchCount) * Math.PI * 2;
         nodes.push(
-          createTerminal('bench', ['collidable', 'visible'], {
-            x: Math.cos(angle) * 5,
-            y: 0,
-            z: Math.sin(angle) * 5,
-          })
+          createTerminal('bench', ['collidable', 'visible'], [
+            Math.cos(angle) * 5,
+            0,
+            Math.sin(angle) * 5,
+          ])
         );
       }
 
@@ -818,11 +808,7 @@ export function createVillageGrammar(): GraphGrammar {
         [0, 0, 0],
         { scale: 1.5 }
       ),
-      createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], {
-        x: 0,
-        y: 0,
-        z: 4.5,
-      }),
+      createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], [0, 0, 4.5]),
       createTerminal('house_large_roof', ['collidable', 'visible'], [0, 4.5, 0]),
       createTerminal('chimney', ['visible', 'collidable'], [2, 6, 0]),
     ],
@@ -881,7 +867,7 @@ export function createDungeonGrammar(): GraphGrammar {
 
       let z = -10;
       for (let i = 0; i < roomCount; i++) {
-        nodes.push(createNonTerminal(rng.next() > 0.3 ? 'Room' : 'BossRoom', { x: 0, y: 0, z }));
+        nodes.push(createNonTerminal(rng.next() > 0.3 ? 'Room' : 'BossRoom', [0, 0, z]));
         nodes.push(createTerminal('corridor', ['collidable', 'visible'], [0, 0, z + 5]));
         z -= 15;
       }
@@ -905,22 +891,22 @@ export function createDungeonGrammar(): GraphGrammar {
       // Random loot
       if (rng.next() > 0.5) {
         nodes.push(
-          createTerminal('chest', ['grabbable', 'collidable', 'visible', 'inventory'], {
-            x: rng.float(-3, 3),
-            y: 0,
-            z: rng.float(-3, 3),
-          })
+          createTerminal('chest', ['grabbable', 'collidable', 'visible', 'inventory'], [
+            rng.float(-3, 3),
+            0,
+            rng.float(-3, 3),
+          ])
         );
       }
 
       // Random enemies
       if (rng.next() > 0.3) {
         nodes.push(
-          createTerminal('enemy', ['health', 'damage', 'collidable', 'visible', 'respawnable'], {
-            x: rng.float(-4, 4),
-            y: 0,
-            z: rng.float(-4, 4),
-          })
+          createTerminal('enemy', ['health', 'damage', 'collidable', 'visible', 'respawnable'], [
+            rng.float(-4, 4),
+            0,
+            rng.float(-4, 4),
+          ])
         );
       }
 
@@ -936,11 +922,9 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: () => [
       createTerminal('room_floor', ['collidable', 'visible'], [0, 0, 0]),
       createTerminal('room_walls', ['collidable', 'visible'], [0, 0, 0]),
-      createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], {
-        x: 0,
-        y: 0,
-        z: 0,
-      }),
+      createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], [
+        0, 0, 0,
+      ]),
       createTerminal('gold_pile', ['visible', 'collidable'], [-2, 0, 1]),
       createTerminal('gold_pile', ['visible', 'collidable'], [2, 0, -1]),
     ],
@@ -971,11 +955,9 @@ export function createDungeonGrammar(): GraphGrammar {
         [0, 0, -5],
         { maxHealth: 1000, baseDamage: 50 }
       ),
-      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], {
-        x: 0,
-        y: 1,
-        z: -8,
-      }),
+      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], [
+        0, 1, -8,
+      ]),
     ],
   });
 

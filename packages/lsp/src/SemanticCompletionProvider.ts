@@ -1,5 +1,5 @@
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver/node.js';
-import { SemanticSearchService, type AIAdapter } from '@holoscript/core';
+import { SemanticSearchService, type AIAdapter } from '@holoscript/framework/ai';
 import { TRAIT_DOCS } from './traitDocs';
 
 interface TraitSearchItem {

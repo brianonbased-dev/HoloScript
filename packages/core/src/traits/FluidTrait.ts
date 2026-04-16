@@ -244,10 +244,12 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
     } else if (event.type === 'fluid_add_emitter') {
       const emitterId = (event.emitterId as string) || `emitter_${state.emitters.size}`;
 
+      const pos = event.position as { x: number; y: number; z: number } | undefined;
+      const vel = event.velocity as { x: number; y: number; z: number } | undefined;
       state.emitters.set(emitterId, {
-        position: (event.position as { x: number; y: number; z: number }) || [0, 0, 0 ],
+        position: pos ? [pos.x, pos.y, pos.z] : [0, 0, 0],
         rate: (event.rate as number) || 100,
-        velocity: (event.velocity as { x: number; y: number; z: number }) || [0, -1, 0 ],
+        velocity: vel ? ([vel.x, vel.y, vel.z] as Vector3) : ([0, -1, 0] as Vector3),
       });
     } else if (event.type === 'fluid_remove_emitter') {
       const emitterId = event.emitterId as string;

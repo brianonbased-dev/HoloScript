@@ -11,11 +11,7 @@
 // VECTOR TYPE
 // =============================================================================
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 // =============================================================================
 // PARTICLE TYPE
@@ -79,11 +75,7 @@ export function spikyKernelGradient(dx: number, dy: number, dz: number, h: numbe
   const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (r > h || r < 1e-5) return [0, 0, 0 ];
   const coeff = (-45 / (Math.PI * h ** 6)) * (h - r) ** 2;
-  return {
-    x: coeff * (dx / r),
-    y: coeff * (dy / r),
-    z: coeff * (dz / r),
-  };
+  return [coeff * (dx / r), coeff * (dy / r), coeff * (dz / r)];
 }
 
 /**
@@ -201,8 +193,8 @@ export class FluidSimulationSystem {
     const id = this.nextId++;
     this.particles.set(id, {
       id,
-      position: { ...position },
-      velocity: velocity ? { ...velocity } : [0, 0, 0 ],
+      position: [...position],
+      velocity: velocity ? [...velocity] : [0, 0, 0 ],
       force: [0, 0, 0 ],
       density: this.cfg.restDensity,
       pressure: 0,
@@ -285,11 +277,11 @@ export class FluidSimulationSystem {
 
     // Compute forces
     for (const pi of particles) {
-      pi.force = {
-        x: this.cfg.gravity[0] * pi.mass,
-        y: this.cfg.gravity[1] * pi.mass,
-        z: this.cfg.gravity[2] * pi.mass,
-      };
+      pi.force = [
+        this.cfg.gravity[0] * pi.mass,
+        this.cfg.gravity[1] * pi.mass,
+        this.cfg.gravity[2] * pi.mass,
+      ];
 
       for (const pj of particles) {
         if (pi.id === pj.id) continue;

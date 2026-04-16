@@ -107,11 +107,11 @@ export const windHandler: TraitHandler<WindConfig> = {
 
     // Update turbulence
     const turbTime = state.time * config.turbulence_frequency;
-    state.turbulenceOffset = {
-      x: smoothNoise(turbTime, 0) * config.turbulence,
-      y: smoothNoise(turbTime, 1) * config.turbulence * 0.5, // Less vertical turbulence
-      z: smoothNoise(turbTime, 2) * config.turbulence,
-    };
+    state.turbulenceOffset = [
+      smoothNoise(turbTime, 0) * config.turbulence,
+      smoothNoise(turbTime, 1) * config.turbulence * 0.5, // Less vertical turbulence
+      smoothNoise(turbTime, 2) * config.turbulence,
+    ];
 
     // Handle pulsing
     let pulseMultiplier = 1.0;
@@ -210,11 +210,11 @@ function _calculateWindForce(
   if (falloff <= 0) return [0, 0, 0 ];
 
   // Apply turbulence to direction
-  const dir = {
-    x: config.direction[0] + state.turbulenceOffset[0],
-    y: config.direction[1] + state.turbulenceOffset[1],
-    z: config.direction[2] + state.turbulenceOffset[2],
-  };
+  const dir: [number, number, number] = [
+    config.direction[0] + state.turbulenceOffset[0],
+    config.direction[1] + state.turbulenceOffset[1],
+    config.direction[2] + state.turbulenceOffset[2],
+  ];
 
   // Normalize
   const len = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);

@@ -82,9 +82,9 @@ function generateFragments(
   for (let i = 0; i < points.length; i++) {
     // Direction from center (or impact point)
     const center = impactPoint || [0, 0, 0 ];
-    const dx = points[i].x - center[0];
-    const dy = points[i].y - center[1];
-    const dz = points[i].z - center[2];
+    const dx = points[i][0] - center[0];
+    const dy = points[i][1] - center[1];
+    const dz = points[i][2] - center[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
 
     // Normalize and apply explosion force

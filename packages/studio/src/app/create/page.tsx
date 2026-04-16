@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
@@ -13,7 +13,7 @@ import {
   usePanelVisibilityStore,
 } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
-import { decodeSceneFromURL } from '@/lib/serializer';
+import { decodeSceneFromURL, serializeScene } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import { useStudioBridge } from '@/hooks/useStudioBridge';
@@ -84,6 +84,11 @@ import type { GizmoMode, ArtMode, _StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
+import { useToast } from '@/app/providers';
+import {
+  UXCommandPalette,
+  createStudioPublishingCommands,
+} from '@/core-ui/UXCommandPalette';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -725,6 +730,8 @@ function AIPromptOverlay() {
 
 export default function CreatePage() {
   const code = useSceneStore((s) => s.code);
+  const metadata = useSceneStore((s) => s.metadata);
+  const sceneR3FTree = useSceneStore((s) => s.r3fTree);
   const setCode = useSceneStore((s) => s.setCode);
   const setR3FTree = useSceneStore((s) => s.setR3FTree);
   const setErrors = useSceneStore((s) => s.setErrors);
@@ -732,10 +739,14 @@ export default function CreatePage() {
   const markClean = useSceneStore((s) => s.markClean);
   const errors = useSceneStore((s) => s.errors);
 
+  const nodes = useSceneGraphStore((s) => s.nodes);
   const addNode = useSceneGraphStore((s) => s.addNode);
+  const assets = useAssetStore((s) => s.assets);
   const addAsset = useAssetStore((s) => s.addAsset);
   const artMode = useEditorStore((s) => s.artMode);
   const _studioMode = useEditorStore((s) => s.studioMode);
+  const { addToast } = useToast();
+  const uxPaletteRef = useRef<UXCommandPalette | null>(null);
 
   // Panel widths (px) — driven by PanelSplitter drag
   const [leftPanelW, setLeftPanelW] = useState(256);
@@ -988,6 +999,75 @@ export default function CreatePage() {
     setR3FTree(r3fTree);
     setErrors(pipelineErrors);
   }, [r3fTree, pipelineErrors, setR3FTree, setErrors]);
+
+  const getCurrentEditorAst = useCallback(() => {
+    const sceneState = useSceneStore.getState();
+    const sceneGraphState = useSceneGraphStore.getState();
+    const assetState = useAssetStore.getState();
+
+    const scene = serializeScene(
+      {
+        id: sceneState.metadata.id ?? '',
+        name: sceneState.metadata.name || 'Untitled Scene',
+        createdAt: sceneState.metadata.createdAt ?? new Date().toISOString(),
+        updatedAt: sceneState.metadata.updatedAt ?? new Date().toISOString(),
+      },
+      sceneState.code,
+      sceneGraphState.nodes,
+      assetState.assets
+    );
+
+    return {
+      kind: 'StudioEditorASTSnapshot',
+      scene,
+      r3fTree: sceneState.r3fTree,
+      capturedAt: new Date().toISOString(),
+    };
+  }, []);
+
+  const runPaletteMcpTool = useCallback(
+    async (tool: 'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template', input: Record<string, unknown>) => {
+      const response = await fetch('/api/mcp/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool, input }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        result?: unknown;
+        offline?: boolean;
+      };
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error ?? `${tool} failed with status ${response.status}`);
+      }
+
+      return payload.result ?? payload;
+    },
+    []
+  );
+
+  useEffect(() => {
+    const palette = new UXCommandPalette();
+    uxPaletteRef.current = palette;
+
+    palette.replaceCommands(
+      createStudioPublishingCommands({
+        getCurrentEditorAst,
+        getSceneName: () => useSceneStore.getState().metadata.name || 'Untitled Scene',
+        getTemplateCategory: () =>
+          useEditorStore.getState().artMode === 'generative' ? 'creative' : 'builder',
+        runTool: runPaletteMcpTool,
+        notify: (message, type = 'info') => addToast(message, type),
+      })
+    );
+
+    return () => {
+      uxPaletteRef.current?.destroy();
+      uxPaletteRef.current = null;
+    };
+  }, [addToast, getCurrentEditorAst, runPaletteMcpTool]);
 
   return (
     <>

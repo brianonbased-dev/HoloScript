@@ -8,7 +8,7 @@ import type { Vector3 } from '../types';
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, TraitContext, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -723,13 +723,9 @@ function createMockFBXData(config: FBXConfig): {
       },
     ],
     boundingBox: {
-      // @ts-expect-error
       min: [-0.5, 0, -0.3],
-      // @ts-expect-error
       max: [0.5, 1.8, 0.3],
-      // @ts-expect-error
       center: [0, 0.9, 0],
-      // @ts-expect-error
       size: [1, 1.8, 0.6],
     },
   };
@@ -803,16 +799,13 @@ function setMorphWeight(state: FBXState, target: string, weight: number): void {
 }
 
 function v3x(v: Vector3): number {
-  // @ts-expect-error
-  return Array.isArray(v) ? v[0] : (v[0] ?? 0);
+  return v[0];
 }
 function v3y(v: Vector3): number {
-  // @ts-expect-error
-  return Array.isArray(v) ? v[1] : (v[1] ?? 0);
+  return v[1];
 }
 function v3z(v: Vector3): number {
-  // @ts-expect-error
-  return Array.isArray(v) ? v[2] : (v[2] ?? 0);
+  return v[2];
 }
 
 function blendVec3(a: Vector3, b: Vector3, t: number): Vector3 {

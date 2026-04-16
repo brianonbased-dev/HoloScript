@@ -385,7 +385,7 @@ export function normalizeCenter(
   if (Array.isArray(center)) {
     return [center[0], center[1], center[2] ];
   }
-  return center;
+  return [center.x, center.y, center.z];
 }
 
 /**

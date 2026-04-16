@@ -7,10 +7,17 @@
 
 export {
   safeParseX402PaymentPayload,
+  safeParseX402PaymentRequired,
   x402PaymentPayloadSchema,
+  x402PaymentOptionSchema,
+  x402PaymentRequiredSchema,
   x402SettlementChainSchema,
   x402RequiredAmountSchema,
   formatX402ParseError,
+  validateX402MicropaymentBoundary,
+  validateX402PaymentRequiredBoundary,
+  type X402PaymentOptionParsed,
+  type X402PaymentRequiredParsed,
 } from './x402-boundary-schemas';
 
 export {

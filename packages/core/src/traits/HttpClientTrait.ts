@@ -17,7 +17,14 @@
  * @version 1.0.0
  */
 
-import type { HostNetworkResponse, HostNetworkRequestOptions, TraitHandler } from './TraitTypes';
+import type {
+  HostNetworkResponse,
+  HostNetworkRequestOptions,
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+} from './TraitTypes';
 
 export interface HttpClientConfig {
   base_url: string;
@@ -80,19 +87,18 @@ function normalizeBody(body: unknown, headers: Record<string, string>): string |
   return JSON.stringify(body);
 }
 
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 function normalizeActionPayload(event: TraitEvent): HttpRequestPayload {
-  const payload = event?.payload ?? event;
-  const params = payload?.params;
+  const e = event as Record<string, unknown>;
+  const raw = (e?.payload ?? e) as Record<string, unknown>;
+  const params = raw?.params;
 
   if (params && typeof params === 'object') {
-    return {
-      requestId: payload.requestId,
-      ...(params as HttpRequestPayload),
-    };
+    const base: HttpRequestPayload = { ...(params as HttpRequestPayload) };
+    if (typeof raw.requestId === 'string') base.requestId = raw.requestId;
+    return base;
   }
 
-  return payload as HttpRequestPayload;
+  return raw as HttpRequestPayload;
 }
 
 async function parseResponse(
@@ -125,7 +131,6 @@ async function parseResponse(
 }
 
 async function callHttp(
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   context: TraitContext,
   url: string,
   options: HostNetworkRequestOptions
@@ -206,7 +211,6 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
     include_credentials: false,
   },
 
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onAttach(node: HSPlusNode): void {
     const state: HttpClientState = {
       pendingRequests: new Set<string>(),
@@ -215,21 +219,19 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
     node.__httpClientState = state;
   },
 
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onDetach(node: HSPlusNode): void {
     delete node.__httpClientState;
   },
 
   onUpdate(): void {},
 
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onEvent(
     node: HSPlusNode,
     config: HttpClientConfig,
     context: TraitContext,
     event: TraitEvent
   ): void {
-    const state: HttpClientState | undefined = node.__httpClientState;
+    const state = (node as HSPlusNode & { __httpClientState?: HttpClientState }).__httpClientState;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

@@ -1,5 +1,4 @@
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
+import type { HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
 /**
  * HoloScript ECS+WASM Performance POC — v4.0
  *
@@ -240,14 +239,48 @@ export class ECSWorld {
 export function physicsSystem(world: ECSWorld, dt: number): void {
   const mask = ComponentType.Transform | ComponentType.Velocity;
   for (const id of world.query(mask)) {
-    const t = world.getTransform(id)!;
-    const v = world.getVelocity(id)!;
-    t.position[0] += v.linear[0] * dt;
-    t.position[1] += v.linear[1] * dt;
-    t.position[2] += v.linear[2] * dt;
-    t.rotation[0] += v.angular[0] * dt;
-    t.rotation[1] += v.angular[1] * dt;
-    t.rotation[2] += v.angular[2] * dt;
+    const t = world.getTransform(id)! as unknown as Record<string, unknown>;
+    const v = world.getVelocity(id)! as unknown as Record<string, unknown>;
+
+    const pos = (t['position'] as [number, number, number] | undefined) ?? [
+      (t['x'] as number) ?? 0,
+      (t['y'] as number) ?? 0,
+      (t['z'] as number) ?? 0,
+    ];
+    const rot = (t['rotation'] as [number, number, number] | undefined) ?? [
+      (t['rx'] as number) ?? 0,
+      (t['ry'] as number) ?? 0,
+      (t['rz'] as number) ?? 0,
+    ];
+    const lin = (v['linear'] as [number, number, number] | undefined) ?? [
+      (v['vx'] as number) ?? 0,
+      (v['vy'] as number) ?? 0,
+      (v['vz'] as number) ?? 0,
+    ];
+    const ang = (v['angular'] as [number, number, number] | undefined) ?? [
+      (v['angularX'] as number) ?? 0,
+      (v['angularY'] as number) ?? 0,
+      (v['angularZ'] as number) ?? 0,
+    ];
+
+    pos[0] += lin[0] * dt;
+    pos[1] += lin[1] * dt;
+    pos[2] += lin[2] * dt;
+    rot[0] += ang[0] * dt;
+    rot[1] += ang[1] * dt;
+    rot[2] += ang[2] * dt;
+
+    if ('position' in t) {
+      t['position'] = pos;
+      t['rotation'] = rot;
+    } else {
+      t['x'] = pos[0];
+      t['y'] = pos[1];
+      t['z'] = pos[2];
+      t['rx'] = rot[0];
+      t['ry'] = rot[1];
+      t['rz'] = rot[2];
+    }
   }
 }
 
@@ -255,23 +288,43 @@ export function physicsSystem(world: ECSWorld, dt: number): void {
 export function agentMovementSystem(world: ECSWorld, dt: number): void {
   const mask = ComponentType.Transform | ComponentType.Agent;
   for (const id of world.query(mask)) {
-    const t = world.getTransform(id)!;
-    const a = world.getAgent(id)!;
-    if (a.state !== 'moving') continue;
+    const t = world.getTransform(id)! as unknown as Record<string, unknown>;
+    const a = world.getAgent(id)! as unknown as Record<string, unknown>;
+    if (a['state'] !== 'moving') continue;
 
-    const dx = a.target[0] - t.position[0];
-    const dy = a.target[1] - t.position[1];
-    const dz = a.target[2] - t.position[2];
+    const pos = (t['position'] as [number, number, number] | undefined) ?? [
+      (t['x'] as number) ?? 0,
+      (t['y'] as number) ?? 0,
+      (t['z'] as number) ?? 0,
+    ];
+    const target = (a['target'] as [number, number, number] | undefined) ?? [
+      (a['targetX'] as number) ?? 0,
+      (a['targetY'] as number) ?? 0,
+      (a['targetZ'] as number) ?? 0,
+    ];
+
+    const dx = target[0] - pos[0];
+    const dy = target[1] - pos[1];
+    const dz = target[2] - pos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist < 0.01) {
-      a.state = 'idle';
+      a['state'] = 'idle';
     } else {
-      const step = Math.min(a.speed * dt, dist);
+      const speed = (a['speed'] as number) ?? 0;
+      const step = Math.min(speed * dt, dist);
       const inv = step / dist;
-      t.position[0] += dx * inv;
-      t.position[1] += dy * inv;
-      t.position[2] += dz * inv;
+      pos[0] += dx * inv;
+      pos[1] += dy * inv;
+      pos[2] += dz * inv;
+
+      if ('position' in t) {
+        t['position'] = pos;
+      } else {
+        t['x'] = pos[0];
+        t['y'] = pos[1];
+        t['z'] = pos[2];
+      }
     }
   }
 }
@@ -280,15 +333,26 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
 export function lodSystem(
   world: ECSWorld,
   _dt: number,
-  cameraPos: [number, number, number] = [0, 0, 0]
+  cameraPosOrX: [number, number, number] | number = [0, 0, 0],
+  cameraY = 0,
+  cameraZ = 0
 ): void {
+  const cameraPos: [number, number, number] = Array.isArray(cameraPosOrX)
+    ? cameraPosOrX
+    : [cameraPosOrX, cameraY, cameraZ];
+
   const mask = ComponentType.Transform | ComponentType.Renderable;
   for (const id of world.query(mask)) {
-    const t = world.getTransform(id)!;
+    const t = world.getTransform(id)! as unknown as Record<string, unknown>;
     const r = world.getRenderable(id)!;
-    const dx = t.position[0] - cameraPos[0],
-      dy = t.position[1] - cameraPos[1],
-      dz = t.position[2] - cameraPos[2];
+    const pos = (t['position'] as [number, number, number] | undefined) ?? [
+      (t['x'] as number) ?? 0,
+      (t['y'] as number) ?? 0,
+      (t['z'] as number) ?? 0,
+    ];
+    const dx = pos[0] - cameraPos[0],
+      dy = pos[1] - cameraPos[1],
+      dz = pos[2] - cameraPos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     r.lodLevel = dist < 10 ? 0 : dist < 30 ? 1 : dist < 100 ? 2 : 3;
   }
@@ -428,27 +492,28 @@ export const wasmBridgeHandler = {
         ctx.emit('ecs_entity_spawned', { node, entityId: id });
         break;
       }
-      case 'ecs_destroy_entity':
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        world.destroyEntity((event.payload as number)?.entityId);
-        ctx.emit('ecs_entity_destroyed', { node, entityId: event.payload?.entityId });
+      case 'ecs_destroy_entity': {
+        const pl = event.payload as { entityId?: number } | undefined;
+        world.destroyEntity(pl?.entityId ?? 0);
+        ctx.emit('ecs_entity_destroyed', { node, entityId: pl?.entityId });
         break;
-      case 'ecs_query':
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      }
+      case 'ecs_query': {
+        const pl = event.payload as { mask?: number } | undefined;
         ctx.emit('ecs_query_result', {
           node,
-          entities: world.query((event.payload as number)?.mask ?? 0),
+          entities: world.query(pl?.mask ?? 0),
         });
         break;
+      }
       case 'ecs_stats':
         ctx.emit('ecs_stats', { node, stats: world.getStats() });
         break;
       case 'ecs_benchmark': {
+        const pl = event.payload as { entityCount?: number; frames?: number } | undefined;
         const result = runECSBenchmark(
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          (event.payload as number)?.entityCount ?? config.entity_count,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          event.payload?.frames ?? 300,
+          pl?.entityCount ?? config.entity_count,
+          pl?.frames ?? 300,
           config.target_fps
         );
         ctx.emit('ecs_benchmark_complete', { node, result });

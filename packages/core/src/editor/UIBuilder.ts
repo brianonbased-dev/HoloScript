@@ -9,9 +9,9 @@ function eulerToQuat(euler: { x: number; y: number; z: number }): {
   z: number;
   w: number;
 } {
-  const halfX = euler[0] * 0.5;
-  const halfY = euler[1] * 0.5;
-  const halfZ = euler[2] * 0.5;
+  const halfX = euler.x * 0.5;
+  const halfY = euler.y * 0.5;
+  const halfZ = euler.z * 0.5;
   const cx = Math.cos(halfX);
   const sx = Math.sin(halfX);
   const cy = Math.cos(halfY);

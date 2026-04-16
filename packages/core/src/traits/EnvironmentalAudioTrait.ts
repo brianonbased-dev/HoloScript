@@ -327,11 +327,11 @@ export class EnvironmentalAudioSystem {
 
     if (dist === 0) return 1.0;
 
-    const dir = {
-      x: sourceToListener[0] / dist,
-      y: sourceToListener[1] / dist,
-      z: sourceToListener[2] / dist,
-    };
+    const dir: [number, number, number] = [
+      sourceToListener[0] / dist,
+      sourceToListener[1] / dist,
+      sourceToListener[2] / dist,
+    ];
 
     // Project velocities onto direction vector
     const sourceSpeed = -(

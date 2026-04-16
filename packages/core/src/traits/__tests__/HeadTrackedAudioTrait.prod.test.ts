@@ -228,12 +228,12 @@ describe('headTrackedAudioHandler.onEvent', () => {
       type: 'head_rotation_update',
       rotation: [0.1, 0.2, 0.3, 0.9 ],
     });
-    expect((node as any).__headTrackedAudioState.headRotation).toEqual({
-      x: 0.1,
-      y: 0.2,
-      z: 0.3,
-      w: 0.9,
-    });
+    expect((node as any).__headTrackedAudioState.headRotation).toEqual([
+      0.1,
+      0.2,
+      0.3,
+      0.9,
+    ]);
   });
 
   it('audio_source_loaded stores sourceId', () => {

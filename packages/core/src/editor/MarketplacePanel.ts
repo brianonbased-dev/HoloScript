@@ -99,7 +99,7 @@ export class MarketplacePanel {
     const assets = await this.web3.getMyAssets();
 
     // List Assets
-    assets.forEach((asset, i) => {
+    assets.forEach((asset: NFTAsset, i: number) => {
       if (i > 3) return;
 
       const btn = this.uiBuilder.spawn(

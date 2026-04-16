@@ -8,6 +8,95 @@ export interface CommandOption {
   action: () => void | Promise<void>;
 }
 
+export type StudioPublishToolName =
+  | 'holomesh_moltbook_crosspost'
+  | 'holomesh_publish_agent_template';
+
+export interface StudioPublishCommandContext {
+  getCurrentEditorAst: () => unknown;
+  getSceneName?: () => string;
+  getTemplateCategory?: () => string;
+  runTool: (tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>;
+  notify?: (
+    message: string,
+    type?: 'info' | 'success' | 'warning' | 'error'
+  ) => void;
+}
+
+function slugifyPaletteValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'untitled-scene';
+}
+
+function stringifyPaletteAst(ast: unknown): string {
+  return JSON.stringify(ast, null, 2);
+}
+
+export function createStudioPublishingCommands(
+  context: StudioPublishCommandContext
+): CommandOption[] {
+  const getSceneName = () => context.getSceneName?.().trim() || 'Untitled Scene';
+  const getTemplateCategory = () => context.getTemplateCategory?.().trim() || 'builder';
+
+  return [
+    {
+      id: 'cmd_holomesh_publish_agent_template',
+      label: 'HoloMesh: Publish current editor AST as template',
+      icon: '📦',
+      shortcut: ['Ctrl', 'Shift', 'P'],
+      description:
+        'Send the live 3D Editor AST directly to holomesh_publish_agent_template via Studio MCP proxy.',
+      action: async () => {
+        const sceneName = getSceneName();
+        const ast = context.getCurrentEditorAst();
+        const program = stringifyPaletteAst(ast);
+        context.notify?.(`Publishing ${sceneName} to the agent marketplace…`, 'info');
+
+        await context.runTool('holomesh_publish_agent_template', {
+          name: `${sceneName} Studio Template`,
+          description: `Direct Studio publish of the live 3D Editor AST for ${sceneName}.`,
+          category: getTemplateCategory(),
+          program,
+          tags: ['studio', 'ux-command-palette', 'editor-ast', '3d-editor'],
+        });
+
+        context.notify?.(`Published ${sceneName} to HoloMesh marketplace`, 'success');
+      },
+    },
+    {
+      id: 'cmd_holomesh_moltbook_crosspost',
+      label: 'HoloMesh: Crosspost current editor AST to Moltbook',
+      icon: '🛰️',
+      shortcut: ['Ctrl', 'Shift', 'M'],
+      description:
+        'Crosspost the live 3D Editor AST to Moltbook through holomesh_moltbook_crosspost — no CLI detour.',
+      action: async () => {
+        const sceneName = getSceneName();
+        const ast = context.getCurrentEditorAst();
+        const serializedAst = stringifyPaletteAst(ast);
+        const taskId = `studio-${slugifyPaletteValue(sceneName)}-${Date.now()}`;
+
+        context.notify?.(`Crossposting ${sceneName} to Moltbook…`, 'info');
+
+        await context.runTool('holomesh_moltbook_crosspost', {
+          taskId,
+          title: `${sceneName} — Studio AST Crosspost`,
+          description: `Direct Studio crosspost of the current 3D Editor AST for ${sceneName}.\n\n${serializedAst}`,
+          metrics: {
+            filesModified: 1,
+          },
+          tags: ['studio', 'moltbook', 'editor-ast', '3d-editor'],
+        });
+
+        context.notify?.(`Crossposted ${sceneName} to Moltbook`, 'success');
+      },
+    },
+  ];
+}
+
 /**
  * Studio command palette (Ctrl+K / Cmd+K).
  * Renders a searchable overlay of registered commands with keyboard navigation.
@@ -18,6 +107,7 @@ export class UXCommandPalette {
   private options: CommandOption[] = [];
   private selectedIndex: number = 0;
   private container: HTMLElement;
+  private streamSubscription?: { unsubscribe: () => void };
 
   constructor() {
     this.container = document.createElement('div');
@@ -36,8 +126,48 @@ export class UXCommandPalette {
   }
 
   public registerCommands(commands: CommandOption[]) {
-    this.options.push(...commands);
+    for (const command of commands) {
+      const existingIndex = this.options.findIndex((opt) => opt.id === command.id);
+      if (existingIndex >= 0) {
+        this.options[existingIndex] = command;
+      } else {
+        this.options.push(command);
+      }
+    }
     this.render();
+  }
+
+  public replaceCommands(commands: CommandOption[]) {
+    this.options = [...commands];
+    this.selectedIndex = 0;
+    this.render();
+  }
+
+  public bindCommandStream(stream: { subscribe: (fn: (cmds: CommandOption[]) => void) => { unsubscribe: () => void } } | AsyncIterable<CommandOption[]>) {
+    if (this.streamSubscription) {
+      this.streamSubscription.unsubscribe();
+      this.streamSubscription = undefined;
+    }
+
+    if ('subscribe' in stream) {
+      this.streamSubscription = stream.subscribe((cmds) => {
+        this.replaceCommands(cmds);
+      });
+    } else {
+      let active = true;
+      this.streamSubscription = { unsubscribe: () => { active = false; } };
+      (async () => {
+        for await (const cmds of stream) {
+          if (!active) break;
+          this.replaceCommands(cmds);
+        }
+      })();
+    }
+  }
+
+  public destroy() {
+    if (this.streamSubscription) this.streamSubscription.unsubscribe();
+    this.container.remove();
   }
 
   public toggle() {

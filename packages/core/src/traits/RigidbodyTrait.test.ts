@@ -128,7 +128,7 @@ describe('RigidbodyTrait', () => {
 
     it('should set angular velocity', () => {
       trait.setAngularVelocity([0, 1, 0 ]);
-      expect(trait.getState().angularVelocity.y).toBe(1);
+      expect(trait.getState().angularVelocity[1]).toBe(1);
     });
   });
 

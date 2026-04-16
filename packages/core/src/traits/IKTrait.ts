@@ -350,17 +350,17 @@ export class IKTrait {
   private fabrikSolve(bones: IKBone[], target: Vector3): Vector3[] {
     const positions: Vector3[] = [];
 
-    // Initialize positions
-    let currentPos = bones[0].transform?.position || [0, 0, 0 ];
-    positions.push({ ...currentPos });
+    // Initialize positions (chain along +Y by default)
+    let currentPos = bones[0].transform?.position || ([0, 0, 0] as Vector3);
+    positions.push([currentPos[0], currentPos[1], currentPos[2]]);
 
     for (let i = 0; i < bones.length; i++) {
-      const dir = [0, 1, 0 ]; // Default direction
-      positions.push({
-        x: currentPos[0] + dir[0] * bones[i].length,
-        y: currentPos[1] + dir[1] * bones[i].length,
-        z: currentPos[2] + dir[2] * bones[i].length,
-      });
+      const dir = [0, 1, 0] as Vector3;
+      positions.push([
+        currentPos[0] + dir[0] * bones[i].length,
+        currentPos[1] + dir[1] * bones[i].length,
+        currentPos[2] + dir[2] * bones[i].length,
+      ]);
       currentPos = positions[positions.length - 1];
     }
 
@@ -369,44 +369,39 @@ export class IKTrait {
     const maxIterations = this.config.iterations || 10;
 
     for (let iter = 0; iter < maxIterations; iter++) {
-      // Check if we've reached the target
       const tipPos = positions[positions.length - 1];
       if (this.distance(tipPos, target) < tolerance) {
         break;
       }
 
-      // BACKWARD PASS: Move tip to target und work back to root
-      positions[positions.length - 1] = { ...target };
+      positions[positions.length - 1] = [target[0], target[1], target[2]];
 
       for (let i = bones.length - 1; i >= 0; i--) {
         const p1 = positions[i + 1];
         const p0 = positions[i];
         const length = bones[i].length;
-
         const dir = this.normalize(this.subtract(p0, p1));
-        positions[i] = {
-          x: p1[0] + dir[0] * length,
-          y: p1[1] + dir[1] * length,
-          z: p1[2] + dir[2] * length,
-        };
+        positions[i] = [
+          p1[0] + dir[0] * length,
+          p1[1] + dir[1] * length,
+          p1[2] + dir[2] * length,
+        ];
       }
 
-      // FORWARD PASS: Move root back and work toward tip
       if (this.config.pinRoot) {
-        positions[0] = { ...rootPos };
+        positions[0] = [rootPos[0], rootPos[1], rootPos[2]];
       }
 
       for (let i = 0; i < bones.length; i++) {
         const p0 = positions[i];
         const p1 = positions[i + 1];
         const length = bones[i].length;
-
         const dir = this.normalize(this.subtract(p1, p0));
-        positions[i + 1] = {
-          x: p0[0] + dir[0] * length,
-          y: p0[1] + dir[1] * length,
-          z: p0[2] + dir[2] * length,
-        };
+        positions[i + 1] = [
+          p0[0] + dir[0] * length,
+          p0[1] + dir[1] * length,
+          p0[2] + dir[2] * length,
+        ];
       }
     }
 
@@ -418,20 +413,20 @@ export class IKTrait {
    */
   private stretchTowardTarget(bones: IKBone[], target: Vector3): Map<string, Transform> {
     const transforms = new Map<string, Transform>();
-    const rootPos = bones[0].transform?.position || [0, 0, 0 ];
+    const rootPos = bones[0].transform?.position || ([0, 0, 0] as Vector3);
 
     const dir = this.normalize(this.subtract(target, rootPos));
-    let currentPos = { ...rootPos };
+    let currentPos: Vector3 = [rootPos[0], rootPos[1], rootPos[2]];
 
     for (const bone of bones) {
-      const nextPos = {
-        x: currentPos[0] + dir[0] * bone.length,
-        y: currentPos[1] + dir[1] * bone.length,
-        z: currentPos[2] + dir[2] * bone.length,
-      };
+      const nextPos: Vector3 = [
+        currentPos[0] + dir[0] * bone.length,
+        currentPos[1] + dir[1] * bone.length,
+        currentPos[2] + dir[2] * bone.length,
+      ];
 
       transforms.set(bone.name, {
-        position: { ...currentPos },
+        position: [currentPos[0], currentPos[1], currentPos[2]],
         rotation: this.lookRotation(dir),
       });
 
@@ -475,11 +470,7 @@ export class IKTrait {
    * Subtract two vectors
    */
   private subtract(a: Vector3, b: Vector3): Vector3 {
-    return {
-      x: a[0] - b[0],
-      y: a[1] - b[1],
-      z: a[2] - b[2],
-    };
+    return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
   }
 
   /**
@@ -487,12 +478,8 @@ export class IKTrait {
    */
   private normalize(v: Vector3): Vector3 {
     const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    if (len === 0) return [0, 1, 0 ];
-    return {
-      x: v[0] / len,
-      y: v[1] / len,
-      z: v[2] / len,
-    };
+    if (len === 0) return [0, 1, 0];
+    return [v[0] / len, v[1] / len, v[2] / len];
   }
 
   /**
@@ -503,18 +490,22 @@ export class IKTrait {
     const up = [0, 1, 0 ];
 
     // Cross product for right vector
-    const right = this.normalize([
-      up[1] * forward[2] - up[2] * forward[1],
-      up[2] * forward[0] - up[0] * forward[2],
-      up[0] * forward[1] - up[1] * forward[0],
-    ]);
+    const right = this.normalize(
+      [
+        up[1] * forward[2] - up[2] * forward[1],
+        up[2] * forward[0] - up[0] * forward[2],
+        up[0] * forward[1] - up[1] * forward[0],
+      ] as Vector3
+    );
 
     // Recalculate up
-    const newUp = this.normalize([
-      forward[1] * right[2] - forward[2] * right[1],
-      forward[2] * right[0] - forward[0] * right[2],
-      forward[0] * right[1] - forward[1] * right[0],
-    ]);
+    const newUp = this.normalize(
+      [
+        forward[1] * right[2] - forward[2] * right[1],
+        forward[2] * right[0] - forward[0] * right[2],
+        forward[0] * right[1] - forward[1] * right[0],
+      ] as Vector3
+    );
 
     // Convert rotation matrix to quaternion (simplified)
     const trace = right[0] + newUp[1] + forward[2];

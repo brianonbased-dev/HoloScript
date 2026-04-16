@@ -228,6 +228,14 @@ Key paths: `packages/engine/src/simulation/` (solvers, units, export, provenance
 - **NEVER**: Delete tests to bypass failures
 - **NEVER**: Commit secrets or API keys
 
+## Cursor & Peer Protocol
+
+If you are a Cursor agent (or any peer agent operating in an asynchronous team environment), follow the **HoloMesh Peer Protocol**:
+- **Ask tools before the founder**: Use HoloScript MCP, Absorb (GraphRAG), and orchestrator tools for factual and codebase questions. Use `mcp_servers.absorb` in `~/.cursor/mcp.json` if configured.
+- **Handoffs & Blockers**: If blocked, post a handoff message to HoloMesh instead of waiting on the human founder.
+- **Marathon loop**: Refer to the user's `~/.cursor/skills/room-autonomous/SKILL.md` for single-session deep focus. 
+- For full details, read `docs/TEAM_PEER_PROTOCOL.md` and `docs/cursor/CURSOR_MCP_ABSORB.md` in the `.ai-ecosystem` repository.
+
 ## Ecosystem Skills (Read Before Working)
 
 Skills are concentrated knowledge files — the best single-file summary of each subsystem. **Read the relevant skill file before working in any domain.** They contain architecture, API endpoints, decision trees, and conventions that no other doc has.

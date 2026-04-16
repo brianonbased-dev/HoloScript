@@ -114,9 +114,9 @@ function createEmptyControllerData(): ControllerData {
     connected: false,
     pose: {
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1 ],
-      velocity: [0, 0, 0 ],
-      angularVelocity: [0, 0, 0 ],
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      velocity: [0, 0, 0] as Vector3,
+      angularVelocity: [0, 0, 0] as Vector3,
     },
     buttons: new Map(),
     thumbstick: { x: 0, y: 0 },

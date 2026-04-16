@@ -79,6 +79,7 @@ export default defineConfig({
     // Sprint 2: Compiler extensions
     'compiler/coco': 'src/compiler/COCOExporter.ts',
     'compiler/gltf-pipeline': 'src/compiler/GLTFPipelineMCPTool.ts',
+    'compiler/business-quest': 'src/compiler/BusinessQuestTools.ts',
     'compiler/nodetoy': 'src/compiler/NodeToyMapping.ts',
     'compiler/remotion': 'src/compiler/RemotionBridge.ts',
     'compiler/reproducibility': 'src/compiler/ReproducibilityMode.ts',

@@ -23,4 +23,10 @@ export {
   createLLMProvider,
   detectLLMProviderName,
 } from './llmProvider';
-export { LegacyImporter, type ImportOptions } from './LegacyImporter';
+export {
+  LegacyImporter,
+  LEGACY_FLAT_TRAIT_TO_NAMESPACED,
+  routeNamespacedPluginEnvelopes,
+  toNamespacedTraitToken,
+  type ImportOptions,
+} from './LegacyImporter';

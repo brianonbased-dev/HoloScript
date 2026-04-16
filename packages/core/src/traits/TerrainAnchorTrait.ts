@@ -22,7 +22,7 @@ interface TerrainAnchorState {
   terrainHeight: number; // meters above sea level
   surfaceNormal: Vector3;
   localPosition: Vector3;
-  localRotation: { x: number; y: number; z: number; w: number };
+  localRotation: [number, number, number, number];
   confidence: number;
   anchorHandle: unknown;
 }
@@ -156,12 +156,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
           if (len > 0.001) {
             const halfAngle = angle / 2;
             const s = Math.sin(halfAngle) / len;
-            state.localRotation = {
-              x: axis[0] * s,
-              y: 0,
-              z: axis[2] * s,
-              w: Math.cos(halfAngle),
-            };
+            state.localRotation = [axis[0] * s, 0, axis[2] * s, Math.cos(halfAngle)];
           }
         }
       }

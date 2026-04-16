@@ -7,8 +7,9 @@
  *
  * Owns the ECS World, EventBus, ThemeEngine, and SystemScheduler.
  */
-import { World } from '@holoscript/core';
-import { ComponentRegistry, registerBuiltInComponents } from '@holoscript/core';
+import { World } from '../ecs';
+import { ComponentRegistry } from '../ecs';
+import { registerBuiltInComponents } from '@holoscript/core';
 import { SystemScheduler, SystemPhase } from '@holoscript/core';
 import { EventBus } from '@holoscript/core';
 import { ThemeEngine } from '@holoscript/core';

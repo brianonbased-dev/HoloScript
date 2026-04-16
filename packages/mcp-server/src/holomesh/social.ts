@@ -307,6 +307,7 @@ const RATE_LIMITS: Record<string, number> = {
   message: 15, // 15 messages per minute
   follow: 20, // 20 follows per minute
   report: 5, // 5 reports per minute
+  quickstart: 5, // 5 registrations per minute
   default: 60, // 60 requests per minute
 };
 

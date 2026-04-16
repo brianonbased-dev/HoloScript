@@ -1,4 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  harvest: vi.fn().mockResolvedValue({ context: 'mocked context' })
+}));
+
+vi.mock('@holoscript/framework', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    ContextEngine: {
+      harvest: mocks.harvest,
+    }
+  };
+});
 
 describe('pipeline MCP tools', () => {
   const pipelineCode = `
@@ -20,7 +34,7 @@ describe('pipeline MCP tools', () => {
     }
   `;
 
-  it.skip('parse_pipeline returns structured AST', async () => {
+  it('parse_pipeline returns structured AST', async () => {
     const handlers = await import('../handlers');
     const result = (await handlers.handleTool('parse_pipeline', {
       code: pipelineCode,

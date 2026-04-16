@@ -30,7 +30,7 @@ const mockGetSession = vi.fn().mockReturnValue({
 const mockGetAuditLog = vi.fn().mockReturnValue([]);
 const mockRemoveParticipant = vi.fn();
 
-vi.mock('../../negotiation/NegotiationProtocol', () => ({
+vi.mock('@holoscript/framework/negotiation', () => ({
   NegotiationProtocol: class {},
   getNegotiationProtocol: vi.fn(() => ({
     on: mockOn,
@@ -43,9 +43,7 @@ vi.mock('../../negotiation/NegotiationProtocol', () => ({
   })),
 }));
 
-vi.mock('../../negotiation/VotingMechanisms', () => ({
-  getTrustWeight: vi.fn().mockReturnValue(1.0),
-}));
+vi.mock('@holoscript/framework/agents', () => ({}));
 
 import {
   negotiationHandler,

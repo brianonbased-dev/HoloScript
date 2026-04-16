@@ -23,9 +23,9 @@ export class SlidableTrait implements Trait {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const length = node.properties.length || 0.1;
 
-    let axisVec: { x: number; y: number; z: number } = { x: 1, y: 0, z: 0 };
-    if (axis === 'y') axisVec = { x: 0, y: 1, z: 0 };
-    if (axis === 'z') axisVec = { x: 0, y: 0, z: 1 };
+    let axisVec: [number, number, number] = [1, 0, 0];
+    if (axis === 'y') axisVec = [0, 1, 0];
+    if (axis === 'z') axisVec = [0, 0, 1];
 
     // Request Prismatic Constraint without spring (or weak spring/friction for "feel")
     context.emit('physics_add_constraint', {

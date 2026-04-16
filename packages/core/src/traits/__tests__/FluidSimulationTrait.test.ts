@@ -98,10 +98,10 @@ describe('FluidSimulationSystem', () => {
 
   it('step() moves particles due to gravity', () => {
     const id = fluid.addParticle([0, 0, 0 ]);
-    const before = { ...fluid.getParticle(id)!.position };
+    const before = [...fluid.getParticle(id)!.position];
     fluid.step(0.016);
     const after = fluid.getParticle(id)!.position;
-    expect(after.y).toBeLessThan(before.y); // gravity pulls down
+    expect(after[1]).toBeLessThan(before[1]); // gravity pulls down
   });
 
   it('step computes densities on particles', () => {

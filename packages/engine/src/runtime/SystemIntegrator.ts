@@ -12,7 +12,7 @@
  * Each "integration system" queries the ECS World for entities with the
  * relevant trait component, then drives the corresponding engine subsystem.
  */
-import { World, Entity } from '@holoscript/core';
+import { World, Entity } from '../ecs';
 import type { SystemScheduler, SystemPhase } from '@holoscript/core';
 import type { EventBus } from '@holoscript/core';
 

@@ -659,8 +659,12 @@ export class HololandClient {
           setVelocity: () => {},
           applyForce: () => {},
           applyImpulse: () => {},
-          getPosition: () => config.position,
-          getVelocity: () => ([0, 0, 0]),
+          getPosition: () => ({
+            x: config.position[0],
+            y: config.position[1],
+            z: config.position[2],
+          }),
+          getVelocity: () => ({ x: 0, y: 0, z: 0 }),
           destroy: () => {},
         };
       },

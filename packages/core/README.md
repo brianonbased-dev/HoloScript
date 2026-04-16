@@ -49,7 +49,7 @@ const output = compiler.compile(ast);
 | `HoloScriptPlusParser`  | `.hsplus`  | Extended syntax with TypeScript modules |
 | `HoloCompositionParser` | `.holo`    | Scene-centric composition files         |
 | `HoloScript2DParser`    | `.hs`      | Basic logic and protocols               |
-| `HoloScriptParser`      | `.hs`      | Legacy parser                           |
+| `HoloScriptParser`      | `.hs`      | Standard semantic parser                |
 
 ## Compilers (30+ implementations; verify live targets via health + ExportTarget enum)
 

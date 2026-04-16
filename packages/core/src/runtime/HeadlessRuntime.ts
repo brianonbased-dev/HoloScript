@@ -8,7 +8,7 @@ import {
 export { getProfile, HEADLESS_PROFILE, type ActionHandler };
 
 export function createHeadlessRuntime(ast: unknown, options?: Record<string, unknown>) {
-  const runtime = createEngineHeadlessRuntime(ast as never, options as never) as {
+  const runtime = createEngineHeadlessRuntime(ast as never, options as never) as unknown as {
     tick?: (...args: unknown[]) => unknown;
     getStats?: () => Record<string, unknown>;
     [key: string]: unknown;

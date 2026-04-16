@@ -20,7 +20,7 @@ interface HeadTrackedAudioState {
   isPlaying: boolean;
   worldPosition: Vector3;
   relativePosition: Vector3;
-  headRotation: { x: number; y: number; z: number; w: number };
+  headRotation: [number, number, number, number];
   stabilizedPosition: Vector3;
   lastUpdateTime: number;
   audioSourceId: string | null;
@@ -43,7 +43,7 @@ interface HeadTrackedAudioConfig {
 
 function applyInverseRotation(
   position: [number, number, number],
-  rotation: { x: number; y: number; z: number; w: number }
+  rotation: [number, number, number, number]
 ): Vector3 {
   // Conjugate of quaternion for inverse rotation
   const qx = -rotation[0];
@@ -57,11 +57,11 @@ function applyInverseRotation(
   const iz = qw * position[2] + qx * position[1] - qy * position[0];
   const iw = -qx * position[0] - qy * position[1] - qz * position[2];
 
-  return {
-    x: ix * qw + iw * -qx + iy * -qz - iz * -qy,
-    y: iy * qw + iw * -qy + iz * -qx - ix * -qz,
-    z: iz * qw + iw * -qz + ix * -qy - iy * -qx,
-  };
+  return [
+    ix * qw + iw * -qx + iy * -qz - iz * -qy,
+    iy * qw + iw * -qy + iz * -qx - ix * -qz,
+    iz * qw + iw * -qz + ix * -qy - iy * -qx,
+  ];
 }
 
 // =============================================================================
@@ -96,7 +96,7 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
 
     // Get initial world position
     if (node.position) {
-      state.worldPosition = { ...node.position };
+      state.worldPosition = [...(node.position as [number, number, number])];
     }
 
     // Load audio source
@@ -134,11 +134,11 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
 
       // Stabilization smoothing
       const s = config.stabilization;
-      state.stabilizedPosition = {
-        x: state.stabilizedPosition[0] * s + compensated[0] * (1 - s),
-        y: state.stabilizedPosition[1] * s + compensated[1] * (1 - s),
-        z: state.stabilizedPosition[2] * s + compensated[2] * (1 - s),
-      };
+      state.stabilizedPosition = [
+        state.stabilizedPosition[0] * s + compensated[0] * (1 - s),
+        state.stabilizedPosition[1] * s + compensated[1] * (1 - s),
+        state.stabilizedPosition[2] * s + compensated[2] * (1 - s),
+      ];
 
       // Update audio source position
       context.emit?.('audio_set_position', {
@@ -156,11 +156,11 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
       const worldCompensated = applyInverseRotation(state.worldPosition, state.headRotation);
       const blend = config.stabilization;
 
-      const hybridPos = {
-        x: state.relativePosition[0] * (1 - blend) + worldCompensated[0] * blend,
-        y: state.relativePosition[1] * (1 - blend) + worldCompensated[1] * blend,
-        z: state.relativePosition[2] * (1 - blend) + worldCompensated[2] * blend,
-      };
+      const hybridPos: Vector3 = [
+        state.relativePosition[0] * (1 - blend) + worldCompensated[0] * blend,
+        state.relativePosition[1] * (1 - blend) + worldCompensated[1] * blend,
+        state.relativePosition[2] * (1 - blend) + worldCompensated[2] * blend,
+      ];
 
       context.emit?.('audio_set_position', {
         node,

@@ -142,6 +142,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         domain: 'iot',
       })) as { agents: Array<{ id: string; score: number }>; total: number };
 
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
+
       expect(result.total).toBeGreaterThanOrEqual(1);
       expect(result.agents[0].id).toBe('analytics-agent-01');
     });
@@ -154,6 +157,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         total: number;
         registrySize: number;
       };
+
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
 
       expect(result.total).toBe(3);
       expect(result.registrySize).toBe(3);
@@ -170,6 +176,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         arguments: { device_ids: ['temp-01'], interval_ms: 5000 },
       })) as { taskId: string; status: string; delegatedTo: { agentId: string } };
 
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
+
       expect(delegateResult.taskId).toBeDefined();
       expect(delegateResult.delegatedTo.agentId).toBe('sensor-agent-01');
 
@@ -177,6 +186,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
       const statusResult = (await handleAgentOrchestrationTool('get_task_status', {
         taskId: delegateResult.taskId,
       })) as { taskId: string; status: string };
+
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
 
       expect(statusResult.taskId).toBe(delegateResult.taskId);
       expect(statusResult.status).toBeDefined();
@@ -235,6 +247,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         executionPlan: { groups: string[][] };
       };
 
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
+
       expect(result.valid).toBe(true);
       expect(result.stepCount).toBe(4);
       // executionPlan.groups: collect → analyze → render+alert (parallel)
@@ -278,6 +293,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         totalDurationMs: number;
       };
 
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
+
       expect(result.status).toBe('completed');
       expect(result.steps).toHaveLength(4);
 
@@ -320,6 +338,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         domain: 'iot',
       });
 
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
+
       expect(result.status).toBe('complete');
       expect(result.phases).toHaveLength(7);
       expect(result.domain).toBe('iot');
@@ -346,6 +367,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
       // Run two cycles
       await orchestrator.runCycle('task-a');
       await orchestrator.runCycle('task-b');
+
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
 
       const patterns = orchestrator.getPatterns();
       // Patterns are recorded in GROW phase
@@ -387,6 +411,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         },
         'https://iot.example.com/.well-known/agent-card.json'
       );
+
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
 
       expect(manifest.id).toBe('remote-iot-agent');
       expect(manifest.name).toBe('Remote IoT Agent');
@@ -450,6 +477,9 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
         },
         (stepId, status) => progressLog.push(`${stepId}:${status}`)
       );
+
+      if (typeof (globalThis as any).doc !== 'undefined') (globalThis as any).doc.commit?.();
+      if ((getDefaultRegistry() as any).doc) (getDefaultRegistry() as any).doc.commit?.();
 
       expect(result.status).toBe('completed');
       expect(result.stepResults).toHaveLength(4);

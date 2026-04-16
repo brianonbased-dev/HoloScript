@@ -33,7 +33,7 @@ export class PressableTrait implements Trait {
     context.emit('physics_add_constraint', {
       type: 'prismatic',
       nodeId: node.id,
-      axis: { x: 0, y: 0, z: 1 }, // Local Z
+      axis: [0, 0, 1], // Local Z
       min: 0,
       max: distance,
       spring: { stiffness, damping, restLength: 0 }, // Spring pulls back to 0

@@ -88,7 +88,7 @@ export class FeedParser {
           traits: n.traits || new Map(),
           author: n.provenance?.author || 'anonymous',
           content,
-          tier: n.position!.y > 30 ? 3 : n.position!.y > 10 ? 2 : 1,
+          tier: n.position![1] > 30 ? 3 : n.position![1] > 10 ? 2 : 1,
         };
       });
   }

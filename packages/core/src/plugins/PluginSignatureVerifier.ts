@@ -15,8 +15,8 @@
 import {
   verifySignature,
   canonicalizeManifest,
-  type PackageManifest,
   type SignedPackage,
+  type SigningManifest,
 } from '@holoscript/platform';
 
 // =============================================================================
@@ -233,7 +233,7 @@ export class PluginSignatureVerifier {
   /**
    * Verify a manifest's content hash matches expected content.
    */
-  verifyContentHash(manifest: PackageManifest, expectedHash: string): boolean {
+  verifyContentHash(manifest: SigningManifest, expectedHash: string): boolean {
     return manifest.contentHash === expectedHash;
   }
 

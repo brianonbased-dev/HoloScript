@@ -1,4 +1,5 @@
 import type { Vector3 } from '../types';
+import type { TraitHandler, HSPlusNode, VRHand, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 /**
  * GrabbableTrait.ts
  *
@@ -18,8 +19,8 @@ export class GrabbableTrait implements Trait {
   private lastHandPositions: Map<string, Vector3> = new Map();
   private lastHandTime: number = 0;
 
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-  onUpdate(node: HSPlusNode, context: TraitContext, delta: number): void {
+  onUpdate(node: Record<string, unknown>, context: TraitContext, delta: number): void {
+    const n = node as unknown as HSPlusNode;
     const hands = context.vr.hands;
     const now = performance.now();
 
@@ -33,19 +34,19 @@ export class GrabbableTrait implements Trait {
       // ... rest of loop
       const hand = handName === 'left' ? hands.left : hands.right;
       if (hand && (hand.pinchStrength ?? 0) < 0.5) {
-        this.release(node, context, handName, hand);
+        this.release(n, context, handName, hand);
       }
     }
 
     // Check Grabs (if not already grabbed by this hand)
     if (!this.grabbedHands.has('left'))
-      this.checkHandInteraction(node, context, hands.left, 'left');
+      this.checkHandInteraction(n, context, hands.left, 'left');
     if (!this.grabbedHands.has('right'))
-      this.checkHandInteraction(node, context, hands.right, 'right');
+      this.checkHandInteraction(n, context, hands.right, 'right');
 
     // Two-Handed Manipulation
     if (this.grabbedHands.size === 2 && hands.left && hands.right) {
-      this.updateTwoHanded(node, hands.left, hands.right);
+      this.updateTwoHanded(n, hands.left, hands.right);
     }
   }
 
@@ -56,8 +57,9 @@ export class GrabbableTrait implements Trait {
     side: string
   ): void {
     if (!hand) return;
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    const dist = this.getDistance(node.properties.position, hand.position);
+    const pos = node.properties?.position;
+    if (!pos) return;
+    const dist = this.getDistance(pos, hand.position);
 
     if (dist < 0.1) {
       if ((hand.pinchStrength ?? 0) > 0.9) {
@@ -74,10 +76,9 @@ export class GrabbableTrait implements Trait {
       const hands = context.vr.hands;
       if (hands.left && hands.right) {
         this.initialPinchDistance = this.getDistance(hands.left.position, hands.right.position);
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        this.initialScale = node.properties.scale
-          ? [...(node.properties.scale as Vector3)]
-          : [1, 1, 1];
+        this.initialScale = node.properties?.scale
+          ? ([...(node.properties.scale as Vector3)] as Vector3)
+          : ([1, 1, 1] as Vector3);
 
         // Reset Rotation State
         this.initialHandAngle = null;
@@ -123,8 +124,7 @@ export class GrabbableTrait implements Trait {
       this.initialScale[2] * scaleFactor,
     ];
 
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    node.properties.scale = newScale;
+    if (node.properties) node.properties.scale = newScale as Vector3;
 
     // Rotation Logic (Steering Wheel)
     // Vector between hands
@@ -145,22 +145,21 @@ export class GrabbableTrait implements Trait {
 
     if (this.initialHandAngle === null) {
       this.initialHandAngle = angle;
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      this.initialObjectRotation = node.properties.rotation
-        ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          [...(node.properties.rotation as Vector3)]
-        : [0, 0, 0];
+      this.initialObjectRotation = node.properties?.rotation
+        ? ([...(node.properties.rotation as Vector3)] as Vector3)
+        : ([0, 0, 0] as Vector3);
     }
 
     const deltaAngle = angle - this.initialHandAngle;
     // Apply to Y axis
     if (this.initialObjectRotation) {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      node.properties.rotation = [
-        this.initialObjectRotation[0],
-        this.initialObjectRotation[1] + deltaAngle,
-        this.initialObjectRotation[2],
-      ];
+      if (node.properties) {
+        node.properties.rotation = [
+          this.initialObjectRotation[0],
+          this.initialObjectRotation[1] + deltaAngle,
+          this.initialObjectRotation[2],
+        ] as Vector3;
+      }
     }
 
     // Scale update is applied to node.properties.scale above.
@@ -216,16 +215,14 @@ export class GrabbableTrait implements Trait {
     ];
   }
 
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-  onDetach(node: HSPlusNode, context: TraitContext): void {
+  onDetach(node: Record<string, unknown>, context: TraitContext): void {
     if (this.grabbedHands.size > 0) {
-      context.emit('physics_release', { nodeId: node.id });
+      context.emit('physics_release', { nodeId: (node as unknown as HSPlusNode).id });
     }
   }
 }
 
 // ── Handler (delegates to GrabbableTrait) ──
-import type { TraitHandler, HSPlusNode, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const grabbableHandler = {
   name: 'grabbable',

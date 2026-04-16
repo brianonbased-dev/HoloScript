@@ -20,6 +20,7 @@ import {
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { getClient } from '../orchestrator-client';
+import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
 
 const QUICKSTART_DOMAIN_DESCRIPTIONS: Record<string, string> = {
@@ -118,6 +119,13 @@ export async function handleTeamRoutes(
 ): Promise<boolean> {
   // GET /api/holomesh/quickstart — Curated onboarding snapshot
   if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
+    const ip = req.socket.remoteAddress || 'unknown_ip';
+    const rl = checkRateLimit(ip, 'default');
+    if (!rl.allowed) {
+      json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter });
+      return true;
+    }
+
     const preview = await fetchQuickstartPreview();
     const topDomains = rankTopDomains(preview);
     const sampleEntries = preview.slice(0, 5).map(normalizeEntry);
@@ -144,6 +152,13 @@ export async function handleTeamRoutes(
   // POST /api/holomesh/quickstart — One-call onboarding: register + auto-join team + return board
   // This is the "Moltbook-easy" flow: one curl and you're contributing.
   if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
+    const ip = req.socket.remoteAddress || 'unknown_ip';
+    const rl = checkRateLimit(ip, 'quickstart');
+    if (!rl.allowed) {
+      json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter });
+      return true;
+    }
+
     const body = await parseJsonBody(req);
     const name = (body.agentName as string | undefined)?.trim()
       || (body.name as string | undefined)?.trim() || '';

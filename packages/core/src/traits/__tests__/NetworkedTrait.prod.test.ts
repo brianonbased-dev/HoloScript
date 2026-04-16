@@ -39,7 +39,7 @@ const _syncProtoInstance = {
   respondToOwnership: vi.fn(),
 };
 
-vi.mock('@holoscript/engine/network/SyncProtocol', () => {
+vi.mock('@holoscript/mesh', () => {
   class SyncProtocol {
     connect = _syncProtoInstance.connect;
     isConnected = _syncProtoInstance.isConnected;
@@ -50,30 +50,22 @@ vi.mock('@holoscript/engine/network/SyncProtocol', () => {
     requestOwnership = _syncProtoInstance.requestOwnership;
     respondToOwnership = _syncProtoInstance.respondToOwnership;
   }
-  return { SyncProtocol };
-});
-
-vi.mock('@holoscript/engine/network/WebSocketTransport', () => {
   class WebSocketTransport {
     connect = vi.fn().mockRejectedValue(new Error('no ws'));
     disconnect = vi.fn();
     onMessage = vi.fn();
     sendMessage = vi.fn();
   }
-  return { WebSocketTransport };
-});
-
-vi.mock('@holoscript/engine/network/WebRTCTransport', () => {
   class WebRTCTransport {
     initialize = vi.fn().mockRejectedValue(new Error('no rtc'));
     disconnect = vi.fn();
     onMessage = vi.fn();
     sendMessage = vi.fn();
   }
-  return { WebRTCTransport };
+  return { SyncProtocol, WebSocketTransport, WebRTCTransport };
 });
 
-vi.mock('@holoscript/engine/logger', () => ({
+vi.mock('../logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() },
 }));
 

@@ -26,7 +26,7 @@
 
 // Import real trait types from @holoscript/core
 import type { HSPlusNode, TraitHandler, TraitContext, TraitEvent } from '@holoscript/core';
-import { safeParseX402PaymentPayload, x402RequiredAmountSchema } from './x402-boundary-schemas';
+import { safeParseX402PaymentPayload, validateX402MicropaymentBoundary } from './x402-boundary-schemas';
 
 // =============================================================================
 // x402 PROTOCOL TYPES
@@ -459,16 +459,11 @@ export class X402Facilitator {
    * @returns Verification result
    */
   verifyPayment(payment: X402PaymentPayload, requiredAmount: string): X402VerificationResult {
-    const boundary = safeParseX402PaymentPayload(payment);
-    if (!boundary.success) {
+    const boundary = validateX402MicropaymentBoundary({ payment, requiredAmount });
+    if (!boundary.ok) {
       return { isValid: false, invalidReason: boundary.error };
     }
-    payment = boundary.data as X402PaymentPayload;
-
-    const amountCheck = x402RequiredAmountSchema.safeParse(requiredAmount);
-    if (!amountCheck.success) {
-      return { isValid: false, invalidReason: amountCheck.error.issues.map((i) => i.message).join('; ') };
-    }
+    payment = boundary.payment as X402PaymentPayload;
 
     // Check protocol version
     if (payment.x402Version !== X402_VERSION) {

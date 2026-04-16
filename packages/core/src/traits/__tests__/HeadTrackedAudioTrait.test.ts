@@ -65,7 +65,7 @@ describe('HeadTrackedAudioTrait', () => {
       type: 'head_rotation_update',
       rotation: [0.1, 0.2, 0.3, 0.9 ],
     });
-    expect((node as any).__headTrackedAudioState.headRotation.y).toBe(0.2);
+    expect((node as any).__headTrackedAudioState.headRotation[1]).toBe(0.2);
   });
 
   it('world position update stores position', () => {
@@ -73,7 +73,7 @@ describe('HeadTrackedAudioTrait', () => {
       type: 'audio_set_world_position',
       position: [5, 10, 15],
     });
-    expect((node as any).__headTrackedAudioState.worldPosition.x).toBe(5);
+    expect((node as any).__headTrackedAudioState.worldPosition[0]).toBe(5);
   });
 
   it('update emits position when playing in world mode', () => {

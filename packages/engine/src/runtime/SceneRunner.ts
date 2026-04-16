@@ -11,7 +11,7 @@
  * This is THE bridge between the parser and the engine.
  */
 import type { HSPlusNode } from '@holoscript/core';
-import { World, Entity } from '@holoscript/core';
+import { World, Entity } from '../ecs';
 import { TraitBinder } from './TraitBinder';
 import { EventBus } from '@holoscript/core';
 import { AssetPipeline } from './AssetPipeline';

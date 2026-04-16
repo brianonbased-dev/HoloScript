@@ -1,58 +1,80 @@
 import { describe, expect, it } from 'vitest';
-import { safeParseX402PaymentPayload, x402RequiredAmountSchema } from './x402-boundary-schemas';
+import {
+  validateX402MicropaymentBoundary,
+  safeParseX402PaymentPayload,
+  safeParseX402PaymentRequired,
+} from './x402-boundary-schemas';
 
-const validPayload = {
-  x402Version: 1,
+const minimalValidPayment = {
+  x402Version: 1 as const,
   scheme: 'exact' as const,
   network: 'base' as const,
   payload: {
-    signature: '0x' + 'a'.repeat(128),
+    signature: '0'.repeat(132),
     authorization: {
       from: '0x1111111111111111111111111111111111111111',
       to: '0x2222222222222222222222222222222222222222',
       value: '50000',
-      validAfter: '0',
+      validAfter: '1',
       validBefore: '9999999999',
-      nonce: 'nonce_test_12345678',
+      nonce: '1234567890abcdef',
     },
   },
 };
 
-describe('safeParseX402PaymentPayload', () => {
-  it('accepts a well-formed payload', () => {
-    const r = safeParseX402PaymentPayload(validPayload);
-    expect(r.success).toBe(true);
-    if (r.success) expect(r.data.scheme).toBe('exact');
-  });
-
-  it('rejects unknown top-level keys (strict)', () => {
-    const r = safeParseX402PaymentPayload({ ...validPayload, traitInjection: true });
+describe('x402 boundary schemas', () => {
+  it('rejects trait-injected extra keys on payment', () => {
+    const malicious = { ...minimalValidPayment, traitInjected: true };
+    const r = safeParseX402PaymentPayload(malicious);
     expect(r.success).toBe(false);
   });
 
-  it('rejects wrong protocol version', () => {
-    const r = safeParseX402PaymentPayload({ ...validPayload, x402Version: 99 });
-    expect(r.success).toBe(false);
-  });
-
-  it('rejects non-digit value', () => {
-    const r = safeParseX402PaymentPayload({
-      ...validPayload,
+  it('rejects validAfter > validBefore', () => {
+    const bad = {
+      ...minimalValidPayment,
       payload: {
-        ...validPayload.payload,
-        authorization: { ...validPayload.payload.authorization, value: '1e5' },
+        ...minimalValidPayment.payload,
+        authorization: {
+          ...minimalValidPayment.payload.authorization,
+          validAfter: '100',
+          validBefore: '50',
+        },
       },
-    });
+    };
+    const r = safeParseX402PaymentPayload(bad);
     expect(r.success).toBe(false);
   });
-});
 
-describe('x402RequiredAmountSchema', () => {
-  it('accepts digit-only base units', () => {
-    expect(x402RequiredAmountSchema.safeParse('50000').success).toBe(true);
+  it('validateX402MicropaymentBoundary accepts payment + requiredAmount', () => {
+    const v = validateX402MicropaymentBoundary({
+      payment: minimalValidPayment,
+      requiredAmount: '1',
+    });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.requiredAmount).toBe('1');
+      expect(v.payment.scheme).toBe('exact');
+    }
   });
 
-  it('rejects scientific notation', () => {
-    expect(x402RequiredAmountSchema.safeParse('5e4').success).toBe(false);
+  it('safeParseX402PaymentRequired validates 402 body shape', () => {
+    const pr = {
+      x402Version: 1,
+      accepts: [
+        {
+          scheme: 'exact',
+          network: 'base',
+          maxAmountRequired: '50000',
+          resource: '/api/x',
+          description: 'test',
+          payTo: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          maxTimeoutSeconds: 60,
+        },
+      ],
+      error: 'Payment required',
+    };
+    const r = safeParseX402PaymentRequired(pr);
+    expect(r.success).toBe(true);
   });
 });

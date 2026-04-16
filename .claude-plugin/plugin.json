@@ -1,0 +1,29 @@
+{
+  "name": "holoscript",
+  "version": "1.0.0",
+  "description": "HoloScript platform development — compilers, traits, tools, simulation, neuroscience, visual art. Build the universal semantic platform.",
+  "author": "Josep / HoloScript Team",
+  "homepage": "https://holoscript.net",
+  "repository": "https://github.com/holoscript/HoloScript",
+  "skills": [
+    "admin",
+    "dev",
+    "absorb",
+    "frontend",
+    "tools",
+    "sim",
+    "neuro",
+    "artist",
+    "scan",
+    "critic",
+    "benchmark",
+    "release",
+    "migrate"
+  ],
+  "hooks": true,
+  "mcp": true,
+  "requires": {
+    "claude-code": ">=1.0.0"
+  },
+  "tags": ["holoscript", "platform", "compilers", "simulation", "spatial-computing"]
+}

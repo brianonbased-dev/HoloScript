@@ -8,7 +8,7 @@ import type { Vector3 } from '../types';
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, TraitContext, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -257,25 +257,17 @@ function calculateBoundingBox(_meshData: unknown[]): GLTFState['boundingBox'] {
   // Return default if no valid data
   if (!isFinite(minX)) {
     return {
-      // @ts-expect-error
       min: [-1, -1, -1],
-      // @ts-expect-error
       max: [1, 1, 1],
-      // @ts-expect-error
       center: [0, 0, 0],
-      // @ts-expect-error
       size: [2, 2, 2],
     };
   }
 
   return {
-    // @ts-expect-error
     min: [minX, minY, minZ],
-    // @ts-expect-error
     max: [maxX, maxY, maxZ],
-    // @ts-expect-error
     center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
-    // @ts-expect-error
     size: [maxX - minX, maxY - minY, maxZ - minZ],
   };
 }
@@ -573,11 +565,8 @@ function calculateCameraDistance(node: HSPlusNode, context: TraitContext): numbe
   const y2 = Array.isArray(p2) ? p2[1] : (p2[1] ?? 0);
   const z2 = Array.isArray(p2) ? p2[2] : (p2[2] ?? 0);
 
-  // @ts-expect-error
   const dx = x1 - x2;
-  // @ts-expect-error
   const dy = y1 - y2;
-  // @ts-expect-error
   const dz = z1 - z2;
 
   return Math.sqrt(dx * dx + dy * dy + dz * dz);

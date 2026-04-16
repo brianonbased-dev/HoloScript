@@ -65,17 +65,16 @@ export class SplatProcessingService {
     const indices = new Uint32Array(data.count);
     const depths = new Float32Array(data.count);
 
-    const cp = Array.isArray(cameraPos)
-      ? cameraPos
-      : [cameraPos.x, cameraPos.y, cameraPos.z];
+    const cp: [number, number, number] = [
+      cameraPos[0],
+      cameraPos[1],
+      cameraPos[2],
+    ];
 
     for (let i = 0; i < data.count; i++) {
       indices[i] = i;
-      // @ts-expect-error
       const dx = data.positions[i * 3 + 0] - cp[0];
-      // @ts-expect-error
       const dy = data.positions[i * 3 + 1] - cp[1];
-      // @ts-expect-error
       const dz = data.positions[i * 3 + 2] - cp[2];
       depths[i] = dx * dx + dy * dy + dz * dz;
     }
@@ -92,13 +91,11 @@ export class SplatProcessingService {
    * Returns index of the first splat hit and the hit distance.
    */
   public intersectRay(data: SplatData, origin: Vector3, direction: Vector3, threshold = 0.5): { index: number; distance: number } | null {
-    const o = Array.isArray(origin) ? origin : [origin.x, origin.y, origin.z];
-    const d = Array.isArray(direction) ? direction : [direction.x, direction.y, direction.z];
-    
+    const o: [number, number, number] = [origin[0], origin[1], origin[2]];
+    const d: [number, number, number] = [direction[0], direction[1], direction[2]];
+
     // Normalize direction
-    // @ts-expect-error
     const len = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
-    // @ts-expect-error
     const dir = [d[0] / len, d[1] / len, d[2] / len];
 
     let closestIndex = -1;
@@ -115,11 +112,8 @@ export class SplatProcessingService {
       const radius = Math.max(sx, sy, sz) * threshold;
 
       // Ray-Sphere intersection
-      // @ts-expect-error
       const vx = px - o[0];
-      // @ts-expect-error
       const vy = py - o[1];
-      // @ts-expect-error
       const vz = pz - o[2];
 
       const tca = vx * dir[0] + vy * dir[1] + vz * dir[2];

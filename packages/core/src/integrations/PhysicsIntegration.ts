@@ -14,6 +14,7 @@
 import { VoronoiFractureSystem } from '../traits/VoronoiFractureTrait';
 import { GranularMaterialSystem } from '../traits/GranularMaterialTrait';
 import { FluidSimulationSystem } from '../traits/FluidSimulationTrait';
+import type { Vec3 as FluidSimVec3 } from '../traits/FluidSimulationTrait';
 import { AdvancedClothSystem } from '../traits/AdvancedClothTrait';
 
 // ============================================================================
@@ -205,9 +206,9 @@ export class DestructionToGranularConverter {
       if (particle) {
         // Set initial velocity based on distance from explosion
         const velocityMag = explosionStrength / Math.max(dist, 0.1);
-        particle.velocity[0] = dir.x * velocityMag;
-        particle.velocity[1] = dir.y * velocityMag;
-        particle.velocity[2] = dir.z * velocityMag;
+        particle.velocity.x = dir.x * velocityMag;
+        particle.velocity.y = dir.y * velocityMag;
+        particle.velocity.z = dir.z * velocityMag;
       }
 
       convertedCount++;
@@ -350,27 +351,27 @@ export class FluidGranularInteraction {
 
     for (const particle of granularParticles) {
       // Get fluid density at particle position
-      const fluidDensity = fluidSystem.getDensityAt(particle.position);
+      const fluidDensity = fluidSystem.getDensityAt(particle.position as unknown as FluidSimVec3);
 
       if (fluidDensity > 0.1) {
         // Buoyancy force: F = ρ_fluid * V * g
         const volume = (4 / 3) * Math.PI * Math.pow(particle.radius, 3);
         const buoyancy = fluidDensity * volume * 9.81;
 
-        particle.force[1] += buoyancy;
+        particle.force.y += buoyancy;
 
         // Drag force: F = 0.5 * ρ * v² * C_d * A
         const area = Math.PI * particle.radius ** 2;
         const velocityMag = Math.sqrt(
-          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
+          particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
         );
 
         const dragForce = 0.5 * fluidDensity * velocityMag ** 2 * dragCoefficient * area;
 
         if (velocityMag > 0) {
-          particle.force[0] -= (particle.velocity[0] / velocityMag) * dragForce;
-          particle.force[1] -= (particle.velocity[1] / velocityMag) * dragForce;
-          particle.force[2] -= (particle.velocity[2] / velocityMag) * dragForce;
+          particle.force.x -= (particle.velocity.x / velocityMag) * dragForce;
+          particle.force.y -= (particle.velocity.y / velocityMag) * dragForce;
+          particle.force.z -= (particle.velocity.z / velocityMag) * dragForce;
         }
       }
     }
@@ -389,7 +390,7 @@ export class FluidGranularInteraction {
     const baseCohesion = config.material.cohesion;
 
     for (const particle of granularParticles) {
-      const fluidDensity = fluidSystem.getDensityAt(particle.position);
+      const fluidDensity = fluidSystem.getDensityAt(particle.position as unknown as FluidSimVec3);
 
       // Increase cohesion in wet areas
       if (fluidDensity > 0.5) {
@@ -428,20 +429,20 @@ export class ClothFluidInteraction {
     const clothParticles = clothSystem.getParticles();
 
     for (const particle of clothParticles) {
-      const fluidDensity = fluidSystem.getDensityAt(particle.position);
+      const fluidDensity = fluidSystem.getDensityAt(particle.position as unknown as FluidSimVec3);
 
       if (fluidDensity > 0.1) {
         // Apply drag force opposing particle velocity
         const velocityMag = Math.sqrt(
-          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
+          particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
         );
 
         const dragForce = dragCoefficient * fluidDensity * velocityMag;
 
         if (velocityMag > 0) {
-          particle.velocity[0] -= (particle.velocity[0] / velocityMag) * dragForce * 0.01;
-          particle.velocity[1] -= (particle.velocity[1] / velocityMag) * dragForce * 0.01;
-          particle.velocity[2] -= (particle.velocity[2] / velocityMag) * dragForce * 0.01;
+          particle.velocity.x -= (particle.velocity.x / velocityMag) * dragForce * 0.01;
+          particle.velocity.y -= (particle.velocity.y / velocityMag) * dragForce * 0.01;
+          particle.velocity.z -= (particle.velocity.z / velocityMag) * dragForce * 0.01;
         }
       }
     }
@@ -458,14 +459,14 @@ export class ClothFluidInteraction {
     const clothParticles = clothSystem.getParticles();
 
     for (const particle of clothParticles) {
-      const fluidDensity = fluidSystem.getDensityAt(particle.position);
+      const fluidDensity = fluidSystem.getDensityAt(particle.position as unknown as FluidSimVec3);
 
       if (fluidDensity > 0.5) {
         // Increase gravity effect for wet particles
         const wetnessFactor = Math.min(fluidDensity / 1000, 1.0);
         const additionalWeight = particle.mass * 9.81 * wetnessFactor * wetWeightMultiplier;
 
-        particle.force[1] -= additionalWeight;
+        particle.force.y -= additionalWeight;
       }
     }
   }

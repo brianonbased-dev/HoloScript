@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // TYPES
@@ -318,7 +319,6 @@ function tickAction(
 
   // Try to execute action via context (pass blackboard so handlers can update conditions)
   if (context.executeAction) {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const result = context.executeAction(
       owner as HSPlusNode,
       actionName,

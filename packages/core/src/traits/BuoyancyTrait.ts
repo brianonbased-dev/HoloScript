@@ -90,8 +90,8 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       isSubmerged: false,
       submersionRatio: 0,
       buoyancyForce: 0,
-      lastPosition: [...(position as number[])],
-      velocity: [0, 0, 0 ],
+      lastPosition: [position[0], position[1], position[2]] as Vector3,
+      velocity: [0, 0, 0] as Vector3,
       splashCooldown: 0,
     };
     node.__buoyancyState = state;
@@ -114,8 +114,8 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       (position[0] - state.lastPosition[0]) / delta,
       (position[1] - state.lastPosition[1]) / delta,
       (position[2] - state.lastPosition[2]) / delta,
-    ];
-    state.lastPosition = [...(position as number[])];
+    ] as Vector3;
+    state.lastPosition = [position[0], position[1], position[2]] as Vector3;
 
     // Calculate submersion
     const prevSubmersion = state.submersionRatio;

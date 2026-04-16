@@ -41,11 +41,11 @@ describe('spikyKernelGradient', () => {
   });
   it('returns non-zero when inside h', () => {
     const g = spikyKernelGradient(0.02, 0, 0, 0.04);
-    expect(Math.abs(g.x)).toBeGreaterThan(0);
+    expect(Math.abs(g[0])).toBeGreaterThan(0);
   });
   it('gradient points in direction of displacement', () => {
     const g = spikyKernelGradient(0.02, 0, 0, 0.04);
-    expect(g.x).toBeLessThan(0); // repulsive (negative coefficient)
+    expect(g[0]).toBeLessThan(0); // repulsive (negative coefficient)
   });
 });
 

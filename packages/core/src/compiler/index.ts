@@ -85,6 +85,20 @@ export type { NextJSCompilerOptions, NextJSCompileResult } from './NextJSCompile
 export { compileToNextJSAPI, compileAllToNextJSAPI, NextJSAPICompiler } from './NextJSAPICompiler';
 export type { NextJSAPICompilerOptions, NextJSAPICompileResult } from './NextJSAPICompiler';
 export { GLTF_PIPELINE_TOOLS, registerGLTFTools } from './GLTFPipelineMCPTool';
+export {
+  BUSINESS_QUEST_TOOLS,
+  registerBusinessQuestTools,
+  handleBusinessQuestToolCall,
+  buildVRRCompositionFromDraft,
+  validateBusinessVRRDraft,
+  draftToHoloPreview,
+  businessVRRDraftSchema,
+} from './BusinessQuestTools';
+export type {
+  BusinessVRRDraft,
+  BusinessQuestValidationIssue,
+  BusinessQuestValidationResult,
+} from './BusinessQuestTools';
 export { NodeToyMapper, mapNodeToyToShader } from './NodeToyMapping';
 export { RemotionBridge } from './RemotionBridge';
 export { createReproducibilityContext, parseReproducibilityFlags } from './ReproducibilityMode';

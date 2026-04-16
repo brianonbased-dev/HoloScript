@@ -217,9 +217,9 @@ export class CompositionParser {
     const groupPos = parsePosition(positionValue);
     const offset = parentOffset
       ? {
-          x: groupPos[0] + parentOffset[0],
-          y: groupPos[1] + parentOffset[1],
-          z: groupPos[2] + parentOffset[2],
+          x: groupPos.x + parentOffset.x,
+          y: groupPos.y + parentOffset.y,
+          z: groupPos.z + parentOffset.z,
         }
       : groupPos;
 
@@ -235,7 +235,11 @@ export class CompositionParser {
   private processObject(obj: HoloObjectDecl, offset?: Vec3): ParsedObject {
     let position = parsePosition(getProp(obj.properties, 'position'));
     if (offset) {
-      position = [position[0] + offset[0], position[1] + offset[1], position[2] + offset[2] ];
+      position = {
+        x: position.x + offset.x,
+        y: position.y + offset.y,
+        z: position.z + offset.z,
+      };
     }
 
     const template = obj.template ? this.templates.get(obj.template) : undefined;
@@ -333,29 +337,52 @@ export class CompositionParser {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function parsePosition(pos: unknown): Vec3 {
-  if (!pos) return [0, 0, 0];
+  if (!pos) return { x: 0, y: 0, z: 0 };
   if (Array.isArray(pos)) {
-    return [Number(pos[0]) || 0, Number(pos[1]) || 0, Number(pos[2]) || 0];
+    return { x: Number(pos[0]) || 0, y: Number(pos[1]) || 0, z: Number(pos[2]) || 0 };
   }
-  if (typeof pos === 'object') {
+  if (typeof pos === 'object' && pos !== null) {
     const p = pos as Record<string, unknown>;
-    return [Number(p[0]) || 0, Number(p[1]) || 0, Number(p[2]) || 0];
+    if ('x' in p || 'y' in p || 'z' in p) {
+      return {
+        x: Number(p.x) || 0,
+        y: Number(p.y) || 0,
+        z: Number(p.z) || 0,
+      };
+    }
+    return {
+      x: Number(p['0']) || 0,
+      y: Number(p['1']) || 0,
+      z: Number(p['2']) || 0,
+    };
   }
-  return [0, 0, 0];
+  return { x: 0, y: 0, z: 0 };
 }
 
 export function parseScale(scale: unknown): Vec3 {
-  if (!scale) return [1, 1, 1];
-  if (typeof scale === 'number') return [scale, scale, scale];
+  if (!scale) return { x: 1, y: 1, z: 1 };
+  if (typeof scale === 'number') return { x: scale, y: scale, z: scale };
   if (Array.isArray(scale)) {
-    if (scale.length === 2) return [Number(scale[0]) || 1, Number(scale[1]) || 1, 1];
-    return [Number(scale[0]) || 1, Number(scale[1]) || 1, Number(scale[2]) || 1];
+    if (scale.length === 2)
+      return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: 1 };
+    return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: Number(scale[2]) || 1 };
   }
-  if (typeof scale === 'object') {
+  if (typeof scale === 'object' && scale !== null) {
     const s = scale as Record<string, unknown>;
-    return [Number(s[0]) || 1, Number(s[1]) || 1, Number(s[2]) || 1];
+    if ('x' in s || 'y' in s || 'z' in s) {
+      return {
+        x: Number(s.x) || 1,
+        y: Number(s.y) || 1,
+        z: Number(s.z) || 1,
+      };
+    }
+    return {
+      x: Number(s['0']) || 1,
+      y: Number(s['1']) || 1,
+      z: Number(s['2']) || 1,
+    };
   }
-  return [1, 1, 1];
+  return { x: 1, y: 1, z: 1 };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

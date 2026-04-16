@@ -67,6 +67,19 @@ export {
   setVolumetricVoxelPayload,
   unregisterVolumetricNode,
 } from './film3dVolumetricCrdt.js';
+export {
+  LEGAL_DOCUMENT_CONTRACTS_ROOT,
+  ensureLegalDocumentContractsRoot,
+  setLegalSignatureBlock,
+  appendLegalAuditTrailEntry,
+  setLegalContractSnapshot,
+  readLegalContractSnapshot,
+  unregisterLegalContract,
+  type SignatureBlockSnapshot,
+  type SignatureWitnessSnapshot,
+  type AuditTrailEntrySnapshot,
+  type LegalContractSpatialSnapshot,
+} from './legalDocumentCrdt.js';
 
 // WorldState - Full world state CRDT document (objects, terrain, NPC memory, inventory)
 export {

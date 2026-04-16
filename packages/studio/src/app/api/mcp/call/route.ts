@@ -27,9 +27,19 @@ export async function POST(request: Request) {
 
     // Proxy the tool call over the mesh network to the orchestrator layer
     // The orchestrator handles dispatching to absorb-service, mcp-server, uaa2-service, etc.
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...forwardAuthHeaders(request),
+    };
+
+    const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY;
+    if (apiKey && !headers['x-mcp-api-key']) {
+      headers['x-mcp-api-key'] = apiKey;
+    }
+
     const res = await fetch(`${MCP_EXTERNAL_URL}/call`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...forwardAuthHeaders(request) },
+      headers,
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(15000),
     });

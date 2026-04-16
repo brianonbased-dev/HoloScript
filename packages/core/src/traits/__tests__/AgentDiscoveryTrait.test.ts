@@ -13,7 +13,7 @@ const mockDeregister = vi.fn().mockResolvedValue(undefined);
 const mockHeartbeat = vi.fn().mockResolvedValue(undefined);
 const mockDiscoverWithScores = vi.fn().mockResolvedValue([]);
 
-vi.mock('../../agents/AgentRegistry', () => ({
+vi.mock('@holoscript/framework/agents', () => ({
   AgentRegistry: class {},
   getDefaultRegistry: vi.fn(() => ({
     register: mockRegister,

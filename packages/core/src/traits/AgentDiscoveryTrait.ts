@@ -26,7 +26,7 @@ import type {
   TrustLevel,
 } from '@holoscript/framework/agents';
 import type { CapabilityQuery } from '@holoscript/framework/agents';
-import { AgentRegistry, getDefaultRegistry, type RegistryConfig } from '@holoscript/framework/agents';
+import { AgentRegistry, getDefaultRegistry, type AgentRegistryConfig } from '@holoscript/framework/agents';
 
 // =============================================================================
 // TYPES
@@ -95,7 +95,7 @@ interface AgentDiscoveryConfig {
   /** Event history limit */
   event_history_limit: number;
   /** Custom registry config (uses default if null) */
-  registry_config: Partial<RegistryConfig> | null;
+  registry_config: Partial<AgentRegistryConfig> | null;
   /** Tags for this agent */
   tags: string[];
 }

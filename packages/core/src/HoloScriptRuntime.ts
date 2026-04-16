@@ -235,7 +235,13 @@ export class HoloScriptRuntime {
         }
       });
 
-      return AttentionEngine.getTopKEntities(observerPos, entities, topK);
+      type AttentionObserver = Parameters<typeof AttentionEngine.getTopKEntities>[0];
+      type AttentionEntities = Parameters<typeof AttentionEngine.getTopKEntities>[1];
+      return AttentionEngine.getTopKEntities(
+        observerPos as unknown as AttentionObserver,
+        entities as unknown as AttentionEntities,
+        topK
+      );
     });
 
     // Register Trait Handlers
@@ -505,7 +511,7 @@ export class HoloScriptRuntime {
     builtins.set('push', (args): HoloScriptValue => {
       const arr = args[0];
       if (Array.isArray(arr)) {
-        arr.push(args[1]);
+        (arr as HoloScriptValue[]).push(args[1]);
         return arr;
       }
       return [args[0], args[1]];
@@ -1833,7 +1839,7 @@ export class HoloScriptRuntime {
     const x = parseFloat(tokens[0] || '0');
     const y = parseFloat(tokens[1] || '0');
     const z = parseFloat(tokens[2] || '0');
-    const position: SpatialPosition = { x, y, z };
+    const position: SpatialPosition = [x, y, z];
 
     const current = this.context.spatialMemory.get(target);
     if (current) {
@@ -2505,11 +2511,11 @@ export class HoloScriptRuntime {
 
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      particles.push({
-        x: fromPos[0] + (toPos[0] - fromPos[0]) * t,
-        y: fromPos[1] + (toPos[1] - fromPos[1]) * t,
-        z: fromPos[2] + (toPos[2] - fromPos[2]) * t,
-      });
+      particles.push([
+        fromPos[0] + (toPos[0] - fromPos[0]) * t,
+        fromPos[1] + (toPos[1] - fromPos[1]) * t,
+        fromPos[2] + (toPos[2] - fromPos[2]) * t,
+      ]);
     }
 
     this.particleSystems.set(streamName, {
@@ -3774,7 +3780,8 @@ export class HoloScriptRuntime {
     this.proceduralSkills.set(skill.id, skill);
 
     // Broadcast newly acquired skill over Mesh
-    StateSynchronizer.getInstance().broadcastSkill(skill);
+    // Mesh resolves ProceduralSkill from package entry; cast avoids src/dist duplicate identity.
+    StateSynchronizer.getInstance().broadcastSkill(skill as never);
   }
 
   public async executeSkill(
@@ -3807,7 +3814,7 @@ export class HoloScriptRuntime {
       }
 
       // Sync the updated success rate telemetry
-      StateSynchronizer.getInstance().broadcastSkill(skill);
+      StateSynchronizer.getInstance().broadcastSkill(skill as never);
 
       return {
         ...result,
@@ -3978,10 +3985,13 @@ export class HoloScriptRuntime {
                         // Using 'name' (variable key) as the authoritative ID for the visualizer
                         const posPayload = payload as Record<string, unknown> | undefined;
                         if (posPayload?.position) {
-                          this.setOrbPosition(
-                            name,
-                            posPayload.position as { x: number; y: number; z: number }
-                          );
+                          const p = posPayload.position as
+                            | [number, number, number]
+                            | { x: number; y: number; z: number };
+                          const tuple: [number, number, number] = Array.isArray(p)
+                            ? p
+                            : [p.x, p.y, p.z];
+                          this.setOrbPosition(name, tuple);
                         }
                       }
                       return this.emit(event, payload);

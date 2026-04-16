@@ -16,7 +16,7 @@ function mkRb(opts: Parameters<typeof RigidbodyTrait>[0] = {}) {
   return new RigidbodyTrait(opts);
 }
 
-const V = (x: number, y: number, z: number) => ({ x, y, z });
+const V = (x: number, y: number, z: number): [number, number, number] => [x, y, z];
 
 // ─── Constructor / defaults ──────────────────────────────────────────────────────
 
@@ -81,14 +81,14 @@ describe('RigidbodyTrait — addForce: force mode', () => {
   it('impulse mode changes velocity directly (F/m)', () => {
     const rb = mkRb({ mass: 2 });
     rb.addForce(V(10, 0, 0), 'impulse');
-    expect(rb.getVelocity().x).toBe(5); // 10/2
+    expect(rb.getVelocity()[0]).toBe(5); // 10/2
     expect(rb.getState().force[0]).toBe(0);
   });
 
   it('velocity-change mode adds to velocity regardless of mass', () => {
     const rb = mkRb({ mass: 10 });
     rb.addForce(V(5, 0, 0), 'velocity-change');
-    expect(rb.getVelocity().x).toBe(5);
+    expect(rb.getVelocity()[0]).toBe(5);
   });
 
   it('acceleration mode multiplies by mass to get force', () => {
@@ -107,7 +107,7 @@ describe('RigidbodyTrait — addForce: force mode', () => {
   it('addForce is no-op for kinematic body', () => {
     const rb = mkRb({ isKinematic: true });
     rb.addForce(V(100, 0, 0), 'impulse');
-    expect(rb.getVelocity().x).toBe(0);
+    expect(rb.getVelocity()[0]).toBe(0);
   });
 });
 
@@ -117,19 +117,19 @@ describe('RigidbodyTrait — addTorque', () => {
   it('force mode accumulates in state.torque', () => {
     const rb = mkRb();
     rb.addTorque(V(0, 5, 0), 'force');
-    expect(rb.getState().torque.y).toBe(5);
+    expect(rb.getState().torque[1]).toBe(5);
   });
 
   it('impulse mode changes angularVelocity directly (T/inertia)', () => {
     const rb = mkRb({ inertiaTensor: V(2, 2, 2) });
     rb.addTorque(V(4, 0, 0), 'impulse');
-    expect(rb.getAngularVelocity().x).toBe(2); // 4/2
+    expect(rb.getAngularVelocity()[0]).toBe(2); // 4/2
   });
 
   it('velocity-change mode adds directly', () => {
     const rb = mkRb();
     rb.addTorque(V(0, 3, 0), 'velocity-change');
-    expect(rb.getAngularVelocity().y).toBe(3);
+    expect(rb.getAngularVelocity()[1]).toBe(3);
   });
 
   it('no-op for kinematic body', () => {
@@ -146,8 +146,8 @@ describe('RigidbodyTrait — addForceAtPosition', () => {
     const rb = mkRb({ mass: 1, inertiaTensor: V(1, 1, 1) });
     // Force (0,0,1) at (1,0,0) relative to origin → torque = (1,0,0) x (0,0,1) = (0*1-0*0, 0*0-1*1, 1*0-0*0) = (0,-1,0)
     rb.addForceAtPosition(V(0, 0, 1), V(1, 0, 0), 'impulse');
-    expect(rb.getVelocity().z).toBeCloseTo(1);
-    expect(rb.getAngularVelocity().y).toBeCloseTo(-1);
+    expect(rb.getVelocity()[2]).toBeCloseTo(1);
+    expect(rb.getAngularVelocity()[1]).toBeCloseTo(-1);
   });
 });
 
@@ -170,7 +170,7 @@ describe('RigidbodyTrait — velocity', () => {
   it('setAngularVelocity sets angular velocity directly', () => {
     const rb = mkRb();
     rb.setAngularVelocity(V(0, Math.PI, 0));
-    expect(rb.getAngularVelocity().y).toBeCloseTo(Math.PI);
+    expect(rb.getAngularVelocity()[1]).toBeCloseTo(Math.PI);
   });
 });
 
@@ -292,7 +292,7 @@ describe('RigidbodyTrait — clearForces / updateState', () => {
   it('updateState patches state fields', () => {
     const rb = mkRb();
     rb.updateState({ velocity: V(7, 0, 0), isSleeping: true });
-    expect(rb.getVelocity().x).toBe(7);
+    expect(rb.getVelocity()[0]).toBe(7);
     expect(rb.isSleepingState()).toBe(true);
   });
 });

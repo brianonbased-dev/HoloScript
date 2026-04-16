@@ -58,10 +58,8 @@ export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
         break;
       }
       case 'change:query': {
-        // @ts-expect-error
-        const results = state.history.filter(
-          (e: unknown) => e.entityId === (event.entityId as string)
-        );
+        const entityId = event.entityId as string;
+        const results = state.history.filter((e) => e.entityId === entityId);
         context.emit?.('change:history', { entityId: event.entityId, changes: results });
         break;
       }

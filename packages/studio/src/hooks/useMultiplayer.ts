@@ -7,7 +7,7 @@
  * for the Studio panel.
  */
 import { useState, useCallback, useRef } from 'react';
-import { ECSWorld } from '@holoscript/core';
+import { World as ECSWorld } from '@holoscript/engine/ecs';
 
 interface TransformComponent {
   x: number;
