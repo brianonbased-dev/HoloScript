@@ -5,6 +5,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup --dts",
     "test": "vitest run",
@@ -12,10 +21,11 @@
   },
   "dependencies": {
     "@holoscript/connector-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^0.6.0"
+    "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.1.9"
   },

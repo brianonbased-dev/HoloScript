@@ -11,7 +11,7 @@
  * @see W.035: Radix sort outperforms bitonic for N > 64K splats
  */
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -41,10 +41,16 @@ export interface GpuSplatSortResult {
  */
 export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResult {
   const { camera, gl } = useThree();
-  const sorterRef = useRef<any>(null);
-  const availableRef = useRef(false);
+  // Typed to the runtime shape; dynamic import means we can't import the type statically.
+  const sorterRef = useRef<{ sort: (params: unknown) => void; dispose: () => void; initialize: () => Promise<void> } | null>(null);
+  const [available, setAvailable] = useState(false);
   const positionsRef = useRef<Float32Array | null>(null);
   const countRef = useRef(0);
+  // Persistent scratch objects — hoisted here so sort() makes zero heap allocations per frame.
+  const vpMatrixScratch = useRef(new THREE.Matrix4());
+  const viewMatrixBuf = useRef(new Float32Array(16));
+  const projMatrixBuf = useRef(new Float32Array(16));
+  const vpMatrixBuf   = useRef(new Float32Array(16));
 
   // Attempt WebGPU initialization
   useEffect(() => {
@@ -52,8 +58,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
 
     async function init() {
       // Check WebGPU availability
-      if (typeof navigator === 'undefined' || !('(gpu as any)' in navigator || 'gpu' in navigator))
-        return;
+      if (typeof navigator === 'undefined' || !('gpu' in navigator)) return;
 
       try {
         const adapter = await (navigator as any).gpu.requestAdapter();
@@ -93,10 +98,10 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
         }
 
         sorterRef.current = sorter;
-        availableRef.current = true;
+        setAvailable(true);
       } catch {
         // WebGPU not available or initialization failed — CPU fallback
-        availableRef.current = false;
+          setAvailable(false);
       }
     }
 
@@ -108,7 +113,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
         sorterRef.current.dispose();
         sorterRef.current = null;
       }
-      availableRef.current = false;
+        setAvailable(false);
     };
   }, [options.maxSplats, options.enableTimestamps, gl]);
 
@@ -118,24 +123,24 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
   }, []);
 
   const sort = useCallback((): Float32Array | null => {
-    if (!availableRef.current || !sorterRef.current || !positionsRef.current) return null;
+    if (!sorterRef.current || !positionsRef.current) return null;
 
     try {
-      // Extract camera matrices from Three.js
-      const viewMatrix = new Float32Array(16);
-      const projMatrix = new Float32Array(16);
-      const vpMatrix = new Float32Array(16);
+      // Write into pre-allocated buffers — no heap allocation on the hot path.
+      const viewMatrix = viewMatrixBuf.current;
+      const projMatrix = projMatrixBuf.current;
+      const vpMatrix   = vpMatrixBuf.current;
 
       camera.matrixWorldInverse.toArray(viewMatrix);
       (camera as THREE.PerspectiveCamera).projectionMatrix.toArray(projMatrix);
 
-      // Compute VP = P * V
-      const vp = new THREE.Matrix4();
-      vp.multiplyMatrices(
-        (camera as THREE.PerspectiveCamera).projectionMatrix,
-        camera.matrixWorldInverse
-      );
-      vp.toArray(vpMatrix);
+      // Reuse the persistent scratch Matrix4 — eliminates one alloc per frame.
+      vpMatrixScratch.current
+        .multiplyMatrices(
+          (camera as THREE.PerspectiveCamera).projectionMatrix,
+          camera.matrixWorldInverse
+        )
+        .toArray(vpMatrix);
 
       const cameraPos = camera.position;
 
@@ -163,7 +168,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
   }, []);
 
   return {
-    available: availableRef.current,
+    available,
     sort,
     uploadSplats,
     dispose,
