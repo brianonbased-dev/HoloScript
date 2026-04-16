@@ -7,7 +7,12 @@
  * @module editor
  */
 
-import { NodeGraph, LogicNode, LogicConnection } from '../logic/NodeGraph';
+import {
+  NodeGraph,
+  LogicNode,
+  LogicConnection,
+  type EvaluationContext,
+} from '../logic/NodeGraph';
 
 // =============================================================================
 // TYPES
@@ -28,6 +33,13 @@ export interface UIEntity {
   text?: string;
   color?: string;
   data?: Record<string, unknown>;
+}
+
+export interface NodeGraphExecutionResult {
+  nodeOrder: string[];
+  outputs: Map<string, Record<string, unknown>>;
+  state: Record<string, unknown>;
+  emittedEvents: Map<string, unknown[]>;
 }
 
 const DEFAULT_CONFIG: NodeGraphPanelConfig = {
@@ -184,6 +196,34 @@ export class NodeGraphPanel {
 
   getSelectedNode(): string | null {
     return this.selectedNodeId;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Execution
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Execute the current node graph using the built-in graph evaluator.
+   * Returns topological order, per-node outputs, mutated state, and emitted events.
+   */
+  executeGraph(contextOverrides: Partial<EvaluationContext> = {}): NodeGraphExecutionResult {
+    const context: EvaluationContext = {
+      state: contextOverrides.state ? { ...contextOverrides.state } : {},
+      deltaTime: contextOverrides.deltaTime ?? 1 / 60,
+      events: contextOverrides.events ? new Map(contextOverrides.events) : new Map(),
+      emittedEvents: contextOverrides.emittedEvents
+        ? new Map(contextOverrides.emittedEvents)
+        : new Map(),
+    };
+
+    const outputs = this.graph.evaluate(context);
+
+    return {
+      nodeOrder: this.graph.topologicalSort(),
+      outputs,
+      state: { ...context.state },
+      emittedEvents: new Map(context.emittedEvents),
+    };
   }
 
   // ---------------------------------------------------------------------------

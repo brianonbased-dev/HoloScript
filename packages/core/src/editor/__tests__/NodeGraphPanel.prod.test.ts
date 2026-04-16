@@ -273,3 +273,79 @@ describe('NodeGraphPanel — generateUI idempotency', () => {
     expect(after).toBeGreaterThan(before);
   });
 });
+
+// =============================================================================
+// executeGraph
+// =============================================================================
+
+describe('NodeGraphPanel — executeGraph', () => {
+  it('executes a simple chained math graph', () => {
+    const graph = new NodeGraph();
+    const add = graph.addNode('MathAdd');
+    const mul = graph.addNode('MathMultiply');
+
+    add.inputs.find((p) => p.name === 'a')!.defaultValue = 2;
+    add.inputs.find((p) => p.name === 'b')!.defaultValue = 3;
+    mul.inputs.find((p) => p.name === 'b')!.defaultValue = 4;
+    graph.connect(add.id, 'result', mul.id, 'a');
+
+    const panel = new NodeGraphPanel(graph);
+    const result = panel.executeGraph();
+
+    expect(result.nodeOrder).toContain(add.id);
+    expect(result.nodeOrder).toContain(mul.id);
+    expect(result.outputs.get(add.id)?.result).toBe(5);
+    expect(result.outputs.get(mul.id)?.result).toBe(20);
+  });
+
+  it('returns mutated state from SetState nodes', () => {
+    const graph = new NodeGraph();
+    const setter = graph.addNode('SetState');
+    setter.inputs.find((p) => p.name === 'key')!.defaultValue = 'score';
+    setter.inputs.find((p) => p.name === 'value')!.defaultValue = 9001;
+
+    const panel = new NodeGraphPanel(graph);
+    const result = panel.executeGraph();
+
+    expect(result.state.score).toBe(9001);
+    expect(result.outputs.get(setter.id)?.value).toBe(9001);
+  });
+
+  it('reads event payloads and records emitted events', () => {
+    const graph = new NodeGraph();
+    const onEvent = graph.addNode('OnEvent');
+    const emit = graph.addNode('EmitEvent');
+
+    onEvent.inputs.find((p) => p.name === 'eventName')!.defaultValue = 'tick';
+    emit.inputs.find((p) => p.name === 'eventName')!.defaultValue = 'pulse';
+    emit.inputs.find((p) => p.name === 'payload')!.defaultValue = { ok: true };
+    graph.connect(onEvent.id, 'triggered', emit.id, 'trigger');
+
+    const panel = new NodeGraphPanel(graph);
+    const result = panel.executeGraph({
+      events: new Map([['tick', [{ frame: 1 }]]]),
+    });
+
+    expect(result.outputs.get(onEvent.id)?.triggered).toBe(true);
+    expect(result.outputs.get(onEvent.id)?.payload).toEqual({ frame: 1 });
+    expect(result.emittedEvents.get('pulse')).toEqual([{ ok: true }]);
+  });
+
+  it('throws when graph has a cycle', () => {
+    const graph = new NodeGraph();
+    const a = graph.addNode('MathAdd');
+    const b = graph.addNode('MathMultiply');
+    graph.connect(a.id, 'result', b.id, 'a');
+    (graph as unknown as { connections: Array<Record<string, unknown>> }).connections.push({
+      id: 'fake-cycle',
+      fromNode: b.id,
+      fromPort: 'result',
+      toNode: a.id,
+      toPort: 'b',
+    });
+    (graph as unknown as { _sortedOrder: string[] | null })._sortedOrder = null;
+
+    const panel = new NodeGraphPanel(graph);
+    expect(() => panel.executeGraph()).toThrow(/Cycle detected/);
+  });
+});
