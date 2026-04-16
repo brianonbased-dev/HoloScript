@@ -7,8 +7,29 @@ export default defineConfig({
 
   lastUpdated: true,
 
+  /** Crawlable doc URLs for Search Console; `robots.txt` in `docs/public` points here. */
   sitemap: {
     hostname: 'https://holoscript.net',
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+
+  /**
+   * Many markdown pages omit `description`; synthesize a stable summary so
+   * SERPs and social cards are not empty duplicates.
+   */
+  async transformPageData(pageData) {
+    const fm = (pageData.frontmatter || {}) as Record<string, unknown>;
+    if (fm.description == null || String(fm.description).trim() === '') {
+      const title = (pageData.title as string) || 'HoloScript';
+      return {
+        frontmatter: {
+          ...fm,
+          description: `${title} — HoloScript documentation: spatial computing, compilers, agents, and the open platform.`,
+        },
+      };
+    }
+    return undefined;
   },
 
   markdown: {
@@ -75,6 +96,13 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', href: '/logo.svg' }],
+    [
+      'meta',
+      {
+        name: 'robots',
+        content: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+      },
+    ],
     [
       'meta',
       {
