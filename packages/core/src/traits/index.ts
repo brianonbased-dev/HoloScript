@@ -234,6 +234,7 @@ export { VRTraitRegistry, vrTraitRegistry } from './VRTraitSystem';
 export * from './VulnerabilityScannerTrait';
 export * from './WalletTrait';
 export * from './WindTrait';
+export * from './WorldGeneratorTrait';
 export * from './WoTThingTrait';
 export * from './ZeroKnowledgeProofTrait';
 export * from './ZKPrivateTrait';

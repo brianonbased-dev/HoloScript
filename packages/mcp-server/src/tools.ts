@@ -41,6 +41,7 @@ import { monitoringTools } from './monitoring-tools';
 import { holotestTools } from './holotest-tools';
 import { refactorCodegenTools } from './refactor-codegen-tools';
 import { traitTools } from './trait-tools';
+import { worldGeneratorTools } from './world-generator-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -566,6 +567,33 @@ export const textTo3DTools: Tool[] = [
       required: ['description'],
     },
   },
+  {
+    name: 'hyworld_generate',
+    description:
+      'Generate a persistent, navigable 3D world (3DGS + Mesh) using HY-World 2.0. ' +
+      'Outputs include real-time splats and editable meshes for Unity/Unreal integration. ' +
+      'Best for high-fidelity scene backgrounds or complete navigable environments.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'Text description of the world (e.g. "a futuristic cyberpunk street at night")',
+        },
+        format: {
+          type: 'string',
+          enum: ['3dgs', 'mesh', 'both'],
+          description: 'Output asset format. Defaults to 3dgs.',
+        },
+        quality: {
+          type: 'string',
+          enum: ['low', 'medium', 'high'],
+          description: 'Generation quality. Higher takes longer. Defaults to medium.',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
 ];
 
 /**
@@ -742,6 +770,7 @@ export const tools: Tool[] = [
   ...holotestTools,
   ...refactorCodegenTools,
   ...traitTools,
+  ...worldGeneratorTools,
 ];
 
 // Tool name type for type safety

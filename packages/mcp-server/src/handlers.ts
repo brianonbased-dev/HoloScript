@@ -15,12 +15,10 @@ import {
 // import { compilePipelineSourceToNode } from '@holoscript/core';
 
 import {
-  generateObjectForMCP,
-  generateSceneForMCP,
-  suggestTraits,
   suggestUniversalTraits,
   suggest2DTraits,
   generateSemanticUIForMCP,
+  generateWorldForMCP,
 } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
@@ -312,6 +310,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleGenerate3DObject(args);
   }
 
+  if (name === 'hyworld_generate') {
+    return handleGenerateWorld(args);
+  }
+
   // Hololand training data generation
   if (name === 'generate_hololand_training') {
     return handleGenerateHololandTraining(args);
@@ -417,6 +419,21 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   const pluginResult = await PluginManager.handleTool(name, args);
   if (pluginResult !== null) {
     return pluginResult;
+  }
+
+  // World generation (HY-World 2.0 pipeline)
+  if (name === 'generate_world') {
+    const { handleWorldGeneratorTool } = await import('./world-generator-tools');
+    const result = await handleWorldGeneratorTool({
+      method: 'tools/call',
+      params: { name, arguments: args },
+    });
+    if (result.isError) {
+      const msg = result.content[0]?.type === 'text' ? result.content[0].text : 'World generation failed';
+      throw new Error(msg);
+    }
+    const text = result.content[0]?.type === 'text' ? result.content[0].text : '';
+    return JSON.parse(text) as unknown;
   }
 
   throw new Error(`Unknown tool: ${name}`);
@@ -691,6 +708,14 @@ async function handleGenerateScene(args: Record<string, unknown>) {
     style: style as 'minimal' | 'detailed' | 'production',
     features,
   });
+}
+
+async function handleGenerateWorld(args: Record<string, unknown>) {
+  const prompt = args.prompt as string;
+  const format = args.format as '3dgs' | 'mesh' | 'both';
+  const quality = args.quality as 'low' | 'medium' | 'high';
+
+  return generateWorldForMCP(prompt, { format, quality });
 }
 
 // === DOCUMENTATION HANDLERS ===

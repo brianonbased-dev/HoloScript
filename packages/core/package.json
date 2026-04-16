@@ -98,6 +98,10 @@
     "./cli/holoscript-runner": {
       "import": "./dist/cli/holoscript-runner.js",
       "require": "./dist/cli/holoscript-runner.cjs"
+    },
+    "./world": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js"
     }
   },
   "bin": {
