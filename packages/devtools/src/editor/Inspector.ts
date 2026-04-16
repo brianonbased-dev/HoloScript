@@ -41,9 +41,7 @@ export class Inspector {
     // We don't have a list of all component types on an entity.
     // We should add `world.getComponents(entity)` returning `Map<ComponentType, any>`.
 
-    // Assuming World has it or we can hack it.
-    // Let's check `World.ts`... it has `entityComponents` private map.
-    // I should update World.ts to expose `getComponentTypes(entity)`.
+    // `World.getComponentTypes` lists registered component types for this entity.
 
     return this.world.getComponentTypes(entity);
   }
