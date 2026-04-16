@@ -32,7 +32,7 @@ describe('film-vfx plugin namespace envelopes', () => {
         scene: 1,
         shotType: 'wide',
         duration: 4,
-        lens: { focalLength: 35, aperture: 2.8 },
+        lens: { focalLength: 35, tStop: 2.8 },
         movement: 'static',
       },
     ];

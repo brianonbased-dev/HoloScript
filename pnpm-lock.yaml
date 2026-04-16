@@ -2226,6 +2226,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
+      loro-crdt:
+        specifier: ^1.0.0
+        version: 1.10.6
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

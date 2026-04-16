@@ -71,6 +71,9 @@ export {
   createTextToUniverseHandler,
 } from './traits/TextToUniverseTrait';
 
+/** Push VP metadata into the CRDT root shared with `LoroWebRTCProvider` (crdt-spatial). */
+export { syncVirtualProductionToVolumetricCrdt, FILM3D_VOLUMETRICS_ROOT } from './volumetricLoroBridge';
+
 // ============================================================================
 // Domain traits (tagged union)
 // ============================================================================
@@ -222,53 +225,65 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
   for (const t of traits) {
     const traitToken = normalizeFilmVFXTraitToken(t.trait);
     switch (traitToken) {
-      case 'shot_list':
-        lines.push(`  object "Shot_${t.shotId}" @shot_list {`);
-        lines.push(`    scene: ${t.scene}`);
-        lines.push(`    shotType: "${t.shotType}"`);
-        lines.push(`    duration: ${t.duration}`);
-        lines.push(`    lens: { focalLength: ${t.lens.focalLength} }`);
-        lines.push(`    movement: "${t.movement}"`);
+      case 'shot_list': {
+        const s = t as ShotListTrait;
+        lines.push(`  object "Shot_${s.shotId}" @shot_list {`);
+        lines.push(`    scene: ${s.scene}`);
+        lines.push(`    shotType: "${s.shotType}"`);
+        lines.push(`    duration: ${s.duration}`);
+        lines.push(`    lens: { focalLength: ${s.lens.focalLength} }`);
+        lines.push(`    movement: "${s.movement}"`);
         lines.push('  }');
         break;
-      case 'color_grade':
-        lines.push(`  object "${t.gradeName ?? 'Grade'}" @color_grade {`);
-        lines.push(`    temperature: ${t.temperature}`);
-        lines.push(`    contrast: ${t.contrast}`);
-        lines.push(`    saturation: ${t.saturation}`);
-        if (t.lut) lines.push(`    lut: "${t.lut}"`);
+      }
+      case 'color_grade': {
+        const g = t as ColorGradeTrait;
+        lines.push(`  object "${g.gradeName ?? 'Grade'}" @color_grade {`);
+        lines.push(`    temperature: ${g.temperature}`);
+        lines.push(`    contrast: ${g.contrast}`);
+        lines.push(`    saturation: ${g.saturation}`);
+        if (g.lut) lines.push(`    lut: "${g.lut}"`);
         lines.push('  }');
         break;
-      case 'dmx_lighting':
-        lines.push(`  object "${t.label ?? `Fixture_U${t.universe}_CH${t.channel}`}" @dmx_lighting {`);
-        lines.push(`    universe: ${t.universe}`);
-        lines.push(`    channel: ${t.channel}`);
-        lines.push(`    fixtureType: "${t.fixtureType}"`);
-        lines.push(`    intensity: ${t.intensity}`);
-        lines.push(`    color: [${t.color.join(', ')}]`);
+      }
+      case 'dmx_lighting': {
+        const d = t as DMXLightingTrait;
+        lines.push(`  object "${d.label ?? `Fixture_U${d.universe}_CH${d.channel}`}" @dmx_lighting {`);
+        lines.push(`    universe: ${d.universe}`);
+        lines.push(`    channel: ${d.channel}`);
+        lines.push(`    fixtureType: "${d.fixtureType}"`);
+        lines.push(`    intensity: ${d.intensity}`);
+        lines.push(`    color: [${d.color.join(', ')}]`);
         lines.push('  }');
         break;
-      case 'director_ai':
-        lines.push(`  object "Director_${t.sceneId}" @director_ai {`);
-        lines.push(`    blocking: ${t.blocking.length} marks`);
-        lines.push(`    coverage: ${t.coverage.length} requirements`);
-        lines.push(`    beats: ${t.emotionalBeats.length}`);
+      }
+      case 'director_ai': {
+        const dir = t as DirectorAITrait;
+        lines.push(`  object "Director_${dir.sceneId}" @director_ai {`);
+        lines.push(`    blocking: ${dir.blocking.length} marks`);
+        lines.push(`    coverage: ${dir.coverage.length} requirements`);
+        lines.push(`    beats: ${dir.emotionalBeats.length}`);
         lines.push('  }');
         break;
-      case 'virtual_production':
-        lines.push(`  object "VP_${t.stageId}" @virtual_production {`);
-        lines.push(`    walls: ${t.walls.length}`);
-        lines.push(`    syncMode: "${t.syncMode}"`);
-        lines.push(`    frameRate: ${t.frameRate}`);
-        lines.push(`    tracking: "${t.tracking.system}"`);
+      }
+      case 'virtual_production': {
+        const vp = t as VirtualProductionTrait;
+        lines.push(`  object "VP_${vp.stageId}" @virtual_production {`);
+        lines.push(`    walls: ${vp.walls.length}`);
+        lines.push(`    syncMode: "${vp.syncMode}"`);
+        lines.push(`    frameRate: ${vp.frameRate}`);
+        lines.push(`    tracking: "${vp.tracking.system}"`);
         lines.push('  }');
         break;
-      case 'text_to_universe':
-        lines.push(`  object "TTU_${t.llmProvider}" @text_to_universe {`);
-        lines.push(`    provider: "${t.llmProvider}"`);
-        lines.push(`    narrative: "${t.narrativeConsistency}"`);
+      }
+      case 'text_to_universe': {
+        const ttu = t as TextToUniversePluginTrait;
+        lines.push(`  object "TTU_${ttu.llmProvider}" @text_to_universe {`);
+        lines.push(`    provider: "${ttu.llmProvider}"`);
+        lines.push(`    narrative: "${ttu.narrativeConsistency}"`);
         lines.push('  }');
         break;
+      }
       case null:
         // Ignore unknown trait discriminants in plugin-level compile pass.
         break;
