@@ -106,7 +106,7 @@ jobs:
       # ── Attach MP4s to GitHub Release ────────────────────────────────────────
       - name: Attach videos to release
         if: github.event_name == 'release' || github.event.inputs.attach_to_release == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: packages/video-tutorials/out/*.mp4
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}
