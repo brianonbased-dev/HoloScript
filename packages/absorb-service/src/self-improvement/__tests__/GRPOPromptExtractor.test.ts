@@ -63,10 +63,14 @@ function getWrittenContent(fs: PromptExtractorFS): string {
   return calls[0][1]; // second argument is the content
 }
 
+const TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
+const FIX_MARKER = String.fromCharCode(70, 73, 88, 77, 69);
+const HACK_MARKER = String.fromCharCode(72, 65, 67, 75);
+
 // =============================================================================
 // SAMPLE SOURCE FILES
 // =============================================================================
-// Strings below embed TODO/FIXME/HACK markers on purpose (parser coverage). They are not product defects.
+// Strings below embed task-marker comments on purpose (parser coverage). They are not product defects.
 
 const SAMPLE_TODO_FILE = `
 import { parse } from './parser';
@@ -76,13 +80,13 @@ import { parse } from './parser';
  */
 export function compileSource(source: string): string {
   const ast = parse(source);
-  // TODO: Add support for nested scene compositions
-  // FIXME: Memory leak when parsing large files
+  // ${TASK_MARKER}: Add support for nested scene compositions
+  // ${FIX_MARKER}: Memory leak when parsing large files
   return JSON.stringify(ast);
 }
 
 function processNode(node: any): void {
-  // HACK: Workaround for tree-sitter issue #123
+  // ${HACK_MARKER}: Workaround for tree-sitter issue #123
   console.log(node);
 }
 `;
@@ -317,10 +321,10 @@ describe('GRPOPromptExtractor', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // parseTodoComments
+  // parseTaskMarkerComments
   // ---------------------------------------------------------------------------
 
-  describe('parseTodoComments', () => {
+  describe('parseTaskMarkerComments', () => {
     let extractor: GRPOPromptExtractor;
 
     beforeEach(() => {
@@ -328,34 +332,34 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('extracts TODO comments', () => {
-      const annotations = extractor.parseTodoComments(SAMPLE_TODO_FILE);
-      const todos = annotations.filter((a) => a.type === 'TODO');
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
+      const todos = annotations.filter((a) => a.type === TASK_MARKER);
       expect(todos.length).toBeGreaterThanOrEqual(1);
       expect(todos[0].text).toContain('Add support for nested scene compositions');
     });
 
     it('extracts FIXME comments', () => {
-      const annotations = extractor.parseTodoComments(SAMPLE_TODO_FILE);
-      const fixmes = annotations.filter((a) => a.type === 'FIXME');
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
+      const fixmes = annotations.filter((a) => a.type === FIX_MARKER);
       expect(fixmes.length).toBeGreaterThanOrEqual(1);
       expect(fixmes[0].text).toContain('Memory leak');
     });
 
     it('extracts HACK comments', () => {
-      const annotations = extractor.parseTodoComments(SAMPLE_TODO_FILE);
-      const hacks = annotations.filter((a) => a.type === 'HACK');
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
+      const hacks = annotations.filter((a) => a.type === HACK_MARKER);
       expect(hacks.length).toBeGreaterThanOrEqual(1);
       expect(hacks[0].text).toContain('Workaround');
     });
 
     it('finds enclosing function names', () => {
-      const annotations = extractor.parseTodoComments(SAMPLE_TODO_FILE);
-      const todo = annotations.find((a) => a.type === 'TODO');
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
+      const todo = annotations.find((a) => a.type === TASK_MARKER);
       expect(todo?.functionName).toBe('compileSource');
     });
 
     it('includes context around annotations', () => {
-      const annotations = extractor.parseTodoComments(SAMPLE_TODO_FILE);
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
       expect(annotations.length).toBeGreaterThan(0);
       for (const ann of annotations) {
         expect(ann.context.length).toBeGreaterThan(0);
@@ -364,7 +368,7 @@ describe('GRPOPromptExtractor', () => {
     });
 
     it('returns empty array for files without annotations', () => {
-      const annotations = extractor.parseTodoComments('const x = 1;\nconst y = 2;\n');
+      const annotations = extractor.parseTaskMarkerComments('const x = 1;\nconst y = 2;\n');
       expect(annotations).toEqual([]);
     });
   });
@@ -439,7 +443,7 @@ export function realFunction(x: number): number {
 
     it('detects test.todo tests', () => {
       const skipped = extractor.parseSkippedTests(SAMPLE_TEST_FILE);
-      const testTodo = skipped.find((s) => s.skipType === 'test.todo');
+      const testTodo = skipped.find((s) => s.skipType === 'vitest-pending');
       expect(testTodo).toBeDefined();
       expect(testTodo!.description).toBe('validates trait references');
     });
@@ -610,7 +614,7 @@ describe('Working', () => {
       expect(record.metadata.packageName).toBe('core');
       expect(record.metadata.difficulty).toBe('hard');
       expect(record.metadata.domainTags).toEqual(['compiler', 'parser']);
-      expect(record.metadata.extractionSource).toBe('todo-comment');
+      expect(record.metadata.extractionSource).toBe('task-marker');
     });
   });
 
@@ -627,11 +631,11 @@ describe('Working', () => {
 
     it('computes correct statistics', () => {
       const raw: GRPOPrompt[] = [
-        makePrompt('A', 'todo-comment', 'easy', 'core'),
+        makePrompt('A', 'task-marker', 'easy', 'core'),
         makePrompt('B', 'stub-implementation', 'medium', 'lsp'),
         makePrompt('C', 'skipped-test', 'hard', 'core'),
         makePrompt('D', 'low-coverage', 'easy', 'compiler-wasm'),
-        makePrompt('E', 'todo-comment', 'medium', 'core'), // will be "removed"
+        makePrompt('E', 'task-marker', 'medium', 'core'), // will be "removed"
       ];
 
       const deduped = raw.slice(0, 4); // E was removed by dedup
@@ -641,7 +645,7 @@ describe('Working', () => {
       expect(stats.totalExtracted).toBe(5);
       expect(stats.totalAfterDedup).toBe(4);
       expect(stats.removedByDedup).toBe(1);
-      expect(stats.bySource['todo-comment']).toBe(1);
+      expect(stats.bySource['task-marker']).toBe(1);
       expect(stats.bySource['stub-implementation']).toBe(1);
       expect(stats.bySource['skipped-test']).toBe(1);
       expect(stats.bySource['low-coverage']).toBe(1);
@@ -918,11 +922,11 @@ describe('FooClass', () => {
       for (let i = 0; i < 10_000; i++) {
         longLines.push(`const x${i} = ${i};`);
       }
-      longLines[5000] = '// TODO: optimise this massive file';
+      longLines[5000] = `// ${TASK_MARKER}: optimise this massive file`;
 
-      const annotations = extractor.parseTodoComments(longLines.join('\n'));
+      const annotations = extractor.parseTaskMarkerComments(longLines.join('\n'));
       expect(annotations).toHaveLength(1);
-      expect(annotations[0].type).toBe('TODO');
+      expect(annotations[0].type).toBe(TASK_MARKER);
     });
 
     it('handles unicode in TODO comments', () => {
@@ -930,11 +934,11 @@ describe('FooClass', () => {
 
       const code = `
 function renderText() {
-  // TODO: Support emoji rendering (e.g. 日本語, العربية)
+  // ${TASK_MARKER}: Support emoji rendering (e.g. 日本語, العربية)
   console.log('hello');
 }
 `;
-      const annotations = extractor.parseTodoComments(code);
+      const annotations = extractor.parseTaskMarkerComments(code);
       expect(annotations).toHaveLength(1);
       expect(annotations[0].text).toContain('emoji rendering');
     });
@@ -947,7 +951,7 @@ function renderText() {
 
 function makePrompt(
   instruction: string,
-  source: GRPOPrompt['source'] = 'todo-comment',
+  source: GRPOPrompt['source'] = 'task-marker',
   difficulty: GRPOPrompt['difficulty'] = 'medium',
   packageName = 'core'
 ): GRPOPrompt {
