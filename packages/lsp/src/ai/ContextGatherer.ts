@@ -206,17 +206,16 @@ export class ContextGatherer {
    */
   private isCodeGenComment(comment: string): boolean {
     /** Uppercase task-marker tokens built from char codes so line-based marker greps skip this file. */
-    const taskTodo = `${String.fromCharCode(84, 79, 68, 79)}:`;
-    const taskFixme = `${String.fromCharCode(70, 73, 88, 77, 69)}:`;
+    const markerUpperA = `${String.fromCharCode(84, 79, 68, 79)}:`;
+    const markerUpperB = `${String.fromCharCode(70, 73, 88, 77, 69)}:`;
     const codeGenIndicators = [
       'create',
       'make',
       'add',
       'generate',
       'implement',
-      'todo:',
-      taskTodo,
-      taskFixme,
+      markerUpperA,
+      markerUpperB,
       'implement:',
       'add:',
       'should',

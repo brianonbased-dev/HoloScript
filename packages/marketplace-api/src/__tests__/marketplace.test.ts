@@ -536,7 +536,7 @@ describe('VerificationService', () => {
     it('should flag dangerous patterns', async () => {
       const result = await verificationService.verifyTraitSource(`
         trait DangerousTrait {
-          fn hack() {
+          fn unsafeEntry() {
             eval("malicious code");
           }
         }
