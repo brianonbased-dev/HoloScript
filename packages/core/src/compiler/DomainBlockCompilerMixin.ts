@@ -4578,12 +4578,26 @@ export function inputToUSDA(input: CompiledInput): string {
 // Simulation Domain (Thermal, Structural, Hydraulic)
 // =============================================================================
 
+/** World-level rendering + physics hints for R3F (gravity, skybox, engine overrides). */
+export interface SimulationEnvironment {
+  /** World gravity (m/s²); default is negative Y when given as a scalar magnitude. */
+  gravity?: [number, number, number];
+  /** `@react-three/drei` Environment HDR preset (e.g. sunset, city, studio). */
+  skyboxPreset?: string;
+  /** Solid canvas / scene background (hex, e.g. #87ceeb). */
+  skyboxColor?: string;
+  /** Extra props for the host `<Physics>` / engine (restitution, timestep, etc.). */
+  physicsOverrides?: Record<string, unknown>;
+}
+
 export interface CompiledSimulation {
   keyword: string;
   name: string;
   simulationType: 'thermal' | 'structural' | 'hydraulic' | 'unknown';
   traits: string[];
   config: Record<string, unknown>;
+  /** Parsed from block properties + `environment` / `skybox` / `gravity` children. */
+  environment?: SimulationEnvironment;
   overlays: Array<{
     source: string;
     colormap: string;
@@ -4592,6 +4606,62 @@ export interface CompiledSimulation {
     visible: boolean;
     label: string;
   }>;
+}
+
+function parseGravityVector(props: Record<string, unknown>): [number, number, number] | undefined {
+  const gv = props.gravity_vector ?? props.gravityVector;
+  if (Array.isArray(gv) && gv.length === 3 && gv.every((n) => typeof n === 'number')) {
+    return [gv[0] as number, gv[1] as number, gv[2] as number];
+  }
+  const g = props.gravity;
+  if (typeof g === 'number' && !Number.isNaN(g)) {
+    return [0, -Math.abs(g), 0];
+  }
+  return undefined;
+}
+
+function parseSimulationEnvironment(block: HoloDomainBlock): SimulationEnvironment | undefined {
+  const p = block.properties || {};
+  const env: SimulationEnvironment = {};
+
+  const topG = parseGravityVector(p);
+  if (topG) env.gravity = topG;
+
+  if (typeof p.skybox === 'string' && p.skybox.trim()) {
+    env.skyboxPreset = p.skybox.trim();
+  }
+  const colorRaw = p.skybox_color ?? p.skyboxColor ?? p.background_color;
+  if (colorRaw != null && String(colorRaw).trim() !== '') {
+    env.skyboxColor = String(colorRaw).trim();
+  }
+  const po = p.physics_overrides ?? p.physicsOverrides;
+  if (po && typeof po === 'object' && !Array.isArray(po)) {
+    env.physicsOverrides = { ...(po as Record<string, unknown>) };
+  }
+
+  for (const child of block.children || []) {
+    const c = child as unknown as HoloDomainBlock;
+    if (c.type !== 'DomainBlock') continue;
+    const kw = c.keyword;
+    const cp = c.properties || {};
+
+    if (kw === 'skybox' || kw === 'environment_sky' || kw === 'hdri') {
+      if (typeof cp.preset === 'string' && cp.preset.trim()) env.skyboxPreset = cp.preset.trim();
+      if (cp.color != null && String(cp.color).trim() !== '') env.skyboxColor = String(cp.color).trim();
+    }
+    if (kw === 'gravity' || kw === 'world_gravity') {
+      const g = parseGravityVector(cp);
+      if (g) env.gravity = g;
+    }
+    if (kw === 'physics_world' || kw === 'physics_overrides') {
+      env.physicsOverrides = { ...env.physicsOverrides, ...cp };
+    }
+  }
+
+  if (!env.gravity && !env.skyboxPreset && !env.skyboxColor && !env.physicsOverrides) {
+    return undefined;
+  }
+  return env;
 }
 
 export function compileSimulationBlock(block: HoloDomainBlock): CompiledSimulation {
@@ -4620,20 +4690,51 @@ export function compileSimulationBlock(block: HoloDomainBlock): CompiledSimulati
     }
   }
 
+  const environment = parseSimulationEnvironment(block);
+
   return {
     keyword: block.keyword,
     name: block.name,
     simulationType,
     traits,
     config: block.properties || {},
+    environment,
     overlays,
   };
 }
 
+/** R3F fragments for sky / background / world metadata (pairs with `SimulationProvider`). */
+function simulationEnvironmentToR3FChunks(env?: SimulationEnvironment): {
+  visualLines: string[];
+  userDataExpr: string | null;
+} {
+  if (!env) return { visualLines: [], userDataExpr: null };
+
+  const visualLines: string[] = [];
+  if (env.skyboxColor) {
+    const hex = env.skyboxColor.startsWith('#') ? env.skyboxColor : `#${env.skyboxColor}`;
+    visualLines.push(`<color attach="background" args={['${hex}']} />`);
+  }
+  if (env.skyboxPreset) {
+    visualLines.push(
+      `<Environment preset={${JSON.stringify(env.skyboxPreset)}} background />`
+    );
+  }
+
+  const meta: Record<string, unknown> = {};
+  if (env.gravity) meta.gravity = env.gravity;
+  if (env.physicsOverrides && Object.keys(env.physicsOverrides).length > 0) {
+    meta.physicsOverrides = env.physicsOverrides;
+  }
+  const userDataExpr =
+    Object.keys(meta).length > 0 ? JSON.stringify({ holoscript: meta }) : null;
+
+  return { visualLines, userDataExpr };
+}
+
 export function simulationToR3F(sim: CompiledSimulation): string {
-  const configJSON = JSON.stringify(sim.config)
-    .replace(/"/g, "'")
-    .replace(/'/g, '"');
+  const configExpr = JSON.stringify(sim.config);
+  const { visualLines, userDataExpr } = simulationEnvironmentToR3FChunks(sim.environment);
 
   const overlayJSX = sim.overlays
     .map(
@@ -4642,10 +4743,24 @@ export function simulationToR3F(sim: CompiledSimulation): string {
     )
     .join('\n        ');
 
+  const envVisual = visualLines.length > 0 ? `${visualLines.join('\n      ')}\n      ` : '';
+
+  const wrapWithGroup = (body: string): string =>
+    userDataExpr ? `<group userData={${userDataExpr}}>\n      ${body}\n      </group>` : body;
+
+  if (sim.simulationType === 'unknown') {
+    const body = `${envVisual}${overlayJSX}`;
+    return `{/* Simulation: ${sim.name} (unknown solver — add thermal_simulation, structural_fem, or hydraulic_pipe trait) */}
+      ${wrapWithGroup(body)}`;
+  }
+
+  const providerInner = overlayJSX
+    ? `\n        ${overlayJSX}\n      `
+    : '\n      ';
+  const provider = `${envVisual}<SimulationProvider type="${sim.simulationType}" config={${configExpr}}>${providerInner}</SimulationProvider>`;
+
   return `{/* Simulation: ${sim.name} (${sim.simulationType}) */}
-      <SimulationProvider type="${sim.simulationType}" config={${configJSON}}>
-        ${overlayJSX}
-      </SimulationProvider>`;
+      ${wrapWithGroup(provider)}`;
 }
 
 // =============================================================================

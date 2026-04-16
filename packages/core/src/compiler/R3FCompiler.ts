@@ -2293,6 +2293,77 @@ export class R3FCompiler {
     return root;
   }
 
+  /**
+   * Compiles a declarative 'world' node into R3F scene nodes.
+   * Nested `world.children` (objects) are compiled via the same path as top-level objects.
+   */
+  private compileWorldNode(
+    world: import('../parser/HoloCompositionTypes').HoloWorld,
+    templateMap: Map<string, CompositionChild>
+  ): R3FNode[] {
+    const nodes: R3FNode[] = [];
+    const props: Record<string, unknown> = {};
+
+    if (world.properties) {
+      for (const prop of world.properties) {
+        props[prop.key] = prop.value;
+      }
+    }
+
+    // Ambient Light
+    if (props.ambient_light !== undefined) {
+      nodes.push(
+        this.createNode('ambientLight', {
+          intensity: Number(props.ambient_light),
+        })
+      );
+    }
+
+    // Skybox / Environment
+    if (props.skybox_color !== undefined) {
+      nodes.push(
+        this.createNode('Environment', {
+          background: true,
+          preset: 'sunset', // Default preset if just color is given
+        })
+      );
+      nodes.push(
+        this.createNode('color', {
+          attach: 'background',
+          args: [props.skybox_color],
+        })
+      );
+    }
+
+    // Gravity (Physics config)
+    if (props.gravity !== undefined) {
+      nodes.push(
+        this.createNode('Physics', {
+          gravity: [0, -Number(props.gravity), 0],
+        })
+      );
+    }
+
+    const childNodes: R3FNode[] = [];
+    if (world.children && world.children.length > 0) {
+      for (const child of world.children) {
+        childNodes.push(this.compileObjectDecl(child as Record<string, unknown>, templateMap));
+      }
+    }
+
+    if (childNodes.length === 0) {
+      return nodes;
+    }
+
+    const group = this.createNode(
+      'group',
+      {},
+      world.name ? escapeStringValue(world.name, 'JSX') : undefined
+    );
+    group.children = [...nodes, ...childNodes];
+    return [group];
+  }
+
   private createNode(type: string, props: Record<string, unknown> = {}, id?: string): R3FNode {
     const node = r3fNodePool.acquire();
     node.type = type;
@@ -2439,6 +2510,18 @@ export class R3FCompiler {
     if (Array.isArray(composition.zones)) {
       for (const zone of composition.zones) {
         root.children!.push(this.compileZoneBlock(zone as unknown as Record<string, unknown>));
+      }
+    }
+
+    // Compile Worlds (.holo world blocks)
+    if (Array.isArray(composition.worlds)) {
+      for (const world of composition.worlds) {
+        root.children!.push(
+          ...this.compileWorldNode(
+            world as unknown as import('../parser/HoloCompositionTypes').HoloWorld,
+            templateMap
+          )
+        );
       }
     }
 
@@ -3787,12 +3870,12 @@ export class R3FCompiler {
       behavior: 'group',
       system: 'System',
       component: 'Component',
-      avatar: 'Avatar',
       dna: 'DNA',
       gaussian_splat: 'GaussianSplat',
       splat: 'GaussianSplat',
       nerf: 'NeRF',
       volumetric_video: 'VolumetricVideo',
+      world: 'group',
     };
     return mapping[type] || type;
   }
