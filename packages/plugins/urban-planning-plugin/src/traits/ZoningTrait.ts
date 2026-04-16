@@ -16,7 +16,10 @@ export function createZoningHandler(): TraitHandler<ZoningConfig> {
     onEvent(n: HSPlusNode, c: ZoningConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__zoningState as ZoningState | undefined; if (!s) return;
       if (e.type === 'urban_planning:economy_sim_tick') {
-        const parcels = Math.max(0, Math.floor(Number(e.payload?.parcels ?? 0)));
+        const nested = e.payload?.parcels;
+        const top = (e as TraitEvent & { parcels?: unknown }).parcels;
+        const raw = nested !== undefined && nested !== null ? nested : top;
+        const parcels = Math.max(0, Math.floor(Number(raw ?? 0)));
         ctx.emit?.('urban_planning:economy_tick', { parcels, density: c.density });
         return;
       }

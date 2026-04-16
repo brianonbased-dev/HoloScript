@@ -1,5 +1,9 @@
 export { URBAN_PLANNING_ECONOMY_PLUGIN_ID } from './economyBridge';
 export { revenueTickInputFromZoning } from './zoningEconomyTick';
+export {
+  URBAN_PLANNING_ECONOMY_SIM_TICK,
+  urbanPlanningEconomySimTickTraitEvent,
+} from './urbanPlanningSimTick';
 export { createZoningHandler, type ZoningConfig, type ZoneType, type DensityClass } from './traits/ZoningTrait';
 export { createTrafficFlowHandler, type TrafficFlowConfig, type RoadType } from './traits/TrafficFlowTrait';
 export { createPopulationDensityHandler, type PopulationDensityConfig } from './traits/PopulationDensityTrait';
