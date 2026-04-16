@@ -231,6 +231,42 @@ export interface ScanError {
   phase: 'read' | 'parse' | 'extract';
 }
 
+/**
+ * Raw completion payload from `parse-worker` (forwarded by WorkerPool).
+ * Worker uses `message` for failures; {@link ScanError} uses `error`.
+ */
+export interface WorkerParseJobResult {
+  jobId: string;
+  file?: ScannedFile;
+  error?: {
+    file: string;
+    phase: string;
+    message: string;
+  };
+}
+
+/** Normalized parallel scan merge shape (matches {@link CodebaseScanner} `parseOneFile`). */
+export type ScanWorkerPayload = { file?: ScannedFile; error?: ScanError };
+
+export function toScanWorkerPayload(raw: WorkerParseJobResult): ScanWorkerPayload {
+  if (raw.error) {
+    const p = raw.error.phase;
+    const phase: ScanError['phase'] =
+      p === 'read' || p === 'parse' || p === 'extract' ? p : 'parse';
+    return {
+      error: {
+        file: raw.error.file,
+        error: raw.error.message,
+        phase,
+      },
+    };
+  }
+  if (raw.file) {
+    return { file: raw.file };
+  }
+  return {};
+}
+
 export interface ScanResult {
   rootDir: string;
   rootDirs: string[];

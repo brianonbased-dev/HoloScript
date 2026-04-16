@@ -22,7 +22,10 @@ import type {
   ScanError,
   SupportedLanguage,
   ImportEdge,
+  WorkerParseJobResult,
+  ScanWorkerPayload,
 } from './types';
+import { toScanWorkerPayload } from './types';
 import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
@@ -186,43 +189,33 @@ export class CodebaseScanner {
 
         // Step 2: Parse in parallel via worker pool (CPU bound)
         const parsePromises = fileData.map((data) =>
-          this.workerPool!.execute({
-            filePath: data.filePath,
-            content: data.content,
-            language: data.language,
-            sizeBytes: data.sizeBytes,
-          })
+          this
+            .workerPool!.execute<WorkerParseJobResult>({
+              filePath: data.filePath,
+              content: data.content,
+              language: data.language,
+              sizeBytes: data.sizeBytes,
+            })
+            .then(toScanWorkerPayload)
         );
 
-        const parseResults = await Promise.all(parsePromises);
+        const parseResults: ScanWorkerPayload[] = await Promise.all(parsePromises);
 
         // Step 3: Accumulate results
         for (const result of parseResults) {
-          // @ts-ignore - Automatic remediation for TS18046
           const relPath = result.file?.path || result.error?.file || '';
 
-          // @ts-ignore - Automatic remediation for TS18046
           if (result.error) {
-            // @ts-ignore - Automatic remediation for TS18046
             errors.push(result.error);
-          // @ts-ignore - Automatic remediation for TS18046
           } else if (result.file) {
-            // @ts-ignore - Automatic remediation for TS18046
             files.push(result.file);
-            // @ts-ignore - Automatic remediation for TS18046
             filesByLanguage[result.file.language] =
-              // @ts-ignore - Automatic remediation for TS18046
               (filesByLanguage[result.file.language] ?? 0) + 1;
-            // @ts-ignore - Automatic remediation for TS18046
             totalSymbols += result.file.symbols.length;
-            // @ts-ignore - Automatic remediation for TS18046
             totalImports += result.file.imports.length;
-            // @ts-ignore - Automatic remediation for TS18046
             totalCalls += result.file.calls.length;
-            // @ts-ignore - Automatic remediation for TS18046
             totalLoc += result.file.loc;
 
-            // @ts-ignore - Automatic remediation for TS18046
             for (const sym of result.file.symbols) {
               symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
             }

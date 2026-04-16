@@ -2,7 +2,19 @@ export { createVolumetricHandler, type VolumetricConfig, type VolumetricFormat }
 export { createGaussianSplatHandler, type GaussianSplatConfig } from './traits/GaussianSplatTrait';
 export { createNeRFHandler, type NeRFConfig, type NeRFMethod } from './traits/NeRFTrait';
 export { createCinematicCameraHandler, type CinematicCameraConfig, type CameraMovement } from './traits/CinematicCameraTrait';
-export { createGCodeSlicerHandler, type GCodeSlicerConfig, type GCodeSlicerState } from './traits/GCodeSlicerTrait';
+export {
+  createGCodeSlicerHandler,
+  type GCodeSlicerConfig,
+  type GCodeSlicerState,
+  type GCodeSemanticParams,
+  type MeshSliceInput,
+  type AdhesionLayerPlanEntry,
+  type TraversalLayerPlan,
+  buildAdhesionLayerPlan,
+  buildInsetPerimeterTraversal,
+  buildSemanticGCodePreamble,
+  buildTraversalStackFromMesh
+} from './traits/GCodeSlicerTrait';
 export * from './traits/types';
 
 import {

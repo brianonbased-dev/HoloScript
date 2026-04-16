@@ -21,6 +21,22 @@
 import { Worker } from 'worker_threads';
 import * as os from 'os';
 
+function isReadySignal(msg: unknown): msg is { type: 'ready' } {
+  return (
+    typeof msg === 'object' &&
+    msg !== null &&
+    (msg as { type?: unknown }).type === 'ready'
+  );
+}
+
+function isWorkerJobMessage(msg: unknown): msg is { jobId: string } {
+  return (
+    typeof msg === 'object' &&
+    msg !== null &&
+    typeof (msg as { jobId?: unknown }).jobId === 'string'
+  );
+}
+
 interface QueuedJob {
   jobId: string;
   data: unknown;
@@ -42,22 +58,23 @@ export class WorkerPool {
     for (let i = 0; i < size; i++) {
       const worker = new Worker(this.workerFile);
 
-      worker.on('message', (result: { type?: string; jobId?: string; [key: string]: unknown }) => {
-        // Handle ready signal
-        if (result.type === 'ready') {
+      worker.on('message', (raw: unknown) => {
+        if (isReadySignal(raw)) {
           this.availableWorkers.push(worker);
           this.processQueue();
           return;
         }
 
-        // Handle job result
-        // @ts-ignore - Automatic remediation for TS2345
-        const job = this.pendingJobs.get(result.jobId);
+        if (!isWorkerJobMessage(raw)) {
+          return;
+        }
+
+        const jobId = raw.jobId;
+        const job = this.pendingJobs.get(jobId);
         if (job) {
-          // @ts-ignore - Automatic remediation for TS2345
-          this.pendingJobs.delete(result.jobId);
+          this.pendingJobs.delete(jobId);
           this.availableWorkers.push(worker);
-          job.resolve(result);
+          job.resolve(raw);
           this.processQueue();
         }
       });
@@ -86,14 +103,16 @@ export class WorkerPool {
    * Returns a Promise that resolves with the worker's result.
    */
   execute<T>(data: unknown): Promise<T> {
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const payload =
+        typeof data === 'object' && data !== null
+          ? { jobId, ...(data as Record<string, unknown>) }
+          : { jobId, value: data };
       const job: QueuedJob = {
         jobId,
-        // @ts-ignore - Automatic remediation for TS2698
-        data: { jobId, ...data },
-        // @ts-ignore - Automatic remediation for TS2322
-        resolve,
+        data: payload,
+        resolve: (result: unknown) => resolve(result as T),
         reject,
       };
 

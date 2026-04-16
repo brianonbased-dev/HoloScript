@@ -258,19 +258,27 @@ export class EmbeddingIndex {
         const end = Math.min(start + this.batchSize, texts.length);
         const batch = texts.slice(start, end);
 
-        const promise = this.workerPool!.execute({
-          texts: batch,
-          provider: providerConfig,
-        // @ts-ignore - Automatic remediation for TS2345
-        }).then((result: { error?: { message: string }; embeddings: number[][] }) => {
-          if (result.error) {
-            throw new Error(result.error.message);
-          }
-          return {
-            batchIndex,
-            embeddings: result.embeddings,
-          };
-        });
+        const promise = this.workerPool!
+          .execute<{
+            jobId: string;
+            embeddings?: number[][];
+            error?: { message: string };
+          }>({
+            texts: batch,
+            provider: providerConfig,
+          })
+          .then((result) => {
+            if (result.error) {
+              throw new Error(result.error.message);
+            }
+            if (!result.embeddings) {
+              throw new Error('Embedding worker returned no embeddings');
+            }
+            return {
+              batchIndex,
+              embeddings: result.embeddings,
+            };
+          });
 
         batchPromises.push(promise);
       }

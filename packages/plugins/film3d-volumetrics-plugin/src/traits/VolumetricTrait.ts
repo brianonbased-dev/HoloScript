@@ -3,7 +3,7 @@ import {
   registerVolumetricNode,
   setVolumetricVoxelPayload,
   unregisterVolumetricNode
-} from '@holoscript/crdt-spatial';
+} from '../../../../crdt-spatial/src/film3dVolumetricCrdt.js';
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type VolumetricFormat = 'point_cloud' | 'voxel' | 'mesh_sequence' | 'depth_map' | 'holographic';
