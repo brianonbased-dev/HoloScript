@@ -163,12 +163,21 @@ export class CopilotPanel {
   }
 
   async sendMessage(text: string): Promise<CopilotResponse> {
+    const prompt = text.trim();
+    if (!prompt) {
+      return {
+        text: 'Please enter a prompt before sending.',
+        suggestions: [],
+        error: 'EMPTY_PROMPT',
+      };
+    }
+
     this.inputText = '';
-    this.messages.push({ role: 'user', text });
+    this.messages.push({ role: 'user', text: prompt });
 
     let response: CopilotResponse;
     try {
-      response = await this.copilot.generateFromPrompt(text);
+      response = await this.copilot.generateFromPrompt(prompt);
     } catch (error) {
       response = this.buildErrorResponse(this.toErrorMessage(error));
     }

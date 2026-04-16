@@ -157,6 +157,27 @@ describe('CopilotPanel — setInputText', () => {
 // =============================================================================
 
 describe('CopilotPanel — sendMessage', () => {
+  it('rejects empty prompt without adding messages', async () => {
+    const panel = new CopilotPanel(makeCopilot());
+
+    const res = await panel.sendMessage('');
+
+    expect(res.error).toBe('EMPTY_PROMPT');
+    expect(res.text).toContain('Please enter a prompt');
+    expect(panel.getMessages()).toHaveLength(0);
+  });
+
+  it('trims whitespace-only prompt and does not call generateFromPrompt', async () => {
+    const adapter = makeAdapter();
+    const panel = new CopilotPanel(new AICopilot(adapter));
+
+    const res = await panel.sendMessage('   \n\t   ');
+
+    expect(res.error).toBe('EMPTY_PROMPT');
+    expect(panel.getMessages()).toHaveLength(0);
+    expect(adapter.generateHoloScript).not.toHaveBeenCalled();
+  });
+
   it('appends user + assistant messages to internal list', async () => {
     const panel = new CopilotPanel(makeCopilot('hi'));
     await panel.sendMessage('hello');
