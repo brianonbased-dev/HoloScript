@@ -91,7 +91,7 @@ export class EditorPersistence {
       // For MVP: Nuke all, EditorUI might disappear.
       // If EditorUI disappears, user gets stuck.
 
-      // Hack: Filter out known editor tags.
+      // Heuristic: destroy scene entities but skip editor chrome (tags like NoSelect / Gizmo).
       const entities = this.world.getAllEntities();
       entities.forEach((e) => {
         if (!this.world.hasTag(e, 'NoSelect') && !this.world.hasTag(e, 'Gizmo')) {
