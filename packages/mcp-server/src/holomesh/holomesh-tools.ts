@@ -32,6 +32,10 @@ import { boardTools, handleBoardTool } from './board-tools';
 import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 import { sovereignTools, handleSovereignTool } from './sovereign-tools';
 import * as crypto from 'crypto';
+import {
+  formatBroadcastContextMarkdown,
+  harvestMoltbookBroadcastContext,
+} from './moltbook-broadcast-context';
 
 const moltbookCrosspostSchema = z.object({
   taskId: z.string().min(1),
@@ -47,6 +51,8 @@ const moltbookCrosspostSchema = z.object({
     })
     .optional(),
   tags: z.array(z.string().min(1)).default([]),
+  /** When true (default), attach non-secret environment metadata for provenance. */
+  includeContext: z.boolean().optional().default(true),
 });
 
 type MoltbookCrosspostArgs = z.infer<typeof moltbookCrosspostSchema>;
@@ -65,7 +71,7 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_moltbook_crosspost',
     description:
-      'Crosspost an autonomous task/session summary to Moltbook. Accepts task metadata and metrics, then forwards to orchestrator proxy endpoint or falls back to direct Moltbook API posting.',
+      'Crosspost an autonomous task/session summary to Moltbook. Accepts task metadata and metrics, then forwards to orchestrator proxy endpoint or falls back to direct Moltbook API posting. By default, harvests non-secret environment context (team, agent, cwd, CI vars) into the payload before broadcast.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -96,6 +102,11 @@ export const holomeshTools: Tool[] = [
           type: 'array',
           items: { type: 'string' },
           description: 'Tags to classify the post on Moltbook.',
+        },
+        includeContext: {
+          type: 'boolean',
+          description:
+            'If true (default), attach whitelisted environment metadata (no API keys) for provenance.',
         },
       },
       required: ['taskId', 'title', 'description'],
@@ -501,6 +512,9 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
     authHeaders['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
   }
 
+  const environmentContext =
+    payload.includeContext !== false ? harvestMoltbookBroadcastContext() : undefined;
+
   const postBody = {
     taskId: payload.taskId,
     title: payload.title,
@@ -509,6 +523,9 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
     ownerAgent: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
     metrics: payload.metrics,
     tags: payload.tags,
+    ...(environmentContext && Object.keys(environmentContext).length > 0
+      ? { environmentContext }
+      : {}),
   };
 
   try {
@@ -522,6 +539,7 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
       route: 'orchestrator-proxy',
       proxyUrl,
       response: proxyResp.data,
+      environmentContext,
     };
   } catch (proxyErr: unknown) {
     const moltbookApiKey = process.env.MOLTBOOK_API_KEY;
@@ -556,6 +574,10 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
 
       lines.push('', `Task ID: ${payload.taskId}`);
 
+      if (environmentContext && Object.keys(environmentContext).length > 0) {
+        lines.push('', formatBroadcastContextMarkdown(environmentContext));
+      }
+
       const directResp = await axios.post(
         'https://api.moltbook.com/v1/posts',
         {
@@ -578,6 +600,7 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
         success: true,
         route: 'direct-moltbook',
         response: directResp.data,
+        environmentContext,
       };
     } catch (directErr: unknown) {
       return {
