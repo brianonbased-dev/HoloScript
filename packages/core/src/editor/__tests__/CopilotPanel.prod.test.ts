@@ -181,6 +181,22 @@ describe('CopilotPanel — sendMessage', () => {
     // After last trim: ≤ maxMessages
     expect(panel.getMessages().length).toBeLessThanOrEqual(4);
   });
+
+  it('returns fallback response and appends assistant error message when generateFromPrompt throws', async () => {
+    const adapter = makeAdapter();
+    adapter.generateHoloScript = vi.fn().mockRejectedValue(new Error('model unavailable')) as any;
+    const panel = new CopilotPanel(new AICopilot(adapter));
+
+    const res = await panel.sendMessage('hello');
+
+    expect(res.error).toBe('model unavailable');
+    expect(res.text).toContain('model unavailable');
+    const msgs = panel.getMessages();
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0].role).toBe('user');
+    expect(msgs[1].role).toBe('assistant');
+    expect(msgs[1].text).toContain('model unavailable');
+  });
 });
 
 // =============================================================================
@@ -209,6 +225,22 @@ describe('CopilotPanel — requestSuggestion', () => {
     await panel.requestSuggestion();
     await panel.requestSuggestion();
     expect(panel.getMessages().length).toBeLessThanOrEqual(2);
+  });
+
+  it('returns fallback response and appends assistant error message when suggestFromSelection throws', async () => {
+    const throwingCopilot = {
+      suggestFromSelection: vi.fn().mockRejectedValue('selection failed'),
+    } as unknown as AICopilot;
+    const panel = new CopilotPanel(throwingCopilot);
+
+    const res = await panel.requestSuggestion();
+
+    expect(res.error).toBe('selection failed');
+    expect(res.text).toContain('selection failed');
+    const msgs = panel.getMessages();
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].role).toBe('assistant');
+    expect(msgs[0].text).toContain('selection failed');
   });
 });
 

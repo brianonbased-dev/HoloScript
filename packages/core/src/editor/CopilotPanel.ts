@@ -144,11 +144,34 @@ export class CopilotPanel {
   // Actions
   // ---------------------------------------------------------------------------
 
+  private toErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+    if (typeof error === 'string' && error.trim().length > 0) {
+      return error;
+    }
+    return 'Unknown error';
+  }
+
+  private buildErrorResponse(message: string): CopilotResponse {
+    return {
+      text: `I hit an issue while processing your request: ${message}`,
+      suggestions: [],
+      error: message,
+    };
+  }
+
   async sendMessage(text: string): Promise<CopilotResponse> {
     this.inputText = '';
     this.messages.push({ role: 'user', text });
 
-    const response = await this.copilot.generateFromPrompt(text);
+    let response: CopilotResponse;
+    try {
+      response = await this.copilot.generateFromPrompt(text);
+    } catch (error) {
+      response = this.buildErrorResponse(this.toErrorMessage(error));
+    }
 
     this.messages.push({
       role: 'assistant',
@@ -165,7 +188,13 @@ export class CopilotPanel {
   }
 
   async requestSuggestion(): Promise<CopilotResponse> {
-    const response = await this.copilot.suggestFromSelection();
+    let response: CopilotResponse;
+    try {
+      response = await this.copilot.suggestFromSelection();
+    } catch (error) {
+      response = this.buildErrorResponse(this.toErrorMessage(error));
+    }
+
     this.messages.push({
       role: 'assistant',
       text: response.text,
