@@ -584,6 +584,9 @@ export class x402PaymentService {
       const paymentId = body.payment_id;
       const creatorAddress = body.creator_address;
       const agentAddress = body.agent_address;
+      const transactionHash = body.transaction_hash;
+      const network = body.network || 'base';
+      const contentId = body.content_id;
 
       if (typeof paymentId !== 'string' || !paymentId) {
         res.status(400).json({ error: 'Missing payment identifier' });
@@ -595,29 +598,56 @@ export class x402PaymentService {
         return;
       }
 
-      // Verify transaction on blockchain
-      const receipt = await this.verifyPayment(paymentId);
-
-      if (receipt) {
-        // Grant access to content
-        await this.grantAccess(paymentId, receipt.content_id);
-
-        // Process Revenue Splits (80/10/10 model)
-        const split = this.processRevenueSplit(
-          receipt.amount,
-          creatorAddress,
-          typeof agentAddress === 'string' ? agentAddress : undefined
-        );
-
-        // Store receipt in database
-        await this.storeReceipt(receipt);
-
-        res.json({ success: true, access_granted: true, split });
-      } else {
-        res.status(400).json({ error: 'Payment verification failed' });
+      if (typeof transactionHash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(transactionHash)) {
+        res.status(400).json({ error: 'Missing or invalid transaction hash' });
+        return;
       }
-    } catch (_e) {
+
+      // Replay attack prevention: check if this tx has already been consumed
+      const nonceKey = `${network}:${transactionHash}`;
+      if (this.consumedNonces.has(nonceKey)) {
+        res.status(200).json({ success: true, message: 'Transaction already processed' });
+        return;
+      }
+
+      // Verify transaction on blockchain directly via getBlockchainReceipt
+      const { amount, recipient } = await this.getBlockchainReceipt(transactionHash, String(network));
+
+      // Compose the receipt
+      const receipt: x402PaymentReceipt = {
+        payment_id: paymentId,
+        transaction_hash: transactionHash,
+        block_number: 0, // In practice, read from receipt object
+        timestamp: Math.floor(Date.now() / 1000),
+        payer_address: '', // Not strictly needed for callback, but could be added
+        recipient_address: recipient,
+        amount: amount,
+        asset: typeof body.asset === 'string' ? body.asset : 'USDC',
+        network: String(network),
+        content_id: typeof contentId === 'string' ? contentId : '',
+        access_granted: true,
+      };
+
+      // Grant access to content
+      await this.grantAccess(paymentId, receipt.content_id);
+
+      // Process Revenue Splits (80/10/10 model)
+      const split = this.processRevenueSplit(
+        receipt.amount,
+        creatorAddress,
+        typeof agentAddress === 'string' ? agentAddress : undefined
+      );
+
+      // Store receipt in database
+      await this.storeReceipt(receipt);
+      
+      // Mark as consumed
+      this.consumedNonces.add(nonceKey);
+
+      res.json({ success: true, access_granted: true, split });
+    } catch (e) {
       // Sanitized: no internal error details
+      console.error('[x402 callback]', e);
       res.status(500).json({ error: 'Callback processing failed' });
     }
   }

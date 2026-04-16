@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { HoloClaw3DDeck } from './HoloClaw3DDeck';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -149,10 +150,11 @@ const DAEMONS: DaemonInfo[] = [
   },
 ];
 
-type ClawSection = 'daemons' | 'skills' | 'stream' | 'economy' | 'bounties' | 'commits';
+type ClawSection = 'daemons' | 'network' | 'skills' | 'stream' | 'economy' | 'bounties' | 'commits';
 
 const SECTIONS: { id: ClawSection; label: string }[] = [
   { id: 'daemons', label: 'Daemons' },
+  { id: 'network', label: 'Network' },
   { id: 'skills', label: 'Active Skills' },
   { id: 'stream', label: 'Live Stream' },
   { id: 'economy', label: 'Economy' },
@@ -701,6 +703,15 @@ export function HoloClawTab() {
               ))}
             </div>
           )
+        )}
+        
+        {section === 'network' && (
+          <div className="h-[600px] w-full relative group">
+            <HoloClaw3DDeck skills={skills.map(s => ({ name: s.name, status: s.status, traits: s.traits }))} />
+            <div className="absolute bottom-4 right-4 text-xs font-mono text-studio-muted opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded backdrop-blur border border-studio-border">
+              LMB to Rotate · Scroll to Zoom
+            </div>
+          </div>
         )}
 
         {section === 'stream' && <LiveStream />}

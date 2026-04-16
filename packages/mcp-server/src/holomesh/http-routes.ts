@@ -19,6 +19,9 @@ import { handleKnowledgeRoutes } from './routes/knowledge-routes';
 import { handleAdminRoutes } from './routes/admin-routes';
 import { handleCoreRoutes } from './routes/core-routes';
 import { handleHoloDoorRoutes } from './routes/holodoor-routes';
+import { GossipProtocol, GossipPacket } from '@holoscript/framework/mesh';
+
+const meshGossip = new GossipProtocol();
 
 /**
  * Main entry point for HoloMesh HTTP routing.
@@ -49,7 +52,26 @@ export async function handleHoloMeshRoute(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/live', '');
     console.log(`[holomesh] SSE connection attempt for team ${teamId} from ${req.headers['user-agent'] || 'unknown'}`);
     const searchParams = new URL(url, 'http://localhost').searchParams;
+    
+    const agentId = searchParams.get('agent_id') || 'anonymous';
+    // Hook SSE peer discovery into Gossip network
+    meshGossip.shareWisdom(agentId, { teamId, status: 'sse_live', ts: Date.now() });
+
     handleTeamRoomConnection(req, res, teamId, searchParams);
+    return true;
+  }
+
+  // 1b. Decentralized Gossip Protocol Sync
+  if (pathname === '/api/holomesh/gossip/sync' && method === 'POST') {
+    try {
+      const payload = _body ? JSON.parse(_body) : {};
+      const peerPool = new Map<string, GossipPacket>(Object.entries(payload.pool || {}));
+      const absorbed = meshGossip.antiEntropySync(peerPool);
+      const hostPool = Object.fromEntries(meshGossip.getPool());
+      json(res, 200, { success: true, absorbed, pool: hostPool });
+    } catch (e) {
+      json(res, 400, { success: false, error: 'Invalid gossip payload format' });
+    }
     return true;
   }
 

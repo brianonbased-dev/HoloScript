@@ -18,9 +18,9 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@holoscript/absorb-service": "workspace:*",
-    "@holoscript/config": "workspace:^",
-    "@holoscript/core": "workspace:*",
+    "@holoscript/absorb-service": "workspace:6.0.0",
+    "@holoscript/config": "workspace:6.0.2",
+    "@holoscript/core": "workspace:6.0.4",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",

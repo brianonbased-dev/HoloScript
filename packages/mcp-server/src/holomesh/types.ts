@@ -507,11 +507,14 @@ export const PRESENCE_TTL_MS = 120 * 1000; // 2 minutes
 // --- Agent Identity & Registry ---
 
 /**
- * Permanent identity anchor for a key.
- * Wallet NEVER changes. Key can rotate freely via /admin/rotate-key.
+ * Registry row for a HoloMesh bearer token.
+ *
+ * **Security posture:** `key` is a disposable credential (session-style). Treat
+ * compromise or leakage as "rotate or revoke," not catastrophe — durable identity
+ * is `walletAddress` + `agentId`. Wallet never changes; key rotates via /admin/rotate-key.
  */
 export interface KeyRecord {
-  /** The bearer token value */
+  /** Bearer token — disposable; rotate/revoke freely */
   key: string;
   /** Permanent wallet address — identity anchor */
   walletAddress: string;

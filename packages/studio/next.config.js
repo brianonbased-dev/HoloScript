@@ -73,6 +73,12 @@ const nextConfig = {
     '@holoscript/r3f-renderer',
   ],
   webpack: (config, { isServer, defaultLoaders }) => {
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      syncWebAssembly: true,
+    };
+
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
       type: 'asset/resource',
@@ -178,6 +184,8 @@ const nextConfig = {
       '@x402/paywall': false,
       '@x402/core': false,
       '@x402/fetch': false,
+      '@holoscript/plugin-hardware-invention': false,
+      '@holoscript/plugin-therapy': false,
       'node:stream': false,
       'node:buffer': false,
       memfs: false,

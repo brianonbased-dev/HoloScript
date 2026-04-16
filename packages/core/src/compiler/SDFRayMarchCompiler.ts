@@ -369,6 +369,7 @@ export function compileSDFScene(
   const lastD = `d${_nodeCounter - 1}`;
 
   const fragmentShader = /* glsl */ `
+#extension GL_OES_standard_derivatives : enable
 precision highp float;
 
 uniform float uTime;
@@ -384,14 +385,8 @@ ${sceneBody}
 }
 
 vec3 calcNormal(vec3 p) {
-  const float h = 0.0001;
-  const vec2 k = vec2(1, -1);
-  return normalize(
-    k.xyy * scene(p + k.xyy * h) +
-    k.yyx * scene(p + k.yyx * h) +
-    k.yxy * scene(p + k.yxy * h) +
-    k.xxx * scene(p + k.xxx * h)
-  );
+  // Analytic normal via screen-space derivatives (faster WebGPU scaling)
+  return normalize(cross(dFdx(p), dFdy(p)));
 }
 
 void main() {
@@ -412,6 +407,9 @@ void main() {
   if (t < ${maxDist.toFixed(1)}) {
     vec3 p = ro + rd * t;
     vec3 n = calcNormal(p);
+    // Invert normal if facing away from camera due to screen space derivative winding
+    if (dot(rd, n) > 0.0) n = -n;
+    
     vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
     float diff = max(dot(n, lightDir), 0.0);
     float amb = 0.15;

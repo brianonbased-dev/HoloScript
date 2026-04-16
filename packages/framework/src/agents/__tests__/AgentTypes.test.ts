@@ -511,24 +511,30 @@ describe('AgentTypes — AgentTraitContext', () => {
     const ctx: Partial<AgentTraitContext> = {
       agent_id: 'wallet-agent',
       wallet: {
-        getBalance: async () => 1.5,
-        pay: async () => ({ success: true, txHash: '0xabc' }),
-        trade: async () => ({ success: true, txHash: '0xdef' }),
-        mintNFT: async () => ({ success: true, tokenId: '42' }),
+        address: '0x123',
+        network: 'base',
+        balance_usdc: 1.5,
+        gasless: true,
+        pay: async () => ({ transaction_hash: '0xabc' }),
+        trade: async () => {},
+        mint_nft: async () => ({ token_id: '42' }),
+        earn: async () => {},
       },
     };
     expect(ctx.wallet).toBeDefined();
+    expect(ctx.wallet?.balance_usdc).toBe(1.5);
   });
 
   it('supports story_weaver extension', () => {
     const ctx: Partial<AgentTraitContext> = {
       agent_id: 'story-agent',
       story_weaver: {
-        generateNarrative: async () => 'Once upon a time...',
-        createWorld: async () => 'world-001',
-        deployContracts: async () => true,
+        create_world: async () => 'world-001',
+        generate_quest: async () => ({ quest_id: 'quest-001' }),
+        mint_book: async () => ({ nft_id: 'nft-001' }),
       },
     };
     expect(ctx.story_weaver).toBeDefined();
+    expect(ctx.story_weaver?.create_world).toBeDefined();
   });
 });

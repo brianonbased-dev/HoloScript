@@ -554,24 +554,26 @@ export interface AgentTraitContext {
 
   // Economy & Autonomy Extensions
   wallet?: {
-    getBalance: (asset?: string) => Promise<number>;
-    pay: (
-      endpoint: string,
-      amount: number,
-      asset: string
-    ) => Promise<{ success: boolean; txHash?: string }>;
-    trade: (
-      from: string,
-      to: string,
-      amount: number
-    ) => Promise<{ success: boolean; txHash?: string }>;
-    mintNFT: (metadata: Record<string, any>) => Promise<{ success: boolean; tokenId?: string }>;
+    address: string;
+    network: 'base' | 'ethereum' | 'solana';
+    balance_usdc: number;
+    gasless: boolean;
+
+    pay: (params: {
+      endpoint: string;
+      price: number;
+      asset: 'USDC' | 'ETH' | 'CLANKER';
+    }) => Promise<{ transaction_hash: string }>;
+    
+    trade: (from: string, to: string, amount: number) => Promise<void>;
+    mint_nft: (metadata: Record<string, unknown>) => Promise<{ token_id: string }>;
+    earn: (asset: string, amount: number) => Promise<void>;
   };
 
   story_weaver?: {
-    generateNarrative: (context: Record<string, unknown>) => Promise<string>;
-    createWorld: (theme: string) => Promise<string>; // Returns VRR Twin ID
-    deployContracts: (worldId: string) => Promise<boolean>;
+    create_world: (genre: 'fantasy' | 'horror' | 'adventure' | 'scifi') => Promise<string>;
+    generate_quest: (business_id: string, narrative: string) => Promise<{ quest_id: string }>;
+    mint_book: (world_id: string) => Promise<{ nft_id: string }>;
   };
 }
 

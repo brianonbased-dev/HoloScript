@@ -61,6 +61,8 @@ export function parseHoloScriptCode(code) {
     const scaleMatch = body.match(/scale\s*:\s*\[([^\]]+)\]/);
     const tagsMatch = body.match(/universe_tags\s*:\s*\[([^\]]+)\]/);
     const fractalMatch = body.match(/fractal_depth\s*:\s*([0-9.+\-eE]+)/);
+    const dimsMatch = body.match(/fractal_dimensions\s*:\s*([0-9.+\-eE]+)/);
+    const nonEuclideanMatch = body.match(/non_euclidean\s*:\s*(true|false)/);
 
     const obj = {
       name,
@@ -72,7 +74,7 @@ export function parseHoloScriptCode(code) {
       scale: parseVector(scaleMatch?.[1], [1, 1, 1]),
     };
 
-    if (tagsMatch || fractalMatch) {
+    if (tagsMatch || fractalMatch || dimsMatch || nonEuclideanMatch) {
       obj.universeSemantics = {
         tags: tagsMatch
           ? tagsMatch[1]
@@ -82,6 +84,10 @@ export function parseHoloScriptCode(code) {
           : [],
         fractalDepth:
           fractalMatch != null ? safeNumber(fractalMatch[1], 0) : undefined,
+        fractalDimensions:
+          dimsMatch != null ? safeNumber(dimsMatch[1], 4) : undefined,
+        nonEuclidean:
+          nonEuclideanMatch != null ? nonEuclideanMatch[1] === 'true' : false,
       };
     }
 

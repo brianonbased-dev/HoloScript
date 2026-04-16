@@ -1,4 +1,4 @@
-import './crdt-spatial-augment.js';
+import './crdt-spatial-augment';
 
 export { createVolumetricHandler, type VolumetricConfig, type VolumetricFormat } from './traits/VolumetricTrait';
 export { createGaussianSplatHandler, type GaussianSplatConfig } from './traits/GaussianSplatTrait';

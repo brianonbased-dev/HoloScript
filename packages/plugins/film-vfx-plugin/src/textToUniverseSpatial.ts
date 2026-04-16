@@ -9,16 +9,22 @@ export function buildTextToUniverseRenderSnippet(opts: {
   objectName?: string;
   tags?: readonly string[];
   fractalDepth?: number;
+  fractalDimensions?: number;
+  nonEuclidean?: boolean;
 }): string {
   const objectName = opts.objectName ?? 'TTU_SceneRoot';
   const tags = opts.tags?.length ? opts.tags : DEFAULT_TEXT_TO_UNIVERSE_TAGS;
   const tagStr = tags.map((t) => `"${String(t).replace(/"/g, '')}"`).join(', ');
   const depth = opts.fractalDepth ?? 3;
+  const dims = opts.fractalDimensions ?? 4;
+  const nonEuc = opts.nonEuclidean ?? true;
   return [
     'composition "TextToUniverse_Render" {',
     `  object "${objectName}" @text_to_universe {`,
     `    universe_tags: [${tagStr}]`,
     `    fractal_depth: ${depth}`,
+    `    fractal_dimensions: ${dims}`,
+    `    non_euclidean: ${nonEuc}`,
     '    geometry: "sphere"',
     '    color: "#8866ff"',
     '    position: [0, 2, 0]',

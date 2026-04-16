@@ -11,6 +11,8 @@ import { createMarketplaceRoutes } from './routes.js';
 import { MarketplaceService } from './MarketplaceService.js';
 import { TraitRegistry } from './TraitRegistry.js';
 import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
+import { x402PaymentService } from './x402PaymentService.js';
+import { createHololandRoutes } from './hololandRoutes.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -118,6 +120,17 @@ export function createApp(
 
   // API routes
   app.use('/api/v1', createMarketplaceRoutes(service));
+
+  // Hololand AI Economy routes
+  const paymentService = new x402PaymentService({
+    facilitators: [{ name: 'coinbase', endpoint: 'https://cdp.coinbase.com/x402' }],
+    networks: [{ name: 'base', rpc_url: 'https://mainnet.base.org', chain_id: 8453 }],
+    assets: [{ symbol: 'USDC' }],
+    gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000000 },
+    receipt_storage: { provider: 'postgresql', table: 'x402_receipts' },
+    webhook_endpoint: '/api/payments/x402/callback'
+  });
+  app.use('/api/v1', createHololandRoutes(paymentService));
 
   // 404 handler
   app.use((req, res) => {

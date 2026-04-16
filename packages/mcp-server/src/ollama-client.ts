@@ -13,11 +13,11 @@
  * with graceful fallback to rule-based logic when unavailable.
  */
 
-type LLMProviderName = 'openrouter' | 'anthropic' | 'openai' | 'ollama';
+type LLMProviderName = 'hybrid-gemma' | 'openrouter' | 'anthropic' | 'openai' | 'ollama';
 
 function detectProvider(): LLMProviderName {
   const explicit = process.env.LLM_PROVIDER as LLMProviderName;
-  if (explicit && ['openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit))
+  if (explicit && ['hybrid-gemma', 'openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit))
     return explicit;
   // Auto-detect from available keys
   if (process.env.OPENROUTER_API_KEY) return 'openrouter';
@@ -44,6 +44,10 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const OLLAMA_URL = process.env.OLLAMA_URL || ''; // Ollama is optional — empty means disabled
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
 
+// ── Gemma 4 Hybrid Routing config ────────────────────────────────────────────
+const GEMMA_EDGE_MODEL = process.env.GEMMA_EDGE_MODEL || 'gemma4:e4b';
+const GEMMA_CLOUD_MODEL = process.env.GEMMA_CLOUD_MODEL || 'google/gemma-4-31b';
+
 const LLM_TIMEOUT = 60_000; // 60s for generation
 
 /** HoloScript-specific system prompt for model calls */
@@ -63,7 +67,7 @@ export const HOLOSCRIPT_SYSTEM_PROMPT = `You are Brittney, an expert HoloScript 
 // PROVIDER IMPLEMENTATIONS
 // =============================================================================
 
-async function queryOpenRouterProvider(prompt: string, system: string): Promise<string | null> {
+async function queryOpenRouterProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
   if (!OPENROUTER_API_KEY) return null;
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -74,7 +78,7 @@ async function queryOpenRouterProvider(prompt: string, system: string): Promise<
       'X-Title': 'HoloScript MCP',
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL,
+      model: modelOverride || OPENROUTER_MODEL,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: prompt },
@@ -133,12 +137,12 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
   return data.choices?.[0]?.message?.content || null;
 }
 
-async function queryOllamaProvider(prompt: string, system: string): Promise<string | null> {
+async function queryOllamaProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
   const res = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: OLLAMA_MODEL,
+      model: modelOverride || OLLAMA_MODEL,
       prompt,
       system,
       stream: false,
@@ -154,6 +158,11 @@ async function queryOllamaProvider(prompt: string, system: string): Promise<stri
 // PUBLIC API (backward-compatible — function name kept as queryOllama)
 // =============================================================================
 
+export interface RoutingOptions {
+  requiresAudio?: boolean;
+  requiresDeepReasoning?: boolean;
+}
+
 /**
  * Query the configured LLM provider.
  * Returns null if the provider is unavailable or the request fails.
@@ -161,10 +170,24 @@ async function queryOllamaProvider(prompt: string, system: string): Promise<stri
  * Auto-detects provider from env vars: OpenRouter → Anthropic → OpenAI → Ollama.
  * Override with LLM_PROVIDER env var.
  */
-export async function queryOllama(prompt: string, system?: string): Promise<string | null> {
+export async function queryOllama(prompt: string, system?: string, options?: RoutingOptions): Promise<string | null> {
   const sysPrompt = system || HOLOSCRIPT_SYSTEM_PROMPT;
   try {
-    switch (LLM_PROVIDER) {
+    const activeProvider = LLM_PROVIDER;
+
+    // Apply Gemma 4 Edge-to-Cloud Routing
+    if (activeProvider === 'hybrid-gemma') {
+      const needsEdge = options?.requiresAudio || !options?.requiresDeepReasoning;
+      if (needsEdge) {
+        // Route to Edge (Gemma 4 E4B) via local Ollama
+        return await queryOllamaProvider(prompt, sysPrompt, GEMMA_EDGE_MODEL);
+      } else {
+        // Route to Cloud (Gemma 4 26B/31B) via OpenRouter
+        return await queryOpenRouterProvider(prompt, sysPrompt, GEMMA_CLOUD_MODEL);
+      }
+    }
+
+    switch (activeProvider) {
       case 'openrouter':
         return await queryOpenRouterProvider(prompt, sysPrompt);
       case 'anthropic':

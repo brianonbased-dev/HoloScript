@@ -243,7 +243,8 @@ async function handleExplainError(args: Record<string, unknown>) {
   // Optionally enhance with model's natural language explanation
   const modelExplanation = await queryOllama(
     `Explain these HoloScript errors concisely (1-2 sentences each):\n\nCode:\n${code}\n\nErrors:\n${errors.map((e) => e.message).join('\n')}`,
-    'You are a helpful HoloScript expert. Explain errors clearly and suggest fixes. Be concise. Never use [Think] blocks.'
+    'You are a helpful HoloScript expert. Explain errors clearly and suggest fixes. Be concise. Never use [Think] blocks.',
+    { requiresDeepReasoning: false } // Fast edge model routing
   );
 
   return {
@@ -495,7 +496,8 @@ async function handleReview(args: Record<string, unknown>) {
   // Optionally append model's freeform review
   const modelReview = await queryOllama(
     `Review this HoloScript code. Focus on: correctness, best practices, missing traits, performance. Be concise (3-5 bullet points).\n\n${code}`,
-    'You are a senior HoloScript code reviewer. Give actionable feedback. Never use [Think] blocks.'
+    'You are a senior HoloScript code reviewer. Give actionable feedback. Never use [Think] blocks.',
+    { requiresDeepReasoning: true } // Need 26B/31B model for multi-component structural review
   );
 
   return {
@@ -784,7 +786,7 @@ async function tryModelScaffold(
   const featureStr = features.length > 0 ? `\nFeatures to include: ${features.join(', ')}` : '';
   const prompt = `Generate a complete HoloScript .holo scene for: ${description}\nProject type: ${type}${featureStr}\n\nOutput ONLY the HoloScript code. Include composition wrapper, environment block, templates, objects with positions, and a logic block.`;
 
-  const raw = await queryOllama(prompt);
+  const raw = await queryOllama(prompt, undefined, { requiresDeepReasoning: true }); // Needs cloud reasoning for full codebase scaffolding
   if (!raw) {
     console.warn(`[brittney-lite] AI model returned empty response for: "${description.slice(0, 60)}". Check Ollama is running and model is loaded.`);
     return null;
@@ -837,7 +839,7 @@ async function tryModelScaffold(
 async function tryModelFix(brokenCode: string): Promise<string | null> {
   const prompt = `Fix the following broken HoloScript code. Output ONLY the corrected code, no explanations:\n\n${brokenCode}`;
 
-  const raw = await queryOllama(prompt);
+  const raw = await queryOllama(prompt, undefined, { requiresDeepReasoning: true }); // Fixing complex code requires cloud MoE
   if (!raw) return null;
 
   const code = stripCodeFences(raw);

@@ -37,6 +37,11 @@ function Preview({ composition }) {
 - GPU instancing for large scenes
 - LOD management
 
+## Advanced Rendering Caps
+
+- **Gaussian Splatting (WebGPU)**: For splat rendering, always use the `useGpuSplatSort` hook from `@holoscript/engine/gpu` to bypass CPU bottlenecking during camera rotations.
+- **Volumetric CRDT Caps**: Spatial history for splats and dense point clouds is hard-capped at **12MiB per frame delta** via the `@holoscript/crdt` transport protocol to prevent sync lag. Exceeding this cap will drop sync batches. See [`@holoscript/crdt`](../crdt/) for buffer tuning.
+
 ## Related
 
 - [`@holoscript/studio`](../studio/) — Uses this for the visual editor

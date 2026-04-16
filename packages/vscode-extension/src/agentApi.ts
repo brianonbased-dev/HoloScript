@@ -252,14 +252,14 @@ export class HoloScriptAgentAPI {
   ${suggestedTraits.join('\n  ')}
   
   position: [0, 1, 0]
-  // TODO: ${description}
+  // TASK: ${description}
 }`;
     } else {
       code = `orb ${objectName.toLowerCase()} {
   ${suggestedTraits.join('\n  ')}
   
   position: [0, 1, 0]
-  // TODO: ${description}
+  // TASK: ${description}
 }`;
     }
 
