@@ -1434,11 +1434,11 @@ export class HoloScriptRuntime {
       if (path.length > 0) {
         const subResults = await this.executeProgram(path, this.callStack.length + 1);
 
-        // If the sub-program hit a return, bubble that up
+        // If the sub-program ended on an explicit return node, bubble that up.
+        // executeProgram stops when it encounters node.type === 'return'.
         const lastResult = subResults[subResults.length - 1];
-        if (lastResult && lastResult.success && lastResult.output !== undefined) {
-          // Check if the last executed node was a return
-          // This is a bit hacky but works given executeProgram's logic
+        const selectedPathContainsReturn = path.some((n) => n.type === 'return');
+        if (selectedPathContainsReturn && lastResult?.success && lastResult.output !== undefined) {
           return lastResult;
         }
       }

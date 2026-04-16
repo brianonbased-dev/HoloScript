@@ -272,6 +272,22 @@ describe('HoloScriptRuntime', () => {
         expect(result.output).toContain(expected ? 'true' : 'false');
       }
     });
+
+    it('should not bubble non-return output from selected path', async () => {
+      runtime.setVariable('value', 10);
+
+      const gateNode: GateNode = {
+        type: 'gate',
+        condition: 'value > 5',
+        truePath: [{ type: 'assignment', name: 'x', value: '7' } as any],
+        falsePath: [],
+      };
+
+      const result = await runtime.executeNode(gateNode);
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain('true');
+    });
   });
 
   describe('Stream Execution', () => {
