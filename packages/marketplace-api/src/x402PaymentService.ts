@@ -93,6 +93,7 @@ import { base, mainnet } from 'viem/chains';
 import {
   X402Facilitator,
   InvisibleWalletStub,
+  validateX402MicropaymentBoundary,
 } from '@holoscript/framework/economy';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -202,12 +203,6 @@ export interface SubscriptionGrant {
   active: boolean;
 }
 
-/** Validated `x-payment-receipt` JSON (M2M / autonomous middleware). */
-interface ValidatedM2MReceipt {
-  txHash: string;
-  signature: string;
-  agentWallet: string;
-}
 
 // ─── Rate Limiter (in-memory sliding window) ─────────────────────────────────
 
@@ -908,19 +903,27 @@ export class x402PaymentService {
           return;
         }
 
-        const receipt = this.validateM2MReceipt(parsed);
-        if (!receipt) {
-          res.status(400).json({ error: 'Invalid receipt format or missing required fields' });
+        const validation = validateX402MicropaymentBoundary({
+          payment: parsed,
+          requiredAmount: costInWei.toString(),
+        });
+
+        if (!validation.ok) {
+          res.status(400).json({ error: validation.error });
           return;
         }
 
-        if (this.m2mConsumedTxHashes.has(receipt.txHash)) {
+        const txHash = validation.payment.payload.authorization.nonce;
+        const agentWallet = validation.payment.payload.authorization.from;
+        const signature = validation.payment.payload.signature;
+
+        if (this.m2mConsumedTxHashes.has(txHash)) {
           res.status(409).json({ error: 'Transaction has already been used for payment' });
           return;
         }
 
         const onChainResult = await this.verifyOnChainM2M(
-          receipt.txHash as `0x${string}`,
+          txHash as `0x${string}`,
           recipientWallet,
           costInWei
         );
@@ -932,9 +935,9 @@ export class x402PaymentService {
 
         const canonicalPath = req.path.replace(/\/+/g, '/').replace(/\.\./g, '');
         const isValid = await verifyMessage({
-          address: receipt.agentWallet as `0x${string}`,
+          address: agentWallet as `0x${string}`,
           message: `Authorized payment of ${costInWei.toString()} wei for ${canonicalPath}`,
-          signature: receipt.signature as `0x${string}`,
+          signature: signature as `0x${string}`,
         });
 
         if (!isValid) {
@@ -942,8 +945,8 @@ export class x402PaymentService {
           return;
         }
 
-        this.m2mConsumedTxHashes.add(receipt.txHash);
-        (req.app.locals as Record<string, unknown>).verifiedPayer = receipt.agentWallet;
+        this.m2mConsumedTxHashes.add(txHash);
+        (req.app.locals as Record<string, unknown>).verifiedPayer = agentWallet;
         next();
       } catch (err) {
         console.error('[x402] Payment verification error:', err);
@@ -957,21 +960,7 @@ export class x402PaymentService {
     this.m2mConsumedTxHashes.clear();
   }
 
-  private validateM2MReceipt(raw: unknown): ValidatedM2MReceipt | null {
-    if (typeof raw !== 'object' || raw === null) return null;
-    const obj = raw as Record<string, unknown>;
-    if (typeof obj.txHash !== 'string' || !obj.txHash) return null;
-    if (typeof obj.signature !== 'string' || !obj.signature) return null;
-    if (typeof obj.agentWallet !== 'string' || !obj.agentWallet) return null;
-    if (!/^0x[0-9a-fA-F]{64}$/.test(obj.txHash)) return null;
-    if (!/^0x[0-9a-fA-F]{40}$/.test(obj.agentWallet)) return null;
-    if (!/^0x[0-9a-fA-F]+$/.test(obj.signature)) return null;
-    return {
-      txHash: obj.txHash,
-      signature: obj.signature,
-      agentWallet: obj.agentWallet,
-    };
-  }
+
 
   private async verifyOnChainM2M(
     txHash: `0x${string}`,
