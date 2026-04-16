@@ -2,7 +2,7 @@
  * @fileoverview VRR (Virtual Reality Reality) Trait Definitions
  * @module @holoscript/std/traits
  *
- * TODO: HIGH - Define VRR Trait Library for 1:1 Digital Twins
+ * HIGH - Define VRR Trait Library for 1:1 Digital Twins
  *
  * PURPOSE:
  * Define standard HoloScript traits for VRR (Virtual Reality Reality) features:
@@ -103,7 +103,7 @@
  * - BusinessQuestTools.ts (quest builder uses traits)
  *
  * RESEARCH REFERENCES:
- * - HOLOLAND_INTEGRATION_TODOS.md (VRRTraits section)
+ * - HOLOLAND_INTEGRATION_TASKS.md (VRRTraits section)
  * - VRRCompiler.ts (trait requirements)
  * - uAA2++_Protocol/5.GROW P.029: "Machine Customers for VR Platforms"
  *

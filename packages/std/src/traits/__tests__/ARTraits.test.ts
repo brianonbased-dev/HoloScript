@@ -1,14 +1,8 @@
 import { describe, it, expect } from 'vitest';
-
-// Auto-generated test for ARTraits
-// Source: packages/std/src/traits/ARTraits.ts
+import * as ARTraits from '../ARTraits.js';
 
 describe('ARTraits', () => {
-  it('should be defined', () => {
-    // TODO: Import and test ARTraits
-  });
-
-  it('should have basic functionality', () => {
-    // TODO: Add meaningful tests for ARTraits
+  it('should export AR primitives if any', () => {
+    expect(ARTraits).toBeDefined();
   });
 });

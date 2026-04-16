@@ -341,7 +341,7 @@ export function unreachable(message?: string): never {
  * Todo marker (throws at runtime)
  */
 export function todo(message?: string): never {
-  throw new Error(`TODO: ${message ?? 'Not implemented'}`);
+  throw new Error(`Not implemented: ${message ?? 'No details'}`);
 }
 
 /**

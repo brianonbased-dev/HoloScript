@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
-
-// Auto-generated test for EconomicTraits
-// Source: packages/std/src/traits/EconomicTraits.ts
+import { EconomicTraits, getEconomicTraitNames } from '../EconomicTraits.js';
 
 describe('EconomicTraits', () => {
-  it('should be defined', () => {
-    // TODO: Import and test EconomicTraits
+  it('should export standard economic traits', () => {
+    expect(EconomicTraits).toBeDefined();
+    expect(EconomicTraits.tradeable).toBeDefined();
+    expect(EconomicTraits.depreciating).toBeDefined();
   });
 
-  it('should have basic functionality', () => {
-    // TODO: Add meaningful tests for EconomicTraits
+  it('should allow getting trait names', () => {
+    const names = getEconomicTraitNames();
+    expect(names).toContain('@tradeable');
+    expect(names.length).toBeGreaterThan(0);
   });
 });

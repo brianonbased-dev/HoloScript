@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest';
-
-// Auto-generated test for string-decoupled
-// Source: packages/std/src/string.ts
+import * as strings from '../string.js';
 
 describe('string-decoupled', () => {
-  it('should be defined', () => {
-    // TODO: Import and test string-decoupled
+  it('should export basic string utilities', () => {
+    expect(strings.capitalize).toBeDefined();
+    expect(strings.capitalize('hello')).toBe('Hello');
   });
 
-  it('should have basic functionality', () => {
-    // TODO: Add meaningful tests for string-decoupled
+  it('should handle whitespace utilities', () => {
+    expect(strings.removeWhitespace(' h e l l o ')).toBe('hello');
   });
 });

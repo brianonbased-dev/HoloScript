@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-
-// Auto-generated test for EconomicPrimitives
-// Source: packages/std/src/traits/EconomicPrimitives.ts
+import * as ecPrims from '../EconomicPrimitives.js';
 
 describe('EconomicPrimitives', () => {
-  it('should be defined', () => {
-    // TODO: Import and test EconomicPrimitives
+  it('should have calculating helpers', () => {
+    expect(ecPrims.calculateDepreciation).toBeDefined();
+    expect(ecPrims.calculateDepreciation(1.0, 0.0001, 0)).toBe(1.0);
   });
 
-  it('should have basic functionality', () => {
-    // TODO: Add meaningful tests for EconomicPrimitives
+  it('should export bonding curve formulas', () => {
+    expect(ecPrims.bondingCurvePrice).toBeDefined();
+    expect(ecPrims.bondingCurvePrice(10, 1.0, 2.0, 'linear')).toBe(10);
   });
 });
