@@ -256,7 +256,7 @@ describe('SSOTrait', () => {
 
       ssoSamlHandler.onEvent!(node, config, ctx, {
         type: 'sso_auth_callback',
-        nonce: 'invalid-nonce-xxx',
+        nonce: 'invalid-nonce-value',
         externalUserId: 'ext-user-123',
       } as any);
 

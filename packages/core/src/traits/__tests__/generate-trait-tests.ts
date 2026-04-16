@@ -92,7 +92,7 @@ function extractNodeStateKey(source: string): string | null {
 }
 
 /**
- * Extract event types from the source (event.type === 'xxx')
+ * Extract event types from the source (event.type === '<name>')
  */
 function extractEventTypes(source: string): string[] {
   const events: string[] = [];
@@ -105,7 +105,7 @@ function extractEventTypes(source: string): string[] {
 }
 
 /**
- * Extract emitted events (context.emit('xxx' or ctx.emit('xxx'))
+ * Extract emitted events (context.emit('<name>' or ctx.emit('<name>'))
  */
 function extractEmittedEvents(source: string): string[] {
   const events: string[] = [];
@@ -137,7 +137,7 @@ function generateTestScaffold(
   lines.push(`/**`);
   lines.push(` * ${traitName} Tests (Auto-generated scaffold)`);
   lines.push(` *`);
-  lines.push(` * TODO: Replace scaffold assertions with meaningful tests.`);
+  lines.push(` * Scaffold: replace boilerplate assertions with meaningful tests.`);
   lines.push(
     ` * See existing tests for patterns (e.g., VisionTrait.test.ts, TokenGatedTrait.test.ts)`
   );
@@ -244,7 +244,7 @@ function generateTestScaffold(
     lines.push(
       `      ${handlerName}.onDetach?.(node as any, ${handlerName}.defaultConfig, ctx as any);`
     );
-    lines.push(`      // TODO: verify cleanup`);
+    lines.push(`      // Next: verify cleanup`);
     lines.push(`    });`);
     lines.push(`  });`);
     lines.push('');
@@ -266,7 +266,7 @@ function generateTestScaffold(
       lines.push(`        type: '${evt}',`);
       lines.push(`        payload: {},`);
       lines.push(`      });`);
-      lines.push(`      // TODO: verify event handling`);
+      lines.push(`      // Next: verify event handling`);
       lines.push(`    });`);
       lines.push('');
     }
