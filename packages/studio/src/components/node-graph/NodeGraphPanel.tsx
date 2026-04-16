@@ -70,6 +70,8 @@ function NodeCard({
             e.stopPropagation();
             onRemove();
           }}
+          title="Remove node"
+          aria-label="Remove node"
           className="text-white/40 hover:text-white"
         >
           <X className="h-2.5 w-2.5" />
@@ -203,12 +205,16 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
           </button>
           <button
             onClick={clearGraph}
+            title="Clear graph"
+            aria-label="Clear graph"
             className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text"
           >
             <RotateCcw className="h-3 w-3" />
           </button>
           <button
             onClick={onClose}
+            title="Close node graph"
+            aria-label="Close node graph"
             className="rounded-lg border border-studio-border p-1 text-studio-muted hover:text-studio-text"
           >
             <X className="h-3 w-3" />

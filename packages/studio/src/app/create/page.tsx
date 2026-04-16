@@ -1577,7 +1577,17 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <NodeGraphPanel onClose={() => setNodeGraphOpen(false)} />
+                <NodeGraphPanel
+                  onClose={() => setNodeGraphOpen(false)}
+                  onExecutionResult={(result) => {
+                    logger.debug(
+                      '[NodeGraphPanel] execution',
+                      result.success,
+                      result.nodeOrder.length,
+                      Object.keys(result.outputs).length
+                    );
+                  }}
+                />
               </div>
             </>
           )}
