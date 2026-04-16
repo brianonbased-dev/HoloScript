@@ -6,7 +6,7 @@
  * Preview the generated code, then apply it to the main editor in one click.
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Wand2,
   X,
@@ -17,7 +17,7 @@ import {
   RefreshCw,
   Copy,
 } from 'lucide-react';
-import { useSceneGenerator } from '@/hooks/useSceneGenerator';
+import { useSceneGenerator, type GeneratorStatus } from '@/hooks/useSceneGenerator';
 import { useSceneStore } from '@/lib/stores';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
@@ -31,26 +31,72 @@ const EXAMPLE_PROMPTS = [
 
 interface SceneGeneratorPanelProps {
   onClose: () => void;
+  /** Optional callback fired when generated code is applied to live editor state. */
+  onCodeGenerated?: (code: string) => void;
+  /** Auto-apply generated code to scene preview as soon as generation succeeds. */
+  autoApplyOnGenerate?: boolean;
 }
 
-export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
+export interface SceneGeneratorAutoApplyCheck {
+  status: GeneratorStatus;
+  generatedCode: string;
+  autoApplyOnGenerate: boolean;
+  lastAutoAppliedCode: string;
+}
+
+/** Pure predicate for testing auto-apply behavior. */
+export function shouldAutoApplyGeneratedCode(check: SceneGeneratorAutoApplyCheck): boolean {
+  return (
+    check.autoApplyOnGenerate &&
+    check.status === 'done' &&
+    check.generatedCode.trim().length > 0 &&
+    check.generatedCode !== check.lastAutoAppliedCode
+  );
+}
+
+export function SceneGeneratorPanel({
+  onClose,
+  onCodeGenerated,
+  autoApplyOnGenerate = true,
+}: SceneGeneratorPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [applied, setApplied] = useState(false);
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastAutoAppliedCodeRef = useRef('');
 
   const existingCode = useSceneStore((s) => s.code) ?? '';
   const setCode = useSceneStore((s) => s.setCode);
 
   const { status, generatedCode, warning, error, generate, reset } = useSceneGenerator();
 
+  useEffect(() => {
+    if (
+      !shouldAutoApplyGeneratedCode({
+        status,
+        generatedCode,
+        autoApplyOnGenerate,
+        lastAutoAppliedCode: lastAutoAppliedCodeRef.current,
+      })
+    ) {
+      return;
+    }
+
+    setCode(generatedCode);
+    setApplied(true);
+    lastAutoAppliedCodeRef.current = generatedCode;
+    onCodeGenerated?.(generatedCode);
+  }, [autoApplyOnGenerate, generatedCode, onCodeGenerated, setCode, status]);
+
   const handleGenerate = () => {
     setApplied(false);
+    lastAutoAppliedCodeRef.current = '';
     generate(prompt, undefined);
   };
 
   const handleRefine = () => {
     setApplied(false);
+    lastAutoAppliedCodeRef.current = '';
     generate(prompt, existingCode);
   };
 
@@ -58,6 +104,8 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
     if (!generatedCode) return;
     setCode(generatedCode);
     setApplied(true);
+    lastAutoAppliedCodeRef.current = generatedCode;
+    onCodeGenerated?.(generatedCode);
   };
 
   const handleCopy = () => {
@@ -80,6 +128,8 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
         <span className="text-[12px] font-semibold">AI Scene Generator</span>
         <button
           onClick={onClose}
+          title="Close AI Scene Generator"
+          aria-label="Close AI Scene Generator"
           className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
         >
           <X className="h-4 w-4" />
@@ -168,12 +218,16 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
               <div className="flex gap-1">
                 <button
                   onClick={handleCopy}
+                  title="Copy generated code"
+                  aria-label="Copy generated code"
                   className="text-[10px] text-studio-muted hover:text-studio-accent transition"
                 >
                   {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </button>
                 <button
                   onClick={reset}
+                  title="Clear generated code"
+                  aria-label="Clear generated code"
                   className="text-[10px] text-studio-muted hover:text-red-400 transition"
                 >
                   <X className="h-3 w-3" />

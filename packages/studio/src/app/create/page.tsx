@@ -1007,6 +1007,14 @@ export default function CreatePage() {
 
   const { r3fTree, errors: pipelineErrors } = useScenePipeline(code);
 
+  const handleGeneratedSceneCode = useCallback(
+    (generated: string) => {
+      setCode(generated);
+      addToast('AI scene applied to live preview', 'success', 1800);
+    },
+    [addToast, setCode]
+  );
+
   useEffect(() => {
     setR3FTree(r3fTree);
     setErrors(pipelineErrors);
@@ -1426,7 +1434,11 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} />
+                <SceneGeneratorPanel
+                  onClose={() => setGeneratorOpen(false)}
+                  onCodeGenerated={handleGeneratedSceneCode}
+                  autoApplyOnGenerate
+                />
               </div>
             </>
           )}
@@ -1727,7 +1739,11 @@ export default function CreatePage() {
           {/* RIGHT RAIL: Scene Generator */}
           {generatorOpen && (
             <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
-              <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} />
+              <SceneGeneratorPanel
+                onClose={() => setGeneratorOpen(false)}
+                onCodeGenerated={handleGeneratedSceneCode}
+                autoApplyOnGenerate
+              />
             </div>
           )}
 
