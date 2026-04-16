@@ -14,6 +14,8 @@ export interface GeospatialClimateState {
   urbanHeatIslandEffectC: number; // Calculated offset
   airQualityIndex: number;
   floodRiskLevel: 'none' | 'low' | 'medium' | 'high' | 'critical';
+  /** Accumulated ms for throttled continuous simulation (internal). */
+  _simMs?: number;
 }
 
 const defaultConfig: GeospatialClimateConfig = {
@@ -44,12 +46,39 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
       delete n.__geospatialClimateState;
       ctx.emit?.('climate:removed');
     },
-    onUpdate(n: HSPlusNode, _c: GeospatialClimateConfig, _ctx: TraitContext, _deltaTimeMs: number) {
+    onUpdate(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext, deltaTimeMs: number) {
       const s = n.__geospatialClimateState as GeospatialClimateState | undefined;
       if (!s) return;
-      
-      // Stub for continuous simulation: temp fluctuations, pollution accumulation
-      // Not actually mutating per frame here to avoid CPU hit unless weather changes
+
+      // Throttled continuous simulation (~2s) — light sinusoidal drift + slow AQI drift
+      const intervalMs = 2000;
+      const acc = (s._simMs ?? 0) + Math.max(0, deltaTimeMs);
+      if (acc < intervalMs) {
+        s._simMs = acc;
+        return;
+      }
+      s._simMs = 0;
+
+      const seed =
+        (typeof n.id === 'string' ? n.id.length : 0) * 997 +
+        Math.floor(s.currentTempC * 100) +
+        (c.vegetationCoverPercent | 0);
+      const t = seed * 0.017;
+      const tempWobble = Math.sin(t) * 0.12 * (1.1 - c.windPermeability);
+      const nextTemp = s.currentTempC + tempWobble;
+      s.currentTempC = Math.max(-25, Math.min(58, nextTemp));
+
+      const aqDrift = (Math.cos(t * 1.3) + 1) * 0.35 - 0.2;
+      const vegBonus = (c.vegetationCoverPercent / 100) * 0.15;
+      s.airQualityIndex = Math.max(
+        0,
+        Math.min(500, s.airQualityIndex + aqDrift - vegBonus)
+      );
+
+      ctx.emit?.('climate:sim_tick', {
+        currentTempC: s.currentTempC,
+        airQualityIndex: s.airQualityIndex,
+      });
     },
     onEvent(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__geospatialClimateState as GeospatialClimateState | undefined;

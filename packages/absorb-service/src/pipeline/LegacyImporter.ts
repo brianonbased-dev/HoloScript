@@ -111,16 +111,90 @@ export class LegacyImporter {
     return finalPath;
   }
 
-  private static parseUnityYaml(_p: string): string {
-    // Stub: read .unity scene files and extract Transforms & MeshRenderers
-    return `<mesh path="assets/unity_mesh.glb"/>\n    <transform x="0" y="0" z="0"/>`;
+  /**
+   * Best-effort parse of Unity YAML scenes (`.unity`): extracts `Transform.m_LocalPosition` blocks.
+   * If `p` is a directory, uses the first `.unity` file found.
+   */
+  private static parseUnityYaml(p: string): string {
+    try {
+      let file = p;
+      const st = fs.statSync(p);
+      if (st.isDirectory()) {
+        const unity = fs.readdirSync(p).find((f) => f.endsWith('.unity'));
+        if (!unity) {
+          return '<!-- No .unity file in directory — pass a .unity path or add scenes to the folder -->\n';
+        }
+        file = path.join(p, unity);
+      }
+      const text = fs.readFileSync(file, 'utf-8');
+      const posRe =
+        /m_LocalPosition:\s*\{\s*x:\s*([^,}\s]+)\s*,\s*y:\s*([^,}\s]+)\s*,\s*z:\s*([^}]+)\}/g;
+      const frags: string[] = [];
+      let m: RegExpExecArray | null;
+      while ((m = posRe.exec(text)) !== null) {
+        const x = m[1].trim();
+        const y = m[2].trim();
+        const z = m[3].trim();
+        frags.push(`<transform x="${x}" y="${y}" z="${z}"/>`);
+      }
+      if (frags.length === 0) {
+        return '<!-- No m_LocalPosition blocks found — export a scene that includes Transform data -->\n<transform x="0" y="0" z="0"/>';
+      }
+      return frags.join('\n    ');
+    } catch (e) {
+      return `<!-- Unity YAML read failed: ${String(e)} -->\n<transform x="0" y="0" z="0"/>`;
+    }
   }
-  private static parseUnrealUAsset(_p: string): string {
-    // Stub: read .umap or .uasset binary exports
-    return `<mesh path="assets/unreal_mesh.glb"/>\n    <transform x="0" y="0" z="0"/>`;
+
+  /**
+   * Unreal `.uasset` / `.umap` are often binary; detect binary and hint re-export.
+   * Text-like exports containing Engine script markers get a minimal placeholder.
+   */
+  private static parseUnrealUAsset(p: string): string {
+    try {
+      const buf = fs.readFileSync(p);
+      const nul = buf.indexOf(0);
+      if (nul !== -1 && nul < 64) {
+        return `<!-- Binary Unreal asset — re-export via FBX/Datasmith or text dump for full import -->\n<mesh path="assets/unreal_import_placeholder.glb"/>\n<transform x="0" y="0" z="0"/>`;
+      }
+      const head = buf.slice(0, 4096).toString('utf-8');
+      if (head.includes('/Script/Engine') || head.includes('Begin Map')) {
+        return `<!-- Unreal text-like export — actor graph not fully parsed -->\n<mesh path="assets/unreal_mesh.glb"/>\n<transform x="0" y="0" z="0"/>`;
+      }
+      return '<!-- Unrecognized Unreal file — use ASCII export when possible -->\n<transform x="0" y="0" z="0"/>';
+    } catch (e) {
+      return `<!-- Unreal read failed: ${String(e)} -->\n<transform x="0" y="0" z="0"/>`;
+    }
   }
-  private static parseROS2URDF(_p: string): string {
-    // Stub: parse URDF XML links and joints into HoloScript traits
-    return `<mesh path="assets/robot_link.glb"/>\n    <trait name="@robotic_joint" />`;
+
+  /** Parse URDF XML: emit `<link>` / `<joint>` summaries plus robotic trait reference. */
+  private static parseROS2URDF(p: string): string {
+    try {
+      const xml = fs.readFileSync(p, 'utf-8');
+      const links = [...xml.matchAll(/<link[^>]*\bname="([^"]+)"/g)].map((x) => x[1]);
+      const joints = [...xml.matchAll(/<joint[^>]*\bname="([^"]+)"[^>]*\btype="([^"]+)"/g)].map(
+        (x) => ({ name: x[1], type: x[2] })
+      );
+      const lines: string[] = [];
+      for (const name of links) {
+        lines.push(`<link name="${LegacyImporter.escapeXmlAttr(name)}" />`);
+      }
+      for (const j of joints) {
+        lines.push(
+          `<joint name="${LegacyImporter.escapeXmlAttr(j.name)}" type="${LegacyImporter.escapeXmlAttr(j.type)}" />`
+        );
+      }
+      lines.push(`<trait name="@robotic_joint" />`);
+      if (lines.length === 1) {
+        return '<!-- No link/joint elements matched — ensure valid URDF -->\n<trait name="@robotic_joint" />';
+      }
+      return lines.join('\n    ');
+    } catch (e) {
+      return `<!-- URDF parse error: ${String(e)} -->\n<trait name="@robotic_joint" />`;
+    }
+  }
+
+  private static escapeXmlAttr(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 }

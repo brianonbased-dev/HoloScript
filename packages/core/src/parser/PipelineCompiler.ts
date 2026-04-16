@@ -40,6 +40,43 @@ function indent(code: string, level: number): string {
     .join('\n');
 }
 
+/** Keywords / literals that must not get a `r.` prefix in pipeline `where` clauses */
+const PIPELINE_WHERE_KEYWORDS = new Set([
+  'true',
+  'false',
+  'null',
+  'undefined',
+  'NaN',
+  'Infinity',
+  'typeof',
+  'instanceof',
+  'void',
+  'in',
+  'of',
+]);
+
+const PIPELINE_WHERE_UNSAFE =
+  /[;{}`]|=>|\bfunction\b|\bimport\b|\beval\b|__proto__|constructor|prototype|\bprocess\b|globalThis|\brequire\s*\(/i;
+
+/**
+ * Turn bare field names in a pipeline filter/branch expression into `r.field`
+ * (e.g. `stock > 0 && status == "active"` → `r.stock > 0 && r.status == "active"`).
+ * Expressions that look like injection are rejected (filter keeps all records).
+ */
+function qualifyPipelineWhere(expr: string): string {
+  const trimmed = expr.trim();
+  if (!trimmed) return 'true';
+  if (PIPELINE_WHERE_UNSAFE.test(trimmed)) {
+    return 'true /* unsafe expression skipped */';
+  }
+  return trimmed.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (full, name, offset) => {
+    if (PIPELINE_WHERE_KEYWORDS.has(name)) return full;
+    if (offset > 0 && trimmed[offset - 1] === '.') return full;
+    if (name === 'r' && trimmed[offset + full.length] === '.') return full;
+    return `r.${name}`;
+  });
+}
+
 function genSource(source: PipelineSource): string {
   const lines: string[] = [];
   lines.push(`// Source: ${source.name}`);
@@ -119,13 +156,10 @@ function genTransform(transform: PipelineTransform): string {
 }
 
 function genFilter(filter: PipelineFilter): string {
+  const body = qualifyPipelineWhere(filter.where);
   return [
     `// Filter: ${filter.name}`,
-    `records = records.filter((r) => {`,
-    `  // Expression: ${filter.where}`,
-    `  // TODO: compile filter expression to JS`,
-    `  return true;`,
-    `});`,
+    `records = records.filter((r) => (${body}));`,
   ].join('\n');
 }
 
@@ -156,18 +190,30 @@ function genValidate(validate: PipelineValidate): string {
 function genBranch(branch: PipelineBranch): string {
   const lines: string[] = [];
   lines.push(`// Branch: ${branch.name}`);
-  lines.push(`const routed = {};`);
+  const sinkKey = (name: string) => JSON.stringify(name);
+  const defaultRoute = branch.routes.find((r) => r.condition === 'default');
+  const conditional = branch.routes.filter((r) => r.condition !== 'default');
+  const routed = `routed_${branch.name.replace(/\W/g, '_')}`;
 
-  for (const route of branch.routes) {
-    if (route.condition === 'default') {
-      lines.push(
-        `routed[${JSON.stringify(route.sinkName)}] = [...(routed[${JSON.stringify(route.sinkName)}] || []), ...records];`
-      );
-    } else {
-      lines.push(`// when ${route.condition} -> ${route.sinkName}`);
-      lines.push(`// TODO: compile branch expression`);
-    }
+  lines.push(`const ${routed} = {};`);
+  lines.push(`for (const r of records) {`);
+  lines.push(`  let _matched = false;`);
+  for (const route of conditional) {
+    const cond = qualifyPipelineWhere(String(route.condition));
+    lines.push(`  if (!_matched && (${cond})) {`);
+    lines.push(`    const k = ${sinkKey(route.sinkName)};`);
+    lines.push(`    ${routed}[k] = [...(${routed}[k] || []), r];`);
+    lines.push(`    _matched = true;`);
+    lines.push(`  }`);
   }
+  if (defaultRoute) {
+    lines.push(`  if (!_matched) {`);
+    lines.push(`    const k = ${sinkKey(defaultRoute.sinkName)};`);
+    lines.push(`    ${routed}[k] = [...(${routed}[k] || []), r];`);
+    lines.push(`  }`);
+  }
+  lines.push(`}`);
+  lines.push(`records = Object.values(${routed}).flat();`);
 
   return lines.join('\n');
 }

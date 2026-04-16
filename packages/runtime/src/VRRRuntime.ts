@@ -268,6 +268,26 @@ export interface VRRRuntimeOptions {
     enabled_by_default: boolean;
     ar_options: ARRuntimeOptions;
   };
+  /**
+   * Payments: wire `verifyPayment` to x402 facilitators, marketplace APIs, or wallet checks.
+   * When omitted, `requirePayment` logs once and returns true (dev-only default).
+   */
+  payments?: {
+    verifyPayment?: (opts: {
+      price: number;
+      asset: string;
+      network: string;
+    }) => Promise<boolean>;
+  };
+  /**
+   * Optional integration hooks (crowd sim, instancing, etc.).
+   */
+  hooks?: {
+    onNpcCrowdSpawn?: (args: {
+      position: { x: number; y: number; z: number };
+      count: number;
+    }) => void;
+  };
 }
 
 export interface WeatherData {
@@ -1173,12 +1193,19 @@ export class VRRRuntime {
     return this.currentLayer;
   }
 
-  async requirePayment(_opts: {
-    price: number;
-    asset: string;
-    network: string;
-  }): Promise<boolean> {
-    // Stub: integrate with x402 / marketplace when deployed
+  async requirePayment(opts: { price: number; asset: string; network: string }): Promise<boolean> {
+    const verify = this.options.payments?.verifyPayment;
+    if (verify) {
+      try {
+        return await verify(opts);
+      } catch (e) {
+        console.warn('[VRR] payments.verifyPayment failed', e);
+        return false;
+      }
+    }
+    console.warn(
+      '[VRR] requirePayment: no options.payments.verifyPayment — allowing (dev). Wire x402 / marketplace verify before production.'
+    );
     return true;
   }
 
@@ -1224,9 +1251,11 @@ export class VRRRuntime {
     position: { x: number; y: number; z: number } | [number, number, number],
     count: number
   ): void {
-    void position;
-    void count;
-    // Stub: hook crowd sim / instancing when Hololand NPC pipeline is live
+    const pos = Array.isArray(position)
+      ? { x: position[0], y: position[1], z: position[2] }
+      : position;
+    this.memoryState.set('npc_crowd:last', { position: pos, count, frame: this.tickFrame });
+    this.options.hooks?.onNpcCrowdSpawn?.({ position: pos, count });
   }
 
   createWeatherSync(config: {
