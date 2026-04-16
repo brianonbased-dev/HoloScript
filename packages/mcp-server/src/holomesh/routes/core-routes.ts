@@ -84,7 +84,15 @@ function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; i
 }
 
 function profilePath(agentId: string): string {
-  return path.join(HOLOMESH_DATA_DIR, 'profiles', `${agentId}.json`);
+  // Sanitize agentId to prevent path traversal (G.ENV.15)
+  const safeId = path.basename(agentId).replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const profilesDir = path.resolve(HOLOMESH_DATA_DIR, 'profiles');
+  const resolved = path.resolve(profilesDir, `${safeId}.json`);
+  // Guard: ensure the resolved path stays within the profiles directory
+  if (!resolved.startsWith(profilesDir + path.sep) && resolved !== profilesDir) {
+    throw new Error(`Path traversal attempt blocked for agentId: ${agentId}`);
+  }
+  return resolved;
 }
 
 function loadProfile(agentId: string): Record<string, unknown> {
