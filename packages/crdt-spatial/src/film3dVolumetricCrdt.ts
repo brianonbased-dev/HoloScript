@@ -8,6 +8,12 @@ import type { LoroDoc } from 'loro-crdt';
 /** Root map key — keep in sync with plugin consumers. */
 export const FILM3D_VOLUMETRICS_ROOT = 'film3d_volumetrics' as const;
 
+/**
+ * Max size of a single WebRTC sync frame that may carry volumetric/binary CRDT ops.
+ * Larger blobs must be split via {@link setVolumetricChunk} (or similar) so exports stay under this cap.
+ */
+export const MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES = 12 * 1024 * 1024;
+
 export function ensureFilm3dVolumetricsRoot(doc: LoroDoc) {
   return doc.getMap(FILM3D_VOLUMETRICS_ROOT);
 }

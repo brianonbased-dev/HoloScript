@@ -1,6 +1,10 @@
 import { LoroDoc } from 'loro-crdt';
 import type { LoroEventBatch } from 'loro-crdt';
-import { FILM3D_VOLUMETRICS_ROOT, ensureFilm3dVolumetricsRoot } from './film3dVolumetricCrdt.js';
+import {
+  FILM3D_VOLUMETRICS_ROOT,
+  MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES,
+  ensureFilm3dVolumetricsRoot,
+} from './film3dVolumetricCrdt.js';
 
 export interface WebRTCProviderConfig {
   signalingServerUrl: string;
@@ -42,6 +46,12 @@ export class LoroWebRTCProvider {
     this.doc.subscribe((batch: LoroEventBatch) => {
       if (batch.by === 'local') {
         const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
+        if (!this.withinVolumetricSyncBudget(update)) {
+          console.warn(
+            `[LoroWebRTC] Skipping outbound sync: ${update.byteLength} bytes exceeds volumetric WebRTC cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES}); split volumetrics with chunk APIs`
+          );
+          return;
+        }
         this.sync(update);
       }
     });
@@ -119,11 +129,19 @@ export class LoroWebRTCProvider {
       console.log(`[LoroWebRTC] Data channel to ${peerId} open.`);
       this.dataChannels.set(peerId, dc);
       const state = this.doc.export({ mode: "update" }); // Full sync on connect
-      if(state.length > 0) dc.send(state.buffer as ArrayBuffer);
+      if (state.length > 0) {
+        if (!this.withinVolumetricSyncBudget(state)) {
+          console.warn(
+            `[LoroWebRTC] Skipping initial sync to ${peerId}: ${state.byteLength} bytes exceeds volumetric WebRTC cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
+          );
+        } else {
+          dc.send(state.buffer as ArrayBuffer);
+        }
+      }
     };
     dc.onmessage = (event) => {
       const updateBytes = new Uint8Array(event.data);
-      this.handleIncomingSync(updateBytes);
+      this.handleIncomingSync(updateBytes, peerId);
     };
     dc.onclose = () => this.dataChannels.delete(peerId);
   }
@@ -154,6 +172,12 @@ export class LoroWebRTCProvider {
   }
 
   public sync(updateBytes: Uint8Array) {
+    if (!this.withinVolumetricSyncBudget(updateBytes)) {
+      console.warn(
+        `[LoroWebRTC] Refusing outbound sync: ${updateBytes.byteLength} bytes exceeds cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
+      );
+      return;
+    }
     for (const [peerId, dc] of this.dataChannels) {
       if (dc.readyState === 'open') {
         try {
@@ -165,7 +189,18 @@ export class LoroWebRTCProvider {
     }
   }
 
-  public handleIncomingSync(updateBytes: Uint8Array) {
+  /** Single-frame WebRTC sync budget (volumetric graph can produce large Loro exports). */
+  private withinVolumetricSyncBudget(bytes: Uint8Array): boolean {
+    return bytes.byteLength <= MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES;
+  }
+
+  public handleIncomingSync(updateBytes: Uint8Array, peerId?: string) {
+    if (!this.withinVolumetricSyncBudget(updateBytes)) {
+      console.warn(
+        `[LoroWebRTC] Dropped oversized volumetric sync${peerId ? ` from ${peerId}` : ''}: ${updateBytes.byteLength} bytes (max ${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
+      );
+      return;
+    }
     try {
       this.doc.import(updateBytes);
     } catch (err) {
