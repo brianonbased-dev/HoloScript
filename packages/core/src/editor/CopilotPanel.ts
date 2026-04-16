@@ -7,8 +7,7 @@
  * @module editor
  */
 
-// @ts-expect-error
-import { AICopilot, CopilotResponse, CopilotSuggestion } from '@holoscript/framework/ai';
+import { AICopilot, type CopilotResponse, type CopilotSuggestion } from '@holoscript/framework/ai';
 
 // =============================================================================
 // TYPES

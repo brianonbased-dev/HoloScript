@@ -130,5 +130,5 @@ export { PromptTemplateSystem, QuickPrompts } from './PromptTemplates';
 export type { PromptTemplate, TemplateContext } from './PromptTemplates';
 
 // AI copilot & validation
-export { AICopilot } from './AICopilot';
+export { AICopilot, type CopilotResponse, type CopilotSuggestion } from './AICopilot';
 export { validateAIOutput, isAISafe } from './AIOutputValidator';
