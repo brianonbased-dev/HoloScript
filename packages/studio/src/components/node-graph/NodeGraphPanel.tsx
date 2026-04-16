@@ -8,10 +8,11 @@ import { useState, useRef, _useCallback, useEffect } from 'react';
 import { Network, X, Search, Plus, _Trash2, RotateCcw } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
 import { logger } from '@/lib/logger';
-
-const _CATEGORY_COLOR: Record<string, string> = {
-  input: '#4488ff',
-  utility: '#888899',
+import { useState, useRef, _useCallback, useEffect } from 'react';
+import { Network, X, Search, Plus, _Trash2, RotateCcw, Play, ChevronDown } from 'lucide-react';
+import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
+import { executeStudioGraph, formatExecutionResult, type StudioGraphExecutionResult } from '@/lib/nodeGraphExecutionBridge';
+import { logger } from '@/lib/logger';@@
   transform: '#44bb88',
   material: '#cc6644',
   geometry: '#8855cc',
