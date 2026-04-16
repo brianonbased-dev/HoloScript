@@ -18,6 +18,11 @@ export interface CopilotPanelConfig {
   width: number;
   height: number;
   maxMessages: number;
+  /**
+   * Optional callback fired when sendMessage returns generated HoloScript code.
+   * Intended for live preview pipelines (generate-and-run flow).
+   */
+  onCodeGenerated?: (holoScript: string, response: CopilotResponse) => void | Promise<void>;
 }
 
 export interface CopilotUIEntity {
@@ -188,6 +193,11 @@ export class CopilotPanel {
     let response: CopilotResponse;
     try {
       response = await this.copilot.generateFromPrompt(prompt);
+
+      const generatedCode = response.generatedCode?.holoScript;
+      if (generatedCode && generatedCode.trim().length > 0 && this.config.onCodeGenerated) {
+        await this.config.onCodeGenerated(generatedCode, response);
+      }
     } catch (error) {
       response = this.buildErrorResponse(this.toErrorMessage(error));
     } finally {

@@ -167,6 +167,48 @@ describe('CopilotPanel — setInputText', () => {
 // =============================================================================
 
 describe('CopilotPanel — sendMessage', () => {
+  it('invokes onCodeGenerated when response includes generatedCode.holoScript', async () => {
+    const onCodeGenerated = vi.fn();
+    const copilot = {
+      generateFromPrompt: vi.fn().mockResolvedValue({
+        text: 'Generated world',
+        suggestions: [],
+        generatedCode: {
+          holoScript: 'composition "Generated" { object "cube" { geometry: "cube" } }',
+          aiConfidence: 0.95,
+          parseResult: {},
+          wasFixed: false,
+          attempts: 1,
+        },
+      }),
+    } as unknown as AICopilot;
+
+    const panel = new CopilotPanel(copilot, { onCodeGenerated });
+    const res = await panel.sendMessage('make a world');
+
+    expect(res.error).toBeUndefined();
+    expect(onCodeGenerated).toHaveBeenCalledTimes(1);
+    expect(onCodeGenerated).toHaveBeenCalledWith(
+      expect.stringContaining('composition "Generated"'),
+      expect.objectContaining({ text: 'Generated world' })
+    );
+  });
+
+  it('does not invoke onCodeGenerated when generatedCode is missing', async () => {
+    const onCodeGenerated = vi.fn();
+    const copilot = {
+      generateFromPrompt: vi.fn().mockResolvedValue({
+        text: 'No code generated',
+        suggestions: [],
+      }),
+    } as unknown as AICopilot;
+
+    const panel = new CopilotPanel(copilot, { onCodeGenerated });
+    await panel.sendMessage('explain this');
+
+    expect(onCodeGenerated).not.toHaveBeenCalled();
+  });
+
   it('rejects empty prompt without adding messages', async () => {
     const panel = new CopilotPanel(makeCopilot());
 
