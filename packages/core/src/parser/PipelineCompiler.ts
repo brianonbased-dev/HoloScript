@@ -69,12 +69,52 @@ function qualifyPipelineWhere(expr: string): string {
   if (PIPELINE_WHERE_UNSAFE.test(trimmed)) {
     return 'true /* unsafe expression skipped */';
   }
-  return trimmed.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (full, name, offset) => {
-    if (PIPELINE_WHERE_KEYWORDS.has(name)) return full;
-    if (offset > 0 && trimmed[offset - 1] === '.') return full;
-    if (name === 'r' && trimmed[offset + full.length] === '.') return full;
-    return `r.${name}`;
-  });
+
+  let out = '';
+  let i = 0;
+  let inQuote: '"' | "'" | null = null;
+
+  while (i < trimmed.length) {
+    const ch = trimmed[i];
+
+    if (inQuote) {
+      out += ch;
+      if (ch === inQuote && trimmed[i - 1] !== '\\') {
+        inQuote = null;
+      }
+      i++;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inQuote = ch;
+      out += ch;
+      i++;
+      continue;
+    }
+
+    if (/[a-zA-Z_]/.test(ch)) {
+      let j = i + 1;
+      while (j < trimmed.length && /[a-zA-Z0-9_]/.test(trimmed[j])) j++;
+      const name = trimmed.slice(i, j);
+      const prev = i > 0 ? trimmed[i - 1] : '';
+      const next = j < trimmed.length ? trimmed[j] : '';
+
+      const shouldKeep =
+        PIPELINE_WHERE_KEYWORDS.has(name) ||
+        prev === '.' ||
+        (name === 'r' && next === '.');
+
+      out += shouldKeep ? name : `r.${name}`;
+      i = j;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+
+  return out;
 }
 
 function genSource(source: PipelineSource): string {
@@ -114,6 +154,18 @@ function genSource(source: PipelineSource): string {
     lines.push(`for (const f of ${source.name}_files) {`);
     lines.push(`  const content = await readFile(join(${source.name}_dir, f), 'utf-8');`);
     lines.push(`  records.push({ _file: f, content });`);
+    lines.push(`}`);
+  } else if (source.type === 'database') {
+    const connection = String(source.properties.connection || '${env.DATABASE_URL}');
+    const query = String(source.properties.query || 'SELECT 1 as ok');
+    lines.push(`const { Client } = await import('pg');`);
+    lines.push(`const ${source.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`);
+    lines.push(`await ${source.name}_client.connect();`);
+    lines.push(`try {`);
+    lines.push(`  const ${source.name}_result = await ${source.name}_client.query(interpolate(\`${query}\`));`);
+    lines.push(`  if (Array.isArray(${source.name}_result.rows)) records.push(...${source.name}_result.rows);`);
+    lines.push(`} finally {`);
+    lines.push(`  await ${source.name}_client.end();`);
     lines.push(`}`);
   } else if (source.type === 'list') {
     lines.push(`records.push(...${JSON.stringify(source.properties.items || [])});`);
@@ -257,6 +309,20 @@ function genSink(sink: PipelineSink): string {
         `await writeFile(interpolate(\`${sink.path || ''}\`), JSON.stringify(records, null, 2));`
       );
     }
+  } else if (sink.type === 'database') {
+    const connection = String(sink.properties.connection || '${env.DATABASE_URL}');
+    const tableRaw = String(sink.properties.table || 'pipeline_records');
+    const table = tableRaw.replace(/[^a-zA-Z0-9_]/g, '_');
+    lines.push(`const { Client } = await import('pg');`);
+    lines.push(`const ${sink.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`);
+    lines.push(`await ${sink.name}_client.connect();`);
+    lines.push(`try {`);
+    lines.push(`  for (const rec of records) {`);
+    lines.push(`    await ${sink.name}_client.query('INSERT INTO ${table} (payload) VALUES ($1)', [JSON.stringify(rec)]);`);
+    lines.push(`  }`);
+    lines.push(`} finally {`);
+    lines.push(`  await ${sink.name}_client.end();`);
+    lines.push(`}`);
   } else if (sink.type === 'stdout') {
     lines.push(`console.log(JSON.stringify(records, null, 2));`);
   } else {

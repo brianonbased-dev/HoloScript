@@ -7,6 +7,10 @@ export interface GeospatialClimateConfig {
   vegetationCoverPercent: number;
   windPermeability: number; // 0 (solid block) to 1 (open field)
   waterRetentionRate: number; // How well the area retains/absorbs rain
+  /** Emit simulation events (`climate:sim_tick`, etc.). Default true. */
+  emitEvents?: boolean;
+  /** Minimum simulation emit cadence in ms. Default 2000. */
+  emitIntervalMs?: number;
 }
 
 export interface GeospatialClimateState {
@@ -23,7 +27,9 @@ const defaultConfig: GeospatialClimateConfig = {
   albedo: 0.2, // asphalt-ish
   vegetationCoverPercent: 10,
   windPermeability: 0.5,
-  waterRetentionRate: 0.3
+  waterRetentionRate: 0.3,
+  emitEvents: true,
+  emitIntervalMs: 2000,
 };
 
 export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimateConfig> {
@@ -40,18 +46,22 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
         airQualityIndex: 50, // baseline good
         floodRiskLevel: 'low'
       };
-      ctx.emit?.('climate:initialized', n.__geospatialClimateState);
+      if (c.emitEvents !== false) {
+        ctx.emit?.('climate:initialized', n.__geospatialClimateState);
+      }
     },
     onDetach(n: HSPlusNode, _c: GeospatialClimateConfig, ctx: TraitContext) {
       delete n.__geospatialClimateState;
-      ctx.emit?.('climate:removed');
+      if (c.emitEvents !== false) {
+        ctx.emit?.('climate:removed');
+      }
     },
     onUpdate(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext, deltaTimeMs: number) {
       const s = n.__geospatialClimateState as GeospatialClimateState | undefined;
       if (!s) return;
 
       // Throttled continuous simulation (~2s) — light sinusoidal drift + slow AQI drift
-      const intervalMs = 2000;
+      const intervalMs = Math.max(250, Number(c.emitIntervalMs ?? 2000));
       const acc = (s._simMs ?? 0) + Math.max(0, deltaTimeMs);
       if (acc < intervalMs) {
         s._simMs = acc;
@@ -75,10 +85,12 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
         Math.min(500, s.airQualityIndex + aqDrift - vegBonus)
       );
 
-      ctx.emit?.('climate:sim_tick', {
-        currentTempC: s.currentTempC,
-        airQualityIndex: s.airQualityIndex,
-      });
+      if (c.emitEvents !== false) {
+        ctx.emit?.('climate:sim_tick', {
+          currentTempC: s.currentTempC,
+          airQualityIndex: s.airQualityIndex,
+        });
+      }
     },
     onEvent(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__geospatialClimateState as GeospatialClimateState | undefined;
@@ -94,14 +106,18 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
         } else if (rainfallMm > 100) {
             s.floodRiskLevel = 'medium';
         }
-        ctx.emit?.('climate:flood_risk_updated', { level: s.floodRiskLevel });
+        if (c.emitEvents !== false) {
+          ctx.emit?.('climate:flood_risk_updated', { level: s.floodRiskLevel });
+        }
       }
 
       if (e.type === 'weather:heatwave') {
         const peakTemp = (e.payload?.peakTemp as number) ?? 35;
         // Concrete jungles heat up much more!
         s.currentTempC = peakTemp + s.urbanHeatIslandEffectC;
-        ctx.emit?.('climate:temp_spike', { currentTempC: s.currentTempC });
+        if (c.emitEvents !== false) {
+          ctx.emit?.('climate:temp_spike', { currentTempC: s.currentTempC });
+        }
       }
     },
   };
