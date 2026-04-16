@@ -1,5 +1,7 @@
 /** @text_to_universe Trait — Describe a movie and live in it. @trait text_to_universe */
 
+import { buildTextToUniverseRenderSnippet } from '../textToUniverseSpatial';
+
 export interface TextToUniverseConfig {
   llmProvider: string;
   autoSpawning: boolean;
@@ -49,6 +51,11 @@ export function createTextToUniverseHandler(): TextToUniverseTraitHandler {
            // Imagine injecting a dozen trees, vehicles, and a cinematic camera based on the prompt
            const mockGeneratedNodes = ['node_skybox_01', 'node_terrain_02', 'node_actor_jedi'];
            s.spawnedNodes.push(...mockGeneratedNodes);
+           const holoSnippet = buildTextToUniverseRenderSnippet({
+             objectName: 'TTU_root',
+             fractalDepth: Math.min(6, 2 + Math.floor((prompt?.length ?? 0) / 80)),
+           });
+           (ctx as any).emit?.('ttu:render_snippet', { holoSnippet, prompt });
            (ctx as any).emit?.('ttu:manifested', { newEntitiesCount: mockGeneratedNodes.length, prompt });
          }, 3000);
       }

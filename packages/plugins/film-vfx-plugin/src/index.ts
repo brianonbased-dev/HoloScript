@@ -71,6 +71,11 @@ export {
   createTextToUniverseHandler,
 } from './traits/TextToUniverseTrait';
 
+export {
+  DEFAULT_TEXT_TO_UNIVERSE_TAGS,
+  buildTextToUniverseRenderSnippet,
+} from './textToUniverseSpatial';
+
 /** Push VP metadata into the CRDT root shared with `LoroWebRTCProvider` (crdt-spatial). */
 export { syncVirtualProductionToVolumetricCrdt, FILM3D_VOLUMETRICS_ROOT } from './volumetricLoroBridge';
 
@@ -281,6 +286,11 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
         lines.push(`  object "TTU_${ttu.llmProvider}" @text_to_universe {`);
         lines.push(`    provider: "${ttu.llmProvider}"`);
         lines.push(`    narrative: "${ttu.narrativeConsistency}"`);
+        lines.push('    universe_tags: ["fractal", "density_field", "non_euclidean"]');
+        lines.push('    fractal_depth: 3');
+        lines.push('    geometry: "sphere"');
+        lines.push('    color: "#8866ff"');
+        lines.push('    position: [0, 2, 0]');
         lines.push('  }');
         break;
       }

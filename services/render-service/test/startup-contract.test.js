@@ -10,6 +10,22 @@ describe('render-service startup contract', () => {
     expect(typeof parseHoloScriptCode).toBe('function');
   });
 
+  it('parseHoloScriptCode attaches universeSemantics for TextToUniverse-style blocks', () => {
+    const code = [
+      'composition "x" {',
+      '  object "U" @text_to_universe {',
+      '    universe_tags: ["fractal", "non_euclidean"]',
+      '    fractal_depth: 4',
+      '    geometry: "sphere"',
+      '  }',
+      '}',
+    ].join('\n');
+    const parsed = parseHoloScriptCode(code);
+    expect(parsed.objects.length).toBe(1);
+    expect(parsed.objects[0].universeSemantics.tags).toEqual(['fractal', 'non_euclidean']);
+    expect(parsed.objects[0].universeSemantics.fractalDepth).toBe(4);
+  });
+
   it('health endpoint is reachable after startup', async () => {
     const { server } = startServer({ port: 0 });
 

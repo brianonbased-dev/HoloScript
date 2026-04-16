@@ -60,6 +60,14 @@ export {
 } from './CreatorRevenueAggregator';
 
 export {
+  URBAN_PLANNING_ECONOMY_PLUGIN_ID,
+  type UrbanPlanningDensityClass,
+  type RecordUrbanPlanningSimulationInput,
+  computeUrbanSimulationGrossMicroUsdc,
+  recordUrbanPlanningSimulationRevenue,
+} from './urbanPlanningEconomyBridge';
+
+export {
   type WebhookProvider,
   type WebhookEventType,
   type WebhookPayload,
