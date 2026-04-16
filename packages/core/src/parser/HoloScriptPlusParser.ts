@@ -1422,6 +1422,19 @@ export class HoloScriptPlusParser {
       }
 
       const compBody = this.parseCompositionBlock();
+      // Block-level @traits inside `{ }` are parsed as fragment children; hoist them
+      // onto this composition/world node so `traits.has('world_generator')` etc. work.
+      const traits = new Map<VRTraitName, unknown>();
+      for (const child of compBody.children) {
+        if (child.type === 'fragment' && Array.isArray(child.directives)) {
+          for (const d of child.directives) {
+            if (d.type === 'trait') {
+              traits.set(d.name as VRTraitName, d.config);
+              this.hasVRTraits = true;
+            }
+          }
+        }
+      }
       return {
         type: type === 'composition' ? 'composition' : 'world',
         name: id,
@@ -1429,7 +1442,7 @@ export class HoloScriptPlusParser {
         properties: compBody.properties || {},
         directives: [],
         children: compBody.children,
-        traits: new Map(),
+        traits,
         body: compBody,
         loc: {
           start: { line: startToken.line, column: startToken.column },
