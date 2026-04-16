@@ -94,6 +94,88 @@ describe('DependencyTracker', () => {
     expect(tracker.getDependencies('a.hsplus')).toContain('b.hsplus');
     expect(tracker.getDependencies('a.hsplus')).toContain('c.hsplus');
   });
+
+  it('getTransitiveDependencies returns direct deps for a leaf', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    const transitive = tracker.getTransitiveDependencies('a.hsplus');
+    expect(transitive).toContain('b.hsplus');
+  });
+
+  it('getTransitiveDependencies follows chains', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('b.hsplus', 'c.hsplus');
+    const transitive = tracker.getTransitiveDependencies('a.hsplus');
+    expect(transitive).toContain('b.hsplus');
+    expect(transitive).toContain('c.hsplus');
+  });
+
+  it('getTransitiveDependencies deduplicates shared deps', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('a.hsplus', 'c.hsplus');
+    tracker.addDependency('b.hsplus', 'c.hsplus');
+    const transitive = tracker.getTransitiveDependencies('a.hsplus');
+    const cCount = transitive.filter((d) => d === 'c.hsplus').length;
+    expect(cCount).toBe(1);
+  });
+
+  it('getTransitiveDependencies handles circular dependencies without infinite loop', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('b.hsplus', 'a.hsplus');
+    // Must not throw or hang
+    expect(() => tracker.getTransitiveDependencies('a.hsplus')).not.toThrow();
+  });
+
+  it('getTransitiveDependencies returns empty for unknown file', () => {
+    expect(tracker.getTransitiveDependencies('unknown.hsplus')).toHaveLength(0);
+  });
+
+  it('getAffectedFiles returns direct dependents', () => {
+    tracker.addDependency('consumer.hsplus', 'lib.hsplus');
+    const affected = tracker.getAffectedFiles('lib.hsplus');
+    expect(affected).toContain('consumer.hsplus');
+  });
+
+  it('getAffectedFiles follows chains upward', () => {
+    tracker.addDependency('b.hsplus', 'lib.hsplus');
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    const affected = tracker.getAffectedFiles('lib.hsplus');
+    expect(affected).toContain('b.hsplus');
+    expect(affected).toContain('a.hsplus');
+  });
+
+  it('getAffectedFiles deduplicates results', () => {
+    tracker.addDependency('b.hsplus', 'lib.hsplus');
+    tracker.addDependency('c.hsplus', 'lib.hsplus');
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('a.hsplus', 'c.hsplus');
+    const affected = tracker.getAffectedFiles('lib.hsplus');
+    const aCount = affected.filter((f) => f === 'a.hsplus').length;
+    expect(aCount).toBe(1);
+  });
+
+  it('getAffectedFiles handles circular dependencies without infinite loop', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('b.hsplus', 'a.hsplus');
+    expect(() => tracker.getAffectedFiles('a.hsplus')).not.toThrow();
+  });
+
+  it('getAffectedFiles returns empty for a file with no dependents', () => {
+    tracker.addDependency('a.hsplus', 'standalone.hsplus');
+    expect(tracker.getAffectedFiles('a.hsplus')).toHaveLength(0);
+  });
+
+  it('removeDependencies removes the reverse dependent link too', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.removeDependencies('a.hsplus');
+    expect(tracker.getDependents('b.hsplus')).not.toContain('a.hsplus');
+  });
+
+  it('addDependency does not duplicate existing edges', () => {
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    tracker.addDependency('a.hsplus', 'b.hsplus');
+    expect(tracker.getDependencies('a.hsplus')).toHaveLength(1);
+    expect(tracker.getDependents('b.hsplus')).toHaveLength(1);
+  });
 });
 
 // =============================================================================
