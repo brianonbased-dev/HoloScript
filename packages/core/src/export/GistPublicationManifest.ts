@@ -9,6 +9,8 @@
  */
 
 import { createHash } from 'crypto';
+export type { Film3dXrMetricsForBinding } from './XrMetricsBinding.js';
+export { computeXrMetricsCommitmentHash, resolveXrMetricsConflict, xrMetricsMapKey, extractXrMetricsForBinding } from './XrMetricsBinding.js';
 
 export const GIST_PUBLICATION_MANIFEST_VERSION = '0.1.0' as const;
 
