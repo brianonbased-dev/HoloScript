@@ -165,10 +165,10 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
 }
 
 /**
- * Scan local source files for TODO/FIXME/HACK markers.
+ * Scan local source files for improvement markers (e.g. FIXME / HACK comments).
  * Returns improvement tasks derived from code comments.
  */
-export async function scanTodos(codebasePath: string): Promise<ScanResult> {
+export async function scanImprovementMarkers(codebasePath: string): Promise<ScanResult> {
   const absPath = resolve(codebasePath);
   const improvements: ImprovementTask[] = [];
 

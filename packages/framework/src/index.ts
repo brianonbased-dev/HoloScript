@@ -312,7 +312,7 @@ export {
   type ImprovementTask,
   type ExtractedKnowledge,
   scanFramework,
-  scanTodos,
+  scanImprovementMarkers,
   type EvolutionConfig,
   type EvolutionResult,
   evolve,

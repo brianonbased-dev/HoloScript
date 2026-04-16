@@ -2,7 +2,7 @@
  * Evolution Engine — The framework improves itself.
  *
  * The pipeline:
- * 1. SCAN: Query orchestrator knowledge store + scan local TODOs
+ * 1. SCAN: Query orchestrator knowledge store + scan local improvement markers
  * 2. PROPOSE: Convert findings to improvement suggestions
  * 3. VOTE: Team agents vote on which improvements matter
  * 4. EXECUTE: Winning suggestions become board tasks
@@ -14,13 +14,13 @@
 
 import type { Team } from '../team';
 import type { KnowledgeInsight } from '../types';
-import { scanFramework, scanTodos } from './absorb-scanner';
+import { scanFramework, scanImprovementMarkers } from './absorb-scanner';
 import type { AbsorbScanConfig, ScanResult, ImprovementTask } from './absorb-scanner';
 
 export interface EvolutionConfig {
   /** Absorb scan configuration */
   absorb?: AbsorbScanConfig;
-  /** Path to scan for TODOs (default: none — skip TODO scan) */
+  /** Path to scan for improvement markers (default: none — skip local marker scan) */
   codebasePath?: string;
   /** Auto-propose improvements as suggestions (default: true) */
   autoPropose?: boolean;
@@ -32,7 +32,7 @@ export interface EvolutionConfig {
 
 export interface EvolutionResult {
   scan: ScanResult;
-  todoScan?: ScanResult;
+  markerScan?: ScanResult;
   suggestionsCreated: number;
   tasksCreated: number;
   knowledgePublished: number;
@@ -55,7 +55,7 @@ function mergeScanResults(a: ScanResult, b: ScanResult): ScanResult {
 /**
  * Run one evolution cycle on a team.
  *
- * Scans the orchestrator knowledge store and local TODOs,
+ * Scans the orchestrator knowledge store and local improvement markers,
  * proposes improvements as suggestions, publishes extracted knowledge,
  * and optionally adds high-priority items directly to the board.
  */
@@ -67,17 +67,17 @@ export async function evolve(team: Team, config: EvolutionConfig = {}): Promise<
   // Step 1: Scan knowledge store
   const knowledgeScan = await scanFramework(config.absorb);
 
-  // Step 1b: Scan local TODOs if codebasePath provided
-  let todoScan: ScanResult | undefined;
+  // Step 1b: Scan local markers if codebasePath provided
+  let markerScan: ScanResult | undefined;
   if (config.codebasePath) {
-    todoScan = await scanTodos(config.codebasePath);
+    markerScan = await scanImprovementMarkers(config.codebasePath);
   }
 
   // Merge results for unified processing
-  const scan = todoScan ? mergeScanResults(knowledgeScan, todoScan) : knowledgeScan;
+  const scan = markerScan ? mergeScanResults(knowledgeScan, markerScan) : knowledgeScan;
 
   if (!scan.scanned || (scan.improvements.length === 0 && scan.knowledge.length === 0)) {
-    return { scan, todoScan, suggestionsCreated: 0, tasksCreated: 0, knowledgePublished: 0 };
+    return { scan, markerScan, suggestionsCreated: 0, tasksCreated: 0, knowledgePublished: 0 };
   }
 
   let suggestionsCreated = 0;
@@ -144,7 +144,7 @@ export async function evolve(team: Team, config: EvolutionConfig = {}): Promise<
     }))
   );
 
-  return { scan, todoScan, suggestionsCreated, tasksCreated, knowledgePublished };
+  return { scan, markerScan, suggestionsCreated, tasksCreated, knowledgePublished };
 }
 
 function mapCategory(

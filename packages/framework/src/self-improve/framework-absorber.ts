@@ -16,7 +16,7 @@ import type {
   ImprovementTask,
   ExtractedKnowledge,
 } from './absorb-scanner';
-import { scanFramework, scanTodos } from './absorb-scanner';
+import { scanFramework, scanImprovementMarkers } from './absorb-scanner';
 
 export interface CodebaseGraph {
   /** Number of files in the graph */
@@ -193,23 +193,23 @@ export class FrameworkAbsorber {
   }
 
   /**
-   * Run a full scan (knowledge store + local TODOs).
+   * Run a full scan (knowledge store + local improvement markers).
    */
   private async runFullScan(): Promise<ScanResult> {
     const knowledgeScan = await scanFramework(this.config);
-    let todoScan: ScanResult | undefined;
+    let markerScan: ScanResult | undefined;
 
     if (this.config.codebasePath) {
-      todoScan = await scanTodos(this.config.codebasePath);
+      markerScan = await scanImprovementMarkers(this.config.codebasePath);
     }
 
-    const merged: ScanResult = todoScan
+    const merged: ScanResult = markerScan
       ? {
-          scanned: knowledgeScan.scanned || todoScan.scanned,
-          filesAnalyzed: knowledgeScan.filesAnalyzed + todoScan.filesAnalyzed,
-          issuesFound: knowledgeScan.issuesFound + todoScan.issuesFound,
-          improvements: [...knowledgeScan.improvements, ...todoScan.improvements],
-          knowledge: [...knowledgeScan.knowledge, ...todoScan.knowledge],
+          scanned: knowledgeScan.scanned || markerScan.scanned,
+          filesAnalyzed: knowledgeScan.filesAnalyzed + markerScan.filesAnalyzed,
+          issuesFound: knowledgeScan.issuesFound + markerScan.issuesFound,
+          improvements: [...knowledgeScan.improvements, ...markerScan.improvements],
+          knowledge: [...knowledgeScan.knowledge, ...markerScan.knowledge],
         }
       : knowledgeScan;
 

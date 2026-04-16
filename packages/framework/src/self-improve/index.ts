@@ -16,7 +16,7 @@ export {
   type ImprovementTask,
   type ExtractedKnowledge,
   scanFramework,
-  scanTodos,
+  scanImprovementMarkers,
 } from './absorb-scanner';
 
 export { type EvolutionConfig, type EvolutionResult, evolve } from './evolution-engine';
