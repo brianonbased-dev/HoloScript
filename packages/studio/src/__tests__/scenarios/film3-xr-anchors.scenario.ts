@@ -3,7 +3,22 @@ import { describe, test, expect } from 'vitest';
 /**
  * Film3 XR anchors — host-side contract tests for Ticket 1/2 (depth occlusion + UI vs world).
  * Does not run on Quest; validates policy we expect AndroidXRCompiler + runtime to honor.
+ *
+ * **On-device:** Use {@link FILM3_XR_MINIMAL_TEST_SCENE} as the narrative checklist when compiling
+ * a `.holo` composition for Android XR and sideloading to Quest 3 (see `FILM3_XR_GROUNDING_SPRINT.md`).
  */
+
+/** Minimal object/traits set for Quest 3 validation of the three prioritized Film3 primitives. */
+export const FILM3_XR_MINIMAL_TEST_SCENE = {
+  name: 'film3-depth-probe-gaze',
+  description:
+    'One world-anchored depth occluder, one environment probe for HDR/sh, one gaze+pinch interactable panel.',
+  objects: [
+    { name: 'soundstage_occlusion', traits: ['occlusion_mesh'] as const },
+    { name: 'hdr_environment', traits: ['environment_probe'] as const },
+    { name: 'director_hud', traits: ['gaze_interactable'] as const },
+  ],
+} as const;
 
 export type Film3LayerKind = 'depth_wall' | 'hologram' | 'ui';
 
