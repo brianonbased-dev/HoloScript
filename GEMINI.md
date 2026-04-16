@@ -1,7 +1,7 @@
 # Gemini -- HoloScript
 
 > **NORTH STAR**: `NORTH_STAR.md` (this repo) + `~/.ai-ecosystem/NORTH_STAR.md` (10 decision trees).
-> **GOLD VAULT**: `D:/GOLD/` -- 5-tier knowledge (Diamond > Platinum > GOLD). Overrides knowledge store.
+> **GOLD Drive**: Vault root = **`GOLD_ROOT`** env or default (`D:\GOLD` / `/mnt/d/GOLD`). 5-tier knowledge (Diamond > Platinum > GOLD). Overrides knowledge store. See `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
 
 ## Role
 Core platform. Language, compilers, traits, MCP server, Studio, renderer. The center of everything.

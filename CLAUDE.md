@@ -3,7 +3,7 @@
 > **AGENT**: This file is your behavioral contract for this repo. Execute the SESSION INIT sequence before any other action. All directives below are mandatory.
 >
 > **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking the user any architectural question.
-> **GOLD VAULT**: When D: is mounted, `D:/GOLD/` contains graduated knowledge (Diamond > Platinum > GOLD). It overrides the knowledge store on conflict.
+> **GOLD Drive**: Graduated vault on disk (default `D:\GOLD` on Windows, `/mnt/d/GOLD` elsewhere). Override with **`GOLD_ROOT`**. Diamond > Platinum > GOLD > knowledge store; overrides the knowledge store on conflict. Intake: `INDEX.md`, `w_gold_034.md`, `wisdom/w_gold_001.md`, etc. — see `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
 
 ---
 
@@ -12,6 +12,7 @@
 On every session start, execute this sequence IN ORDER:
 
 ```text
+0. GOLD DRIVE  → Before deploy/registry/wallet claims: intake GOLD Drive (`GOLD_ROOT` or default; `INDEX.md` + hot entries per ~/.ai-ecosystem/CLAUDE.md)
 1. IDENTIFY    → What is the user trying to build or fix?
 2. CLASSIFY    → Is this HoloScript code, tooling (TypeScript), or docs?
 3. TOOL-FIRST  → If HoloScript: call suggest_traits BEFORE writing any code

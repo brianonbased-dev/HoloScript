@@ -301,13 +301,13 @@ compile_to_mcp_config({ code: "...", target: "antigravity" })  # → literal key
 compile_to_mcp_config({ code: "...", target: "vscode" })       # → ${env:VAR} syntax
 ```
 
-Solves the problem where some IDEs interpolate `${VAR}` (Claude, VS Code, Cursor) and others don't (Antigravity/Gemini). See [GOLD 041](D:/GOLD/w_gold_041.md).
+Solves the problem where some IDEs interpolate `${VAR}` (Claude, VS Code, Cursor) and others don't (Antigravity/Gemini). See **GOLD Drive** entry `w_gold_041.md` under `GOLD_ROOT` (default `D:\GOLD` on Windows).
 
 ## Related Docs
 
 - [REST API Examples](../../docs/api/REST_EXAMPLES.md) — HTTP endpoints
 - [MCP Tool Examples](../../docs/api/MCP_EXAMPLES.md) — MCP tool calls
-- [Railway GOLD Entry](D:/GOLD/w_gold_034.md) — Project IDs and service registry
+- Railway registry on **GOLD Drive**: `w_gold_034.md` under `GOLD_ROOT` (default `D:\GOLD`) — Project IDs and service registry
 - [Absorb Service README](../absorb-service/README.md) — Graph RAG examples
 
 ## License

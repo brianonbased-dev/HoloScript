@@ -1,7 +1,7 @@
 /**
  * SNNvsBackpropExperiment.ts
  *
- * TODO-004 / RFC-0042: Comparison framework for evaluating confabulation
+ * RFC-0042 (comparison framework) — evaluates confabulation
  * rates between Spiking Neural Network (SNN) models and traditional
  * backpropagation-trained models.
  *
