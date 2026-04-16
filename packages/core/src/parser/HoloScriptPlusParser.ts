@@ -1022,15 +1022,25 @@ export class HoloScriptPlusParser {
     // Default to '1.0' if not specified
     if (version === undefined) version = '1.0';
 
+    const children = isFragment ? root.children || [] : [root];
+    const worlds = children.filter((c) => c.type === 'world');
+    const compositions = children.filter((c) => c.type === 'composition');
+    const templates = children.filter((c) => c.type === 'template');
+    const npcs = children.filter((c) => c.type === 'npc');
+
     const ast: ASTProgram = {
       type: 'Program',
       id: 'root',
       properties: isFragment ? root.properties || {} : {},
       directives: directives,
-      children: isFragment ? root.children || [] : [root],
+      children: children,
+      worlds,
+      compositions,
+      templates,
+      npcs,
       traits: isFragment ? root.traits || new Map() : new Map(),
       loc: root.loc,
-      body: (isFragment ? root.children || [] : [root]) as unknown as HSPlusNode[],
+      body: children as unknown as HSPlusNode[],
       version: version,
       migrations: migrations.length > 0 ? migrations : undefined,
       root,
@@ -1142,7 +1152,7 @@ export class HoloScriptPlusParser {
             } else {
               // Unexpected token after directives, report and sync
               this.error(
-                `Expected node after directives, got ${this.current().type}. Valid nodes: orb, template, logic, object, composition, scene, group`,
+                `Expected node after directives, got ${this.current().type}. Valid nodes: orb, template, logic, object, world, composition, scene, group`,
                 'HSP003'
               );
               globalDirectives.push(...currentDirectives);
@@ -1151,7 +1161,7 @@ export class HoloScriptPlusParser {
           } else if (!this.check('EOF')) {
             // No directives, no node, but not EOF
             this.error(
-              `Unexpected token ${this.current().type} "${this.current().value}" at top level. Expected: composition, object, template, logic, or @directive`,
+              `Unexpected token ${this.current().type} "${this.current().value}" at top level. Expected: composition, object, world, template, logic, or @directive`,
               'HSP001'
             );
             // error() pushes to array, but does NOT throw by default yet.
@@ -1398,7 +1408,7 @@ export class HoloScriptPlusParser {
       } as unknown as HSPlusNode;
     }
 
-    if (type === 'composition') {
+    if (type === 'composition' || type === 'world') {
       let id: string | undefined;
       if (this.check('HASH')) {
         this.advance();
@@ -1413,7 +1423,7 @@ export class HoloScriptPlusParser {
 
       const compBody = this.parseCompositionBlock();
       return {
-        type: 'composition',
+        type: type === 'composition' ? 'composition' : 'world',
         name: id,
         id,
         properties: compBody.properties || {},
@@ -1613,6 +1623,7 @@ export class HoloScriptPlusParser {
             const isKeyToken =
               token.type === 'IDENTIFIER' ||
               token.type === 'STRING' ||
+              token.type === 'HASH' ||
               token.type === 'STATE' ||
               token.type === 'STATE_MACHINE' ||
               token.type === 'INITIAL' ||
@@ -1642,6 +1653,7 @@ export class HoloScriptPlusParser {
                 'spatial_group',
                 'scene',
                 'group',
+                'world',
                 'module',
                 'struct',
                 'orb',
@@ -2271,7 +2283,9 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
-    // Hololand Runtime Events (on @hololand.xxx)
+    // Legacy HoloLand (v1) runtime events — @hololand.* directives.
+    // HoloLand is in sunset; new work should target current spatial stacks / traits.
+    // Parser retains this branch so existing .hsplus assets keep compiling.
     // =========================================================================
     if (name === 'hololand') {
       if (this.check('DOT')) {
@@ -2580,6 +2594,7 @@ export class HoloScriptPlusParser {
       'spatial_group',
       'scene',
       'group',
+      'world',
       'module',
       'struct',
       'orb',
@@ -2631,7 +2646,7 @@ export class HoloScriptPlusParser {
         // Child node keyword followed by { or "name"
         else if (
           childNodeKeywords.includes(token.value) &&
-          (next.type === 'LBRACE' || next.type === 'STRING' || next.type === 'IDENTIFIER')
+          (next.type === 'LBRACE' || next.type === 'STRING' || next.type === 'IDENTIFIER' || next.type === 'HASH')
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
@@ -2658,7 +2673,7 @@ export class HoloScriptPlusParser {
           result.properties[key] = this.parseValue();
         }
         // Custom node type followed by name or body
-        else if (next.type === 'LBRACE' || next.type === 'IDENTIFIER' || next.type === 'STRING') {
+        else if (next.type === 'LBRACE' || next.type === 'IDENTIFIER' || next.type === 'STRING' || next.type === 'HASH') {
           const keyword = this.current().value;
           const node = this.parseNode();
           node.directives = [...currentDirectives, ...(node.directives || [])];
