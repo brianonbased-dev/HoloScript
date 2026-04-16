@@ -1,0 +1,35 @@
+// Trait System types
+export { TraitContext, TraitEvent, type RaycastHit } from '../traits/TraitTypes';
+
+// Logger utilities
+export { logger, setHoloScriptLogger, enableConsoleLogging, resetLogger, NoOpLogger, ConsoleLogger } from '../logger';
+export type { HoloScriptLogger } from '../logger';
+
+// Source Maps
+export {
+  SourceMapGenerator,
+  SourceMapConsumer,
+  combineSourceMaps,
+  type SourceMap,
+  type MappingSegment,
+  type LineMapping,
+} from '../SourceMapGenerator';
+
+// Incremental Parsing
+export { IncrementalParser, createIncrementalParser } from '../IncrementalParser';
+
+// HoloScript+ Incremental Parsing
+export {
+  ChunkBasedIncrementalParser,
+  type IncrementalParseResult,
+} from '../parser/IncrementalParser';
+export { globalParseCache, type ParseCache } from '../parser/ParseCache';
+
+// Tree Shaking
+export {
+  TreeShaker,
+  treeShake,
+  eliminateDeadCode,
+  type TreeShakeOptions,
+  type TreeShakeResult,
+} from '../TreeShaker';

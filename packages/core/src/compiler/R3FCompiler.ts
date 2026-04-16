@@ -2398,14 +2398,14 @@ export class R3FCompiler {
 
     if (composition.environment) {
       root.children!.push(
-        ...this.compileEnvironmentBlock(composition.environment)
+        ...this.compileEnvironmentBlock(composition.environment as unknown as Record<string, unknown>)
       );
     }
 
     // Compile first-class light blocks
     if (Array.isArray(composition.lights)) {
       for (const light of composition.lights) {
-        root.children!.push(this.compileLightBlock(light));
+        root.children!.push(this.compileLightBlock(light as unknown as Record<string, unknown>));
       }
     }
 
@@ -2424,33 +2424,33 @@ export class R3FCompiler {
     // Compile timelines
     if (Array.isArray(composition.timelines)) {
       for (const timeline of composition.timelines) {
-        root.children!.push(this.compileTimelineBlock(timeline));
+        root.children!.push(this.compileTimelineBlock(timeline as unknown as Record<string, unknown>));
       }
     }
 
     // Compile audio blocks
     if (Array.isArray(composition.audio)) {
       for (const audio of composition.audio) {
-        root.children!.push(this.compileAudioBlock(audio));
+        root.children!.push(this.compileAudioBlock(audio as unknown as Record<string, unknown>));
       }
     }
 
     // Compile zones
     if (Array.isArray(composition.zones)) {
       for (const zone of composition.zones) {
-        root.children!.push(this.compileZoneBlock(zone));
+        root.children!.push(this.compileZoneBlock(zone as unknown as Record<string, unknown>));
       }
     }
 
     // Compile UI overlay
     if (composition.ui) {
-      root.children!.push(this.compileUIBlock(composition.ui));
+      root.children!.push(this.compileUIBlock(composition.ui as unknown as Record<string, unknown>));
     }
 
     // Compile transitions
     if (Array.isArray(composition.transitions)) {
       for (const transition of composition.transitions) {
-        root.children!.push(this.compileTransitionBlock(transition));
+        root.children!.push(this.compileTransitionBlock(transition as unknown as Record<string, unknown>));
       }
     }
 
@@ -2470,13 +2470,13 @@ export class R3FCompiler {
 
     // Compile first-class camera block
     if (composition.camera) {
-      root.children!.push(this.compileCameraBlock(composition.camera));
+      root.children!.push(this.compileCameraBlock(composition.camera as unknown as Record<string, unknown>));
     }
 
     // Compile first-class effects block OR auto-detect post-processing
     if (composition.effects) {
       root.children!.unshift(
-        this.compileEffectsBlock(composition.effects)
+        this.compileEffectsBlock(composition.effects as unknown as Record<string, unknown>)
       );
     } else if (this.hasPostProcessing(root)) {
       root.children!.unshift({
