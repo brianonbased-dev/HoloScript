@@ -76,6 +76,15 @@ export {
   buildTextToUniverseRenderSnippet,
 } from './textToUniverseSpatial';
 
+export {
+  type TextToUniverseShareHostOptions,
+  type RenderServiceShareResponse,
+  type TtuRenderSnippetPayload,
+  postTtuSnippetToRenderShare,
+  handleTtuRenderSnippetShareEvent,
+  wireTextToUniverseShareToCtx,
+} from './textToUniverseShareHost';
+
 /** Push VP metadata into the CRDT root shared with `LoroWebRTCProvider` (crdt-spatial). */
 export { syncVirtualProductionToVolumetricCrdt, FILM3D_VOLUMETRICS_ROOT } from './volumetricLoroBridge';
 

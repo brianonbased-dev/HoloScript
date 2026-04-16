@@ -67,6 +67,8 @@ export {
   recordUrbanPlanningSimulationRevenue,
 } from './urbanPlanningEconomyBridge';
 
+export { UrbanPlanningSimulationEconomyDriver } from './urbanPlanningSimulationTick';
+
 export {
   type WebhookProvider,
   type WebhookEventType,

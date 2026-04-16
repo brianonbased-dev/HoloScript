@@ -15,6 +15,11 @@ export function createZoningHandler(): TraitHandler<ZoningConfig> {
     onUpdate() {},
     onEvent(n: HSPlusNode, c: ZoningConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__zoningState as ZoningState | undefined; if (!s) return;
+      if (e.type === 'urban_planning:economy_sim_tick') {
+        const parcels = Math.max(0, Math.floor(Number(e.payload?.parcels ?? 0)));
+        ctx.emit?.('urban_planning:economy_tick', { parcels, density: c.density });
+        return;
+      }
       if (e.type === 'zoning:check_compliance') {
         const height = e.payload?.buildingHeightM as number ?? 0;
         s.violations = [];
