@@ -16,6 +16,7 @@
  */
 
 import type http from 'http';
+import { attachSseDisconnectGuards, attachSseHeartbeat } from './team-room-sse';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,6 @@ const rooms = new Map<string, Set<RoomClient>>();
 const roomHistory = new Map<string, RoomEvent[]>();
 
 const MAX_HISTORY = 50;
-const HEARTBEAT_INTERVAL = 25_000; // 25s SSE keepalive
 
 // ─── Core Functions ───────────────────────────────────────────────────────────
 
@@ -178,33 +178,28 @@ export function handleTeamRoomConnection(
     data: { agentId, agentName, ide },
   });
 
-  // SSE heartbeat keepalive
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': hb\n\n');
-    } catch {
-      clearInterval(heartbeat);
-    }
-  }, HEARTBEAT_INTERVAL);
+  // Heartbeat + disconnect handling live in team-room-sse.ts so timers/listeners
+  // are cleared together and cannot leak if the socket half-closes.
+  let finalized = false;
+  let heartbeatDispose: () => void = () => {};
 
-  // Cleanup on disconnect
-  const cleanup = () => {
-    clearInterval(heartbeat);
+  const teardown = () => {
+    if (finalized) return;
+    finalized = true;
+    heartbeatDispose();
     rooms.get(teamId)?.delete(client);
 
-    // Announce leave
     broadcastToRoom(teamId, {
       type: 'presence:leave',
       agent: agentName,
       data: { agentId, agentName, ide },
     });
 
-    // Clean up empty rooms
     if (rooms.get(teamId)?.size === 0) {
       rooms.delete(teamId);
     }
   };
 
-  req.on('close', cleanup);
-  req.on('error', cleanup);
+  ({ dispose: heartbeatDispose } = attachSseHeartbeat(res, teardown));
+  attachSseDisconnectGuards(req, res, teardown);
 }
