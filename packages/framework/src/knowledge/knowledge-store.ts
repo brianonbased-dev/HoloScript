@@ -587,11 +587,25 @@ export class KnowledgeStore {
    * Evict: Permanently remove an entry from both hot and cold stores.
    * Called during cleanup or when an entry is marked as stale/wrong.
    */
-  evict(id: string, _archivePath?: string): boolean {
+  evict(id: string, archivePath?: string): boolean {
     const existed = this.entries.delete(id);
     if (existed) {
       this.persistIfEnabled();
-      // TODO: Also remove from cold store if archivePath provided
+    }
+    if (archivePath) {
+      try {
+        const fs = require('fs') as typeof import('fs');
+        if (!fs.existsSync(archivePath)) return existed;
+        const raw = fs.readFileSync(archivePath, 'utf8');
+        const archived = JSON.parse(raw) as StoredEntry[];
+        if (!Array.isArray(archived)) return existed;
+        const next = archived.filter((e) => e.id !== id);
+        if (next.length !== archived.length) {
+          fs.writeFileSync(archivePath, JSON.stringify(next, null, 2), 'utf8');
+        }
+      } catch {
+        // Cold store prune is best-effort
+      }
     }
     return existed;
   }

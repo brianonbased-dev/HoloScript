@@ -296,6 +296,49 @@ describe('KnowledgeStore', () => {
 
     expect(crossRefs).toBeGreaterThan(0);
   });
+
+  it('evict prunes matching id from cold archive when archivePath is set', async () => {
+    const fs = await import('fs');
+    const os = await import('os');
+    const path = await import('path');
+    const tmp = path.join(os.tmpdir(), `holoscript-kstore-evict-${Date.now()}.json`);
+    const store = new KnowledgeStore({ persist: false });
+    const published = store.publish(
+      { type: 'pattern', content: 'x', domain: 'test', confidence: 0.5, source: 's' },
+      'agent'
+    );
+    fs.writeFileSync(tmp, JSON.stringify([published], null, 2), 'utf8');
+
+    expect(store.evict(published.id, tmp)).toBe(true);
+    expect(store.size).toBe(0);
+    expect(JSON.parse(fs.readFileSync(tmp, 'utf8'))).toEqual([]);
+    fs.unlinkSync(tmp);
+  });
+
+  it('evict still prunes cold archive when id is not in the hot buffer', async () => {
+    const fs = await import('fs');
+    const os = await import('os');
+    const path = await import('path');
+    const tmp = path.join(os.tmpdir(), `holoscript-kstore-cold-${Date.now()}.json`);
+    const cold = {
+      id: 'G.ARCHIVE.001',
+      type: 'gotcha' as const,
+      content: 'only on disk',
+      domain: 'test',
+      confidence: 0.4,
+      source: 's',
+      queryCount: 0,
+      reuseCount: 0,
+      createdAt: new Date().toISOString(),
+      authorAgent: 'agent',
+    };
+    fs.writeFileSync(tmp, JSON.stringify([cold], null, 2), 'utf8');
+    const store = new KnowledgeStore({ persist: false });
+
+    expect(store.evict('G.ARCHIVE.001', tmp)).toBe(false);
+    expect(JSON.parse(fs.readFileSync(tmp, 'utf8'))).toEqual([]);
+    fs.unlinkSync(tmp);
+  });
 });
 
 // ── Behavior Tree (composed from @holoscript/core) ──
