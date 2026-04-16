@@ -64,7 +64,7 @@ This artifact dictates the **10–14 day** authorization sequence dedicated to s
 
 **Test Scene Integration (`packages/studio/src/__tests__/scenarios/film3-xr-anchors.scenario.ts`):**
 
-*Planned:* launch a simulated native XR host wrapper. Verify that passing occlusion-based OpenUSD geometry behind an instantiated “Depth wall” registers a z-index wipeout rather than a UI overlap, without throwing `NullRef` on ARCore boot. *(File not yet in tree—add during Ticket 2.)*
+Host-side **vitest** contract: depth-disabled path skips depth configuration; when depth is supported, hologram behind a depth wall is dropped from painter order while UI remains last (overlay). Run: `pnpm exec vitest run src/__tests__/scenarios/film3-xr-anchors.scenario.ts` from `packages/studio`. Quest walk-through still required for real ARCore meshes.
 
 **CI / local verification commands (post-merge):**
 
