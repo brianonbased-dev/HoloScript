@@ -421,7 +421,7 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return pluginResult;
   }
 
-  // World generation (HY-World 2.0 pipeline)
+  // World generation (sovereign-3d pipeline)
   if (name === 'generate_world') {
     const { handleWorldGeneratorTool } = await import('./world-generator-tools');
     const result = await handleWorldGeneratorTool({

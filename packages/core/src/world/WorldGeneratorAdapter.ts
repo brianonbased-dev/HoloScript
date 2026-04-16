@@ -17,23 +17,23 @@ export interface WorldGenerationRequest {
   prompt: string;
   /** Single-view image path or URL for single-image reconstruction */
   input_image?: string;
-  /** Multi-view images for HY-World 2.0 multi-view mode */
+  /** Multi-view images for world reconstruction */
   input_images?: string[];
   /** Output format */
-  format: 'mesh' | '3dgs' | 'both';
+  format: 'mesh' | '3dgs' | 'both' | 'neural_field';
   /** Quality tier — adapter maps to backend resolution params */
   quality: 'low' | 'medium' | 'high' | 'ultra';
   /** Reproducible seed */
   seed?: number;
-  /** Enable navmesh generation via WorldNav (HY-World 2.0 full pipeline only) */
+  /** Enable navmesh generation when supported by backend */
   navEnabled?: boolean;
-  /** Enable physics + collision via WorldLens interactive mode */
+  /** Enable physics + collision interactive mode when supported */
   interactiveMode?: boolean;
 }
 
 export interface WorldMetadata {
   /** Output format actually produced */
-  format: 'mesh' | '3dgs' | 'both';
+  format: 'mesh' | '3dgs' | 'both' | 'neural_field';
   /** Axis-aligned bounding box [xMin, yMin, zMin, xMax, yMax, zMax] */
   bounds: [number, number, number, number, number, number];
   /** Suggested agent start position (WorldNav output) */

@@ -570,7 +570,7 @@ export const textTo3DTools: Tool[] = [
   {
     name: 'hyworld_generate',
     description:
-      'Generate a persistent, navigable 3D world (3DGS + Mesh) using HY-World 2.0. ' +
+      'Generate a persistent, navigable 3D world (3DGS + Mesh) using sovereign-3d. ' +
       'Outputs include real-time splats and editable meshes for Unity/Unreal integration. ' +
       'Best for high-fidelity scene backgrounds or complete navigable environments.',
     inputSchema: {

@@ -10,9 +10,8 @@
  * Usage (in runtime / scene bootstrap):
  *
  *   import { worldGeneratorService } from '@holoscript/core/world';
- *   import { HYWorldAdapter } from '@holoscript/core/world/adapters/HYWorldAdapter';
  *
- *   worldGeneratorService.registerDefaultAdapters();  // registers HYWorldAdapter
+ *   worldGeneratorService.registerDefaultAdapters();  // registers Sovereign3DAdapter (Brittney v43+)
  *
  *   // When running a scene, bind service to your event emitter:
  *   worldGeneratorService.bindEventEmitter(emitter);
@@ -27,7 +26,7 @@ import {
   type WorldAdapterRegistry,
   type WorldGenerationRequest,
 } from './WorldGeneratorAdapter';
-import { SovereignWorldAdapter } from './adapters/SovereignWorldAdapter';
+import { Sovereign3DAdapter } from './adapters/Sovereign3DAdapter';
 
 // =============================================================================
 // EVENT SHAPE (matches WorldGeneratorTrait expected events)
@@ -39,7 +38,7 @@ export interface WorldGenerateEvent {
   prompt: string;
   input_image?: string;
   input_images?: string[];
-  format: 'mesh' | '3dgs' | 'both';
+  format: 'mesh' | '3dgs' | 'both' | 'neural_field';
   quality: 'low' | 'medium' | 'high' | 'ultra';
   seed?: number;
   navEnabled?: boolean;
@@ -100,7 +99,7 @@ export class WorldGeneratorService {
    */
   registerDefaultAdapters(): void {
     if (this.defaultAdaptersRegistered) return;
-    this.registry.register(new SovereignWorldAdapter());
+    this.registry.register(new Sovereign3DAdapter());
     this.defaultAdaptersRegistered = true;
   }
 

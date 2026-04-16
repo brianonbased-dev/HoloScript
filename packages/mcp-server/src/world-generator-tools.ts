@@ -1,7 +1,7 @@
 /**
- * generate_world MCP tool — HY-World 2.0 world generation
+ * generate_world MCP tool — sovereign world generation
  *
- * Wraps WorldGeneratorService+HYWorldAdapter to give agents a single
+ * Wraps WorldGeneratorService+Sovereign3DAdapter to give agents a single
  * tool call that produces a navigable 3D world from a text/image prompt.
  */
 
@@ -19,11 +19,11 @@ export const worldGeneratorTools: Tool[] = [
   {
     name: 'generate_world',
     description: [
-      'Generate a navigable 3D world from a text or image prompt using HY-World 2.0.',
+      'Generate a navigable 3D world from a text or image prompt using the sovereign-3d engine.',
       'Returns a 3D Gaussian Splat (.ply) or mesh (.glb) asset URL plus spatial metadata.',
-      'Supported engines: hy-world-2.0 (default, public), stable-world, custom.',
-      'For navmesh output (WorldNav), set navEnabled: true.',
-      'For physics/collision (WorldLens), set interactiveMode: true.',
+      'Supported engines: sovereign-3d (default), stable-world, custom.',
+      'Set navEnabled: true to request navmesh output when backend supports it.',
+      'Set interactiveMode: true to request physics/collision output when backend supports it.',
     ].join(' '),
     inputSchema: {
       type: 'object',
@@ -39,12 +39,12 @@ export const worldGeneratorTools: Tool[] = [
         input_images: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Multiple images for multi-view reconstruction (HY-World 2.0 multi-view mode)',
+          description: 'Multiple images for multi-view reconstruction',
         },
         engine: {
           type: 'string',
-          enum: ['hy-world-2.0', 'stable-world', 'custom'],
-          description: 'Engine backend (default: hy-world-2.0)',
+          enum: ['sovereign-3d', 'stable-world', 'custom'],
+          description: 'Engine backend (default: sovereign-3d)',
         },
         format: {
           type: 'string',
@@ -105,7 +105,7 @@ export async function handleWorldGeneratorTool(
     };
   }
 
-  const engine = (args['engine'] as string | undefined) ?? 'hy-world-2.0';
+  const engine = (args['engine'] as string | undefined) ?? 'sovereign-3d';
   const format = (args['format'] as 'mesh' | '3dgs' | 'both' | undefined) ?? '3dgs';
   const quality = (args['quality'] as 'low' | 'medium' | 'high' | 'ultra' | undefined) ?? 'medium';
 

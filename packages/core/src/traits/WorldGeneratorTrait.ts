@@ -1,7 +1,7 @@
 /**
  * World Generator Trait
  *
- * Sovereign 3D world generation using native HoloScript foundations.
+ * Sovereign 3D world generation using native HoloScript foundations (Brittney v43+).
  * Generates 3D Gaussian Splats, Meshes, or Neural Fields from text/image prompts.
  *
  * @version 1.0.0
@@ -14,7 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type WorldGeneratorEngine = 'sovereign-3d' | 'stable-world' | 'custom';
-export type WorldGeneratorFormat = '3dgs' | 'mesh' | 'both';
+export type WorldGeneratorFormat = '3dgs' | 'mesh' | 'both' | 'neural_field';
 export type WorldGeneratorQuality = 'low' | 'medium' | 'high' | 'ultra';
 
 export interface WorldGeneratorConfig {
@@ -22,7 +22,7 @@ export interface WorldGeneratorConfig {
   prompt: string;
   /** Optional input image for single-view reconstruction */
   input_image?: string;
-  /** Multi-view input images for HY-World 2.0 multi-view mode */
+  /** Multi-view input images for native multi-view reconstruction */
   input_images?: string[];
   /** The generation engine to use (default: sovereign-3d) */
   engine: WorldGeneratorEngine;
@@ -34,9 +34,9 @@ export interface WorldGeneratorConfig {
   auto_render: boolean;
   /** Random seed for reproducible generation */
   seed?: number;
-  /** Enable WorldNav navmesh output (full HY-World 2.0 pipeline) */
+  /** Enable navmesh output when supported by backend */
   navEnabled?: boolean;
-  /** Enable WorldLens physics / collision interactive mode */
+  /** Enable physics/collision interactive mode when supported by backend */
   interactiveMode?: boolean;
 }
 
@@ -112,15 +112,20 @@ export const worldGeneratorHandler: TraitHandler<WorldGeneratorConfig> = {
         });
 
         if (config.auto_render && state.assetUrl) {
-          // If the format includes 3DGS, trigger the splat loader
+          // Automatic rendering logic
           if (config.format === '3dgs' || config.format === 'both') {
             context.emit('splat_set_source', {
               node,
               source: state.assetUrl,
               quality: config.quality,
             });
+          } else if (config.format === 'neural_field') {
+            context.emit('world:stream_ready', {
+              node,
+              streamUrl: state.assetUrl,
+              provider: 'sovereign-3d',
+            });
           }
-          // Mesh support would go here once MeshTrait is integrated
         }
         break;
 
