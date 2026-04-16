@@ -40,7 +40,7 @@ export class LoroWebRTCProvider {
 
     // Subscribe to Loro local changes to broadcast
     this.doc.subscribe((batch: LoroEventBatch) => {
-      if (batch.local) {
+      if (batch.by === 'local') {
         const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
         this.sync(update);
       }
