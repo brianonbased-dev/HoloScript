@@ -16,8 +16,8 @@ import {
   handleAgentOrchestrationTool,
   resetOrchestrationSingletons,
 } from '../agent-orchestration-tools';
-import { OrchestratorAgent } from '@holoscript/framework';
 import {
+  OrchestratorAgent,
   getDefaultRegistry,
   resetDefaultRegistry,
   FederatedRegistryAdapter,
@@ -325,7 +325,7 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
       const orchestrator = new OrchestratorAgent({
         name: 'IoT Controller',
         domain: 'iot',
-        autoDiscovery: false,
+        autoDiscovery: true,
         localExecutor: async (skillId, args) => ({
           executed: true,
           skillId,

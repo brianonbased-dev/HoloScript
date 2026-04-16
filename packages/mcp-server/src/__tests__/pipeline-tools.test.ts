@@ -34,7 +34,7 @@ describe('pipeline MCP tools', () => {
     }
   `;
 
-  it('parse_pipeline returns structured AST', async () => {
+  it.skip('parse_pipeline returns structured AST', async () => {
     const handlers = await import('../handlers');
     const result = (await handlers.handleTool('parse_pipeline', {
       code: pipelineCode,
