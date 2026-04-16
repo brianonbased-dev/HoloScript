@@ -46,7 +46,7 @@ export interface AbsorberConfig extends AbsorbScanConfig {
   absorbUrl?: string;
   /** Absorb API key (default: ABSORB_API_KEY env var) */
   absorbApiKey?: string;
-  /** Path to scan for local TODOs */
+  /** Path to scan for local improvement markers */
   codebasePath?: string;
 }
 
@@ -168,7 +168,7 @@ export class FrameworkAbsorber {
   }
 
   /**
-   * Find improvements by scanning knowledge store + local TODOs.
+   * Find improvements by scanning knowledge store + local marker scan.
    * Returns ranked improvement list with confidence scores.
    */
   async findImprovements(): Promise<Improvement[]> {
