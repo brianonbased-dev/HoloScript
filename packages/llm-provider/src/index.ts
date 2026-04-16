@@ -258,6 +258,8 @@ export function createProviderManager(): LLMProviderManager {
     });
   }
 
+  // End of provider detection
+
   if (Object.keys(providers).length === 0) {
     throw new Error(
       'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, or start a local server.'

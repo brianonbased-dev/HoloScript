@@ -373,6 +373,44 @@ export class QuestHubHandle {
   }
 }
 
+/**
+ * DAO handle surface emitted by `VRRRuntime.createDAO` (matches VRRCompiler expectations).
+ */
+export class DAOHandle {
+  private proposals = new Map<string, { id: string; title: string; weight: number; status: string }>();
+  private onProposed?: (p: { id: string; title: string }) => void;
+  private onVoted?: (p: { proposal_id: string; weight: number }) => void;
+
+  readonly dao_id: string;
+  readonly config: { quorumThreshold: number; votingPeriod: number; liquidDemocracy: boolean };
+
+  constructor(id: string, config: { quorumThreshold: number; votingPeriod: number; liquidDemocracy: boolean }) {
+    this.dao_id = id;
+    this.config = config;
+  }
+
+  onProposalCreated(cb: (proposal: { id: string; title: string }) => void): void {
+    this.onProposed = cb;
+  }
+
+  onVoteCast(cb: (vote: { proposal_id: string; weight: number }) => void): void {
+    this.onVoted = cb;
+  }
+
+  createProposal(id: string, title: string): void {
+    this.proposals.set(id, { id, title, weight: 0, status: 'open' });
+    this.onProposed?.({ id, title });
+  }
+
+  castVote(proposalId: string, weight: number): void {
+    const prop = this.proposals.get(proposalId);
+    if (prop) {
+      prop.weight += weight;
+      this.onVoted?.({ proposal_id: proposalId, weight });
+    }
+  }
+}
+
 export class VRRRuntime {
   public options: VRRRuntimeOptions;
   private activeARRuntime: ARRuntime | null = null;
@@ -1323,6 +1361,15 @@ export class VRRRuntime {
         }
       },
     };
+  }
+
+  createDAO(config: {
+    id: string;
+    quorumThreshold: number;
+    votingPeriod: number;
+    liquidDemocracy: boolean;
+  }): DAOHandle {
+    return new DAOHandle(config.id, config);
   }
 
   /**

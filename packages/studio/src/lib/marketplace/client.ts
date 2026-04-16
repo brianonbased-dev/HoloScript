@@ -44,7 +44,7 @@ export class MarketplaceClient {
       config.mcpmeUrl ||
       process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL ||
       'https://mcp-orchestrator-production-45f9.up.railway.app';
-    this.mcpmeApiKey = config.mcpmeApiKey;
+    this.mcpmeApiKey = config.mcpmeApiKey || process.env.NEXT_PUBLIC_HOLOSCRIPT_API_KEY;
   }
 
   /**

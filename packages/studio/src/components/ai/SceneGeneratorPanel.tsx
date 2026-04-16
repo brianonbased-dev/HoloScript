@@ -16,7 +16,9 @@ import {
   ChevronRight,
   RefreshCw,
   Copy,
+  Github,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useSceneGenerator, type GeneratorStatus } from '@/hooks/useSceneGenerator';
 import { useSceneStore } from '@/lib/stores';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
@@ -62,8 +64,11 @@ export function SceneGeneratorPanel({
   const [prompt, setPrompt] = useState('');
   const [applied, setApplied] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSavingGist, setIsSavingGist] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastAutoAppliedCodeRef = useRef('');
+
+  const { data: session } = useSession();
 
   const existingCode = useSceneStore((s) => s.code) ?? '';
   const setCode = useSceneStore((s) => s.setCode);
@@ -113,6 +118,25 @@ export function SceneGeneratorPanel({
       setCopied(true);
       setTimeout(() => setCopied(false), SAVE_FEEDBACK_DURATION);
     });
+  };
+
+  const handleSaveGist = async () => {
+    if (!generatedCode || !session?.user) return;
+    setIsSavingGist(true);
+    try {
+      const res = await fetch('/api/github/gist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: generatedCode })
+      });
+      if (!res.ok) throw new Error('Failed to save gist');
+      const data = await res.json();
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Save to gist failed:', err);
+    } finally {
+      setIsSavingGist(false);
+    }
   };
 
   const handleExample = (ex: string) => {
@@ -216,6 +240,17 @@ export function SceneGeneratorPanel({
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-studio-muted">Generated scene</p>
               <div className="flex gap-1">
+                {session?.user && (
+                  <button
+                    onClick={handleSaveGist}
+                    disabled={isSavingGist}
+                    title="Save as GitHub Gist"
+                    aria-label="Save as GitHub Gist"
+                    className="text-[10px] text-studio-muted hover:text-studio-accent transition disabled:opacity-50"
+                  >
+                    {isSavingGist ? <Loader2 className="h-3 w-3 animate-spin" /> : <Github className="h-3 w-3" />}
+                  </button>
+                )}
                 <button
                   onClick={handleCopy}
                   title="Copy generated code"

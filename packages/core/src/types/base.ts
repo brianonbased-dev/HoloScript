@@ -73,6 +73,7 @@ export type VRTraitName =
   | 'interactive_graph'
   | 'draft'
   | 'hot_reload'
+  | 'world_generator'
   | (string & {}); // Allow any string for extensibility while preserving autocomplete
 
 // ============================================================================

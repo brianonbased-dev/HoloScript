@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SovereignWorldAdapter } from '../adapters/SovereignWorldAdapter';
+import { Sovereign3DAdapter } from '../adapters/Sovereign3DAdapter';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,7 +28,7 @@ function makeJobResponse(overrides: Record<string, unknown> = {}) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('SovereignWorldAdapter', () => {
+describe('Sovereign3DAdapter', () => {
   let fetchMock: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('SovereignWorldAdapter', () => {
   });
 
   it('has expected adapter id', () => {
-    const adapter = new SovereignWorldAdapter({ apiKey: 'test-key' });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'test-key' });
     expect(adapter.id).toBe('sovereign-3d');
   });
 
@@ -59,7 +59,7 @@ describe('SovereignWorldAdapter', () => {
         json: async () => makeJobResponse(),
       });
 
-    const adapter = new SovereignWorldAdapter({
+    const adapter = new Sovereign3DAdapter({
       apiKey: 'test-key',
       pollIntervalMs: 0,
     });
@@ -102,7 +102,7 @@ describe('SovereignWorldAdapter', () => {
         json: async () => makeJobResponse({ job_id: 'job_poll_123', status: 'done', progress: 1 }),
       });
 
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     const result = await adapter.generate({ prompt: 'desert', format: 'mesh', quality: 'low' });
 
     expect(result.generationId).toBe('job_poll_123');
@@ -120,7 +120,7 @@ describe('SovereignWorldAdapter', () => {
         json: async () => makeJobResponse({ status: 'error', error: 'Out of memory' }),
       });
 
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
       .rejects.toThrow('Out of memory');
   });
@@ -136,7 +136,7 @@ describe('SovereignWorldAdapter', () => {
         json: async () => makeJobResponse({ status: 'processing', progress: 0.1 }),
       });
 
-    const adapter = new SovereignWorldAdapter({
+    const adapter = new Sovereign3DAdapter({
       apiKey: 'key',
       pollIntervalMs: 0,
       timeoutMs: 1, // immediate timeout
@@ -151,7 +151,7 @@ describe('SovereignWorldAdapter', () => {
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j1' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
 
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'low' });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
@@ -176,7 +176,7 @@ describe('SovereignWorldAdapter', () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
         .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
-      const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+      const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
       await adapter.generate({ prompt: 'x', format: input, quality: 'medium' });
       const body = JSON.parse(fetchMock.mock.calls.at(-2)![1].body as string);
       expect(body.output_format).toBe(expected);
@@ -185,7 +185,7 @@ describe('SovereignWorldAdapter', () => {
 
   it('cancel() posts to cancel endpoint', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await adapter.cancel?.('job_cancel_123');
     expect(fetchMock.mock.calls[0][0]).toContain('/api/jobs/job_cancel_123/cancel');
     expect(fetchMock.mock.calls[0][1].method).toBe('POST');
@@ -196,7 +196,7 @@ describe('SovereignWorldAdapter', () => {
       ok: true, status: 200,
       json: async () => makeJobResponse({ progress: 0.65 }),
     });
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     const progress = await adapter.getProgress?.('job_prog_123');
     expect(progress).toBe(0.65);
   });
@@ -206,7 +206,7 @@ describe('SovereignWorldAdapter', () => {
       ok: true, status: 200,
       json: async () => makeJobResponse({ progress: undefined }),
     });
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     const progress = await adapter.getProgress?.('job_done_123');
     expect(progress).toBe(1);
   });
@@ -216,7 +216,7 @@ describe('SovereignWorldAdapter', () => {
       ok: false, status: 503,
       text: async () => 'Service Unavailable',
     });
-    const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
       .rejects.toThrow(/503/);
   });
@@ -226,7 +226,7 @@ describe('SovereignWorldAdapter', () => {
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
 
-    const adapter = new SovereignWorldAdapter({ apiKey: 'my-sovereign-key', pollIntervalMs: 0 });
+    const adapter = new Sovereign3DAdapter({ apiKey: 'my-sovereign-key', pollIntervalMs: 0 });
     await adapter.generate({ prompt: 'test', format: '3dgs', quality: 'medium' });
 
     const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
@@ -238,12 +238,47 @@ describe('SovereignWorldAdapter', () => {
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
 
-    const adapter = new SovereignWorldAdapter({
+    const adapter = new Sovereign3DAdapter({
       baseUrl: 'https://custom.brittney.local',
       apiKey: 'k',
       pollIntervalMs: 0,
     });
     await adapter.generate({ prompt: 'test', format: '3dgs', quality: 'medium' });
     expect(fetchMock.mock.calls[0][0]).toContain('custom.brittney.local');
+  });
+
+  it('should handle neural_field format correctly', async () => {
+    const adapter = new Sovereign3DAdapter({ apiKey: 'test-key' });
+    
+    // Mock successful submit
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/generate')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ job_id: 'job-neural-123' }),
+        });
+      }
+      if (url.includes('/api/jobs/job-neural-123')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            job_id: 'job-neural-123',
+            status: 'done',
+            asset_url: 'https://cdn.holoscript.net/worlds/neural_stream_001.bin',
+            metadata: { format: 'neural_field' }
+          }),
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    }) as any;
+
+    const result = await adapter.generate({
+      prompt: 'a neural dreaming space',
+      format: 'neural_field' as any,
+      quality: 'high'
+    });
+
+    expect(result.metadata.format).toBe('neural_field');
+    expect(result.assetUrl).toContain('neural_stream');
   });
 });

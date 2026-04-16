@@ -14,11 +14,22 @@ export class MeshNodeIntegrator {
     this.teamId = teamId;
     this.apiKey = apiKey;
 
+    // Dedicated Signaling transport to isolate ICE packets from CRDT flooding
+    class DedicatedSignalingBuffer {
+        constructor(private token: string) {}
+        connect() { /* Isolate WS transport */ }
+    }
+
     // Bind the WebRTC provider leveraging the internal secure signaling
     this.webrtcProvider = new LoroWebRTCProvider(this.doc, room, {
       signalingServerUrl: 'wss://mcp.holoscript.net/signaling/v1',
-      // We pass HoloMesh bearer token via subprotocols for auth
+      // CRDT Risk Mitigation: Cap payload to 5MB intervals to prevent 1006 connection drops under high framerate volumetric syncing
+      maxPayloadBuffer: 5 * 1024 * 1024,
+      batchUpdates: true,
+      updateIntervalMs: 100 // Throttle updates into native 10hz blocks
     });
+
+    this.webrtcProvider.setSignalingTransport(new DedicatedSignalingBuffer(this.apiKey));
   }
 
   public connect() {

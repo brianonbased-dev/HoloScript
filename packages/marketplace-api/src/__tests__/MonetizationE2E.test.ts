@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterAll, beforeEach } from 'vitest';
-import { x402PaymentService } from '../x402PaymentService';
+import crypto from 'crypto';
+import { x402PaymentService } from '../x402PaymentService.js';
 import type { Request, Response } from 'express';
 
 const mockQuery = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
@@ -36,6 +37,7 @@ describe('Monetization Layer E2E Integration', () => {
     gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000 },
     receipt_storage: { provider: 'supabase', table: 'x402_receipts' },
     webhook_endpoint: '/api/payments/x402/callback',
+    webhook_secret: 'test-secret-123',
   });
 
   beforeEach(() => {
@@ -90,13 +92,21 @@ describe('Monetization Layer E2E Integration', () => {
     let callbackStatus = 0;
     let callbackBody: any = {};
 
+    const body2 = {
+      payment_id: paymentId,
+      transaction_hash: '0x' + 'fe'.repeat(32),
+      network: 'base',
+      creator_address: '0xPhoenixBrewOwner',
+      agent_address: '0xConciergeAgent',
+    };
+
     const req2 = {
-      body: {
-        payment_id: paymentId,
-        transaction_hash: '0xHash123',
-        network: 'base',
-        creator_address: '0xPhoenixBrewOwner',
-        agent_address: '0xConciergeAgent', // The agent completing the transaction for the user
+      body: body2,
+      headers: {
+        'x-x402-signature': crypto
+          .createHmac('sha256', 'test-secret-123')
+          .update(JSON.stringify(body2))
+          .digest('hex'),
       },
     } as unknown as Request;
 
@@ -111,13 +121,14 @@ describe('Monetization Layer E2E Integration', () => {
       }),
     } as unknown as Response;
 
-    // We must mock the verifyPayment internal check to resolve true
-    vi.spyOn(paymentService as any, 'verifyPayment').mockResolvedValue({
-      payment_id: paymentId,
+    // We must mock the getBlockchainReceipt internal check to resolve true
+    vi.spyOn(paymentService as any, 'getBlockchainReceipt').mockResolvedValue({
       amount: 10,
-      content_id: 'phoenix-brew',
-      access_granted: true,
+      recipient: '0xPlatformWalletAddress', // This should match a resolved address
     });
+
+    // Mock resolvePlatformRecipientAddress to return what we expect
+    vi.spyOn(paymentService as any, 'resolvePlatformRecipientAddress').mockReturnValue('0xplatformwalletaddress');
 
     await paymentService.facilitatorCallback(req2, res2);
 
@@ -149,10 +160,24 @@ describe('Monetization Layer E2E Integration', () => {
     } as unknown as Response;
 
     const next3 = vi.fn();
+
+    // Mock DB to return the granted receipt
+    mockQuery.mockResolvedValue({
+      rows: [
+        {
+          payment_id: paymentId,
+          content_id: 'phoenix-brew',
+          access_granted: true,
+          amount: 10,
+          transaction_hash: '0x' + 'fe'.repeat(32),
+          asset: 'USDC',
+          network: 'base',
+        },
+      ],
+      rowCount: 1,
+    });
+
     await middleware(req3, res3, next3);
-
     expect(next3).toHaveBeenCalled();
-
-    // VRR access is permanently unlocked! The E2E loop completes successfully.
   });
 });

@@ -116,6 +116,7 @@ export interface HoloComposition extends HoloNode {
   achievements: HoloAchievement[];
   talentTrees: HoloTalentTree[];
   shapes: HoloShape[];
+  worlds: HoloWorld[];
   /** User-defined trait definitions (trait Name [extends Base] { ... }) */
   traitDefinitions?: HoloTraitDefinition[];
   /** Root-level trait attachments (e.g. @page, @metadata) */
@@ -425,6 +426,25 @@ export interface HoloObjectTrait extends HoloNode {
   config: Record<string, HoloValue>;
   /** Positional arguments for traits (e.g. @trait(arg1, arg2)) */
   args?: HoloValue[];
+}
+
+// =============================================================================
+// WORLD (sovereign 3D simulation block)
+// =============================================================================
+
+export interface HoloWorld extends HoloNode {
+  type: 'World';
+  name: string;
+  properties: HoloWorldProperty[];
+  children?: HoloObjectDecl[];
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
+}
+
+export interface HoloWorldProperty extends HoloNode {
+  type: 'WorldProperty';
+  key: string;
+  value: HoloValue;
 }
 
 // =============================================================================

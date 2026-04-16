@@ -158,6 +158,8 @@ export interface x402PaymentServiceOptions {
    * on-chain recipient checks use `getAddress()`.
    */
   wallet?: InvisibleWalletStub;
+  /** HMAC-SHA256 secret for validating facilitator webhooks */
+  webhook_secret?: string;
 }
 
 export interface x402PaymentRequest {
@@ -574,6 +576,22 @@ export class x402PaymentService {
   /** Handle facilitator payment confirmation callback */
   async facilitatorCallback(req: Request, res: Response): Promise<void> {
     try {
+      // 1. Signature Verification (if secret is configured)
+      if (this.options.webhook_secret) {
+        const signature = req.headers['x-x402-signature'];
+        if (typeof signature !== 'string') {
+          res.status(401).json({ error: 'Missing webhook signature' });
+          return;
+        }
+
+        const rawBody = JSON.stringify(req.body);
+        const verified = this.verifySignature(rawBody, signature);
+        if (!verified) {
+          res.status(401).json({ error: 'Invalid webhook signature' });
+          return;
+        }
+      }
+
       // Validate callback body
       const body = req.body as Record<string, unknown>;
       if (!body || typeof body !== 'object') {
@@ -698,6 +716,23 @@ export class x402PaymentService {
       platform: { amount: platformShare },
       agent: agentAddress ? { address: agentAddress, amount: agentShare } : null,
     };
+  }
+
+  // ─── Security Helpers ───────────────────────────────────────────────────
+
+  private verifySignature(rawBody: string, signature: string): boolean {
+    if (!this.options.webhook_secret) return true;
+    
+    try {
+      const crypto = require('crypto');
+      const hmac = crypto.createHmac('sha256', this.options.webhook_secret);
+      hmac.update(rawBody);
+      const expected = hmac.digest('hex');
+      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    } catch (e) {
+      console.warn('[x402] crypto not available or verification failed', e);
+      return false;
+    }
   }
 
   // ─── Gasless Subsidy ─────────────────────────────────────────────────────

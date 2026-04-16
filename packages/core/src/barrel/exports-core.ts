@@ -33,3 +33,18 @@ export {
   type TreeShakeOptions,
   type TreeShakeResult,
 } from '../TreeShaker';
+
+// Visual logic graph (editor + logic) — shared with Studio execution bridge
+export {
+  NodeGraph,
+  type LogicNode,
+  type LogicConnection,
+  type EvaluationContext,
+} from '../logic/NodeGraph';
+export {
+  NodeGraphPanel,
+  type NodeGraphPanelConfig,
+  type NodeGraphExecutionResult,
+  type UIEntity,
+} from '../editor/NodeGraphPanel';
+export { emitPreviewHoloScriptFromNodeGraphExecution } from '../editor/nodeGraphPlayPreview';

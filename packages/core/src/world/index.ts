@@ -11,7 +11,7 @@ export {
   type WorldMetadata,
 } from './WorldGeneratorAdapter';
 
-export { SovereignWorldAdapter, type SovereignWorldAdapterOptions } from './adapters/SovereignWorldAdapter';
+export { Sovereign3DAdapter, type Sovereign3DAdapterOptions } from './adapters/Sovereign3DAdapter';
 
 export {
   WorldGeneratorService,
@@ -23,3 +23,9 @@ export {
   type WorldGenerationErrorEvent,
   type WorldEventEmitter,
 } from './WorldGeneratorService';
+
+export {
+  WorldSimulationBridge,
+  worldSimulationBridge,
+  type SimulationBridgeOptions,
+} from './WorldSimulationBridge';

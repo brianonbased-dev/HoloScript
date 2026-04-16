@@ -3462,13 +3462,13 @@ importers:
   services/absorb-service:
     dependencies:
       '@holoscript/absorb-service':
-        specifier: workspace:*
+        specifier: workspace:6.0.0
         version: link:../../packages/absorb-service
       '@holoscript/config':
-        specifier: workspace:^
+        specifier: workspace:6.0.2
         version: link:../../packages/config
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:6.0.4
         version: link:../../packages/core
       '@modelcontextprotocol/sdk':
         specifier: '>=1.25.2'

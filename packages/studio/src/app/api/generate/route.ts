@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoValidator';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 const MAX_REQUESTS_PER_MIN = 10;
 
@@ -118,6 +120,11 @@ export async function POST(request: NextRequest) {
       userPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
     } else {
       userPrompt = `Generate a HoloScript scene for: ${prompt}`;
+    }
+
+    const session = await getServerSession(authOptions);
+    if (session?.user) {
+      userPrompt += `\n\n(Context: You are assisting ${session.user.name || 'a user'} (@${session.user.githubUsername || 'anonymous'}). Address them by name if appropriate, and keep suggestions tailored to their identity.)`;
     }
 
     // Cloud-first provider rotation: OpenRouter → Anthropic → OpenAI.
