@@ -4,8 +4,8 @@
  * NodeGraphPanel — visual node graph editor with drag-canvas, node cards, and SVG edges.
  */
 
-import { useState, useRef, _useCallback, useEffect } from 'react';
-import { Network, X, Search, Plus, _Trash2, RotateCcw, Play, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Network, X, Search, Plus, RotateCcw, Play, ChevronDown } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
 import {
   executeStudioGraph,
