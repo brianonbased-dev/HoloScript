@@ -1,7 +1,7 @@
 /**
  * PluginSandbox — iframe-based plugin isolation for HoloScript Studio
  *
- * TODO-028: Plugin Sandboxing Architecture
+ * Architecture index: RFC-028 (plugin sandboxing); remaining hardening is tracked in design backlog, not inline TODOs.
  *
  * Architecture:
  *   Each plugin runs in a dedicated iframe with restricted permissions.
