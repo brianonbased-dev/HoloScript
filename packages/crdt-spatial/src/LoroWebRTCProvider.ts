@@ -4,6 +4,7 @@ import {
   FILM3D_VOLUMETRICS_ROOT,
   MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES,
   ensureFilm3dVolumetricsRoot,
+  isWithinVolumetricWebRtcSyncBudget,
 } from './film3dVolumetricCrdt.js';
 
 export interface WebRTCProviderConfig {
@@ -46,7 +47,7 @@ export class LoroWebRTCProvider {
     this.doc.subscribe((batch: LoroEventBatch) => {
       if (batch.by === 'local') {
         const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
-        if (!this.withinVolumetricSyncBudget(update)) {
+        if (!isWithinVolumetricWebRtcSyncBudget(update.byteLength)) {
           console.warn(
             `[LoroWebRTC] Skipping outbound sync: ${update.byteLength} bytes exceeds volumetric WebRTC cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES}); split volumetrics with chunk APIs`
           );
@@ -130,7 +131,7 @@ export class LoroWebRTCProvider {
       this.dataChannels.set(peerId, dc);
       const state = this.doc.export({ mode: "update" }); // Full sync on connect
       if (state.length > 0) {
-        if (!this.withinVolumetricSyncBudget(state)) {
+        if (!isWithinVolumetricWebRtcSyncBudget(state.byteLength)) {
           console.warn(
             `[LoroWebRTC] Skipping initial sync to ${peerId}: ${state.byteLength} bytes exceeds volumetric WebRTC cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
           );
@@ -172,7 +173,7 @@ export class LoroWebRTCProvider {
   }
 
   public sync(updateBytes: Uint8Array) {
-    if (!this.withinVolumetricSyncBudget(updateBytes)) {
+    if (!isWithinVolumetricWebRtcSyncBudget(updateBytes.byteLength)) {
       console.warn(
         `[LoroWebRTC] Refusing outbound sync: ${updateBytes.byteLength} bytes exceeds cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
       );
@@ -189,13 +190,8 @@ export class LoroWebRTCProvider {
     }
   }
 
-  /** Single-frame WebRTC sync budget (volumetric graph can produce large Loro exports). */
-  private withinVolumetricSyncBudget(bytes: Uint8Array): boolean {
-    return bytes.byteLength <= MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES;
-  }
-
   public handleIncomingSync(updateBytes: Uint8Array, peerId?: string) {
-    if (!this.withinVolumetricSyncBudget(updateBytes)) {
+    if (!isWithinVolumetricWebRtcSyncBudget(updateBytes.byteLength)) {
       console.warn(
         `[LoroWebRTC] Dropped oversized volumetric sync${peerId ? ` from ${peerId}` : ''}: ${updateBytes.byteLength} bytes (max ${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES})`
       );

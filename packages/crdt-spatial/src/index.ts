@@ -60,6 +60,7 @@ export {
 export {
   FILM3D_VOLUMETRICS_ROOT,
   MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES,
+  isWithinVolumetricWebRtcSyncBudget,
   ensureFilm3dVolumetricsRoot,
   registerVolumetricNode,
   setVolumetricChunk,

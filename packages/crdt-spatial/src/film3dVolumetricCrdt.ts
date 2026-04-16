@@ -14,6 +14,11 @@ export const FILM3D_VOLUMETRICS_ROOT = 'film3d_volumetrics' as const;
  */
 export const MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES = 12 * 1024 * 1024;
 
+/** True if a single WebRTC Loro sync frame is within the volumetric transport budget. */
+export function isWithinVolumetricWebRtcSyncBudget(byteLength: number): boolean {
+  return byteLength <= MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES;
+}
+
 export function ensureFilm3dVolumetricsRoot(doc: LoroDoc) {
   return doc.getMap(FILM3D_VOLUMETRICS_ROOT);
 }
