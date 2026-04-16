@@ -1,7 +1,8 @@
 /**
  * WASMCompilationTarget — Compile tree-sitter-holoscript grammar to WASM
  *
- * TODO-029: WASM Compilation Target
+ * WASM compilation target: tree-sitter HoloScript grammar via Emscripten config,
+ * Makefile scaffolding, and browser `WASMHoloScriptParser` with `WASMParserPool`.
  *
  * Architecture:
  *   Wraps the tree-sitter-holoscript grammar compilation process to produce
