@@ -204,7 +204,7 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   },
   {
     name: 'add_pattern',
-    description: 'Index a new pattern (P.XXX.XX format)',
+    description: 'Index a new pattern (P.<domain>.<nnn> id shape)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -219,7 +219,7 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   },
   {
     name: 'add_wisdom',
-    description: 'Index a new wisdom entry (W.XXX.XX format)',
+    description: 'Index a new wisdom entry (W.<domain>.<nnn> id shape)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -233,7 +233,7 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   },
   {
     name: 'add_gotcha',
-    description: 'Index a new gotcha (G.XXX.XX format)',
+    description: 'Index a new gotcha (G.<domain>.<nnn> id shape)',
     inputSchema: {
       type: 'object',
       properties: {
