@@ -3166,6 +3166,42 @@ export declare const ComponentType: any;
 export class MoMETraitDatabase {
   [key: string]: any;
 }
+
+// ── Namespaced domain plugins (mirrors packages/core/src/traits/index.ts) ──
+// Keeps \`import { FilmVFXPlugin } from '@holoscript/core/traits'\` resolving after barrel namespacing.
+export * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
+export * as AlphaFoldPlugin from '@holoscript/alphafold-plugin';
+export * as BankingFinancePlugin from '@holoscript/plugin-banking-finance';
+export * as CivilEngineeringPlugin from '@holoscript/plugin-civil-engineering';
+export * as CultureKeywordPlugin from '@holoscript/plugin-culture-keyword';
+export * as DomainPluginTemplate from '@holoscript/domain-plugin-template';
+export * as EconomicPrimitivesPlugin from '@holoscript/plugin-economic-primitives';
+export * as EducationLmsPlugin from '@holoscript/plugin-education-lms';
+export * as EmergencyResponsePlugin from '@holoscript/plugin-emergency-response';
+export * as FashionPlugin from '@holoscript/plugin-fashion';
+export * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics';
+export * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
+export * as ForensicsPlugin from '@holoscript/plugin-forensics';
+export * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
+export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention';
+export * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
+export * as InsurancePlugin from '@holoscript/plugin-insurance';
+export * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
+export * as ManufacturingQcPlugin from '@holoscript/plugin-manufacturing-qc';
+export * as MedicalPlugin from '@holoscript/medical-plugin';
+export * as NeurosciencePlugin from '@holoscript/plugin-neuroscience';
+export * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
+export * as RestaurantPlugin from '@holoscript/plugin-restaurant';
+export * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
+export * as RoboticsPlugin from '@holoscript/robotics-plugin';
+export * as NarupaPlugin from '@holoscript/narupa-plugin';
+export * as TherapyPlugin from '@holoscript/plugin-therapy';
+export * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
+export * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
+export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';
+export * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
+export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
+export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
 `;
 
 const compilerDTS = `/**
@@ -3233,6 +3269,19 @@ export class IncrementalCompiler extends CompilerBase { compile(ast: any, token:
 export class MultiLayerCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class COCOExporter { [key: string]: any; }
 export class GLTFPipelineMCPTool { [key: string]: any; }
+export const BUSINESS_QUEST_TOOLS: any[];
+export function registerBusinessQuestTools(server: any): void;
+export function handleBusinessQuestToolCall(request: any): Promise<any>;
+export function buildVRRCompositionFromDraft(draft: any): any;
+export function validateBusinessVRRDraft(
+  draft: unknown,
+  options?: { parseWithVrrCompiler?: boolean }
+): Promise<any>;
+export function draftToHoloPreview(draft: any): string;
+export const businessVRRDraftSchema: any;
+export type BusinessVRRDraft = any;
+export type BusinessQuestValidationIssue = any;
+export type BusinessQuestValidationResult = any;
 export class NodeToyMapping { [key: string]: any; }
 export class RemotionBridge { [key: string]: any; }
 export class ReproducibilityMode { [key: string]: any; }
@@ -3649,8 +3698,9 @@ export type MaterialPreset = unknown;
 `;
 
 const constantsDTS = `// @holoscript/core/constants — trait name constants
-export { VR_TRAITS } from './traits/index.js';
-export type { VRTraitName } from './traits/index.js';
+// VR_TRAITS lives in the main bundle (chunk), not in dist/traits/index.js
+export { VR_TRAITS } from './index.js';
+export type { VRTraitName } from './index.js';
 `;
 
 const scriptingDTS = `// @holoscript/core/scripting — headless runtime and scripting traits
