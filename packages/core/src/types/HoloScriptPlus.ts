@@ -218,6 +218,21 @@ export interface ThrowableTrait extends BaseTrait {
   bounce_factor?: number;
 }
 
+/** Canonical collision elasticity (@elastic); maps to shared elasticityCore pipeline. */
+export interface ElasticityTrait extends BaseTrait {
+  coefficient?: number;
+  restitution?: number;
+  factor?: number;
+}
+
+/** Legacy-friendly bounce decorator (@bounce); normalizes to ElasticityTrait semantics. */
+export interface BounceTrait extends BaseTrait {
+  mode?: boolean;
+  bounce?: boolean;
+  bounce_factor?: number;
+  factor?: number;
+}
+
 export interface StretchableTrait extends BaseTrait {
   minStretch?: number;
   maxStretch?: number;

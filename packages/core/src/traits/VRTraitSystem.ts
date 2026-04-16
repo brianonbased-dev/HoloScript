@@ -61,6 +61,9 @@ export type {
 };
 
 // Import all trait handlers here at the top
+import { bounceHandler } from './BounceTrait';
+import { elasticityHandler } from './ElasticityTrait';
+import { compileElasticityTraitContext, applyElasticCollisionResponse } from './elasticityCore';
 import { seatedHandler } from './SeatedTrait';
 import { hapticHandler } from './HapticTrait';
 import { eyeTrackedHandler } from './EyeTrackedTrait';
@@ -658,23 +661,15 @@ const throwableHandler: TraitHandler<ThrowableTrait> = {
   },
 
   onEvent(node, config, context, event) {
-    if (event.type === 'collision' && config.bounce) {
-      const evRec = event as unknown as Record<string, unknown>;
-      const collision = evRec.data as CollisionData;
-      const bounceFactor = config.bounce_factor || 0.5;
-
-      // Reflect velocity
-      const velocity = collision.relativeVelocity;
-      const normal = collision.normal;
-      const dot = velocity[0] * normal[0] + velocity[1] * normal[1] + velocity[2] * normal[2];
-      const reflected: Vector3 = [
-        (velocity[0] - 2 * dot * normal[0]) * bounceFactor,
-        (velocity[1] - 2 * dot * normal[1]) * bounceFactor,
-        (velocity[2] - 2 * dot * normal[2]) * bounceFactor,
-      ];
-
-      context.physics.applyVelocity(node, reflected);
-    }
+    if (event.type !== 'collision' || !config.bounce) return;
+    const evRec = event as unknown as Record<string, unknown>;
+    const collision = evRec.data as CollisionData;
+    const elasticityCtx = compileElasticityTraitContext('bounce', {
+      mode: config.bounce,
+      bounce_factor: config.bounce_factor,
+    });
+    if (!elasticityCtx.enabled) return;
+    applyElasticCollisionResponse(context, node, collision, elasticityCtx.coefficient);
   },
 };
 
@@ -1421,6 +1416,8 @@ export class VRTraitRegistry {
     // Register all built-in handlers
     this.register(grabbableHandler);
     this.register(throwableHandler);
+    this.register(elasticityHandler);
+    this.register(bounceHandler);
     this.register(pointableHandler);
     this.register(hoverableHandler);
     this.register(scalableHandler);
@@ -1896,6 +1893,9 @@ export class VRTraitRegistry {
   }
 
   register<T>(handler: TraitHandler<T>): void {
+    if (!handler || typeof (handler as { name?: unknown }).name !== 'string') {
+      return;
+    }
     this.handlers.set(handler.name, handler as TraitHandler);
   }
 
@@ -2004,6 +2004,8 @@ export {
   // Core VR
   grabbableHandler,
   throwableHandler,
+  elasticityHandler,
+  bounceHandler,
   pointableHandler,
   hoverableHandler,
   scalableHandler,
