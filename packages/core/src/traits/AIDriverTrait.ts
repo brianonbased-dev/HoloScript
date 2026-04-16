@@ -4,18 +4,18 @@
  * Enables intelligent NPC behaviors using behavior trees and goal planning
  * Integrates with Infinity Assistant service for agent-based decision making
  *
- * TODO(P.XR.01): Map to tiered XR agent architecture.
+ * Design backlog (P.XR.01): Map to tiered XR agent architecture.
  *   This trait is Layer 1 (Reactive, <50ms) in the XR stack.
  *   BehaviorTreeRunner should run on CPU at <50ms budget.
  *   GOAP planner maps to Layer 2 (Reasoning, <500ms) on Hexagon NPU.
  *   Add inferenceTier field to AIDriverConfig: 'cpu_reactive' | 'npu_reasoning' | 'cloud_strategic'.
  *
- * TODO(P.XR.04): Async NPU agent loop integration.
+ * Design backlog (P.XR.04): Async NPU agent loop integration.
  *   tick() currently runs on setInterval(100ms). On XR, reasoning tier
  *   should run on a separate async NPU loop, decoupled from GPU render.
  *   Results delivered via lock-free queue. No frame drops.
  *
- * TODO(P.SIG25.03): AI-driven animation from prompts.
+ * Design backlog (P.SIG25.03): AI-driven animation from prompts.
  *   "Any Character, Any Movement" (SIGGRAPH 2025) — BehaviorState should
  *   accept natural language movement descriptions that generate animation
  *   at runtime via diffusion models. No keyframes, no mocap.
