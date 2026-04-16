@@ -82,28 +82,97 @@ import type { DirectorAIConfig } from './traits/DirectorAITrait';
 import type { VirtualProductionConfig } from './traits/VirtualProductionTrait';
 import type { TextToUniverseConfig } from './traits/TextToUniverseTrait';
 
+// ============================================================================
+// LegacyImporter routing definitions (flat -> namespaced)
+// ============================================================================
+
+export type FilmVFXFlatTraitName =
+  | 'shot_list'
+  | 'color_grade'
+  | 'dmx_lighting'
+  | 'director_ai'
+  | 'virtual_production'
+  | 'text_to_universe';
+
+export type FilmVFXNamespacedTraitName = `FilmVFXPlugin.${FilmVFXFlatTraitName}`;
+
+export type FilmVFXTraitToken<TFlat extends FilmVFXFlatTraitName = FilmVFXFlatTraitName> =
+  | TFlat
+  | `FilmVFXPlugin.${TFlat}`;
+
+/**
+ * Mirrors absorb LegacyImporter routing so plugin-local compilation can accept
+ * either legacy flat trait discriminants or namespaced envelope tokens.
+ */
+export const LEGACY_IMPORTER_ROUTING_DEFINITIONS: Readonly<
+  Record<FilmVFXFlatTraitName, FilmVFXNamespacedTraitName>
+> = {
+  shot_list: 'FilmVFXPlugin.shot_list',
+  color_grade: 'FilmVFXPlugin.color_grade',
+  dmx_lighting: 'FilmVFXPlugin.dmx_lighting',
+  director_ai: 'FilmVFXPlugin.director_ai',
+  virtual_production: 'FilmVFXPlugin.virtual_production',
+  text_to_universe: 'FilmVFXPlugin.text_to_universe',
+} as const;
+
+export function toNamespacedFilmVFXTraitToken(token: string): string {
+  const normalized = token.trim().replace(/^@+/, '');
+  if (normalized in LEGACY_IMPORTER_ROUTING_DEFINITIONS) {
+    return LEGACY_IMPORTER_ROUTING_DEFINITIONS[normalized as FilmVFXFlatTraitName];
+  }
+  return normalized;
+}
+
+export function routeNamespacedFilmVFXTraitEnvelopes(source: string): string {
+  let out = source;
+  for (const [flat, namespaced] of Object.entries(LEGACY_IMPORTER_ROUTING_DEFINITIONS)) {
+    const atRe = new RegExp(`@(["']?)(${flat})\\1(?!\\.)`, 'g');
+    out = out.replace(atRe, () => `@${namespaced}`);
+
+    out = out.replace(
+      new RegExp(`((?:\\btrait\\b|"trait")\\s*:\\s*)(["'])(${flat})\\2(?!\\.)`, 'gi'),
+      `$1$2${namespaced}$2`
+    );
+  }
+  return out;
+}
+
+function normalizeFilmVFXTraitToken(token: string): FilmVFXFlatTraitName | null {
+  const normalized = token.replace(/^@+/, '').trim();
+  if (normalized in LEGACY_IMPORTER_ROUTING_DEFINITIONS) {
+    return normalized as FilmVFXFlatTraitName;
+  }
+  if (normalized.startsWith('FilmVFXPlugin.')) {
+    const flat = normalized.slice('FilmVFXPlugin.'.length);
+    if (flat in LEGACY_IMPORTER_ROUTING_DEFINITIONS) {
+      return flat as FilmVFXFlatTraitName;
+    }
+  }
+  return null;
+}
+
 export interface ShotListTrait extends ShotListConfig {
-  trait: 'shot_list';
+  trait: FilmVFXTraitToken<'shot_list'>;
 }
 
 export interface ColorGradeTrait extends ColorGradeConfig {
-  trait: 'color_grade';
+  trait: FilmVFXTraitToken<'color_grade'>;
 }
 
 export interface DMXLightingTrait extends DMXLightingConfig {
-  trait: 'dmx_lighting';
+  trait: FilmVFXTraitToken<'dmx_lighting'>;
 }
 
 export interface DirectorAITrait extends DirectorAIConfig {
-  trait: 'director_ai';
+  trait: FilmVFXTraitToken<'director_ai'>;
 }
 
 export interface VirtualProductionTrait extends VirtualProductionConfig {
-  trait: 'virtual_production';
+  trait: FilmVFXTraitToken<'virtual_production'>;
 }
 
 export interface TextToUniversePluginTrait extends TextToUniverseConfig {
-  trait: 'text_to_universe';
+  trait: FilmVFXTraitToken<'text_to_universe'>;
 }
 
 export type FilmVFXTrait =
@@ -151,7 +220,8 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
   const lines: string[] = ['composition "FilmVFXScene" {'];
 
   for (const t of traits) {
-    switch (t.trait) {
+    const traitToken = normalizeFilmVFXTraitToken(t.trait);
+    switch (traitToken) {
       case 'shot_list':
         lines.push(`  object "Shot_${t.shotId}" @shot_list {`);
         lines.push(`    scene: ${t.scene}`);
@@ -199,6 +269,9 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
         lines.push(`    narrative: "${t.narrativeConsistency}"`);
         lines.push('  }');
         break;
+      case null:
+        // Ignore unknown trait discriminants in plugin-level compile pass.
+        break;
     }
   }
 
@@ -211,7 +284,9 @@ function compileToEDL(traits: FilmVFXTrait[]): string {
   let eventNum = 1;
   let tcOffset = 0;
 
-  const shotTraits = traits.filter((t): t is ShotListTrait => t.trait === 'shot_list');
+  const shotTraits = traits.filter(
+    (t): t is ShotListTrait => normalizeFilmVFXTraitToken(t.trait) === 'shot_list'
+  );
 
   for (const shot of shotTraits) {
     const tcIn = formatTimecode(tcOffset, 24);
@@ -232,7 +307,9 @@ function compileToEDL(traits: FilmVFXTrait[]): string {
 }
 
 function compileToOTIO(traits: FilmVFXTrait[]): string {
-  const shotTraits = traits.filter((t): t is ShotListTrait => t.trait === 'shot_list');
+  const shotTraits = traits.filter(
+    (t): t is ShotListTrait => normalizeFilmVFXTraitToken(t.trait) === 'shot_list'
+  );
 
   const timeline = {
     OTIO_SCHEMA: 'Timeline.1',
