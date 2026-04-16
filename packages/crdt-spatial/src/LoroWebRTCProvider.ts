@@ -211,6 +211,22 @@ export class LoroWebRTCProvider {
     }
     try {
       this.doc.import(updateBytes);
+
+      // Automated Legal Provenance:
+      // When a P2P swarm successfully syncs spatial data, mint an IP provenance receipt
+      // natively on the Legal Document CRDT graph to assert discovery/origination.
+      const timestamp = new Date().toISOString();
+      const hashMap = this.doc.version().toJSON();
+      const documentId = `provenance_receipt_${this.room}`;
+      
+      this.appendLegalAuditEvent(documentId, {
+        id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        actor: peerId || 'system_network',
+        action: 'spatial_consensus_achieved',
+        timestamp,
+        hash: JSON.stringify(hashMap)
+      });
+      
     } catch (err) {
       console.error(`[LoroWebRTC] Update rejection/conflict parsing: `, err);
     }
@@ -236,6 +252,26 @@ export class LoroWebRTCProvider {
     for (const peer of Array.from(this.peerConnections.keys())) {
       this.removePeer(peer);
     }
+  }
+
+  /**
+   * Snapshot for Gist / GitHub publication manifest — binds `provenance_receipt_${room}`
+   * Loro version vector to an exportable JSON bundle (Door 1 semantic anchor).
+   * Pair with `buildGistPublicationManifest` in @holoscript/core and optional x402 receipt (Door 3).
+   */
+  public getProvenanceReceiptBindingForGist(): {
+    room: string;
+    document_id: string;
+    loro_doc_version: Record<string, unknown>;
+    captured_at_iso: string;
+  } {
+    const hashMap = this.doc.version().toJSON() as unknown as Record<string, unknown>;
+    return {
+      room: this.room,
+      document_id: `provenance_receipt_${this.room}`,
+      loro_doc_version: hashMap,
+      captured_at_iso: new Date().toISOString(),
+    };
   }
 
   /**
