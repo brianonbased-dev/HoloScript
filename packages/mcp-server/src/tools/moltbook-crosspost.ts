@@ -13,7 +13,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import axios from 'axios';
+import { createMoltbookPost } from '../moltbook/moltbook-post.js';
 const RBAC = { checkPermission: async (_token: string, _action: string) => true };
 
 interface HoloMeshTaskCompletion {
@@ -44,7 +44,6 @@ interface MoltbookPost {
 
 export const moltbookRouter = Router();
 
-const MOLTBOOK_API = 'https://api.moltbook.com/v1';
 const HOLOSCRIPT_COMMUNITY = 'holoscript';
 
 /**
@@ -317,30 +316,24 @@ async function postToMoltbook(post: MoltbookPost): Promise<{ url: string }> {
     throw new Error('MOLTBOOK_API_KEY not configured. Set it in .env to enable Moltbook posting.');
   }
 
-  const response = await axios.post(
-    `${MOLTBOOK_API}/posts`,
-    {
-      title: post.title,
-      content: post.content,
-      subreddit: post.community,
-      tags: post.tags,
-      author: post.authorAgent,
-      externalUrl: post.externalLink,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  const created = await createMoltbookPost({
+    apiKey,
+    title: post.title,
+    content: [
+      post.content,
+      post.externalLink ? `\n\n**Link**: ${post.externalLink}` : '',
+      post.tags?.length ? `\n\n**Tags**: ${post.tags.join(', ')}` : '',
+    ].join(''),
+    submolt: post.community,
+  });
 
-  if (!response.data.success) {
-    throw new Error(`Moltbook API error: ${response.data.error}`);
+  if (!created.success) {
+    throw new Error(`Moltbook API error: ${JSON.stringify(created.details)}`);
   }
 
+  const postObj = created.data.post as { url?: string } | undefined;
   return {
-    url: response.data.postUrl,
+    url: (postObj?.url as string) || 'https://www.moltbook.com',
   };
 }
 

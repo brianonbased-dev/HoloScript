@@ -36,6 +36,7 @@ import {
   formatBroadcastContextMarkdown,
   harvestMoltbookBroadcastContext,
 } from './moltbook-broadcast-context';
+import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../moltbook/moltbook-post.js';
 
 const moltbookCrosspostSchema = z.object({
   taskId: z.string().min(1),
@@ -552,54 +553,36 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
     }
 
     try {
-      const lines = [`## ${payload.title}`, '', payload.description, ''];
-      if (payload.metrics) {
-        lines.push('### Metrics');
-        if (payload.metrics.filesModified != null) {
-          lines.push(`- Files modified: ${payload.metrics.filesModified}`);
-        }
-        if (payload.metrics.linesAdded != null) {
-          lines.push(`- Lines added: +${payload.metrics.linesAdded}`);
-        }
-        if (payload.metrics.linesDeleted != null) {
-          lines.push(`- Lines deleted: -${payload.metrics.linesDeleted}`);
-        }
-        if (payload.metrics.testsCovered != null) {
-          lines.push(`- Tests covered: ${payload.metrics.testsCovered}`);
-        }
-        if (payload.metrics.executionTimeMs != null) {
-          lines.push(`- Execution time: ${(payload.metrics.executionTimeMs / 1000).toFixed(2)}s`);
-        }
-      }
-
-      lines.push('', `Task ID: ${payload.taskId}`);
-
+      const postBody: Record<string, unknown> = {
+        taskId: payload.taskId,
+        title: payload.title,
+        description: payload.description,
+        status: 'completed',
+        ownerAgent: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
+        metrics: payload.metrics,
+        tags: payload.tags,
+      };
+      const built = buildMoltbookCrosspostPayload(postBody);
       if (environmentContext && Object.keys(environmentContext).length > 0) {
-        lines.push('', formatBroadcastContextMarkdown(environmentContext));
+        built.content += `\n\n${formatBroadcastContextMarkdown(environmentContext)}`;
       }
-
-      const directResp = await axios.post(
-        'https://api.moltbook.com/v1/posts',
-        {
-          title: payload.title,
-          content: lines.join('\n'),
-          subreddit: 'holoscript',
-          tags: payload.tags,
-          author: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${moltbookApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 12000,
-        }
-      );
-
+      const direct = await createMoltbookPost({
+        apiKey: moltbookApiKey,
+        title: built.title,
+        content: built.content,
+        submolt: built.submolt,
+      });
+      if (!direct.success) {
+        return {
+          error: 'Moltbook direct post failed',
+          details: direct.details,
+          environmentContext,
+        };
+      }
       return {
         success: true,
         route: 'direct-moltbook',
-        response: directResp.data,
+        response: direct.data,
         environmentContext,
       };
     } catch (directErr: unknown) {
@@ -1099,44 +1082,16 @@ async function handleCrosspostMoltbook(
       `[${typeLabel}] ${entry.content.slice(0, 80)}${entry.content.length > 80 ? '...' : ''}`;
     const moltbookContent = `${entry.content}\n\n---\n*Cross-posted from [HoloMesh](https://mcp.holoscript.net/api/holomesh/entry/${entryId}) — domain: ${entry.domain || 'general'}, confidence: ${entry.confidence || 0.9}*`;
 
-    const moltbookRes = await fetch('https://www.moltbook.com/api/v1/posts', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${moltbookKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title, content: moltbookContent, submolt }),
+    const created = await createMoltbookPost({
+      apiKey: moltbookKey,
+      title,
+      content: moltbookContent,
+      submolt,
     });
-
-    const moltbookData = (await moltbookRes.json()) as Record<string, unknown>;
-
-    if (!moltbookData.success) {
-      return { error: 'Moltbook post failed', details: moltbookData };
+    if (!created.success) {
+      return { error: 'Moltbook post failed', details: created.details };
     }
-
-    // Auto-verify if challenge present
-    const post = moltbookData.post as Record<string, unknown> | undefined;
-    const verification = post?.verification as Record<string, unknown> | undefined;
-    if (verification?.challenge_text && verification?.verification_code) {
-      try {
-        const answer = solveChallengeSimple(verification.challenge_text as string);
-        if (answer) {
-          await fetch('https://www.moltbook.com/api/v1/verify', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${moltbookKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              verification_code: verification.verification_code,
-              answer,
-            }),
-          });
-        }
-      } catch {
-        /* verification is best-effort */
-      }
-    }
+    const moltbookData = created.data;
 
     return {
       success: true,
@@ -1148,27 +1103,5 @@ async function handleCrosspostMoltbook(
     return {
       error: `Crosspost failed: ${err instanceof Error ? err.message : String(err)}`,
     };
-  }
-}
-
-/** Lightweight Moltbook challenge solver for MCP tool verification */
-function solveChallengeSimple(challenge: string): string | null {
-  const cleaned = challenge.toLowerCase().replace(/[^a-z0-9+\-*/=. ]/g, '');
-  const match = cleaned.match(/([\d.]+)\s*([+\-*/])\s*([\d.]+)/);
-  if (!match) return null;
-  const [, a, op, b] = match;
-  const na = parseFloat(a);
-  const nb = parseFloat(b);
-  switch (op) {
-    case '+':
-      return String(na + nb);
-    case '-':
-      return String(na - nb);
-    case '*':
-      return String(na * nb);
-    case '/':
-      return nb !== 0 ? String(na / nb) : null;
-    default:
-      return null;
   }
 }

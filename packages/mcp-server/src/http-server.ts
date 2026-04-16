@@ -64,6 +64,8 @@ import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './ho
 import { initStores } from './holomesh/state';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
+import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
+import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';
 
 const { OPERATION_COSTS } = require('@holoscript/absorb-service/credits') as {
   OPERATION_COSTS: Record<string, { baseCostCents: number; description: string }>;
@@ -1609,6 +1611,90 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // MOLTBOOK CROSSPOST — same contract as legacy MCP orchestrator
+  // POST /api/moltbook/crosspost (HoloMesh handoffs + W/P/g knowledge rows)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (url === '/api/moltbook/crosspost' && req.method === 'POST') {
+    const authed = await checkAuth(req);
+    if (!authed) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
+      return;
+    }
+    const moltKey = process.env.MOLTBOOK_API_KEY || '';
+    if (!moltKey) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: false,
+          error: 'MOLTBOOK_API_KEY not configured on this MCP server',
+        })
+      );
+      return;
+    }
+    try {
+      const raw = await parseJsonBody(req);
+      const environmentContext = raw.environmentContext;
+      const flat = { ...raw };
+      delete flat.environmentContext;
+
+      let built;
+      try {
+        built = buildMoltbookCrosspostPayload(flat);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: msg }));
+        return;
+      }
+
+      if (
+        environmentContext &&
+        typeof environmentContext === 'object' &&
+        Object.keys(environmentContext as object).length > 0
+      ) {
+        const md = formatBroadcastContextMarkdown(environmentContext as Record<string, string>);
+        if (md) built = { ...built, content: `${built.content}\n\n${md}` };
+      }
+
+      const created = await createMoltbookPost({
+        apiKey: moltKey,
+        title: built.title,
+        content: built.content,
+        submolt: built.submolt,
+      });
+
+      if (!created.success) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: 'Moltbook API rejected the post',
+            details: created.details,
+          })
+        );
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          route: 'mcp-server',
+          timestamp: new Date().toISOString(),
+          ...created.data,
+        })
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Crosspost handler failed', detail: message }));
+    }
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // HOLOMESH API ROUTES (delegated to separate module)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2511,6 +2597,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     GET  /a2a/tasks/:id                - A2A get task`);
   console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
   console.info(`     GET  /api/health                   - API health + capabilities (public)`);
+  console.info(`     POST /api/moltbook/crosspost       - HoloMesh handoff / WPG knowledge -> Moltbook (auth)`);
   console.info(
     `     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`
   );
