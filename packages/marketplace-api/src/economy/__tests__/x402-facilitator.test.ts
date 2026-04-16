@@ -275,7 +275,8 @@ describe('X402Facilitator', () => {
 
       const result = facilitator.verifyPayment(payment, '50000');
       expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toContain('Unsupported x402 version');
+      // Boundary Zod fails before facilitator string checks
+      expect(result.invalidReason).toMatch(/x402Version|Unsupported x402 version/i);
     });
 
     it('rejects unsupported scheme', () => {
@@ -284,7 +285,7 @@ describe('X402Facilitator', () => {
 
       const result = facilitator.verifyPayment(payment, '50000');
       expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toContain('Unsupported scheme');
+      expect(result.invalidReason).toMatch(/scheme|Unsupported scheme/i);
     });
 
     it('rejects unsupported network', () => {
@@ -292,7 +293,7 @@ describe('X402Facilitator', () => {
 
       const result = facilitator.verifyPayment(payment, '50000');
       expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toContain('Unsupported network');
+      expect(result.invalidReason).toMatch(/network|Unsupported network|ethereum/i);
     });
 
     it('rejects reused nonce', () => {
@@ -351,7 +352,7 @@ describe('X402Facilitator', () => {
 
       const result = facilitator.verifyPayment(payment, '50000');
       expect(result.isValid).toBe(false);
-      expect(result.invalidReason).toContain('Missing or invalid signature');
+      expect(result.invalidReason).toMatch(/signature|Missing or invalid signature/i);
     });
 
     it('accepts payment with exact amount', () => {

@@ -15,7 +15,10 @@ import {
   type UnifiedOptimizerConfig,
   type TraitUtility,
 } from '../UnifiedBudgetOptimizer';
-import type { ResourceUsageNode } from '../../compiler/safety/ResourceBudgetAnalyzer';
+import {
+  TRAIT_RESOURCE_COSTS,
+  type ResourceUsageNode,
+} from '../../../../core/src/compiler/safety/ResourceBudgetAnalyzer.js';
 
 // =============================================================================
 // HELPERS
@@ -552,15 +555,13 @@ describe('UnifiedBudgetOptimizer', () => {
   describe('C6 Layer 2: Economy x Rendering fixes', () => {
     // ── Finding 1: Budget analyzer contradiction ──
     describe('budget analyzer alignment', () => {
-      it('should use conservative gaussian cost (100K not 10K) in ResourceBudgetAnalyzer', async () => {
+      it('should use conservative gaussian cost (100K not 10K) in ResourceBudgetAnalyzer', () => {
         // The TRAIT_RESOURCE_COSTS for @gaussian_splat should now be 100K,
         // which is conservative enough to flag potential Quest 3 budget violations
         // (Quest 3 budget = 180K), not the old 10K which silently passed.
-        const { TRAIT_RESOURCE_COSTS } =
-          await import('../../compiler/safety/ResourceBudgetAnalyzer');
-        expect(TRAIT_RESOURCE_COSTS['@gaussian_splat'].gaussians).toBe(100_000);
-        expect(TRAIT_RESOURCE_COSTS['@gaussian'].gaussians).toBe(100_000);
-        expect(TRAIT_RESOURCE_COSTS['@multiview_gaussian_renderer'].gaussians).toBe(200_000);
+        expect(TRAIT_RESOURCE_COSTS['@gaussian_splat']?.gaussians).toBe(100_000);
+        expect(TRAIT_RESOURCE_COSTS['@gaussian']?.gaussians).toBe(100_000);
+        expect(TRAIT_RESOURCE_COSTS['@multiview_gaussian_renderer']?.gaussians).toBe(200_000);
       });
 
       it('should flag single @gaussian_splat on Quest 3 as > 55% budget', () => {
