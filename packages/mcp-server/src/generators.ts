@@ -527,6 +527,126 @@ export async function generateSceneForMCP(
   return fallback as any;
 }
 
+// =============================================================================
+// NATIVE WORLD GENERATION — sovereign-3d pipeline (Brittney v43+)
+// =============================================================================
+
+export interface NativeWorldGenerationOptions {
+  /** Output format. neural_field is the sovereign-exclusive format. Default: '3dgs' */
+  format?: 'mesh' | '3dgs' | 'both' | 'neural_field';
+  /** Quality tier. Default: 'high' */
+  quality?: 'low' | 'medium' | 'high' | 'ultra';
+  /** Optional base64 or URL for single-view reconstruction */
+  input_image?: string;
+  /** Multi-view images for photogrammetric reconstruction */
+  input_images?: string[];
+  /** Generate a navigable navmesh alongside the world asset */
+  navEnabled?: boolean;
+  /** Enable physics + collision interactive mode */
+  interactiveMode?: boolean;
+  /** Reproducible seed */
+  seed?: number;
+}
+
+export interface NativeWorldGenerationResult {
+  /** Primary asset URL (.splat / .ply / .glb) */
+  assetUrl: string;
+  /** Navmesh .glb URI — present when navEnabled=true */
+  navmeshUrl?: string;
+  /** Point cloud URI — present when format='both' */
+  pointCloudUrl?: string;
+  /** Opaque backend job ID */
+  generationId: string;
+  /** Format actually produced */
+  format: string;
+  /** Auto-generated companion HoloScript code (.holo) */
+  holoCode: string;
+  metrics: {
+    splatCount?: number;
+    triangleCount?: number;
+    generationMs?: number;
+    bounds?: [number, number, number, number, number, number];
+    agentStart?: [number, number, number];
+    waypoints?: [number, number, number][];
+  };
+}
+
+/**
+ * Generate a sovereign 3D world using the native Sovereign3DAdapter (Brittney v43+).
+ *
+ * This bypasses any third-party bridge — everything runs through HoloScript's
+ * own inference pipeline. Supports neural_field output (exclusive to sovereign-3d),
+ * navmesh generation, multi-view photogrammetry, and ultra-quality tier.
+ */
+export async function generateWorldNative(
+  prompt: string,
+  options: NativeWorldGenerationOptions = {}
+): Promise<NativeWorldGenerationResult> {
+  const { Sovereign3DAdapter } = await import('@holoscript/core/world');
+
+  const adapter = new Sovereign3DAdapter();
+
+  const result = await adapter.generate({
+    prompt,
+    format: options.format ?? '3dgs',
+    quality: options.quality ?? 'high',
+    ...(options.input_image ? { input_image: options.input_image } : {}),
+    ...(options.input_images?.length ? { input_images: options.input_images } : {}),
+    ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
+    ...(options.interactiveMode !== undefined
+      ? { interactiveMode: options.interactiveMode }
+      : {}),
+    ...(options.seed !== undefined ? { seed: options.seed } : {}),
+  });
+
+  const fmt = options.format ?? '3dgs';
+  const safePrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, ' ');
+
+  // Build a companion .holo composition that references the generated asset
+  const navLine = result.navmeshUrl
+    ? `\n  navmesh { url: "${result.navmeshUrl}" }`
+    : '';
+  const interactiveLine = options.interactiveMode
+    ? `\n  physics { enabled: true, collisions: true }`
+    : '';
+
+  const holoCode = `composition "GeneratedWorld" {
+  environment {
+    world_asset: "${result.assetUrl}"
+    format: "${result.metadata.format}"
+    bounds: [${result.metadata.bounds.join(', ')}]
+    prompt: "${safePrompt}"
+  }${navLine}${interactiveLine}
+  object "Camera" {
+    position: [0, 1.7, 0]
+    @tracked
+  }
+}`;
+
+  return {
+    assetUrl: result.assetUrl,
+    generationId: result.generationId,
+    format: result.metadata.format,
+    ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
+    ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
+    holoCode,
+    metrics: {
+      ...(result.metadata.splatCount !== undefined
+        ? { splatCount: result.metadata.splatCount }
+        : {}),
+      ...(result.metadata.triangleCount !== undefined
+        ? { triangleCount: result.metadata.triangleCount }
+        : {}),
+      ...(result.metadata.generationMs !== undefined
+        ? { generationMs: result.metadata.generationMs }
+        : {}),
+      bounds: result.metadata.bounds,
+      ...(result.metadata.agentStart ? { agentStart: result.metadata.agentStart } : {}),
+      ...(result.metadata.waypoints ? { waypoints: result.metadata.waypoints } : {}),
+    },
+  };
+}
+
 /**
  * Suggest traits based on object description
  */

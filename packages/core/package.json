@@ -58,6 +58,11 @@
       "import": "./dist/codebase/index.js",
       "require": "./dist/codebase/index.cjs"
     },
+    "./world": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
     "./self-improvement": {
       "types": "./dist/self-improvement/index.d.ts",
       "import": "./dist/self-improvement/index.js",

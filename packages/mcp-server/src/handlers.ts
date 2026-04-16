@@ -18,7 +18,7 @@ import {
   suggestUniversalTraits,
   suggest2DTraits,
   generateSemanticUIForMCP,
-  generateWorldForMCP,
+  generateWorldNative,
 } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
@@ -310,8 +310,8 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleGenerate3DObject(args);
   }
 
-  if (name === 'hyworld_generate') {
-    return handleGenerateWorld(args);
+  if (name === 'world_generate') {
+    return handleWorldGenerate(args);
   }
 
   // Hololand training data generation
@@ -710,12 +710,31 @@ async function handleGenerateScene(args: Record<string, unknown>) {
   });
 }
 
-async function handleGenerateWorld(args: Record<string, unknown>) {
+async function handleWorldGenerate(args: Record<string, unknown>) {
   const prompt = args.prompt as string;
-  const format = args.format as '3dgs' | 'mesh' | 'both';
-  const quality = args.quality as 'low' | 'medium' | 'high';
+  if (!prompt) {
+    return { error: 'prompt is required' };
+  }
 
-  return generateWorldForMCP(prompt, { format, quality });
+  const result = await generateWorldNative(prompt, {
+    format: args.format as 'mesh' | '3dgs' | 'both' | 'neural_field' | undefined,
+    quality: args.quality as 'low' | 'medium' | 'high' | 'ultra' | undefined,
+    input_image: args.input_image as string | undefined,
+    input_images: args.input_images as string[] | undefined,
+    navEnabled: args.navEnabled as boolean | undefined,
+    interactiveMode: args.interactiveMode as boolean | undefined,
+    seed: args.seed as number | undefined,
+  });
+
+  return {
+    generationId: result.generationId,
+    assetUrl: result.assetUrl,
+    format: result.format,
+    ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
+    ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
+    metrics: result.metrics,
+    holoCode: result.holoCode,
+  };
 }
 
 // === DOCUMENTATION HANDLERS ===

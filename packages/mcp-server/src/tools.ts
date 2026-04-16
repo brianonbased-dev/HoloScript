@@ -568,27 +568,55 @@ export const textTo3DTools: Tool[] = [
     },
   },
   {
-    name: 'hyworld_generate',
+    name: 'world_generate',
     description:
-      'Generate a persistent, navigable 3D world (3DGS + Mesh) using sovereign-3d. ' +
-      'Outputs include real-time splats and editable meshes for Unity/Unreal integration. ' +
-      'Best for high-fidelity scene backgrounds or complete navigable environments.',
+      'Generate a persistent, navigable 3D world using the native HoloScript sovereign-3d engine (Brittney v43+). ' +
+      'Exclusively supports neural_field output, ultra-quality tier, navmesh generation, multi-view photogrammetry, ' +
+      'and physics-interactive mode. Returns the asset URL, optional navmesh, spatial metadata, ' +
+      'and a ready-to-run .holo composition file.',
     inputSchema: {
       type: 'object',
       properties: {
         prompt: {
           type: 'string',
-          description: 'Text description of the world (e.g. "a futuristic cyberpunk street at night")',
+          description: 'Text description of the world (e.g. "a dense cyberpunk city at dusk with rain")',
         },
         format: {
           type: 'string',
-          enum: ['3dgs', 'mesh', 'both'],
-          description: 'Output asset format. Defaults to 3dgs.',
+          enum: ['3dgs', 'mesh', 'both', 'neural_field'],
+          description:
+            'Output asset format. neural_field is sovereign-3d exclusive — highest fidelity continuous representation. ' +
+            '3dgs = Gaussian splats. mesh = .glb polygonal. both = splat + mesh. Default: 3dgs.',
         },
         quality: {
           type: 'string',
-          enum: ['low', 'medium', 'high'],
-          description: 'Generation quality. Higher takes longer. Defaults to medium.',
+          enum: ['low', 'medium', 'high', 'ultra'],
+          description: 'Generation quality tier. ultra produces the highest fidelity output. Default: high.',
+        },
+        input_image: {
+          type: 'string',
+          description: 'Base64-encoded image or URL for single-view reconstruction. Optional.',
+        },
+        input_images: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Multiple images for multi-view photogrammetric reconstruction. Optional.',
+        },
+        navEnabled: {
+          type: 'boolean',
+          description:
+            'Generate a navigable navmesh alongside the world asset. ' +
+            'Returns navmeshUrl in response. Default: false.',
+        },
+        interactiveMode: {
+          type: 'boolean',
+          description:
+            'Enable physics and collision interactive mode. ' +
+            'Injects physics block into the companion .holo composition. Default: false.',
+        },
+        seed: {
+          type: 'number',
+          description: 'Reproducible seed for deterministic generation. Optional.',
         },
       },
       required: ['prompt'],
