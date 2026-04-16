@@ -96,6 +96,14 @@ interface HttpHandlerConfig {
   method: HttpMethod;
   statusCode: number;
   description: string;
+  /** POST/PUT/PATCH: required top-level JSON keys (from @http { requiredBodyKeys: [...] }) */
+  requiredBodyKeys?: string[];
+  /**
+   * Response shape for successful JSON responses.
+   * - `echo` — return `{ ok, data: body }` for body methods
+   * - `message` — return `{ ok, message, route }` (default when no echo)
+   */
+  responseMode?: 'echo' | 'message';
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -135,6 +143,22 @@ function buildPropMap(obj: HoloObjectDecl): Map<string, string | number> {
     if (scalar !== undefined) map.set(prop.key, scalar);
   }
   return map;
+}
+
+/** Parse string[] from trait config (e.g. requiredBodyKeys: ["name", "email"]) */
+function toStringArray(val: HoloValue | undefined): string[] | undefined {
+  if (val === undefined || val === null) return undefined;
+  if (!Array.isArray(val)) return undefined;
+  const out: string[] = [];
+  for (const item of val) {
+    if (typeof item === 'string') out.push(item);
+  }
+  return out.length ? out : undefined;
+}
+
+function parseResponseMode(raw: string | undefined): 'echo' | 'message' | undefined {
+  if (raw === 'echo' || raw === 'message') return raw;
+  return undefined;
 }
 
 /**
@@ -198,6 +222,10 @@ function extractHandlers(composition: HoloComposition): HttpHandlerConfig[] {
         method,
         statusCode: Number(toScalar(rootHttp['statusCode']) ?? toScalar(rootHttp['status']) ?? 200),
         description: String(toScalar(rootHttp['description']) ?? ''),
+        requiredBodyKeys: toStringArray(rootHttp['requiredBodyKeys'] as HoloValue),
+        responseMode:
+          parseResponseMode(String(toScalar(rootHttp['responseMode']) ?? '')) ??
+          (rootHttp['echoBody'] === true ? 'echo' : undefined),
       });
     }
   }
@@ -221,12 +249,19 @@ function extractHandlers(composition: HoloComposition): HttpHandlerConfig[] {
     const traitStatus = toScalar(traitConfig['statusCode'] ?? traitConfig['status']);
     const propStatus = props.get('statusCode') ?? props.get('status');
 
+    const objRequired = toStringArray(traitConfig['requiredBodyKeys'] as HoloValue);
+    const mode =
+      parseResponseMode(String(toScalar(traitConfig['responseMode']) ?? '')) ??
+      (traitConfig['echoBody'] === true ? 'echo' : undefined);
+
     byMethod.set(method, {
       method,
       statusCode: Number(traitStatus ?? propStatus ?? 200),
       description: String(
         props.get('description') ?? toScalar(traitConfig['description']) ?? obj.name ?? ''
       ),
+      requiredBodyKeys: objRequired,
+      responseMode: mode,
     });
   }
 
@@ -238,12 +273,20 @@ function extractHandlers(composition: HoloComposition): HttpHandlerConfig[] {
 /**
  * Emit the function signature and body for a single HTTP handler.
  */
-function emitHandler(handler: HttpHandlerConfig): string[] {
-  const { method, statusCode, description } = handler;
+function emitHandler(
+  handler: HttpHandlerConfig,
+  meta: { routeSegment: string; compositionName: string },
+  opts: { includeValidation: boolean }
+): string[] {
+  const { method, statusCode, description, requiredBodyKeys = [], responseMode } = handler;
   const lines: string[] = [];
 
   const hasBody = BODY_METHODS.has(method);
   const isPassthrough = PASSTHROUGH_METHODS.has(method);
+  const mode: 'echo' | 'message' =
+    responseMode ?? (requiredBodyKeys.length > 0 ? 'message' : 'echo');
+  const keysJson = JSON.stringify(requiredBodyKeys);
+  const useEcho = mode === 'echo';
 
   // JSDoc for the individual handler
   if (description) {
@@ -264,18 +307,48 @@ function emitHandler(handler: HttpHandlerConfig): string[] {
     lines.push(`  try {`);
     lines.push(`    body = await _request.json();`);
     lines.push(`  } catch {`);
-    lines.push(`    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });`);
+    lines.push(`    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });`);
     lines.push(`  }`);
-    lines.push(``);
-    lines.push(`  void body; // TODO: validate and process body`);
-    lines.push(``);
-    lines.push(`  return NextResponse.json(`);
-    lines.push(`    { /* TODO: return response data */ },`);
-    lines.push(`    { status: ${statusCode} }`);
-    lines.push(`  );`);
+    lines.push(`  const record = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null;`);
+    lines.push(`  if (!record) {`);
+    lines.push(
+      `    return NextResponse.json({ ok: false, error: 'JSON body must be an object' }, { status: 400 });`
+    );
+    lines.push(`  }`);
+    if (opts.includeValidation) {
+      lines.push(`  const spatialValidation = validateSpatialRequestBody(record);`);
+      lines.push(`  if (!spatialValidation.valid) {`);
+      lines.push(
+        `    return NextResponse.json({ ok: false, error: spatialValidation.error, field: spatialValidation.field }, { status: 400 });`
+      );
+      lines.push(`  }`);
+    }
+    lines.push(`  const requiredKeys = ${keysJson} as const;`);
+    lines.push(`  for (const key of requiredKeys) {`);
+    lines.push(`    if (!(key in record)) {`);
+    lines.push(
+      `      return NextResponse.json({ ok: false, error: 'Missing required field', field: key }, { status: 400 });`
+    );
+    lines.push(`    }`);
+    lines.push(`  }`);
+    if (useEcho) {
+      lines.push(`  return NextResponse.json(`);
+      lines.push(`    { ok: true, route: ${JSON.stringify(meta.routeSegment)}, data: record },`);
+      lines.push(`    { status: ${statusCode} }`);
+      lines.push(`  );`);
+    } else {
+      lines.push(`  return NextResponse.json(`);
+      lines.push(
+        `    { ok: true, route: ${JSON.stringify(meta.routeSegment)}, composition: ${JSON.stringify(meta.compositionName)}, message: ${JSON.stringify(description || 'Accepted')}, receivedKeys: Object.keys(record) },`
+      );
+      lines.push(`    { status: ${statusCode} }`);
+      lines.push(`  );`);
+    }
   } else {
     lines.push(`  return NextResponse.json(`);
-    lines.push(`    { /* TODO: return response data */ },`);
+    lines.push(
+      `    { ok: true, route: ${JSON.stringify(meta.routeSegment)}, composition: ${JSON.stringify(meta.compositionName)}, message: ${JSON.stringify(description || 'OK')} },`
+    );
     lines.push(`    { status: ${statusCode} }`);
     lines.push(`  );`);
   }
@@ -321,6 +394,9 @@ export function compileToNextJSAPI(
   const routeSegment = toApiRouteSegment(composition.name, options.apiRoute);
   const outputBase = options.outputDir ? options.outputDir.replace(/\/$/, '') : 'api';
   const filePath = `${outputBase}/${routeSegment}/route.ts`;
+  const meta = { routeSegment, compositionName: composition.name };
+  const includeValidation = options.includeValidation !== false;
+  const hasBodyHandlers = handlers.some((h) => BODY_METHODS.has(h.method));
 
   const lines: string[] = [];
 
@@ -341,9 +417,43 @@ export function compileToNextJSAPI(
   }
   lines.push(``);
 
+  // ── Spatial request validation middleware (generated) ──────────────────
+  if (includeValidation && hasBodyHandlers) {
+    lines.push(`function isTuple3(value: unknown): value is [number, number, number] {`);
+    lines.push(`  return Array.isArray(value) && value.length === 3 && value.every((n) => typeof n === 'number');`);
+    lines.push(`}`);
+    lines.push(``);
+    lines.push(`function isTuple4(value: unknown): value is [number, number, number, number] {`);
+    lines.push(`  return Array.isArray(value) && value.length === 4 && value.every((n) => typeof n === 'number');`);
+    lines.push(`}`);
+    lines.push(``);
+    lines.push(
+      `function validateSpatialRequestBody(record: Record<string, unknown>): { valid: true } | { valid: false; error: string; field: string } {`
+    );
+    lines.push(`  if ('position' in record && !isTuple3(record.position)) {`);
+    lines.push(`    return { valid: false, error: 'position must be [x, y, z] numeric tuple', field: 'position' };`);
+    lines.push(`  }`);
+    lines.push(`  if ('scale' in record && !isTuple3(record.scale)) {`);
+    lines.push(`    return { valid: false, error: 'scale must be [x, y, z] numeric tuple', field: 'scale' };`);
+    lines.push(`  }`);
+    lines.push(`  if ('rotation' in record) {`);
+    lines.push(`    const rotation = record.rotation;`);
+    lines.push(`    const isEuler = isTuple3(rotation);`);
+    lines.push(`    const isQuat = isTuple4(rotation);`);
+    lines.push(`    if (!isEuler && !isQuat) {`);
+    lines.push(
+      `      return { valid: false, error: 'rotation must be [x, y, z] or [x, y, z, w] numeric tuple', field: 'rotation' };`
+    );
+    lines.push(`    }`);
+    lines.push(`  }`);
+    lines.push(`  return { valid: true };`);
+    lines.push(`}`);
+    lines.push(``);
+  }
+
   // ── Handler functions ─────────────────────────────────────────────────
   for (let i = 0; i < handlers.length; i++) {
-    lines.push(...emitHandler(handlers[i]!));
+    lines.push(...emitHandler(handlers[i]!, meta, { includeValidation }));
     if (i < handlers.length - 1) {
       lines.push(``);
     }

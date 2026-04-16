@@ -349,3 +349,54 @@ describe('compileAllToNextJSAPI', () => {
     expect(results[0]!.code).not.toContain('// @generated');
   });
 });
+
+// ── Body validation & concrete JSON responses (no TODO placeholders) ───────
+
+describe('NextJSAPICompiler — request body schema & responses', () => {
+  it('emits required key validation and echo response for POST', () => {
+    const comp = withRootHttpTrait(makeComposition('ItemsAPI'), {
+      method: 'POST',
+      statusCode: 201,
+      description: 'Create item',
+      requiredBodyKeys: ['title'],
+      responseMode: 'echo',
+    });
+    const { code } = compileToNextJSAPI(comp);
+    expect(code).toContain('requiredKeys');
+    expect(code).toContain('"title"');
+    expect(code).toContain('Invalid JSON body');
+    expect(code).toContain('data: record');
+    expect(code).not.toContain('TODO');
+  });
+
+  it('emits structured GET JSON without TODO placeholders', () => {
+    const comp = withRootHttpTrait(makeComposition('HealthProbe'), {
+      method: 'GET',
+      description: 'Liveness',
+    });
+    const { code } = compileToNextJSAPI(comp);
+    expect(code).toContain('ok: true');
+    expect(code).not.toContain('TODO');
+  });
+
+  it('emits spatial validation middleware for body handlers by default', () => {
+    const comp = withRootHttpTrait(makeComposition('SpatialItemsAPI'), {
+      method: 'POST',
+      requiredBodyKeys: ['title'],
+    });
+    const { code } = compileToNextJSAPI(comp);
+    expect(code).toContain('function validateSpatialRequestBody(');
+    expect(code).toContain('position must be [x, y, z] numeric tuple');
+    expect(code).toContain('const spatialValidation = validateSpatialRequestBody(record);');
+  });
+
+  it('can disable spatial middleware emission via includeValidation=false', () => {
+    const comp = withRootHttpTrait(makeComposition('SpatialItemsAPI'), {
+      method: 'POST',
+      requiredBodyKeys: ['title'],
+    });
+    const { code } = compileToNextJSAPI(comp, { includeValidation: false });
+    expect(code).not.toContain('function validateSpatialRequestBody(');
+    expect(code).not.toContain('const spatialValidation = validateSpatialRequestBody(record);');
+  });
+});
