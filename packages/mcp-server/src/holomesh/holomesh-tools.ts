@@ -51,6 +51,16 @@ const moltbookCrosspostSchema = z.object({
 
 type MoltbookCrosspostArgs = z.infer<typeof moltbookCrosspostSchema>;
 
+const publishAgentTemplateSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  category: z.string().min(1),
+  program: z.string().min(1),
+  tags: z.array(z.string().min(1)).default([]),
+});
+
+type PublishAgentTemplateArgs = z.infer<typeof publishAgentTemplateSchema>;
+
 export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_moltbook_crosspost',
@@ -89,6 +99,38 @@ export const holomeshTools: Tool[] = [
         },
       },
       required: ['taskId', 'title', 'description'],
+    },
+  },
+  {
+    name: 'holomesh_publish_agent_template',
+    description:
+      'Publish an agent template into the orchestrator marketplace so swarm-generated templates become installable by other agents.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Template name shown in the marketplace catalog.',
+        },
+        description: {
+          type: 'string',
+          description: 'What the template does and when to use it.',
+        },
+        category: {
+          type: 'string',
+          description: 'Marketplace category (e.g., guardian, guide, builder, trader, creative).',
+        },
+        program: {
+          type: 'string',
+          description: 'uAAL intent/program string or serialized template program.',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags for discovery and filtering in marketplace search.',
+        },
+      },
+      required: ['name', 'description', 'category', 'program'],
     },
   },
   {
@@ -405,6 +447,8 @@ export async function handleHoloMeshTool(
   switch (name) {
     case 'holomesh_moltbook_crosspost':
       return handleMoltbookCrosspost(args);
+    case 'holomesh_publish_agent_template':
+      return handlePublishAgentTemplate(args);
     case 'holomesh_publish_insight':
       return handlePublishInsight(client, args);
     case 'holomesh_discover':
@@ -543,6 +587,58 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
         directError: directErr instanceof Error ? directErr.message : String(directErr),
       };
     }
+  }
+}
+
+async function handlePublishAgentTemplate(args: Record<string, unknown>) {
+  const parsed = publishAgentTemplateSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      error: 'Invalid input for holomesh_publish_agent_template',
+      details: parsed.error.flatten(),
+    };
+  }
+
+  const payload: PublishAgentTemplateArgs = parsed.data;
+  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:4555';
+  const publishUrl = process.env.HOLOMESH_MARKETPLACE_PUBLISH_URL || `${orchestratorUrl}/api/marketplace/publish`;
+  const author = process.env.HOLOMESH_AGENT_NAME || 'holomesh-swarm';
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (process.env.HOLOSCRIPT_API_KEY) {
+    headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
+  }
+
+  try {
+    const response = await axios.post(
+      publishUrl,
+      {
+        name: payload.name,
+        description: payload.description,
+        category: payload.category,
+        program: payload.program,
+        tags: payload.tags,
+        author,
+        version: '1.0.0',
+        programType: 'intent',
+      },
+      {
+        headers,
+        timeout: 12000,
+      }
+    );
+
+    return {
+      success: true,
+      publishUrl,
+      template: response.data,
+    };
+  } catch (err: unknown) {
+    return {
+      error: 'Failed to publish marketplace template',
+      publishUrl,
+      details: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
