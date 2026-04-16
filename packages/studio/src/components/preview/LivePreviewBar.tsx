@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Radio, RefreshCw, Pause, Play, Loader2 } from 'lucide-react';
+import { Radio, RefreshCw, Pause, Play, Loader2, Square } from 'lucide-react';
 import { useLivePreview } from '@/hooks/useLivePreview';
 import { useSceneStore } from '@/lib/stores';
 import { ANIM_WIZARD_STEP } from '@/lib/ui-timings';
@@ -29,9 +29,19 @@ const STATUS_LABEL: Record<string, string> = {
 
 interface LivePreviewBarProps {
   sceneId?: string;
+  executionState?: 'running' | 'paused' | 'stopped';
+  onPlay?: () => void;
+  onPause?: () => void;
+  onStop?: () => void;
 }
 
-export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
+export function LivePreviewBar({
+  sceneId = 'default',
+  executionState = 'running',
+  onPlay,
+  onPause,
+  onStop,
+}: LivePreviewBarProps) {
   const code = useSceneStore((s) => s.code) ?? '';
   const [autoSync, setAutoSync] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -75,6 +85,43 @@ export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
       )}
 
       <div className="ml-auto flex items-center gap-3">
+        {/* Runtime controls */}
+        <div className="flex items-center gap-1 rounded-md border border-studio-border bg-studio-surface px-1 py-0.5">
+          <button
+            onClick={onPlay}
+            title="Run scene"
+            className={`rounded px-1 py-0.5 transition ${
+              executionState === 'running'
+                ? 'text-green-400'
+                : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Play className="h-3 w-3" />
+          </button>
+          <button
+            onClick={onPause}
+            title="Pause scene"
+            className={`rounded px-1 py-0.5 transition ${
+              executionState === 'paused'
+                ? 'text-yellow-400'
+                : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Pause className="h-3 w-3" />
+          </button>
+          <button
+            onClick={onStop}
+            title="Stop scene"
+            className={`rounded px-1 py-0.5 transition ${
+              executionState === 'stopped'
+                ? 'text-red-400'
+                : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Square className="h-3 w-3" />
+          </button>
+        </div>
+
         {/* Last sync */}
         {lastSync && <span className="text-studio-muted/60">synced {relSync}</span>}
 

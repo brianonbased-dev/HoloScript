@@ -11,11 +11,13 @@ interface SceneState {
   code: string;
   r3fTree: R3FNode | null;
   errors: Array<{ message: string; line?: number }>;
+  executionState: 'running' | 'paused' | 'stopped';
   metadata: SceneMetadata;
   isDirty: boolean;
   setCode: (code: string) => void;
   setR3FTree: (tree: R3FNode | null) => void;
   setErrors: (errors: Array<{ message: string; line?: number }>) => void;
+  setExecutionState: (state: 'running' | 'paused' | 'stopped') => void;
   setMetadata: (partial: Partial<SceneMetadata>) => void;
   markClean: () => void;
   reset: () => void;
@@ -34,6 +36,7 @@ export const useSceneStore = create<SceneState>()(
       code: '',
       r3fTree: null,
       errors: [],
+      executionState: 'running',
       metadata: { ...defaultMetadata },
       isDirty: false,
       setCode: (code) =>
@@ -44,6 +47,7 @@ export const useSceneStore = create<SceneState>()(
         }),
       setR3FTree: (r3fTree) => set({ r3fTree }),
       setErrors: (errors) => set({ errors }),
+      setExecutionState: (executionState) => set({ executionState }),
       setMetadata: (partial) => set((s) => ({ metadata: { ...s.metadata, ...partial } })),
       markClean: () => set({ isDirty: false }),
       reset: () =>
@@ -51,6 +55,7 @@ export const useSceneStore = create<SceneState>()(
           code: '',
           r3fTree: null,
           errors: [],
+          executionState: 'running',
           metadata: { ...defaultMetadata },
           isDirty: false,
         }),

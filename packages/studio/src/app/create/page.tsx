@@ -702,7 +702,12 @@ function AIPromptOverlay() {
     <div className="absolute right-3 top-3 w-72 rounded-xl border border-studio-border bg-studio-panel/95 p-3 shadow-xl backdrop-blur animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-studio-text">Generate with AI</span>
-        <button onClick={() => setOpen(false)} className="text-studio-muted hover:text-studio-text">
+        <button
+          onClick={() => setOpen(false)}
+          title="Close AI prompt overlay"
+          aria-label="Close AI prompt overlay"
+          className="text-studio-muted hover:text-studio-text"
+        >
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -744,6 +749,8 @@ export default function CreatePage() {
   const setCode = useSceneStore((s) => s.setCode);
   const setR3FTree = useSceneStore((s) => s.setR3FTree);
   const setErrors = useSceneStore((s) => s.setErrors);
+  const executionState = useSceneStore((s) => s.executionState);
+  const setExecutionState = useSceneStore((s) => s.setExecutionState);
   const setMetadata = useSceneStore((s) => s.setMetadata);
   const markClean = useSceneStore((s) => s.markClean);
   const errors = useSceneStore((s) => s.errors);
@@ -1016,9 +1023,18 @@ export default function CreatePage() {
   );
 
   useEffect(() => {
-    setR3FTree(r3fTree);
-    setErrors(pipelineErrors);
-  }, [r3fTree, pipelineErrors, setR3FTree, setErrors]);
+    if (executionState === 'running') {
+      setR3FTree(r3fTree);
+      setErrors(pipelineErrors);
+      return;
+    }
+
+    if (executionState === 'stopped') {
+      setR3FTree(null);
+      setErrors([]);
+    }
+    // paused: intentionally keep last rendered tree and errors
+  }, [executionState, r3fTree, pipelineErrors, setR3FTree, setErrors]);
 
   const getCurrentEditorAst = useCallback(() => {
     const sceneState = useSceneStore.getState();
@@ -1101,7 +1117,13 @@ export default function CreatePage() {
         }}
       />
       {/* Live preview status bar */}
-      <LivePreviewBar sceneId="scene-1" />
+      <LivePreviewBar
+        sceneId="scene-1"
+        executionState={executionState}
+        onPlay={() => setExecutionState('running')}
+        onPause={() => setExecutionState('paused')}
+        onStop={() => setExecutionState('stopped')}
+      />
 
       {/* ── Core Unified Studio Layout ────────────────────────────── */}
       <ResponsiveStudioLayout leftTitle="Scene" rightTitle="Properties">
