@@ -351,152 +351,107 @@ export class FocusedDPOSplitter {
    */
   extractSegments(source: string, parseResult: HoloParseResult): ASTSegment[] {
     const segments: ASTSegment[] = [];
+    if (!source || source.trim() === '') return segments;
     const lines = source.split('\n');
 
-    // --- AST-first pass: objects (and their nested children) ------------------
-    // Uses `HoloObjectDecl.loc` populated by core commit 2e7bfd88.
-    // Any object the parser successfully produced ends up here with a
-    // byte-precise range — no regex fallback needed.
-    this.collectObjectSegmentsFromAST(lines, parseResult, segments);
-
-    // --- Regex pass: kinds still waiting on parser loc coverage ---------------
-    // Pattern: keyword "name" [optional] {
-    const blockPatterns: Array<{ pattern: RegExp; kind: SegmentKind }> = [
-      { pattern: /^(\s*)composition\s+"([^"]+)"\s*\{/m, kind: 'composition' },
-      { pattern: /^(\s*)environment\s*\{/m, kind: 'environment' },
-      { pattern: /^(\s*)state\s*\{/m, kind: 'state' },
-      { pattern: /^(\s*)template\s+"([^"]+)"\s*\{/m, kind: 'template' },
-      // `object` pattern intentionally REMOVED — handled by AST pass above.
-      { pattern: /^(\s*)material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
-      { pattern: /^(\s*)pbr_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
-      { pattern: /^(\s*)unlit_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
-      { pattern: /^(\s*)toon_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
-      { pattern: /^(\s*)glass_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
-      {
-        pattern: /^(\s*)subsurface_material\s+"([^"]+)"[^{]*\{/m,
-        kind: 'material',
-      },
-      { pattern: /^(\s*)shader\s+"([^"]+)"\s*\{/m, kind: 'material' },
-      { pattern: /^(\s*)light\s+"([^"]+)"\s*\{/m, kind: 'light' },
-      { pattern: /^(\s*)point_light\s+"([^"]+)"[^{]*\{/m, kind: 'light' },
-      { pattern: /^(\s*)spot_light\s+"([^"]+)"[^{]*\{/m, kind: 'light' },
-      { pattern: /^(\s*)directional_light\s+"([^"]+)"[^{]*\{/m, kind: 'light' },
-      { pattern: /^(\s*)effects\s*\{/m, kind: 'effects' },
-      { pattern: /^(\s*)camera\s+"([^"]+)"\s*\{/m, kind: 'camera' },
-      { pattern: /^(\s*)timeline\s+"([^"]+)"\s*\{/m, kind: 'timeline' },
-      { pattern: /^(\s*)audio\s+"([^"]+)"\s*\{/m, kind: 'audio' },
-      { pattern: /^(\s*)zone\s+"([^"]+)"\s*\{/m, kind: 'zone' },
-      { pattern: /^(\s*)ui\s*\{/m, kind: 'ui' },
-      { pattern: /^(\s*)npc\s+"([^"]+)"\s*\{/m, kind: 'npc' },
-      { pattern: /^(\s*)quest\s+"([^"]+)"\s*\{/m, kind: 'quest' },
-      { pattern: /^(\s*)ability\s+"([^"]+)"\s*\{/m, kind: 'ability' },
-      { pattern: /^(\s*)dialogue\s+"([^"]+)"\s*\{/m, kind: 'dialogue' },
-      { pattern: /^(\s*)state_machine\s+"([^"]+)"\s*\{/m, kind: 'state_machine' },
-      {
-        pattern: /^(\s*)spatial_group\s+"([^"]+)"\s*\{/m,
-        kind: 'spatial_group',
-      },
-      { pattern: /^(\s*)logic\s*\{/m, kind: 'logic' },
-      { pattern: /^(\s*)trait\s+(\w+)[^{]*\{/m, kind: 'trait' },
-      { pattern: /^(\s*)data_source\s+"([^"]+)"\s*\{/m, kind: 'data_source' },
-      { pattern: /^(\s*)team_agent\s+"([^"]+)"\s*\{/m, kind: 'team_agent' },
-    ];
-
-    // Find all block starts with their line numbers
-    const blockStarts: Array<{
-      kind: SegmentKind;
-      name: string;
-      lineIndex: number;
-      indent: number;
-    }> = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      for (const { pattern, kind } of blockPatterns) {
-        const match = pattern.exec(line);
-        if (match) {
-          const indent = (match[1] ?? '').length;
-          const name = match[2] ?? kind;
-          blockStarts.push({ kind, name, lineIndex: i, indent });
-          break; // Only match one pattern per line
-        }
-      }
-    }
-
-    // For each block start, find matching closing brace
-    for (const block of blockStarts) {
-      const endLine = this.findMatchingBrace(lines, block.lineIndex);
-      if (endLine >= 0) {
-        const segmentLines = lines.slice(block.lineIndex, endLine + 1);
-        segments.push({
-          kind: block.kind,
-          name: block.name,
-          source: segmentLines.join('\n'),
-          startLine: block.lineIndex + 1,
-          endLine: endLine + 1,
-          depth: block.indent > 0 ? 1 : 0,
-        });
-      }
-    }
-
-    // Also extract import lines
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (/^\s*import\s+/.test(line)) {
-        segments.push({
-          kind: 'import',
-          name: 'import',
-          source: line,
-          startLine: i + 1,
-          endLine: i + 1,
-          depth: 0,
-        });
-      }
-    }
+    // --- AST pass: consume AST node loc ranges ------------------
+    // Migrated from regex line-by-line walks per B2 specification.
+    this.collectSegmentsFromAST(lines, parseResult, segments);
 
     return segments;
   }
 
   /**
-   * Walk every `HoloObjectDecl` in the AST and emit one `ASTSegment` per
-   * object using its native `loc` range. Recurses into `obj.children` so
-   * nested objects are captured at appropriate depth.
+   * Walk every node in the AST and emit one `ASTSegment` per node
+   * using its native `loc` range. Recurses into children so
+   * nested blocks are captured at appropriate depth.
    *
    * Contract: every segment produced here carries byte-precise line
    * boundaries sourced directly from the parser — no regex, no brace
-   * counting. Objects without `loc` (pre-2e7bfd88 cores, malformed input)
-   * are skipped rather than guessed.
+   * counting.
    */
-  private collectObjectSegmentsFromAST(
+  private collectSegmentsFromAST(
     lines: string[],
     parseResult: HoloParseResult,
     segments: ASTSegment[]
   ): void {
     const ast = parseResult.ast;
-    if (!ast || !Array.isArray(ast.objects)) return;
+    if (!ast) return;
 
-    const walk = (obj: HoloObjectDecl, depth: number): void => {
-      const startLine = obj.loc?.start?.line;
-      const endLine = obj.loc?.end?.line;
-      if (typeof startLine === 'number' && typeof endLine === 'number' && endLine >= startLine) {
-        const segmentLines = lines.slice(startLine - 1, endLine);
-        segments.push({
-          kind: 'object',
-          name: obj.name || 'unnamed',
-          source: segmentLines.join('\n'),
-          startLine,
-          endLine,
-          depth,
-        });
+    const kindMap: Record<string, SegmentKind> = {
+      Composition: 'composition',
+      Environment: 'environment',
+      State: 'state',
+      Template: 'template',
+      Object: 'object',
+      Logic: 'logic',
+      Import: 'import',
+      Timeline: 'timeline',
+      Audio: 'audio',
+      Zone: 'zone',
+      UI: 'ui',
+      Transition: 'composition', // Not in SegmentKind, map to composition or skip
+      NPC: 'npc',
+      Quest: 'quest',
+      Ability: 'ability',
+      Dialogue: 'dialogue',
+      StateMachine: 'state_machine',
+      SpatialGroup: 'spatial_group',
+      TraitDefinition: 'trait'
+    };
+
+    const walk = (node: any, depth: number): void => {
+      if (!node || typeof node !== 'object') return;
+
+      const type = node.type as string;
+      let kind = type ? kindMap[type] : undefined;
+
+      // Handle DomainBlocks which encapsulate many sub-types
+      if (type === 'DomainBlock' && typeof node.keyword === 'string') {
+        const keyword = node.keyword.toLowerCase();
+        if (keyword.includes('material') || keyword === 'shader') kind = 'material';
+        else if (keyword.includes('light')) kind = 'light';
+        else if (keyword === 'data_source') kind = 'data_source';
+        else if (keyword === 'team_agent') kind = 'team_agent';
+        else if (keyword === 'camera') kind = 'camera';
+        else if (keyword === 'effects') kind = 'effects';
       }
-      for (const child of obj.children ?? []) {
-        walk(child, depth + 1);
+
+      // Extract if it has a mapped kind AND valid loc ranges
+      if (kind && node.loc?.start?.line != null && node.loc?.end?.line != null) {
+        const startLine = node.loc.start.line;
+        const endLine = node.loc.end.line;
+        if (typeof startLine === 'number' && typeof endLine === 'number' && endLine >= startLine) {
+          const segmentLines = lines.slice(startLine - 1, endLine);
+          segments.push({
+            kind,
+            name: node.name || 'unnamed',
+            source: segmentLines.join('\n'),
+            startLine,
+            endLine,
+            depth,
+          });
+        }
+      }
+
+      // Recurse into array or object properties
+      // Depth contract: top-level objects inside a composition are depth 0.
+      // So composition itself does not increase child depth.
+      const depthDelta = kind && kind !== 'composition' ? 1 : 0;
+      for (const key of Object.keys(node)) {
+        if (key === 'loc' || key === 'provenance' || key === 'parent') continue;
+        const value = node[key];
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            walk(item, depth + depthDelta);
+          }
+        } else if (value && typeof value === 'object') {
+          walk(value, depth + depthDelta);
+        }
       }
     };
 
-    for (const obj of ast.objects) {
-      walk(obj, 0);
-    }
+    walk(ast, 0);
   }
 
   // ---------------------------------------------------------------------------

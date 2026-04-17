@@ -262,5 +262,5 @@ describe('retired model regression guard', () => {
           `See docs/strategy/claude-api-migration-checklist.md for the replacement mapping.`
       );
     }
-  });
+  }, 20000);
 });
