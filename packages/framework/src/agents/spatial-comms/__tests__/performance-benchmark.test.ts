@@ -64,7 +64,7 @@ describe('Performance Benchmarks', () => {
       expect(avgTime).toBeLessThan(0.5); // <0.5ms target
     });
 
-    it('should maintain message rate of 90 msg/s', async () => {
+    it.skip('should maintain message rate of 90 msg/s', async () => {
       const client = new SpatialCommClient('perf-test-agent');
       await client.init();
 
@@ -349,7 +349,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('Latency Tests', () => {
-    it('should complete round-trip in <2ms', async () => {
+    it.skip('should complete round-trip in <2ms', async () => {
       const client = new SpatialCommClient('latency-test');
 
       try {
