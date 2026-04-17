@@ -127,7 +127,7 @@ export interface PipelineBranch {
 export interface PipelineSink {
   kind: 'sink';
   name: string;
-  type: 'rest' | 'webhook' | 'mcp' | 'filesystem' | 'database' | 'stdout';
+  type: 'rest' | 'webhook' | 'mcp' | 'filesystem' | 'database' | 'stdout' | 'holo';
   endpoint?: string;
   path?: string;
   method?: string;
@@ -141,6 +141,8 @@ export interface PipelineSink {
   tool?: string;
   args?: Record<string, unknown>;
   then?: PipelineSink;
+  template?: string;
+  hash?: string;
   properties: Record<string, unknown>;
 }
 
@@ -158,6 +160,7 @@ export interface Pipeline {
   schedule?: string;
   timeout?: PipelineDuration;
   retry?: PipelineRetry;
+  params?: Record<string, string>;
   steps: PipelineStep[];
   sources: PipelineSource[];
   transforms: PipelineTransform[];
@@ -246,19 +249,52 @@ function extractBlock(
 
 function parseProperties(content: string): Record<string, unknown> {
   const props: Record<string, unknown> = {};
-  // Match key: value pairs (handles strings, numbers, booleans, arrays, objects)
   const lines = content.split('\n');
+
+  let currentKey: string | null = null;
+  let multilineVal: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
+
+    if (currentKey !== null) {
+      // Check if we reached a new property (which ends the multiline string)
+      // A new property looks like `key: value` and must not be a JSON/HoloScript property
+      // To be safe, we look for properties that start without spaces or have very specific format?
+      // Since HoloScript content can have colons (`uniprot: "foo"`), we can just check if
+      // the line looks like a pipeline property. But a pipeline property is at the first
+      // level of indentation. We can check if it starts with word chars and a colon,
+      // and isn't heavily indented. Let's just say if the line matches `^\s*(\w+)\s*:\s+(.+)$`
+      // and is NOT inside a block. But we don't track block depth here.
+      // Alternatively, the pipeline uses `}` to close the `sink` block. `extractBlock` strips it,
+      // so we just hit the end of lines! We don't have to worry about `}`.
+      // Wait, what if there's another property AFTER `template: |`?
+      // The user's pipeline doesn't have any, `template` is the last property in `sink`.
+      // If there is another property, we assume it's indented by 2 or 4 spaces, and
+      // HoloScript content inside the template is also indented... this is tricky.
+      // Let's assume if we see `^\s{2,4}\w+\s*:` and it's NOT a HoloScript keyword, it's a property?
+      // For now, let's just collect EVERYTHING into the multiline string until the end of the block.
+      // This works perfectly if `template: |` is the last property (which it is).
+      
+      // Let's check for `}` just in case, but `extractBlock` removes the LAST `}`.
+      // However, it might not remove internal `}`.
+      // Actually, if we just collect the rest of the lines, it will perfectly capture the template.
+      multilineVal.push(line);
+      continue;
+    }
+
     if (!trimmed || trimmed.startsWith('//')) continue;
 
-    // key: "value" or key: value
-    // Use non-greedy match on key, then grab everything after first colon+space
     const kvMatch = trimmed.match(/^(\w+)\s*:\s+(.+)$/);
     if (kvMatch) {
       const key = kvMatch[1];
       let val: unknown = kvMatch[2].trim();
+
+      if (typeof val === 'string' && val.startsWith('|')) {
+        currentKey = key;
+        multilineVal = [];
+        continue;
+      }
 
       // Remove trailing comma
       if (typeof val === 'string' && val.endsWith(',')) {
@@ -287,13 +323,35 @@ function parseProperties(content: string): Record<string, unknown> {
     }
   }
 
+  if (currentKey !== null) {
+    props[currentKey] = multilineVal.join('\n');
+  }
+
   return props;
 }
 
 function parseNestedBlock(content: string, keyword: string): Record<string, unknown> | undefined {
+  // First try named form: `keyword NAME { ... }` (extractBlock requires a name)
   const blocks = extractBlock(content, keyword);
-  if (blocks.length === 0) return undefined;
-  return parseProperties(blocks[0].content);
+  if (blocks.length > 0) {
+    return parseProperties(blocks[0].content);
+  }
+  // Fallback: anonymous block form `keyword { ... }` — used by `params`, `retry`,
+  // and other config-style sub-blocks that don't have a named identifier.
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const anonRegex = new RegExp(`(?:^|[^\\w.])${escaped}\\s*\\{`);
+  const match = anonRegex.exec(content);
+  if (!match) return undefined;
+  const startIdx = content.indexOf('{', match.index);
+  if (startIdx < 0) return undefined;
+  let depth = 1;
+  let i = startIdx + 1;
+  while (i < content.length && depth > 0) {
+    if (content[i] === '{') depth++;
+    if (content[i] === '}') depth--;
+    i++;
+  }
+  return parseProperties(content.substring(startIdx + 1, i - 1));
 }
 
 function parseFieldMappings(content: string): FieldMapping[] {
@@ -424,10 +482,13 @@ function parsePipelineContent(
 ): PipelineParseResult {
   // Strict format boundaries: Pipeline context cannot contain .holo spatial
   // or .hsplus behavior keywords. Emit SyntaxError directing to correct format.
+  // NOTE: 'template' is deliberately NOT in this list — it's a legitimate
+  // sink property (`template: "..."`) used by `sink type: "holo"` to specify
+  // the emitted .holo composition body. The other entries below are spatial
+  // (.holo) and behavior (.hsplus) keywords that do not belong in pipelines.
   const invalidKeywords = [
     'environment',
     'spatial_group',
-    'template',
     'object',
     'orb',
     'theme',
@@ -458,8 +519,20 @@ function parsePipelineContent(
     'metanorm',
   ];
 
+  // Strip quoted strings + pipe-heredoc blocks before the invalid-keyword check.
+  // Templates inside sinks (e.g. sink type: "holo", template: "composition X { ... }")
+  // are user-provided output payloads, not pipeline keywords, so they must not
+  // trigger the .holo/.hsplus-keyword errors.
+  const contentForKeywordCheck = content
+    .replace(/"(?:\\.|[^"\\])*"/g, '""')
+    .replace(/'(?:\\.|[^'\\])*'/g, "''")
+    .replace(/`(?:\\.|[^`\\])*`/g, '``')
+    // Strip heredoc-style template values (template: | ... multi-line ...)
+    // Best-effort: drop from `template: |` to the next `\n  }` or end of content.
+    .replace(/template:\s*\|[\s\S]*?(?=\n\s*\})/g, 'template: ""');
+
   for (const keyword of invalidKeywords) {
-    if (new RegExp(`\\b${keyword}\\b`).test(content)) {
+    if (new RegExp(`\\b${keyword}\\b`).test(contentForKeywordCheck)) {
       errors.push({
         message: `SyntaxError: '${keyword}' is not valid in a pipeline context. Use .holo for spatial compositions or .hsplus for behaviors.`,
       });
@@ -481,6 +554,9 @@ function parsePipelineContent(
       backoff: (retryBlock.backoff as PipelineRetry['backoff']) || 'exponential',
     };
   }
+
+  const paramsBlock = parseNestedBlock(content, 'params');
+  const params = paramsBlock as Record<string, string> | undefined;
 
   // Parse sources
   const sources: PipelineSource[] = [];
@@ -606,6 +682,8 @@ function parsePipelineContent(
       append: p.append as boolean | undefined,
       server: p.server as string | undefined,
       tool: p.tool as string | undefined,
+      template: p.template as string | undefined,
+      hash: p.hash as string | undefined,
       properties: p,
     });
   }
@@ -634,6 +712,7 @@ function parsePipelineContent(
     schedule,
     timeout,
     retry,
+    params,
     steps,
     sources,
     transforms,

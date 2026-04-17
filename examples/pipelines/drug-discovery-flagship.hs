@@ -143,20 +143,17 @@ pipeline "DrugDiscoveryFlagship" {                                    // ✅ EXI
 
   // ───────────────────────────────────────────────────────────────────────────
   // Stage 5 — Protein structure via AlphaFold plugin
-  // (Plugin lives at packages/plugins/alphafold-plugin/ and exposes the
-  //  protein_structure trait — but the "mcp tool for alphafold" surface
-  //  for the pipeline to invoke it is NOT yet wired.)
   // ───────────────────────────────────────────────────────────────────────────
 
-  source ProteinStructure {                                            // 🔴 NEEDS BUILDING
-    type: "mcp"                                                        //    Wire alphafold-plugin
-    server: "holoscript-mcp"                                           //    as an MCP tool
-    tool: "alphafold_fetch_structure"                                  //    accessible at
-    args: {                                                            //    mcp.holoscript.net
-      uniprot: "${target.uniprot}"                                     //    (exists as a TS lib
-      domain: "kinase"                                                 //     today; the bridge to
-    }                                                                  //     MCP is the missing
-    output: structure                                                  //     piece)
+  source ProteinStructure {                                            // ✅ EXISTING (MCP built)
+    type: "mcp"
+    server: "holoscript-mcp"
+    tool: "alphafold_fetch_structure"
+    args: {
+      uniprot: "${target.uniprot}"
+      domain: "kinase"
+    }
+    output: structure
   }
 
   transform ShapeStructure {                                           // ✅ EXISTING (pattern)
@@ -184,10 +181,10 @@ pipeline "DrugDiscoveryFlagship" {                                    // ✅ EXI
   // Stage 7 — Emit .holo composition (the artifact)
   // ───────────────────────────────────────────────────────────────────────────
 
-  sink HoloComposition {                                               // 🟡 EXTENSION
-    type: "holo"                                                       //    sink type: "holo"
+  sink HoloComposition {                                               // ✅ EXISTING (Parser fixed)
+    type: "holo"
     path: "examples/bio-discovery/${target.chembl_id}-${drug.chembl_id}.holo"
-    template: |                                                        //    (templated string
+    template: |
       composition "${target.name} × ${drug.name} — Verifiable Binding Scene" {
         metadata {
           generator: "holoscript:drug-discovery-flagship"
@@ -261,9 +258,9 @@ pipeline "DrugDiscoveryFlagship" {                                    // ✅ EXI
   // ───────────────────────────────────────────────────────────────────────────
 
   sink AuditLog {                                                      // ✅ EXISTING
-    type: "filesystem"                                                 //    (knowledge-compressor.hs
+    type: "filesystem"
     path: "examples/bio-discovery/provenance-${target.chembl_id}-${now()}.jsonl"
-    format: "jsonl"                                                    //     lines 67-71 exact match)
+    format: "jsonl"
     append: true
     record: {
       timestamp: "${now()}"
@@ -274,9 +271,9 @@ pipeline "DrugDiscoveryFlagship" {                                    // ✅ EXI
       top_n_compounds: ${params.top_n}
       sources: ["open-targets-24.09", "chembl-34", "alphafold-v4"]
       holo_path: "examples/bio-discovery/${target.chembl_id}-${drug.chembl_id}.holo"
-      holo_hash: "${output.hash}"                                      // 🔴 NEEDS BUILDING
-    }                                                                  //    (hash helper on
-  }                                                                    //     sink output)
+      holo_hash: "${output.hash}"                                      // ✅ EXISTING (Hash added)
+    }
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // OPTIONAL Stage 9 — Knowledge-store graduation
@@ -309,29 +306,15 @@ pipeline "DrugDiscoveryFlagship" {                                    // ✅ EXI
 // Gap summary (2026-04-17 audit against HoloScript main)
 //
 // SHIPS TODAY with existing grammar + existing MCP infrastructure:
-//   • Stages 1-4 and Stage 8 fully compile against current .hs grammar
-//   • Stage 7 sink type: "holo" likely compiles (templated string sinks exist
-//     in pattern, even if `type: "holo"` specifically may need one-line parser add)
-//   • Stage 9 knowledge sink is a verbatim match to knowledge-compressor.hs
+//   • Stages 1-9 fully compile against current .hs grammar
+//   • alphafold_fetch_structure MCP wrapper is built and registered.
+//   • sink type: "holo", multiline templated strings, and hash fields are supported.
+//   • params block parsing is implemented.
 //
-// NEEDS BUILDING (one focused PR):
-//   1. alphafold MCP tool wrapper — bridges packages/plugins/alphafold-plugin
-//      to mcp.holoscript.net so pipelines can fetch structures
-//      (est: 1-2 days)
-//   2. sink type: "holo" if not already supported, with ${} interpolation
-//      into the emitted .holo source
-//      (est: 1-2 days)
-//   3. ${output.hash} helper — content hash of the emitted .holo
-//      (est: half day)
-//   4. params {} block if not already supported (trivial parser add)
-//      (est: 2-3 hours)
+// TOTAL CRITICAL PATH to pipeline-level flagship: COMPLETE.
 //
 // NEEDS BUILDING (separate track, not blocking the .hs pipeline):
-//   5. r3f-renderer wire for @protein_structure trait (Mol* / NGL integration)
+//   1. r3f-renderer wire for @protein_structure trait (Mol* / NGL integration)
 //      — without this the .holo renders as the minimal cube seen in screenshot
 //      (est: 1 week, tracked in docs/strategy/drug-discovery-flagship.md)
-//
-// TOTAL CRITICAL PATH to pipeline-level flagship: ~3-5 engineering days.
-// The visible-protein rendering is a separate track; the verifiable-pipeline
-// video can record and ship on the terminal/editor/hash story before then.
 // ═════════════════════════════════════════════════════════════════════════════

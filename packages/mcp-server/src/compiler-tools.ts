@@ -38,6 +38,7 @@ import {
 } from '@holoscript/core';
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
+import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM — the default monitoring loop
@@ -565,6 +566,10 @@ export async function handleCompilerTool(
     // Audit
     case 'holoscript_audit_numbers':
       return handleAuditNumbers(args);
+
+    // AlphaFold — drug-discovery flagship Stage 5 (see docs/strategy/drug-discovery-flagship.md)
+    case 'alphafold_fetch_structure':
+      return handleFetchStructure(args);
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -1228,4 +1233,5 @@ export const compilerTools: Tool[] = [
   },
   // Audit tools (automated number consistency)
   ...auditTools,
+  ...alphafoldTools,
 ];

@@ -56,6 +56,8 @@ describe('dispatch health check', () => {
     ...['import_gltf', 'compile_to_gltf'],
     // handleCompilerTool (index.ts) — audit tool dispatched via compiler handler
     'holoscript_audit_numbers',
+    // AlphaFold — also dispatched via compiler handler (see compiler-tools.ts switch)
+    'alphafold_fetch_structure',
     // Dedicated handlers — now in tools.ts but still dispatched via their own handlers
     ...compilerTools.map((t) => t.name),
     ...networkingTools.map((t) => t.name),

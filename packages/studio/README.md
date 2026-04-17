@@ -151,13 +151,13 @@ Connect via `POST /api/connectors/connect`, manage via `/api/connectors/oauth`, 
 
 Brittney is the AI that powers the `/vibe` experience and the chat panel in `/create`. She is wired to Claude via the Anthropic SDK.
 
-**54 tools available:**
+**Tools available:**
 
-| Category         | Count | Examples                                                         |
-| ---------------- | ----- | ---------------------------------------------------------------- |
-| Scene generation | 13    | Generate objects, scenes, suggest traits, explain code           |
-| Studio API       | 29    | Materials, shaders, physics, export, templates, audio, particles |
-| MCP bridge       | 15    | Compile to any target, parse, validate, graph analysis           |
+| Category         | Example Capabilities                                             |
+| ---------------- | ---------------------------------------------------------------- |
+| Scene generation | Generate objects, scenes, suggest traits, explain code           |
+| Studio API       | Materials, shaders, physics, export, templates, audio, particles |
+| MCP bridge       | Compile to any target, parse, validate, graph analysis           |
 
 **Conversation wizard flow:** Brittney guides users through progressive refinement — describe a scene, see it rendered, refine with follow-up prompts, then export, deploy, or publish.
 
@@ -247,19 +247,19 @@ src/
 
 ## Codebase at a Glance
 
-| Metric               | Count | Verification                                      |
-| -------------------- | ----- | ------------------------------------------------- |
-| Pages                | 43    | `find src/app -name "page.tsx" \| wc -l`          |
-| API routes           | 143   | `find src/app/api -name "route.ts" \| wc -l`      |
-| Components           | 316   | `find src/components -name "*.tsx" \| wc -l`      |
-| Hooks                | 148   | `find src/hooks -type f \| wc -l`                 |
-| Lib modules          | 121   | `find src/lib -name "*.ts" \| wc -l`              |
-| MCP tools accessible | 158   | `curl mcp.holoscript.net/health` → `tools`        |
-| Brittney tools       | 54    | 13 scene + 29 studio API + 15 MCP bridge          |
-| Compilation targets  | 17    | Listed in capabilities manifest                   |
-| Total TS/TSX files   | 1,379 | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
+| Metric               | Verification                                      |
+| -------------------- | ------------------------------------------------- |
+| Pages                | `find src/app -name "page.tsx" | wc -l`           |
+| API routes           | `find src/app/api -name "route.ts" | wc -l`       |
+| Components           | `find src/components -name "*.tsx" | wc -l`       |
+| Hooks                | `find src/hooks -type f | wc -l`                  |
+| Lib modules          | `find src/lib -name "*.ts" | wc -l`               |
+| MCP tools accessible | `curl mcp.holoscript.net/health` → `tools`        |
+| Brittney tools       | See `packages/studio/src/lib/brittney/tools/`     |
+| Compilation targets  | Listed in capabilities manifest                   |
+| Total TS/TSX files   | `find src -name "*.ts" -o -name "*.tsx" | wc -l`  |
 
-_(Counts verified 2026-04-09. Run verification commands to get current numbers.)_
+_(Run verification commands to get current live numbers.)_
 
 ---
 

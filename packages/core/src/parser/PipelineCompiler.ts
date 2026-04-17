@@ -325,6 +325,66 @@ function genSink(sink: PipelineSink): string {
     lines.push(`}`);
   } else if (sink.type === 'stdout') {
     lines.push(`console.log(JSON.stringify(records, null, 2));`);
+  } else if (sink.type === 'holo') {
+    // Holo sink: emit a .holo composition by interpolating `sink.template`
+    // against the last record in the pipeline. Writes the result to `sink.path`
+    // and computes a SHA-256 hash of the content so downstream stages (e.g.
+    // audit-log sinks) can reference `${output.hash}`.
+    lines.push(`import { writeFile } from 'node:fs/promises';`);
+    lines.push(`import { createHash } from 'node:crypto';`);
+    lines.push(`import { mkdir } from 'node:fs/promises';`);
+    lines.push(`import { dirname as ${sink.name}_dirname } from 'node:path';`);
+    lines.push(``);
+    // Use the final record (or the last one when multiple remain) as the
+    // interpolation context. In practice a drug-discovery pipeline produces
+    // one composite record per run; multi-record holo sinks are undefined
+    // behaviour and fall back to the last record.
+    lines.push(`{`);
+    lines.push(`  const ${sink.name}_record = records[records.length - 1] ?? {};`);
+    lines.push(`  // Template is a raw string with \${...} placeholders; resolve them`);
+    lines.push(`  // against the record, env, and pipeline params.`);
+    lines.push(
+      `  const ${sink.name}_template = ${JSON.stringify(sink.template ?? '')};`
+    );
+    lines.push(`  const ${sink.name}_holo = ${sink.name}_template.replace(`);
+    lines.push(`    /\\$\\{([^}]+)\\}/g,`);
+    lines.push(`    (match, expr) => {`);
+    lines.push(`      // Guard unsafe expressions — only allow dotted property access`);
+    lines.push(`      if (!/^[a-zA-Z_][\\w.\\[\\]]*$/.test(expr.trim())) return match;`);
+    lines.push(`      const parts = expr.trim().split('.');`);
+    lines.push(`      let value;`);
+    lines.push(`      if (parts[0] === 'env') {`);
+    lines.push(
+      `        value = process.env[parts.slice(1).join('.')];`
+    );
+    lines.push(`      } else if (parts[0] === 'params') {`);
+    lines.push(
+      `        value = params[parts.slice(1).join('.')];`
+    );
+    lines.push(`      } else {`);
+    lines.push(`        value = ${sink.name}_record;`);
+    lines.push(`        for (const p of parts) {`);
+    lines.push(`          if (value == null) break;`);
+    lines.push(`          value = value[p];`);
+    lines.push(`        }`);
+    lines.push(`      }`);
+    lines.push(`      return value == null ? match : String(value);`);
+    lines.push(`    }`);
+    lines.push(`  );`);
+    lines.push(`  const ${sink.name}_path = interpolate(\`${sink.path || ''}\`);`);
+    lines.push(`  await mkdir(${sink.name}_dirname(${sink.name}_path), { recursive: true });`);
+    lines.push(`  await writeFile(${sink.name}_path, ${sink.name}_holo);`);
+    lines.push(
+      `  const ${sink.name}_hash = createHash('sha256').update(${sink.name}_holo).digest('hex');`
+    );
+    // Expose the hash + path on a shared `output` object so subsequent sinks can
+    // reference ${output.hash} and ${output.holo_path}.
+    lines.push(`  output.holo_path = ${sink.name}_path;`);
+    lines.push(`  output.hash = ${sink.name}_hash;`);
+    lines.push(
+      `  console.log(\`[${sink.name}] wrote \${${sink.name}_path} (sha256: \${${sink.name}_hash.slice(0, 16)}...)\`);`
+    );
+    lines.push(`}`);
   } else {
     lines.push(`// TODO: ${sink.type} sink not yet compiled`);
   }
@@ -347,9 +407,14 @@ function compilePipeline(pipeline: Pipeline): string {
 
   // Utilities
   lines.push(`function interpolate(template) {`);
-  lines.push(
-    `  return template.replace(/\\$\\{env\\.([^}]+)\\}/g, (_, key) => process.env[key] || '');`
-  );
+  lines.push(`  return template.replace(/\\$\\{([^}]+)\\}/g, (match, expr) => {`);
+  lines.push(`    // env.VAR or env.VAR:-default`);
+  lines.push(`    const envMatch = expr.match(/^env\\.([A-Z_][A-Z0-9_]*)(?::-(.*))?$/);`);
+  lines.push(`    if (envMatch) return process.env[envMatch[1]] ?? envMatch[2] ?? '';`);
+  lines.push(`    // Leave other expressions (like \${params.X} or \${record.field}) untouched`);
+  lines.push(`    // for the holo-sink template interpolator, which handles them separately.`);
+  lines.push(`    return match;`);
+  lines.push(`  });`);
   lines.push(`}`);
   lines.push(``);
   lines.push(`function applyTransform(value, fn) {`);
@@ -386,6 +451,22 @@ function compilePipeline(pipeline: Pipeline): string {
   lines.push(`export async function run() {`);
   lines.push(`  const startTime = Date.now();`);
   lines.push(`  let records = [];`);
+  lines.push(`  // output is populated by sinks that produce downstream-visible artifacts`);
+  lines.push(`  // (e.g. holo sinks write output.hash + output.holo_path for audit sinks).`);
+  lines.push(`  const output = {};`);
+  // Emit params resolution. Pipeline params support env-var fallback syntax:
+  //   param_name: "${env.VAR:-default}"
+  // Values are resolved at run() time so tests can override via process.env.
+  if (pipeline.params && Object.keys(pipeline.params).length > 0) {
+    lines.push(`  const params = {};`);
+    for (const [key, rawValue] of Object.entries(pipeline.params)) {
+      // Escape the raw template literal so it survives transport to generated code
+      const escaped = String(rawValue).replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+      lines.push(`  params[${JSON.stringify(key)}] = interpolate(\`${escaped}\`);`);
+    }
+  } else {
+    lines.push(`  const params = {};`);
+  }
   lines.push(``);
 
   // Sources
