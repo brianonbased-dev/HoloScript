@@ -31,5 +31,6 @@ export * from './registry-deploy-events';
 export * from '../extensions';
 
 // Worker layer exports
+export * from '../HoloScriptCodeParser';
 export * from '../worker/CompilerWorkerProxy';
 export * from '../worker/LSPWorkerProtocol';

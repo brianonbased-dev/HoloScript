@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createSpatialTrainingDataGenerator } from '../SpatialTrainingDataGenerator';
-import { HoloScriptCodeParser } from '../../HoloScriptCodeParser';
+import { HoloScriptCodeParser } from '@holoscript/core';
 
 describe('Spatial Corpus Parse Validation', () => {
   const generator = createSpatialTrainingDataGenerator({ seed: 42, examplesPerCategory: 5 });

@@ -8,8 +8,8 @@
  * it's invalid training data and will teach the model bad syntax.
  */
 import { describe, it, expect } from 'vitest';
-import { TrainingDataGenerator, ALL_CATEGORIES } from '../../ai/TrainingDataGenerator';
-import { HoloScriptCodeParser } from '../../HoloScriptCodeParser';
+import { TrainingDataGenerator, ALL_CATEGORIES } from '../../../ai/TrainingDataGenerator';
+import { HoloScriptCodeParser } from '@holoscript/core';
 
 describe('Training Corpus Validation', () => {
   const generator = new TrainingDataGenerator();
