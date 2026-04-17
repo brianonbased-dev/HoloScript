@@ -29,7 +29,7 @@ describe('McpRegistrar', () => {
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://mcp-orchestrator.railway.internal/register',
+        'https://mcp-orchestrator-production-45f9.up.railway.app/register',
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -129,7 +129,7 @@ describe('McpRegistrar', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://mcp-orchestrator.railway.internal/register',
+        'https://mcp-orchestrator-production-45f9.up.railway.app/register',
         expect.anything()
       );
     });
