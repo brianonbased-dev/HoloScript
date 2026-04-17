@@ -70,22 +70,22 @@ describe('CulturalMemory', () => {
   describe('Stigmergic Traces', () => {
     it('leaves and perceives traces', () => {
       const mem = new CulturalMemory();
-      mem.leaveTrace('agent1', 'zone_a', 'danger', { x: 10, y: 0, z: 10 });
-      const perceived = mem.perceiveTraces('zone_a', { x: 12, y: 0, z: 10 });
+      mem.leaveTrace('agent1', 'zone_a', 'danger', [10, 0, 10]);
+      const perceived = mem.perceiveTraces('zone_a', [12, 0, 10]);
       expect(perceived).toHaveLength(1);
       expect(perceived[0].label).toBe('danger');
     });
 
     it('does not perceive out-of-range traces', () => {
       const mem = new CulturalMemory();
-      mem.leaveTrace('agent1', 'zone_a', 'far away', { x: 0, y: 0, z: 0 }, { radius: 5 });
-      const perceived = mem.perceiveTraces('zone_a', { x: 100, y: 0, z: 100 });
+      mem.leaveTrace('agent1', 'zone_a', 'far away', [0, 0, 0], { radius: 5 });
+      const perceived = mem.perceiveTraces('zone_a', [100, 0, 100]);
       expect(perceived).toHaveLength(0);
     });
 
     it('reinforces traces', () => {
       const mem = new CulturalMemory();
-      const trace = mem.leaveTrace('agent1', 'zone_a', 'food here', { x: 5, y: 0, z: 5 });
+      const trace = mem.leaveTrace('agent1', 'zone_a', 'food here', [5, 0, 5]);
       const initialIntensity = trace.intensity;
       mem.reinforceTrace(trace.id, 'zone_a');
       const reinforced = mem.zoneTraces('zone_a').find((t) => t.id === trace.id);
@@ -99,7 +99,7 @@ describe('CulturalMemory', () => {
         'agent1',
         'zone_a',
         'temp',
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0],
         { decayRate: 0.1 }
       );
       const before = trace.intensity;
@@ -110,7 +110,7 @@ describe('CulturalMemory', () => {
 
     it('evaporated traces are pruned', () => {
       const mem = new CulturalMemory();
-      mem.leaveTrace('agent1', 'zone_a', 'ephemeral', { x: 0, y: 0, z: 0 }, { decayRate: 1.0 });
+      mem.leaveTrace('agent1', 'zone_a', 'ephemeral', [0, 0, 0], { decayRate: 1.0 });
       const result = mem.tick();
       expect(result.evaporatedTraces).toBe(1);
       expect(mem.zoneTraces('zone_a')).toHaveLength(0);

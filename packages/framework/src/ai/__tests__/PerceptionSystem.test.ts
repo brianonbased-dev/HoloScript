@@ -21,7 +21,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [10, 0, 0],
+      position: { x: 10, y: 0, z: 0 },
       intensity: 0.8,
       timestamp: 0,
     });
@@ -33,7 +33,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'p',
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     });
@@ -52,7 +52,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [10, 0, 0],
+      position: { x: 10, y: 0, z: 0 },
       intensity: 0.9,
       timestamp: 0,
     });
@@ -67,7 +67,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [200, 0, 0],
+      position: { x: 200, y: 0, z: 0 },
       intensity: 0.9,
       timestamp: 0,
     });
@@ -86,7 +86,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [-10, 0, 0],
+      position: { x: -10, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     }); // behind
@@ -101,7 +101,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'hearing',
       sourceId: 'player',
-      position: [-10, 0, 0],
+      position: { x: -10, y: 0, z: 0 },
       intensity: 0.8,
       timestamp: 0,
     });
@@ -120,7 +120,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'guard',
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     });
@@ -139,7 +139,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'hearing',
       sourceId: 'player',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     });
@@ -158,7 +158,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 },
       intensity: 0.5,
       timestamp: 0,
     });
@@ -180,7 +180,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     });
@@ -202,7 +202,7 @@ describe('PerceptionSystem', () => {
       id: 'a',
       type: 'sight',
       sourceId: 'p1',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 },
       intensity: 0.5,
       timestamp: 0,
     });
@@ -210,7 +210,7 @@ describe('PerceptionSystem', () => {
       id: 'b',
       type: 'sight',
       sourceId: 'p2',
-      position: [10, 0, 0],
+      position: { x: 10, y: 0, z: 0 },
       intensity: 0.9,
       timestamp: 0,
     });
@@ -225,7 +225,7 @@ describe('PerceptionSystem', () => {
       id: 'weak',
       type: 'sight',
       sourceId: 'p1',
-      position: [40, 0, 0],
+      position: { x: 40, y: 0, z: 0 },
       intensity: 0.1,
       timestamp: 0,
     });
@@ -233,7 +233,7 @@ describe('PerceptionSystem', () => {
       id: 'strong',
       type: 'sight',
       sourceId: 'p2',
-      position: [5, 0, 0],
+      position: { x: 5, y: 0, z: 0 },
       intensity: 1,
       timestamp: 0,
     });

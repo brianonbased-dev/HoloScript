@@ -10,7 +10,7 @@ import { SteeringBehaviors, type SteeringAgent } from '../SteeringBehaviors';
 
 function agent(px = 0, py = 0, pz = 0, vx = 0, vy = 0, vz = 0): SteeringAgent {
   return {
-    position: [px, py, pz],
+    position: { x: px, y: py, z: pz },
     velocity: { x: vx, y: vy, z: vz },
     maxSpeed: 10,
     maxForce: 5,
