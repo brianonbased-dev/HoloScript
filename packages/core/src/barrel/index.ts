@@ -27,6 +27,9 @@ export * from './trait-stdlib-interop';
 export * from './compiler-plugins-crypto';
 export * from './registry-deploy-events';
 
+// Agent extensions (ISwarmConfig, ISwarmResult, IAgentExtension, etc.)
+export * from '../extensions';
+
 // Worker layer exports
 export * from '../worker/CompilerWorkerProxy';
 export * from '../worker/LSPWorkerProtocol';

@@ -33,7 +33,7 @@
 // These types come from @holoscript/core (peer dependency)
 import { HoloCompositionParser } from '@holoscript/core';
 // @ts-ignore - Automatic remediation for TS2614
-import type { HoloComposition, HoloParseResult, SourceRange } from '@holoscript/core';
+import type { HoloComposition, HoloObjectDecl, HoloParseResult } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -80,6 +80,7 @@ export type SegmentKind =
   | 'spatial_group'
   | 'domain_block'
   | 'data_source'
+  | 'team_agent'
   | 'import';
 
 /** A single DPO training pair */
@@ -334,27 +335,38 @@ export class FocusedDPOSplitter {
   // ---------------------------------------------------------------------------
 
   /**
-   * Extract segments from parsed HoloScript source. Uses regex-based block
-   * detection to reliably extract source ranges for each top-level and nested
-   * AST node, since the parser may not always emit precise source locations.
+   * Extract segments from parsed HoloScript source.
+   *
+   * B2 (NORTH_STAR DT-14): object segments now come from the AST `loc`
+   * ranges emitted by `parseHolo` (core commit 2e7bfd88) — no regex,
+   * no brace-matching heuristic, no line-by-line walk. The `object`
+   * regex pattern is REMOVED below; objects captured by the AST pass
+   * are authoritative.
+   *
+   * Remaining regex patterns cover segment kinds for which the parser
+   * does not yet emit `loc` (composition root, environment, materials,
+   * lights, etc.). As those parseObject-style loc followups land in
+   * core, their regex patterns will migrate out of this list on the
+   * same contract: if the AST has it, regex should not.
    */
   extractSegments(source: string, parseResult: HoloParseResult): ASTSegment[] {
     const segments: ASTSegment[] = [];
     const lines = source.split('\n');
 
-    // Strategy: Use regex to find block boundaries in the source,
-    // informed by the AST parse result for context.
+    // --- AST-first pass: objects (and their nested children) ------------------
+    // Uses `HoloObjectDecl.loc` populated by core commit 2e7bfd88.
+    // Any object the parser successfully produced ends up here with a
+    // byte-precise range — no regex fallback needed.
+    this.collectObjectSegmentsFromAST(lines, parseResult, segments);
 
+    // --- Regex pass: kinds still waiting on parser loc coverage ---------------
     // Pattern: keyword "name" [optional] {
     const blockPatterns: Array<{ pattern: RegExp; kind: SegmentKind }> = [
       { pattern: /^(\s*)composition\s+"([^"]+)"\s*\{/m, kind: 'composition' },
       { pattern: /^(\s*)environment\s*\{/m, kind: 'environment' },
       { pattern: /^(\s*)state\s*\{/m, kind: 'state' },
       { pattern: /^(\s*)template\s+"([^"]+)"\s*\{/m, kind: 'template' },
-      {
-        pattern: /^(\s*)object\s+"([^"]+)"(?:\s+using\s+"[^"]+")?\s*\{/m,
-        kind: 'object',
-      },
+      // `object` pattern intentionally REMOVED — handled by AST pass above.
       { pattern: /^(\s*)material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
       { pattern: /^(\s*)pbr_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
       { pattern: /^(\s*)unlit_material\s+"([^"]+)"[^{]*\{/m, kind: 'material' },
@@ -387,6 +399,7 @@ export class FocusedDPOSplitter {
       { pattern: /^(\s*)logic\s*\{/m, kind: 'logic' },
       { pattern: /^(\s*)trait\s+(\w+)[^{]*\{/m, kind: 'trait' },
       { pattern: /^(\s*)data_source\s+"([^"]+)"\s*\{/m, kind: 'data_source' },
+      { pattern: /^(\s*)team_agent\s+"([^"]+)"\s*\{/m, kind: 'team_agent' },
     ];
 
     // Find all block starts with their line numbers
@@ -442,6 +455,48 @@ export class FocusedDPOSplitter {
     }
 
     return segments;
+  }
+
+  /**
+   * Walk every `HoloObjectDecl` in the AST and emit one `ASTSegment` per
+   * object using its native `loc` range. Recurses into `obj.children` so
+   * nested objects are captured at appropriate depth.
+   *
+   * Contract: every segment produced here carries byte-precise line
+   * boundaries sourced directly from the parser — no regex, no brace
+   * counting. Objects without `loc` (pre-2e7bfd88 cores, malformed input)
+   * are skipped rather than guessed.
+   */
+  private collectObjectSegmentsFromAST(
+    lines: string[],
+    parseResult: HoloParseResult,
+    segments: ASTSegment[]
+  ): void {
+    const ast = parseResult.ast;
+    if (!ast || !Array.isArray(ast.objects)) return;
+
+    const walk = (obj: HoloObjectDecl, depth: number): void => {
+      const startLine = obj.loc?.start?.line;
+      const endLine = obj.loc?.end?.line;
+      if (typeof startLine === 'number' && typeof endLine === 'number' && endLine >= startLine) {
+        const segmentLines = lines.slice(startLine - 1, endLine);
+        segments.push({
+          kind: 'object',
+          name: obj.name || 'unnamed',
+          source: segmentLines.join('\n'),
+          startLine,
+          endLine,
+          depth,
+        });
+      }
+      for (const child of obj.children ?? []) {
+        walk(child, depth + 1);
+      }
+    };
+
+    for (const obj of ast.objects) {
+      walk(obj, 0);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -594,6 +649,7 @@ export class FocusedDPOSplitter {
       spatial_group: ['remove_closing_brace', 'invalid_nesting', 'remove_required_property'],
       domain_block: ['remove_closing_brace', 'corrupt_property_value', 'invalid_trait_name'],
       data_source: ['corrupt_property_value', 'remove_colon_separator', 'remove_closing_brace'],
+      team_agent: ['remove_closing_brace', 'invalid_trait_name', 'remove_trait_arguments', 'corrupt_property_value'],
       import: ['break_string_literal', 'corrupt_property_value'],
     };
 

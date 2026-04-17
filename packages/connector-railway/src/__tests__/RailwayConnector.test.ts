@@ -81,9 +81,9 @@ describe('RailwayConnector', () => {
   });
 
   describe('listTools()', () => {
-    it('should return 6 Railway tools', async () => {
+    it('should return 16 Railway tools', async () => {
       const tools = await connector.listTools();
-      expect(tools).toHaveLength(6);
+      expect(tools).toHaveLength(16);
       expect(tools.map((t) => t.name)).toEqual([
         'railway_project_create',
         'railway_service_create',
@@ -91,6 +91,16 @@ describe('RailwayConnector', () => {
         'railway_variable_set',
         'railway_domain_add',
         'railway_deployment_status',
+        'railway_redeploy',
+        'railway_service_restart',
+        'railway_deployment_logs',
+        'railway_build_logs',
+        'railway_latest_deployment',
+        'railway_variable_list',
+        'railway_volume_list',
+        'railway_tcp_proxy',
+        'railway_service_list',
+        'railway_project_list',
       ]);
     });
 
@@ -143,7 +153,7 @@ describe('RailwayConnector', () => {
 
         expect(result).toEqual(mockResponse);
         expect(global.fetch).toHaveBeenCalledWith(
-          'https://backboard.railway.com/graphql/v2',
+          'https://backboard.railway.app/graphql/v2',
           expect.objectContaining({
             method: 'POST',
             headers: {
