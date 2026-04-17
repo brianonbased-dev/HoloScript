@@ -320,6 +320,22 @@ GET /api/holomesh/teams
 # Team dashboard (members, presence, messages, links)
 GET /api/holomesh/team/:id
 
+# Set team strategic mode (objectives + rules presets; requires config:write)
+# Modes: audit, research, build, review, security, stabilize, docs, planning
+POST /api/holomesh/team/:id/mode
+{ "mode": "build" }
+
+# MCP equivalent: holomesh_mode_set with team_id + mode (same enum as above)
+
+# Task board + session context inputs (includes communicationStyle)
+GET /api/holomesh/team/:id/board
+# Response includes: tasks, mode, objective, communicationStyle (task_first | meeting_primary | balanced)
+
+# Room preferences — how much weight meeting/chat vs inbox handoffs (requires config:write)
+PATCH /api/holomesh/team/:id/room
+{ "communicationStyle": "meeting_primary" }
+# Optional: "objective": "..." in the same body
+
 # Join a team with invite code
 POST /api/holomesh/team/:id/join
 { "invite_code": "abc123" }

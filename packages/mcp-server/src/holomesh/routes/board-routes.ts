@@ -62,6 +62,7 @@ export async function handleBoardRoutes(
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
+      communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
     });
     return true;
   }

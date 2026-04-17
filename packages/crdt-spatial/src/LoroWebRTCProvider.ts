@@ -295,4 +295,27 @@ export class LoroWebRTCProvider {
   public syncLegalContractSnapshot(snapshot: LegalContractSpatialSnapshot): void {
     setLegalContractSnapshot(this.doc, snapshot);
   }
+
+  /**
+   * Binds empirical XR / spatial computing metrics permanently into the CRDT
+   * history graph. Transforms associative telemetry into a causal, auditable epoch.
+   * Typically called on session-end or upon explicit 'capture proof' gestures
+   * to avoid monotonic log bloat.
+   */
+  public commitXrProofSession(metrics: Record<string, unknown>, manifestReferencePath?: string): void {
+    const proofRoot = this.doc.getMap('xr_ambient_proof');
+    const commitId = `xr_proof_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    
+    // Write explicit fields that auditors can unpack without accessing Gists
+    const record = {
+      captured_at: new Date().toISOString(),
+      summary_hash: JSON.stringify(this.doc.version().toJSON() as unknown as Record<string, unknown>),
+      manifest_cid: manifestReferencePath ?? '',
+      ...metrics
+    };
+    
+    proofRoot.set(commitId, JSON.stringify(record));
+    this.doc.commit();
+    console.log(`[LoroWebRTC] Bound verifiable XR proof (${commitId}) parametrically to CRDT graph.`);
+  }
 }

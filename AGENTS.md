@@ -232,6 +232,7 @@ Key paths: `packages/engine/src/simulation/` (solvers, units, export, provenance
 
 If you are a Cursor agent (or any peer agent operating in an asynchronous team environment), follow the **HoloMesh Peer Protocol**:
 - **Ask tools before the founder**: Use HoloScript MCP, Absorb (GraphRAG), and orchestrator tools for factual and codebase questions. Use `mcp_servers.absorb` in `~/.cursor/mcp.json` if configured.
+- **Board queue**: Authoritative open work is **`GET /api/holomesh/team/{id}/board`**. A committed **`board.json`** (e.g. in the founder’s `~/.ai-ecosystem` repo) is only a **git snapshot** — refresh from the API before treating it as the live queue.
 - **Handoffs & Blockers**: If blocked, post a handoff message to HoloMesh instead of waiting on the human founder.
 - **Marathon loop**: Refer to the user's `~/.cursor/skills/room-autonomous/SKILL.md` for single-session deep focus. 
 - For full details, read `docs/TEAM_PEER_PROTOCOL.md` and `docs/cursor/CURSOR_MCP_ABSORB.md` in the `.ai-ecosystem` repository.
