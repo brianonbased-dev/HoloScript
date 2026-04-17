@@ -1172,6 +1172,7 @@ export class HoloCompositionParser {
    * Supports @world, orb, object, and primitive shapes at root level
    */
   private parseImplicitComposition(): HoloComposition {
+      const startLoc = this.currentLocation();
     this.pushContext('implicit-composition');
 
     const composition: HoloComposition = {
@@ -1358,6 +1359,7 @@ export class HoloCompositionParser {
     }
 
     this.popContext();
+    composition.loc = { start: startLoc, end: this.currentLocation() };
     return composition;
   }
 
@@ -1365,6 +1367,7 @@ export class HoloCompositionParser {
    * Parse environment body (after @world or @environment decorator)
    */
   private parseEnvironmentBody(): HoloEnvironment {
+      const startLoc = this.currentLocation();
     const properties: HoloEnvironmentProperty[] = [];
 
     if (this.check('LBRACE')) {
@@ -1385,13 +1388,16 @@ export class HoloCompositionParser {
       this.expect('RBRACE');
     }
 
-    return { type: 'Environment', properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Environment', properties };
   }
 
   /**
    * Parse orb declaration: orb "name" @trait1 @trait2 { ... }
    */
   private parseOrbDeclaration(): HoloObjectDecl {
+      const startLoc = this.currentLocation();
     this.advance(); // consume 'orb'
     const name = this.expectString();
 
@@ -1446,7 +1452,8 @@ export class HoloCompositionParser {
     }
 
     return {
-      type: 'Object',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Object',
       name,
       properties,
       traits,
@@ -1486,6 +1493,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseComposition(): HoloComposition {
+      const startLoc = this.currentLocation();
     this.pushContext('composition');
 
     this.expect('COMPOSITION');
@@ -1778,6 +1786,7 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     this.popContext();
+    composition.loc = { start: startLoc, end: this.currentLocation() };
     return composition;
   }
 
@@ -1786,12 +1795,15 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseImport(): HoloImport {
+      const startLoc = this.currentLocation();
     this.expect('IMPORT');
 
     // Handle simple path import: import "./path/to/file.holo"
     if (this.check('STRING')) {
       const source = this.expectString();
-      return { type: 'Import', specifiers: [], source };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Import', specifiers: [], source };
     }
 
     this.expect('LBRACE');
@@ -1813,7 +1825,9 @@ export class HoloCompositionParser {
     this.expect('FROM');
     const source = this.expectString();
 
-    return { type: 'Import', specifiers, source };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Import', specifiers, source };
   }
 
   // ===========================================================================
@@ -1821,12 +1835,15 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseUsingStatement(): HoloImport | null {
+      const startLoc = this.currentLocation();
     this.expect('USING');
 
     // using "path/to/module" syntax
     if (this.check('STRING')) {
       const source = this.expectString();
-      return { type: 'Import', specifiers: [], source };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Import', specifiers: [], source };
     }
 
     // using { Name } from "path" syntax (similar to import)
@@ -1850,7 +1867,9 @@ export class HoloCompositionParser {
       this.expect('FROM');
       const source = this.expectString();
 
-      return { type: 'Import', specifiers, source };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Import', specifiers, source };
     }
 
     // Fallback: just skip unknown using syntax
@@ -1863,6 +1882,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseTheme(): HoloTheme {
+      const startLoc = this.currentLocation();
     this.expect('THEME');
     this.expect('LBRACE');
     this.skipNewlines();
@@ -1880,13 +1900,16 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Theme', properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Theme', properties };
   }
 
   // ENVIRONMENT
   // ===========================================================================
 
   private parseEnvironment(): HoloEnvironment {
+      const startLoc = this.currentLocation();
     this.expect('ENVIRONMENT');
     this.expect('LBRACE');
     this.skipNewlines();
@@ -1913,10 +1936,13 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Environment', properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Environment', properties };
   }
 
   private parseParticleSystem(): HoloParticleSystem {
+      const startLoc = this.currentLocation();
     if (this.check('PARTICLE_SYSTEM')) {
       this.advance();
     } else {
@@ -1938,7 +1964,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'ParticleSystem', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ParticleSystem', name, properties };
   }
 
   // ===========================================================================
@@ -1946,6 +1974,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseLight(): HoloLight {
+      const startLoc = this.currentLocation();
     this.expect('LIGHT');
     const name = this.expectString();
 
@@ -2009,7 +2038,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Light', name, lightType, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Light', name, lightType, properties };
   }
 
   // ===========================================================================
@@ -2017,6 +2048,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseEffects(): HoloEffects {
+      const startLoc = this.currentLocation();
     this.expect('EFFECTS');
     this.expect('LBRACE');
     this.skipNewlines();
@@ -2046,7 +2078,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Effects', effects };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Effects', effects };
   }
 
   // ===========================================================================
@@ -2054,6 +2088,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseCamera(): HoloCamera {
+      const startLoc = this.currentLocation();
     this.expect('CAMERA');
 
     let cameraType: HoloCamera['cameraType'] = 'perspective';
@@ -2106,7 +2141,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Camera', cameraType, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Camera', cameraType, properties };
   }
 
   // ===========================================================================
@@ -2114,6 +2151,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseTimeline(): HoloTimeline {
+      const startLoc = this.currentLocation();
     this.expect('TIMELINE');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2152,7 +2190,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Timeline', name, autoplay, loop, entries };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Timeline', name, autoplay, loop, entries };
   }
 
   private parseTimelineAction(): HoloTimelineAction {
@@ -2206,6 +2246,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseAudio(): HoloAudio {
+      const startLoc = this.currentLocation();
     this.expect('AUDIO');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2238,7 +2279,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Audio', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Audio', name, properties };
   }
 
   // ===========================================================================
@@ -2246,6 +2289,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseZone(): HoloZone {
+      const startLoc = this.currentLocation();
     this.expect('ZONE');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2280,7 +2324,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Zone', name, properties, handlers };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Zone', name, properties, handlers };
   }
 
   // ===========================================================================
@@ -2288,6 +2334,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseUI(): HoloUI {
+      const startLoc = this.currentLocation();
     this.expect('UI');
     this.expect('LBRACE');
     this.skipNewlines();
@@ -2307,10 +2354,13 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'UI', elements };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'UI', elements };
   }
 
   private parseUIElement(): HoloUIElement {
+      const startLoc = this.currentLocation();
     this.expect('ELEMENT');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2329,7 +2379,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'UIElement', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'UIElement', name, properties };
   }
 
   // ===========================================================================
@@ -2337,6 +2389,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseTransition(): HoloTransition {
+      const startLoc = this.currentLocation();
     this.expect('TRANSITION');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2355,7 +2408,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Transition', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Transition', name, properties };
   }
 
   // ===========================================================================
@@ -2363,6 +2418,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseConditionalBlock(): HoloConditionalBlock {
+      const startLoc = this.currentLocation();
     this.expect('IF');
 
     // Parse condition as an expression, then convert to string
@@ -2421,7 +2477,8 @@ export class HoloCompositionParser {
     }
 
     return {
-      type: 'ConditionalBlock',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ConditionalBlock',
       condition,
       objects,
       spatialGroups: spatialGroups.length > 0 ? spatialGroups : undefined,
@@ -2436,6 +2493,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseForEachBlock(): HoloForEachBlock {
+      const startLoc = this.currentLocation();
     this.expect('FOR');
     const variable = this.expectIdentifier();
     this.expect('IN');
@@ -2469,7 +2527,8 @@ export class HoloCompositionParser {
     this.expect('RBRACE');
 
     return {
-      type: 'ForEachBlock',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ForEachBlock',
       variable,
       iterable,
       objects,
@@ -2482,6 +2541,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseState(): HoloState {
+      const startLoc = this.currentLocation();
     this.expect('STATE');
     // Support optional name: state TrainingState { } or state "MyState" { }
     if (this.check('IDENTIFIER') || this.check('STRING')) this.advance();
@@ -2492,6 +2552,7 @@ export class HoloCompositionParser {
    * Parse state body (after @state decorator or 'state' keyword)
    */
   private parseStateBody(): HoloState {
+      const startLoc = this.currentLocation();
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -2508,7 +2569,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'State', properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'State', properties };
   }
 
   // ===========================================================================
@@ -2516,6 +2579,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseTemplate(): HoloTemplate {
+      const startLoc = this.currentLocation();
     this.expect('TEMPLATE');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -2678,6 +2742,7 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
+    template.loc = { start: startLoc, end: this.currentLocation() };
     return template;
   }
 
@@ -2931,6 +2996,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseSpatialGroup(): HoloSpatialGroup {
+      const startLoc = this.currentLocation();
     this.expect('SPATIAL_GROUP');
     let name = '';
     if (this.check('STRING')) {
@@ -3017,7 +3083,8 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     return {
-      type: 'SpatialGroup',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'SpatialGroup',
       name,
       properties,
       objects,
@@ -3031,6 +3098,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseLogic(): HoloLogic {
+      const startLoc = this.currentLocation();
     this.expect('LOGIC');
     this.expect('LBRACE');
     this.skipNewlines();
@@ -3080,10 +3148,13 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Logic', handlers, actions };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Logic', handlers, actions };
   }
 
   private parseAction(): HoloAction {
+      const startLoc = this.currentLocation();
     const isAsync = this.match('ASYNC');
     this.expect('ACTION');
     const name = this.expectIdentifier();
@@ -3091,7 +3162,9 @@ export class HoloCompositionParser {
     if (this.check('LBRACE')) {
       this.skipBlock(); // skip action body — too diverse to parse statement-by-statement
     }
-    return { type: 'Action', name, parameters, body: [], async: isAsync };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Action', name, parameters, body: [], async: isAsync };
   }
 
   private parseParameterList(): HoloParameter[] {
@@ -3148,6 +3221,7 @@ export class HoloCompositionParser {
   }
 
   private parseIfStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('IF');
     const condition = this.parseExpression();
     this.expect('LBRACE');
@@ -3168,20 +3242,26 @@ export class HoloCompositionParser {
       }
     }
 
-    return { type: 'IfStatement', condition, consequent, alternate };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'IfStatement', condition, consequent, alternate };
   }
 
   private parseWhileStatement(): HoloWhileStatement {
+      const startLoc = this.currentLocation();
     this.expect('WHILE');
     const condition = this.parseExpression();
     this.expect('LBRACE');
     this.skipNewlines();
     const body = this.parseStatementBlock();
     this.expect('RBRACE');
-    return { type: 'WhileStatement', condition, body };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'WhileStatement', condition, body };
   }
 
   private parseForStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('FOR');
 
     // Check for classic for (init; test; update)
@@ -3197,10 +3277,13 @@ export class HoloCompositionParser {
     const body = this.parseStatementBlock();
     this.expect('RBRACE');
 
-    return { type: 'ForStatement', variable, iterable, body };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ForStatement', variable, iterable, body };
   }
 
   private parseClassicForStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     // Already consumed 'FOR' and '('
     let init: HoloStatement | undefined;
     if (this.check(['LET', 'VAR', 'CONST'])) {
@@ -3227,35 +3310,47 @@ export class HoloCompositionParser {
     const body = this.parseStatementBlock();
     this.expect('RBRACE');
 
-    return { type: 'ClassicForStatement', init, test, update, body };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ClassicForStatement', init, test, update, body };
   }
 
   private parseVariableDeclaration(): HoloVariableDeclaration {
+      const startLoc = this.currentLocation();
     const kind = this.advance().value as 'let' | 'var' | 'const';
     const name = this.expectIdentifier();
     let value: HoloExpression | undefined;
     if (this.match('EQUALS')) {
       value = this.parseExpression();
     }
-    return { type: 'VariableDeclaration', kind, name, value };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'VariableDeclaration', kind, name, value };
   }
 
   private parseAwaitStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('AWAIT');
     const expression = this.parseExpression();
-    return { type: 'AwaitStatement', expression };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'AwaitStatement', expression };
   }
 
   private parseReturnStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('RETURN');
     let value: HoloExpression | undefined;
     if (!this.check('NEWLINE') && !this.check('RBRACE')) {
       value = this.parseExpression();
     }
-    return { type: 'ReturnStatement', value };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ReturnStatement', value };
   }
 
   private parseEmitStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('EMIT');
     let event: string;
     let data: HoloExpression | undefined;
@@ -3275,10 +3370,13 @@ export class HoloCompositionParser {
         data = this.parseExpression();
       }
     }
-    return { type: 'EmitStatement', event, data };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'EmitStatement', event, data };
   }
 
   private parseAnimateStatement(): HoloStatement {
+      const startLoc = this.currentLocation();
     this.expect('ANIMATE');
     const target = this.expectString();
     this.expect('LBRACE');
@@ -3296,19 +3394,25 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'AnimateStatement', target, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'AnimateStatement', target, properties };
   }
 
   private parseOnErrorStatement(): HoloOnErrorStatement {
+      const startLoc = this.currentLocation();
     this.expect('ON_ERROR');
     this.expect('LBRACE');
     this.skipNewlines();
     const body = this.parseStatementBlock();
     this.expect('RBRACE');
-    return { type: 'OnErrorStatement', body };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'OnErrorStatement', body };
   }
 
   private parseAssignmentOrExpression(): HoloStatement {
+      const startLoc = this.currentLocation();
     const expr = this.parseExpression();
 
     // Check for assignment operators
@@ -3322,10 +3426,14 @@ export class HoloCompositionParser {
       const op = this.advance().value as '=' | '+=' | '-=' | '*=' | '/=';
       const value = this.parseExpression();
       const target = this.expressionToString(expr);
-      return { type: 'Assignment', target, operator: op, value };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Assignment', target, operator: op, value };
     }
 
-    return { type: 'ExpressionStatement', expression: expr };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ExpressionStatement', expression: expr };
   }
 
   private expressionToString(expr: HoloExpression): string {
@@ -3340,6 +3448,7 @@ export class HoloCompositionParser {
    * Parse a sub-orb block: sub_orb "name" { source: "holohub://..." }
    */
   private parseSubOrb(): HoloSubOrb {
+      const startLoc = this.currentLocation();
     this.expect('SUB_ORB');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -3365,7 +3474,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'SubOrb', name, source, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'SubOrb', name, source, properties };
   }
 
   // ===========================================================================
@@ -3377,13 +3488,16 @@ export class HoloCompositionParser {
   }
 
   private parseConditional(): HoloExpression {
+      const startLoc = this.currentLocation();
     const expr = this.parseOr();
 
     if (this.match('QUESTION')) {
       const consequent = this.parseExpression();
       this.expect('COLON');
       const alternate = this.parseConditional();
-      return { type: 'ConditionalExpression', test: expr, consequent, alternate };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ConditionalExpression', test: expr, consequent, alternate };
     }
 
     return expr;
@@ -3453,10 +3567,13 @@ export class HoloCompositionParser {
   }
 
   private parseUnary(): HoloExpression {
+      const startLoc = this.currentLocation();
     if (this.check('BANG') || this.check('MINUS')) {
       const op = this.advance().value as '!' | '-';
       const argument = this.parseUnary();
-      return { type: 'UnaryExpression', operator: op, argument };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'UnaryExpression', operator: op, argument };
     }
     return this.parsePostfix();
   }
@@ -3517,27 +3634,40 @@ export class HoloCompositionParser {
   }
 
   private parsePrimary(): HoloExpression {
+      const startLoc = this.currentLocation();
     if (this.match('NUMBER')) {
-      return { type: 'Literal', value: parseFloat(this.previous().value) };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Literal', value: parseFloat(this.previous().value) };
     }
     if (this.match('STRING')) {
-      return { type: 'Literal', value: this.previous().value };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Literal', value: this.previous().value };
     }
     if (this.match('BOOLEAN')) {
-      return { type: 'Literal', value: this.previous().value === 'true' };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Literal', value: this.previous().value === 'true' };
     }
     if (this.match('NULL')) {
-      return { type: 'Literal', value: null };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Literal', value: null };
     }
 
     // Explicitly handle Identifier
     if (this.match('IDENTIFIER')) {
-      return { type: 'Identifier', name: this.previous().value };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Identifier', name: this.previous().value };
     }
 
     // Handle Keywords as Identifiers
     if (this.isKeywordAsIdentifier()) {
-      return { type: 'Identifier', name: this.previous().value };
+      return {
+          loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Identifier', name: this.previous().value };
     }
 
     if (this.match('LBRACKET')) {
@@ -3554,7 +3684,9 @@ export class HoloCompositionParser {
 
     this.error(`Unexpected token: ${this.current().type}`);
     this.advance();
-    return { type: 'Literal', value: null };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Literal', value: null };
   }
 
   private isKeywordAsIdentifierType(type: TokenType): boolean {
@@ -3619,6 +3751,7 @@ export class HoloCompositionParser {
   }
 
   private parseArrayExpression(): HoloExpression {
+      const startLoc = this.currentLocation();
     this.skipNewlines();
     const elements: HoloExpression[] = [];
     while (!this.check('RBRACKET') && !this.isAtEnd()) {
@@ -3630,10 +3763,13 @@ export class HoloCompositionParser {
     }
     this.skipNewlines();
     this.expect('RBRACKET');
-    return { type: 'ArrayExpression', elements };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ArrayExpression', elements };
   }
 
   private parseObjectExpression(): HoloExpression {
+      const startLoc = this.currentLocation();
     this.skipNewlines();
     const properties: { key: string; value: HoloExpression }[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -3648,7 +3784,9 @@ export class HoloCompositionParser {
     }
     this.skipNewlines();
     this.expect('RBRACE');
-    return { type: 'ObjectExpression', properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'ObjectExpression', properties };
   }
 
   // ===========================================================================
@@ -3834,6 +3972,7 @@ export class HoloCompositionParser {
    * Parse light shorthand: point_light { ... }, ambient_light { ... }, directional_light { ... }
    */
   private parseLightPrimitive(): HoloLight {
+      const startLoc = this.currentLocation();
     const lightPrimitive = this.current().value.toLowerCase();
     this.advance(); // consume the light primitive identifier
 
@@ -3870,7 +4009,9 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return { type: 'Light', name, lightType, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Light', name, lightType, properties };
   }
 
   /**
@@ -4315,6 +4456,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseNPC(): HoloNPC {
+      const startLoc = this.currentLocation();
     this.expect('NPC');
     const name = this.expectString();
 
@@ -4449,6 +4591,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseQuest(): HoloQuest {
+      const startLoc = this.currentLocation();
     this.expect('QUEST');
     const name = this.expectString();
 
@@ -4608,6 +4751,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseAbility(): HoloAbility {
+      const startLoc = this.currentLocation();
     this.expect('ABILITY');
     const name = this.expectString();
 
@@ -4782,6 +4926,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseDialogue(): HoloDialogue {
+      const startLoc = this.currentLocation();
     this.expect('DIALOGUE');
     const id = this.expectString();
 
@@ -4866,6 +5011,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseStateMachine(): HoloStateMachine {
+      const startLoc = this.currentLocation();
     this.expect('STATE_MACHINE');
     const name = this.expectString();
 
@@ -5075,6 +5221,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseAchievement(): HoloAchievement {
+      const startLoc = this.currentLocation();
     this.expect('ACHIEVEMENT');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -5119,6 +5266,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseTalentTree(): HoloTalentTree {
+      const startLoc = this.currentLocation();
     this.expect('TALENT_TREE');
     const name = this.expectString();
     this.expect('LBRACE');
@@ -5245,6 +5393,7 @@ export class HoloCompositionParser {
   }
 
   private parseShapeDeclaration(): HoloShape {
+      const startLoc = this.currentLocation();
     this.expect('SHAPE');
     const name = this.expectString();
 
@@ -5278,7 +5427,8 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     return {
-      type: 'Shape',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Shape',
       name,
       shapeType,
       properties,
@@ -5290,6 +5440,7 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseSpawnGroup(): HoloSpawnGroup {
+      const startLoc = this.currentLocation();
     this.pushContext('spawn-group');
     this.advance(); // consume 'spawn_group'
     const name = this.expectString();
@@ -5309,19 +5460,25 @@ export class HoloCompositionParser {
     }
     this.expect('RBRACE');
     this.popContext();
-    return { type: 'SpawnGroup', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'SpawnGroup', name, properties };
   }
 
   private parseWaypointsBlock(): HoloWaypoints {
+      const startLoc = this.currentLocation();
     this.pushContext('waypoints');
     this.advance(); // consume 'waypoints'
     const name = this.expectString();
     const points = this.parseValue(); // expects array literal
     this.popContext();
-    return { type: 'Waypoints', name, points };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Waypoints', name, points };
   }
 
   private parseConstraintBlock(): HoloConstraintBlock {
+      const startLoc = this.currentLocation();
     this.pushContext('constraint');
     this.advance(); // consume 'constraint'
     const name = this.expectIdentifier();
@@ -5341,10 +5498,13 @@ export class HoloCompositionParser {
     }
     this.expect('RBRACE');
     this.popContext();
-    return { type: 'Constraint', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Constraint', name, properties };
   }
 
   private parseTerrainBlock(): HoloTerrainBlock {
+      const startLoc = this.currentLocation();
     this.pushContext('terrain');
     this.advance(); // consume 'terrain'
     const name = this.expectIdentifier();
@@ -5364,7 +5524,9 @@ export class HoloCompositionParser {
     }
     this.expect('RBRACE');
     this.popContext();
-    return { type: 'Terrain', name, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Terrain', name, properties };
   }
 
   // ===========================================================================
@@ -5661,6 +5823,7 @@ export class HoloCompositionParser {
    * ```
    */
   private parseNormBlock(): HoloNormBlock {
+      const startLoc = this.currentLocation();
     this.pushContext('norm');
     this.advance(); // consume 'norm'
 
@@ -5768,7 +5931,8 @@ export class HoloCompositionParser {
     this.popContext();
 
     return {
-      type: 'NormBlock',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'NormBlock',
       name,
       traits,
       properties,
@@ -5789,6 +5953,7 @@ export class HoloCompositionParser {
     type: string;
     properties: Record<string, HoloValue>;
   } {
+      const startLoc = this.currentLocation();
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -5808,7 +5973,9 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
 
-    return { type: nodeType, properties };
+    return {
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: nodeType, properties };
   }
 
   /**
@@ -5828,6 +5995,7 @@ export class HoloCompositionParser {
    * ```
    */
   private parseMetanormBlock(): HoloMetanorm {
+      const startLoc = this.currentLocation();
     this.pushContext('metanorm');
     this.advance(); // consume 'metanorm'
 
@@ -5922,7 +6090,8 @@ export class HoloCompositionParser {
     this.popContext();
 
     return {
-      type: 'Metanorm',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'Metanorm',
       name,
       traits,
       properties,
@@ -5937,6 +6106,7 @@ export class HoloCompositionParser {
    * Pattern: KEYWORD NAME @trait1 @trait2 { properties... }
    */
   private parseDomainBlock(): HoloDomainBlock {
+      const startLoc = this.currentLocation();
     const token = this.current();
     const keyword = token.value; // Original keyword (e.g. "sensor", "joint")
     const domain = HoloCompositionParser.TOKEN_DOMAIN_MAP[token.type] || 'custom';
@@ -5975,6 +6145,7 @@ export class HoloCompositionParser {
       }
       this.popContext();
       return {
+          loc: { start: startLoc, end: this.currentLocation() },
         type: 'DomainBlock',
         domain,
         keyword,
@@ -6060,7 +6231,8 @@ export class HoloCompositionParser {
     this.popContext();
 
     return {
-      type: 'DomainBlock',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'DomainBlock',
       domain,
       keyword,
       name,
@@ -6076,6 +6248,7 @@ export class HoloCompositionParser {
    * and delegating to PipelineParser for structured AST.
    */
   private parsePipelineDomainBlock(name: string, traits: string[]): HoloDomainBlock {
+      const startLoc = this.currentLocation();
     // Expect opening brace
     this.expect('LBRACE');
 
@@ -6177,7 +6350,8 @@ export class HoloCompositionParser {
     }
 
     return {
-      type: 'DomainBlock',
+        loc: { start: startLoc, end: this.currentLocation() },
+        type: 'DomainBlock',
       domain: 'pipeline',
       keyword: 'pipeline',
       name,

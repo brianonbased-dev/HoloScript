@@ -10,6 +10,7 @@ import { TypeScriptAdapter } from './TypeScriptAdapter';
 import { PythonAdapter } from './PythonAdapter';
 import { RustAdapter } from './RustAdapter';
 import { GoAdapter } from './GoAdapter';
+import { HoloAdapter } from './HoloAdapter';
 
 const adaptersByLanguage = new Map<SupportedLanguage, LanguageAdapter>();
 const extensionMap = new Map<string, SupportedLanguage>();
@@ -75,12 +76,17 @@ registerAdapter(new TypeScriptAdapter());
 registerAdapter(new PythonAdapter());
 registerAdapter(new RustAdapter());
 registerAdapter(new GoAdapter());
+// Native `.holo`/`.hsplus` adapter — bypasses tree-sitter and parses via
+// `@holoscript/core` `parseHoloPartial()`. Falls back to regex imports
+// if `@holoscript/core` (optional peer dep) is unavailable at runtime.
+registerAdapter(new HoloAdapter());
 
 // Re-export adapters for direct use
 export { TypeScriptAdapter } from './TypeScriptAdapter';
 export { PythonAdapter } from './PythonAdapter';
 export { RustAdapter } from './RustAdapter';
 export { GoAdapter } from './GoAdapter';
+export { HoloAdapter, isNativeAdapter, type HoloParseTree } from './HoloAdapter';
 // Re-export base utilities
 export {
   walkTree,

@@ -241,6 +241,58 @@ describe('VRRRuntime', () => {
     });
   });
 
+  describe('dynamic generative assets (late-binding)', () => {
+    it('lateBindGenerativeAsset defaults to browser+headset and infers mesh/splat kinds', () => {
+      const meshBinding = vrr.lateBindGenerativeAsset({
+        nodeId: 'world-1',
+        url: 'https://cdn.example.com/world.glb',
+      });
+      expect(meshBinding.kind).toBe('mesh');
+      expect(meshBinding.targets).toEqual(['browser', 'headset']);
+
+      const splatBinding = vrr.lateBindGenerativeAsset({
+        nodeId: 'world-1',
+        url: 'https://cdn.example.com/world.splat',
+      });
+      expect(splatBinding.kind).toBe('splat');
+      expect(vrr.getGenerativeAssets('world-1')).toHaveLength(2);
+    });
+
+    it('registerGeneratedAssetEvent creates both mesh and splat bindings', () => {
+      const created = vrr.registerGeneratedAssetEvent({
+        nodeId: 'node-77',
+        generationId: 'gen-77',
+        assetUrl: 'https://assets/world.obj',
+        pointCloudUrl: 'https://assets/world.spz',
+        targets: ['headset'],
+      });
+
+      expect(created).toHaveLength(2);
+      expect(created[0].targets).toEqual(['headset']);
+      expect(vrr.getGenerativeAsset('gen-77_mesh')?.kind).toBe('mesh');
+      expect(vrr.getGenerativeAsset('gen-77_splat')?.kind).toBe('splat');
+    });
+
+    it('notifies subscribers and supports clearing bindings', () => {
+      const onBound = vi.fn();
+      const unsub = vrr.onGenerativeAssetBound(onBound);
+
+      const b = vrr.lateBindGenerativeAsset({
+        assetId: 'asset-clear',
+        nodeId: 'n-clear',
+        url: 'https://cdn.example.com/live.stream',
+      });
+
+      expect(onBound).toHaveBeenCalledWith(
+        expect.objectContaining({ assetId: 'asset-clear', kind: 'neural_stream' })
+      );
+      expect(vrr.clearGenerativeAsset(b.assetId)).toBe(true);
+      expect(vrr.getGenerativeAsset('asset-clear')).toBeUndefined();
+
+      unsub();
+    });
+  });
+
   describe('error boundaries', () => {
     it('toggleARMode(true) throws when ar_mode is missing', async () => {
       await expect(vrr.toggleARMode(true)).rejects.toThrow(/AR options not configured/);

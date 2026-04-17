@@ -32,6 +32,10 @@ export interface Sovereign3DAdapterOptions {
   timeoutMs?: number;
   /** Poll interval in ms (default: 2_000) */
   pollIntervalMs?: number;
+  /** Enable deterministic local mock output for initial verification. */
+  mockMode?: boolean;
+  /** Simulated latency for mock generation (ms). */
+  mockLatencyMs?: number;
 }
 
 // =============================================================================
@@ -104,12 +108,16 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
   private readonly apiKey: string;
   private readonly timeoutMs: number;
   private readonly pollIntervalMs: number;
+  private readonly mockMode: boolean;
+  private readonly mockLatencyMs: number;
 
   constructor(options: Sovereign3DAdapterOptions = {}) {
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, '');
     this.apiKey = options.apiKey ?? DEFAULT_API_KEY;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.pollIntervalMs = options.pollIntervalMs ?? 2_000;
+    this.mockMode = Boolean(options.mockMode);
+    this.mockLatencyMs = Math.max(0, options.mockLatencyMs ?? 10);
   }
 
   // ---------------------------------------------------------------------------
@@ -117,16 +125,24 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
   // ---------------------------------------------------------------------------
 
   async generate(req: WorldGenerationRequest): Promise<WorldGenerationResult> {
+    if (this.mockMode) {
+      await this.sleep(this.mockLatencyMs);
+      return this.mockResult(req);
+    }
     const jobId = await this.submitJob(req);
     return this.waitForCompletion(jobId);
   }
 
   async getProgress(generationId: string): Promise<number> {
+    if (this.mockMode || generationId.startsWith('mock_')) {
+      return 1;
+    }
     const job = await this.fetchJob(generationId);
     return job.progress ?? (job.status === 'done' ? 1 : 0);
   }
 
   async cancel(generationId: string): Promise<void> {
+    if (this.mockMode || generationId.startsWith('mock_')) return;
     await this.request(`/api/jobs/${generationId}/cancel`, { method: 'POST' });
   }
 
@@ -234,6 +250,40 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
     }
 
     return res.json() as Promise<T>;
+  }
+
+  private mockResult(req: WorldGenerationRequest): WorldGenerationResult {
+    const generationId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const basePath = `${this.baseUrl}/mock/${generationId}`;
+
+    const metadata: WorldMetadata = {
+      format: req.format,
+      bounds: [-20, 0, -20, 20, 12, 20],
+      agentStart: [0, 0, 0],
+      waypoints: [
+        [0, 0, 0],
+        [5, 0, 5],
+        [10, 0, 0],
+      ],
+      splatCount: req.format === 'mesh' ? undefined : 250_000,
+      triangleCount: req.format === '3dgs' ? undefined : 120_000,
+      generationMs: this.mockLatencyMs,
+    };
+
+    const assetUrl =
+      req.format === 'mesh'
+        ? `${basePath}/world.glb`
+        : req.format === 'neural_field'
+          ? `${basePath}/world.neural`
+          : `${basePath}/world.splat`;
+
+    return {
+      generationId,
+      assetUrl,
+      ...(req.navEnabled ? { navmeshUrl: `${basePath}/navmesh.glb` } : {}),
+      ...(req.format === 'both' ? { pointCloudUrl: `${basePath}/world.ply` } : {}),
+      metadata,
+    };
   }
 
   private sleep(ms: number): Promise<void> {

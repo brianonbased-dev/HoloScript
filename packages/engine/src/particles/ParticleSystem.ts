@@ -215,9 +215,9 @@ export class ParticleSystem {
       p.vx += p.ax * delta;
       p.vy += p.ay * delta;
       p.vz += p.az * delta;
-      p[0] += p.vx * delta;
-      p[1] += p.vy * delta;
-      p[2] += p.vz * delta;
+      p.x += p.vx * delta;
+      p.y += p.vy * delta;
+      p.z += p.vz * delta;
 
       // Interpolate size over lifetime
       p.size = lerp(p.sizeStart, p.sizeEnd, lifeT);
@@ -243,9 +243,9 @@ export class ParticleSystem {
     p.alive = true;
     p.age = 0;
     p.lifetime = randRange(cfg.lifetime[0], cfg.lifetime[1]);
-    p[0] = cfg.position[0] + px;
-    p[1] = cfg.position[1] + py;
-    p[2] = cfg.position[2] + pz;
+    p.x = cfg.position[0] + px;
+    p.y = cfg.position[1] + py;
+    p.z = cfg.position[2] + pz;
 
     const speed = randRange(cfg.speed[0], cfg.speed[1]);
     p.vx = vx * speed;

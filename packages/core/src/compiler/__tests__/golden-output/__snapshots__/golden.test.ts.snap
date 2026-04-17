@@ -648,7 +648,7 @@ struct Mat { color: vec4<f32>, rm: vec4<f32> };
 struct FIn { @location(0) wNorm: vec3<f32>, @location(1) wPos: vec3<f32> };
 @fragment fn fs_main(i: FIn) -> @location(0) vec4<f32> {
   let N = normalize(i.wNorm); let L = normalize(vec3<f32>(1.0, 2.0, 1.5));
-  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm.x * 0.5);
+  let d = max(dot(N, L), 0.0) * (1.0 - mat.rm[0] * 0.5);
   return vec4<f32>(mat.color.rgb * (0.15 + d), mat.color.a); }\`;
 
 const WGSL_SPLAT = /* wgsl */\`
@@ -657,7 +657,7 @@ struct Splat { center: vec3<f32>, opacity: f32, cov: array<f32,6>, sh: vec3<f32>
 struct SO { @builtin(position) p: vec4<f32>, @location(0) c: vec4<f32>, @location(1) uv: vec2<f32> };
 @vertex fn vs_splat(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> SO {
   var q = array<vec2<f32>,4>(vec2(-1,-1),vec2(1,-1),vec2(-1,1),vec2(1,1));
-  var o: SO; let s = splats[ii]; o.p = vec4<f32>(s.center.xy + q[vi]*0.01, s.center.z, 1.0);
+  var o: SO; let s = splats[ii]; o.p = vec4<f32>(s.center.xy + q[vi]*0.01, s.center[2], 1.0);
   o.c = vec4<f32>(s.sh, s.opacity); o.uv = q[vi]; return o; }
 @fragment fn fs_splat(i: SO) -> @location(0) vec4<f32> {
   let a = i.c.a * exp(-dot(i.uv, i.uv) * 4.0); if (a < 0.01) { discard; }
@@ -680,8 +680,8 @@ struct P { pos: vec3<f32>, _p0: f32, vel: vec3<f32>, life: f32 };
 @group(0) @binding(1) var<storage, read_write> pout: array<P>;
 @group(0) @binding(2) var<uniform> dt: f32;
 @compute @workgroup_size(64) fn cs_particle_update(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let i = gid.x; if (i >= arrayLength(&pin)) { return; } var p = pin[i];
-  p.vel.y -= 9.81 * dt; p.pos += p.vel * dt; p.life -= dt;
+  let i = gid[0]; if (i >= arrayLength(&pin)) { return; } var p = pin[i];
+  p.vel[1] -= 9.81 * dt; p.pos += p.vel * dt; p.life -= dt;
   if (p.life <= 0.0) { p.pos = vec3(0.0); p.vel = vec3(0.0, 5.0, 0.0); p.life = 2.0; }
   pout[i] = p; }\`;
 
@@ -690,9 +690,9 @@ struct Body { pos: vec3<f32>, mass: f32, vel: vec3<f32>, _p: f32 };
 @group(0) @binding(0) var<storage, read_write> bodies: array<Body>;
 @group(0) @binding(1) var<uniform> dt: f32;
 @compute @workgroup_size(64) fn cs_physics_step(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let i = gid.x; if (i >= arrayLength(&bodies)) { return; } var b = bodies[i];
-  b.vel.y -= 9.81 * dt; b.pos += b.vel * dt;
-  if (b.pos.y < 0.0) { b.pos.y = 0.0; b.vel.y = -b.vel.y * 0.6; } bodies[i] = b; }\`;
+  let i = gid[0]; if (i >= arrayLength(&bodies)) { return; } var b = bodies[i];
+  b.vel[1] -= 9.81 * dt; b.pos += b.vel * dt;
+  if (b.pos[1] < 0.0) { b.pos[1] = 0.0; b.vel[1] = -b.vel[1] * 0.6; } bodies[i] = b; }\`;
 
 // === Render Loop ===
 let frameCount = 0;

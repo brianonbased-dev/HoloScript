@@ -749,8 +749,21 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   private activeContacts: Map<string, boolean> = new Map();
 
   constructor(config?: IPhysicsWorldConfig) {
+    const defaultG = PHYSICS_DEFAULTS.gravity;
+    let initialGravity: IVector3;
+    if (config?.gravity) {
+      const g = config.gravity as any;
+      initialGravity = [
+        g.x ?? g[0] ?? 0,
+        g.y ?? g[1] ?? 0,
+        g.z ?? g[2] ?? 0
+      ] as IVector3;
+    } else {
+      initialGravity = [...defaultG] as IVector3;
+    }
+
     this.config = {
-      gravity: config?.gravity ?? [...PHYSICS_DEFAULTS.gravity],
+      gravity: initialGravity,
       fixedTimestep: config?.fixedTimestep ?? PHYSICS_DEFAULTS.fixedTimestep,
       maxSubsteps: config?.maxSubsteps ?? PHYSICS_DEFAULTS.maxSubsteps,
       solverIterations: config?.solverIterations ?? PHYSICS_DEFAULTS.solverIterations,
@@ -766,11 +779,20 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   // ============================================================================
 
   public setGravity(gravity: IVector3): void {
-    this.config.gravity = [...gravity];
+    const g = gravity as any;
+    this.config.gravity = [
+      g.x ?? g[0] ?? 0,
+      g.y ?? g[1] ?? 0,
+      g.z ?? g[2] ?? 0
+    ] as IVector3;
   }
 
   public getGravity(): IVector3 {
-    return [...this.config.gravity];
+    return {
+      x: this.config.gravity[0],
+      y: this.config.gravity[1],
+      z: this.config.gravity[2]
+    } as unknown as IVector3;
   }
 
   // ============================================================================

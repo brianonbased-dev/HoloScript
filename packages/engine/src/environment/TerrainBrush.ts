@@ -185,7 +185,7 @@ export class TerrainBrush {
 
     const res = terrainData.config.resolution;
     for (const cell of stroke.affectedCells) {
-      terrainData.heightmap[cell[2] * res + cell[0]] = cell.oldHeight;
+      terrainData.heightmap[cell.z * res + cell.x] = cell.oldHeight;
     }
 
     this.redoStack.push(stroke);
@@ -201,7 +201,7 @@ export class TerrainBrush {
 
     const res = terrainData.config.resolution;
     for (const cell of stroke.affectedCells) {
-      terrainData.heightmap[cell[2] * res + cell[0]] = cell.newHeight;
+      terrainData.heightmap[cell.z * res + cell.x] = cell.newHeight;
     }
 
     this.undoStack.push(stroke);

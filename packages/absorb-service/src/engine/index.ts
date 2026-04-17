@@ -44,6 +44,8 @@ export { TypeScriptAdapter } from './adapters/TypeScriptAdapter';
 export { PythonAdapter } from './adapters/PythonAdapter';
 export { RustAdapter } from './adapters/RustAdapter';
 export { GoAdapter } from './adapters/GoAdapter';
+export { HoloAdapter, isNativeAdapter } from './adapters/HoloAdapter';
+export type { HoloParseTree } from './adapters/HoloAdapter';
 
 // Scanner + Graph
 export { CodebaseScanner } from './CodebaseScanner';

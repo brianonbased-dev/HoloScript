@@ -12,6 +12,7 @@ export {
 } from './WorldGeneratorAdapter';
 
 export { SovereignWorldAdapter, type SovereignWorldAdapterOptions } from './adapters/SovereignWorldAdapter';
+export { Sovereign3DAdapter, type Sovereign3DAdapterOptions } from './adapters/Sovereign3DAdapter';
 
 export {
   WorldGeneratorService,

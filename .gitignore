@@ -95,6 +95,9 @@ stryker.config.json
 # Benchmarks
 bench/
 
+# Local tooling scratch (ts-morph experiments)
+temp_ts_morph/
+
 # Rust Build Artifacts
 target/
 

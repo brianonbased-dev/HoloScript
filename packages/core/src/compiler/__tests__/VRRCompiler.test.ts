@@ -376,4 +376,44 @@ describe('VRRCompiler', () => {
     expect(result.success).toBe(false);
     expect(result.errors).toContain('Invalid composition tree');
   });
+
+  test('uses top-level composition.worlds state for VRR runtime simulation_state', () => {
+    const comp = {
+      type: 'Composition',
+      name: 'WorldStateComp',
+      children: [
+        {
+          type: 'Object',
+          name: 'downtownTwin',
+          traits: [{ name: 'vrr_twin', params: { mirror: 'downtown' } }],
+        },
+      ],
+      worlds: [{ type: 'world', name: 'globalWorld', state: { weather: 'storm', hour: 21 } }],
+    } as unknown as HoloComposition;
+
+    const result = makeCompiler().compile(comp, 'test-token');
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('simulation_state: {"weather":"storm","hour":21}');
+  });
+
+  test('falls back to top-level world child state when composition.worlds is absent', () => {
+    const comp = {
+      type: 'Composition',
+      name: 'WorldChildComp',
+      children: [
+        {
+          type: 'world',
+          name: 'childWorld',
+          state: { activeQuest: 'LatteLegend', weather: 'clear' },
+          traits: [{ name: 'vrr_twin', params: { mirror: 'child_world' } }],
+        },
+      ],
+    } as unknown as HoloComposition;
+
+    const result = makeCompiler().compile(comp, 'test-token');
+    expect(result.success).toBe(true);
+    expect(result.code).toContain(
+      'simulation_state: {"activeQuest":"LatteLegend","weather":"clear"}'
+    );
+  });
 });

@@ -29,6 +29,7 @@ import { toScanWorkerPayload } from './types';
 import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
+import { isNativeAdapter, type HoloAdapter } from './adapters/HoloAdapter';
 
 // Dynamic import for worker pool (graceful degradation if not available)
 let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
@@ -187,8 +188,23 @@ export class CodebaseScanner {
           sizeBytes: number;
         }>;
 
-        // Step 2: Parse in parallel via worker pool (CPU bound)
-        const parsePromises = fileData.map((data) =>
+        // Native adapters (e.g. HoloAdapter) parse in-process via their own
+        // parser — NOT through the tree-sitter worker pool. Split the batch.
+        const nativeData: typeof fileData = [];
+        const treeSitterData: typeof fileData = [];
+        for (const data of fileData) {
+          const a = getAdapterForFile(data.filePath);
+          if (isNativeAdapter(a)) nativeData.push(data);
+          else treeSitterData.push(data);
+        }
+
+        // Step 2a: Parse native adapters (HoloScript) in-process.
+        const nativePromises = nativeData.map((data) =>
+          this.parseNativeAdapter(data.filePath, rootDir, data.content, data.language, data.sizeBytes)
+        );
+
+        // Step 2b: Parse tree-sitter adapters in parallel via worker pool (CPU bound)
+        const parsePromises = treeSitterData.map((data) =>
           this
             .workerPool!.execute<WorkerParseJobResult>({
               filePath: data.filePath,
@@ -199,7 +215,13 @@ export class CodebaseScanner {
             .then(toScanWorkerPayload)
         );
 
-        const parseResults: ScanWorkerPayload[] = await Promise.all(parsePromises);
+        const [nativeResults, parseResults]: [ScanWorkerPayload[], ScanWorkerPayload[]] =
+          await Promise.all([
+            Promise.all(nativePromises),
+            Promise.all(parsePromises),
+          ]);
+        // Merge native + tree-sitter results into a single accumulation pass below.
+        parseResults.push(...nativeResults);
 
         // Step 3: Accumulate results
         for (const result of parseResults) {
@@ -239,6 +261,33 @@ export class CodebaseScanner {
           if (sizeBytes > maxFileSize) continue;
         } catch (e: unknown) {
           errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' });
+          continue;
+        }
+
+        // Native adapters (HoloScript) bypass tree-sitter entirely.
+        if (isNativeAdapter(adapter)) {
+          const payload = await this.parseNativeAdapter(
+            filePath,
+            rootDir,
+            content,
+            language,
+            sizeBytes
+          );
+          if (payload.error) {
+            errors.push(payload.error);
+          } else if (payload.file) {
+            files.push(payload.file);
+            filesByLanguage[payload.file.language] =
+              (filesByLanguage[payload.file.language] ?? 0) + 1;
+            totalSymbols += payload.file.symbols.length;
+            totalImports += payload.file.imports.length;
+            totalCalls += payload.file.calls.length;
+            totalLoc += payload.file.loc;
+            for (const sym of payload.file.symbols) {
+              symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+            }
+            onProgress?.(files.length, filePaths.length, payload.file.path);
+          }
           continue;
         }
 
@@ -457,6 +506,11 @@ export class CodebaseScanner {
       return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' } };
     }
 
+    // Native adapters (HoloScript) bypass tree-sitter entirely.
+    if (isNativeAdapter(adapter)) {
+      return this.parseNativeAdapter(filePath, rootDir, content, language, sizeBytes);
+    }
+
     // Parse with tree-sitter
     const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
 
@@ -519,6 +573,99 @@ export class CodebaseScanner {
       };
     } catch (e: unknown) {
       return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'extract' } };
+    }
+  }
+
+  /**
+   * Parse a file using a "native" LanguageAdapter that bypasses tree-sitter
+   * (currently only HoloAdapter for `.holo`/`.hsplus`). Falls back to the
+   * regex import scan when the native parser cannot be loaded (e.g.
+   * `@holoscript/core` missing at runtime).
+   */
+  private async parseNativeAdapter(
+    filePath: string,
+    rootDir: string,
+    content: string,
+    language: SupportedLanguage,
+    sizeBytes: number
+  ): Promise<{ file?: ScannedFile; error?: ScanError }> {
+    const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
+    const adapter = getAdapterForFile(filePath);
+    const loc = content.split('\n').length;
+
+    if (!isNativeAdapter(adapter)) {
+      // Defensive: treat as plaintext regex fallback
+      const fallbackImports = this.extractLooseImports(content, relPath);
+      return {
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: fallbackImports,
+          calls: [],
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        },
+      };
+    }
+
+    let tree: Awaited<ReturnType<HoloAdapter['parse']>> = null;
+    try {
+      tree = await adapter.parse(content, filePath);
+    } catch (e: unknown) {
+      return {
+        error: {
+          file: filePath,
+          error: e instanceof Error ? e.message : String(e),
+          phase: 'parse',
+        },
+      };
+    }
+
+    if (!tree) {
+      // `@holoscript/core` unavailable — degrade gracefully to the regex
+      // import scan so we still emit an edge for `.holo` files that
+      // `import "./x.hsplus"` (avoids losing the whole file silently).
+      const fallbackImports = this.extractLooseImports(content, relPath);
+      return {
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: fallbackImports,
+          calls: [],
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        },
+      };
+    }
+
+    try {
+      const symbols = adapter.extractSymbols(tree, relPath);
+      const imports = adapter.extractImports(tree, relPath);
+      const calls = adapter.extractCalls(tree, relPath);
+      return {
+        file: {
+          path: relPath,
+          language,
+          symbols,
+          imports,
+          calls,
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        },
+      };
+    } catch (e: unknown) {
+      return {
+        error: {
+          file: filePath,
+          error: e instanceof Error ? e.message : String(e),
+          phase: 'extract',
+        },
+      };
     }
   }
 

@@ -42,17 +42,17 @@ export class TransformGraph {
 
   addNode(id: string, local?: Partial<Transform3D>): void {
     const defaultLocal: Transform3D = {
-      position: [0, 0, 0],
-      scale: [1, 1, 1],
+      position: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
     };
 
     this.entries.set(id, {
       id,
       local: {
-        position: local?.position ? [...local.position] : [...defaultLocal.position],
-        scale: local?.scale ? [...local.scale] : [...defaultLocal.scale],
+        position: local?.position ? { ...local.position } : { ...defaultLocal.position },
+        scale: local?.scale ? { ...local.scale } : { ...defaultLocal.scale },
       },
-      worldPosition: [0, 0, 0],
+      worldPosition: { x: 0, y: 0, z: 0 },
       parent: null,
       children: [],
       dirty: true,
@@ -117,14 +117,14 @@ export class TransformGraph {
   setPosition(id: string, x: number, y: number, z: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.position = [x, y, z];
+    e.local.position = { x, y, z };
     this.markDirty(id);
   }
 
   setScale(id: string, sx: number, sy: number, sz: number): void {
     const e = this.entries.get(id);
     if (!e) return;
-    e.local.scale = [sx, sy, sz];
+    e.local.scale = { x: sx, y: sy, z: sz };
     this.markDirty(id);
   }
 
@@ -137,7 +137,7 @@ export class TransformGraph {
     const e = this.entries.get(id);
     if (!e) return null;
     if (e.dirty) this.updateWorld(id);
-    return [...e.worldPosition];
+    return { ...e.worldPosition };
   }
 
   // ---------------------------------------------------------------------------
@@ -158,13 +158,13 @@ export class TransformGraph {
     if (e.parent) {
       const parent = this.entries.get(e.parent)!;
       if (parent.dirty) this.updateWorld(e.parent);
-      e.worldPosition = [
-        parent.worldPosition[0] + e.local.position[0] * parent.local.scale[0],
-        parent.worldPosition[1] + e.local.position[1] * parent.local.scale[1],
-        parent.worldPosition[2] + e.local.position[2] * parent.local.scale[2],
-      ];
+      e.worldPosition = {
+        x: parent.worldPosition.x + e.local.position.x * parent.local.scale.x,
+        y: parent.worldPosition.y + e.local.position.y * parent.local.scale.y,
+        z: parent.worldPosition.z + e.local.position.z * parent.local.scale.z,
+      };
     } else {
-      e.worldPosition = [...e.local.position];
+      e.worldPosition = { ...e.local.position };
     }
 
     e.dirty = false;

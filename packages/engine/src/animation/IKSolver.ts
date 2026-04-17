@@ -14,7 +14,7 @@ import type { Vector3 } from '@holoscript/core';
 
 export interface IKBone {
   id: string;
-  position: [number, number, number];
+  position: Vector3;
   rotation: { x: number; y: number; z: number; w: number };
   length: number;
   minAngle?: number; // radians
@@ -72,12 +72,12 @@ export class IKSolver {
 
   setTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.target = [x, y, z ];
+    if (chain) chain.target = { x, y, z };
   }
 
   setPoleTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.poleTarget = [x, y, z ];
+    if (chain) chain.poleTarget = { x, y, z };
   }
 
   setWeight(chainId: string, weight: number): void {
@@ -101,9 +101,9 @@ export class IKSolver {
     const b = mid.length; // forearm
 
     const target = chain.target;
-    const dx = target[0] - root.position[0];
-    const dy = target[1] - root.position[1];
-    const dz = target[2] - root.position[2];
+    const dx = target.x - root.position.x;
+    const dy = target.y - root.position.y;
+    const dz = target.z - root.position.z;
     const distSq = dx * dx + dy * dy + dz * dz;
     const dist = Math.sqrt(distSq);
 
@@ -126,19 +126,19 @@ export class IKSolver {
     const totalRootAngle = rootAngle + rootBendAngle * chain.weight;
 
     // Position mid bone
-    mid.position = [
-      root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
-      root.position[1] + Math.sin(totalRootAngle) * a,
-      root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
-    ] as [number, number, number];
+    mid.position = {
+      x: root.position.x + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
+      y: root.position.y + Math.sin(totalRootAngle) * a,
+      z: root.position.z + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
+    };
 
     // Position end bone (if exists)
     if (end) {
-      const blendedTarget: [number, number, number] = [
-        end.position[0] + (target[0] - end.position[0]) * chain.weight,
-        end.position[1] + (target[1] - end.position[1]) * chain.weight,
-        end.position[2] + (target[2] - end.position[2]) * chain.weight,
-      ];
+      const blendedTarget: Vector3 = {
+        x: end.position.x + (target.x - end.position.x) * chain.weight,
+        y: end.position.y + (target.y - end.position.y) * chain.weight,
+        z: end.position.z + (target.z - end.position.z) * chain.weight,
+      };
       end.position = blendedTarget;
     }
 
@@ -162,14 +162,14 @@ export class IKSolver {
         const endEffector = bones[bones.length - 1];
 
         // Vector from bone to end effector
-        const toEnd = [endEffector.position[0] - bone.position[0], endEffector.position[1] - bone.position[1], endEffector.position[2] - bone.position[2], ];
+        const toEnd = { x: endEffector.position.x - bone.position.x, y: endEffector.position.y - bone.position.y, z: endEffector.position.z - bone.position.z };
 
         // Vector from bone to target
-        const toTarget = [target[0] - bone.position[0], target[1] - bone.position[1], target[2] - bone.position[2], ];
+        const toTarget = { x: target.x - bone.position.x, y: target.y - bone.position.y, z: target.z - bone.position.z };
 
         // Compute rotation angle (2D simplification in XY plane)
-        const angleEnd = Math.atan2(toEnd[1], toEnd[0]);
-        const angleTarget = Math.atan2(toTarget[1], toTarget[0]);
+        const angleEnd = Math.atan2(toEnd.y, toEnd.x);
+        const angleTarget = Math.atan2(toTarget.y, toTarget.x);
         let angle = (angleTarget - angleEnd) * chain.weight;
 
         // Apply joint limits
@@ -182,21 +182,21 @@ export class IKSolver {
           sinA = Math.sin(angle);
         for (let j = i + 1; j < bones.length; j++) {
           const child = bones[j];
-          const rx = child.position[0] - bone.position[0];
-          const ry = child.position[1] - bone.position[1];
-          child.position = [
-            bone.position[0] + rx * cosA - ry * sinA,
-            bone.position[1] + rx * sinA + ry * cosA,
-            child.position[2],
-          ] as [number, number, number];
+          const rx = child.position.x - bone.position.x;
+          const ry = child.position.y - bone.position.y;
+          child.position = {
+            x: bone.position.x + rx * cosA - ry * sinA,
+            y: bone.position.y + rx * sinA + ry * cosA,
+            z: child.position.z,
+          };
         }
       }
 
       // Check if close enough
       const end = bones[bones.length - 1];
-      const dx = end.position[0] - target[0];
-      const dy = end.position[1] - target[1];
-      const dz = end.position[2] - target[2];
+      const dx = end.position.x - target.x;
+      const dy = end.position.y - target.y;
+      const dz = end.position.z - target.z;
       if (dx * dx + dy * dy + dz * dz < 0.001) return true;
     }
 
@@ -220,11 +220,11 @@ export class IKSolver {
     groundHeight: number,
     dt: number
   ): Vector3 {
-    const current = this.footPositions.get(footId) ?? [0, 0, 0 ];
+    const current = this.footPositions.get(footId) ?? { x: 0, y: 0, z: 0 };
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);
 
-    const result = [current[0], current[1] + (targetY - current[1]) * blend, current[2] ] as Vector3;
+    const result = { x: current.x, y: current.y + (targetY - current.y) * blend, z: current.z };
     this.footPositions.set(footId, result);
     return result;
   }

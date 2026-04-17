@@ -353,6 +353,19 @@ export interface PlayerData {
   quest_progress?: Record<string, number>; // quest_id → progress (0-100)
 }
 
+export type VRRGenerativeAssetKind = 'mesh' | 'splat' | 'neural_stream';
+export type VRRRenderTarget = 'browser' | 'headset';
+
+export interface VRRGenerativeAssetBinding {
+  assetId: string;
+  nodeId: string;
+  url: string;
+  kind: VRRGenerativeAssetKind;
+  targets: VRRRenderTarget[];
+  boundAtMs: number;
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * Quest hub surface emitted by `VRRRuntime.createQuestHub` (matches VRRCompiler expectations).
  * `simulate*` helpers exist for tests only — generated Three.js bundles use the `on*` registrars.
@@ -440,6 +453,10 @@ export class VRRRuntime {
   /** Monotonic frame counter driven by `tick()` (compiler render loop). */
   private tickFrame = 0;
   private readonly tickSubscribers = new Set<() => void>();
+  private readonly generativeAssets = new Map<string, VRRGenerativeAssetBinding>();
+  private readonly generativeAssetSubscribers = new Set<
+    (binding: VRRGenerativeAssetBinding) => void
+  >();
 
   constructor(options: VRRRuntimeOptions) {
     this.options = options;
@@ -1129,6 +1146,133 @@ export class VRRRuntime {
     };
   }
 
+  // ─── Dynamic generative assets (late-binding for browser + headset) ─────────
+
+  private inferGenerativeKind(
+    url: string,
+    kindHint?: VRRGenerativeAssetKind
+  ): VRRGenerativeAssetKind {
+    if (kindHint) return kindHint;
+    const clean = url.split('?')[0]?.split('#')[0] ?? url;
+    const ext = clean.slice(clean.lastIndexOf('.')).toLowerCase();
+    if (ext === '.splat' || ext === '.spz' || ext === '.ply') return 'splat';
+    if (ext === '.stream' || ext === '.nf' || ext === '.nfield') return 'neural_stream';
+    return 'mesh';
+  }
+
+  private normalizeTargets(targets?: VRRRenderTarget[]): VRRRenderTarget[] {
+    if (!targets || targets.length === 0) {
+      return ['browser', 'headset'];
+    }
+    const normalized = targets.filter((t): t is VRRRenderTarget => t === 'browser' || t === 'headset');
+    return normalized.length > 0 ? [...new Set(normalized)] : ['browser', 'headset'];
+  }
+
+  private emitGenerativeAsset(binding: VRRGenerativeAssetBinding): void {
+    for (const fn of this.generativeAssetSubscribers) {
+      try {
+        fn(binding);
+      } catch (e) {
+        console.error('[VRR] generative asset subscriber error', e);
+      }
+    }
+  }
+
+  /**
+   * Late-bind a generated world asset at runtime.
+   * Supports meshes and splats for both browser + headset rendering paths.
+   */
+  lateBindGenerativeAsset(input: {
+    assetId?: string;
+    nodeId: string;
+    url: string;
+    kind?: VRRGenerativeAssetKind;
+    targets?: VRRRenderTarget[];
+    metadata?: Record<string, unknown>;
+  }): VRRGenerativeAssetBinding {
+    const assetId =
+      input.assetId && input.assetId.length > 0
+        ? input.assetId
+        : `gen_${input.nodeId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    const binding: VRRGenerativeAssetBinding = {
+      assetId,
+      nodeId: input.nodeId,
+      url: input.url,
+      kind: this.inferGenerativeKind(input.url, input.kind),
+      targets: this.normalizeTargets(input.targets),
+      boundAtMs: Date.now(),
+      metadata: input.metadata,
+    };
+
+    this.generativeAssets.set(assetId, binding);
+    this.emitGenerativeAsset(binding);
+    return binding;
+  }
+
+  /**
+   * Normalize a world generation completion payload into one or more late-bound assets.
+   */
+  registerGeneratedAssetEvent(event: {
+    nodeId: string;
+    generationId?: string;
+    assetUrl?: string;
+    pointCloudUrl?: string;
+    targets?: VRRRenderTarget[];
+    metadata?: Record<string, unknown>;
+  }): VRRGenerativeAssetBinding[] {
+    const bindings: VRRGenerativeAssetBinding[] = [];
+
+    if (event.assetUrl) {
+      bindings.push(
+        this.lateBindGenerativeAsset({
+          assetId: event.generationId ? `${event.generationId}_mesh` : undefined,
+          nodeId: event.nodeId,
+          url: event.assetUrl,
+          targets: event.targets,
+          metadata: event.metadata,
+        })
+      );
+    }
+
+    if (event.pointCloudUrl) {
+      bindings.push(
+        this.lateBindGenerativeAsset({
+          assetId: event.generationId ? `${event.generationId}_splat` : undefined,
+          nodeId: event.nodeId,
+          url: event.pointCloudUrl,
+          kind: 'splat',
+          targets: event.targets,
+          metadata: event.metadata,
+        })
+      );
+    }
+
+    return bindings;
+  }
+
+  getGenerativeAsset(assetId: string): VRRGenerativeAssetBinding | undefined {
+    const b = this.generativeAssets.get(assetId);
+    return b ? { ...b, targets: [...b.targets] } : undefined;
+  }
+
+  getGenerativeAssets(nodeId?: string): VRRGenerativeAssetBinding[] {
+    const all = [...this.generativeAssets.values()];
+    const filtered = nodeId ? all.filter((b) => b.nodeId === nodeId) : all;
+    return filtered.map((b) => ({ ...b, targets: [...b.targets] }));
+  }
+
+  clearGenerativeAsset(assetId: string): boolean {
+    return this.generativeAssets.delete(assetId);
+  }
+
+  onGenerativeAssetBound(fn: (binding: VRRGenerativeAssetBinding) => void): () => void {
+    this.generativeAssetSubscribers.add(fn);
+    return () => {
+      this.generativeAssetSubscribers.delete(fn);
+    };
+  }
+
   // ─── VRRCompiler contract (Three.js / Hololand generated scenes) ───────────
 
   /**
@@ -1407,6 +1551,8 @@ export class VRRRuntime {
   // Runtime lifecycle cleanup
   dispose(): void {
     this.tickSubscribers.clear();
+    this.generativeAssetSubscribers.clear();
+    this.generativeAssets.clear();
 
     if (this.eventsPollingTimeout) {
       clearTimeout(this.eventsPollingTimeout);

@@ -24,7 +24,7 @@ interface TraceEntry {
   timeMs: number;
 }
 
-import { HoloCompositionParser } from '@holoscript/core';
+import { parseHolo } from '@holoscript/core';
 
 function parseHoloScript(code: string): TraceEntry[] {
   const entries: TraceEntry[] = [];
@@ -37,8 +37,7 @@ function parseHoloScript(code: string): TraceEntry[] {
   };
 
   try {
-    const parser = new HoloCompositionParser();
-    const result = parser.parse(code);
+    const result = parseHolo(code);
 
     if (result.errors && result.errors.length > 0) {
       for (const err of result.errors) {
@@ -74,19 +73,56 @@ function parseHoloScript(code: string): TraceEntry[] {
           message: `Scene "${node.name || 'unnamed'}" initialized`,
           timeMs: inc(),
         });
-      } else if (node.type === 'Object' || node.type === 'Zone' || node.type === 'Actor') {
+      } else if (node.type === 'Object' || node.type === 'Zone' || node.type === 'Actor' || node.type === 'team_agent') {
         entries.push({
           step: ++step,
           type: 'object',
-          name: node.name || 'unnamed',
-          message: `Object "${node.name || 'unnamed'}" created`,
+          name: node.name || node.id || 'unnamed',
+          message: `Object "${node.name || node.id || 'unnamed'}" created${node.type === 'team_agent' ? ' (Team Agent)' : ''}`,
+          timeMs: inc(),
+        });
+      }
+      
+      // Also check standard object properties that indicate a native type
+      if (node.type === 'ObjectDefinition' && node.fields?.type === 'team_agent') {
+        entries.push({
+          step: ++step,
+          type: 'object',
+          name: node.name || node.id || 'unnamed',
+          message: `Object "${node.name || node.id || 'unnamed'}" created (Team Agent)`,
           timeMs: inc(),
         });
       }
 
-      if (node.traits && Array.isArray(node.traits)) {
-        for (const trait of node.traits) {
-          const props = trait.params || {};
+      const allTraits = [...(node.traits || []), ...(node.directives || [])];
+      
+      if (allTraits.length > 0) {
+        for (const trait of allTraits) {
+          // Traits usually have 'config' or 'params' 
+          let props = trait.params || {};
+          
+          if (trait.config) {
+            props = {};
+            for (let i = 0; i < 20; i += 3) {
+              const k = trait.config[`_arg${i}`];
+              const v = trait.config[`_arg${i + 2}`];
+              if (k !== undefined && v !== undefined) {
+                props[k] = v;
+              }
+            }
+          }
+          
+          let message = `@${trait.name}(${Object.entries(props)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(', ')}) applied`;
+              
+          if (trait.name === 'agent') {
+             message = `Agent Profile Configured: ${props.name || props.id} (Role: ${props.role}, Model: ${props.model})`;
+          } else if (trait.name === 'capabilities') {
+             const skills = Array.isArray(props.skills) ? props.skills.join(', ') : props.skills;
+             message = `Agent Capabilities Registered: [${skills}]`;
+          }
+          
           entries.push({
             step: ++step,
             type: 'trait',
@@ -95,17 +131,16 @@ function parseHoloScript(code: string): TraceEntry[] {
               acc[k] = String(props[k]);
               return acc;
             }, {} as Record<string, string>),
-            message: `@${trait.name}(${Object.entries(props)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(', ')}) applied`,
+            message,
             timeMs: inc(),
           });
         }
       }
 
-      if (node.children && Array.isArray(node.children)) {
-        node.children.forEach(traverse);
-      }
+      // AST can have objects, children, domainBlocks, etc.
+      if (node.objects && Array.isArray(node.objects)) node.objects.forEach(traverse);
+      if (node.children && Array.isArray(node.children)) node.children.forEach(traverse);
+      if (node.domainBlocks && Array.isArray(node.domainBlocks)) node.domainBlocks.forEach(traverse);
     };
 
     traverse(ast);

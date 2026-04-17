@@ -304,9 +304,9 @@ export class GranularToDestructionStress {
         const px = (particle.position as unknown as { x: number }).x ?? (particle.position as unknown as number[])[0] ?? 0;
         const py = (particle.position as unknown as { y: number }).y ?? (particle.position as unknown as number[])[1] ?? 0;
         const pz = (particle.position as unknown as { z: number }).z ?? (particle.position as unknown as number[])[2] ?? 0;
-        const fx = fragment.position[0];
-        const fy = fragment.position[1];
-        const fz = fragment.position[2];
+        const fx = (fragment.position as any).x ?? (fragment.position as any)[0] ?? 0;
+        const fy = (fragment.position as any).y ?? (fragment.position as any)[1] ?? 0;
+        const fz = (fragment.position as any).z ?? (fragment.position as any)[2] ?? 0;
 
         const dx = px - fx;
         const dz = pz - fz;

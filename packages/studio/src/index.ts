@@ -147,3 +147,22 @@ export type {
   ASTChangeEvent,
   StudioBridgeOptions,
 } from './lib/StudioBridge';
+
+// ═══════════════════════════════════════════════════════════════════
+// World Simulation Bridge — Real-time generative streaming bridge
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  WorldSimulationBridge,
+  extractWorldGeneratorTraitNodes,
+} from './lib/worldSimulationBridge';
+
+export type {
+  GenerativeAssetKind,
+  GenerativeAssetRef,
+  WorldSimulationStream,
+  WorldGeneratorTraitInfo,
+  WorldSimulationBridgeEvent,
+  WorldSimulationBridgeListener,
+  EventBusLike,
+} from './lib/worldSimulationBridge';

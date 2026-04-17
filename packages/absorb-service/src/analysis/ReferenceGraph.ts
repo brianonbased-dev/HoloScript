@@ -421,8 +421,10 @@ export class ReferenceGraph {
         filePath,
         line: node.loc?.start.line || 1,
         column: node.loc?.start.column || 1,
+        loc: asSymbolLocation(node.loc),
+        provenance: asSymbolProvenance(node.provenance as any),
         isEntryPoint: true,
-        metadata: { fromAST: true },
+        metadata: { fromAST: true, provenance: node.provenance },
       });
     }
 
@@ -435,8 +437,10 @@ export class ReferenceGraph {
           filePath,
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
+          loc: asSymbolLocation(node.loc),
+          provenance: asSymbolProvenance(node.provenance as any),
           parent: parent ?? undefined,
-          metadata: { fromAST: true },
+          metadata: { fromAST: true, provenance: node.provenance },
         });
       }
     }
@@ -450,8 +454,10 @@ export class ReferenceGraph {
           filePath,
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
+          loc: asSymbolLocation(node.loc),
+          provenance: asSymbolProvenance(node.provenance as any),
           isExported: true, // Templates are typically available for use
-          metadata: { fromAST: true },
+          metadata: { fromAST: true, provenance: node.provenance },
         });
       }
     }
@@ -466,8 +472,10 @@ export class ReferenceGraph {
           filePath,
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
+          loc: asSymbolLocation(node.loc),
+          provenance: asSymbolProvenance(node.provenance as any),
           parent: parent ?? undefined,
-          metadata: { fromAST: true },
+          metadata: { fromAST: true, provenance: node.provenance },
         });
       }
     }
@@ -481,8 +489,10 @@ export class ReferenceGraph {
           filePath,
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
+          loc: asSymbolLocation(node.loc),
+          provenance: asSymbolProvenance(node.provenance as any),
           parent: nodeId,
-          metadata: { fromAST: true },
+          metadata: { fromAST: true, provenance: node.provenance },
         });
       }
     }
@@ -498,8 +508,10 @@ export class ReferenceGraph {
             filePath,
             line: func.loc?.start.line || node.loc?.start.line || 1,
             column: func.loc?.start.column || node.loc?.start.column || 1,
+            loc: asSymbolLocation(func.loc || node.loc),
+            provenance: asSymbolProvenance(func.provenance as any || node.provenance as any),
             parent: parent ?? undefined,
-            metadata: { fromAST: true },
+            metadata: { fromAST: true, provenance: func.provenance || node.provenance },
           });
         }
       }
