@@ -80,6 +80,35 @@ Competitors operate at Tier 1 and 2. HoloScript is the only Tier 3 offering.
 >
 > IPCC figures become URLs. Coastal infrastructure under 2°C warming — click the link, simulate it yourself. Political debate shifts from "trust my model" to "replay it yourself."
 
+### For drug discovery (🎯 flagship vertical — pipeline validated 2026-04-17)
+
+> **The simulation IS the submission.**
+>
+> FDA reviewer clicks a link. ChEMBL-sourced compound data, AlphaFold-predicted target structure, hash-verified binding simulation — all replayable bit-identically in their browser. No data-adaptor conversion, no license to install, no "trust our cloud." Submission becomes an artifact, not a document.
+
+**Why drug discovery is the flagship (not just one of eight):**
+
+1. **Already agent-native** — ChEMBL + bioRxiv + Open Targets exposed as MCP tools (2026-04-17). The data-ingestion side is a solved problem before we ship; no partner needed for the demo.
+2. **HoloScript already has the biology compile target** — `packages/plugins/alphafold-plugin` provides `@protein_structure`, `@binding_site`, `@confidence_map` traits. Zero new code needed for Tier 3 trust on bio workloads.
+3. **Pharma has a named reproducibility crisis** — see Begley & Ellis (2012) *Nature*; Baker (2016) *Nature* "1,500 scientists lift the lid on reproducibility." The problem is spoken aloud in the industry. Our pitch lands without education.
+4. **Regulatory pull exists** — FDA's *Model-Informed Drug Development (MIDD)* program is actively soliciting "computational evidence that supports independent verification." Our architecture is literally what they're asking for.
+5. **Winner-take-all per submission class** — byte-identical replay of an IND filing is a moat that compounds with every approved drug that cites it.
+
+**End-to-end pipeline validated (2026-04-17, logged in `docs/strategy/drug-discovery-flagship.md`)**:
+
+```
+"Non-small cell lung cancer"
+  → Open Targets: EFO_0003060 → target EGFR (ENSG00000146648)
+  → ChEMBL: target CHEMBL203, 2,867 bioactivities
+  → ChEMBL: Osimertinib (CHEMBL3353410, approved 2015, SMILES captured)
+  → ChEMBL: Top hit CHEMBL304271, IC50 = 0.45 nM (pChEMBL 9.35)
+  → AlphaFold: UniProt P00533 → kinase domain structure
+  → HoloScript: .holo scene with @protein_structure + @binding_site + @molecule
+  → Contract: deterministic, hash-verified, replayable
+```
+
+All stages executed against production endpoints with real data. No mocks.
+
 ---
 
 ## Messaging Pillars
@@ -118,7 +147,7 @@ From W.GOLD.015 ("When Trust Is Free"), ranked by moat strength:
 |---|---|---|---|
 | **Legal discovery / forensic sim** | Dueling experts, jury decides who to trust | Both submit provenance records; judge replays both; divergence visible | ✅ Yes |
 | **Surgical planning** | Surgeon mentally simulates from CT | AI lives inside patient-specific FEA; drill paths with provenance | ✅ Yes |
-| **Drug discovery** | $2.6B per drug; hundreds of millions in validation | Protein + molecule + cell in one contracted sim; FDA = replay | ⚠️ Large moat |
+| **🎯 Drug discovery (FLAGSHIP)** | $2.6B per drug; hundreds of millions in validation; acknowledged reproducibility crisis | ChEMBL + AlphaFold + `.holo` in one contract. FDA MIDD = replay-by-hash. Pipeline validated 2026-04-17. | ✅ Yes |
 | **Climate policy** | Models are black boxes on HPC | Policy maker clicks link, simulates | ⚠️ Large moat |
 | **Autonomous vehicles** | Billions of sim miles, only Waymo can replay | Every decision has provenance; regulator replays failure | ⚠️ Large moat |
 | **Education** | Read about stress concentration in textbook | Live inside stress field; lab report = provenance chain | ⚠️ Large moat |
