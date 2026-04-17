@@ -167,7 +167,7 @@ export async function runCompilerBench() {
   await bench.run();
 
   // Calculate and log cache hit rate
-  const stats = warmCompilerMedium.getStats();
+  const stats = await warmCompilerMedium.getStats();
   console.log('\n📊 Cache Statistics:');
   console.log(`  Cache size: ${stats.cacheSize} entries`);
   console.log(`  Dependency edges: ${stats.dependencyEdges}`);
