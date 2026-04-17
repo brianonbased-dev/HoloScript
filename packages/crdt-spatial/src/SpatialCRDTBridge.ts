@@ -27,6 +27,7 @@ import type {
 } from './types.js';
 
 import { DEFAULT_BRIDGE_CONFIG, IDENTITY_QUATERNION, ZERO_VEC3, ONE_VEC3 } from './types.js';
+import { coerceCounterValue, coerceFiniteNumber } from './loroCoercion.js';
 
 // =============================================================================
 // QUATERNION MATH
@@ -259,9 +260,9 @@ export class SpatialCRDTBridge {
     if (!nodeMap) return null;
 
     return {
-      x: (nodeMap.get('pos_x') as number) ?? 0,
-      y: (nodeMap.get('pos_y') as number) ?? 0,
-      z: (nodeMap.get('pos_z') as number) ?? 0,
+      x: coerceFiniteNumber(nodeMap.get('pos_x'), 0),
+      y: coerceFiniteNumber(nodeMap.get('pos_y'), 0),
+      z: coerceFiniteNumber(nodeMap.get('pos_z'), 0),
     };
   }
 
@@ -299,9 +300,9 @@ export class SpatialCRDTBridge {
     if (!nodeMap) return null;
 
     return {
-      x: (nodeMap.get('scale_x') as number) ?? 1,
-      y: (nodeMap.get('scale_y') as number) ?? 1,
-      z: (nodeMap.get('scale_z') as number) ?? 1,
+      x: coerceFiniteNumber(nodeMap.get('scale_x'), 1),
+      y: coerceFiniteNumber(nodeMap.get('scale_y'), 1),
+      z: coerceFiniteNumber(nodeMap.get('scale_z'), 1),
     };
   }
 
@@ -396,15 +397,15 @@ export class SpatialCRDTBridge {
 
     return {
       baseQuaternion: {
-        x: (nodeMap.get('base_qx') as number) ?? 0,
-        y: (nodeMap.get('base_qy') as number) ?? 0,
-        z: (nodeMap.get('base_qz') as number) ?? 0,
-        w: (nodeMap.get('base_qw') as number) ?? 1,
+        x: coerceFiniteNumber(nodeMap.get('base_qx'), 0),
+        y: coerceFiniteNumber(nodeMap.get('base_qy'), 0),
+        z: coerceFiniteNumber(nodeMap.get('base_qz'), 0),
+        w: coerceFiniteNumber(nodeMap.get('base_qw'), 1),
       },
-      deltaYaw: yawCounter ? (yawCounter.value ?? 0) / SCALE : 0,
-      deltaPitch: pitchCounter ? (pitchCounter.value ?? 0) / SCALE : 0,
-      deltaRoll: rollCounter ? (rollCounter.value ?? 0) / SCALE : 0,
-      lastCheckpointMs: (nodeMap.get('checkpoint_ms') as number) ?? 0,
+      deltaYaw: yawCounter ? coerceCounterValue(yawCounter.value) / SCALE : 0,
+      deltaPitch: pitchCounter ? coerceCounterValue(pitchCounter.value) / SCALE : 0,
+      deltaRoll: rollCounter ? coerceCounterValue(rollCounter.value) / SCALE : 0,
+      lastCheckpointMs: coerceFiniteNumber(nodeMap.get('checkpoint_ms'), 0),
     };
   }
 
@@ -593,14 +594,17 @@ export class SpatialCRDTBridge {
     const rollCounter = nodeMap.get('delta_roll') as LoroCounter | null;
 
     // Decrement by current value to reset to 0
-    if (yawCounter && yawCounter.value !== 0) {
-      yawCounter.increment(-yawCounter.value);
+    if (yawCounter) {
+      const v = coerceCounterValue(yawCounter.value);
+      if (v !== 0) yawCounter.increment(-Math.round(v));
     }
-    if (pitchCounter && pitchCounter.value !== 0) {
-      pitchCounter.increment(-pitchCounter.value);
+    if (pitchCounter) {
+      const v = coerceCounterValue(pitchCounter.value);
+      if (v !== 0) pitchCounter.increment(-Math.round(v));
     }
-    if (rollCounter && rollCounter.value !== 0) {
-      rollCounter.increment(-rollCounter.value);
+    if (rollCounter) {
+      const v = coerceCounterValue(rollCounter.value);
+      if (v !== 0) rollCounter.increment(-Math.round(v));
     }
   }
 

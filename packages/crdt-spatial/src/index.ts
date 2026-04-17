@@ -46,6 +46,9 @@ export {
   computeEffectiveRotation,
 } from './SpatialCRDTBridge.js';
 
+/** CRDT-02 — safe numeric coercion for Loro map/counter reads */
+export { coerceCounterValue, coerceFiniteNumber } from './loroCoercion.js';
+
 // LoroWebSocketProvider - WebSocket sync transport
 export { LoroWebSocketProvider } from './LoroWebSocketProvider.js';
 export { LoroWebRTCProvider } from './LoroWebRTCProvider.js';
