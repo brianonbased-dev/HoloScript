@@ -142,6 +142,20 @@ export interface CulturalTraceTrait {
   decayRate: number;
   /** Creator agent ID (for provenance) */
   creatorId?: string;
+  /**
+   * Provenance for how a norm-associated trace entered the environment.
+   * Used by confabulation audits to distinguish grounded norms from fabricated ones.
+   */
+  normProvenance?: {
+    /** Interaction/session id where this norm trace was first observed */
+    originInteractionId?: string;
+    /** Agent id that introduced or propagated the norm trace */
+    originatingAgentId?: string;
+    /** Confidence class from W.069-style falsehood taxonomy */
+    confidenceClassification?: 'genuine' | 'confabulated' | 'bullshitted';
+    /** ISO timestamp for first norm provenance capture */
+    recordedAtIso?: string;
+  };
   /** Semantic label (what the trace means) */
   label: string;
   /** Perception radius (how far agents can sense this trace) */

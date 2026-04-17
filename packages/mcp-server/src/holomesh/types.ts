@@ -464,6 +464,13 @@ export interface Team {
   mode?: string;
   roomConfig?: {
     objective?: string;
+    /**
+     * How agents should weight team messages vs tasks in session context.
+     * - task_first: handoffs/DMs/reviews only (default)
+     * - meeting_primary: meeting + text conversation surfaced beside tasks; larger message window
+     * - balanced: both conversation and inbox, moderate limits
+     */
+    communicationStyle?: 'task_first' | 'meeting_primary' | 'balanced';
     treasuryFeeBps?: number;
     moltbookDaemon?: {
       enabled: boolean;

@@ -11,7 +11,9 @@
  *   doc-day         — README, API docs, examples, changelog updates
  */
 
-export type TeamMode = 'audit' | 'research' | 'build' | 'review';
+import type { TeamMode } from '@holoscript/framework';
+
+export type { TeamMode };
 
 export interface RoomTemplateTask {
   title: string;

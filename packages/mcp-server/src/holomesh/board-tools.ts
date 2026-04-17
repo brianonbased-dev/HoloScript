@@ -168,7 +168,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_mode_set',
-    description: 'Set the team mode/preset. Changes the objective, rules, and task sources. Available modes: audit, research, build, review.',
+    description:
+      'Set the team mode/preset. Changes the objective, rules, and task sources. Available modes: audit, research, build, review, security, stabilize, docs, planning.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -178,7 +179,16 @@ export const boardTools: Tool[] = [
         },
         mode: {
           type: 'string',
-          enum: ['audit', 'research', 'build', 'review'],
+          enum: [
+            'audit',
+            'research',
+            'build',
+            'review',
+            'security',
+            'stabilize',
+            'docs',
+            'planning',
+          ],
           description: 'The mode to switch to',
         },
       },

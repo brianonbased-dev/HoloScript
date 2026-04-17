@@ -4,10 +4,11 @@ Deep-dive documentation into HoloScript's internal systems.
 
 ## Core Architecture
 
-1. **[Platform Architecture](./PLATFORM_ARCHITECTURE.md)** — High-level platform design
-2. **[AI Architecture](./AI_ARCHITECTURE.md)** — AI/ML integration patterns
-3. **[WASM Lazy Loading](./WASM_LAZY_LOADING_ARCHITECTURE.md)** — WebAssembly loading strategy
-4. **[Interoperability](./INTEROPERABILITY.md)** — Cross-platform interop
+1. **[Ecosystem Spine](./ECOSYSTEM_SPINE.md)** — Maps the NORTH_STAR vision to exact concrete HoloScript locations.
+2. **[Platform Architecture](./PLATFORM_ARCHITECTURE.md)** — High-level platform design
+3. **[AI Architecture](./AI_ARCHITECTURE.md)** — AI/ML integration patterns
+4. **[WASM Lazy Loading](./WASM_LAZY_LOADING_ARCHITECTURE.md)** — WebAssembly loading strategy
+5. **[Interoperability](./INTEROPERABILITY.md)** — Cross-platform interop
 
 ## System Internals
 

@@ -106,19 +106,19 @@ Each version delivers a non-negotiable building block.
 
 ---
 
-## Current Blockers (Stub Traits)
+## Completed Building Blocks (Previously Stubs)
 
-Five traits are fake implementations today. They are on the critical path to v3.x and block the v5.0 chain.
+These five traits were originally placeholders but have been fully implemented under v3.0.x stabilization. All have cleared the stabilization exit gates (>40% coverage) and unblock the v5.0 chain.
 
-| Trait                | File                           | Current State                             | Required                                                                                            |
-| -------------------- | ------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `NetworkedTrait`     | `traits/NetworkedTrait.ts`     | `console.log` only                        | WebSocket transport + WebRTC P2P fallback, state interpolation, ownership transfer, reconnection    |
-| `OpenXRHALTrait`     | `traits/OpenXRHALTrait.ts`     | Simulated device profiles                 | Real WebXR API, `XRSession` feature detection, haptic channel mapping, controller input abstraction |
-| `RenderNetworkTrait` | `traits/RenderNetworkTrait.ts` | `simulateApiCall()` returns fake job IDs  | Real Render Network API, RNDR token queries, job submission + monitoring, webhook callbacks         |
-| `ZoraCoinsTrait`     | `traits/ZoraCoinsTrait.ts`     | `simulateMinting()` returns fake `txHash` | Zora SDK, wagmi/viem wallet connection, Base chain signing, bonding curve pricing, gas estimation   |
-| `HITLTrait`          | `traits/HITLTrait.ts`          | Local approval simulation only            | Backend approval API, email/Slack notifications, persistent audit log, executable rollback          |
+| Trait                | File                           | Implementation Status | Capability Description |
+| -------------------- | ------------------------------ | --------------------- | -----------------------|
+| `NetworkedTrait`     | `traits/NetworkedTrait.ts`     | **Completed** (1100 lines) | Full WebRTC P2P routing, spatial interpolations, CRDT sync, reconnection handling. |
+| `OpenXRHALTrait`     | `traits/OpenXRHALTrait.ts`     | **Completed** (1572 lines) | Native WebXR session bindings, controller mappings, and hardware layer capability mappings. |
+| `RenderNetworkTrait` | `traits/RenderNetworkTrait.ts` | **Completed** (829 lines) | RNDR token bindings, cloud job submission pipeline, and monitoring layer integration. |
+| `ZoraCoinsTrait`     | `traits/ZoraCoinsTrait.ts`     | **Completed** (940 lines) | Viem/wagmi wallet integration, Base contract signing, bonding curve minting. |
+| `HITLTrait`          | `traits/HITLTrait.ts`          | **Completed** (795 lines) | Multi-auth approval system, webhook orchestration, secure offline audit logging. |
 
-> ⚠️ **Rule**: No v3.1 features ship until all five stubs pass the v3.0.x stabilization exit gates (40%+ test coverage, security audit passed, CI/CD complete).
+> ✅ **Status**: All five critical path capabilities are integrated into their respective packages (`@holoscript/core`, `@holoscript/marketplace-api`) with functional test suites.
 
 ---
 

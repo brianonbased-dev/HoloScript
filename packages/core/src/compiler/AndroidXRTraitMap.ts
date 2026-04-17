@@ -2534,11 +2534,41 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   embedding_search: {
     trait: 'embedding_search',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @embedding_search -- vector embedding search (dimensions: ${String(config.dimensions || 1536)})`,
-      `// TODO: implement local vector index (e.g. SQLite FTS5 + embeddings)`,
-    ],
+    level: 'partial',
+    imports: ['android.database.sqlite.SQLiteOpenHelper', 'android.database.sqlite.SQLiteDatabase'],
+    generate: (varName, config) => {
+      const dimensions = Number(config.dimensions || 1536);
+      const enableSqliteFtsStub = Boolean(config.enable_sqlite_fts_stub);
+      const table = String(config.table || 'embeddings_index')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '_');
+
+      if (!enableSqliteFtsStub) {
+        return [
+          `// @embedding_search -- vector embedding search (dimensions: ${dimensions})`,
+          `// Feature flag disabled: set enable_sqlite_fts_stub=true to emit a local SQLite FTS5 scaffold`,
+          `// TODO: wire ANN retrieval + embedding similarity scoring for ${varName}`,
+        ];
+      }
+
+      return [
+        `// @embedding_search -- local SQLite FTS5 scaffold for ${varName}`,
+        `class ${varName}EmbeddingDb(context: Context) : SQLiteOpenHelper(context, "${varName.toLowerCase()}_embeddings.db", null, 1) {`,
+        `    override fun onCreate(db: SQLiteDatabase) {`,
+        `        db.execSQL("""`,
+        `            CREATE VIRTUAL TABLE IF NOT EXISTS ${table}`,
+        `            USING fts5(id UNINDEXED, text, embedding_blob UNINDEXED)`,
+        `        """.trimIndent())`,
+        `    }`,
+        `    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit`,
+        `}`,
+        `val ${varName}EmbeddingDimensions = ${dimensions}`,
+        `fun ${varName}Search(query: String, limit: Int = 5): String {`,
+        `    // Stub: lexical fallback via FTS5; semantic ranking (cosine over embeddings) is next step`,
+        `    return "SELECT id, text FROM ${table} WHERE ${table} MATCH ? LIMIT ?"`,
+        `}`,
+      ];
+    },
   },
 
   ai_npc_brain: {

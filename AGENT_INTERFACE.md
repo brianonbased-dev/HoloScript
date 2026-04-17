@@ -121,6 +121,20 @@ Every agent MUST post a handoff message on session end containing:
 
 Script: `node C:/Users/Josep/.ai-ecosystem/hooks/team-connect.mjs --report --name=<you> --ide=<your-ide>`
 
+## Performance Thresholds (Law of the Environment)
+
+Time is of the utmost importance in HoloScript. Slowness reads as broken in spatial and agent loops—even when correctness holds. All contributions must adhere to the **NORTH_STAR §5 Performance Thresholds**.
+
+| Operation | Target Budget |
+|-----------|---------------|
+| MCP tool call | < 2s |
+| Graph absorb (incremental) | < 100ms |
+| Compilation (single file) | < 50ms |
+| VR frame budget (90Hz) | < 11.1ms |
+| Safety classifier (CC++) | < 40ms |
+
+*See `NORTH_STAR.md` §5 for full thresholds and remediation paths. Anchor product UX to these rows before adding features.*
+
 ## Coding Standards
 
 - Strict TypeScript. No `any` (use `unknown`).

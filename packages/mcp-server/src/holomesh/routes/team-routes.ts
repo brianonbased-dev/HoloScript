@@ -22,6 +22,7 @@ import { broadcastToRoom } from '../team-room';
 import { getClient } from '../orchestrator-client';
 import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
+import { ROOM_PRESETS } from '@holoscript/framework';
 
 const QUICKSTART_DOMAIN_DESCRIPTIONS: Record<string, string> = {
   agents: 'Agent design, orchestration, and collaborative autonomy patterns.',
@@ -805,11 +806,60 @@ export async function handleTeamRoutes(
     const mode = (body.mode as string) || 'build';
     if (!team.roomConfig) team.roomConfig = {};
     team.mode = mode;
+    const preset = (ROOM_PRESETS as Record<string, { objective?: string }>)[mode];
+    if (preset?.objective) {
+      (team.roomConfig as { objective?: string }).objective = preset.objective;
+    }
     persistTeamStore();
     json(res, 200, {
       success: true,
       mode,
+      objective: preset?.objective || '',
       hint: `Switch to ${mode} mode. Use POST /team/${teamId}/board/scout with todo_content to harvest TODOs. Supported: /board/scout?todo_content=...`,
+    });
+    return true;
+  }
+
+  // PATCH /api/holomesh/team/:id/room — room preferences (communication style, optional objective)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room$/) && method === 'PATCH') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/room', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
+    if (!hasTeamPermission(team, caller.id, 'config:write')) {
+      json(res, 403, { error: 'Insufficient permissions (config:write required)' });
+      return true;
+    }
+    const body = await parseJsonBody(req);
+    const ALLOWED_STYLES = new Set(['task_first', 'meeting_primary', 'balanced']);
+    if (!team.roomConfig) team.roomConfig = {};
+    if (body.communicationStyle != null) {
+      const s = String(body.communicationStyle);
+      if (!ALLOWED_STYLES.has(s)) {
+        json(res, 400, {
+          error: 'Invalid communicationStyle',
+          allowed: [...ALLOWED_STYLES],
+        });
+        return true;
+      }
+      (team.roomConfig as { communicationStyle?: string }).communicationStyle = s;
+    }
+    if (typeof body.objective === 'string') {
+      (team.roomConfig as { objective?: string }).objective = body.objective;
+    }
+    persistTeamStore();
+    json(res, 200, {
+      success: true,
+      communicationStyle: team.roomConfig.communicationStyle || 'task_first',
+      objective: team.roomConfig.objective || '',
     });
     return true;
   }

@@ -395,7 +395,7 @@ describe('NodeServiceCompiler', () => {
       expect(result['routes/API.ts']).toContain("router.delete('/items/:id'");
     });
 
-    it('includes stub comment for handler implementation', () => {
+    it('emits 501 placeholder for unimplemented handlers', () => {
       const comp = makeServiceComposition('API', {}, [
         {
           name: 'GetItem',
@@ -408,7 +408,9 @@ describe('NodeServiceCompiler', () => {
         },
       ]);
       const result = compiler.compile(comp, 'test-token');
-      expect(result['routes/API.ts']).toContain('Stub: implement getItem');
+      expect(result['routes/API.ts']).toContain('replace with getItem logic');
+      expect(result['routes/API.ts']).toContain("res.status(501)");
+      expect(result['routes/API.ts']).toContain("'getItem'");
     });
   });
 

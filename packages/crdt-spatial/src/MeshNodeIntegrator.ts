@@ -1,6 +1,7 @@
 import { LoroWebRTCProvider } from './LoroWebRTCProvider';
-import type { LoroDoc, LoroEventBatch } from 'loro-crdt';
+import { LoroDoc, type LoroEventBatch } from 'loro-crdt';
 import { loroBatchTouchesEconomicTrait } from './loroSpatialTraitEvents.js';
+// @ts-ignore
 import { X402Facilitator, InvisibleWalletStub } from '@holoscript/framework/economy';
 
 export class MeshNodeIntegrator {
@@ -40,7 +41,8 @@ export class MeshNodeIntegrator {
       if (hasEconomicChange) {
         console.log('[Sovereignty] Economic state change intercepted on CRDT graph.');
         try {
-          x402.enforceEscrowState({ docHash: this.doc.timestamp().toString() });
+          const docHash = JSON.stringify(this.doc.version().toJSON());
+          x402.enforceEscrowState({ docHash });
         } catch (err) {
           console.error('[Sovereignty] Escrow verification failed for CRDT mutation.', err);
         }

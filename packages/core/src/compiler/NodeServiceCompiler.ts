@@ -581,9 +581,9 @@ export class NodeServiceCompiler extends CompilerBase {
             `router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`
           );
         }
-        lines.push(`  // Stub: implement ${route.handlerName}`);
+        lines.push(`  // Placeholder — replace with ${route.handlerName} logic`);
         lines.push(
-          `  res.json({ message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' });`
+          `  res.status(501).json({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`
         );
         lines.push(`});`);
         lines.push('');
@@ -617,10 +617,8 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push(
           `  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`
         );
-        lines.push(`    // Stub: implement ${route.handlerName}`);
-        lines.push(
-          `    return { message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' };`
-        );
+        lines.push(`    // Placeholder — replace with ${route.handlerName} logic`);
+        lines.push(`    return reply.code(501).send({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`);
         lines.push(`  });`);
         lines.push('');
       }
@@ -656,7 +654,7 @@ export class NodeServiceCompiler extends CompilerBase {
       for (const mw of middleware) {
         const fnName = this.toCamelCase(mw) + 'Middleware';
         lines.push(`export function ${fnName}(req: Request, _res: Response, next: NextFunction) {`);
-        lines.push(`  // Stub: implement ${mw} middleware`);
+        lines.push(`  // Pass-through placeholder for ${mw} — add auth/limits here`);
         lines.push(`  next();`);
         lines.push(`}`);
         lines.push('');
@@ -671,7 +669,7 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push(
           `export function ${fnName}(request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) {`
         );
-        lines.push(`  // Stub: implement ${mw} middleware`);
+        lines.push(`  // Pass-through placeholder for ${mw} — add auth/limits here`);
         lines.push(`  done();`);
         lines.push(`}`);
         lines.push('');

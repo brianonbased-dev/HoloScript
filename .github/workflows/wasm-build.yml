@@ -223,7 +223,7 @@ jobs:
         run: npm install -g tree-sitter-cli
 
       - name: Install Emscripten (required for tree-sitter WASM)
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
 
       - name: Build tree-sitter-holoscript
         run: bash scripts/build/wasm-build.sh --module treesitter --sizes
@@ -330,7 +330,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
 
       - name: Install tree-sitter CLI
         run: npm install -g tree-sitter-cli
