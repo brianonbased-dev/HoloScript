@@ -61,6 +61,7 @@ import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
+import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores } from './holomesh/state';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
@@ -90,13 +91,6 @@ const IS_RAILWAY = Boolean(
 );
 /** SSE MCP session mode: off on Railway unless opted in (multi-replica routing can split GET/POST). */
 const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY;
-
-/** Anti-buffering headers for long-lived SSE through Railway / nginx / CDN edges. */
-function applyEdgeSafeSseHeaders(res: http.ServerResponse): void {
-  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('X-Accel-Buffering', 'no');
-}
 
 // Protocol Registry — in-memory store (production: back with PostgreSQL)
 const protocolRecords = new Map<string, Record<string, unknown>>();
@@ -610,6 +604,13 @@ const httpServer = http.createServer(async (req, res) => {
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
+        sse: {
+          railway: IS_RAILWAY,
+          mcpClassicSse: ALLOW_SSE_TRANSPORT,
+          mcpStreamableHttp: true,
+          holomeshTeamRoom:
+            'GET /api/holomesh/team/:teamId/room/live — single long-lived connection (edge-safe headers)',
+        },
         security: {
           oauth21: true,
           tripleGate: true,
@@ -1293,7 +1294,7 @@ const httpServer = http.createServer(async (req, res) => {
           reason:
             'On Railway, MCP SSE is off by default: edge routing can send GET /mcp and POST /mcp/messages to different replicas so the session map misses.',
           hint:
-            'Prefer stateless MCP: POST /mcp (streamable HTTP). To force classic SSE here, set MCP_ENABLE_SSE=true and run a single replica (or sticky routing), and keep CDN/proxy buffering disabled for /mcp*.',
+            'Prefer stateless MCP: POST /mcp (streamable HTTP). To force classic SSE here, set MCP_ENABLE_SSE=true and run a single replica (or sticky routing), and keep CDN/proxy buffering disabled for /mcp*. HoloMesh team room uses a single GET only: /api/holomesh/team/:id/room/live.',
           transport: 'streamable-http',
         })
       );
@@ -1349,7 +1350,8 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           error: 'SSE message endpoint disabled',
-          hint: 'Use stateless MCP over POST /mcp, or enable MCP_ENABLE_SSE with a single MCP replica.',
+          hint:
+            'Use stateless MCP over POST /mcp, or enable MCP_ENABLE_SSE with a single MCP replica. HoloMesh: GET /api/holomesh/team/:id/room/live is unaffected.',
           transport: 'streamable-http',
         })
       );

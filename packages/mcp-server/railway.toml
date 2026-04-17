@@ -12,3 +12,7 @@ restartPolicyMaxRetries = 10
 [env]
 NODE_ENV = "production"
 PORT = "3000"
+# Lane B (SSE): shorten heartbeats if proxies drop idle streams (ms, 5000–55000).
+# HOLOMESH_SSE_HEARTBEAT_MS = "15000"
+# Classic MCP SSE on Railway needs one replica or sticky routing; default is streamable HTTP.
+# MCP_ENABLE_SSE = "true"
