@@ -792,6 +792,83 @@ export class VRRCompiler extends CompilerBase {
   }
 
   // ─── Main compile() ──────────────────────────────────────────────────
+  private normalizeToCompositionTree(input: unknown): HoloComposition | null {
+    if (!input || typeof input !== 'object') return null;
+    const node = input as Record<string, unknown>;
+    const nodeType = String(node.type || '').toLowerCase();
+
+    if (nodeType === 'composition') {
+      return input as HoloComposition;
+    }
+
+    // Accept a top-level world node by wrapping it in a synthetic composition.
+    if (nodeType === 'world') {
+      return {
+        type: 'Composition',
+        name: String(node.name || 'WorldRoot'),
+        templates: [],
+        objects: [],
+        spatialGroups: [],
+        lights: [],
+        imports: [],
+        timelines: [],
+        audio: [],
+        zones: [],
+        transitions: [],
+        conditionals: [],
+        iterators: [],
+        npcs: [],
+        quests: [],
+        abilities: [],
+        dialogues: [],
+        stateMachines: [],
+        achievements: [],
+        talentTrees: [],
+        shapes: [],
+        children: [node],
+        worlds: [node],
+      } as unknown as HoloComposition;
+    }
+
+    return null;
+  }
+
+  private extractGlobalSimulationStateFromWorlds(comp: Record<string, unknown>): Record<string, unknown> {
+    // Preferred source: v4+ `composition.worlds[]`
+    const worlds = Array.isArray(comp.worlds) ? (comp.worlds as Array<Record<string, unknown>>) : [];
+    if (worlds.length > 0 && worlds[0]) {
+      const w = worlds[0];
+      if (w.simulation_state && typeof w.simulation_state === 'object') {
+        return w.simulation_state as Record<string, unknown>;
+      }
+      if (w.simulationState && typeof w.simulationState === 'object') {
+        return w.simulationState as Record<string, unknown>;
+      }
+      if (w.state && typeof w.state === 'object') {
+        return w.state as Record<string, unknown>;
+      }
+    }
+
+    // Fallback source: `composition.children[]` world nodes (parser variants)
+    const children = Array.isArray(comp.children)
+      ? (comp.children as Array<Record<string, unknown>>)
+      : [];
+    const worldChild = children.find((c) => String(c?.type || '').toLowerCase() === 'world');
+    if (worldChild) {
+      if (worldChild.simulation_state && typeof worldChild.simulation_state === 'object') {
+        return worldChild.simulation_state as Record<string, unknown>;
+      }
+      if (worldChild.simulationState && typeof worldChild.simulationState === 'object') {
+        return worldChild.simulationState as Record<string, unknown>;
+      }
+      if (worldChild.state && typeof worldChild.state === 'object') {
+        return worldChild.state as Record<string, unknown>;
+      }
+    }
+
+    return {};
+  }
+
   override compile(
     composition: HoloComposition,
     agentToken: string,
@@ -802,14 +879,15 @@ export class VRRCompiler extends CompilerBase {
     this.warnings = [];
     this.generatedCode = [];
 
-    // Analyze Composition
-    if (!composition || composition.type !== 'Composition') {
+    // Analyze/normalize composition tree
+    const normalizedComposition = this.normalizeToCompositionTree(composition);
+    if (!normalizedComposition) {
       this.errors.push('Invalid composition tree');
       return this.buildResult();
     }
 
     // 1. Parse VRR composition — extract all trait-annotated nodes
-    const compositionData = this.parseVRRComposition(composition);
+    const compositionData = this.parseVRRComposition(normalizedComposition);
 
     const twinNodes = compositionData.twinNodes;
     if (twinNodes.length === 0) {
@@ -820,12 +898,8 @@ export class VRRCompiler extends CompilerBase {
 
     // Top-level worlds simulation state (from v4+ AST)
     // @ts-expect-error During migration
-    const comp = composition as Record<string, unknown>;
-    const worlds = (Array.isArray(comp.worlds) ? comp.worlds : []) as Array<Record<string, unknown>>;
-    let globalSimulationState = {};
-    if (worlds.length > 0 && worlds[0]) {
-      globalSimulationState = worlds[0].state || {};
-    }
+    const comp = normalizedComposition as unknown as Record<string, unknown>;
+    const globalSimulationState = this.extractGlobalSimulationStateFromWorlds(comp);
 
     // Generate imports and scene setup
     this.generateImports();
