@@ -7,11 +7,32 @@ export default defineConfig({
 
   lastUpdated: true,
 
-  /** Crawlable doc URLs for Search Console; `robots.txt` in `docs/public` points here. */
+  /** Crawlable doc URLs for Search Console; `robots.txt` intercepted at Edge Proxy. */
   sitemap: {
     hostname: 'https://holoscript.net',
     changefreq: 'weekly',
     priority: 0.7,
+    transformItems(items) {
+      // 1. Prefix all docs pages with /docs/
+      const mapped = items.map((item) => {
+        // VitePress item.url might be empty string '' (for index) or 'guides/...'
+        const slashPrefix = item.url.startsWith('/') ? '' : '/';
+        const docUrl = '/docs' + slashPrefix + item.url;
+        return {
+          ...item,
+          url: docUrl
+        };
+      });
+
+      // 2. Inject the root SPA landing page manually so it is indexed
+      mapped.push({
+        url: '/',
+        changefreq: 'weekly',
+        priority: 1.0 // highest priority for the root product page
+      });
+
+      return mapped;
+    }
   },
 
   /**

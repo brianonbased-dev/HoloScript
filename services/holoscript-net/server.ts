@@ -70,6 +70,20 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', engine: 'holoscript-native' });
 });
 
+// --- SEO & Crawlers ---
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *
+Allow: /
+
+Sitemap: https://holoscript.net/sitemap.xml`);
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  res.sendFile(path.join(DOCS_DIST, 'sitemap.xml'));
+});
+
 // Fallbacks
 app.get('/docs*', (req, res) => {
   res.sendFile(path.join(DOCS_DIST, 'index.html'));
