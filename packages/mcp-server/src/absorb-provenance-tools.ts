@@ -1,16 +1,25 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
 
+/** Oldest knowledge entry newer than this → staleness `fresh` (vs `stale`). */
+const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const absorbProvenanceTools: Tool[] = [
   {
     name: 'absorb_provenance_answer',
-    description: 'Answer a codebase question using Absorb and attach deterministic provenance metadata (evidence hash + citations + timestamp).',
+    description:
+      'Answer a codebase question using Absorb and attach deterministic provenance metadata (evidence hash, orchestrator graph snapshot id, optional CI commit id, staleness, citations + timestamp).',
     inputSchema: {
       type: 'object',
       properties: {
         question: {
           type: 'string',
           description: 'Natural language question about the codebase.',
+        },
+        workspaceId: {
+          type: 'string',
+          description:
+            'Orchestrator workspace id for GraphRAG knowledge grounding (default: ai-ecosystem).',
         },
         includeRaw: {
           type: 'boolean',
@@ -28,6 +37,14 @@ export interface ProvenanceEnvelope {
   generatedAt: number;
   evidenceHash: string;
   citations: Array<{ file?: string; symbol?: string; snippet?: string }>;
+  /** Fingerprint of the orchestrator knowledge slice used for GraphRAG grounding. */
+  graphSnapshotId: string;
+  /** Git commit of the HoloScript deployment/repo when set in CI (VERCEL_GIT_COMMIT_SHA, GITHUB_SHA, GIT_COMMIT). */
+  graphCommitId?: string;
+  /** Whether grounding knowledge is still within the freshness window. */
+  staleness: 'fresh' | 'stale' | 'unknown';
+  /** ISO time of the newest knowledge entry in the orchestrator slice (if any). */
+  knowledgeAsOf?: string;
 }
 
 function fnv1a(input: string): string {
@@ -101,6 +118,104 @@ function extractAnswer(raw: unknown): string {
   return toSafeString(raw);
 }
 
+interface OrchestratorKnowledgeRow {
+  id?: string;
+  type?: string;
+  content?: string;
+  created_at?: string;
+  metadata?: { provenanceHash?: string; domain?: string };
+}
+
+function resolveGraphCommitId(): string | undefined {
+  const v =
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.GIT_COMMIT ||
+    process.env.COMMIT_SHA;
+  return typeof v === 'string' && v.length >= 7 ? v : undefined;
+}
+
+/**
+ * Queries the MCP orchestrator knowledge store (same path as absorb-scanner / framework KnowledgeStore remote mode).
+ */
+export async function fetchOrchestratorGraphContext(
+  search: string,
+  workspaceId?: string
+): Promise<{
+  graphSnapshotId: string;
+  staleness: 'fresh' | 'stale' | 'unknown';
+  knowledgeAsOf?: string;
+}> {
+  const apiKey = process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+  if (!search.trim() || !apiKey) {
+    return { graphSnapshotId: fnv1a(`${search}|no-orchestrator`), staleness: 'unknown' };
+  }
+
+  const baseUrl = (
+    process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app'
+  ).replace(/\/$/, '');
+  const ws = workspaceId || process.env.HOLOSCRIPT_WORKSPACE_ID || 'ai-ecosystem';
+
+  try {
+    const res = await fetch(`${baseUrl}/knowledge/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-mcp-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        search: search.slice(0, 500),
+        limit: 20,
+        workspace_id: ws,
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!res.ok) {
+      return { graphSnapshotId: fnv1a(`${search}|query-${res.status}`), staleness: 'unknown' };
+    }
+
+    const data = (await res.json()) as { results?: OrchestratorKnowledgeRow[]; entries?: OrchestratorKnowledgeRow[] };
+    const rows = data.results || data.entries || [];
+    if (rows.length === 0) {
+      return {
+        graphSnapshotId: fnv1a(`${ws}|empty|${search}`),
+        staleness: 'unknown',
+      };
+    }
+
+    const now = Date.now();
+    const fingerprints = rows
+      .map((r) => {
+        const id = r.id || '';
+        const ph = r.metadata?.provenanceHash || '';
+        const created = r.created_at || '';
+        return `${id}|${ph}|${created}`;
+      })
+      .sort();
+    const graphSnapshotId = fnv1a(`${ws}|${fingerprints.join(';')}`);
+
+    const times = rows
+      .map((r) => {
+        const t = r.created_at ? Date.parse(r.created_at) : NaN;
+        return Number.isFinite(t) ? t : now;
+      })
+      .sort((a, b) => a - b);
+    const oldest = times[0]!;
+    const newest = times[times.length - 1]!;
+
+    const staleness: 'fresh' | 'stale' = now - oldest > STALE_AFTER_MS ? 'stale' : 'fresh';
+
+    return {
+      graphSnapshotId,
+      staleness,
+      knowledgeAsOf: new Date(newest).toISOString(),
+    };
+  } catch {
+    return { graphSnapshotId: fnv1a(`${search}|orchestrator-error`), staleness: 'unknown' };
+  }
+}
+
 export async function handleAbsorbProvenanceTool(
   name: string,
   args: Record<string, unknown>,
@@ -111,6 +226,8 @@ export async function handleAbsorbProvenanceTool(
   const question = typeof args.question === 'string' ? args.question.trim() : '';
   if (!question) throw new Error('question is required');
 
+  const workspaceId = typeof args.workspaceId === 'string' ? args.workspaceId.trim() : undefined;
+
   const raw = resolver
     ? await resolver(question)
     : await handleCodebaseTool('holo_ask_codebase', { question });
@@ -119,12 +236,19 @@ export async function handleAbsorbProvenanceTool(
   const answer = extractAnswer(raw);
   const generatedAt = Date.now();
 
+  const orch = await fetchOrchestratorGraphContext(question, workspaceId);
+  const graphCommitId = resolveGraphCommitId();
+
   const evidenceHash = fnv1a(
     JSON.stringify(
       canonical({
         question,
         answer,
         citations,
+        graphSnapshotId: orch.graphSnapshotId,
+        staleness: orch.staleness,
+        knowledgeAsOf: orch.knowledgeAsOf,
+        graphCommitId: graphCommitId ?? null,
         raw,
       })
     )
@@ -136,6 +260,10 @@ export async function handleAbsorbProvenanceTool(
     generatedAt,
     evidenceHash,
     citations,
+    graphSnapshotId: orch.graphSnapshotId,
+    graphCommitId,
+    staleness: orch.staleness,
+    knowledgeAsOf: orch.knowledgeAsOf,
   };
 
   return {
