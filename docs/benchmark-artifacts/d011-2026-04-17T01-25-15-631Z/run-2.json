@@ -1,0 +1,8 @@
+
+> @holoscript/benchmark@6.0.3 bench:ci C:\Users\josep\Documents\GitHub\HoloScript\packages\benchmark
+> node --experimental-vm-modules dist/index.js --ci
+
+
+📊 Cache Statistics:
+  Cache size: undefined entries
+  Dependency edges: undefined

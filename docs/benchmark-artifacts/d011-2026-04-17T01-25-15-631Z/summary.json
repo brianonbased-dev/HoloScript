@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "timestamp": "2026-04-17T01-25-15-631Z",
+    "node_version": "v22.20.0",
+    "platform": "win32 x64",
+    "lockfile_sha256": "8539589fc6ae88f18943e168e9742864a715b7699481d02cd174bb78a58650ee",
+    "runs": 12,
+    "seed_mode": "random"
+  },
+  "results": [
+    {
+      "run": 1,
+      "status": "success",
+      "outputFile": "run-1.json"
+    },
+    {
+      "run": 2,
+      "status": "success",
+      "outputFile": "run-2.json"
+    },
+    {
+      "run": 3,
+      "status": "success",
+      "outputFile": "run-3.json"
+    },
+    {
+      "run": 4,
+      "status": "success",
+      "outputFile": "run-4.json"
+    },
+    {
+      "run": 5,
+      "status": "success",
+      "outputFile": "run-5.json"
+    },
+    {
+      "run": 6,
+      "status": "success",
+      "outputFile": "run-6.json"
+    },
+    {
+      "run": 7,
+      "status": "success",
+      "outputFile": "run-7.json"
+    },
+    {
+      "run": 8,
+      "status": "success",
+      "outputFile": "run-8.json"
+    },
+    {
+      "run": 9,
+      "status": "success",
+      "outputFile": "run-9.json"
+    },
+    {
+      "run": 10,
+      "status": "success",
+      "outputFile": "run-10.json"
+    },
+    {
+      "run": 11,
+      "status": "success",
+      "outputFile": "run-11.json"
+    },
+    {
+      "run": 12,
+      "status": "success",
+      "outputFile": "run-12.json"
+    }
+  ]
+}

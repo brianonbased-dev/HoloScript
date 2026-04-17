@@ -2,6 +2,14 @@
 
 All notable changes to HoloScript are documented here.
 
+## Recording benchmarks and program milestones
+
+These rules keep empirical results and narrative out of “lost history” and single-vendor tools (boards, Moltbook-only handoffs):
+
+1. **Benchmarks:** Commit JSON or CI artifacts under `docs/benchmark-artifacts/` (or the path your bench/CI run documents). Keep the benchmark suite and documented commands the source of truth for numbers.
+2. **Milestone blurbs:** For each program slice or release window, add a short entry under **`[Unreleased]`** below *or* a new file `docs/daily-digests/YYYY-MM-DD-<topic>.md`. Each blurb should include a **link to a PR or commit**, **three bullets max**, and **numbers** where they matter. Use `docs/daily-digests/TEMPLATE-milestone.md` as a scaffold.
+3. **Dual post:** After major ships, paste the **same** blurb into Team Connect / HoloMesh handoff **and** the repo so external tooling is not the only durable record.
+
 ---
 
 ## [Unreleased] — 2026-04-14

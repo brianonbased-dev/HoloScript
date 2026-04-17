@@ -1,0 +1,264 @@
+
+> @holoscript/benchmark@6.0.3 bench:ci C:\Users\josep\Documents\GitHub\HoloScript\packages\benchmark
+> node --experimental-vm-modules dist/index.js --ci
+
+
+📊 Cache Statistics:
+  Cache size: 0 entries
+  Dependency edges: 0
+  Trait graph objects: 0
+  Trait graph traits: 52
+{
+  "version": "2.1.0",
+  "timestamp": "2026-04-17T01:32:46.195Z",
+  "suites": [
+    {
+      "suite": "Parser",
+      "timestamp": "2026-04-17T01:31:55.482Z",
+      "results": [
+        {
+          "name": "parse-small (100 lines)",
+          "opsPerSecond": 619994.6900025646,
+          "meanMs": 1.6129170396537809,
+          "samples": 619995,
+          "marginOfError": 0.0038633916067056713
+        },
+        {
+          "name": "parse-medium (600 lines)",
+          "opsPerSecond": 484237.51576246007,
+          "meanMs": 2.0651022844139657,
+          "samples": 484238,
+          "marginOfError": 0.00569371580062254
+        },
+        {
+          "name": "parse-large (1200 lines)",
+          "opsPerSecond": 400576.2789627469,
+          "meanMs": 2.496403438040321,
+          "samples": 400577,
+          "marginOfError": 0.0031643268082695935
+        },
+        {
+          "name": "incremental-small-single-edit",
+          "opsPerSecond": 436399.12720183714,
+          "meanMs": 2.2914802933084104,
+          "samples": 436400,
+          "marginOfError": 0.005490993946659305
+        },
+        {
+          "name": "incremental-medium-single-edit",
+          "opsPerSecond": 407993.6328059171,
+          "meanMs": 2.451018642429895,
+          "samples": 407994,
+          "marginOfError": 0.0048176929252781
+        },
+        {
+          "name": "incremental-large-single-edit",
+          "opsPerSecond": 440396.6917224253,
+          "meanMs": 2.2706800909174025,
+          "samples": 440397,
+          "marginOfError": 0.002473668583503109
+        }
+      ]
+    },
+    {
+      "suite": "Compiler",
+      "timestamp": "2026-04-17T01:32:14.820Z",
+      "results": [
+        {
+          "name": "compile-full-small (fresh)",
+          "opsPerSecond": 884704.8904991385,
+          "meanMs": 1.1303204161512135,
+          "samples": 885255,
+          "marginOfError": 0.002105812502662891
+        },
+        {
+          "name": "compile-full-medium (fresh)",
+          "opsPerSecond": 1060439.5758251334,
+          "meanMs": 0.9430051676653948,
+          "samples": 1060440,
+          "marginOfError": 0.0013289498651462897
+        },
+        {
+          "name": "compile-full-large (fresh)",
+          "opsPerSecond": 971107.8057790177,
+          "meanMs": 1.0297517886778853,
+          "samples": 971108,
+          "marginOfError": 0.0035338810296010126
+        },
+        {
+          "name": "compile-incremental-small (no changes)",
+          "opsPerSecond": 811447.7565671464,
+          "meanMs": 1.2323652285767963,
+          "samples": 811448,
+          "marginOfError": 0.002525700553884711
+        },
+        {
+          "name": "compile-incremental-medium (no changes)",
+          "opsPerSecond": 803023.7590941901,
+          "meanMs": 1.2452931668273415,
+          "samples": 803024,
+          "marginOfError": 0.0030538057846853242
+        },
+        {
+          "name": "compile-incremental-large (no changes)",
+          "opsPerSecond": 909894.8180222791,
+          "meanMs": 1.0990281296178508,
+          "samples": 909895,
+          "marginOfError": 0.0019324027186831633
+        },
+        {
+          "name": "diff-trait-config-small",
+          "opsPerSecond": 29525.476485406944,
+          "meanMs": 33.86905544079036,
+          "samples": 29527,
+          "marginOfError": 0.03582915748936206
+        },
+        {
+          "name": "diff-trait-config-medium",
+          "opsPerSecond": 28356.319448340117,
+          "meanMs": 35.265507634790616,
+          "samples": 28357,
+          "marginOfError": 0.034081921488381885
+        },
+        {
+          "name": "diff-trait-config-large",
+          "opsPerSecond": 28490.173784948463,
+          "meanMs": 35.09982099611854,
+          "samples": 28491,
+          "marginOfError": 0.04086420110115423
+        },
+        {
+          "name": "recompilation-set-single-change",
+          "opsPerSecond": 15844.038266880112,
+          "meanMs": 63.11522246764381,
+          "samples": 15845,
+          "marginOfError": 0.1317638021965179
+        },
+        {
+          "name": "recompilation-set-multiple-changes",
+          "opsPerSecond": 8235.629740394403,
+          "meanMs": 121.42362290708206,
+          "samples": 8242,
+          "marginOfError": 0.22549521181944618
+        },
+        {
+          "name": "cache-serialize",
+          "opsPerSecond": 18218.124376366646,
+          "meanMs": 54.89039262994846,
+          "samples": 18236,
+          "marginOfError": 0.09184705525493167
+        },
+        {
+          "name": "cache-deserialize",
+          "opsPerSecond": 13425.543531519737,
+          "meanMs": 74.48488008342129,
+          "samples": 13426,
+          "marginOfError": 0.18794184603211564
+        }
+      ]
+    },
+    {
+      "suite": "HighFrequencySync",
+      "timestamp": "2026-04-17T01:32:42.026Z",
+      "results": [
+        {
+          "name": "quantize-position",
+          "opsPerSecond": 5477954.999969888,
+          "meanMs": 0.1825498749087017,
+          "samples": 5477955,
+          "marginOfError": 0.0006590527507542353
+        },
+        {
+          "name": "dequantize-position",
+          "opsPerSecond": 7323764.535353332,
+          "meanMs": 0.13654180103316982,
+          "samples": 7323766,
+          "marginOfError": 0.00015010534179925756
+        },
+        {
+          "name": "position-roundtrip",
+          "opsPerSecond": 3594230.6405920866,
+          "meanMs": 0.27822365896788065,
+          "samples": 3594231,
+          "marginOfError": 0.0002778120912921709
+        },
+        {
+          "name": "compress-quaternion",
+          "opsPerSecond": 2292907.541426895,
+          "meanMs": 0.4361274852703794,
+          "samples": 2292908,
+          "marginOfError": 0.001208781935376797
+        },
+        {
+          "name": "decompress-quaternion",
+          "opsPerSecond": 2179899.749659615,
+          "meanMs": 0.45873669197684297,
+          "samples": 2180545,
+          "marginOfError": 0.001057170193493039
+        },
+        {
+          "name": "quaternion-roundtrip",
+          "opsPerSecond": 1782311.8217671493,
+          "meanMs": 0.5610690496394213,
+          "samples": 1782312,
+          "marginOfError": 0.0014435928237592453
+        },
+        {
+          "name": "measure-compression-ratio",
+          "opsPerSecond": 354878.5741466823,
+          "meanMs": 2.8178652442022862,
+          "samples": 354879,
+          "marginOfError": 0.0052223622674794756
+        }
+      ]
+    },
+    {
+      "suite": "LSP",
+      "timestamp": "2026-04-17T01:32:46.195Z",
+      "results": [
+        {
+          "name": "completion - start of file",
+          "opsPerSecond": 2189262.810677033,
+          "meanMs": 0.4567747623186219,
+          "samples": 437853,
+          "marginOfError": 0.0024409823829989893
+        },
+        {
+          "name": "completion - mid file (50 lines)",
+          "opsPerSecond": 2284183.8579189857,
+          "meanMs": 0.43779312971375856,
+          "samples": 456837,
+          "marginOfError": 0.0019091250060865724
+        },
+        {
+          "name": "hover - simple identifier",
+          "opsPerSecond": 5348592.325733481,
+          "meanMs": 0.18696508148297966,
+          "samples": 1069719,
+          "marginOfError": 0.0005508237959431358
+        },
+        {
+          "name": "hover - deep in large file (200 lines)",
+          "opsPerSecond": 5105122.447400025,
+          "meanMs": 0.1958816875213811,
+          "samples": 1021025,
+          "marginOfError": 0.0005940738116327188
+        },
+        {
+          "name": "go-to-definition - symbol lookup (500 symbols)",
+          "opsPerSecond": 13222.282820859005,
+          "meanMs": 75.62990548216345,
+          "samples": 2645,
+          "marginOfError": 0.5558113950358349
+        },
+        {
+          "name": "go-to-definition - not found (worst case)",
+          "opsPerSecond": 13868.058471817587,
+          "meanMs": 72.10814708000991,
+          "samples": 2774,
+          "marginOfError": 0.22188242132862762
+        }
+      ]
+    }
+  ]
+}
