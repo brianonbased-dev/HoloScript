@@ -11,7 +11,8 @@
  *   4. Strategy comparison    — same conflict under 5 semiring strategies
  *                                (min-plus, max-plus, authority-weighted,
  *                                 domain-override, strict-error) and
- *                                a 1 000-op commutativity/idempotence check
+ *                                a 1 000-op commutativity/idempotence check plus
+ *                                PAPER-GAP-05 (100 independent RNG seeds)
  *
  * Output: console tables + LaTeX fragments (Section 7) ready to paste into
  * the paper. Run:
@@ -124,6 +125,17 @@ function fingerprint(input: string | Uint8Array): string {
     }
   }
   return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+/** Deterministic RNG for PAPER-GAP-05 multi-seed commutativity stress. */
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /** Count conflicts in a spatial doc by comparing positions of overlapping IDs. */
@@ -706,6 +718,78 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     expect(idempotentFailures).toBe(0);
     console.log(
       `[exp4] algebraic laws verified: commutativity ${N - commutativeFailures}/${N} idempotence ${N - idempotentFailures}/${N}`
+    );
+  });
+
+  /**
+   * PAPER-GAP-05 — same semiring as the 1 000-op block, but 100 independent RNG
+   * seeds × 40 merges each (4 000 pairs) so commutativity is not tied to a
+   * single deterministic index stream.
+   */
+  it('verifies commutativity across 100 RNG seeds (PAPER-GAP-05)', () => {
+    const semiring = new ProvenanceSemiring([
+      { property: 'mass', strategy: 'authority-weighted' },
+      { property: 'friction', strategy: 'max' },
+      { property: 'restitution', strategy: 'min' },
+    ]);
+
+    const SEEDS = 100;
+    const OPS_PER_SEED = 40;
+    let commutativeFailures = 0;
+    let idempotentFailures = 0;
+
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const rng = mulberry32(seed ^ 0x9e3779b9);
+      for (let i = 0; i < OPS_PER_SEED; i++) {
+        const a: TraitApplication = {
+          name: `trait-a-${seed}-${i}`,
+          config: {
+            mass: Math.max(1, Math.floor(rng() * 16) + 1),
+            friction: Math.floor(rng() * 10) / 10,
+            restitution: Math.floor(rng() * 10) / 10,
+          },
+          context: {
+            authorityLevel: AuthorityTier.AGENT,
+            reputationScore: 30 + Math.floor(rng() * 40),
+          },
+        };
+        const b: TraitApplication = {
+          name: `trait-b-${seed}-${i}`,
+          config: {
+            mass: Math.max(1, Math.floor(rng() * 16) + 1),
+            friction: Math.floor(rng() * 10) / 10,
+            restitution: Math.floor(rng() * 10) / 10,
+          },
+          context: {
+            authorityLevel: AuthorityTier.MEMBER,
+            reputationScore: 40 + Math.floor(rng() * 50),
+          },
+        };
+
+        const ab = semiring.add([a, b]).config;
+        const ba = semiring.add([b, a]).config;
+        const keys = new Set([...Object.keys(ab), ...Object.keys(ba)]);
+        for (const k of keys) {
+          if (ab[k] !== ba[k]) {
+            commutativeFailures++;
+            break;
+          }
+        }
+
+        const aa = semiring.add([a, a]).config;
+        for (const [k, v] of Object.entries(a.config)) {
+          if (aa[k] !== v) {
+            idempotentFailures++;
+            break;
+          }
+        }
+      }
+    }
+
+    expect(commutativeFailures).toBe(0);
+    expect(idempotentFailures).toBe(0);
+    console.log(
+      `[exp4] PAPER-GAP-05: ${SEEDS} seeds × ${OPS_PER_SEED} ops — commutativity failures ${commutativeFailures}, idempotence failures ${idempotentFailures}`
     );
   });
 
