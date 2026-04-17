@@ -7,3 +7,4 @@
 export * from './ReferenceGraph';
 export * from './ReachabilityAnalyzer';
 export * from './ComplexityMetrics';
+export * from './HoloASTMapping';
