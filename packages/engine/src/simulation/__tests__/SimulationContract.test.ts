@@ -52,6 +52,13 @@ describe('Geometry Hashing', () => {
   it('handles no geometry gracefully', () => {
     expect(hashGeometry(undefined, undefined)).toBe('no-geometry');
   });
+
+  it('SEC-02: same vertices but different connectivity produce different hashes', () => {
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const e1 = new Uint32Array([0, 1, 2]);
+    const e2 = new Uint32Array([0, 2, 1]);
+    expect(hashGeometry(v, e1)).not.toBe(hashGeometry(v, e2));
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════

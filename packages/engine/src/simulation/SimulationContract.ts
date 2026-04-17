@@ -93,8 +93,9 @@ export interface ContractConfig {
 
 /**
  * Compute a fast fingerprint of mesh geometry.
- * Uses a rolling hash of vertex positions + element connectivity.
- * Two meshes with the same hash are geometrically identical.
+ * Uses FNV-1a over quantized vertex positions and element indices with explicit
+ * length prefixes and a vertex/connectivity domain separator (SEC-02): any
+ * change to nodes, index count, or connectivity alters the digest.
  */
 export function hashGeometry(
   vertices: Float64Array | Float32Array | undefined,
@@ -102,25 +103,47 @@ export function hashGeometry(
 ): string {
   if (!vertices || !elements) return 'no-geometry';
 
-  // FNV-1a hash on the raw bytes
   let h = 2166136261;
-  for (let i = 0; i < vertices.length; i++) {
-    // Quantize to 6 decimal places to handle float precision
-    const v = Math.round(vertices[i] * 1e6);
-    h ^= (v & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 8) & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 16) & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 24) & 0xff); h = Math.imul(h, 16777619);
+  const nCoord = vertices.length;
+  const nIdx = elements.length;
+
+  for (let k = 0; k < 4; k++) {
+    h ^= (nCoord >>> (8 * k)) & 0xff;
+    h = Math.imul(h, 16777619);
   }
-  for (let i = 0; i < elements.length; i++) {
-    const v = elements[i];
-    h ^= (v & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 8) & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 16) & 0xff); h = Math.imul(h, 16777619);
-    h ^= ((v >> 24) & 0xff); h = Math.imul(h, 16777619);
+  for (let i = 0; i < nCoord; i++) {
+    const v = Math.round(vertices[i] * 1e6);
+    h ^= v & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 8) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 16) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 24) & 0xff;
+    h = Math.imul(h, 16777619);
   }
 
-  return `geo-${(h >>> 0).toString(16).padStart(8, '0')}-${vertices.length / 3}n-${elements.length}e`;
+  // Separate vertex field from connectivity so tails cannot collide across domains.
+  h ^= 0x9e3779b9;
+  h = Math.imul(h, 16777619);
+
+  for (let k = 0; k < 4; k++) {
+    h ^= (nIdx >>> (8 * k)) & 0xff;
+    h = Math.imul(h, 16777619);
+  }
+  for (let i = 0; i < nIdx; i++) {
+    const v = elements[i];
+    h ^= v & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 8) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 16) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (v >> 24) & 0xff;
+    h = Math.imul(h, 16777619);
+  }
+
+  return `geo-${(h >>> 0).toString(16).padStart(8, '0')}-${nCoord / 3}n-${nIdx}e`;
 }
 
 // ── Unit Validation ──────────────────────────────────────────────────────────
