@@ -150,6 +150,15 @@ export default defineConfig({
           environment: 'node',
         },
       },
+      {
+        test: {
+          name: '@holoscript/hololand-platform',
+          root: './packages/hololand-platform',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
+        },
+      },
     ],
   },
 });
