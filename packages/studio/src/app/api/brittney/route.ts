@@ -134,8 +134,12 @@ export async function POST(request: NextRequest) {
           }> = [];
 
           const response = await client.messages.create({
-            model: process.env.BRITTNEY_MODEL || 'claude-sonnet-4-20250514',
-            max_tokens: 2048,
+            // Opus 4.7 default — most capable. Override via BRITTNEY_MODEL env
+            // (e.g. 'claude-sonnet-4-6' for cost, 'claude-haiku-4-5' for speed).
+            model: process.env.BRITTNEY_MODEL || 'claude-opus-4-7',
+            // Streaming tool use with scene manipulation can easily exceed 2K
+            // tokens across a turn — bump to 16K to avoid mid-response truncation.
+            max_tokens: 16000,
             system: systemPrompt,
             messages: roundMessages,
             tools: convertToolsToClaudeFormat(),

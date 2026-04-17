@@ -34,7 +34,9 @@ const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku
 
 // ── Anthropic config ─────────────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+// Use the alias (auto-resolves to latest pinned build) not the date-suffixed ID.
+// Haiku is the right default here — this is a fallback path for cheap/fast calls.
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 // ── OpenAI config ────────────────────────────────────────────────────────────
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';

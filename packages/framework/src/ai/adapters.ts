@@ -277,7 +277,10 @@ export class AnthropicAdapter implements AIAdapter {
 
   constructor(config: AnthropicAdapterConfig) {
     this.config = config;
-    this.model = config.model || 'claude-3-5-sonnet-20241022';
+    // Default to Opus 4.7 — most capable Claude. Callers override per-instance.
+    // NEVER silently downgrade for cost. Retired models removed per
+    // docs/strategy/claude-api-migration-checklist.md.
+    this.model = config.model || 'claude-opus-4-7';
   }
 
   isReady(): boolean {

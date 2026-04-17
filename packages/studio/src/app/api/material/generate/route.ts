@@ -149,13 +149,19 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
           'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
         },
-        body: JSON.stringify({
-          model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-          max_tokens: 512,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-        }),
+        body: (() => {
+          const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
+          const isOpus47 = model === 'claude-opus-4-7';
+          return JSON.stringify({
+            model,
+            // Material descriptor — short response, 512 is fine here
+            max_tokens: 512,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+            // Opus 4.7 removes temperature/top_p — only send for older models
+            ...(isOpus47 ? {} : { temperature: 0.7 }),
+          });
+        })(),
         signal: AbortSignal.timeout(30_000),
       });
       if (res.ok) {

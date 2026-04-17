@@ -213,14 +213,22 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
           'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
         },
-        body: JSON.stringify({
-          model:
-            process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-        }),
+        body: (() => {
+          const model =
+            process.env.BRITTNEY_MODEL ||
+            process.env.ANTHROPIC_MODEL ||
+            'claude-opus-4-7';
+          // Opus 4.7 removes temperature/top_p (400 if sent). Only send
+          // temperature for models that still accept it.
+          const isOpus47 = model === 'claude-opus-4-7';
+          return JSON.stringify({
+            model,
+            max_tokens: 16000,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+            ...(isOpus47 ? {} : { temperature: 0.7 }),
+          });
+        })(),
         signal: AbortSignal.timeout(30_000),
       });
       if (res.ok) {

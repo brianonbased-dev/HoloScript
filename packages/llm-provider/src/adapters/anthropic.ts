@@ -21,22 +21,33 @@ import {
   LLMProviderError,
 } from '../types';
 
-// Available Anthropic Claude models for HoloScript generation
+// Available Anthropic Claude models for HoloScript generation.
+// Use aliases (not date-suffixed IDs) — they auto-resolve to the latest pinned build.
+// Current as of 2026-04-17. Retired/deprecated models removed; do not restore without
+// verifying status at https://platform.claude.com/docs/en/about-claude/models.
 export const ANTHROPIC_MODELS = [
+  // Current — recommended defaults
+  'claude-opus-4-7',     // Most capable. Adaptive thinking only; no temperature/top_p.
+  'claude-sonnet-4-6',   // Best speed/intelligence. Adaptive thinking.
+  'claude-haiku-4-5',    // Fast, cost-effective for simple tasks.
+  // Legacy — still active, use only on explicit request
   'claude-opus-4-6',
-  'claude-sonnet-4-5-20250929',
-  'claude-haiku-4-5-20251001',
   'claude-opus-4-5',
   'claude-sonnet-4-5',
-  'claude-haiku-4-5',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-20240229',
-  'claude-3-sonnet-20240229',
-  'claude-3-haiku-20240307',
 ] as const;
 
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
+
+// Models where sampling params (temperature, top_p, top_k) and budget_tokens
+// are REMOVED — sending them returns 400. Adaptive thinking is required.
+// Keep this set in sync with the skill's model documentation.
+const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
+  'claude-opus-4-7',
+]);
+
+function supportsSamplingParams(model: string): boolean {
+  return !SAMPLING_PARAMS_UNSUPPORTED.has(model);
+}
 
 /**
  * Anthropic Claude provider adapter for HoloScript.
@@ -62,12 +73,14 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
   constructor(config: AnthropicProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'claude-haiku-4-5-20251001';
+    // Default to Opus 4.7 — most capable. Callers explicitly opt down to Sonnet/Haiku
+    // when they want cost/speed tradeoffs. NEVER silently downgrade.
+    this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-7';
     this.apiVersion = config.apiVersion ?? '2023-06-01';
   }
 
   protected getDefaultModel(): string {
-    return 'claude-haiku-4-5-20251001';
+    return 'claude-opus-4-7';
   }
 
   async complete(
@@ -96,12 +109,22 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // Anthropic separates system messages from the messages array
     const { system, messages } = this.separateSystemMessages(request.messages);
 
+    // Opus 4.7 removes temperature/top_p — sending them returns 400.
+    // Only pass sampling params for models that still support them.
+    const samplingParams: { temperature?: number; top_p?: number } = {};
+    if (supportsSamplingParams(model)) {
+      if (request.temperature !== undefined) samplingParams.temperature = request.temperature;
+      if (request.topP !== undefined) samplingParams.top_p = request.topP;
+    }
+
     try {
       const response = await client.messages.create({
         model,
-        max_tokens: request.maxTokens ?? 2048,
-        temperature: request.temperature,
-        top_p: request.topP,
+        // Default to 16000 per current API skill guidance (was 2048 — too low,
+        // truncates commonly on modern models). Streaming consumers should
+        // override upward for large outputs.
+        max_tokens: request.maxTokens ?? 16000,
+        ...samplingParams,
         stop_sequences: request.stop,
         system: system || undefined,
         messages: messages.map((m) => ({

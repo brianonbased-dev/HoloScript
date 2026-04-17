@@ -79,12 +79,19 @@ function getProviders(): Provider[] {
             'x-api-key': anthropicKey,
             'anthropic-version': '2023-06-01',
           },
-          body: JSON.stringify({
-            model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-            max_tokens: maxTokens,
-            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
-            temperature: 0.1,
-          }),
+          body: (() => {
+            // Autocomplete wants low variance — Haiku default for speed + cost.
+            // Users can override via ANTHROPIC_MODEL. Opus 4.7 removes
+            // temperature, so conditionally omit it when selected.
+            const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
+            const isOpus47 = model === 'claude-opus-4-7';
+            return JSON.stringify({
+              model,
+              max_tokens: maxTokens,
+              messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+              ...(isOpus47 ? {} : { temperature: 0.1 }),
+            });
+          })(),
           signal: AbortSignal.timeout(8000),
         });
         if (!res.ok) return null;

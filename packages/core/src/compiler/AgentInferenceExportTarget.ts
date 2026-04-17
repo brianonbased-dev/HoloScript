@@ -137,13 +137,32 @@ export interface AgentInferenceResult {
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   provider: 'anthropic',
-  name: 'claude-sonnet-4-20250514',
+  // Default to Opus 4.7 — most capable Claude. Users override per-agent via
+  // the `@model` trait. NEVER silently downgrade for cost (per API skill rule).
+  name: 'claude-opus-4-7',
   temperature: 0.7,
-  maxTokens: 4096,
+  maxTokens: 16000, // bumped from 4096 — current API default guidance
   topP: 0.9,
   topK: 40,
   systemPrompt: 'You are a helpful AI agent.',
 };
+
+// Models where sampling params (temperature, top_p, top_k) and budget_tokens
+// are REMOVED from the API surface — sending them returns HTTP 400.
+// Adaptive thinking is required on these models. Keep in sync with the
+// canonical list in the API skill documentation.
+const ANTHROPIC_MODELS_NO_SAMPLING_PARAMS: ReadonlySet<string> = new Set([
+  'claude-opus-4-7',
+]);
+
+/**
+ * Whether the generated agent may pass `temperature`/`top_p`/`top_k` to the
+ * Claude API. Returns false for Opus 4.7 and any future model that removes
+ * sampling params.
+ */
+function modelAcceptsSamplingParams(modelName: string): boolean {
+  return !ANTHROPIC_MODELS_NO_SAMPLING_PARAMS.has(modelName);
+}
 
 const AGENT_TRAIT_NAMES = new Set([
   'agent',
@@ -637,8 +656,11 @@ export class AgentInferenceCompiler extends CompilerBase {
       lines.push('    const response = await this.client.messages.create({');
       lines.push(`      model: ${JSON.stringify(agent.modelConfig.name)},`);
       lines.push(`      max_tokens: ${agent.modelConfig.maxTokens},`);
-      lines.push(`      temperature: ${agent.modelConfig.temperature},`);
-      lines.push(`      top_p: ${agent.modelConfig.topP},`);
+      // Only emit sampling params for models that accept them (Opus 4.7 removes these).
+      if (modelAcceptsSamplingParams(agent.modelConfig.name)) {
+        lines.push(`      temperature: ${agent.modelConfig.temperature},`);
+        lines.push(`      top_p: ${agent.modelConfig.topP},`);
+      }
       lines.push('      system: this.systemPrompt,');
       lines.push('      messages: this.messages,');
       if (agent.tools.length > 0) {
@@ -679,7 +701,9 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push('      currentResponse = await this.client.messages.create({');
         lines.push(`        model: ${JSON.stringify(agent.modelConfig.name)},`);
         lines.push(`        max_tokens: ${agent.modelConfig.maxTokens},`);
-        lines.push(`        temperature: ${agent.modelConfig.temperature},`);
+        if (modelAcceptsSamplingParams(agent.modelConfig.name)) {
+          lines.push(`        temperature: ${agent.modelConfig.temperature},`);
+        }
         lines.push('        system: this.systemPrompt,');
         lines.push('        messages: this.messages,');
         lines.push('        tools,');
@@ -792,7 +816,9 @@ export class AgentInferenceCompiler extends CompilerBase {
       lines.push('        response = self.client.messages.create(');
       lines.push(`            model=${JSON.stringify(agent.modelConfig.name)},`);
       lines.push(`            max_tokens=${agent.modelConfig.maxTokens},`);
-      lines.push(`            temperature=${agent.modelConfig.temperature},`);
+      if (modelAcceptsSamplingParams(agent.modelConfig.name)) {
+        lines.push(`            temperature=${agent.modelConfig.temperature},`);
+      }
       lines.push('            system=self.system_prompt,');
       lines.push('            messages=self.messages,');
       if (agent.tools.length > 0) {
@@ -821,7 +847,9 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push('            response = self.client.messages.create(');
         lines.push(`                model=${JSON.stringify(agent.modelConfig.name)},`);
         lines.push(`                max_tokens=${agent.modelConfig.maxTokens},`);
-        lines.push(`                temperature=${agent.modelConfig.temperature},`);
+        if (modelAcceptsSamplingParams(agent.modelConfig.name)) {
+          lines.push(`                temperature=${agent.modelConfig.temperature},`);
+        }
         lines.push('                system=self.system_prompt,');
         lines.push('                messages=self.messages,');
         lines.push('                tools=TOOLS,');
@@ -1007,7 +1035,10 @@ export class AgentInferenceCompiler extends CompilerBase {
         build: 'tsc',
       },
       dependencies: {
-        '@anthropic-ai/sdk': '^0.39.0',
+        // Floor bumped to support adaptive thinking, output_config.effort,
+        // and Opus 4.7 sampling-param removal. Keep in sync with
+        // packages/llm-provider/package.json to avoid split versions.
+        '@anthropic-ai/sdk': '^0.88.0',
       },
       devDependencies: {
         tsx: '^4.0.0',

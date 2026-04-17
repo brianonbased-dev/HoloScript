@@ -65,7 +65,7 @@ function createConfig(): DaemonConfig {
   return {
     repoRoot: 'repo',
     commit: false,
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-haiku-4-5',
     verbose: false,
     focusRotation: ['typefix'],
     stateDir: '.holoscript',
