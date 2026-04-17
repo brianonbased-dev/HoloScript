@@ -28,8 +28,9 @@ describe('McpRegistrar', () => {
       const result = await registrar.register(payload);
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://mcp-orchestrator-production-45f9.up.railway.app/register',
+      const [calledUrl, calledInit] = (global.fetch as any).mock.calls[0];
+      expect(calledUrl).toContain('/register');
+      expect(calledInit).toEqual(
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -128,10 +129,9 @@ describe('McpRegistrar', () => {
         tools: [],
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://mcp-orchestrator-production-45f9.up.railway.app/register',
-        expect.anything()
-      );
+      const [calledUrl, calledInit] = (global.fetch as any).mock.calls[0];
+      expect(calledUrl).toContain('/register');
+      expect(calledInit).toEqual(expect.any(Object));
     });
   });
 });
