@@ -124,8 +124,8 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
 
   function makeAgent(x = 0, z = 0): SteeringAgent {
     return {
-      position: { x, y: 0, z },
-      velocity: [0, 0, 0 ],
+      position: [x, 0, z],
+      velocity: [0, 0, 0],
       maxSpeed: 10,
       maxForce: 5,
       mass: 1,
@@ -135,7 +135,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should seek toward target', () => {
     const steering = new SteeringBehaviors();
     const agent = makeAgent(0, 0);
-    const force = steering.seek(agent, { x: 10, y: 0, z: 0 });
+    const force = steering.seek(agent, [10, 0, 0]);
 
     expect(force[0]).toBeGreaterThan(0); // Should push right
   });
@@ -143,7 +143,7 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should flee away from target', () => {
     const steering = new SteeringBehaviors();
     const agent = makeAgent(0, 0);
-    const force = steering.flee(agent, { x: 10, y: 0, z: 0 });
+    const force = steering.flee(agent, [10, 0, 0]);
 
     expect(force[0]).toBeLessThan(0); // Should push left (away)
   });
@@ -152,11 +152,11 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const steering = new SteeringBehaviors({ arriveSlowRadius: 5 });
     const agent = makeAgent(0, 0);
 
-    const farForce = steering.arrive(agent, { x: 20, y: 0, z: 0 });
-    const nearForce = steering.arrive(agent, { x: 2, y: 0, z: 0 });
+    const farForce = steering.arrive(agent, [20, 0, 0]);
+    const nearForce = steering.arrive(agent, [2, 0, 0]);
 
     // Far force should be stronger than near force (closer = slower)
-    expect(Math.abs(farForce.x)).toBeGreaterThan(Math.abs(nearForce.x));
+    expect(Math.abs(farForce[0])).toBeGreaterThan(Math.abs(nearForce[0]));
   });
 
   it('should compute flock forces from neighbors', () => {

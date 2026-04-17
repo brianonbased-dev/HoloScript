@@ -15,7 +15,7 @@ describe('Cycle 156: Skeletal Animation', () => {
     bones.addBone('head', 'Head', 'spine', { tx: 0, ty: 2, tz: 0 });
 
     const headPos = bones.getWorldPosition('head')!;
-    expect(headPos.y).toBe(10); // 5 + 3 + 2
+    expect(headPos[1]).toBe(10); // 5 + 3 + 2
   });
 
   it('should capture bind pose and compute skinning matrix', () => {

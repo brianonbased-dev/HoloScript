@@ -105,7 +105,7 @@ describe('Cycle 132: Weather & Time of Day', () => {
 
     sky.updateClouds(1);
     const layers = sky.getCloudLayers();
-    expect(layers[0].offset[0]).toBe(3); // Moved
+    expect(layers[0].offset.x).toBe(3); // Moved
   });
 
   it('should apply time-of-day presets', () => {

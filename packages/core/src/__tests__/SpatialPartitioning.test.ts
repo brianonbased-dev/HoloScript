@@ -22,17 +22,17 @@ describe('OctreeSystem', () => {
   });
 
   it('inserts entries', () => {
-    expect(oct.insert({ id: 'a', x: 10, y: 0, z: 0, radius: 1 })).toBe(true);
+    expect(oct.insert({ id: 'a', position: [10, 0, 0], radius: 1 })).toBe(true);
     expect(oct.getEntryCount()).toBe(1);
   });
 
   it('rejects entries outside bounds', () => {
-    expect(oct.insert({ id: 'far', x: 500, y: 0, z: 0, radius: 1 })).toBe(false);
+    expect(oct.insert({ id: 'far', position: [500, 0, 0], radius: 1 })).toBe(false);
     expect(oct.getEntryCount()).toBe(0);
   });
 
   it('removes entries by id', () => {
-    oct.insert({ id: 'a', x: 0, y: 0, z: 0, radius: 1 });
+    oct.insert({ id: 'a', position: [0, 0, 0], radius: 1 });
     expect(oct.remove('a')).toBe(true);
     expect(oct.getEntryCount()).toBe(0);
   });
@@ -42,22 +42,22 @@ describe('OctreeSystem', () => {
   });
 
   it('queryRadius finds nearby entries', () => {
-    oct.insert({ id: 'a', x: 5, y: 0, z: 0, radius: 1 });
-    oct.insert({ id: 'b', x: 50, y: 0, z: 0, radius: 1 });
+    oct.insert({ id: 'a', position: [5, 0, 0], radius: 1 });
+    oct.insert({ id: 'b', position: [50, 0, 0], radius: 1 });
     const results = oct.queryRadius(0, 0, 0, 10);
     expect(results).toHaveLength(1);
     expect(results[0].id).toBe('a');
   });
 
   it('queryRadius returns empty for distant search', () => {
-    oct.insert({ id: 'a', x: 0, y: 0, z: 0, radius: 1 });
+    oct.insert({ id: 'a', position: [0, 0, 0], radius: 1 });
     const results = oct.queryRadius(90, 90, 90, 1);
     expect(results).toHaveLength(0);
   });
 
   it('auto-subdivides when threshold exceeded', () => {
     for (let i = 0; i < 20; i++) {
-      oct.insert({ id: `e${i}`, x: i * 2 - 20, y: 0, z: 0, radius: 0.5 });
+      oct.insert({ id: `e${i}`, position: [i * 2 - 20, 0, 0], radius: 0.5 });
     }
     expect(oct.getEntryCount()).toBe(20);
     // Query should still work after subdivision
@@ -66,13 +66,13 @@ describe('OctreeSystem', () => {
   });
 
   it('clear removes everything', () => {
-    for (let i = 0; i < 10; i++) oct.insert({ id: `e${i}`, x: i, y: 0, z: 0, radius: 1 });
+    for (let i = 0; i < 10; i++) oct.insert({ id: `e${i}`, position: [i, 0, 0], radius: 1 });
     oct.clear();
     expect(oct.getEntryCount()).toBe(0);
   });
 
   it('queryRadius includes entries with radius overlap', () => {
-    oct.insert({ id: 'big', x: 15, y: 0, z: 0, radius: 10 });
+    oct.insert({ id: 'big', position: [15, 0, 0], radius: 10 });
     const results = oct.queryRadius(0, 0, 0, 5);
     // entry at x=15 radius=10 overlaps query at 0 radius=5: distance 15 <= 5+10
     expect(results).toHaveLength(1);
@@ -83,9 +83,7 @@ describe('OctreeSystem', () => {
       const angle = (i / 100) * Math.PI * 2;
       oct.insert({
         id: `p${i}`,
-        x: Math.cos(angle) * 50,
-        y: 0,
-        z: Math.sin(angle) * 50,
+        position: [Math.cos(angle) * 50, 0, Math.sin(angle) * 50],
         radius: 1,
       });
     }
@@ -120,7 +118,7 @@ describe('FrustumCuller', () => {
   });
 
   it('adds and removes volumes', () => {
-    culler.addVolume({ id: 'v1', type: 'sphere', centerX: 0, centerY: 0, centerZ: -10, radius: 2 });
+    culler.addVolume({ id: 'v1', type: 'sphere', center: [0, 0, -10], radius: 2 });
     expect(culler.getVolumeCount()).toBe(1);
     culler.removeVolume('v1');
     expect(culler.getVolumeCount()).toBe(0);
@@ -150,17 +148,13 @@ describe('FrustumCuller', () => {
     culler.addVolume({
       id: 'near',
       type: 'sphere',
-      centerX: 0,
-      centerY: 0,
-      centerZ: -10,
+      center: [0, 0, -10],
       radius: 2,
     });
     culler.addVolume({
       id: 'far',
       type: 'sphere',
-      centerX: 0,
-      centerY: 0,
-      centerZ: -200,
+      center: [0, 0, -200],
       radius: 1,
     });
     const visible = culler.cullAll();
@@ -169,15 +163,15 @@ describe('FrustumCuller', () => {
   });
 
   it('isVisible reflects last cullAll', () => {
-    culler.addVolume({ id: 'v1', type: 'sphere', centerX: 0, centerY: 0, centerZ: -10, radius: 2 });
+    culler.addVolume({ id: 'v1', type: 'sphere', center: [0, 0, -10], radius: 2 });
     culler.cullAll();
     expect(culler.isVisible('v1')).toBe(true);
   });
 
   it('getVisibleCount after cull', () => {
-    culler.addVolume({ id: 'a', type: 'sphere', centerX: 0, centerY: 0, centerZ: -5, radius: 1 });
-    culler.addVolume({ id: 'b', type: 'sphere', centerX: 0, centerY: 0, centerZ: -10, radius: 1 });
-    culler.addVolume({ id: 'c', type: 'sphere', centerX: 0, centerY: 0, centerZ: -300, radius: 1 });
+    culler.addVolume({ id: 'a', type: 'sphere', center: [0, 0, -5], radius: 1 });
+    culler.addVolume({ id: 'b', type: 'sphere', center: [0, 0, -10], radius: 1 });
+    culler.addVolume({ id: 'c', type: 'sphere', center: [0, 0, -300], radius: 1 });
     culler.cullAll();
     expect(culler.getVisibleCount()).toBe(2);
   });
@@ -186,22 +180,14 @@ describe('FrustumCuller', () => {
     culler.addVolume({
       id: 'box1',
       type: 'aabb',
-      centerX: 0,
-      centerY: 0,
-      centerZ: -5,
-      halfX: 1,
-      halfY: 1,
-      halfZ: 1,
+      center: [0, 0, -5],
+      halfExtents: [1, 1, 1],
     });
     culler.addVolume({
       id: 'box2',
       type: 'aabb',
-      centerX: 0,
-      centerY: 0,
-      centerZ: -500,
-      halfX: 1,
-      halfY: 1,
-      halfZ: 1,
+      center: [0, 0, -500],
+      halfExtents: [1, 1, 1],
     });
     const visible = culler.cullAll();
     expect(visible).toContain('box1');

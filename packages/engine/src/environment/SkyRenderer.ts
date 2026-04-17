@@ -151,8 +151,8 @@ export class SkyRenderer {
 
   updateClouds(dt: number): void {
     for (const layer of this.clouds.values()) {
-      layer.offset[0] += layer.speed[0] * dt;
-      layer.offset[2] += layer.speed[2] * dt;
+      layer.offset.x += layer.speed.x * dt;
+      layer.offset.z += layer.speed.z * dt;
     }
   }
 

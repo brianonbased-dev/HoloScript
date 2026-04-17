@@ -62,9 +62,9 @@ export function attractor(
   minDist: number = 0.1
 ): (p: Particle, delta: number) => void {
   return (p, delta) => {
-    const dx = x - p[0];
-    const dy = y - p[1];
-    const dz = z - p[2];
+    const dx = x - p.x;
+    const dy = y - p.y;
+    const dz = z - p.z;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist < minDist) return;
     const force = strength / (dist * dist);
@@ -108,8 +108,8 @@ export function floorBounce(
   bounciness: number = 0.6
 ): (p: Particle, delta: number) => void {
   return (p, _delta) => {
-    if (p[1] <= floorY && p.vy < 0) {
-      p[1] = floorY;
+    if (p.y <= floorY && p.vy < 0) {
+      p.y = floorY;
       p.vy = -p.vy * bounciness;
     }
   };

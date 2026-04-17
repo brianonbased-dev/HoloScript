@@ -66,7 +66,7 @@ export class GrassRenderer {
 
   generate(bounds: { x: number; z: number; w: number; h: number }, seed = 123): void {
     this.blades = [];
-    const area = bounds[3] * bounds.h;
+    const area = bounds.w * bounds.h;
     const count = Math.floor(area * this.config.bladesPerUnit);
 
     let rng = seed;
@@ -76,8 +76,8 @@ export class GrassRenderer {
     };
 
     for (let i = 0; i < count; i++) {
-      const x = bounds[0] + rand() * bounds[3];
-      const z = bounds[2] + rand() * bounds.h;
+      const x = bounds.x + rand() * bounds.w;
+      const z = bounds.z + rand() * bounds.h;
 
       const heightMul = 1 - this.config.heightVariation + rand() * this.config.heightVariation * 2;
       const widthMul =

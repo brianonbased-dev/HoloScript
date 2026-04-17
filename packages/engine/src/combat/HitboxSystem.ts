@@ -122,12 +122,12 @@ export class HitboxSystem {
 
   private overlaps(hb: Hitbox, hr: Hurtbox): boolean {
     return (
-      hb[0] < hr[0] + hr.width &&
-      hb[0] + hb.width > hr[0] &&
-      hb[1] < hr[1] + hr.height &&
-      hb[1] + hb.height > hr[1] &&
-      hb[2] < hr[2] + hr.depth &&
-      hb[2] + hb.depth > hr[2]
+      hb.x < hr.x + hr.width &&
+      hb.x + hb.width > hr.x &&
+      hb.y < hr.y + hr.height &&
+      hb.y + hb.height > hr.y &&
+      hb.z < hr.z + hr.depth &&
+      hb.z + hb.depth > hr.z
     );
   }
 

@@ -32,7 +32,7 @@ describe('createUIButton', () => {
       position: [1, 2, 3],
     };
     const btn = createUIButton('custom', config);
-    expect(btn.properties.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(btn.properties.position).toEqual([1, 2, 3]);
 
     const buttonChild = btn.children![0];
     expect(buttonChild.properties.color).toBe('#FF0000');

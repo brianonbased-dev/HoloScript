@@ -22,7 +22,7 @@ describe('Cycle 161: Combat Extensions', () => {
 
     sys.update(1);
     const proj = sys.getProjectile(id)!;
-    expect(proj.x).toBeCloseTo(10); // speed * dt
+    expect(proj.position[0]).toBeCloseTo(10); // speed * dt
   });
 
   it('should expire projectiles after lifetime', () => {

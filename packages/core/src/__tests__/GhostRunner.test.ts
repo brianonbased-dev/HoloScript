@@ -28,7 +28,7 @@ describe('GhostRunner', () => {
     r.sample(0.1, { x: 5, y: 0, z: 0 }, 90, 10);
     const run = r.finishRecording('test');
     expect(run.samples).toHaveLength(1);
-    expect(run.samples[0].position).toEqual({ x: 5, y: 0, z: 0 });
+    expect(run.samples[0].position).toEqual([5, 0, 0]);
     expect(run.samples[0].rotation).toBe(90);
     expect(run.samples[0].speed).toBe(10);
   });

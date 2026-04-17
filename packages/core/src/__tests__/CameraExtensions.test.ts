@@ -63,10 +63,10 @@ describe('Cycle 165: Camera Extensions', () => {
   it('should interpolate along Catmull-Rom spline', () => {
     const path = new CameraPath();
     path.setPoints([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
-      { x: 20, y: 10, z: 0 },
-      { x: 30, y: 10, z: 0 },
+      { position: [0, 0, 0] },
+      { position: [10, 0, 0] },
+      { position: [20, 10, 0] },
+      { position: [30, 10, 0] },
     ]);
 
     const start = path.evaluate(0);
@@ -83,8 +83,8 @@ describe('Cycle 165: Camera Extensions', () => {
   it('should stop at end or loop', () => {
     const path = new CameraPath();
     path.setPoints([
-      { x: 0, y: 0, z: 0 },
-      { x: 100, y: 0, z: 0 },
+      { position: [0, 0, 0] },
+      { position: [100, 0, 0] },
     ]);
     path.setSpeed(10);
     path.play();
