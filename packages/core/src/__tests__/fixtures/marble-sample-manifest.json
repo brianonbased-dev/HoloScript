@@ -1,0 +1,33 @@
+{
+  "world_id": "dc2c65e4-68d3-4210-a01e-7a54cc9ded2a",
+  "display_name": "Fantastical Forest - Marble Sample",
+  "model": "marble-1.1",
+  "generated_at": "2026-04-16T22:07:10Z",
+  "assets": {
+    "caption": "The scene is a fantastical forest with glowing trees and floating islands.",
+    "thumbnail_url": "https://marble.worldlabs.ai/thumbnail/sample-forest.jpg",
+    "splats": {
+      "spz_urls": {
+        "100k": "https://marble.worldlabs.ai/splats/sample-forest-100k.spz",
+        "500k": "https://marble.worldlabs.ai/splats/sample-forest-500k.spz",
+        "full_res": "https://marble.worldlabs.ai/splats/sample-forest-full.spz"
+      }
+    },
+    "mesh": {
+      "collider_mesh_url": "https://marble.worldlabs.ai/meshes/sample-forest-collider.glb",
+      "format": "glb",
+      "bounds": {
+        "min": [-50.0, 0.0, -50.0],
+        "max": [50.0, 30.0, 50.0]
+      }
+    },
+    "imagery": {
+      "pano_url": "https://marble.worldlabs.ai/pano/sample-forest-pano.jpg"
+    }
+  },
+  "provenance": {
+    "document_id": "provenance_receipt_room-marble-test",
+    "loro_doc_version": [1, 2, 3],
+    "captured_at_iso": "2026-04-16T22:07:10Z"
+  }
+}
