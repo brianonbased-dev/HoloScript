@@ -1,0 +1,19 @@
+{
+  "name": "@holoscript/hololand-platform",
+  "version": "6.0.4",
+  "description": "Hololand VR Platform Services (Affective Memory, State, etc)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@holoscript/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3"
+  }
+}

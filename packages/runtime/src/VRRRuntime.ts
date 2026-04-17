@@ -287,6 +287,11 @@ export interface VRRRuntimeOptions {
       position: { x: number; y: number; z: number };
       count: number;
     }) => void;
+    onAffectEvent?: (args: {
+      sceneId: string;
+      valence: number;
+      arousal: number;
+    }) => void;
   };
 }
 
