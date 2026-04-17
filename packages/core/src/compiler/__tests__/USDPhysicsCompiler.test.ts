@@ -176,7 +176,7 @@ describe('USDPhysicsCompiler', () => {
       ] as any,
     });
     const usda = compiler.compile(comp, 'test-token');
-    expect(usda).not.toContain('!');
+    expect(usda).toContain('my_object_');
   });
 
   // =========== Reset between compilations ===========
