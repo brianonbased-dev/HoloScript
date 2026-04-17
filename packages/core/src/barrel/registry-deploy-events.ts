@@ -73,6 +73,9 @@ export {
   weiToEth,
 } from '../deploy/revenue-splitter';
 
+  // parse — convenience re-export for dynamic importers (e.g. protocol-tools)
+  export { parse } from '../parser/HoloScriptPlusParser';
+
 // ============================================================================
 // Pillar 2: Native Neural Streaming & Splat Transport
 // ============================================================================
