@@ -17,6 +17,7 @@
 
 import type http from 'http';
 import { attachSseDisconnectGuards, attachSseHeartbeat } from './team-room-sse';
+import { applyEdgeSafeSseHeaders } from './sse-edge-headers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,19 +132,29 @@ export function handleTeamRoomConnection(
   const ide = query.get('ide') || undefined;
   const since = query.get('since') ? new Date(query.get('since')!).getTime() : 0;
 
-  // SSE headers — CDNs and reverse proxies often buffer unless explicitly told not to.
+  applyEdgeSafeSseHeaders(res);
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
-    'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform',
-    'Pragma': 'no-cache',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
-    'X-Accel-Buffering': 'no',
   });
   try {
     res.flushHeaders?.();
   } catch {
     // ignore — some adapters omit flushHeaders
+  }
+
+  // Defeat CDN/Edge Buffering: NGINX and CDN edges often wait until a 4KB chunk fills
+  // before transmitting initial HTTP streams. We aggressively write a generous payload
+  // of comments (which EventSource ignores natively) to blast out the buffer limit.
+  try {
+    const pad = Buffer.alloc(2048, ' ').toString('utf-8');
+    res.write(`: ${pad}\n\n`);
+    if (typeof (res as any).flush === 'function') {
+      (res as any).flush();
+    }
+  } catch (err) {
+    // Socket killed immediately
   }
 
   // Create client entry

@@ -7,7 +7,16 @@
 
 import type http from 'http';
 
-export const SSE_HEARTBEAT_INTERVAL_MS = 25_000;
+/** Tunable for aggressive proxy idle timeouts (Railway / CDN). Clamped 5s–55s. */
+function parseHeartbeatMs(): number {
+  const raw = process.env.HOLOMESH_SSE_HEARTBEAT_MS;
+  if (!raw) return 25_000;
+  const n = parseInt(raw, 10);
+  if (Number.isNaN(n)) return 25_000;
+  return Math.min(55_000, Math.max(5_000, n));
+}
+
+export const SSE_HEARTBEAT_INTERVAL_MS = parseHeartbeatMs();
 
 export interface SseHeartbeatHandle {
   /** Idempotent — safe to call multiple times */
@@ -37,6 +46,9 @@ export function attachSseHeartbeat(
   intervalId = setInterval(() => {
     try {
       res.write(': hb\n\n');
+      if (typeof (res as any).flush === 'function') {
+        (res as any).flush();
+      }
     } catch {
       dispose();
       onWriteFailure?.();
