@@ -2686,6 +2686,11 @@ export class HoloCompositionParser {
   // ===========================================================================
 
   private parseObject(typeOverride?: string): HoloObjectDecl {
+    // Capture start position BEFORE consuming the opening keyword so the
+    // returned `loc.start` points at the declaration's first character —
+    // the anchor downstream consumers (Absorb ReferenceGraph, DPO splitter)
+    // use for the provenance semiring.
+    const startLoc = this.currentLocation();
     if (!typeOverride) {
       this.expect('OBJECT');
     } else {
@@ -2895,6 +2900,7 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
+    const endLoc = this.currentLocation();
     const obj: HoloObjectDecl = {
       type: 'Object',
       name,
@@ -2905,6 +2911,8 @@ export class HoloCompositionParser {
       directives, // Added directives
       children: children.length > 0 ? children : undefined,
       subOrbs: subOrbs.length > 0 ? subOrbs : undefined,
+      // Byte-precise range — provenance semiring anchor (Absorb A3).
+      loc: { start: startLoc, end: endLoc },
     };
 
     if (typeOverride) {
