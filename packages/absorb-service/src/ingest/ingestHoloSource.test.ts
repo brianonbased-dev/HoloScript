@@ -110,6 +110,36 @@ describe('ingestHoloSource (B1)', () => {
     expect(orb?.endLine).toBe(12);
   });
 
+  it('preserves loc end-to-end through the real parser (real-AST test)', () => {
+    // Complement to the synthetic-AST contract test above: this exercises
+    // the full pipeline — real parseHolo output threaded through
+    // ingestHoloSource — and confirms that the parser-loc-followups
+    // (parseComposition 1789, parseImplicitComposition 1362,
+    // parseTemplate 2745, parseObject 2907) propagate to SymbolDefinition.loc
+    // in production.
+    const { graph } = ingestHoloSource(SAMPLE_SOURCE, { filePath: 'real.hsplus' });
+    const defs = Array.from(graph.getDefinitions().values());
+
+    const realOrbs = defs.filter(
+      (d) => d.type === 'orb' && d.metadata?.fromHoloAST === true
+    );
+    expect(realOrbs.length).toBeGreaterThan(0);
+
+    // Every orb emitted by the real parser must carry a `loc` with a valid
+    // start position. If any orb comes through without loc, either the
+    // installed core dist is pre-2e7bfd88 OR a parser path regressed.
+    for (const orb of realOrbs) {
+      expect(orb.loc, `orb "${orb.name}" lacks real-parser loc`).toBeDefined();
+      expect(orb.loc?.start.line).toBeGreaterThanOrEqual(1);
+      expect(orb.loc?.start.column).toBeGreaterThanOrEqual(0);
+    }
+
+    // Composition node should also carry loc post-followup.
+    const composition = defs.find((d) => d.type === 'composition');
+    expect(composition, 'no composition definition emitted').toBeDefined();
+    expect(composition?.loc, 'composition missing loc — check parseComposition / parseImplicitComposition').toBeDefined();
+  });
+
   it('emits trait-config references for each @trait application', () => {
     const { graph } = ingestHoloSource(SAMPLE_SOURCE);
     const refs = graph.getReferences();
