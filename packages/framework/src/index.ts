@@ -184,6 +184,8 @@ export {
   type AIProvider,
   type TeamAgentProfile,
   ROOM_PRESETS,
+  TEAM_MODES,
+  type TeamModeId,
   BRITTNEY_AGENT,
   DAEMON_AGENT,
   ABSORB_AGENT,

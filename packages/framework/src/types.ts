@@ -203,7 +203,15 @@ export interface SuggestionListResult {
 
 // ── Team Mode ──
 
-export type TeamMode = 'audit' | 'research' | 'build' | 'review';
+export type TeamMode =
+  | 'audit'
+  | 'research'
+  | 'build'
+  | 'review'
+  | 'security'
+  | 'stabilize'
+  | 'docs'
+  | 'planning';
 
 export interface SetModeResult {
   mode: TeamMode;

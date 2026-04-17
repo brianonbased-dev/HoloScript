@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Network, X, Search, Plus, RotateCcw, Play, ChevronDown } from 'lucide-react';
+import { Network, X, Search, Plus, RotateCcw, Play, ChevronDown, UploadCloud } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
 import {
   executeStudioGraph,
@@ -122,6 +122,8 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
   const [execResult, setExecResult] = useState<StudioGraphExecutionResult | null>(null);
   const [execError, setExecError] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<{ message: string; status?: number } | null>(null);
   const [showResults, setShowResults] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +159,32 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
       setExecError(msg);
     } finally {
       setIsExecuting(false);
+    }
+  };
+
+  const handlePublishGist = async () => {
+    setIsPublishing(true);
+    setPublishError(null);
+    try {
+      const res = await fetch('/api/publication/gist-manifest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room: 'studio_preview_scene',
+          loroDocVersion: { '1': 100 }, // Stubbed for headless CRDT sync
+          xrMetrics: { hitTestCount: 42, occlusionProofAcquired: true }, // Emulated WebXR
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPublishError({ message: data.error || 'Failed to publish gist', status: res.status });
+        return;
+      }
+      setPublishError({ message: 'Success! Written to .holoscript/gist-publication.manifest.json', status: 200 });
+    } catch (err) {
+      setPublishError({ message: err instanceof Error ? err.message : String(err), status: 500 });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -196,6 +224,15 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
           >
             <Play className="h-3 w-3" />
             {isExecuting ? 'Running...' : 'Run Graph'}
+          </button>
+          <button
+            onClick={handlePublishGist}
+            disabled={isPublishing}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-1 text-[10px] font-semibold text-blue-400 transition-colors"
+            title="Publish Sovereign Origination Gist"
+          >
+            <UploadCloud className="h-3 w-3" />
+            {isPublishing ? 'Publishing...' : 'Publish'}
           </button>
           <button
             onClick={() => setShowPicker((v) => !v)}
@@ -280,6 +317,26 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-studio-muted">
             <Network className="h-8 w-8 opacity-20" />
             <p className="text-[10px] opacity-40">Click + Add to place nodes</p>
+          </div>
+        )}
+
+        {/* Global publish error modal/toast overlay */}
+        {publishError && (
+          <div className="absolute top-4 right-4 z-50 p-3 rounded border border-studio-border bg-studio-surface/95 shadow-xl max-w-sm">
+            <div className="flex justify-between items-start mb-1">
+              <span className={`text-[11px] font-bold ${publishError.status === 200 ? 'text-green-400' : 'text-red-400'}`}>
+                {publishError.status === 402 ? 'Economic Anchor Required' : 'Publication Status'}
+              </span>
+              <button onClick={() => setPublishError(null)} className="text-white/40 hover:text-white">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            <p className="text-[10px] text-white/70 mb-2">{publishError.message}</p>
+            {publishError.status === 402 && (
+              <a href="/marketplace/x402" className="inline-block text-[10px] text-blue-400 hover:text-blue-300 underline">
+                Procure an x402 Receipt to satisfy GIST_MANIFEST_REQUIRE_X402 →
+              </a>
+            )}
           </div>
         )}
       </div>

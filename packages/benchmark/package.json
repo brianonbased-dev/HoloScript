@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
+    "@holoscript/mesh": "workspace:*",
     "@holoscript/formatter": "workspace:*",
     "@holoscript/lsp": "workspace:*",
     "chalk": "^5.3.0",

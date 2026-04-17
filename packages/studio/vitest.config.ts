@@ -85,6 +85,11 @@ export default defineConfig({
       '@holoscript/framework/behavior': path.resolve(__dirname, '../framework/src/behavior.ts'),
       '@holoscript/framework/bt': path.resolve(__dirname, '../framework/src/behavior.ts'),
       '@holoscript/framework': path.resolve(__dirname, '../framework/src/index.ts'),
+      // Subpath export resolves to dist in production; tests use source (CI may skip absorb build)
+      '@holoscript/absorb-service/schema': path.resolve(
+        __dirname,
+        '../absorb-service/src/schema.ts'
+      ),
     },
   },
 });

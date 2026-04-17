@@ -608,6 +608,20 @@ describe('Team remote facade methods', () => {
       expect(body.mode).toBe('audit');
       fetchSpy.mockRestore();
     });
+
+    it('accepts extended strategic modes (security, docs, planning)', async () => {
+      const team = localTeam();
+      await team.setMode('security');
+      expect(team.mode).toBe('security');
+      expect(team.objective).toContain('Harden');
+      await team.setMode('planning');
+      expect(team.mode).toBe('planning');
+    });
+
+    it('rejects unknown mode', async () => {
+      const team = localTeam();
+      await expect(team.setMode('not-a-mode' as any)).rejects.toThrow(/Unknown mode/);
+    });
   });
 
   // ── derive() ──

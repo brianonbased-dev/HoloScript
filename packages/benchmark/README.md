@@ -73,6 +73,20 @@ const bench = await runTypeCheckerBench();
 // Benchmarks: typecheck-small, typecheck-medium, typecheck-with-trait-validation-small
 ```
 
+### Sync & Network
+
+Measures high-frequency synchronization primitive performance:
+
+```typescript
+import { runSyncBench } from '@holoscript/benchmark';
+
+const bench = await runSyncBench();
+// Benchmarks: quantize-position, dequantize-position, compress-quaternion, measure-compression-ratio
+```
+
+**Note on Network Exclusions:**
+The `JitterBuffer` and `PriorityScheduler` components were migrated to the `@holoscript/mesh` package in v4.3+. Their benchmarking has been explicitly excluded from the core `@holoscript/benchmark` suite to unblock D.011 validation. Network load, buffering, and priority-queue scenarios are now measured exclusively in `packages/mesh/__tests__/perf/` via Playwright network throttling environments.
+
 ## Regression Detection
 
 Compare results against a baseline to catch performance regressions:

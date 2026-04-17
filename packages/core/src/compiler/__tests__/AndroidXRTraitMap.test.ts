@@ -417,6 +417,31 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('Think'))).toBe(true);
   });
 
+  it('embedding_search emits SQLite FTS stub when feature flag enabled', () => {
+    const mapping = getTraitMapping('embedding_search');
+    expect(mapping!.level).toBe('partial');
+
+    const code = generateTraitCode('embedding_search', 'searchNode', {
+      dimensions: 384,
+      enable_sqlite_fts_stub: true,
+      table: 'city_vectors',
+    });
+
+    expect(code.some((l) => l.includes('SQLiteOpenHelper'))).toBe(true);
+    expect(code.some((l) => l.includes('CREATE VIRTUAL TABLE'))).toBe(true);
+    expect(code.some((l) => l.includes('city_vectors'))).toBe(true);
+  });
+
+  it('embedding_search keeps TODO path when feature flag disabled', () => {
+    const code = generateTraitCode('embedding_search', 'searchNode', {
+      dimensions: 384,
+      enable_sqlite_fts_stub: false,
+    });
+
+    expect(code.some((l) => l.includes('Feature flag disabled'))).toBe(true);
+    expect(code.some((l) => l.includes('TODO: wire ANN retrieval'))).toBe(true);
+  });
+
   // =========== Upgraded traits ===========
 
   it('portal upgraded from comment to partial', () => {

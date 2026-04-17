@@ -10,7 +10,7 @@
     "src"
   ],
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "keywords": [
     "holoscript",

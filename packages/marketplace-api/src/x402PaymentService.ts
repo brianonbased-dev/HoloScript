@@ -95,6 +95,10 @@ import {
   InvisibleWalletStub,
   validateX402MicropaymentBoundary,
 } from '@holoscript/framework/economy';
+import {
+  X402HttpVerifier,
+  createX402HttpVerifierFromEnv,
+} from './economy/x402-http-verifier.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -158,6 +162,8 @@ export interface x402PaymentServiceOptions {
    * on-chain recipient checks use `getAddress()`.
    */
   wallet?: InvisibleWalletStub;
+  /** Optional facilitator-backed HTTP verifier. Defaults to env-configured verifier. */
+  httpVerifier?: X402HttpVerifier;
 }
 
 export interface x402PaymentRequest {
@@ -270,6 +276,7 @@ export class x402PaymentService {
   /** Replay set for autonomous M2M middleware (`x-payment-receipt` flow). */
   private m2mConsumedTxHashes = new Set<string>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly httpVerifier: X402HttpVerifier;
 
   constructor(options: x402PaymentServiceOptions) {
     this.options = options;
@@ -290,6 +297,7 @@ export class x402PaymentService {
     };
 
     this.rateLimiter = new SlidingWindowRateLimiter();
+    this.httpVerifier = options.httpVerifier ?? createX402HttpVerifierFromEnv();
 
     // Periodic cleanup every 5 minutes to prevent memory leaks
     this.cleanupInterval = setInterval(() => {
@@ -446,6 +454,20 @@ export class x402PaymentService {
         payment.recipient_address
       ).toLowerCase();
       if (onChainResult.recipient.toLowerCase() !== expectedRecipient) {
+        return null;
+      }
+
+      // Optional facilitator verification (enabled via env/config).
+      // Default mode is disabled, so this is non-breaking for local/test usage.
+      const facilitatorCheck = await this.httpVerifier.verifyPayment({
+        paymentId: payment.payment_id,
+        transactionHash: payment.transaction_hash,
+        network: payment.network,
+        asset: payment.asset,
+        amount: payment.amount,
+        contentId: payment.content_id,
+      });
+      if (!facilitatorCheck.verified) {
         return null;
       }
 

@@ -203,6 +203,11 @@ export function addTasksToBoard(
       role: t.role,
       createdAt: new Date().toISOString(),
     };
+    if (t.dependsOn?.length) task.dependsOn = [...t.dependsOn];
+    if (t.unblocks?.length) task.unblocks = [...t.unblocks];
+    if (t.tags?.length) task.tags = [...t.tags];
+    if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
+    if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);
     existingNorm.add(normalizeTitle(title));
     added.push(task);

@@ -139,7 +139,61 @@ export const ROOM_PRESETS: Record<string, RoomPreset> = {
       'Verify no new console.log in production code',
     ],
   },
+  security: {
+    objective:
+      'Harden the surface — auth boundaries, sandbox and secrets hygiene, dependency and supply-chain review, minimal blast radius on changes',
+    taskSources: ['packages/security-sandbox/', 'audit:security', 'CLAUDE.md security'],
+    rules: [
+      'No secrets in source; verify pre-commit and env handling',
+      'Prefer defense-in-depth over single-point checks',
+      'Document threat model when touching auth or execution boundaries',
+    ],
+  },
+  stabilize: {
+    objective:
+      'Make main trustworthy — CI green, flaky tests triaged or quarantined, preflight green, no scope creep on fix PRs',
+    taskSources: ['pnpm preflight', '.github/workflows', 'vitest'],
+    rules: [
+      'Run package-scoped tests for touched areas; full preflight before merge when touching core',
+      'One failure mode per task — split large stabilizations',
+      'Do not paper over flakes; root-cause or explicit skip with issue link',
+    ],
+  },
+  docs: {
+    objective:
+      'Documentation matches ground truth — docs/NUMBERS.md policy, tier load order, archive banners, public API and MCP surfaces documented',
+    taskSources: ['docs/NUMBERS.md', 'docs/README.md', 'AGENTS.md', 'packages/mcp-server/src/holomesh/holomesh-skill.md'],
+    rules: [
+      'Never hardcode ecosystem counts; reference NUMBERS.md or live /health',
+      'Update tier-A/B docs when public API, MCP tools, or CLI change (see NORTH_STAR DT-8)',
+      'Archive docs stay date-stamped; point to current metrics',
+    ],
+  },
+  planning: {
+    objective:
+      'Align execution with strategy — roadmap and RFCs, explicit decision gates, dependency order, plans include What Remains and Excludes',
+    taskSources: ['ROADMAP.md', 'docs/strategy/', 'NORTH_STAR.md route map'],
+    rules: [
+      'Every plan states scope boundaries (excludes) and remaining work',
+      'Prefer smallest shippable slice with a verification step',
+      'Cross-link research ↔ implementation tasks',
+    ],
+  },
 };
+
+/** Supported HoloMesh team modes — use for MCP enums, Studio validation, and HTTP allowlists. */
+export const TEAM_MODES = [
+  'audit',
+  'research',
+  'build',
+  'review',
+  'security',
+  'stabilize',
+  'docs',
+  'planning',
+] as const;
+
+export type TeamModeId = (typeof TEAM_MODES)[number];
 
 // ── Team Agent Profiles (absorbed from team-agents.ts) ──
 

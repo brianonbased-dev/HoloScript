@@ -1,8 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-
-type TeamMode = 'audit' | 'research' | 'build' | 'review';
+import { TEAM_MODES, type TeamMode } from '@holoscript/framework';
 
 interface DerivedTask {
   title: string;
@@ -131,6 +130,157 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
       mode: 'review',
     },
   ],
+  security: [
+    {
+      title: 'Review /api/holomesh routes for auth guards',
+      description:
+        'Scan packages/mcp-server and Studio proxy routes; list handlers missing Authorization or team membership checks.',
+      role: 'reviewer',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'security',
+    },
+    {
+      title: 'Secrets and env hygiene pass',
+      description:
+        'Grep for API keys, tokens, private keys in source; confirm .env.example and pre-commit cover tracked files.',
+      role: 'reviewer',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'security',
+    },
+    {
+      title: 'Dependency audit triage',
+      description: 'Run pnpm audit (or npm audit) at repo root; file tasks for high/critical with minimal upgrade path.',
+      role: 'coder',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'security',
+    },
+    {
+      title: 'Sandbox and execution boundary checklist',
+      description:
+        'Verify vm/createContext or documented sandbox for user code paths; note gaps in team knowledge.',
+      role: 'tester',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'security',
+    },
+  ],
+  stabilize: [
+    {
+      title: 'Capture current failing tests or CI signal',
+      description:
+        'Run pnpm vitest for the package you are stabilizing; paste failing file names and error snippets into the task.',
+      role: 'tester',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'stabilize',
+    },
+    {
+      title: 'Flaky test identification',
+      description:
+        'From CI or local reruns, list tests that pass/fail intermittently; open one task per flake root cause.',
+      role: 'tester',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'stabilize',
+    },
+    {
+      title: 'Fix one failing suite with minimal diff',
+      description:
+        'Pick the smallest failing area; fix root cause; sectioned commit; no unrelated refactors.',
+      role: 'coder',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'stabilize',
+    },
+    {
+      title: 'Preflight gate',
+      description:
+        'Run node scripts/preflight.mjs or package preflight where applicable; resolve or file blockers.',
+      role: 'tester',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'stabilize',
+    },
+  ],
+  docs: [
+    {
+      title: 'NUMBERS.md compliance sweep',
+      description:
+        'Scan docs/ and README for hardcoded trait or tool counts; replace with pointers to docs/NUMBERS.md or curl /health.',
+      role: 'researcher',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'docs',
+    },
+    {
+      title: 'Public API and MCP doc parity',
+      description:
+        'If MCP tools or CLI changed recently, update holomesh-skill.md / AGENTS.md per NORTH_STAR DT-8.',
+      role: 'researcher',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'docs',
+    },
+    {
+      title: 'Archive banner verification',
+      description:
+        'For any docs/archive file cited in search results, confirm top banner points to NUMBERS.md for metrics.',
+      role: 'reviewer',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'docs',
+    },
+    {
+      title: 'Getting-started smoke read',
+      description:
+        'Walk through docs/academy or quickstart; note broken links or version pins; file follow-up tasks.',
+      role: 'reviewer',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'docs',
+    },
+  ],
+  planning: [
+    {
+      title: 'Roadmap vs board alignment',
+      description:
+        'Compare docs/strategy or ROADMAP.md milestones to open board tasks; list gaps as new tasks with priority.',
+      role: 'researcher',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'planning',
+    },
+    {
+      title: 'Milestone plan: Remains and Excludes',
+      description:
+        'For the active milestone, write What Remains and Excludes (F.007); post summary to team knowledge.',
+      role: 'researcher',
+      priority: 1,
+      source: 'auto-derive',
+      mode: 'planning',
+    },
+    {
+      title: 'RFC / decision gate checklist',
+      description:
+        'List open RFCs or strategy docs; mark decision gates and owners; convert blockers into board tasks.',
+      role: 'reviewer',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'planning',
+    },
+    {
+      title: 'Cross-link research to implementation',
+      description:
+        'For recent research/*.md outputs, ensure at least one board task or suggestion references execution path.',
+      role: 'researcher',
+      priority: 2,
+      source: 'auto-derive',
+      mode: 'planning',
+    },
+  ],
 };
 
 const HOLOMESH_API_URL =
@@ -143,9 +293,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = (await req.json()) as { mode?: string; agentId?: string; agentName?: string };
   const mode = (body.mode ?? '').trim() as TeamMode;
 
-  if (!['audit', 'research', 'build', 'review'].includes(mode)) {
+  if (!(TEAM_MODES as readonly string[]).includes(mode)) {
     return NextResponse.json(
-      { error: 'mode must be one of: audit, research, build, review' },
+      { error: `mode must be one of: ${TEAM_MODES.join(', ')}` },
       { status: 400 }
     );
   }
@@ -174,12 +324,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         method: 'POST',
         headers: boardHeaders,
         body: JSON.stringify({
-          title: task.title,
-          description: task.description,
-          role: task.role,
-          priority: task.priority,
-          source: task.source,
-          metadata: { derivedMode: mode },
+          tasks: [
+            {
+              title: task.title,
+              description: task.description,
+              role: task.role,
+              priority: task.priority,
+              source: task.source,
+              metadata: { derivedMode: mode },
+            },
+          ],
         }),
       });
       posted.push({ title: task.title, ok: res.ok });

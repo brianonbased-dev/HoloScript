@@ -33,3 +33,37 @@ export {
   type TreeShakeOptions,
   type TreeShakeResult,
 } from '../TreeShaker';
+
+// Visual logic graph (editor + logic) — shared with Studio execution bridge
+export {
+  NodeGraph,
+  type LogicNode,
+  type LogicConnection,
+  type EvaluationContext,
+} from '../logic/NodeGraph';
+export {
+  NodeGraphPanel,
+  type NodeGraphPanelConfig,
+  type NodeGraphExecutionResult,
+  type UIEntity,
+} from '../editor/NodeGraphPanel';
+export { emitPreviewHoloScriptFromNodeGraphExecution } from '../editor/nodeGraphPlayPreview';
+
+// Gist / GitHub publication — provenance + optional x402 (Doors 1 + 3)
+export {
+  GIST_PUBLICATION_MANIFEST_VERSION,
+  provenanceDocumentIdForRoom,
+  computeProvenanceSemiringDigestV0,
+  buildGistPublicationManifest,
+  serializeGistPublicationManifest,
+  computeXrMetricsCommitmentHash,
+  resolveXrMetricsConflict,
+  xrMetricsMapKey,
+  extractXrMetricsForBinding,
+  type GistPublicationManifestV0,
+  type ProvenanceReceiptBinding,
+  type ProvenanceSemiringDigestV0,
+  type X402ReceiptBinding,
+  type BuildGistPublicationManifestParams,
+  type Film3dXrMetricsForBinding,
+} from '../export/GistPublicationManifest';
