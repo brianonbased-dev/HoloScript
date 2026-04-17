@@ -1,5 +1,5 @@
 /**
- * Phase 12: Universal Data Import tests — STL, OBJ, CSV, VTK parsers.
+ * Phase 12: Universal Data Import tests — STL, OBJ, CSV, VTK, GMSH parsers.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -7,6 +7,7 @@ import { parseSTL, buildSTL } from '../import/STLParser';
 import { parseOBJ } from '../import/OBJParser';
 import { importScalarFieldCSV, importTableCSV } from '../import/CSVImporter';
 import { importStructuredPoints, importUnstructuredGrid } from '../import/VTKImporter';
+import { parseGmsh, MeshImportError } from '../import/GmshParser';
 import { exportScalarFieldCSV } from '../export/index';
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -217,5 +218,51 @@ LOOKUP_TABLE default
     expect(result.tetrahedra[3]).toBe(3);
     expect(result.cellData.has('stress')).toBe(true);
     expect(result.cellData.get('stress')![0]).toBe(1000);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// GMSH 2.x ASCII (.msh)
+// ═══════════════════════════════════════════════════════════════════════
+
+const MINIMAL_TET_MSH = `$MeshFormat
+2.2 0 8
+$EndMeshFormat
+$Nodes
+4
+1 0 0 0
+2 1 0 0
+3 0 1 0
+4 0 0 1
+$EndNodes
+$Elements
+1
+1 4 2 1 1 1 2 3 4
+$EndElements
+`;
+
+describe('GMSH Parser', () => {
+  it('parses v2.2 ASCII with one linear tet', () => {
+    const r = parseGmsh(MINIMAL_TET_MSH);
+    expect(r.nodeCount).toBe(4);
+    expect(r.elementCount).toBe(1);
+    expect(r.vertices.length).toBe(12);
+    expect(r.tetrahedra.length).toBe(4);
+    expect(r.tetrahedra[0]).toBe(0);
+    expect(r.tetrahedra[1]).toBe(1);
+    expect(r.tetrahedra[2]).toBe(2);
+    expect(r.tetrahedra[3]).toBe(3);
+  });
+
+  it('rejects garbage', () => {
+    expect(() => parseGmsh('hello')).toThrow(MeshImportError);
+  });
+
+  it('rejects GMSH 4 format version', () => {
+    const v4 = `$MeshFormat
+4.1 0 8
+$EndMeshFormat
+`;
+    expect(() => parseGmsh(v4)).toThrow(MeshImportError);
   });
 });

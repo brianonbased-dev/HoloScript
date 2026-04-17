@@ -63,6 +63,8 @@ export {
   parseOBJ,
   importScalarFieldCSV, importTableCSV,
   importStructuredPoints, importUnstructuredGrid,
+  parseGmsh,
+  MeshImportError,
   type VTKStructuredResult, type VTKUnstructuredResult,
 } from './import/index';
 
