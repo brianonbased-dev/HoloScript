@@ -1,0 +1,52 @@
+// Multi-Target Demo — the flagship "one source, five runtimes" demo
+// This single .holo file compiles to Three.js, R3F, Unity C#, Unreal Blueprint, and USD.
+// See build.mjs for the compile harness + README.md for the storyboard.
+
+composition "Multi-Target Demo" {
+  // A rotating cube that proves the scene graph + trait system works across runtimes
+  object "SpinningCube" {
+    @rotate(axis: "y", speed: 1.0)
+    @physics(mass: 1.0, restitution: 0.6)
+    @material(metallic: 0.4, roughness: 0.3)
+    geometry: "cube"
+    size: [1.0, 1.0, 1.0]
+    position: [0.0, 1.5, 0.0]
+    color: "#7b2ffa"
+  }
+
+  // A glowing orb to show light + emissive material translation
+  object "GlowOrb" {
+    @emissive(intensity: 2.0, color: "#00d4ff")
+    @float(amplitude: 0.3, frequency: 1.2)
+    geometry: "sphere"
+    radius: 0.4
+    position: [-2.0, 1.8, -1.0]
+  }
+
+  // Ground plane to prove floor + shadow receiving
+  object "Ground" {
+    @receive_shadows
+    @physics(type: "static")
+    geometry: "plane"
+    size: [10.0, 10.0]
+    position: [0.0, 0.0, 0.0]
+    rotation: [-90.0, 0.0, 0.0]
+    color: "#1a1a2e"
+  }
+
+  // Point light to animate the scene
+  light "KeyLight" {
+    @cast_shadows
+    type: "point"
+    position: [3.0, 4.0, 2.0]
+    intensity: 1.5
+    color: "#ffffff"
+  }
+
+  // Camera — identical across all targets
+  camera "Main" {
+    position: [4.0, 3.0, 5.0]
+    look_at: [0.0, 1.0, 0.0]
+    fov: 60.0
+  }
+}
