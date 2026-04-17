@@ -202,6 +202,9 @@ export class LoroWebRTCProvider {
     }
   }
 
+  private incomingUpdateBuffer: Uint8Array[] = [];
+  private isProcessingBuffer: boolean = false;
+
   public handleIncomingSync(updateBytes: Uint8Array, peerId?: string) {
     if (!isWithinVolumetricWebRtcSyncBudget(updateBytes.byteLength)) {
       console.warn(
@@ -209,27 +212,51 @@ export class LoroWebRTCProvider {
       );
       return;
     }
-    try {
-      this.doc.import(updateBytes);
 
-      // Automated Legal Provenance:
-      // When a P2P swarm successfully syncs spatial data, mint an IP provenance receipt
-      // natively on the Legal Document CRDT graph to assert discovery/origination.
-      const timestamp = new Date().toISOString();
-      const hashMap = this.doc.version().toJSON();
-      const documentId = `provenance_receipt_${this.room}`;
-      
-      this.appendLegalAuditEvent(documentId, {
-        id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        actor: peerId || 'system_network',
-        action: 'spatial_consensus_achieved',
-        timestamp,
-        hash: JSON.stringify(hashMap)
+    // Queue instead of blocking main thread immediately
+    this.incomingUpdateBuffer.push(updateBytes);
+    this.scheduleBufferProcessing(peerId);
+  }
+
+  private scheduleBufferProcessing(peerId?: string) {
+    if (this.isProcessingBuffer) return;
+    this.isProcessingBuffer = true;
+
+    // Use requestAnimationFrame to yield to the renderer, preserving 11.1ms frame budget
+    const scheduler = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : (cb: Function) => setTimeout(cb, 16);
+    
+    scheduler(() => {
+      // Process a limited batch per frame to prevent stutter
+      const batchSize = Math.min(this.incomingUpdateBuffer.length, 5); 
+      const batch = this.incomingUpdateBuffer.splice(0, batchSize);
+
+      batch.forEach(updateBytes => {
+        try {
+          this.doc.import(updateBytes);
+
+          // Automated Legal Provenance:
+          const timestamp = new Date().toISOString();
+          const hashMap = this.doc.version().toJSON();
+          const documentId = `provenance_receipt_${this.room}`;
+          
+          this.appendLegalAuditEvent(documentId, {
+            id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            actor: peerId || 'system_network',
+            action: 'spatial_consensus_achieved',
+            timestamp,
+            hash: JSON.stringify(hashMap)
+          });
+          
+        } catch (err) {
+          console.error(`[LoroWebRTC] Update rejection/conflict parsing: `, err);
+        }
       });
-      
-    } catch (err) {
-      console.error(`[LoroWebRTC] Update rejection/conflict parsing: `, err);
-    }
+
+      this.isProcessingBuffer = false;
+      if (this.incomingUpdateBuffer.length > 0) {
+        this.scheduleBufferProcessing(peerId);
+      }
+    });
   }
 
   private removePeer(peerId: string) {

@@ -26,3 +26,7 @@ export * from './material-io-pipeline';
 export * from './trait-stdlib-interop';
 export * from './compiler-plugins-crypto';
 export * from './registry-deploy-events';
+
+// Worker layer exports
+export * from '../worker/CompilerWorkerProxy';
+export * from '../worker/LSPWorkerProtocol';
