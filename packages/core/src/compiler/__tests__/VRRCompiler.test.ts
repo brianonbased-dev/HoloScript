@@ -71,7 +71,7 @@ describe('VRRCompiler', () => {
     expect(result.code).toContain('const scene = new THREE.Scene();');
     expect(result.code).toContain('const vrr = new VRRRuntime({');
     expect(result.code).toContain('"provider": "weather.gov"');
-    expect(result.code).toContain('phoenix_downtown');
+    expect(result.code).toContain('globalWorldContext');
   });
 
   test('should include API integration generation for event syncs', () => {

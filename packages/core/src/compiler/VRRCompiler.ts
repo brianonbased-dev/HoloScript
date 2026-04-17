@@ -328,7 +328,7 @@ export class VRRCompiler extends CompilerBase {
    * Generate a complete Three.js scene from VRR composition data.
    * Places objects using geo_anchor coordinates, sets up materials/lighting/camera.
    */
-  private compileToThreeJS(compositionData: VRRCompositionData): void {
+  private compileToThreeJS(compositionData: VRRCompositionData, twinGroupName: string): void {
     this.generatedCode.push(`\n// === Three.js Scene Generation ===`);
 
     // Ambient + directional lighting
@@ -368,7 +368,7 @@ export class VRRCompiler extends CompilerBase {
         `marker_${safeName}.position.copy(vrr.geoToSceneCoords(${lat}, ${lng}));`
       );
       this.generatedCode.push(`marker_${safeName}.userData.geo = { lat: ${lat}, lng: ${lng} };`);
-      this.generatedCode.push(`phoenix_downtown.add(marker_${safeName});`);
+      this.generatedCode.push(`${twinGroupName}.add(marker_${safeName});`);
     }
 
     // Skybox
@@ -521,7 +521,7 @@ export class VRRCompiler extends CompilerBase {
    * Generate code for real-time inventory display:
    * product counts, availability badges, stock-level indicators.
    */
-  private generateInventorySync(nodes: VRRAstNode[]): void {
+  private generateInventorySync(nodes: VRRAstNode[], twinGroupName: string): void {
     if (nodes.length === 0) return;
 
     this.generatedCode.push(`\n// === @inventory_sync — Real-Time Inventory Display ===`);
@@ -544,7 +544,7 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`});`);
 
       this.generatedCode.push(`const inventoryUI_${safeName} = new THREE.Group();`);
-      this.generatedCode.push(`phoenix_downtown.add(inventoryUI_${safeName});`);
+      this.generatedCode.push(`${twinGroupName}.add(inventoryUI_${safeName});`);
 
       this.generatedCode.push(`inventorySync_${safeName}.onUpdate((inventory) => {`);
       this.generatedCode.push(`  // Clear previous inventory display`);
@@ -818,25 +818,34 @@ export class VRRCompiler extends CompilerBase {
       );
     }
 
+    // Top-level worlds simulation state (from v4+ AST)
+    // @ts-expect-error During migration
+    const comp = composition as Record<string, unknown>;
+    const worlds = (Array.isArray(comp.worlds) ? comp.worlds : []) as Array<Record<string, unknown>>;
+    let globalSimulationState = {};
+    if (worlds.length > 0 && worlds[0]) {
+      globalSimulationState = worlds[0].state || {};
+    }
+
     // Generate imports and scene setup
     this.generateImports();
     this.generateSceneSetup();
-    this.generateAPIHooks(twinNodes as unknown[]);
+    
+    // Pass global state to API hooks and get the twin group name
+    const twinGroupName = this.generateAPIHooks(twinNodes as unknown[], globalSimulationState);
 
     // 2. Generate Three.js scene with geo-anchored objects, lighting, camera
-    this.compileToThreeJS(compositionData);
+    this.compileToThreeJS(compositionData, twinGroupName);
 
     // 3-8. Generate sync/logic for each VRR trait
     this.generateWeatherSync(compositionData.weatherNodes);
     this.generateEventSync(compositionData.eventNodes);
-    this.generateInventorySync(compositionData.inventoryNodes);
+    this.generateInventorySync(compositionData.inventoryNodes, twinGroupName);
     this.generateQuestLogic(compositionData.questNodes);
     this.generateLayerShift(compositionData.layerShiftNodes);
     this.generateX402Paywall(compositionData.paywallNodes);
 
     // v4.2: Domain Blocks
-    // @ts-expect-error During migration
-    const comp = composition as Record<string, unknown>;
     const domainBlocks = (Array.isArray(comp.domainBlocks) ? comp.domainBlocks : []) as Array<
       Record<string, unknown>
     >;
@@ -877,7 +886,7 @@ export class VRRCompiler extends CompilerBase {
 
     // Bind generic nodes
     this.generatedCode.push(`\n// --- End of VRR Bindings --- //\n`);
-    this.generatedCode.push(`scene.add(phoenix_downtown);`);
+    this.generatedCode.push(`scene.add(${twinGroupName});`);
 
     return this.buildResult();
   }
@@ -918,18 +927,22 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`document.body.appendChild(renderer.domElement);`);
   }
 
-  private generateAPIHooks(twinNodes: unknown[]) {
+  private generateAPIHooks(twinNodes: unknown[], globalSimulationState: Record<string, unknown> = {}): string {
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
 
     // Default config values
     let geoCenter = { lat: 0, lng: 0 };
     let twinId = `auto_gen_twin`;
+    let twinName = 'globalWorldContext';
     let weatherProvider = '';
     let eventProvider = '';
     let inventoryProvider = '';
 
     for (const rawNode of twinNodes) {
       const node = rawNode as VRRAstNode;
+      if (node.name) {
+        twinName = this.escapeStringValue(String(node.name), 'TypeScript');
+      }
       if (node.traits) {
         for (const trait of node.traits) {
           if (trait.name === 'geo_anchor')
@@ -955,12 +968,13 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`  geo_center: { lat: ${geoCenter.lat}, lng: ${geoCenter.lng} },`);
     this.generatedCode.push(`  apis: ${JSON.stringify(apiConfig, null, 2)},`);
     this.generatedCode.push(`  multiplayer: { enabled: true, max_players: 1000, tick_rate: 20 },`);
+    this.generatedCode.push(`  simulation_state: ${JSON.stringify(globalSimulationState)},`);
     this.generatedCode.push(
       `  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`
     );
     this.generatedCode.push(`});`);
 
-    this.generatedCode.push(`\nconst phoenix_downtown = new THREE.Group();`);
+    this.generatedCode.push(`\nconst ${twinName} = new THREE.Group();`);
 
     // Weather hooks
     if (weatherProvider) {
@@ -1023,6 +1037,8 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`vrr.syncPlayers((players) => {`);
     this.generatedCode.push(`  // Render avatars in scene mapped to players.position`);
     this.generatedCode.push(`});`);
+    
+    return twinName;
   }
 
   private buildResult(): VRRCompilationResult {
