@@ -1345,8 +1345,8 @@ export class GLTFPipeline extends CompilerBase {
       SHARED_COMPILE_BUFFER = new Uint8Array(INITIAL_COMPILE_BUFFER_SIZE);
     }
 
-    // Build glTF document
-    const gltf = this.buildDocument(composition.name, buffer.byteLength);
+    // Build glTF document with semantic metadata
+    const gltf = this.buildDocument(composition, buffer.byteLength);
 
     if (this.options.format === 'glb') {
       const binary = this.createGLB(gltf, buffer);
@@ -2420,7 +2420,8 @@ export class GLTFPipeline extends CompilerBase {
   /**
    * Build the glTF JSON document
    */
-  private buildDocument(name: string, bufferLength: number): object {
+  private buildDocument(composition: HoloComposition, bufferLength: number): object {
+    const name = composition.name;
     const gltf: Record<string, unknown> = {
       asset: {
         version: '2.0',
@@ -2458,6 +2459,29 @@ export class GLTFPipeline extends CompilerBase {
     if (this._skins && this._skins.length > 0) {
       gltf.skins = this._skins;
     }
+
+    // HoloScript Semantic AST in extras (MSF Interoperability)
+    // Per Metaverse Standards Forum 3D Asset Interoperability WG guidance,
+    // behavioral metadata is placed in the glTF `extras` field to enable
+    // round-trip semantic preservation across tools and engines.
+    const objectNames = (composition.objects || []).map(o => o.name);
+    const allTraits = new Set<string>();
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        allTraits.add(typeof trait === 'string' ? trait : trait.name);
+      }
+    }
+    const groupNames = (composition.spatialGroups || []).map(g => g.name);
+
+    (gltf.asset as Record<string, unknown>).extras = {
+      holoscript: {
+        version: '6.0',
+        compositionName: name,
+        objects: objectNames,
+        traits: [...allTraits],
+        spatialGroups: groupNames,
+      },
+    };
 
     // Auto-collect all extensions (KHR material extensions + MSFT_lod + etc.)
     declareExtensions(gltf as Record<string, unknown>);
