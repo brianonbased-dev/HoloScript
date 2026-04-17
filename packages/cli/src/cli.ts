@@ -900,6 +900,7 @@ async function main(): Promise<void> {
         'webgpu',
         'flat-semantic',
         'web-2d',
+        'scm-dag',
       ];
 
       if (!validTargets.includes(target)) {
@@ -1466,6 +1467,45 @@ async function main(): Promise<void> {
             console.log(`\x1b[32m✓ VisionOS Swift written to ${swiftPath}\x1b[0m`);
           } else {
             console.log('\n--- VisionOS Swift Output ---\n');
+            console.log(output);
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for SCM-DAG target (Structural Causal Models)
+        if (target === 'scm-dag') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: SCM-DAG compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser, SCMCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for SCM-DAG:\x1b[0m`);
+            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to SCM-DAG JSON...\x1b[0m`);
+          const compiler = new SCMCompiler({
+            modelName: parseResult.ast.name || 'HoloScript_SCM_DAG',
+          });
+          
+          const output = compiler.compile(parseResult.ast, 'SYSTEM_OVERRIDE');
+
+          console.log(`\x1b[32m✓ SCM-DAG compilation successful!\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const jsonPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
+            fs.writeFileSync(jsonPath, output);
+            console.log(`\x1b[32m✓ SCM-DAG written to ${jsonPath}\x1b[0m`);
+          } else {
+            console.log('\n--- SCM-DAG JSON Output ---\n');
             console.log(output);
           }
 
