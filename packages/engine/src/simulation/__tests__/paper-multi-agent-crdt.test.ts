@@ -723,7 +723,7 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
 
   /**
    * PAPER-GAP-05 — same semiring as the 1 000-op block, but 100 independent RNG
-   * seeds × 40 merges each (4 000 pairs) so commutativity is not tied to a
+   * seeds × 100 merges each (10 000 pairs) so commutativity is not tied to a
    * single deterministic index stream.
    */
   it('verifies commutativity across 100 RNG seeds (PAPER-GAP-05)', () => {
@@ -734,7 +734,7 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     ]);
 
     const SEEDS = 100;
-    const OPS_PER_SEED = 40;
+    const OPS_PER_SEED = 100;
     let commutativeFailures = 0;
     let idempotentFailures = 0;
 
