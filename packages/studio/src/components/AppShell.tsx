@@ -29,10 +29,10 @@ const CORE_ITEMS: NavItem[] = [
   { label: 'Projects', href: '/projects', icon: '📁', description: 'Your saved work' },
 ];
 
-// Ecosystem
 const ECOSYSTEM_ITEMS: NavItem[] = [
   { label: 'Store', href: '/store', icon: '🏪', description: 'AI hardware & software store' },
   { label: 'HoloMesh', href: '/holomesh', icon: '🌐', description: 'Knowledge exchange' },
+  { label: 'Filing', href: '/workspace/knowledge', icon: '📚', description: 'File W/P/G insights' },
   { label: 'Teams', href: '/teams', icon: '👥', description: 'Team workspaces' },
   { label: 'Agents', href: '/agents', icon: '🤖', description: 'AI agent network' },
 ];
