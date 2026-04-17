@@ -1,6 +1,6 @@
 # HoloScript Competitive Brief — 2026-04-17
 
-**Research date**: 2026-04-17
+**Research date**: 2026-04-17 (updated 2026-04-17)
 **Scope**: 4 competitive fronts, 16 competitors profiled (8 in depth)
 **Status**: Primary strategic document. Refresh quarterly.
 
@@ -37,37 +37,101 @@ HoloScript sits at the intersection of four markets, none of which has a direct 
 ## 2. Four-Front Competitive Landscape
 
 ### Front A: Spatial Runtime / 3D Engines
-- **Three.js** — JS 3D library, MIT. WebGPU production-ready (Safari 26, April 2026).
-- **A-Frame** — "HTML for VR". Apple-endorsed for Vision Pro. 30-60s time-to-wow.
-- **Babylon.js 9.0** — Microsoft-backed. Community MCP server live. **Biggest near-term threat.**
+
+#### Three.js — Deep Profile
+- **Tagline:** "JavaScript 3D Library" · MIT, free · Audience: experienced JS devs, creative coders
+- **Time-to-wow:** ~5 min
+- **2026 news:** WebGPU GA across all browsers (Safari 26 April 2026), r171+ zero-config WebGPU
+- **Strengths:** Largest community, smallest bundle (168KB), max flexibility, most Copilot-trainable
+- **Weaknesses vs HoloScript:** Low-level primitives (you assemble scene mgmt + asset pipelines + XR plumbing); no editor, no semantic layer, no simulation; fragmented ecosystem (postprocessing, cannon, rapier, drei all separate)
+
+#### A-Frame — Deep Profile
+- **Tagline:** "Make WebVR" · MIT, free · Audience: HTML-literate, VR/AR enthusiasts, educators
+- **Time-to-wow:** ~30–60s (paste HTML, open browser)
+- **Strengths:** Declarative model, Vision Pro distribution moat (Apple-endorsed), largest WebXR community
+- **Weaknesses vs HoloScript:** Three.js perf ceiling inherited, no AI/agent story, VR-shaped framing limits non-VR 3D
+
+#### Babylon.js 9.0 — **HIGHEST PRIORITY THREAT**
+- Microsoft-backed. Community MCP server lets LLMs manipulate scenes live (March 2026 launch).
+- If Babylon makes MCP first-party before HoloScript achieves distribution, "agent-native 3D" becomes their story.
+- **Differentiation lever:** Multi-target compilation. Babylon is a single-runtime renderer; HoloScript is a compiler.
+
+#### Others
 - **React Three Fiber** — Complementary; HoloScript already has `r3f-renderer`.
 - **Unity WebGL** — Losing ground; 20-50MB bundles.
 
 ### Front B: Scientific Simulation / FEA / CAE
-- **SimScale** — "Engineering AI in the Cloud". Thin client, server compute. $8-15K/yr.
-- **ANSYS (Synopsys-owned)** — 2026 R1 with SimAI + GeomAI. $40K/yr/seat.
-- **FEAScript** — OSS JS, 1D/2D only, no GPU.
+### Front B: Scientific Simulation / FEA / CAE
+
+#### SimScale — Deep Profile
+- **Positioning:** "Engineering AI in the Cloud" · Community free, Professional ~$8–15K/year/seat
+- **Audience:** Mid-market mechanical/civil/AEC/HVAC engineers; 500K+ registered users
+- **Technical approach:** Server-side HPC compute (OpenFOAM / Code_Aster / CalculiX); browser is thin client only
+- **Strengths:** Production-grade solvers, strong CFD, polished UX
+- **Weaknesses vs HoloScript:** Not actually browser-native (compute is remote); no deterministic replay or hash-verified provenance; **data must leave premises** (blocks medical/defense/legal)
+
+#### ANSYS (Synopsys-owned) — Deep Profile
+- **Positioning:** "Re-Engineering Engineering" · Mechanical Enterprise ~$40K/year/seat; SimAI Premium per-usage
+- **Audience:** Fortune 500 aerospace/auto/semicon/defense/medical; dedicated CAE analysts
+- **2026 R1 (March 2026):** SimAI restructure, GeomAI (generative design), FreeFlow meshless CFD, NVIDIA Omniverse integration, Synopsys joint safety workflows
+- **Strengths:** Deepest physics breadth, regulatory acceptance (FDA, FAA, nuclear), certified validation
+- **Weaknesses vs HoloScript:** No browser path; provenance is file-based/manual (no hash-verified replay); AI features are surrogate-based (not contract-verified); price excludes academia/startups
+
+#### Others
+- **FEAScript** — OSS JS, 1D/2D only, no GPU
 - **SPARSELAB** — Browser FEA via WASM (not WebGPU). No replay.
 - **ParaView/Catalyst** — HPC in-situ viz. Adjacent, not competitor.
 
-**Critical finding**: No vendor ships WebGPU + FEM + browser + hash-verified replay. Novedge's 2026 DesignOps piece confirms industry has *given up* on byte-identical replay. Trust by Construction is category-defining.
+> **Critical finding:** No vendor ships WebGPU + FEM + browser + hash-verified replay. Novedge's 2026 "DesignOps for CAE" explicitly states the industry has *given up* on byte-identical replay due to solver stochasticity. HoloScript's "Trust by Construction" is category-defining.
 
 ### Front C: Spatial AI / Generative 3D
-- **NVIDIA Omniverse** — "Physical AI". $9K/yr + RTX floor. USD ecosystem moat.
-- **Cavrnus** — UE/Unity collaboration plugin. Name-collision risk is low-medium, not critical.
-- **Tencent Hunyuan 3D** — Text/image → 3D. Asset generator, not platform. Complementary.
-- **Luma AI** — Genie sunset Jan 2026. Gaussian Splat capture + Dream Machine.
-- **Spatial.io** — Pivoted to Unity UGC. Consumer focus. Relevance decay.
+### Front C: Spatial AI / Generative 3D
+
+#### NVIDIA Omniverse — Deep Profile
+- **Positioning:** "Develop Physical AI Applications" (re-branded from "metaverse collaboration")
+- **Audience:** Enterprise manufacturing, AEC, automotive, robotics; individual devs tolerated not courted
+- **Pricing:** Individual free (collab with 1 other); Enterprise $9,000/year; **RTX GPU required (L40 ~$11,300)**
+- **Moat:** OpenUSD ecosystem; GPU hardware lock-in; "Physical AI" and "Digital Twin" positioning (ceded "spatial computing" to Apple)
+- **2026 launches:** Apple Vision Pro via CloudXR foveated streaming; tightened Isaac Sim coupling
+- **Weaknesses vs HoloScript:** Not browser-native; $9K/yr floor locks out indies/education; HoloScript's `.holo → USD` compiler can *consume* their artifacts without adopting their runtime
+
+#### Cavrnus — Name-Collision Assessment
+- **What they are:** Drag-and-drop multi-user collaboration plugin for Unreal Engine and Unity. Not a compiler, runtime, or generative platform.
+- **Product:** "Cavrnus Spatial Connector" — WebRTC voice/video + state sync SDK for UE5/Unity
+- **Verdict:** W.033's "critical" flag was conservative. Phonetic overlap: **low**. Trademark risk: **low**. Category overlap: **medium** (both appear in AEC digital-twin RFPs only). No rebrand needed. They are a layer *below* HoloScript — could theoretically be consumed as a transport.
+
+#### Others
+- **Tencent Hunyuan 3D / HY-World 2.0** — Text/image/sketch → 3D meshes, Gaussian splats. Asset generator, not platform. Complementary.
+- **Luma AI** — Genie sunset Jan 1, 2026. Pivoted to Gaussian Splat capture + Dream Machine video. Complementary.
+- **Spatial.io** — Pivoted to Unity UGC gaming. Omitted from TechTarget's 2026 metaverse roundup — signal of relevance decay.
 
 ### Front D: Agentic AI / MCP Platforms
-- **LangChain / LangGraph** — Dominant agent framework. Bidirectional MCP.
-- **Cursor / Composer 2** — Agent-native IDE. Best-in-class MCP client.
-- **CrewAI** — Role-delegation. 40% Fortune 500 claim.
-- **AutoGen** — Maintenance mode, folded into Microsoft Agent Framework.
-- **GitHub Copilot Workspace** — GA early 2026. Locked to GitHub issues.
-- **Replit Agent** — Zero-setup for non-devs.
+### Front D: Agentic AI / MCP Platforms
 
-**Critical finding**: No agent-native spatial/3D/simulation platform exists. HoloScript's white space is genuine.
+#### LangChain / LangGraph — Deep Profile
+- **Positioning:** "Agent Orchestration Framework for Reliable AI Agents"
+- **Pricing:** OSS free; LangSmith Developer free (5K traces), Plus ~$39/seat + usage, Enterprise BYO-cloud
+- **MCP:** First-class consumer + server. LangGraph Server exposes agents as MCP tools. 200+ integrations.
+- **Strengths:** Mindshare dominance, mature observability (LangSmith), durable long-running workflows, proven at scale (Klarna, Replit, Elastic)
+- **Weaknesses vs HoloScript:** Verbose Python API, steep learning curve, no spatial/simulation semantics
+- **Play:** Partnership, not competition. HoloScript MCP plugs into LangGraph; HoloMesh handles multi-agent coordination LangGraph doesn't build.
+
+#### Cursor / Composer 2 — Deep Profile
+- **Positioning:** "The best way to code with AI" — agent-native IDE
+- **Pricing:** Hobby free · Pro $20/mo · Teams ~$40/user/mo · Enterprise
+- **2026 launches:** Cursor 3 (April), Composer 2 RL-trained every ~5h on real usage, Background Agents, Design Mode, Bugbot Learned Rules, **MCP GA (Apr 8)**, Canvases (Apr 15)
+- **MCP:** Best-in-class client/host. Drove MCP's 200+ server adoption via marketplace.
+- **Strengths:** RL-on-real-usage moat, fastest dev time-to-wow, MCP marketplace breadth
+- **Weaknesses vs HoloScript:** IDE-bound (no headless/API story), no simulation/3D/spatial primitives, agents siloed per-user
+- **Play:** Submit HoloScript to Cursor MCP marketplace. Be the spatial/simulation plug, not a competitor.
+
+#### Others
+- **CrewAI** — Role-delegation. 40% Fortune 500 claim. Thin on durability vs LangGraph.
+- **AutoGen** — Maintenance mode; folded into Microsoft Agent Framework (Semantic Kernel merger).
+- **GitHub Copilot Workspace** — GA early 2026. Locked to GitHub issue workflow.
+- **Replit Agent** — Zero-setup for non-devs. Sandbox-bound.
+
+> **Critical finding:** No agent-native spatial/3D/simulation platform exists. HoloScript's white space is genuine.
 
 ---
 
