@@ -1,10 +1,18 @@
 # 🌐 create-holoscript
 
-**Create HoloScript apps with zero configuration.** Scaffold a working 3D/XR project and see it in your browser in under 2 minutes.
+**Create HoloScript apps with zero configuration.** Scaffold a working 3D scene and open it in your browser in **30 seconds**.
 
 [HoloScript](https://github.com/brianonbased-dev/HoloScript) is the open AI-spatial reality protocol — a declarative language for building 3D worlds, VR/AR experiences, and spatial applications.
 
-## Quick Start
+## 30-Second Quick Start (`--go`)
+
+```bash
+npx create-holoscript my-world --go
+```
+
+That's it. `--go` scaffolds the zero-install `instant` template, starts a dev server, and opens your browser automatically. No `cd`, no `npm install`, no second command.
+
+## Full Quick Start (any template)
 
 ```bash
 npx create-holoscript my-world
@@ -47,9 +55,29 @@ Art gallery with clickable glowing panels, portal rings, and a floating sculptur
 npx create-holoscript <project-name> [options]
 
 Options:
-  --template <name>    Template to use (hello-world, physics-playground, interactive-gallery)
+  --go, -g             30-second mode: scaffold `instant` + auto-serve + open browser
+  --template <name>    Template to use (hello-world, instant, physics-playground, interactive-gallery, 2d-revolution)
   --yes, -y            Skip prompts, use defaults
+  --port <n>           Override dev-server port in --go mode (default 3030)
 ```
+
+### `--go` under the hood
+
+`--go` is the fastest path to a working 3D scene. It:
+
+1. Scaffolds the `instant` template (CDN-loaded Three.js, no `npm install` step)
+2. Starts a stdlib HTTP server on port 3030 (steps up if busy)
+3. Opens your default browser to the served URL
+
+Total time (warm npx cache, typical broadband): ~15–25 seconds. Compare:
+
+| Tool | Time-to-wow |
+|---|---|
+| **create-holoscript --go** | **~15–25s** |
+| A-Frame (HTML paste) | 30–60s |
+| Babylon.js (playground + edit) | 1–2 min |
+| Three.js from scratch | ~5 min |
+| Unity WebGL export | multi-hour |
 
 ## What You Get
 

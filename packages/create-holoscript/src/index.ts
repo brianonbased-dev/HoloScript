@@ -14,6 +14,8 @@ import {
   parseArgs,
   resolveTemplate,
   checkProjectDir,
+  serveDir,
+  openBrowser,
 } from './scaffold.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -41,7 +43,7 @@ async function main(): Promise<void> {
 
   const parsed = parseArgs(process.argv);
   let { projectName } = parsed;
-  const { skipPrompts, templateFlag } = parsed;
+  const { skipPrompts, templateFlag, goMode, port } = parsed;
 
   // ─── Project Name ──────
   if (!projectName && !skipPrompts) {
@@ -142,6 +144,34 @@ async function main(): Promise<void> {
     }
   }
 
+  // ─── --go mode: serve + open browser immediately ──────
+  if (goMode && isInstant) {
+    console.log();
+    console.log(`  ${pc.blue('⧗')} Starting dev server...`);
+    try {
+      const { port: boundPort } = await serveDir(projectDir, port ?? 3030);
+      const url = `http://localhost:${boundPort}`;
+      console.log(`  ${pc.green('✓')} Serving at ${pc.bold(url)}`);
+      await openBrowser(url);
+      console.log();
+      console.log(pc.green('  ✓ Your HoloScript scene is live.'));
+      console.log();
+      console.log(`  ${pc.dim('Press')} ${pc.bold('Ctrl+C')} ${pc.dim('to stop the server.')}`);
+      console.log(
+        `  ${pc.dim('Edit')} ${pc.bold(path.join(projectName, 'src/scene.holo'))} ${pc.dim('to change the scene.')}`
+      );
+      console.log();
+      // Keep the process alive so the server stays up.
+      process.stdin.resume();
+      return;
+    } catch (err) {
+      console.log(
+        `  ${pc.yellow('⚠')} Auto-serve failed (${(err as Error).message}) — falling back to manual steps.`
+      );
+      // Fall through to manual instructions below.
+    }
+  }
+
   // ─── Success ──────
   console.log();
   console.log(pc.green('  ✓ Done! Your HoloScript project is ready.'));
@@ -155,6 +185,10 @@ async function main(): Promise<void> {
     console.log();
     console.log(
       `  ${pc.dim('Open')} ${pc.bold('http://localhost:3000')} ${pc.dim('in your browser')}`
+    );
+    console.log();
+    console.log(
+      `  ${pc.dim('Tip: use')} ${pc.bold('npx create-holoscript <name> --go')} ${pc.dim('to scaffold + serve + open in one step.')}`
     );
   } else {
     if (skipPrompts) {

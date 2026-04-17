@@ -222,6 +222,44 @@ describe('create-holoscript-app', () => {
       expect(result.skipPrompts).toBe(true);
       expect(result.templateFlag).toBe('2d-revolution');
     });
+
+    it('should detect --go flag and imply skipPrompts + instant template', () => {
+      const result = parseArgs(['node', 'script.js', 'app', '--go']);
+      expect(result.goMode).toBe(true);
+      expect(result.skipPrompts).toBe(true);
+      expect(result.templateFlag).toBe('instant');
+    });
+
+    it('should detect -g short flag equivalent to --go', () => {
+      const result = parseArgs(['node', 'script.js', 'app', '-g']);
+      expect(result.goMode).toBe(true);
+      expect(result.skipPrompts).toBe(true);
+      expect(result.templateFlag).toBe('instant');
+    });
+
+    it('should respect explicit --template override in --go mode', () => {
+      const result = parseArgs([
+        'node',
+        'script.js',
+        'app',
+        '--go',
+        '--template',
+        'hello-world',
+      ]);
+      expect(result.goMode).toBe(true);
+      expect(result.templateFlag).toBe('hello-world');
+    });
+
+    it('should parse --port argument', () => {
+      const result = parseArgs(['node', 'script.js', 'app', '--go', '--port', '4242']);
+      expect(result.port).toBe(4242);
+    });
+
+    it('should leave port undefined when not passed', () => {
+      const result = parseArgs(['node', 'script.js', 'app']);
+      expect(result.port).toBeUndefined();
+      expect(result.goMode).toBe(false);
+    });
   });
 
   // ─── buildPackageJson ───────────────────────────────────
