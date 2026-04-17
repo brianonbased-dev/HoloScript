@@ -121,6 +121,24 @@ export function authorityWeight(level: number, reputationScore?: number): number
   return baseWeight;
 }
 
+/**
+ * CRDT-01: deterministic winner when authority-weighted scaled scores tie.
+ * Lexicographic: agentId → trait source → JSON(value). Ensures ⊗ does not
+ * depend on argument order when weights and scaled products coincide.
+ */
+function tieBreakProvenance(a: ProvenanceValue, b: ProvenanceValue): ProvenanceValue {
+  const aid = String(a.context?.agentId ?? '');
+  const bid = String(b.context?.agentId ?? '');
+  if (aid !== bid) return aid < bid ? a : b;
+  const srcA = String(a.source ?? '');
+  const srcB = String(b.source ?? '');
+  if (srcA !== srcB) return srcA < srcB ? a : b;
+  const ja = JSON.stringify(a.value);
+  const jb = JSON.stringify(b.value);
+  if (ja !== jb) return ja <= jb ? a : b;
+  return a;
+}
+
 export interface ProvenanceContext {
   /** Authority weight (e.g., Founder=100, Agent=50, Guest=0) */
   authorityLevel: number;
@@ -355,7 +373,11 @@ export class ProvenanceSemiring {
         // Each value is scaled by its authority weight, then compared.
         const scaledA = (a.value as number) * weightA;
         const scaledB = (b.value as number) * weightB;
-        return scaledA >= scaledB
+        const eps = 1e-12;
+        if (Math.abs(scaledA - scaledB) <= eps) {
+          return tieBreakProvenance(a, b);
+        }
+        return scaledA > scaledB
           ? { value: a.value, source: a.source, context: a.context }
           : { value: b.value, source: b.source, context: b.context };
       }
