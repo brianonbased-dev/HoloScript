@@ -8,6 +8,7 @@ import { EditorPersistence } from './EditorPersistence';
 import { AssetManager } from './AssetManager';
 import { AssetBrowserPanel } from './AssetBrowserPanel';
 import { MarketplacePanel } from './MarketplacePanel';
+import { NodeGraphPanel, type NodeGraphExecutionResult } from './NodeGraphPanel';
 import { NFTAsset } from '@holoscript/platform';
 import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
@@ -30,6 +31,9 @@ export class EditorUI {
   public marketplace: MarketplacePanel;
   public persistence: EditorPersistence;
   private uiBuilder: UIBuilder;
+  public graphPanel?: NodeGraphPanel;
+  public graphRunning: boolean = false;
+  public lastGraphResult?: NodeGraphExecutionResult;
 
   private systemMenuRoot: Entity | undefined;
 
@@ -62,6 +66,7 @@ export class EditorUI {
         this.world.addComponent(entity, 'GLTF', { src: asset.url });
       } else if (asset.assetType === 'texture') {
         // Create a quad with texture
+
         this.world.addComponent(entity, 'Render', { type: 'plane', texture: asset.url });
       }
 
@@ -149,6 +154,17 @@ export class EditorUI {
     });
     const marketEntity = this.uiBuilder.spawn(marketBtn, this.systemMenuRoot);
     this.world.addTag(marketEntity, 'UI_System_Market');
+
+    // Run Graph Button
+    const runGraphBtn = createButton({
+      text: 'Run',
+      width: 0.1,
+      height: 0.08,
+      position: [0.3, 0, 0.01], // Right of Market
+      color: '#ff6b6b', // Red/action color
+    });
+    const runGraphEntity = this.uiBuilder.spawn(runGraphBtn, this.systemMenuRoot);
+    this.world.addTag(runGraphEntity, 'UI_System_RunGraph');
   }
 
   /**
@@ -184,6 +200,15 @@ export class EditorUI {
       return;
     }
 
+    if (this.world.hasTag(entity, 'UI_System_RunGraph')) {
+      if (this.graphPanel) {
+        this.graphRunning = true;
+        this.lastGraphResult = this.graphPanel.executeGraph();
+        this.graphRunning = false;
+      }
+      return;
+    }
+
     // 2. Check Inspector UI
     this.inspectorPanel.handleInteraction(entity);
 
@@ -209,4 +234,15 @@ export class EditorUI {
 
     // 3. Scene Handling (Selection) is via InputSystem -> SelectionManager
   }
+
+  getGraphRunningState(): {
+    running: boolean;
+    lastResult?: NodeGraphExecutionResult;
+  } {
+    return {
+      running: this.graphRunning,
+      lastResult: this.lastGraphResult,
+    };
+  }
+
 }

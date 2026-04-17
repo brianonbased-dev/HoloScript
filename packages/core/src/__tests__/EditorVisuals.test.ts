@@ -9,7 +9,12 @@ describe('Editor Visuals (VR UI)', () => {
     const editor = new EditorUI(world);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { x: 10 });
+    world.addComponent(e1, 'Transform', {
+      position: [10, 0, 0],
+      rotation: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+    });
+    world.addComponent(e1, 'Stats', { hp: 10 });
 
     // Select e1
     editor.selectionManager.select(e1);
@@ -32,7 +37,12 @@ describe('Editor Visuals (VR UI)', () => {
     const editor = new EditorUI(world);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { x: 10 });
+    world.addComponent(e1, 'Transform', {
+      position: [10, 0, 0],
+      rotation: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+    });
+    world.addComponent(e1, 'Stats', { hp: 10 });
     editor.selectionManager.select(e1);
     await Promise.resolve();
     editor.update(0.16);
@@ -50,8 +60,35 @@ describe('Editor Visuals (VR UI)', () => {
 
     editor.handleInteraction(btn);
 
-    const t = world.getComponent<any>(e1, 'Transform');
-    // Should be 9.9 or 10.1 (default delta 0.1)
-    expect(t.x).not.toBe(10);
+    const stats = world.getComponent<any>(e1, 'Stats');
+    expect(stats.hp).not.toBe(10);
+  });
+
+  it('should execute the graph from Run Graph system interaction', () => {
+    const world = new World();
+    const editor = new EditorUI(world);
+
+    const expectedResult = {
+      nodeOrder: ['n1'],
+      outputs: new Map([['n1', { result: 42 }]]),
+      state: { score: 1 },
+      emittedEvents: new Map(),
+    };
+
+    editor.graphPanel = {
+      executeGraph: () => expectedResult,
+    } as any;
+
+    const runButton = world.createEntity();
+    world.addTag(runButton, 'UI_System_RunGraph');
+
+    editor.handleInteraction(runButton);
+
+    expect(editor.graphRunning).toBe(false);
+    expect(editor.lastGraphResult).toBe(expectedResult);
+    expect(editor.getGraphRunningState()).toEqual({
+      running: false,
+      lastResult: expectedResult,
+    });
   });
 });

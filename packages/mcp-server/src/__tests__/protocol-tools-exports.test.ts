@@ -23,8 +23,8 @@ describe('protocol-tools required exports from @holoscript/core', () => {
   });
 
   it('converts ETH to wei correctly', () => {
-    expect(ethToWei('1')).toBe('1000000000000000000');
-    expect(ethToWei('0.000777')).toBe('777000000000000');
+    expect(ethToWei('1')).toBe(1000000000000000000n);
+    expect(ethToWei('0.000777')).toBe(777000000000000n);
   });
 
   it('exports weiToEth as a function', () => {

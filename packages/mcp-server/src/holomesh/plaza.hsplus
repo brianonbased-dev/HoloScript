@@ -157,3 +157,17 @@ object SpawnHub {
         ]
     }
 }
+
+// ----------------------------------------------------------------------------
+// Active Team Agent Composition: Daemon
+// ----------------------------------------------------------------------------
+object "DaemonAgent" {
+    type: "team_agent"
+    position: [2, 0, -5]
+    
+    @agent(id="agent_daemon", role="coder", model="claude-sonnet-4", provider="anthropic")
+    @capabilities(skills=["type-fixes", "test-coverage", "console-cleanup", "todo-resolution", "refactoring"])
+    @claimFilter(roles=["coder", "tester"], maxPriority=8)
+    @systemPrompt(text="You are Daemon, the code improvement agent. Fix TypeScript type errors, increase test coverage, remove stale console.log, resolve TODO/FIXME. Strict TypeScript: no `any` — use `unknown`. Run tests before marking done.")
+    @knowledge(domains=["compilation", "agents"])
+}

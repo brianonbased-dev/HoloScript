@@ -9,6 +9,7 @@ export { LODMeshNode, hasLOD } from './components/LODMeshNode';
 export type { LODMeshNodeProps, LODConfigProp } from './components/LODMeshNode';
 export { DraftMeshNode } from './components/DraftMeshNode';
 export type { DraftMeshNodeProps, DraftShape } from './components/DraftMeshNode';
+export { BiologicalMeshNode } from './components/BiologicalMeshNode';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,

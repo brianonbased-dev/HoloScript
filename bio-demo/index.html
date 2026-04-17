@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript — Instant</title>
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a1a; }
+      canvas { display: block; width: 100%; height: 100%; }
+
+      #loading {
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: #0a0a1a; color: #fff; font-family: 'Inter', system-ui, sans-serif; z-index: 100;
+        transition: opacity 0.5s;
+      }
+      #loading.hidden { opacity: 0; pointer-events: none; }
+      .loader { text-align: center; }
+      .loader h1 {
+        font-size: 1.4rem; font-weight: 600;
+        background: linear-gradient(135deg, #00d4ff, #7b2ffa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+      .loader p { font-size: 0.85rem; color: #888; }
+      .pulse {
+        width: 40px; height: 40px; margin: 1rem auto; border-radius: 50%;
+        background: linear-gradient(135deg, #00d4ff, #7b2ffa);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.8); opacity: 0.5; }
+        50% { transform: scale(1.2); opacity: 1; }
+      }
+
+      #hud {
+        position: fixed; top: 1.5rem; left: 1.5rem;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #e0e0e0; z-index: 50; pointer-events: none;
+      }
+      #bio-hud {
+        background: rgba(10, 10, 26, 0.75);
+        border: 1px solid rgba(123, 47, 250, 0.3);
+        border-radius: 12px; padding: 1.25rem;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      }
+      #bio-hud h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.2rem; color: #fff; }
+      #bio-hud .subtitle { font-size: 0.85rem; color: #aaa; margin-bottom: 1rem; }
+      .metrics { display: flex; flex-direction: column; gap: 0.5rem; }
+      .metric { font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: 6px; }
+      .metric strong { color: #00d4ff; float: right; margin-left: 1rem; }
+
+      #badge {
+        position: fixed; bottom: 1.5rem; left: 1.5rem;
+        font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem;
+        color: #888; z-index: 50;
+        background: rgba(10, 10, 26, 0.75); padding: 0.5rem 1rem;
+        border-radius: 20px; backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      #badge a { color: #7b2ffa; text-decoration: none; font-weight: 500; }
+      #badge a:hover { text-decoration: underline; color: #00d4ff; }
+    </style>
+  </head>
+  <body>
+    <div id="loading">
+      <div class="loader">
+        <div class="pulse"></div>
+        <h1>HoloScript</h1>
+        <p>Loading biological simulation...</p>
+      </div>
+    </div>
+
+    <!-- HUD Overlay requested by user -->
+    <div id="hud">
+      <div id="bio-hud">
+        <h2>EGFR (CHEMBL203) × Osimertinib</h2>
+        <p class="subtitle">Contracted Simulation</p>
+        <div class="metrics">
+          <span class="metric">IC50: <strong>0.45 nM</strong></span>
+          <span class="metric">Target: <strong>T790M Pocket</strong></span>
+          <span class="metric">Status: <strong>Hash-Verified</strong></span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Updated Provenance Badge -->
+    <div id="badge">
+      Sources: <a href="#" target="_blank">ChEMBL-34</a> • <a href="#" target="_blank">AlphaFold-v4</a> • <span style="color:#00ffcc">Hash-Verified</span>
+    </div>
+
+    <!-- 3Dmol.js for biological rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"></script>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+    </script>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

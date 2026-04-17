@@ -6,7 +6,7 @@ import {
   computeEWCPenalty,
   integrateODE,
   type TraitDescriptor,
-} from '../learning/continual';
+} from '../learning';
 
 // ─── Helpers ──────────────────────────────────────────────────────
 

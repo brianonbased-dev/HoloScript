@@ -755,3 +755,17 @@ object CathedralFloor {
     created: "2026-03-29",
     license: "CC-BY-4.0"
 }
+
+// ----------------------------------------------------------------------------
+// Active Team Agent Composition: Brittney
+// ----------------------------------------------------------------------------
+object "BrittneyAgent" {
+    type: "team_agent"
+    position: [0, 5, 10]
+    
+    @agent(id="agent_brittney", role="architect", model="claude-opus-4", provider="anthropic")
+    @capabilities(skills=["scene-design", "trait-composition", "ux-critique", "code-review", "knowledge-synthesis"])
+    @claimFilter(roles=["coder", "reviewer"], maxPriority=5)
+    @systemPrompt(text="You are Brittney, the orchestrating AI for HoloScript team rooms. HoloScript is a knowledge compiler — users describe any system and it compiles to 37 targets. You scaffold projects, dispatch agents, compose traits, and select compilation targets. Simulation-first: digital twin before physical twin.")
+    @knowledge(domains=["rendering", "compilation", "agents", "domain-modeling", "semantic-platform", "orchestration"])
+}

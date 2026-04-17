@@ -24,9 +24,10 @@ interface TraceEntry {
   timeMs: number;
 }
 
+import { HoloCompositionParser } from '@holoscript/core';
+
 function parseHoloScript(code: string): TraceEntry[] {
   const entries: TraceEntry[] = [];
-  const lines = code.split('\n');
   let step = 0;
   let t = 0;
 
@@ -35,58 +36,86 @@ function parseHoloScript(code: string): TraceEntry[] {
     return t;
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('//')) continue;
+  try {
+    const parser = new HoloCompositionParser();
+    const result = parser.parse(code);
 
-    const sceneMatch = line.match(/^scene\s+"([^"]+)"/);
-    const objectMatch = line.match(/^object\s+"([^"]+)"/);
-    const traitMatch = line.match(/^@(\w+)\(([^)]*)\)/);
-    const varMatch = line.match(/^(let|const)\s+(\w+)\s*=\s*(.+)/);
-
-    if (sceneMatch) {
-      entries.push({
-        step: ++step,
-        type: 'scene',
-        name: sceneMatch[1],
-        message: `Scene "${sceneMatch[1]}" initialized`,
-        timeMs: inc(),
-      });
-    } else if (objectMatch) {
-      entries.push({
-        step: ++step,
-        type: 'object',
-        name: objectMatch[1],
-        message: `Object "${objectMatch[1]}" created`,
-        timeMs: inc(),
-      });
-    } else if (traitMatch) {
-      // Parse key=value pairs
-      const props: Record<string, string> = {};
-      const propsRaw = traitMatch[2];
-      propsRaw.replace(/(\w+):\s*"?([^",)]+)"?/g, (_, k, v) => {
-        props[k] = v.trim();
-        return '';
-      });
-
-      entries.push({
-        step: ++step,
-        type: 'trait',
-        trait: traitMatch[1],
-        props,
-        message: `@${traitMatch[1]}(${Object.entries(props)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(', ')}) applied`,
-        timeMs: inc(),
-      });
-    } else if (varMatch) {
-      entries.push({
-        step: ++step,
-        type: 'info',
-        message: `Binding ${varMatch[1]} "${varMatch[2]}" = ${varMatch[3].trim()}`,
-        timeMs: inc(),
-      });
+    if (result.errors && result.errors.length > 0) {
+      for (const err of result.errors) {
+        entries.push({
+          step: ++step,
+          type: 'error',
+          message: err.message,
+          timeMs: inc(),
+        });
+      }
+      return entries;
     }
+
+    const ast = result.ast;
+    if (!ast) {
+      entries.push({
+        step: 1,
+        type: 'info',
+        message: 'No declarations found — type some HoloScript code',
+        timeMs: 0,
+      });
+      return entries;
+    }
+
+    const traverse = (node: any) => {
+      if (!node || typeof node !== 'object') return;
+
+      if (node.type === 'Composition' || node.type === 'Scene') {
+        entries.push({
+          step: ++step,
+          type: 'scene',
+          name: node.name || 'unnamed',
+          message: `Scene "${node.name || 'unnamed'}" initialized`,
+          timeMs: inc(),
+        });
+      } else if (node.type === 'Object' || node.type === 'Zone' || node.type === 'Actor') {
+        entries.push({
+          step: ++step,
+          type: 'object',
+          name: node.name || 'unnamed',
+          message: `Object "${node.name || 'unnamed'}" created`,
+          timeMs: inc(),
+        });
+      }
+
+      if (node.traits && Array.isArray(node.traits)) {
+        for (const trait of node.traits) {
+          const props = trait.params || {};
+          entries.push({
+            step: ++step,
+            type: 'trait',
+            trait: trait.name,
+            props: Object.keys(props).reduce((acc, k) => {
+              acc[k] = String(props[k]);
+              return acc;
+            }, {} as Record<string, string>),
+            message: `@${trait.name}(${Object.entries(props)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(', ')}) applied`,
+            timeMs: inc(),
+          });
+        }
+      }
+
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(traverse);
+      }
+    };
+
+    traverse(ast);
+  } catch (err: any) {
+    entries.push({
+      step: ++step,
+      type: 'error',
+      message: err.message || 'Parse error',
+      timeMs: inc(),
+    });
   }
 
   if (entries.length === 0) {

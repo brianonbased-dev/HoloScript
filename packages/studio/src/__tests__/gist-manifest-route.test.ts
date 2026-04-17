@@ -1,10 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('gist publication manifest route', () => {
   const originalRequireX402 = process.env.GIST_MANIFEST_REQUIRE_X402;
+  const originalHolomeshEndpoint = process.env.HOLOMESH_SCENE_INGEST_URL;
+  const originalFetch = global.fetch;
+  const fetchMock = vi.fn();
 
   beforeEach(() => {
     delete process.env.GIST_MANIFEST_REQUIRE_X402;
+    delete process.env.HOLOMESH_SCENE_INGEST_URL;
+    fetchMock.mockReset();
+    global.fetch = fetchMock as unknown as typeof fetch;
   });
 
   afterEach(() => {
@@ -13,6 +19,14 @@ describe('gist publication manifest route', () => {
     } else {
       process.env.GIST_MANIFEST_REQUIRE_X402 = originalRequireX402;
     }
+
+    if (originalHolomeshEndpoint === undefined) {
+      delete process.env.HOLOMESH_SCENE_INGEST_URL;
+    } else {
+      process.env.HOLOMESH_SCENE_INGEST_URL = originalHolomeshEndpoint;
+    }
+
+    global.fetch = originalFetch;
   });
 
   it('exports POST handler', async () => {
@@ -136,5 +150,91 @@ describe('gist publication manifest route', () => {
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toContain('loroDocVersion');
+  });
+
+  it('rejects deployToHolomesh requests without scene payload', async () => {
+    const { POST } = await import('../app/api/publication/gist-manifest/route');
+
+    const req = new Request('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room: 'film3d-room',
+        loroDocVersion: { peerA: 1 },
+        deployToHolomesh: true,
+        holomesh: {
+          endpoint: 'https://example.invalid/mesh-ingest',
+        },
+      }),
+    });
+
+    const response = await POST(req as never);
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toContain('holomesh.scene');
+  });
+
+  it('deploys to holomesh endpoint when deployToHolomesh=true', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ accepted: true }),
+    });
+
+    const { POST } = await import('../app/api/publication/gist-manifest/route');
+
+    const req = new Request('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room: 'film3d-room',
+        loroDocVersion: { peerA: 1 },
+        title: 'Film3D publish',
+        deployToHolomesh: true,
+        holomesh: {
+          endpoint: 'https://example.invalid/mesh-ingest',
+          scene: { composition: 'Demo' },
+          gistId: 'gist_123',
+          gistUrl: 'https://gist.github.com/demo/123',
+        },
+      }),
+    });
+
+    const response = await POST(req as never);
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.ok).toBe(true);
+    expect(data.deployment.deployed).toBe(true);
+    expect(data.deployment.endpoint).toBe('https://example.invalid/mesh-ingest');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 502 when holomesh deploy endpoint fails', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: 'service unavailable' }),
+    });
+
+    const { POST } = await import('../app/api/publication/gist-manifest/route');
+
+    const req = new Request('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room: 'film3d-room',
+        loroDocVersion: { peerA: 1 },
+        deployToHolomesh: true,
+        holomesh: {
+          endpoint: 'https://example.invalid/mesh-ingest',
+          scene: { composition: 'Demo' },
+        },
+      }),
+    });
+
+    const response = await POST(req as never);
+    expect(response.status).toBe(502);
+    const data = await response.json();
+    expect(data.error).toContain('HoloMesh deploy failed');
   });
 });

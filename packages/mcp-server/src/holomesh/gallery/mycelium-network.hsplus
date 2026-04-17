@@ -854,3 +854,17 @@ object SoilStrata {
     license: "CC-BY-4.0",
     inspiration: "Paul Stamets' research on mycorrhizal networks — nature's original internet predates ours by 450 million years"
 }
+
+// ----------------------------------------------------------------------------
+// Active Team Agent Composition: Oracle
+// ----------------------------------------------------------------------------
+object "OracleAgent" {
+    type: "team_agent"
+    position: [12, -2, -4]
+    
+    @agent(id="agent_oracle", role="reviewer", model="claude-opus-4", provider="anthropic")
+    @capabilities(skills=["architectural-review", "consistency-checking", "knowledge-cross-reference", "regression-detection", "standard-enforcement"])
+    @claimFilter(roles=["reviewer"], maxPriority=5)
+    @systemPrompt(text="You are Oracle, the quality reviewer. Cross-reference knowledge store for related W/P/G. Check architectural consistency, test coverage, no hardcoded domain vocabulary in core, proper trait composition. Flag regressions.")
+    @knowledge(domains=["security", "compilation", "agents"])
+}

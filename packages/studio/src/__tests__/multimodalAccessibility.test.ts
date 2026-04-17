@@ -5,6 +5,7 @@ import {
   computeContrastRatio,
   type ComponentDescriptor,
 } from '../lib/multimodalAccessibility';
+import * as studioPublicApi from '../index';
 
 // ─── helpers ──────────────────────────────────────────────────────
 
@@ -22,6 +23,12 @@ function makeComp(overrides: Partial<ComponentDescriptor> = {}): ComponentDescri
 // ─── computeContrastRatio ─────────────────────────────────────────
 
 describe('computeContrastRatio', () => {
+  it('is exported from the studio public API', () => {
+    expect(studioPublicApi.computeContrastRatio).toBe(computeContrastRatio);
+    expect(studioPublicApi.checkAlignment).toBe(checkAlignment);
+    expect(studioPublicApi.auditComponents).toBe(auditComponents);
+  });
+
   it('returns ~21 for black on white', () => {
     const ratio = computeContrastRatio('#000000', '#ffffff');
     expect(ratio).toBeCloseTo(21, 0);

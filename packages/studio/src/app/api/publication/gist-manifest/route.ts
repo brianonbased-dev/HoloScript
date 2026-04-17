@@ -6,6 +6,63 @@ import {
 
 export const maxDuration = 30;
 
+function resolveHolomeshEndpoint(explicit?: string): string | undefined {
+  if (explicit && explicit.trim().length > 0) return explicit.trim();
+  const fromEnv = process.env.HOLOMESH_SCENE_INGEST_URL;
+  return fromEnv && fromEnv.trim().length > 0 ? fromEnv.trim() : undefined;
+}
+
+async function deployToHolomesh(params: {
+  endpoint: string;
+  apiKey?: string;
+  room: string;
+  title?: string;
+  gistId?: string;
+  gistUrl?: string;
+  scene: Record<string, unknown>;
+  manifest: Record<string, unknown>;
+}): Promise<{ deployed: true; status: number; response: unknown }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  const token = params.apiKey || process.env.HOLOMESH_API_KEY;
+  if (token && token.trim().length > 0) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(params.endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      source: 'studio-gist-publication',
+      room: params.room,
+      title: params.title,
+      gist_id: params.gistId,
+      gist_url: params.gistUrl,
+      scene: params.scene,
+      manifest: params.manifest,
+    }),
+  });
+
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`HoloMesh deploy failed (${response.status})`);
+  }
+
+  return {
+    deployed: true,
+    status: response.status,
+    response: payload,
+  };
+}
+
 /**
  * When `GIST_MANIFEST_REQUIRE_X402=true`, reject requests without a non-empty `x402Receipt`
  * (HTTP 402 Payment Required). Use for publish tiers that mandate an economic anchor.
@@ -29,6 +86,14 @@ function requireX402Enabled(): boolean {
  *   primaryAssetSha256?: string;
  *   xrMetrics?: Record<string, unknown>;
  *   includeSemiringDigest?: boolean;
+ *   deployToHolomesh?: boolean;
+ *   holomesh?: {
+ *     endpoint?: string;
+ *     apiKey?: string;
+ *     scene?: Record<string, unknown>;
+ *     gistId?: string;
+ *     gistUrl?: string;
+ *   };
  * }
  */
 export async function POST(req: NextRequest) {
@@ -70,12 +135,75 @@ export async function POST(req: NextRequest) {
     });
 
     const json = serializeGistPublicationManifest(manifest);
+
+    const deployRequested = body.deployToHolomesh === true;
+    let deployment:
+      | {
+          deployed: true;
+          endpoint: string;
+          status: number;
+          response: unknown;
+        }
+      | undefined;
+
+    if (deployRequested) {
+      const holomesh =
+        body.holomesh !== null && typeof body.holomesh === 'object' && !Array.isArray(body.holomesh)
+          ? (body.holomesh as Record<string, unknown>)
+          : {};
+
+      const endpoint = resolveHolomeshEndpoint(
+        typeof holomesh.endpoint === 'string' ? holomesh.endpoint : undefined
+      );
+
+      if (!endpoint) {
+        return NextResponse.json(
+          { error: 'holomesh.endpoint or HOLOMESH_SCENE_INGEST_URL is required when deployToHolomesh=true' },
+          { status: 400 }
+        );
+      }
+
+      const scene = holomesh.scene;
+      if (scene === null || typeof scene !== 'object' || Array.isArray(scene)) {
+        return NextResponse.json(
+          { error: 'holomesh.scene (object) is required when deployToHolomesh=true' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const deployResult = await deployToHolomesh({
+          endpoint,
+          apiKey: typeof holomesh.apiKey === 'string' ? holomesh.apiKey : undefined,
+          room,
+          title: typeof body.title === 'string' ? body.title : undefined,
+          gistId: typeof holomesh.gistId === 'string' ? holomesh.gistId : undefined,
+          gistUrl: typeof holomesh.gistUrl === 'string' ? holomesh.gistUrl : undefined,
+          scene: scene as Record<string, unknown>,
+          manifest: manifest as unknown as Record<string, unknown>,
+        });
+
+        deployment = {
+          deployed: true,
+          endpoint,
+          status: deployResult.status,
+          response: deployResult.response,
+        };
+      } catch (e) {
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : 'Failed to deploy scene to HoloMesh' },
+          { status: 502 }
+        );
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       manifest,
       /** Suggested path when committing to a repo or gist bundle */
       suggestedPath: '.holoscript/gist-publication.manifest.json',
       json,
+      deployment,
     });
   } catch (e) {
     return NextResponse.json(

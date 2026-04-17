@@ -61,6 +61,30 @@ export { detectPlatform, checkBudget, PLATFORM_BUDGETS } from './lib/platform-de
 export type { PlatformCapabilities, PerformanceBudget } from './lib/platform-detect';
 
 // ═══════════════════════════════════════════════════════════════════
+// Accessibility Audit — Multi-modal WCAG alignment utilities
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  auditComponents,
+  checkAlignment,
+  computeContrastRatio,
+} from './lib/multimodalAccessibility';
+
+export type {
+  ActionAttributes,
+  AlignmentIssue,
+  AlignmentSeverity,
+  AuditSummary,
+  ComponentAuditResult,
+  ComponentDescriptor,
+  LanguageAttributes,
+  ModalityType,
+  MultiModalAuditReport,
+  VisionAttributes,
+  WCAGLevel,
+} from './lib/multimodalAccessibility';
+
+// ═══════════════════════════════════════════════════════════════════
 // Tauri Desktop Bridge — Native feature gates and file operations
 // ═══════════════════════════════════════════════════════════════════
 

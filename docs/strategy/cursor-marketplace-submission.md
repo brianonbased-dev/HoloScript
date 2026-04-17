@@ -60,6 +60,8 @@ simulation. It compiles a single .holo source to 30+ targets (Three.js, React
 Three Fiber, Unity, Unreal, USD, WebGPU, and more) and exposes all of its
 capabilities as MCP tools — 215+ of them — so Cursor agents can author, compile,
 simulate, and verify 3D scenes and physics simulations as first-class operations.
+It now includes a bundled **bio-discovery skill** and plugin, allowing agents
+to query ChEMBL and Open Targets and output hash-verified AlphaFold binding scenes.
 
 Unlike scene-graph MCP plugins that expose a single runtime, HoloScript gives
 agents a comprehensible semantic intermediate representation. Agents reason over
@@ -118,7 +120,7 @@ tier is free with no rate limits during the beta.
 
 Recommended visuals for the listing (create or reuse):
 
-1. **Hero**: The multi-target demo money shot (5-way split from `examples/multi-target-demo/`)
+1. **Hero**: The drug-discovery flagship demo (AlphaFold + ChEMBL verifiable binding scene from `.claude/skills/bio-discovery/SKILL.md`)
 2. **Tool list screenshot**: Cursor showing the 215+ HoloScript tools accessible in the MCP picker
 3. **Workflow demo**: Short GIF of asking Cursor to "compile this .holo to USD" and seeing the file appear
 4. **Codebase intel**: Cursor asking "what calls trainVAE" and getting HoloScript Absorb's GraphRAG answer
@@ -151,6 +153,7 @@ HoloScript is a universal semantic platform. One `.holo` file compiles to 30+ ta
 | Ask Cursor... | HoloScript MCP does |
 |---|---|
 | "Compile scene.holo to Unity" | `compile_to_unity` → Scene.cs |
+| "Find EGFR inhibitors and simulate binding" | `mcp__plugin_bio-research_*` + `compile_holo` → verifiable scene |
 | "Run FEA on this bracket" | `simulate_fea` → results + provenance |
 | "Find everything that uses the Trait decorator" | `holo_query_codebase` → callers + impact |
 | "Publish this composition to HoloMesh" | `mesh_publish_composition` → signed artifact |

@@ -63,7 +63,11 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores } from './holomesh/state';
+import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
+
+// Initialize native agent compositions
+loadNativeAgentCompositions();
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';

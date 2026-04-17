@@ -50,6 +50,7 @@ import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { traitTools, handleTraitTool } from './trait-tools';
+import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 
 declare const __SERVICE_VERSION__: string;
@@ -72,6 +73,7 @@ const server = new Server(
 // Only add synthetic meta-tools here (discover + batch).
 const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...tools,
+  ...alphafoldTools,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
@@ -242,6 +244,7 @@ registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, a
 registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
 registerCategory(traitTools, (name, args) => handleTraitTool(name, args));
+registerCategory(alphafoldTools, (name, args) => handleFetchStructure(args));
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
@@ -301,8 +304,12 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
 
 // Start server
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
+import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 
 async function main() {
+  // Load agent definitions from native .hsplus fixtures
+  loadNativeAgentCompositions();
+  
   requireConfig((REQUIRED_VARS.MCP_SERVER as unknown as string[]), 'mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -332,6 +339,7 @@ export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
 export * from './trait-tools';
+export * from './alphafold-tools';
 export * from '@holoscript/absorb-service/mcp';
 export * from './a2a';
 export * from './security';

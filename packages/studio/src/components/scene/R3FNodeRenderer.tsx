@@ -10,6 +10,7 @@ import {
   LODMeshNode,
   hasLOD,
   DraftMeshNode,
+  BiologicalMeshNode,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -98,6 +99,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
             color={props.draftColor}
           />
         );
+      } else if (props.hsType === 'protein_structure' || props.hsType === 'molecule') {
+        meshComponent = <BiologicalMeshNode node={node} />;
       } else if (isShaderMesh) {
         meshComponent = <StudioShaderMeshNode node={node} />;
       } else if (isLODMesh) {

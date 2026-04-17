@@ -1,0 +1,16 @@
+export {
+  ContinualTraitLearner,
+  EpisodicBuffer,
+  computeFisherDiagonal,
+  computeEWCPenalty,
+  neuralODEStep,
+  integrateODE,
+  type TraitName,
+  type TraitEmbedding,
+  type WeightVector,
+  type FisherDiagonal,
+  type TaskSnapshot,
+  type TraitDescriptor,
+  type LearningResult,
+  type ContinualLearnerOptions,
+} from './continual';

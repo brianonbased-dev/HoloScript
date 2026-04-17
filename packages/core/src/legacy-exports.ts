@@ -76,7 +76,12 @@ export {
 } from './parser/RichErrors';
 
 // .holo Composition Parser (NEW - Scene-centric declarative format)
-export { HoloCompositionParser, parseHolo, parseHoloStrict } from './parser/HoloCompositionParser';
+export {
+  HoloCompositionParser,
+  parseHolo,
+  parseHoloStrict,
+  parseHoloPartial,
+} from './parser/HoloCompositionParser';
 export type {
   HoloComposition,
   HoloEnvironment,

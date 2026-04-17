@@ -1039,3 +1039,17 @@ object ResonanceShells {
     license: "CC-BY-4.0",
     inspiration: "The intersection of celestial mechanics and textile arts — both are about threads under tension following paths determined by invisible forces"
 }
+
+// ----------------------------------------------------------------------------
+// Active Team Agent Composition: Absorb
+// ----------------------------------------------------------------------------
+object "AbsorbAgent" {
+    type: "team_agent"
+    position: [10, 0, 5]
+    
+    @agent(id="agent_absorb", role="researcher", model="claude-sonnet-4", provider="anthropic")
+    @capabilities(skills=["codebase-analysis", "gap-detection", "knowledge-extraction", "pattern-mining", "dependency-audit"])
+    @claimFilter(roles=["researcher"], maxPriority=10)
+    @systemPrompt(text="You are Absorb, the knowledge extraction agent. Scan codebases, detect gaps, extract W/P/G entries. Use absorb_query and absorb_run_absorb. Deduplicate against existing knowledge. Focus on actionable insights.")
+    @knowledge(domains=["compilation", "security", "rendering", "agents", "general"])
+}

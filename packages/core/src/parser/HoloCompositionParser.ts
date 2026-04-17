@@ -6202,3 +6202,89 @@ export function parseHoloStrict(source: string): HoloComposition {
   }
   return result.ast;
 }
+
+/**
+ * Parse a potentially incomplete HoloScript source fragment.
+ *
+ * Unlike `parseHoloStrict`, this never throws. Unlike `parseHolo`, it
+ * guarantees a non-null `ast` on the return — callers can always walk
+ * children without null-guards. Intended for:
+ *   - REPL / live-preview tools where the user is still typing
+ *   - LSP servers providing completions on mid-keystroke source
+ *   - Syntax highlighters that need a best-effort AST
+ *   - Any consumer that would otherwise reach for regex
+ *
+ * The returned `ast` may be a stub implicit composition when input is
+ * too incomplete to attribute to a declaration; errors describe what
+ * was missing. The `partial` flag distinguishes a tolerated parse from
+ * a clean one — it's true whenever `errors.length > 0`.
+ *
+ * This is the sanctioned alternative to regex parsing of HoloScript
+ * syntax outside @holoscript/core. See NORTH_STAR.md DT-14 and the
+ * `no-regex-hs-parsing` ESLint rule.
+ */
+export function parseHoloPartial(
+  source: string,
+  options?: HoloParserOptions
+): HoloParseResult & { partial: boolean } {
+  let result: HoloParseResult;
+  try {
+    const parser = new HoloCompositionParser({ ...options, tolerant: true });
+    result = parser.parse(source ?? '');
+  } catch (error) {
+    // Defensive: parse() itself swallows errors, but a lexer/tokenizer
+    // crash on exotic input should still yield a usable shape.
+    result = {
+      success: false,
+      errors: [
+        {
+          message:
+            error instanceof Error ? error.message : String(error ?? 'unknown parse failure'),
+          loc: { line: 0, column: 0 },
+        },
+      ],
+      warnings: [],
+    };
+  }
+
+  const ast: HoloComposition =
+    result.ast ??
+    ({
+      type: 'Composition',
+      name: 'partial',
+      templates: [],
+      objects: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+      spawnGroups: [],
+      waypointSets: [],
+      constraints: [],
+      terrains: [],
+      domainBlocks: [],
+      norms: [],
+      metanorms: [],
+    } as HoloComposition);
+
+  return {
+    success: result.success,
+    ast,
+    errors: result.errors,
+    warnings: result.warnings,
+    partial: result.errors.length > 0,
+  };
+}

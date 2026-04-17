@@ -1,9 +1,18 @@
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
 import storybook from 'eslint-plugin-storybook';
 import reactHooks from 'eslint-plugin-react-hooks';
+import { createRequire } from 'node:module';
 
 // @ts-check
 import tseslint from 'typescript-eslint';
+
+// Local rules — see tools/eslint-rules/. NORTH_STAR DT-14 governs dogfooding policy.
+const requireLocal = createRequire(import.meta.url);
+const holoscriptPlugin = {
+  rules: {
+    'no-regex-hs-parsing': requireLocal('./tools/eslint-rules/no-regex-hs-parsing.cjs'),
+  },
+};
 
 export default tseslint.config(
   // Global ignores (replaces .eslintignore)
@@ -68,6 +77,15 @@ export default tseslint.config(
     rules: {
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/rules-of-hooks': 'error',
+    },
+  },
+  // HoloScript dogfooding — NORTH_STAR DT-14. Block regex-based HS parsing
+  // outside @holoscript/core. Rule self-exempts packages/core/**, __tests__/**,
+  // and tools/eslint-rules/** (see tools/eslint-rules/no-regex-hs-parsing.cjs).
+  {
+    plugins: { holoscript: holoscriptPlugin },
+    rules: {
+      'holoscript/no-regex-hs-parsing': 'error',
     },
   }
 );

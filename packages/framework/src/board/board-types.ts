@@ -300,12 +300,16 @@ export const ORACLE_AGENT: TeamAgentProfile = {
   knowledgeDomains: ['security', 'compilation', 'agents'],
 };
 
-export const TEAM_AGENT_PROFILES: ReadonlyMap<string, TeamAgentProfile> = new Map([
+export const TEAM_AGENT_PROFILES: Map<string, TeamAgentProfile> = new Map([
   [BRITTNEY_AGENT.id, BRITTNEY_AGENT],
   [DAEMON_AGENT.id, DAEMON_AGENT],
   [ABSORB_AGENT.id, ABSORB_AGENT],
   [ORACLE_AGENT.id, ORACLE_AGENT],
 ]);
+
+export function registerAgentProfile(profile: TeamAgentProfile) {
+  TEAM_AGENT_PROFILES.set(profile.id, profile);
+}
 
 export function getAllProfiles(): TeamAgentProfile[] {
   return Array.from(TEAM_AGENT_PROFILES.values());
