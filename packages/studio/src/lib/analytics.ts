@@ -4,11 +4,19 @@
  * Integrates PostHog for product analytics and Sentry for error tracking.
  * Both are opt-in — no tracking without environment variables configured.
  *
+ * **Federated aggregates** (optional): when `NEXT_PUBLIC_FEDERATED_ANALYTICS_URL` is set,
+ * Studio also accumulates per-event **counts** locally and periodically POSTs only those
+ * aggregates (plus a random install id) to your endpoint — no raw event properties.
+ * PostHog remains independent; both can be enabled.
+ *
  * Environment variables:
  *   - NEXT_PUBLIC_POSTHOG_KEY     → PostHog project API key
  *   - NEXT_PUBLIC_POSTHOG_HOST    → PostHog instance URL (default: https://app.posthog.com)
  *   - NEXT_PUBLIC_SENTRY_DSN      → Sentry DSN for error tracking
+ *   - NEXT_PUBLIC_FEDERATED_ANALYTICS_URL → optional URL for aggregate-only telemetry
  */
+
+import { initFederatedAnalytics, recordFederatedEvent } from './federatedAnalytics';
 
 let _posthog: any = null;
 let _initialized = false;
@@ -20,6 +28,8 @@ let _initialized = false;
 export async function initAnalytics(userId?: string) {
   if (_initialized) return;
   _initialized = true;
+
+  initFederatedAnalytics();
 
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
@@ -49,6 +59,7 @@ export async function initAnalytics(userId?: string) {
  * Track a custom event.
  */
 export function trackEvent(event: string, properties?: Record<string, unknown>) {
+  recordFederatedEvent(event);
   _posthog?.capture(event, properties);
 }
 

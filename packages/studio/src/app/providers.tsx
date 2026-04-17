@@ -8,6 +8,10 @@ import { usePathname } from 'next/navigation';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
+import {
+  flushFederatedAnalytics,
+  isFederatedAnalyticsEnabled,
+} from '../lib/federatedAnalytics';
 import { _useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
 const DevToolsInit = dynamic(
@@ -96,6 +100,29 @@ function _ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id:
 // Analytics Provider (uses useSession, must be inside SessionProvider)
 // ═══════════════════════════════════════════════════════════════════
 
+function FederatedAnalyticsSync() {
+  useEffect(() => {
+    if (!isFederatedAnalyticsEnabled()) return;
+    const intervalMs = 5 * 60 * 1000;
+    const timer = setInterval(() => void flushFederatedAnalytics(), intervalMs);
+    const flush = () => void flushFederatedAnalytics();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('beforeunload', flush);
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('beforeunload', flush);
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
+  return null;
+}
+
 function AnalyticsProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
 
@@ -107,7 +134,12 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
     }
   }, [session]);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <FederatedAnalyticsSync />
+    </>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════
