@@ -19,6 +19,49 @@ import { VM } from 'vm2';
 import { parseHoloStrict, HoloScriptPlusParser } from '@holoscript/core';
 import { HoloBytecodeBuilder, HoloVM } from '@holoscript/holo-vm';
 
+/** SEC-01 / Paper #4: guest code must not compile or instantiate Wasm inside the isolate. */
+function createBlockedWebAssemblySurface(): Record<string, unknown> {
+  const block = (name: string) => {
+    throw new Error(`${name} is blocked in the HoloScript security sandbox (SEC-01)`);
+  };
+  return {
+    compile: () => block('WebAssembly.compile'),
+    instantiate: () => block('WebAssembly.instantiate'),
+    instantiateStreaming: () => block('WebAssembly.instantiateStreaming'),
+    validate: () => block('WebAssembly.validate'),
+    Module: class WasmModuleBlocked {
+      constructor() {
+        block('WebAssembly.Module');
+      }
+    },
+    Instance: class WasmInstanceBlocked {
+      constructor() {
+        block('WebAssembly.Instance');
+      }
+    },
+    Memory: class WasmMemoryBlocked {
+      constructor() {
+        block('WebAssembly.Memory');
+      }
+    },
+    Table: class WasmTableBlocked {
+      constructor() {
+        block('WebAssembly.Table');
+      }
+    },
+    Global: class WasmGlobalBlocked {
+      constructor() {
+        block('WebAssembly.Global');
+      }
+    },
+    Tag: class WasmTagBlocked {
+      constructor() {
+        block('WebAssembly.Tag');
+      }
+    },
+  };
+}
+
 /**
  * Configuration options for the sandbox
  */
@@ -265,6 +308,8 @@ export class HoloScriptSandbox {
           error: (...args: unknown[]) => console.error('[SANDBOX]', ...args),
           warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
         },
+        // Shadow host WebAssembly (vm2 can expose it); SEC-01 — no guest wasm compile.
+        WebAssembly: createBlockedWebAssemblySurface(),
       },
     });
 
