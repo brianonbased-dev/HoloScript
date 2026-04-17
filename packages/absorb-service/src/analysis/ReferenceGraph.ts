@@ -8,9 +8,65 @@
  * - Track all symbol references (usages)
  * - Build directed graph of references
  * - Support cross-file references
+ * - Native HoloComposition ingestion (see buildFromHoloComposition) —
+ *   preserves AST loc ranges for the provenance semiring. NORTH_STAR DT-14.
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
+
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloTemplate,
+  HoloImport,
+  HoloSpatialGroup,
+} from '@holoscript/core';
+
+/**
+ * Structural equivalent of `@holoscript/core`'s internal `SourceRange`.
+ * Defined locally because `SourceRange` is not re-exported from the public
+ * barrel; `HoloNode.loc` still resolves to a compatible shape via
+ * structural typing.
+ */
+interface HoloSourceRangeLike {
+  start: { line: number; column: number };
+  end?: { line: number; column: number };
+}
+
+// --- HoloComposition loc helpers (module-level, no `this` needed) -------------
+function locLine(loc: HoloSourceRangeLike | undefined): number {
+  return loc?.start.line ?? 1;
+}
+function locColumn(loc: HoloSourceRangeLike | undefined): number {
+  return loc?.start.column ?? 1;
+}
+function locEndLine(loc: HoloSourceRangeLike | undefined): number | undefined {
+  return loc?.end?.line;
+}
+function locEndColumn(loc: HoloSourceRangeLike | undefined): number | undefined {
+  return loc?.end?.column;
+}
+function asSymbolLocation(loc: HoloSourceRangeLike | undefined): SymbolLocation | undefined {
+  if (!loc) return undefined;
+  return {
+    start: { line: loc.start.line, column: loc.start.column },
+    end: loc.end ? { line: loc.end.line, column: loc.end.column } : undefined,
+  };
+}
+function asSymbolProvenance(
+  prov: { author?: string; timestamp?: number; provenanceHash?: string } | undefined
+): SymbolProvenance | undefined {
+  if (!prov) return undefined;
+  if (prov.author === undefined && prov.timestamp === undefined && !prov.provenanceHash) {
+    return undefined;
+  }
+  return {
+    author: prov.author,
+    timestamp: prov.timestamp,
+    provenanceHash: prov.provenanceHash,
+  };
+}
 
 /**
  * Symbol types
@@ -40,6 +96,32 @@ export type SymbolType =
   | 'package';
 
 /**
+ * Source location — raw AST-range preserved without loss.
+ *
+ * This is the provenance-semiring anchor (A3 artifact). Byte-precise
+ * ranges flow from `parseHolo()` through the graph to downstream
+ * consumers (DPO splitter, self-improvement pipeline) so extractions
+ * can be verified against the original source.
+ */
+export interface SymbolLocation {
+  start: { line: number; column: number };
+  end?: { line: number; column: number };
+}
+
+/**
+ * Cryptographic provenance (CRSEC/X402).
+ *
+ * Populated when a `.hsplus` or `.holo` source is signed or
+ * gated by X402 — lets consumers attest that a graph node came
+ * from an authenticated derivation.
+ */
+export interface SymbolProvenance {
+  author?: string;
+  timestamp?: number;
+  provenanceHash?: string;
+}
+
+/**
  * Symbol definition
  */
 export interface SymbolDefinition {
@@ -53,6 +135,16 @@ export interface SymbolDefinition {
   parent?: string;
   isExported?: boolean;
   isEntryPoint?: boolean;
+  /**
+   * Native AST location object — preserves byte-precise ranges for the
+   * provenance semiring. Populated when the definition originates from
+   * `parseHolo()` (see `buildFromHoloComposition`).
+   */
+  loc?: SymbolLocation;
+  /**
+   * Cryptographic provenance metadata (CRSEC/X402). Optional.
+   */
+  provenance?: SymbolProvenance;
   metadata?: Record<string, unknown>;
 }
 
@@ -169,6 +261,150 @@ export class ReferenceGraph {
     this.buildEdges();
     this.identifyEntryPoints();
     this.dirty = false;
+  }
+
+  /**
+   * Ingest a `HoloComposition` AST natively — the A2 mapping.
+   *
+   * Preserves byte-precise `SourceLocation` ranges on every definition
+   * for the provenance semiring (A3). This is the sanctioned dogfooding
+   * path for `.holo` / `.hsplus` sources — callers should use
+   * `ingestHoloSource()` rather than hand-rolling regex over raw text.
+   *
+   * Unlike `buildFromAST`, this method requires the caller to invoke
+   * `finalize()` when done ingesting (or use `ingestHoloSource` which
+   * finalizes on single-file ingestion).
+   */
+  buildFromHoloComposition(ast: HoloComposition, filePath: string = 'input.holo'): void {
+    const compositionName = ast.name || 'unnamed';
+    this.addDefinition({
+      name: compositionName,
+      type: 'composition',
+      filePath,
+      line: locLine(ast.loc),
+      column: locColumn(ast.loc),
+      endLine: locEndLine(ast.loc),
+      endColumn: locEndColumn(ast.loc),
+      isEntryPoint: true,
+      loc: asSymbolLocation(ast.loc),
+      provenance: asSymbolProvenance(ast.provenance),
+      metadata: { fromHoloAST: true, astType: 'Composition' },
+    });
+
+    for (const tmpl of ast.templates ?? []) {
+      this.ingestTemplate(tmpl, filePath, compositionName);
+    }
+    for (const obj of ast.objects ?? []) {
+      this.ingestObject(obj, filePath, compositionName);
+    }
+    for (const group of ast.spatialGroups ?? []) {
+      this.ingestSpatialGroup(group, filePath, compositionName);
+    }
+    for (const imp of ast.imports ?? []) {
+      this.ingestImport(imp, filePath);
+    }
+
+    this.dirty = true;
+  }
+
+  private ingestTemplate(tmpl: HoloTemplate, filePath: string, parent: string): void {
+    if (!tmpl.name) return;
+    this.addDefinition({
+      name: tmpl.name,
+      type: 'template',
+      filePath,
+      line: locLine(tmpl.loc),
+      column: locColumn(tmpl.loc),
+      endLine: locEndLine(tmpl.loc),
+      endColumn: locEndColumn(tmpl.loc),
+      parent,
+      isExported: true,
+      loc: asSymbolLocation(tmpl.loc),
+      metadata: { fromHoloAST: true, astType: 'Template' },
+    });
+  }
+
+  private ingestObject(obj: HoloObjectDecl, filePath: string, parent: string): void {
+    if (!obj.name) return;
+    const objectId = obj.name;
+
+    this.addDefinition({
+      name: objectId,
+      type: 'orb',
+      filePath,
+      line: locLine(obj.loc),
+      column: locColumn(obj.loc),
+      endLine: locEndLine(obj.loc),
+      endColumn: locEndColumn(obj.loc),
+      parent,
+      loc: asSymbolLocation(obj.loc),
+      provenance: asSymbolProvenance(obj.provenance),
+      metadata: { fromHoloAST: true, astType: 'Object' },
+    });
+
+    // `using` clause — template reference
+    if (obj.template) {
+      this.addReference({
+        name: obj.template,
+        type: 'template',
+        filePath,
+        line: locLine(obj.loc),
+        column: locColumn(obj.loc),
+        context: 'template-usage',
+      });
+    }
+
+    // Trait applications — reference edges per A2
+    for (const trait of obj.traits ?? []) {
+      this.ingestObjectTrait(trait, filePath);
+    }
+
+    // Nested children — recurse with this object as parent
+    for (const child of obj.children ?? []) {
+      this.ingestObject(child, filePath, objectId);
+    }
+  }
+
+  private ingestObjectTrait(trait: HoloObjectTrait, filePath: string): void {
+    if (!trait.name) return;
+    this.addReference({
+      name: trait.name,
+      type: 'trait',
+      filePath,
+      line: locLine(trait.loc),
+      column: locColumn(trait.loc),
+      context: 'trait-config',
+    });
+  }
+
+  private ingestSpatialGroup(group: HoloSpatialGroup, filePath: string, parent: string): void {
+    const name = (group as { name?: string }).name;
+    if (!name) return;
+    this.addDefinition({
+      name,
+      type: 'orb',
+      filePath,
+      line: locLine(group.loc),
+      column: locColumn(group.loc),
+      endLine: locEndLine(group.loc),
+      endColumn: locEndColumn(group.loc),
+      parent,
+      loc: asSymbolLocation(group.loc),
+      metadata: { fromHoloAST: true, astType: 'SpatialGroup' },
+    });
+  }
+
+  private ingestImport(imp: HoloImport, filePath: string): void {
+    const source = (imp as { source?: string }).source;
+    if (!source) return;
+    this.addReference({
+      name: source,
+      type: 'import',
+      filePath,
+      line: locLine(imp.loc),
+      column: locColumn(imp.loc),
+      context: 'import',
+    });
   }
 
   /**
