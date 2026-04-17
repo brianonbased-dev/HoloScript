@@ -4,7 +4,11 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  hashGeometry, validateUnits, DeterministicStepper, ContractedSimulation,
+  hashGeometry,
+  validateUnits,
+  validateMeshSanity,
+  DeterministicStepper,
+  ContractedSimulation,
 } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 
@@ -58,6 +62,13 @@ describe('Geometry Hashing', () => {
     const e1 = new Uint32Array([0, 1, 2]);
     const e2 = new Uint32Array([0, 2, 1]);
     expect(hashGeometry(v, e1)).not.toBe(hashGeometry(v, e2));
+  });
+
+  it('Paper #4: validateMeshSanity flags out-of-range element indices', () => {
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const bad = new Uint32Array([0, 1, 99]);
+    const vio = validateMeshSanity(v, bad);
+    expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.severity === 'error')).toBe(true);
   });
 });
 

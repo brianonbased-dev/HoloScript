@@ -69,7 +69,7 @@ export {
 // Simulation Contract — Enforced guarantees for scientific reliability
 export {
   ContractedSimulation, DeterministicStepper,
-  hashGeometry, validateUnits,
+  hashGeometry, validateUnits, validateMeshSanity,
   type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
 } from './SimulationContract';
 

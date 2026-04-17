@@ -83,6 +83,8 @@ export interface ContractConfig {
   maxAccumulator?: number;
   /** Whether to enforce unit validation (default: true) */
   enforceUnits?: boolean;
+  /** Whether to reject meshes with out-of-range element indices (default: true). Paper #4 semantic sanity. */
+  enforceMeshSanity?: boolean;
   /** Whether to log all interactions (default: true) */
   logInteractions?: boolean;
   /** Solver type label */
@@ -144,6 +146,66 @@ export function hashGeometry(
   }
 
   return `geo-${(h >>> 0).toString(16).padStart(8, '0')}-${nCoord / 3}n-${nIdx}e`;
+}
+
+/**
+ * Paper #4 — semantic sanity beyond hash: element indices must reference real nodes.
+ * Catches hash-consistent but physically meaningless connectivity (e.g. indices
+ * pointing past the vertex buffer).
+ */
+export function validateMeshSanity(
+  vertices: Float64Array | Float32Array | undefined,
+  elements: Uint32Array | undefined,
+): ContractViolation[] {
+  if (!vertices || !elements) return [];
+
+  const nCoord = vertices.length;
+  if (nCoord < 3 || nCoord % 3 !== 0) {
+    return [
+      {
+        rule: 'mesh-sanity',
+        message: `Vertex buffer length ${nCoord} is not a positive multiple of 3`,
+        severity: 'error',
+      },
+    ];
+  }
+  const numNodes = nCoord / 3;
+  const out: ContractViolation[] = [];
+
+  for (let i = 0; i < vertices.length; i++) {
+    const c = vertices[i];
+    if (!Number.isFinite(c)) {
+      out.push({
+        rule: 'mesh-sanity',
+        message: `Non-finite vertex coordinate at index ${i}`,
+        severity: 'error',
+      });
+      break;
+    }
+  }
+
+  for (let i = 0; i < elements.length; i++) {
+    const idx = elements[i];
+    if (!Number.isFinite(idx) || !Number.isInteger(idx)) {
+      out.push({
+        rule: 'mesh-connectivity',
+        message: `Element index at offset ${i} is not a finite integer`,
+        severity: 'error',
+      });
+      continue;
+    }
+    if (idx < 0 || idx >= numNodes) {
+      out.push({
+        rule: 'mesh-connectivity',
+        message:
+          `Element index ${idx} at offset ${i} out of range [0, ${numNodes - 1}] ` +
+          `(${numNodes} nodes)`,
+        severity: 'error',
+      });
+    }
+  }
+
+  return out;
 }
 
 // ── Unit Validation ──────────────────────────────────────────────────────────
@@ -281,20 +343,26 @@ export class ContractedSimulation {
     this.logInteractions = contractConfig.logInteractions ?? true;
 
     // Compute geometry hash
-    this.geometryHash = hashGeometry(
-      config.vertices as Float64Array | Float32Array | undefined,
-      (config.tetrahedra ?? config.elements) as Uint32Array | undefined,
-    );
+    const meshVertices = config.vertices as Float64Array | Float32Array | undefined;
+    const meshElements = (config.tetrahedra ?? config.elements) as Uint32Array | undefined;
+
+    this.geometryHash = hashGeometry(meshVertices, meshElements);
+
+    this.violations = [];
+    if (contractConfig.enforceMeshSanity !== false) {
+      this.violations.push(...validateMeshSanity(meshVertices, meshElements));
+    }
 
     // Validate units
     if (contractConfig.enforceUnits !== false) {
-      this.violations = validateUnits(config);
-      for (const v of this.violations) {
-        if (v.severity === 'error') {
-          console.error(`[SimulationContract] ${v.message}`);
-        } else {
-          console.warn(`[SimulationContract] ${v.message}`);
-        }
+      this.violations.push(...validateUnits(config));
+    }
+
+    for (const v of this.violations) {
+      if (v.severity === 'error') {
+        console.error(`[SimulationContract] ${v.message}`);
+      } else {
+        console.warn(`[SimulationContract] ${v.message}`);
       }
     }
 
