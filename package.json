@@ -68,7 +68,9 @@
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
-    "syncpack:check": "syncpack list-mismatches"
+    "syncpack:check": "syncpack list-mismatches",
+    "agents:status": "tsx scripts/build/deploy-multi-agents.ts --status",
+    "agents:deploy": "tsx scripts/build/deploy-multi-agents.ts"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.86.1",

@@ -67,6 +67,10 @@ const _MODE_CLAIM_ROLES: Record<TeamMode, SlotRole[]> = {
   build: ['coder', 'tester'],
   research: ['researcher'],
   review: ['reviewer', 'researcher'],
+  security: ['reviewer', 'tester', 'coder'],
+  stabilize: ['tester', 'coder'],
+  docs: ['researcher', 'reviewer'],
+  planning: ['researcher', 'reviewer', 'flex'],
 };
 
 // ── Internal Proposal (not exported — use ProposalResult from types) ──

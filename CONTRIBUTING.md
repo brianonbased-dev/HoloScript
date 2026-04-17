@@ -97,6 +97,20 @@ ls -d packages/*/ services/*/
 
 **Before starting large features**, open an issue to discuss the approach.
 
+## Performance Thresholds (Law of the Environment)
+
+Time is of the utmost importance in HoloScript. Slowness reads as broken in spatial and agent loops—even when correctness holds. We treat performance thresholds as product law. Before opening a PR, ensure your changes do not violate the **NORTH_STAR §5 Performance Thresholds**:
+
+| Operation | Target Budget | Warning |
+|-----------|---------------|---------|
+| Compilation (single file) | < 50ms | > 500ms |
+| Graph absorb (incremental) | < 100ms | > 2s |
+| Test suite (single package) | < 30s | > 120s |
+| Studio dev server start | < 10s | > 30s |
+| VR frame budget (90Hz) | < 11.1ms | dropped frames |
+
+*Anchor product UX to these rows before adding features. Features that violate these budgets require architectural review.*
+
 ## Utility-First Framing (not only 3D/XR)
 
 HoloScript is a universal semantic platform. Spatial rendering is one output channel, not the whole product surface.

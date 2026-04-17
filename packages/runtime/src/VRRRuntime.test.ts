@@ -119,10 +119,38 @@ describe('VRRRuntime', () => {
       expect(() => vrr.spawnNPCCrowd({ x: 0, y: 0, z: 0 }, 5)).not.toThrow();
     });
 
-    it('requirePayment resolves (stub)', async () => {
+    it('spawnNPCCrowd invokes hooks.onNpcCrowdSpawn and records memoryState', () => {
+      const onNpcCrowdSpawn = vi.fn();
+      const v2 = new VRRRuntime(baseOptions({ hooks: { onNpcCrowdSpawn } }));
+      v2.spawnNPCCrowd([1, 2, 3], 8);
+      expect(onNpcCrowdSpawn).toHaveBeenCalledWith({
+        position: { x: 1, y: 2, z: 3 },
+        count: 8,
+      });
+      expect(v2.getState('npc_crowd:last')).toMatchObject({
+        position: { x: 1, y: 2, z: 3 },
+        count: 8,
+      });
+      v2.dispose();
+    });
+
+    it('requirePayment delegates to payments.verifyPayment when set', async () => {
+      const verifyPayment = vi.fn().mockResolvedValue(true);
+      const v2 = new VRRRuntime(baseOptions({ payments: { verifyPayment } }));
+      await expect(
+        v2.requirePayment({ price: 2, asset: 'USDC', network: 'base' })
+      ).resolves.toBe(true);
+      expect(verifyPayment).toHaveBeenCalledWith({ price: 2, asset: 'USDC', network: 'base' });
+      v2.dispose();
+    });
+
+    it('requirePayment resolves in dev when no verifier (warns once)', async () => {
+      const w = vi.spyOn(console, 'warn').mockImplementation(() => {});
       await expect(vrr.requirePayment({ price: 1, asset: 'USDC', network: 'base' })).resolves.toBe(
         true
       );
+      expect(w).toHaveBeenCalled();
+      w.mockRestore();
     });
   });
 

@@ -1543,6 +1543,8 @@ namespace HoloScript.Generated
         }
     }
 }
+`;
+}
 
 function generateHoloTraitAdapter(): string {
   return `using UnityEngine;
@@ -1587,8 +1589,6 @@ namespace HoloScript.Generated
       });
     }
   }
-}
-`;
 }
 `;
 }

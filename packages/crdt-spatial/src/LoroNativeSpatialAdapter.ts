@@ -166,7 +166,7 @@ export function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
 
 /** Identity transform constant */
 export const NATIVE_IDENTITY_TRANSFORM: SpatialTransform = {
-  position: [0, 0, 0],
+  position: { x: 0, y: 0, z: 0 },
   rotation: { x: 0, y: 0, z: 0, w: 1 },
   scale: { x: 1, y: 1, z: 1 },
 };
@@ -890,7 +890,11 @@ export class LoroNativeSpatialAdapter {
   /** Read a SpatialTransform from a LoroMap (node.data) */
   private readTransformFromMap(data: LoroMap): SpatialTransform {
     return {
-      position: [(data.get('pos_x') as number) ?? 0, (data.get('pos_y') as number) ?? 0, (data.get('pos_z') as number) ?? 0,],
+      position: {
+        x: (data.get('pos_x') as number) ?? 0,
+        y: (data.get('pos_y') as number) ?? 0,
+        z: (data.get('pos_z') as number) ?? 0,
+      },
       rotation: {
         x: (data.get('rot_x') as number) ?? 0,
         y: (data.get('rot_y') as number) ?? 0,

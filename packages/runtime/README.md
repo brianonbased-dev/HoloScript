@@ -186,6 +186,38 @@ physics.applyImpulse('ball', [0, 5, 0]);
 - `@react-three/fiber` ^8.0.0 (optional)
 - `three` ^0.160.0 (optional)
 
+## x402 Facilitator Verification (server-side)
+
+When you pair runtime content with paywalled routes, use the marketplace API verifier
+to confirm facilitator-backed x402 receipts over HTTP.
+
+Environment (example):
+
+- `X402_VERIFIER_ENABLED=true`
+- `X402_FACILITATOR_URL=https://cdp.coinbase.com/x402`
+- `X402_FACILITATOR_API_KEY=...` (optional)
+- `X402_VERIFIER_TIMEOUT_MS=5000`
+
+Minimal usage:
+
+```ts
+import { createX402HttpVerifierFromEnv } from '@holoscript/marketplace-api';
+
+const verifier = createX402HttpVerifierFromEnv();
+const result = await verifier.verifyPayment({
+  paymentId: 'pay_abc123',
+  transactionHash: '0x...',
+  network: 'base',
+  asset: 'USDC',
+  amount: 0.05,
+  contentId: '/api/vrr/phoenix-brew-twin',
+});
+
+if (!result.verified) {
+  throw new Error(`x402 verification failed: ${result.reason}`);
+}
+```
+
 ## License
 
 MIT
