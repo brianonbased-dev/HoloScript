@@ -19,6 +19,25 @@ export {
 // Constants (New)
 export * from './constants';
 
+// Determinism harness — cross-backend empirical probing infrastructure
+// for Paper #2 (SNN), P2-0 (retargeting), P2-1 (IK), P3-CENTER (rendering)
+export {
+  DeterminismHarness,
+  captureEnvironment,
+  hashBytes,
+  describeEnvironment,
+} from './testing/DeterminismHarness';
+export type {
+  EnvironmentInfo,
+  GpuInfo,
+  NodeInfo,
+  BrowserInfo,
+  ProbeResult,
+  DivergenceGroup,
+  DivergenceReport,
+  HarnessOptions,
+} from './testing/DeterminismHarness';
+
 // Math Utilities (NEW - Centralized vector math to avoid duplication)
 export * from './math/vec3';
 
