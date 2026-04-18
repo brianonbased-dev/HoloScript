@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { parseHolo } from '@holoscript/core';
 
 export interface ImportOptions {
   engineType: 'unity' | 'unreal' | 'ros2';
@@ -103,12 +104,60 @@ export class LegacyImporter {
 
     holoContent = LegacyImporter.rewriteLegacyFlatTraits(holoContent);
 
+    // B6 (NORTH_STAR DT-14): validate the emitted .holo through the real
+    // parser. The current legacy importer emits XML-shaped content inside
+    // a .holo file, which parseHolo will reject — but that is a
+    // pre-existing bug, not a regression introduced by this gate. The
+    // gate surfaces it loudly instead of silently writing broken output
+    // that breaks downstream consumers. When the XML→HoloScript converter
+    // is actually implemented, the warning stops firing.
+    const validation = LegacyImporter.validateHoloContent(holoContent);
+
     const finalPath = path.join(options.outputPath, 'imported_scene.holo');
     fs.mkdirSync(options.outputPath, { recursive: true });
     fs.writeFileSync(finalPath, holoContent, 'utf-8');
-    
-    console.log(`[HoloMesh:Absorb] Successfully compiled legacy ${options.engineType} data to ${finalPath}`);
+
+    if (!validation.valid) {
+      console.warn(
+        `[HoloMesh:Absorb] WARNING: legacy ${options.engineType} import produced ` +
+          `invalid .holo output at ${finalPath}. First ${Math.min(
+            3,
+            validation.parseErrors.length
+          )} parse error(s): ${validation.parseErrors.slice(0, 3).join(' | ')}. ` +
+          `Downstream HoloScript consumers will fail to parse this file. ` +
+          `Fix: implement a proper ${options.engineType} -> HoloScript AST converter.`
+      );
+    } else {
+      console.log(
+        `[HoloMesh:Absorb] Successfully compiled legacy ${options.engineType} data to ${finalPath}`
+      );
+    }
     return finalPath;
+  }
+
+  /**
+   * Parse the generated .holo content through `@holoscript/core` and
+   * return a structured validation record. Exposed as a static method
+   * so tests and callers can inspect it without re-running the full
+   * import pipeline.
+   */
+  static validateHoloContent(content: string): {
+    valid: boolean;
+    parseErrors: string[];
+  } {
+    try {
+      const result = parseHolo(content, { tolerant: true, locations: false });
+      const errs = result.errors ?? [];
+      return {
+        valid: errs.length === 0 && result.ast != null,
+        parseErrors: errs.map((e) => e.message ?? String(e)),
+      };
+    } catch (err) {
+      return {
+        valid: false,
+        parseErrors: [err instanceof Error ? err.message : String(err)],
+      };
+    }
   }
 
   /**
