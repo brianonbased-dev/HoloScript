@@ -26,6 +26,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { A2A_AGENT_CARD_DOMAIN_TAGS } from './a2a-agent-card-domain-tags';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -568,27 +569,10 @@ export class A2AAgentCardCompiler extends CompilerBase {
    * Compile a domain-specific block into a specialized skill.
    */
   private compileDomainBlockSkill(block: HoloDomainBlock): A2AAgentSkill {
-    const domainTags: Record<string, string[]> = {
-      iot: ['iot', 'sensor', 'telemetry', 'digital-twin'],
-      robotics: ['robotics', 'control', 'actuator', 'simulation'],
-      dataviz: ['data-visualization', 'analytics', 'dashboard'],
-      education: ['education', 'learning', 'curriculum'],
-      healthcare: ['healthcare', 'medical', 'monitoring'],
-      music: ['music', 'audio', 'composition'],
-      architecture: ['architecture', 'building', 'design'],
-      web3: ['web3', 'blockchain', 'smart-contract'],
-      physics: ['physics', 'simulation', 'collision'],
-      material: ['material', 'rendering', 'pbr'],
-      vfx: ['vfx', 'particles', 'visual-effects'],
-      weather: ['weather', 'atmosphere', 'environmental'],
-      navigation: ['navigation', 'pathfinding', 'ai'],
-      procedural: ['procedural', 'generation', 'algorithms'],
-    };
-
     const tags = [
       block.domain,
       block.keyword,
-      ...(domainTags[block.domain] || [block.domain]),
+      ...(A2A_AGENT_CARD_DOMAIN_TAGS[block.domain] ?? [block.domain]),
       ...block.traits,
     ];
 
