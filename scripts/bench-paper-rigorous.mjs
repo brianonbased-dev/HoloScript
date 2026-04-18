@@ -8,6 +8,8 @@
 // Usage:
 //   pnpm run bench:paper-rigorous
 //   pnpm run bench:paper-rigorous -- --only=tropical
+//   node scripts/bench-paper-rigorous.mjs --only=a,b,c   (Windows PowerShell: commas
+//     are stripped by pnpm/npm; call node directly for multi-id --only lists)
 //   BENCH_N=1000 pnpm run bench:paper-rigorous        (override default)
 //
 // Output: one log file per harness in .bench-logs/<timestamp>/, plus a
@@ -84,7 +86,7 @@ const HARNESSES = [
     package: '@holoscript/snn-webgpu',
     file: 'src/__tests__/tropical-shortest-paths.benchmark.test.ts',
     nameFilter: 'GPU crossover',
-    timeoutMs: 600000,
+    timeoutMs: 1_200_000,
   },
   {
     id: 'dumb-glass',

@@ -72,5 +72,5 @@ describe('Dumb Glass Rendering Contract (P3-CENTER)', () => {
     );
 
     expect(frameStats.median).toBeGreaterThan(0);
-  }, 60000);
+  }, 300_000);
 });

@@ -219,5 +219,7 @@ describe('TropicalShortestPaths benchmark harness', () => {
 
     // Sanity: all timings are positive
     expect(results.every((r) => r.cpuMedian > 0 && r.gpuMedian > 0)).toBe(true);
-  }, 120_000);
+    // Paper-grade sweep: N=1024 × many samples can exceed several minutes; per-test
+    // timeout must exceed Vitest default and match bench-paper-rigorous harness budget.
+  }, 1_200_000);
 });
