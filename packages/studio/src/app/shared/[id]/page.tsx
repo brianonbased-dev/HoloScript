@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Globe, ExternalLink, Clock, User, Code2, Eye } from 'lucide-react';
+import { ImmersiveViewer } from './ImmersiveViewer.client';
 
 interface SharedScene {
   id: string;
@@ -109,6 +110,13 @@ export default async function SharedScenePage({ params }: { params: Promise<{ id
             <code className="font-mono text-studio-accent">{scene.id}</code>
           </div>
         </div>
+
+        {/* 3D preview + Enter VR (G2 — WebXR-capable shared viewer) */}
+        {scene.code && (
+          <div className="mb-6">
+            <ImmersiveViewer code={scene.code} />
+          </div>
+        )}
 
         {/* Code viewer */}
         {scene.code && (

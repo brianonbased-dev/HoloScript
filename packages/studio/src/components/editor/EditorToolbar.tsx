@@ -14,6 +14,7 @@
 import React, { useState } from 'react';
 import { SafetyStatusBar } from './SafetyStatusBar';
 import { DeployButton } from './DeployButton';
+import { VoiceAuthoringButton } from '../voice/VoiceAuthoringButton';
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -24,12 +25,15 @@ interface EditorToolbarProps {
   worldId?: string;
   /** Called when user wants to open the safety panel */
   onOpenSafetyPanel?: () => void;
+  /** If provided, voice-authored scenes apply directly to the editor. */
+  onCodeChange?: (code: string) => void;
 }
 
 export function EditorToolbar({
   code,
   worldId = 'default',
   onOpenSafetyPanel,
+  onCodeChange,
 }: EditorToolbarProps) {
   const [platform, setPlatform] = useState('quest3');
 
@@ -56,8 +60,15 @@ export function EditorToolbar({
         </select>
       </div>
 
-      {/* Right: Deploy button */}
-      <DeployButton code={code} worldId={worldId} packageName="my-scene" />
+      {/* Right: Voice + Deploy */}
+      <div className="flex items-center gap-2">
+        <VoiceAuthoringButton
+          compact
+          currentComposition={code}
+          onApply={onCodeChange}
+        />
+        <DeployButton code={code} worldId={worldId} packageName="my-scene" />
+      </div>
     </div>
   );
 }
