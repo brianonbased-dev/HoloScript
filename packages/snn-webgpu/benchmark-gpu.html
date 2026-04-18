@@ -1,19 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SNN-WebGPU Paper Benchmarks (RTX 3060)</title>
+  <title>SNN-WebGPU Paper Benchmarks</title>
   <style>
     body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
     pre { background: #16213e; padding: 15px; border-radius: 8px; overflow-x: auto; }
     .pass { color: #4ade80; } .fail { color: #f87171; } .info { color: #60a5fa; }
     h2 { color: #818cf8; }
+    .toolbar { display: flex; gap: 12px; align-items: center; margin: 12px 0 20px; flex-wrap: wrap; }
+    .button {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #2b3b66;
+      color: #e0e0e0;
+      text-decoration: none;
+      border: 1px solid #4b5b86;
+    }
+    .hint { color: #a5b4fc; }
   </style>
 </head>
 <body>
 <h1>SNN-WebGPU Paper Benchmarks</h1>
+<p class="hint">Use <code>?target=rtx3060&amp;strictAdapter=1&amp;commit=&lt;sha&gt;&amp;driver=&lt;version&gt;</code> for the Paper 2 discrete rerun.</p>
+<div class="toolbar">
+  <a id="downloadJson" class="button" download="paper-2-lif-throughput-rtx3060.json" href="#">Download JSON artifact</a>
+  <span id="artifactStatus" class="hint">Artifact status: initializing</span>
+</div>
 <pre id="log">Initializing WebGPU...</pre>
+<h2>Artifact JSON</h2>
+<pre id="artifact">{}</pre>
 <script type="module">
 const log = document.getElementById('log');
+const artifactPre = document.getElementById('artifact');
+const downloadJson = document.getElementById('downloadJson');
+const artifactStatus = document.getElementById('artifactStatus');
+const query = new URLSearchParams(window.location.search);
+const target = query.get('target') ?? 'auto';
+const strictAdapter = query.get('strictAdapter') === '1' || target === 'rtx3060';
+const expectedAdapterTokens = ['nvidia', 'ampere'];
+const outputFilename = 'paper-2-lif-throughput-rtx3060.json';
+
+const artifact = {
+  schema_version: 'paper-2-lif-throughput-rtx3060-v1',
+  benchmark: 'paper-2-lif-throughput-rtx3060',
+  outputPath: `HoloScript/.bench-logs/${outputFilename}`,
+  generatedAt: new Date().toISOString(),
+  status: 'initializing',
+  target,
+  strictAdapter,
+  commitSha: query.get('commit') ?? 'UNKNOWN_COMMIT_SHA_SET_QUERY_PARAM',
+  driver: query.get('driver') ?? 'UNKNOWN_DRIVER_SET_QUERY_PARAM',
+  sourceHtml: 'packages/snn-webgpu/benchmark-gpu.html',
+  browserUserAgent: navigator.userAgent,
+  adapter: null,
+  lif: {
+    timesteps: 100,
+    results: [],
+    peak: null,
+  },
+  failures: [],
+  notes: [],
+};
+
 function print(msg, cls = '') {
   const span = document.createElement('span');
   span.className = cls;
@@ -22,21 +71,99 @@ function print(msg, cls = '') {
   log.scrollTop = log.scrollHeight;
 }
 
+function refreshArtifactView() {
+  const json = JSON.stringify(artifact, null, 2);
+  artifactPre.textContent = json;
+  downloadJson.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  downloadJson.download = outputFilename;
+  artifactStatus.textContent = `Artifact status: ${artifact.status}`;
+  window.__PAPER2_LIF_ARTIFACT__ = artifact;
+}
+
+function addFailure(stage, message) {
+  artifact.failures.push({ stage, message, timestamp: new Date().toISOString() });
+  refreshArtifactView();
+}
+
+function normalizedAdapterString(info) {
+  return [info.description, info.device, info.vendor, info.architecture]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function adapterGatePassed(info) {
+  if (!strictAdapter) return true;
+  const text = normalizedAdapterString(info);
+  return expectedAdapterTokens.some((token) => text.includes(token));
+}
+
+function computePeak(results) {
+  if (!results.length) return null;
+  return results.reduce((best, row) =>
+    row.throughput_M_per_s > best.throughput_M_per_s ? row : best
+  );
+}
+
 async function run() {
-  // 1. Check WebGPU
-  if (!navigator.gpu) { print('WebGPU not supported', 'fail'); return; }
+  refreshArtifactView();
+
+  if (!navigator.gpu) {
+    artifact.status = 'benchmark_error';
+    addFailure('navigator.gpu', 'WebGPU not supported');
+    print('WebGPU not supported', 'fail');
+    return;
+  }
+
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-  if (!adapter) { print('No GPU adapter', 'fail'); return; }
+  if (!adapter) {
+    artifact.status = 'benchmark_error';
+    addFailure('requestAdapter', 'No GPU adapter returned');
+    print('No GPU adapter', 'fail');
+    return;
+  }
+
   const info = adapter.info || (adapter.requestAdapterInfo ? await adapter.requestAdapterInfo() : {});
+  artifact.adapter = {
+    description: info.description ?? null,
+    vendor: info.vendor ?? null,
+    architecture: info.architecture ?? null,
+    device: info.device ?? null,
+    maxBufferSize: adapter.limits.maxBufferSize,
+    maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+  };
+  refreshArtifactView();
+
   print(`GPU: ${info.description || info.device || info.vendor || 'unknown'}`, 'info');
   print(`Architecture: ${info.architecture || 'unknown'}`, 'info');
 
-  const device = await adapter.requestDevice({
-    requiredLimits: {
-      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
-      maxBufferSize: adapter.limits.maxBufferSize,
-    }
-  });
+  if (!adapterGatePassed(info)) {
+    artifact.status = 'aborted_wrong_adapter';
+    artifact.notes.push('Adapter gate failed: expected NVIDIA/Ampere token in adapter info before benchmark start.');
+    addFailure(
+      'adapter_gate',
+      `Strict adapter gate failed. Saw: ${normalizedAdapterString(info) || 'unknown adapter info'}`
+    );
+    print('ABORT: adapter gate failed (expected NVIDIA/Ampere before benchmark start)', 'fail');
+    return;
+  }
+
+  let device;
+  try {
+    device = await adapter.requestDevice({
+      requiredLimits: {
+        maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+        maxBufferSize: adapter.limits.maxBufferSize,
+      }
+    });
+  } catch (err) {
+    artifact.status = 'device_request_failed';
+    artifact.notes.push('Known failure mode: headless / wrong-adapter paths may fail with dxil.dll Windows Error: 87.');
+    addFailure('requestDevice', err instanceof Error ? err.message : String(err));
+    print(`Error: ${err instanceof Error ? err.message : String(err)}`, 'fail');
+    return;
+  }
+
   print(`Max buffer: ${(device.limits.maxBufferSize / 1e6).toFixed(0)} MB`, 'info');
   print('');
 
@@ -71,7 +198,7 @@ async function run() {
   });
 
   const neuronCounts = [1024, 4096, 16384, 65536, 262144, 1048576];
-  const timesteps = 100;
+  const timesteps = artifact.lif.timesteps;
 
   for (const N of neuronCounts) {
     const voltBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
@@ -79,11 +206,10 @@ async function run() {
     const spkBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE });
     const paramBuf = device.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
-    // Init: resting potential + random currents
     const vData = new Float32Array(N).fill(-65.0);
     const iData = new Float32Array(N);
     for (let j = 0; j < N; j++) iData[j] = Math.random() * 20;
-    const pData = new Float32Array([20.0, -50.0, -65.0, -65.0, 1.0, 0, 0, 0]); // tau, thresh, reset, rest, dt
+    const pData = new Float32Array([20.0, -50.0, -65.0, -65.0, 1.0, 0, 0, 0]);
 
     device.queue.writeBuffer(voltBuf, 0, vData);
     device.queue.writeBuffer(currBuf, 0, iData);
@@ -99,7 +225,6 @@ async function run() {
       ]
     });
 
-    // Warmup
     for (let t = 0; t < 10; t++) {
       const enc = device.createCommandEncoder();
       const pass = enc.beginComputePass();
@@ -111,7 +236,6 @@ async function run() {
     }
     await device.queue.onSubmittedWorkDone();
 
-    // Timed run
     const start = performance.now();
     for (let t = 0; t < timesteps; t++) {
       const enc = device.createCommandEncoder();
@@ -125,8 +249,19 @@ async function run() {
     await device.queue.onSubmittedWorkDone();
     const elapsed = performance.now() - start;
 
-    const neuronsPerSec = (N * timesteps) / (elapsed / 1000);
-    print(`N=${N.toLocaleString().padStart(10)} | ${elapsed.toFixed(1).padStart(8)} ms | ${(neuronsPerSec/1e6).toFixed(1).padStart(8)} M neurons/s`, 'pass');
+    const throughputM = (N * timesteps) / (elapsed / 1000) / 1e6;
+    artifact.lif.results.push({
+      neurons: N,
+      time_ms: Number(elapsed.toFixed(3)),
+      throughput_M_per_s: Number(throughputM.toFixed(3)),
+    });
+    artifact.lif.peak = computePeak(artifact.lif.results);
+    refreshArtifactView();
+
+    print(
+      `N=${N.toLocaleString().padStart(10)} | ${elapsed.toFixed(1).padStart(8)} ms | ${throughputM.toFixed(1).padStart(8)} M neurons/s`,
+      'pass'
+    );
 
     voltBuf.destroy(); currBuf.destroy(); spkBuf.destroy(); paramBuf.destroy();
   }
@@ -198,19 +333,17 @@ async function run() {
       ]
     });
 
-    // Warmup
     for (let w = 0; w < 3; w++) {
       const enc = device.createCommandEncoder();
       const pass = enc.beginComputePass();
       pass.setPipeline(gemmPipeline);
       pass.setBindGroup(0, bg);
-      pass.dispatchWorkgroups(Math.ceil(N/16), Math.ceil(N/16));
+      pass.dispatchWorkgroups(Math.ceil(N / 16), Math.ceil(N / 16));
       pass.end();
       device.queue.submit([enc.finish()]);
     }
     await device.queue.onSubmittedWorkDone();
 
-    // Timed: APSP via path doubling (log2(N) iterations)
     const iters = Math.ceil(Math.log2(N));
     const start = performance.now();
     for (let i = 0; i < iters; i++) {
@@ -218,7 +351,7 @@ async function run() {
       const pass = enc.beginComputePass();
       pass.setPipeline(gemmPipeline);
       pass.setBindGroup(0, bg);
-      pass.dispatchWorkgroups(Math.ceil(N/16), Math.ceil(N/16));
+      pass.dispatchWorkgroups(Math.ceil(N / 16), Math.ceil(N / 16));
       pass.end();
       device.queue.submit([enc.finish()]);
     }
@@ -246,22 +379,30 @@ async function run() {
   const traceEntries = [1000, 10000, 100000];
   for (const count of traceEntries) {
     let prevHash = 0;
-    const payload = JSON.stringify({type:'action',tick:0,data:{force:[1,0,0]},contract:{geo:true}});
+    const payload = JSON.stringify({ type: 'action', tick: 0, data: { force: [1, 0, 0] }, contract: { geo: true } });
     const start = performance.now();
     for (let i = 0; i < count; i++) {
       prevHash = fnv1a(prevHash.toString() + payload + i.toString());
     }
     const elapsed = performance.now() - start;
-    print(`${count.toLocaleString().padStart(8)} entries | ${elapsed.toFixed(1).padStart(8)} ms | ${(elapsed/count*1000).toFixed(2).padStart(8)} µs/entry`, 'pass');
+    print(`${count.toLocaleString().padStart(8)} entries | ${elapsed.toFixed(1).padStart(8)} ms | ${(elapsed / count * 1000).toFixed(2).padStart(8)} µs/entry`, 'pass');
   }
+
+  artifact.status = 'completed';
+  artifact.generatedAt = new Date().toISOString();
+  refreshArtifactView();
 
   print('');
   print('=== BENCHMARK COMPLETE ===', 'info');
-  print(`GPU: ${info.description || info.device}`, 'info');
-  print(`Timestamp: ${new Date().toISOString()}`, 'info');
+  print(`GPU: ${info.description || info.device || info.vendor || 'unknown'}`, 'info');
+  print(`Timestamp: ${artifact.generatedAt}`, 'info');
 }
 
-run().catch(e => print('Error: ' + e.message, 'fail'));
+run().catch((e) => {
+  artifact.status = 'benchmark_error';
+  addFailure('run', e instanceof Error ? e.message : String(e));
+  print('Error: ' + (e instanceof Error ? e.message : String(e)), 'fail');
+});
 </script>
 </body>
 </html>
