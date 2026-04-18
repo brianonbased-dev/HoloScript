@@ -24,9 +24,23 @@ const nextConfig = {
             value:
               "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:;",
           },
+          // Cross-origin isolation enables SharedArrayBuffer for @holoscript/compiler-wasm
+          // and unlocks WebXR features that need it. `credentialless` COEP lets
+          // third-party resources (Polyhaven, avatars) load without requiring them
+          // to ship CORP headers — safer than `require-corp` for our current deps.
+          // See research/quest3-iphone-moment/a-quest3-feasibility-probe.md (step 7)
+          // and c-studio-share-path-map.md (G5).
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
         ],
       },
     ];
+  },
+  // Short share URL: /w/<id> serves the same page as /shared/<id>.
+  // Rewrite (not redirect) so the browser keeps the short URL visible.
+  // See research/quest3-iphone-moment/c-studio-share-path-map.md (G1).
+  async rewrites() {
+    return [{ source: '/w/:id', destination: '/shared/:id' }];
   },
   async redirects() {
     const academyUrl = process.env.NEXT_PUBLIC_ACADEMY_URL || 'http://localhost:3102';

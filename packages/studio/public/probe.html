@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoloScript Quest 3 Probe</title>
+  <style>
+    body { margin: 0; font: 16px system-ui, sans-serif; color: #eee; background: #111; padding: 16px; }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    h2 { font-size: 16px; margin: 16px 0 8px; }
+    p { line-height: 1.5; }
+    .row { display: grid; grid-template-columns: 200px 80px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid #333; }
+    .ok { color: #6fd36f; font-weight: 600; }
+    .warn { color: #f7c34b; font-weight: 600; }
+    .fail { color: #ef6b6b; font-weight: 600; }
+    .detail { color: #aaa; font-size: 14px; word-break: break-word; }
+    button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 12px 20px; font-size: 16px; margin: 4px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    #log { background: #000; border: 1px solid #333; padding: 8px; min-height: 80px; font: 13px ui-monospace, monospace; white-space: pre-wrap; }
+    .hint { color: #6b7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>HoloScript Quest 3 Feasibility Probe</h1>
+  <p class="hint">
+    Tap each button in order. Nothing persists — refresh resets.
+    Spec + scoring rubric: <code>research/quest3-iphone-moment/a-quest3-feasibility-probe.md</code>
+  </p>
+
+  <div id="results"></div>
+
+  <div style="margin-top: 16px;">
+    <button id="btn-webxr">1. Check WebXR</button>
+    <button id="btn-session">2. Enter VR</button>
+    <button id="btn-hand">3. Hand tracking</button>
+    <button id="btn-passthrough">4. Passthrough</button>
+    <button id="btn-mic">5. Microphone</button>
+    <button id="btn-speech">6. Speech recognition</button>
+    <button id="btn-wasm">7. WASM + SharedArrayBuffer</button>
+    <button id="btn-fetch">8. Fetch studio API</button>
+  </div>
+
+  <h2>Log</h2>
+  <pre id="log"></pre>
+
+  <h2>Notes (for the operator)</h2>
+  <ul class="hint">
+    <li>Did <b>SpeechRecognition</b> work <i>inside</i> an immersive-vr session? (This is the question — Meta Browser may block it in VR.)</li>
+    <li>How many minutes before the Meta Browser throttles or crashes?</li>
+    <li>Can you install this page as a PWA (Add to Home Screen)?</li>
+  </ul>
+
+  <script type="module">
+    const results = document.getElementById('results');
+    const log = document.getElementById('log');
+    const row = (label, status, detail) => {
+      const cls = status === 'OK' ? 'ok' : status === 'WARN' ? 'warn' : 'fail';
+      const el = document.createElement('div');
+      el.className = 'row';
+      el.innerHTML = `<div>${label}</div><div class="${cls}">${status}</div><div class="detail">${detail}</div>`;
+      results.appendChild(el);
+    };
+    const say = (s) => { log.textContent += s + '\n'; };
+
+    // 1. WebXR present?
+    document.getElementById('btn-webxr').onclick = async () => {
+      if (!('xr' in navigator)) {
+        row('WebXR API', 'FAIL', 'navigator.xr missing — old browser');
+        return;
+      }
+      const vr = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+      const ar = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+      row('WebXR immersive-vr', vr ? 'OK' : 'FAIL', vr ? 'supported' : 'not supported');
+      row('WebXR immersive-ar', ar ? 'OK' : 'FAIL', ar ? 'supported (passthrough possible)' : 'not supported');
+    };
+
+    // 2. Actually enter a VR session
+    document.getElementById('btn-session').onclick = async () => {
+      try {
+        const session = await navigator.xr.requestSession('immersive-vr', {
+          optionalFeatures: ['hand-tracking', 'local-floor', 'bounded-floor'],
+        });
+        row('VR session start', 'OK', 'session created');
+        say('session features granted: ' + JSON.stringify(session.enabledFeatures || []));
+        setTimeout(() => session.end(), 3000);
+        session.addEventListener('end', () => say('VR session ended after ~3s'));
+      } catch (e) {
+        row('VR session start', 'FAIL', e.message);
+      }
+    };
+
+    // 3. Hand tracking
+    document.getElementById('btn-hand').onclick = async () => {
+      try {
+        const session = await navigator.xr.requestSession('immersive-vr', {
+          requiredFeatures: ['hand-tracking'],
+        });
+        await new Promise((r) => setTimeout(r, 1500));
+        const hands = [...session.inputSources].filter((s) => s.hand);
+        row('Hand tracking', hands.length > 0 ? 'OK' : 'WARN',
+          `${hands.length} hands visible; hands must be raised for detection`);
+        say('inputSources: ' + session.inputSources.length + ', with hand: ' + hands.length);
+        session.end();
+      } catch (e) {
+        row('Hand tracking', 'FAIL', e.message);
+      }
+    };
+
+    // 4. Passthrough (AR session)
+    document.getElementById('btn-passthrough').onclick = async () => {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['local-floor'],
+        });
+        row('Passthrough (AR)', 'OK', 'AR session started — you should see your room');
+        setTimeout(() => session.end(), 3000);
+      } catch (e) {
+        row('Passthrough (AR)', 'FAIL', e.message);
+      }
+    };
+
+    // 5. Microphone
+    document.getElementById('btn-mic').onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = new AudioContext();
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        src.connect(analyser);
+        await new Promise((r) => setTimeout(r, 500));
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(buf);
+        const max = Math.max(...buf);
+        row('Microphone', max > 0 ? 'OK' : 'WARN',
+          `peak freq energy: ${max} (say something while the button is held)`);
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (e) {
+        row('Microphone', 'FAIL', e.message);
+      }
+    };
+
+    // 6. Web Speech API
+    document.getElementById('btn-speech').onclick = () => {
+      const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!R) { row('SpeechRecognition', 'FAIL', 'not available in this browser'); return; }
+      try {
+        const r = new R();
+        r.lang = 'en-US';
+        r.continuous = false;
+        r.interimResults = false;
+        r.onresult = (e) => row('SpeechRecognition', 'OK',
+          `heard: "${e.results[0][0].transcript}" (confidence ${e.results[0][0].confidence.toFixed(2)})`);
+        r.onerror = (e) => row('SpeechRecognition', 'FAIL', e.error);
+        r.start();
+        say('listening — say something (one sentence)');
+      } catch (e) {
+        row('SpeechRecognition', 'FAIL', e.message);
+      }
+    };
+
+    // 7. WASM + SharedArrayBuffer
+    document.getElementById('btn-wasm').onclick = () => {
+      const hasWasm = typeof WebAssembly === 'object';
+      const hasSAB = typeof SharedArrayBuffer === 'function';
+      const isolated = typeof self !== 'undefined' && self.crossOriginIsolated === true;
+      row('WebAssembly', hasWasm ? 'OK' : 'FAIL', hasWasm ? 'available' : 'missing');
+      row('SharedArrayBuffer', hasSAB && isolated ? 'OK' : 'WARN',
+        `constructor=${hasSAB}, crossOriginIsolated=${isolated} (both need true for true SAB)`);
+    };
+
+    // 8. Reach studio API
+    document.getElementById('btn-fetch').onclick = async () => {
+      try {
+        const res = await fetch(window.location.origin + '/api/share', { method: 'GET' });
+        row('Fetch /api/share', res.ok ? 'OK' : 'WARN', `status ${res.status}`);
+      } catch (e) {
+        row('Fetch /api/share', 'FAIL', e.message);
+      }
+    };
+  </script>
+</body>
+</html>
