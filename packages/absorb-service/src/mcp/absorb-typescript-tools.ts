@@ -18,6 +18,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { parseHolo } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -52,6 +53,16 @@ interface AbsorbResult {
     containerPatterns: string[];
   };
   error?: string;
+  /**
+   * B4 validation record — `valid` is false when `parseHolo` rejected
+   * the generated composition. `parseErrors` carries the parser's
+   * message list. Absent only when validation was skipped (e.g. on
+   * error paths where `holo` was never produced).
+   */
+  validation?: {
+    valid: boolean;
+    parseErrors: string[];
+  };
 }
 
 // =============================================================================
@@ -334,6 +345,14 @@ function absorbTypeScript(code: string, name?: string): AbsorbResult {
     containerPatterns
   );
 
+  // B4 (NORTH_STAR DT-14): validate the generated .holo through the
+  // real parser before returning. Any syntax problem introduced by
+  // the string-concat generator (e.g. unbalanced braces from embedded
+  // @imperative regions, unescaped quotes in endpoint paths) surfaces
+  // as a structured error instead of silently shipping malformed code
+  // to the MCP client.
+  const validation = validateGeneratedHolo(holo);
+
   return {
     success: true,
     holo,
@@ -344,7 +363,32 @@ function absorbTypeScript(code: string, name?: string): AbsorbResult {
       resiliencePatterns,
       containerPatterns,
     },
+    validation,
   };
+}
+
+/**
+ * Parse the generated .holo output through `@holoscript/core` and
+ * return a structured validation record. Attached to tool responses
+ * so downstream consumers can decide whether to trust the emission.
+ */
+function validateGeneratedHolo(holo: string): {
+  valid: boolean;
+  parseErrors: string[];
+} {
+  try {
+    const result = parseHolo(holo, { tolerant: true, locations: false });
+    const errs = result.errors ?? [];
+    return {
+      valid: errs.length === 0 && result.ast != null,
+      parseErrors: errs.map((e) => e.message ?? String(e)),
+    };
+  } catch (err) {
+    return {
+      valid: false,
+      parseErrors: [err instanceof Error ? err.message : String(err)],
+    };
+  }
 }
 
 /**
