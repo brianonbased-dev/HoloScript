@@ -19,6 +19,30 @@ export interface SplinePoint {
   z: number;
 }
 
+function withIndexAccess(point: SplinePoint): SplinePoint {
+  if (!Object.prototype.hasOwnProperty.call(point, 0)) {
+    Object.defineProperty(point, 0, {
+      get() {
+        return point.x;
+      },
+      enumerable: false,
+    });
+    Object.defineProperty(point, 1, {
+      get() {
+        return point.y;
+      },
+      enumerable: false,
+    });
+    Object.defineProperty(point, 2, {
+      get() {
+        return point.z;
+      },
+      enumerable: false,
+    });
+  }
+  return point;
+}
+
 // =============================================================================
 // SPLINE PATH
 // =============================================================================
@@ -89,8 +113,8 @@ export class SplinePath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): SplinePoint {
-    if (this.points.length === 0) return { x: 0, y: 0, z: 0 };
-    if (this.points.length === 1) return { ...this.points[0] };
+    if (this.points.length === 0) return withIndexAccess({ x: 0, y: 0, z: 0 });
+    if (this.points.length === 1) return withIndexAccess({ ...this.points[0] });
 
     t = Math.max(0, Math.min(1, t));
     const segments = this.loop ? this.points.length : this.points.length - 1;
@@ -113,11 +137,11 @@ export class SplinePath {
   private evalLinear(seg: number, t: number): SplinePoint {
     const p0 = this.getWrapped(seg);
     const p1 = this.getWrapped(seg + 1);
-    return {
+    return withIndexAccess({
       x: p0.x + (p1.x - p0.x) * t,
       y: p0.y + (p1.y - p0.y) * t,
       z: p0.z + (p1.z - p0.z) * t,
-    };
+    });
   }
 
   private evalCatmullRom(seg: number, t: number): SplinePoint {
@@ -137,11 +161,11 @@ export class SplinePath {
       );
     };
 
-    return {
+    return withIndexAccess({
       x: interp(p0.x, p1.x, p2.x, p3.x),
       y: interp(p0.y, p1.y, p2.y, p3.y),
       z: interp(p0.z, p1.z, p2.z, p3.z),
-    };
+    });
   }
 
   private evalBezier(seg: number, t: number): SplinePoint {
@@ -162,11 +186,11 @@ export class SplinePath {
     const tt = t * t;
     const ttt = tt * t;
 
-    return {
+    return withIndexAccess({
       x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
       y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
       z: uuu * p0.z + 3 * uu * t * p1.z + 3 * u * tt * p2.z + ttt * p3.z,
-    };
+    });
   }
 
   private getWrapped(index: number): SplinePoint {

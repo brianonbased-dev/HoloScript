@@ -76,7 +76,7 @@ export class FoliageSystem {
   }
 
   getWind(): { dirX: number; dirZ: number; strength: number } {
-    return { dirX: this.windDir[0], dirZ: this.windDir[2], strength: this.windStrength };
+    return { dirX: this.windDir.x, dirZ: this.windDir.z, strength: this.windStrength };
   }
 
   // ---------------------------------------------------------------------------
@@ -101,8 +101,8 @@ export class FoliageSystem {
     };
 
     for (let i = 0; i < count; i++) {
-      const x = bounds[0] + nextRand() * bounds[3];
-      const z = bounds[2] + nextRand() * bounds.h;
+      const x = bounds.x + nextRand() * bounds.w;
+      const z = bounds.z + nextRand() * bounds.h;
       const scale = type.minScale + nextRand() * (type.maxScale - type.minScale);
 
       instances.push({
@@ -120,7 +120,7 @@ export class FoliageSystem {
       id: patchId,
       bounds,
       instances,
-      density: count / (bounds[3] * bounds.h),
+      density: count / Math.max(1e-6, bounds.w * bounds.h),
     };
     this.patches.set(patchId, patch);
     return patch;
@@ -157,11 +157,11 @@ export class FoliageSystem {
   // Wind sway (queried per instance for rendering)
   // ---------------------------------------------------------------------------
 
-  getWindOffset(inst: FoliageInstance): { x: number; z: number } {
+  getWindOffset(inst: FoliageInstance): [number, number, number] {
     const type = this.types.get(inst.typeId);
     const response = type?.windResponse ?? 0;
     const sway = Math.sin(this.time * 2 + inst.windPhase) * this.windStrength * response;
-    return { x: this.windDir[0] * sway, z: this.windDir[2] * sway };
+    return [this.windDir.x * sway, 0, this.windDir.z * sway];
   }
 
   // ---------------------------------------------------------------------------

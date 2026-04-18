@@ -539,6 +539,15 @@ function parsePipelineContent(
     }
   }
 
+  // `template` must be rejected when used as a block keyword, but allowed as
+  // a sink property (e.g. `template: "..."` for `sink type: "holo"`).
+  if (/\btemplate\s+\w+\s*\{/.test(contentForKeywordCheck)) {
+    errors.push({
+      message:
+        "SyntaxError: 'template' is not valid in a pipeline context. Use .holo for spatial compositions or .hsplus for behaviors.",
+    });
+  }
+
   const props = parseProperties(content);
 
   // Parse top-level pipeline properties
