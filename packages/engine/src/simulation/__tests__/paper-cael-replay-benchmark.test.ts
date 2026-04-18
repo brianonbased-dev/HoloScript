@@ -32,6 +32,15 @@ function mockSolver(): SimSolver & { time: number } {
   };
 }
 
+function calcStats(samples: number[]) {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const p99Index = Math.floor(n * 0.99);
+  const p99 = sorted[p99Index];
+  return { median, p99 };
+}
+
 describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
   it('reports verify-only vs full replay wall time', async () => {
     const recorder = new CAELRecorder(
@@ -43,27 +52,33 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
       { solverType: 'structural-tet10', fixedDt: 0.01 }
     );
 
-    const steps = 200;
+    // Target ~100K entries for the empirical rigor test
+    const steps = 99995; 
     for (let i = 0; i < steps; i++) {
       recorder.step(0.01);
-      if (i % 40 === 0) {
-        recorder.logInteraction('bench_tick', { i, phase: 1 });
-      }
     }
     recorder.finalize();
 
     const jsonl = recorder.toJSONL();
     const trace = parseCAELJSONL(jsonl);
     const entryCount = trace.length;
-    expect(entryCount).toBeGreaterThan(10);
+    expect(entryCount).toBeGreaterThan(90000);
 
-    const verifyRuns = 400;
-    const t0 = performance.now();
+    const verifyRuns = 10;
+    const verifySamplesUs: number[] = [];
+    
     for (let r = 0; r < verifyRuns; r++) {
+      const t0 = performance.now();
       const v = verifyCAELHashChain(trace);
+      const t1 = performance.now();
       expect(v.valid).toBe(true);
+      
+      const runTimeMs = t1 - t0;
+      const perEntryUs = (runTimeMs * 1000) / entryCount;
+      verifySamplesUs.push(perEntryUs);
     }
-    const verifyMs = performance.now() - t0;
+    
+    const stats = calcStats(verifySamplesUs);
 
     const replayer = new CAELReplayer(jsonl);
     const t1 = performance.now();
@@ -73,19 +88,14 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
     replaySim.dispose();
     const replayMs = performance.now() - t1;
 
-    const perVerifyUs = (verifyMs / verifyRuns / entryCount) * 1000;
-    const entriesPerSec = (entryCount * verifyRuns) / (verifyMs / 1000);
-
     console.log(
       `\n[paper-cael-replay-benchmark] entries=${entryCount} verifyRuns=${verifyRuns} ` +
-        `verify total ${verifyMs.toFixed(2)}ms (${perVerifyUs.toFixed(4)} µs/entry avg) ` +
-        `~${entriesPerSec.toFixed(0)} entry-verifications/s`
+        `verify: ${stats.median.toFixed(4)} µs/entry median (p99: ${stats.p99.toFixed(4)} µs/entry) `
     );
     console.log(
       `[paper-cael-replay-benchmark] single replayer.verify+replay wall ${replayMs.toFixed(2)}ms (${entryCount} entries)`
     );
 
-    expect(replayMs).toBeLessThan(60_000);
-    expect(verifyMs).toBeLessThan(60_000);
-  });
+    expect(replayMs).toBeLessThan(120_000);
+  }, 120_000);
 });
