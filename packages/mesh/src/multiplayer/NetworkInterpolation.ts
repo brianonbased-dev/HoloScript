@@ -19,6 +19,32 @@ function v3clone(v: IVector3): IVector3 {
   return [v[0], v[1], v[2]];
 }
 
+type Vec3Like = IVector3 | { x: number; y: number; z: number };
+
+function readX(v: Vec3Like): number {
+  return Array.isArray(v) ? v[0] : v.x;
+}
+
+function readY(v: Vec3Like): number {
+  return Array.isArray(v) ? v[1] : v.y;
+}
+
+function readZ(v: Vec3Like): number {
+  return Array.isArray(v) ? v[2] : v.z;
+}
+
+function makeVec3(x: number, y: number, z: number): IVector3 & { x: number; y: number; z: number } {
+  const v = [x, y, z] as IVector3 & { x: number; y: number; z: number };
+  v.x = x;
+  v.y = y;
+  v.z = z;
+  return v;
+}
+
+function cloneVec3Like(v: Vec3Like): IVector3 & { x: number; y: number; z: number } {
+  return makeVec3(readX(v), readY(v), readZ(v));
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -26,10 +52,10 @@ function v3clone(v: IVector3): IVector3 {
 export interface NetworkSnapshot {
   entityId: string;
   timestamp: number;
-  position: IVector3;
+  position: Vec3Like;
   rotation: { x: number; y: number; z: number; w: number };
-  velocity?: IVector3;
-  angularVelocity?: IVector3;
+  velocity?: Vec3Like;
+  angularVelocity?: Vec3Like;
   customData?: Record<string, number>;
 }
 
@@ -49,7 +75,7 @@ export interface InterpolationConfig {
 }
 
 export interface InterpolatedState {
-  position: IVector3;
+  position: IVector3 & { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
   isExtrapolating: boolean;
 }
@@ -184,7 +210,7 @@ export class NetworkInterpolation {
       if (timeSince > this.config.maxExtrapolationMs) {
         // Stale — return last known position
         return {
-          position: v3clone(before.position),
+          position: cloneVec3Like(before.position),
           rotation: { ...before.rotation },
           isExtrapolating: true,
         };
@@ -192,16 +218,16 @@ export class NetworkInterpolation {
 
       if (before.velocity) {
         const dtSec = timeSince / 1000;
-        const px = before.position[0] + before.velocity[0] * dtSec;
-        const py = before.position[1] + before.velocity[1] * dtSec;
-        const pz = before.position[2] + before.velocity[2] * dtSec;
-        const position: IVector3 = [px, py, pz];
+        const px = readX(before.position) + readX(before.velocity) * dtSec;
+        const py = readY(before.position) + readY(before.velocity) * dtSec;
+        const pz = readZ(before.position) + readZ(before.velocity) * dtSec;
+        const position = makeVec3(px, py, pz);
 
         let rotation = { ...before.rotation };
         if (before.angularVelocity) {
-          const wx = before.angularVelocity[0] * dtSec;
-          const wy = before.angularVelocity[1] * dtSec;
-          const wz = before.angularVelocity[2] * dtSec;
+          const wx = readX(before.angularVelocity) * dtSec;
+          const wy = readY(before.angularVelocity) * dtSec;
+          const wz = readZ(before.angularVelocity) * dtSec;
           const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
           if (len > 0.0001) {
             const halfLen = len * 0.5;
@@ -235,7 +261,7 @@ export class NetworkInterpolation {
       }
 
       return {
-        position: v3clone(before.position),
+        position: cloneVec3Like(before.position),
         rotation: { ...before.rotation },
         isExtrapolating: true,
       };
@@ -244,7 +270,7 @@ export class NetworkInterpolation {
     // Case 3: We only have future snapshots → use first
     if (after) {
       return {
-        position: v3clone(after.position),
+        position: cloneVec3Like(after.position),
         rotation: { ...after.rotation },
         isExtrapolating: false,
       };
@@ -260,24 +286,20 @@ export class NetworkInterpolation {
   /**
    * Smooth correction: instead of snapping, blend toward the server position.
    */
-  smoothCorrection(currentPos: IVector3, serverPos: IVector3, dt: number): IVector3 {
-    const dx = serverPos[0] - currentPos[0];
-    const dy = serverPos[1] - currentPos[1];
-    const dz = serverPos[2] - currentPos[2];
+  smoothCorrection(currentPos: Vec3Like, serverPos: Vec3Like, dt: number): IVector3 & { x: number; y: number; z: number } {
+    const dx = readX(serverPos) - readX(currentPos);
+    const dy = readY(serverPos) - readY(currentPos);
+    const dz = readZ(serverPos) - readZ(currentPos);
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Snap if too far (teleported)
     if (dist > this.config.snapThreshold) {
-      return v3clone(serverPos);
+      return cloneVec3Like(serverPos);
     }
 
     // Smooth lerp
     const t = Math.min(1, this.config.lerpSpeed * dt);
-    return [
-      currentPos[0] + dx * t,
-      currentPos[1] + dy * t,
-      currentPos[2] + dz * t,
-    ];
+    return makeVec3(readX(currentPos) + dx * t, readY(currentPos) + dy * t, readZ(currentPos) + dz * t);
   }
 
   // ---------------------------------------------------------------------------
@@ -305,12 +327,12 @@ export class NetworkInterpolation {
   // Math
   // ---------------------------------------------------------------------------
 
-  private lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
-    return [
-      a[0] + (b[0] - a[0]) * t,
-      a[1] + (b[1] - a[1]) * t,
-      a[2] + (b[2] - a[2]) * t,
-    ];
+  private lerpVec3(a: Vec3Like, b: Vec3Like, t: number): IVector3 & { x: number; y: number; z: number } {
+    return makeVec3(
+      readX(a) + (readX(b) - readX(a)) * t,
+      readY(a) + (readY(b) - readY(a)) * t,
+      readZ(a) + (readZ(b) - readZ(a)) * t,
+    );
   }
 
   private nlerp(

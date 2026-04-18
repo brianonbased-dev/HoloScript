@@ -1,12 +1,11 @@
 import type { INeuralPacket } from './NetworkTypes.js';
-import type { GaussianSplatSorter, CameraState } from '@holoscript/engine/gpu';
-import type { WebGPUContext } from '@holoscript/engine/gpu';
+import type { GaussianSplatSorter, CameraState, WebGPUContext } from '../gpu/GaussianSplatExtractor';
 import {
   NeuralStreamingTransport,
   StreamingTransportConfig,
   ISignalingBridge,
-} from './NeuralStreamingTransport.js';
-import { GaussianSplatExtractor } from '@holoscript/engine/gpu';
+} from './NeuralStreamingTransport';
+import { GaussianSplatExtractor } from '../gpu/GaussianSplatExtractor';
 
 export interface NeuralStreamingConfig extends StreamingTransportConfig {
   maxSplats: number;

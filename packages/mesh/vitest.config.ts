@@ -7,7 +7,7 @@ export default defineConfig({
       // Mesh tests historically imported runtime classes from @holoscript/core.
       // In this package context, route that specifier to mesh exports so
       // constructors like WebSocketTransport/SocialGraph resolve at runtime.
-      '@holoscript/core': resolve(__dirname, 'src/index.ts'),
+      '@holoscript/core': resolve(__dirname, 'src/testing/core-compat.ts'),
     },
   },
   test: {

@@ -206,12 +206,15 @@ export { TransactionLog } from './TransactionLog';
 export { StateSynchronizer } from './StateSynchronizer';
 export { SpatialWebSocketTransport } from './SpatialWebSocketTransport';
 export { WebSocketSignaler } from './WebSocketSignaler';
+export { LocalNetworkAdapter, createLocalNetworkAdapter } from './LocalNetworkAdapter';
+export { BrainServerClient, type BrainServerConfig, type InferenceRequest, type InferenceResponse } from './BrainServerClient';
 export {
   NeuralStreamingTransport,
   type ISignalingBridge,
   type NeuralSignalPayload,
   type StreamingTransportConfig,
 } from './NeuralStreamingTransport';
+export { NeuralStreamingService, type NeuralStreamingConfig } from './NeuralStreamingService';
 
 export * from './AntiCheat';
 export * from './Matchmaker';
