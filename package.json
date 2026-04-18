@@ -44,6 +44,7 @@
     "health:repo:quick": "node scripts/repo-health.js --skip-tests",
     "architecture:check": "node scripts/check-architecture-coupling.js",
     "verify:core-engine-imports": "node scripts/verify-core-engine-import-allowlist.mjs",
+    "verify:claude-plugin-skills": "node scripts/verify-claude-plugin-skills.mjs",
     "tests:hotspots": "node scripts/check-hotspot-test-coverage.js",
     "smoke:prod": "node scripts/smoke-prod.mjs",
     "version:check": "node scripts/check-version-policy.js",
