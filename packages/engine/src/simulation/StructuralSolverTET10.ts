@@ -802,7 +802,8 @@ export class StructuralSolverTET10 {
 
               for (let a = 0; a < 6; a++) {
                 const node = faceNodes[a];
-                const coeff = load.pressure * gp[3] * N[a];
+                // TRI_GAUSS_3 entries are { r, s, w }; use .w (gp[3] is undefined → NaN forces).
+                const coeff = load.pressure * gp.w * N[a];
                 this.externalForces[node * 3] += coeff * nx;
                 this.externalForces[node * 3 + 1] += coeff * ny;
                 this.externalForces[node * 3 + 2] += coeff * nz;

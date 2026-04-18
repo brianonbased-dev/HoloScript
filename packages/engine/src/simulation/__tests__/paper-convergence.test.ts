@@ -384,10 +384,13 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     // TET4 convergence order should be finite and positive
     expect(Number.isFinite(tet4Result.observedOrderL2)).toBe(true);
     expect(tet4Result.observedOrderL2).toBeGreaterThan(0.5);
-    // TET10 should give near-exact results (error ≈ 0 at all mesh sizes).
-    // When error is zero, convergence order is NaN (log(0) undefined) — that's correct.
-    // Verify the finest mesh has negligible error instead.
-    expect(tet10Data[tet10Data.length - 1].relError).toBeLessThan(0.001); // < 0.1%
+    // TET10 must produce finite results on at least one mesh; 100% NaN means a
+    // regression (e.g. broken traction assembly), not a "non-convergence branch".
+    const anyTet10Finite = tet10Data.some((d) => Number.isFinite(d.uz) && Number.isFinite(d.relError));
+    expect(anyTet10Finite).toBe(true);
+    const finestTet10 = tet10Data[tet10Data.length - 1];
+    expect(Number.isFinite(finestTet10.relError)).toBe(true);
+    expect(finestTet10.relError).toBeLessThan(0.001); // < 0.1%
     // TET4 should converge (error decreasing overall)
     expect(tet4Data[tet4Data.length - 1].relError).toBeLessThan(tet4Data[0].relError);
   }, 120000);
@@ -420,6 +423,7 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     const finest10 = runAxialTET10(1, 1, 16);
     expect(finest4.avgSigma).toBeGreaterThan(EXACT_SIGMA * 0.3);
     expect(finest4.avgSigma).toBeLessThan(EXACT_SIGMA * 3.0);
+    expect(Number.isFinite(finest10.avgSigma)).toBe(true);
     expect(finest10.avgSigma).toBeGreaterThan(EXACT_SIGMA * 0.3);
     expect(finest10.avgSigma).toBeLessThan(EXACT_SIGMA * 3.0);
   }, 60000);
