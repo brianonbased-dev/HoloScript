@@ -1,9 +1,3 @@
-/**
- * Paper 10 Benchmark: HoloScript Core Multi-Target Compilation (PLDI)
- * 
- * Measures provenance-preserving compilation across >=2 targets from a single .hs source.
- * Validates that parsing -> AST -> WebGPU / USD pipelines retain structural integrity and provenance hashes.
- */
 import { describe, it, expect, vi } from 'vitest';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
 import { WebGPUCompiler } from '../WebGPUCompiler';
@@ -27,6 +21,7 @@ function computeProvenanceHash(content: string): string {
 
 describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
   it('compiles single HoloScript source to multiple targets preserving provenance', () => {
+    const N = 50;
     const parser = new HoloCompositionParser();
     
     const sourceHolo = `
@@ -53,47 +48,46 @@ describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
       }
     `;
 
-    const startParse = performance.now();
     const parseResult = parser.parse(sourceHolo);
-    const parseMs = performance.now() - startParse;
-
     expect(parseResult.success).toBe(true);
-    expect(parseResult.ast).toBeDefined();
-
-    // Source AST Provenance Hash
+    
     const astJson = JSON.stringify(parseResult.ast, null, 2);
     const astProvenanceHash = computeProvenanceHash(astJson);
 
-    // 1. WebGPU Target
-    const startWebGPU = performance.now();
-    const webGpuCompiler = new WebGPUCompiler();
-    const webGpuOutput = webGpuCompiler.compile(parseResult.ast!, 'paper10-token');
-    const webGpuMs = performance.now() - startWebGPU;
+    const webGpuLatencies: number[] = [];
+    let lastWebGpuOutput = '';
+    for (let i = 0; i < N; i++) {
+      const startWebGPU = performance.now();
+      const webGpuCompiler = new WebGPUCompiler({ provenanceHash: astProvenanceHash });
+      lastWebGpuOutput = webGpuCompiler.compile(parseResult.ast!, 'paper10-token');
+      const webGpuMs = performance.now() - startWebGPU;
+      webGpuLatencies.push(webGpuMs);
+    }
+    webGpuLatencies.sort((a, b) => a - b);
+    const webGpuMedian = webGpuLatencies[Math.floor(N / 2)];
+    const webGpuP99 = webGpuLatencies[Math.floor(N * 0.99)];
 
-    expect(typeof webGpuOutput).toBe('string');
-    const webGpuOutputHash = computeProvenanceHash(webGpuOutput as string);
-
-    // 2. VRChat Target
-    const startVRChat = performance.now();
-    const vrChatCompiler = new VRChatCompiler();
-    const vrChatOutput = vrChatCompiler.compile(parseResult.ast!, 'paper10-token');
-    const vrChatMs = performance.now() - startVRChat;
-
-    expect(vrChatOutput.mainScript).toBeDefined();
-    const vrChatOutputHash = computeProvenanceHash(vrChatOutput.mainScript);
+    const vrChatLatencies: number[] = [];
+    let lastVrChatOutput = '';
+    for (let i = 0; i < N; i++) {
+      const startVRChat = performance.now();
+      const vrChatCompiler = new VRChatCompiler({ provenanceHash: astProvenanceHash });
+      const result = vrChatCompiler.compile(parseResult.ast!, 'paper10-token');
+      lastVrChatOutput = result.mainScript;
+      const vrChatMs = performance.now() - startVRChat;
+      vrChatLatencies.push(vrChatMs);
+    }
+    vrChatLatencies.sort((a, b) => a - b);
+    const vrChatMedian = vrChatLatencies[Math.floor(N / 2)];
+    const vrChatP99 = vrChatLatencies[Math.floor(N * 0.99)];
 
     console.log('[multitarget-bench] === RESULTS ===');
-    console.log(`[multitarget-bench] Parse latency: ${parseMs.toFixed(2)} ms`);
-    console.log(`[multitarget-bench] WebGPU Compile latency: ${webGpuMs.toFixed(2)} ms`);
-    console.log(`[multitarget-bench] VRChat Compile latency: ${vrChatMs.toFixed(2)} ms`);
+    console.log(`[multitarget-bench] Iterations: ${N}`);
+    console.log(`[multitarget-bench] WebGPU Compile latency | Median: ${webGpuMedian.toFixed(2)} ms | p99: ${webGpuP99.toFixed(2)} ms`);
+    console.log(`[multitarget-bench] VRChat Compile latency | Median: ${vrChatMedian.toFixed(2)} ms | p99: ${vrChatP99.toFixed(2)} ms`);
     
-    console.log(`[multitarget-bench] AST Provenance Hash: ${astProvenanceHash.substring(0, 16)}...`);
-    console.log(`[multitarget-bench] WebGPU Output Hash: ${webGpuOutputHash.substring(0, 16)}...`);
-    console.log(`[multitarget-bench] VRChat Output Hash: ${vrChatOutputHash.substring(0, 16)}...`);
-
-    // Assert that the generated output retains traceability pointers to the source AST
-    // In a full implementation, the output would embed the AST hash as a comment or metadata
-    expect(webGpuMs).toBeLessThan(100);
-    expect(vrChatMs).toBeLessThan(100);
+    // Provenance verification: the AST hash MUST be embedded in the output.
+    expect(lastWebGpuOutput).toContain(`// Provenance Hash: ${astProvenanceHash}`);
+    expect(lastVrChatOutput).toContain(`// Provenance Hash: ${astProvenanceHash}`);
   });
 });

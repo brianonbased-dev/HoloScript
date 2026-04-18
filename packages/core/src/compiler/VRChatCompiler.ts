@@ -76,6 +76,7 @@ export interface VRChatCompilerOptions {
   indent?: string;
   sdkVersion?: '3.0' | '3.1' | '3.2' | '3.3' | '3.4' | '3.5';
   useUdonSharp?: boolean;
+  provenanceHash?: string;
 }
 
 export interface VRChatCompileResult {
@@ -107,6 +108,7 @@ export class VRChatCompiler extends CompilerBase {
       indent: options.indent || '    ',
       sdkVersion: options.sdkVersion || '3.5',
       useUdonSharp: options.useUdonSharp ?? true,
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -151,6 +153,9 @@ export class VRChatCompiler extends CompilerBase {
     );
     this.emit(`// VRChat SDK: ${this.options.sdkVersion}`);
     this.emit('// Do not edit manually â€” regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emit('using UdonSharp;');
     this.emit('using UnityEngine;');

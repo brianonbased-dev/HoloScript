@@ -36,6 +36,7 @@ export interface WebGPUCompilerOptions {
   enableCompute?: boolean;
   msaa?: number;
   indent?: string;
+  provenanceHash?: string;
 }
 
 export class WebGPUCompiler extends CompilerBase {
@@ -57,6 +58,7 @@ export class WebGPUCompiler extends CompilerBase {
       enableCompute: options.enableCompute ?? true,
       msaa: options.msaa || 4,
       indent: options.indent || '  ',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -73,6 +75,9 @@ export class WebGPUCompiler extends CompilerBase {
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'TypeScript')}"`
     );
     this.emit('// Do not edit manually — regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emitDeviceInit();
     if (composition.environment) this.emitEnvironment(composition.environment);
