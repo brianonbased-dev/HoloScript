@@ -73,3 +73,11 @@ export {
 // PoC utilities (preserved from @holoscript/snn-poc RFC-0042)
 export { CPUReferenceSimulator, generateSynapticInput, generateWeightMatrix } from './poc/index.js';
 export type { CPUNeuronState, StepResult } from './poc/index.js';
+
+// Paper #2 empirical probe — consumes @holoscript/core's DeterminismHarness
+// for cross-backend LIF determinism validation.
+export {
+  runLIFDeterminismProbe,
+  PAPER_2_CANONICAL_CONFIG,
+} from './paper/LIFDeterminismProbe.js';
+export type { LIFProbeOptions } from './paper/LIFDeterminismProbe.js';
