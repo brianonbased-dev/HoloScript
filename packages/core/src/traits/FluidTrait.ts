@@ -1,5 +1,6 @@
 import type { Vector3 } from '../types';
-﻿/**
+
+/**
  * Fluid Trait
  *
  * Fluid dynamics simulation using MLS-MPM (GPU) or SPH (CPU fallback).
