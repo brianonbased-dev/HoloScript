@@ -339,34 +339,51 @@ export class ProvenanceSemiring {
       if (!semiring) {
         throw new Error(`No semiring adapter available for strategy '${rule.strategy}'`);
       }
+      const srcA = String(a.source);
+      const srcB = String(b.source);
+      let selectedContext = weightA > weightB ? a.context : (weightA < weightB ? b.context : tieBreakProvenance(a, b).context);
       return {
         value: semiring.mul(a.value as number, b.value as number),
-        source: `${a.source}⊗${b.source}`,
-        context: weightA >= weightB ? a.context : b.context,
+        source: srcA < srcB ? `${srcA}⊗${srcB}` : `${srcB}⊗${srcA}`,
+        context: selectedContext,
       };
     }
 
     switch (rule.strategy) {
-      case 'max':
+      case 'max': {
+        const valA = a.value as number;
+        const valB = b.value as number;
+        if (valA === valB) return tieBreakProvenance(a, b);
         return {
-          value: Math.max(a.value as number, b.value as number),
-          source: (a.value as number) > (b.value as number) ? a.source : b.source,
+          value: Math.max(valA, valB),
+          source: valA > valB ? a.source : b.source,
         };
-      case 'min':
+      }
+      case 'min': {
+        const valA = a.value as number;
+        const valB = b.value as number;
+        if (valA === valB) return tieBreakProvenance(a, b);
         return {
-          value: Math.min(a.value as number, b.value as number),
-          source: (a.value as number) < (b.value as number) ? a.source : b.source,
+          value: Math.min(valA, valB),
+          source: valA < valB ? a.source : b.source,
         };
-      case 'sum':
+      }
+      case 'sum': {
+        const srcA = String(a.source);
+        const srcB = String(b.source);
         return {
           value: (a.value as number) + (b.value as number),
-          source: `${a.source}+${b.source}`,
+          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
         };
-      case 'multiply':
+      }
+      case 'multiply': {
+        const srcA = String(a.source);
+        const srcB = String(b.source);
         return {
           value: (a.value as number) * (b.value as number),
-          source: `${a.source}*${b.source}`,
+          source: srcA < srcB ? `${srcA}*${srcB}` : `${srcB}*${srcA}`,
         };
+      }
 
       case 'authority-weighted': {
         // C1: Authority MODULATES the numeric outcome instead of bypassing rules.
@@ -390,7 +407,8 @@ export class ProvenanceSemiring {
         if (aIndex !== -1 && bIndex !== -1) {
           // C1: If same precedence index, authority breaks the tie
           if (aIndex === bIndex) {
-            return weightA >= weightB ? a : b;
+            if (weightA !== weightB) return weightA > weightB ? a : b;
+            return tieBreakProvenance(a, b);
           }
           // Lower index = higher precedence
           return aIndex < bIndex ? a : b;
@@ -403,9 +421,7 @@ export class ProvenanceSemiring {
           if (weightA !== weightB) {
             return weightA > weightB ? a : b;
           }
-          throw new Error(
-            `Unresolved domain override on '${property}': @${a.source} vs @${b.source}`
-          );
+          return tieBreakProvenance(a, b);
         }
       }
 
