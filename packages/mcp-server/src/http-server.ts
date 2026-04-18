@@ -24,7 +24,7 @@ import { tools } from './tools';
 import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
 import { PluginManager } from './PluginManager';
-import { handleCompileToTarget } from './compiler-tools';
+import { handleCompilerTool } from './compiler-tools';
 import {
   renderPreview,
   createShareLink,
@@ -1775,7 +1775,8 @@ const httpServer = http.createServer(async (req, res) => {
         );
         return;
       }
-      const result = await handleCompileToTarget({
+      // Same code path as MCP tool `compile_holoscript` (handleCompilerTool dispatch).
+      const result = await handleCompilerTool('compile_holoscript', {
         code: body.code,
         target: body.target,
         options: body.options || {},
