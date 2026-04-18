@@ -21,7 +21,7 @@ function computeProvenanceHash(content: string): string {
 
 describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
   it('compiles single HoloScript source to multiple targets preserving provenance', () => {
-    const N = 50;
+    const N = 200;
     const parser = new HoloCompositionParser();
     
     const sourceHolo = `
