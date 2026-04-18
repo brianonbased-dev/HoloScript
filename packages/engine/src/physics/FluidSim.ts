@@ -41,6 +41,11 @@ export class FluidSim {
   private particles: FluidParticle[] = [];
   private config: FluidConfig;
 
+  private toArr3(v: Vector3 | { x: number; y: number; z: number }): [number, number, number] {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
+    return [v.x, v.y, v.z];
+  }
+
   constructor(config?: Partial<FluidConfig>) {
     this.config = {
       restDensity: 1000,
@@ -55,6 +60,9 @@ export class FluidSim {
       boundaryDamping: 0.3,
       ...config,
     };
+    this.config.gravity = this.toArr3(this.config.gravity as Vector3 | { x: number; y: number; z: number });
+    this.config.boundaryMin = this.toArr3(this.config.boundaryMin as Vector3 | { x: number; y: number; z: number });
+    this.config.boundaryMax = this.toArr3(this.config.boundaryMax as Vector3 | { x: number; y: number; z: number });
   }
 
   // ---------------------------------------------------------------------------
@@ -62,12 +70,14 @@ export class FluidSim {
   // ---------------------------------------------------------------------------
 
   addParticle(
-    position: [number, number, number],
-    velocity?: Vector3
+    position: [number, number, number] | { x: number; y: number; z: number },
+    velocity?: Vector3 | { x: number; y: number; z: number }
   ): void {
+    const p = this.toArr3(position);
+    const v = velocity ? this.toArr3(velocity) : [0, 0, 0];
     this.particles.push({
-      position: [...position  ],
-      velocity: velocity ? [...velocity  ] : [0, 0, 0 ],
+      position: [p[0], p[1], p[2]],
+      velocity: [v[0], v[1], v[2]],
       density: this.config.restDensity,
       pressure: 0,
       mass: 1,
@@ -75,14 +85,16 @@ export class FluidSim {
   }
 
   addBlock(
-    min: Vector3,
-    max: Vector3,
+    min: Vector3 | { x: number; y: number; z: number },
+    max: Vector3 | { x: number; y: number; z: number },
     spacing: number
   ): number {
+    const minV = this.toArr3(min);
+    const maxV = this.toArr3(max);
     let count = 0;
-    for (let x = min[0]; x <= max[0]; x += spacing) {
-      for (let y = min[1]; y <= max[1]; y += spacing) {
-        for (let z = min[2]; z <= max[2]; z += spacing) {
+    for (let x = minV[0]; x <= maxV[0]; x += spacing) {
+      for (let y = minV[1]; y <= maxV[1]; y += spacing) {
+        for (let z = minV[2]; z <= maxV[2]; z += spacing) {
           this.addParticle([x, y, z]);
           count++;
         }
@@ -240,5 +252,8 @@ export class FluidSim {
   }
   setConfig(config: Partial<FluidConfig>): void {
     Object.assign(this.config, config);
+    this.config.gravity = this.toArr3(this.config.gravity as Vector3 | { x: number; y: number; z: number });
+    this.config.boundaryMin = this.toArr3(this.config.boundaryMin as Vector3 | { x: number; y: number; z: number });
+    this.config.boundaryMax = this.toArr3(this.config.boundaryMax as Vector3 | { x: number; y: number; z: number });
   }
 }

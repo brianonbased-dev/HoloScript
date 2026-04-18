@@ -9,18 +9,26 @@ export class AudioMixer {
   private masterMuted = false;
   private channels: Map<string, Channel> = new Map([
     ['sfx', { name: 'sfx', volume: 1, muted: false }],
-    ['music', { name: 'music', volume: 1, muted: false }],
+    ['music', { name: 'music', volume: 0.5, muted: false }],
     ['ambient', { name: 'ambient', volume: 1, muted: false }],
     ['ui', { name: 'ui', volume: 1, muted: false }],
     ['voice', { name: 'voice', volume: 1, muted: false }],
   ]);
+
+  private clamp01(v: number): number {
+    return Math.max(0, Math.min(1, v));
+  }
 
   getChannels(): Channel[] {
     return [...this.channels.values()];
   }
 
   setMasterVolume(v: number): void {
-    this.masterVolume = v;
+    this.masterVolume = this.clamp01(v);
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
   }
 
   setMasterMuted(muted: boolean): void {
@@ -29,7 +37,11 @@ export class AudioMixer {
 
   setChannelVolume(name: string, vol: number): void {
     const ch = this.channels.get(name);
-    if (ch) ch.volume = vol;
+    if (ch) ch.volume = this.clamp01(vol);
+  }
+
+  getChannelVolume(name: string): number {
+    return this.channels.get(name)?.volume ?? 0;
   }
 
   setChannelMuted(name: string, muted: boolean): void {
@@ -54,5 +66,9 @@ export class AudioMixer {
 
   unmuteGroup(names: string[]): void {
     for (const name of names) this.setChannelMuted(name, false);
+  }
+
+  createChannel(name: string, volume = 1): void {
+    this.channels.set(name, { name, volume: this.clamp01(volume), muted: false });
   }
 }

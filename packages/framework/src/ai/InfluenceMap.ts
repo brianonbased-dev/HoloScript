@@ -149,7 +149,7 @@ export class InfluenceMap {
     return this.getInfluence(layer, gx, gy);
   }
 
-  getMaxCell(layer: string): { x: number; y: number; value: number } {
+  getMaxCell(layer: string): { x: number; y: number; value: number; 0?: number; 1?: number } {
     const grid = this.layers.get(layer);
     if (!grid) return { x: 0, y: 0, value: 0 };
 
@@ -166,6 +166,8 @@ export class InfluenceMap {
       x: maxIdx % this.config.width,
       y: Math.floor(maxIdx / this.config.width),
       value: maxVal,
+      0: maxIdx % this.config.width,
+      1: Math.floor(maxIdx / this.config.width),
     };
   }
 

@@ -12,8 +12,8 @@
 // =============================================================================
 
 export interface SteeringAgent {
-  position: { x: number; y: number; z: number };
-  velocity: { x: number; y: number; z: number };
+  position: { x: number; y: number; z: number } | [number, number, number];
+  velocity: { x: number; y: number; z: number } | [number, number, number];
   maxSpeed: number;
   maxForce: number;
   mass: number;
@@ -33,6 +33,20 @@ export interface ObstacleCircle {
 
 type Vec3 = { x: number; y: number; z: number };
 
+function getX(v: Vec3 | [number, number, number]): number {
+  return Array.isArray(v) ? v[0] : v.x;
+}
+function getY(v: Vec3 | [number, number, number]): number {
+  return Array.isArray(v) ? v[1] : v.y;
+}
+function getZ(v: Vec3 | [number, number, number]): number {
+  return Array.isArray(v) ? v[2] : v.z;
+}
+
+function makeVec3(x: number, y: number, z: number): Vec3 & { 0: number; 1: number; 2: number } {
+  return { x, y, z, 0: x, 1: y, 2: z };
+}
+
 // =============================================================================
 // STEERING BEHAVIORS
 // =============================================================================
@@ -42,7 +56,7 @@ export class SteeringBehaviors {
   // Basic Behaviors
   // ---------------------------------------------------------------------------
 
-  static seek(agent: SteeringAgent, target: Vec3): Vec3 {
+  static seek(agent: SteeringAgent, target: Vec3 | [number, number, number]): Vec3 {
     const desired = SteeringBehaviors.sub(target, agent.position);
     const norm = SteeringBehaviors.normalize(desired);
     const scaled = SteeringBehaviors.scale(norm, agent.maxSpeed);
@@ -52,7 +66,7 @@ export class SteeringBehaviors {
     );
   }
 
-  static flee(agent: SteeringAgent, threat: Vec3): Vec3 {
+  static flee(agent: SteeringAgent, threat: Vec3 | [number, number, number]): Vec3 {
     const desired = SteeringBehaviors.sub(agent.position, threat);
     const norm = SteeringBehaviors.normalize(desired);
     const scaled = SteeringBehaviors.scale(norm, agent.maxSpeed);
@@ -62,10 +76,10 @@ export class SteeringBehaviors {
     );
   }
 
-  static arrive(agent: SteeringAgent, target: Vec3, slowRadius: number): Vec3 {
+  static arrive(agent: SteeringAgent, target: Vec3 | [number, number, number], slowRadius: number): Vec3 {
     const toTarget = SteeringBehaviors.sub(target, agent.position);
     const dist = SteeringBehaviors.vecLength(toTarget);
-    if (dist < 0.001) return { x: 0, y: 0, z: 0 };
+    if (dist < 0.001) return makeVec3(0, 0, 0);
 
     const speed = dist < slowRadius ? agent.maxSpeed * (dist / slowRadius) : agent.maxSpeed;
     const desired = SteeringBehaviors.scale(SteeringBehaviors.normalize(toTarget), speed);
@@ -103,26 +117,23 @@ export class SteeringBehaviors {
       return SteeringBehaviors.distance(agent.position, n.position) < config.neighborRadius;
     });
 
-    if (nearby.length === 0) return { x: 0, y: 0, z: 0 };
+    if (nearby.length === 0) return makeVec3(0, 0, 0);
 
     const sep = SteeringBehaviors.separation(agent, nearby);
     const ali = SteeringBehaviors.alignment(agent, nearby);
     const coh = SteeringBehaviors.cohesion(agent, nearby);
 
-    return {
-      x:
-        sep.x * config.separationWeight +
+    return makeVec3(
+      sep.x * config.separationWeight +
         ali.x * config.alignmentWeight +
         coh.x * config.cohesionWeight,
-      y:
-        sep.y * config.separationWeight +
+      sep.y * config.separationWeight +
         ali.y * config.alignmentWeight +
         coh.y * config.cohesionWeight,
-      z:
-        sep.z * config.separationWeight +
+      sep.z * config.separationWeight +
         ali.z * config.alignmentWeight +
-        coh.z * config.cohesionWeight,
-    };
+        coh.z * config.cohesionWeight
+    );
   }
 
   private static separation(agent: SteeringAgent, neighbors: SteeringAgent[]): Vec3 {
@@ -136,7 +147,7 @@ export class SteeringBehaviors {
       fy += d.y / (dist * dist);
       fz += d.z / (dist * dist);
     }
-    return SteeringBehaviors.normalize({ x: fx, y: fy, z: fz });
+    return SteeringBehaviors.normalize(makeVec3(fx, fy, fz));
   }
 
   private static alignment(_agent: SteeringAgent, neighbors: SteeringAgent[]): Vec3 {
@@ -144,11 +155,11 @@ export class SteeringBehaviors {
       vy = 0,
       vz = 0;
     for (const n of neighbors) {
-      vx += n.velocity.x;
-      vy += n.velocity.y;
-      vz += n.velocity.z;
+      vx += getX(n.velocity);
+      vy += getY(n.velocity);
+      vz += getZ(n.velocity);
     }
-    const avg = { x: vx / neighbors.length, y: vy / neighbors.length, z: vz / neighbors.length };
+    const avg = makeVec3(vx / neighbors.length, vy / neighbors.length, vz / neighbors.length);
     return SteeringBehaviors.normalize(avg);
   }
 
@@ -157,11 +168,11 @@ export class SteeringBehaviors {
       cy = 0,
       cz = 0;
     for (const n of neighbors) {
-      cx += n.position.x;
-      cy += n.position.y;
-      cz += n.position.z;
+      cx += getX(n.position);
+      cy += getY(n.position);
+      cz += getZ(n.position);
     }
-    const center = { x: cx / neighbors.length, y: cy / neighbors.length, z: cz / neighbors.length };
+    const center = makeVec3(cx / neighbors.length, cy / neighbors.length, cz / neighbors.length);
     return SteeringBehaviors.normalize(SteeringBehaviors.sub(center, agent.position));
   }
 
@@ -190,7 +201,7 @@ export class SteeringBehaviors {
       }
     }
 
-    if (!nearest) return { x: 0, y: 0, z: 0 };
+    if (!nearest) return makeVec3(0, 0, 0);
 
     const avoidance = SteeringBehaviors.sub(ahead, nearest.center);
     return SteeringBehaviors.truncate(SteeringBehaviors.normalize(avoidance), agent.maxForce);
@@ -217,14 +228,14 @@ export class SteeringBehaviors {
   // Vec3 Helpers
   // ---------------------------------------------------------------------------
 
-  private static sub(a: Vec3, b: Vec3): Vec3 {
-    return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  private static sub(a: Vec3 | [number, number, number], b: Vec3 | [number, number, number]): Vec3 {
+    return makeVec3(getX(a) - getX(b), getY(a) - getY(b), getZ(a) - getZ(b));
   }
-  private static add(a: Vec3, b: Vec3): Vec3 {
-    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  private static add(a: Vec3 | [number, number, number], b: Vec3 | [number, number, number]): Vec3 {
+    return makeVec3(getX(a) + getX(b), getY(a) + getY(b), getZ(a) + getZ(b));
   }
   private static scale(v: Vec3, s: number): Vec3 {
-    return { x: v.x * s, y: v.y * s, z: v.z * s };
+    return makeVec3(v.x * s, v.y * s, v.z * s);
   }
   private static vecLength(v: Vec3): number {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -234,7 +245,7 @@ export class SteeringBehaviors {
   }
   private static normalize(v: Vec3): Vec3 {
     const len = SteeringBehaviors.vecLength(v) || 1;
-    return { x: v.x / len, y: v.y / len, z: v.z / len };
+    return makeVec3(v.x / len, v.y / len, v.z / len);
   }
   private static truncate(v: Vec3, max: number): Vec3 {
     const len = SteeringBehaviors.vecLength(v);

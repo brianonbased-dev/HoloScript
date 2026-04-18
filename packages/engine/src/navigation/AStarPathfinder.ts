@@ -45,6 +45,7 @@ export class AStarPathfinder {
   private obstacles: Map<string, DynamicObstacle> = new Map();
   private pathCache: Map<string, PathResult> = new Map();
   private maxIterations = 5000;
+  private fallbackDirectPathMaxDistance = 50;
 
   constructor(navMesh: NavMesh) {
     this.navMesh = navMesh;
@@ -64,6 +65,8 @@ export class AStarPathfinder {
     const t0 = performance.now();
     const startP = this.toArr3(start);
     const goalP = this.toArr3(goal);
+    const startObj = { x: startP[0], y: startP[1], z: startP[2] };
+    const goalObj = { x: goalP[0], y: goalP[1], z: goalP[2] };
 
     // Check cache
     const cacheKey = this.makeCacheKey(startP, goalP);
@@ -71,17 +74,31 @@ export class AStarPathfinder {
     if (cached) return cached;
 
     const startPoly =
-      this.navMesh.findPolygonAtPoint(startP) ?? this.navMesh.findNearestPolygon(startP);
-    const goalPoly = this.navMesh.findPolygonAtPoint(goalP) ?? this.navMesh.findNearestPolygon(goalP);
+      this.navMesh.findPolygonAtPoint(startObj) ?? this.navMesh.findNearestPolygon(startObj);
+    const goalPoly = this.navMesh.findPolygonAtPoint(goalObj) ?? this.navMesh.findNearestPolygon(goalObj);
 
     if (!startPoly || !goalPoly) {
-      return {
-        found: false,
-        path: [],
-        cost: 0,
-        polygonsVisited: 0,
-        timeMs: performance.now() - t0,
-      };
+      const directDist = this.dist(startP, goalP);
+      const blocked = this.isBlocked(startP) || this.isBlocked(goalP);
+      const canUseFallback = !blocked && directDist <= this.fallbackDirectPathMaxDistance;
+
+      const result: PathResult = canUseFallback
+        ? {
+            found: true,
+            path: [startP, goalP],
+            cost: directDist,
+            polygonsVisited: 0,
+            timeMs: performance.now() - t0,
+          }
+        : {
+            found: false,
+            path: [],
+            cost: 0,
+            polygonsVisited: 0,
+            timeMs: performance.now() - t0,
+          };
+      this.pathCache.set(cacheKey, result);
+      return result;
     }
 
     if (startPoly.id === goalPoly.id) {
@@ -164,13 +181,15 @@ export class AStarPathfinder {
       }
     }
 
-    return {
+    const result: PathResult = {
       found: false,
       path: [],
       cost: 0,
       polygonsVisited: visited,
       timeMs: performance.now() - t0,
     };
+    this.pathCache.set(cacheKey, result);
+    return result;
   }
 
   // ---------------------------------------------------------------------------

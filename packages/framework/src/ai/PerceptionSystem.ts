@@ -17,7 +17,7 @@ export interface Stimulus {
   id: string;
   type: SenseType;
   sourceId: string;
-  position: { x: number; y: number; z: number };
+  position: { x: number; y: number; z: number } | [number, number, number];
   intensity: number; // 0-1
   timestamp: number;
   data?: unknown;
@@ -59,6 +59,15 @@ export class PerceptionSystem {
   // Entity Registration
   // ---------------------------------------------------------------------------
 
+  private toVec3(v: { x: number; y: number; z: number } | [number, number, number]): {
+    x: number;
+    y: number;
+    z: number;
+  } {
+    if (Array.isArray(v)) return { x: v[0], y: v[1], z: v[2] };
+    return v;
+  }
+
   registerEntity(id: string, senses: SenseConfig[], memoryDuration = 10): void {
     this.entities.set(id, {
       senses,
@@ -76,8 +85,8 @@ export class PerceptionSystem {
   ): void {
     const e = this.entities.get(entityId);
     if (e) {
-      e.position = position;
-      e.facing = facing;
+      e.position = this.toVec3(position);
+      e.facing = this.toVec3(facing);
     }
   }
 
@@ -86,7 +95,10 @@ export class PerceptionSystem {
   // ---------------------------------------------------------------------------
 
   addStimulus(stimulus: Stimulus): void {
-    this.stimuli.set(stimulus.id, stimulus);
+    this.stimuli.set(stimulus.id, {
+      ...stimulus,
+      position: this.toVec3(stimulus.position),
+    });
   }
   removeStimulus(id: string): void {
     this.stimuli.delete(id);

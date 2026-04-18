@@ -39,6 +39,11 @@ export interface RopeAttachment {
 // =============================================================================
 
 export class RopeSystem {
+    private toArr3(v: Vector3 | { x: number; y: number; z: number }): Vector3 {
+      if (Array.isArray(v)) return [v[0], v[1], v[2]] as Vector3;
+      return [v.x, v.y, v.z] as Vector3;
+    }
+
   private ropes: Map<
     string,
     { nodes: RopeNode[]; config: RopeConfig; attachments: RopeAttachment[] }
@@ -50,33 +55,36 @@ export class RopeSystem {
 
   createRope(
     id: string,
-    start: Vector3,
-    end: Vector3,
+    start: Vector3 | { x: number; y: number; z: number },
+    end: Vector3 | { x: number; y: number; z: number },
     config?: Partial<RopeConfig>
   ): void {
+    const startV = this.toArr3(start);
+    const endV = this.toArr3(end);
     const segCount = config?.segmentCount ?? 10;
-    const dx = end[0] - start[0],
-      dy = end[1] - start[1],
-      dz = end[2] - start[2];
+    const dx = endV[0] - startV[0],
+      dy = endV[1] - startV[1],
+      dz = endV[2] - startV[2];
     const totalLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
     const autoSegmentLength = totalLength / segCount;
 
     const cfg: RopeConfig = {
       segmentCount: segCount,
       segmentLength: autoSegmentLength,
-      gravity: [0, -9.81, 0 ],
+      gravity: [0, -9.81, 0],
       damping: 0.98,
       iterations: 8,
       elasticity: 1,
       ...config,
     };
+    cfg.gravity = this.toArr3(cfg.gravity as Vector3 | { x: number; y: number; z: number });
 
     const nodes: RopeNode[] = [];
     for (let i = 0; i <= cfg.segmentCount; i++) {
       const t = i / cfg.segmentCount;
-      const px = start[0] + (end[0] - start[0]) * t;
-      const py = start[1] + (end[1] - start[1]) * t;
-      const pz = start[2] + (end[2] - start[2]) * t;
+      const px = startV[0] + (endV[0] - startV[0]) * t;
+      const py = startV[1] + (endV[1] - startV[1]) * t;
+      const pz = startV[2] + (endV[2] - startV[2]) * t;
       nodes.push({
         position: [px, py, pz],
         previous: [px, py, pz],

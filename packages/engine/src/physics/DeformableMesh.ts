@@ -41,6 +41,11 @@ export interface DeformConfig {
 // =============================================================================
 
 export class DeformableMesh {
+  private toArr3(v: Vector3 | { x: number; y: number; z: number }): Vector3 {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]] as Vector3;
+    return [v.x, v.y, v.z] as Vector3;
+  }
+
   private vertices: DeformVertex[] = [];
   private springs: DeformSpring[] = [];
   private config: DeformConfig;
@@ -61,14 +66,17 @@ export class DeformableMesh {
   // Mesh Setup
   // ---------------------------------------------------------------------------
 
-  setVertices(positions: Vector3[]): void {
-    this.vertices = positions.map((p) => ({
-      rest: [p[0], p[1], p[2]],
-      current: [p[0], p[1], p[2]],
-      velocity: [0, 0, 0],
-      mass: 1,
-      locked: false,
-    }));
+  setVertices(positions: Array<Vector3 | { x: number; y: number; z: number }>): void {
+    this.vertices = positions.map((p) => {
+      const v = this.toArr3(p);
+      return {
+        rest: [v[0], v[1], v[2]],
+        current: [v[0], v[1], v[2]],
+        velocity: [0, 0, 0],
+        mass: 1,
+        locked: false,
+      };
+    });
     this.computeRestCentroid();
   }
 
@@ -118,12 +126,13 @@ export class DeformableMesh {
   // Deformation
   // ---------------------------------------------------------------------------
 
-  applyImpact(center: Vector3, radius: number, force: number): void {
+  applyImpact(center: Vector3 | { x: number; y: number; z: number }, radius: number, force: number): void {
+    const centerV = this.toArr3(center);
     for (const v of this.vertices) {
       if (v.locked) continue;
-      const dx = v.current[0] - center[0];
-      const dy = v.current[1] - center[1];
-      const dz = v.current[2] - center[2];
+      const dx = v.current[0] - centerV[0];
+      const dy = v.current[1] - centerV[1];
+      const dz = v.current[2] - centerV[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist > radius || dist === 0) continue;
 
