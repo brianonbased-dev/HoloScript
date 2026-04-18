@@ -30,10 +30,6 @@ interface ImmersiveViewerProps {
   name?: string;
 }
 
-/** Dynamic-imported qrcode lib type (no @types/qrcode installed). */
-interface QRCodeLib {
-  toDataURL: (text: string, opts?: { width?: number; margin?: number }) => Promise<string>;
-}
 
 type ParsedObject = {
   name: string;
@@ -286,10 +282,7 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
       setPublishedUrl(shortUrl);
 
       // Generate the QR bitmap and map it onto the 3D plane.
-      // qrcode has no @types package; cast the dynamic import to the narrow
-      // interface we declared above. Add @types/qrcode to drop this line.
-      // @ts-expect-error — qrcode ships without type declarations
-      const qr = (await import('qrcode')) as unknown as QRCodeLib;
+      const qr = await import('qrcode');
       const dataUrl = await qr.toDataURL(shortUrl, { width: 512, margin: 2 });
       const tex = await new THREE.TextureLoader().loadAsync(dataUrl);
       tex.colorSpace = THREE.SRGBColorSpace;

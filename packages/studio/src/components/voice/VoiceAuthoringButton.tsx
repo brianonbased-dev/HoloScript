@@ -31,16 +31,13 @@ export function VoiceAuthoringButton({
   compact = false,
 }: VoiceAuthoringButtonProps) {
   const { state, transcript, holoSource, lastError, supported, start, reset } = useVoiceAuthoring({
-    // Edit-mode: pass the current composition so subsequent turns mutate rather than regenerate.
-    // (The hook currently uses its own history for previousComposition; currentComposition
-    // lets the editor override on first turn with whatever is in the textarea today.)
+    // Edit-mode seed: whatever is already in Monaco becomes the "previous"
+    // scene for the first turn. Subsequent turns in the session use the
+    // hook's own prior result.
+    currentComposition,
   });
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Seed previous-composition for the first turn if editor provided current code.
-  // (Tiny bit of prop drilling — acceptable for the standalone button.)
-  void currentComposition;
 
   const onMicClick = () => {
     setCopied(false);

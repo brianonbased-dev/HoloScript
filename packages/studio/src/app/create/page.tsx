@@ -997,17 +997,44 @@ export default function CreatePage() {
       return;
     }
 
-    // 4. Check for encoded full scene state
+    // 4. Check for a ?scene= parameter. Two shapes supported:
+    //    (a) a published-share id — a short UUID-like token from /api/share.
+    //        Used by the "Open in Studio" button on /shared/[id] and /w/[id].
+    //    (b) a long encoded full scene state (legacy URL-shared drafts).
+    //    We probe (a) first because shape detection is cheap and positive:
+    //    if /api/share/<id> returns 200, we know it's a share id.
     const encoded = searchParams.get('scene');
     if (!encoded) return;
-    decodeSceneFromURL(encoded).then((result) => {
-      if (!result.ok || !result.scene) return;
-      const s = result.scene;
-      if (s.code) setCode(s.code);
-      setMetadata({ id: s.metadata.id, name: s.metadata.name });
-      for (const node of s.nodes ?? []) addNode(node);
-      for (const asset of s.assets ?? []) addAsset(asset);
-      markClean();
+
+    const looksLikeShareId = encoded.length <= 64 && /^[A-Za-z0-9_-]+$/.test(encoded);
+    const tryShareFetch = async (): Promise<boolean> => {
+      if (!looksLikeShareId) return false;
+      try {
+        const res = await fetch(`/api/share/${encodeURIComponent(encoded)}`);
+        if (!res.ok) return false;
+        const scene = (await res.json()) as { id?: string; name?: string; code?: string };
+        if (!scene.code) return false;
+        setCode(scene.code);
+        setMetadata({ id: scene.id ?? encoded, name: scene.name ?? 'Shared scene' });
+        markClean();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    void tryShareFetch().then((handled) => {
+      if (handled) return;
+      // Fall back to the encoded-blob decoder for legacy URLs.
+      decodeSceneFromURL(encoded).then((result) => {
+        if (!result.ok || !result.scene) return;
+        const s = result.scene;
+        if (s.code) setCode(s.code);
+        setMetadata({ id: s.metadata.id, name: s.metadata.name });
+        for (const node of s.nodes ?? []) addNode(node);
+        for (const asset of s.assets ?? []) addAsset(asset);
+        markClean();
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

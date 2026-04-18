@@ -70,6 +70,13 @@ export interface UseVoiceAuthoringOptions {
   lang?: string;
   /** Model override (rare). Default uses MODEL_CONFIG.model. */
   model?: string;
+  /**
+   * Seed for edit-mode: the composition already in the editor. On the first
+   * turn, sent as `previousComposition` so the model edits the existing scene
+   * rather than regenerating. After the first successful turn, the hook's
+   * internal `holoSource` takes over.
+   */
+  currentComposition?: string;
 }
 
 export interface UseVoiceAuthoringReturn {
@@ -117,9 +124,15 @@ export function useVoiceAuthoring(
       setState('thinking');
       const t0 = Date.now();
 
+      // Edit-mode seed: prefer the hook's own prior result (from an earlier
+      // turn in this session); fall back to the caller-provided seed (e.g.
+      // whatever is in Monaco today) so the first turn is an edit, not a
+      // regenerate.
+      const previousComposition = holoSource ?? options.currentComposition ?? undefined;
+
       const body: VoiceToHoloRequest = {
         utterance,
-        previousComposition: holoSource ?? undefined,
+        previousComposition,
         model: options.model,
       };
 
