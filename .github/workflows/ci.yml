@@ -55,6 +55,9 @@ jobs:
       - name: Check architecture coupling guard
         run: pnpm architecture:check
 
+      - name: Verify Claude plugin.json matches .claude/skills
+        run: pnpm verify:claude-plugin-skills
+
       - name: Check hotspot test coverage
         run: pnpm tests:hotspots
 
