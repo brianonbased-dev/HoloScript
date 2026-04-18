@@ -200,7 +200,7 @@ export function HoloScriptEditor({ _height = '100%' }: HoloScriptEditorProps) {
           }}
         />
       </div>
-      <EditorToolbar code={code} />
+      <EditorToolbar code={code} onCodeChange={setCode} />
     </div>
   );
 }

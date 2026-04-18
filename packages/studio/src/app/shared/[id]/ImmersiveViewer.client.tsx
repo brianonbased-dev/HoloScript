@@ -26,6 +26,13 @@ import { HoloCompositionParser } from '@holoscript/core';
 
 interface ImmersiveViewerProps {
   code: string;
+  /** Scene name — used as the share title when Publish runs. */
+  name?: string;
+}
+
+/** Dynamic-imported qrcode lib type (no @types/qrcode installed). */
+interface QRCodeLib {
+  toDataURL: (text: string, opts?: { width?: number; margin?: number }) => Promise<string>;
 }
 
 type ParsedObject = {
@@ -129,15 +136,20 @@ function isOculusBrowser(): boolean {
   return /OculusBrowser/i.test(navigator.userAgent);
 }
 
-export function ImmersiveViewer({ code }: ImmersiveViewerProps) {
+export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  // 3D "Publish" button mesh + 3D QR display plane — created when entering VR.
+  const publishButtonRef = useRef<THREE.Mesh | null>(null);
+  const qrPlaneRef = useRef<THREE.Mesh | null>(null);
   const [parsed] = useState(() => extractObjects(code));
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const [xrError, setXrError] = useState<string | null>(null);
+  const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'ready' | 'error'>('idle');
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   // Set up three.js scene + animation loop
   useEffect(() => {
@@ -239,6 +251,133 @@ export function ImmersiveViewer({ code }: ImmersiveViewerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrSupported, parsed.parseOk]);
 
+  /**
+   * G6 — Publish the current scene and display a 3D QR code with the share
+   * URL in-world. The user points their friend's phone at it.
+   */
+  const publishInVR = async () => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    setPublishState('publishing');
+    setXrError(null);
+
+    // Flash the button yellow to show "working"
+    const btn = publishButtonRef.current;
+    const btnMat = btn?.material as THREE.MeshStandardMaterial | undefined;
+    const originalColor = btnMat?.color.clone();
+    if (btnMat) btnMat.color.setHex(0xeab308);
+
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name ?? 'Voice-authored scene',
+          code,
+          author: 'Anonymous',
+        }),
+      });
+      const data = (await res.json()) as { id?: string; url?: string; error?: string };
+      if (!res.ok || !data.id) throw new Error(data.error ?? `HTTP ${res.status}`);
+
+      // Prefer short /w/<id> URL over /shared/<id>
+      const base = window.location.origin;
+      const shortUrl = `${base}/w/${data.id}`;
+      setPublishedUrl(shortUrl);
+
+      // Generate the QR bitmap and map it onto the 3D plane.
+      // qrcode has no @types package; cast the dynamic import to the narrow
+      // interface we declared above. Add @types/qrcode to drop this line.
+      // @ts-expect-error — qrcode ships without type declarations
+      const qr = (await import('qrcode')) as unknown as QRCodeLib;
+      const dataUrl = await qr.toDataURL(shortUrl, { width: 512, margin: 2 });
+      const tex = await new THREE.TextureLoader().loadAsync(dataUrl);
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      // Create or update the QR plane mesh
+      if (!qrPlaneRef.current) {
+        const plane = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.6, 0.6),
+          new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+        );
+        // In front of the user at roughly head height
+        plane.position.set(0, 1.6, -1.2);
+        scene.add(plane);
+        qrPlaneRef.current = plane;
+      } else {
+        const mat = qrPlaneRef.current.material as THREE.MeshBasicMaterial;
+        mat.map = tex;
+        mat.needsUpdate = true;
+        qrPlaneRef.current.visible = true;
+      }
+
+      setPublishState('ready');
+      if (btnMat) btnMat.color.setHex(0x16a34a); // green = success
+    } catch (e) {
+      setPublishState('error');
+      setXrError(e instanceof Error ? e.message : 'publish failed');
+      if (btnMat && originalColor) btnMat.color.copy(originalColor);
+    }
+  };
+
+  // When entering VR, spawn the publish button in the scene + wire XR select.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    const renderer = rendererRef.current;
+    if (!xrActive || !scene || !renderer) return;
+
+    // Spawn a small purple cube as the publish button, to the user's right.
+    const btn = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.2, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x7c3aed, emissive: 0x2e1065, emissiveIntensity: 0.4 })
+    );
+    btn.position.set(0.5, 1.4, -0.8);
+    btn.userData.isPublishButton = true;
+    scene.add(btn);
+    publishButtonRef.current = btn;
+
+    // Raycast on XR controller select events; if the publish button was hit, fire publishInVR.
+    const raycaster = new THREE.Raycaster();
+    const tmpMatrix = new THREE.Matrix4();
+    const handleSelect = (e: Event) => {
+      const xrEvent = e as unknown as { target: { matrixWorld?: THREE.Matrix4 } };
+      const mw = xrEvent.target.matrixWorld;
+      if (!mw) return;
+      tmpMatrix.identity().extractRotation(mw);
+      const origin = new THREE.Vector3().setFromMatrixPosition(mw);
+      const direction = new THREE.Vector3(0, 0, -1).applyMatrix4(tmpMatrix);
+      raycaster.set(origin, direction);
+      const hits = raycaster.intersectObject(btn, false);
+      if (hits.length > 0) void publishInVR();
+    };
+
+    // Controllers 0 and 1 (left/right). three.js's XRTargetRaySpace uses a
+    // strict EventListener<...> type we can't match with a plain (e: Event)
+    // signature; cast to a looser shape for the add/remove calls.
+    const c0 = renderer.xr.getController(0) as unknown as {
+      addEventListener: (type: string, fn: (e: Event) => void) => void;
+      removeEventListener: (type: string, fn: (e: Event) => void) => void;
+    };
+    const c1 = renderer.xr.getController(1) as unknown as {
+      addEventListener: (type: string, fn: (e: Event) => void) => void;
+      removeEventListener: (type: string, fn: (e: Event) => void) => void;
+    };
+    c0.addEventListener('select', handleSelect);
+    c1.addEventListener('select', handleSelect);
+
+    return () => {
+      c0.removeEventListener('select', handleSelect);
+      c1.removeEventListener('select', handleSelect);
+      scene.remove(btn);
+      publishButtonRef.current = null;
+      if (qrPlaneRef.current) {
+        scene.remove(qrPlaneRef.current);
+        qrPlaneRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [xrActive]);
+
   return (
     <div
       style={{
@@ -304,6 +443,43 @@ export function ImmersiveViewer({ code }: ImmersiveViewerProps) {
           background: '#0a0a12',
         }}
       />
+
+      {/* Publish status — visible whether or not user is in VR.
+          In-VR the cube button publishes; out-of-VR this button does.
+          See G6 in research/quest3-iphone-moment/c-studio-share-path-map.md */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#94a3b8' }}>
+        <button
+          onClick={() => void publishInVR()}
+          disabled={publishState === 'publishing' || !parsed.parseOk}
+          style={{
+            background:
+              publishState === 'ready'
+                ? '#16a34a'
+                : publishState === 'error'
+                  ? '#dc2626'
+                  : publishState === 'publishing'
+                    ? '#eab308'
+                    : '#7c3aed',
+            color: 'white',
+            border: 0,
+            borderRadius: 6,
+            padding: '6px 14px',
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: publishState === 'publishing' ? 'wait' : 'pointer',
+          }}
+        >
+          {publishState === 'idle' && '📤 Publish + QR'}
+          {publishState === 'publishing' && '…'}
+          {publishState === 'ready' && '✓ Published'}
+          {publishState === 'error' && '× Error'}
+        </button>
+        {publishedUrl && (
+          <code style={{ fontSize: 11, color: '#60a5fa', fontFamily: 'ui-monospace, monospace' }}>
+            {publishedUrl}
+          </code>
+        )}
+      </div>
     </div>
   );
 }

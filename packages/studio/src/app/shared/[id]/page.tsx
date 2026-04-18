@@ -111,10 +111,10 @@ export default async function SharedScenePage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* 3D preview + Enter VR (G2 — WebXR-capable shared viewer) */}
+        {/* 3D preview + Enter VR + in-VR Publish QR (G2 + G6) */}
         {scene.code && (
           <div className="mb-6">
-            <ImmersiveViewer code={scene.code} />
+            <ImmersiveViewer code={scene.code} name={scene.name} />
           </div>
         )}
 
