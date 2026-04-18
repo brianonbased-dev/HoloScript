@@ -13,9 +13,17 @@
 // ============================================================================
 
 /**
- * 3D Vector
+ * 3D Vector — object representation with index access
+ * Supports both property access (v.x, v.y, v.z) and index access (v[0], v[1], v[2])
  */
-export type IVector3 = [number, number, number];
+export interface IVector3 {
+  x: number;
+  y: number;
+  z: number;
+  0: number;
+  1: number;
+  2: number;
+}
 
 /**
  * Quaternion rotation
