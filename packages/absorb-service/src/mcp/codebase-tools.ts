@@ -15,9 +15,37 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { parseHolo } from '@holoscript/core';
 import { setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
+
+/**
+ * B5 (NORTH_STAR DT-14): validate emitted .holo source via `parseHolo`
+ * before handing it to the MCP client. Catches malformed emissions from
+ * HoloEmitter — e.g. unescaped characters in file paths, graph layout
+ * edge cases that break composition grammar — without failing the whole
+ * tool call. Structured `{ valid, parseErrors }` is attached to tool
+ * responses so callers can decide whether to trust the output.
+ */
+function validateEmittedHolo(holo: string): {
+  valid: boolean;
+  parseErrors: string[];
+} {
+  try {
+    const result = parseHolo(holo, { tolerant: true, locations: false });
+    const errs = result.errors ?? [];
+    return {
+      valid: errs.length === 0 && result.ast != null,
+      parseErrors: errs.map((e) => e.message ?? String(e)),
+    };
+  } catch (err) {
+    return {
+      valid: false,
+      parseErrors: [err instanceof Error ? err.message : String(err)],
+    };
+  }
+}
 
 // =============================================================================
 // SMART EMBEDDING PROVIDER AUTO-DETECTION
@@ -943,6 +971,7 @@ async function runFullScan(
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
+      validation: validateEmittedHolo(holoSource),
     };
   }
 
@@ -1170,6 +1199,7 @@ async function runIncrementalPatch(
     interactiveScene,
     gitCommitHash: changes.headCommit,
     message: `Incremental update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
+    validation: holoSource ? validateEmittedHolo(holoSource) : undefined,
   };
 
   // Store result in job
