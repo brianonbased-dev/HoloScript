@@ -2,7 +2,7 @@
 
 **Recorded:** 2026-04-17  
 **Repo:** HoloScript (path on recorder’s machine: `Documents/GitHub/HoloScript`)  
-**Commit:** `8218a22b1` (HoloScript `main`).  
+**Commit:** run `git log -1 --follow --format=%H -- .bench-logs/2026-04-17-paper-targets-overhead.txt` in HoloScript (pin also in `benchmark-results-2026-04-17-paper-targets-overhead.md`).  
 **Command:**
 
 ```
