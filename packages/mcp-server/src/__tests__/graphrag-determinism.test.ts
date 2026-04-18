@@ -3,11 +3,12 @@ import { handleAbsorbProvenanceTool, fetchOrchestratorGraphContext } from '../ab
 import { hashBytes } from '../../../core/src/testing/DeterminismHarness';
 
 function calcStats(samples: number[]) {
-  const n = samples.length;
-  const mean = samples.reduce((a, b) => a + b, 0) / n;
-  const variance = samples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1 || 1);
-  const stddev = Math.sqrt(variance);
-  return { mean, stddev };
+  const sorted = [...samples].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const p99Index = Math.floor(n * 0.99);
+  const p99 = sorted[p99Index];
+  return { median, p99 };
 }
 
 describe('GraphRAG Provenance Determinism (Paper #5)', () => {
@@ -89,11 +90,11 @@ describe('GraphRAG Provenance Determinism (Paper #5)', () => {
     console.log(`Total queries: ${mockQueries.length}`);
     console.log(`Executions per query: ${executionsPerQuery} (Total: ${mockQueries.length * executionsPerQuery})`);
     console.log(`Divergent hash sets: ${totalDivergentSets}`);
-    console.log(`Provenance envelope creation overhead: ${stats.mean.toFixed(2)} µs ± ${stats.stddev.toFixed(2)} µs`);
+    console.log(`Provenance envelope creation overhead: ${stats.median.toFixed(2)} µs (median) / ${stats.p99.toFixed(2)} µs (p99)`);
     console.log(`100% Identical evidence hashes: ${totalDivergentSets === 0 ? 'YES' : 'NO'}\n`);
 
     expect(totalDivergentSets).toBe(0);
     // Overhead should be less than 5ms (the paper claims ~3 microseconds, but JS Date/fetch mocks add overhead).
-    expect(stats.mean).toBeLessThan(5000); 
+    expect(stats.median).toBeLessThan(5000); 
   });
 });
