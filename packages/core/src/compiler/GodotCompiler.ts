@@ -80,6 +80,8 @@ export interface GodotCompilerOptions {
   className?: string;
   indent?: string;
   godotVersion?: '4.0' | '4.1' | '4.2' | '4.3';
+  /** When set, emits a `# Provenance Hash:` banner (compile-time overhead bench / Paper 10). */
+  provenanceHash?: string;
 }
 
 export class GodotCompiler extends CompilerBase {
@@ -99,6 +101,7 @@ export class GodotCompiler extends CompilerBase {
       className: options.className || 'GeneratedScene',
       indent: options.indent || '\t',
       godotVersion: options.godotVersion || '4.3',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -115,6 +118,9 @@ export class GodotCompiler extends CompilerBase {
     );
     this.emit(`# Target: Godot ${this.options.godotVersion}`);
     this.emit(`# Do not edit manually — regenerate from .holo source`);
+    if (this.options.provenanceHash) {
+      this.emit(`# Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emit('extends Node3D');
     this.emit(`class_name ${this.options.className}`);

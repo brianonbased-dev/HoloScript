@@ -81,6 +81,8 @@ export interface UnityCompilerOptions {
   className?: string;
   useURP?: boolean;
   indent?: string;
+  /** When set, emits a `// Provenance Hash:` banner (compile-time overhead bench / Paper 10). */
+  provenanceHash?: string;
 }
 
 export class UnityCompiler extends CompilerBase {
@@ -101,6 +103,7 @@ export class UnityCompiler extends CompilerBase {
       className: options.className || 'GeneratedScene',
       useURP: options.useURP ?? true,
       indent: options.indent || '    ',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -120,6 +123,9 @@ export class UnityCompiler extends CompilerBase {
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'CSharp')}"`
     );
     this.emit('// Do not edit manually — regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emit('using UnityEngine;');
     this.emit('using UnityEngine.UI;');

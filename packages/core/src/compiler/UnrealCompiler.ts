@@ -50,6 +50,8 @@ export interface UnrealCompilerOptions {
   engineVersion?: '5.0' | '5.1' | '5.2' | '5.3' | '5.4';
   useEnhancedInput?: boolean;
   generateBlueprints?: boolean;
+  /** When set, emits a `// Provenance Hash:` banner in the generated header (Paper 10 bench). */
+  provenanceHash?: string;
 }
 
 export interface UnrealCompileResult {
@@ -80,6 +82,7 @@ export class UnrealCompiler extends CompilerBase {
       engineVersion: options.engineVersion || '5.4',
       useEnhancedInput: options.useEnhancedInput ?? true,
       generateBlueprints: options.generateBlueprints ?? false,
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -121,6 +124,9 @@ export class UnrealCompiler extends CompilerBase {
     );
     this.emitH(`// Unreal Engine: ${this.options.engineVersion}`);
     this.emitH('// Do not edit manually — regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emitH(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emitH('');
     this.emitH('#pragma once');
     this.emitH('');

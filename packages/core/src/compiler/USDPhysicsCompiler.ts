@@ -98,6 +98,9 @@ export interface USDPhysicsCompilerOptions {
    * @default 'isaac_sim'
    */
   targetContext?: USDTargetContext;
+
+  /** When set, emits a `# Provenance Hash:` USDA comment after the file preamble (Paper 10 bench). */
+  provenanceHash?: string;
   /**
    * Embed the HoloScript semantic AST inside a USD `customData` block
    * on the root Xform prim. This enables round-trip behavioral metadata
@@ -240,6 +243,7 @@ export class USDPhysicsCompiler extends CompilerBase {
       enableArticulation: options.enableArticulation ?? true,
       targetContext: options.targetContext ?? 'isaac_sim',
       embedSemanticAST: options.embedSemanticAST ?? true,
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -595,6 +599,9 @@ export class USDPhysicsCompiler extends CompilerBase {
     this.emit(`}`);
     this.indentLevel--;
     this.emit(`)`);
+    if (this.options.provenanceHash) {
+      this.emit(`# Provenance Hash: ${this.options.provenanceHash}`);
+    }
   }
 
   // ===========================================================================

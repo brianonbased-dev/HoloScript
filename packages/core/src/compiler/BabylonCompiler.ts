@@ -57,6 +57,8 @@ export interface BabylonCompilerOptions {
   useHavok?: boolean;
   enableXR?: boolean;
   indent?: string;
+  /** When set, emits a `// Provenance Hash:` banner (compile-time overhead bench / Paper 10). */
+  provenanceHash?: string;
 }
 
 const SHAPE_TO_MESH: Record<string, string> = {
@@ -93,6 +95,7 @@ export class BabylonCompiler extends CompilerBase {
       useHavok: options.useHavok ?? true,
       enableXR: options.enableXR ?? false,
       indent: options.indent || '  ',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -107,6 +110,9 @@ export class BabylonCompiler extends CompilerBase {
     this.emit(
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'TypeScript')}"`
     );
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emitImports(composition);
     this.emit('');
