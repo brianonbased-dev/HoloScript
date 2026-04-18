@@ -130,4 +130,37 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
 
     expect(replayMs).toBeLessThan(120_000);
   }, 120_000);
+
+  /**
+   * Tab:verify small-$n$ sweep for Paper 1 — hash-chain verify **total** wall time ($\mu$s).
+   * Entries $n$ = steps + 2 (init row, `steps` step rows, finalize row).
+   */
+  it('reports tab:verify n-sweep at 3/13/103/1003 entries (hash verify median/p99, total μs)', async () => {
+    const entryTargets = [3, 13, 103, 1003];
+    const verifyRuns = 10;
+
+    console.log('\n[paper-cael-replay-benchmark] === tab:verify n-sweep (hash verify, total μs) ===');
+    for (const entryCount of entryTargets) {
+      const steps = entryCount - 2;
+      const { jsonl, entryCount: ec } = buildTrace(steps);
+      expect(ec).toBe(entryCount);
+
+      const trace = parseCAELJSONL(jsonl);
+      const totalUsSamples: number[] = [];
+      for (let r = 0; r < verifyRuns; r++) {
+        const t0 = performance.now();
+        const v = verifyCAELHashChain(trace);
+        const t1 = performance.now();
+        expect(v.valid).toBe(true);
+        totalUsSamples.push((t1 - t0) * 1000);
+      }
+      const stats = calcStats(totalUsSamples);
+      const perEntryMedNs = (stats.median / entryCount) * 1000;
+      console.log(
+        `[paper-cael-replay-benchmark] tab:verify entries=${entryCount} verifyRuns=${verifyRuns} ` +
+          `hashVerifyTotalUs med=${stats.median.toFixed(2)} p99=${stats.p99.toFixed(2)} ` +
+          `(~${perEntryMedNs.toFixed(1)} ns/entry)`
+      );
+    }
+  }, 120_000);
 });

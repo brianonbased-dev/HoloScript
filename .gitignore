@@ -44,6 +44,7 @@ dist/
 # Machine-specific, large, and re-generated per run.
 .bench-logs/*
 !.bench-logs/*paper-targets-overhead*
+!.bench-logs/*paper-trait*
 
 # OS
 .DS_Store

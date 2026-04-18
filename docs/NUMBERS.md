@@ -12,6 +12,8 @@
 | Compilers | `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" \| wc -l` | Sovereign + bridge |
 | Export targets | `ExportTarget` type in `packages/core/src/compiler/CircuitBreaker.ts` | Enum members |
 | Trait files | `find packages/core/src/traits -name "*.ts" -not -name "*.test.*" \| wc -l` | Individual definitions |
+| Trait inventory (Paper 11) | `pnpm --filter @holoscript/core exec vitest run src/traits/constants/__tests__/paper-trait-inventory.test.ts` → `.bench-logs/paper-trait-inventory.json` | Do not hardcode counts in TeX; cite JSON + `benchmark-results-2026-04-18-paper-11-trait-harnesses.md` |
+| Trait conflict census (Paper 11) | `pnpm --filter @holoscript/core exec vitest run src/traits/constants/__tests__/paper-trait-conflict-census.test.ts` → `.bench-logs/paper-trait-conflict-census.json` | Pairwise mode counts; see same benchmark markdown |
 | Trait categories | `ls -d packages/core/src/traits/*/` | Category directories |
 | Domain plugins | `ls -d packages/plugins/*/ \| grep -v template \| wc -l` | Excludes template |
 | Packages | `ls -d packages/*/ \| wc -l` | Workspace packages |

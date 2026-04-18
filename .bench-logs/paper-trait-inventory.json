@@ -1,0 +1,976 @@
+{
+  "generatedAt": "2026-04-18T09:59:05.533Z",
+  "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
+  "categoryFileCount": 227,
+  "categoryFiles": [
+    "accessibility-extended.d.ts",
+    "accessibility-extended.ts",
+    "accessibility.d.ts",
+    "accessibility.ts",
+    "age-condition.d.ts",
+    "age-condition.ts",
+    "analytics-observability.d.ts",
+    "analytics-observability.ts",
+    "animals.d.ts",
+    "animals.ts",
+    "api-gateway.d.ts",
+    "api-gateway.ts",
+    "architecture-realestate.d.ts",
+    "architecture-realestate.ts",
+    "atmosphere-sky.ts",
+    "audio.d.ts",
+    "audio.ts",
+    "audit-trail.d.ts",
+    "audit-trail.ts",
+    "auth-identity.d.ts",
+    "auth-identity.ts",
+    "character-materials.d.ts",
+    "character-materials.ts",
+    "character-pipeline.d.ts",
+    "character-pipeline.ts",
+    "communication.d.ts",
+    "communication.ts",
+    "compliance-governance.d.ts",
+    "compliance-governance.ts",
+    "concurrency.d.ts",
+    "concurrency.ts",
+    "connector-integration.d.ts",
+    "connector-integration.ts",
+    "construction-building.d.ts",
+    "construction-building.ts",
+    "containers-storage.d.ts",
+    "containers-storage.ts",
+    "cooking-food.d.ts",
+    "cooking-food.ts",
+    "core-vr-interaction.d.ts",
+    "core-vr-interaction.ts",
+    "creatures-mythical.d.ts",
+    "creatures-mythical.ts",
+    "data-pipeline.d.ts",
+    "data-pipeline.ts",
+    "data-storage.d.ts",
+    "data-storage.ts",
+    "data-visualization.d.ts",
+    "data-visualization.ts",
+    "database-persistence.d.ts",
+    "database-persistence.ts",
+    "debug-cinematic.d.ts",
+    "debug-cinematic.ts",
+    "devops-ci.d.ts",
+    "devops-ci.ts",
+    "education-learning.d.ts",
+    "education-learning.ts",
+    "emotion-mood.d.ts",
+    "emotion-mood.ts",
+    "enterprise-multitenancy.d.ts",
+    "enterprise-multitenancy.ts",
+    "environment-input.d.ts",
+    "environment-input.ts",
+    "environmental-biome.d.ts",
+    "environmental-biome.ts",
+    "fabric-cloth.d.ts",
+    "fabric-cloth.ts",
+    "fabrication-devices.d.ts",
+    "fabrication-devices.ts",
+    "facial-expression.d.ts",
+    "facial-expression.ts",
+    "feature-flags.d.ts",
+    "feature-flags.ts",
+    "ffi-os.d.ts",
+    "ffi-os.ts",
+    "file-storage.d.ts",
+    "file-storage.ts",
+    "furniture-decor.d.ts",
+    "furniture-decor.ts",
+    "game-mechanics.d.ts",
+    "game-mechanics.ts",
+    "gaps-physics.d.ts",
+    "gaps-physics.ts",
+    "gems-minerals.d.ts",
+    "gems-minerals.ts",
+    "geospatial-web3.d.ts",
+    "geospatial-web3.ts",
+    "geospatial.ts",
+    "global-illumination.ts",
+    "gpu-compute.d.ts",
+    "gpu-compute.ts",
+    "healthcare-medical.d.ts",
+    "healthcare-medical.ts",
+    "hologram-media.d.ts",
+    "hologram-media.ts",
+    "holomesh-social.ts",
+    "humanoid-avatar.d.ts",
+    "humanoid-avatar.ts",
+    "i18n-localization.d.ts",
+    "i18n-localization.ts",
+    "index.d.ts",
+    "instancing-geometry.d.ts",
+    "instancing-geometry.ts",
+    "intelligence-behavior.d.ts",
+    "intelligence-behavior.ts",
+    "interop-copresence.d.ts",
+    "interop-copresence.ts",
+    "iot-autonomous-agents.d.ts",
+    "iot-autonomous-agents.ts",
+    "lighting.d.ts",
+    "lighting.ts",
+    "locomotion-movement.d.ts",
+    "locomotion-movement.ts",
+    "magic-fantasy.d.ts",
+    "magic-fantasy.ts",
+    "maritime-naval.d.ts",
+    "maritime-naval.ts",
+    "material-properties.d.ts",
+    "material-properties.ts",
+    "measurement-sensing.d.ts",
+    "measurement-sensing.ts",
+    "media-analytics.d.ts",
+    "media-analytics.ts",
+    "media-content.d.ts",
+    "media-content.ts",
+    "ml-inference.d.ts",
+    "ml-inference.ts",
+    "ml-tensor.d.ts",
+    "ml-tensor.ts",
+    "multisensory-haptic.d.ts",
+    "multisensory-haptic.ts",
+    "music-performance.d.ts",
+    "music-performance.ts",
+    "musical-sound.d.ts",
+    "musical-sound.ts",
+    "narrative-storytelling.d.ts",
+    "narrative-storytelling.ts",
+    "nature-life.d.ts",
+    "nature-life.ts",
+    "networking-ai.d.ts",
+    "networking-ai.ts",
+    "notification-alerting.d.ts",
+    "notification-alerting.ts",
+    "npc-roles.d.ts",
+    "npc-roles.ts",
+    "object-interaction.d.ts",
+    "object-interaction.ts",
+    "observability.d.ts",
+    "observability.ts",
+    "parser-core-ui.d.ts",
+    "parser-core-ui.ts",
+    "payment.d.ts",
+    "payment.ts",
+    "physical-affordances.d.ts",
+    "physical-affordances.ts",
+    "physics-expansion.d.ts",
+    "physics-expansion.ts",
+    "post-processing.ts",
+    "procedural-generation.d.ts",
+    "procedural-generation.ts",
+    "rendering.d.ts",
+    "rendering.ts",
+    "resource-gathering.d.ts",
+    "resource-gathering.ts",
+    "robotics-industrial.d.ts",
+    "robotics-industrial.ts",
+    "safety-boundaries.d.ts",
+    "safety-boundaries.ts",
+    "scientific-computing.d.ts",
+    "scientific-computing.ts",
+    "scifi-technology.d.ts",
+    "scifi-technology.ts",
+    "scripting-automation.d.ts",
+    "scripting-automation.ts",
+    "search.d.ts",
+    "search.ts",
+    "security-crypto.d.ts",
+    "security-crypto.ts",
+    "shape-form.d.ts",
+    "shape-form.ts",
+    "signs-communication.d.ts",
+    "signs-communication.ts",
+    "simple-modifiers.d.ts",
+    "simple-modifiers.ts",
+    "simulation-domains.d.ts",
+    "simulation-domains.ts",
+    "size-scale.d.ts",
+    "size-scale.ts",
+    "social-commerce.d.ts",
+    "social-commerce.ts",
+    "social-effects.d.ts",
+    "social-effects.ts",
+    "spatial-algorithms.d.ts",
+    "spatial-algorithms.ts",
+    "sports-fitness.d.ts",
+    "sports-fitness.ts",
+    "state-persistence.d.ts",
+    "state-persistence.ts",
+    "surface-texture.d.ts",
+    "surface-texture.ts",
+    "terrain-ocean.ts",
+    "testing-qa.d.ts",
+    "testing-qa.ts",
+    "time-period.d.ts",
+    "time-period.ts",
+    "transportation-vehicles.d.ts",
+    "transportation-vehicles.ts",
+    "universal-service.d.ts",
+    "universal-service.ts",
+    "v43-ai-xr.d.ts",
+    "v43-ai-xr.ts",
+    "vfx-audio.ts",
+    "visual-effects.d.ts",
+    "visual-effects.ts",
+    "volumetric-webgpu.d.ts",
+    "volumetric-webgpu.ts",
+    "water-fluid.d.ts",
+    "water-fluid.ts",
+    "weather-particles.d.ts",
+    "weather-particles.ts",
+    "weather-phenomena.d.ts",
+    "weather-phenomena.ts",
+    "webxr.ts",
+    "workflow-bpm.d.ts",
+    "workflow-bpm.ts",
+    "xr-platform.d.ts",
+    "xr-platform.ts"
+  ],
+  "exportedTraitArraysCount": 163,
+  "totalTraitDefinitions": 6232,
+  "vrTraitsCount": 2875,
+  "uniqueVRTraitsCount": 2794,
+  "duplicateCountInVRTraits": 81,
+  "topExportsByCount": [
+    {
+      "exportName": "VR_TRAITS",
+      "count": 2875
+    },
+    {
+      "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
+      "count": 243
+    },
+    {
+      "exportName": "UNIVERSAL_V6_TRAITS",
+      "count": 239
+    },
+    {
+      "exportName": "SECURITY_CRYPTO_TRAITS",
+      "count": 78
+    },
+    {
+      "exportName": "FACIAL_EXPRESSION_TRAITS",
+      "count": 75
+    },
+    {
+      "exportName": "NPC_ROLES_TRAITS",
+      "count": 62
+    },
+    {
+      "exportName": "CHARACTER_PIPELINE_TRAITS",
+      "count": 51
+    },
+    {
+      "exportName": "ANIMALS_TRAITS",
+      "count": 48
+    },
+    {
+      "exportName": "DATA_VISUALIZATION_TRAITS",
+      "count": 45
+    },
+    {
+      "exportName": "CREATURES_MYTHICAL_TRAITS",
+      "count": 42
+    },
+    {
+      "exportName": "INTELLIGENCE_BEHAVIOR_TRAITS",
+      "count": 40
+    },
+    {
+      "exportName": "COOKING_FOOD_TRAITS",
+      "count": 39
+    },
+    {
+      "exportName": "EDUCATION_LEARNING_TRAITS",
+      "count": 39
+    },
+    {
+      "exportName": "UNIVERSAL_DATA_TRAITS",
+      "count": 38
+    },
+    {
+      "exportName": "ARCHITECTURE_REALESTATE_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "MAGIC_FANTASY_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "SPORTS_FITNESS_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "FURNITURE_DECOR_TRAITS",
+      "count": 36
+    },
+    {
+      "exportName": "MUSIC_PERFORMANCE_TRAITS",
+      "count": 36
+    },
+    {
+      "exportName": "INSTANCING_GEOMETRY_TRAITS",
+      "count": 35
+    }
+  ],
+  "exports": [
+    {
+      "exportName": "ACCESSIBILITY_EXTENDED_TRAITS",
+      "count": 27
+    },
+    {
+      "exportName": "ACCESSIBILITY_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "AERIAL_AQUATIC_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "AGE_CONDITION_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "AIRPODS_SPATIAL_AUDIO_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "ANALYTICS_OBSERVABILITY_TRAITS",
+      "count": 16
+    },
+    {
+      "exportName": "ANIMALS_TRAITS",
+      "count": 48
+    },
+    {
+      "exportName": "API_GATEWAY_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "ARCHITECTURE_REALESTATE_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "AUDIO_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "AUDIT_TRAIL_TRAITS",
+      "count": 2
+    },
+    {
+      "exportName": "AUTH_IDENTITY_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "CAMERA_HAND_TRACKING_TRAITS",
+      "count": 9
+    },
+    {
+      "exportName": "CHARACTER_MATERIAL_TRAITS",
+      "count": 34
+    },
+    {
+      "exportName": "CHARACTER_PIPELINE_TRAITS",
+      "count": 51
+    },
+    {
+      "exportName": "COMMUNICATION_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "COMPLIANCE_GOVERNANCE_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "CONCURRENCY_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "CONNECTIVITY_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "CONNECTOR_INTEGRATION_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "CONSTRUCTION_BUILDING_TRAITS",
+      "count": 25
+    },
+    {
+      "exportName": "CONTAINERS_STORAGE_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "CONTROLLER_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "COOKING_FOOD_TRAITS",
+      "count": 39
+    },
+    {
+      "exportName": "CORE_VR_INTERACTION_TRAITS",
+      "count": 13
+    },
+    {
+      "exportName": "CREATURES_MYTHICAL_TRAITS",
+      "count": 42
+    },
+    {
+      "exportName": "DATA_PIPELINE_TRAITS",
+      "count": 5
+    },
+    {
+      "exportName": "DATA_STORAGE_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "DATA_VISUALIZATION_TRAITS",
+      "count": 45
+    },
+    {
+      "exportName": "DATABASE_PERSISTENCE_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "DEBUG_CINEMATIC_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "DEPTH_SCANNER_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "DEVOPS_CI_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "EDUCATION_LEARNING_TRAITS",
+      "count": 39
+    },
+    {
+      "exportName": "EMOTION_MOOD_TRAITS",
+      "count": 20
+    },
+    {
+      "exportName": "ENTERPRISE_MULTITENANCY_TRAITS",
+      "count": 19
+    },
+    {
+      "exportName": "ENVIRONMENT_INPUT_TRAITS",
+      "count": 15
+    },
+    {
+      "exportName": "ENVIRONMENTAL_BIOME_TRAITS",
+      "count": 33
+    },
+    {
+      "exportName": "ENVIRONMENTAL_SENSOR_TRAITS",
+      "count": 5
+    },
+    {
+      "exportName": "FABRIC_CLOTH_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "FABRICATION_DEVICES_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "FACE_TRACKING_TRAITS",
+      "count": 11
+    },
+    {
+      "exportName": "FACIAL_EXPRESSION_TRAITS",
+      "count": 75
+    },
+    {
+      "exportName": "FEATURE_FLAGS_TRAITS",
+      "count": 2
+    },
+    {
+      "exportName": "FFI_OS_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "FILE_STORAGE_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "FOLDABLE_DISPLAY_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "FORCE_TORQUE_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "FURNITURE_DECOR_TRAITS",
+      "count": 36
+    },
+    {
+      "exportName": "GAME_MECHANICS_TRAITS",
+      "count": 31
+    },
+    {
+      "exportName": "GAPS_PHYSICS_TRAITS",
+      "count": 14
+    },
+    {
+      "exportName": "GEMS_MINERALS_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "GEO_ANCHOR_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "GEOSPATIAL_ARCORE_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "GEOSPATIAL_WEB3_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "GOOGLE_LENS_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "GPU_COMPUTE_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "GRIPPER_TRAITS",
+      "count": 15
+    },
+    {
+      "exportName": "HAPTIC_FEEDBACK_TRAITS",
+      "count": 11
+    },
+    {
+      "exportName": "HEALTHCARE_MEDICAL_TRAITS",
+      "count": 31
+    },
+    {
+      "exportName": "HOLOGRAM_MEDIA_TRAITS",
+      "count": 13
+    },
+    {
+      "exportName": "HUMANOID_AVATAR_TRAITS",
+      "count": 16
+    },
+    {
+      "exportName": "I18N_LOCALIZATION_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "INERTIAL_POSITION_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "INSTANCING_GEOMETRY_TRAITS",
+      "count": 35
+    },
+    {
+      "exportName": "INTELLIGENCE_BEHAVIOR_TRAITS",
+      "count": 40
+    },
+    {
+      "exportName": "INTEROP_COPRESENCE_TRAITS",
+      "count": 16
+    },
+    {
+      "exportName": "IOS_OBJECT_CAPTURE_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "IOT_AUTONOMOUS_AGENTS_TRAITS",
+      "count": 35
+    },
+    {
+      "exportName": "JOINT_CONTROL_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "JOINT_PROPERTY_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "JOINT_TYPE_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "LEGGED_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "LIDAR_SCANNER_TRAITS",
+      "count": 11
+    },
+    {
+      "exportName": "LIGHTING_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "LOCOMOTION_MOVEMENT_TRAITS",
+      "count": 14
+    },
+    {
+      "exportName": "MAGIC_FANTASY_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "MARITIME_NAVAL_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "MATERIAL_PROPERTIES_TRAITS",
+      "count": 33
+    },
+    {
+      "exportName": "MEASUREMENT_SENSING_TRAITS",
+      "count": 17
+    },
+    {
+      "exportName": "MEDIA_ANALYTICS_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "MEDIA_CONTENT_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "ML_INFERENCE_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "ML_TENSOR_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "MOBILE_BASE_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "MOTOR_FEEDBACK_TRAITS",
+      "count": 16
+    },
+    {
+      "exportName": "MOTOR_TYPE_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "MULTISENSORY_HAPTIC_TRAITS",
+      "count": 16
+    },
+    {
+      "exportName": "MUSIC_PERFORMANCE_TRAITS",
+      "count": 36
+    },
+    {
+      "exportName": "MUSICAL_SOUND_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "NARRATIVE_STORYTELLING_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "NATURE_LIFE_TRAITS",
+      "count": 19
+    },
+    {
+      "exportName": "NEARBY_CONNECTIONS_TRAITS",
+      "count": 9
+    },
+    {
+      "exportName": "NETWORKING_AI_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "NOTIFICATION_ALERTING_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "NPC_ROLES_TRAITS",
+      "count": 62
+    },
+    {
+      "exportName": "NPU_SCENE_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "OBJECT_INTERACTION_TRAITS",
+      "count": 25
+    },
+    {
+      "exportName": "OBSERVABILITY_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "PARSER_CORE_UI_TRAITS",
+      "count": 18
+    },
+    {
+      "exportName": "PAYMENT_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "PHONE_SLEEVE_VR_TRAITS",
+      "count": 25
+    },
+    {
+      "exportName": "PHYSICAL_AFFORDANCES_TRAITS",
+      "count": 22
+    },
+    {
+      "exportName": "PHYSICS_EXPANSION_TRAITS",
+      "count": 9
+    },
+    {
+      "exportName": "PLANNING_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "PORTAL_AR_TRAITS",
+      "count": 15
+    },
+    {
+      "exportName": "POWER_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "PROCEDURAL_GENERATION_TRAITS",
+      "count": 25
+    },
+    {
+      "exportName": "PROTOCOL_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "RANGE_SENSING_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "RENDERING_TRAITS",
+      "count": 26
+    },
+    {
+      "exportName": "RESOURCE_GATHERING_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
+      "count": 243
+    },
+    {
+      "exportName": "ROOMPLAN_TRAITS",
+      "count": 21
+    },
+    {
+      "exportName": "SAFETY_BOUNDARIES_TRAITS",
+      "count": 14
+    },
+    {
+      "exportName": "SAFETY_TRAITS",
+      "count": 10
+    },
+    {
+      "exportName": "SAMSUNG_DEX_TRAITS",
+      "count": 5
+    },
+    {
+      "exportName": "SCIENTIFIC_COMPUTING_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "SCIFI_TECHNOLOGY_TRAITS",
+      "count": 24
+    },
+    {
+      "exportName": "SCRIPTING_AUTOMATION_TRAITS",
+      "count": 14
+    },
+    {
+      "exportName": "SEARCH_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "SECURITY_CRYPTO_TRAITS",
+      "count": 78
+    },
+    {
+      "exportName": "SHAPE_FORM_TRAITS",
+      "count": 32
+    },
+    {
+      "exportName": "SHAREPLAY_TRAITS",
+      "count": 9
+    },
+    {
+      "exportName": "SIGNS_COMMUNICATION_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "SIMPLE_MODIFIER_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "SIMULATION_DOMAIN_TRAITS",
+      "count": 33
+    },
+    {
+      "exportName": "SIZE_SCALE_TRAITS",
+      "count": 18
+    },
+    {
+      "exportName": "SOCIAL_COMMERCE_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "SOCIAL_EFFECTS_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "SPATIAL_ALGORITHMS_TRAITS",
+      "count": 3
+    },
+    {
+      "exportName": "SPATIAL_AUTHORING_TRAITS",
+      "count": 5
+    },
+    {
+      "exportName": "SPORTS_FITNESS_TRAITS",
+      "count": 37
+    },
+    {
+      "exportName": "STANDARDS_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "STATE_PERSISTENCE_TRAITS",
+      "count": 17
+    },
+    {
+      "exportName": "SURFACE_TEXTURE_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "TESTING_QA_TRAITS",
+      "count": 5
+    },
+    {
+      "exportName": "TIME_PERIOD_TRAITS",
+      "count": 23
+    },
+    {
+      "exportName": "TOOL_INTERFACE_TRAITS",
+      "count": 8
+    },
+    {
+      "exportName": "TOOL_TRAITS",
+      "count": 9
+    },
+    {
+      "exportName": "TRANSMISSION_TRAITS",
+      "count": 15
+    },
+    {
+      "exportName": "TRANSPORTATION_VEHICLES_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "UNIVERSAL_CONTAINER_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "UNIVERSAL_CONTRACT_TRAITS",
+      "count": 26
+    },
+    {
+      "exportName": "UNIVERSAL_DATA_TRAITS",
+      "count": 38
+    },
+    {
+      "exportName": "UNIVERSAL_METRIC_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "UNIVERSAL_NETWORK_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "UNIVERSAL_PIPELINE_TRAITS",
+      "count": 32
+    },
+    {
+      "exportName": "UNIVERSAL_RESILIENCE_TRAITS",
+      "count": 25
+    },
+    {
+      "exportName": "UNIVERSAL_SERVICE_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "UNIVERSAL_V6_TRAITS",
+      "count": 239
+    },
+    {
+      "exportName": "UWB_POSITIONING_TRAITS",
+      "count": 6
+    },
+    {
+      "exportName": "V43_AI_XR_TRAITS",
+      "count": 23
+    },
+    {
+      "exportName": "VISION_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "VISUAL_EFFECTS_TRAITS",
+      "count": 30
+    },
+    {
+      "exportName": "VOLUMETRIC_WEBGPU_TRAITS",
+      "count": 13
+    },
+    {
+      "exportName": "VR_TRAITS",
+      "count": 2875
+    },
+    {
+      "exportName": "WATER_FLUID_TRAITS",
+      "count": 19
+    },
+    {
+      "exportName": "WEATHER_PARTICLES_TRAITS",
+      "count": 12
+    },
+    {
+      "exportName": "WEATHER_PHENOMENA_TRAITS",
+      "count": 28
+    },
+    {
+      "exportName": "WEBXR_TRAITS",
+      "count": 11
+    },
+    {
+      "exportName": "WORKFLOW_BPM_TRAITS",
+      "count": 4
+    },
+    {
+      "exportName": "XR_PLATFORM_TRAITS",
+      "count": 35
+    }
+  ],
+  "verificationCommand": "pnpm --filter @holoscript/core exec vitest run src/traits/constants/__tests__/paper-trait-inventory.test.ts"
+}
