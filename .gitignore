@@ -42,7 +42,8 @@ dist/
 
 # Paper-rigorous benchmark logs (output of `pnpm run bench:paper-rigorous`).
 # Machine-specific, large, and re-generated per run.
-.bench-logs/
+.bench-logs/*
+!.bench-logs/*paper-targets-overhead*
 
 # OS
 .DS_Store

@@ -84,6 +84,8 @@ const gltfNodePool = new ASTNodePool<GLTFNode>(
 // =============================================================================
 
 export interface GLTFPipelineOptions {
+  /** When set, adds `holoscript.provenanceHash` under `asset.extras` (Paper 10/12 bench). */
+  provenanceHash?: string;
   /** Output format: 'glb' for binary, 'gltf' for JSON + separate .bin */
   format?: 'glb' | 'gltf';
   /** Enable Draco mesh compression */
@@ -916,6 +918,7 @@ export class GLTFPipeline extends CompilerBase {
   constructor(options: GLTFPipelineOptions = {}) {
     super();
     this.options = {
+      provenanceHash: options.provenanceHash,
       format: options.format ?? 'glb',
       dracoCompression: options.dracoCompression ?? false,
       quantize: options.quantize ?? true,
@@ -2480,6 +2483,9 @@ export class GLTFPipeline extends CompilerBase {
         objects: objectNames,
         traits: [...allTraits],
         spatialGroups: groupNames,
+        ...(this.options.provenanceHash
+          ? { provenanceHash: this.options.provenanceHash }
+          : {}),
       },
     };
 
