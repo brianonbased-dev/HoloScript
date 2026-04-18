@@ -22,6 +22,7 @@ import type { TraitDependencyGraph } from './TraitDependencyGraph';
 import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
+import { UnauthorizedCompilerAccessError } from './CompilerBase';
 import {
   ProvenanceSemiring,
   type TraitApplication,
@@ -277,16 +278,9 @@ export class TraitCompositionCompiler {
 /**
  * Error thrown when agent lacks required permissions for trait composition.
  */
-export class UnauthorizedTraitCompositionAccessError extends Error {
-  constructor(
-    public readonly decision: AccessDecision,
-    public readonly compilerName: string
-  ) {
-    super(
-      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-        `Required Permission: ${decision.requiredPermission || 'unknown'}`
-    );
+export class UnauthorizedTraitCompositionAccessError extends UnauthorizedCompilerAccessError {
+  constructor(decision: AccessDecision, compilerName: string) {
+    super(decision, 'trait composition', compilerName);
     this.name = 'UnauthorizedTraitCompositionAccessError';
   }
 }

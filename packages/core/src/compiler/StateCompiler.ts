@@ -17,6 +17,7 @@
 import type { HSPlusNode, HSPlusAST } from '../types/HoloScriptPlus';
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
+import { UnauthorizedCompilerAccessError } from './CompilerBase';
 
 // =============================================================================
 // TYPES
@@ -168,16 +169,9 @@ export class StateCompiler {
 /**
  * Error thrown when agent lacks required permissions for state compilation.
  */
-export class UnauthorizedStateCompilerAccessError extends Error {
-  constructor(
-    public readonly decision: AccessDecision,
-    public readonly compilerName: string
-  ) {
-    super(
-      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-        `Required Permission: ${decision.requiredPermission || 'unknown'}`
-    );
+export class UnauthorizedStateCompilerAccessError extends UnauthorizedCompilerAccessError {
+  constructor(decision: AccessDecision, compilerName: string) {
+    super(decision, 'state compilation', compilerName);
     this.name = 'UnauthorizedStateCompilerAccessError';
   }
 }

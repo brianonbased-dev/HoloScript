@@ -37,6 +37,7 @@ import {
 } from './SemanticCache';
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
+import { UnauthorizedCompilerAccessError } from './CompilerBase';
 
 /**
  * Types of changes detected during AST diff
@@ -1113,16 +1114,9 @@ export function deserializeCache(json: string): IncrementalCompiler {
 /**
  * Error thrown when agent lacks required permissions for incremental compilation.
  */
-export class UnauthorizedIncrementalCompilerAccessError extends Error {
-  constructor(
-    public readonly decision: AccessDecision,
-    public readonly compilerName: string
-  ) {
-    super(
-      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
-        `Agent Role: ${decision.agentRole || 'unknown'}\n` +
-        `Required Permission: ${decision.requiredPermission || 'unknown'}`
-    );
+export class UnauthorizedIncrementalCompilerAccessError extends UnauthorizedCompilerAccessError {
+  constructor(decision: AccessDecision, compilerName: string) {
+    super(decision, 'incremental compilation', compilerName);
     this.name = 'UnauthorizedIncrementalCompilerAccessError';
   }
 }
