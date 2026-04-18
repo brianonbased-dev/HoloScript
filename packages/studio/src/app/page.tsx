@@ -340,6 +340,12 @@ export default function HomePage() {
           >
             Import
           </button>
+          <Link
+            href="/scan-room"
+            className="px-6 py-3 border border-indigo-400/30 hover:border-indigo-300/50 rounded-xl text-indigo-300 hover:text-indigo-200 font-medium transition-all"
+          >
+            Scan Room with Phone
+          </Link>
         </div>
         <p className="text-white/30 text-sm mt-1">Free tier included. No credit card required.</p>
       </section>
