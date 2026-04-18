@@ -392,7 +392,7 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
     let totalSpikes = 0;
     let goalReached = false;
     let goalTick = -1;
-    const path: Vec2[] = [[...env.agentPos  ]];
+    const path: Vec2[] = [{ ...env.agentPos }];
 
     // Run experiment
     console.log('\n[nav-experiment] === SNN Navigation Experiment ===');
@@ -424,7 +424,7 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
       const delta = actionMapper.apply(decision.chosen, solver, tick * DT);
       record(tick, 'world_delta', actionMapper.encode(delta));
 
-      path.push([...env.agentPos  ]);
+      path.push({ ...env.agentPos });
 
       const tickEnd = performance.now();
       tickTimings.push(tickEnd - tickStart);
@@ -438,8 +438,8 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
       // Progress every 50 ticks
       if ((tick + 1) % 50 === 0) {
         const pos = env.agentPos;
-        const dist = Math.sqrt((env.goal.x - pos[0]) ** 2 + (env.goal.y - pos[1]) ** 2);
-        console.log(`[nav-experiment] Tick ${tick + 1}: pos=(${pos[0].toFixed(1)}, ${pos[1].toFixed(1)}) dist=${dist.toFixed(1)} spikes=${totalSpikes} ${goalReached ? 'GOAL!' : ''}`);
+        const dist = Math.sqrt((env.goal.x - pos.x) ** 2 + (env.goal.y - pos.y) ** 2);
+        console.log(`[nav-experiment] Tick ${tick + 1}: pos=(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) dist=${dist.toFixed(1)} spikes=${totalSpikes} ${goalReached ? 'GOAL!' : ''}`);
       }
     }
 
