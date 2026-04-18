@@ -12,6 +12,7 @@
 
 import type { AnchorContextState } from './AnchorContext';
 import type { TrajectoryMemoryState } from './TrajectoryMemory';
+import { createFusedAttentionBackend } from './FusedAttentionKernel';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -77,6 +78,8 @@ export interface HoloMapConfig {
   modelHash: string;
   /** Optional CPU offloading for limited VRAM */
   cpuOffload: boolean;
+  /** Model/weights strategy gate for MVP */
+  weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
 }
 
 export const HOLOMAP_DEFAULTS: HoloMapConfig = {
@@ -86,6 +89,7 @@ export const HOLOMAP_DEFAULTS: HoloMapConfig = {
   seed: 0,
   modelHash: 'unset',
   cpuOffload: false,
+  weightStrategy: 'distill',
 };
 
 // =============================================================================
@@ -139,14 +143,149 @@ export interface ReconstructionManifest {
     anchors: string;
     splats?: string;
   };
+  /** Strategy used for selecting / running model weights */
+  weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
 }
 
 // =============================================================================
 // FACTORY (stub — real implementation lands in Sprint 2)
 // =============================================================================
 
+function fnv1a32Hex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  const primary = hash.toString(16).padStart(8, '0');
+
+  let hash2 = 0x811c9dc5;
+  for (let i = input.length - 1; i >= 0; i -= 1) {
+    hash2 ^= input.charCodeAt(i);
+    hash2 = (hash2 * 0x01000193) >>> 0;
+  }
+  const secondary = hash2.toString(16).padStart(8, '0');
+  return `${primary}${secondary}`;
+}
+
+class HoloMapRuntimeImpl implements HoloMapRuntime {
+  private config: HoloMapConfig = { ...HOLOMAP_DEFAULTS };
+  private initialized = false;
+  private readonly steps: ReconstructionStep[] = [];
+  private replayKey = 'unset';
+
+  async init(config: HoloMapConfig): Promise<void> {
+    this.config = { ...config };
+    this.steps.length = 0;
+    this.replayKey = fnv1a32Hex(
+      `${this.config.modelHash}|${this.config.seed}|${this.config.weightStrategy ?? 'distill'}`
+    );
+    this.initialized = true;
+  }
+
+  async step(frame: ReconstructionFrame): Promise<ReconstructionStep> {
+    if (!this.initialized) {
+      throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
+    }
+
+    const backend = await createFusedAttentionBackend();
+
+    const q = new Float32Array([frame.width / 1024, frame.height / 1024, frame.index / 1000, 1]);
+    const k = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1]);
+    const v = new Float32Array([0.3, 0.4, 0.5, 0.8, -0.2, 0.1]);
+    const attn = await backend.compute({
+      q,
+      k,
+      v,
+      qRows: 1,
+      kRows: 2,
+      dModel: 4,
+      vCols: 3,
+    });
+
+    const p0 = attn[0] ?? 0;
+    const p1 = attn[1] ?? 0;
+    const p2 = attn[2] ?? 0;
+
+    const step: ReconstructionStep = {
+      frame,
+      pose: {
+        position: [p0, p1, p2],
+        rotation: [0, 0, 0, 1],
+        confidence: 0.8,
+      },
+      points: {
+        positions: new Float32Array([p0, p1, p2, p0 + 0.05, p1 + 0.02, p2 + 0.01]),
+        colors: new Uint8Array([120, 180, 220, 90, 160, 210]),
+        confidence: new Float32Array([0.82, 0.78]),
+      },
+      trajectory: {
+        keyframes: [],
+        estimatedDriftMeters: 0,
+        lastLoopClosureFrame: -1,
+        revision: frame.index + 1,
+      },
+      anchor: {
+        anchorFrameIndex: 0,
+        anchorPose: {
+          position: [0, 0, 0],
+          rotation: [0, 0, 0, 1],
+          confidence: 1,
+        },
+        anchorDescriptor: new Float32Array([1, 0, 0, 1]),
+        revision: frame.index + 1,
+      },
+    };
+
+    this.steps.push(step);
+    return step;
+  }
+
+  async finalize(): Promise<ReconstructionManifest> {
+    if (!this.initialized) {
+      throw new Error('HoloMapRuntime not initialized. Call init(config) before finalize().');
+    }
+
+    const frameCount = this.steps.length;
+    const pointCount = this.steps.reduce((acc, s) => acc + s.points.positions.length / 3, 0);
+
+    return {
+      version: '0.1.0',
+      worldId: `holomap-${this.replayKey}`,
+      displayName: 'HoloMap Reconstruction',
+      pointCount,
+      frameCount,
+      bounds: {
+        min: [-1, -1, -1],
+        max: [1, 1, 1],
+      },
+      replayHash: this.replayKey,
+      provenance: {
+        capturedAtIso: new Date().toISOString(),
+      },
+      assets: {
+        points: 'reconstruction.points.bin',
+        trajectory: 'reconstruction.trajectory.json',
+        anchors: 'reconstruction.anchors.json',
+      },
+      weightStrategy: this.config.weightStrategy ?? 'distill',
+    };
+  }
+
+  replayHash(): string {
+    return this.replayKey;
+  }
+
+  async dispose(): Promise<void> {
+    this.initialized = false;
+    this.steps.length = 0;
+  }
+}
+
 export function createHoloMapRuntime(_config?: Partial<HoloMapConfig>): HoloMapRuntime {
-  throw new Error(
-    'HoloMapRuntime is scaffolded in Sprint 1; implementation lands in Sprint 2. See reconstruction/RFC-HoloMap.md'
-  );
+  const runtime = new HoloMapRuntimeImpl();
+  if (_config) {
+    void runtime.init({ ...HOLOMAP_DEFAULTS, ..._config });
+  }
+  return runtime;
 }
