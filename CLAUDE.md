@@ -299,29 +299,29 @@ If any box is unchecked → complete that step before responding.
 - **Plan Completeness Gap Reporting**: Every technical plan MUST end with an honest "What Remains After This Plan" section that clearly lays out the real-world usability or feature gaps that are deliberately left unaddressed, preventing agents from prematurely concluding that a major initiative is "finished".
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for full AI Agent Documentation Standards
 
-<!-- gitnexus:start -->
+<!-- holoscript-absorb:start -->
 
-## GitNexus MCP
+## HoloScript Absorb — Codebase Intelligence
 
-This project is indexed by GitNexus as **HoloScript** (run `npx gitnexus status` for current symbol / relationship / execution-flow counts).
+This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run `holo_graph_status` for current symbol / relationship / execution-flow counts, or `GET https://absorb.holoscript.net/health` for service-level stats.
 
 ## Always Start Here
 
-1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
+1. **Call `holo_graph_status({})`** — check cache freshness (<24h = use it)
 2. **Match your task to a skill below** and **read that skill file**
 3. **Follow the skill's workflow and checklist**
 
-> If step 1 warns the index is stale, run `npx gitnexus analyze` in the terminal first.
+> If step 1 reports stale / missing cache, call `holo_absorb_repo({ rootDir: ".", force: true })` first. CLI fallback: `npx tsx packages/cli/src/cli.ts absorb . --json`.
 
 ## Skills
 
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+| Task                                         | Read this skill file                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_ask_codebase`) |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_impact_analysis`) |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_query_codebase` + `holo_semantic_search`) |
+| Rename / extract / split / refactor          | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_impact_analysis` then edit) |
+| Tools, resources, schema reference           | `.claude/skills/absorb/SKILL.md`                      |
+| Index, status, clean CLI commands            | `.claude/skills/absorb/SKILL.md` (CLI fallbacks under `packages/cli`) |
 
-<!-- gitnexus:end -->
+<!-- holoscript-absorb:end -->
