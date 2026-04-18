@@ -42,7 +42,8 @@ function calcStats(samples: number[]) {
 }
 
 describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
-  it('reports verify-only vs full replay wall time', async () => {
+  /** Each `step()` adds one row after `init`; `finalize()` adds `final`. Entries = steps + 2. */
+  function buildTrace(steps: number): { jsonl: string; entryCount: number } {
     const recorder = new CAELRecorder(
       mockSolver(),
       {
@@ -51,33 +52,64 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
       },
       { solverType: 'structural-tet10', fixedDt: 0.01 }
     );
-
-    // Target ~100K entries for the empirical rigor test
-    const steps = 99995; 
     for (let i = 0; i < steps; i++) {
       recorder.step(0.01);
     }
     recorder.finalize();
-
     const jsonl = recorder.toJSONL();
     const trace = parseCAELJSONL(jsonl);
-    const entryCount = trace.length;
-    expect(entryCount).toBeGreaterThan(90000);
+    return { jsonl, entryCount: trace.length };
+  }
 
+  it('reports verify-only median/p99 at multiple trace lengths (table splits)', async () => {
+    const stepTargets = [98, 998, 9998, 99995];
+    const verifyRuns = 10;
+
+    console.log('\n[paper-cael-replay-benchmark] === verify-only splits (us/entry median, p99) ===');
+    for (const steps of stepTargets) {
+      const { jsonl, entryCount } = buildTrace(steps);
+      const trace = parseCAELJSONL(jsonl);
+      expect(trace.length).toBe(entryCount);
+
+      const verifySamplesUs: number[] = [];
+      for (let r = 0; r < verifyRuns; r++) {
+        const t0 = performance.now();
+        const v = verifyCAELHashChain(trace);
+        const t1 = performance.now();
+        expect(v.valid).toBe(true);
+        const runTimeMs = t1 - t0;
+        verifySamplesUs.push((runTimeMs * 1000) / entryCount);
+      }
+      const stats = calcStats(verifySamplesUs);
+      const totalMedianMs = (stats.median * entryCount) / 1000;
+      console.log(
+        `[paper-cael-replay-benchmark] entries=${entryCount} steps=${steps} ` +
+          `totalMedian=${totalMedianMs.toFixed(3)}ms ` +
+          `us/entry med=${stats.median.toFixed(4)} p99=${stats.p99.toFixed(4)}`
+      );
+    }
+  }, 600_000);
+
+  it('reports verify-only vs full replay wall time (~100k entries)', async () => {
+    const steps = 99995;
+    const { jsonl, entryCount } = buildTrace(steps);
+    expect(entryCount).toBeGreaterThan(90_000);
+
+    const trace = parseCAELJSONL(jsonl);
     const verifyRuns = 10;
     const verifySamplesUs: number[] = [];
-    
+
     for (let r = 0; r < verifyRuns; r++) {
       const t0 = performance.now();
       const v = verifyCAELHashChain(trace);
       const t1 = performance.now();
       expect(v.valid).toBe(true);
-      
+
       const runTimeMs = t1 - t0;
       const perEntryUs = (runTimeMs * 1000) / entryCount;
       verifySamplesUs.push(perEntryUs);
     }
-    
+
     const stats = calcStats(verifySamplesUs);
 
     const replayer = new CAELReplayer(jsonl);
@@ -90,7 +122,7 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
 
     console.log(
       `\n[paper-cael-replay-benchmark] entries=${entryCount} verifyRuns=${verifyRuns} ` +
-        `verify: ${stats.median.toFixed(4)} µs/entry median (p99: ${stats.p99.toFixed(4)} µs/entry) `
+        `verify: ${stats.median.toFixed(4)} us/entry median (p99: ${stats.p99.toFixed(4)} us/entry) `
     );
     console.log(
       `[paper-cael-replay-benchmark] single replayer.verify+replay wall ${replayMs.toFixed(2)}ms (${entryCount} entries)`
