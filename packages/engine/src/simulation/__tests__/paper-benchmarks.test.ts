@@ -195,8 +195,7 @@ function makeTET10Config(nr: number, nt: number): { config: TET10Config; mesh: R
   return { config, mesh, tet10Mesh };
 }
 
-/** Time a function over N iterations, return statistics */
-function benchmark(fn: () => void, iterations: number): { medianMs: number; meanMs: number; stdMs: number; ci95Ms: number; allMs: number[] } {
+function benchmark(fn: () => void, iterations: number): { medianMs: number; meanMs: number; stdMs: number; p99Ms: number; allMs: number[] } {
   const times: number[] = [];
   // Warmup (3 runs)
   fn(); fn(); fn();
@@ -210,8 +209,8 @@ function benchmark(fn: () => void, iterations: number): { medianMs: number; mean
   const meanMs = times.reduce((a, b) => a + b, 0) / times.length;
   const variance = times.reduce((s, t) => s + (t - meanMs) ** 2, 0) / (times.length - 1);
   const stdMs = Math.sqrt(variance);
-  const ci95Ms = 1.96 * stdMs / Math.sqrt(times.length);
-  return { medianMs, meanMs, stdMs, ci95Ms, allMs: times };
+  const p99Ms = times[Math.floor(times.length * 0.99)];
+  return { medianMs, meanMs, stdMs, p99Ms, allMs: times };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -220,17 +219,19 @@ function benchmark(fn: () => void, iterations: number): { medianMs: number; mean
 
 describe('Paper Benchmark: Contract Overhead', () => {
 
-  it('measures overhead of ContractedSimulation wrapper on TET4 solve', () => {
+  it('measures overhead of ContractedSimulation wrapper on TET4 solve', { timeout: 600_000 }, () => {
     const meshConfigs = [
       { nr: 4, nt: 8, label: 'Small' },
       { nr: 6, nt: 12, label: 'Medium' },
       { nr: 8, nt: 16, label: 'Large' },
     ];
 
-    const N_ITER = 10; // 10 iterations with 3 warmup for statistical rigor
+    // N configurable for revision-grade measurement. Default 100 for routine runs;
+    // BENCH_N=500 for canonical revision numbers with stable p99.
+    const N_ITER = Number.parseInt(process.env.BENCH_N ?? '100', 10);
 
     console.log('\n' + '='.repeat(90));
-    console.log(`CONTRACT OVERHEAD: TET4 Solver (${N_ITER} iterations, 3 warmup, 95% CI)`);
+    console.log(`CONTRACT OVERHEAD: TET4 Solver (${N_ITER} iterations, 3 warmup, median + p99)`);
     console.log('='.repeat(90));
     console.log('| Mesh     | Nodes | DOF   | Bare (ms)     | Contracted (ms) | Overhead   |');
     console.log('|----------|-------|-------|---------------|-----------------|------------|');
@@ -259,12 +260,11 @@ describe('Paper Benchmark: Contract Overhead', () => {
         contracted.getProvenance();
       }, N_ITER);
 
-      const overhead = ((contractedTiming.meanMs - bareTiming.meanMs) / bareTiming.meanMs * 100);
-      const overheadStr = overhead >= 0 ? `+${overhead.toFixed(1)}%` : `${overhead.toFixed(1)}%`;
-
-      console.log(`| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.meanMs.toFixed(2)}±${bareTiming.ci95Ms.toFixed(2)} | ${contractedTiming.meanMs.toFixed(2)}±${contractedTiming.ci95Ms.toFixed(2)} | ${overheadStr.padStart(8)} |`);
-
-      rows.push(`${mc.label} & ${mesh.nodeCount} & ${dof} & $${bareTiming.meanMs.toFixed(2)} \\pm ${bareTiming.ci95Ms.toFixed(2)}$ & $${contractedTiming.meanMs.toFixed(2)} \\pm ${contractedTiming.ci95Ms.toFixed(2)}$ & ${overheadStr} \\\\`);
+      const overheadStr = (((contractedTiming.medianMs / bareTiming.medianMs) - 1) * 100).toFixed(1) + '%';
+      
+      console.log(`| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) | ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) | ${overheadStr.padStart(8)} |`);
+      
+      rows.push(`${mc.label} & ${mesh.nodeCount} & ${dof} & ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) & ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) & ${overheadStr} \\\\`);
     }
 
     console.log('='.repeat(75));
