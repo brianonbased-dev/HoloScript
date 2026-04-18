@@ -1548,6 +1548,10 @@ export class HoloCompositionParser {
           composition.environment = this.parseEnvironment();
         } else if (this.check('STATE')) {
           composition.state = this.parseState();
+        } else if (this.check('METADATA_BLOCK')) {
+          this.advance();
+          const block = this.parseBlockTraitConfig();
+          composition.metadata = { ...(composition.metadata ?? {}), ...block };
         } else if (this.check('TEMPLATE')) {
           composition.templates.push(this.parseTemplate());
         } else if (this.check('OBJECT')) {

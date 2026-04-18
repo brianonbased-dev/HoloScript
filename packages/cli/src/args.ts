@@ -2,6 +2,8 @@
  * CLI argument parsing
  */
 
+import { getVersionString } from '@holoscript/core';
+
 export type RuntimeProfileName = 'headless' | 'minimal' | 'standard' | 'vr';
 
 export type EdgePlatform = 'linux-arm64' | 'linux-x64' | 'windows-x64' | 'wasm';
@@ -549,7 +551,7 @@ export function parseArgs(args: string[]): CLIOptions {
 
 export function printHelp(): void {
   console.log(`
-\x1b[36mHoloScript CLI v2.5.0\x1b[0m
+\x1b[36mHoloScript CLI v${getVersionString()}\x1b[0m
 
 Usage: holoscript <command> [options] [input]
 

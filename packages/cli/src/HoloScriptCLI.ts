@@ -7,6 +7,7 @@ import {
   HoloScriptRuntime,
   enableConsoleLogging,
   parseHolo,
+  getVersionString,
 } from '@holoscript/core';
 import type { CLIOptions } from './args';
 import { formatAST, formatResult, formatError } from './formatters';
@@ -204,7 +205,7 @@ export class HoloScriptCLI {
   }
 
   private async replCommand(): Promise<number> {
-    console.log('HoloScript REPL v2.5.0');
+    console.log(`HoloScript REPL v${getVersionString()}`);
     console.log('Type HoloScript commands to execute. Type "exit" or Ctrl+C to quit.\n');
 
     const rl = readline.createInterface({
