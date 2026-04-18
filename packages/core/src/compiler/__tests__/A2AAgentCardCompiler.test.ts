@@ -535,6 +535,7 @@ describe('A2AAgentCardCompiler', () => {
               domain: 'iot',
               keyword: 'sensor',
               name: 'TemperatureProbe',
+              domainTags: ['telemetry', 'digital-twin'],
               traits: ['networked'],
               properties: { unit: 'celsius', range: 100 },
             },
@@ -560,6 +561,7 @@ describe('A2AAgentCardCompiler', () => {
               domain: 'robotics',
               keyword: 'joint',
               name: 'ArmJoint',
+              domainTags: ['control', 'actuator', 'simulation'],
               traits: ['safety_rated'],
               properties: { maxTorque: 50 },
             },
@@ -603,6 +605,7 @@ describe('A2AAgentCardCompiler', () => {
               domain: 'iot',
               keyword: 'sensor',
               name: 'Probe',
+              domainTags: ['sensor', 'telemetry'],
               traits: ['sensor'], // duplicate of keyword-based tag
               properties: {},
             },
@@ -612,6 +615,30 @@ describe('A2AAgentCardCompiler', () => {
       const skill = card.skills.find((s: A2AAgentSkill) => s.id === 'iot_probe');
       const sensorCount = skill!.tags.filter((t) => t === 'sensor').length;
       expect(sensorCount).toBe(1);
+    });
+
+    it('falls back to domain + keyword tags when plugin domainTags are absent', () => {
+      const card = compileAndParse(
+        compiler,
+        makeComposition({
+          domainBlocks: [
+            {
+              type: 'DomainBlock',
+              domain: 'custom',
+              keyword: 'optimizer',
+              name: 'CustomOptimizer',
+              traits: ['experimental'],
+              properties: {},
+            },
+          ],
+        })
+      );
+
+      const skill = card.skills.find((s: A2AAgentSkill) => s.id === 'custom_customoptimizer');
+      expect(skill).toBeDefined();
+      expect(skill!.tags).toContain('custom');
+      expect(skill!.tags).toContain('optimizer');
+      expect(skill!.tags).toContain('experimental');
     });
   });
 

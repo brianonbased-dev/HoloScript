@@ -26,7 +26,6 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { A2A_AGENT_CARD_DOMAIN_TAGS } from './a2a-agent-card-domain-tags';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -572,7 +571,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
     const tags = [
       block.domain,
       block.keyword,
-      ...(A2A_AGENT_CARD_DOMAIN_TAGS[block.domain] ?? [block.domain]),
+      ...(block.domainTags?.length ? block.domainTags : []),
       ...block.traits,
     ];
 

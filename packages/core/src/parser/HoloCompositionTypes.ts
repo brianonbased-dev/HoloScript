@@ -1220,6 +1220,13 @@ export interface HoloDomainBlock extends HoloNode {
   name: string;
   /** Trait decorators on the block (e.g. @networked @safety_rated) */
   traits: string[];
+  /**
+   * Optional plugin-exported domain tags.
+   *
+   * Populated by domain plugins / schema mappers so compilers can avoid
+   * hardcoded domain vocabulary in core.
+   */
+  domainTags?: string[];
   /** Properties declared inside the block */
   properties: Record<string, HoloValue>;
   /** Nested objects inside the block */
