@@ -4,11 +4,12 @@ import { ProvenanceSemiring, TraitApplication } from '../compiler/traits/Provena
 import { hashBytes } from '../testing/DeterminismHarness';
 
 function calcStats(samples: number[]) {
-  const n = samples.length;
-  const mean = samples.reduce((a, b) => a + b, 0) / n;
-  const variance = samples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1 || 1);
-  const stddev = Math.sqrt(variance);
-  return { mean, stddev };
+  const sorted = [...samples].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const p99Index = Math.floor(n * 0.99);
+  const p99 = sorted[p99Index];
+  return { median, p99 };
 }
 
 const rules = [
@@ -138,9 +139,9 @@ describe('Trait Commutativity Evaluation (P3-S2)', () => {
 
     console.log(`\nP3-S2 Evaluation Benchmark Complete (N=${runs} runs)`);
     console.log(`Total evaluations: ${objects * traitSetsPerObject * orderingsPerSet * runs}`);
-    console.log(`Semiring avg overhead per trait: ${semiringStats.mean.toFixed(3)} µs ± ${semiringStats.stddev.toFixed(3)} µs`);
-    console.log(`SHA-256 avg overhead per resolution: ${shaStats.mean.toFixed(3)} µs ± ${shaStats.stddev.toFixed(3)} µs`);
-    console.log(`Relative overhead vs imperative: ${relStats.mean.toFixed(2)}% ± ${relStats.stddev.toFixed(2)}%\n`);
+    console.log(`Semiring avg overhead per trait: ${semiringStats.median.toFixed(3)} µs median (p99: ${semiringStats.p99.toFixed(3)} µs)`);
+    console.log(`SHA-256 avg overhead per resolution: ${shaStats.median.toFixed(3)} µs median (p99: ${shaStats.p99.toFixed(3)} µs)`);
+    console.log(`Relative overhead vs imperative: ${relStats.median.toFixed(2)}% median (p99: ${relStats.p99.toFixed(2)}%)\n`);
     
   }, 120000); // Allow up to 120s
 });
