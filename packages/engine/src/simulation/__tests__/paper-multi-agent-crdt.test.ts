@@ -170,7 +170,7 @@ interface ScalingRow {
   objects: number;
   opsPerSec: number;
   conflicts: number;
-  avgResolutionMs: number;
+  medianResolutionMs: number;
   traceSizeBytes: number;
 }
 
@@ -180,7 +180,7 @@ interface DensityRow {
   overlapPct: number;
   conflicts: number;
   conflictRate: number; // conflicts / total-ops
-  avgResolutionMs: number;
+  medianResolutionMs: number;
 }
 
 const densityRows: DensityRow[] = [];
@@ -278,10 +278,9 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
       const elapsedMs = deltaMs(startNs, endNs);
       const opsPerSec = (totalEdits / elapsedMs) * 1000;
       const conflicts = countConflicts(localBridge, perAgentOps);
-      const avgResolutionMs =
-        resolutionTimes.length === 0
-          ? 0
-          : resolutionTimes.reduce((s, x) => s + x, 0) / resolutionTimes.length;
+      const sortedResolutions = [...resolutionTimes].sort((a, b) => a - b);
+      const medianResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
+      const p99ResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
       const jsonl = localRecorder.toJSONL();
       const traceSizeBytes = Buffer.byteLength(jsonl, 'utf8');
 
@@ -295,7 +294,7 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
         objects: OBJECT_COUNT,
         opsPerSec,
         conflicts,
-        avgResolutionMs,
+        medianResolutionMs: medianResolutionMs,
         traceSizeBytes,
       });
 
@@ -303,7 +302,8 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
       console.log(
         `[exp1] N=${N.toString().padStart(2)} ops/sec=${opsPerSec.toFixed(0).padStart(8)} ` +
           `conflicts=${conflicts.toString().padStart(4)} ` +
-          `resolve=${avgResolutionMs.toFixed(3)}ms ` +
+          `resolve(median)=${medianResolutionMs.toFixed(3)}ms ` +
+          `resolve(p99)=${p99ResolutionMs.toFixed(3)}ms ` +
           `trace=${(traceSizeBytes / 1024).toFixed(1)}KB`
       );
     }, 60_000 /* 60s timeout for 10-agent case */);
@@ -327,7 +327,7 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
     console.log('    \\midrule');
     for (const r of scalingRows) {
       console.log(
-        `    ${r.agents} & ${r.objects} & ${r.opsPerSec.toFixed(0)} & ${r.conflicts} & ${r.avgResolutionMs.toFixed(3)} & ${(r.traceSizeBytes / 1024).toFixed(1)} \\\\`
+        `    ${r.agents} & ${r.objects} & ${r.opsPerSec.toFixed(0)} & ${r.conflicts} & ${r.medianResolutionMs.toFixed(3)} & ${(r.traceSizeBytes / 1024).toFixed(1)} \\\\`
       );
     }
     console.log('    \\bottomrule');
@@ -416,10 +416,9 @@ describe('Paper #3 — Experiment 2: Conflict density', () => {
       const totalOps = AGENT_COUNT * EDITS_PER_AGENT;
       const conflicts = countConflicts(localBridge, perAgentOps);
       const conflictRate = conflicts / totalOps;
-      const avgResolutionMs =
-        resolutionTimes.length === 0
-          ? 0
-          : resolutionTimes.reduce((s, x) => s + x, 0) / resolutionTimes.length;
+      const sortedResolutions = [...resolutionTimes].sort((a, b) => a - b);
+      const medianResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
+      const p99ResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
 
       expect(conflicts).toBeGreaterThanOrEqual(0);
 
@@ -427,12 +426,12 @@ describe('Paper #3 — Experiment 2: Conflict density', () => {
         overlapPct: overlap,
         conflicts,
         conflictRate,
-        avgResolutionMs,
+        medianResolutionMs: medianResolutionMs,
       });
 
       console.log(
         `[exp2] overlap=${overlap.toString().padStart(3)}% conflicts=${conflicts.toString().padStart(4)} ` +
-          `rate=${(conflictRate * 100).toFixed(2)}% resolve=${avgResolutionMs.toFixed(3)}ms`
+          `rate=${(conflictRate * 100).toFixed(2)}% resolve(median)=${medianResolutionMs.toFixed(3)}ms resolve(p99)=${p99ResolutionMs.toFixed(3)}ms`
       );
     }, 25_000);
   }
@@ -443,7 +442,7 @@ describe('Paper #3 — Experiment 2: Conflict density', () => {
     console.log('% overlap_pct  conflicts  conflict_rate  resolve_ms');
     for (const r of densityRows) {
       console.log(
-        `  ${r.overlapPct.toString().padStart(3)}         ${r.conflicts.toString().padStart(5)}     ${r.conflictRate.toFixed(4)}        ${r.avgResolutionMs.toFixed(3)}`
+        `  ${r.overlapPct.toString().padStart(3)}         ${r.conflicts.toString().padStart(5)}     ${r.conflictRate.toFixed(4)}        ${r.medianResolutionMs.toFixed(3)}`
       );
     }
   });
@@ -842,7 +841,7 @@ describe('Paper #3 — Section 7 master evaluation table', () => {
           `| ${r.objects.toString().padStart(7)} ` +
           `| ${r.opsPerSec.toFixed(0).padStart(8)} ` +
           `| ${r.conflicts.toString().padStart(9)} ` +
-          `| ${r.avgResolutionMs.toFixed(3).padStart(15)} ` +
+          `| ${r.medianResolutionMs.toFixed(3).padStart(15)} ` +
           `| ${(r.traceSizeBytes / 1024).toFixed(1).padStart(8)} KB |`
       );
     }
@@ -864,7 +863,7 @@ describe('Paper #3 — Section 7 master evaluation table', () => {
     console.log('    \\midrule');
     for (const r of scalingRows) {
       console.log(
-        `    ${r.agents} & ${r.objects} & ${r.opsPerSec.toFixed(0)} & ${r.conflicts} & ${r.avgResolutionMs.toFixed(3)} & ${(r.traceSizeBytes / 1024).toFixed(1)} \\\\`
+        `    ${r.agents} & ${r.objects} & ${r.opsPerSec.toFixed(0)} & ${r.conflicts} & ${r.medianResolutionMs.toFixed(3)} & ${(r.traceSizeBytes / 1024).toFixed(1)} \\\\`
       );
     }
     console.log('    \\bottomrule');

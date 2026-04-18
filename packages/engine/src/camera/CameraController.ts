@@ -263,7 +263,7 @@ export class CameraController {
    * @returns Copy of the current target coordinates
    */
   getTarget(): Vector3 {
-    return [...this.target] as Vector3;
+    return [this.target[0], this.target[1], this.target[2]];
   }
 
   /**

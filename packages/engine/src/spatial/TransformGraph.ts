@@ -15,6 +15,17 @@ import type { Vector3 } from '@holoscript/core';
 
 import { Vector3 } from './SpatialTypes';
 
+type TransformInput =
+  | Partial<Transform3D>
+  | {
+      x?: number;
+      y?: number;
+      z?: number;
+      sx?: number;
+      sy?: number;
+      sz?: number;
+    };
+
 export interface Transform3D {
   position: Vector3;
   scale: Vector3;
@@ -40,17 +51,42 @@ export class TransformGraph {
   // Node Management
   // ---------------------------------------------------------------------------
 
-  addNode(id: string, local?: Partial<Transform3D>): void {
+  addNode(id: string, local?: TransformInput): void {
     const defaultLocal: Transform3D = {
       position: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     };
 
+    const input = local as Partial<Transform3D> & {
+      x?: number;
+      y?: number;
+      z?: number;
+      sx?: number;
+      sy?: number;
+      sz?: number;
+    };
+
+    const position = input?.position
+      ? { ...input.position }
+      : {
+          x: input?.x ?? defaultLocal.position.x,
+          y: input?.y ?? defaultLocal.position.y,
+          z: input?.z ?? defaultLocal.position.z,
+        };
+
+    const scale = input?.scale
+      ? { ...input.scale }
+      : {
+          x: input?.sx ?? defaultLocal.scale.x,
+          y: input?.sy ?? defaultLocal.scale.y,
+          z: input?.sz ?? defaultLocal.scale.z,
+        };
+
     this.entries.set(id, {
       id,
       local: {
-        position: local?.position ? { ...local.position } : { ...defaultLocal.position },
-        scale: local?.scale ? { ...local.scale } : { ...defaultLocal.scale },
+        position,
+        scale,
       },
       worldPosition: { x: 0, y: 0, z: 0 },
       parent: null,

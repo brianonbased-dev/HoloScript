@@ -107,10 +107,12 @@ export class GrassRenderer {
   // Update LOD
   // ---------------------------------------------------------------------------
 
-  updateLOD(cameraPos: [number, number, number]): void {
+  updateLOD(cameraPos: [number, number, number] | { x: number; z: number; y?: number }): void {
+    const cx = Array.isArray(cameraPos) ? cameraPos[0] : cameraPos.x;
+    const cz = Array.isArray(cameraPos) ? cameraPos[2] : cameraPos.z;
     for (const blade of this.blades) {
-      const dx = blade.position[0] - cameraPos[0];
-      const dz = blade.position[2] - cameraPos[2];
+      const dx = blade.position[0] - cx;
+      const dz = blade.position[2] - cz;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
       if (dist > this.config.cullDistance) {

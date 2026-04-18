@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * ConstraintSolver.ts
  *
@@ -28,6 +27,48 @@ import {
   IRigidBodyState,
 } from './PhysicsTypes';
 
+type Vec3Like = IVector3 | { x: number; y: number; z: number };
+
+function withVec3Accessors(vec: IVector3): IVector3 {
+  const target = vec as IVector3 & { x?: number; y?: number; z?: number };
+  if (!Object.prototype.hasOwnProperty.call(target, 'x')) {
+    Object.defineProperties(target, {
+      x: {
+        get() {
+          return vec[0];
+        },
+        set(v: number) {
+          vec[0] = v;
+        },
+        enumerable: true,
+      },
+      y: {
+        get() {
+          return vec[1];
+        },
+        set(v: number) {
+          vec[1] = v;
+        },
+        enumerable: true,
+      },
+      z: {
+        get() {
+          return vec[2];
+        },
+        set(v: number) {
+          vec[2] = v;
+        },
+        enumerable: true,
+      },
+    });
+  }
+  return vec;
+}
+
+function c(v: Vec3Like, i: 0 | 1 | 2): number {
+  return Array.isArray(v) ? (v as IVector3)[i] : i === 0 ? v.x : i === 1 ? v.y : v.z;
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -53,27 +94,31 @@ interface SolvedConstraint {
 // =============================================================================
 
 function v3(x: number, y: number, z: number): IVector3 {
-  return [x, y, z];
+  return withVec3Accessors([x, y, z]);
 }
-function v3Add(a: IVector3, b: IVector3): IVector3 {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2] ];
+function v3Add(a: Vec3Like, b: Vec3Like): IVector3 {
+  return v3(c(a, 0) + c(b, 0), c(a, 1) + c(b, 1), c(a, 2) + c(b, 2));
 }
-function v3Sub(a: IVector3, b: IVector3): IVector3 {
-  return [a[0] - b[0], a[1] - b[1], a[2] - b[2] ];
+function v3Sub(a: Vec3Like, b: Vec3Like): IVector3 {
+  return v3(c(a, 0) - c(b, 0), c(a, 1) - c(b, 1), c(a, 2) - c(b, 2));
 }
-function v3Scale(v: IVector3, s: number): IVector3 {
-  return [v[0] * s, v[1] * s, v[2] * s ];
+function v3Scale(v: Vec3Like, s: number): IVector3 {
+  return v3(c(v, 0) * s, c(v, 1) * s, c(v, 2) * s);
 }
-function v3Dot(a: IVector3, b: IVector3): number {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+function v3Dot(a: Vec3Like, b: Vec3Like): number {
+  return c(a, 0) * c(b, 0) + c(a, 1) * c(b, 1) + c(a, 2) * c(b, 2);
 }
-function _v3Cross(a: IVector3, b: IVector3): IVector3 {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] ];
+function _v3Cross(a: Vec3Like, b: Vec3Like): IVector3 {
+  return v3(
+    c(a, 1) * c(b, 2) - c(a, 2) * c(b, 1),
+    c(a, 2) * c(b, 0) - c(a, 0) * c(b, 2),
+    c(a, 0) * c(b, 1) - c(a, 1) * c(b, 0)
+  );
 }
-function v3Length(v: IVector3): number {
-  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+function v3Length(v: Vec3Like): number {
+  return Math.sqrt(c(v, 0) * c(v, 0) + c(v, 1) * c(v, 1) + c(v, 2) * c(v, 2));
 }
-function v3Normalize(v: IVector3): IVector3 {
+function v3Normalize(v: Vec3Like): IVector3 {
   const len = v3Length(v);
   return len > 1e-10 ? v3Scale(v, 1 / len) : v3(0, 0, 0);
 }

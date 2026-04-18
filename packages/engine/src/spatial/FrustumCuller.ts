@@ -29,6 +29,15 @@ export interface BoundingVolume {
   radius?: number;
 }
 
+type BoundingVolumeInput = BoundingVolume & {
+  centerX?: number;
+  centerY?: number;
+  centerZ?: number;
+  halfExtentX?: number;
+  halfExtentY?: number;
+  halfExtentZ?: number;
+};
+
 export type CullResult = 'inside' | 'intersect' | 'outside';
 
 // =============================================================================
@@ -106,8 +115,19 @@ export class FrustumCuller {
   // Volume Management
   // ---------------------------------------------------------------------------
 
-  addVolume(volume: BoundingVolume): void {
-    this.volumes.set(volume.id, volume);
+  addVolume(volume: BoundingVolumeInput): void {
+    const normalized: BoundingVolume = {
+      ...volume,
+      center: volume.center ?? ([volume.centerX ?? 0, volume.centerY ?? 0, volume.centerZ ?? 0] as Vector3),
+      halfExtents:
+        volume.halfExtents ??
+        (volume.halfExtentX !== undefined ||
+        volume.halfExtentY !== undefined ||
+        volume.halfExtentZ !== undefined
+          ? ([volume.halfExtentX ?? 0, volume.halfExtentY ?? 0, volume.halfExtentZ ?? 0] as Vector3)
+          : undefined),
+    };
+    this.volumes.set(volume.id, normalized);
   }
   removeVolume(id: string): void {
     this.volumes.delete(id);

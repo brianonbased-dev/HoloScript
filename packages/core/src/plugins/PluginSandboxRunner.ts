@@ -168,11 +168,14 @@ const SAFE_GLOBALS: Record<string, unknown> = {
 // =============================================================================
 
 export class PluginSandboxRunner {
+  private static vmModule?: typeof import('vm');
   readonly pluginId: string;
   private permissions: Set<SandboxPermission>;
   private budget: CapabilityBudget;
   private telemetry?: TelemetryCollector;
   private state: SandboxRunnerState = 'idle';
+  private vmContext?: import('vm').Context;
+  private scriptCache: Map<string, import('vm').Script> = new Map();
 
   // Registered plugin APIs
   private tools: Map<string, SandboxTool> = new Map();
@@ -204,6 +207,8 @@ export class PluginSandboxRunner {
     this.tools.clear();
     this.handlers.clear();
     this.consoleLogs = [];
+    this.vmContext = undefined;
+    this.scriptCache.clear();
     this.state = 'destroyed';
 
     this.telemetry?.record({
@@ -378,42 +383,10 @@ export class PluginSandboxRunner {
     });
 
     try {
-      // Build sandbox context
-      const vm = require('vm') as typeof import('vm');
-      const context = vm.createContext({
-        ...SAFE_GLOBALS,
-        console: this.createSafeConsole(),
-        // Plugin API surface
-        registerTool: this.hasPermission('tool:register')
-          ? (name: string, desc: string, handler: (...args: unknown[]) => unknown) =>
-              this.registerTool(name, desc, handler)
-          : undefined,
-        registerHandler: this.hasPermission('handler:register')
-          ? (event: string, handler: (...args: unknown[]) => void) =>
-              this.registerHandler(event, handler)
-          : undefined,
-        emitEvent: this.hasPermission('event:emit')
-          ? (event: string, payload?: unknown) => this.emitEvent(event, payload)
-          : undefined,
-        setTimeout: undefined,
-        setInterval: undefined,
-        setImmediate: undefined,
-        clearTimeout: undefined,
-        clearInterval: undefined,
-        clearImmediate: undefined,
-        process: undefined,
-        require: undefined,
-        module: undefined,
-        exports: undefined,
-        __dirname: undefined,
-        __filename: undefined,
-        globalThis: undefined,
-        global: undefined,
-      });
+      const vm = PluginSandboxRunner.getVmModule();
+      const context = this.getOrCreateVmContext(vm);
 
-      const script = new vm.Script(code, {
-        filename: `plugin:${this.pluginId}`,
-      });
+      const script = this.getOrCreateCompiledScript(vm, code);
 
       const result = script.runInContext(context, {
         timeout: this.budget.maxCpuTimeMs,
@@ -455,6 +428,75 @@ export class PluginSandboxRunner {
         apiCalls: this.apiCallCount - startApiCalls,
       };
     }
+  }
+
+  private getOrCreateVmContext(vm: typeof import('vm')): import('vm').Context {
+    if (this.vmContext) {
+      return this.vmContext;
+    }
+
+    this.vmContext = vm.createContext({
+      ...SAFE_GLOBALS,
+      console: this.createSafeConsole(),
+      // Plugin API surface
+      registerTool: this.hasPermission('tool:register')
+        ? (name: string, desc: string, handler: (...args: unknown[]) => unknown) =>
+            this.registerTool(name, desc, handler)
+        : undefined,
+      registerHandler: this.hasPermission('handler:register')
+        ? (event: string, handler: (...args: unknown[]) => void) =>
+            this.registerHandler(event, handler)
+        : undefined,
+      emitEvent: this.hasPermission('event:emit')
+        ? (event: string, payload?: unknown) => this.emitEvent(event, payload)
+        : undefined,
+      setTimeout: undefined,
+      setInterval: undefined,
+      setImmediate: undefined,
+      clearTimeout: undefined,
+      clearInterval: undefined,
+      clearImmediate: undefined,
+      process: undefined,
+      require: undefined,
+      module: undefined,
+      exports: undefined,
+      __dirname: undefined,
+      __filename: undefined,
+      globalThis: undefined,
+      global: undefined,
+    });
+
+    return this.vmContext;
+  }
+
+  private static getVmModule(): typeof import('vm') {
+    if (!PluginSandboxRunner.vmModule) {
+      PluginSandboxRunner.vmModule = require('vm') as typeof import('vm');
+    }
+    return PluginSandboxRunner.vmModule;
+  }
+
+  private getOrCreateCompiledScript(vm: typeof import('vm'), code: string): import('vm').Script {
+    const cached = this.scriptCache.get(code);
+    if (cached) {
+      return cached;
+    }
+
+    const script = new vm.Script(code, {
+      filename: `plugin:${this.pluginId}`,
+    });
+
+    this.scriptCache.set(code, script);
+
+    // Bound cache to avoid unbounded memory growth in long-lived runners.
+    if (this.scriptCache.size > 256) {
+      const first = this.scriptCache.keys().next().value;
+      if (typeof first === 'string') {
+        this.scriptCache.delete(first);
+      }
+    }
+
+    return script;
   }
 
   // ===========================================================================

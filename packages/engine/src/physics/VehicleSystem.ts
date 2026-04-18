@@ -1,4 +1,3 @@
-import type { Vector3, Quaternion } from '@holoscript/core';
 /**
  * VehicleSystem.ts
  *
@@ -9,6 +8,52 @@ import type { Vector3, Quaternion } from '@holoscript/core';
  */
 
 import { IVector3 } from './PhysicsTypes';
+
+type Vec3Like = IVector3 | { x: number; y: number; z: number };
+
+function withVec3Accessors(vec: IVector3): IVector3 {
+  const target = vec as IVector3 & { x?: number; y?: number; z?: number };
+  if (!Object.prototype.hasOwnProperty.call(target, 'x')) {
+    Object.defineProperties(target, {
+      x: {
+        get() {
+          return vec[0];
+        },
+        set(v: number) {
+          vec[0] = v;
+        },
+        enumerable: true,
+      },
+      y: {
+        get() {
+          return vec[1];
+        },
+        set(v: number) {
+          vec[1] = v;
+        },
+        enumerable: true,
+      },
+      z: {
+        get() {
+          return vec[2];
+        },
+        set(v: number) {
+          vec[2] = v;
+        },
+        enumerable: true,
+      },
+    });
+  }
+  return vec;
+}
+
+function vec3(x: number, y: number, z: number): IVector3 {
+  return withVec3Accessors([x, y, z]);
+}
+
+function toVec3(v: Vec3Like): IVector3 {
+  return Array.isArray(v) ? withVec3Accessors(v as IVector3) : vec3(v.x, v.y, v.z);
+}
 
 // =============================================================================
 // TYPES
@@ -77,9 +122,9 @@ export function createDefaultCar(id: string): VehicleDefinition {
     isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z > 0 ? 'f' : 'r'}`,
-    connectionPoint: [x, -0.3, z],
-    direction: [0, -1, 0],
-    axle: [1, 0, 0],
+    connectionPoint: vec3(x, -0.3, z),
+    direction: vec3(0, -1, 0),
+    axle: vec3(1, 0, 0),
     suspensionRestLength: 0.3,
     suspensionStiffness: 25,
     suspensionDamping: 4.4,
@@ -94,7 +139,7 @@ export function createDefaultCar(id: string): VehicleDefinition {
   return {
     id,
     chassisMass: 1500,
-    chassisSize: [1.8, 0.6, 4.2],
+    chassisSize: vec3(1.8, 0.6, 4.2),
     wheels: [
       wheelConfig(-0.8, 1.4, true, false), // Front Left
       wheelConfig(0.8, 1.4, true, false), // Front Right
@@ -115,9 +160,9 @@ export function createTruck(id: string): VehicleDefinition {
     isDriving: boolean
   ): WheelConfig => ({
     id: `${id}_wheel_${x > 0 ? 'r' : 'l'}_${z.toFixed(0)}`,
-    connectionPoint: [x, -0.5, z],
-    direction: [0, -1, 0],
-    axle: [1, 0, 0],
+    connectionPoint: vec3(x, -0.5, z),
+    direction: vec3(0, -1, 0),
+    axle: vec3(1, 0, 0),
     suspensionRestLength: 0.4,
     suspensionStiffness: 40,
     suspensionDamping: 6.0,
@@ -132,7 +177,7 @@ export function createTruck(id: string): VehicleDefinition {
   return {
     id,
     chassisMass: 5000,
-    chassisSize: [2.4, 1.0, 7.0],
+    chassisSize: vec3(2.4, 1.0, 7.0),
     wheels: [
       wheelConfig(-1.0, 2.8, true, false),
       wheelConfig(1.0, 2.8, true, false),
@@ -157,7 +202,7 @@ export class VehicleSystem {
   /**
    * Create a vehicle from a definition at a given position.
    */
-  createVehicle(definition: VehicleDefinition, position: IVector3): VehicleState {
+  createVehicle(definition: VehicleDefinition, position: Vec3Like): VehicleState {
     const wheels: WheelState[] = definition.wheels.map((wc) => ({
       config: wc,
       suspensionLength: wc.suspensionRestLength,
@@ -172,10 +217,10 @@ export class VehicleSystem {
     const state: VehicleState = {
       id: definition.id,
       definition,
-      position: [position[0], position[1], position[2]],
+      position: toVec3(position),
       rotation: [0, 0, 0, 1],
-      linearVelocity: [0, 0, 0],
-      angularVelocity: [0, 0, 0],
+      linearVelocity: vec3(0, 0, 0),
+      angularVelocity: vec3(0, 0, 0),
       wheels,
       speed: 0,
       engineForce: 0,
@@ -232,7 +277,11 @@ export class VehicleSystem {
         wheel.suspensionForce = Math.max(0, springForce + dampForce);
         totalSuspensionForce += wheel.suspensionForce;
 
-        wheel.contactPoint = [vehicle.position[0] + wheel.config.connectionPoint[0], 0, vehicle.position[2] + wheel.config.connectionPoint[2]];
+        wheel.contactPoint = vec3(
+          vehicle.position[0] + wheel.config.connectionPoint[0],
+          0,
+          vehicle.position[2] + wheel.config.connectionPoint[2]
+        );
       } else {
         wheel.isGrounded = false;
         wheel.suspensionForce = 0;
@@ -343,6 +392,6 @@ export class VehicleSystem {
     // Simplified: use yaw from angular velocity to determine forward direction
     const yaw = vehicle.angularVelocity[1];
     // Accumulated yaw approximation (simplified)
-    return [Math.sin(yaw), 0, Math.cos(yaw)];
+    return vec3(Math.sin(yaw), 0, Math.cos(yaw));
   }
 }

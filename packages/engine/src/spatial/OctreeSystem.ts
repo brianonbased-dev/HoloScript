@@ -20,6 +20,18 @@ export interface OctreeEntry {
   radius: number;
 }
 
+type OctreeEntryInput = OctreeEntry & { x?: number; y?: number; z?: number };
+
+function posX(entry: OctreeEntryInput): number {
+  return entry.position ? entry.position[0] : (entry.x ?? 0);
+}
+function posY(entry: OctreeEntryInput): number {
+  return entry.position ? entry.position[1] : (entry.y ?? 0);
+}
+function posZ(entry: OctreeEntryInput): number {
+  return entry.position ? entry.position[2] : (entry.z ?? 0);
+}
+
 interface OctreeNode {
   center: Vector3;
   halfSize: number;
@@ -52,8 +64,13 @@ export class OctreeSystem {
   // Insert / Remove
   // ---------------------------------------------------------------------------
 
-  insert(entry: OctreeEntry): boolean {
-    const inserted = this.insertIntoNode(this.root, entry);
+  insert(entry: OctreeEntryInput): boolean {
+    const normalized: OctreeEntry = {
+      id: entry.id,
+      position: [posX(entry), posY(entry), posZ(entry)] as Vector3,
+      radius: entry.radius,
+    };
+    const inserted = this.insertIntoNode(this.root, normalized);
     if (inserted) this.entryCount++;
     return inserted;
   }
