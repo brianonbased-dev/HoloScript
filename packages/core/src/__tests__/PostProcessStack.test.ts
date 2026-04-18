@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PostProcessStack } from '../rendering/PostProcessStack';
+import { PostProcessStack } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C252 — Post Process Stack

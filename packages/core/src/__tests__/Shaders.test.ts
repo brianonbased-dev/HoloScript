@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { ShaderGraph, SHADER_NODES } from '../rendering/ShaderGraph';
-import { MaterialLibrary, MATERIAL_PRESETS } from '../rendering/MaterialLibrary';
-import { PostProcessingStack, PP_PRESETS } from '../rendering/PostProcessing';
+import {
+  ShaderGraph,
+  SHADER_NODES,
+  MaterialLibrary,
+  PostProcessingStack,
+} from '@holoscript/engine/rendering';
 
 describe('Cycle 114: Shader & Materials', () => {
   // -------------------------------------------------------------------------

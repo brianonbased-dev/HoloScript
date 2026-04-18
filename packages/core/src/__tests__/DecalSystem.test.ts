@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DecalSystem } from '../rendering/DecalSystem';
+import { DecalSystem } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C261 — Decal System

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AudioOcclusionSystem, OCCLUSION_MATERIALS } from '../audio/AudioOcclusion';
+import { AudioOcclusionSystem, OCCLUSION_MATERIALS } from '@holoscript/engine/audio';
 
 describe('AudioOcclusionSystem', () => {
   let occ: AudioOcclusionSystem;

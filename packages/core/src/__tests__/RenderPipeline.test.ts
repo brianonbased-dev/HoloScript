@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RenderPass } from '../rendering/RenderPass';
-import { MaterialSystem } from '../rendering/MaterialSystem';
-import { LightingModel } from '../rendering/LightingModel';
+import { RenderPass, MaterialSystem, LightingModel } from '@holoscript/engine/rendering';
 
 describe('Cycle 147: Render Pipeline', () => {
   // -------------------------------------------------------------------------

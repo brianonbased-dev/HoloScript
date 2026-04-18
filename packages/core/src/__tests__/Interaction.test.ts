@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HoloScriptPlusRuntimeImpl } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
 import { PhysicsWorldImpl } from '@holoscript/engine/physics/PhysicsWorldImpl';
-import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
+import { WebGPURenderer } from '@holoscript/engine/rendering';
 
 // Mock Physics World
 vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {

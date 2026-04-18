@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DecalSystem } from '../rendering/DecalSystem';
-import { ProjectorLight } from '../rendering/ProjectorLight';
-import { DecalBatcher } from '../rendering/DecalBatcher';
+import { DecalSystem, ProjectorLight, DecalBatcher } from '@holoscript/engine/rendering';
 
 describe('Cycle 138: Decals & Projectors', () => {
   // -------------------------------------------------------------------------

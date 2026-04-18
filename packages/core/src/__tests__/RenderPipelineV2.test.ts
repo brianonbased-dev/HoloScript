@@ -6,7 +6,7 @@
  * and ShaderGraph which are fully testable without WebGPU.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MaterialSystem } from '../rendering/MaterialSystem';
+import { MaterialSystem } from '@holoscript/engine/rendering';
 import { ShaderGraph } from '@holoscript/engine/shader';
 
 describe('MaterialSystem', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FogSystem } from '../rendering/FogSystem';
+import { FogSystem } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C243 — Fog System

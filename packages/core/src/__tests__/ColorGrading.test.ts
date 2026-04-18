@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ColorGrading } from '../rendering/ColorGrading';
+import { ColorGrading } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C245 — Color Grading

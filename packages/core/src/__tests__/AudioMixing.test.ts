@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AudioFilter } from '../audio/AudioFilter';
-import { AudioEnvelope } from '../audio/AudioEnvelope';
-import { AudioDynamics } from '../audio/AudioDynamics';
+import { AudioFilter, AudioEnvelope, AudioDynamics } from '@holoscript/engine/audio';
 
 describe('Cycle 160: Audio Processing', () => {
   // -------------------------------------------------------------------------

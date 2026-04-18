@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ProjectorLight } from '../rendering/ProjectorLight';
+import { ProjectorLight } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C286 — Projector Light

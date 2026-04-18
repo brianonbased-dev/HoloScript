@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MaterialSystem } from '../rendering/MaterialSystem';
+import { MaterialSystem } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C287 — Material System

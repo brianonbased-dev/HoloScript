@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AudioFilter } from '../audio/AudioFilter';
+import { AudioFilter } from '@holoscript/engine/audio';
 
 // =============================================================================
 // C259 — Audio Filter

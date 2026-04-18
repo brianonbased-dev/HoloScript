@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FogSystem } from '../rendering/FogSystem';
-import { VolumetricLight } from '../rendering/VolumetricLight';
-import { CloudRenderer } from '../rendering/CloudRenderer';
+import { FogSystem, VolumetricLight, CloudRenderer } from '@holoscript/engine/rendering';
 
 describe('Cycle 152: Volumetric Effects', () => {
   // -------------------------------------------------------------------------

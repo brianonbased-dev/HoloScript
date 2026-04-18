@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AudioDynamics } from '../audio/AudioDynamics';
+import { AudioDynamics } from '@holoscript/engine/audio';
 
 describe('AudioDynamics', () => {
   let dyn: AudioDynamics;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CloudRenderer } from '../rendering/CloudRenderer';
+import { CloudRenderer } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C284 — Cloud Renderer

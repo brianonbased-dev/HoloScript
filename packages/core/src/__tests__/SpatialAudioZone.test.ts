@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpatialAudioZoneSystem, REVERB_PRESETS } from '../audio/SpatialAudioZone';
+import { SpatialAudioZoneSystem, REVERB_PRESETS } from '@holoscript/engine/audio';
 
 // =============================================================================
 // C267 — Spatial Audio Zone

@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { SpatialAudioZoneSystem, REVERB_PRESETS } from '../audio/SpatialAudioZone';
-import { AudioOcclusionSystem, OCCLUSION_MATERIALS } from '../audio/AudioOcclusion';
-import { AudioAnalyzer, DEFAULT_BANDS } from '../audio/AudioAnalyzer';
+import {
+  SpatialAudioZoneSystem,
+  REVERB_PRESETS,
+  AudioOcclusionSystem,
+  OCCLUSION_MATERIALS,
+  AudioAnalyzer,
+  DEFAULT_BANDS,
+} from '@holoscript/engine/audio';
 
 describe('Cycle 111: Audio & Spatial Sound', () => {
   // -------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VolumetricLight } from '../rendering/VolumetricLight';
+import { VolumetricLight } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C264 — Volumetric Light

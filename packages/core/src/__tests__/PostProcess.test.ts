@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PostProcessStack } from '../rendering/PostProcessStack';
-import { BloomEffect } from '../rendering/BloomEffect';
-import { ColorGrading } from '../rendering/ColorGrading';
+import { PostProcessStack, BloomEffect, ColorGrading } from '@holoscript/engine/rendering';
 
 // Helper: create a 2x2 RGBA pixel buffer
 function makePixels(r: number, g: number, b: number, a = 1): Float32Array {

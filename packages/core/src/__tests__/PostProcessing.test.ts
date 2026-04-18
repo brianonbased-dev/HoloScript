@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PostProcessingStack } from '../rendering/PostProcessing';
+import { PostProcessingStack } from '@holoscript/engine/rendering';
 
 describe('PostProcessingStack', () => {
   let pp: PostProcessingStack;

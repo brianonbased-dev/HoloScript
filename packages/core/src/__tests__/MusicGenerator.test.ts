@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MusicGenerator } from '../audio/MusicGenerator';
+import { MusicGenerator } from '@holoscript/engine/audio';
 
 describe('MusicGenerator', () => {
   let mg: MusicGenerator;

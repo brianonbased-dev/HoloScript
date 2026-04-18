@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ShaderGraph, SHADER_NODES } from '../rendering/ShaderGraph';
+import { ShaderGraph, SHADER_NODES } from '@holoscript/engine/rendering';
 
 // =============================================================================
 // C285 — Shader Graph
