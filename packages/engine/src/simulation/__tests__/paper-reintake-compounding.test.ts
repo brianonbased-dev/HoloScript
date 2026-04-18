@@ -627,6 +627,21 @@ function meanStd(xs: number[]): { mean: number; std: number } {
   return { mean, std };
 }
 
+function percentile(xs: number[], p: number): number {
+  if (xs.length === 0) return 0;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const clamped = Math.min(1, Math.max(0, p));
+  const idx = Math.floor((sorted.length - 1) * clamped);
+  return sorted[idx];
+}
+
+function medianP99(xs: number[]): { median: number; p99: number } {
+  return {
+    median: percentile(xs, 0.5),
+    p99: percentile(xs, 0.99),
+  };
+}
+
 /**
  * One-tailed Welch's t-test, H1: mean(b) < mean(a).
  * Returns the t statistic and an approximate p-value via the
@@ -676,15 +691,15 @@ function printPerSessionTable(
   const metric = (name: string, key: keyof TrialResult) => {
     const a = baseline.map(t => Number(t[key]));
     const b = reintake.map(t => Number(t[key]));
-    const mA = meanStd(a), mB = meanStd(b);
+    const mA = medianP99(a), mB = medianP99(b);
     console.log(
       `  ${name.padEnd(18)} | ` +
-      `${fmt(mA.mean).padStart(10)} ± ${fmt(mA.std).padStart(8)} | ` +
-      `${fmt(mB.mean).padStart(10)} ± ${fmt(mB.std).padStart(8)}`,
+      `${(`${fmt(mA.median)} (${fmt(mA.p99)})`).padStart(21)} | ` +
+      `${(`${fmt(mB.median)} (${fmt(mB.p99)})`).padStart(21)}`,
     );
   };
 
-  console.log('\n┌─ Per-Session Metrics (mean ± std, N=10 each) ─┐');
+  console.log('\n┌─ Per-Session Metrics (median, p99; N=10 each) ─┐');
   console.log(`  ${'Metric'.padEnd(18)} | ${'Session A (baseline)'.padStart(21)} | ${'Session B (reintake)'.padStart(21)}`);
   console.log('  ' + '─'.repeat(18) + '─┼─' + '─'.repeat(21) + '─┼─' + '─'.repeat(21));
   metric('ticks_to_goal',    'ticks');
@@ -710,10 +725,10 @@ function printDeltaTable(
   const aSpk = baseline.map(t => t.totalSpikes);
   const bSpk = reintake.map(t => t.totalSpikes);
 
-  const dTicks = meanStd(aTicks).mean - meanStd(bTicks).mean;
-  const dPath  = meanStd(aPath).mean  - meanStd(bPath).mean;
-  const dEff   = meanStd(bEff).mean   - meanStd(aEff).mean;
-  const dSpk   = meanStd(aSpk).mean   - meanStd(bSpk).mean;
+  const dTicks = medianP99(aTicks).median - medianP99(bTicks).median;
+  const dPath  = medianP99(aPath).median  - medianP99(bPath).median;
+  const dEff   = medianP99(bEff).median   - medianP99(aEff).median;
+  const dSpk   = medianP99(aSpk).median   - medianP99(bSpk).median;
 
   const tt = welchOneSided(aTicks, bTicks);
 
@@ -740,7 +755,7 @@ function printLatexTable(
   writeMs: number,
 ): void {
   const m = (key: keyof TrialResult, arr: TrialResult[]) =>
-    meanStd(arr.map(t => Number(t[key])));
+    medianP99(arr.map(t => Number(t[key])));
   const aT = m('ticks', baseline), bT = m('ticks', reintake);
   const aP = m('pathLength', baseline), bP = m('pathLength', reintake);
   const aE = m('pathEfficiency', baseline), bE = m('pathEfficiency', reintake);
@@ -759,10 +774,10 @@ function printLatexTable(
   console.log('\\toprule');
   console.log('Metric & Session A (baseline) & Session B (RE-INTAKE) & $\\Delta$ \\\\');
   console.log('\\midrule');
-  console.log(`Ticks-to-goal       & ${fmt(aT.mean)} $\\pm$ ${fmt(aT.std)} & ${fmt(bT.mean)} $\\pm$ ${fmt(bT.std)} & ${fmt(aT.mean - bT.mean)} \\\\`);
-  console.log(`Path length         & ${fmt(aP.mean)} $\\pm$ ${fmt(aP.std)} & ${fmt(bP.mean)} $\\pm$ ${fmt(bP.std)} & ${fmt(aP.mean - bP.mean)} \\\\`);
-  console.log(`Path efficiency     & ${fmt(aE.mean, 3)} $\\pm$ ${fmt(aE.std, 3)} & ${fmt(bE.mean, 3)} $\\pm$ ${fmt(bE.std, 3)} & ${fmt(bE.mean - aE.mean, 3)} \\\\`);
-  console.log(`Total spikes        & ${fmt(aS.mean, 0)} $\\pm$ ${fmt(aS.std, 0)} & ${fmt(bS.mean, 0)} $\\pm$ ${fmt(bS.std, 0)} & ${fmt(aS.mean - bS.mean, 0)} \\\\`);
+  console.log(`Ticks-to-goal       & ${fmt(aT.median)} (${fmt(aT.p99)}) & ${fmt(bT.median)} (${fmt(bT.p99)}) & ${fmt(aT.median - bT.median)} \\\\`);
+  console.log(`Path length         & ${fmt(aP.median)} (${fmt(aP.p99)}) & ${fmt(bP.median)} (${fmt(bP.p99)}) & ${fmt(aP.median - bP.median)} \\\\`);
+  console.log(`Path efficiency     & ${fmt(aE.median, 3)} (${fmt(aE.p99, 3)}) & ${fmt(bE.median, 3)} (${fmt(bE.p99, 3)}) & ${fmt(bE.median - aE.median, 3)} \\\\`);
+  console.log(`Total spikes        & ${fmt(aS.median, 0)} (${fmt(aS.p99, 0)}) & ${fmt(bS.median, 0)} (${fmt(bS.p99, 0)}) & ${fmt(aS.median - bS.median, 0)} \\\\`);
   console.log('\\midrule');
   console.log(`Welch t (one-sided) & \\multicolumn{3}{c}{$t = ${fmt(tt.t, 3)}$, $df \\approx ${fmt(tt.df, 2)}$, $p \\approx ${fmt(tt.p, 4)}$} \\\\`);
   console.log(`Graduation latency  & \\multicolumn{3}{c}{${fmt(writeMs, 1)} ms (Session A $\\to$ knowledge store)} \\\\`);
