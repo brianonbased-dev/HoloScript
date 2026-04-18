@@ -163,4 +163,50 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
       );
     }
   }, 120_000);
+
+  /**
+   * Tab:verify small-$n$ sweep — **structural** (parse + schema check) and **full replay** timings.
+   * Structural = parseCAELJSONL (validates entry structure, types, ordering).
+   * Full replay = CAELReplayer.verify() + replay() with mock solver factory.
+   */
+  it('reports tab:verify n-sweep at 3/13/103/1003 entries (structural µs + full replay ms)', async () => {
+    const entryTargets = [3, 13, 103, 1003];
+    const runs = 10;
+
+    console.log('\n[paper-cael-replay-benchmark] === tab:verify n-sweep (structural µs + full replay ms) ===');
+    for (const entryCount of entryTargets) {
+      const steps = entryCount - 2;
+      const { jsonl, entryCount: ec } = buildTrace(steps);
+      expect(ec).toBe(entryCount);
+
+      // Structural: time parseCAELJSONL (schema-level validation).
+      const structUsSamples: number[] = [];
+      for (let r = 0; r < runs; r++) {
+        const t0 = performance.now();
+        const parsed = parseCAELJSONL(jsonl);
+        expect(parsed.length).toBe(entryCount);
+        structUsSamples.push((performance.now() - t0) * 1000);
+      }
+      const structStats = calcStats(structUsSamples);
+
+      // Full replay: verify + replay with mock solver (ms total).
+      const replayMsSamples: number[] = [];
+      for (let r = 0; r < runs; r++) {
+        const replayer = new CAELReplayer(jsonl);
+        const t0 = performance.now();
+        const chain = replayer.verify();
+        expect(chain.valid).toBe(true);
+        const sim = await replayer.replay(() => mockSolver());
+        sim.dispose();
+        replayMsSamples.push(performance.now() - t0);
+      }
+      const replayStats = calcStats(replayMsSamples);
+
+      console.log(
+        `[paper-cael-replay-benchmark] tab:verify entries=${entryCount} runs=${runs} ` +
+          `structuralTotalUs med=${structStats.median.toFixed(2)} p99=${structStats.p99.toFixed(2)} ` +
+          `fullReplayTotalMs med=${replayStats.median.toFixed(2)} p99=${replayStats.p99.toFixed(2)}`
+      );
+    }
+  }, 600_000);
 });

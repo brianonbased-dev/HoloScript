@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-04-18T10:16:03.180Z",
+  "rngSeed": "0xdeadbeef",
+  "traitUniverseCount": 2794,
+  "subsetSizes": [
+    2,
+    5,
+    10,
+    20,
+    50
+  ],
+  "subsetsPerBucket": 20,
+  "orderingsPerSubset": 100,
+  "totalOrderingsChecked": 10000,
+  "overallPass": 10000,
+  "overallFail": 0,
+  "bySize": [
+    {
+      "subsetSize": 2,
+      "subsetsChecked": 20,
+      "orderingsPerSubset": 100,
+      "totalOrderingsChecked": 2000,
+      "pass": 2000,
+      "fail": 0
+    },
+    {
+      "subsetSize": 5,
+      "subsetsChecked": 20,
+      "orderingsPerSubset": 100,
+      "totalOrderingsChecked": 2000,
+      "pass": 2000,
+      "fail": 0
+    },
+    {
+      "subsetSize": 10,
+      "subsetsChecked": 20,
+      "orderingsPerSubset": 100,
+      "totalOrderingsChecked": 2000,
+      "pass": 2000,
+      "fail": 0
+    },
+    {
+      "subsetSize": 20,
+      "subsetsChecked": 20,
+      "orderingsPerSubset": 100,
+      "totalOrderingsChecked": 2000,
+      "pass": 2000,
+      "fail": 0
+    },
+    {
+      "subsetSize": 50,
+      "subsetsChecked": 20,
+      "orderingsPerSubset": 100,
+      "totalOrderingsChecked": 2000,
+      "pass": 2000,
+      "fail": 0
+    }
+  ]
+}

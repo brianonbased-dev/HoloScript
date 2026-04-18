@@ -1,0 +1,461 @@
+{
+  "generatedAt": "2026-04-18T10:03:15.913Z",
+  "source": "packages/core/src/traits/constants/__tests__/paper-trait-conflict-families.test.ts",
+  "traitUniverseCount": 2794,
+  "familyPairRows": 12089,
+  "topByStrict": [
+    {
+      "familyA": "analytics_observability",
+      "familyB": "motor_feedback",
+      "totalPairs": 256,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 256
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "water_fluid",
+      "totalPairs": 304,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 304
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "analytics_observability",
+      "totalPairs": 120,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 120
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "environmental_biome",
+      "totalPairs": 512,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 512
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "motor_type",
+      "totalPairs": 192,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 192
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "phone_sleeve_vr",
+      "totalPairs": 400,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 400
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "inertial_position",
+      "totalPairs": 160,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 160
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "universal_metric",
+      "totalPairs": 432,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 432
+    },
+    {
+      "familyA": "accessibility",
+      "familyB": "analytics_observability",
+      "totalPairs": 160,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 160
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "education_learning",
+      "totalPairs": 624,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 624
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "mobile_base",
+      "totalPairs": 160,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 160
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "state_persistence",
+      "totalPairs": 272,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 272
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "concurrency",
+      "totalPairs": 64,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 64
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "gems_minerals",
+      "totalPairs": 480,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 480
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "intelligence_behavior",
+      "totalPairs": 640,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 640
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "universal_resilience",
+      "totalPairs": 352,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 352
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "controller",
+      "totalPairs": 160,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 160
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "gripper",
+      "totalPairs": 240,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 240
+    },
+    {
+      "familyA": "accessibility_extended",
+      "familyB": "analytics_observability",
+      "totalPairs": 432,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 432
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "joint_control",
+      "totalPairs": 128,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 128
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "material_properties",
+      "totalPairs": 528,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 528
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "rendering",
+      "totalPairs": 400,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 400
+    },
+    {
+      "familyA": "aerial_aquatic",
+      "familyB": "analytics_observability",
+      "totalPairs": 128,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 128
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "security_crypto",
+      "totalPairs": 1248,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 1248
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "networking_ai",
+      "totalPairs": 416,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 416
+    }
+  ],
+  "topByDomainOverride": [
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "security_crypto",
+      "totalPairs": 1404,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 234,
+      "authorityWeighted": 1170
+    },
+    {
+      "familyA": "facial_expression",
+      "familyB": "parser_core_ui",
+      "totalPairs": 1350,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 225,
+      "authorityWeighted": 1125
+    },
+    {
+      "familyA": "npc_roles",
+      "familyB": "parser_core_ui",
+      "totalPairs": 1116,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 186,
+      "authorityWeighted": 930
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "robotics_industrial",
+      "totalPairs": 1116,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 186,
+      "authorityWeighted": 930
+    },
+    {
+      "familyA": "character_pipeline",
+      "familyB": "parser_core_ui",
+      "totalPairs": 918,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 153,
+      "authorityWeighted": 765
+    },
+    {
+      "familyA": "animals",
+      "familyB": "parser_core_ui",
+      "totalPairs": 864,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 144,
+      "authorityWeighted": 720
+    },
+    {
+      "familyA": "data_visualization",
+      "familyB": "parser_core_ui",
+      "totalPairs": 810,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 135,
+      "authorityWeighted": 675
+    },
+    {
+      "familyA": "creatures_mythical",
+      "familyB": "parser_core_ui",
+      "totalPairs": 756,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 126,
+      "authorityWeighted": 630
+    },
+    {
+      "familyA": "intelligence_behavior",
+      "familyB": "parser_core_ui",
+      "totalPairs": 720,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 120,
+      "authorityWeighted": 600
+    },
+    {
+      "familyA": "education_learning",
+      "familyB": "parser_core_ui",
+      "totalPairs": 702,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 117,
+      "authorityWeighted": 585
+    },
+    {
+      "familyA": "cooking_food",
+      "familyB": "parser_core_ui",
+      "totalPairs": 702,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 117,
+      "authorityWeighted": 585
+    },
+    {
+      "familyA": "magic_fantasy",
+      "familyB": "parser_core_ui",
+      "totalPairs": 666,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 111,
+      "authorityWeighted": 555
+    },
+    {
+      "familyA": "architecture_realestate",
+      "familyB": "parser_core_ui",
+      "totalPairs": 666,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 111,
+      "authorityWeighted": 555
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "sports_fitness",
+      "totalPairs": 666,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 111,
+      "authorityWeighted": 555
+    },
+    {
+      "familyA": "furniture_decor",
+      "familyB": "parser_core_ui",
+      "totalPairs": 648,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 108,
+      "authorityWeighted": 540
+    },
+    {
+      "familyA": "music_performance",
+      "familyB": "parser_core_ui",
+      "totalPairs": 630,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 105,
+      "authorityWeighted": 525
+    },
+    {
+      "familyA": "instancing_geometry",
+      "familyB": "parser_core_ui",
+      "totalPairs": 630,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 105,
+      "authorityWeighted": 525
+    },
+    {
+      "familyA": "character_material",
+      "familyB": "parser_core_ui",
+      "totalPairs": 612,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 102,
+      "authorityWeighted": 510
+    },
+    {
+      "familyA": "material_properties",
+      "familyB": "parser_core_ui",
+      "totalPairs": 594,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 99,
+      "authorityWeighted": 495
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "universal_data",
+      "totalPairs": 594,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 99,
+      "authorityWeighted": 495
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "simulation_domain",
+      "totalPairs": 594,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 99,
+      "authorityWeighted": 495
+    },
+    {
+      "familyA": "environmental_biome",
+      "familyB": "parser_core_ui",
+      "totalPairs": 576,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 96,
+      "authorityWeighted": 480
+    },
+    {
+      "familyA": "iot_autonomous_agents",
+      "familyB": "parser_core_ui",
+      "totalPairs": 576,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 96,
+      "authorityWeighted": 480
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "shape_form",
+      "totalPairs": 576,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 96,
+      "authorityWeighted": 480
+    },
+    {
+      "familyA": "game_mechanics",
+      "familyB": "parser_core_ui",
+      "totalPairs": 558,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 93,
+      "authorityWeighted": 465
+    }
+  ],
+  "verificationCommand": "pnpm --filter @holoscript/core exec vitest run src/traits/constants/__tests__/paper-trait-conflict-families.test.ts"
+}
