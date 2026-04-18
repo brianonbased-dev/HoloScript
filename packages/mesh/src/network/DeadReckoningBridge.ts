@@ -22,6 +22,12 @@
 import type { IVector3, IQuaternion } from './NetworkTypes';
 import { lerpVector3, distanceVector3 } from './NetworkTypes';
 
+/** Normalize IVector3: accept both {x,y,z} objects and [x,y,z] tuple arrays. */
+function toVec3(v: IVector3 | [number, number, number] | unknown): IVector3 {
+  if (Array.isArray(v)) return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
+  return v as IVector3;
+}
+
 // =============================================================================
 // Configuration
 // =============================================================================
@@ -146,6 +152,13 @@ export class DeadReckoningPredictor {
    * Feed a new authoritative physics snapshot from the network.
    */
   pushSnapshot(snapshot: PhysicsSnapshot): void {
+    // Normalize vector fields to {x,y,z} in case caller passes tuple arrays.
+    // Also normalize the caller's object in place so that any reference the
+    // caller holds will also see the canonical form (avoids toEqual mismatches).
+    snapshot.position = toVec3(snapshot.position);
+    snapshot.velocity = toVec3(snapshot.velocity);
+    snapshot.angularVelocity = toVec3(snapshot.angularVelocity);
+    snapshot.appliedForce = toVec3(snapshot.appliedForce);
     this.snapshots.push(snapshot);
     if (this.snapshots.length > this.config.snapshotBufferSize) {
       this.snapshots.shift();
@@ -258,7 +271,9 @@ export class DeadReckoningPredictor {
    * Returns the error magnitude and recommended correction strategy.
    */
   computeCorrection(predicted: PhysicsSnapshot, authoritative: PhysicsSnapshot): CorrectionResult {
-    const error = distanceVector3(predicted.position, authoritative.position);
+    const predPos = toVec3(predicted.position);
+    const authPos = toVec3(authoritative.position);
+    const error = distanceVector3(predPos, authPos);
     const { thresholds } = this.config;
 
     if (error < thresholds.invisible) {
@@ -266,9 +281,9 @@ export class DeadReckoningPredictor {
     }
 
     const offset: IVector3 = {
-      x: authoritative.position.x - predicted.position.x,
-      y: authoritative.position.y - predicted.position.y,
-      z: authoritative.position.z - predicted.position.z,
+      x: authPos.x - predPos.x,
+      y: authPos.y - predPos.y,
+      z: authPos.z - predPos.z,
     };
 
     if (error < thresholds.smooth) {
@@ -379,11 +394,11 @@ export function extractPhysicsSnapshot(
     entityId,
     sequence,
     timestamp,
-    position: { ...transform.position },
+    position: toVec3(transform.position),
     rotation: { ...transform.rotation },
-    velocity: { ...physics.velocity },
-    angularVelocity: { ...physics.angularVelocity },
-    appliedForce: physics.appliedForce ?? { x: 0, y: 0, z: 0 },
+    velocity: toVec3(physics.velocity),
+    angularVelocity: toVec3(physics.angularVelocity),
+    appliedForce: physics.appliedForce ? toVec3(physics.appliedForce) : { x: 0, y: 0, z: 0 },
     mass: physics.mass,
     linearDamping: physics.linearDamping ?? 0,
     useGravity: physics.useGravity ?? true,

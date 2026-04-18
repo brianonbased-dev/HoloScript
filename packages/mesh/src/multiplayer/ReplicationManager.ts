@@ -7,7 +7,22 @@
  * @module multiplayer
  */
 
-import { IVector3 } from '@holoscript/engine/physics/PhysicsTypes';
+import type { IVector3 } from '../network/NetworkTypes';
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function toVec3(v: IVector3 | [number, number, number] | unknown): IVector3 {
+  if (Array.isArray(v)) return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
+  return v as IVector3;
+}
+
+function normalizeSnapshotVec3<T extends { position?: unknown; velocity?: unknown }>(s: T): T {
+  if (s.position !== undefined) (s as Record<string, unknown>).position = toVec3(s.position);
+  if (s.velocity !== undefined) (s as Record<string, unknown>).velocity = toVec3(s.velocity);
+  return s;
+}
 
 // =============================================================================
 // TYPES
@@ -88,9 +103,9 @@ export class ReplicationManager {
       sentFullSnapshot: false,
       snapshot: {
         timestamp: 0,
-        position: [0, 0, 0],
+        position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-        velocity: [0, 0, 0],
+        velocity: { x: 0, y: 0, z: 0 },
         customState: {},
       },
       previousSnapshot: null,
@@ -114,7 +129,7 @@ export class ReplicationManager {
     entity.previousSnapshot = { ...entity.snapshot };
     entity.snapshot = {
       ...entity.snapshot,
-      ...snapshot,
+      ...normalizeSnapshotVec3({ ...snapshot }),
       timestamp: Date.now(),
     };
     entity.isDirty = true;
@@ -229,13 +244,13 @@ export class ReplicationManager {
     if (!entity) return;
 
     if (update.fields.position) {
-      entity.snapshot.position = { ...update.fields.position };
+      entity.snapshot.position = toVec3(update.fields.position);
     }
     if (update.fields.rotation) {
       entity.snapshot.rotation = { ...update.fields.rotation };
     }
     if (update.fields.velocity) {
-      entity.snapshot.velocity = { ...update.fields.velocity };
+      entity.snapshot.velocity = toVec3(update.fields.velocity);
     }
     if (update.fields.customState) {
       Object.assign(entity.snapshot.customState, update.fields.customState);
@@ -278,9 +293,9 @@ export class ReplicationManager {
 
   private vec3Differs(a: IVector3, b: IVector3, threshold: number): boolean {
     return (
-      Math.abs(a[0] - b[0]) > threshold ||
-      Math.abs(a[1] - b[1]) > threshold ||
-      Math.abs(a[2] - b[2]) > threshold
+      Math.abs(a.x - b.x) > threshold ||
+      Math.abs(a.y - b.y) > threshold ||
+      Math.abs(a.z - b.z) > threshold
     );
   }
 
