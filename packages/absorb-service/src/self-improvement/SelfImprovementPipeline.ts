@@ -9,7 +9,8 @@
  * AI generates .holo/.hsplus code
  *       ↓ (if error)
  * SelfImprovementPipeline captures
- *       ↓
+ *       ↓ (auto-correct attempted)
+ *       ↓ (VALIDATE via parseHolo — B3 gate, NORTH_STAR DT-14)
  * Formats as JSONL training data (instruction → correct output)
  *       ↓
  * TrainingMonkey harvests into curriculum
@@ -20,8 +21,15 @@
  * Produces Alpaca-format JSONL compatible with TrainingMonkey's
  * existing training data format.
  *
+ * B3 (2026-04-17): every auto-corrected candidate is validated against
+ * `parseHolo()` before entering the training set. Pattern-based regex
+ * fixes that produce syntactically-different-but-still-broken output
+ * are rejected at the gate — preventing training-data poisoning.
+ *
  * @module self-improvement
  */
+
+import { parseHolo } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -84,6 +92,12 @@ export interface PipelineStats {
   byFileType: Record<string, number>;
   conversionRate: number;
   lastCaptureAt: number;
+  /**
+   * Count of auto-corrections that the B3 parseHolo validation gate
+   * rejected before they could enter the training set. A non-zero
+   * value indicates poisoning attempts that were successfully blocked.
+   */
+  autoCorrectionsRejected: number;
 }
 
 export interface PipelineConfig {
@@ -259,6 +273,7 @@ export class SelfImprovementPipeline {
     byFileType: {},
     conversionRate: 0,
     lastCaptureAt: 0,
+    autoCorrectionsRejected: 0,
   };
   private flushTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -290,16 +305,23 @@ export class SelfImprovementPipeline {
     }
 
     // Convert immediately if we have a non-trivial correction.
-    // Guard: skip if correctedCode is empty or identical to generatedCode —
-    // training on uncorrected examples would poison the model.
+    // Guard 1: skip if correctedCode is empty or identical to generatedCode.
+    // Guard 2 (B3): skip if correctedCode does not parse cleanly via
+    //   parseHolo — an agent-provided "fix" that still fails the parser
+    //   is a poisoning attempt, not a training example. Increments
+    //   `autoCorrectionsRejected` so we can observe the gate firing.
     if (
       failure.correctedCode &&
       failure.correctedCode.trim().length > 0 &&
       failure.correctedCode !== failure.generatedCode
     ) {
-      const examples = this.convertToExamples(failure);
-      this.examples.push(...examples);
-      this.stats.totalExamples += examples.length;
+      if (this.validatesAsHoloSource(failure.correctedCode)) {
+        const examples = this.convertToExamples(failure);
+        this.examples.push(...examples);
+        this.stats.totalExamples += examples.length;
+      } else {
+        this.stats.autoCorrectionsRejected++;
+      }
     }
 
     // Flush if buffer is full
@@ -350,7 +372,15 @@ export class SelfImprovementPipeline {
   // Auto-Correction
   // ---------------------------------------------------------------------------
 
-  /** Attempt to auto-correct a failed generation using known patterns */
+  /**
+   * Attempt to auto-correct a failed generation using known patterns.
+   *
+   * B3 gate: any correction that parses cleanly through `parseHolo` is
+   * returned; any correction that produces new text but still fails to
+   * parse is rejected (the original failure stays unresolved, no
+   * poisoned example enters the training set). `stats.autoCorrectionsRejected`
+   * increments on each block. See NORTH_STAR DT-14 / memory F.014.
+   */
   attemptAutoCorrection(failure: FailedGeneration): string | undefined {
     let code = failure.generatedCode;
     let corrected = false;
@@ -367,7 +397,38 @@ export class SelfImprovementPipeline {
       }
     }
 
-    return corrected ? code : undefined;
+    if (!corrected) return undefined;
+
+    // B3 validation gate — the regex-based correction produced different
+    // text, but does it actually parse? A "successful" auto-correction
+    // that still fails the parser must not enter the training set.
+    if (!this.validatesAsHoloSource(code)) {
+      this.stats.autoCorrectionsRejected++;
+      return undefined;
+    }
+
+    return code;
+  }
+
+  /**
+   * Validates a HoloScript source string via the core parser (`parseHolo`
+   * with `tolerant: true`). Returns true only when the parser produces
+   * zero errors — matches the contract that training examples must be
+   * syntactically valid HoloScript, not merely "different from the
+   * original failure."
+   *
+   * Works for `.hs`, `.hsplus`, and `.holo` — all three are parsed by
+   * `HoloCompositionParser` via the same entry point.
+   */
+  validatesAsHoloSource(code: string): boolean {
+    if (!code || code.trim().length === 0) return false;
+    try {
+      const result = parseHolo(code, { tolerant: true, locations: false });
+      return (result.errors?.length ?? 0) === 0 && result.ast != null;
+    } catch {
+      // parseHolo should never throw in tolerant mode, but defend anyway
+      return false;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -561,6 +622,7 @@ export class SelfImprovementPipeline {
       byFileType: {},
       conversionRate: 0,
       lastCaptureAt: 0,
+      autoCorrectionsRejected: 0,
     };
   }
 
