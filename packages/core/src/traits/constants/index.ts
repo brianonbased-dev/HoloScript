@@ -114,7 +114,7 @@ import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
 import { CONNECTOR_INTEGRATION_TRAITS } from './connector-integration';
-
+import { HOLOMAP_RECONSTRUCTION_TRAITS } from './holomap-reconstruction';
 
 // Phone Sleeve VR (smartphone-as-headset)
 import { PHONE_SLEEVE_VR_TRAITS } from './mobile/phone-sleeve-vr';
@@ -454,6 +454,9 @@ export const VR_TRAITS = [
 
   // Google Lens (7 traits — M.010.20)
   ...GOOGLE_LENS_TRAITS,
+
+  // HoloMap — native reconstruction session traits (5 traits — Sprint 1)
+  ...HOLOMAP_RECONSTRUCTION_TRAITS,
 
   // Connector Integration (4 traits)
   ...CONNECTOR_INTEGRATION_TRAITS,
