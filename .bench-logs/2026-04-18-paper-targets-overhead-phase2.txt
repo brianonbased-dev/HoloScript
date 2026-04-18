@@ -1,0 +1,31 @@
+# Phase 2 — paper-targets-overhead-bench (Vitest)
+
+**Recorded:** 2026-04-18  
+**Repo:** HoloScript  
+**Commit:** run `git log -1 --follow --format=%H -- .bench-logs/2026-04-18-paper-targets-overhead-phase2.txt`  
+**Adds targets:** playcanvas, android-xr, vrr (see `benchmark-results-2026-04-17-paper-targets-overhead.md` Phase 2 section).
+
+**Command:**
+
+```
+pnpm --filter @holoscript/core exec vitest run src/compiler/__tests__/paper-targets-overhead-bench.test.ts --reporter=verbose
+```
+
+---
+
+[paper-targets-overhead-bench] === per-target provenance overhead ===
+[paper-targets-overhead-bench] objects_main=140 objects_gltf=44 warmup=8 iters=24
+[paper-targets-overhead-bench] hash_main=687c0e99c0745c32… hash_gltf=8d4ad8ad30bc1574…
+[paper-targets-overhead-bench] webgpu (shader-ir) | base med=2.729ms p99=7.315ms | prov med=1.720ms p99=5.172ms | overhead med=-36.97% p99=-29.30% | Σ-run=-38.83%
+[paper-targets-overhead-bench] vrchat (game-engine) | base med=1.345ms p99=1.935ms | prov med=1.008ms p99=1.916ms | overhead med=-25.08% p99=-0.99% | Σ-run=-16.96%
+[paper-targets-overhead-bench] babylon (game-engine) | base med=6.829ms p99=11.019ms | prov med=6.355ms p99=8.978ms | overhead med=-6.93% p99=-18.52% | Σ-run=-9.99%
+[paper-targets-overhead-bench] unity (game-engine) | base med=1.337ms p99=2.171ms | prov med=1.004ms p99=1.710ms | overhead med=-24.89% p99=-21.23% | Σ-run=-24.15%
+[paper-targets-overhead-bench] godot (game-engine) | base med=1.662ms p99=2.337ms | prov med=1.184ms p99=3.312ms | overhead med=-28.77% p99=41.73% | Σ-run=-21.03%
+[paper-targets-overhead-bench] usd-physics (scene-format) | base med=2.479ms p99=4.734ms | prov med=2.588ms p99=4.565ms | overhead med=4.37% p99=-3.56% | Σ-run=-2.30%
+[paper-targets-overhead-bench] unreal (game-engine) | base med=0.991ms p99=2.517ms | prov med=0.969ms p99=3.325ms | overhead med=-2.17% p99=32.11% | Σ-run=10.20%
+[paper-targets-overhead-bench] playcanvas (game-engine) | base med=5.385ms p99=8.201ms | prov med=4.920ms p99=8.484ms | overhead med=-8.64% p99=3.45% | Σ-run=-8.80%
+[paper-targets-overhead-bench] android-xr (game-engine) | base med=2.333ms p99=6.612ms | prov med=1.699ms p99=4.371ms | overhead med=-27.17% p99=-33.90% | Σ-run=-25.91%
+[paper-targets-overhead-bench] vrr (game-engine) | base med=0.443ms p99=0.550ms | prov med=0.374ms p99=1.626ms | overhead med=-15.66% p99=195.92% | Σ-run=-1.22%
+[paper-targets-overhead-bench] gltf (interchange) | base med=484.476ms p99=659.883ms | prov med=537.663ms p99=863.544ms | overhead med=10.98% p99=30.86% | Σ-run=8.40%
+[paper-targets-overhead-bench] max base median=484.476ms | raise BENCH_OBJECT_COUNT if code targets need >1 ms
+[paper-targets-overhead-bench] done.

@@ -172,6 +172,8 @@ export interface VRRCompilerOptions {
     max_players: number; // 1000+ for scalability
     lazy_loading: boolean;
   };
+  /** When set, emits `// Provenance Hash: …` at the top of generated JS (Paper 10/12 bench). */
+  provenanceHash?: string;
 }
 
 import type { VRRCompilationResult } from './CompilerTypes';
@@ -986,6 +988,9 @@ export class VRRCompiler extends CompilerBase {
   }
 
   private generateImports() {
+    if (this.options.provenanceHash) {
+      this.generatedCode.push(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.generatedCode.push(`import * as THREE from 'three';`);
     this.generatedCode.push(`import { VRRRuntime } from '@holoscript/runtime';`);
   }

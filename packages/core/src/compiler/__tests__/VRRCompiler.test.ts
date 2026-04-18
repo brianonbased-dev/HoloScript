@@ -74,6 +74,26 @@ describe('VRRCompiler', () => {
     expect(result.code).toContain('globalWorldContext');
   });
 
+  test('includes provenance hash comment when provenanceHash is set', () => {
+    const input = `
+      composition "PhoenixTwin" {
+        zone#downtown @vrr_twin @geo_sync("phoenix_az_center") {
+          geo_coords: { lat: 33.4484, lng: -112.0740 }
+          weather_sync: { provider: "weather.gov", refresh: 10 }
+        }
+      }
+    `;
+    const parseResult = parser.parse(input);
+    expect(parseResult.ast).toBeDefined();
+    const h = 'vrr-prov-test-hash';
+    const compiler = makeCompiler({
+      api_integrations: { weather: { provider: 'weather.gov' } },
+      provenanceHash: h,
+    });
+    const result = compiler.compile(parseResult.ast!, 'test-token');
+    expect(result.code.startsWith(`// Provenance Hash: ${h}`)).toBe(true);
+  });
+
   test('should include API integration generation for event syncs', () => {
     const input = `
       composition "EventZoneTwin" {

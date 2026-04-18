@@ -183,3 +183,39 @@ jobs:
       - name: Fail on regression
         run: |
           echo "Regression detection not yet implemented — passing."
+
+  # Paper 10/12 — frozen stdout for multi-target provenance overhead (Phase 1–2 harness)
+  paper-targets-provenance-bench:
+    name: Paper targets provenance overhead (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run paper-targets overhead bench
+        env:
+          NODE_OPTIONS: '--max-old-space-size=16384'
+        run: |
+          set -o pipefail
+          pnpm --filter @holoscript/core exec vitest run \
+            src/compiler/__tests__/paper-targets-overhead-bench.test.ts \
+            --reporter=verbose 2>&1 | tee "${{ runner.temp }}/paper-targets-overhead-bench.log"
+
+      - name: Upload bench log artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: paper-targets-overhead-bench-${{ github.sha }}
+          path: ${{ runner.temp }}/paper-targets-overhead-bench.log
+          retention-days: 90

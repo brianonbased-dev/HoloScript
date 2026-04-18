@@ -103,6 +103,8 @@ export interface AndroidXRCompilerOptions {
    * - `'glasses'`: Lightweight AR overlay with Glimmer + Projected API.
    */
   formFactor?: AndroidXRFormFactor;
+  /** When set, emits `// Provenance Hash: …` in generated Kotlin (Paper 10/12 bench). */
+  provenanceHash?: string;
 }
 
 import type { AndroidXRCompileResult } from './CompilerTypes';
@@ -131,6 +133,7 @@ export class AndroidXRCompiler extends CompilerBase {
       minSdk: options.minSdk || 30,
       targetSdk: options.targetSdk || 35,
       formFactor: options.formFactor || 'headset',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -175,6 +178,9 @@ export class AndroidXRCompiler extends CompilerBase {
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'Kotlin')}"`
     );
     this.emit('// Do not edit manually -- regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emit(`package ${this.options.packageName}`);
     this.emit('');
@@ -1508,6 +1514,9 @@ ${
     );
     this.emit('// Form factor: AI Glasses (Jetpack Compose Glimmer + Jetpack Projected)');
     this.emit('// Do not edit manually -- regenerate from .holo source');
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emit(`package ${this.options.packageName}`);
     this.emit('');

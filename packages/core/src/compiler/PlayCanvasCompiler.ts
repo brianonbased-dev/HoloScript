@@ -55,6 +55,8 @@ export interface PlayCanvasCompilerOptions {
   enablePhysics?: boolean;
   enableXR?: boolean;
   indent?: string;
+  /** When set, emits `// Provenance Hash: …` in generated TypeScript (Paper 10/12 bench). */
+  provenanceHash?: string;
 }
 
 const SHAPE_TO_PRIMITIVE: Record<string, string> = {
@@ -91,6 +93,7 @@ export class PlayCanvasCompiler extends CompilerBase {
       enablePhysics: options.enablePhysics ?? true,
       enableXR: options.enableXR ?? false,
       indent: options.indent || '  ',
+      provenanceHash: options.provenanceHash,
     };
   }
 
@@ -103,6 +106,9 @@ export class PlayCanvasCompiler extends CompilerBase {
     this.emit(
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'TypeScript')}"`
     );
+    if (this.options.provenanceHash) {
+      this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
     this.emit('');
     this.emitImports(composition);
     this.emit('');

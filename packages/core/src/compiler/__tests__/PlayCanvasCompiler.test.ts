@@ -47,6 +47,13 @@ describe('PlayCanvasCompiler', () => {
     expect(code).toContain('xr');
   });
 
+  it('emits provenance hash when provenanceHash is set', () => {
+    const h = 'deadbeef';
+    const c = new PlayCanvasCompiler({ provenanceHash: h });
+    const code = c.compile(makeComposition(), 'test-token');
+    expect(code).toContain(`// Provenance Hash: ${h}`);
+  });
+
   // =========== Objects → entities ===========
 
   it('compiles objects to PlayCanvas entities', () => {
