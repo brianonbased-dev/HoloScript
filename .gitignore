@@ -40,6 +40,10 @@ dist/
 *.swp
 *.swo
 
+# Paper-rigorous benchmark logs (output of `pnpm run bench:paper-rigorous`).
+# Machine-specific, large, and re-generated per run.
+.bench-logs/
+
 # OS
 .DS_Store
 Thumbs.db

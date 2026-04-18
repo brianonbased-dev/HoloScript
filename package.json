@@ -23,6 +23,7 @@
     "format:check": "prettier --check .",
     "bench": "pnpm --filter @holoscript/benchmark bench",
     "bench:ci": "pnpm --filter @holoscript/benchmark bench:ci",
+    "bench:paper-rigorous": "node scripts/bench-paper-rigorous.mjs",
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
     "clean": "pnpm -r exec rm -rf dist",
     "build:auto": "bash scripts/auto-build-manager.sh",
