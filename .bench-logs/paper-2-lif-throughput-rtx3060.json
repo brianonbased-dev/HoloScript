@@ -1,0 +1,63 @@
+{
+  "schema_version": "paper-2-lif-throughput-rtx3060-v1",
+  "benchmark": "paper-2-lif-throughput-rtx3060",
+  "outputPath": "HoloScript/.bench-logs/paper-2-lif-throughput-rtx3060.json",
+  "generatedAt": "2026-04-18T19:44:04.689Z",
+  "status": "completed",
+  "target": "rtx3060",
+  "strictAdapter": true,
+  "commitSha": "eebc0b331884a4b8e4b810e4938124a836297cc9",
+  "driver": "591.74",
+  "sourceHtml": "packages/snn-webgpu/benchmark-gpu.html",
+  "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "adapter": {
+    "description": "",
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "",
+    "maxBufferSize": 2147483648,
+    "maxStorageBufferBindingSize": 2147483644
+  },
+  "lif": {
+    "timesteps": 100,
+    "results": [
+      {
+        "neurons": 1024,
+        "time_ms": 91.6,
+        "throughput_M_per_s": 1.118
+      },
+      {
+        "neurons": 4096,
+        "time_ms": 21.4,
+        "throughput_M_per_s": 19.14
+      },
+      {
+        "neurons": 16384,
+        "time_ms": 20.7,
+        "throughput_M_per_s": 79.15
+      },
+      {
+        "neurons": 65536,
+        "time_ms": 25.1,
+        "throughput_M_per_s": 261.1
+      },
+      {
+        "neurons": 262144,
+        "time_ms": 18.8,
+        "throughput_M_per_s": 1394.383
+      },
+      {
+        "neurons": 1048576,
+        "time_ms": 21.3,
+        "throughput_M_per_s": 4922.892
+      }
+    ],
+    "peak": {
+      "neurons": 1048576,
+      "time_ms": 21.3,
+      "throughput_M_per_s": 4922.892
+    }
+  },
+  "failures": [],
+  "notes": []
+}
