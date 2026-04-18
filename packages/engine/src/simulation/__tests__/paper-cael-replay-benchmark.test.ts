@@ -36,7 +36,7 @@ function calcStats(samples: number[]) {
   const sorted = [...samples].sort((a, b) => a - b);
   const n = sorted.length;
   const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
-  const p99Index = Math.floor(n * 0.99);
+  const p99Index = Math.min(n - 1, Math.floor(n * 0.99));
   const p99 = sorted[p99Index];
   return { median, p99 };
 }

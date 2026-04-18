@@ -27,8 +27,14 @@ function mean(values: number[]): number {
 
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  const n = sorted.length;
+  return n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+}
+
+function p99Sorted(sorted: number[]): number {
+  const n = sorted.length;
+  if (n === 0) return 0;
+  return sorted[Math.min(n - 1, Math.floor(n * 0.99))];
 }
 
 describe('TropicalShortestPaths benchmark harness', () => {
@@ -70,42 +76,49 @@ describe('TropicalShortestPaths benchmark harness', () => {
 
   it('prints CPU vs AUTO timing snapshot for crossover tuning', async () => {
     const sizes = [16, 32, 64];
-    const cpuTimes: number[] = [];
-    const autoTimes: number[] = [];
+    const runsPerSize = Number.parseInt(process.env.BENCH_SNAPSHOT_N ?? '30', 10);
+
+    console.log('[tropical-benchmark] sizes=', sizes, `runsPerSize=${runsPerSize}`);
 
     for (const n of sizes) {
-      const adjacency = makeDenseGraph(n, 0.2);
+      const cpuSamples: number[] = [];
+      const autoSamples: number[] = [];
 
-      const cpu = new TropicalShortestPaths(ctx, { preferGPU: false });
-      const auto = new TropicalShortestPaths(ctx, {
-        preferGPU: true,
-        denseCpuThreshold: 8,
-      });
+      for (let r = 0; r < runsPerSize; r++) {
+        const adjacency = makeDenseGraph(n, 0.2);
 
-      const cpuStart = performance.now();
-      await cpu.computeAPSP(adjacency, n);
-      cpuTimes.push(performance.now() - cpuStart);
+        const cpu = new TropicalShortestPaths(ctx, { preferGPU: false });
+        const auto = new TropicalShortestPaths(ctx, {
+          preferGPU: true,
+          denseCpuThreshold: 8,
+        });
 
-      const autoStart = performance.now();
-      await auto.computeAPSP(adjacency, n);
-      autoTimes.push(performance.now() - autoStart);
+        const cpuStart = performance.now();
+        await cpu.computeAPSP(adjacency, n);
+        cpuSamples.push(performance.now() - cpuStart);
 
-      cpu.destroy();
-      auto.destroy();
+        const autoStart = performance.now();
+        await auto.computeAPSP(adjacency, n);
+        autoSamples.push(performance.now() - autoStart);
+
+        cpu.destroy();
+        auto.destroy();
+      }
+
+      const cpuSorted = [...cpuSamples].sort((a, b) => a - b);
+      const autoSorted = [...autoSamples].sort((a, b) => a - b);
+      const cpuMed = median(cpuSamples);
+      const autoMed = median(autoSamples);
+      const cpuP = p99Sorted(cpuSorted);
+      const autoP = p99Sorted(autoSorted);
+
+      console.log(
+        `[tropical-benchmark] N=${n} CPU med/p99=${cpuMed.toFixed(3)}/${cpuP.toFixed(3)}ms AUTO med/p99=${autoMed.toFixed(3)}/${autoP.toFixed(3)}ms (mean cpu=${mean(cpuSamples).toFixed(3)} auto=${mean(autoSamples).toFixed(3)}ms)`
+      );
+
+      expect(cpuSamples.every((v) => v > 0)).toBe(true);
+      expect(autoSamples.every((v) => v > 0)).toBe(true);
     }
-
-    console.log('[tropical-benchmark] sizes=', sizes);
-    console.log('[tropical-benchmark] cpuTimesMs=', cpuTimes.map((v) => v.toFixed(2)).join(', '));
-    console.log(
-      '[tropical-benchmark] autoTimesMs=',
-      autoTimes.map((v) => v.toFixed(2)).join(', ')
-    );
-    console.log(
-      `[tropical-benchmark] mean cpu=${mean(cpuTimes).toFixed(2)}ms auto=${mean(autoTimes).toFixed(2)}ms`
-    );
-
-    expect(cpuTimes.every((v) => v > 0)).toBe(true);
-    expect(autoTimes.every((v) => v > 0)).toBe(true);
   });
 
   it('finds GPU crossover point for APSP across extended sizes', async () => {
@@ -158,11 +171,11 @@ describe('TropicalShortestPaths benchmark harness', () => {
 
       const cpuSorted = [...cpuTimings].sort((a, b) => a - b);
       const gpuSorted = [...gpuTimings].sort((a, b) => a - b);
-      
+
       const cpuMedian = median(cpuTimings);
-      const cpuP99 = cpuSorted[Math.floor(cpuSorted.length * 0.99)];
+      const cpuP99 = p99Sorted(cpuSorted);
       const gpuMedian = median(gpuTimings);
-      const gpuP99 = gpuSorted[Math.floor(gpuSorted.length * 0.99)];
+      const gpuP99 = p99Sorted(gpuSorted);
       const speedup = cpuMedian / gpuMedian;
 
       results.push({

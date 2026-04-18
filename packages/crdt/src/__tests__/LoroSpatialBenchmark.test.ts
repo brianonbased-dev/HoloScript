@@ -30,36 +30,61 @@ import { CRDTStateManager } from './utils/CRDTStateManagerStub';
 // BENCHMARK UTILITIES
 // =============================================================================
 
-/** Measure execution time of a function in microseconds */
+/**
+ * Per-iteration timings (warmup separate), then median + p99 on sorted samples.
+ * Mean/avg reported only as secondary diagnostics — papers should cite median/p99.
+ */
 function benchmark(fn: () => void, iterations: number = 1000): BenchmarkResult {
-  // Warmup
   for (let i = 0; i < 10; i++) fn();
 
-  const start = performance.now();
+  const timesMs: number[] = [];
   for (let i = 0; i < iterations; i++) {
+    const t0 = performance.now();
     fn();
+    timesMs.push(performance.now() - t0);
   }
-  const elapsed = performance.now() - start;
+  timesMs.sort((a, b) => a - b);
+  const n = timesMs.length;
+  const medianMs =
+    n % 2 === 0 ? (timesMs[n / 2 - 1] + timesMs[n / 2]) / 2 : timesMs[Math.floor(n / 2)];
+  const p99Idx = Math.min(n - 1, Math.floor(n * 0.99));
+  const p99Ms = timesMs[p99Idx];
+  const meanMs = timesMs.reduce((a, b) => a + b, 0) / n;
+  const totalMs = timesMs.reduce((a, b) => a + b, 0);
+
+  const medianUs = medianMs * 1000;
+  const p99Us = p99Ms * 1000;
+  const avgUs = meanMs * 1000;
 
   return {
-    totalMs: elapsed,
-    avgMs: elapsed / iterations,
-    avgUs: (elapsed / iterations) * 1000,
-    opsPerSecond: (iterations / elapsed) * 1000,
+    totalMs,
+    meanMs,
+    medianMs,
+    p99Ms,
+    avgMs: meanMs,
+    avgUs,
+    medianUs,
+    p99Us,
+    opsPerSecond: medianMs > 0 ? 1000 / medianMs : 0,
     iterations,
   };
 }
 
 interface BenchmarkResult {
   totalMs: number;
+  meanMs: number;
+  medianMs: number;
+  p99Ms: number;
   avgMs: number;
   avgUs: number;
+  medianUs: number;
+  p99Us: number;
   opsPerSecond: number;
   iterations: number;
 }
 
 function formatResult(name: string, result: BenchmarkResult): string {
-  return `${name}: ${result.avgUs.toFixed(2)}us/op (${result.opsPerSecond.toFixed(0)} ops/sec)`;
+  return `${name}: ${result.medianUs.toFixed(2)}µs/op median, ${result.p99Us.toFixed(2)}µs/op p99 (~${result.opsPerSecond.toFixed(0)} ops/s @ median)`;
 }
 
 /** Generate a random Vec3 */

@@ -4,9 +4,14 @@ import { hashBytes } from '../../../core/src/testing/DeterminismHarness';
 function calcStats(samples: number[]) {
   const n = samples.length;
   const mean = samples.reduce((a, b) => a + b, 0) / n;
-  const variance = samples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1 || 1);
+  const variance = n > 1 ? samples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
   const stddev = Math.sqrt(variance);
-  return { mean, stddev };
+  const sorted = [...samples].sort((a, b) => a - b);
+  const median =
+    n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const p99Idx = Math.min(n - 1, Math.floor(n * 0.99));
+  const p99 = sorted[p99Idx];
+  return { mean, stddev, median, p99 };
 }
 
 describe('Dumb Glass Rendering Contract (P3-CENTER)', () => {
@@ -32,43 +37,40 @@ describe('Dumb Glass Rendering Contract (P3-CENTER)', () => {
     const totalFrameOverheadSamples: number[] = [];
     
     for (let r = 0; r < runs; r++) {
-      let runSgTime = 0;
-      let runPtTime = 0;
-      
       for (let i = 0; i < numFramesPerRun; i++) {
         const t0 = performance.now();
         await hashBytes(mockSceneGraph, 'sha256');
-        runSgTime += (performance.now() - t0);
+        const frameSgMs = performance.now() - t0;
         
         const t1 = performance.now();
         for (let t = 0; t < tilesPerFrame; t++) {
           await hashBytes(mockPixelTile, 'sha256');
         }
-        runPtTime += (performance.now() - t1);
+        const framePtMs = performance.now() - t1;
+        
+        sgHashSamples.push(frameSgMs);
+        ptHashSamples.push(framePtMs / tilesPerFrame);
+        totalFrameOverheadSamples.push(frameSgMs + framePtMs);
       }
-      
-      const runAvgSgMs = runSgTime / numFramesPerRun;
-      const runAvgPtMs = runPtTime / (numFramesPerRun * tilesPerFrame);
-      const runAvgTotalMs = (runSgTime + runPtTime) / numFramesPerRun;
-      
-      sgHashSamples.push(runAvgSgMs);
-      ptHashSamples.push(runAvgPtMs);
-      totalFrameOverheadSamples.push(runAvgTotalMs);
     }
 
     const sgStats = calcStats(sgHashSamples);
     const ptStats = calcStats(ptHashSamples);
     const frameStats = calcStats(totalFrameOverheadSamples);
     
-    const overheadPercent = (frameStats.mean / 16.66) * 100;
-    const overheadStddev = (frameStats.stddev / 16.66) * 100;
+    const overheadMedianPct = (frameStats.median / 16.66) * 100;
+    const overheadP99Pct = (frameStats.p99 / 16.66) * 100;
+    const overheadMeanPct = (frameStats.mean / 16.66) * 100;
+    const overheadStddevPct = (frameStats.stddev / 16.66) * 100;
 
-    console.log(`\nP3-CENTER Dumb Glass Provenance Benchmark (N=${runs} runs of ${numFramesPerRun} frames)`);
-    console.log(`Avg Scene-Graph Hash (750KB): ${sgStats.mean.toFixed(3)} ms ± ${sgStats.stddev.toFixed(3)} ms`);
-    console.log(`Avg Pixel-Tile Hash (256KB): ${ptStats.mean.toFixed(3)} ms ± ${ptStats.stddev.toFixed(3)} ms`);
-    console.log(`Total Provenance Overhead per Frame: ${frameStats.mean.toFixed(3)} ms ± ${frameStats.stddev.toFixed(3)} ms`);
-    console.log(`Total Overhead against 16.6ms (60Hz) Budget: ${overheadPercent.toFixed(2)}% ± ${overheadStddev.toFixed(2)}%\n`);
+    console.log(`\nP3-CENTER Dumb Glass Provenance Benchmark (N=${runs * numFramesPerRun} frames)`);
+    console.log(`Scene-Graph Hash (750KB) per frame: ${sgStats.median.toFixed(3)} ms (median), ${sgStats.p99.toFixed(3)} ms (p99)`);
+    console.log(`Pixel-Tile Hash (256KB) per tile: ${ptStats.median.toFixed(3)} ms (median), ${ptStats.p99.toFixed(3)} ms (p99)`);
+    console.log(`Total Provenance Overhead per Frame: ${frameStats.median.toFixed(3)} ms (median), ${frameStats.p99.toFixed(3)} ms (p99)`);
+    console.log(
+      `Total vs 16.6ms (60Hz) budget: ${overheadMedianPct.toFixed(2)}% (median), ${overheadP99Pct.toFixed(2)}% (p99); mean ${overheadMeanPct.toFixed(2)}% ± ${overheadStddevPct.toFixed(2)}% (stddev — diagnostic only)\n`
+    );
 
-    expect(frameStats.mean).toBeGreaterThan(0);
+    expect(frameStats.median).toBeGreaterThan(0);
   }, 60000);
 });

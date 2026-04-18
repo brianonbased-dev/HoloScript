@@ -1,11 +1,14 @@
 /**
- * Paper Benchmarks — Data for "Trust by Construction" whitepaper (TVCG submission)
+ * Paper Benchmarks — Data for "Trust by Construction" (TVCG) and USENIX MCP Trust (paper-1)
  *
  * Generates:
  * 1. Contract overhead profiling (with/without ContractedSimulation wrapper)
  * 2. Solver wall-clock scaling (TET4 + TET10 at multiple mesh sizes)
  * 3. NAFEMS LE1 convergence data in LaTeX table format
  * 4. Geometry hashing cost at various mesh sizes
+ *
+ * Statistics: per-iteration wall times are sorted; published tables use **median**
+ * and **p99** (not mean±CI). See `benchmark()` below.
  *
  * Run: pnpm --filter @holoscript/engine test -- paper-benchmarks
  * Output: console tables + LaTeX fragments ready to paste into the paper
@@ -205,11 +208,14 @@ function benchmark(fn: () => void, iterations: number): { medianMs: number; mean
     times.push(performance.now() - start);
   }
   times.sort((a, b) => a - b);
-  const medianMs = times[Math.floor(times.length / 2)];
-  const meanMs = times.reduce((a, b) => a + b, 0) / times.length;
-  const variance = times.reduce((s, t) => s + (t - meanMs) ** 2, 0) / (times.length - 1);
+  const n = times.length;
+  const medianMs =
+    n % 2 === 0 ? (times[n / 2 - 1] + times[n / 2]) / 2 : times[Math.floor(n / 2)];
+  const meanMs = times.reduce((a, b) => a + b, 0) / n;
+  const variance = n > 1 ? times.reduce((s, t) => s + (t - meanMs) ** 2, 0) / (n - 1) : 0;
   const stdMs = Math.sqrt(variance);
-  const p99Ms = times[Math.floor(times.length * 0.99)];
+  const p99Idx = Math.min(n - 1, Math.floor(n * 0.99));
+  const p99Ms = times[p99Idx];
   return { medianMs, meanMs, stdMs, p99Ms, allMs: times };
 }
 
