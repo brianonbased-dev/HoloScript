@@ -156,6 +156,13 @@ export interface BaseCompilerOptions {
    * Documentation generator options (only used if generateDocs is true)
    */
   docsOptions?: DocumentationGeneratorOptions;
+
+  /**
+   * Attach a provenance hash to compilation output for audit-trail traceability.
+   * When set, compilers SHOULD embed this value as a comment in their output.
+   * Format: `// Provenance Hash: <hex>` (use `#` prefix for YAML/GDScript targets).
+   */
+  provenanceHash?: string;
 }
 
 /**

@@ -28,6 +28,28 @@ import { GLTFPipeline } from '../GLTFPipeline';
 import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import { VRRCompiler } from '../VRRCompiler';
+// Phase 3 — noise-floor targets (W.067)
+import { SCMCompiler } from '../SCMCompiler';
+import { DTDLCompiler } from '../DTDLCompiler';
+import { OpenXRCompiler } from '../OpenXRCompiler';
+import { OpenXRSpatialEntitiesCompiler } from '../OpenXRSpatialEntitiesCompiler';
+import { URDFCompiler } from '../URDFCompiler';
+import { MCPConfigCompiler } from '../MCPConfigCompiler';
+import { NIRCompiler } from '../NIRCompiler';
+import { NIRToWGSLCompiler } from '../NIRToWGSLCompiler';
+import { TSLCompiler } from '../TSLCompiler';
+import { NFTMarketplaceCompiler } from '../NFTMarketplaceCompiler';
+import { PhoneSleeveVRCompiler } from '../PhoneSleeveVRCompiler';
+import { NodeServiceCompiler } from '../NodeServiceCompiler';
+import { Native2DCompiler } from '../Native2DCompiler';
+import { A2AAgentCardCompiler } from '../A2AAgentCardCompiler';
+import { AIGlassesCompiler } from '../AIGlassesCompiler';
+import { SDFCompiler } from '../SDFCompiler';
+import { AndroidCompiler } from '../AndroidCompiler';
+import { IOSCompiler } from '../IOSCompiler';
+import { WASMCompiler } from '../WASMCompiler';
+import { VisionOSCompiler } from '../VisionOSCompiler';
+import { NextJSAPICompiler } from '../NextJSAPICompiler';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../identity/AgentRBAC')>();
@@ -352,6 +374,80 @@ describe('Paper 10/12 — paper-targets-overhead-bench', () => {
         `[paper-targets-overhead-bench] max base median=${maxBaseMedian.toFixed(3)}ms | raise BENCH_OBJECT_COUNT if code targets need >1 ms`
       );
       console.log('[paper-targets-overhead-bench] done.');
+    },
+    600_000
+  );
+
+  it(
+    'Phase 3 — W.067 noise-floor: base compile time for remaining CompilerBase targets',
+    () => {
+      const astMain = parseFixture(buildPaperTargetsFixture(BENCH_OBJECT_COUNT));
+
+      /** W.067 criterion: base median ≥ 100 ms → measurable overhead %; < 100 ms → noise-floor exclusion */
+      const W067_MS = 100;
+      const WARMUP = 4;
+      const N = 12;
+
+      type NoiseFloorSpec = { id: string; baseCall: () => unknown };
+
+      const PHASE3_TARGETS: NoiseFloorSpec[] = [
+        { id: 'scm',                    baseCall: () => new SCMCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'dtdl',                   baseCall: () => new DTDLCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'urdf',                   baseCall: () => new URDFCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'mcp-config',             baseCall: () => new MCPConfigCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'nir',                    baseCall: () => new NIRCompiler().compile(astMain, AGENT_TOKEN) },
+        // NIRToWGSLCompiler requires a pre-built NIR graph (pipe via NIRCompiler) — excluded from direct bench
+        { id: 'openxr',                 baseCall: () => new OpenXRCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'openxr-spatial',         baseCall: () => new OpenXRSpatialEntitiesCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'tsl',                    baseCall: () => new TSLCompiler().compile(astMain, AGENT_TOKEN) },
+        // NFTMarketplaceCompiler requires NFT-domain AST (marketplace.contracts) — excluded from generic bench
+        { id: 'node-service',           baseCall: () => new NodeServiceCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'native-2d',              baseCall: () => new Native2DCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'a2a-agent-card',         baseCall: () => new A2AAgentCardCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'ai-glasses',             baseCall: () => new AIGlassesCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'sdf',                    baseCall: () => new SDFCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'android',                baseCall: () => new AndroidCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'ios',                    baseCall: () => new IOSCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'wasm',                   baseCall: () => new WASMCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'vision-os',              baseCall: () => new VisionOSCompiler().compile(astMain, AGENT_TOKEN) },
+        { id: 'nextjs-api',             baseCall: () => new NextJSAPICompiler().compile(astMain, AGENT_TOKEN) },
+      ];
+
+      console.log('\n[paper-targets-overhead-bench/phase3] === W.067 noise-floor analysis ===');
+      console.log(
+        `[paper-targets-overhead-bench/phase3] targets=${PHASE3_TARGETS.length} threshold=${W067_MS}ms warmup=${WARMUP} iters=${N} objects=${BENCH_OBJECT_COUNT}`
+      );
+
+      const belowFloor: string[] = [];
+      const aboveFloor: string[] = [];
+
+      for (const t of PHASE3_TARGETS) {
+        for (let w = 0; w < WARMUP; w++) t.baseCall();
+        const baseMs: number[] = [];
+        for (let i = 0; i < N; i++) {
+          const t0 = performance.now();
+          t.baseCall();
+          baseMs.push(performance.now() - t0);
+        }
+        const { median, p99 } = medianP99(baseMs);
+        const label = median < W067_MS ? 'BELOW-FLOOR' : 'MEASURABLE';
+        if (label === 'BELOW-FLOOR') belowFloor.push(t.id);
+        else aboveFloor.push(t.id);
+        console.log(
+          `[paper-targets-overhead-bench/phase3] ${t.id} | base med=${median.toFixed(3)}ms p99=${p99.toFixed(3)}ms | W.067=${label}`
+        );
+        expect(median).toBeGreaterThan(0);
+      }
+
+      console.log(
+        `[paper-targets-overhead-bench/phase3] BELOW-FLOOR (${belowFloor.length}): ${belowFloor.join(', ')}`
+      );
+      if (aboveFloor.length > 0) {
+        console.log(
+          `[paper-targets-overhead-bench/phase3] MEASURABLE (${aboveFloor.length}): ${aboveFloor.join(', ')}`
+        );
+      }
+      console.log('[paper-targets-overhead-bench/phase3] done.');
     },
     600_000
   );
