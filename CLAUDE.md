@@ -2,7 +2,13 @@
 
 > **AGENT**: This file is your behavioral contract for this repo. Execute the SESSION INIT sequence before any other action. All directives below are mandatory.
 >
-> **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking the user any architectural question.
+> **IDENTITY**: If you are Claude, you're running in one of Joseph's surfaces (Cursor, Claude Desktop, Claude extension, or VS Code). You are **not** "Antigravity" — that's a separate Google IDE running Gemini. Never self-tag as `antigravity` in commit messages, handoffs, or HoloMesh posts. See `~/.claude/projects/C--Users-josep--ai-ecosystem/memory/feedback_antigravity-is-not-claude.md`.
+>
+> **TEAM**: You're on the HoloScript Core team. Teammates (Gemini in Antigravity IDE, Copilot in VS Code, other Claude sessions) write handoffs and knowledge — read them, utilize them, message them.
+>
+> **PRODUCTION**: HoloScript is a production product paying users depend on. When MCP is down, investigate before falling back. When tests fail on main, fix yours / investigate pre-existing. Don't bypass safety as a shortcut.
+>
+> **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking Joseph any architectural question — and if neither answers, **PLAN, then tell Joseph what you decided and why**, don't stall.
 > **GOLD Drive**: Graduated vault on disk (default `D:\GOLD` on Windows, `/mnt/d/GOLD` elsewhere). Override with **`GOLD_ROOT`**. Diamond > Platinum > GOLD > knowledge store; overrides the knowledge store on conflict. Intake: `INDEX.md`, `w_gold_034.md`, `wisdom/w_gold_001.md`, etc. — see `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
 
 ---
@@ -175,9 +181,9 @@ If any MCP tool call fails:
 
 ```text
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
-TRAITS      2,000+ traits in 40+ categories — ALL in @holoscript/core (no separate package)
-COMPILERS   30+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
-MCP         packages/mcp-server/ — 82+ tools — start with: npx tsx packages/mcp-server/src/index.ts
+TRAITS      count: find packages/core/src/traits -name "*.ts" | wc -l; categories: ls packages/core/src/traits/constants/ — ALL in @holoscript/core (no separate package)
+COMPILERS   count: find packages/core/src -name "*Compiler.ts" | wc -l — ALL in @holoscript/core (no separate @holoscript/compiler)
+MCP         packages/mcp-server/ — tool count: GET https://mcp.holoscript.net/health → tools field — start with: npx tsx packages/mcp-server/src/index.ts
 CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
 TEST        pnpm test | pnpm test --filter @holoscript/core | createComposition() pattern
@@ -190,8 +196,8 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 ### Packages Quick Map
 
 ```text
-@holoscript/core             Parser · AST · 2,000+ traits · 30+ compilers
-@holoscript/mcp-server       82+ AI tools (parse, validate, generate, compile, codebase intelligence)
+@holoscript/core             Parser · AST · traits · compilers (counts via find packages/core/src; see docs/NUMBERS.md)
+@holoscript/mcp-server       AI tools (parse, validate, generate, compile, codebase intelligence — count via GET mcp.holoscript.net/health)
 @holoscript/cli              holo build · holo compile · holo validate
 @holoscript/runtime          Scene execution runtime
 @holoscript/lsp              Language Server Protocol (VS Code, Neovim)
@@ -238,11 +244,11 @@ advanced      @shader_custom @compute_shader @ray_traced @lod_managed
 
 ```text
 docs/academy/          25 lessons, 3 levels (newcomer entry point)
-docs/compilers/        30+ targets: unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
+docs/compilers/        targets (count via `ls docs/compilers/`): unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
                        android/ android-xr/ openxr/ openxr-spatial/ robotics/urdf robotics/sdf
                        iot/dtdl iot/wot playcanvas/ wasm/ ar/ tsl/ neuromorphic/ a2a/ scm/
                        usd-physics/ ai-glasses/ vr-reality/ nft-marketplace/
-docs/traits/           13+ category pages + index + extending guide
+docs/traits/           category pages (count via `ls docs/traits/`) + index + extending guide
 docs/agents/           uAA2++ agent framework, UAAL VM
 docs/guides/           Core concepts, mcp-server, installation, best-practices
 docs/integrations/     Hololand, Grok/xAI, AI architecture, interoperability
@@ -297,7 +303,7 @@ If any box is unchecked → complete that step before responding.
 
 ## GitNexus MCP
 
-This project is indexed by GitNexus as **HoloScript** (47456 symbols, 105083 relationships, 300 execution flows).
+This project is indexed by GitNexus as **HoloScript** (run `npx gitnexus status` for current symbol / relationship / execution-flow counts).
 
 ## Always Start Here
 
