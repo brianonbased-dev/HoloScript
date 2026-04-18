@@ -123,6 +123,8 @@ ci-log.txt
 build_log.txt
 build_output.txt
 compile_output.txt
+core-next-cluster.txt
+core-targeted-latest.txt
 full-run.txt
 
 # packages/core — local vitest/jest failure lists (regenerate anytime)
