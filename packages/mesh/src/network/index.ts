@@ -76,6 +76,22 @@ export {
   CONNECTION_DEFAULTS,
   SYNC_DEFAULTS,
   SYNC_TIER_RATES,
+  SYNC_TIER_DEFAULTS,
+  SYNC_TIER_DELIVERY,
+
+  // Advanced sync/CRDT helpers
+  resolveSyncConfig,
+  mergeLWW,
+  mergeGCounter,
+  gcounterValue,
+  createLWWRegister,
+  createGCounter,
+  incrementGCounter,
+
+  // AOI and bandwidth estimation
+  SpatialHashGrid,
+  ENTITY_BANDWIDTH_PROFILES,
+  estimateAOIBandwidth,
 
   // Helper Functions
   generateMessageId,

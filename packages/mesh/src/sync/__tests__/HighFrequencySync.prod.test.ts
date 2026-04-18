@@ -13,9 +13,9 @@ import {
   dequantizePosition,
   compressQuaternion,
   decompressQuaternion,
-  JitterBuffer,
   type InterpolationSample,
 } from '@holoscript/core';
+import { JitterBuffer } from '../HighFrequencySync';
 
 // ---------------------------------------------------------------------------
 // Helpers

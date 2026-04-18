@@ -37,6 +37,8 @@ export class NeuralStreamingTransport {
   private isConnected = false;
   private signalingBridge: ISignalingBridge | null = null;
   private isReconnecting = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private isManuallyDisconnected = false;
 
   constructor(config: StreamingTransportConfig) {
     this.config = {
@@ -51,6 +53,7 @@ export class NeuralStreamingTransport {
 
   public async connect(signalingBridge?: ISignalingBridge): Promise<void> {
     if (this.isConnected) return;
+    this.isManuallyDisconnected = false;
 
     if (signalingBridge) {
       this.signalingBridge = signalingBridge;
@@ -164,11 +167,37 @@ export class NeuralStreamingTransport {
     // Teardown
     this.dataChannel?.close();
     this.peerConnection?.close();
+    this.dataChannel = null;
+    this.peerConnection = null;
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
 
     // Backoff reconnect
-    setTimeout(async () => {
-      await this.initWebRTC();
-      this.isReconnecting = false;
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
+
+      // If transport was intentionally disconnected, do not auto-reconnect.
+      if (this.isManuallyDisconnected) {
+        this.isReconnecting = false;
+        return;
+      }
+
+      // In Node/test teardown, RTCPeerConnection may no longer exist.
+      if (typeof RTCPeerConnection === 'undefined') {
+        this.isReconnecting = false;
+        return;
+      }
+
+      try {
+        await this.initWebRTC();
+      } catch (err) {
+        console.error('[NeuralStreamingTransport] Reconnect failed', err);
+      } finally {
+        this.isReconnecting = false;
+      }
     }, 2000);
   }
 
@@ -232,6 +261,13 @@ export class NeuralStreamingTransport {
   }
 
   public disconnect(): void {
+    this.isManuallyDisconnected = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.isReconnecting = false;
+    this.signalingBridge = null;
     this.socket?.close();
     this.dataChannel?.close();
     this.peerConnection?.close();
