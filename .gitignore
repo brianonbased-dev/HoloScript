@@ -34,6 +34,9 @@ dist/
 # IDE
 .idea/
 .vscode/
+# Track only .vscode/settings.json so team-wide Copilot guardrails are committed.
+# Per-developer mcp.json, launch.json, tasks.json, backups remain ignored.
+!.vscode/settings.json
 *.swp
 *.swo
 

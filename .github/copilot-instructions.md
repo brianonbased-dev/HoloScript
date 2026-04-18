@@ -17,6 +17,35 @@ You excel at **inline code suggestions and tab-completions**. Lean into this:
 - Don't generate placeholder code. Every line should compile.
 - Don't ask questions in inline mode. Complete the thought.
 
+## Fixing failing tests — root cause, not regex sweep
+
+**Never generate bulk regex-transform scripts (`fix-*.cjs`, `fix-*.js`, `patch-*.sh`, etc.) as a response to failing tests.** This pattern has already burned us: a cluster of five `fix-physics*.cjs` scripts accumulated in `packages/core/` trying to rewrite `toEqual([x,y,z])` → `toEqual({x,y,z})`. None were committed, none were run, and if they had been run they would have masked a real type-contract divergence (`IVector3` declared as tuple in `core-types/src/physics.ts`, runtime returning hybrid object).
+
+**Before any test-file edit, answer:**
+
+1. **Is the test wrong, or is the code wrong?** If the type says one thing and the runtime returns another, at least one is wrong. Fix the divergence; do not rewrite the test to match whichever side is easier.
+2. **Is there a single consumer fix, or N test rewrites?** A consumer fix (update the type, update the implementation) is usually 1–3 files. A regex sweep across dozens of tests is usually fighting a symptom. Prefer the smaller, typed fix.
+3. **Does your fix break any other assertions in the same file?** Run the whole test file after every edit. If fixing one case breaks another, you're patching symptoms.
+
+**Rules:**
+
+- No `.cjs` / `.js` / `.sh` helper scripts left in `packages/*/` directories. If a transformation is truly one-shot, run it and delete it in the same session; do not leave the script.
+- No escalating filename patterns (`fix-foo.ts`, `fix-foo-v2.ts`, `fix-foo-final.ts`, `fix-foo-surgical.ts`). Iteration in filenames is a tell that understanding is missing. Stop and re-read the type contract.
+- If the same regex fails multiple times with variants, the regex is not the fix — the type contract or the runtime is misaligned.
+- Tests that assert specific shapes (`toEqual`, `toStrictEqual`) are a LOAD-BEARING contract, not a formatting preference. Changing their expected-value format without changing the declared type breaks type-checking.
+
+**When you see `toEqual([x, y, z])` vs runtime returning `{x, y, z}`:**
+
+Check in this order, stopping at the first fix that works:
+
+1. Does `core-types/src/physics.ts` declare the returned type as tuple or object? Whichever side disagrees with the declaration is the bug.
+2. Does a normalization shim exist (`normalizeIVector3`, `vec3FromArray`)? If yes, is it being applied at every producer?
+3. Only then: update the test assertions, ONCE, in a single PR, alongside the type change — not in a regex sweep ahead of it.
+
+## When to pause and hand off
+
+If you find yourself generating a third script to fix the same class of failure, stop. File a task on the HoloMesh board with a clear "type contract X diverges from runtime Y" description and let Claude Code orchestrate the fix. You are the inline-completion strength; Claude is the root-cause-debugging strength. Use the division.
+
 ## HoloScript-First Completions
 
 When the user is in a HoloScript file, complete with HoloScript syntax:

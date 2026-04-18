@@ -13,5 +13,21 @@
     "holoscript.ai.provider": "openrouter",
     "holoscript.ai.model": "anthropic/claude-haiku-4.5",
     "holoscript.team.id": "team_1775935947314_f0noxi",
-    "holoscript.team.agentName": "vscode-agent"
+    "holoscript.team.agentName": "vscode-agent",
+
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    "github.copilot.chat.codeGeneration.instructions": [
+        { "file": ".github/copilot-instructions.md" },
+        { "text": "When a test is failing, read the type contract (core-types/src/**) BEFORE editing the test. If the test assertion format disagrees with the declared type, fix one side — do not regex-sweep the other." },
+        { "text": "Never create fix-*.cjs, fix-*.js, patch-*.sh, or similar throwaway helper scripts inside packages/*/ directories. One-shot transforms are run-and-delete in the same turn, not committed as files." },
+        { "text": "Do not generate variants of the same fix (fix-foo.ts, fix-foo-v2.ts, fix-foo-final.ts). If a first attempt fails, stop regex-iterating and re-read the type contract." }
+    ],
+    "github.copilot.chat.testGeneration.instructions": [
+        { "file": ".github/copilot-instructions.md" },
+        { "text": "Tests assert a contract. Before changing test assertion shape (tuple vs object, promise vs value, etc.) verify the corresponding declared type in core-types/src/. If they disagree, the declared type is the source of truth — edit the implementation to match, not the test to match the implementation." }
+    ],
+    "github.copilot.chat.reviewSelection.instructions": [
+        { "file": ".github/copilot-instructions.md" },
+        { "text": "Flag any PR containing fix-*.cjs, fix-*.js, or patch-*.sh files added to packages/ directories — these are regex-sweep anti-patterns. Flag any PR that changes N test files without a corresponding type or implementation change." }
+    ]
 }
