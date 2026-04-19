@@ -24,7 +24,7 @@ export const holoMapToolDefinitions: Tool[] = [
         config: {
           type: 'object',
           description:
-            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames? (cap 500). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS.',
+            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames?, weightCid? (content-addressed weights). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS, FFPROBE_PATH, HOLOMAP_MCP_FFPROBE_TIMEOUT_MS.',
         },
       },
       required: ['videoUrl'],

@@ -13,7 +13,7 @@ import {
   type ReconstructionManifest,
   type ReconstructionStep,
 } from '@holoscript/core/reconstruction';
-import { compileManifestToTarget } from './holo-reconstruct-export';
+import { compileManifestToTarget, holomapPayloadFromAggregatedPoints } from './holo-reconstruct-export';
 import {
   appendStepToAggregate,
   boundsFromPositions,
@@ -73,6 +73,7 @@ function pickPartialHoloMapConfig(raw: unknown): Partial<HoloMapConfig> {
   }
   if (typeof o.allowCpuFallback === 'boolean') p.allowCpuFallback = o.allowCpuFallback;
   if (typeof o.videoHash === 'string') p.videoHash = o.videoHash;
+  if (typeof o.weightCid === 'string' && o.weightCid.trim()) p.weightCid = o.weightCid.trim();
   return p;
 }
 
@@ -370,8 +371,10 @@ export async function mcpReconstructExport(
   let compileError: string | undefined;
   let compileStatus: 'COMPILED' | 'COMPILE_FAILED';
 
+  const holomapPc = holomapPayloadFromAggregatedPoints(geom.positions, geom.colors);
+
   try {
-    const c = await compileManifestToTarget(manifest, target, boundsForStub);
+    const c = await compileManifestToTarget(manifest, target, boundsForStub, holomapPc);
     compiledOutput = c.output;
     usedCompilerFallback = c.usedFallback;
     compileStatus = 'COMPILED';

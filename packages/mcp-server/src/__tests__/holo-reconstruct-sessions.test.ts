@@ -44,6 +44,7 @@ describe('holo reconstruct MCP sessions', () => {
     if (exp.compileStatus === 'COMPILED') {
       expect(typeof exp.compiledOutput).toBe('string');
       expect((exp.compiledOutput ?? '').length).toBeGreaterThan(0);
+      expect(exp.compiledOutput).toContain('holomapPointCloud');
     }
   });
 

@@ -24,6 +24,53 @@ function ffmpegInputProbeArgs(): string[] {
   return ['-analyzeduration', analyzeduration, '-probesize', probesize];
 }
 
+export function resolveFfprobeBinary(): string {
+  const envPath = process.env.FFPROBE_PATH?.trim();
+  if (envPath) return envPath;
+  return 'ffprobe';
+}
+
+/**
+ * Best-effort video stream probe (codec name). Fails closed when ffprobe missing or file unreadable.
+ */
+export function ffprobeVideoCodecSync(
+  videoPath: string,
+  timeoutMs?: number,
+): { ok: true; codec: string } | { ok: false; error: string } {
+  const t = timeoutMs ?? Number(process.env.HOLOMAP_MCP_FFPROBE_TIMEOUT_MS ?? 15_000);
+  const ffprobe = resolveFfprobeBinary();
+  try {
+    const r = spawnSync(
+      ffprobe,
+      [
+        '-v',
+        'error',
+        '-select_streams',
+        'v:0',
+        '-show_entries',
+        'stream=codec_name',
+        '-of',
+        'default=nw=1:nk=1',
+        videoPath,
+      ],
+      { encoding: 'utf8', timeout: t },
+    );
+    if (r.status !== 0) {
+      return {
+        ok: false,
+        error: (r.stderr || r.stdout || 'ffprobe failed').toString().slice(-500),
+      };
+    }
+    const codec = (r.stdout || '').trim().split('\n')[0]?.trim() ?? '';
+    if (!codec) {
+      return { ok: false, error: 'ffprobe: no video stream / codec' };
+    }
+    return { ok: true, codec };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export function resolveFfmpegBinary(): string {
   const envPath = process.env.FFMPEG_PATH?.trim();
   if (envPath) return envPath;
@@ -137,6 +184,13 @@ export async function ingestVideoRgbFrames(options: {
   maxFrames: number;
   ffmpegPath?: string;
 }): Promise<{ frames: Array<{ index: number; rgb: Uint8Array }>; ffmpegPath: string }> {
+  const probe = ffprobeVideoCodecSync(options.videoPath);
+  if (!probe.ok) {
+    throw new Error(
+      `holo_reconstruct_from_video: ffprobe failed (${probe.error}). Install ffmpeg/ffprobe or fix the input file.`,
+    );
+  }
+
   const ffmpegPath = options.ffmpegPath ?? resolveFfmpegBinary();
   const args = [
     '-hide_banner',
