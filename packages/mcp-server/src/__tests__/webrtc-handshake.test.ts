@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'http';
 import { WebSocketServer } from 'ws';
 import { WebRTCSignalingServer } from '../holomesh/webrtc-signaling';
-import { WebSocketSignaler } from '@holoscript/core';
+import { WebSocketSignaler } from '@holoscript/mesh';
 
 describe('WebRTC Handshake E2E Flow', () => {
   let server: Server;

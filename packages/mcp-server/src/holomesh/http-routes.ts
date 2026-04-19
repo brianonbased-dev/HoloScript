@@ -19,7 +19,7 @@ import { handleKnowledgeRoutes } from './routes/knowledge-routes';
 import { handleAdminRoutes } from './routes/admin-routes';
 import { handleCoreRoutes } from './routes/core-routes';
 import { handleHoloDoorRoutes } from './routes/holodoor-routes';
-import { GossipProtocol, GossipPacket } from '@holoscript/framework/mesh';
+import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
 

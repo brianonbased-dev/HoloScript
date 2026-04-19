@@ -7,12 +7,8 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import {
-  getTelemetryCollector,
-  getPrometheusMetrics,
-  getDefaultRegistry,
-  OTLPExporter,
-} from '@holoscript/core';
+import { getDefaultRegistry } from '@holoscript/framework/agents';
+import { getTelemetryCollector, getPrometheusMetrics, OTLPExporter } from '@holoscript/core';
 import type { OTLPExporterConfig } from '@holoscript/core';
 
 // =============================================================================

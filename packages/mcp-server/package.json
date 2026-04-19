@@ -42,6 +42,7 @@
     "@holoscript/framework": "workspace:^",
     "@holoscript/holomap": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
+    "@holoscript/mesh": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "ffmpeg-static": "^5.2.0",
     "eventsource": "^4.1.0",

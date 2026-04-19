@@ -13,7 +13,7 @@ import {
   getPrometheusMetrics,
   PrometheusMetricsRegistry,
 } from '@holoscript/core';
-import { getDefaultRegistry } from '@holoscript/core';
+import { getDefaultRegistry } from '@holoscript/framework/agents';
 
 // =============================================================================
 // TYPES

@@ -19,6 +19,8 @@ import {
   suggest2DTraits,
   generateSemanticUIForMCP,
   generateWorldNative,
+  generateObjectForMCP,
+  generateSceneForMCP,
 } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';

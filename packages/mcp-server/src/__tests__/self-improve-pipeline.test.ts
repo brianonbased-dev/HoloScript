@@ -175,16 +175,20 @@ describe('Self-Improve Tools', () => {
       expect(result).toBeNull();
     });
 
-    it('holo_self_diagnose should return error when GraphRAG not ready', async () => {
-      const { handleSelfImproveTool } = await import('../self-improve-tools.js');
-      const result = (await handleSelfImproveTool('holo_self_diagnose', {
-        focus: 'coverage',
-        maxResults: 3,
-      })) as any;
-      // GraphRAG won't be initialized in test environment → should get helpful error
-      expect(result).toBeDefined();
-      expect(result.error || result.candidates).toBeDefined();
-    });
+    it(
+      'holo_self_diagnose should return error when GraphRAG not ready',
+      async () => {
+        const { handleSelfImproveTool } = await import('../self-improve-tools.js');
+        const result = (await handleSelfImproveTool('holo_self_diagnose', {
+          focus: 'coverage',
+          maxResults: 3,
+        })) as any;
+        // GraphRAG won't be initialized in test environment → should get helpful error
+        expect(result).toBeDefined();
+        expect(result.error || result.candidates).toBeDefined();
+      },
+      60_000,
+    );
   });
 
   describe('quality score formula', () => {
@@ -222,21 +226,29 @@ describe('Self-Improve Tools', () => {
 });
 
 describe('Codebase Tools - Graph Status', () => {
-  it('should export codebaseTools array with holo_graph_status', async () => {
-    const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
-    expect(Array.isArray(codebaseTools)).toBe(true);
-    const statusTool = codebaseTools.find((t: any) => t.name === 'holo_graph_status');
-    expect(statusTool).toBeDefined();
-    expect(statusTool!.description).toContain('knowledge graph');
-  });
+  it(
+    'should export codebaseTools array with holo_graph_status',
+    async () => {
+      const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
+      expect(Array.isArray(codebaseTools)).toBe(true);
+      const statusTool = codebaseTools.find((t: any) => t.name === 'holo_graph_status');
+      expect(statusTool).toBeDefined();
+      expect(statusTool!.description).toContain('knowledge graph');
+    },
+    60_000,
+  );
 
-  it('should include all 5 codebase tools', async () => {
-    const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
-    const names = codebaseTools.map((t: any) => t.name);
-    expect(names).toContain('holo_absorb_repo');
-    expect(names).toContain('holo_query_codebase');
-    expect(names).toContain('holo_impact_analysis');
-    expect(names).toContain('holo_detect_changes');
-    expect(names).toContain('holo_graph_status');
-  });
+  it(
+    'should include all 5 codebase tools',
+    async () => {
+      const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
+      const names = codebaseTools.map((t: any) => t.name);
+      expect(names).toContain('holo_absorb_repo');
+      expect(names).toContain('holo_query_codebase');
+      expect(names).toContain('holo_impact_analysis');
+      expect(names).toContain('holo_detect_changes');
+      expect(names).toContain('holo_graph_status');
+    },
+    60_000,
+  );
 });

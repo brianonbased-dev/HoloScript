@@ -120,7 +120,7 @@ export async function handleTeamRoutes(
 ): Promise<boolean> {
   // GET /api/holomesh/quickstart — Curated onboarding snapshot
   if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
-    const ip = req.socket.remoteAddress || 'unknown_ip';
+    const ip = req.socket?.remoteAddress || 'unknown_ip';
     const rl = checkRateLimit(ip, 'default');
     if (!rl.allowed) {
       json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter });
@@ -153,7 +153,7 @@ export async function handleTeamRoutes(
   // POST /api/holomesh/quickstart — One-call onboarding: register + auto-join team + return board
   // This is the "Moltbook-easy" flow: one curl and you're contributing.
   if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
-    const ip = req.socket.remoteAddress || 'unknown_ip';
+    const ip = req.socket?.remoteAddress || 'unknown_ip';
     const rl = checkRateLimit(ip, 'quickstart');
     if (!rl.allowed) {
       json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter });

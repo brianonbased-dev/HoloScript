@@ -14,9 +14,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { getDefaultRegistry, resetDefaultRegistry } from '@holoscript/framework/agents';
 import {
-  getDefaultRegistry,
-  resetDefaultRegistry,
   getTelemetryCollector,
   resetTelemetryCollector,
   OTLPExporter,
