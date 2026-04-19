@@ -13,7 +13,7 @@
 ### 1. MaterialTrait - Physically Based Rendering System
 
 **File**: `packages/core/src/traits/MaterialTrait.ts`
-**Tests**: 31 tests in `MaterialTrait.test.ts`
+**Tests**: [see NUMBERS.md]  in `MaterialTrait.test.ts`
 
 Features:
 
@@ -44,7 +44,7 @@ material.setCompression('basis');
 ### 2. LightingTrait - Dynamic Lighting & Global Illumination
 
 **File**: `packages/core/src/traits/LightingTrait.ts`
-**Tests**: 33 tests in `LightingTrait.test.ts`
+**Tests**: [see NUMBERS.md]  in `LightingTrait.test.ts`
 
 Features:
 
@@ -73,7 +73,7 @@ lighting.createPointLight({ x: -5, y: 3, z: 0 }, { r: 1, g: 1, b: 1 }, 0.6, 20);
 ### 3. RenderingTrait - GPU Optimization & Performance Tuning
 
 **File**: `packages/core/src/traits/RenderingTrait.ts`
-**Tests**: 35 tests in `RenderingTrait.test.ts`
+**Tests**: [see NUMBERS.md]  in `RenderingTrait.test.ts`
 
 Features:
 
@@ -137,11 +137,11 @@ export { RenderingTrait, createRenderingTrait, ... }
 
 ### Test Breakdown
 
-- **MaterialTrait.test.ts**: 31 tests ✅
-- **LightingTrait.test.ts**: 33 tests ✅
-- **RenderingTrait.test.ts**: 35 tests ✅
-- **Existing tests**: 108 tests ✅
-- **Total**: 217 tests, 0 failures
+- **MaterialTrait.test.ts**: [see NUMBERS.md]  ✅
+- **LightingTrait.test.ts**: [see NUMBERS.md]  ✅
+- **RenderingTrait.test.ts**: [see NUMBERS.md]  ✅
+- **Existing tests**: [see NUMBERS.md]  ✅
+- **Total**: [see NUMBERS.md] , 0 failures
 
 ---
 
@@ -376,7 +376,7 @@ composition "GraphicsDemo" {
 **Quality Metrics**:
 
 - All tests passing ✅
-- Code coverage: High (31-37 tests per trait)
+- Code coverage: High (31-[see NUMBERS.md]  per trait)
 - Documentation: Comprehensive with examples
 - Performance: Optimized for desktop, mobile, VR/AR
 

@@ -205,7 +205,7 @@ Fine-tune documentation generation:
    - `DocumentationGeneratorOptions` interface
 
 2. **`packages/core/src/compiler/__tests__/CompilerDocumentationGenerator.test.ts`**
-   Comprehensive test suite (27 tests, 100% pass rate):
+   Comprehensive test suite ([see NUMBERS.md] , 100% pass rate):
    - llms.txt generation (7 tests)
    - .well-known/mcp generation (6 tests)
    - Markdown documentation (7 tests)
@@ -273,7 +273,7 @@ cd packages/core
 pnpm vitest run CompilerDocumentationGenerator.test.ts
 ```
 
-**Result:** ✅ 27/27 tests pass
+**Result:** ✅ 27/[see NUMBERS.md]  pass
 
 ### Test Coverage
 

@@ -330,7 +330,7 @@ Update your package.json and imports accordingly.
 A: No. Your `.holo` and `.hsplus` files work unchanged.
 
 **Q: Will my traits still work?**  
-A: Yes. All 157 traits continue to work exactly as documented.
+A: Yes. All [see NUMBERS.md]  continue to work exactly as documented.
 
 **Q: Can I mix HoloScript 2.0 and Hololand packages?**  
 A: Not recommended. Use HoloScript 2.1+ with Hololand 1.0+.

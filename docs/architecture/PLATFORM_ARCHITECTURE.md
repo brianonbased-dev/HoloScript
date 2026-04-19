@@ -172,7 +172,7 @@
   - Particle systems (120K particles, dust, debris)
   - Shock waves (spherical expansion, force application)
   - Camera effects (shake, auto-follow)
-- **Tests**: 430 tests passing
+- **Tests**: [see NUMBERS.md]  passing
 - **Status**: ✅ Complete
 
 ## Material System
@@ -245,7 +245,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 ### Test Coverage
 
 - **Total Tests**: 800+ tests
-- **Demolition Tests**: 430 tests
+- **Demolition Tests**: [see NUMBERS.md] 
 - **Coverage**: 80%+ (Codecov enforced)
 
 ### Performance Targets

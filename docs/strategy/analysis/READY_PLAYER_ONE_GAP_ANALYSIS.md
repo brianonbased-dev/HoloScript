@@ -39,7 +39,7 @@ HoloScript was **designed for AI from day one:**
 
 | Capability                                                     | Status   |
 | -------------------------------------------------------------- | -------- |
-| Brittney AI assistant (22 MCP tools, spatial avatar, lip-sync) | ✅ Built |
+| Brittney AI assistant ([see NUMBERS.md] , spatial avatar, lip-sync) | ✅ Built |
 | Voice → MCP pipeline in VR (speak to build)                    | ✅ Built |
 | AI-writable `.holo` format (designed for LLM generation)       | ✅ Built |
 | Multi-agent choreography (100+ agents, < 50ms negotiation)     | ✅ Built |
@@ -225,7 +225,7 @@ The OASIS has items. HoloScript has a **composable behavioral algebra**.
 
 The OASIS somehow supports millions of concurrent users in a single battle (Planet Doom finale) without addressing any networking challenges.
 
-HoloScript/Hololand has **real networking infrastructure** (1,262 tests passing):
+HoloScript/Hololand has **real networking infrastructure** (1,[see NUMBERS.md]  passing):
 
 | System                       | What It Does                                               | Tests |
 | ---------------------------- | ---------------------------------------------------------- | ----- |
@@ -284,7 +284,7 @@ HoloScript has **real-time collaborative editing:**
 
 | Feature                     | Implementation                                |
 | --------------------------- | --------------------------------------------- |
-| CRDT-based document sync    | CRDTDocument, CollaborationSession (42 tests) |
+| CRDT-based document sync    | CRDTDocument, CollaborationSession ([see NUMBERS.md] ) |
 | VR-aware awareness protocol | World position, platform tracking             |
 | Conflict resolution         | Operational transform via Yjs                 |
 | VR Git integration          | Auto-commit, rollback, snapshots from VR      |
@@ -410,7 +410,7 @@ HoloScript = spatial computing as a universal human right.
 | Governance             | ❌ Corporate monopoly | ✅ Open source                       |
 | Code portability       | ❌ Platform locked    | ✅ Bidirectional import/export       |
 | Trait composition      | ❌ Hardcoded objects  | ✅ 1,800+ composable traits          |
-| Real networking        | ❌ Hand-waved         | ✅ 1,262 tests, full stack           |
+| Real networking        | ❌ Hand-waved         | ✅ 1,[see NUMBERS.md] , full stack           |
 | Enterprise readiness   | ❌ None               | ✅ SOC2/GDPR, OTEL, multi-tenant     |
 | Collaborative editing  | ❌ None               | ✅ CRDT + VR Git                     |
 | Procedural generation  | ❌ Static worlds      | ✅ PCG + AI generation               |

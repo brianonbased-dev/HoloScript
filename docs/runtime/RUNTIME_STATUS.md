@@ -28,7 +28,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 - ✅ **Particle Systems** - 120K particles, dust, debris
 - ✅ **Shock Waves** - Spherical expansion, force application
 - ✅ **Camera Effects** - Shake, auto-follow (scene-level)
-- ✅ **Test Coverage** - 430 tests passing
+- ✅ **Test Coverage** - [see NUMBERS.md]  passing
 
 ### Rendering System (100%)
 
@@ -145,7 +145,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 ### Test Coverage
 
 - Total Tests: 800+ tests
-- Demolition Tests: 430 tests
+- Demolition Tests: [see NUMBERS.md] 
 - Coverage: 80%+ (Codecov enforced)
 - Passing: ✅ All tests passing
 
@@ -193,8 +193,8 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 
 ### Week 8 (Completed)
 
-- ✅ Day 5: StructuralIntegrity system (711 + 642 lines, 54 tests)
-- ✅ Day 6: DemolitionDemoScene (681 + 663 lines, 46 tests)
+- ✅ Day 5: StructuralIntegrity system (711 + 642 lines, [see NUMBERS.md] )
+- ✅ Day 6: DemolitionDemoScene (681 + 663 lines, [see NUMBERS.md] )
 - ✅ Day 7: Runtime integration layer
 - ✅ Day 8: Runtime rendering system (960 lines)
 - ✅ Day 9: Physics + Rendering integration (150 lines)

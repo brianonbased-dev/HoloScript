@@ -129,8 +129,8 @@ This document recovers that story. It's organized by session — clusters of com
 - `be1aa905` (73 files): "run prettier" — formatting-only, because the mega-commit had inconsistent formatting.
 
 **Session 22** (Feb 9, 12-hour marathon): `4db2b43e` → `283dd1a1` (14 commits)
-- Trait explosion: VR_TRAITS expanded from handful to 1,525 traits across 61 category modules.
-- **MEGA `233671b5`** (172 files, 71,886 lines): "Sprint 6 v3.3.0 — Spatial Export & Rendering (5,538 tests)." 171 files in core. Should have been 10+ commits.
+- Trait explosion: VR_TRAITS expanded from handful to 1,[see NUMBERS.md]  across 61 category modules.
+- **MEGA `233671b5`** (172 files, 71,886 lines): "Sprint 6 v3.3.0 — Spatial Export & Rendering (5,[see NUMBERS.md] )." 171 files in core. Should have been 10+ commits.
 - 58 composition rules, 10 named material presets, TraitCompositor integration.
 
 **Session 23** (Feb 9 evening, 19 commits):
@@ -193,7 +193,7 @@ This document recovers that story. It's organized by session — clusters of com
 ### Feb 22 — The 33,667 Test Fix
 
 **Session 32** (Feb 22):
-- **`c66c81a8`** (167 files, 46,428 lines): "resolve all test failures — 33,667 tests passing." The reconciliation commit after the sprint explosion. 144 files in core. Should have been 5+ commits.
+- **`c66c81a8`** (167 files, 46,428 lines): "resolve all test failures — [see NUMBERS.md]  passing." The reconciliation commit after the sprint explosion. 144 files in core. Should have been 5+ commits.
 
 ### Feb 23 — The Studio Sprint Marathon
 
@@ -273,7 +273,7 @@ This document recovers that story. It's organized by session — clusters of com
 
 ### Mar 15 — Trait System Closure
 
-- **`cabf52f0`** (194 files): 7 gap categories (26 traits), 30 handlers, LSP + compiler. 165 files in core.
+- **`cabf52f0`** (194 files): 7 gap categories ([see NUMBERS.md] ), 30 handlers, LSP + compiler. 165 files in core.
 - **`d63258e3`** (274 files): "complete system closure — Phase A/B/C." 271 files in core. Three phases of trait implementation that should have been three commits.
 
 ### Mar 16 — The `any` Type Purge
@@ -302,7 +302,7 @@ Three major features shipped:
 1. **Hologram media pipeline** (33 files): 2D-to-3D hologram pipeline with tests and Studio integration.
 2. **Recursive self-improvement pipeline** (21 files): L0/L1/L2 agents through Studio.
 3. **GAPS Physics Phase 1+2** (49 files): PBD density, quality tiers, 10 trait handlers, GPU fluid.
-- Plus: federated knowledge mesh, GitHub connector with 30 tests.
+- Plus: federated knowledge mesh, GitHub connector with [see NUMBERS.md] .
 
 ### Mar 23 — v6 Takes Shape
 
@@ -327,7 +327,7 @@ Three major features shipped:
 ### Mar 26 — The Monster Commit
 
 - **`f6cc7614`** (1,023 files, +225,615 lines): "fix(mcp,core): update Moltbook agent prompt and resolve Vector3/HSPlusRuntime structural drift."
-  - **886 files** (86.6%) are `packages/academy` — an entire Next.js learning platform scaffolded in one commit: 232 components, 173 lib modules, 146 tests, 134 hooks, 70 app routes.
+  - **886 files** (86.6%) are `packages/academy` — an entire Next.js learning platform scaffolded in one commit: 232 components, 173 lib modules, [see NUMBERS.md] , 134 hooks, 70 app routes.
   - **22 files** are the actual fix: core trait files (AdvancedPBR, Character, IK, Joint, Lighting, Rigidbody, Skeleton, Trigger, VectorDB) + HSPlusRuntime structural fix.
   - **18 files** in `services/holoscript-net`: landing page components.
   - **~30 files** are temp/debug artifacts that should have been .gitignored: `.git_history_temp.txt`, `vite_error*.txt`, `commit.ps1`.
@@ -360,7 +360,7 @@ Three events in one day:
 731 commits. Team/task system established. Granularity improved but mega-commits persist.
 
 This era is covered by the existing CHANGELOG (v6.0.0, v6.0.2, v6.1.0). Key events:
-- **Apr 5**: 100 commits. Plugin explosion — 18 domain plugins in one day.
+- **Apr 5**: 100 commits. Plugin explosion — [see NUMBERS.md]  in one day.
 - **Apr 10**: 86 commits. HoloMesh marketplace, Ed25519 knowledge signing, http-routes modularization.
 - **`a2d21791`** (599 files): "global maintenance sweep for eslint and type safety." The team era's largest mega-commit.
 

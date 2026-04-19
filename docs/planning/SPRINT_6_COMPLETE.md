@@ -12,7 +12,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 ### Achievements
 
-- **4,616 tests passing** across 168 test files
+- **4,[see NUMBERS.md]  passing** across 168 test files
 - **Universal export pipeline** supporting GLB, GLTF, USD, USDZ formats
 - **Distributed rendering** via Render Network integration
 - **Volumetric support** with Gaussian Splatting and volumetric video
@@ -51,8 +51,8 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 - `packages/core/src/export/SceneSerializer.ts`
 - `packages/core/src/export/SceneGraph.ts`
 - `packages/core/src/export/BinarySerializer.ts`
-- `packages/core/src/export/__tests__/SceneSerializer.test.ts` (31 tests)
-- `packages/core/src/export/__tests__/BinarySerializer.test.ts` (41 tests)
+- `packages/core/src/export/__tests__/SceneSerializer.test.ts` ([see NUMBERS.md] )
+- `packages/core/src/export/__tests__/BinarySerializer.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -77,7 +77,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 - `packages/core/src/export/gltf/GLTFExporter.ts`
 - `packages/core/src/export/gltf/GLTFDocument.ts`
-- `packages/core/src/export/gltf/__tests__/GLTFExporter.test.ts` (61 tests)
+- `packages/core/src/export/gltf/__tests__/GLTFExporter.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -100,7 +100,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 ### Key Files
 
 - `packages/core/src/compiler/USDZPipeline.ts`
-- `packages/core/src/__tests__/compiler/USDZPipeline.test.ts` (27 tests)
+- `packages/core/src/__tests__/compiler/USDZPipeline.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -125,7 +125,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 - `packages/core/src/lod/LODManager.ts`
 - `packages/core/src/lod/LODGenerator.ts`
 - `packages/core/src/lod/LODTypes.ts`
-- `packages/core/src/__tests__/LOD.test.ts` (100 tests)
+- `packages/core/src/__tests__/LOD.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -148,7 +148,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 ### Key Files
 
 - `packages/core/src/traits/RenderNetworkTrait.ts`
-- `packages/core/src/traits/__tests__/RenderNetworkTrait.test.ts` (35 tests)
+- `packages/core/src/traits/__tests__/RenderNetworkTrait.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -170,8 +170,8 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 ### Key Files
 
-- `packages/core/src/compiler/IOSCompiler.ts` (18 tests)
-- `packages/core/src/compiler/AndroidCompiler.ts` (22 tests)
+- `packages/core/src/compiler/IOSCompiler.ts` ([see NUMBERS.md] )
+- `packages/core/src/compiler/AndroidCompiler.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -194,9 +194,9 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 ### Key Files
 
 - `packages/core/src/traits/GaussianSplatTrait.ts`
-- `packages/core/src/traits/__tests__/GaussianSplatTrait.test.ts` (10 tests)
+- `packages/core/src/traits/__tests__/GaussianSplatTrait.test.ts` ([see NUMBERS.md] )
 - `packages/core/src/traits/VolumetricVideoTrait.ts`
-- `packages/core/src/traits/__tests__/VolumetricVideoTrait.test.ts` (22 tests)
+- `packages/core/src/traits/__tests__/VolumetricVideoTrait.test.ts` ([see NUMBERS.md] )
 
 ### Acceptance Criteria Met
 
@@ -236,21 +236,21 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 - **Location**: `packages/core/src/render/postprocess/`
 - **Files**: 5 modules (672+ lines)
-- **Tests**: 85 tests in `PostProcess.test.ts`
+- **Tests**: [see NUMBERS.md]  in `PostProcess.test.ts`
 - **Features**: Bloom, tonemap, FXAA, vignette, color grading
 
 ### Audio System ✅
 
 - **Location**: `packages/core/src/audio/`
 - **Files**: 4 modules
-- **Tests**: 125 tests in `Audio.test.ts`
+- **Tests**: [see NUMBERS.md]  in `Audio.test.ts`
 - **Features**: Spatial audio, sequencer, effects, voice
 
 ### Streaming Protocol ✅
 
 - **Location**: `packages/core/src/hololand/StreamingProtocol.ts`
 - **Size**: 935 lines
-- **Tests**: 44 tests in `StreamingProtocol.test.ts` (NEW)
+- **Tests**: [see NUMBERS.md]  in `StreamingProtocol.test.ts` (NEW)
 - **Features**: WebSocket protocol, reliable messaging, entity sync
 
 ---

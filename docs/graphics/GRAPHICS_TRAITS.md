@@ -513,11 +513,11 @@ class OutdoorScene {
 
 All traits include comprehensive test suites:
 
-- **MaterialTrait**: 31 tests covering PBR, textures, shaders, optimization
-- **LightingTrait**: 33 tests covering light management, GI, performance analysis
-- **RenderingTrait**: 35 tests covering LOD, culling, presets, memory estimation
+- **MaterialTrait**: [see NUMBERS.md]  covering PBR, textures, shaders, optimization
+- **LightingTrait**: [see NUMBERS.md]  covering light management, GI, performance analysis
+- **RenderingTrait**: [see NUMBERS.md]  covering LOD, culling, presets, memory estimation
 
-**Total:** 99 tests, 217 total test suite
+**Total:** [see NUMBERS.md] , 217 total test suite
 
 ---
 

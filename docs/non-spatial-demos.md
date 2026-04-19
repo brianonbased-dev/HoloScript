@@ -288,7 +288,7 @@ Produces full world files with physics config, ground plane, lighting, sensors, 
 @ros_compatible  @ros2_dds
 ```
 
-### Robotics (`robotics-industrial.ts`, 213 traits)
+### Robotics (`robotics-industrial.ts`, [see NUMBERS.md] )
 
 **Joint types**: `@joint_revolute`, `@joint_prismatic`, `@joint_continuous`, `@joint_fixed`, `@joint_planar`, `@joint_floating`, `@joint_ball`
 

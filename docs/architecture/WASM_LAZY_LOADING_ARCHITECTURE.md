@@ -32,7 +32,7 @@ This document defines the architecture for decomposing HoloScript's 24+ export t
   |-- trait definitions
 ```
 
-**Problem**: `ExportManager` constructor imports ALL 24 compilers via `CompilerFactory.createCompiler()`, which uses a giant `switch` statement with static imports. Even with tsup code-splitting, the shared dependency graph pulls in most compilers when any one is used.
+**Problem**: `ExportManager` constructor imports ALL [see NUMBERS.md]  via `CompilerFactory.createCompiler()`, which uses a giant `switch` statement with static imports. Even with tsup code-splitting, the shared dependency graph pulls in most compilers when any one is used.
 
 ### 1.2 Existing WASM Components
 

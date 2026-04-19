@@ -10,7 +10,7 @@
 
 From v1 to v5, HoloScript underwent an explosive period of feature development—from a basic parser to a fully Autonomous Ecosystem (v5.0) boasting over 2,000+ traits, multiple compiler targets, and agentic mesh federations.
 
-v6.0 did not chase new paradigms. It expanded, reiterated, and enhanced everything built from v1 to v5 — stabilization, integration, and realizing the potential of the existing foundation. At v6.0 launch: 57,356+ tests, 2,000+ traits, 17 compilation backends, 122 MCP tools, HoloMesh V8, and the Absorb knowledge pipeline (current counts: see [NUMBERS.md](../../NUMBERS.md)).
+v6.0 did not chase new paradigms. It expanded, reiterated, and enhanced everything built from v1 to v5 — stabilization, integration, and realizing the potential of the existing foundation. At v6.0 launch: 57,356+ tests, 2,000+ traits, 17 compilation backends, [see NUMBERS.md] , HoloMesh V8, and the Absorb knowledge pipeline (current counts: see [NUMBERS.md](../../NUMBERS.md)).
 
 ## The Core Pillars of v6.0
 

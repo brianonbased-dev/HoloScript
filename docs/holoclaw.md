@@ -14,7 +14,7 @@ flowchart TB
 
     subgraph COMP["Composition Layer"]
         HC["holoclaw.hsplus (634 lines)<br/>14 state vars | 7 computed | 8 tests"]
-        SKILLS["7 seed skills (.hsplus)<br/>446 lines | 29 tests"]
+        SKILLS["7 seed skills (.hsplus)<br/>446 lines | [see NUMBERS.md] "]
     end
 
     subgraph RUNTIME["Runtime Layer"]

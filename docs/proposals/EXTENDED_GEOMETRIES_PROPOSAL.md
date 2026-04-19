@@ -222,7 +222,7 @@ private createGeometry(type: string, spec: any): any {
 
 With 27 geometries:
 
-- Theoretical max: 169 traits × 27 geo × 98 mat × 38 colors × 2 = **30M+ combinations**
+- Theoretical max: [see NUMBERS.md]  × 27 geo × 98 mat × 38 colors × 2 = **30M+ combinations**
 - Current 1M examples = **3.3% coverage** (vs 0.44% before)
 - Still 99.99%+ unique
 

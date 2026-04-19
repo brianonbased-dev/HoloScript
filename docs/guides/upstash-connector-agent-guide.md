@@ -1,6 +1,6 @@
 # Upstash Connector - Agent Guide
 
-**Quick Reference**: 25 MCP tools for Redis caching, Vector search, and QStash scheduling
+**Quick Reference**: [see NUMBERS.md]  for Redis caching, Vector search, and QStash scheduling
 
 ---
 
@@ -698,7 +698,7 @@ const result = await connector.executeTool('upstash_redis_cache_get', {
 ## References
 
 - **Package**: `packages/connector-upstash/`
-- **Tests**: `packages/connector-upstash/__tests__/` (89 tests, 86 pass)
+- **Tests**: `packages/connector-upstash/__tests__/` ([see NUMBERS.md] , 86 pass)
 - **MCP Orchestrator**: `https://mcp-orchestrator-production-45f9.up.railway.app`
 - **Upstash Docs**:
   - Redis: https://upstash.com/docs/redis

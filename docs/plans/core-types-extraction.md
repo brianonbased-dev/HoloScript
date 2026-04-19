@@ -2,7 +2,7 @@
 
 > Status: **COMPLETE** — Phase 1-5 done (2026-03-24)
 > Package: `@holoscript/core-types@5.4.0` — 341 exported types, 6 modules, zero deps
-> Validated: 12,301 tests passed, 0 regressions
+> Validated: [see NUMBERS.md]  passed, 0 regressions
 
 ## Motivation
 

@@ -73,7 +73,7 @@ The research identified five real constraints to behavioral determinism, along w
    - _Solution_: Trait-specific tolerance profiles and conformance levels.
 2. **Chaos Theory**: Trajectories diverge over time due to butterfly effects.
    - _Solution_: Test short-horizon quantitative values + long-horizon _qualitative_ properties (e.g., "did it break?", not "where exactly did the 4th shard land?").
-3. **Combinatorial Explosion**: 200 traits = 8 million triples to test.
+3. **Combinatorial Explosion**: [see NUMBERS.md]  = 8 million triples to test.
    - _Solution_: Pairwise testing + established trait compatibility matrices.
 4. **The Semantic Gap**: Directives like `@destruction(voronoi)` are fuzzy and up to engine interpretation.
    - _Solution_: Classify traits into hard (verifiable), soft (fuzzy), and aesthetic contracts.

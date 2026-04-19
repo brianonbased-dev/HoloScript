@@ -354,7 +354,7 @@ The collaboration module is fully implemented with:
 - ✅ `packages/vscode-extension/src/collaboration/CollaborationSession.ts`
 - ✅ `packages/vscode-extension/src/collaboration/CollaborationCommands.ts`
 - ✅ `packages/vscode-extension/src/collaboration/CollaborationTypes.ts`
-- ✅ `packages/vscode-extension/src/__tests__/collaboration.test.ts` (30 tests)
+- ✅ `packages/vscode-extension/src/__tests__/collaboration.test.ts` ([see NUMBERS.md] )
 
 ### Design
 

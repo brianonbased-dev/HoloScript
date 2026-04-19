@@ -27,8 +27,8 @@ Shipping-bug severity. Merged in commit bundle `claude-api-critical-fixes-2026-0
 
 ### Verification
 
-- `llm-provider` — 194/194 tests passing ✓
-- `core/compiler/AgentInferenceExportTarget` — 42/42 tests passing ✓
+- `llm-provider` — 194/[see NUMBERS.md]  passing ✓
+- `core/compiler/AgentInferenceExportTarget` — 42/[see NUMBERS.md]  passing ✓
 - Typecheck: llm-provider clean; core has pre-existing R3F / WorldModelBootstrap / continual errors unrelated to these changes
 
 ---

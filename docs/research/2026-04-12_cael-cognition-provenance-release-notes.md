@@ -19,7 +19,7 @@ This note captures the April 12, 2026 release arc around CAEL cognition, provena
   - `SNNCognitionEngine.test.ts`
   - `CAELPhase2Embodied.test.ts`
   - `CRDTCAELBridge.test.ts`
-  - Aggregate run: 21 tests passed.
+  - Aggregate run: [see NUMBERS.md]  passed.
 
 - Targeted MCP + sandbox tests passed for provenance/contracted execution paths:
   - `absorb-provenance-tools.test.ts`

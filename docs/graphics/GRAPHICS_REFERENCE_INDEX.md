@@ -432,7 +432,7 @@ rendering.setupLODLevels('automatic');
 | Add light to scene            | < 0.1ms | O(1) amortized        |
 | GPU memory estimation         | < 0.5ms | Cached when possible  |
 | Apply quality preset          | < 1ms   | O(1) complexity       |
-| All 217 tests complete        | 2.42s   | Full regression suite |
+| All [see NUMBERS.md]  complete        | 2.42s   | Full regression suite |
 
 ---
 

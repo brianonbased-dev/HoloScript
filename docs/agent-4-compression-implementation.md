@@ -29,7 +29,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 
 - **Total Lines**: ~2,150 lines (1,550 TypeScript + 600 documentation)
 - **Test Files**: 1 (460 lines)
-- **Tests**: 36 tests (100% passing)
+- **Tests**: [see NUMBERS.md]  (100% passing)
 - **Documentation**: 630 lines across 3 files
 
 ## Features Implemented
@@ -63,7 +63,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 ## Test Results
 
 ```
-✓ packages/core/src/export/compression/__tests__/AdvancedCompression.test.ts (36 tests)
+✓ packages/core/src/export/compression/__tests__/AdvancedCompression.test.ts ([see NUMBERS.md] )
 
 Test Files  1 passed (1)
 Tests       36 passed (36)
@@ -100,7 +100,7 @@ All requirements met:
 - [x] Draco compression functional (60%+ reduction)
 - [x] GPU format detection working
 - [x] Integration with GLTFExporter
-- [x] 36 tests passing (100% pass rate)
+- [x] [see NUMBERS.md]  passing (100% pass rate)
 - [x] Compression time <5s for 10MB scene
 - [x] Comprehensive documentation
 
@@ -290,7 +290,7 @@ packages/core/src/export/compression/
 ├── README.md                  # Documentation
 ├── IMPLEMENTATION_SUMMARY.md  # Implementation details
 ├── __tests__/
-│   └── AdvancedCompression.test.ts  # 36 tests
+│   └── AdvancedCompression.test.ts  # [see NUMBERS.md] 
 └── examples/
     └── basic-usage.ts         # Usage examples
 ```

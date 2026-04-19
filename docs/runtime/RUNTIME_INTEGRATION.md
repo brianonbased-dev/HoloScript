@@ -227,7 +227,7 @@ executor.start();
 
 - Implementation: 4,698 lines
 - Tests: 5,923 lines
-- Test coverage: 430 tests passing
+- Test coverage: [see NUMBERS.md]  passing
 - Max particles: 120,000
 - Max fragments: 10,000
 - Target FPS: 60

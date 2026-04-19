@@ -86,7 +86,7 @@ Worlds that get better over time without manual intervention.
 | Scene evolution        | Objects, NPCs, and layouts mutate based on collective player actions over time                      |
 | Quality metrics        | Computable scene health score (performance + engagement + stability) surfaced in registry dashboard |
 
-**Foundation**: `SelfImprovementPipeline` (14 tests, shipped in v3.5.0) harvests failed Brittney generations. v5.0 generalises this to all scene types and closes the loop with economic incentives.
+**Foundation**: `SelfImprovementPipeline` ([see NUMBERS.md] , shipped in v3.5.0) harvests failed Brittney generations. v5.0 generalises this to all scene types and closes the loop with economic incentives.
 
 ---
 

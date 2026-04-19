@@ -378,7 +378,7 @@ composition "AutoImprove" {
 
 7. After 10 cycles:
    - Accumulate 10 commits
-   - Output statistics: 10 tests fixed, quality improved 15%
+   - Output statistics: [see NUMBERS.md]  fixed, quality improved 15%
    - Exit gracefully
 ```
 
@@ -436,7 +436,7 @@ composition "AutoImprove" {
 ### Regression Tests
 
 - **E2E Suite**: 8/8 existing tests still pass
-- **Full Core Suite**: 45,331/45,336 tests pass (5 pre-existing failures unrelated to daemon)
+- **Full Core Suite**: 45,331/[see NUMBERS.md]  pass (5 pre-existing failures unrelated to daemon)
 
 ---
 

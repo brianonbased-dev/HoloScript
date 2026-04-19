@@ -16,7 +16,7 @@ v6.0.4 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or ex
 | --------------- | ----------- | -------------------------------------------------------------------------------------- |
 | Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.4, at time of writing)                             |
 | Traits          | 1,800+      | 3,300+ across 116 categories (at time of writing)                                      |
-| Compile targets | 15          | 40 compilers (12 sovereign + 28 bridge, at time of writing), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
+| Compile targets | 15          | [see NUMBERS.md]  (12 sovereign + 28 bridge, at time of writing), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
 | MCP tools       | —           | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health`       |
 | Packages        | —           | 68 (at time of writing)                                                                |
 | Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (54 tools, at time of writing)  |
