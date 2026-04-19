@@ -24,7 +24,7 @@ export const holoMapToolDefinitions: Tool[] = [
         config: {
           type: 'object',
           description:
-            'HoloMapConfig fields plus ingestVideo?: boolean, maxIngestFrames?: number (cap 500). Env HOLOMAP_MCP_INGEST_VIDEO=0 disables ingest by default.',
+            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames? (cap 500). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS.',
         },
       },
       required: ['videoUrl'],
