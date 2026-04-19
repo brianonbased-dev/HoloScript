@@ -219,3 +219,41 @@ jobs:
           name: paper-targets-overhead-bench-${{ github.sha }}
           path: ${{ runner.temp }}/paper-targets-overhead-bench.log
           retention-days: 90
+
+  snn-webgpu-playwright-benchmarks:
+    name: WebGPU SNN Playwright Benchmarks (N=12)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Install Playwright Browsers
+        working-directory: packages/snn-webgpu
+        run: npx playwright install --with-deps chromium
+
+      - name: Run SNN Benchmark
+        working-directory: packages/snn-webgpu
+        run: pnpm benchmark:automate:ci
+
+      - name: Upload benchmark logs
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: snn-webgpu-benchmark-logs-${{ github.sha }}
+          path: packages/snn-webgpu/.bench-logs/
+          retention-days: 90
