@@ -415,6 +415,19 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleHoloMeshTool(name, args);
   }
 
+  // Trait composition / ROS2 sync / economic contract (trait-tools.ts) — also in index.ts registry
+  if (
+    name === 'compile_trait_composition' ||
+    name === 'sync_hardware_loop' ||
+    name === 'execute_economic_contract'
+  ) {
+    const { handleTraitTool } = await import('./trait-tools');
+    const traitResult = await handleTraitTool(name, args);
+    if (traitResult !== null) {
+      return traitResult;
+    }
+  }
+
   // Handle plugins
   const pluginResult = await PluginManager.handleTool(name, args);
   if (pluginResult !== null) {
