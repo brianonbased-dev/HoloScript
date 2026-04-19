@@ -24,7 +24,7 @@ Sprint 2. This is the blocker for moving from scaffold to implementation.
 | KV page eviction | build | P1 | S | — | LRU eviction from device to host buffer. Host copy-back on re-read. |
 | Layer normalization | have | P0 | S | `reconstruction/shaders/layerNorm.wgsl`, `reconstruction/layerNormKernel.ts` | Implemented as two-pass hidden-dim reduction (mean/variance) + scale/shift in WebGPU f32. |
 | Stable softmax (max-subtraction) | have | P0 | S | `reconstruction/shaders/softmax.wgsl`, `reconstruction/softmaxKernel.ts` | Implemented as row-wise max-subtraction softmax with workgroup-shared max/sum reductions over chunked cols (≤4096). |
-| GELU activation | build | P0 | S | — | Either exact (erf-based) or tanh approximation. Tanh approx fine for feed-forward. |
+| GELU activation | have | P0 | S | `reconstruction/shaders/gelu.wgsl`, `reconstruction/geluKernel.ts` | Implemented as element-wise tanh approximation with grid-stride loop over elements in WebGPU f32. |
 | Dense matmul (GEMM, f32) | build | P0 | L | `cg_kernels.wgsl` is sparse CSR — not reusable shape | Tiled GEMM for linear projections. Workgroup-shared-memory tiling; consider subgroup ops if supported. |
 | Rotary positional encoding (RoPE) | build | P0 | S | — | Apply sin/cos rotation to Q and K in-place. |
 | Image patch embed (conv stem 2D → tokens) | build | P0 | M | — | Strided conv collapsing HxW image into token grid. Needed to convert RGB frame → transformer tokens. |
