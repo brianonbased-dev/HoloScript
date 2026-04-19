@@ -494,12 +494,70 @@ function checkSimulationContracts() {
   }
 }
 
+// ── Check 8: Hardcoded Ecosystem Metrics ────────────────────────────────────
+
+function checkMetrics() {
+  const start = Date.now();
+  const issues = [];
+  // Catch 2+ digit numbers (or comma separated) followed by metrics
+  const metricsPattern = /\b([0-9]{2,}(?:,[0-9]{3})*)\s+(MCP tools|compilers|traits|tests|knowledge entries|domain plugins)\b/ig;
+  
+  function walkMd(dir, files = []) {
+    if (!existsSync(dir)) return files;
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (entry === 'archive' || entry === '_archive' || entry === 'marketing') continue;
+      try {
+        const stat = statSync(full);
+        if (stat.isDirectory()) walkMd(full, files);
+        else if (entry.endsWith('.md') && entry !== 'NUMBERS.md') files.push(full);
+      } catch { /* skip */ }
+    }
+    return files;
+  }
+  
+  const filesToCheck = [
+    join(ROOT, 'README.md'),
+    join(ROOT, 'FULL_README.md'),
+    ...walkMd(join(ROOT, 'docs'))
+  ].filter(f => existsSync(f));
+
+  for (const file of filesToCheck) {
+    try {
+      const content = readFileSync(file, 'utf8');
+      const lines = content.split('\\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        let match;
+        // Need to reset lastIndex because it's a global regex
+        metricsPattern.lastIndex = 0;
+        while ((match = metricsPattern.exec(line)) !== null) {
+          issues.push({
+            file: relative(ROOT, file),
+            line: i + 1,
+            reason: `Hardcoded metric found: "${match[0]}"`,
+            suggestion: 'Reference docs/NUMBERS.md or use the live verification command instead.'
+          });
+        }
+      }
+    } catch { /* skip */ }
+  }
+
+  const duration = Date.now() - start;
+
+  if (issues.length === 0) {
+    record('metrics', 'pass', `Metrics checks passed for ${filesToCheck.length} files`, [], duration);
+  } else {
+    record('metrics', 'fail', `${issues.length} hardcoded metrics found in active docs`, issues, duration);
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const totalStart = Date.now();
 
 if (!FLAGS.json) {
-  console.log(C.bold('\nHOLOSCRIPT PRE-FLIGHT DIAGNOSTIC'));
+  console.log(C.bold('\\nHOLOSCRIPT PRE-FLIGHT DIAGNOSTIC'));
   console.log(C.dim('=' .repeat(50)));
 }
 
@@ -510,6 +568,7 @@ if (shouldRun('typescript') || shouldRun('ts')) checkTypeScript();
 if (shouldRun('dts')) checkDTS();
 if (shouldRun('circular')) checkCircular();
 if (shouldRun('simulation') || shouldRun('holosim')) checkSimulationContracts();
+if (shouldRun('metrics')) checkMetrics();
 
 const totalDuration = Date.now() - totalStart;
 
