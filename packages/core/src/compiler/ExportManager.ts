@@ -56,6 +56,8 @@ import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { PhoneSleeveVRCompiler } from './PhoneSleeveVRCompiler';
+import { USDPhysicsCompiler } from './USDPhysicsCompiler';
+import { USDZExportCompiler } from './USDZExportCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -256,6 +258,10 @@ class CompilerFactory {
         return new OpenXRSpatialEntitiesCompiler(options);
       case 'phone-sleeve-vr':
         return new PhoneSleeveVRCompiler(options);
+      case 'usd':
+        return new USDPhysicsCompiler(options);
+      case 'usdz':
+        return new USDZExportCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
