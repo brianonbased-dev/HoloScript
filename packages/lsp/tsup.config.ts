@@ -6,4 +6,5 @@ export default defineConfig({
   dts: false,
   clean: true,
   sourcemap: true,
+  external: ['@holoscript/framework', /^@holoscript\/framework\//],
 });

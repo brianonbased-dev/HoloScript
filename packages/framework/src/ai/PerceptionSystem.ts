@@ -124,9 +124,10 @@ export class PerceptionSystem {
         for (const sense of entity.senses) {
           if (sense.type !== stim.type) continue;
 
-          const dx = stim.position.x - entity.position.x;
-          const dy = stim.position.y - entity.position.y;
-          const dz = stim.position.z - entity.position.z;
+          const stimPos = this.toVec3(stim.position);
+          const dx = stimPos.x - entity.position.x;
+          const dy = stimPos.y - entity.position.y;
+          const dz = stimPos.z - entity.position.z;
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
           // Range check

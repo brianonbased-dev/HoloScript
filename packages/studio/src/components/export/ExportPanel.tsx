@@ -17,6 +17,7 @@ import {
   _ChevronDown,
 } from 'lucide-react';
 import { useSceneExport, type ExportFormat } from '@/hooks/useSceneExport';
+import { PUBLISHING_PLATFORM_TERMS_URL } from '@/lib/docsUrls';
 import { useSceneStore } from '@/lib/stores';
 
 const FORMATS: { id: ExportFormat; label: string; ext: string; desc: string }[] = [
@@ -159,6 +160,17 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
               ? 'Downloaded!'
               : `Export as ${selected.label}`}
         </button>
+        <p className="mt-2 text-center text-[9px] leading-snug text-studio-muted">
+          Shipping to VRChat, Unity, app stores, or the web?{' '}
+          <a
+            href={PUBLISHING_PLATFORM_TERMS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-studio-accent underline-offset-2 hover:underline"
+          >
+            Platform terms &amp; official links
+          </a>
+        </p>
       </div>
     </div>
   );

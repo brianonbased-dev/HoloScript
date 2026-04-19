@@ -47,7 +47,7 @@ export interface ITransform {
  * Default physics simulation settings
  */
 export const PHYSICS_DEFAULTS = {
-  gravity: [0, -9.81, 0] as IVector3,
+  gravity: { x: 0, y: -9.81, z: 0, 0: 0, 1: -9.81, 2: 0 } as IVector3,
   fixedTimestep: 1 / 60,
   maxSubsteps: 3,
   sleepThreshold: 0.005,
@@ -591,7 +591,7 @@ export function identityQuaternion(): IQuaternion {
  * Create a zero vector
  */
 export function zeroVector(): IVector3 {
-  return [0, 0, 0];
+  return { x: 0, y: 0, z: 0, 0: 0, 1: 0, 2: 0 };
 }
 
 /**
@@ -601,7 +601,7 @@ export function defaultTransform(): ITransform {
   return {
     position: zeroVector(),
     rotation: identityQuaternion(),
-    scale: [1, 1, 1],
+    scale: { x: 1, y: 1, z: 1, 0: 1, 1: 1, 2: 1 },
   };
 }
 

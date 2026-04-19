@@ -4,7 +4,7 @@
 **Author:** HoloScript Core team
 **Reviewers:** Joseph (founder approval gate), Copilot, Gemini
 **Date:** 2026-04-18
-**Related:** research/2026-04-18_lingbot-map-vs-holoscript*.md, D.015 HoloX brand architecture, W.058 Babylon.js MCP threat, W.061 Trust by Construction, I.007 Lotus Genesis Trigger
+**Related:** research/2026-04-18_lingbot-map-vs-holoscript*.md, `LINGBOT_FAMILY_LICENSE_AUDIT.md`, D.015 HoloX brand architecture, W.058 Babylon.js MCP threat, W.061 Trust by Construction, I.007 Lotus Genesis Trigger
 
 ## 1. Problem
 
@@ -83,9 +83,9 @@ video/webcam frames ─► HoloMapRuntime (WebGPU transformer)
 
 ## 5. Weight-acquisition strategy
 
-Three candidate paths. Decision in Sprint 2 based on license audit + WGSL op parity.
+Three candidate paths. Decision in Sprint 2 based on license audit + WGSL op parity. See **`LINGBOT_FAMILY_LICENSE_AUDIT.md`** for the internal risk register and counsel checklist (not legal advice).
 
-1. **Distillation from lingbot outputs (bridge path).** Run public videos through lingbot-map, train a smaller WebGPU-friendly student. Fastest to parity. Licensing depends on Ant Group's terms — needs legal audit.
+1. **Distillation from lingbot outputs (bridge path).** Run public videos through lingbot-map, train a smaller WebGPU-friendly student. Fastest to parity. Licensing depends on Ant Group's terms — **gated** until counsel signs off per the audit doc.
 2. **From-scratch on public data (clean path).** Train on permissively-licensed video + pose datasets (ScanNet, Matterport, etc.). Slower but unencumbered.
 3. **Fine-tune an open base model (shortcut).** DepthAnything v2 / MiDaS have permissive licenses and ship production weights. Fine-tune for our coordinate-frame + trajectory output shape. Shortest time-to-demo.
 

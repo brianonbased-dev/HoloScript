@@ -31,12 +31,13 @@ Use this index for current, canonical documentation entry points.
 
 ## Guides
 
-1. **[Testing](./guides/testing.md)** - Vitest setup, test categories, CI integration
-2. **[Smart Assets](./guides/smart-assets.md)** - SmartAssetLoader API and HSA format
-3. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
-4. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
-5. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
-6. **[Zero-Latency Creation](./guides/zero-latency-creation.md)** - Leveraging Prophetic Vision in Studio
+1. **[Publishing & platform terms](./guides/publishing-platform-terms.md)** - VRChat, Unity, Unreal, Godot, web, mobile: official terms before you ship
+2. **[Testing](./guides/testing.md)** - Vitest setup, test categories, CI integration
+3. **[Smart Assets](./guides/smart-assets.md)** - SmartAssetLoader API and HSA format
+4. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
+5. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
+6. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
+7. **[Zero-Latency Creation](./guides/zero-latency-creation.md)** - Leveraging Prophetic Vision in Studio
 
 ## Learn and Build
 

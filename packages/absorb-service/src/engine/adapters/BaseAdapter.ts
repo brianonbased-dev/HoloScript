@@ -174,7 +174,7 @@ export function nodeToSymbol(
     isExported?: boolean;
   } = {}
 ): ExternalSymbolDefinition {
-  const loc = node.endPosition.row - node.startPosition.row + 1;
+  const lineCount = node.endPosition.row - node.startPosition.row + 1;
   return {
     name,
     type,
@@ -189,7 +189,7 @@ export function nodeToSymbol(
     owner: options.owner,
     isExported: options.isExported,
     docComment: extractDocComment(node),
-    loc,
+    lineCount,
   };
 }
 

@@ -215,13 +215,20 @@ export class SteeringBehaviors {
     const ax = force.x / agent.mass,
       ay = force.y / agent.mass,
       az = force.z / agent.mass;
-    agent.velocity.x += ax * dt;
-    agent.velocity.y += ay * dt;
-    agent.velocity.z += az * dt;
-    agent.velocity = SteeringBehaviors.truncate(agent.velocity, agent.maxSpeed);
-    agent.position.x += agent.velocity.x * dt;
-    agent.position.y += agent.velocity.y * dt;
-    agent.position.z += agent.velocity.z * dt;
+    const vel = Array.isArray(agent.velocity)
+      ? makeVec3(agent.velocity[0], agent.velocity[1], agent.velocity[2])
+      : makeVec3(agent.velocity.x, agent.velocity.y, agent.velocity.z);
+    vel.x += ax * dt;
+    vel.y += ay * dt;
+    vel.z += az * dt;
+    agent.velocity = SteeringBehaviors.truncate(vel, agent.maxSpeed);
+    const pos = Array.isArray(agent.position)
+      ? makeVec3(agent.position[0], agent.position[1], agent.position[2])
+      : makeVec3(agent.position.x, agent.position.y, agent.position.z);
+    pos.x += getX(agent.velocity) * dt;
+    pos.y += getY(agent.velocity) * dt;
+    pos.z += getZ(agent.velocity) * dt;
+    agent.position = pos;
   }
 
   // ---------------------------------------------------------------------------
@@ -234,18 +241,18 @@ export class SteeringBehaviors {
   private static add(a: Vec3 | [number, number, number], b: Vec3 | [number, number, number]): Vec3 {
     return makeVec3(getX(a) + getX(b), getY(a) + getY(b), getZ(a) + getZ(b));
   }
-  private static scale(v: Vec3, s: number): Vec3 {
-    return makeVec3(v.x * s, v.y * s, v.z * s);
+  private static scale(v: Vec3 | [number, number, number], s: number): Vec3 {
+    return makeVec3(getX(v) * s, getY(v) * s, getZ(v) * s);
   }
-  private static vecLength(v: Vec3): number {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  private static vecLength(v: Vec3 | [number, number, number]): number {
+    return Math.sqrt(getX(v) ** 2 + getY(v) ** 2 + getZ(v) ** 2);
   }
-  private static distance(a: Vec3, b: Vec3): number {
+  private static distance(a: Vec3 | [number, number, number], b: Vec3 | [number, number, number]): number {
     return SteeringBehaviors.vecLength(SteeringBehaviors.sub(a, b));
   }
-  private static normalize(v: Vec3): Vec3 {
+  private static normalize(v: Vec3 | [number, number, number]): Vec3 {
     const len = SteeringBehaviors.vecLength(v) || 1;
-    return makeVec3(v.x / len, v.y / len, v.z / len);
+    return makeVec3(getX(v) / len, getY(v) / len, getZ(v) / len);
   }
   private static truncate(v: Vec3, max: number): Vec3 {
     const len = SteeringBehaviors.vecLength(v);

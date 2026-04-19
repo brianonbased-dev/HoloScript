@@ -27,6 +27,9 @@ export * from './trait-stdlib-interop';
 export * from './compiler-plugins-crypto';
 export * from './registry-deploy-events';
 
+// HoloMap — WebGPU reconstruction runtime (Sprint 1 scaffold)
+export * from '../reconstruction';
+
 // Agent extensions (ISwarmConfig, ISwarmResult, IAgentExtension, etc.)
 export * from '../extensions';
 

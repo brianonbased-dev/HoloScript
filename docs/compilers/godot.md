@@ -21,6 +21,7 @@ holoscript compile scene.holo --target godot --output ./scenes/
 
 ## See Also
 
+- [Publishing & platform terms](/guides/publishing-platform-terms) — Godot engine license and shipping notes
 - [Platform Overview](/compilers/)
 - [Unity Compiler](/compilers/unity)
 - [Unreal Compiler](/compilers/unreal)

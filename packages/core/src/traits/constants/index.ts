@@ -804,6 +804,12 @@ export { WEBXR_TRAITS, type WebXRTraitName } from './mobile/webxr';
 // Google Lens (7 traits — M.010.20)
 export { GOOGLE_LENS_TRAITS, type GoogleLensTraitName } from './mobile/google-lens';
 
+// HoloMap reconstruction (Sprint 1 — RFC §4.2)
+export {
+  HOLOMAP_RECONSTRUCTION_TRAITS,
+  type HolomapReconstructionTraitName,
+} from './holomap-reconstruction';
+
 // Connector Integration
 export {
   CONNECTOR_INTEGRATION_TRAITS,

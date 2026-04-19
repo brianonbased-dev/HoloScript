@@ -147,7 +147,7 @@ export class CodebaseTheme {
     }
 
     if (this.options.sizeBy === 'loc') {
-      const loc = symbol.loc ?? 10;
+      const loc = symbol.lineCount ?? 10;
       const maxLoc = metrics?.maxLoc ?? 500;
       return base + (loc / maxLoc) * (max - base);
     }

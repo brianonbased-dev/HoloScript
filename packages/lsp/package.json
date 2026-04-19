@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "@holoscript/linter": "workspace:*",
     "tree-sitter": "^0.22.4",
     "tree-sitter-holoscript": "workspace:*",

@@ -58,6 +58,7 @@ composition "Unity Demo" {
 
 ## See Also
 
+- [Publishing & platform terms](/guides/publishing-platform-terms) — Unity legal / Terms of Service
 - [Platform Overview](/compilers/)
 - [Unreal Compiler](/compilers/unreal)
 - [Godot Compiler](/compilers/godot)

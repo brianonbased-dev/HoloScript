@@ -100,7 +100,7 @@ export class CodebaseSceneCompiler {
         for (const sym of graph.getSymbolsInFile(file)) {
           if (VISIBILITY_ORDER[sym.visibility] <= minVis) {
             symbols.push(sym);
-            if (sym.loc && sym.loc > maxLoc) maxLoc = sym.loc;
+            if (sym.lineCount && sym.lineCount > maxLoc) maxLoc = sym.lineCount;
           }
         }
       }
@@ -162,7 +162,7 @@ export class CodebaseSceneCompiler {
             symbolType: sym.type,
             visibility: sym.visibility,
             ...(sym.signature ? { signature: sym.signature } : {}),
-            ...(sym.loc ? { loc: sym.loc } : {}),
+            ...(sym.lineCount ? { loc: sym.lineCount } : {}),
             ...(sym.owner ? { owner: sym.owner } : {}),
           },
         };
@@ -320,7 +320,7 @@ export class CodebaseSceneCompiler {
         if (!nodeIds.has(id)) {
           nodeIds.add(id);
           const pos = lastPositions?.get(id) || [0, 0, 0];
-          layoutNodes.push({ id, x: pos[0], y: pos[1], z: pos[2], weight: sym.loc ?? 1 });
+          layoutNodes.push({ id, x: pos[0], y: pos[1], z: pos[2], weight: sym.lineCount ?? 1 });
         }
       }
     }

@@ -55,6 +55,7 @@ composition "VRChat Demo" {
 
 ## See Also
 
+- [Publishing & platform terms](/guides/publishing-platform-terms) — VRChat & Unity legal links (Terms, SDK license, Creator Guidelines)
 - [Platform Overview](/compilers/)
 - [VRChat Unity Workflow](/compilers/vrchat-unity-workflow)
 - [VRChat Optimization](/compilers/vrchat-optimization)

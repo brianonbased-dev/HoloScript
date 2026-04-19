@@ -105,6 +105,7 @@ Use compiler docs for output artifacts, and use runtime/service docs for orchest
 
 ## See Also
 
+- [Publishing & platform terms](/guides/publishing-platform-terms) — VRChat, Unity, and other hosts: official terms before you publish
 - [Traits Reference](/traits/) — Trait → platform mapping
 - [CLI Reference](/guides/) — Full compiler CLI options
 - [Python Bindings](/guides/python-bindings) — Compile from Python

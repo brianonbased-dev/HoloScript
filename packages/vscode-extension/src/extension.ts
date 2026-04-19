@@ -195,6 +195,14 @@ export function activate(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
+    commands.registerCommand('holoscript.openPublishingPlatformTerms', () => {
+      vscode.env.openExternal(
+        vscode.Uri.parse('https://holoscript.net/guides/publishing-platform-terms')
+      );
+    })
+  );
+
+  context.subscriptions.push(
     commands.registerCommand('holoscript.openExamples', async () => {
       const examplesPath = path.join(context.extensionPath, '..', '..', 'examples', 'quickstart');
       try {

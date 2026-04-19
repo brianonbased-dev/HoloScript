@@ -335,6 +335,12 @@
         "icon": "$(question)"
       },
       {
+        "command": "holoscript.openPublishingPlatformTerms",
+        "title": "Open Publishing & Platform Terms (VRChat, Unity, …)",
+        "category": "HoloScript",
+        "icon": "$(link-external)"
+      },
+      {
         "command": "holoscript.openMarketplace",
         "title": "Open Trait Marketplace",
         "category": "HoloScript",
@@ -424,6 +430,9 @@
         {
           "command": "holoscript.openPreviewToSide",
           "when": "editorLangId == holoscript || editorLangId == holoscriptplus"
+        },
+        {
+          "command": "holoscript.openPublishingPlatformTerms"
         }
       ]
     },

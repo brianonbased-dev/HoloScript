@@ -442,7 +442,7 @@ export class HoloAdapter implements LanguageAdapter {
     const column = opts.loc?.start.column ?? 0;
     const endLine = opts.loc?.end.line ?? line;
     const endColumn = opts.loc?.end.column ?? column;
-    const loc = Math.max(1, endLine - line + 1);
+    const lineCount = Math.max(1, endLine - line + 1);
     return {
       name: opts.name,
       type: opts.type,
@@ -456,7 +456,7 @@ export class HoloAdapter implements LanguageAdapter {
       signature: opts.signature,
       owner: opts.owner,
       isExported: opts.isExported ?? false,
-      loc,
+      lineCount,
     };
   }
 

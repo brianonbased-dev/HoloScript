@@ -233,8 +233,8 @@ export class HoloEmitter {
         if (sym.signature) {
           lines.push(`      signature: "${this.escapeString(sym.signature)}"`);
         }
-        if (sym.loc) {
-          lines.push(`      loc: ${sym.loc}`);
+        if (sym.lineCount) {
+          lines.push(`      loc: ${sym.lineCount}`);
         }
         if (sym.owner) {
           lines.push(`      owner: "${this.escapeString(sym.owner)}"`);
@@ -313,7 +313,7 @@ export class HoloEmitter {
     const locHotspots: Array<{ file: string; loc: number }> = filePaths
       .map((fp) => {
         const syms = graph.getSymbolsInFile(fp);
-        const loc = syms.reduce((s, sym) => s + (sym.loc ?? 0), 0);
+        const loc = syms.reduce((s, sym) => s + (sym.lineCount ?? 0), 0);
         return { file: fp, loc };
       })
       .filter((x) => x.loc > 0)
@@ -456,7 +456,7 @@ export class HoloEmitter {
             const doc = sym.docComment.replace(/\n/g, ' ').trim().slice(0, 120);
             lines.push(`      doc: "${this.escapeString(doc)}"`);
           }
-          if (sym.loc) lines.push(`      loc: ${sym.loc}`);
+          if (sym.lineCount) lines.push(`      loc: ${sym.lineCount}`);
           if (sym.owner) lines.push(`      owner: "${this.escapeString(sym.owner)}"`);
 
           // Caller count for hotspot awareness
@@ -673,7 +673,7 @@ export class HoloEmitter {
     const godFiles: Array<{ file: string; loc: number; symbols: number }> = [];
     for (const fp of filePaths) {
       const syms = graph.getSymbolsInFile(fp);
-      const loc = syms.reduce((s, sym) => s + (sym.loc ?? 0), 0);
+      const loc = syms.reduce((s, sym) => s + (sym.lineCount ?? 0), 0);
       if (loc >= 500 || syms.length >= 30) {
         godFiles.push({ file: fp, loc, symbols: syms.length });
       }
@@ -715,7 +715,7 @@ export class HoloEmitter {
             x: pos[0],
             y: pos[1],
             z: pos[2],
-            weight: sym.loc ?? 1,
+            weight: sym.lineCount ?? 1,
           });
         }
       }

@@ -15,6 +15,7 @@
     "baseUrl": ".",
     "paths": {
       "@holoscript/core": ["../core/dist/index.d.ts"],
+      "@holoscript/framework/ai": ["../framework/dist/ai/index.d.ts"],
       "@holoscript/linter": ["../linter/dist/index.d.ts"]
     }
   },

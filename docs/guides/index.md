@@ -84,6 +84,7 @@ composition "Hello World" {
 
 ## Next Steps
 
+- [Publishing & platform terms](./publishing-platform-terms) - VRChat, Unity, Unreal, Godot, web, mobile: official terms links before you ship
 - [Quick Start Guide](./quick-start) - Build your first HoloScript app
 - [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
 - [Traits Reference](./traits) - trait categories and usage patterns (inventory changes over time)

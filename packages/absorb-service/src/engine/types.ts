@@ -75,7 +75,7 @@ export interface ExternalSymbolDefinition extends Omit<SymbolDefinition, 'type'>
   /** For methods: the owning class/struct name */
   owner?: string;
   /** Number of lines of code */
-  loc?: number;
+  lineCount?: number;
 }
 
 // =============================================================================
