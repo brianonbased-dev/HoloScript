@@ -6,6 +6,7 @@
 
 export * from './HoloMapRuntime';
 export * from './FusedAttentionKernel';
+export * from './layerNormKernel';
 export * from './PagedKVCache';
 export * from './TrajectoryMemory';
 export * from './AnchorContext';

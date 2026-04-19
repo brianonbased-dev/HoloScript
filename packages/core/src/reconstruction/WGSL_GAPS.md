@@ -22,7 +22,7 @@ Sprint 2. This is the blocker for moving from scaffold to implementation.
 | Paged KV append | build | P0 | M | `GPUBuffers.ts` for buffer mgmt | Append (K, V) at per-page offsets keyed by (layer, head). Mirror FlashInfer page layout. |
 | Paged KV lookup by layer | build | P0 | M | — | Indirect gather into the page table to read full K/V sequence per layer. |
 | KV page eviction | build | P1 | S | — | LRU eviction from device to host buffer. Host copy-back on re-read. |
-| Layer normalization | build | P0 | S | — | Compute mean/var + scale/shift. Two-pass over hidden dim. |
+| Layer normalization | have | P0 | S | `reconstruction/shaders/layerNorm.wgsl`, `reconstruction/layerNormKernel.ts` | Implemented as two-pass hidden-dim reduction (mean/variance) + scale/shift in WebGPU f32. |
 | Stable softmax (max-subtraction) | build | P0 | S | — | Standard numerically-stable softmax over last dim. |
 | GELU activation | build | P0 | S | — | Either exact (erf-based) or tanh approximation. Tanh approx fine for feed-forward. |
 | Dense matmul (GEMM, f32) | build | P0 | L | `cg_kernels.wgsl` is sparse CSR — not reusable shape | Tiled GEMM for linear projections. Workgroup-shared-memory tiling; consider subgroup ops if supported. |
