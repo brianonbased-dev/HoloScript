@@ -146,6 +146,9 @@ When running `@holoscript/mcp-server` for `holo_reconstruct_*` tools, optional l
 | `HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION` | `5000000` | Demuxer analyze duration (µs); lower to fail faster on bad files |
 | `HOLOMAP_MCP_FFMPEG_PROBE_SIZE` | `32M` | Demuxer probe size |
 | `HOLOMAP_MCP_EXPORT_MAX_POINTS` | 250000 | Max points aggregated into `pointCloudPly` on export |
+| `FFPROBE_PATH` | `ffprobe` on `PATH` | Override ffprobe binary for ingest validation |
+| `HOLOMAP_MCP_FFPROBE_TIMEOUT_MS` | 15000 | ffprobe timeout per file |
+| `HOLOSCRIPT_MCP_AGENT_TOKEN` | _(empty)_ | When empty, MCP reconstruction export skips compiler RBAC; set a real agent JWT in locked-down deployments |
 
 ## Security Notes
 
