@@ -313,7 +313,7 @@ export class HoloEmitter {
     const locHotspots: Array<{ file: string; loc: number }> = filePaths
       .map((fp) => {
         const syms = graph.getSymbolsInFile(fp);
-        const loc = syms.reduce((s, sym) => s + (sym.lineCount ?? 0), 0);
+        const loc = syms.reduce((s, sym) => s + ((sym as ExternalSymbolDefinition).lineCount ?? 0), 0);
         return { file: fp, loc };
       })
       .filter((x) => x.loc > 0)
@@ -673,7 +673,7 @@ export class HoloEmitter {
     const godFiles: Array<{ file: string; loc: number; symbols: number }> = [];
     for (const fp of filePaths) {
       const syms = graph.getSymbolsInFile(fp);
-      const loc = syms.reduce((s, sym) => s + (sym.lineCount ?? 0), 0);
+      const loc = syms.reduce((s, sym) => s + ((sym as ExternalSymbolDefinition).lineCount ?? 0), 0);
       if (loc >= 500 || syms.length >= 30) {
         godFiles.push({ file: fp, loc, symbols: syms.length });
       }
@@ -715,7 +715,7 @@ export class HoloEmitter {
             x: pos[0],
             y: pos[1],
             z: pos[2],
-            weight: sym.lineCount ?? 1,
+            weight: (sym as ExternalSymbolDefinition).lineCount ?? 1,
           });
         }
       }
