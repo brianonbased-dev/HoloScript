@@ -30,3 +30,7 @@
 ## Operator alignment
 
 See [OPERATOR_GLOSSARY.md](./OPERATOR_GLOSSARY.md) and [RUNBOOK_PAPER_HARNESSES.md](./RUNBOOK_PAPER_HARNESSES.md).
+
+## Golden replay fingerprint (CI)
+
+Contract test: `packages/core/src/reconstruction/__fixtures__/GOLDEN_REPLAY_FINGERPRINT.txt` must match `computeHoloMapReplayFingerprint` for the canned inputs documented in `HoloMapGoldenFingerprint.test.ts`. Bump the file only when the fingerprint algorithm or canonical inputs change, with reviewer sign-off.

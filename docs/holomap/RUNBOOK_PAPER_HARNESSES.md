@@ -52,3 +52,15 @@ or `native-holomap-v1` or `compare-both` (see `packages/holomap/profiles/*.json`
 At the end of the run, a **Scene ingest comparison** markdown table appears in the console when `both` is selected, or a single-row note for `marble` / `holomap`.
 
 Attach that block to paper artifacts or founder review.
+
+## Structured HoloMap logs (support)
+
+Set `HOLOMAP_LOG=0` to silence `[HoloMap] {…}` JSON lines from the native reconstruction path. Default is on (stdout).
+
+## Founder checklist (local)
+
+From the repo root:
+
+`pnpm holomap:status`
+
+Prints current ingest-related environment variables (PowerShell-friendly defaults documented in `ROLLBACK_DEFAULTS.md`).

@@ -610,6 +610,14 @@ export class SNNvsBackpropExperiment {
     const startTime = Date.now();
     const responses: ResponseMetrics[] = [];
 
+    if (this.config.caelExperiment1SceneAxis) {
+      const pin = this.config.caelExperiment1HoloMapBuildPin;
+      console.log(
+        `[SNNvsBackpropExperiment] CAEL Experiment 1 scene axis: ${this.config.caelExperiment1SceneAxis}` +
+          (pin ? ` (HoloMap build pin: ${pin})` : ''),
+      );
+    }
+
     // Initialize all models
     for (const [, adapter] of this.adapters) {
       await adapter.initialize();

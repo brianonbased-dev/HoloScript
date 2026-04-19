@@ -68,12 +68,50 @@ export const holoMapToolDefinitions: Tool[] = [
       required: ['sessionId', 'target'],
     },
   },
+  {
+    name: 'holo_map_paper_ingest_probe',
+    description:
+      'Run the dual-path paper harness ingest probe (Marble compatibility vs HoloMap native). Returns markdown comparison + fingerprint rows for Paper #2 / #4 workflows.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        paperId: {
+          type: 'string',
+          description: 'Identifier e.g. paper-2-snn-navigation or paper-4-adversarial-holo',
+        },
+        ingestPath: {
+          type: 'string',
+          enum: ['marble', 'holomap', 'both'],
+          description: 'Scene source mode (default marble if omitted — uses process env when not passed)',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 const HOLOMAP_NAMES = new Set(holoMapToolDefinitions.map((t) => t.name));
 
 export function isHoloMapToolName(name: string): boolean {
   return HOLOMAP_NAMES.has(name);
+}
+
+export async function handleHoloMapPaperIngestProbe(
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const { runPaperHarnessIngestProbe, resolveIngestPath } = await import('@holoscript/holomap');
+  const paperId =
+    typeof args.paperId === 'string' && args.paperId.trim()
+      ? args.paperId.trim()
+      : 'mcp-paper-probe';
+  let ingestPath = resolveIngestPath(process);
+  if (typeof args.ingestPath === 'string') {
+    const s = args.ingestPath.trim().toLowerCase();
+    if (s === 'marble' || s === 'holomap' || s === 'both') {
+      ingestPath = s;
+    }
+  }
+  return runPaperHarnessIngestProbe({ paperId, ingestPath });
 }
 
 export function handleHoloMapTool(name: string, args: Record<string, unknown>): unknown {

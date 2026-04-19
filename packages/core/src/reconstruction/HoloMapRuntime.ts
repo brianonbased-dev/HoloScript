@@ -14,6 +14,8 @@ import { createFusedAttentionBackend } from './FusedAttentionKernel';
 import { computeHoloMapReplayFingerprint } from './replayFingerprint';
 import { HOLOMAP_SIMULATION_CONTRACT_KIND } from './contractConstants';
 import { getVersionString } from '../version';
+import { createHoloMapRunId, logHoloMapEvent } from './holoMapTelemetry';
+import { isWebGpuEnvironmentPresent } from './webgpuGate';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -83,6 +85,11 @@ export interface HoloMapConfig {
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
   weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  /**
+   * When false, initialization requires a browser WebGPU adapter. Node / headless CI
+   * should keep true (default) or use compatibility ingest (Marble) for benchmarks.
+   */
+  allowCpuFallback?: boolean;
 }
 
 export const HOLOMAP_DEFAULTS: HoloMapConfig = {
@@ -93,6 +100,7 @@ export const HOLOMAP_DEFAULTS: HoloMapConfig = {
   modelHash: 'unset',
   cpuOffload: false,
   weightStrategy: 'distill',
+  allowCpuFallback: true,
 };
 
 // =============================================================================
@@ -165,9 +173,19 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private initialized = false;
   private readonly steps: ReconstructionStep[] = [];
   private replayKey = 'unset';
+  private readonly runId = createHoloMapRunId();
 
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
+    const allowCpu = this.config.allowCpuFallback !== false;
+    if (!allowCpu && !isWebGpuEnvironmentPresent()) {
+      const err =
+        'HoloMap: native reconstruction requires WebGPU (allowCpuFallback=false). ' +
+        'Run in a WebGPU-capable browser, or set allowCpuFallback=true for CPU fallback, ' +
+        'or use compatibility scene ingest (Marble) for headless benchmarks.';
+      logHoloMapEvent(this.runId, 'error', { message: err });
+      throw new Error(err);
+    }
     this.steps.length = 0;
     this.replayKey = computeHoloMapReplayFingerprint({
       modelHash: this.config.modelHash,
@@ -176,6 +194,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       videoHash: this.config.videoHash,
     });
     this.initialized = true;
+    logHoloMapEvent(this.runId, 'init', {
+      modelHash: this.config.modelHash,
+      seed: this.config.seed,
+      allowCpuFallback: allowCpu,
+      webgpu: isWebGpuEnvironmentPresent(),
+      replayFingerprint: this.replayKey,
+    });
   }
 
   async step(frame: ReconstructionFrame): Promise<ReconstructionStep> {
@@ -233,6 +258,10 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     };
 
     this.steps.push(step);
+    logHoloMapEvent(this.runId, 'step', {
+      frameIndex: frame.index,
+      pointCount: step.points.positions.length / 3,
+    });
     return step;
   }
 
@@ -243,6 +272,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
 
     const frameCount = this.steps.length;
     const pointCount = this.steps.reduce((acc, s) => acc + s.points.positions.length / 3, 0);
+
+    logHoloMapEvent(this.runId, 'finalize', { frameCount, pointCount });
 
     return {
       version: '1.0.0',
@@ -277,6 +308,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   }
 
   async dispose(): Promise<void> {
+    logHoloMapEvent(this.runId, 'dispose', { stepsRetained: this.steps.length });
     this.initialized = false;
     this.steps.length = 0;
   }

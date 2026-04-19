@@ -7,6 +7,11 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { SemanticSceneGraph, HoloScriptCompiler } from '@holoscript/core';
+import {
+  holoMapToolDefinitions,
+  handleHoloMapTool,
+  handleHoloMapPaperIngestProbe,
+} from './holomap-mcp-tools';
 
 // =============================================================================
 // TYPES FOR GRAPH REPRESENTATION
@@ -245,6 +250,8 @@ This bridges Pillar 2 (Architectural semantic understanding) by converting AST i
       required: ['code'],
     },
   },
+
+  ...holoMapToolDefinitions,
 ];
 
 // =============================================================================
@@ -746,6 +753,15 @@ export async function handleGraphTool(
   args: Record<string, unknown>
 ): Promise<unknown> {
   switch (name) {
+    case 'holo_map_paper_ingest_probe':
+      return handleHoloMapPaperIngestProbe(args);
+
+    case 'holo_reconstruct_from_video':
+    case 'holo_reconstruct_step':
+    case 'holo_reconstruct_anchor':
+    case 'holo_reconstruct_export':
+      return handleHoloMapTool(name, args)!;
+
     case 'holo_semantic_scene_graph': {
       const code = args.code as string;
       if (!code) throw new Error('code is required');

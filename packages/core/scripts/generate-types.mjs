@@ -3843,6 +3843,7 @@ export interface HoloMapConfig {
   videoHash?: string;
   cpuOffload: boolean;
   weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  allowCpuFallback?: boolean;
 }
 export declare const HOLOMAP_DEFAULTS: HoloMapConfig;
 export interface ReconstructionManifest {

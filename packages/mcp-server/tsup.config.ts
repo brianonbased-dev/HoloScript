@@ -15,7 +15,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   shims: true,
-  external: ['@holoscript/core', 'pg', 'loro-crdt'],
+  external: ['@holoscript/core', '@holoscript/holomap', 'pg', 'loro-crdt'],
   define: {
     __SERVICE_VERSION__: JSON.stringify(pkg.version),
   },

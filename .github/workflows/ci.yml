@@ -118,6 +118,11 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: HoloMap package smoke (build + tests)
+        run: |
+          pnpm --filter @holoscript/holomap build
+          pnpm --filter @holoscript/holomap test
+
       - name: Run TypeScript tests with coverage
         run: pnpm test:coverage || pnpm test
 

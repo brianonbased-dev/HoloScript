@@ -6,6 +6,8 @@
 
 import { useState } from 'react';
 import { Package, X, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { PUBLISHING_PLATFORM_TERMS_URL } from '@/lib/docsUrls';
+import { SceneIngestHarnessSection } from '@/components/export/SceneIngestHarnessSection';
 import { useSceneStore } from '@/lib/stores';
 import { STATUS_RESET_DURATION } from '@/lib/ui-timings';
 
@@ -172,6 +174,8 @@ export function ExportPipelinePanel({ onClose }: ExportPipelinePanelProps) {
           </div>
         </div>
 
+        <SceneIngestHarnessSection />
+
         {/* Error */}
         {status === 'error' && error && (
           <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-2.5 text-[10px] text-red-400">
@@ -207,6 +211,17 @@ export function ExportPipelinePanel({ onClose }: ExportPipelinePanelProps) {
         </button>
         <p className="mt-1.5 text-center text-[9px] text-studio-muted">
           Downloads as a .zip including source + {selected.ext}
+        </p>
+        <p className="mt-1.5 text-center text-[9px] leading-snug text-studio-muted">
+          Shipping to a game engine or store?{' '}
+          <a
+            href={PUBLISHING_PLATFORM_TERMS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-studio-accent underline-offset-2 hover:underline"
+          >
+            Platform terms &amp; links
+          </a>
         </p>
       </div>
     </div>

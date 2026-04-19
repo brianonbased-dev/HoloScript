@@ -12,3 +12,5 @@ export * from './AnchorContext';
 export * from './replayFingerprint';
 export * from './contractConstants';
 export * from './simulationContractBinding';
+export * from './holoMapTelemetry';
+export * from './webgpuGate';

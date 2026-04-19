@@ -1561,6 +1561,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:^
         version: link:../framework
+      '@holoscript/holomap':
+        specifier: workspace:^
+        version: link:../holomap
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider
