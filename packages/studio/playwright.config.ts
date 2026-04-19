@@ -3,9 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright configuration for HoloScript Studio E2E tests
  *
- * Assumes `npm run dev` is running the Next.js dev server on port 3000.
- * Run: `npx playwright test` from packages/studio
+ * Local: `pnpm dev` (port 3100) or rely on webServer below.
+ * Staging: set PLAYWRIGHT_BASE_URL=https://your-studio.example and optionally
+ * PLAYWRIGHT_STORAGE_STATE=path/to/auth.json (generate once via `npx playwright codegen` with login).
+ *
+ * Run: `pnpm exec playwright test` from packages/studio
  */
+
+const storageState = process.env.PLAYWRIGHT_STORAGE_STATE?.trim();
 
 export default defineConfig({
   testDir: './e2e',
@@ -33,6 +38,7 @@ export default defineConfig({
       },
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3100',
+    ...(storageState ? { storageState } : {}),
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

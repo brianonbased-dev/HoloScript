@@ -132,6 +132,8 @@ const nextConfig = {
         zlib: false,
         util: false,
         querystring: false,
+        worker_threads: false,
+        'node:worker_threads': false,
       };
     }
 

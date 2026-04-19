@@ -5,34 +5,7 @@ import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { buildRoomScanCompletionManifest } from '@/lib/scan-session-manifest';
-import { clientIpFromRequest, takeRateLimitToken } from '@/lib/reconstruction-session-rate-limit';
-import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
-
-interface ScanSession {
-  token: string;
-  createdAt: string;
-  expiresAt: string;
-  desktopUser?: string;
-  status: 'pending-phone' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
-  weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
-  frameCount?: number;
-  videoBytes?: number;
-  videoHash?: string;
-  lastError?: string;
-  /** Set when status becomes done — matches HoloMap SimulationContract replay fingerprint */
-  replayFingerprint?: string;
-  /** v1.0 reconstruction manifest (subset used for ingest / audit) */
-  manifest?: ReconstructionManifest;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __reconstructionScanSessions__: Map<string, ScanSession> | undefined;
-}
-
-const sessions: Map<string, ScanSession> =
-  globalThis.__reconstructionScanSessions__ ??
-  (globalThis.__reconstructionScanSessions__ = new Map());
+import { clientIpFromRequest, getScanSessionStore } from '@/lib/reconstruction-scan-store';
 
 const POST_WINDOW_MS = 60_000;
 const POST_MAX_PER_IP = 20;
@@ -40,15 +13,6 @@ const GET_WINDOW_MS = 60_000;
 const GET_MAX_PER_IP = 200;
 const PUT_WINDOW_MS = 60_000;
 const PUT_MAX_PER_TOKEN = 90;
-
-function pruneExpired(): void {
-  const now = Date.now();
-  for (const [token, session] of sessions) {
-    if (new Date(session.expiresAt).getTime() < now) {
-      sessions.delete(token);
-    }
-  }
-}
 
 function baseUrl(request: NextRequest): string {
   return process.env.NEXT_PUBLIC_STUDIO_URL || request.nextUrl.origin || 'http://localhost:3000';
@@ -59,25 +23,77 @@ function requireAuthForSessionCreate(): boolean {
   return process.env.NODE_ENV === 'production' || process.env.STUDIO_SCAN_SESSION_REQUIRE_AUTH === '1';
 }
 
-function rateLimitResponse(retryAfterSec: number): NextResponse {
-  return NextResponse.json(
-    { error: 'Too many requests', retryAfter: retryAfterSec },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSec) } },
+/**
+ * CORS: default same deployment origin only. Set STUDIO_SCAN_SESSION_CORS_ORIGINS to a
+ * comma-separated allowlist, or "*" for public tools (not recommended for credentialed APIs).
+ */
+function corsHeaders(request: NextRequest): Record<string, string> {
+  const origin = request.headers.get('origin');
+  const base = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    Vary: 'Origin',
+  };
+  const raw = process.env.STUDIO_SCAN_SESSION_CORS_ORIGINS?.trim();
+  if (raw === '*') {
+    return { ...base, 'Access-Control-Allow-Origin': '*' };
+  }
+  if (raw) {
+    const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (origin && list.includes(origin)) {
+      return { ...base, 'Access-Control-Allow-Origin': origin };
+    }
+    return base;
+  }
+  const publicOrigin = process.env.NEXT_PUBLIC_STUDIO_URL?.trim();
+  let publicOriginNorm: string | undefined;
+  if (publicOrigin) {
+    try {
+      publicOriginNorm = new URL(publicOrigin).origin;
+    } catch {
+      publicOriginNorm = undefined;
+    }
+  }
+  const allowed =
+    origin &&
+    (origin === request.nextUrl.origin || (!!publicOriginNorm && origin === publicOriginNorm));
+  if (allowed) {
+    return { ...base, 'Access-Control-Allow-Origin': origin };
+  }
+  return base;
+}
+
+function withCors(request: NextRequest, res: NextResponse): NextResponse {
+  const h = corsHeaders(request);
+  for (const [k, v] of Object.entries(h)) {
+    res.headers.set(k, v);
+  }
+  return res;
+}
+
+function rateLimitResponse(request: NextRequest, retryAfterSec: number): NextResponse {
+  return withCors(
+    request,
+    NextResponse.json(
+      { error: 'Too many requests', retryAfter: retryAfterSec },
+      { status: 429, headers: { 'Retry-After': String(retryAfterSec) } },
+    ),
   );
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  pruneExpired();
+  const store = getScanSessionStore();
+  await store.pruneExpired();
 
   const ip = clientIpFromRequest(request);
-  const postRl = takeRateLimitToken(`scan-session:post:${ip}`, POST_MAX_PER_IP, POST_WINDOW_MS);
-  if (!postRl.ok) return rateLimitResponse(postRl.retryAfterSec);
+  const postRl = await store.rateLimitPost(ip, POST_MAX_PER_IP, Math.ceil(POST_WINDOW_MS / 1000));
+  if (!postRl.ok) return rateLimitResponse(request, postRl.retryAfterSec);
 
   const authSession = await getServerSession(authOptions);
 
   if (requireAuthForSessionCreate()) {
     if (!authSession?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
   }
 
@@ -88,45 +104,50 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // optional body
   }
   const token = crypto.randomBytes(24).toString('base64url');
-  const session: ScanSession = {
+  const session = {
     token,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
     desktopUser: payload.user ?? authSession?.user?.email ?? authSession?.user?.name ?? undefined,
-    status: 'pending-phone',
-    weightStrategy: payload.weightStrategy ?? 'distill',
+    status: 'pending-phone' as const,
+    weightStrategy: payload.weightStrategy ?? ('distill' as const),
   };
-  sessions.set(token, session);
+  await store.set(token, session);
 
   const url = `${baseUrl(request)}/scan-room/mobile/${encodeURIComponent(token)}`;
-  return NextResponse.json({ token, mobileUrl: url, expiresAt: session.expiresAt }, { status: 201 });
+  return withCors(
+    request,
+    NextResponse.json({ token, mobileUrl: url, expiresAt: session.expiresAt }, { status: 201 }),
+  );
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  pruneExpired();
+  const store = getScanSessionStore();
+  await store.pruneExpired();
 
   const ip = clientIpFromRequest(request);
-  const getRl = takeRateLimitToken(`scan-session:get:${ip}`, GET_MAX_PER_IP, GET_WINDOW_MS);
-  if (!getRl.ok) return rateLimitResponse(getRl.retryAfterSec);
+  const getRl = await store.rateLimitGet(ip, GET_MAX_PER_IP, Math.ceil(GET_WINDOW_MS / 1000));
+  if (!getRl.ok) return rateLimitResponse(request, getRl.retryAfterSec);
 
   const token = new URL(request.url).searchParams.get('t') ?? '';
-  const session = sessions.get(token);
-  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-  return NextResponse.json(session);
+  const session = await store.get(token);
+  if (!session) return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
+  return withCors(request, NextResponse.json(session));
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  pruneExpired();
+  const store = getScanSessionStore();
+  await store.pruneExpired();
 
   const token = new URL(request.url).searchParams.get('t') ?? '';
-  const session = sessions.get(token);
-  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  const session = await store.get(token);
+  if (!session) return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
 
-  const putRl = takeRateLimitToken(`scan-session:put:${token}`, PUT_MAX_PER_TOKEN, PUT_WINDOW_MS);
-  if (!putRl.ok) return rateLimitResponse(putRl.retryAfterSec);
+  const putRl = await store.rateLimitPut(token, PUT_MAX_PER_TOKEN, Math.ceil(PUT_WINDOW_MS / 1000));
+  if (!putRl.ok) return rateLimitResponse(request, putRl.retryAfterSec);
 
   let body: {
-    status?: ScanSession['status'];
+    status?: (typeof session)['status'];
     frameCount?: number;
     videoBytes?: number;
     videoHash?: string;
@@ -135,7 +156,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     body = (await request.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }));
   }
 
   if (body.status) session.status = body.status;
@@ -167,22 +188,19 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     session.replayFingerprint = manifest.simulationContract.replayFingerprint;
   }
 
-  return NextResponse.json({ ok: true, session });
+  await store.set(token, session);
+
+  return withCors(request, NextResponse.json({ ok: true, session }));
 }
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const store = getScanSessionStore();
   const token = new URL(request.url).searchParams.get('t') ?? '';
-  sessions.delete(token);
-  return NextResponse.json({ ok: true });
+  await store.delete(token);
+  return withCors(request, NextResponse.json({ ok: true }));
 }
 
-export function OPTIONS(): Response {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+export function OPTIONS(request: NextRequest): Response {
+  const h = corsHeaders(request);
+  return new Response(null, { status: 204, headers: h });
 }
