@@ -78,7 +78,7 @@ describe('CRDTCAELBridge', () => {
     });
 
     it('logs a cael.crdt_merge interaction when bytes are imported', () => {
-      remote.setPosition('cube-1', [5, 0, 3 ]);
+      remote.setPosition('cube-1', { x: 5, y: 0, z: 3 });
       const updateBytes = remote.exportUpdate();
 
       bridge.mergeSpatial(updateBytes, 'remote-node');
@@ -97,7 +97,7 @@ describe('CRDTCAELBridge', () => {
     });
 
     it('records versionBefore and versionAfter fingerprints', () => {
-      remote.setPosition('cube-1', [10, 2, -5 ]);
+      remote.setPosition('cube-1', { x: 10, y: 2, z: -5 });
       const update = remote.exportUpdate();
 
       bridge.mergeSpatial(update, 'remote-node');
@@ -142,8 +142,8 @@ describe('CRDTCAELBridge', () => {
       const remote2 = new SpatialCRDTBridge({ peerId: 'remote-2' });
       remote2.registerNode('cube-1');
 
-      remote.setPosition('cube-1', [1, 0, 0 ]);
-      remote2.setPosition('cube-1', [0, 0, 9 ]);
+      remote.setPosition('cube-1', { x: 1, y: 0, z: 0 });
+      remote2.setPosition('cube-1', { x: 0, y: 0, z: 9 });
 
       bridge.mergeSpatial(remote.exportUpdate(), 'remote-node');
       bridge.mergeSpatial(remote2.exportUpdate(), 'remote-2');
@@ -159,7 +159,8 @@ describe('CRDTCAELBridge', () => {
     });
 
     it('all entries form a valid CAEL hash chain', () => {
-      remote.setPosition('cube-1', [3, 1, 2 ]);
+      // Testing the array coercion logic explicitly
+      remote.setPosition('cube-1', [3, 1, 2 ] as any);
       bridge.mergeSpatial(remote.exportUpdate(), 'remote-node');
 
       const entries = parseCAELJSONL(recorder.toJSONL());

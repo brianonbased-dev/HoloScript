@@ -233,20 +233,31 @@ export class SpatialCRDTBridge {
   /**
    * Set the position of a node. Uses Last-Write-Wins semantics.
    */
-  setPosition(nodeId: string, position: Vec3): void {
+  setPosition(nodeId: string, position: Vec3 | [number, number, number] | number[]): void {
     if (!this.registeredNodes.has(nodeId)) return;
 
     const nodeMap = this.getNodeMap(nodeId);
     if (!nodeMap) return;
 
-    nodeMap.set('pos_x', position.x);
-    nodeMap.set('pos_y', position.y);
-    nodeMap.set('pos_z', position.z);
+    let x = 0, y = 0, z = 0;
+    if (Array.isArray(position)) {
+      x = position[0] ?? 0;
+      y = position[1] ?? 0;
+      z = position[2] ?? 0;
+    } else if (position && typeof position === 'object') {
+      x = (position as any).x ?? 0;
+      y = (position as any).y ?? 0;
+      z = (position as any).z ?? 0;
+    }
+
+    nodeMap.set('pos_x', x);
+    nodeMap.set('pos_y', y);
+    nodeMap.set('pos_z', z);
 
     this.config.caelRecorder?.logInteraction('crdt.sync_event', {
       action: 'setPosition',
       nodeId,
-      position,
+      position: { x, y, z },
     });
 
     this.emitTransformChange(nodeId);
@@ -273,20 +284,31 @@ export class SpatialCRDTBridge {
   /**
    * Set the scale of a node. Uses Last-Write-Wins semantics.
    */
-  setScale(nodeId: string, scale: Vec3): void {
+  setScale(nodeId: string, scale: Vec3 | [number, number, number] | number[]): void {
     if (!this.registeredNodes.has(nodeId)) return;
 
     const nodeMap = this.getNodeMap(nodeId);
     if (!nodeMap) return;
 
-    nodeMap.set('scale_x', scale.x);
-    nodeMap.set('scale_y', scale.y);
-    nodeMap.set('scale_z', scale.z);
+    let x = 1, y = 1, z = 1;
+    if (Array.isArray(scale)) {
+      x = scale[0] ?? 1;
+      y = scale[1] ?? 1;
+      z = scale[2] ?? 1;
+    } else if (scale && typeof scale === 'object') {
+      x = (scale as any).x ?? 1;
+      y = (scale as any).y ?? 1;
+      z = (scale as any).z ?? 1;
+    }
+
+    nodeMap.set('scale_x', x);
+    nodeMap.set('scale_y', y);
+    nodeMap.set('scale_z', z);
 
     this.config.caelRecorder?.logInteraction('crdt.sync_event', {
       action: 'setScale',
       nodeId,
-      scale,
+      scale: { x, y, z },
     });
 
     this.emitTransformChange(nodeId);
