@@ -158,10 +158,13 @@ describe('CRDTCAELBridge', () => {
       expect(fromPeers).toEqual(['remote-node', 'remote-2']);
     });
 
-    it('all entries form a valid CAEL hash chain', () => {
+    it('all entries form a valid CAEL hash chain and properly coerce array tuple input', () => {
       // Testing the array coercion logic explicitly
       remote.setPosition('cube-1', [3, 1, 2 ] as any);
       bridge.mergeSpatial(remote.exportUpdate(), 'remote-node');
+
+      const position = remote.getPosition('cube-1');
+      expect(position).toEqual({ x: 3, y: 1, z: 2 });
 
       const entries = parseCAELJSONL(recorder.toJSONL());
       const result = verifyCAELHashChain(entries);
