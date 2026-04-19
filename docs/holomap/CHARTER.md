@@ -21,6 +21,7 @@
 - Parity with external RGB→3D baselines on quality metrics.
 - Full MCP tool surface for agents (tracked as follow-on; scaffold in RFC).
 - OpenTimestamps anchoring in every CI run (fields exist on manifest; automation optional).
+- **Absorb × HoloMap** — running native recon outputs through Absorb for knowledge-graph enrichment (**Q3 2026**; board OA4). Do not pull forward into Sprint 2.
 
 ## Supported inputs (v1.0)
 
