@@ -67,3 +67,29 @@ export {
   type BuildGistPublicationManifestParams,
   type Film3dXrMetricsForBinding,
 } from '../export/GistPublicationManifest';
+
+// Provenance / semiring algebra
+export {
+  ProvenanceSemiring,
+  AuthorityTier,
+  TRAIT_ZERO,
+  isDeadElement,
+  createDeadElement,
+  authorityWeight,
+  type DeadElement,
+  type ProvenanceContext,
+  type ProvenanceValue,
+  type ProvenanceConfig,
+  type TraitApplication,
+  type ConflictResolutionRule,
+  type CompositionResult
+} from '../compiler/traits/ProvenanceSemiring';
+
+export {
+  MinPlusSemiring,
+  MaxPlusSemiring,
+  SumProductSemiring,
+  strategyToSemiring,
+  type Semiring,
+  type NumericStrategySemiringName
+} from '../compiler/traits/Semiring';

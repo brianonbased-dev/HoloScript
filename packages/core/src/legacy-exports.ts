@@ -245,8 +245,32 @@ export { R3FCompiler, type R3FNode, ENVIRONMENT_PRESETS } from './compiler/R3FCo
 export type { HolomapPointCloudPayload } from './compiler/HolomapExportPayload';
 
 // Provenance / semiring algebra
-export * from './compiler/traits/Semiring';
-export * from './compiler/traits/ProvenanceSemiring';
+/** @deprecated Import from '@holoscript/core' barrel instead. */
+export {
+  MinPlusSemiring,
+  MaxPlusSemiring,
+  SumProductSemiring,
+  strategyToSemiring,
+  type Semiring,
+  type NumericStrategySemiringName
+} from './compiler/traits/Semiring';
+
+/** @deprecated Import from '@holoscript/core' barrel instead. */
+export {
+  ProvenanceSemiring,
+  AuthorityTier,
+  TRAIT_ZERO,
+  isDeadElement,
+  createDeadElement,
+  authorityWeight,
+  type DeadElement,
+  type ProvenanceContext,
+  type ProvenanceValue,
+  type ProvenanceConfig,
+  type TraitApplication,
+  type ConflictResolutionRule,
+  type CompositionResult
+} from './compiler/traits/ProvenanceSemiring';
 
 // HoloScript Optimization Pass (NEW - Auto-optimization)
 export {
