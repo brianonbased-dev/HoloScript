@@ -15,3 +15,4 @@ export * from './simulationContractBinding';
 export * from './holoMapTelemetry';
 export * from './webgpuGate';
 export * from './holoMapWeightLoader';
+export * from './holoMapAnchoredManifest';

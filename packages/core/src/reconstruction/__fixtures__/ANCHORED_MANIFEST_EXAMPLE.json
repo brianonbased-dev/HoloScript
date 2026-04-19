@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "worldId": "holomap-example-anchored",
+  "displayName": "Anchored reconstruction (example)",
+  "pointCount": 2,
+  "frameCount": 1,
+  "bounds": { "min": [-1, -1, -1], "max": [1, 1, 1] },
+  "replayHash": "bfe5a4545f45ed7c",
+  "simulationContract": {
+    "kind": "holomap.reconstruction.v1",
+    "replayFingerprint": "bfe5a4545f45ed7c",
+    "holoScriptBuild": "example"
+  },
+  "provenance": {
+    "anchorHash": "0xREPLACE_WITH_MANIFEST_DIGEST",
+    "opentimestampsProof": "https://example.com/proofs/replay-bfe5a4545f45ed7c.ots",
+    "baseCalldataTx": "https://basescan.org/tx/0xREPLACE_WITH_BASE_TX",
+    "capturedAtIso": "2026-04-19T00:00:00.000Z"
+  },
+  "assets": {
+    "points": "reconstruction.points.bin",
+    "trajectory": "reconstruction.trajectory.json",
+    "anchors": "reconstruction.anchors.json"
+  },
+  "weightStrategy": "fine-tune"
+}
