@@ -23,6 +23,7 @@
     "vm2": "^3.9.19"
   },
   "devDependencies": {
+    "@holoscript/framework": "workspace:^",
     "@holoscript/holomap": "workspace:*",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.18",

@@ -301,6 +301,7 @@ export class HoloScriptSandbox {
     // Step 2: Create isolated VM
     const vm = new VM({
       timeout: this.options.timeout,
+      wasm: false,
       sandbox: {
         ...this.options.sandbox,
         console: {
