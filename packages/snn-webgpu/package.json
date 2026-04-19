@@ -22,7 +22,10 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "benchmark:automate": "node scripts/run-benchmark.mjs",
+    "benchmark:automate:ci": "cross-env BENCH_HEADLESS=1 BENCH_TIMEOUT_MS=180000 BENCH_REQUIRE_COMPLETED=1 node scripts/run-benchmark.mjs",
+    "benchmark:automate:local": "cross-env BENCH_HEADLESS=0 BENCH_REQUIRE_COMPLETED=0 node scripts/run-benchmark.mjs"
   },
   "keywords": [
     "holoscript",
@@ -47,6 +50,8 @@
     "@holoscript/core": "workspace:^",
     "@vitest/coverage-v8": "^4.0.18",
     "@webgpu/types": "^0.1.40",
+    "cross-env": "^7.0.3",
+    "playwright": "^1.53.0",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0",
