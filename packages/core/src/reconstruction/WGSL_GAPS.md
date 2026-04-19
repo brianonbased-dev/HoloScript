@@ -19,15 +19,17 @@ Sprint 2. This is the blocker for moving from scaffold to implementation.
 | Op | Status | Priority | Difficulty | Reuse source | Notes |
 |----|--------|----------|------------|--------------|-------|
 | Multi-head scaled dot-product attention | build | P0 | L | none directly; leverage `blelloch-scan-sort.wgsl` for prefix sums in masked softmax | The core transformer primitive. Need (Q·Kᵀ)/√d → softmax → ·V. Must fuse for bandwidth. Consider flash-style tiled implementation from day one. |
-| Paged KV append | build | P0 | M | `GPUBuffers.ts` for buffer mgmt | Append (K, V) at per-page offsets keyed by (layer, head). Mirror FlashInfer page layout. |
-| Paged KV lookup by layer | build | P0 | M | — | Indirect gather into the page table to read full K/V sequence per layer. |
+| Multi-head scaled dot-product attention | have ✅ | P0 | L | `reconstruction/fusedMHAKernel.ts` | Fused single-pass per (head, qRow) workgroup: Q·Kᵀ → stable softmax → ·V. kLen ≤ 1024. Commit: `f305ad507`. |
+| Paged KV append | have ✅ | P0 | M | `reconstruction/pagedKVKernels.ts` | GPU append into flat kv_pages; slotMap encodes (logPage<<16\|inPage); workgroup_size(64,1,1). Commit: `f305ad507`. |
+| Paged KV lookup by layer | have ✅ | P0 | M | `reconstruction/pagedKVKernels.ts` | GPU lookup via pageTable indirection; parameterized startSlot for windowed access. Commit: `f305ad507`. |
 | KV page eviction | build | P1 | S | — | LRU eviction from device to host buffer. Host copy-back on re-read. |
 | Layer normalization | have ✅ | P0 | S | `reconstruction/shaders/layerNorm.wgsl`, `reconstruction/layerNormKernel.ts` | Implemented as two-pass hidden-dim reduction (mean/variance) + scale/shift in WebGPU f32. Commit: `cff268313`. |
 | Stable softmax (max-subtraction) | have ✅ | P0 | S | `reconstruction/shaders/softmax.wgsl`, `reconstruction/softmaxKernel.ts` | Implemented as row-wise max-subtraction softmax with workgroup-shared max/sum reductions over chunked cols (≤4096). Commit: `b9b3ac2f8`. |
 | GELU activation | have ✅ | P0 | S | `reconstruction/shaders/gelu.wgsl`, `reconstruction/geluKernel.ts` | Implemented as element-wise tanh approximation with grid-stride loop over elements in WebGPU f32. Commit: `8761c7b4e`. |
 | Dense matmul (GEMM, f32) | build | P0 | L | `cg_kernels.wgsl` is sparse CSR — not reusable shape | Tiled GEMM for linear projections. Workgroup-shared-memory tiling; consider subgroup ops if supported. |
-| Rotary positional encoding (RoPE) | build | P0 | S | — | Apply sin/cos rotation to Q and K in-place. |
-| Image patch embed (conv stem 2D → tokens) | build | P0 | M | — | Strided conv collapsing HxW image into token grid. Needed to convert RGB frame → transformer tokens. |
+| Dense matmul (GEMM, f32) | have ✅ | P0 | L | `reconstruction/gemmKernel.ts` | 8×8 tiled GEMM with shared-memory tileA/tileB[64], workgroupBarrier, bounds-checked non-aligned dims. Commit: `f305ad507`. |
+| Rotary positional encoding (RoPE) | have ✅ | P0 | S | `reconstruction/ropeKernel.ts`, `reconstruction/shaders/rope.wgsl` | One workgroup per (token, head); grid-stride over headDim/2 sin/cos pairs; posOffset for sliding-window inference. Commit: `f305ad507`. |
+| Image patch embed (conv stem 2D → tokens) | have ✅ | P0 | M | `reconstruction/imagePatchEmbedKernel.ts` | One workgroup per patch; threads fan over embedDim; supports arbitrary numChannels and non-square patches. Commit: `f305ad507`. |
 | Token gather/scatter | adapt | P1 | S | `radix-sort.wgsl` touches similar indirect writes | Index-based read/write for anchor / keyframe selection. |
 | Cosine similarity | build | P1 | S | — | For loop-closure matching against stored embeddings. Vectorized dot + norm. |
 | Quaternion math (normalize, compose, rotate) | build | P1 | S | — | For camera poses. Trivial but keep in a shared WGSL include. |

@@ -20,3 +20,5 @@ export * from './webgpuGate';
 export * from './ropeKernel';
 export * from './pagedKVKernels';
 export * from './gemmKernel';
+export * from './fusedMHAKernel';
+export * from './imagePatchEmbedKernel';
