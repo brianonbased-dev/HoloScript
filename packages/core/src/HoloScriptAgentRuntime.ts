@@ -146,6 +146,9 @@ export class HoloScriptAgentRuntime {
       this.semanticFacts.push(...newFacts);
       this.rawEpisodes = this.rawEpisodes.filter((e) => !prunedEpisodes.includes(e.id));
     }
+    
+    // Actively prevent Memory Degradation (G.USER.002) by pruning stale context
+    this.semanticFacts = MemoryConsolidator.pruneStaleFacts(this.semanticFacts);
   }
 
   /**
