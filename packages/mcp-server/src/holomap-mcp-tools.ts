@@ -24,7 +24,7 @@ export const holoMapToolDefinitions: Tool[] = [
         config: {
           type: 'object',
           description:
-            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames? (cap 500). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS.',
+            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames? (cap 500). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS.',
         },
       },
       required: ['videoUrl'],
@@ -60,7 +60,7 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_export',
     description:
-      'Finalize the session, return the v1.0 ReconstructionManifest, and compile a minimal stub .holo through ExportManager (same stack as holo_compile_to_target): r3f, unity, godot, usd, unreal, webgpu, vrr, …',
+      'Finalize the session, return the v1.0 ReconstructionManifest, compile a bounds/anchor .holo stub via ExportManager (r3f, unity, godot, usd, unreal, webgpu, vrr, …), and include pointCloudPly (ASCII PLY xyz+rgb) plus trajectoryJson when steps were aggregated.',
     inputSchema: {
       type: 'object',
       properties: {

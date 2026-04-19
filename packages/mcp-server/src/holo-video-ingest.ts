@@ -17,6 +17,13 @@ import { fileURLToPath } from 'node:url';
 const DEFAULT_MAX_VIDEO_BYTES = 256 * 1024 * 1024;
 const DEFAULT_FETCH_TIMEOUT_MS = 120_000;
 
+/** Limits demuxer probe work so broken/exotic containers are less likely to stall ffmpeg. */
+function ffmpegInputProbeArgs(): string[] {
+  const analyzeduration = process.env.HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION ?? '5000000';
+  const probesize = process.env.HOLOMAP_MCP_FFMPEG_PROBE_SIZE ?? '32M';
+  return ['-analyzeduration', analyzeduration, '-probesize', probesize];
+}
+
 export function resolveFfmpegBinary(): string {
   const envPath = process.env.FFMPEG_PATH?.trim();
   if (envPath) return envPath;
@@ -135,6 +142,7 @@ export async function ingestVideoRgbFrames(options: {
     '-hide_banner',
     '-loglevel',
     'error',
+    ...ffmpegInputProbeArgs(),
     '-i',
     options.videoPath,
     '-vf',

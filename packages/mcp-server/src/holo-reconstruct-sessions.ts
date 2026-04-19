@@ -14,13 +14,31 @@ import {
   type ReconstructionStep,
 } from '@holoscript/core/reconstruction';
 import { compileManifestToTarget } from './holo-reconstruct-export';
+import {
+  appendStepToAggregate,
+  boundsFromPositions,
+  emptyAggregate,
+  encodePlyAscii,
+  encodeTrajectoryJson,
+  effectiveBoundsForExport,
+  type AggregatedScanGeometry,
+} from './holo-reconstruct-point-assets';
 import { fetchVideoToTempFile, ingestVideoRgbFrames } from './holo-video-ingest';
+
+const DEFAULT_EXPORT_MAX_POINTS = 250_000;
+
+function maxExportPointsCap(): number {
+  const n = Number.parseInt(process.env.HOLOMAP_MCP_EXPORT_MAX_POINTS ?? '', 10);
+  if (Number.isFinite(n) && n > 100) return Math.min(n, 2_000_000);
+  return DEFAULT_EXPORT_MAX_POINTS;
+}
 
 export type HoloReconstructMcpSession = {
   runtime: HoloMapRuntime;
   videoUrl: string;
   lastStep?: ReconstructionStep;
   finalizedManifest?: ReconstructionManifest;
+  aggregate: AggregatedScanGeometry;
 };
 
 const sessions = new Map<string, HoloReconstructMcpSession>();
@@ -96,6 +114,9 @@ export async function mcpStartReconstructFromVideo(
   let videoBytes: number | undefined;
   let ingestWarning: string | undefined;
 
+  const aggregate = emptyAggregate();
+  const pointCap = maxExportPointsCap();
+
   if (ingestVideo) {
     let cleanup: (() => Promise<void>) | undefined;
     try {
@@ -116,8 +137,9 @@ export async function mcpStartReconstructFromVideo(
           fps,
           maxFrames: maxIngestFrames,
         });
+        let lastStep: ReconstructionStep | undefined;
         for (const f of frames) {
-          await runtime.step({
+          lastStep = await runtime.step({
             index: f.index,
             timestampMs: Math.round((f.index * 1000) / fps),
             rgb: f.rgb,
@@ -125,6 +147,7 @@ export async function mcpStartReconstructFromVideo(
             height: cfg.inputResolution.height,
             stride: 3,
           });
+          appendStepToAggregate(aggregate, lastStep, pointCap);
           framesIngested += 1;
         }
         ingestMode = 'ffmpeg';
@@ -132,9 +155,11 @@ export async function mcpStartReconstructFromVideo(
           ingestWarning =
             'ffmpeg produced zero frames (unsupported codec, empty video, or decode error). Session is ready for holo_reconstruct_step.';
         }
+        sessions.set(sessionId, { runtime, videoUrl, aggregate, lastStep });
       } catch (ffErr) {
         ingestWarning =
           ffErr instanceof Error ? ffErr.message : String(ffErr);
+        sessions.set(sessionId, { runtime, videoUrl, aggregate });
       }
     } catch (e) {
       ingestWarning = e instanceof Error ? e.message : String(e);
@@ -143,6 +168,7 @@ export async function mcpStartReconstructFromVideo(
         videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
         allowCpuFallback: partial.allowCpuFallback !== false,
       });
+      sessions.set(sessionId, { runtime, videoUrl, aggregate });
     } finally {
       if (cleanup) await cleanup();
     }
@@ -152,9 +178,9 @@ export async function mcpStartReconstructFromVideo(
       videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
       allowCpuFallback: partial.allowCpuFallback !== false,
     });
+    sessions.set(sessionId, { runtime, videoUrl, aggregate });
   }
 
-  sessions.set(sessionId, { runtime, videoUrl });
   return {
     sessionId,
     replayFingerprint: runtime.replayHash(),
@@ -231,6 +257,7 @@ export async function mcpReconstructStep(
   const frame = decodeFrame(frameBase64, frameIndex, width, height);
   const step = await state.runtime.step(frame);
   state.lastStep = step;
+  appendStepToAggregate(state.aggregate, step, maxExportPointsCap());
   return {
     ok: true,
     frameIndex: step.frame.index,
@@ -308,6 +335,11 @@ export async function mcpReconstructExport(
   compiledOutput?: string;
   usedCompilerFallback?: boolean;
   compileError?: string;
+  /** ASCII PLY (xyz + rgb) from aggregated step points; load in DCC tools or three.js PLYLoader. */
+  pointCloudPly?: string;
+  /** Camera / rig poses per reconstructed frame (JSON). */
+  trajectoryJson?: string;
+  exportPointCount?: number;
   message: string;
 }> {
   const state = sessions.get(sessionId);
@@ -324,13 +356,22 @@ export async function mcpReconstructExport(
     await state.runtime.dispose();
   }
 
+  const geom = state.aggregate;
+  const geomBounds = boundsFromPositions(geom.positions);
+  const boundsForStub = effectiveBoundsForExport(manifest, geomBounds);
+  const exportPointCount = Math.floor(geom.positions.length / 3);
+  const pointCloudPly =
+    exportPointCount > 0 ? encodePlyAscii(geom.positions, geom.colors) : undefined;
+  const trajectoryJson =
+    geom.poses.length > 0 ? encodeTrajectoryJson(geom.poses) : undefined;
+
   let compiledOutput: string | undefined;
   let usedCompilerFallback: boolean | undefined;
   let compileError: string | undefined;
   let compileStatus: 'COMPILED' | 'COMPILE_FAILED';
 
   try {
-    const c = await compileManifestToTarget(manifest, target);
+    const c = await compileManifestToTarget(manifest, target, boundsForStub);
     compiledOutput = c.output;
     usedCompilerFallback = c.usedFallback;
     compileStatus = 'COMPILED';
@@ -347,6 +388,9 @@ export async function mcpReconstructExport(
     compiledOutput,
     usedCompilerFallback,
     compileError,
+    pointCloudPly,
+    trajectoryJson,
+    exportPointCount,
     message:
       compileStatus === 'COMPILED'
         ? 'HoloMap manifest generated and export target compiled via ExportManager.'

@@ -36,6 +36,10 @@ describe('holo reconstruct MCP sessions', () => {
     expect(exp.ok).toBe(true);
     expect(exp.manifest.version).toBe('1.0.0');
     expect(exp.manifest.simulationContract).toBeDefined();
+    expect(exp.exportPointCount).toBeGreaterThan(0);
+    expect(exp.pointCloudPly).toContain('ply');
+    expect(exp.pointCloudPly).toContain('element vertex');
+    expect(exp.trajectoryJson).toContain('"poses"');
     expect(exp.compileStatus === 'COMPILED' || exp.compileStatus === 'COMPILE_FAILED').toBe(true);
     if (exp.compileStatus === 'COMPILED') {
       expect(typeof exp.compiledOutput).toBe('string');

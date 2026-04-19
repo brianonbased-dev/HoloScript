@@ -46,10 +46,14 @@ export function normalizeReconstructExportTarget(raw: string): ExportTarget {
 }
 
 /** Composition derived from manifest bounds, counts, and contract fingerprint (compilers emit provenance). */
-export function holoStubSourceFromManifest(m: ReconstructionManifest): string {
+export function holoStubSourceFromManifest(
+  m: ReconstructionManifest,
+  boundsOverride?: { min: [number, number, number]; max: [number, number, number] },
+): string {
   const id = m.replayHash.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 48) || 'holomap';
-  const [minx, miny, minz] = m.bounds.min;
-  const [maxx, maxy, maxz] = m.bounds.max;
+  const b = boundsOverride ?? m.bounds;
+  const [minx, miny, minz] = b.min;
+  const [maxx, maxy, maxz] = b.max;
   const cx = (minx + maxx) / 2;
   const cy = (miny + maxy) / 2;
   const cz = (minz + maxz) / 2;
@@ -81,9 +85,10 @@ composition "HoloMapExport_${id}_f${m.frameCount}_p${m.pointCount}" {
 export async function compileManifestToTarget(
   manifest: ReconstructionManifest,
   target: string,
+  boundsOverride?: { min: [number, number, number]; max: [number, number, number] },
 ): Promise<{ exportTarget: ExportTarget; output: string; usedFallback: boolean }> {
   const exportTarget = normalizeReconstructExportTarget(target);
-  const src = holoStubSourceFromManifest(manifest);
+  const src = holoStubSourceFromManifest(manifest, boundsOverride);
   const parsed = parseHolo(src);
   if (!parsed.success || !parsed.ast) {
     throw new Error(
