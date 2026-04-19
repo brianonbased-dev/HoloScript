@@ -117,6 +117,36 @@ Only the first available provider is used.
 - Key expired
 - Wrong key for provider (e.g., OpenAI key in ANTHROPIC_API_KEY)
 
+## Mobile room scan API (staging / production)
+
+Reconstruction scan tokens are **in-memory** unless Redis is configured. For multiple Studio instances or restarts, set Upstash (or compatible) Redis:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `UPSTASH_REDIS_URL` | Redis REST URL |
+| `UPSTASH_REDIS_TOKEN` | Redis REST token |
+
+**CORS** for `/api/reconstruction/session`: by default only the same deployment origin and `NEXT_PUBLIC_STUDIO_URL` (if set) may call the API from a browser.
+
+| Variable | Purpose |
+| -------- | ------- |
+| `STUDIO_SCAN_SESSION_CORS_ORIGINS` | Comma-separated `Origin` values allowed (e.g. `https://studio.example.com`). Use `*` only for public, non-credentialed tooling. |
+| `STUDIO_SCAN_SESSION_REQUIRE_AUTH` | Set to `1` in production to require sign-in for creating sessions (unless `STUDIO_SCAN_SESSION_PUBLIC_POST=1`). |
+
+**Operations:** session keys expire when the scan session TTL ends (see route/store). Monitor Redis key volume and 429 rate-limit responses if you expose the API broadly.
+
+## HoloMap MCP (video ingest + export)
+
+When running `@holoscript/mcp-server` for `holo_reconstruct_*` tools, optional limits:
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `HOLOMAP_MCP_MAX_VIDEO_BYTES` | 256 MiB | Cap download / file read size |
+| `HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS` | 120000 | HTTP(S) fetch timeout |
+| `HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION` | `5000000` | Demuxer analyze duration (µs); lower to fail faster on bad files |
+| `HOLOMAP_MCP_FFMPEG_PROBE_SIZE` | `32M` | Demuxer probe size |
+| `HOLOMAP_MCP_EXPORT_MAX_POINTS` | 250000 | Max points aggregated into `pointCloudPly` on export |
+
 ## Security Notes
 
 - **NEVER commit `.env.local`** (already in .gitignore)
