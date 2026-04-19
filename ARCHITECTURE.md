@@ -113,3 +113,4 @@ graph TB
 4. **Extracted packages (L1) match core's major version** (currently 6.x).
 5. **Domain vocabulary stays in plugins**, never in core (`packages/plugins/`).
 6. **`workspace:*`** for internal deps. Never pin internal versions.
+7. **Core↔Engine Boundary:** `@holoscript/core` (L0) must never have a runtime dependency on `@holoscript/engine` (L1). The runtime mutual dependency cycle is explicitly severed. Any shared types must be extracted to `core-types` or imported as `import type`.
