@@ -121,7 +121,7 @@ Recommendation: run path 3 for the demo, path 2 in parallel for the production w
 ## 8. Ship plan
 
 - **Sprint 1 (this sprint, 2w):** RFC + scaffold + trait stubs + MCP stubs + WGSL gap analysis. **No transformer code.**
-- **Sprint 2 (2w):** First WGSL transformer pass, KV cache impl, distillation/fine-tune for demo weights, `holo_reconstruct_from_video` end-to-end on acceptance video.
+- **Sprint 2 (2w):** **Integrate** shipped P0 WGSL kernels into `HoloMapRuntime` (real forward pass; see `WGSL_GAPS.md` ✅ rows), KV cache wiring, weight loader + demo weights (paths 2/3 per §5), `holo_reconstruct_from_video` end-to-end on acceptance video. Shader authoring is no longer the gating item for P0 ops listed there.
 - **Sprint 3 (2w):** HoloLand "scan your room in 90s, walk it in VR" demo, SimulationContract replay wiring, provenance anchoring, Studio `ReconstructionPanel.tsx`.
 
 ## 9. Risks

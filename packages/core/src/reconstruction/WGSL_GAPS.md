@@ -2,7 +2,9 @@
 
 **Purpose:** Enumerate every WGSL operator HoloMap's WebGPU transformer pass
 needs, mark which exist in the monorepo today, and prioritize the gaps for
-Sprint 2. This is the blocker for moving from scaffold to implementation.
+Sprint 2 onward.
+
+**Ground truth (2026-04-19):** The **P0 attention / norm / activation / patch-embed / GEMM** set in the table below is **largely shipped** (see `have ✅` rows and commit hashes). Treating “~10 P0 WGSL shaders left” as the Sprint 2 blocker is **out of date**. The **current** Sprint 2 critical path is **integration**: wire these kernels into `HoloMapRuntime.step()` end-to-end, add the **weight loader** (see RFC §5.1), and run the **first indoor acceptance video** — not primary shader authoring.
 
 **Generated:** 2026-04-18
 **Scope:** Operators required by HoloMapRuntime, PagedKVCache, TrajectoryMemory, AnchorContext.
