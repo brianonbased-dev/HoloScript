@@ -36,6 +36,8 @@ See [OPERATOR_GLOSSARY.md](./OPERATOR_GLOSSARY.md) and [RUNBOOK_PAPER_HARNESSES.
 
 **Weights (path 3):** [DEPTHANYTHING_V2_IMPORT.md](./DEPTHANYTHING_V2_IMPORT.md) + `holoMapWeightLoader.ts` (`weightUrl` + `weightCid`).
 
+**U.001 demo:** [HOLAND_U001_90S_DEMO_RUNBOOK.md](./HOLAND_U001_90S_DEMO_RUNBOOK.md) (founder Quest loop).
+
 ## Golden replay fingerprint (CI)
 
 Contract test: `packages/core/src/reconstruction/__fixtures__/GOLDEN_REPLAY_FINGERPRINT.txt` must match `computeHoloMapReplayFingerprint` for the canned inputs documented in `HoloMapGoldenFingerprint.test.ts`. Bump the file only when the fingerprint algorithm or canonical inputs change, with reviewer sign-off.
