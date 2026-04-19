@@ -91,6 +91,18 @@ Three candidate paths. Decision in Sprint 2 based on license audit + WGSL op par
 
 Recommendation: run path 3 for the demo, path 2 in parallel for the production weights. Path 1 only if licensing clears cleanly.
 
+### 5.1 Weight distribution (runtime)
+
+**Decision (2026-04-19):** Ship weights as **content-addressed blobs**, not embedded inside `.holo` compositions.
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **Default (production)** | Studio, MCP, HoloLand desktop | `HoloMapConfig` carries **`weightCid`** (multihash / CID) plus optional **`weightUrl`** (HTTPS CDN or gateway). Runtime **fetches once**, verifies hash against `weightCid`, then caches in **IndexedDB** (browser) or temp dir (Node). Replay fingerprint already keys on `weightCid` + `modelHash` — mismatched bytes fail closed. |
+| **Bundled / offline** | CI golden tests, air-gapped demos | Same tensors shipped as **versioned assets** under `packages/core/src/reconstruction/__fixtures__/weights/` (or package `dist`); loader accepts **`weightCid`** with **local `file://` or package-relative path** in `weightUrl`. Documented exception only — not the default for consumer builds. |
+| **HoloLand / XR consumer** | Quest, phone-as-bridge | **Pointer-only in session:** app ships **no** large weights in the APK; session manifest lists `weightCid` + signed URL or mesh-local cache handle. Aligns with U.001 (no developer toolchain in the user loop). |
+
+**Rationale:** Keeps compositions small, preserves provenance (CID is the contract), and matches SimulationContract replay identity. Studio surfaces fetch + verify progress; failed verify is a blocking error before inference starts.
+
 ## 6. Minimum viable quality bar (acceptance)
 
 - **Acceptance video:** indoor room, ~2000 frames, handheld walkthrough.
