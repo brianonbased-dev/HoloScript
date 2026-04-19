@@ -12,29 +12,35 @@ describe('holo reconstruct MCP sessions', () => {
     __resetHoloReconstructSessionsForTests();
   });
 
-  it('opens a session, runs one step, reads anchor, exports manifest', async () => {
-    const { sessionId, replayFingerprint } = await mcpStartReconstructFromVideo(
-      'https://example.com/e2e.mp4',
-      { weightStrategy: 'distill' },
-    );
-    expect(sessionId.length).toBeGreaterThan(10);
-    expect(replayFingerprint.length).toBeGreaterThan(8);
+  it('opens a session, runs one step, reads anchor, exports manifest + compile attempt', async () => {
+    const started = await mcpStartReconstructFromVideo('https://example.com/e2e.mp4', {
+      weightStrategy: 'distill',
+      ingestVideo: false,
+    });
+    expect(started.sessionId.length).toBeGreaterThan(10);
+    expect(started.replayFingerprint.length).toBeGreaterThan(8);
+    expect(started.ingestMode).toBe('none');
 
     const w = 2;
     const h = 2;
     const rgb = Buffer.alloc(w * h * 3, 42);
-    const step = await mcpReconstructStep(sessionId, rgb.toString('base64'), 0, w, h);
+    const step = await mcpReconstructStep(started.sessionId, rgb.toString('base64'), 0, w, h);
     expect(step.ok).toBe(true);
     expect(step.pointCount).toBeGreaterThan(0);
 
-    const anchor = mcpReconstructAnchor(sessionId);
+    const anchor = mcpReconstructAnchor(started.sessionId);
     expect(anchor.ok).toBe(true);
     expect(Array.isArray(anchor.anchor.anchorDescriptor)).toBe(true);
 
-    const exp = await mcpReconstructExport(sessionId, 'r3f');
+    const exp = await mcpReconstructExport(started.sessionId, 'r3f');
     expect(exp.ok).toBe(true);
     expect(exp.manifest.version).toBe('1.0.0');
     expect(exp.manifest.simulationContract).toBeDefined();
+    expect(exp.compileStatus === 'COMPILED' || exp.compileStatus === 'COMPILE_FAILED').toBe(true);
+    if (exp.compileStatus === 'COMPILED') {
+      expect(typeof exp.compiledOutput).toBe('string');
+      expect((exp.compiledOutput ?? '').length).toBeGreaterThan(0);
+    }
   });
 
   it('rejects step for unknown session', async () => {

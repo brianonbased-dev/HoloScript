@@ -13,6 +13,8 @@ import {
   type ReconstructionManifest,
   type ReconstructionStep,
 } from '@holoscript/core/reconstruction';
+import { compileManifestToTarget } from './holo-reconstruct-export';
+import { fetchVideoToTempFile, ingestVideoRgbFrames } from './holo-video-ingest';
 
 export type HoloReconstructMcpSession = {
   runtime: HoloMapRuntime;
@@ -56,21 +58,111 @@ function pickPartialHoloMapConfig(raw: unknown): Partial<HoloMapConfig> {
   return p;
 }
 
+function pickIngestOptions(configArg: unknown): { ingestVideo: boolean; maxIngestFrames: number } {
+  let ingestVideo = process.env.HOLOMAP_MCP_INGEST_VIDEO !== '0';
+  let maxIngestFrames = Math.min(
+    500,
+    Math.max(1, Number.parseInt(process.env.HOLOMAP_MCP_MAX_FRAMES ?? '120', 10) || 120),
+  );
+  if (configArg && typeof configArg === 'object') {
+    const o = configArg as Record<string, unknown>;
+    if (typeof o.ingestVideo === 'boolean') ingestVideo = o.ingestVideo;
+    if (typeof o.maxIngestFrames === 'number' && Number.isFinite(o.maxIngestFrames)) {
+      maxIngestFrames = Math.min(500, Math.max(1, Math.floor(o.maxIngestFrames)));
+    }
+  }
+  return { ingestVideo, maxIngestFrames };
+}
+
 export async function mcpStartReconstructFromVideo(
   videoUrl: string,
   configArg: unknown,
-): Promise<{ sessionId: string; replayFingerprint: string }> {
+): Promise<{
+  sessionId: string;
+  replayFingerprint: string;
+  framesIngested: number;
+  ingestMode: 'ffmpeg' | 'none';
+  videoBytes?: number;
+  ingestWarning?: string;
+}> {
   const sessionId = randomUUID();
   const runtime = createHoloMapRuntime();
   const partial = pickPartialHoloMapConfig(configArg);
-  await runtime.init({
-    ...HOLOMAP_DEFAULTS,
-    ...partial,
-    videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
-    allowCpuFallback: partial.allowCpuFallback !== false,
-  });
+  const cfg: HoloMapConfig = { ...HOLOMAP_DEFAULTS, ...partial };
+  const { ingestVideo, maxIngestFrames } = pickIngestOptions(configArg);
+
+  let framesIngested = 0;
+  let ingestMode: 'ffmpeg' | 'none' = 'none';
+  let videoBytes: number | undefined;
+  let ingestWarning: string | undefined;
+
+  if (ingestVideo) {
+    let cleanup: (() => Promise<void>) | undefined;
+    try {
+      const file = await fetchVideoToTempFile(videoUrl);
+      cleanup = file.cleanup;
+      videoBytes = file.bytes;
+      await runtime.init({
+        ...cfg,
+        videoHash: partial.videoHash ?? file.sha256Hex,
+        allowCpuFallback: partial.allowCpuFallback !== false,
+      });
+      try {
+        const fps = Math.max(1, Math.min(30, cfg.targetFPS));
+        const { frames } = await ingestVideoRgbFrames({
+          videoPath: file.path,
+          width: cfg.inputResolution.width,
+          height: cfg.inputResolution.height,
+          fps,
+          maxFrames: maxIngestFrames,
+        });
+        for (const f of frames) {
+          await runtime.step({
+            index: f.index,
+            timestampMs: Math.round((f.index * 1000) / fps),
+            rgb: f.rgb,
+            width: cfg.inputResolution.width,
+            height: cfg.inputResolution.height,
+            stride: 3,
+          });
+          framesIngested += 1;
+        }
+        ingestMode = 'ffmpeg';
+        if (framesIngested === 0) {
+          ingestWarning =
+            'ffmpeg produced zero frames (unsupported codec, empty video, or decode error). Session is ready for holo_reconstruct_step.';
+        }
+      } catch (ffErr) {
+        ingestWarning =
+          ffErr instanceof Error ? ffErr.message : String(ffErr);
+      }
+    } catch (e) {
+      ingestWarning = e instanceof Error ? e.message : String(e);
+      await runtime.init({
+        ...cfg,
+        videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
+        allowCpuFallback: partial.allowCpuFallback !== false,
+      });
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  } else {
+    await runtime.init({
+      ...cfg,
+      videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
+      allowCpuFallback: partial.allowCpuFallback !== false,
+    });
+  }
+
   sessions.set(sessionId, { runtime, videoUrl });
-  return { sessionId, replayFingerprint: runtime.replayHash() };
+  return {
+    sessionId,
+    replayFingerprint: runtime.replayHash(),
+    framesIngested,
+    ingestMode,
+    videoBytes,
+    ingestWarning,
+  };
 }
 
 function getSessionOrThrow(sessionId: string): HoloReconstructMcpSession {
@@ -211,32 +303,53 @@ export async function mcpReconstructExport(
 ): Promise<{
   ok: true;
   target: string;
-  compileStatus: 'MANIFEST_ONLY';
+  compileStatus: 'COMPILED' | 'COMPILE_FAILED';
   manifest: Record<string, unknown>;
+  compiledOutput?: string;
+  usedCompilerFallback?: boolean;
+  compileError?: string;
   message: string;
 }> {
   const state = sessions.get(sessionId);
   if (!state) {
     throw new Error(`holo_reconstruct: unknown sessionId`);
   }
+
+  let manifest: ReconstructionManifest;
   if (state.finalizedManifest) {
-    return {
-      ok: true,
-      target,
-      compileStatus: 'MANIFEST_ONLY',
-      manifest: manifestToJson(state.finalizedManifest),
-      message: 'Cached manifest from prior export. Target compilation is not implemented yet.',
-    };
+    manifest = state.finalizedManifest;
+  } else {
+    manifest = await state.runtime.finalize();
+    state.finalizedManifest = manifest;
+    await state.runtime.dispose();
   }
-  const manifest = await state.runtime.finalize();
-  state.finalizedManifest = manifest;
-  await state.runtime.dispose();
+
+  let compiledOutput: string | undefined;
+  let usedCompilerFallback: boolean | undefined;
+  let compileError: string | undefined;
+  let compileStatus: 'COMPILED' | 'COMPILE_FAILED';
+
+  try {
+    const c = await compileManifestToTarget(manifest, target);
+    compiledOutput = c.output;
+    usedCompilerFallback = c.usedFallback;
+    compileStatus = 'COMPILED';
+  } catch (e) {
+    compileError = e instanceof Error ? e.message : String(e);
+    compileStatus = 'COMPILE_FAILED';
+  }
+
   return {
     ok: true,
     target,
-    compileStatus: 'MANIFEST_ONLY',
+    compileStatus,
     manifest: manifestToJson(manifest),
+    compiledOutput,
+    usedCompilerFallback,
+    compileError,
     message:
-      'HoloMap v1.0 manifest returned. Compiling to scene targets (r3f, unity, …) is not implemented in MCP yet.',
+      compileStatus === 'COMPILED'
+        ? 'HoloMap manifest generated and export target compiled via ExportManager.'
+        : `HoloMap manifest returned; compile failed (${compileError ?? 'unknown'}). Retry with another target or fix toolchain.`,
   };
 }

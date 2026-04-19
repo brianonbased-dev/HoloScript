@@ -43,6 +43,7 @@
     "@holoscript/holomap": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "ffmpeg-static": "^5.2.0",
     "eventsource": "^4.1.0",
     "loro-crdt": "^1.0.0",
     "pg": "^8.13.1",

@@ -16,14 +16,15 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_from_video',
     description:
-      'Open a HoloMap reconstruction session for a video URL (primed config + replay fingerprint). Does not download or decode video in MCP yet; use holo_reconstruct_step to stream frames.',
+      'Download a video (http(s) or file://), hash bytes for replay identity, optionally decode frames with ffmpeg (ingestVideo, default true), and run HoloMapRuntime.step per frame. Set config.ingestVideo false to only open a session (use holo_reconstruct_step for frames).',
     inputSchema: {
       type: 'object',
       properties: {
-        videoUrl: { type: 'string', description: 'HTTPS URL or file URI to input video' },
+        videoUrl: { type: 'string', description: 'HTTPS URL or file:// path to input video' },
         config: {
           type: 'object',
-          description: 'Optional HoloMapConfig fields (inputResolution, targetFPS, seed, modelHash, weightStrategy, …)',
+          description:
+            'HoloMapConfig fields plus ingestVideo?: boolean, maxIngestFrames?: number (cap 500). Env HOLOMAP_MCP_INGEST_VIDEO=0 disables ingest by default.',
         },
       },
       required: ['videoUrl'],
@@ -59,14 +60,14 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_export',
     description:
-      'Finalize the session and return the v1.0 ReconstructionManifest. Target compilation (r3f, unity, …) is manifest-only for now.',
+      'Finalize the session, return the v1.0 ReconstructionManifest, and compile a minimal stub .holo through ExportManager (same stack as holo_compile_to_target): r3f, unity, godot, usd, unreal, webgpu, vrr, …',
     inputSchema: {
       type: 'object',
       properties: {
         sessionId: { type: 'string' },
         target: {
           type: 'string',
-          description: 'Compile target id (e.g. r3f, unity, godot, usd-physics) — reserved for future compilers',
+          description: 'ExportTarget id or alias (r3f, unity, godot, usd / usd-physics, unreal, webgpu, vrr, …)',
         },
       },
       required: ['sessionId', 'target'],
@@ -120,19 +121,25 @@ export async function handleHoloMapPaperIngestProbe(
 
 export async function handleHoloMapTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   switch (name) {
-    case 'holo_reconstruct_from_video': {
+       case 'holo_reconstruct_from_video': {
       const videoUrl = args.videoUrl;
       if (typeof videoUrl !== 'string' || !videoUrl.trim()) {
         throw new Error('holo_reconstruct_from_video: videoUrl (non-empty string) is required');
       }
-      const { sessionId, replayFingerprint } = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config);
+      const started = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config);
       return {
         ok: true,
         status: 'SESSION_OPEN',
-        sessionId,
-        replayFingerprint,
+        sessionId: started.sessionId,
+        replayFingerprint: started.replayFingerprint,
+        framesIngested: started.framesIngested,
+        ingestMode: started.ingestMode,
+        videoBytes: started.videoBytes,
+        ingestWarning: started.ingestWarning,
         message:
-          'Session initialized with HoloMapRuntime (CPU/WebGPU fallback as configured). Stream frames via holo_reconstruct_step; video bytes are not fetched from videoUrl in MCP yet.',
+          started.ingestMode === 'ffmpeg'
+            ? `Ingested ${started.framesIngested} frame(s) via ffmpeg. Use holo_reconstruct_export or more holo_reconstruct_step as needed.`
+            : 'Session opened without ffmpeg ingest; stream frames with holo_reconstruct_step or enable config.ingestVideo.',
         validated: { videoUrl: videoUrl.slice(0, 200), hasConfig: args.config != null },
       };
     }
