@@ -81,3 +81,23 @@ export {
   PAPER_2_CANONICAL_CONFIG,
 } from './paper/LIFDeterminismProbe.js';
 export type { LIFProbeOptions } from './paper/LIFDeterminismProbe.js';
+
+// Prophetic GI pipeline (Phase 2 foundation) — consumed by
+// `@holoscript/r3f-renderer`'s GIRenderer.  See
+// `prophetic-gi/RFC-PROPHETIC-GI.md` for design.
+export {
+  ProphecyOrchestrator,
+  ProphecyNotImplementedError,
+  LocalProphecyTransport,
+  HoloMeshProphecyTransport,
+} from './prophetic-gi/index.js';
+export type {
+  RadianceProbe,
+  ProphecyFrame,
+  ProphecyConfig,
+  ProphecySceneContext,
+  ProphecyTransport,
+  LocalProphecyTransportOptions,
+  HoloMeshProphecyTransportOptions,
+  SpikeRateProvider,
+} from './prophetic-gi/index.js';
