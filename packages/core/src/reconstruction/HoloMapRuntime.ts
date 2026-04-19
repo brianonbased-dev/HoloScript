@@ -81,6 +81,8 @@ export interface HoloMapConfig {
   modelHash: string;
   /** Optional hash of source video / media (included in replay fingerprint) */
   videoHash?: string;
+  /** Optional content-addressed weights reference (changes replay fingerprint when set) */
+  weightCid?: string;
   /** Optional CPU offloading for limited VRAM */
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
@@ -192,6 +194,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       seed: this.config.seed,
       weightStrategy: this.config.weightStrategy ?? 'distill',
       videoHash: this.config.videoHash,
+      weightCid: this.config.weightCid,
     });
     this.initialized = true;
     logHoloMapEvent(this.runId, 'init', {

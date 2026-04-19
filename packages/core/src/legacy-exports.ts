@@ -240,6 +240,7 @@ export type {
 
 // HoloScript R3F Compiler (NEW)
 export { R3FCompiler, type R3FNode, ENVIRONMENT_PRESETS } from './compiler/R3FCompiler';
+export type { HolomapPointCloudPayload } from './compiler/HolomapExportPayload';
 
 // Provenance / semiring algebra
 export * from './compiler/traits/Semiring';

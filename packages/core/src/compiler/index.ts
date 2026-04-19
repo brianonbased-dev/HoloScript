@@ -37,6 +37,7 @@ export type {
 // R3F (React Three Fiber)
 export { R3FCompiler, ENVIRONMENT_PRESETS } from './R3FCompiler';
 export type { R3FNode } from './R3FCompiler';
+export type { HolomapPointCloudPayload } from './HolomapExportPayload';
 
 // Engine-specific compilers
 export { UnityCompiler } from './UnityCompiler';

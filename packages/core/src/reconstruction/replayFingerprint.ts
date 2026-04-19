@@ -25,9 +25,11 @@ export function computeHoloMapReplayFingerprint(parts: {
   seed: number;
   weightStrategy: string;
   videoHash?: string;
+  /** Optional content-addressed weights id (IPFS CID, OCI digest, …). Omitted → same fingerprint as pre-CID builds. */
+  weightCid?: string;
 }): string {
   const video = parts.videoHash ?? 'no-video';
-  return fnv1a32Hex(
-    `${parts.modelHash}|${parts.seed}|${parts.weightStrategy}|${video}`,
-  );
+  const base = `${parts.modelHash}|${parts.seed}|${parts.weightStrategy}|${video}`;
+  const payload = parts.weightCid ? `${base}|cid:${parts.weightCid}` : base;
+  return fnv1a32Hex(payload);
 }

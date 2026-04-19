@@ -93,4 +93,19 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
     expect(mesh).toBeDefined();
     expect(mesh?.id).toBe('floor');
   });
+
+  it('injects holomapPointCloud node when compiler option is set', () => {
+    const compiler = new R3FCompiler({
+      holomapPointCloud: {
+        positionsB64: 'AAAA',
+        colorsB64: 'AQID',
+        pointCount: 1,
+      },
+    });
+    const root = compiler.compileComposition(minimalComposition({}));
+    const pc = findByType(root.children, 'holomapPointCloud');
+    expect(pc).toBeDefined();
+    expect(pc?.props?.pointCount).toBe(1);
+    expect(pc?.props?.positionsB64).toBe('AAAA');
+  });
 });

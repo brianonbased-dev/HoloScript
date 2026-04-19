@@ -31,6 +31,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -83,6 +84,8 @@ export interface UnityCompilerOptions {
   indent?: string;
   /** When set, emits a `// Provenance Hash:` banner (compile-time overhead bench / Paper 10). */
   provenanceHash?: string;
+  /** Optional HoloMap reconstruction samples (MCP export). */
+  holomapPointCloud?: HolomapPointCloudPayload;
 }
 
 export class UnityCompiler extends CompilerBase {
@@ -92,7 +95,12 @@ export class UnityCompiler extends CompilerBase {
     return ANSCapabilityPath.UNITY;
   }
 
-  private options: Required<UnityCompilerOptions>;
+  private options: UnityCompilerOptions & {
+    namespace: string;
+    className: string;
+    useURP: boolean;
+    indent: string;
+  };
   private lines: string[] = [];
   private indentLevel: number = 0;
 
@@ -104,6 +112,7 @@ export class UnityCompiler extends CompilerBase {
       useURP: options.useURP ?? true,
       indent: options.indent || '    ',
       provenanceHash: options.provenanceHash,
+      holomapPointCloud: options.holomapPointCloud,
     };
   }
 
@@ -212,6 +221,8 @@ export class UnityCompiler extends CompilerBase {
       }
     }
 
+    this.emitHolomapPointCloudLoader();
+
     this.indentLevel--;
     this.emit('}');
     this.emit('');
@@ -249,6 +260,78 @@ export class UnityCompiler extends CompilerBase {
     this.emit('}');
 
     return this.lines.join('\n');
+  }
+
+  private emitHolomapPointCloudLoader(): void {
+    const h = this.options.holomapPointCloud;
+    if (!h || h.pointCount < 1) return;
+
+    this.emit('    // --- HoloMap point cloud (base64 → Mesh topology Points) ---');
+    this.emit('    {');
+    const posLit = this.chunkBase64CSharpLiteral(h.positionsB64);
+    const colLit = this.chunkBase64CSharpLiteral(h.colorsB64);
+    this.emit(`      string holomapPosB64 = ${posLit};`);
+    this.emit(`      string holomapColB64 = ${colLit};`);
+    this.emit(`      int holomapN = ${h.pointCount};`);
+    this.emit(
+      '      byte[] holomapPos = System.Convert.FromBase64String(holomapPosB64);',
+    );
+    this.emit(
+      '      byte[] holomapCol = System.Convert.FromBase64String(holomapColB64);',
+    );
+    this.emit('      if (holomapPos.Length >= holomapN * 12 && holomapCol.Length >= holomapN * 3)');
+    this.emit('      {');
+    this.emit(
+      '        var holomapGo = new GameObject("HoloMapReconstructionPoints");',
+    );
+    this.emit('        holomapGo.transform.SetParent(transform, false);');
+    this.emit('        var mesh = new Mesh();');
+    this.emit(
+      '        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;',
+    );
+    this.emit('        var verts = new Vector3[holomapN];');
+    this.emit('        var cols = new Color32[holomapN];');
+    this.emit('        var idx = new int[holomapN];');
+    this.emit('        for (int i = 0; i < holomapN; i++)');
+    this.emit('        {');
+    this.emit(
+      '          int p = i * 12; int c = i * 3;',
+    );
+    this.emit(
+      '          verts[i] = new Vector3(System.BitConverter.ToSingle(holomapPos, p), System.BitConverter.ToSingle(holomapPos, p + 4), System.BitConverter.ToSingle(holomapPos, p + 8));',
+    );
+    this.emit(
+      '          cols[i] = new Color32(holomapCol[c], holomapCol[c + 1], holomapCol[c + 2], 255);',
+    );
+    this.emit('          idx[i] = i;');
+    this.emit('        }');
+    this.emit('        mesh.vertices = verts;');
+    this.emit('        mesh.colors32 = cols;');
+    this.emit('        mesh.SetIndices(idx, MeshTopology.Points, 0, true);');
+    this.emit('        mesh.RecalculateBounds();');
+    this.emit('        var mf = holomapGo.AddComponent<MeshFilter>();');
+    this.emit('        mf.sharedMesh = mesh;');
+    this.emit('        var mr = holomapGo.AddComponent<MeshRenderer>();');
+    this.emit(
+      '        var sh = Shader.Find("Universal Render Pipeline/Unlit");',
+    );
+    this.emit(
+      '        if (sh == null) sh = Shader.Find("Unlit/Color");',
+    );
+    this.emit('        mr.sharedMaterial = sh != null ? new Material(sh) : new Material(Shader.Find("Hidden/InternalErrorShader"));');
+    this.emit('      }');
+    this.emit('    }');
+  }
+
+  /** Concatenated string literals so very large MCP payloads stay valid C#. */
+  private chunkBase64CSharpLiteral(b64: string): string {
+    const chunk = 4096;
+    if (b64.length <= chunk) return `"${b64}"`;
+    const parts: string[] = [];
+    for (let i = 0; i < b64.length; i += chunk) {
+      parts.push(`"${b64.slice(i, i + chunk)}"`);
+    }
+    return parts.join(' + ');
   }
 
   private compileDomainBlocks(composition: HoloComposition): void {

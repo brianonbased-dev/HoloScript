@@ -25,6 +25,7 @@ import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
+import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 
 // OOM fix: Pre-allocation reduced from 20K to 0 (demand-allocated).
 // The pool is used (acquire at compileNode, compileComposition, compileLight)
@@ -1860,6 +1861,8 @@ export interface R3FCompilerOptions {
   qualityTier?: QualityTier;
   /** Inject default ambient + directional light (default: true) */
   defaultLighting?: boolean;
+  /** Optional HoloMap reconstruction samples (MCP export / ingest). */
+  holomapPointCloud?: HolomapPointCloudPayload;
 }
 
 /** Scale factors per quality tier for runtime tuning. */
@@ -1909,11 +1912,13 @@ export class R3FCompiler {
   public readonly qualityTier: QualityTier;
   public readonly tierScales: (typeof QUALITY_TIER_SCALES)[QualityTier];
   private readonly _defaultLighting: boolean;
+  private readonly _holomapPointCloud?: HolomapPointCloudPayload;
 
   constructor(options: R3FCompilerOptions = {}) {
     this.qualityTier = options.qualityTier ?? 'high';
     this.tierScales = QUALITY_TIER_SCALES[this.qualityTier];
     this._defaultLighting = options.defaultLighting ?? true;
+    this._holomapPointCloud = options.holomapPointCloud;
   }
 
   // ─── RBAC Enforcement ─────────────────────────────────────────────────
@@ -2569,8 +2574,24 @@ export class R3FCompiler {
       });
     }
 
+    this.injectHolomapPointCloud(root);
     this.injectDefaultLighting(root);
     return root;
+  }
+
+  /** R3F host apps can map this node to BufferGeometry + pointsMaterial from base64 buffers. */
+  private injectHolomapPointCloud(root: R3FNode): void {
+    const h = this._holomapPointCloud;
+    if (!h || h.pointCount < 1 || !h.positionsB64 || !h.colorsB64) return;
+    if (!root.children) root.children = [];
+    root.children.push({
+      type: 'holomapPointCloud',
+      props: {
+        positionsB64: h.positionsB64,
+        colorsB64: h.colorsB64,
+        pointCount: h.pointCount,
+      },
+    });
   }
 
   private compileLightBlock(light: Record<string, unknown>): R3FNode {

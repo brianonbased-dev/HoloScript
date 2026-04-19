@@ -48,6 +48,27 @@ describe('HoloMap SimulationContract binding', () => {
     assertHoloMapManifestContract(b);
   });
 
+  it('weightCid changes the replay fingerprint when set', async () => {
+    async function fp(weightCid: string | undefined) {
+      const rt = createHoloMapRuntime();
+      await rt.init({
+        ...HOLOMAP_DEFAULTS,
+        seed: 3,
+        modelHash: 'm2',
+        videoHash: 'same-video',
+        weightCid,
+      });
+      await rt.step(baseFrame());
+      const m = await rt.finalize();
+      await rt.dispose();
+      return m.replayHash;
+    }
+
+    const a = await fp(undefined);
+    const b = await fp('bafybeiabc');
+    expect(a).not.toBe(b);
+  });
+
   it('video hash changes the replay fingerprint', async () => {
     async function fingerprintForVideo(videoHash: string) {
       const rt = createHoloMapRuntime();
