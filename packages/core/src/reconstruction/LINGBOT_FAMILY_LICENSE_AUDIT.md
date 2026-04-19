@@ -6,6 +6,12 @@
 **Date:** 2026-04-17  
 **Owner:** HoloScript Core (draft) — **sign-off: counsel** before any “bridge path” execution.
 
+**Counsel review log (board Q3):**
+
+| Date | Status | Notes |
+|------|--------|--------|
+| 2026-04-19 | **Pending** | No written clearance recorded in-repo. RFC path **A** (distillation) stays **gated**; ship demos on path **C** / plan **B** per RFC §5. |
+
 **Related:** `RFC-HoloMap.md` (weight-acquisition strategy), `WGSL_GAPS.md`
 
 ---
