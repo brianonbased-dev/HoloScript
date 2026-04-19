@@ -1,5 +1,7 @@
 # Runbook — Paper #2 and Paper #4 harnesses (scene ingest)
 
+**Entrypoint index:** [INGEST_PATH_ENTRYPOINTS.md](./INGEST_PATH_ENTRYPOINTS.md) (paths + resolver wiring).
+
 ## Choose a scene source
 
 1. **Compatibility (default)** — best when a deadline is close; preserves prior benchmark semantics.
