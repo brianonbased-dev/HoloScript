@@ -25,6 +25,7 @@
     "@holoscript/engine": "workspace:*",
     "@holoscript/mesh": "workspace:*",
     "@holoscript/platform": "workspace:*",
+    "@holoscript/snn-webgpu": "workspace:*",
     "@holoscript/ui": "workspace:*"
   },
   "peerDependencies": {
