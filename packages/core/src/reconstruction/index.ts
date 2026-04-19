@@ -17,3 +17,6 @@ export * from './contractConstants';
 export * from './simulationContractBinding';
 export * from './holoMapTelemetry';
 export * from './webgpuGate';
+export * from './ropeKernel';
+export * from './pagedKVKernels';
+export * from './gemmKernel';
