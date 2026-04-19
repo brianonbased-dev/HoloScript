@@ -175,6 +175,13 @@ export class HoloScriptSandbox {
   private auditLog: SecurityAuditLog[] = [];
   private parser: HoloScriptPlusParser;
 
+  private static readonly GLOBALS_BLOCKLIST = [
+    'WebAssembly',
+    'SharedArrayBuffer',
+    'eval',
+    'Function'
+  ];
+
   constructor(options: SandboxOptions = {}) {
     this.options = {
       timeout: options.timeout ?? 5000,
@@ -197,6 +204,13 @@ export class HoloScriptSandbox {
     const structuralError = this.preValidateStructure(code);
     if (structuralError) {
       return { valid: false, error: structuralError };
+    }
+
+    for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
+      const regex = new RegExp(`\\b${blocked}\\b`);
+      if (regex.test(code)) {
+        return { valid: false, error: `${blocked} is blocked in the HoloScript security sandbox (SEC-01)` };
+      }
     }
 
     try {
