@@ -823,6 +823,7 @@
     }
   },
   "devDependencies": {
+    "@holoscript/holomap": "workspace:*",
     "@types/node": "^22.18.3",
     "@webgpu/types": "^0.1.40",
     "@vitest/coverage-v8": "^4.0.18",

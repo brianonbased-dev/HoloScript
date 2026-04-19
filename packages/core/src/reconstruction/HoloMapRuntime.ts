@@ -1,18 +1,19 @@
 /**
  * HoloMapRuntime — feed-forward 3D reconstruction from RGB streams.
  *
- * HoloX-pattern native answer to lingbot-map (Ant Group). Runs entirely in
- * the browser on WebGPU; emits `.holo` trait compositions directly.
+ * HoloX-pattern native answer to lingbot-map (Ant Group). Runs on WebGPU;
+ * emits reconstruction manifests suitable for `.holo` / trait composition.
  *
- * Scope (Sprint 1): scaffold + TS interfaces only. No transformer pass yet.
- * See RFC-HoloMap.md for operator inventory and weight-acquisition plan.
- *
- * @version 0.0.1 (scaffold)
+ * v1.0: deterministic replay fingerprint + SimulationContract binding metadata.
+ * See RFC-HoloMap.md and docs/holomap/CHARTER.md.
  */
 
 import type { AnchorContextState } from './AnchorContext';
 import type { TrajectoryMemoryState } from './TrajectoryMemory';
 import { createFusedAttentionBackend } from './FusedAttentionKernel';
+import { computeHoloMapReplayFingerprint } from './replayFingerprint';
+import { HOLOMAP_SIMULATION_CONTRACT_KIND } from './contractConstants';
+import { getVersionString } from '../version';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -76,6 +77,8 @@ export interface HoloMapConfig {
   seed: number;
   /** Model checkpoint identifier (content-addressed) */
   modelHash: string;
+  /** Optional hash of source video / media (included in replay fingerprint) */
+  videoHash?: string;
   /** Optional CPU offloading for limited VRAM */
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
@@ -118,7 +121,7 @@ export interface HoloMapRuntime {
 // =============================================================================
 
 export interface ReconstructionManifest {
-  version: '0.1.0';
+  version: '1.0.0';
   worldId: string;
   displayName: string;
   pointCount: number;
@@ -129,6 +132,12 @@ export interface ReconstructionManifest {
   };
   /** Content-addressed replay identity */
   replayHash: string;
+  /** SimulationContract-oriented binding (hash identity for reconstruction) */
+  simulationContract: {
+    kind: typeof HOLOMAP_SIMULATION_CONTRACT_KIND;
+    replayFingerprint: string;
+    holoScriptBuild: string;
+  };
   /** External provenance anchor (OpenTimestamps + Base calldata per I.007) */
   provenance: {
     anchorHash?: string;
@@ -148,25 +157,8 @@ export interface ReconstructionManifest {
 }
 
 // =============================================================================
-// FACTORY (stub — real implementation lands in Sprint 2)
+// FACTORY
 // =============================================================================
-
-function fnv1a32Hex(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = (hash * 0x01000193) >>> 0;
-  }
-  const primary = hash.toString(16).padStart(8, '0');
-
-  let hash2 = 0x811c9dc5;
-  for (let i = input.length - 1; i >= 0; i -= 1) {
-    hash2 ^= input.charCodeAt(i);
-    hash2 = (hash2 * 0x01000193) >>> 0;
-  }
-  const secondary = hash2.toString(16).padStart(8, '0');
-  return `${primary}${secondary}`;
-}
 
 class HoloMapRuntimeImpl implements HoloMapRuntime {
   private config: HoloMapConfig = { ...HOLOMAP_DEFAULTS };
@@ -177,9 +169,12 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
     this.steps.length = 0;
-    this.replayKey = fnv1a32Hex(
-      `${this.config.modelHash}|${this.config.seed}|${this.config.weightStrategy ?? 'distill'}`
-    );
+    this.replayKey = computeHoloMapReplayFingerprint({
+      modelHash: this.config.modelHash,
+      seed: this.config.seed,
+      weightStrategy: this.config.weightStrategy ?? 'distill',
+      videoHash: this.config.videoHash,
+    });
     this.initialized = true;
   }
 
@@ -250,7 +245,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const pointCount = this.steps.reduce((acc, s) => acc + s.points.positions.length / 3, 0);
 
     return {
-      version: '0.1.0',
+      version: '1.0.0',
       worldId: `holomap-${this.replayKey}`,
       displayName: 'HoloMap Reconstruction',
       pointCount,
@@ -260,6 +255,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         max: [1, 1, 1],
       },
       replayHash: this.replayKey,
+      simulationContract: {
+        kind: HOLOMAP_SIMULATION_CONTRACT_KIND,
+        replayFingerprint: this.replayKey,
+        holoScriptBuild: getVersionString(),
+      },
       provenance: {
         capturedAtIso: new Date().toISOString(),
       },

@@ -1,0 +1,6 @@
+{
+  "id": "compare-both",
+  "plainName": "Compare compatibility and native",
+  "ingestPath": "both",
+  "description": "Runs both probes and emits a comparison table."
+}

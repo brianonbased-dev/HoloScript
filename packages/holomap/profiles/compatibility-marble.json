@@ -1,0 +1,6 @@
+{
+  "id": "compatibility-marble",
+  "plainName": "Compatibility scene (Marble)",
+  "ingestPath": "marble",
+  "description": "Default for paper deadlines; legacy manifest semantics."
+}

@@ -3806,6 +3806,85 @@ export type BindingParameter = unknown;
 export type GeneratedBinding = unknown;
 `;
 
+const reconstructionDTS = `/** @holoscript/core/reconstruction — HoloMap + SimulationContract binding */
+export declare const HOLOMAP_SIMULATION_CONTRACT_KIND: 'holomap.reconstruction.v1';
+export interface ReconstructionFrame {
+  index: number;
+  timestampMs: number;
+  rgb: Uint8Array;
+  width: number;
+  height: number;
+  stride: 3 | 4;
+}
+export interface CameraPose {
+  position: [number, number, number];
+  rotation: [number, number, number, number];
+  confidence: number;
+}
+export interface PointCloudChunk {
+  positions: Float32Array;
+  colors: Uint8Array;
+  normals?: Float32Array;
+  confidence: Float32Array;
+}
+export interface ReconstructionStep {
+  frame: ReconstructionFrame;
+  pose: CameraPose;
+  points: PointCloudChunk;
+  trajectory: Record<string, unknown>;
+  anchor: Record<string, unknown>;
+}
+export interface HoloMapConfig {
+  inputResolution: { width: number; height: number };
+  targetFPS: number;
+  maxSequenceLength: number;
+  seed: number;
+  modelHash: string;
+  videoHash?: string;
+  cpuOffload: boolean;
+  weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+}
+export declare const HOLOMAP_DEFAULTS: HoloMapConfig;
+export interface ReconstructionManifest {
+  version: '1.0.0';
+  worldId: string;
+  displayName: string;
+  pointCount: number;
+  frameCount: number;
+  bounds: { min: [number, number, number]; max: [number, number, number] };
+  replayHash: string;
+  simulationContract: {
+    kind: 'holomap.reconstruction.v1';
+    replayFingerprint: string;
+    holoScriptBuild: string;
+  };
+  provenance: {
+    anchorHash?: string;
+    opentimestampsProof?: string;
+    baseCalldataTx?: string;
+    capturedAtIso: string;
+  };
+  assets: { points: string; trajectory: string; anchors: string; splats?: string };
+  weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
+}
+export interface HoloMapRuntime {
+  init(config: HoloMapConfig): Promise<void>;
+  step(frame: ReconstructionFrame): Promise<ReconstructionStep>;
+  finalize(): Promise<ReconstructionManifest>;
+  replayHash(): string;
+  dispose(): Promise<void>;
+}
+export declare function createHoloMapRuntime(config?: Partial<HoloMapConfig>): HoloMapRuntime;
+export declare function computeHoloMapReplayFingerprint(parts: {
+  modelHash: string;
+  seed: number;
+  weightStrategy: string;
+  videoHash?: string;
+}): string;
+export declare function fnv1a32Hex(input: string): string;
+export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -3815,6 +3894,7 @@ const subdirDeclarations = [
   { dir: 'codebase', content: codebaseDTS },
   { dir: 'storage', content: storageDTS },
   { dir: 'tools', content: toolsDTS },
+  { dir: 'reconstruction', content: reconstructionDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {

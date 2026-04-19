@@ -37,6 +37,7 @@
     "packages/runtime/src/**/*",
     "packages/fs/src/**/*",
     "packages/security-sandbox/src/**/*",
+    "packages/holomap/src/**/*",
     "packages/ai-validator/src/**/*",
     "packages/holoscript-cdn/src/**/*",
     "packages/std/src/**/*",

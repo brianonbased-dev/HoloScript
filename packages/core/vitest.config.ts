@@ -4,6 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   resolve: {
     alias: {
+      '@holoscript/core/reconstruction': resolve(__dirname, 'src/reconstruction/index.ts'),
       // Allow sibling packages that import @holoscript/core to resolve it locally
       '@holoscript/core': resolve(__dirname, 'src/index.ts'),
       // Cross-package aliases for integration tests

@@ -1,0 +1,6 @@
+{
+  "id": "native-holomap-v1",
+  "plainName": "Native scene (HoloMap)",
+  "ingestPath": "holomap",
+  "description": "WebGPU reconstruction path with SimulationContract binding on manifest."
+}

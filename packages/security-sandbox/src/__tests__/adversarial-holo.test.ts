@@ -22,6 +22,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { resolveIngestPath, runPaperHarnessIngestProbe } from '@holoscript/holomap';
 import { HoloScriptSandbox } from '../index';
 import type { SandboxSimSolver } from '../index';
 import {
@@ -967,7 +968,7 @@ describe('Adversarial: Full Pipeline', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Paper #4 Section 7.4 — Adversarial Detection Summary', () => {
-  it('tallies detections and emits a LaTeX table', () => {
+  it('tallies detections and emits a LaTeX table', async () => {
     const categories: AttackCategory[] = [
       'Sandbox Escape',
       'Incorrect Physics',
@@ -1024,6 +1025,15 @@ describe('Paper #4 Section 7.4 — Adversarial Detection Summary', () => {
       lines.push(`% ${g}: ${c}`);
     }
     lines.push('');
+
+    const ingestPath = resolveIngestPath(process);
+    const ingestProbe = await runPaperHarnessIngestProbe({
+      paperId: 'paper-4-adversarial-holo',
+      ingestPath,
+    });
+    lines.push('');
+    lines.push('% Scene ingest probe (dual-path benchmark evidence)');
+    lines.push(ingestProbe.reportMarkdown);
 
     // Print once so `vitest run` captures the table for Paper #4 ingest.
     // eslint-disable-next-line no-console

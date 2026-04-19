@@ -9,3 +9,6 @@ export * from './FusedAttentionKernel';
 export * from './PagedKVCache';
 export * from './TrajectoryMemory';
 export * from './AnchorContext';
+export * from './replayFingerprint';
+export * from './contractConstants';
+export * from './simulationContractBinding';

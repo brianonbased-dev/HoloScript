@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createHoloMapRuntime, HOLOMAP_DEFAULTS, type ReconstructionFrame } from '../HoloMapRuntime';
+import { assertHoloMapManifestContract } from '../simulationContractBinding';
 
 describe('HoloMapRuntime vertical slice', () => {
   it('initializes, steps, finalizes and returns deterministic replay hash', async () => {
     const runtime = createHoloMapRuntime();
-    await runtime.init({ ...HOLOMAP_DEFAULTS, seed: 42, modelHash: 'test-model' });
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 42,
+      modelHash: 'test-model',
+      videoHash: 'fixture-1',
+    });
 
     const frame: ReconstructionFrame = {
       index: 0,
@@ -20,8 +26,9 @@ describe('HoloMapRuntime vertical slice', () => {
     expect(step.points.positions.length).toBeGreaterThan(0);
 
     const manifest = await runtime.finalize();
-    expect(manifest.version).toBe('0.1.0');
+    expect(manifest.version).toBe('1.0.0');
     expect(manifest.replayHash.length).toBeGreaterThan(8);
+    assertHoloMapManifestContract(manifest);
 
     const replay = runtime.replayHash();
     expect(replay).toBe(manifest.replayHash);

@@ -89,6 +89,9 @@ export default defineConfig({
     // Sprint 3: Agent inference export
     'compiler/agent-inference': 'src/compiler/AgentInferenceExportTarget.ts',
 
+    // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
+    'reconstruction/index': 'src/reconstruction/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

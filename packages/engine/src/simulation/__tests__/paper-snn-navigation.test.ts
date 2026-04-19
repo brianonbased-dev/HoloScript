@@ -17,6 +17,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { resolveIngestPath, runPaperHarnessIngestProbe } from '@holoscript/holomap';
 import { SNNCognitionEngine } from '../SNNCognitionEngine';
 import type {
   CAELSensorBridge,
@@ -80,8 +81,8 @@ function castSensorRays(env: NavEnvironment): Float32Array {
 
     // Check obstacles (ray-sphere intersection)
     for (const obs of env.obstacles) {
-      const ox = obs.pos[0] - env.agentPos.x;
-      const oy = obs.pos[1] - env.agentPos.y;
+      const ox = obs.pos.x - env.agentPos.x;
+      const oy = obs.pos.y - env.agentPos.y;
       const proj = ox * dx + oy * dy;
       if (proj < 0) continue;
       const perpSq = ox * ox + oy * oy - proj * proj;
@@ -354,6 +355,7 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
   it('SNN agent navigates obstacle room with CAEL trace — 200 ticks', async () => {
     const TOTAL_TICKS = 200;
     const DT = 0.05; // 50ms per tick → 10s total simulation
+    const ingestPath = resolveIngestPath(process);
 
     // Setup environment
     const env = createRoom();
@@ -396,6 +398,9 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
 
     // Run experiment
     console.log('\n[nav-experiment] === SNN Navigation Experiment ===');
+    console.log(
+      `[nav-experiment] Scene ingest: ${ingestPath} (set HOLOSCRIPT_INGEST_PATH or --ingest-path=)`,
+    );
     console.log(`[nav-experiment] Room: ${env.width}x${env.height}, ${env.obstacles.length} obstacles`);
     console.log(`[nav-experiment] Start: (${env.agentPos.x}, ${env.agentPos.y}), Goal: (${env.goal.x}, ${env.goal.y})`);
     console.log(`[nav-experiment] SNN: 128 LIF neurons, 10 steps/tick, CPU reference`);
@@ -493,6 +498,13 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
     console.log(`[nav-experiment] CAEL trace: ${traceEntries} entries, ${(traceBytes / 1024).toFixed(1)} KB`);
     console.log(`[nav-experiment] Hash chain valid: ${chainValid}`);
     console.log(`[nav-experiment] Bytes/entry: ${(traceBytes / traceEntries).toFixed(0)}`);
+
+    const ingestProbe = await runPaperHarnessIngestProbe({
+      paperId: 'paper-2-snn-navigation',
+      ingestPath,
+    });
+    console.log('\n[nav-experiment] === Scene ingest probe (attach for reviewers) ===\n');
+    console.log(ingestProbe.reportMarkdown);
 
     // ── LaTeX Table ──────────────────────────────────────────────────────────
 

@@ -108,6 +108,11 @@
     "./cli/holoscript-runner": {
       "import": "./dist/cli/holoscript-runner.js",
       "require": "./dist/cli/holoscript-runner.cjs"
+    },
+    "./reconstruction": {
+      "types": "./dist/reconstruction/index.d.ts",
+      "import": "./dist/reconstruction/index.js",
+      "require": "./dist/reconstruction/index.cjs"
     }
   },
   "bin": {

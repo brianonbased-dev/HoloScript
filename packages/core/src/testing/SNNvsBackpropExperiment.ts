@@ -175,6 +175,15 @@ export interface ExperimentConfig {
 
   /** Confidence threshold below which the model should abstain. */
   abstentionThreshold: number;
+
+  /**
+   * CAEL Experiment 1 — second axis: scene provenance (see docs/cael/experiment-1-scene-axis.md).
+   * When set, runners should log `embodiment × scene` cells with plain-language labels.
+   */
+  caelExperiment1SceneAxis?: 'holomap-native' | 'marble-compatibility';
+
+  /** Optional pin (git SHA or package version) for HoloMap-native longitudinal comparability. */
+  caelExperiment1HoloMapBuildPin?: string;
 }
 
 // =============================================================================
