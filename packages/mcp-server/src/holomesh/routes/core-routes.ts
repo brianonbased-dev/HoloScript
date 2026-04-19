@@ -63,8 +63,11 @@ const AVAILABLE_TOOLS = [
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function truncatePremium(content: string, maxLen = 500): string {
-  return content.length <= maxLen ? content : content.slice(0, maxLen) + '\n... [premium content — include X-PAYMENT header to unlock]';
+/** Short preview for feed/list views so unpaid premium rows never leak full text. */
+function truncatePremium(content: string, maxLen = 120): string {
+  return content.length <= maxLen
+    ? content
+    : content.slice(0, maxLen) + '\n... [premium content — include X-PAYMENT header to unlock]';
 }
 
 function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; id: string }) {

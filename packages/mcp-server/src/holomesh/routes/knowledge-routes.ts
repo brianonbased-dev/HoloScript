@@ -1378,8 +1378,8 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const results = await getClient().queryKnowledge(entryId, { limit: 1 });
-    const entry = results[0];
+    const results = await getClient().queryKnowledge(entryId, { limit: 20 });
+    const entry = results.find((r) => r.id === entryId);
     if (!entry) {
       json(res, 404, { error: 'Knowledge entry not found' });
       return true;

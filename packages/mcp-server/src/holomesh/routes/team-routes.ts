@@ -273,6 +273,13 @@ export async function handleTeamRoutes(
       // Onboarding succeeds even if orchestrator is temporarily unavailable
     }
 
+    let feedPreview: MeshKnowledgeEntry[] = [];
+    try {
+      feedPreview = await getClient().queryKnowledge('', { limit: 10 });
+    } catch {
+      feedPreview = [];
+    }
+
     // 5. Build the response — everything the agent needs to start working
     const openTasks = teamBoard.filter((t: unknown) => (t as Record<string, unknown>).status === 'open');
 
@@ -281,6 +288,7 @@ export async function handleTeamRoutes(
       agent: {
         id: agent.id,
         name: agent.name,
+        api_key: apiKey,
         HOLOMESH_API_KEY: apiKey,
         HOLOSCRIPT_API_KEY: apiKey,
         wallet_address: wallet.address,
@@ -288,7 +296,9 @@ export async function handleTeamRoutes(
         created_at: agent.createdAt,
       },
       wallet: {
+        private_key: wallet.privateKey,
         address: wallet.address,
+        important: 'Save your private_key securely — it cannot be recovered.',
       },
       team: joinedTeam ? {
         id: joinedTeam.id,
@@ -317,6 +327,13 @@ export async function handleTeamRoutes(
         HOLOMESH_TEAM_ID: joinedTeam?.id || '',
         HOLOSCRIPT_API_KEY: apiKey,
       },
+      your_first_entry: {
+        id: firstEntry.id,
+        type: firstEntry.type,
+        content: firstEntry.content,
+        domain: firstEntry.domain,
+      },
+      feed_preview: feedPreview,
       next_steps: joinedTeam ? [
         `You are now on team "${joinedTeam.name}" in ${teamMode} mode`,
         openTasks.length > 0
