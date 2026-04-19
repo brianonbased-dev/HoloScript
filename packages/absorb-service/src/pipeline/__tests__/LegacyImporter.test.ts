@@ -38,8 +38,8 @@ Transform:
     });
 
     const out = fs.readFileSync(outputPath, 'utf-8');
-    expect(out).toContain('<transform x="1" y="2" z="3"/>');
-    expect(out).toContain('<scene>');
+    expect(out).toContain('object "transform_0"');
+    expect(out).toContain('position: [1, 2, 3]');
   });
 
   it('imports tiny .urdf and emits link/joint output shape', async () => {
@@ -66,8 +66,9 @@ Transform:
     });
 
     const out = fs.readFileSync(outputPath, 'utf-8');
-    expect(out).toContain('<link name="base_link" />');
-    expect(out).toContain('<joint name="joint1" type="revolute" />');
+    expect(out).toContain('object "link_base_link"');
+    expect(out).toContain('object "joint_joint1"');
+    expect(out).toContain('type: "revolute"');
     expect(out).toContain('@RoboticsPlugin.robotic_joint');
   });
 });
