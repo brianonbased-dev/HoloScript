@@ -15,6 +15,9 @@ interface ScanSessionState {
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   frameCount?: number;
   videoBytes?: number;
+  videoHash?: string;
+  replayFingerprint?: string;
+  manifest?: { version: string; replayHash: string; simulationContract: { replayFingerprint: string } };
   lastError?: string;
 }
 
@@ -64,7 +67,7 @@ export function ReconstructionPanel() {
   useEffect(() => {
     if (!session?.token) return;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/reconstruction/session?t=${session.token}`);
+      const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(session.token)}`);
       if (!res.ok) return;
       const data = (await res.json()) as ScanSessionState;
       setState(data);
@@ -135,8 +138,16 @@ export function ReconstructionPanel() {
             {state?.videoBytes !== undefined && <p className="text-studio-muted">Upload: {(state.videoBytes / 1024 / 1024).toFixed(2)} MB</p>}
             {expiresIn !== null && <p className="mt-2 text-studio-muted">Expires in ~{expiresIn}s</p>}
             {state?.status === 'done' && (
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2 py-1 text-green-300">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Ready to reconstruct in Studio
+              <div className="mt-3 space-y-2">
+                <div className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2 py-1 text-green-300">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Ready to reconstruct in Studio
+                </div>
+                {(state.replayFingerprint || state.manifest?.simulationContract.replayFingerprint) && (
+                  <p className="font-mono text-[10px] leading-relaxed text-studio-muted break-all">
+                    Replay fingerprint:{' '}
+                    {state.replayFingerprint ?? state.manifest?.simulationContract.replayFingerprint}
+                  </p>
+                )}
               </div>
             )}
             {state?.lastError && <p className="mt-2 text-red-400">Error: {state.lastError}</p>}

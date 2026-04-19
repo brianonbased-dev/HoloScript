@@ -14,11 +14,19 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const [error, setError] = useState<string | null>(null);
 
   const pushState = async (body: Record<string, unknown>) => {
-    await fetch(`/api/reconstruction/session?t=${token}`, {
+    await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+  };
+
+  const sha256Hex = async (file: File): Promise<string> => {
+    const buf = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   };
 
   const onVideoSelected = async (file: File | null) => {
@@ -28,11 +36,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     await pushState({ status: 'capturing' });
 
     try {
+      const videoHash = await sha256Hex(file);
       // MVP transport: report metadata first (actual chunk streaming can follow in next sprint)
       await pushState({
         status: 'uploaded',
         frameCount: Math.max(1, Math.floor(file.size / 100000)),
         videoBytes: file.size,
+        videoHash,
       });
       setDone(true);
       await pushState({ status: 'processing' });

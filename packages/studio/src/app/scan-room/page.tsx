@@ -19,10 +19,14 @@ export default function ScanRoomPage() {
           Start on desktop, authenticate with GitHub, then scan a QR from your phone to capture your room and send it back into Studio reconstruction.
         </p>
         <button
-          onClick={() => signIn('github')}
+          onClick={() =>
+            signIn(undefined, {
+              callbackUrl: '/scan-room',
+            })
+          }
           className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
         >
-          Sign in with GitHub to continue
+          Sign in to continue
         </button>
       </main>
     );
