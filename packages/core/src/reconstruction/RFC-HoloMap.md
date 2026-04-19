@@ -23,7 +23,7 @@ The Babylon.js 9.0 + MCP community server (W.058) is the real ship-clock. If Bab
 ## 3. Non-goals (v1)
 
 - **SOTA quality parity with lingbot-map at v1.** Browser-native + deterministic + multi-target + agent-native wins the positioning battle even at lower pixel quality. Quality follows in v2-v3.
-- **Native robot control (lingbot-va equivalent).** VLA is a later HoloX instance — not this runtime.
+- **Native robot control (lingbot-va equivalent).** VLA is a later HoloX instance — not this runtime. **Guardrail doc:** `docs/holomap/SCOPE_GUARDRAIL.md` (R7 — reject scope creep in reviews).
 - **NeRF training.** HoloMap is feed-forward inference. Trainers are out of scope.
 - **Mobile on-device path.** Phone capture uses existing `npu_depth` trait routing; HoloMap targets desktop/laptop WebGPU first.
 
