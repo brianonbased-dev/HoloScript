@@ -116,7 +116,7 @@ Recommendation: run path 3 for the demo, path 2 in parallel for the production w
 - **Q1 (blocking Sprint 2):** Which WGSL ops are missing for streaming attention + paged KV cache? See `WGSL_GAPS.md`.
 - **Q2:** Do we need per-vertical fine-tunes (indoor / outdoor / object scan)? Trait-composition makes variants natural but splits training work.
 - **Q3:** Where does HoloMap sit in `packages/`? Currently `packages/core/src/reconstruction/`. Alternative: `packages/reconstruction-runtime/` as its own workspace. Keep in core for Sprint 1 to minimize build graph changes; revisit if bundle size becomes an issue.
-- **Q4:** Do we share weights with HoloLand's mobile `npu_depth` path, or keep HoloMap desktop-only and NPU mobile-only? Initial stance: keep separate; `ModalitySelector` picks per surface.
+- **Q4:** Do we share weights with HoloLand's mobile `npu_depth` path, or keep HoloMap desktop-only and NPU mobile-only? **Decision (2026-04-19):** keep **separate** weight families for v1 — see `docs/holomap/MODALITY_WEIGHTS.md`. `ModalitySelector` picks per surface without implying identical checkpoints.
 
 ## 8. Ship plan
 
