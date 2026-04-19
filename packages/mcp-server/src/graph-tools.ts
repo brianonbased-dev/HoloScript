@@ -760,7 +760,7 @@ export async function handleGraphTool(
     case 'holo_reconstruct_step':
     case 'holo_reconstruct_anchor':
     case 'holo_reconstruct_export':
-      return handleHoloMapTool(name, args)!;
+      return handleHoloMapTool(name, args);
 
     case 'holo_semantic_scene_graph': {
       const code = args.code as string;

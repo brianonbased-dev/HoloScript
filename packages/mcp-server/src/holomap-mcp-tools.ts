@@ -1,24 +1,29 @@
 /**
- * HoloMap MCP tools — Sprint 1 validation stubs (no reconstruction implementation).
+ * HoloMap MCP tools — reconstruction sessions via HoloMapRuntime (CPU path in Node).
  *
- * Surfaces tool contracts for agents; returns structured stub responses after
- * validating required arguments. See `packages/core/src/reconstruction/RFC-HoloMap.md`.
+ * `holo_map_paper_ingest_probe` runs paper harness ingest. See RFC-HoloMap.md.
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import {
+  mcpReconstructAnchor,
+  mcpReconstructExport,
+  mcpStartReconstructFromVideo,
+  mcpReconstructStep,
+} from './holo-reconstruct-sessions';
 
 export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_from_video',
     description:
-      'Run HoloMap feed-forward 3D reconstruction on a video URL (WebGPU). Sprint 1: validates args only; implementation lands Sprint 2.',
+      'Open a HoloMap reconstruction session for a video URL (primed config + replay fingerprint). Does not download or decode video in MCP yet; use holo_reconstruct_step to stream frames.',
     inputSchema: {
       type: 'object',
       properties: {
         videoUrl: { type: 'string', description: 'HTTPS URL or file URI to input video' },
         config: {
           type: 'object',
-          description: 'Optional HoloMapConfig fields (inputResolution, targetFPS, seed, modelHash, …)',
+          description: 'Optional HoloMapConfig fields (inputResolution, targetFPS, seed, modelHash, weightStrategy, …)',
         },
       },
       required: ['videoUrl'],
@@ -27,12 +32,12 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_step',
     description:
-      'Stream one RGB frame into an active HoloMap session. Sprint 1: stub — use in Sprint 2 for chunked capture.',
+      'Stream one RGB/RGBA frame (base64) into an active HoloMap session. Returns pose and point count for the step.',
     inputSchema: {
       type: 'object',
       properties: {
-        sessionId: { type: 'string', description: 'Opaque session id from future session API' },
-        frameBase64: { type: 'string', description: 'Base64-encoded RGB/RGBA frame bytes' },
+        sessionId: { type: 'string', description: 'Session id from holo_reconstruct_from_video' },
+        frameBase64: { type: 'string', description: 'Base64-encoded RGB (WxHx3) or RGBA (WxHx4) frame bytes' },
         frameIndex: { type: 'number', description: 'Monotonic frame index' },
         width: { type: 'number' },
         height: { type: 'number' },
@@ -42,8 +47,7 @@ export const holoMapToolDefinitions: Tool[] = [
   },
   {
     name: 'holo_reconstruct_anchor',
-    description:
-      'Return current AnchorContext state for a HoloMap session. Sprint 1: stub.',
+    description: 'Return AnchorContext state for the current (or last) step in a HoloMap session.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -55,14 +59,14 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_export',
     description:
-      'Export reconstruction manifest / compile to a target (r3f, unity, usd, …). Sprint 1: stub.',
+      'Finalize the session and return the v1.0 ReconstructionManifest. Target compilation (r3f, unity, …) is manifest-only for now.',
     inputSchema: {
       type: 'object',
       properties: {
         sessionId: { type: 'string' },
         target: {
           type: 'string',
-          description: 'Compile target id (e.g. r3f, unity, godot, usd-physics)',
+          description: 'Compile target id (e.g. r3f, unity, godot, usd-physics) — reserved for future compilers',
         },
       },
       required: ['sessionId', 'target'],
@@ -114,21 +118,21 @@ export async function handleHoloMapPaperIngestProbe(
   return runPaperHarnessIngestProbe({ paperId, ingestPath });
 }
 
-export function handleHoloMapTool(name: string, args: Record<string, unknown>): unknown {
-  const sprint = 'Sprint 1';
-  const doc = 'packages/core/src/reconstruction/RFC-HoloMap.md';
-
+export async function handleHoloMapTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   switch (name) {
     case 'holo_reconstruct_from_video': {
       const videoUrl = args.videoUrl;
       if (typeof videoUrl !== 'string' || !videoUrl.trim()) {
         throw new Error('holo_reconstruct_from_video: videoUrl (non-empty string) is required');
       }
+      const { sessionId, replayFingerprint } = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config);
       return {
-        ok: false,
-        status: 'NOT_IMPLEMENTED',
-        sprint,
-        message: `HoloMap reconstruction is not implemented yet (${sprint} stub). See ${doc}.`,
+        ok: true,
+        status: 'SESSION_OPEN',
+        sessionId,
+        replayFingerprint,
+        message:
+          'Session initialized with HoloMapRuntime (CPU/WebGPU fallback as configured). Stream frames via holo_reconstruct_step; video bytes are not fetched from videoUrl in MCP yet.',
         validated: { videoUrl: videoUrl.slice(0, 200), hasConfig: args.config != null },
       };
     }
@@ -146,32 +150,20 @@ export function handleHoloMapTool(name: string, args: Record<string, unknown>): 
           throw new Error(`holo_reconstruct_step: ${k} must be a finite number`);
         }
       }
-      return {
-        ok: false,
-        status: 'NOT_IMPLEMENTED',
-        sprint,
-        message: `HoloMap streaming step is not implemented yet (${sprint} stub). See ${doc}.`,
-        validated: {
-          sessionId,
-          frameIndex: args.frameIndex,
-          width: args.width,
-          height: args.height,
-          frameBase64Length: frameBase64.length,
-        },
-      };
+      return mcpReconstructStep(
+        sessionId.trim(),
+        frameBase64.trim(),
+        args.frameIndex as number,
+        args.width as number,
+        args.height as number,
+      );
     }
     case 'holo_reconstruct_anchor': {
       const sessionId = args.sessionId;
       if (typeof sessionId !== 'string' || !sessionId.trim()) {
         throw new Error('holo_reconstruct_anchor: sessionId is required');
       }
-      return {
-        ok: false,
-        status: 'NOT_IMPLEMENTED',
-        sprint,
-        message: `HoloMap anchor export is not implemented yet (${sprint} stub). See ${doc}.`,
-        validated: { sessionId },
-      };
+      return mcpReconstructAnchor(sessionId.trim());
     }
     case 'holo_reconstruct_export': {
       const sessionId = args.sessionId;
@@ -182,13 +174,7 @@ export function handleHoloMapTool(name: string, args: Record<string, unknown>): 
       if (typeof target !== 'string' || !target.trim()) {
         throw new Error('holo_reconstruct_export: target is required');
       }
-      return {
-        ok: false,
-        status: 'NOT_IMPLEMENTED',
-        sprint,
-        message: `HoloMap export is not implemented yet (${sprint} stub). See ${doc}.`,
-        validated: { sessionId, target },
-      };
+      return mcpReconstructExport(sessionId.trim(), target.trim());
     }
     default:
       return undefined;
