@@ -49,14 +49,14 @@ async function main() {
   console.log('[SNN-WebGPU Benchmark] Starting automated browser harness...');
   console.log('[SNN-WebGPU Benchmark] Options:', options);
 
-  // Launch Chromium with WebGPU enabled
+  // Launch Chromium with WebGPU enabled via SwiftShader for headless environments
   const browser = await chromium.launch({
     headless: options.headless,
     args: [
       '--enable-unsafe-webgpu',
-      '--disable-vulkan-fallback',
-      '--ignore-gpu-blocklist',
-      '--use-angle=vulkan'
+      '--use-vulkan=swiftshader',
+      '--disable-vulkan-fallback-to-gl-for-testing',
+      '--ignore-gpu-blocklist'
     ]
   });
 
