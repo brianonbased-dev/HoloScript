@@ -21,6 +21,7 @@ import { HOLOMAP_SIMULATION_CONTRACT_KIND } from './contractConstants';
 import { getVersionString } from '../version';
 import { createHoloMapRunId, logHoloMapEvent } from './holoMapTelemetry';
 import { isWebGpuEnvironmentPresent } from './webgpuGate';
+import { loadHoloMapWeightBlob } from './holoMapWeightLoader';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -88,6 +89,8 @@ export interface HoloMapConfig {
   videoHash?: string;
   /** Optional content-addressed weights reference (changes replay fingerprint when set) */
   weightCid?: string;
+  /** URL for weight blob fetch (pair with weightCid for digest verify). See RFC §5.1. */
+  weightUrl?: string;
   /** Optional CPU offloading for limited VRAM */
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
@@ -183,6 +186,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private readonly runId = createHoloMapRunId();
   private encoderDevice: GPUDevice | null = null;
   private microEncoder: HoloMapMicroEncoder | null = null;
+  /** Loaded weight blob (optional; GPU upload wiring follows R3+). */
+  private weightBytes: ArrayBuffer | null = null;
 
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
@@ -203,6 +208,14 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       videoHash: this.config.videoHash,
       weightCid: this.config.weightCid,
     });
+    this.weightBytes = null;
+    if (this.config.weightUrl) {
+      this.weightBytes = await loadHoloMapWeightBlob({
+        weightUrl: this.config.weightUrl,
+        weightCid: this.config.weightCid,
+      });
+    }
+
     this.encoderDevice = await tryCreateHoloMapEncoderDevice();
     this.microEncoder = this.encoderDevice ? createHoloMapMicroEncoder(this.encoderDevice) : null;
 
@@ -213,6 +226,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       allowCpuFallback: allowCpu,
       webgpu: isWebGpuEnvironmentPresent(),
       microEncoder: this.microEncoder ? 'webgpu' : 'cpu',
+      weightLoadedBytes: this.weightBytes?.byteLength ?? 0,
       replayFingerprint: this.replayKey,
     });
   }
@@ -317,6 +331,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.steps.length = 0;
     this.microEncoder = null;
     this.encoderDevice = null;
+    this.weightBytes = null;
   }
 }
 

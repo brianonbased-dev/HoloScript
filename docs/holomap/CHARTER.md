@@ -34,6 +34,8 @@ See [OPERATOR_GLOSSARY.md](./OPERATOR_GLOSSARY.md) and [RUNBOOK_PAPER_HARNESSES.
 
 **Sprint 2 status (I.008):** See [I008_SPRINT2_GROUND_TRUTH.md](./I008_SPRINT2_GROUND_TRUTH.md) — P0 WGSL ops are largely shipped; integration + weights + acceptance video are the critical path.
 
+**Weights (path 3):** [DEPTHANYTHING_V2_IMPORT.md](./DEPTHANYTHING_V2_IMPORT.md) + `holoMapWeightLoader.ts` (`weightUrl` + `weightCid`).
+
 ## Golden replay fingerprint (CI)
 
 Contract test: `packages/core/src/reconstruction/__fixtures__/GOLDEN_REPLAY_FINGERPRINT.txt` must match `computeHoloMapReplayFingerprint` for the canned inputs documented in `HoloMapGoldenFingerprint.test.ts`. Bump the file only when the fingerprint algorithm or canonical inputs change, with reviewer sign-off.
