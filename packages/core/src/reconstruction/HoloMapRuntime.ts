@@ -10,7 +10,12 @@
 
 import type { AnchorContextState } from './AnchorContext';
 import type { TrajectoryMemoryState } from './TrajectoryMemory';
-import { createFusedAttentionBackend } from './FusedAttentionKernel';
+import {
+  createHoloMapMicroEncoder,
+  runHoloMapMicroEncoderCpu,
+  tryCreateHoloMapEncoderDevice,
+  type HoloMapMicroEncoder,
+} from './holoMapMicroEncoder';
 import { computeHoloMapReplayFingerprint } from './replayFingerprint';
 import { HOLOMAP_SIMULATION_CONTRACT_KIND } from './contractConstants';
 import { getVersionString } from '../version';
@@ -176,6 +181,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private readonly steps: ReconstructionStep[] = [];
   private replayKey = 'unset';
   private readonly runId = createHoloMapRunId();
+  private encoderDevice: GPUDevice | null = null;
+  private microEncoder: HoloMapMicroEncoder | null = null;
 
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
@@ -196,12 +203,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       videoHash: this.config.videoHash,
       weightCid: this.config.weightCid,
     });
+    this.encoderDevice = await tryCreateHoloMapEncoderDevice();
+    this.microEncoder = this.encoderDevice ? createHoloMapMicroEncoder(this.encoderDevice) : null;
+
     this.initialized = true;
     logHoloMapEvent(this.runId, 'init', {
       modelHash: this.config.modelHash,
       seed: this.config.seed,
       allowCpuFallback: allowCpu,
       webgpu: isWebGpuEnvironmentPresent(),
+      microEncoder: this.microEncoder ? 'webgpu' : 'cpu',
       replayFingerprint: this.replayKey,
     });
   }
@@ -211,24 +222,14 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
     }
 
-    const backend = await createFusedAttentionBackend();
+    const microCfg = { seed: this.config.seed, modelHash: this.config.modelHash };
+    const xyz = this.microEncoder
+      ? await this.microEncoder.run(frame, microCfg)
+      : await runHoloMapMicroEncoderCpu(frame, microCfg);
 
-    const q = new Float32Array([frame.width / 1024, frame.height / 1024, frame.index / 1000, 1]);
-    const k = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1]);
-    const v = new Float32Array([0.3, 0.4, 0.5, 0.8, -0.2, 0.1]);
-    const attn = await backend.compute({
-      q,
-      k,
-      v,
-      qRows: 1,
-      kRows: 2,
-      dModel: 4,
-      vCols: 3,
-    });
-
-    const p0 = attn[0] ?? 0;
-    const p1 = attn[1] ?? 0;
-    const p2 = attn[2] ?? 0;
+    const p0 = xyz[0] ?? 0;
+    const p1 = xyz[1] ?? 0;
+    const p2 = xyz[2] ?? 0;
 
     const step: ReconstructionStep = {
       frame,
@@ -314,6 +315,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     logHoloMapEvent(this.runId, 'dispose', { stepsRetained: this.steps.length });
     this.initialized = false;
     this.steps.length = 0;
+    this.microEncoder = null;
+    this.encoderDevice = null;
   }
 }
 
