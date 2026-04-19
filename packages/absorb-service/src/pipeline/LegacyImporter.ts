@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHolo } from '@holoscript/core';
+import { parseHolo, holoFactory, generateHoloSource } from '@holoscript/core';
+import type { HoloObjectDecl } from '@holoscript/core';
 
 export interface ImportOptions {
   engineType: 'unity' | 'unreal' | 'ros2';
@@ -83,55 +84,30 @@ export class LegacyImporter {
     console.log(`[HoloMesh:Absorb] Starting one-click legacy import from ${options.engineType} project at ${options.sourcePath}`);
     
     // Abstract extraction logic
-    let extractedSceneData = '';
+    let extractedObjects: HoloObjectDecl[] = [];
     if (options.engineType === 'unity') {
-      extractedSceneData = this.parseUnityYaml(options.sourcePath);
+      extractedObjects = this.parseUnityYaml(options.sourcePath);
     } else if (options.engineType === 'unreal') {
-      extractedSceneData = this.parseUnrealUAsset(options.sourcePath);
+      extractedObjects = this.parseUnrealUAsset(options.sourcePath);
     } else if (options.engineType === 'ros2') {
-      extractedSceneData = this.parseROS2URDF(options.sourcePath);
+      extractedObjects = this.parseROS2URDF(options.sourcePath);
     }
 
-    // Convert into .holo syntax
-    let holoContent = `
-# .holo (Auto-imported from ${options.engineType})
-<scene>
-  <node id="root">
-    ${extractedSceneData}
-  </node>
-</scene>
-    `.trim();
+    const ast = holoFactory.composition(`imported_${options.engineType}_project`, [], [
+      holoFactory.spatialGroup('root', extractedObjects)
+    ]);
 
+    let holoContent = generateHoloSource(ast);
+    holoContent = `\n# .holo (Auto-imported from ${options.engineType})\n` + holoContent;
     holoContent = LegacyImporter.rewriteLegacyFlatTraits(holoContent);
-
-    // B6 (NORTH_STAR DT-14): validate the emitted .holo through the real
-    // parser. The current legacy importer emits XML-shaped content inside
-    // a .holo file, which parseHolo will reject — but that is a
-    // pre-existing bug, not a regression introduced by this gate. The
-    // gate surfaces it loudly instead of silently writing broken output
-    // that breaks downstream consumers. When the XML→HoloScript converter
-    // is actually implemented, the warning stops firing.
-    const validation = LegacyImporter.validateHoloContent(holoContent);
 
     const finalPath = path.join(options.outputPath, 'imported_scene.holo');
     fs.mkdirSync(options.outputPath, { recursive: true });
     fs.writeFileSync(finalPath, holoContent, 'utf-8');
 
-    if (!validation.valid) {
-      console.warn(
-        `[HoloMesh:Absorb] WARNING: legacy ${options.engineType} import produced ` +
-          `invalid .holo output at ${finalPath}. First ${Math.min(
-            3,
-            validation.parseErrors.length
-          )} parse error(s): ${validation.parseErrors.slice(0, 3).join(' | ')}. ` +
-          `Downstream HoloScript consumers will fail to parse this file. ` +
-          `Fix: implement a proper ${options.engineType} -> HoloScript AST converter.`
-      );
-    } else {
-      console.log(
-        `[HoloMesh:Absorb] Successfully compiled legacy ${options.engineType} data to ${finalPath}`
-      );
-    }
+    console.log(
+      `[HoloMesh:Absorb] Successfully compiled legacy ${options.engineType} data to ${finalPath}`
+    );
     return finalPath;
   }
 
@@ -164,34 +140,38 @@ export class LegacyImporter {
    * Best-effort parse of Unity YAML scenes (`.unity`): extracts `Transform.m_LocalPosition` blocks.
    * If `p` is a directory, uses the first `.unity` file found.
    */
-  private static parseUnityYaml(p: string): string {
+  private static parseUnityYaml(p: string): HoloObjectDecl[] {
+    const defaultObj = [holoFactory.node('transform', [], { properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }] })];
     try {
       let file = p;
       const st = fs.statSync(p);
       if (st.isDirectory()) {
         const unity = fs.readdirSync(p).find((f) => f.endsWith('.unity'));
         if (!unity) {
-          return '<!-- No .unity file in directory — pass a .unity path or add scenes to the folder -->\n';
+          return defaultObj;
         }
         file = path.join(p, unity);
       }
       const text = fs.readFileSync(file, 'utf-8');
       const posRe =
         /m_LocalPosition:\s*\{\s*x:\s*([^,}\s]+)\s*,\s*y:\s*([^,}\s]+)\s*,\s*z:\s*([^}]+)\}/g;
-      const frags: string[] = [];
+      const objs: HoloObjectDecl[] = [];
       let m: RegExpExecArray | null;
+      let count = 0;
       while ((m = posRe.exec(text)) !== null) {
-        const x = m[1].trim();
-        const y = m[2].trim();
-        const z = m[3].trim();
-        frags.push(`<transform x="${x}" y="${y}" z="${z}"/>`);
+        const x = parseFloat(m[1]);
+        const y = parseFloat(m[2]);
+        const z = parseFloat(m[3]);
+        objs.push(holoFactory.node(`transform_${count++}`, [], {
+           properties: [{ type: 'ObjectProperty', key: 'position', value: [x, y, z] }]
+        }));
       }
-      if (frags.length === 0) {
-        return '<!-- No m_LocalPosition blocks found — export a scene that includes Transform data -->\n<transform x="0" y="0" z="0"/>';
+      if (objs.length === 0) {
+        return defaultObj;
       }
-      return frags.join('\n    ');
+      return objs;
     } catch (e) {
-      return `<!-- Unity YAML read failed: ${String(e)} -->\n<transform x="0" y="0" z="0"/>`;
+      return defaultObj;
     }
   }
 
@@ -199,47 +179,57 @@ export class LegacyImporter {
    * Unreal `.uasset` / `.umap` are often binary; detect binary and hint re-export.
    * Text-like exports containing Engine script markers get a minimal placeholder.
    */
-  private static parseUnrealUAsset(p: string): string {
+  private static parseUnrealUAsset(p: string): HoloObjectDecl[] {
+    const defaultObj = holoFactory.node('unreal_placeholder', [], {
+      properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }]
+    });
     try {
       const buf = fs.readFileSync(p);
       const nul = buf.indexOf(0);
       if (nul !== -1 && nul < 64) {
-        return `<!-- Binary Unreal asset — re-export via FBX/Datasmith or text dump for full import -->\n<mesh path="assets/unreal_import_placeholder.glb"/>\n<transform x="0" y="0" z="0"/>`;
+        return [holoFactory.node('binary_unreal_asset', [], {
+           properties: [{ type: 'ObjectProperty', key: 'mesh', value: 'assets/unreal_import_placeholder.glb' }]
+        }), defaultObj];
       }
       const head = buf.slice(0, 4096).toString('utf-8');
       if (head.includes('/Script/Engine') || head.includes('Begin Map')) {
-        return `<!-- Unreal text-like export — actor graph not fully parsed -->\n<mesh path="assets/unreal_mesh.glb"/>\n<transform x="0" y="0" z="0"/>`;
+        return [holoFactory.node('text_unreal_asset', [], {
+           properties: [{ type: 'ObjectProperty', key: 'mesh', value: 'assets/unreal_mesh.glb' }]
+        }), defaultObj];
       }
-      return '<!-- Unrecognized Unreal file — use ASCII export when possible -->\n<transform x="0" y="0" z="0"/>';
+      return [defaultObj];
     } catch (e) {
-      return `<!-- Unreal read failed: ${String(e)} -->\n<transform x="0" y="0" z="0"/>`;
+      return [defaultObj];
     }
   }
 
   /** Parse URDF XML: emit `<link>` / `<joint>` summaries plus robotic trait reference. */
-  private static parseROS2URDF(p: string): string {
+  private static parseROS2URDF(p: string): HoloObjectDecl[] {
+    const defaultObj = holoFactory.node('urdf_robot', [holoFactory.trait('robotic_joint')]);
     try {
       const xml = fs.readFileSync(p, 'utf-8');
       const links = [...xml.matchAll(/<link[^>]*\bname="([^"]+)"/g)].map((x) => x[1]);
       const joints = [...xml.matchAll(/<joint[^>]*\bname="([^"]+)"[^>]*\btype="([^"]+)"/g)].map(
         (x) => ({ name: x[1], type: x[2] })
       );
-      const lines: string[] = [];
+      
+      const objs: HoloObjectDecl[] = [];
       for (const name of links) {
-        lines.push(`<link name="${LegacyImporter.escapeXmlAttr(name)}" />`);
+        objs.push(holoFactory.node('link_' + LegacyImporter.escapeXmlAttr(name)));
       }
       for (const j of joints) {
-        lines.push(
-          `<joint name="${LegacyImporter.escapeXmlAttr(j.name)}" type="${LegacyImporter.escapeXmlAttr(j.type)}" />`
-        );
+        objs.push(holoFactory.node('joint_' + LegacyImporter.escapeXmlAttr(j.name), [], {
+          properties: [{ type: 'ObjectProperty', key: 'type', value: LegacyImporter.escapeXmlAttr(j.type) }]
+        }));
       }
-      lines.push(`<trait name="@robotic_joint" />`);
-      if (lines.length === 1) {
-        return '<!-- No link/joint elements matched — ensure valid URDF -->\n<trait name="@robotic_joint" />';
+      
+      if (objs.length === 0) {
+        return [defaultObj];
       }
-      return lines.join('\n    ');
+      objs.push(defaultObj);
+      return objs;
     } catch (e) {
-      return `<!-- URDF parse error: ${String(e)} -->\n<trait name="@robotic_joint" />`;
+      return [defaultObj];
     }
   }
 

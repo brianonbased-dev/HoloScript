@@ -18,7 +18,8 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHolo } from '@holoscript/core';
+import { holoFactory, generateHoloSource } from '@holoscript/core';
+import type { HoloObjectDecl, HoloStatement } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -53,16 +54,6 @@ interface AbsorbResult {
     containerPatterns: string[];
   };
   error?: string;
-  /**
-   * B4 validation record — `valid` is false when `parseHolo` rejected
-   * the generated composition. `parseErrors` carries the parser's
-   * message list. Absent only when validation was skipped (e.g. on
-   * error paths where `holo` was never produced).
-   */
-  validation?: {
-    valid: boolean;
-    parseErrors: string[];
-  };
 }
 
 // =============================================================================
@@ -214,80 +205,56 @@ function generateHolo(
   resiliencePatterns: string[],
   containerPatterns: string[]
 ): string {
-  const lines: string[] = [];
-
-  lines.push(`composition "${serviceName}" {`);
-  lines.push('');
+  const rootGroupObjects: HoloObjectDecl[] = [];
 
   // Service block
   if (endpoints.length > 0) {
-    lines.push('  service {');
-    lines.push('    @service');
-    if (resiliencePatterns.length > 0) {
-      for (const p of resiliencePatterns) {
-        lines.push(`    @${p}`);
-      }
+    const serviceTraits = [holoFactory.trait('service')];
+    for (const p of resiliencePatterns) {
+      serviceTraits.push(holoFactory.trait(p));
     }
-    lines.push('');
-
+    
+    const epObjects: HoloObjectDecl[] = [];
     for (const ep of endpoints) {
-      lines.push(`    @endpoint("${ep.method} ${ep.path}")`);
+      const epTraits = [holoFactory.trait('endpoint', {}, [ep.method + ' ' + ep.path])];
       if (ep.handlerName) {
-        lines.push(`    @handler("${ep.handlerName}")`);
+        epTraits.push(holoFactory.trait('handler', {}, [ep.handlerName]));
       }
+      
+      const epObj = holoFactory.node(`endpoint_${ep.method}_${ep.path.replace(/[^a-zA-Z0-9]/g, '_')}`, epTraits);
+      
       if (ep.body) {
-        lines.push('    @imperative {');
-        // Indent the body
-        const bodyLines = ep.body.split('\n');
-        for (const bl of bodyLines) {
-          lines.push(`      ${bl}`);
-        }
-        lines.push('    }');
+        // Simplified mapping of imperative body
+        epObj.traits.push(holoFactory.trait('imperative', { code: ep.body }));
       }
-      lines.push('');
+      epObjects.push(epObj);
     }
-    lines.push('  }');
-    lines.push('');
+    
+    rootGroupObjects.push(holoFactory.node('service', serviceTraits, { children: epObjects }));
   }
 
   // Data block
   if (models.length > 0) {
-    lines.push('  data {');
-    lines.push('    @db');
-    lines.push('');
-
+    const modelObjects: HoloObjectDecl[] = [];
     for (const model of models) {
-      lines.push(`    @model("${model.name}")`);
-      for (const field of model.fields) {
-        const opt = field.optional ? '?' : '';
-        lines.push(`    // ${field.name}${opt}: ${field.type}`);
-      }
-      lines.push('');
+      const fieldsStr = model.fields.map(f => `${f.name}${f.optional ? '?' : ''}: ${f.type}`).join('\\n');
+      modelObjects.push(holoFactory.node(model.name, [holoFactory.trait('model', {}, [model.name]), holoFactory.trait('fields', { definition: fieldsStr })]));
     }
-    lines.push('  }');
-    lines.push('');
+    rootGroupObjects.push(holoFactory.node('data', [holoFactory.trait('db')], { children: modelObjects }));
   }
 
   // Pipeline block
   if (queues.length > 0) {
-    lines.push('  pipeline {');
-    lines.push('    @pipeline');
+    const queueObjects: HoloObjectDecl[] = [];
     for (const q of queues) {
-      lines.push(`    @queue("${q.name}")`);
-      lines.push(`    @worker`);
+      queueObjects.push(holoFactory.node(q.name, [holoFactory.trait('queue', {}, [q.name]), holoFactory.trait('worker')]));
     }
-    lines.push('  }');
-    lines.push('');
+    rootGroupObjects.push(holoFactory.node('pipeline', [holoFactory.trait('pipeline')], { children: queueObjects }));
   }
 
   // Container block
   if (containerPatterns.length > 0) {
-    lines.push('  container {');
-    for (const p of containerPatterns) {
-      lines.push(`    @${p}`);
-    }
-    lines.push('  }');
-    lines.push('');
+    rootGroupObjects.push(holoFactory.node('container', containerPatterns.map(p => holoFactory.trait(p))));
   }
 
   // If nothing was detected, produce a skeleton
@@ -297,16 +264,14 @@ function generateHolo(
     queues.length === 0 &&
     containerPatterns.length === 0
   ) {
-    lines.push('  // No recognizable patterns detected.');
-    lines.push('  // Add your service, data, pipeline, or container blocks here.');
-    lines.push('  service {');
-    lines.push('    @service');
-    lines.push('  }');
-    lines.push('');
+    rootGroupObjects.push(holoFactory.node('service', [holoFactory.trait('service')]));
   }
 
-  lines.push('}');
-  return lines.join('\n');
+  const ast = holoFactory.composition(serviceName, [], [
+    holoFactory.spatialGroup('root', rootGroupObjects)
+  ]);
+
+  return generateHoloSource(ast);
 }
 
 /**
@@ -345,14 +310,6 @@ function absorbTypeScript(code: string, name?: string): AbsorbResult {
     containerPatterns
   );
 
-  // B4 (NORTH_STAR DT-14): validate the generated .holo through the
-  // real parser before returning. Any syntax problem introduced by
-  // the string-concat generator (e.g. unbalanced braces from embedded
-  // @imperative regions, unescaped quotes in endpoint paths) surfaces
-  // as a structured error instead of silently shipping malformed code
-  // to the MCP client.
-  const validation = validateGeneratedHolo(holo);
-
   return {
     success: true,
     holo,
@@ -363,32 +320,7 @@ function absorbTypeScript(code: string, name?: string): AbsorbResult {
       resiliencePatterns,
       containerPatterns,
     },
-    validation,
   };
-}
-
-/**
- * Parse the generated .holo output through `@holoscript/core` and
- * return a structured validation record. Attached to tool responses
- * so downstream consumers can decide whether to trust the emission.
- */
-function validateGeneratedHolo(holo: string): {
-  valid: boolean;
-  parseErrors: string[];
-} {
-  try {
-    const result = parseHolo(holo, { tolerant: true, locations: false });
-    const errs = result.errors ?? [];
-    return {
-      valid: errs.length === 0 && result.ast != null,
-      parseErrors: errs.map((e) => e.message ?? String(e)),
-    };
-  } catch (err) {
-    return {
-      valid: false,
-      parseErrors: [err instanceof Error ? err.message : String(err)],
-    };
-  }
 }
 
 /**

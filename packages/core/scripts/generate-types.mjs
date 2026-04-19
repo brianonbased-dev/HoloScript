@@ -102,6 +102,8 @@ export function parse(source: string, options?: any): ParseResult;
 export function parseHolo(source: string, options?: any): any;
 export function parseHoloStrict(source: string): any;
 export function parseHoloScriptPlus(source: string, options?: any): ParseResult;
+export const holoFactory: any;
+export function generateHoloSource(ast: any): string;
 
 // ============================================================================
 // COMPOSITION TYPES (from .holo files)
@@ -181,6 +183,10 @@ export interface HoloEventHandler extends ASTNode {
 
 export interface HoloAction extends ASTNode {
   name: string;
+  [key: string]: any;
+}
+
+export interface HoloStatement extends ASTNode {
   [key: string]: any;
 }
 

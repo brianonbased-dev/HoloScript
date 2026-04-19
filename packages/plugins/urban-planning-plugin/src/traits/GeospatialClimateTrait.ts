@@ -52,7 +52,7 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
     },
     onDetach(n: HSPlusNode, _c: GeospatialClimateConfig, ctx: TraitContext) {
       delete n.__geospatialClimateState;
-      if (c.emitEvents !== false) {
+      if (_c.emitEvents !== false) {
         ctx.emit?.('climate:removed');
       }
     },

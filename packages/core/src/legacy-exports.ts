@@ -101,6 +101,8 @@ export {
   parseHoloStrict,
   parseHoloPartial,
 } from './parser/HoloCompositionParser';
+export { factory as holoFactory } from './parser/HoloCompositionFactory';
+export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {
   HoloComposition,
   HoloEnvironment,
