@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-19T00:00:00.000Z",
+  "skills": [
+    {
+      "compositionName": "photo-to-hologram",
+      "fileName": "photo-to-hologram.hsplus",
+      "displayTitle": "Photo → Hologram",
+      "category": "2d-to-3d-media",
+      "summary": "Convert any image into a depth-displaced holographic panel (segment, depth estimation, displacement, billboard)."
+    },
+    {
+      "compositionName": "gif-to-sprite",
+      "fileName": "gif-to-sprite.hsplus",
+      "displayTitle": "GIF → Holographic sprite",
+      "category": "2d-to-3d-media",
+      "summary": "Turn animated GIFs into holographic sprites with disposal-aware frames and temporal smoothing."
+    },
+    {
+      "compositionName": "scene-to-quilt",
+      "fileName": "scene-to-quilt.hsplus",
+      "displayTitle": "Scene → Looking Glass quilt",
+      "category": "2d-to-3d-media",
+      "summary": "Export a HoloScript scene as a multi-view quilt for Looking Glass displays."
+    },
+    {
+      "compositionName": "video-to-3d",
+      "fileName": "video-to-3d.hsplus",
+      "displayTitle": "Video → 3D",
+      "category": "2d-to-3d-media",
+      "summary": "Progressive video-to-volumetric pipeline: depth overlay, point cloud, optional Gaussian splat tier."
+    }
+  ]
+}

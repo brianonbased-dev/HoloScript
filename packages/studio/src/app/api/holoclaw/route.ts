@@ -8,6 +8,13 @@ import * as path from 'path';
 // Types
 // ---------------------------------------------------------------------------
 
+interface MarketplaceMeta {
+  published: true;
+  displayTitle: string;
+  category: string;
+  summary: string;
+}
+
 interface SkillMeta {
   name: string;
   fileName: string;
@@ -18,6 +25,7 @@ interface SkillMeta {
   traits: string[];
   states: number;
   description: string;
+  marketplace?: MarketplaceMeta;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +68,48 @@ function extractSkillMeta(
   return { name, fileName, path: filePath, actions, traits, states: stateCount, description };
 }
 
+function loadPublishedCatalog(rootDir: string): Map<string, MarketplaceMeta> {
+  const catalogPath = path.join(rootDir, 'compositions', 'holoclaw-published-skills.json');
+  if (!fs.existsSync(catalogPath)) return new Map();
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(catalogPath, 'utf-8')) as {
+      skills?: Array<{
+        compositionName?: string;
+        fileName?: string;
+        displayTitle?: string;
+        category?: string;
+        summary?: string;
+      }>;
+    };
+    const map = new Map<string, MarketplaceMeta>();
+    for (const e of raw.skills || []) {
+      const file = (e.fileName || `${e.compositionName || ''}.hsplus`).trim();
+      if (!file || !e.displayTitle || !e.category || !e.summary) continue;
+      const meta: MarketplaceMeta = {
+        published: true,
+        displayTitle: e.displayTitle,
+        category: e.category,
+        summary: e.summary,
+      };
+      map.set(file, meta);
+      if (e.compositionName) map.set(`${e.compositionName}.hsplus`, meta);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function attachMarketplaceMeta(skills: SkillMeta[], catalog: Map<string, MarketplaceMeta>): SkillMeta[] {
+  return skills.map((s) => {
+    const fromFile = catalog.get(s.fileName);
+    const fromName = catalog.get(`${s.name}.hsplus`);
+    const m = fromFile || fromName;
+    return m ? { ...s, marketplace: m } : s;
+  });
+}
+
 function discoverSkills(rootDir: string): SkillMeta[] {
   const skillsDirs = [
     path.join(rootDir, 'compositions', 'skills'),
@@ -96,8 +146,10 @@ function discoverSkills(rootDir: string): SkillMeta[] {
 
 export async function GET() {
   const repoRoot = process.env.HOLOSCRIPT_REPO_ROOT || process.cwd();
-  const skills = discoverSkills(repoRoot);
-  return NextResponse.json({ skills, total: skills.length });
+  const catalog = loadPublishedCatalog(repoRoot);
+  const skills = attachMarketplaceMeta(discoverSkills(repoRoot), catalog);
+  const publishedCount = skills.filter((s) => s.marketplace?.published).length;
+  return NextResponse.json({ skills, total: skills.length, publishedCount });
 }
 
 // ---------------------------------------------------------------------------

@@ -16,6 +16,13 @@ import { HoloClaw3DDeck } from './HoloClaw3DDeck';
 // Types
 // ---------------------------------------------------------------------------
 
+interface MarketplaceMeta {
+  published: true;
+  displayTitle: string;
+  category: string;
+  summary: string;
+}
+
 interface SkillMeta {
   name: string;
   fileName: string;
@@ -26,6 +33,7 @@ interface SkillMeta {
   traits: string[];
   states: number;
   description: string;
+  marketplace?: MarketplaceMeta;
 }
 
 interface RunningSkill {
@@ -188,6 +196,8 @@ function timeSince(dateStr: string): string {
 
 function SkillCard({ skill }: { skill: SkillWithStatus }) {
   const cfg = STATUS_CONFIG[skill.status];
+  const displayName = skill.marketplace?.displayTitle || skill.name;
+  const blurb = skill.marketplace?.summary || skill.description;
 
   return (
     <div
@@ -195,12 +205,17 @@ function SkillCard({ skill }: { skill: SkillWithStatus }) {
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`h-2 w-2 shrink-0 rounded-full ${cfg.dot} ${skill.status === 'running' ? 'animate-pulse' : ''}`} />
-            <h3 className="text-sm font-semibold text-studio-text truncate">{skill.name}</h3>
+            <h3 className="text-sm font-semibold text-studio-text truncate">{displayName}</h3>
+            {skill.marketplace?.published && (
+              <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
+                Marketplace
+              </span>
+            )}
           </div>
-          {skill.description && (
-            <p className="mt-1 ml-4 text-xs text-studio-muted line-clamp-1">{skill.description}</p>
+          {blurb && (
+            <p className="mt-1 ml-4 text-xs text-studio-muted line-clamp-2">{blurb}</p>
           )}
         </div>
         <div className="ml-2 flex items-center gap-2">
@@ -398,10 +413,11 @@ function EconomyWidget({ skills }: { skills: SkillWithStatus[] }) {
             {economySkills.map((skill) => {
               const skillSpend = skill.status === 'running' ? 2.5 : 0;
               const skillPct = Math.min(100, (skillSpend / 10) * 100);
+              const econLabel = skill.marketplace?.displayTitle || skill.name;
               return (
                 <div key={skill.name}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-studio-muted">{skill.name}</span>
+                    <span className="text-xs text-studio-muted">{econLabel}</span>
                     <span className="text-[10px] text-studio-muted">{skillSpend.toFixed(1)} cr</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[#0f172a] overflow-hidden">
