@@ -2,6 +2,8 @@
  * Procedural Generation Traits
  */
 export const PROCEDURAL_GENERATION_TRAITS = [
+  /** Geometric primitive / blockout draft mode (pairs with R3FCompiler @draft handling). */
+  'draft',
   'procedural_terrain',
   'procedural_city',
   'procedural_dungeon',
