@@ -80,20 +80,67 @@ function resolveGaussianSplatSrc(node: R3FNode): string | null {
   return null;
 }
 
-export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
-  const children = node.children?.map((child: R3FNode, i: number) => (
+/** Draft meshes that can share an InstancedMesh (exclude Gaussian splat drafts). */
+function isBatchableDraftMesh(node: R3FNode): boolean {
+  return (
+    node.type === 'mesh' &&
+    node.assetMaturity === 'draft' &&
+    resolveGaussianSplatSrc(node) === null
+  );
+}
+
+/** Split group children: batchable draft meshes vs everything else (preserve order in `rest`). */
+function partitionStudioChildren(children: R3FNode[] | undefined): {
+  batchableDraftMeshes: R3FNode[];
+  rest: R3FNode[];
+} {
+  const list = children ?? [];
+  const batchableDraftMeshes: R3FNode[] = [];
+  const rest: R3FNode[] = [];
+  for (const c of list) {
+    if (isBatchableDraftMesh(c)) {
+      batchableDraftMeshes.push(c);
+    } else {
+      rest.push(c);
+    }
+  }
+  return { batchableDraftMeshes, rest };
+}
+
+function renderStudioChildList(rest: R3FNode[]) {
+  return rest.map((child: R3FNode, i: number) => (
     <R3FNodeRenderer key={child.id || `child-${i}`} node={child} />
   ));
+}
 
+/** Batched draft blockout meshes with Studio selection + one InstancedMesh per shape. */
+function StudioDraftMeshBatch({ nodes }: { nodes: R3FNode[] }) {
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  const wireframe = nodes.some((n) => n.props.draftWireframe);
+  if (nodes.length === 0) return null;
+  return (
+    <DraftMeshNode
+      nodes={nodes}
+      onSelect={setSelectedId}
+      wireframe={wireframe}
+    />
+  );
+}
+
+export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const { props } = node;
 
   switch (node.type) {
     case 'splat': {
       const src = resolveGaussianSplatSrc(node);
       if (!src) {
+        const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
         return (
           <group position={props.position} rotation={props.rotation} scale={props.scale}>
-            {children}
+            {batchableDraftMeshes.length > 0 && (
+              <StudioDraftMeshBatch key="studio-draft-batch" nodes={batchableDraftMeshes} />
+            )}
+            {renderStudioChildList(rest)}
           </group>
         );
       }
@@ -196,12 +243,17 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       );
     }
 
-    case 'group':
+    case 'group': {
+      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
-          {children}
+          {batchableDraftMeshes.length > 0 && (
+            <StudioDraftMeshBatch key="studio-draft-batch" nodes={batchableDraftMeshes} />
+          )}
+          {renderStudioChildList(rest)}
         </group>
       );
+    }
 
     case 'directionalLight':
       return (
@@ -313,12 +365,17 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         />
       );
 
-    default:
+    default: {
       // Unknown type — wrap in group and render children
+      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
-          {children}
+          {batchableDraftMeshes.length > 0 && (
+            <StudioDraftMeshBatch key="studio-draft-batch" nodes={batchableDraftMeshes} />
+          )}
+          {renderStudioChildList(rest)}
         </group>
       );
+    }
   }
 }
