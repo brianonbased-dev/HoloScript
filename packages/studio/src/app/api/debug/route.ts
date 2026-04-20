@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 /**
  * POST /api/debug
@@ -10,7 +11,14 @@ import { NextRequest } from 'next/server';
  *
  * Parses HoloScript code into execution frames (one per statement/trait call),
  * simulates a step-through debugger with variable state accumulation.
+ *
+ * SEC-T10: Route is auth-gated, enforces a 64KB cap on the `code` field, and
+ * the trait-call parser uses a bounded character class ([^)]*) instead of the
+ * previous nested-optional `(.*)?\)?` form which was vulnerable to catastrophic
+ * regex backtracking on pathological inputs.
  */
+
+const MAX_CODE_BYTES = 65_536;
 
 interface DebugRequest {
   code?: string;
@@ -49,7 +57,9 @@ function buildFrames(code: string, breakpoints: number[]): DebugFrame[] {
 
     const sceneM = line.match(/^scene\s+"([^"]+)"/);
     const objM = line.match(/^object\s+"([^"]+)"/);
-    const traitM = line.match(/^@(\w+)\s*\((.*)?\)?\s*$/);
+    // SEC-T10: Non-backtracking form — single optional paren group, body is
+    // bounded by `[^)]*` so there is no nested quantifier ambiguity.
+    const traitM = line.match(/^@(\w+)\s*(?:\(([^)]*)\))?\s*$/);
     const propM = line.match(/^(\w+):\s*(.+)$/);
 
     if (sceneM) {
@@ -131,14 +141,28 @@ function buildVars(frames: DebugFrame[], upTo: number): DebugVar[] {
 }
 
 export async function POST(request: NextRequest) {
+  // SEC-T10: Require authenticated session. Previously unauthenticated; anyone
+  // could submit code for parsing and burn the 300s maxDuration budget.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   let body: DebugRequest;
   try {
     body = (await request.json()) as DebugRequest;
   } catch {
-    return Response.json({ error: 'Bad JSON' }, { status: 400 });
+    return NextResponse.json({ error: 'Bad JSON' }, { status: 400 });
   }
 
   const { code = '', breakpoints = [], action = 'start', currentFrame = -1 } = body;
+
+  // SEC-T10: Reject oversize payloads to prevent CPU/memory DoS.
+  if (typeof code !== 'string' || code.length > MAX_CODE_BYTES) {
+    return NextResponse.json(
+      { error: `code exceeds ${MAX_CODE_BYTES}-byte limit` },
+      { status: 413 }
+    );
+  }
+
   const frames = buildFrames(code, breakpoints);
 
   let nextFrame = 0;
@@ -153,7 +177,7 @@ export async function POST(request: NextRequest) {
   const variables = buildVars(frames, nextFrame);
   const finished = nextFrame >= frames.length - 1 && action !== 'reset';
 
-  return Response.json({ frames, currentFrame: nextFrame, variables, finished });
+  return NextResponse.json({ frames, currentFrame: nextFrame, variables, finished });
 }
 
 
