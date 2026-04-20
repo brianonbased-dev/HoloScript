@@ -4,6 +4,14 @@ Dual-platform app store connector for HoloScript Studio Integration Hub.
 
 Integrates with **Apple App Store Connect** and **Google Play Developer API** for automated build deployment from Unity/HoloScript compiler output to production app stores.
 
+## Delivery status (Integration Hub)
+
+| Capability | Status |
+|------------|--------|
+| Dual-platform MCP connector (`AppStoreConnector`, tool registry) | Shipped — see `src/` and `INTEGRATION_HUB.md` |
+| Apple + Google tool surface (upload, tracks, TestFlight, metadata) | Shipped — see feature list below |
+| CI / Studio wiring for “one-click” submission | Partial — requires project credentials and pipeline glue per app |
+
 ## Features
 
 ### Apple App Store Connect
