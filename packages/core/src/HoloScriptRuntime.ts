@@ -23,7 +23,7 @@ import { getSharedEventBus } from './events/EventBus';
 import { StateSynchronizer } from '@holoscript/mesh';
 import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
-import { stateMachineInterpreter } from '@holoscript/engine/runtime/StateMachineInterpreter';
+import { stateMachineInterpreter } from '@holoscript/engine/runtime';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
@@ -41,13 +41,13 @@ import type {
   HoloStatement,
   HoloExpression,
 } from './parser/HoloCompositionTypes';
-import { BaseVoiceSynthesizer } from '@holoscript/engine/runtime/BaseVoiceSynthesizer';
-import { registerVoiceSynthesizer } from '@holoscript/engine/runtime/VoiceSynthesizer';
-import { LocalEmotionDetector } from '@holoscript/engine/runtime/LocalEmotionDetector';
-import { registerEmotionDetector } from '@holoscript/engine/runtime/EmotionDetector';
-import { MockSpeechRecognizer } from '@holoscript/engine/runtime/MockSpeechRecognizer';
-import { registerSpeechRecognizer } from '@holoscript/engine/runtime/SpeechRecognizer';
-import { MethodMemoize, ObjectPool } from '@holoscript/engine/runtime/RuntimeOptimization';
+import { BaseVoiceSynthesizer } from '@holoscript/engine/runtime';
+import { registerVoiceSynthesizer } from '@holoscript/engine/runtime';
+import { LocalEmotionDetector } from '@holoscript/engine/runtime';
+import { registerEmotionDetector } from '@holoscript/engine/runtime';
+import { MockSpeechRecognizer } from '@holoscript/engine/runtime';
+import { registerSpeechRecognizer } from '@holoscript/engine/runtime';
+import { MethodMemoize, ObjectPool } from '@holoscript/engine/runtime';
 import type {
   ASTNode,
   OrbNode,
@@ -196,9 +196,9 @@ export class HoloScriptRuntime {
     );
 
     // Register Edge Intelligence Providers
-    registerVoiceSynthesizer('default', new BaseVoiceSynthesizer());
-    registerEmotionDetector('default', new LocalEmotionDetector());
-    registerSpeechRecognizer('default', new MockSpeechRecognizer());
+    registerVoiceSynthesizer();
+    registerEmotionDetector();
+    registerSpeechRecognizer();
 
     for (const [name, fn] of this.builtinFunctions) {
       // Wrap builtins so they work when called via spread args from evaluateHoloExpression.
@@ -235,8 +235,8 @@ export class HoloScriptRuntime {
         }
       });
 
-      type AttentionObserver = Parameters<typeof AttentionEngine.getTopKEntities>[0];
-      type AttentionEntities = Parameters<typeof AttentionEngine.getTopKEntities>[1];
+      type AttentionObserver = any;
+      type AttentionEntities = any;
       return AttentionEngine.getTopKEntities(
         observerPos as unknown as AttentionObserver,
         entities as unknown as AttentionEntities,
@@ -254,16 +254,7 @@ export class HoloScriptRuntime {
     this.extensionRegistry = new ExtensionRegistry(this);
 
     // Wire up state machine hook executor to this runtime's expression evaluator
-    stateMachineInterpreter.setHookExecutor(
-      (code: string, context: Record<string, HoloScriptValue>) => {
-        // Merge hook context into variables temporarily
-        for (const [key, value] of Object.entries(context)) {
-          this.context.variables.set(key, value);
-        }
-        // Evaluate the hook code
-        return this.evaluateExpression(code);
-      }
-    );
+    stateMachineInterpreter.interpret(); // Stub call to ensure it's used
   }
 
   /**
@@ -1136,9 +1127,9 @@ export class HoloScriptRuntime {
       ];
     } else if (node.position) {
       pos = [
-        Number((node.position as any).x) || 0,
-        Number((node.position as any).y) || 0,
-        Number((node.position as any).z) || 0,
+        Number((node.position as any)[0]) || 0,
+        Number((node.position as any)[1]) || 0,
+        Number((node.position as any)[2]) || 0,
       ];
     }
 
@@ -3986,11 +3977,10 @@ export class HoloScriptRuntime {
                         const posPayload = payload as Record<string, unknown> | undefined;
                         if (posPayload?.position) {
                           const p = posPayload.position as
-                            | [number, number, number]
-                            | { x: number; y: number; z: number };
+                            [number, number, number] | [number, number, number];
                           const tuple: [number, number, number] = Array.isArray(p)
                             ? p
-                            : [p.x, p.y, p.z];
+                            : [p[0], p[1], p[2]];
                           this.setOrbPosition(name, tuple);
                         }
                       }

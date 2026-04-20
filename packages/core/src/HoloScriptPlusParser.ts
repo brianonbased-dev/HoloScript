@@ -57,8 +57,8 @@ export interface LightingTraitAnnotation extends TraitAnnotation {
     preset?: 'studio' | 'outdoor' | 'interior' | 'night' | 'sunset';
     lights?: Array<{
       type: 'directional' | 'point' | 'spot' | 'area' | 'ambient';
-      position?: { x: number; y: number; z: number };
-      direction?: { x: number; y: number; z: number };
+      position?: [number, number, number];
+      direction?: [number, number, number];
       color?: { r: number; g: number; b: number };
       intensity?: number;
       range?: number;
@@ -151,9 +151,9 @@ export interface JointTraitAnnotation extends TraitAnnotation {
     /** Connected body ID */
     connectedBody?: string;
     /** Anchor point */
-    anchor?: { x: number; y: number; z: number };
+    anchor?: [number, number, number];
     /** Axis of rotation/movement */
-    axis?: { x: number; y: number; z: number };
+    axis?: [number, number, number];
     /** Limits */
     limits?: { min: number; max: number };
     /** Spring settings */
