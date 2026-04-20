@@ -271,6 +271,7 @@ HoloScript release lanes are managed under `scripts/version-policy.json` (for ex
 
 ## Links
 
+- [Operator runbook](./docs/ops/RUNBOOK.md) — deployment smoke checks, incidents, rollback
 - [Full feature reference](./docs/reference/FULL_README.md) — compilers, renderers, identity, domain blocks, GPU pipelines
 - [Compile API](https://mcp.holoscript.net/api/health) — live at `mcp.holoscript.net`
 - [Absorb service](https://absorb.holoscript.net/health) — codebase intelligence
