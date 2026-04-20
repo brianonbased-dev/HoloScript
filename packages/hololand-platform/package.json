@@ -10,6 +10,7 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
+    "@holoscript/crdt-spatial": "workspace:*",
     "@holoscript/runtime": "workspace:*"
   },
   "devDependencies": {

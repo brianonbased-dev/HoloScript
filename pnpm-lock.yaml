@@ -1229,6 +1229,9 @@ importers:
 
   packages/hololand-platform:
     dependencies:
+      '@holoscript/crdt-spatial':
+        specifier: workspace:*
+        version: link:../crdt-spatial
       '@holoscript/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -2653,6 +2656,9 @@ importers:
       '@holoscript/platform':
         specifier: workspace:*
         version: link:../platform
+      '@holoscript/snn-webgpu':
+        specifier: workspace:*
+        version: link:../snn-webgpu
       '@holoscript/ui':
         specifier: workspace:*
         version: link:../ui
@@ -2844,6 +2850,9 @@ importers:
         specifier: ^3.9.19
         version: 3.10.5
     devDependencies:
+      '@holoscript/framework':
+        specifier: workspace:^
+        version: link:../framework
       '@holoscript/holomap':
         specifier: workspace:*
         version: link:../holomap
@@ -2899,6 +2908,12 @@ importers:
       '@webgpu/types':
         specifier: ^0.1.40
         version: 0.1.69
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      playwright:
+        specifier: ^1.53.0
+        version: 1.58.2
       tsup:
         specifier: ^8.0.1
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)

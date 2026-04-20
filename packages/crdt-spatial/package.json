@@ -15,6 +15,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./bridge": {
+      "types": "./dist/bridge-entry.d.ts",
+      "import": "./dist/bridge-entry.js",
+      "require": "./dist/bridge-entry.cjs"
     }
   },
   "scripts": {

@@ -8,3 +8,6 @@ export type {
   WorldCreationVote,
   WorldProposal,
 } from './world/byzantineWorldConsensus';
+
+export { BlockoutCRDTSession } from './collaboration/blockoutCRDT';
+export type { BlockoutVec3, BlockoutVolume } from './collaboration/blockoutCRDT';
