@@ -33,6 +33,11 @@ import type {
   SandboxPermission,
   ContentSecurityPolicyDirectives,
 } from './types.js';
+import {
+  assertSafePluginModuleUrl,
+  escapeHtmlDoubleQuotedAttr,
+  escapeHtmlTextContent,
+} from './pluginIframeSecurity.js';
 
 /**
  * Generates a cryptographically random message ID.
@@ -73,11 +78,13 @@ function buildCSPString(directives: ContentSecurityPolicyDirectives): string {
  * This creates a minimal shell that loads the plugin script.
  */
 function buildIframeContent(
-  pluginUrl: string,
+  safePluginUrl: string,
   pluginId: string,
   csp: ContentSecurityPolicyDirectives
 ): string {
-  const cspString = buildCSPString(csp);
+  const cspString = escapeHtmlDoubleQuotedAttr(buildCSPString(csp));
+  const titleText = escapeHtmlTextContent(pluginId);
+  const srcUrl = escapeHtmlDoubleQuotedAttr(safePluginUrl);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -85,7 +92,7 @@ function buildIframeContent(
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="${cspString}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HoloScript Plugin: ${pluginId}</title>
+  <title>HoloScript Plugin: ${titleText}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -95,7 +102,7 @@ function buildIframeContent(
 </head>
 <body>
   <div id="plugin-root"></div>
-  <script type="module" src="${pluginUrl}"></script>
+  <script type="module" src="${srcUrl}"></script>
 </body>
 </html>`;
 }
@@ -227,6 +234,8 @@ export class PluginSandbox {
     this.setState('loading');
     this.audit('sandbox-created', `Creating sandbox for plugin: ${this.options.pluginId}`, 'info');
 
+    const safePluginUrl = assertSafePluginModuleUrl(this.options.pluginUrl);
+
     // Build CSP by merging defaults with plugin-requested relaxations
     const csp = this.buildMergedCSP();
 
@@ -261,7 +270,7 @@ export class PluginSandbox {
     this.setupMessageListener();
 
     // Write content into the iframe using srcdoc (avoids cross-origin issues)
-    const iframeContent = buildIframeContent(this.options.pluginUrl, this.options.pluginId, csp);
+    const iframeContent = buildIframeContent(safePluginUrl, this.options.pluginId, csp);
     this.iframe.srcdoc = iframeContent;
 
     // Append to container
@@ -523,6 +532,10 @@ export class PluginSandbox {
    */
   private setupMessageListener(): void {
     this.messageListener = (event: MessageEvent) => {
+      if (!this.iframe?.contentWindow || event.source !== this.iframe.contentWindow) {
+        return;
+      }
+
       // Validate message structure
       if (!this.isValidPluginMessage(event.data)) {
         return;

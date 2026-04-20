@@ -111,6 +111,12 @@ export type {
   SandboxEventHandler,
 } from './types.js';
 
+export {
+  assertSafePluginModuleUrl,
+  escapeHtmlDoubleQuotedAttr,
+  escapeHtmlTextContent,
+} from './pluginIframeSecurity.js';
+
 // Host-side classes
 export { PluginSandbox } from './PluginSandbox.js';
 export { PluginBridge } from './PluginBridge.js';
