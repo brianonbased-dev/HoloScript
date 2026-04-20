@@ -153,6 +153,20 @@ export function getMaterialProps(node: R3FNode): Record<string, any> {
     Object.assign(matProps, props.materialProps);
   }
 
+  // @displacement trait — mesh displacement scale/bias (depth map wired by hologram pipeline)
+  const traits = node.traits;
+  if (traits?.has('displacement')) {
+    const cfg = (traits.get('displacement') || {}) as Record<string, unknown>;
+    const scale =
+      (typeof cfg.scale === 'number' ? cfg.scale : undefined) ??
+      (typeof props.displacementScale === 'number' ? (props.displacementScale as number) : undefined);
+    if (scale !== undefined) matProps.displacementScale = scale;
+    const bias =
+      (typeof cfg.bias === 'number' ? cfg.bias : undefined) ??
+      (typeof props.displacementBias === 'number' ? (props.displacementBias as number) : undefined);
+    if (bias !== undefined) matProps.displacementBias = bias;
+  }
+
   // Auto-enable transparency for transmission materials
   if (matProps.transmission > 0 && matProps.transparent === undefined) {
     matProps.transparent = true;
