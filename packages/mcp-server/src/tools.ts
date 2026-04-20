@@ -43,6 +43,7 @@ import { refactorCodegenTools } from './refactor-codegen-tools';
 import { traitTools } from './trait-tools';
 import { worldGeneratorTools } from './world-generator-tools';
 import { holoMapToolDefinitions } from './holomap-mcp-tools';
+import { hologramToolDefinitions } from './hologram-mcp-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -801,6 +802,7 @@ export const tools: Tool[] = [
   ...traitTools,
   ...worldGeneratorTools,
   ...holoMapToolDefinitions,
+  ...hologramToolDefinitions,
 ];
 
 // Tool name type for type safety

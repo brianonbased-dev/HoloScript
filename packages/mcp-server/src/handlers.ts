@@ -49,6 +49,7 @@ import {
 } from './tooling-discovery-tools';
 import { handleOracleConsult } from './oracle-handler';
 import { isHoloMapToolName, handleHoloMapTool } from './holomap-mcp-tools';
+import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
   loadTraitCategoriesFromCore,
@@ -290,6 +291,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   if (name.startsWith('holo_protocol_')) {
     const { handleProtocolTool } = await import('./protocol-tools');
     return handleProtocolTool(name, args);
+  }
+
+  // Hologram Media Pipeline MCP tools (must run before generic holo_ graph routing)
+  if (isHologramToolName(name)) {
+    return handleHologramTool(name, args);
   }
 
   // All remaining holo_ tools go to the Graph tool handler 
