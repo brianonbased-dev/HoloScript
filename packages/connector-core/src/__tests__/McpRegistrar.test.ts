@@ -1,5 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ServiceConnector } from '../ServiceConnector.js';
 import { McpRegistrar, type OrchestratorRegistration } from '../McpRegistrar.js';
+
+class StubConnector extends ServiceConnector {
+  constructor(private readonly tools: Tool[]) {
+    super();
+  }
+  async connect(): Promise<void> {
+    this.isConnected = true;
+  }
+  async disconnect(): Promise<void> {
+    this.isConnected = false;
+  }
+  async health(): Promise<boolean> {
+    return true;
+  }
+  async listTools(): Promise<Tool[]> {
+    return this.tools;
+  }
+  async executeTool(): Promise<unknown> {
+    return null;
+  }
+}
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -132,6 +155,30 @@ describe('McpRegistrar', () => {
       const [calledUrl, calledInit] = (global.fetch as any).mock.calls[0];
       expect(calledUrl).toContain('/register');
       expect(calledInit).toEqual(expect.any(Object));
+    });
+  });
+
+  describe('registerFromServiceConnector()', () => {
+    it('should derive tool names from connector.listTools()', async () => {
+      (global.fetch as any).mockResolvedValueOnce({ ok: true, status: 200 });
+
+      const connector = new StubConnector([
+        { name: 'alpha', description: 'a', inputSchema: { type: 'object' } },
+        { name: 'beta', description: 'b', inputSchema: { type: 'object' } },
+      ]);
+
+      const ok = await registrar.registerFromServiceConnector(connector, {
+        name: 'stub-svc',
+        url: 'http://localhost:9999',
+      });
+
+      expect(ok).toBe(true);
+      const body = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      expect(body).toMatchObject({
+        name: 'stub-svc',
+        url: 'http://localhost:9999',
+        tools: ['alpha', 'beta'],
+      });
     });
   });
 });

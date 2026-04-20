@@ -1,13 +1,27 @@
+import type { ServiceConnector } from './ServiceConnector.js';
+import { ResilientOrchestratorFetch } from './ResilientOrchestratorFetch.js';
+
 export interface OrchestratorRegistration {
   name: string;
   url: string;
   tools: string[];
 }
 
-import { ResilientOrchestratorFetch } from './ResilientOrchestratorFetch.js';
-
 export class McpRegistrar {
   private resilientFetch = new ResilientOrchestratorFetch();
+
+  /**
+   * Discover tool names from a {@link ServiceConnector} and register with the MCP orchestrator.
+   * Connect the connector first if your implementation requires an active session for {@link ServiceConnector.listTools}.
+   */
+  async registerFromServiceConnector(
+    connector: ServiceConnector,
+    meta: Pick<OrchestratorRegistration, 'name' | 'url'>
+  ): Promise<boolean> {
+    const tools = await connector.listTools();
+    const names = tools.map((t) => t.name).filter((n): n is string => Boolean(n && n.length > 0));
+    return this.register({ name: meta.name, url: meta.url, tools: names });
+  }
 
   /**
    * Auto-register the initialized service connector with the existing Quantum MCP Mesh Orchestrator.
