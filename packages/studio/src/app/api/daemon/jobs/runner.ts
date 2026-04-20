@@ -22,6 +22,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import picomatch from 'picomatch';
 import type {
   DaemonJobLimits,
   DaemonLogEntry,
@@ -127,37 +128,44 @@ const PROFILE_LIMITS: Record<DaemonProfile, DaemonJobLimits> = {
     maxTokens: 50_000,
     maxFilesChanged: 10,
     timeoutMs: 60_000,
-    protectedPaths: ['.env*', '*.pem', '*.key', 'credentials*', 'secrets*'],
+    protectedPaths: ['**/.env*', '**/*.pem', '**/*.key', '**/credentials*', '**/secrets*'],
   },
   balanced: {
     maxCycles: 2,
     maxTokens: 150_000,
     maxFilesChanged: 25,
     timeoutMs: 180_000,
-    protectedPaths: ['.env*', '*.pem', '*.key', 'credentials*', 'secrets*'],
+    protectedPaths: ['**/.env*', '**/*.pem', '**/*.key', '**/credentials*', '**/secrets*'],
   },
   deep: {
     maxCycles: 3,
     maxTokens: 500_000,
     maxFilesChanged: 50,
     timeoutMs: 300_000,
-    protectedPaths: ['.env*', '*.pem', '*.key', 'credentials*', 'secrets*'],
+    protectedPaths: ['**/.env*', '**/*.pem', '**/*.key', '**/credentials*', '**/secrets*'],
   },
 };
 
-/** Default protected path denylist applied to ALL profiles */
+/**
+ * Default protected path denylist applied to ALL profiles.
+ *
+ * SEC-T14: Patterns are compiled by picomatch and applied both to the full
+ * relative path and to every path segment, so `src/.env.local` is caught as
+ * reliably as top-level `.env`.
+ */
 const GLOBAL_DENYLIST = [
-  '.env',
-  '.env.*',
-  '*.pem',
-  '*.key',
-  '*.p12',
-  '*.pfx',
-  'credentials.json',
-  'secrets.yaml',
-  'secrets.yml',
-  'id_rsa',
-  'id_ed25519',
+  '**/.env',
+  '**/.env.*',
+  '**/*.pem',
+  '**/*.key',
+  '**/*.p12',
+  '**/*.pfx',
+  '**/credentials.json',
+  '**/secrets.yaml',
+  '**/secrets.yml',
+  '**/secrets/**',
+  '**/id_rsa',
+  '**/id_ed25519',
   '.git/**',
   'node_modules/**',
 ];
@@ -402,26 +410,43 @@ async function createRollbackSnapshot(workDir: string, jobId: string): Promise<s
 // PATH SAFETY CHECK
 // =============================================================================
 
+/**
+ * SEC-T14: Compile a denylist into a single picomatch matcher.
+ *
+ * Old behaviour missed nested forms (`src/.env.production` slipped past the
+ * hand-rolled `.env.*` branch because the matcher only checked the full
+ * normalized path, and `*`-suffix patterns produced `prefix=''` in some
+ * inputs — effectively matching everything or nothing depending on arg
+ * order).
+ *
+ * New behaviour:
+ *   - Patterns are compiled once per `isPathProtected` call (caller-provided
+ *     list is usually 10-20 entries; negligible overhead).
+ *   - `picomatch` is called with `dot: true` so patterns match hidden files
+ *     and directories the way operators intuitively expect.
+ *   - Match is applied to the full normalized path AND to every path
+ *     segment. A pattern like `**&#47;.env.*` covers nested envs; the per-
+ *     segment check adds belt-and-braces for basename-only patterns.
+ */
+function compileDenyMatcher(denyPatterns: string[]): (p: string) => boolean {
+  if (denyPatterns.length === 0) return () => false;
+  const matcher = picomatch(denyPatterns, { dot: true });
+  return (p: string) => matcher(p);
+}
+
 function isPathProtected(filePath: string, denyPatterns: string[]): boolean {
-  const normalized = filePath.replace(/\\/g, '/');
-  for (const pattern of denyPatterns) {
-    // Simple glob matching for common patterns
-    if (pattern.includes('**')) {
-      const prefix = pattern.replace('/**', '');
-      if (normalized.startsWith(prefix + '/') || normalized === prefix) {
-        return true;
-      }
-    } else if (pattern.startsWith('*.')) {
-      const ext = pattern.slice(1);
-      if (normalized.endsWith(ext)) return true;
-    } else if (pattern.endsWith('*')) {
-      const prefix = pattern.slice(0, -1);
-      if (normalized.startsWith(prefix)) return true;
-    } else {
-      if (normalized === pattern || normalized.endsWith('/' + pattern)) {
-        return true;
-      }
-    }
+  const normalized = filePath.replace(/\\/g, '/').replace(/^\.?\/+/, '');
+  if (!normalized) return false;
+  const match = compileDenyMatcher(denyPatterns);
+
+  // Full relative path
+  if (match(normalized)) return true;
+
+  // Every path segment (defends against e.g. `build/.env` hidden behind an
+  // unsuspecting prefix when a basename-only pattern is supplied).
+  const segments = normalized.split('/');
+  for (const seg of segments) {
+    if (seg && match(seg)) return true;
   }
   return false;
 }
