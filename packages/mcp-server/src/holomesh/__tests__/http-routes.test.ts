@@ -2003,6 +2003,42 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.hint).not.toContain('/board/derive');
     });
 
+    it('POST /api/holomesh/team/:id/mode accepts member (not just owner)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `member-mode-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._body.role).toBe('member');
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/mode`,
+        { mode: 'audit' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/mode`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.mode).toBe('audit');
+    });
+
     // ── /space includes teams ──
 
     it('/space includes agent teams in your_agent', async () => {

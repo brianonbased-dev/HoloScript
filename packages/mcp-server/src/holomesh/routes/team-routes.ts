@@ -816,9 +816,6 @@ export async function handleTeamRoutes(
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
-    if (!hasTeamPermission(team, caller.id, 'config:write')) {
-      json(res, 403, { error: 'Insufficient permissions' }); return true;
-    }
     const body = await parseJsonBody(req);
     const mode = (body.mode as string) || 'build';
     if (!team.roomConfig) team.roomConfig = {};
