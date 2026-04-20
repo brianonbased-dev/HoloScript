@@ -135,7 +135,9 @@
       "bn.js": ">=4.12.3",
       "next": ">=15.5.14",
       "@apollo/server": ">=5.5.0",
-      "elliptic": ">=6.6.1"
+      "elliptic": ">=6.6.1",
+      "three": "0.182.0",
+      "@react-three/fiber": "9.5.0"
     }
   },
   "engines": {
