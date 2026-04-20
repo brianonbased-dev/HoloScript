@@ -731,6 +731,11 @@
       "import": "./dist/hologram/index.js",
       "require": "./dist/hologram/index.cjs"
     },
+    "./hologram/FileSystemHologramStore": {
+      "types": "./dist/hologram/FileSystemHologramStore.d.ts",
+      "import": "./dist/hologram/FileSystemHologramStore.js",
+      "require": "./dist/hologram/FileSystemHologramStore.cjs"
+    },
     "./vm": {
       "types": "./dist/vm/index.d.ts",
       "import": "./dist/vm/index.js",
