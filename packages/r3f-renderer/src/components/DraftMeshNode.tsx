@@ -15,6 +15,7 @@
 import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import type { R3FNode } from '@holoscript/core';
+import { resolveDraftNodes } from '../utils/draftMeshResolve';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,9 +35,23 @@ export interface DraftInstance {
 }
 
 export interface DraftMeshNodeProps {
-  /** R3FNodes to render as draft primitives (all with assetMaturity='draft') */
-  nodes: R3FNode[];
-  /** Default draft color (default: '#88aaff') */
+  /**
+   * Several draft meshes batched into instanced draw calls (grouped by shape).
+   * Prefer this when a parent can collect draft `R3FNode`s for the same scene.
+   */
+  nodes?: R3FNode[];
+  /**
+   * Single draft mesh (Studio / scene graph recursion).
+   * Rendered as a one-instance batch so the same InstancedMesh path is used.
+   */
+  node?: R3FNode;
+  /** When using `node`, optional shape override (e.g. `draftShape` / `hsType`). */
+  shape?: string;
+  /** Legacy alias for `wireframe` */
+  showWireframe?: boolean;
+  /** Legacy alias for default instance color (overridden by per-node `draftColor`) */
+  color?: string;
+  /** Default draft color when a node has none (default: '#88aaff') */
   draftColor?: string;
   /** Show wireframe overlay (default: false) */
   wireframe?: boolean;
@@ -198,13 +213,25 @@ function InstancedDraftGroup({
 // ── DraftMeshNode ────────────────────────────────────────────────────────────
 
 export function DraftMeshNode({
-  nodes,
+  nodes: nodesProp,
+  node: singleNode,
+  shape,
+  showWireframe,
+  color,
   draftColor = '#88aaff',
   wireframe = false,
   opacity = 1.0,
-  _onPromote,
+  onPromote: _onPromote,
   onSelect,
 }: DraftMeshNodeProps) {
+  const nodes = useMemo(
+    () => resolveDraftNodes({ nodes: nodesProp, node: singleNode, shape }),
+    [nodesProp, singleNode, shape]
+  );
+
+  const effectiveDraftColor = color ?? draftColor;
+  const effectiveWireframe = showWireframe ?? wireframe;
+
   // Group nodes by shape type for instanced batching
   const groups = useMemo(() => groupByShape(nodes), [nodes]);
 
@@ -217,8 +244,8 @@ export function DraftMeshNode({
           key={shape}
           shape={shape}
           nodes={shapeNodes}
-          draftColor={draftColor}
-          wireframe={wireframe}
+          draftColor={effectiveDraftColor}
+          wireframe={effectiveWireframe}
           opacity={opacity}
           onSelect={onSelect}
         />

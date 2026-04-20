@@ -12,6 +12,7 @@ import {
   coreLODConfigToRendererProp,
   isRendererLODConfigProp,
 } from '../utils/coreLodBridge';
+import { resolveDraftNodes } from '../utils/draftMeshResolve';
 
 // ─── LODMeshNode Logic Tests ───────────────────────────────────────────────────
 
@@ -177,6 +178,17 @@ describe('useLODBridge logic', () => {
 // ─── DraftMeshNode Logic Tests ────────────────────────────────────────────────
 
 describe('DraftMeshNode', () => {
+  it('resolveDraftNodes maps single node + shape to draftShape on props', () => {
+    const node = {
+      id: 'a',
+      type: 'mesh' as const,
+      props: { position: [0, 0, 0] as [number, number, number], hsType: 'box' },
+    };
+    const list = resolveDraftNodes({ node, shape: 'sphere' });
+    expect(list).toHaveLength(1);
+    expect(list[0].props.draftShape).toBe('sphere');
+  });
+
   const DRAFT_SHAPES = ['box', 'sphere', 'cylinder', 'capsule', 'cone', 'plane'] as const;
 
   it('all draft shapes are valid', () => {
