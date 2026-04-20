@@ -34,6 +34,7 @@ Replace ☐ with ✅ (or link to a PR / artifact) when a gate is satisfied. Gate
 
 **Linked protocols**
 
+- **P3-CENTER (P2, P3, P12, P13 metrics):** [P3-CENTER metrics integrity](./P3-CENTER-metrics-integrity.md) — throughput/ops provenance, extrapolation labeling, P12 placeholders.
 - **G1 / harness rerun:** [D.011 benchmark reproducibility](./D011-benchmark-reproducibility.md) — env hash, seeds, artifact paths, one-command rerun.
 - **G2 (study / friction):** [TTFHW measurement protocol](../ops/time-to-first-hologram-wow.md) — adapt per paper; cite dated runs.
 - **G3 (full loop):** [Full loop demo (D.011)](../demos/full-loop-d011.md) — board + knowledge + Studio/CLI anchor.
