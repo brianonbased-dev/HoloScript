@@ -49,7 +49,7 @@ video/webcam frames ─► HoloMapRuntime (WebGPU transformer)
 
 | Module | File | Sprint 1 state | Sprint 2 work |
 |--------|------|----------------|---------------|
-| HoloMapRuntime | `HoloMapRuntime.ts` | TS interfaces, factory stub | WGSL transformer pass, weight loader |
+| HoloMapRuntime | `HoloMapRuntime.ts` | TS interfaces + deterministic `step/finalize` scaffold (CPU/WebGPU micro-encoder path, frame byte validation, dynamic bounds) | WGSL transformer pass, weight loader |
 | PagedKVCache | `PagedKVCache.ts` | Page-table interface | GPU buffer mgmt, eviction policy |
 | TrajectoryMemory | `TrajectoryMemory.ts` | Keyframe state shape | Ring buffer, loop-closure matcher |
 | AnchorContext | `AnchorContext.ts` | State shape, policy config | Descriptor extraction, re-anchor logic |
@@ -148,3 +148,11 @@ Planning/burndown should therefore track Sprint-1 completion against **RFC/scaff
 - **Babylon.js MCP ships reconstruction first** — weekly commit-log watcher; pivot to differentiated framing if they land first.
 - **License audit blocks distillation path** — two fallbacks (from-scratch, fine-tune) available.
 - **Quality gap feeds "HoloMap is toy" perception** — mitigated by transparent benchmarks and positioning (browser-native + deterministic, not "SOTA").
+
+## 10. Hygiene tracking updates
+
+- **2026-04-19 / Hygiene A**: core plumbing commit isolation completed (`types/parser/traits` path-scoped commit).
+- **2026-04-19 / Hygiene B**: runtime + docs deltas updated for deterministic scaffold behavior:
+       - input frame byte-length guard in `step()`
+       - computed bounds from emitted points in `finalize()`
+       - explicit self-attested provenance placeholder (`anchorHash`) pending external anchoring path

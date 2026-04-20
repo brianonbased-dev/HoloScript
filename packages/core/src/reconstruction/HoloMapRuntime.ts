@@ -189,6 +189,52 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   /** Loaded weight blob (optional; GPU upload wiring follows R3+). */
   private weightBytes: ArrayBuffer | null = null;
 
+  private static computeBounds(steps: ReconstructionStep[]): {
+    min: [number, number, number];
+    max: [number, number, number];
+  } {
+    if (steps.length === 0) {
+      return {
+        min: [0, 0, 0],
+        max: [0, 0, 0],
+      };
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+
+    for (const step of steps) {
+      const { positions } = step.points;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i] ?? 0;
+        const y = positions[i + 1] ?? 0;
+        const z = positions[i + 2] ?? 0;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (z < minZ) minZ = z;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+        if (z > maxZ) maxZ = z;
+      }
+    }
+
+    if (!Number.isFinite(minX)) {
+      return {
+        min: [0, 0, 0],
+        max: [0, 0, 0],
+      };
+    }
+
+    return {
+      min: [minX, minY, minZ],
+      max: [maxX, maxY, maxZ],
+    };
+  }
+
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
     const allowCpu = this.config.allowCpuFallback !== false;
@@ -234,6 +280,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   async step(frame: ReconstructionFrame): Promise<ReconstructionStep> {
     if (!this.initialized) {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
+    }
+
+    const expectedBytes = frame.width * frame.height * frame.stride;
+    if (frame.rgb.byteLength !== expectedBytes) {
+      throw new Error(
+        `HoloMapRuntime.step invalid frame byte length: got ${frame.rgb.byteLength}, expected ${expectedBytes} (w=${frame.width}, h=${frame.height}, stride=${frame.stride})`
+      );
     }
 
     const microCfg = { seed: this.config.seed, modelHash: this.config.modelHash };
@@ -290,6 +343,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
 
     const frameCount = this.steps.length;
     const pointCount = this.steps.reduce((acc, s) => acc + s.points.positions.length / 3, 0);
+    const bounds = HoloMapRuntimeImpl.computeBounds(this.steps);
 
     logHoloMapEvent(this.runId, 'finalize', { frameCount, pointCount });
 
@@ -299,10 +353,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       displayName: 'HoloMap Reconstruction',
       pointCount,
       frameCount,
-      bounds: {
-        min: [-1, -1, -1],
-        max: [1, 1, 1],
-      },
+      bounds,
       replayHash: this.replayKey,
       simulationContract: {
         kind: HOLOMAP_SIMULATION_CONTRACT_KIND,
@@ -310,6 +361,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         holoScriptBuild: getVersionString(),
       },
       provenance: {
+        anchorHash: `self-attested:${this.replayKey}`,
         capturedAtIso: new Date().toISOString(),
       },
       assets: {
