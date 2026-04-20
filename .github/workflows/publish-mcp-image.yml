@@ -10,7 +10,7 @@ on:
       - 'packages/agent-protocol/**'
       - 'packages/cli/**'
       - 'packages/llm-provider/**'
-      - 'Dockerfile.mcp-server'
+      - 'infrastructure/Dockerfile.mcp-server'
       - '.github/workflows/publish-mcp-image.yml'
   workflow_dispatch:
 
@@ -57,7 +57,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.mcp-server
+          file: infrastructure/Dockerfile.mcp-server
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
