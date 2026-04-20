@@ -821,6 +821,78 @@ const TRAIT_EXAMPLES: TrainingExample[] = [
     tags: ['ar', 'anchor', 'plane-detection'],
     complexity: 'advanced',
   },
+  {
+    id: 'trait-004',
+    category: 'traits',
+    description: 'Networked entity with owner sync',
+    holoScript: `object "PlayerAvatar" {
+  geometry: "capsule"
+  @networked {
+    mode: "owner",
+    syncProperties: ["position", "rotation"],
+    syncRate: 20,
+    interpolation: true
+  }
+  position: [0, 1.6, 0]
+}`,
+    tags: ['networked', 'multiplayer', 'sync'],
+    complexity: 'advanced',
+  },
+  {
+    id: 'trait-005',
+    category: 'traits',
+    description: 'Throwable object with break-on-impact',
+    holoScript: `object "GlassBottle" {
+  geometry: "cylinder"
+  @grabbable
+  @throwable {
+    max_velocity: 15
+    spin_enabled: true
+  }
+  @physics {
+    mass: 0.5
+    restitution: 0.2
+    friction: 0.4
+  }
+  @collidable
+  @breakable {
+    break_threshold: 3.0
+    fragment_count: 8
+  }
+}`,
+    tags: ['throwable', 'breakable', 'physics'],
+    complexity: 'advanced',
+  },
+  {
+    id: 'trait-006',
+    category: 'traits',
+    description: 'Stackable crates for snap-together placement',
+    holoScript: `object "ShippingCrate" {
+  geometry: "box"
+  @grabbable
+  @stackable {
+    stack_axis: "y"
+    max_stack: 8
+    snap_distance: 0.35
+  }
+  @physics(mass: 12.0, friction: 0.8)
+  @collidable
+}`,
+    tags: ['stackable', 'grabbable', 'physics'],
+    complexity: 'intermediate',
+  },
+  {
+    id: 'trait-007',
+    category: 'traits',
+    description: 'UI-style mesh with hover and grab',
+    holoScript: `object "UIPanelMesh" {
+  geometry: "box"
+  @hoverable
+  @grabbable(snap_to_hand: false)
+}`,
+    tags: ['hoverable', 'grabbable', 'ui'],
+    complexity: 'basic',
+  },
 ];
 
 // =============================================================================
