@@ -170,7 +170,7 @@ export function MeshNode({
           }
         }}
       >
-        {getGeometry(hsType, size, props)}
+        {getGeometry(hsType, size, props, 'high', node)}
         {isDraft ? (
           draftMaterial
         ) : needsTextures ? (
@@ -186,7 +186,7 @@ export function MeshNode({
         )}
         {isSelected && !isBreakMode && (
           <mesh>
-            {getGeometry(hsType, size * 1.05, props)}
+            {getGeometry(hsType, size * 1.05, props, 'high', node)}
             <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
           </mesh>
         )}

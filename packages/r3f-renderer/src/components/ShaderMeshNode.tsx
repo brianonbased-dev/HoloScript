@@ -126,7 +126,7 @@ export function ShaderMeshNode({ node, onSelect }: ShaderMeshNodeProps) {
           onSelect?.(node.id || null);
         }}
       >
-        {getGeometry(hsType, size, props)}
+        {getGeometry(hsType, size, props, 'high', node)}
         <shaderMaterial
           ref={matRef}
           vertexShader={shaderConfig.vertexShader as string}

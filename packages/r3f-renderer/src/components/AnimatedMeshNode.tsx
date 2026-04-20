@@ -342,7 +342,7 @@ export function AnimatedMeshNode({
           }
         }}
       >
-        {getGeometry(hsType, size, props)}
+        {getGeometry(hsType, size, props, 'high', node)}
         {needsTextures ? (
           <Suspense
             fallback={
@@ -372,7 +372,7 @@ export function AnimatedMeshNode({
         )}
         {isSelected && !isBreakMode && (
           <mesh>
-            {getGeometry(hsType, size * 1.05, props)}
+            {getGeometry(hsType, size * 1.05, props, 'high', node)}
             <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
           </mesh>
         )}
@@ -426,7 +426,7 @@ function StaticChildMesh({
         onSelect?.(node.id || null);
       }}
     >
-      {getGeometry(hsType, size, props)}
+      {getGeometry(hsType, size, props, 'high', node)}
       {needsTextures ? (
         <Suspense fallback={defaultMaterial}>
           <TexturedAnimatedMaterial
@@ -440,7 +440,7 @@ function StaticChildMesh({
       )}
       {isSelected && (
         <mesh>
-          {getGeometry(hsType, size * 1.05, props)}
+          {getGeometry(hsType, size * 1.05, props, 'high', node)}
           <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
         </mesh>
       )}

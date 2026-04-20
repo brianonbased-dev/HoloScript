@@ -147,7 +147,13 @@ export type {
 } from './components/BadgeHolographicRenderer';
 
 // Utilities
-export { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from './utils/materialUtils';
+export {
+  getGeometry,
+  getMaterialProps,
+  isScaledBody,
+  isFireMesh,
+  resolveDisplacementPlaneSegments,
+} from './utils/materialUtils';
 export type { LODDetail } from './utils/materialUtils';
 
 // Hooks

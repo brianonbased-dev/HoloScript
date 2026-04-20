@@ -15,6 +15,7 @@ import {
   getGeometry,
   getMaterialProps,
   isScaledBody,
+  resolveDisplacementPlaneSegments,
   type LODDetail,
 } from '../utils/materialUtils';
 import { useHoloTextures, hasTextures } from '../hooks/useHoloTextures';
@@ -80,6 +81,7 @@ function TexturedLODMaterial({
  * Single LOD level mesh with geometry at the given detail.
  */
 function LODLevel({
+  node,
   hsType,
   size,
   props,
@@ -88,6 +90,7 @@ function LODLevel({
   proceduralMaps,
   needsTextures,
 }: {
+  node: R3FNode;
   hsType: string;
   size: number;
   props: Record<string, any>;
@@ -96,22 +99,34 @@ function LODLevel({
   proceduralMaps: Record<string, any>;
   needsTextures: boolean;
 }) {
+  const matPropsLevel = useMemo(() => {
+    const dsp = resolveDisplacementPlaneSegments(node, props, detail);
+    if (!dsp) return matProps;
+    return {
+      ...matProps,
+      userData: {
+        ...(typeof matProps.userData === 'object' && matProps.userData !== null ? matProps.userData : {}),
+        holoscriptDisplacementPlaneSegments: { width: dsp[0], height: dsp[1] },
+      },
+    };
+  }, [matProps, node, props, detail]);
+
   const defaultMaterial = (
     <meshPhysicalMaterial
-      {...matProps}
+      {...matPropsLevel}
       {...proceduralMaps}
-      emissive={matProps.emissive}
-      emissiveIntensity={matProps.emissiveIntensity}
-      color={matProps.color}
+      emissive={matPropsLevel.emissive}
+      emissiveIntensity={matPropsLevel.emissiveIntensity}
+      color={matPropsLevel.color}
     />
   );
 
   return (
     <mesh>
-      {getGeometry(hsType, size, props, detail)}
+      {getGeometry(hsType, size, props, detail, node)}
       {needsTextures ? (
         <Suspense fallback={defaultMaterial}>
-          <TexturedLODMaterial matProps={matProps} proceduralMaps={proceduralMaps} />
+          <TexturedLODMaterial matProps={matPropsLevel} proceduralMaps={proceduralMaps} />
         </Suspense>
       ) : (
         defaultMaterial
@@ -170,7 +185,7 @@ export function LODMeshNode({
   const forcedDetail =
     lodConfig?.forcedLevel !== undefined ? getDetailForLevel(lodConfig.forcedLevel) : undefined;
 
-  const matProps = getMaterialProps(node);
+  const matProps = getMaterialProps(node, { detail: 'high' });
   const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
     size: 512,
     tiling: [3, 3],
@@ -200,6 +215,7 @@ export function LODMeshNode({
         {lodLevels.map(({ detail, key }) => (
           <LODLevel
             key={key}
+            node={node}
             hsType={hsType}
             size={size}
             props={props}

@@ -118,6 +118,10 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      # dist/ is gitignored; hololand-platform imports @holoscript/crdt-spatial/bridge from dist
+      - name: Build @holoscript/crdt-spatial
+        run: pnpm --filter @holoscript/crdt-spatial build
+
       - name: HoloMap package smoke (build + tests)
         run: |
           pnpm --filter @holoscript/holomap build

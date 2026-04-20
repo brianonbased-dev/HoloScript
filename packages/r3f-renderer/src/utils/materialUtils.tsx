@@ -16,11 +16,50 @@ import { ProceduralGeometryComponent } from '../components/ProceduralMesh';
 const LOD_SEGMENTS = { high: 32, medium: 16, low: 8 } as const;
 export type LODDetail = keyof typeof LOD_SEGMENTS;
 
+/**
+ * Plane subdivisions for @displacement (and props-only hologram pipeline).
+ * `auto_segments` / trait without numeric `segments` picks tier from LOD detail.
+ */
+export function resolveDisplacementPlaneSegments(
+  node: R3FNode | undefined,
+  props: Record<string, any>,
+  detail: LODDetail
+): [number, number] | null {
+  const traits = node?.traits;
+  const cfg = traits?.has('displacement')
+    ? ((traits.get('displacement') || {}) as Record<string, unknown>)
+    : {};
+
+  let seg: number | undefined =
+    typeof cfg.segments === 'number' ? (cfg.segments as number) : undefined;
+  if (seg == null && typeof props.segments === 'number') seg = props.segments;
+  if (seg == null && typeof props.displacementSegments === 'number') seg = props.displacementSegments;
+
+  const auto =
+    cfg.auto_segments === true ||
+    props.auto_segments === true ||
+    props.autoSegments === true;
+
+  const hasTrait = traits?.has('displacement') === true;
+
+  if (seg == null && !hasTrait && !auto) {
+    return null;
+  }
+
+  if (seg == null) {
+    seg = detail === 'high' ? 64 : detail === 'medium' ? 32 : 16;
+  }
+
+  const n = Math.max(1, Math.floor(seg));
+  return [n, n];
+}
+
 export function getGeometry(
   hsType: string,
   size: number,
   props: Record<string, any> = {},
-  detail: LODDetail = 'high'
+  detail: LODDetail = 'high',
+  node?: R3FNode
 ) {
   const s = size || 1;
   const seg = LOD_SEGMENTS[detail];
@@ -37,8 +76,11 @@ export function getGeometry(
     case 'pyramid':
     case 'cone':
       return <coneGeometry args={[s * 0.5, s, 4]} />;
-    case 'plane':
+    case 'plane': {
+      const dsp = resolveDisplacementPlaneSegments(node, props, detail);
+      if (dsp) return <planeGeometry args={[s, s, dsp[0], dsp[1]]} />;
       return <planeGeometry args={[s, s]} />;
+    }
     case 'torus':
       return <torusGeometry args={[s * 0.5, s * 0.15, torusTube, seg]} />;
     case 'ring':
@@ -99,8 +141,12 @@ export function getGeometry(
 // Material Property Resolution
 // =============================================================================
 
-export function getMaterialProps(node: R3FNode): Record<string, any> {
+export function getMaterialProps(
+  node: R3FNode,
+  options?: { detail?: LODDetail }
+): Record<string, any> {
   const props = node.props;
+  const detail = options?.detail ?? 'high';
   const materialName = props.material || props.materialPreset;
   const preset = materialName
     ? (MATERIAL_PRESETS as Record<string, Record<string, any>>)[materialName]
@@ -165,6 +211,16 @@ export function getMaterialProps(node: R3FNode): Record<string, any> {
       (typeof cfg.bias === 'number' ? cfg.bias : undefined) ??
       (typeof props.displacementBias === 'number' ? (props.displacementBias as number) : undefined);
     if (bias !== undefined) matProps.displacementBias = bias;
+  }
+
+  // Plane subdivision hints for displacement-mapped meshes (trait or props)
+  const dsp = resolveDisplacementPlaneSegments(node, props, detail);
+  if (dsp) {
+    const prev = matProps.userData;
+    matProps.userData = {
+      ...(typeof prev === 'object' && prev !== null ? prev : {}),
+      holoscriptDisplacementPlaneSegments: { width: dsp[0], height: dsp[1] },
+    };
   }
 
   // Auto-enable transparency for transmission materials
