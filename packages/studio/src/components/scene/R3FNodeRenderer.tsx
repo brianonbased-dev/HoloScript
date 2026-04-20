@@ -13,6 +13,8 @@ import {
   DraftMeshNode,
   BiologicalMeshNode,
   GaussianSplatViewer,
+  resolveGaussianSplatSrc,
+  partitionStudioChildren,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -65,46 +67,6 @@ function StudioAnimatedMeshNode({ node }: { node: R3FNode }) {
 
 interface R3FNodeRendererProps {
   node: R3FNode;
-}
-
-/** Resolve splat URL from @gaussian_splat trait or node props (Studio drag-drop / compiler). */
-function resolveGaussianSplatSrc(node: R3FNode): string | null {
-  const trait = node.traits?.get('gaussian_splat') as Record<string, unknown> | undefined;
-  if (trait) {
-    const s = trait.source ?? trait.src ?? trait.url;
-    if (typeof s === 'string' && s.length > 0) return s;
-  }
-  const p = node.props;
-  if (typeof p.src === 'string' && p.src) return p.src;
-  if (typeof p.source === 'string' && p.source) return p.source;
-  return null;
-}
-
-/** Draft meshes that can share an InstancedMesh (exclude Gaussian splat drafts). */
-function isBatchableDraftMesh(node: R3FNode): boolean {
-  return (
-    node.type === 'mesh' &&
-    node.assetMaturity === 'draft' &&
-    resolveGaussianSplatSrc(node) === null
-  );
-}
-
-/** Split group children: batchable draft meshes vs everything else (preserve order in `rest`). */
-function partitionStudioChildren(children: R3FNode[] | undefined): {
-  batchableDraftMeshes: R3FNode[];
-  rest: R3FNode[];
-} {
-  const list = children ?? [];
-  const batchableDraftMeshes: R3FNode[] = [];
-  const rest: R3FNode[] = [];
-  for (const c of list) {
-    if (isBatchableDraftMesh(c)) {
-      batchableDraftMeshes.push(c);
-    } else {
-      rest.push(c);
-    }
-  }
-  return { batchableDraftMeshes, rest };
 }
 
 function renderStudioChildList(rest: R3FNode[]) {

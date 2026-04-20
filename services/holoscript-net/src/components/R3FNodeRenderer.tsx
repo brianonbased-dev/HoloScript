@@ -10,22 +10,22 @@ import {
   LODMeshNode,
   hasLOD,
   DraftMeshNode,
+  partitionStudioChildren,
 } from '@holoscript/r3f-renderer';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
-import { PostProcessingNode } from './PostProcessingNode';
-import { GLTFModelNode } from './GLTFModelNode';
-
 
 interface R3FNodeRendererProps {
   node: R3FNode;
 }
 
-export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
-  const children = node.children?.map((child: R3FNode, i: number) => (
+function renderNetChildList(rest: R3FNode[]) {
+  return rest.map((child: R3FNode, i: number) => (
     <R3FNodeRenderer key={child.id || `child-${i}`} node={child} />
   ));
+}
 
+export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const { props } = node;
 
   switch (node.type) {
@@ -74,12 +74,21 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       );
     }
 
-    case 'group':
+    case 'group': {
+      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
-          {children}
+          {batchableDraftMeshes.length > 0 && (
+            <DraftMeshNode
+              key="r3f-draft-batch"
+              nodes={batchableDraftMeshes}
+              wireframe={batchableDraftMeshes.some((n) => n.props.draftWireframe)}
+            />
+          )}
+          {renderNetChildList(rest)}
         </group>
       );
+    }
 
     case 'directionalLight':
       return (
@@ -191,12 +200,21 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         />
       );
 
-    default:
+    default: {
       // Unknown type — wrap in group and render children
+      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
-          {children}
+          {batchableDraftMeshes.length > 0 && (
+            <DraftMeshNode
+              key="r3f-draft-batch"
+              nodes={batchableDraftMeshes}
+              wireframe={batchableDraftMeshes.some((n) => n.props.draftWireframe)}
+            />
+          )}
+          {renderNetChildList(rest)}
         </group>
       );
+    }
   }
 }

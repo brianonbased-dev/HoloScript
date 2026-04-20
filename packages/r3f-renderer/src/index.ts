@@ -160,6 +160,11 @@ export {
   coreLODConfigToRendererProp,
   isRendererLODConfigProp,
 } from './utils/coreLodBridge';
+export {
+  resolveGaussianSplatSrc,
+  isBatchableDraftMesh,
+  partitionStudioChildren,
+} from './utils/partitionStudioChildren';
 
 // Hooks
 export { useSimulationField } from './hooks/useSimulationField';
