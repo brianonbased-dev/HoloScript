@@ -26,6 +26,9 @@ import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBa
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
 import type { HolomapPointCloudPayload } from './HolomapExportPayload';
+import type { AssetMaturity } from '../traits/DraftTrait';
+
+export type { AssetMaturity } from '../traits/DraftTrait';
 
 // OOM fix: Pre-allocation reduced from 20K to 0 (demand-allocated).
 // The pool is used (acquire at compileNode, compileComposition, compileLight)
@@ -60,7 +63,7 @@ export interface R3FNode {
    * - 'final': Production-ready asset with full materials and optimized LOD chain
    * Defaults to 'mesh' for backward compatibility.
    */
-  assetMaturity?: 'draft' | 'mesh' | 'final';
+  assetMaturity?: AssetMaturity;
 }
 
 /**
@@ -1870,7 +1873,7 @@ export const QUALITY_TIER_SCALES: Record<
   QualityTier,
   {
     particleScale: number;
-    lodLevel: 'draft' | 'mesh' | 'final';
+    lodLevel: AssetMaturity;
     maxLights: number;
     shadowMapSize: number;
     shaderComplexity: 'basic' | 'standard' | 'physical';
