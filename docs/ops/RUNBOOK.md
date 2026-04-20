@@ -120,6 +120,80 @@ If mode and objective disagree, fix them in the **same** change so the next boar
 
 ---
 
+---
+
+## 10. Railway-specific operations
+
+### Services managed via `deploy-railway.yml`
+
+| Service | Path filter | Railway service name |
+| ------- | ----------- | -------------------- |
+| MCP Server | `packages/mcp-server/**` | `mcp-server` |
+| Studio | `packages/studio/**` | `studio` |
+| Marketplace API | `packages/marketplace-api/**` | `marketplace-api` |
+| Export API | `services/export-api/**` | `export-api` |
+| LLM Service | `services/llm-service/**` | `llm-service` |
+| Absorb Service | `packages/absorb-service/**` | `absorb-service` |
+
+### Manual deploy via GitHub Actions
+
+Actions → **Deploy to Railway** → Run workflow
+
+- `service`: choose specific service or `all`
+- `skip_preflight`: use for emergency deploys only (bypasses heavy build checks)
+
+### MCP Server boot modes
+
+| Mode | Command | Use case |
+| ---- | ------- | -------- |
+| stdio | `pnpm start` in `packages/mcp-server` | Local IDE/Cursor MCP clients |
+| HTTP | `node dist/http-server.js` | Railway prod, remote agents, `/health` |
+
+### `/health` response schema
+
+```json
+{
+  "status": "healthy | degraded | unhealthy",
+  "uptime": 12345,
+  "timestamp": "2026-04-19T...",
+  "checks": {
+    "registry": { "status": "ok", "agentCount": 8 },
+    "telemetry": { "status": "ok", "totalSpans": 42, "activeSpans": 1, "totalEvents": 100 },
+    "tools": { "status": "ok", "toolCount": 118 }
+  },
+  "version": "6.x.x"
+}
+```
+
+### Required environment variables (mcp-server)
+
+```bash
+HOLOSCRIPT_API_KEY    # MCP auth + knowledge store
+HOLOMESH_API_KEY      # HoloMesh gossip + board
+DATABASE_URL          # Postgres (token store, audit log)
+NODE_ENV=production
+```
+
+### Resource baseline (mcp-server)
+
+- **RAM:** 512 MB min — WASM parser peaks at ~200 MB
+- **CPU:** 0.5 vCPU — burst for parse/compile; steady-state is IO-bound
+
+### Rollback via Railway UI
+
+1. Railway dashboard → Project → Service → **Deployments**
+2. Find last green deployment
+3. Click **⋯ → Redeploy**
+
+### Rollback via git revert
+
+```bash
+git revert <bad-commit-sha> --no-edit
+git push origin main   # CI auto-deploys
+```
+
+---
+
 ## Related
 
 - [Strategic team modes and board objective sync](../strategy/team-mode-board-sync.md)
@@ -127,3 +201,4 @@ If mode and objective disagree, fix them in the **same** change so the next boar
 - [Marketplace publication readiness](../distribution/marketplace-publication-readiness.md)
 - [Integration Hub](../../packages/studio/INTEGRATION_HUB.md) (connector APIs)
 - [NUMBERS.md](../NUMBERS.md) — verification commands
+- [Dependency Audit](../../DEPENDENCY-AUDIT.md) — monthly npm/Rust audit results
