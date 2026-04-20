@@ -1,0 +1,38 @@
+{
+  "suite": "NativeRustParser",
+  "timestamp": "unix-1776651774",
+  "runtime": "native-rust-3.0.0",
+  "target_ms": 1000,
+  "results": [
+    {
+      "name": "parse-small (32 lines)",
+      "samples": 18575,
+      "bytes": 434,
+      "median_us": 49.200,
+      "mean_us": 53.663,
+      "p99_us": 119.900,
+      "ops_per_sec": 20325.2,
+      "bytes_per_sec": 8821138.2
+    },
+    {
+      "name": "parse-medium (78 lines)",
+      "samples": 1334,
+      "bytes": 5297,
+      "median_us": 648.900,
+      "mean_us": 749.512,
+      "p99_us": 2425.800,
+      "ops_per_sec": 1541.1,
+      "bytes_per_sec": 8163045.2
+    },
+    {
+      "name": "parse-large (142 lines)",
+      "samples": 1109,
+      "bytes": 8279,
+      "median_us": 806.800,
+      "mean_us": 902.126,
+      "p99_us": 3601.700,
+      "ops_per_sec": 1239.5,
+      "bytes_per_sec": 10261527.0
+    }
+  ]
+}

@@ -45,6 +45,7 @@ dist/
 .bench-logs/*
 !.bench-logs/*paper-targets-overhead*
 !.bench-logs/*paper-trait*
+!.bench-logs/todo-r2-*
 
 # OS
 .DS_Store

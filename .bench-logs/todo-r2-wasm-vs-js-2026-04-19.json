@@ -1,0 +1,88 @@
+{
+  "benchmark": "wasm-vs-js-parser",
+  "task": "TODO-R2 (internal scope)",
+  "timestamp": "2026-04-20T02:23:02.634Z",
+  "node_version": "v22.20.0",
+  "platform": "win32",
+  "arch": "x64",
+  "target_ms": 1000,
+  "suites": [
+    {
+      "suite": "JsParser",
+      "runtime": "node-v22.20.0",
+      "built": true,
+      "load_error": null,
+      "results": [
+        {
+          "name": "parse-small (32 lines)",
+          "samples": 12378,
+          "bytes": 434,
+          "median_us": 60.6,
+          "mean_us": 79.693,
+          "p99_us": 330.5,
+          "ops_per_sec": 16501.7,
+          "bytes_per_sec": 7161716.2
+        },
+        {
+          "name": "parse-medium (78 lines)",
+          "samples": 1132,
+          "bytes": 5297,
+          "median_us": 765.3,
+          "mean_us": 880.796,
+          "p99_us": 3201.6,
+          "ops_per_sec": 1306.7,
+          "bytes_per_sec": 6921468.7
+        },
+        {
+          "name": "parse-large (142 lines)",
+          "samples": 634,
+          "bytes": 8279,
+          "median_us": 1439.9,
+          "mean_us": 1575.781,
+          "p99_us": 4929.8,
+          "ops_per_sec": 694.5,
+          "bytes_per_sec": 5749704.8
+        }
+      ]
+    },
+    {
+      "suite": "WasmParser",
+      "runtime": "wasm32-via-node-v22.20.0",
+      "built": true,
+      "load_error": null,
+      "wasm_opt_applied": false,
+      "results": [
+        {
+          "name": "parse-small (32 lines)",
+          "samples": 9164,
+          "bytes": 434,
+          "median_us": 97,
+          "mean_us": 107.868,
+          "p99_us": 287.8,
+          "ops_per_sec": 10309.3,
+          "bytes_per_sec": 4474226.8
+        },
+        {
+          "name": "parse-medium (78 lines)",
+          "samples": 893,
+          "bytes": 5297,
+          "median_us": 1138.5,
+          "mean_us": 1119.162,
+          "p99_us": 2195.6,
+          "ops_per_sec": 878.3,
+          "bytes_per_sec": 4652613.1
+        },
+        {
+          "name": "parse-large (142 lines)",
+          "samples": 499,
+          "bytes": 8279,
+          "median_us": 1970.6,
+          "mean_us": 2006.74,
+          "p99_us": 4301,
+          "ops_per_sec": 507.5,
+          "bytes_per_sec": 4201258.5
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,22 @@ mod types;
 
 use wasm_bindgen::prelude::*;
 
+/// Native-only re-export of the parser entry point for the
+/// `parser_bench` binary. NOT exported to WASM — `__bench_parse`
+/// stays out of the JS surface so it can't be called from the browser.
+///
+/// Returns `Ok(())` on success, `Err(usize)` with the error count on
+/// failure. We discard the AST and the error details so the benchmark
+/// measures pure parser throughput, not serialization.
+#[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
+pub fn __bench_parse(source: &str) -> Result<(), usize> {
+    match parser::Parser::new(source).parse() {
+        Ok(_ast) => Ok(()),
+        Err(errs) => Err(errs.len()),
+    }
+}
+
 // Initialize panic hook for better error messages in browser console
 #[wasm_bindgen(start)]
 pub fn init() {

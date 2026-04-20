@@ -1,0 +1,88 @@
+{
+  "benchmark": "wasm-vs-js-parser",
+  "task": "TODO-R2 (internal scope)",
+  "timestamp": "2026-04-20T02:23:52.681Z",
+  "node_version": "v22.20.0",
+  "platform": "win32",
+  "arch": "x64",
+  "target_ms": 1000,
+  "suites": [
+    {
+      "suite": "JsParser",
+      "runtime": "node-v22.20.0",
+      "built": true,
+      "load_error": null,
+      "results": [
+        {
+          "name": "parse-small (32 lines)",
+          "samples": 8893,
+          "bytes": 434,
+          "median_us": 79.6,
+          "mean_us": 110.913,
+          "p99_us": 515.4,
+          "ops_per_sec": 12562.8,
+          "bytes_per_sec": 5452261.3
+        },
+        {
+          "name": "parse-medium (78 lines)",
+          "samples": 1475,
+          "bytes": 5297,
+          "median_us": 614.7,
+          "mean_us": 676.422,
+          "p99_us": 2323.8,
+          "ops_per_sec": 1626.8,
+          "bytes_per_sec": 8617211.6
+        },
+        {
+          "name": "parse-large (142 lines)",
+          "samples": 1077,
+          "bytes": 8279,
+          "median_us": 889.1,
+          "mean_us": 927.408,
+          "p99_us": 2699.2,
+          "ops_per_sec": 1124.7,
+          "bytes_per_sec": 9311663.5
+        }
+      ]
+    },
+    {
+      "suite": "WasmParser",
+      "runtime": "wasm32-via-node-v22.20.0",
+      "built": true,
+      "load_error": null,
+      "wasm_opt_applied": false,
+      "results": [
+        {
+          "name": "parse-small (32 lines)",
+          "samples": 13485,
+          "bytes": 434,
+          "median_us": 70.9,
+          "mean_us": 73.526,
+          "p99_us": 182.7,
+          "ops_per_sec": 14104.4,
+          "bytes_per_sec": 6121297.6
+        },
+        {
+          "name": "parse-medium (78 lines)",
+          "samples": 1216,
+          "bytes": 5297,
+          "median_us": 812.4,
+          "mean_us": 821.663,
+          "p99_us": 1573.6,
+          "ops_per_sec": 1230.9,
+          "bytes_per_sec": 6520187.1
+        },
+        {
+          "name": "parse-large (142 lines)",
+          "samples": 719,
+          "bytes": 8279,
+          "median_us": 1382,
+          "mean_us": 1390.214,
+          "p99_us": 3144.7,
+          "ops_per_sec": 723.6,
+          "bytes_per_sec": 5990593.3
+        }
+      ]
+    }
+  ]
+}
