@@ -48,6 +48,7 @@ import {
   handleToolingDiscoveryTool,
 } from './tooling-discovery-tools';
 import { handleOracleConsult } from './oracle-handler';
+import { isHoloMapToolName, handleHoloMapTool } from './holomap-mcp-tools';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
   loadTraitCategoriesFromCore,
@@ -449,6 +450,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     }
     const text = result.content[0]?.type === 'text' ? result.content[0].text : '';
     return JSON.parse(text) as unknown;
+  }
+
+  // HoloMap reconstruction tools
+  if (isHoloMapToolName(name)) {
+    return handleHoloMapTool(name, args);
   }
 
   throw new Error(`Unknown tool: ${name}`);
