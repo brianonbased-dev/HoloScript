@@ -37,4 +37,19 @@ export const holomapSplatOutputHandler: TraitHandler<HoloMapSplatOutputConfig> =
   onAttach(_node, _config, context) {
     context.emit?.('holomap:splat_output_registered', {});
   },
+
+  onEvent(_node, config, context, event) {
+    if (event.type !== 'holomap:finalized') return;
+    const payload = event.payload ?? {};
+    context.emit?.('holomap:splat_bake_requested', {
+      format: config.format,
+      spzVersion: config.spzVersion,
+      maxSplats: config.maxSplats,
+      bakeSphericalHarmonics: config.bakeSphericalHarmonics,
+      replayHash:
+        payload.manifest && typeof payload.manifest === 'object'
+          ? (payload.manifest as Record<string, unknown>).replayHash
+          : undefined,
+    });
+  },
 };

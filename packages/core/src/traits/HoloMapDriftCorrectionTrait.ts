@@ -33,4 +33,21 @@ export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionC
   onAttach(_node, _config, context) {
     context.emit?.('holomap:drift_monitor_start', {});
   },
+
+  onEvent(_node, config, context, event) {
+    if (event.type !== 'holomap:step_result' && event.type !== 'holomap:drift_update') return;
+    const payload = event.payload ?? {};
+    const drift =
+      typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)
+        ? payload.estimatedDriftMeters
+        : 0;
+
+    if (drift >= config.maxDriftMeters) {
+      context.emit?.('holomap:drift_correction_requested', {
+        estimatedDriftMeters: drift,
+        loopClosureThreshold: config.loopClosureThreshold,
+        rewriteHistory: config.rewriteHistory,
+      });
+    }
+  },
 };

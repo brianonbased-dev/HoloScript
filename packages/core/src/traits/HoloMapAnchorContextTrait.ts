@@ -30,4 +30,33 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
   onAttach(_node, _config, context) {
     context.emit?.('holomap:anchor_ready', {});
   },
+
+  onEvent(_node, config, context, event) {
+    const payload = event.payload ?? {};
+    if (event.type === 'holomap:anchor_update') {
+      context.emit?.('holomap:anchor_state_changed', {
+        anchorFrameIndex:
+          typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : 0,
+        autoReanchor: config.autoReanchor,
+      });
+      return;
+    }
+
+    if (event.type === 'holomap:drift_update' && config.autoReanchor) {
+      const drift =
+        typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)
+          ? payload.estimatedDriftMeters
+          : 0;
+      const threshold =
+        payload.maxDriftBeforeReanchor && typeof payload.maxDriftBeforeReanchor === 'number'
+          ? payload.maxDriftBeforeReanchor
+          : undefined;
+      if (threshold != null && drift >= threshold) {
+        context.emit?.('holomap:reanchor_requested', {
+          estimatedDriftMeters: drift,
+          maxDriftBeforeReanchor: threshold,
+        });
+      }
+    }
+  },
 };

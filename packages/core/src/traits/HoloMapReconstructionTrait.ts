@@ -37,6 +37,8 @@ export interface HoloMapReconstructionState {
   framesProcessed: number;
   lastManifest: ReconstructionManifest | null;
   lastError: string | null;
+  sessionId?: string;
+  replayHash?: string;
 }
 
 // =============================================================================
@@ -59,10 +61,82 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
       lastError: null,
     };
     (node as unknown as Record<string, unknown>).__holomapState = state;
-    context.emit?.('holomap:attached', { source: config.source });
+    context.setState?.({
+      holomapReconstruction: {
+        source: config.source,
+        sourceRef: config.sourceRef ?? null,
+        autoFinalize: config.autoFinalize,
+      },
+    });
+    context.emit?.('holomap:attached', {
+      source: config.source,
+      sourceRef: config.sourceRef ?? null,
+      autoFinalize: config.autoFinalize,
+    });
   },
 
-  onDetach(node) {
+  onEvent(node, _config, context, event) {
+    const state = (node as unknown as Record<string, unknown>).__holomapState as
+      | HoloMapReconstructionState
+      | undefined;
+    if (!state) return;
+
+    const payload = event.payload ?? {};
+    if (event.type === 'holomap:session_started') {
+      state.isActive = true;
+      state.lastError = null;
+      state.sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : state.sessionId;
+      state.replayHash = typeof payload.replayHash === 'string' ? payload.replayHash : state.replayHash;
+      context.emit?.('reconstruction:session_started', {
+        sessionId: state.sessionId,
+        replayHash: state.replayHash,
+      });
+      return;
+    }
+
+    if (event.type === 'holomap:step_result') {
+      if (typeof payload.frameIndex === 'number' && Number.isFinite(payload.frameIndex)) {
+        state.framesProcessed = Math.max(state.framesProcessed, payload.frameIndex + 1);
+      } else {
+        state.framesProcessed += 1;
+      }
+      context.emit?.('reconstruction:progress', {
+        framesProcessed: state.framesProcessed,
+      });
+      return;
+    }
+
+    if (event.type === 'holomap:finalized') {
+      state.isActive = false;
+      if (payload.manifest && typeof payload.manifest === 'object') {
+        state.lastManifest = payload.manifest as ReconstructionManifest;
+      }
+      context.emit?.('reconstruction:manifest', {
+        framesProcessed: state.framesProcessed,
+        replayHash: state.lastManifest?.replayHash ?? state.replayHash,
+      });
+      return;
+    }
+
+    if (event.type === 'holomap:error') {
+      state.isActive = false;
+      state.lastError = typeof payload.message === 'string' ? payload.message : 'unknown holomap error';
+      context.emit?.('reconstruction:error', {
+        message: state.lastError,
+      });
+    }
+  },
+
+  onDetach(node, _config, context) {
+    const state = (node as unknown as Record<string, unknown>).__holomapState as
+      | HoloMapReconstructionState
+      | undefined;
+    if (state) {
+      context.emit?.('holomap:detached', {
+        framesProcessed: state.framesProcessed,
+        replayHash: state.replayHash ?? null,
+      });
+    }
     delete (node as unknown as Record<string, unknown>).__holomapState;
   },
 };

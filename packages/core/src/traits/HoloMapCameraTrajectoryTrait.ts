@@ -42,6 +42,36 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
     void config;
   },
 
+  onEvent(node, config, context, event) {
+    if (event.type !== 'holomap:step_result') return;
+    const state = (node as unknown as Record<string, unknown>).__holomapTrajectoryState as
+      | HoloMapCameraTrajectoryState
+      | undefined;
+    if (!state) return;
+
+    const payload = event.payload ?? {};
+    const pose = payload.pose as CameraPose | undefined;
+    const frameIndex =
+      typeof payload.frameIndex === 'number' && Number.isFinite(payload.frameIndex)
+        ? payload.frameIndex
+        : state.currentFrameIndex;
+
+    if (!pose) return;
+    state.currentFrameIndex = frameIndex;
+    state.poses.push(pose);
+    if (state.poses.length > config.historyLength) {
+      state.poses.splice(0, state.poses.length - config.historyLength);
+    }
+
+    if (frameIndex % Math.max(1, config.emitEveryN) === 0) {
+      context.emit?.('trajectory:tick', {
+        frameIndex,
+        pose,
+        retained: state.poses.length,
+      });
+    }
+  },
+
   onDetach(node) {
     delete (node as unknown as Record<string, unknown>).__holomapTrajectoryState;
   },
