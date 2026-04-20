@@ -24,24 +24,34 @@ export type TokenIntrospectionWithTenant = TokenIntrospection & {
   tenantContext?: TenantContext;
 };
 
-// In-memory fallback if no DB is connected
-const mockTenantStore = new Map<string, TenantContext>([
-  [
-    'live_test_enterprise_key_849204',
-    {
-      tenantId: 'tenant_enterprise_01',
-      subscriptionTier: 'enterprise',
-      limits: {
-        maxVideoDurationSec: 3600,
-        maxMediaResolution: 4096,
-        allowProcessExec: true,
-        rateLimitRequestsPerMin: 1000,
-      },
-    },
-  ],
-]);
-
 let pgPool: any = null;
+
+/**
+ * Development-only escape hatch: no hardcoded keys in the repo.
+ * Set TENANT_AUTH_DEV_MOCK_KEY locally to a private value; never in production.
+ */
+function tryDevMockTenant(apiKey: string): TenantContext | undefined {
+  if (process.env.NODE_ENV !== 'development') {
+    return undefined;
+  }
+  const devKey = process.env.TENANT_AUTH_DEV_MOCK_KEY?.trim();
+  if (!devKey || devKey !== apiKey) {
+    return undefined;
+  }
+  console.warn(
+    '[TenantAuth] DEV ONLY: TENANT_AUTH_DEV_MOCK_KEY matched — granting mock enterprise tenant. Disable outside local development.'
+  );
+  return {
+    tenantId: 'tenant_dev_mock',
+    subscriptionTier: 'enterprise',
+    limits: {
+      maxVideoDurationSec: 3600,
+      maxMediaResolution: 4096,
+      allowProcessExec: true,
+      rateLimitRequestsPerMin: 1000,
+    },
+  };
+}
 
 /**
  * Validates a dynamic API key against the configured backend store.
@@ -95,9 +105,10 @@ export async function validateTenantKey(
     }
   }
 
-  // 3. Fallback to local memory mock (for dev testing)
-  if (!tenant && mockTenantStore.has(apiKey)) {
-    tenant = mockTenantStore.get(apiKey);
+  // 3. Optional dev-only mock (explicit env key only — never a repo-baked secret)
+  if (!tenant) {
+    const dev = tryDevMockTenant(apiKey);
+    if (dev) tenant = dev;
   }
 
   // If found, grant scopes dynamically based on tier
