@@ -33,6 +33,19 @@ export interface X402ReceiptBinding {
   raw?: Record<string, unknown>;
 }
 
+/**
+ * Optional Film3D / WebXR session attestation bound into the publication manifest.
+ * Non-cryptographic summary for auditors; pair with `xr_metrics` for physical telemetry.
+ */
+export interface Film3dAttestationBinding {
+  /** Attestation format, e.g. `webxr-session-v0` */
+  scheme?: string;
+  session_id?: string;
+  captured_at_iso?: string;
+  /** Optional device / pipeline summary */
+  device_summary?: Record<string, unknown>;
+}
+
 export interface ProvenanceReceiptBinding {
   /** Same as `provenance_receipt_${room}` from LoroWebRTCProvider */
   document_id: string;
@@ -65,6 +78,8 @@ export interface GistPublicationManifestV0 {
   /** Formal v1 Algebraic Semiring matrix ensuring mathematical commutative inclusion */
   tropical_semiring_digest?: TropicalSemiringDigest;
   x402_receipt?: X402ReceiptBinding;
+  /** Film3D / WebXR session attestation (policy + session binding) */
+  film3d_attestation?: Film3dAttestationBinding;
   /** Empirical hardware metrics harvested during a WebXR volumetric evaluation */
   xr_metrics?: Record<string, unknown>;
   /** Optional content addressing for the gist primary file */
@@ -83,6 +98,8 @@ export interface BuildGistPublicationManifestParams {
   includeSemiringDigest?: boolean;
   /** Formal v1 algebraic tropical semiring digest */
   tropicalSemiringDigest?: TropicalSemiringDigest;
+  /** Optional Film3D / WebXR attestation */
+  film3dAttestation?: Film3dAttestationBinding | null;
 }
 
 function sortKeysDeep(value: unknown): unknown {
@@ -162,6 +179,13 @@ export function buildGistPublicationManifest(
   }
   if (params.primaryAssetSha256) {
     manifest.primary_asset_sha256 = params.primaryAssetSha256;
+  }
+  if (
+    params.film3dAttestation &&
+    typeof params.film3dAttestation === 'object' &&
+    Object.keys(params.film3dAttestation).length > 0
+  ) {
+    manifest.film3d_attestation = params.film3dAttestation;
   }
   return manifest;
 }

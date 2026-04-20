@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   buildGistPublicationManifest,
   serializeGistPublicationManifest,
+  type Film3dAttestationBinding,
 } from '../../../../../../core/src/export/GistPublicationManifest';
 
 export const maxDuration = 30;
@@ -64,11 +65,64 @@ async function deployToHolomesh(params: {
 }
 
 /**
- * When `GIST_MANIFEST_REQUIRE_X402=true`, reject requests without a non-empty `x402Receipt`
- * (HTTP 402 Payment Required). Use for publish tiers that mandate an economic anchor.
+ * Legacy: when `GIST_MANIFEST_REQUIRE_X402=true`, require a non-empty `x402Receipt`.
+ * Prefer `GIST_MANIFEST_X402_TIER` for explicit policy (see below).
  */
 function requireX402Enabled(): boolean {
   return process.env.GIST_MANIFEST_REQUIRE_X402 === 'true' || process.env.GIST_MANIFEST_REQUIRE_X402 === '1';
+}
+
+type X402Tier = 'off' | 'required' | 'strict';
+
+/**
+ * Tiered x402 enforcement (Trust / sovereign origination):
+ * - `off` — optional x402 (default)
+ * - `required` — non-empty `x402Receipt` object (same as legacy REQUIRE flag)
+ * - `strict` — receipt must include non-empty `payment_id` and `network`
+ *
+ * `GIST_MANIFEST_X402_TIER` wins over legacy when set to `off` or `strict`.
+ * When unset, legacy `GIST_MANIFEST_REQUIRE_X402` maps to `required`.
+ */
+function getX402Tier(): X402Tier {
+  const tier = process.env.GIST_MANIFEST_X402_TIER?.trim().toLowerCase();
+  if (tier === 'strict') return 'strict';
+  if (tier === 'off' || tier === 'none') return 'off';
+  if (tier === 'required' || tier === 'standard') return 'required';
+  if (requireX402Enabled()) return 'required';
+  return 'off';
+}
+
+function receiptIsNonEmpty(o: unknown): o is Record<string, unknown> {
+  return o !== null && typeof o === 'object' && !Array.isArray(o) && Object.keys(o as object).length > 0;
+}
+
+function strictX402ReceiptValid(o: Record<string, unknown>): boolean {
+  const pid = o.payment_id;
+  const net = o.network;
+  return typeof pid === 'string' && pid.trim().length > 0 && typeof net === 'string' && net.trim().length > 0;
+}
+
+function normalizeFilm3dAttestation(raw: unknown): Film3dAttestationBinding | undefined {
+  if (!receiptIsNonEmpty(raw)) return undefined;
+  const o = raw as Record<string, unknown>;
+  const out: Film3dAttestationBinding = {};
+  if (typeof o.scheme === 'string' && o.scheme.trim()) {
+    out.scheme = o.scheme.trim().slice(0, 128);
+  }
+  if (typeof o.session_id === 'string' && o.session_id.trim()) {
+    out.session_id = o.session_id.trim().slice(0, 256);
+  }
+  if (typeof o.captured_at_iso === 'string' && o.captured_at_iso.trim()) {
+    out.captured_at_iso = o.captured_at_iso.trim().slice(0, 64);
+  }
+  if (
+    o.device_summary !== null &&
+    typeof o.device_summary === 'object' &&
+    !Array.isArray(o.device_summary)
+  ) {
+    out.device_summary = o.device_summary as Record<string, unknown>;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /**
@@ -85,6 +139,7 @@ function requireX402Enabled(): boolean {
  *   title?: string;
  *   primaryAssetSha256?: string;
  *   xrMetrics?: Record<string, unknown>;
+ *   film3dAttestation?: { scheme?, session_id?, captured_at_iso?, device_summary? };
  *   includeSemiringDigest?: boolean;
  *   deployToHolomesh?: boolean;
  *   holomesh?: {
@@ -109,14 +164,32 @@ export async function POST(req: NextRequest) {
     }
 
     const x402Receipt = body.x402Receipt as Record<string, unknown> | undefined;
-    if (requireX402Enabled()) {
-      if (!x402Receipt || typeof x402Receipt !== 'object' || Object.keys(x402Receipt).length === 0) {
+    const x402Tier = getX402Tier();
+
+    if (x402Tier === 'required') {
+      if (!receiptIsNonEmpty(x402Receipt)) {
         return NextResponse.json(
-          { error: 'x402Receipt is required for this deployment tier (GIST_MANIFEST_REQUIRE_X402)' },
+          {
+            error: 'x402Receipt is required for this publication tier',
+            x402_tier: 'required',
+          },
+          { status: 402 }
+        );
+      }
+    } else if (x402Tier === 'strict') {
+      if (!receiptIsNonEmpty(x402Receipt) || !strictX402ReceiptValid(x402Receipt)) {
+        return NextResponse.json(
+          {
+            error:
+              'x402Receipt must include non-empty payment_id and network for strict tier (GIST_MANIFEST_X402_TIER=strict)',
+            x402_tier: 'strict',
+          },
           { status: 402 }
         );
       }
     }
+
+    const film3dAttestation = normalizeFilm3dAttestation(body.film3dAttestation);
 
     const xrRaw = body.xrMetrics;
     const xrMetrics =
@@ -131,6 +204,7 @@ export async function POST(req: NextRequest) {
       title: typeof body.title === 'string' ? body.title : undefined,
       primaryAssetSha256: typeof body.primaryAssetSha256 === 'string' ? body.primaryAssetSha256 : undefined,
       xrMetrics,
+      film3dAttestation,
       includeSemiringDigest: body.includeSemiringDigest === false ? false : undefined,
     });
 

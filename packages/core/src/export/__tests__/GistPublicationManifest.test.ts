@@ -40,6 +40,22 @@ describe('GistPublicationManifest', () => {
     expect(m.x402_receipt).toBeUndefined();
   });
 
+  it('embeds optional film3d_attestation (WebXR / Film3D policy binding)', () => {
+    const m = buildGistPublicationManifest({
+      room: 'r-film',
+      loroDocVersion: { v: 1 },
+      film3dAttestation: {
+        scheme: 'webxr-session-v0',
+        session_id: 'sess_abc',
+        captured_at_iso: '2026-04-20T12:00:00.000Z',
+        device_summary: { display: 'quest3' },
+      },
+    });
+    expect(m.film3d_attestation?.scheme).toBe('webxr-session-v0');
+    expect(m.film3d_attestation?.session_id).toBe('sess_abc');
+    expect(m.film3d_attestation?.device_summary?.display).toBe('quest3');
+  });
+
   it('embeds optional xr_metrics (Film3D / WebXR physical origination)', () => {
     const m = buildGistPublicationManifest({
       room: 'room-alpha-9',
