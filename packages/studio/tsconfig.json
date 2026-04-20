@@ -29,6 +29,7 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "src/browser-benchmark.test.ts"
+    "src/browser-benchmark.test.ts",
+    "src/lib/scenarios/**"
   ]
 }

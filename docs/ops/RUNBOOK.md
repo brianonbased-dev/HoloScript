@@ -171,6 +171,9 @@ Actions → **Deploy to Railway** → Run workflow
 HOLOSCRIPT_API_KEY    # MCP auth + knowledge store
 HOLOMESH_API_KEY      # HoloMesh gossip + board
 DATABASE_URL          # Postgres (token store, audit log)
+# SEC-T09: If Postgres uses a private CA, set one of:
+#   PG_SSL_CA=/path/to/ca.pem   or   PG_SSL_CA_B64=<base64 of PEM>
+# Managed cloud DBs with public roots need neither.
 NODE_ENV=production
 ```
 
