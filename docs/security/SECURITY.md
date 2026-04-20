@@ -54,4 +54,8 @@ When contributing to HoloScript:
 - Use parameterized queries for database operations
 - Implement proper authentication and authorization checks
 
+## Operational review checklists
+
+- [Sandbox, secrets, and untrusted input](./sandbox-keys-input-validation-review.md) — periodic pass for guest isolation, logging hygiene, and input boundaries (Paper #4 / SEC-01 alignment).
+
 Thank you for helping keep HoloScript and its users safe!
