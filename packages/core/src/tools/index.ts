@@ -29,6 +29,7 @@ export {
   type MaterialPreset,
 } from './MaterialEditor';
 export {
+  getMaterialEditorBuiltinPresets,
   listMaterialEditorQuickPickPresetNames,
   listMaterialEditorQuickPickPresetsByCategory,
 } from './materialPresetQuickPick';

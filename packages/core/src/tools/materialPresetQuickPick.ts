@@ -1,4 +1,12 @@
 import { MaterialEditor } from './MaterialEditor';
+import type { MaterialEditorPreset } from './MaterialEditor';
+
+/**
+ * Full built-in preset list (for Studio / tooling UIs). Keeps consumers from importing the editor class.
+ */
+export function getMaterialEditorBuiltinPresets(): MaterialEditorPreset[] {
+  return MaterialEditor.getPresets();
+}
 
 /**
  * Names of built-in PBR presets from {@link MaterialEditor.getPresets}.

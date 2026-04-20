@@ -6,13 +6,18 @@
  * Features:
  *  - PBR properties: color, roughness, metalness, emissive, opacity
  *  - Texture slots: albedo, normal, roughness, metalness, AO, emissive
- *  - 10 built-in presets (metal, wood, glass, stone, plastic, etc.)
+ *  - Quick-pick presets from `@holoscript/core/tools` MaterialEditor.getPresets()
  *  - Real-time preview swatch
  *  - Export to @material trait
  */
 
 import { useState, useCallback } from 'react';
 import { Palette, Copy, RotateCcw, ChevronDown, ImagePlus } from 'lucide-react';
+import {
+  getMaterialEditorBuiltinPresets,
+  rgbaToHex,
+  type MaterialEditorPreset,
+} from '@holoscript/core/tools';
 
 export interface MaterialConfig {
   name: string;
@@ -68,52 +73,30 @@ const DEFAULT_MATERIAL: MaterialConfig = {
   sheenRoughness: 0.5,
 };
 
-const PRESETS: Record<string, { label: string; config: Partial<MaterialConfig> }> = {
-  polishedMetal: {
-    label: '🔩 Metal',
-    config: { color: '#b0b0b0', roughness: 0.1, metalness: 1.0, clearcoat: 0.5 },
-  },
-  brushedSteel: {
-    label: '⚙️ Steel',
-    config: { color: '#888888', roughness: 0.35, metalness: 0.9 },
-  },
-  gold: { label: '🥇 Gold', config: { color: '#ffd700', roughness: 0.15, metalness: 1.0 } },
-  wood: { label: '🪵 Wood', config: { color: '#8B4513', roughness: 0.8, metalness: 0 } },
-  glass: {
-    label: '🪟 Glass',
-    config: {
-      color: '#ffffff',
-      roughness: 0.05,
-      metalness: 0,
-      transparent: true,
-      opacity: 0.3,
-      clearcoat: 1.0,
-    },
-  },
-  marble: { label: '🏛️ Marble', config: { color: '#f0f0f0', roughness: 0.3, metalness: 0 } },
-  plastic: { label: '🧴 Plastic', config: { color: '#ff4488', roughness: 0.5, metalness: 0 } },
-  rubber: { label: '🛞 Rubber', config: { color: '#222222', roughness: 0.95, metalness: 0 } },
-  fabric: {
-    label: '🧵 Fabric',
-    config: {
-      color: '#4488cc',
-      roughness: 0.9,
-      metalness: 0,
-      sheenColor: '#88aacc',
-      sheenRoughness: 0.3,
-    },
-  },
-  neon: {
-    label: '💡 Neon',
-    config: {
-      color: '#000000',
-      roughness: 0.5,
-      metalness: 0,
-      emissive: '#ff00ff',
-      emissiveIntensity: 2,
-    },
-  },
-};
+/** Map canonical core {@link MaterialEditorPreset} PBR data into Studio slider state. */
+function corePresetToStudioPartial(preset: MaterialEditorPreset): Partial<MaterialConfig> {
+  const m = preset.material;
+  const albedo = m.albedo ?? { r: 0.8, g: 0.8, b: 0.8, a: 1 };
+  const emission = m.emission ?? { r: 0, g: 0, b: 0 };
+  const strength = m.emissionStrength ?? 0;
+  const blendMode = m.blendMode;
+  const opacity = albedo.a ?? 1;
+  const transparent = blendMode === 'transparent' || opacity < 0.999;
+  return {
+    name: preset.name,
+    color: rgbaToHex({ r: albedo.r, g: albedo.g, b: albedo.b }),
+    roughness: m.roughness ?? DEFAULT_MATERIAL.roughness,
+    metalness: m.metallic ?? DEFAULT_MATERIAL.metalness,
+    emissive: strength > 0 ? rgbaToHex(emission) : DEFAULT_MATERIAL.emissive,
+    emissiveIntensity: strength,
+    opacity,
+    transparent,
+    side: m.doubleSided ? 'double' : DEFAULT_MATERIAL.side,
+  };
+}
+
+/** Single source of truth: core MaterialEditor built-in presets (kept in sync with tooling). */
+const CORE_MATERIAL_PRESETS: MaterialEditorPreset[] = getMaterialEditorBuiltinPresets();
 
 interface MaterialEditorProps {
   onConfigChange?: (config: MaterialConfig) => void;
@@ -134,10 +117,11 @@ export function MaterialEditor({ onConfigChange }: MaterialEditorProps) {
     [onConfigChange]
   );
 
-  const applyPreset = useCallback(
-    (key: string) => {
-      const preset = PRESETS[key];
-      if (preset) update({ ...DEFAULT_MATERIAL, name: preset.label, ...preset.config });
+  const applyCorePreset = useCallback(
+    (presetName: string) => {
+      const preset = CORE_MATERIAL_PRESETS.find((p) => p.name === presetName);
+      if (!preset) return;
+      update({ ...DEFAULT_MATERIAL, ...corePresetToStudioPartial(preset) });
     },
     [update]
   );
@@ -278,15 +262,17 @@ export function MaterialEditor({ onConfigChange }: MaterialEditorProps) {
         </div>
       </div>
 
-      {/* Presets */}
-      <div className="grid grid-cols-5 gap-1 border-b border-studio-border p-2">
-        {Object.entries(PRESETS).map(([key, { label }]) => (
+      {/* Presets — labels match core MaterialEditor.getPresets() names */}
+      <div className="grid grid-cols-4 gap-1 border-b border-studio-border p-2 sm:grid-cols-5">
+        {CORE_MATERIAL_PRESETS.map((p) => (
           <button
-            key={key}
-            onClick={() => applyPreset(key)}
+            key={p.name}
+            type="button"
+            title={p.category}
+            onClick={() => applyCorePreset(p.name)}
             className="rounded-lg border border-studio-border p-1 text-[9px] text-studio-muted transition hover:border-pink-500/30 hover:text-studio-text"
           >
-            {label}
+            {p.name}
           </button>
         ))}
       </div>
