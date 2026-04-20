@@ -76,6 +76,10 @@ describe('ops pipeline (P.008.03)', () => {
     setReplicas.mockClear();
     await loop.evaluate({ utilization: 0.2, currentReplicas: 4 });
     expect(setReplicas).toHaveBeenCalledWith(3);
+
+    setReplicas.mockClear();
+    await loop.evaluate({ utilization: 0.5, currentReplicas: 5 });
+    expect(setReplicas).not.toHaveBeenCalled();
   });
 
   it('PredictiveLoadBalancer updates normalized weights from health scores', () => {

@@ -113,6 +113,10 @@ export class AutoScalingLoop {
       desired = Math.max(minReplicas, desired - 1);
     }
 
+    if (desired === input.currentReplicas) {
+      return { desiredReplicas: desired };
+    }
+
     await this.scaler.setReplicas(desired);
     return { desiredReplicas: desired };
   }

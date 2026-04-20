@@ -73,6 +73,10 @@ import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { recordMcpToolCallMetric } from './ops/tool-anomaly-bridge.js';
+import {
+  maybeStartRailwayAutoscaleLoop,
+  registerMcpAutoscaleSessions,
+} from './ops/railway-autoscale-loop.js';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -242,6 +246,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // Store active transports by session ID
 const transports = new Map<string, SSEServerTransport>();
+registerMcpAutoscaleSessions(() => transports.size);
 
 // ── Session-to-Auth mapping for MCP transport sessions ───────────────────────
 const sessionAuth = new Map<string, TokenIntrospection>();
@@ -2792,6 +2797,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     GET  /api/audit                    - Query audit log (admin)`);
   console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
   console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
+  maybeStartRailwayAutoscaleLoop({ port: PORT });
 });
 
 // ─── Thermodynamic consolidation timer ─────────────────────────────────────
