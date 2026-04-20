@@ -100,8 +100,29 @@ Escalation: <name + phone/slack>
 
 ---
 
+## 9. Strategic team mode and board objective (operator checklist)
+
+When the team shifts how it works (audit vs build vs stabilize, etc.), **mode** and **objective** on the HoloMesh board must stay in sync so autonomous agents and humans do not chase stale goals.
+
+**Canonical detail (SSOT):** [Strategic team modes and board objective sync](../strategy/team-mode-board-sync.md) — mode names, biases, and objective rules.
+
+**After changing mode, verify:**
+
+1. **Board** — `GET /api/holomesh/team/{teamId}/board` shows the expected `mode` and a short `objective` that matches that mode (not leftover text from last week).
+2. **IDE directive** — Session hooks or `team-connect` may write a mode summary for the IDE:
+   - Windows: `%TEMP%\holomesh-mode-directive.md`
+   - macOS/Linux: `$TMPDIR/holomesh-mode-directive.md` (see also [REST examples — Local IDE integration](../api/REST_EXAMPLES.md#local-ide-agent-integration)).
+3. **Control plane** — Use one of:
+   - HTTP: `POST /api/holomesh/team/{teamId}/mode` with `{"mode":"<mode>","objective":"<short string>"}` (team permissions required).
+   - MCP: `holomesh_mode_set` with `team_id`, `mode`, and optional `objective` — [MCP examples](../api/MCP_EXAMPLES.md#set-team-mode).
+
+If mode and objective disagree, fix them in the **same** change so the next board marathon or `team-connect --queue` run reflects reality.
+
+---
+
 ## Related
 
+- [Strategic team modes and board objective sync](../strategy/team-mode-board-sync.md)
 - [TTFHW measurement protocol](./time-to-first-hologram-wow.md)
 - [Marketplace publication readiness](../distribution/marketplace-publication-readiness.md)
 - [Integration Hub](../../packages/studio/INTEGRATION_HUB.md) (connector APIs)
