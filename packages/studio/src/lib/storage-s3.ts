@@ -14,8 +14,66 @@
 
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 let _client: S3Client | null = null;
+
+/**
+ * SEC-T12: Whitelist of allowed upload extensions. Anything outside this set
+ * is rejected by `makeAssetKey` with `InvalidAssetExtensionError`.
+ */
+export const ALLOWED_ASSET_EXTENSIONS = new Set<string>([
+  'gltf',
+  'glb',
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
+  'hdr',
+  'exr',
+  'mp3',
+  'wav',
+  'ogg',
+  'bin',
+  'ktx2',
+  'basis',
+]);
+
+/** SEC-T12: Surfaced to upload route so it can translate to a 400 response. */
+export class InvalidAssetExtensionError extends Error {
+  readonly ext: string;
+  constructor(ext: string) {
+    super(`Asset extension not allowed: ${ext || '(missing)'}`);
+    this.name = 'InvalidAssetExtensionError';
+    this.ext = ext;
+  }
+}
+
+/** SEC-T12: Cap metadata filename length to a S3-reasonable size. */
+const MAX_ORIGINAL_FILENAME = 255;
+
+/**
+ * SEC-T12: Normalize and whitelist-check the extension taken from an
+ * untrusted filename. Returns the lowercase extension (no leading dot) when
+ * accepted. Throws InvalidAssetExtensionError otherwise.
+ */
+export function resolveAssetExtension(filename: string): string {
+  const raw = path.extname(filename).toLowerCase().replace(/^\./, '');
+  if (!raw || !ALLOWED_ASSET_EXTENSIONS.has(raw)) {
+    throw new InvalidAssetExtensionError(raw);
+  }
+  return raw;
+}
+
+/**
+ * SEC-T12: Clamp the metadata filename to 255 chars so a huge user-supplied
+ * name cannot bloat S3 object metadata or downstream logs.
+ */
+export function sanitizeOriginalFilename(filename: string): string {
+  const cleaned = filename.slice(0, MAX_ORIGINAL_FILENAME);
+  return cleaned;
+}
 
 function getS3Client(): S3Client | null {
   if (_client) return _client;
@@ -139,11 +197,22 @@ export async function deleteFile(key: string): Promise<void> {
 
 /**
  * Generate a unique asset key for uploads.
- * Format: assets/{userId}/{timestamp}-{random}.{ext}
+ *
+ * SEC-T12: The extension is taken via `path.extname()` (safer than
+ * `split('.').pop()` which mishandles dot-only filenames) and whitelist-checked
+ * against ALLOWED_ASSET_EXTENSIONS. The uniqueness component is a full
+ * `crypto.randomUUID()` — the previous `Math.random().slice(2, 8)` form was
+ * neither cryptographically strong nor wide enough to resist collision on a
+ * busy tenant. The untrusted filename itself NEVER appears in the key path;
+ * it's only preserved in S3 object metadata by the caller.
+ *
+ * Format: assets/{userId}/{uuid}.{ext}
+ *
+ * Throws `InvalidAssetExtensionError` when the filename has no extension or
+ * the extension is not in the allow-list. The upload route catches this and
+ * returns HTTP 400.
  */
 export function makeAssetKey(userId: string, filename: string): string {
-  const ext = filename.split('.').pop() || 'bin';
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).slice(2, 8);
-  return `assets/${userId}/${timestamp}-${random}.${ext}`;
+  const ext = resolveAssetExtension(filename);
+  return `assets/${userId}/${randomUUID()}.${ext}`;
 }

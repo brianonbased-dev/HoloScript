@@ -8,6 +8,8 @@ import {
   isStorageConfigured,
   getPresignedUploadUrl,
   makeAssetKey,
+  sanitizeOriginalFilename,
+  InvalidAssetExtensionError,
   _uploadFile,
 } from '../../../../lib/storage-s3';
 
@@ -69,9 +71,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const key = makeAssetKey(userId, filename);
+  // SEC-T12: Whitelist the extension and use a UUID-based key; the
+  // user-supplied filename never appears in the S3 key path. It is preserved
+  // (clamped) only as asset metadata via `originalFilename`.
+  let key: string;
+  try {
+    key = makeAssetKey(userId, filename);
+  } catch (err) {
+    if (err instanceof InvalidAssetExtensionError) {
+      return NextResponse.json(
+        { error: `Asset extension not allowed: ${err.ext || '(missing)'}` },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
+  const originalFilename = sanitizeOriginalFilename(filename);
   const category = body.category || categoryFromContentType(contentType);
-  const assetName = name || filename;
+  const assetName = name || originalFilename;
 
   if (!isStorageConfigured()) {
     // No S3 configured — return a local upload endpoint instead
@@ -98,7 +115,7 @@ export async function POST(req: NextRequest) {
         name: assetName,
         type: category,
         url: '', // Will be populated after upload completes
-        metadata: { key, contentType, status: 'uploading' },
+        metadata: { key, contentType, originalFilename, status: 'uploading' },
       })
       .returning();
     assetId = row.id;

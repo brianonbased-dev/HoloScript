@@ -52,6 +52,29 @@ pnpm exec vsce package
 | Item | Owner |
 |------|--------|
 | Screenshots / GIFs for marketplace listing | Marketing + Studio capture |
+
+---
+
+## 4. CI automation status (updated mp1)
+
+| Step | Status | Notes |
+| ---- | ------ | ----- |
+| `package.json` `galleryBanner` | ✅ Added | `#0d1117` dark theme |
+| `package.json` `badges` | ✅ Added | HoloScript v6 shield |
+| `package.json` `qna` | ✅ Added | GitHub Discussions |
+| `package.json` `categories` | ✅ Updated | + Snippets, Debuggers |
+| `.vscodeignore` | ✅ Exists | Source/tests excluded |
+| `vsce package` script | ✅ `pnpm package` | `--no-dependencies` flag |
+| `vsce publish` script | ✅ `pnpm publish` | Requires `VSCE_TOKEN` |
+| CI publish job in `publish.yml` | ✅ Added | Runs on `v*` tags |
+| Open VSX (Cursor) publish | ⬜ Manual | Run `ovsx publish` post-release |
+
+**Required GitHub Secrets** (add in repo Settings → Secrets → Actions):
+
+| Secret | Purpose |
+| ------ | ------- |
+| `VSCE_TOKEN` | VS Marketplace PAT for publisher `holoscript` |
+| `OVSX_TOKEN` | Eclipse Open VSX token (Cursor marketplace) |
 | Short demo script (60s) | Marketing |
 | Review prompts / early adopters | Marketing |
 | Badges (version, license) in GitHub README | Engineering |

@@ -17,8 +17,22 @@
   },
   "categories": [
     "Programming Languages",
-    "Visualization"
+    "Visualization",
+    "Snippets",
+    "Debuggers"
   ],
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
+  "badges": [
+    {
+      "url": "https://img.shields.io/badge/HoloScript-v6-8B5CF6",
+      "href": "https://holoscript.net",
+      "description": "HoloScript v6"
+    }
+  ],
+  "qna": "https://github.com/brianonbased-dev/HoloScript/discussions",
   "keywords": [
     "holoscript",
     "vr",
