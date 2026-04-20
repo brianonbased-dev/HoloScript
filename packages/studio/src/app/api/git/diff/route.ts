@@ -19,6 +19,25 @@ import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
+// SEC-T07: git accepts option-like positional args (e.g. `--output=/tmp/pwn`)
+// that would otherwise slip past execFile because execFile disables shell
+// interpretation but passes every argv entry through as-is. A user-controlled
+// ref like `--upload-pack=malicious` concatenated as `${from}..${to}` would
+// arrive at git as a flag, not a revision. We require refs to be conservative
+// slug-like strings with no leading `-`, no `..` sequences, no null bytes.
+const REF_RE = /^[A-Za-z0-9._/\-]{1,128}$/;
+
+function isSafeRef(ref: string): boolean {
+  if (!REF_RE.test(ref)) return false;
+  if (ref.startsWith('-')) return false;
+  // Block embedded ".." path-traversal-style tokens (single-dot segments are
+  // fine; `..` is reserved for the range operator we assemble ourselves).
+  if (ref.includes('..')) return false;
+  // Reject any control characters (including NUL) defensively.
+  if (/[\x00-\x1f]/.test(ref)) return false;
+  return true;
+}
+
 export async function GET(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
@@ -53,6 +72,23 @@ export async function GET(req: NextRequest) {
   const staged = p.get('staged') === 'true';
   const from = p.get('from');
   const to = p.get('to');
+
+  // SEC-T07: validate refs before interpolating into args. Concatenation as
+  // `${from}..${to}` turns a flag-like ref into a positional arg that git
+  // re-parses as an option (CVE-2017-1000117-class). Reject anything that
+  // isn't a conservative ref string.
+  if (from !== null && !isSafeRef(from)) {
+    return NextResponse.json(
+      { error: 'Invalid from ref' },
+      { status: 400 }
+    );
+  }
+  if (to !== null && !isSafeRef(to)) {
+    return NextResponse.json(
+      { error: 'Invalid to ref' },
+      { status: 400 }
+    );
+  }
 
   const args = ['diff', '--unified=3'];
   if (staged) args.push('--cached');
