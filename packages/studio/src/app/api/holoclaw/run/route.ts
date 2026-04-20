@@ -4,7 +4,19 @@ import { NextResponse } from 'next/server';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../../_lib/cors';
 
+// ---------------------------------------------------------------------------
+// SEC-T05: Skill daemon spawn previously accepted any string as `name` with no
+// authentication. The value was interpolated into `compositions/**/<name>.hsplus`
+// and then handed to `npx tsx holodaemon <path>`, giving any unauthenticated
+// caller an arbitrary-file-execute primitive via path traversal. This route now
+// requires an authenticated session, constrains `name` to a lowercase slug, and
+// verifies the resolved path stays inside `REPO_ROOT/compositions/`.
+// ---------------------------------------------------------------------------
+
+const SKILL_NAME_RE = /^[a-z0-9-]{1,64}$/;
 // ---------------------------------------------------------------------------
 // Running skill processes — tracked in memory + lock file
 // ---------------------------------------------------------------------------
@@ -49,11 +61,25 @@ function removeLock(name: string): void {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { name?: string; cycles?: number; alwaysOn?: boolean };
-  const name = body.name?.trim();
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
+  const body = (await request.json().catch(() => null)) as
+    | { name?: string; cycles?: number; alwaysOn?: boolean }
+    | null;
+  const name = body?.name?.trim();
 
   if (!name) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  }
+
+  // SEC-T05: slug-only skill names (blocks path traversal, shell metacharacters,
+  // and anything that would make the resolved path escape COMPOSITIONS_ROOT).
+  if (!SKILL_NAME_RE.test(name)) {
+    return NextResponse.json(
+      { error: 'name must match /^[a-z0-9-]{1,64}$/' },
+      { status: 400 }
+    );
   }
 
   // Check if already running
@@ -71,12 +97,20 @@ export async function POST(request: Request) {
   }
 
   // Find the skill file
+  const COMPOSITIONS_ROOT = path.resolve(REPO_ROOT, 'compositions');
   const searchPaths = [
-    path.join(REPO_ROOT, 'compositions', 'skills', `${name}.hsplus`),
-    path.join(REPO_ROOT, 'compositions', `${name}.hsplus`),
+    path.join(COMPOSITIONS_ROOT, 'skills', `${name}.hsplus`),
+    path.join(COMPOSITIONS_ROOT, `${name}.hsplus`),
   ];
 
-  const skillPath = searchPaths.find((p) => fs.existsSync(p));
+  // SEC-T05: defense-in-depth containment check — even though SKILL_NAME_RE
+  // rejects `..` / `/`, we verify each candidate resolves inside the expected
+  // root before touching the filesystem.
+  const skillPath = searchPaths.find((p) => {
+    const resolved = path.resolve(p);
+    if (!resolved.startsWith(COMPOSITIONS_ROOT + path.sep)) return false;
+    return fs.existsSync(resolved);
+  });
   if (!skillPath) {
     return NextResponse.json(
       {
@@ -194,11 +228,21 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 
 export async function DELETE(request: Request) {
-  const body = (await request.json()) as { name?: string };
-  const name = body.name?.trim();
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
+  const body = (await request.json().catch(() => null)) as { name?: string } | null;
+  const name = body?.name?.trim();
 
   if (!name) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  }
+
+  if (!SKILL_NAME_RE.test(name)) {
+    return NextResponse.json(
+      { error: 'name must match /^[a-z0-9-]{1,64}$/' },
+      { status: 400 }
+    );
   }
 
   const entry = runningSkills.get(name);
@@ -228,13 +272,11 @@ export async function DELETE(request: Request) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, {
+      methods: 'GET, POST, DELETE, OPTIONS',
+    }),
   });
 }

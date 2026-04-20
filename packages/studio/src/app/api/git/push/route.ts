@@ -21,20 +21,6 @@ import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
-/**
- * SEC-T04: Strip embedded credentials from any string before sending it back
- * to the client. Git errors/stderr frequently include the fully-authenticated
- * remote URL — `https://<TOKEN>@github.com/...` — which would otherwise hand
- * the caller a full-repo OAuth token. Covers both `user:token@` and bare
- * `token@` forms.
- *
- * Never return raw git errors — they include the auth URL. See SEC-T04.
- */
-function sanitizeGitError(input: unknown): string {
-  const raw = typeof input === 'string' ? input : input instanceof Error ? input.message : String(input);
-  return raw.replace(/https:\/\/[^@\s/]+@/g, 'https://');
-}
-
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
@@ -134,14 +120,15 @@ export async function POST(req: NextRequest) {
       console.error('[git push] cleanup failed', cleanupErr);
     }
 
-    // Scrub tokens from every string we might echo back.
-    const e = err as { message?: unknown; stderr?: unknown; stdout?: unknown };
-    const safe = {
-      error: sanitizeGitError(e?.message ?? 'git push failed'),
-      stderr: e?.stderr ? sanitizeGitError(e.stderr) : undefined,
-      stdout: e?.stdout ? sanitizeGitError(e.stdout) : undefined,
-    };
-    return NextResponse.json(safe, { status: 500 });
+    // SEC-T04: never return raw git stderr/stdout — they can echo the authed URL.
+    const e = err as NodeJS.ErrnoException & { status?: number };
+    const code =
+      e?.code != null
+        ? String(e.code)
+        : e?.status != null
+          ? String(e.status)
+          : 'unknown';
+    return NextResponse.json({ error: 'Git push failed', code }, { status: 500 });
   }
 }
 

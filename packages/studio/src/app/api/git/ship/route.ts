@@ -239,10 +239,17 @@ export async function POST(req: NextRequest) {
       // ignore cleanup error
     }
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Ship failed' },
-      { status: 500 }
-    );
+    console.error('[git ship]', err);
+
+    // SEC-T04: same as /api/git/push — push errors can include OAuth URL with token.
+    const e = err as NodeJS.ErrnoException & { status?: number };
+    const code =
+      e?.code != null
+        ? String(e.code)
+        : e?.status != null
+          ? String(e.status)
+          : 'unknown';
+    return NextResponse.json({ error: 'Git ship failed', code }, { status: 500 });
   }
 }
 
