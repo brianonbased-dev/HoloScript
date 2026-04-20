@@ -1,6 +1,6 @@
 # Studio Integration Hub — Architecture & Implementation Guide
 
-**Status:** Foundation Complete (4/6 connectors - core, railway, github, appstore)
+**Status:** Integration Hub UI shipped; six `@holoscript/connector-*` packages exist in-tree (core + five service connectors).
 **Vision:** [research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md](../research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md)
 
 ## Overview
@@ -53,7 +53,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Connector Packages (4/6 Complete)
+## Connector Packages (in-repo)
 
 ### ✅ @holoscript/connector-core
 
@@ -111,15 +111,11 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - Webhook notifications for build status changes
   - Unity build artifact auto-detection and publishing
 
-### ⚠️ @holoscript/connector-vscode
+### ✅ @holoscript/connector-vscode
 
-- **Status:** Not yet created
-- **Priority:** 2 (next 2 weeks)
-- **Features planned:**
-  - MCP HttpServerDefinition for `mcp.holoscript.net`
-  - Live preview panel in VSCode
-  - Bidirectional sync (Studio ↔ VSCode)
-  - Syntax highlighting for .holo/.hsplus
+- **Status:** Package present in monorepo (`packages/connector-vscode/`); extension UX and Studio↔VS Code sync remain the product integration surface.
+- **Location:** `packages/connector-vscode/`
+- **Scope:** MCP-oriented bridge aligned with `ServiceConnector` / mesh orchestrator patterns; pair with the VS Code extension for end-user workflows.
 
 ### ✅ @holoscript/connector-upstash
 
@@ -147,15 +143,60 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 
 ## Studio Integration
 
-### ServiceConnectorPanel Component
+### ServiceConnectorPanel — UX & behavior spec
 
-- **Location:** `packages/studio/src/components/integrations/ServiceConnectorPanel.tsx`
-- **Features:**
-  - 5-tab interface (GitHub, Railway, VSCode, App Store, Upstash)
-  - Connection status indicators (green/yellow/red dots)
-  - Service-specific config forms
-  - Real-time activity logs
-  - Connect/Disconnect buttons with confirmation
+**Implementation:** `packages/studio/src/components/integrations/ServiceConnectorPanel.tsx`  
+**Entry:** `IntegrationsView` → full-height panel; route `/integrations`.
+
+This section is the **design record** for board work *Studio Integration Hub — ServiceConnectorPanel* (tabbed hub, status, forms, activity).
+
+#### Layout
+
+- **Header:** Title “Service Integrations”, subtitle with `connectedCount / tabCount`, close control (returns via router).
+- **Tab strip:** One tab per service (`role="tablist"`, `aria-label="Service connectors"`). Each tab shows icon, label (visible from `sm` breakpoint), and **status dot**.
+- **Tab panel:** Single active service detail (`ServiceTabContent`): status summary, connect/disconnect + refresh, **service-specific config fields**, **recent activity** list, link to vendor dashboard, GitHub OAuth modal when applicable.
+
+#### Tabs (fixed order)
+
+| Tab        | Purpose (user-facing) |
+|------------|------------------------|
+| GitHub     | PAT / default repo; device-code OAuth modal for safer auth. |
+| Railway    | API token + default project. |
+| VS Code    | MCP server URL + extension auth token. |
+| App Store  | Apple key + Google service account JSON. |
+| Upstash    | Redis REST URL + token. |
+
+(`pipeline` exists in types for store/layout symmetry but is **filtered out** of this panel — not a user-facing connector tab.)
+
+#### Connection status → status dot
+
+Backed by `ConnectionStatus` in `connectorStore`: `connected` | `connecting` | `error` | `disconnected`.
+
+- **Connected:** success dot (live integration).
+- **Connecting:** warning/pending treatment (in-flight API).
+- **Error:** error dot; optional `lastError` surfaced in copy.
+- **Disconnected:** muted / idle.
+
+#### Configuration forms
+
+- Per-service **typed fields** (`text` | `password` | `url`) with placeholders and short help text.
+- Values bind to `connectorStore` `connections[id].config` / credentials; **persist middleware omits credentials** and saves connections in a **disconnected** baseline so tokens are not rehydrated from disk (see `partialize` in `connectorStore`).
+
+#### Activity log
+
+- **Per-service** slice of global `activities` filtered by `serviceId`.
+- Display **timestamp** (localized time string), **action** label, **status** (`success` | `error` | `pending`).
+- Panel mounts **`startActivityStream`** / unmount **`stopActivityStream`** so SSE-backed events append without blocking the UI thread.
+
+#### Accessibility
+
+- Tabs follow **WAI-ARIA tab pattern**: `role="tab"`, `aria-selected`, `aria-controls` / `tabpanel` wiring.
+- Icon-only controls (e.g. close) have **`aria-label`**.
+
+#### Related code
+
+- **State:** `packages/studio/src/lib/stores/connectorStore.ts`
+- **API:** `POST /api/connectors/connect`, `POST /api/connectors/disconnect`, `GET /api/connectors/activity` (SSE)
 
 ### Connector Store (Zustand)
 
