@@ -12,6 +12,10 @@ npx create-holoscript my-world --go
 
 That's it. `--go` scaffolds the zero-install `instant` template, starts a dev server, and opens your browser automatically. No `cd`, no `npm install`, no second command.
 
+### Alternate package name
+
+The same style of scaffold is also published as [`create-holoscript-app`](https://www.npmjs.com/package/create-holoscript-app), so **`npx create-holoscript-app my-world --go`** works for users who expect an `-app` suffix. Prefer **`npx create-holoscript@latest`** when you want the newest published CLI; version lines can differ between the two package names until they are release-synced.
+
 ## Full Quick Start (any template)
 
 ```bash
