@@ -8,9 +8,14 @@
  * Platform-agnostic: no store dependencies.
  */
 
-import { Suspense, useMemo, _useCallback } from 'react';
+import { Suspense, useMemo } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Detailed } from '@react-three/drei';
+import {
+  coreLODConfigToRendererProp,
+  isCoreLODConfig,
+  isRendererLODConfigProp,
+} from '../utils/coreLodBridge';
 import {
   getGeometry,
   getMaterialProps,
@@ -144,12 +149,7 @@ function getDetailForLevel(levelIndex: number): LODDetail {
   return 'low';
 }
 
-export function LODMeshNode({
-  node,
-  distances: legacyDistances,
-  lodConfig,
-  _onLODChange,
-}: LODMeshNodeProps) {
+export function LODMeshNode({ node, distances: legacyDistances, lodConfig }: LODMeshNodeProps) {
   const { props } = node;
   const hsType = props.hsType || 'box';
   const size = props.size || 1;
@@ -157,21 +157,42 @@ export function LODMeshNode({
   const rotation = props.rotation || [0, 0, 0];
   const scale = props.scale || [1, 1, 1];
 
+  /**
+   * Explicit React prop, node `lodConfig` (renderer or core shape), or core LOD on `node.props.lod`.
+   */
+  const effectiveLodConfig = useMemo((): LODConfigProp | undefined => {
+    if (lodConfig) return lodConfig;
+    const fromNode = props.lodConfig;
+    if (fromNode) {
+      if (isRendererLODConfigProp(fromNode)) {
+        return fromNode as LODConfigProp;
+      }
+      if (isCoreLODConfig(fromNode)) {
+        return coreLODConfigToRendererProp(fromNode) as LODConfigProp;
+      }
+    }
+    const coreLod = props.lod;
+    if (isCoreLODConfig(coreLod)) {
+      return coreLODConfigToRendererProp(coreLod) as LODConfigProp;
+    }
+    return undefined;
+  }, [lodConfig, props.lod, props.lodConfig]);
+
   // Resolve distances and level count from LODConfig or legacy props
   const { distances, levelCount } = useMemo(() => {
-    if (lodConfig?.enabled === false) {
+    if (effectiveLodConfig?.enabled === false) {
       // LOD disabled — render only highest detail at distance 0
       return { distances: [0], levelCount: 1 };
     }
 
-    if (lodConfig?.forcedLevel !== undefined) {
+    if (effectiveLodConfig?.forcedLevel !== undefined) {
       // Debug: force single level
       return { distances: [0], levelCount: 1 };
     }
 
-    if (lodConfig?.levels && lodConfig.levels.length > 0) {
-      // Extract distances from core LODConfig levels
-      const sorted = [...lodConfig.levels].sort((a, b) => a.level - b.level);
+    if (effectiveLodConfig?.levels && effectiveLodConfig.levels.length > 0) {
+      // Extract distances from core or renderer LOD levels
+      const sorted = [...effectiveLodConfig.levels].sort((a, b) => a.level - b.level);
       const dists = sorted.map((l) => l.distance);
       return { distances: dists, levelCount: Math.min(sorted.length, 3) };
     }
@@ -179,11 +200,13 @@ export function LODMeshNode({
     // Legacy fallback
     const dists = legacyDistances ?? [0, 25, 50];
     return { distances: dists, levelCount: Math.min(dists.length, 3) };
-  }, [lodConfig, legacyDistances]);
+  }, [effectiveLodConfig, legacyDistances]);
 
   // Forced detail level for debugging
   const forcedDetail =
-    lodConfig?.forcedLevel !== undefined ? getDetailForLevel(lodConfig.forcedLevel) : undefined;
+    effectiveLodConfig?.forcedLevel !== undefined
+      ? getDetailForLevel(effectiveLodConfig.forcedLevel)
+      : undefined;
 
   const matProps = getMaterialProps(node, { detail: 'high' });
   const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {

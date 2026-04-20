@@ -93,3 +93,7 @@ export {
   type Semiring,
   type NumericStrategySemiringName
 } from '../compiler/traits/Semiring';
+
+// Performance — LOD definitions shared with R3F LODMeshNode
+export type { LODConfig, LODLevel, LODResult } from '../performance/LODSystem';
+export { LODSystem } from '../performance/LODSystem';

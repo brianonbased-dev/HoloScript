@@ -6,7 +6,12 @@
  * for structural/prop/logic verification.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import {
+  isCoreLODConfig,
+  coreLODConfigToRendererProp,
+  isRendererLODConfigProp,
+} from '../utils/coreLodBridge';
 
 // ─── LODMeshNode Logic Tests ───────────────────────────────────────────────────
 
@@ -59,6 +64,41 @@ describe('LODMeshNode logic', () => {
       expect(result.distances).toEqual([0]);
       expect(result.levelCount).toBe(1);
     }
+  });
+
+  it('core LODConfig maps minDistance to renderer distances', () => {
+    const core = {
+      entityId: 'ent-1',
+      levels: [
+        { minDistance: 40, label: 'low' },
+        { minDistance: 0, label: 'high' },
+        { minDistance: 20, label: 'mid' },
+      ],
+    };
+    expect(isCoreLODConfig(core)).toBe(true);
+    const prop = coreLODConfigToRendererProp(core);
+    expect(prop.id).toBe('ent-1');
+    const dists = [...prop.levels].sort((a, b) => a.level - b.level).map((l) => l.distance);
+    expect(dists).toEqual([0, 20, 40]);
+    expect(prop.levels.length).toBe(3);
+  });
+
+  it('isCoreLODConfig rejects invalid shapes', () => {
+    expect(isCoreLODConfig(null)).toBe(false);
+    expect(isCoreLODConfig({ entityId: 'x', levels: [] })).toBe(false);
+    expect(isCoreLODConfig({ entityId: 'x', levels: [{ minDistance: 0 }] })).toBe(false);
+  });
+
+  it('isRendererLODConfigProp detects renderer level bag', () => {
+    expect(
+      isRendererLODConfigProp({
+        levels: [
+          { level: 1, distance: 10 },
+          { level: 0, distance: 0 },
+        ],
+      })
+    ).toBe(true);
+    expect(isRendererLODConfigProp({ levels: [{ level: 0, minDistance: 0 }] })).toBe(false);
   });
 
   it('empty levels falls back to legacy distances', () => {

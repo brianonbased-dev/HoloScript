@@ -155,6 +155,11 @@ export {
   resolveDisplacementPlaneSegments,
 } from './utils/materialUtils';
 export type { LODDetail } from './utils/materialUtils';
+export {
+  isCoreLODConfig,
+  coreLODConfigToRendererProp,
+  isRendererLODConfigProp,
+} from './utils/coreLodBridge';
 
 // Hooks
 export { useSimulationField } from './hooks/useSimulationField';
