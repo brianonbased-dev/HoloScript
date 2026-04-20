@@ -34,7 +34,9 @@ Replace ☐ with ✅ (or link to a PR / artifact) when a gate is satisfied. Gate
 
 **Linked protocols**
 
+- **G1 / harness rerun:** [D.011 benchmark reproducibility](./D011-benchmark-reproducibility.md) — env hash, seeds, artifact paths, one-command rerun.
 - **G2 (study / friction):** [TTFHW measurement protocol](../ops/time-to-first-hologram-wow.md) — adapt per paper; cite dated runs.
+- **G3 (full loop):** [Full loop demo (D.011)](../demos/full-loop-d011.md) — board + knowledge + Studio/CLI anchor.
 - **Metrics discipline:** [NUMBERS.md](../NUMBERS.md) — verification commands, no stray hardcoded counts in prose.
 - **Product / release north star:** [ROADMAP.md](../strategy/ROADMAP.md).
 

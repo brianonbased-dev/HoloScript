@@ -46,5 +46,6 @@
 
 ## Related
 
+- [D.011 benchmark reproducibility](../paper-program/D011-benchmark-reproducibility.md)
 - [Marketplace publication readiness](../distribution/marketplace-publication-readiness.md)
 - [Operator runbook](./RUNBOOK.md)
