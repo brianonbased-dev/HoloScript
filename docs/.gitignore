@@ -10,3 +10,5 @@ package-lock.json
 
 # Test files that don't belong in docs
 *.test.*
+# Exception: checked-in integration tests (P.008.03)
+!ops/ops-pipeline.test.ts
