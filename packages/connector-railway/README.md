@@ -6,6 +6,14 @@ Railway GraphQL API connector for the HoloScript Studio Integration Hub.
 
 Wraps the Railway GraphQL API at `https://backboard.railway.com/graphql/v2` as MCP tools with rate limit handling and exponential backoff. Auto-registers with the MCP orchestrator as the `holoscript-railway` server.
 
+## Delivery status (Integration Hub)
+
+| Capability | Status |
+|------------|--------|
+| GraphQL MCP tools (`RailwayConnector`, deploy / project / variables / domain) | Shipped — see `src/RailwayConnector.ts` and `src/tools.ts` |
+| Orchestrator registration on `connect()` | Shipped — `McpRegistrar` |
+| HoloClaw skill `railway-deploy.hsplus` | **Deferred** — existing `compositions/skills/*.hsplus` files use a legacy top-level `state` shape the current `holoscript parse` rejects; skill shell should be added when the daemon/parser align on one `.hsplus` dialect. MCP tools are ready for daemon binding. |
+
 ## Installation
 
 ```bash
