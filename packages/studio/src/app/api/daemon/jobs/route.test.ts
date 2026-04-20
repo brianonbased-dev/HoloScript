@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextResponse } from 'next/server';
+import * as path from 'path';
+import * as os from 'os';
 
-const { createDaemonJobMock, listDaemonJobsMock, getTelemetrySummaryMock } = vi.hoisted(() => ({
-  createDaemonJobMock: vi.fn(),
-  listDaemonJobsMock: vi.fn(),
-  getTelemetrySummaryMock: vi.fn(),
+const { createDaemonJobMock, listDaemonJobsMock, getTelemetrySummaryMock, requireAuthMock } =
+  vi.hoisted(() => ({
+    createDaemonJobMock: vi.fn(),
+    listDaemonJobsMock: vi.fn(),
+    getTelemetrySummaryMock: vi.fn(),
+    requireAuthMock: vi.fn(),
+  }));
+
+vi.mock('@/lib/api-auth', () => ({
+  requireAuth: requireAuthMock,
 }));
 
 vi.mock('./store', () => ({
@@ -17,6 +26,14 @@ import { GET, POST } from './route';
 describe('/api/daemon/jobs route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    requireAuthMock.mockResolvedValue({ user: { id: 'user-test-1' } });
+  });
+
+  it('returns 401 when requireAuth fails', async () => {
+    requireAuthMock.mockResolvedValue(NextResponse.json({ error: 'Authentication required' }, { status: 401 }));
+
+    const res = await GET(new Request('http://localhost/api/daemon/jobs'));
+    expect(res.status).toBe(401);
   });
 
   it('GET returns jobs by default', async () => {
@@ -52,7 +69,7 @@ describe('/api/daemon/jobs route', () => {
     expect(body.error).toMatch(/Invalid JSON body/i);
   });
 
-  it('POST returns 400 when required fields are missing', async () => {
+  it('POST returns 400 when Zod validation fails (missing profile / dna)', async () => {
     const req = new Request('http://localhost/api/daemon/jobs', {
       method: 'POST',
       body: JSON.stringify({ projectId: 'p1' }),
@@ -62,17 +79,43 @@ describe('/api/daemon/jobs route', () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/Missing required fields/i);
+    expect(body.error).toMatch(/Invalid body/i);
+  });
+
+  it('POST rejects projectPath outside ~/.holoscript/workspaces', async () => {
+    const req = new Request('http://localhost/api/daemon/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-1',
+        profile: 'balanced',
+        projectDna: { domain: 'general' },
+        projectPath: '/tmp/evil-escape',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/projectPath must be inside/i);
+    expect(createDaemonJobMock).not.toHaveBeenCalled();
   });
 
   it('POST creates and returns job when payload is valid', async () => {
     createDaemonJobMock.mockReturnValue({ id: 'dj-created', status: 'queued' });
 
+    const workspaceRoot = path.join(
+      process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
+      '.holoscript',
+      'workspaces'
+    );
+    const safeProjectPath = path.join(workspaceRoot, 'project-1');
+
     const payload = {
       projectId: 'project-1',
       profile: 'balanced',
       projectDna: { domain: 'general' },
-      projectPath: '/tmp/project',
+      projectPath: safeProjectPath,
     };
 
     const req = new Request('http://localhost/api/daemon/jobs', {

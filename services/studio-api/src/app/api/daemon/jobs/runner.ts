@@ -17,7 +17,7 @@
  * @module daemon/runner
  */
 
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -91,6 +91,7 @@ export interface AbsorbGraphData {
 }
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface DaemonRunResult {
   success: boolean;
@@ -268,19 +269,53 @@ async function createIsolatedWorkspace(
     'utf-8',
   );
 
-  // Copy project structure for analysis (skip node_modules and .git)
+  // Copy project structure for analysis (skip node_modules and .git).
+  // SEC-T02: execFile (argv) — never pass paths through a shell.
   try {
     const isWindows = process.platform === 'win32';
     if (isWindows) {
-      await execAsync(
-        `robocopy "${projectPath}" "${workDir}" /E /XD node_modules .git dist .next /XF *.pem *.key .env /NFL /NDL /NJH /NJS /nc /ns /np`,
+      await execFileAsync(
+        'robocopy',
+        [
+          projectPath,
+          workDir,
+          '/E',
+          '/XD',
+          'node_modules',
+          '.git',
+          'dist',
+          '.next',
+          '/XF',
+          '*.pem',
+          '*.key',
+          '.env',
+          '/NFL',
+          '/NDL',
+          '/NJH',
+          '/NJS',
+          '/nc',
+          '/ns',
+          '/np',
+        ],
         { timeout: 30_000 },
       ).catch(() => {
         // robocopy returns non-zero for success (1 = files copied), only 8+ is error
       });
     } else {
-      await execAsync(
-        `rsync -a --exclude=node_modules --exclude=.git --exclude=dist --exclude=.next --exclude='*.pem' --exclude='*.key' --exclude='.env*' "${projectPath}/" "${workDir}/"`,
+      await execFileAsync(
+        'rsync',
+        [
+          '-a',
+          '--exclude=node_modules',
+          '--exclude=.git',
+          '--exclude=dist',
+          '--exclude=.next',
+          '--exclude=*.pem',
+          '--exclude=*.key',
+          '--exclude=.env*',
+          `${projectPath}/`,
+          `${workDir}/`,
+        ],
         { timeout: 30_000 },
       );
     }

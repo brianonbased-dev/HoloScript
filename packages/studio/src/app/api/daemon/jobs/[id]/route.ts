@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../store';
 
 /**
@@ -9,6 +10,9 @@ import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../s
  * GET /api/daemon/jobs/:id?view=logs     — return only job logs
  */
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const view = searchParams.get('view');
@@ -37,6 +41,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
  * Records patch review decisions for telemetry and billing signals.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const job = getDaemonJob(id);
   if (!job) {

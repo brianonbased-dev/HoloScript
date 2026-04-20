@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextResponse } from 'next/server';
 
-const { getDaemonJobMock, getJobPatchesMock, getJobLogsMock, recordPatchActionMock } = vi.hoisted(
-  () => ({
+const { getDaemonJobMock, getJobPatchesMock, getJobLogsMock, recordPatchActionMock, requireAuthMock } =
+  vi.hoisted(() => ({
     getDaemonJobMock: vi.fn(),
     getJobPatchesMock: vi.fn(),
     getJobLogsMock: vi.fn(),
     recordPatchActionMock: vi.fn(),
-  })
-);
+    requireAuthMock: vi.fn(),
+  }));
+
+vi.mock('@/lib/api-auth', () => ({
+  requireAuth: requireAuthMock,
+}));
 
 vi.mock('../store', () => ({
   getDaemonJob: getDaemonJobMock,
@@ -21,6 +26,19 @@ import { GET, POST } from './route';
 describe('/api/daemon/jobs/[id] route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    requireAuthMock.mockResolvedValue({ user: { id: 'user-test-1' } });
+  });
+
+  it('returns 401 when requireAuth fails', async () => {
+    requireAuthMock.mockResolvedValue(NextResponse.json({ error: 'Authentication required' }, { status: 401 }));
+    getDaemonJobMock.mockReturnValue({ id: 'dj-1', status: 'running' });
+
+    const res = await GET(new Request('http://localhost/api/daemon/jobs/dj-1'), {
+      params: Promise.resolve({ id: 'dj-1' }),
+    });
+
+    expect(res.status).toBe(401);
+    expect(getDaemonJobMock).not.toHaveBeenCalled();
   });
 
   it('GET returns 404 when job is missing', async () => {

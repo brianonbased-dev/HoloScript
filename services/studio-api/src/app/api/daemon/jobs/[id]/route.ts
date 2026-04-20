@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import {
   getDaemonJob,
   getJobPatches,
@@ -15,6 +16,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const view = searchParams.get('view');
@@ -46,6 +50,9 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const job = getDaemonJob(id);
   if (!job) {
