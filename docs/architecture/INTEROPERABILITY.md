@@ -163,7 +163,7 @@ HoloComposition   JSON AST
 **Key Implementation Details:**
 
 1. **TypeScript Parser** (`packages/core/src/parser/`): Primary parser, full feature support
-2. **Rust/WASM Parser** (`packages/compiler-wasm/`): 10x faster, JSON output via `serde`
+2. **Rust/WASM Parser** (`packages/compiler-wasm/`): JSON output via `serde`. Intended for V8-less runtimes (mobile WebViews, edge workers); currently slower than the JS parser under V8 — see `research/2026-04-19_todo-r2-wasm-bench-results.md`.
 3. **Universal Bridge**: JSON AST enables any language to consume HoloScript parse results
 
 ### WASM Parser API
@@ -208,7 +208,7 @@ Abstract traits map to platform-specific implementations:
 | `@holoscript/cli`             | Command-line interface   | Build orchestration  |
 | `@holoscript/lsp`             | Language Server          | IDE integration      |
 | `@holoscript/mcp-server`      | AI tool server           | Agent integration    |
-| `@holoscript/compiler-wasm`   | Rust/WASM parser         | 10x performance      |
+| `@holoscript/compiler-wasm`   | Rust/WASM parser         | V8-less runtimes     |
 | `@holoscript/partner-sdk`     | API, webhooks, analytics | Partner integration  |
 | `@holoscript/std`             | Standard library         | Trait definitions    |
 | `@holoscript/marketplace-api` | Trait registry           | Package distribution |

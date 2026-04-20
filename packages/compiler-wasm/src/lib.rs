@@ -1,7 +1,12 @@
 //! HoloScript WASM Compiler
 //!
 //! High-performance HoloScript parser and type checker compiled to WebAssembly.
-//! Provides 10x faster parsing compared to the JavaScript implementation.
+//!
+//! On the canonical fixtures (research/2026-04-19_todo-r2-wasm-bench-results.md),
+//! the WASM parser is currently SLOWER than the JS parser due to
+//! JS↔linear-memory string marshalling overhead. Native Rust (no
+//! WASM boundary) is ~1.3-1.4x faster than JS. Use WASM only when
+//! the V8 JIT is not available (mobile WebViews, edge workers).
 
 mod ast;
 mod lexer;

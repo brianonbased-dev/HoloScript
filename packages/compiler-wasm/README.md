@@ -4,7 +4,6 @@ High-performance HoloScript parser compiled to WebAssembly.
 
 ## Features
 
-- **10x faster parsing** compared to JavaScript implementation
 - **Browser-native** - runs directly in the browser without server
 - **Small footprint** - <500KB gzipped
 - **Full HoloScript support** - all language features including Brittney AI constructs
@@ -137,13 +136,25 @@ npm run test
 
 ## Performance
 
-Benchmarks on a typical development machine:
+**The WASM parser is currently SLOWER than the JS parser at canonical
+fixture sizes** due to JS↔linear-memory string marshalling overhead.
 
-| Operation           | JavaScript | WASM  | Speedup |
-| ------------------- | ---------- | ----- | ------- |
-| Parse 100 lines     | 5ms        | 0.5ms | 10x     |
-| Parse 1000 lines    | 50ms       | 5ms   | 10x     |
-| Validate 1000 lines | 30ms       | 2ms   | 15x     |
+Measured on i7-11800H / Node v22.20.0 / `wasm-pack` release build
+(`wasm-opt -O3 --enable-bulk-memory --enable-nontrapping-float-to-int`):
+
+| Fixture            | WASM vs JS speedup       |
+| ------------------ | ------------------------ |
+| small (32 lines)   | 0.66-0.74x (JS faster)   |
+| medium (78 lines)  | 0.64-0.67x (JS faster)   |
+| large (142 lines)  | 0.64-0.66x (JS faster)   |
+
+Native Rust (no WASM boundary) is ~1.3-1.4x faster than JS, so the
+parser logic itself is competitive — the boundary is the bottleneck.
+
+Use WASM only when the V8 JIT is not available (mobile WebViews,
+edge workers, sandboxed runtimes).
+
+Full methodology and raw data: `research/2026-04-19_todo-r2-wasm-bench-results.md`.
 
 ## Browser Compatibility
 

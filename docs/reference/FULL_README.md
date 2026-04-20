@@ -206,7 +206,7 @@ Production 3D rendering components. Each is a standalone R3F component:
 | Package                  | What it does                                                                            | LOC      |
 | ------------------------ | --------------------------------------------------------------------------------------- | -------- |
 | `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524    |
-| `@holoscript/wasm`       | Rust WASM parser for 10x faster .holo parsing in browsers.                              | 3,154    |
+| `@holoscript/wasm`       | Rust WASM parser for `.holo` parsing in V8-less runtimes (mobile WebViews, edge workers). Slower than JS under V8; see `packages/compiler-wasm/README.md`. | 3,154    |
 | `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support.    | 25 files |
 
 ## What's Here
