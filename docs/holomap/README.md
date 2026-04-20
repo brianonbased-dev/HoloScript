@@ -12,6 +12,9 @@ Central index for **operators, integrators, and tutorial authors**. Deep technic
 | [RFC-HoloMap.md](../../packages/core/src/reconstruction/RFC-HoloMap.md) | Engineers | Protocol + MCP tool names |
 | [STUDIO_RECONSTRUCTION_PANEL.md](./STUDIO_RECONSTRUCTION_PANEL.md) | Studio / UX | How native runs surface next to compatibility ingest |
 | [RUNBOOK_PAPER_HARNESSES.md](./RUNBOOK_PAPER_HARNESSES.md) | Research + CI | Paper harness flags, ingest paths, logs |
+| [MCP_SURFACE_VALIDATION.md](./MCP_SURFACE_VALIDATION.md) | CI + MCP | Tool list + vitest contract file |
+| [weights-cdn-fallback.md](./weights-cdn-fallback.md) | Ops | CDN, content-addressed weights, failover |
+| [reconstruction-runtime.md](./reconstruction-runtime.md) | Engineers | Code map + doc delta checklist |
 
 ---
 
@@ -65,3 +68,4 @@ Use before calling a release “HoloMap-ready” for a given profile:
 
 - [Operator runbook](../ops/RUNBOOK.md)
 - [NUMBERS.md](../NUMBERS.md) — verification commands for ecosystem metrics
+- [Team mode ↔ board sync](../strategy/team-mode-board-sync.md) — how `TEAM_MODES` steers work
