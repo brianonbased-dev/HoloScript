@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
 import {
@@ -11,6 +12,7 @@ import {
   hasLOD,
   DraftMeshNode,
   BiologicalMeshNode,
+  GaussianSplatViewer,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -65,6 +67,19 @@ interface R3FNodeRendererProps {
   node: R3FNode;
 }
 
+/** Resolve splat URL from @gaussian_splat trait or node props (Studio drag-drop / compiler). */
+function resolveGaussianSplatSrc(node: R3FNode): string | null {
+  const trait = node.traits?.get('gaussian_splat') as Record<string, unknown> | undefined;
+  if (trait) {
+    const s = trait.source ?? trait.src ?? trait.url;
+    if (typeof s === 'string' && s.length > 0) return s;
+  }
+  const p = node.props;
+  if (typeof p.src === 'string' && p.src) return p.src;
+  if (typeof p.source === 'string' && p.source) return p.source;
+  return null;
+}
+
 export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const children = node.children?.map((child: R3FNode, i: number) => (
     <R3FNodeRenderer key={child.id || `child-${i}`} node={child} />
@@ -73,7 +88,68 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const { props } = node;
 
   switch (node.type) {
+    case 'splat': {
+      const src = resolveGaussianSplatSrc(node);
+      if (!src) {
+        return (
+          <group position={props.position} rotation={props.rotation} scale={props.scale}>
+            {children}
+          </group>
+        );
+      }
+      const maxSplats =
+        typeof props.maxSplats === 'number'
+          ? props.maxSplats
+          : typeof props.max_splats === 'number'
+            ? props.max_splats
+            : undefined;
+      return (
+        <Suspense fallback={null}>
+          <GaussianSplatViewer
+            src={src}
+            position={props.position}
+            rotation={props.rotation}
+            scale={props.scale}
+            maxSplats={maxSplats}
+          />
+        </Suspense>
+      );
+    }
+
     case 'mesh': {
+      const splatSrc = resolveGaussianSplatSrc(node);
+      const nonMeshChildrenEarly = node.children
+        ?.filter((c: R3FNode) => c.type !== 'mesh')
+        .map((child: R3FNode, i: number) => (
+          <R3FNodeRenderer key={child.id || `non-mesh-${i}`} node={child} />
+        ));
+
+      if (splatSrc) {
+        const trait = node.traits?.get('gaussian_splat') as Record<string, unknown> | undefined;
+        const maxFromTrait =
+          typeof trait?.max_splats === 'number' ? (trait.max_splats as number) : undefined;
+        const maxSplats =
+          typeof props.maxSplats === 'number'
+            ? props.maxSplats
+            : typeof props.max_splats === 'number'
+              ? props.max_splats
+              : maxFromTrait;
+        return (
+          <group>
+            <Suspense fallback={null}>
+              <GaussianSplatViewer
+                src={splatSrc}
+                position={props.position}
+                rotation={props.rotation}
+                scale={props.scale}
+                maxSplats={maxSplats}
+              />
+            </Suspense>
+            {nonMeshChildrenEarly}
+          </group>
+        );
+      }
+
       // Check if this mesh has a custom shader trait
       const isShaderMesh = hasShaderTrait(node);
       // Check if this mesh has LOD configuration
