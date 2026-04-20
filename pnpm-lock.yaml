@@ -3109,6 +3109,9 @@ importers:
       pg:
         specifier: ^8.13.0
         version: 8.18.0
+      picomatch:
+        specifier: '>=4.0.4'
+        version: 4.0.4
       posthog-js:
         specifier: ^1.363.1
         version: 1.363.1
@@ -3167,6 +3170,9 @@ importers:
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13
+      '@types/picomatch':
+        specifier: ^4.0.0
+        version: 4.0.3
       '@types/prismjs':
         specifier: ^1.26.0
         version: 1.26.6
@@ -14544,6 +14550,10 @@ packages:
       '@types/node': 20.19.29
       pg-protocol: 1.11.0
       pg-types: 2.2.0
+
+  /@types/picomatch@4.0.3:
+    resolution: {integrity: sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ==}
+    dev: true
 
   /@types/pixelmatch@5.2.6:
     resolution: {integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==}
