@@ -593,6 +593,7 @@ describe('hitlHandler.onEvent — rollback_request', () => {
       'hitl_rollback_executed',
       expect.objectContaining({ checkpoint })
     );
+    // stateBefore was { x: 1 } — verify applyState restored it onto the node
     expect((node as any).x).toBe(1);
   });
   it('sets canRollback=false after rollback', () => {

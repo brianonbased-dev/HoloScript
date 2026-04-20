@@ -23,6 +23,30 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 >
 > **Recommendation**: Add v3.0.x Stabilization Sprint before v3.1 features.
 
+> **🛑 RETRACTION (2026-04-19, task `task_1776394509341_7joh` — verify-4-stubs)**
+>
+> The "Stub implementations" bullet above is **factually wrong** at the time of writing
+> and never reflected reality. Ground-truth verification (see citations below):
+>
+> | Trait | Location | LOC | TODO/stub markers | Test files | Tests passing |
+> |-------|----------|-----|-------------------|------------|---------------|
+> | `NetworkedTrait` | `packages/core/src/traits/NetworkedTrait.ts` | 1100 | 0 | 2 (`*.test.ts`, `*.integration.test.ts`) | — |
+> | `OpenXRHALTrait` | `packages/core/src/traits/OpenXRHALTrait.ts` | 1568 | 0 | 1 (`OpenXRHALTrait.test.ts`) | 254/254 |
+> | `RenderNetworkTrait` | `packages/core/src/traits/RenderNetworkTrait.ts` | 829 | 0 | 6 suites (`__tests__/RenderNetworkTrait.*.ts`) | (passes via core suite) |
+> | `HITLTrait` | `packages/core/src/traits/HITLTrait.ts` | 795 | 0 | 4 suites (`__tests__/HITLTrait.*.ts`) | 318/318 after typo fix |
+> | `ZoraCoinsTrait` | `packages/marketplace-api/src/traits/ZoraCoinsTrait.ts` | 940 | 0 | 5 suites (`__tests__/ZoraCoinsTrait.*.ts`) | 176/176 |
+>
+> The "OpenXRCompiler contains `// TODO` placeholders" bullet is also wrong:
+> `packages/core/src/compiler/OpenXRCompiler.ts` contains zero `TODO`/`FIXME`/`stub`/`placeholder`
+> markers (verified via grep, 2026-04-19).
+>
+> The original audit memo
+> (`ai-ecosystem/research/2026-03-12_unimplemented-todos-invocations-audit-AUTONOMIZE.md`)
+> already noted the NetworkedTrait error — "documented as 'stub' but was 1036 lines of working code."
+> The same pattern holds for the other four. **Do not cite this paragraph as a stub
+> inventory in any new doc.** Per F.017, every "stub" claim needs a file:line citation
+> showing the unimplemented body — none of these traits have one.
+
 ### Key Adjustments
 
 | Change             | Original      | Adjusted            | Reason                                                     |
