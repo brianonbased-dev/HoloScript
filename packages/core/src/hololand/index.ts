@@ -70,6 +70,28 @@ export {
   disconnectFromHololand,
 } from './HololandIntegration';
 
+// Confabulation-safe Physics Bounds (consults AgentRiskRegistry per agent)
+export {
+  // Types
+  type PhysicsEnvelope,
+  type BoundsViolation,
+  type PhysicsBoundsRegistryConfig,
+  type WrapOptions,
+
+  // Constants
+  DEFAULT_ENVELOPES,
+
+  // Class
+  PhysicsBoundsRegistry,
+
+  // Wrapper
+  wrapPhysicsService,
+
+  // Singleton
+  getPhysicsBoundsRegistry,
+  resetPhysicsBoundsRegistry,
+} from './PhysicsBoundsRegistry';
+
 // Streaming Protocol
 export {
   StreamProtocol,
