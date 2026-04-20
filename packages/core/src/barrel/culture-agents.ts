@@ -4,15 +4,22 @@
 
 export {
   BUILTIN_NORMS,
+  BUILTIN_NORM_PROVENANCE,
+  UNKNOWN_NORM_PROVENANCE,
   getBuiltinNorm,
   normsByCategory,
   criticalMassForChange,
+  normalizeNormProvenance,
+  serializeNormProvenance,
+  deserializeNormProvenance,
 } from '../traits/CultureTraits';
 export type {
   CulturalNorm,
   NormCategory,
   NormEnforcement,
   NormScope,
+  NormProvenance,
+  NormProvenanceSource,
 } from '../traits/CultureTraits';
 
 export { CulturalMemory } from '@holoscript/framework/agents';

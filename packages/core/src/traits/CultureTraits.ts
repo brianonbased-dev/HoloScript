@@ -56,6 +56,214 @@ export type NormCategory =
   | 'economy'; // Economy-specific norms (Sprint 6)
 
 // =============================================================================
+// NORM PROVENANCE
+// =============================================================================
+
+/**
+ * Where a cultural norm came from.
+ *
+ * Downstream consumers (audit tools, governance UIs, the
+ * `CulturalCompatibilityChecker`) use this to:
+ *  - **Attribute** a norm to its source agent / corpus / declaration site.
+ *  - **Audit** suspicious or fabricated norms (the "confabulation audit"
+ *    flow from `2026-03-10_confabulation-vw-backprop-AUTONOMIZE`).
+ *  - **Revoke** norms when their source is retracted or distrusted.
+ *
+ * Backward-compatibility rule:
+ *  - The field is **optional** everywhere it appears (`CulturalNorm`,
+ *    `CulturalTraceTrait`).
+ *  - Missing or partial values are valid — use {@link UNKNOWN_NORM_PROVENANCE}
+ *    or call {@link normalizeNormProvenance} to fill in the explicit
+ *    "unknown" sentinel without losing whatever fields were provided.
+ *  - Serializers must round-trip the field, but readers must NOT throw on
+ *    its absence (existing pre-provenance norms still load).
+ */
+export type NormProvenanceSource =
+  /** Authored by an identifiable agent (DID or agent id in `sourceAgentId`). */
+  | 'agent'
+  /** Drawn from a named corpus / dataset (in `sourceCorpus`). */
+  | 'corpus'
+  /** Declared inline in a HoloScript / .hsplus / .holo composition. */
+  | 'declaration_site'
+  /** Shipped with the standard library (e.g. {@link BUILTIN_NORMS}). */
+  | 'builtin'
+  /** Promoted from a stigmergic trace observed in the world. */
+  | 'observation'
+  /** Source could not be determined. */
+  | 'unknown';
+
+/**
+ * Provenance metadata for a cultural norm.
+ *
+ * @example Builtin norm
+ * ```ts
+ * { source: 'builtin', sourceCorpus: '@holoscript/core/BUILTIN_NORMS' }
+ * ```
+ *
+ * @example Agent-proposed norm
+ * ```ts
+ * {
+ *   source: 'agent',
+ *   sourceAgentId: 'did:agent:alpha',
+ *   recordedAtIso: '2026-04-19T12:00:00.000Z',
+ *   confidenceClassification: 'genuine',
+ * }
+ * ```
+ *
+ * @example Inline declaration
+ * ```ts
+ * {
+ *   source: 'declaration_site',
+ *   declarationSite: { file: 'examples/04-cultural.holo', line: 110 },
+ * }
+ * ```
+ */
+export interface NormProvenance {
+  /** Where the norm came from. */
+  source: NormProvenanceSource;
+  /**
+   * The agent (DID or internal id) that introduced or propagated the norm.
+   * Required-by-convention when `source === 'agent'`; otherwise optional.
+   */
+  sourceAgentId?: string;
+  /**
+   * The corpus, dataset, or library the norm was drawn from.
+   * Examples: `'@holoscript/core/BUILTIN_NORMS'`, `'CRSEC-2024'`.
+   */
+  sourceCorpus?: string;
+  /**
+   * Source location where the norm was declared (file + optional line/column).
+   * Used when `source === 'declaration_site'`.
+   */
+  declarationSite?: {
+    file: string;
+    line?: number;
+    column?: number;
+  };
+  /**
+   * Original interaction / session id where the norm was first observed.
+   * Useful for stigmergic norms promoted from `cultural_trace` markers.
+   */
+  originInteractionId?: string;
+  /**
+   * Confidence classification from the W.069-style falsehood taxonomy.
+   * - `genuine` — believed-true and grounded in evidence.
+   * - `confabulated` — produced without grounding, may be a false memory.
+   * - `bullshitted` — produced indifferent to truth (must be flagged in audits).
+   */
+  confidenceClassification?: 'genuine' | 'confabulated' | 'bullshitted';
+  /** ISO-8601 timestamp for when this provenance record was captured. */
+  recordedAtIso?: string;
+}
+
+/**
+ * Sentinel value for "we know there is no known provenance."
+ *
+ * Prefer this over `undefined` when serializing — it makes the absence of
+ * provenance explicit (vs. accidentally lost during a round-trip).
+ *
+ * Frozen to prevent accidental mutation by consumers.
+ */
+export const UNKNOWN_NORM_PROVENANCE: Readonly<NormProvenance> = Object.freeze({
+  source: 'unknown',
+});
+
+/**
+ * Normalize a (possibly undefined / partial) provenance value into a
+ * fully-shaped {@link NormProvenance}.
+ *
+ * - `undefined` → {@link UNKNOWN_NORM_PROVENANCE}
+ * - Missing `source` → defaults to `'unknown'`
+ * - All other fields preserved verbatim
+ *
+ * Use this at the boundary between untrusted JSON and typed code paths.
+ */
+export function normalizeNormProvenance(
+  value: Partial<NormProvenance> | undefined | null
+): NormProvenance {
+  if (!value) return { ...UNKNOWN_NORM_PROVENANCE };
+  return {
+    source: value.source ?? 'unknown',
+    ...(value.sourceAgentId !== undefined && { sourceAgentId: value.sourceAgentId }),
+    ...(value.sourceCorpus !== undefined && { sourceCorpus: value.sourceCorpus }),
+    ...(value.declarationSite !== undefined && { declarationSite: value.declarationSite }),
+    ...(value.originInteractionId !== undefined && {
+      originInteractionId: value.originInteractionId,
+    }),
+    ...(value.confidenceClassification !== undefined && {
+      confidenceClassification: value.confidenceClassification,
+    }),
+    ...(value.recordedAtIso !== undefined && { recordedAtIso: value.recordedAtIso }),
+  };
+}
+
+/**
+ * JSON-safe serializer for {@link NormProvenance}.
+ *
+ * Returns a plain object suitable for `JSON.stringify`. Always emits
+ * `source` (filling in `'unknown'` if absent) so that round-tripping a
+ * pre-provenance norm produces a well-formed record on the way out.
+ */
+export function serializeNormProvenance(
+  value: NormProvenance | undefined | null
+): Record<string, unknown> {
+  return normalizeNormProvenance(value) as unknown as Record<string, unknown>;
+}
+
+/**
+ * JSON-safe deserializer for {@link NormProvenance}.
+ *
+ * Backward-compatible: accepts `undefined`, `null`, partial records, or
+ * a fully-shaped {@link NormProvenance}. Never throws.
+ *
+ * Unknown `source` strings collapse to `'unknown'` rather than throwing,
+ * so that older or future-tagged provenance does not break parsing.
+ */
+export function deserializeNormProvenance(value: unknown): NormProvenance {
+  if (!value || typeof value !== 'object') return { ...UNKNOWN_NORM_PROVENANCE };
+  const obj = value as Record<string, unknown>;
+  const knownSources: NormProvenanceSource[] = [
+    'agent',
+    'corpus',
+    'declaration_site',
+    'builtin',
+    'observation',
+    'unknown',
+  ];
+  const rawSource = obj.source;
+  const source: NormProvenanceSource =
+    typeof rawSource === 'string' && (knownSources as string[]).includes(rawSource)
+      ? (rawSource as NormProvenanceSource)
+      : 'unknown';
+
+  const result: NormProvenance = { source };
+  if (typeof obj.sourceAgentId === 'string') result.sourceAgentId = obj.sourceAgentId;
+  if (typeof obj.sourceCorpus === 'string') result.sourceCorpus = obj.sourceCorpus;
+  if (obj.declarationSite && typeof obj.declarationSite === 'object') {
+    const site = obj.declarationSite as Record<string, unknown>;
+    if (typeof site.file === 'string') {
+      result.declarationSite = {
+        file: site.file,
+        ...(typeof site.line === 'number' && { line: site.line }),
+        ...(typeof site.column === 'number' && { column: site.column }),
+      };
+    }
+  }
+  if (typeof obj.originInteractionId === 'string') {
+    result.originInteractionId = obj.originInteractionId;
+  }
+  if (
+    obj.confidenceClassification === 'genuine' ||
+    obj.confidenceClassification === 'confabulated' ||
+    obj.confidenceClassification === 'bullshitted'
+  ) {
+    result.confidenceClassification = obj.confidenceClassification;
+  }
+  if (typeof obj.recordedAtIso === 'string') result.recordedAtIso = obj.recordedAtIso;
+  return result;
+}
+
+// =============================================================================
 // NORM DEFINITION
 // =============================================================================
 
@@ -83,6 +291,13 @@ export interface CulturalNorm {
   requiredEffects?: string[];
   /** Forbidden effects under this norm */
   forbiddenEffects?: string[];
+  /**
+   * Where this norm came from. Optional for backward compatibility — norms
+   * loaded from older sources without provenance still parse cleanly.
+   * Use {@link normalizeNormProvenance} to coerce missing values to the
+   * explicit "unknown" sentinel.
+   */
+  provenance?: NormProvenance;
 }
 
 // =============================================================================
@@ -144,18 +359,15 @@ export interface CulturalTraceTrait {
   creatorId?: string;
   /**
    * Provenance for how a norm-associated trace entered the environment.
-   * Used by confabulation audits to distinguish grounded norms from fabricated ones.
+   * Used by confabulation audits to distinguish grounded norms from
+   * fabricated ones, and by governance flows to revoke traces whose
+   * source norm has been retracted.
+   *
+   * Optional for backward compatibility — older traces without
+   * provenance still parse. Use {@link normalizeNormProvenance} to
+   * coerce missing values to the explicit "unknown" sentinel.
    */
-  normProvenance?: {
-    /** Interaction/session id where this norm trace was first observed */
-    originInteractionId?: string;
-    /** Agent id that introduced or propagated the norm trace */
-    originatingAgentId?: string;
-    /** Confidence class from W.069-style falsehood taxonomy */
-    confidenceClassification?: 'genuine' | 'confabulated' | 'bullshitted';
-    /** ISO timestamp for first norm provenance capture */
-    recordedAtIso?: string;
-  };
+  normProvenance?: NormProvenance;
   /** Semantic label (what the trace means) */
   label: string;
   /** Perception radius (how far agents can sense this trace) */
@@ -167,8 +379,22 @@ export interface CulturalTraceTrait {
 // =============================================================================
 
 /**
+ * Provenance record stamped onto every {@link BUILTIN_NORMS} entry.
+ * Frozen so that consumers cannot accidentally mutate the shared object.
+ */
+export const BUILTIN_NORM_PROVENANCE: Readonly<NormProvenance> = Object.freeze({
+  source: 'builtin',
+  sourceCorpus: '@holoscript/core/BUILTIN_NORMS',
+  confidenceClassification: 'genuine',
+});
+
+/**
  * Standard library of cultural norms.
  * These can be used directly or as templates for custom norms.
+ *
+ * Every entry is stamped with {@link BUILTIN_NORM_PROVENANCE} so that
+ * downstream audit/governance flows can distinguish builtin norms from
+ * agent-proposed or corpus-derived ones.
  */
 export const BUILTIN_NORMS: CulturalNorm[] = [
   // Safety norms
@@ -182,6 +408,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0,
     strength: 'strong',
     forbiddenEffects: ['agent:kill', 'inventory:destroy', 'physics:teleport'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'resource_sharing',
@@ -193,6 +420,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0.5,
     strength: 'moderate',
     requiredEffects: ['inventory:give'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'zone_respect',
@@ -205,6 +433,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     strength: 'moderate',
     requiredEffects: ['agent:communicate'],
     forbiddenEffects: ['authority:zone'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'fair_trade',
@@ -216,6 +445,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0,
     strength: 'strong',
     requiredEffects: ['inventory:trade', 'agent:communicate'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'greeting_convention',
@@ -227,6 +457,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0.6,
     strength: 'weak',
     requiredEffects: ['agent:communicate'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'noise_courtesy',
@@ -238,6 +469,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0.4,
     strength: 'moderate',
     forbiddenEffects: ['audio:global'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'spawn_limits',
@@ -249,6 +481,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0,
     strength: 'strong',
     forbiddenEffects: ['render:spawn'], // Catches excessive spawning via budget
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
   {
     id: 'metanorm_enforcement',
@@ -261,6 +494,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0.7,
     strength: 'weak',
     requiredEffects: ['agent:communicate', 'agent:observe'],
+    provenance: BUILTIN_NORM_PROVENANCE,
   },
 ];
 
