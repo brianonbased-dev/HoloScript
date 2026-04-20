@@ -10,6 +10,7 @@ import { runParserBench } from './suites/parser.bench.js';
 import { runCompilerBench } from './suites/compiler.bench.js';
 import { runSyncBench } from './suites/sync.bench.js';
 import { runLspBench } from './suites/lsp.bench.js';
+import { runMcpBench } from './suites/mcp.bench.js';
 
 // =============================================================================
 // TYPES
@@ -110,7 +111,7 @@ interface RegressionReport {
 function detectRegressions(
   current: AllResults,
   baseline: AllResults,
-  threshold: number = 10 // 10% regression threshold
+  threshold: number = 5 // 5% regression threshold (perf1 quality gate)
 ): RegressionReport {
   const regressions: RegressionReport['regressions'] = [];
 
@@ -174,6 +175,11 @@ async function main(): Promise<void> {
   if (!isJson) console.log('Running LSP benchmarks...');
   const lspBench = await runLspBench();
   suites.push(extractResults(lspBench, 'LSP'));
+
+  // Run MCP throughput benchmarks
+  if (!isJson) console.log('Running MCP throughput benchmarks...');
+  const mcpBench = await runMcpBench();
+  suites.push(extractResults(mcpBench, 'MCPThroughput'));
 
   const allResults: AllResults = {
     version: '2.1.0',

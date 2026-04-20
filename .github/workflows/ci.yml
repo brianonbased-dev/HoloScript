@@ -265,8 +265,8 @@ jobs:
         if: steps.benchmark-cache.outputs.cache-hit == 'true'
         run: |
           node --experimental-vm-modules packages/benchmark/dist/index.js --ci --compare=.benchmark-baseline.json || {
-            echo "::warning::Performance regression detected. Check benchmark results."
-            exit 0
+            echo "::error::Performance regression >5% detected. See benchmark-results.json for details."
+            exit 1
           }
 
       - name: Upload benchmark results
