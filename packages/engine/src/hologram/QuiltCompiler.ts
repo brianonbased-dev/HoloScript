@@ -164,11 +164,12 @@ export class QuiltCompiler {
       const quiltTrait = obj.traits?.find((t) => t.name === 'quilt');
       if (quiltTrait?.config) {
         const p = quiltTrait.config;
-        if (typeof p['views'] === 'number') config.views = p['views'];
-        if (typeof p['columns'] === 'number') config.columns = p['columns'];
-        if (typeof p['rows'] === 'number') config.rows = p['rows'];
-        if (Array.isArray(p['resolution'])) config.resolution = p['resolution'] as [number, number];
-        if (typeof p['baseline'] === 'number') config.baseline = p['baseline'];
+        const explicit: Partial<QuiltConfig> = {};
+        if (typeof p['views'] === 'number') explicit.views = p['views'];
+        if (typeof p['columns'] === 'number') explicit.columns = p['columns'];
+        if (typeof p['rows'] === 'number') explicit.rows = p['rows'];
+        if (Array.isArray(p['resolution'])) explicit.resolution = p['resolution'] as [number, number];
+        if (typeof p['baseline'] === 'number') explicit.baseline = p['baseline'];
         if (typeof p['device'] === 'string' && p['device'] in DEVICE_PRESETS) {
           config = {
             ...config,
@@ -176,6 +177,7 @@ export class QuiltCompiler {
             device: p['device'] as QuiltConfig['device'],
           };
         }
+        Object.assign(config, explicit);
       }
 
       const lgTrait = obj.traits?.find((t) => t.name === 'looking_glass');
