@@ -462,6 +462,11 @@ export interface Team {
   miniGames?: StoredBountyMiniGame[];
 
   mode?: string;
+  /**
+   * When true, every member effectively carries owner permissions
+   * (used for the founder's working teams like HoloScript Core).
+   */
+  adminRoom?: boolean;
   roomConfig?: {
     objective?: string;
     /**

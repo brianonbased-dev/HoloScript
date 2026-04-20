@@ -15,7 +15,8 @@ export type AdminOperationAction =
   | 'provision'
   | 'revoke'
   | 'manual_failover'
-  | 'scaling_override';
+  | 'scaling_override'
+  | 'team_admin_room_toggle';
 
 export interface AdminOperationAuditEntry {
   id: string;

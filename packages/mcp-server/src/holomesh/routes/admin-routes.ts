@@ -8,6 +8,7 @@
  * POST /api/holomesh/admin/rotate-key — Issue new key, same wallet/team/reputation
  * POST /api/holomesh/admin/revoke     — Invalidate all keys for an agent (wallet preserved)
  * GET  /api/holomesh/admin/agents     — List all provisioned agents (no keys exposed)
+ * PATCH /api/holomesh/admin/team/:id/admin-room — Toggle adminRoom flag on a team
  */
 
 import type http from 'http';
@@ -18,6 +19,8 @@ import {
   walletToAgent,
   persistKeyRegistry,
   persistAgentStore,
+  teamStore,
+  persistTeamStore,
 } from '../state';
 import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
@@ -278,6 +281,48 @@ export async function handleAdminRoutes(
     }));
 
     json(res, 200, { success: true, agents, count: agents.length });
+    return true;
+  }
+
+  // ── PATCH /api/holomesh/admin/team/:id/admin-room ──────────────────────────
+  // Toggle the adminRoom flag — when true, every member effectively carries
+  // owner permissions (used for the founder's working teams).
+  const adminRoomMatch = pathname.match(/^\/api\/holomesh\/admin\/team\/([^/]+)\/admin-room$/);
+  if (adminRoomMatch && method === 'PATCH') {
+    const teamId = adminRoomMatch[1];
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    if (typeof body.enabled !== 'boolean') {
+      json(res, 400, { error: 'enabled (boolean) is required' });
+      return true;
+    }
+
+    const before = team.adminRoom === true;
+    team.adminRoom = body.enabled;
+    persistTeamStore();
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'team_admin_room_toggle',
+      path: pathname,
+      before: { team_id: teamId, admin_room: before },
+      after: { team_id: teamId, admin_room: body.enabled },
+    });
+
+    json(res, 200, {
+      success: true,
+      team_id: teamId,
+      admin_room: body.enabled,
+    });
     return true;
   }
 

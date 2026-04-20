@@ -2039,6 +2039,128 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.mode).toBe('audit');
     });
 
+    // ── Admin Room flag ──
+
+    it('PATCH /api/holomesh/admin/team/:id/admin-room flips flag (founder)', async () => {
+      // Create team as the regular owner
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `admin-room-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Founder flips the flag (HOLOSCRIPT_API_KEY=test-api-key resolves to isFounder via env-key fallback)
+      const req = mockReq(
+        'PATCH',
+        `/api/holomesh/admin/team/${tid}/admin-room`,
+        { enabled: true },
+        { authorization: `Bearer test-api-key` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/admin/team/${tid}/admin-room`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.team_id).toBe(tid);
+      expect(res._body.admin_room).toBe(true);
+
+      // Flip back off
+      const offReq = mockReq(
+        'PATCH',
+        `/api/holomesh/admin/team/${tid}/admin-room`,
+        { enabled: false },
+        { authorization: `Bearer test-api-key` }
+      );
+      const offRes = mockRes();
+      await handleHoloMeshRoute(offReq, offRes, `/api/holomesh/admin/team/${tid}/admin-room`);
+      expect(offRes._status).toBe(200);
+      expect(offRes._body.admin_room).toBe(false);
+    });
+
+    it('PATCH /api/holomesh/admin/team/:id/admin-room rejects non-founder', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `admin-room-403-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Owner of the team is NOT a founder; admin route should 403
+      const req = mockReq(
+        'PATCH',
+        `/api/holomesh/admin/team/${tid}/admin-room`,
+        { enabled: true },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/admin/team/${tid}/admin-room`);
+
+      expect(res._status).toBe(403);
+    });
+
+    it('Admin room: member can perform config:write actions (PATCH /room)', async () => {
+      // Create team + join as member
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `admin-room-member-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._body.role).toBe('member');
+
+      // Without adminRoom, member should be 403 on PATCH /room (config:write required)
+      const blockedReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/room`,
+        { communicationStyle: 'balanced' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const blockedRes = mockRes();
+      await handleHoloMeshRoute(blockedReq, blockedRes, `/api/holomesh/team/${tid}/room`);
+      expect(blockedRes._status).toBe(403);
+
+      // Flip the adminRoom flag directly via teamStore (founder auth in tests is messy;
+      // the contract under test is hasTeamPermission honoring adminRoom for members).
+      const { teamStore } = await import('../state');
+      const team = teamStore.get(tid);
+      expect(team).toBeTruthy();
+      team!.adminRoom = true;
+
+      // Now the same member call should succeed
+      const req = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/room`,
+        { communicationStyle: 'balanced' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/room`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.communicationStyle).toBe('balanced');
+    });
+
     // ── /space includes teams ──
 
     it('/space includes agent teams in your_agent', async () => {
