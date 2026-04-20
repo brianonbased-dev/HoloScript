@@ -57,6 +57,11 @@ import { getOAuth21Service, SCOPE_CATEGORIES, type TokenIntrospection } from './
 import type { TokenIntrospectionWithTenant } from './security/tenant-auth';
 import { runTripleGate } from './security/gates';
 import { getAuditLogger, type AuditEventType, type AuditResultStatus } from './security/audit-log';
+import {
+  checkRateLimitBypass,
+  readBearerToken,
+  readXForwardedFor,
+} from './security/bypass-detection';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
@@ -371,9 +376,29 @@ async function securedToolExecution(
     requestPath?: string;
     requestMethod?: string;
     ip?: string;
+    tcpPeerIp?: string;
+    rawXForwardedFor?: string;
+    bearerToken?: string;
   }
 ): Promise<{ result: unknown; isError: boolean }> {
   const startTime = Date.now();
+
+  const bypass = await checkRateLimitBypass({
+    toolName,
+    directIp: options?.ip,
+    tcpPeerIp: options?.tcpPeerIp,
+    rawXForwardedFor: options?.rawXForwardedFor,
+    bearerToken: options?.bearerToken,
+  });
+  if (!bypass.allowed) {
+    return {
+      result: {
+        error: 'Request blocked by rate-limit bypass heuristics',
+        code: bypass.reason || 'bypass_denied',
+      },
+      isError: true,
+    };
+  }
 
   // Run triple-gate security check
   const gateResult = runTripleGate(toolName, args, auth);
@@ -1858,10 +1883,14 @@ const httpServer = http.createServer(async (req, res) => {
 
       if (method === 'tools/call') {
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
+        const tcpPeer = req.socket.remoteAddress?.replace(/^::ffff:/, '') || undefined;
         const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
           requestPath: '/mcp',
           requestMethod: 'POST',
           ip: clientIP,
+          tcpPeerIp: tcpPeer,
+          rawXForwardedFor: readXForwardedFor(req),
+          bearerToken: readBearerToken(req),
         });
 
         res.writeHead(200, { 'Content-Type': 'application/json' });

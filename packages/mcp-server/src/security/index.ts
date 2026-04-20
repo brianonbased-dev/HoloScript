@@ -67,3 +67,15 @@ export {
   type AuditResultStatus,
   type AuditLogConfig,
 } from './audit-log';
+
+// Rate-limit bypass heuristics (P.009.02)
+export {
+  checkRateLimitBypass,
+  analyzeXForwardedFor,
+  ipv4Subnet24,
+  readBearerToken,
+  readXForwardedFor,
+  resetBypassDetectionForTests,
+  type BypassCheckInput,
+  type BypassCheckResult,
+} from './bypass-detection';
