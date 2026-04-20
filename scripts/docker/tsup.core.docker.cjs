@@ -23,6 +23,9 @@ module.exports = {
     'entries/scripting': 'src/entries/scripting.ts',
     'entries/interop': 'src/entries/interop.ts',
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
+    // Required by mcp-server/src/holo-reconstruct-sessions.ts at runtime
+    // (dynamic require through '@holoscript/core/reconstruction').
+    'reconstruction/index': 'src/reconstruction/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
