@@ -17,6 +17,16 @@ Language support for HoloScript+ - a declarative language for spatial computing 
 - **Smart Asset Editor** - Custom editor for `.hsa` files
 - **Getting Started Walkthrough** - 6-step onboarding for new users
 
+## MCP — `mcp.holoscript.net` (streamable HTTP)
+
+The extension registers a **`McpServerDefinitionProvider`** so VS Code (Copilot Chat and other MCP-aware clients) can attach to the production mesh endpoint:
+
+- **Implementation:** `src/services/HoloScriptMcpProvider.ts` — `transport.type` is `streamableHttp`, URL **`https://mcp.holoscript.net/mcp`**, with health check in `resolveMcpServerDefinition`.
+- **Activation:** `src/extension.ts` calls `vscode.lm.registerMcpServerDefinitionProvider('holoscriptMcp', …)` when `vscode.lm.registerMcpServerDefinitionProvider` exists (newer VS Code builds).
+- **Setting:** `holoscript.mcp.holoscriptMcpEnabled` in `package.json` — toggle server discovery without uninstalling.
+
+Syntax highlighting (`.holo`, `.hs`, `.hsplus`) and the **live preview** panel are separate contributions; they ship with the extension and complement MCP-driven agent workflows.
+
 ## Supported Syntax
 
 ### Primitives
