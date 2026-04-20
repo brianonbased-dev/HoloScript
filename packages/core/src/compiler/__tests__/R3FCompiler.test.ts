@@ -266,6 +266,7 @@ describe('R3FCompiler', () => {
     });
     const tree = result.children!.find((c) => c.id === 'tree');
     expect(tree!.assetMaturity).toBe('final');
+    expect(tree!.props.maturityOverride).toBeUndefined();
   });
 
   it('passes through promoteUrl property', () => {

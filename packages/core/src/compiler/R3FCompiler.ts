@@ -3346,6 +3346,7 @@ export class R3FCompiler {
         r3fNode.assetMaturity = m;
       }
     }
+    delete props.maturityOverride;
 
     if (obj.children && Array.isArray(obj.children)) {
       for (const child of obj.children) {

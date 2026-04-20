@@ -397,6 +397,16 @@ export interface HoloTemplateProperty extends HoloNode {
 // OBJECT
 // =============================================================================
 
+/**
+ * Scene object declaration in a `.holo` composition.
+ *
+ * **Asset maturity (draft → mesh → final)** — optional `ObjectProperty` keys
+ * consumed by `R3FCompiler.compileObjectDecl`:
+ * - `maturity`: `"draft"` | `"mesh"` | `"final"` — sets `R3FNode.assetMaturity`
+ * - `promoteUrl` / `promote_url`: string — GLB/URL for draft→mesh promotion (passed to `R3FNode.props`)
+ * - `collisionShape` / `collision_shape`: string — collision proxy hint (passed to `R3FNode.props`)
+ * The `@draft` trait also forces `assetMaturity: 'draft'` and draft rendering props.
+ */
 export interface HoloObjectDecl extends HoloNode {
   type: 'Object';
   name: string;
@@ -1387,7 +1397,7 @@ export interface CompiledDataViz {
   /** Data source reference or inline data */
   dataSource?: string;
   /** Axes configuration */
-  axes?: { x?: string; y?: string; z?: string };
+  axes?: [string, string, string];
   /** Metric aggregation: sum, avg, min, max, count */
   aggregation?: string;
   /** Refresh interval in ms */

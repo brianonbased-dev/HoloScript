@@ -59,13 +59,13 @@ export type ANSDomainValue = (typeof ANSDomain)[keyof typeof ANSDomain];
  * - HIGH: Device/network/platform access (xr, mobile, runtime, robotics, iot, ai)
  * - CRITICAL: Financial or safety-critical (web3, social-vr with identity, interchange with signing)
  */
-export const RiskTier = {
+export const ANSRiskTier = {
   STANDARD: 'STANDARD',
   HIGH: 'HIGH',
   CRITICAL: 'CRITICAL',
 } as const;
 
-export type RiskTierValue = (typeof RiskTier)[keyof typeof RiskTier];
+export type ANSRiskTierValue = (typeof ANSRiskTier)[keyof typeof ANSRiskTier];
 
 /**
  * Risk tier assignment per domain.
@@ -87,22 +87,22 @@ export type RiskTierValue = (typeof RiskTier)[keyof typeof RiskTier];
  * - meta: STANDARD — meta-compilation (incremental, multi-layer, state, traits)
  * - mixin: STANDARD — shared compilation utilities
  */
-export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, RiskTierValue>> = {
-  [ANSDomain.GAMEDEV]: RiskTier.STANDARD,
-  [ANSDomain.SOCIAL_VR]: RiskTier.HIGH,
-  [ANSDomain.XR]: RiskTier.HIGH,
-  [ANSDomain.MOBILE]: RiskTier.HIGH,
-  [ANSDomain.WEB3D]: RiskTier.STANDARD,
-  [ANSDomain.RUNTIME]: RiskTier.HIGH,
-  [ANSDomain.SHADER]: RiskTier.STANDARD,
-  [ANSDomain.ROBOTICS]: RiskTier.CRITICAL,
-  [ANSDomain.INTERCHANGE]: RiskTier.STANDARD,
-  [ANSDomain.IOT]: RiskTier.HIGH,
-  [ANSDomain.WEB3]: RiskTier.CRITICAL,
-  [ANSDomain.AI]: RiskTier.HIGH,
-  [ANSDomain.NEUROMORPHIC]: RiskTier.HIGH,
-  [ANSDomain.META]: RiskTier.STANDARD,
-  [ANSDomain.MIXIN]: RiskTier.STANDARD,
+export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, ANSRiskTierValue>> = {
+  [ANSDomain.GAMEDEV]: ANSRiskTier.STANDARD,
+  [ANSDomain.SOCIAL_VR]: ANSRiskTier.HIGH,
+  [ANSDomain.XR]: ANSRiskTier.HIGH,
+  [ANSDomain.MOBILE]: ANSRiskTier.HIGH,
+  [ANSDomain.WEB3D]: ANSRiskTier.STANDARD,
+  [ANSDomain.RUNTIME]: ANSRiskTier.HIGH,
+  [ANSDomain.SHADER]: ANSRiskTier.STANDARD,
+  [ANSDomain.ROBOTICS]: ANSRiskTier.CRITICAL,
+  [ANSDomain.INTERCHANGE]: ANSRiskTier.STANDARD,
+  [ANSDomain.IOT]: ANSRiskTier.HIGH,
+  [ANSDomain.WEB3]: ANSRiskTier.CRITICAL,
+  [ANSDomain.AI]: ANSRiskTier.HIGH,
+  [ANSDomain.NEUROMORPHIC]: ANSRiskTier.HIGH,
+  [ANSDomain.META]: ANSRiskTier.STANDARD,
+  [ANSDomain.MIXIN]: ANSRiskTier.STANDARD,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -450,7 +450,7 @@ export function getDomainForCompiler(compiler: CompilerName): ANSDomainValue {
  * getRiskTierForDomain('web3')       // => "CRITICAL"
  * ```
  */
-export function getRiskTierForDomain(domain: ANSDomainValue): RiskTierValue {
+export function getRiskTierForDomain(domain: ANSDomainValue): ANSRiskTierValue {
   return DOMAIN_RISK_TIERS[domain];
 }
 
@@ -466,7 +466,7 @@ export function getRiskTierForDomain(domain: ANSDomainValue): RiskTierValue {
  * getRiskTierForCompiler('nft-marketplace')  // => "CRITICAL"
  * ```
  */
-export function getRiskTierForCompiler(compiler: CompilerName): RiskTierValue {
+export function getRiskTierForCompiler(compiler: CompilerName): ANSRiskTierValue {
   return DOMAIN_RISK_TIERS[COMPILER_DOMAIN_MAP[compiler]];
 }
 
@@ -498,7 +498,7 @@ export function getAllCompilersInDomain(domain: ANSDomainValue): CompilerName[] 
  * // => ["urdf", "sdf", "nft-marketplace"]
  * ```
  */
-export function getAllCompilersWithRiskTier(tier: RiskTierValue): CompilerName[] {
+export function getAllCompilersWithRiskTier(tier: ANSRiskTierValue): CompilerName[] {
   return ALL_COMPILER_NAMES.filter((compiler) => getRiskTierForCompiler(compiler) === tier);
 }
 
@@ -513,7 +513,7 @@ export function getAllCompilersWithRiskTier(tier: RiskTierValue): CompilerName[]
  * getAllDomainsWithRiskTier('CRITICAL')  // => ["robotics", "web3"]
  * ```
  */
-export function getAllDomainsWithRiskTier(tier: RiskTierValue): ANSDomainValue[] {
+export function getAllDomainsWithRiskTier(tier: ANSRiskTierValue): ANSDomainValue[] {
   return ALL_DOMAINS.filter((domain) => DOMAIN_RISK_TIERS[domain] === tier);
 }
 
@@ -619,7 +619,7 @@ export function getANSSummary(): {
     compilersByDomain[domain] = count;
   }
 
-  for (const tier of Object.values(RiskTier)) {
+  for (const tier of Object.values(ANSRiskTier)) {
     compilersByRiskTier[tier] = getAllCompilersWithRiskTier(tier).length;
     domainsByRiskTier[tier] = getAllDomainsWithRiskTier(tier);
   }

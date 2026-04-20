@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   // Constants
   ANSDomain,
-  RiskTier,
+  ANSRiskTier,
   ANS_PREFIX,
   ANSCapabilityPath,
   DOMAIN_RISK_TIERS,
@@ -29,12 +29,7 @@ import {
   buildANSPath,
   getANSSummary,
 } from '../ANSNamespace';
-import type {
-  CompilerName,
-  ANSDomainValue,
-  RiskTierValue,
-  ANSCapabilityPathValue,
-} from '../ANSNamespace';
+import type { CompilerName, ANSDomainValue, ANSCapabilityPathValue } from '../ANSNamespace';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -64,15 +59,15 @@ describe('ANSNamespace', () => {
     });
   });
 
-  describe('RiskTier constants', () => {
+  describe('ANSRiskTier constants', () => {
     it('should define all 3 risk tiers', () => {
-      expect(Object.keys(RiskTier)).toHaveLength(3);
+      expect(Object.keys(ANSRiskTier)).toHaveLength(3);
     });
 
     it('should have correct tier values', () => {
-      expect(RiskTier.STANDARD).toBe('STANDARD');
-      expect(RiskTier.HIGH).toBe('HIGH');
-      expect(RiskTier.CRITICAL).toBe('CRITICAL');
+      expect(ANSRiskTier.STANDARD).toBe('STANDARD');
+      expect(ANSRiskTier.HIGH).toBe('HIGH');
+      expect(ANSRiskTier.CRITICAL).toBe('CRITICAL');
     });
   });
 
@@ -184,59 +179,59 @@ describe('ANSNamespace', () => {
     });
 
     it('should classify gamedev as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.GAMEDEV]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.GAMEDEV]).toBe(ANSRiskTier.STANDARD);
     });
 
     it('should classify social-vr as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.SOCIAL_VR]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.SOCIAL_VR]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify xr as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.XR]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.XR]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify mobile as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.MOBILE]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.MOBILE]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify web3d as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.WEB3D]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.WEB3D]).toBe(ANSRiskTier.STANDARD);
     });
 
     it('should classify runtime as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.RUNTIME]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.RUNTIME]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify shader as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.SHADER]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.SHADER]).toBe(ANSRiskTier.STANDARD);
     });
 
     it('should classify robotics as CRITICAL', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.ROBOTICS]).toBe(RiskTier.CRITICAL);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.ROBOTICS]).toBe(ANSRiskTier.CRITICAL);
     });
 
     it('should classify interchange as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.INTERCHANGE]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.INTERCHANGE]).toBe(ANSRiskTier.STANDARD);
     });
 
     it('should classify iot as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.IOT]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.IOT]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify web3 as CRITICAL', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.WEB3]).toBe(RiskTier.CRITICAL);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.WEB3]).toBe(ANSRiskTier.CRITICAL);
     });
 
     it('should classify ai as HIGH', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.AI]).toBe(RiskTier.HIGH);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.AI]).toBe(ANSRiskTier.HIGH);
     });
 
     it('should classify meta as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.META]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.META]).toBe(ANSRiskTier.STANDARD);
     });
 
     it('should classify mixin as STANDARD', () => {
-      expect(DOMAIN_RISK_TIERS[ANSDomain.MIXIN]).toBe(RiskTier.STANDARD);
+      expect(DOMAIN_RISK_TIERS[ANSDomain.MIXIN]).toBe(ANSRiskTier.STANDARD);
     });
   });
 

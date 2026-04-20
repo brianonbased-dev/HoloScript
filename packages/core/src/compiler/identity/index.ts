@@ -316,9 +316,9 @@ export {
   ANSDomain,
   type ANSDomainValue,
 
-  // Risk tier constants
-  RiskTier,
-  type RiskTierValue,
+  // Risk tier constants (ANS domain classification — not AgentRiskRegistry RiskTier)
+  ANSRiskTier,
+  type ANSRiskTierValue,
   DOMAIN_RISK_TIERS,
 
   // Compiler name union type
