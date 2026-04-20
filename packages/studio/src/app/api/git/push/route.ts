@@ -21,6 +21,20 @@ import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * SEC-T04: Strip embedded credentials from any string before sending it back
+ * to the client. Git errors/stderr frequently include the fully-authenticated
+ * remote URL — `https://<TOKEN>@github.com/...` — which would otherwise hand
+ * the caller a full-repo OAuth token. Covers both `user:token@` and bare
+ * `token@` forms.
+ *
+ * Never return raw git errors — they include the auth URL. See SEC-T04.
+ */
+function sanitizeGitError(input: unknown): string {
+  const raw = typeof input === 'string' ? input : input instanceof Error ? input.message : String(input);
+  return raw.replace(/https:\/\/[^@\s/]+@/g, 'https://');
+}
+
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
@@ -102,6 +116,11 @@ export async function POST(req: NextRequest) {
       output: (stdout + stderr).trim(),
     });
   } catch (err) {
+    // SEC-T04: log the original error server-side (operators need the real
+    // details) but never return raw git errors to the client — they can
+    // include the fully-authenticated remote URL.
+    console.error('[git push]', err);
+
     // Always restore original URL on error
     try {
       const { stdout: origUrl } = await execFileAsync('git', ['remote', 'get-url', remote], {
@@ -111,14 +130,18 @@ export async function POST(req: NextRequest) {
         const clean = origUrl.replace(/https:\/\/[^@]+@/, 'https://');
         await execFileAsync('git', ['remote', 'set-url', remote, clean.trim()], { cwd: resolved });
       }
-    } catch {
-      /* ignore cleanup failure */
+    } catch (cleanupErr) {
+      console.error('[git push] cleanup failed', cleanupErr);
     }
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'git push failed' },
-      { status: 500 }
-    );
+    // Scrub tokens from every string we might echo back.
+    const e = err as { message?: unknown; stderr?: unknown; stdout?: unknown };
+    const safe = {
+      error: sanitizeGitError(e?.message ?? 'git push failed'),
+      stderr: e?.stderr ? sanitizeGitError(e.stderr) : undefined,
+      stdout: e?.stdout ? sanitizeGitError(e.stdout) : undefined,
+    };
+    return NextResponse.json(safe, { status: 500 });
   }
 }
 
