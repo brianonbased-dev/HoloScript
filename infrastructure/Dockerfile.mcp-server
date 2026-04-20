@@ -45,6 +45,7 @@ COPY packages/config/ packages/config/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
 COPY packages/platform/ packages/platform/
+COPY packages/marketplace-api/ packages/marketplace-api/
 COPY packages/mesh/ packages/mesh/
 
 
