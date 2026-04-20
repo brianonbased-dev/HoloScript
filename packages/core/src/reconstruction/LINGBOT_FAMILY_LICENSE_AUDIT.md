@@ -12,6 +12,18 @@
 |------|--------|--------|
 | 2026-04-19 | **Pending** | No written clearance recorded in-repo. RFC path **A** (distillation) stays **gated**; ship demos on path **C** / plan **B** per RFC §5. |
 
+## Gate closure criteria (required to mark "done")
+
+Path **A (bridge / distillation)** remains **OPEN** until all items below are recorded in-repo:
+
+1. **Written counsel approval** (date, reviewer, scope) for the exact upstream product surface.
+2. **Terms snapshot** archived (URL + retrieval date) for output reuse, training, and commercial use.
+3. **Data lineage spec** committed (what was ingested, from where, retention window, deletion policy).
+4. **Redistribution decision** documented for student weights (allowed / restricted / prohibited).
+5. **Public-claims check** recorded for any benchmark language naming third-party products.
+
+Until then, execution is restricted to RFC paths **B/C**.
+
 **Related:** `RFC-HoloMap.md` (weight-acquisition strategy), `WGSL_GAPS.md`
 
 ---

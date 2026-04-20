@@ -113,16 +113,34 @@ Recommendation: run path 3 for the demo, path 2 in parallel for the production w
 
 ## 7. Open questions
 
-- **Q1 (blocking Sprint 2):** Which WGSL ops are missing for streaming attention + paged KV cache? See `WGSL_GAPS.md`.
+- **Q1 (blocking Sprint 2):** Integration sequencing for already-shipped P0 kernels (attention/GEMM/norm/softmax/RoPE/patch embed): what is the smallest end-to-end pass through `HoloMapRuntime.step()` that yields a reproducible acceptance-video manifest?
 - **Q2:** Do we need per-vertical fine-tunes (indoor / outdoor / object scan)? Trait-composition makes variants natural but splits training work.
 - **Q3:** Where does HoloMap sit in `packages/`? Currently `packages/core/src/reconstruction/`. Alternative: `packages/reconstruction-runtime/` as its own workspace. Keep in core for Sprint 1 to minimize build graph changes; revisit if bundle size becomes an issue.
 - **Q4:** Do we share weights with HoloLand's mobile `npu_depth` path, or keep HoloMap desktop-only and NPU mobile-only? **Decision (2026-04-19):** keep **separate** weight families for v1 — see `docs/holomap/MODALITY_WEIGHTS.md`. `ModalitySelector` picks per surface without implying identical checkpoints.
 
 ## 8. Ship plan
 
-- **Sprint 1 (this sprint, 2w):** RFC + scaffold + trait stubs + MCP stubs + WGSL gap analysis. **No transformer code.**
+- **Sprint 1 (this sprint, 2w):** RFC + scaffold + trait stubs + MCP stubs + WGSL gap analysis.
 - **Sprint 2 (2w):** **Integrate** shipped P0 WGSL kernels into `HoloMapRuntime` (real forward pass; see `WGSL_GAPS.md` ✅ rows), KV cache wiring, weight loader + demo weights (paths 2/3 per §5), `holo_reconstruct_from_video` end-to-end on acceptance video. Shader authoring is no longer the gating item for P0 ops listed there.
 - **Sprint 3 (2w):** HoloLand "scan your room in 90s, walk it in VR" demo, SimulationContract replay wiring, provenance anchoring, Studio `ReconstructionPanel.tsx`.
+
+### 8.1 Sprint accounting correction (2026-04-19)
+
+Implementation started earlier than the original Sprint-1 wording implied. The following should be counted as **pulled-forward Sprint-2 work** already in progress/landed:
+
+- core runtime/operator files under `packages/core/src/reconstruction/` (kernel + runtime wiring surface),
+- trait-family registration and parser/type plumbing,
+- MCP-side reconstruction route groundwork in `packages/mcp-server/src/`.
+
+Planning/burndown should therefore track Sprint-1 completion against **RFC/scaffold/governance gates**, while reporting these implementation items against Sprint-2 capacity to avoid hidden overrun.
+
+### 8.2 PR hygiene rules (required while repo churn is high)
+
+1. One objective per PR: `docs/rfc`, `core-scaffold`, `traits`, `mcp-stubs`, `bench/artifacts`.
+2. Keep PRs small and path-scoped; avoid mixing docs, runtime code, and bench artifacts.
+3. Stage explicit file lists only; no bulk staging patterns.
+4. Every PR description must include: changed paths, tests run, and which sprint backlog item it burns.
+5. If a change crosses packages (`core` + `mcp-server` + `studio`), split into stacked PRs unless the contract would be broken otherwise.
 
 ## 9. Risks
 
