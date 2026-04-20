@@ -15,8 +15,12 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # Serialize on main so the queue actually drains — the build takes ~10 min and
+  # cancel-in-progress was killing every run when commits arrive faster than that.
+  # Each push gets its own build slot in line; the latest commit's image always
+  # eventually reaches Railway.
   group: publish-mcp-image-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
