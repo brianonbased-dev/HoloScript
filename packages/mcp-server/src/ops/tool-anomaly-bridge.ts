@@ -3,6 +3,11 @@
  */
 
 import { AnomalyDetector, type AnomalyAlertHandler } from './pipeline.js';
+import {
+  notifyOpsAnomalyFired,
+  recordSecuredToolOutcome,
+  __testOnly_resetToolOpsMetrics,
+} from './tool-ops-metrics.js';
 
 let detector: AnomalyDetector | undefined;
 let lastSlackSentAt = 0;
@@ -53,6 +58,7 @@ async function postSlackAlert(reason: string, detail: Record<string, unknown>): 
 }
 
 const defaultOnAlert: AnomalyAlertHandler = (detail) => {
+  notifyOpsAnomalyFired();
   console.warn('[MCP Anomaly]', detail.reason, detail);
   void postSlackAlert(detail.reason, {
     windowSize: detail.windowSize,
@@ -78,6 +84,7 @@ function getDetector(): AnomalyDetector {
  * Record one secured tool execution for anomaly monitoring (error rate in sliding window).
  */
 export function recordMcpToolCallMetric(toolName: string, latencyMs: number, error: boolean): void {
+  recordSecuredToolOutcome(latencyMs, error);
   try {
     getDetector().ingest({
       toolName,
@@ -94,4 +101,5 @@ export function recordMcpToolCallMetric(toolName: string, latencyMs: number, err
 export function __testOnly_resetToolAnomalyBridge(): void {
   detector = undefined;
   lastSlackSentAt = 0;
+  __testOnly_resetToolOpsMetrics();
 }

@@ -705,6 +705,13 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // Ops Prometheus scrape (P.008.02 — Grafana-friendly secured-tool counters + latency gauges)
+  if (url === '/ops/metrics') {
+    const { handleOpsMetricsRequest } = await import('./ops/tool-ops-metrics.js');
+    handleOpsMetricsRequest(req, res);
+    return;
+  }
+
   // Prometheus metrics endpoint (v5.6 Observable Platform)
   if (url === '/metrics') {
     const { handleMetricsRequest } = await import('./health-check');
