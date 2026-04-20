@@ -21,6 +21,7 @@ import {
 } from '../state';
 import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
+import { recordAdminOperation } from '../admin-operations-audit';
 import type { KeyRecord, RegisteredAgent } from '../types';
 
 export async function handleAdminRoutes(
@@ -94,6 +95,25 @@ export async function handleAdminRoutes(
     walletToAgent.set(walletAddress.toLowerCase(), agent);
     persistAgentStore();
 
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'provision',
+      path: pathname,
+      before: null,
+      after: {
+        agent_id: agentId,
+        agent_name: name,
+        wallet_address: walletAddress,
+        scopes,
+        is_founder: isFounder,
+        api_key_prefix: `${apiKey.slice(0, 12)}...`,
+      },
+    });
+
     json(res, 201, {
       success: true,
       api_key: apiKey,
@@ -151,6 +171,26 @@ export async function handleAdminRoutes(
     persistKeyRegistry();
     persistAgentStore();
 
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'key_rotation',
+      path: pathname,
+      before: {
+        agent_id: existingRecord.agentId,
+        wallet_address: existingRecord.walletAddress,
+        key_prefix: `${existingRecord.key.slice(0, 12)}...`,
+      },
+      after: {
+        agent_id: newRecord.agentId,
+        wallet_address: newRecord.walletAddress,
+        key_prefix: `${newKey.slice(0, 12)}...`,
+      },
+    });
+
     json(res, 200, {
       success: true,
       new_key: newKey,
@@ -188,6 +228,24 @@ export async function handleAdminRoutes(
 
     persistKeyRegistry();
     persistAgentStore();
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'revoke',
+      path: pathname,
+      before: {
+        agent_id: agentId,
+        keys_to_revoke: matchingEntries.length,
+      },
+      after: {
+        agent_id: agentId,
+        revoked_keys: matchingEntries.length,
+      },
+    });
 
     json(res, 200, {
       success: true,

@@ -63,6 +63,7 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores } from './holomesh/state';
+import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
 
@@ -2469,6 +2470,34 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // ADMIN OPERATIONS AUDIT (P.009.01) — founder HTTP actions, ring buffer + optional KV flush
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (url === '/admin/audit' && req.method === 'GET') {
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Authentication required for admin audit access' }));
+      return;
+    }
+    if (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin')) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Insufficient scope. Requires admin:* or tools:admin' }));
+      return;
+    }
+
+    const queryString = req.url?.split('?')[1] || '';
+    const params = new URLSearchParams(queryString);
+    const limitRaw = params.get('limit');
+    const limit = limitRaw ? parseInt(limitRaw, 10) : 50;
+
+    const result = queryAdminOperationsAudit(limit);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, ...result }, null, 2));
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // AUDIT LOG ENDPOINT (EU AI Act Art. 13: Transparency)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2628,6 +2657,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(
     `     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`
   );
+  console.info(`     GET  /admin/audit                  - Admin operations audit trail (admin)`);
   console.info(`     GET  /api/audit                    - Query audit log (admin)`);
   console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
   console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
