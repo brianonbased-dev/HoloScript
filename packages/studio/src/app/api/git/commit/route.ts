@@ -69,9 +69,39 @@ export async function POST(req: NextRequest) {
   env.GIT_COMMITTER_NAME = env.GIT_AUTHOR_NAME;
   env.GIT_COMMITTER_EMAIL = env.GIT_AUTHOR_EMAIL;
 
+  // SEC-T13: The user-controlled `files` array flowed straight into
+  // `git add` arguments — an entry like `-p` or `--chmod=+x` would be
+  // interpreted by git as a flag, not a path. Defense-in-depth:
+  //   1. Reject any entry starting with '-' (flag-like).
+  //   2. Reject any entry with a '..' segment (traversal out of workspace).
+  //   3. Always insert the '--' end-of-options separator before the files
+  //      list so later args cannot be mistaken for flags, even on a new
+  //      git version that adds surprising option semantics.
+  if (files?.length) {
+    const bad = files.find((f) => typeof f !== 'string' || f.length === 0 || f.startsWith('-'));
+    if (bad !== undefined) {
+      return NextResponse.json(
+        { error: 'Flag-like or empty entries are not allowed in files[]' },
+        { status: 400 }
+      );
+    }
+    const traversal = files.find((f) =>
+      f
+        .split(/[/\\]/)
+        .some((seg) => seg === '..')
+    );
+    if (traversal !== undefined) {
+      return NextResponse.json(
+        { error: "Path traversal ('..') is not allowed in files[]" },
+        { status: 400 }
+      );
+    }
+  }
+
   try {
     // Stage files
-    const addArgs = files?.length ? files : ['.'];
+    // SEC-T13: Insert '--' separator so git never mistakes a path for a flag.
+    const addArgs = files?.length ? ['--', ...files] : ['--', '.'];
     await execFileAsync('git', ['add', ...addArgs], { cwd: resolved, env });
 
     // Check if there's anything to commit
