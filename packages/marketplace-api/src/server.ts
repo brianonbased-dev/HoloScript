@@ -13,6 +13,7 @@ import { TraitRegistry } from './TraitRegistry.js';
 import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 import { x402PaymentService } from './x402PaymentService.js';
 import { createHololandRoutes } from './hololandRoutes.js';
+import { createASTAssetRouter } from './economy/ast-licensing-middleware.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -131,6 +132,9 @@ export function createApp(
     webhook_endpoint: '/api/payments/x402/callback'
   });
   app.use('/api/v1', createHololandRoutes(paymentService));
+
+  // X402 AST Asset Licensing routes (Phase 2 task _zoje)
+  app.use('/api/v1', createASTAssetRouter());
 
   // 404 handler
   app.use((req, res) => {

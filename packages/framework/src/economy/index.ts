@@ -123,3 +123,26 @@ export {
   type InvisibleWalletConfig as WalletConfig,
   type WalletInfo,
 } from './InvisibleWallet';
+
+// X402 AST Asset Licensing (Phase 2 task _zoje)
+export {
+  LICENSE_KINDS,
+  type LicenseKind,
+  astAssetLicenseSchema,
+  type ASTAssetLicense,
+  type ASTAssetManifest,
+  type LicensedASTAsset,
+  hashASTSource,
+  canonicalManifestBytes,
+  extractASTLicense,
+  type ExtractedLicense,
+  createLicensedASTAsset,
+  type CreateLicensedASTAssetOptions,
+  type RegistrationResult,
+  verifyASTAssetManifest,
+  type ManifestVerificationResult,
+  ASTLicenseGate,
+  type ASTLicenseGateOptions,
+  type AccessAttemptResult,
+  ASTLicenseRegistry,
+} from './ast-licensing';
