@@ -10,7 +10,12 @@
 import dynamic from 'next/dynamic';
 import { X } from 'lucide-react';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
-import { useEditorStore, usePanelVisibilityStore, useSceneStore } from '@/lib/stores';
+import {
+  useEditorStore,
+  usePanelVisibilityStore,
+  useSceneStore,
+  useWorkspaceStore,
+} from '@/lib/stores';
 
 // ── Lazy-loaded panels ────────────────────────────────────────────────────────
 
@@ -253,6 +258,10 @@ export function StudioPanelOverlays({
   dismissTutorial,
 }: StudioPanelOverlaysProps) {
   const metadata = useSceneStore((s) => s.metadata);
+  const blameWorkspacePath = useWorkspaceStore((s) => {
+    const id = s.activeWorkspaceId;
+    return id ? (s.workspaces.find((w) => w.id === id)?.localPath ?? '') : '';
+  });
 
   const showBenchmark = useEditorStore((s) => s.showBenchmark);
   const setShowBenchmark = useEditorStore((s) => s.setShowBenchmark);
@@ -441,6 +450,7 @@ export function StudioPanelOverlays({
       {blameOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
           <SpatialBlameOverlay
+            workspacePath={blameWorkspacePath || undefined}
             filePath={metadata.name ? `${metadata.name}.holo` : 'untitled.holo'}
             line={1}
             traitLabel="scene"

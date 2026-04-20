@@ -34,7 +34,7 @@ describe('Scenario: gitBlameService — BlameResult contract', () => {
       entries: [mockEntry],
       isMock: true,
     });
-    const result = await blameService.fetchBlame('file.holo', 1, 3);
+    const result = await blameService.fetchBlame({ filePath: 'file.holo', startLine: 1, endLine: 3 });
     expect(result.ok).toBe(true);
     expect(result.isMock).toBe(true);
     expect(result.entries.length).toBeGreaterThan(0);
@@ -51,7 +51,7 @@ describe('Scenario: gitBlameService — BlameResult contract', () => {
       entries,
       isMock: true,
     });
-    const result = await blameService.fetchBlame('file.holo', 5, 7);
+    const result = await blameService.fetchBlame({ filePath: 'file.holo', startLine: 5, endLine: 7 });
     for (const e of result.entries) {
       expect(e).toHaveProperty('hash');
       expect(e).toHaveProperty('shortHash');
@@ -69,7 +69,7 @@ describe('Scenario: gitBlameService — BlameResult contract', () => {
       entries: [],
       error: 'not a git repository',
     });
-    const result = await blameService.fetchBlame('bad-path.holo', 1, 5);
+    const result = await blameService.fetchBlame({ filePath: 'bad-path.holo', startLine: 1, endLine: 5 });
     expect(result.ok).toBe(false);
     expect(result.error).toBe('not a git repository');
     expect(result.entries).toHaveLength(0);

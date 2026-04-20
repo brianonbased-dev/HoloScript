@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
-import { useSceneStore } from '@/lib/stores';
+import { useSceneStore, useWorkspaceStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
 import { SpatialBlameOverlay } from '@/components/versionControl/SpatialBlameOverlay';
 import {
@@ -46,6 +46,10 @@ export function HoloScriptEditor({ _height = '100%' }: HoloScriptEditorProps) {
   const code = useSceneStore((s) => s.code);
   const setCode = useSceneStore((s) => s.setCode);
   const errors = useSceneStore((s) => s.errors);
+  const blameWorkspacePath = useWorkspaceStore((s) => {
+    const id = s.activeWorkspaceId;
+    return id ? (s.workspaces.find((w) => w.id === id)?.localPath ?? '') : '';
+  });
 
   const editorRef = useRef<IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -156,6 +160,7 @@ export function HoloScriptEditor({ _height = '100%' }: HoloScriptEditorProps) {
     <div className="relative flex flex-col h-full">
       {blameTarget && (
         <SpatialBlameOverlay
+          workspacePath={blameWorkspacePath || undefined}
           filePath="scene-1.holo"
           line={blameTarget.line}
           traitLabel={blameTarget.traitLabel}

@@ -18,6 +18,8 @@ import type { BlameEntry } from '@/features/versionControl/gitBlameService';
 
 export interface SpatialBlameOverlayProps {
   filePath: string;
+  /** Absolute host path to the open workspace (`Workspace.localPath`). */
+  workspacePath?: string;
   /** 1-indexed line number of the trait in the .holo file */
   line: number;
   /** Optional trait label to show in the header */
@@ -27,6 +29,7 @@ export interface SpatialBlameOverlayProps {
 
 export function SpatialBlameOverlay({
   filePath,
+  workspacePath,
   line,
   traitLabel,
   onClose,
@@ -39,7 +42,7 @@ export function SpatialBlameOverlay({
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchBlame(filePath, line, line)
+    fetchBlame({ workspacePath, filePath, startLine: line, endLine: line })
       .then((result) => {
         if (!result.ok) {
           setError(result.error ?? 'Unknown error');
@@ -50,7 +53,7 @@ export function SpatialBlameOverlay({
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, [filePath, line]);
+  }, [filePath, line, workspacePath]);
 
   return (
     <div

@@ -26,17 +26,42 @@ export interface BlameResult {
   isMock?: boolean;
 }
 
+export interface FetchBlameOptions {
+  /**
+   * Absolute workspace root on the Studio host (must lie under
+   * `~/.holoscript/workspaces` per SEC-T06). When omitted or empty, the
+   * client skips the API and returns deterministic mock blame only.
+   */
+  workspacePath?: string;
+  /** Path relative to `workspacePath`. */
+  filePath: string;
+  /** First line to blame (1-indexed). Default 1. */
+  startLine?: number;
+  /** Last line to blame (1-indexed). Default startLine + 10 when using mock fallback only; API defaults differ. */
+  endLine?: number;
+}
+
 /**
  * Fetch git blame for a file between startLine and endLine (1-indexed).
- * Falls back to mock data when git is unavailable (e.g., not a git repo).
+ * SEC-T06: requires `workspacePath` for real `/api/git/blame` calls.
+ * Without it, returns mock data (no workspace open / offline dev).
  */
-export async function fetchBlame(
-  filePath: string,
-  startLine = 1,
-  endLine?: number
-): Promise<BlameResult> {
+export async function fetchBlame(opts: FetchBlameOptions): Promise<BlameResult> {
+  const filePath = opts.filePath;
+  const startLine = opts.startLine ?? 1;
+  const endLine = opts.endLine;
+  const workspacePath = opts.workspacePath?.trim() ?? '';
+
+  if (!workspacePath) {
+    return getMockBlame(filePath, startLine, endLine ?? startLine + 10);
+  }
+
   try {
-    const params = new URLSearchParams({ filePath, startLine: String(startLine) });
+    const params = new URLSearchParams({
+      workspacePath,
+      filePath,
+      startLine: String(startLine),
+    });
     if (endLine != null) params.set('endLine', String(endLine));
 
     const res = await fetch(`/api/git/blame?${params.toString()}`);
@@ -44,7 +69,6 @@ export async function fetchBlame(
     const json = await res.json();
     return json as BlameResult;
   } catch {
-    // Offline / no git — return deterministic mock
     return getMockBlame(filePath, startLine, endLine ?? startLine + 10);
   }
 }
