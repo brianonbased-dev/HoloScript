@@ -7,8 +7,9 @@
  * - Operation permissions (read/write/execute)
  * - Workflow step validation
  * - Confabulation risk detection (schema validation gate, v1.1.0)
+ * - Per-agent confabulation risk tier (behavioral history, v1.2.0)
  *
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import path from 'path';
@@ -31,6 +32,13 @@ import {
   type ConfabulationValidationResult,
   type ConfabulationValidatorConfig,
 } from './ConfabulationValidator';
+import {
+  AgentRiskRegistry,
+  RiskTier,
+  TIER_COMPOSITION_RISK_CAP,
+  isDangerousOperation,
+  getAgentRiskRegistry,
+} from './AgentRiskRegistry';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 /**
@@ -65,6 +73,26 @@ export interface AccessDecision {
 export interface AccessDecisionWithConfabulation extends AccessDecision {
   /** Confabulation validation result (only present when composition was validated) */
   confabulation?: ConfabulationValidationResult;
+}
+
+/**
+ * Extended access decision that includes confabulation validation AND the
+ * per-agent risk tier check. Returned by `checkAccessWithRiskGate()`.
+ *
+ * The risk gate is the BEHAVIORAL sibling of the schema gate: it asks
+ * "given this agent's history of producing confabulated traits, should we
+ * tighten the per-composition threshold?" instead of "is this composition
+ * structurally valid?"
+ */
+export interface AccessDecisionWithRisk extends AccessDecisionWithConfabulation {
+  /** The agent identity (JWT `sub` claim) that was risk-evaluated. */
+  agentId?: string;
+  /** Current risk tier for this agent at the moment of decision. */
+  riskTier?: RiskTier;
+  /** Current decayed risk score for this agent. */
+  riskScore?: number;
+  /** Composition risk threshold that was applied for this tier. */
+  appliedRiskCap?: number;
 }
 
 /**
@@ -422,6 +450,165 @@ export class AgentRBAC {
       : getConfabulationValidator();
 
     return validator.validateComposition(composition);
+  }
+
+  // ===========================================================================
+  // CONFABULATION RISK TIER GATE (v1.2.0)
+  //
+  // Sibling of the per-composition schema gate. Where the schema gate asks
+  // "is THIS composition structurally valid?", the risk-tier gate asks
+  // "given this AGENT's history, should we tighten the per-composition
+  // threshold or block dangerous ops outright?"
+  //
+  // Pipeline:
+  //   1. Standard RBAC check (token, role, scope, workflow).
+  //   2. Confabulation schema validation against the supplied composition.
+  //   3. Look up the agent's current risk tier in the AgentRiskRegistry.
+  //   4. If the op is dangerous (write/transform/execute), apply the tier's
+  //      composition risk cap. Quarantined agents are blocked outright.
+  //   5. Record the validation outcome back into the registry so the agent's
+  //      tier evolves with their behavior.
+  // ===========================================================================
+
+  /**
+   * Check access with both the schema gate AND the per-agent risk tier gate.
+   *
+   * Use this as the primary enforcement point for any AI-generated content
+   * that will land in a downstream compiler target.
+   *
+   * @param request - Standard resource access request.
+   * @param composition - Composition the agent wants to commit/transform.
+   * @param options - Optional registry override + per-call confabulation config.
+   * @returns Extended access decision including risk tier and applied cap.
+   */
+  checkAccessWithRiskGate(
+    request: ResourceAccessRequest,
+    composition: HoloComposition,
+    options?: {
+      registry?: AgentRiskRegistry;
+      confabConfig?: ConfabulationValidatorConfig;
+      /** When true, do NOT mutate registry state. Default: false. */
+      dryRun?: boolean;
+    }
+  ): AccessDecisionWithRisk {
+    const registry = options?.registry ?? getAgentRiskRegistry();
+    const dryRun = options?.dryRun ?? false;
+
+    // Step 1: Standard RBAC.
+    const rbacDecision = this.checkAccess(request);
+    if (!rbacDecision.allowed) {
+      return rbacDecision;
+    }
+
+    // Extract agent identity for registry lookup.
+    const verification = this.tokenIssuer.verifyToken(request.token);
+    const agentId = verification.valid && verification.payload ? verification.payload.sub : undefined;
+
+    if (!agentId) {
+      // Token verified by checkAccess() but sub missing — fail safe.
+      return {
+        allowed: false,
+        reason: 'Risk gate cannot identify agent (missing sub claim)',
+        agentRole: rbacDecision.agentRole,
+      };
+    }
+
+    // Step 2: Schema validation.
+    const validator = options?.confabConfig
+      ? new ConfabulationValidator(options.confabConfig)
+      : getConfabulationValidator();
+    const confabResult = validator.validateComposition(composition);
+
+    // Step 3: Look up tier (BEFORE recording — so the new event affects the
+    // *next* op, not this one — agents shouldn't be punished and rejected on
+    // the same call. Quarantine is the exception, handled in step 4).
+    const tier = registry.getTier(agentId);
+    const riskScore = registry.getScore(agentId);
+    const cap = TIER_COMPOSITION_RISK_CAP[tier];
+
+    // Step 4: Apply tier-specific gate for dangerous ops.
+    if (isDangerousOperation(request.operation)) {
+      if (tier === RiskTier.QUARANTINED) {
+        // Don't even record success/failure for quarantined agents — they
+        // need administrative reinstatement via setTier().
+        return {
+          allowed: false,
+          reason: `Agent ${agentId} is quarantined (risk score: ${riskScore.toFixed(1)}). Dangerous operation '${request.operation}' on '${request.resourceType}' blocked.`,
+          agentRole: rbacDecision.agentRole,
+          confabulation: confabResult,
+          agentId,
+          riskTier: tier,
+          riskScore,
+          appliedRiskCap: cap,
+        };
+      }
+
+      if (confabResult.riskScore > cap) {
+        if (!dryRun) {
+          registry.recordValidation(agentId, confabResult);
+        }
+        return {
+          allowed: false,
+          reason:
+            `Composition risk ${confabResult.riskScore} exceeds tier ${tier} cap ${cap} ` +
+            `for dangerous operation '${request.operation}' on '${request.resourceType}'. ` +
+            `Agent ${agentId} (score: ${riskScore.toFixed(1)}). ` +
+            `${confabResult.errors.length} confabulation error(s).`,
+          agentRole: rbacDecision.agentRole,
+          confabulation: confabResult,
+          agentId,
+          riskTier: tier,
+          riskScore,
+          appliedRiskCap: cap,
+        };
+      }
+    } else {
+      // Non-dangerous (read) ops: still validate but only block on actual
+      // schema errors, not on the per-tier cap.
+      if (!confabResult.valid) {
+        if (!dryRun) {
+          registry.recordValidation(agentId, confabResult);
+        }
+        return {
+          allowed: false,
+          reason:
+            `Confabulation detected (risk score: ${confabResult.riskScore}/100, ` +
+            `${confabResult.errors.length} error(s)): ` +
+            confabResult.errors.map((e) => e.message).join('; '),
+          agentRole: rbacDecision.agentRole,
+          confabulation: confabResult,
+          agentId,
+          riskTier: tier,
+          riskScore,
+          appliedRiskCap: cap,
+        };
+      }
+    }
+
+    // Step 5: Record outcome (clean compositions decay the score).
+    if (!dryRun) {
+      registry.recordValidation(agentId, confabResult);
+    }
+
+    return {
+      ...rbacDecision,
+      confabulation: confabResult,
+      agentId,
+      riskTier: tier,
+      riskScore,
+      appliedRiskCap: cap,
+    };
+  }
+
+  /**
+   * Look up an agent's current risk tier without performing an access check.
+   * Useful for dashboards and pre-flight checks.
+   */
+  getAgentRiskTier(token: string, registry?: AgentRiskRegistry): RiskTier | null {
+    const verification = this.tokenIssuer.verifyToken(token);
+    if (!verification.valid || !verification.payload) return null;
+    const reg = registry ?? getAgentRiskRegistry();
+    return reg.getTier(verification.payload.sub);
   }
 
   // ===========================================================================

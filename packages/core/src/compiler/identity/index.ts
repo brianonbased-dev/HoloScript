@@ -63,6 +63,7 @@ export {
   type ResourceType,
   type AccessDecision,
   type AccessDecisionWithConfabulation,
+  type AccessDecisionWithRisk,
   type ResourceAccessRequest,
   AgentRBAC,
   getRBAC,
@@ -91,6 +92,31 @@ export {
   getConfabulationValidator,
   resetConfabulationValidator,
 } from './ConfabulationValidator';
+
+// Per-Agent Confabulation Risk Tier (behavioral history layer)
+export {
+  // Types
+  type RiskEvent,
+  type AgentRiskSnapshot,
+  type AgentRiskRegistryConfig,
+
+  // Enum
+  RiskTier,
+
+  // Class
+  AgentRiskRegistry,
+
+  // Constants
+  DANGEROUS_OPERATIONS,
+  TIER_COMPOSITION_RISK_CAP,
+
+  // Helpers
+  isDangerousOperation,
+
+  // Singleton
+  getAgentRiskRegistry,
+  resetAgentRiskRegistry,
+} from './AgentRiskRegistry';
 
 // Proof-of-Possession (PoP) HTTP Message Signatures
 export {
