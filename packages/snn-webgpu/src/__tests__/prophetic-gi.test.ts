@@ -284,15 +284,34 @@ describe('HoloMeshProphecyTransport', () => {
     ctx.destroy();
   });
 
+  // A fetch impl that always fails — exercises the "no remote available"
+  // path without touching the network. The wired transport translates
+  // network failure into a fallback / NotImplemented decision, which is
+  // exactly what these tests want to assert.
+  const failingFetch: typeof fetch = async () => {
+    throw new Error('test: network unavailable');
+  };
+
   it('throws ProphecyNotImplementedError when no fallback is configured', async () => {
     const transport = new HoloMeshProphecyTransport({
       endpoint: 'crdt://holomesh/feed/ttu/test-session',
+      fetchImpl: failingFetch,
     });
     await transport.initialize(makeConfig());
     await expect(transport.step(SCENE)).rejects.toBeInstanceOf(
       ProphecyNotImplementedError,
     );
     await transport.destroy();
+  });
+
+  it('rejects malformed endpoints at initialize()', async () => {
+    const transport = new HoloMeshProphecyTransport({
+      endpoint: 'crdt://wrong/scheme/here',
+      fetchImpl: failingFetch,
+    });
+    await expect(transport.initialize(makeConfig())).rejects.toThrow(
+      /unsupported CRDT URI shape/,
+    );
   });
 
   it('delegates to the fallback transport when supplied', async () => {
@@ -303,11 +322,66 @@ describe('HoloMeshProphecyTransport', () => {
     const transport = new HoloMeshProphecyTransport({
       endpoint: 'crdt://holomesh/feed/ttu/test-session',
       fallback,
+      fetchImpl: failingFetch,
     });
     await transport.initialize(makeConfig());
     const frame = await transport.step(SCENE);
     expect(frame.probes.length).toBe(64);
     // Fallback path tags the source for observability.
+    expect(frame.source).toBe('fallback');
+    await transport.destroy();
+  });
+
+  it('returns a remote frame tagged source:"holomesh" when the feed answers', async () => {
+    const remoteFrame = {
+      frameId: 42,
+      producedAtMs: Date.now(),
+      productionTimeMs: 1.5,
+      probes: new Array(64).fill(0).map((_, i) => ({
+        index: i,
+        position: [i, 0, 0],
+        rgb: [0.1, 0.2, 0.3],
+        confidence: 0.9,
+      })),
+      source: 'local', // publisher's POV — the transport must override to 'holomesh'.
+    };
+
+    const fakeFetch: typeof fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : (input as URL).toString();
+      expect(url).toContain('/api/holomesh/ttu/test-session/step');
+      const body = JSON.parse((init?.body as string) ?? '{}');
+      expect(body.scene.sunDirection).toEqual(SCENE.sunDirection);
+      return new Response(
+        JSON.stringify({ success: true, frame: remoteFrame }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    };
+
+    const transport = new HoloMeshProphecyTransport({
+      endpoint: 'crdt://holomesh/feed/ttu/test-session',
+      fetchImpl: fakeFetch,
+    });
+    await transport.initialize(makeConfig());
+    const frame = await transport.step(SCENE);
+    expect(frame.frameId).toBe(42);
+    expect(frame.source).toBe('holomesh');
+    await transport.destroy();
+  });
+
+  it('falls back when the remote returns non-2xx', async () => {
+    const fallback = new LocalProphecyTransport({
+      ctx,
+      spikeRates: () => new Float32Array(64).fill(0.7),
+    });
+    const fiveOhTwo: typeof fetch = async () =>
+      new Response('upstream down', { status: 502 });
+    const transport = new HoloMeshProphecyTransport({
+      endpoint: 'crdt://holomesh/feed/ttu/test-session',
+      fallback,
+      fetchImpl: fiveOhTwo,
+    });
+    await transport.initialize(makeConfig());
+    const frame = await transport.step(SCENE);
     expect(frame.source).toBe('fallback');
     await transport.destroy();
   });

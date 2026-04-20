@@ -29,5 +29,6 @@ export {
 
 export {
   HoloMeshProphecyTransport,
+  resolveTtuEndpoint,
   type HoloMeshProphecyTransportOptions,
 } from './transport-holomesh.js';
