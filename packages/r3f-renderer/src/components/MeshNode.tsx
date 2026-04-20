@@ -27,7 +27,8 @@ export interface MeshNodeProps {
   /**
    * Draft mode: render as blockout primitive with draft color.
    * Skips textures, procedural maps, and effects for cheapest rendering.
-   * Also triggered when node.assetMaturity === 'draft'.
+   * Also triggered when `node.props.draftMode` is set (e.g. compiler `draft` trait)
+   * or when `node.assetMaturity === 'draft'`.
    */
   draftMode?: boolean;
   /** Override draft color (default: '#88aaff') */
@@ -81,7 +82,11 @@ export function MeshNode({
   const scale = props.scale || [1, 1, 1];
 
   // Draft mode: either explicit prop or assetMaturity === 'draft'
-  const isDraft = draftMode || node.assetMaturity === 'draft';
+  const isDraft =
+    Boolean(draftMode) || Boolean(node.props?.draftMode) || node.assetMaturity === 'draft';
+  const resolvedDraftColor =
+    (typeof node.props?.draftColor === 'string' && node.props.draftColor) || draftColor;
+  const geometryDetail = isDraft ? 'low' : 'high';
 
   useEffect(() => {
     if (meshRef.current && node.id && onRef) {
@@ -117,15 +122,15 @@ export function MeshNode({
         onRemove={onRemove}
         onRef={onRef}
         isBreakMode={isBreakMode}
-        draftMode={draftMode}
-        draftColor={draftColor}
+        draftMode={isDraft}
+        draftColor={resolvedDraftColor}
       />
     ));
 
   // Draft material: flat color, no textures, cheapest rendering path
   const draftMaterial = isDraft ? (
     <meshBasicMaterial
-      color={draftColor}
+      color={resolvedDraftColor}
       wireframe={props.draftWireframe || false}
       transparent={props.draftOpacity !== undefined && props.draftOpacity < 1}
       opacity={props.draftOpacity ?? 1.0}
@@ -170,7 +175,7 @@ export function MeshNode({
           }
         }}
       >
-        {getGeometry(hsType, size, props, 'high', node)}
+        {getGeometry(hsType, size, props, geometryDetail, node)}
         {isDraft ? (
           draftMaterial
         ) : needsTextures ? (
@@ -186,7 +191,7 @@ export function MeshNode({
         )}
         {isSelected && !isBreakMode && (
           <mesh>
-            {getGeometry(hsType, size * 1.05, props, 'high', node)}
+            {getGeometry(hsType, size * 1.05, props, geometryDetail, node)}
             <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
           </mesh>
         )}
