@@ -91,11 +91,27 @@ export async function validateTenantKey(
   }
 
   // 2. Try Upstash Redis if configured (fastest)
-  if (!tenant && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  //
+  // SEC-T08: the API key was previously URL-interpolated straight into the
+  // Upstash REST path. A key value containing `/`, `?`, `#`, or `&` could
+  // trick the request into hitting a different Upstash verb or smuggling
+  // querystring parameters. We URL-encode the key before interpolation and
+  // also enforce a conservative format check so malformed keys are rejected
+  // before any outbound request.
+  if (
+    !tenant &&
+    process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN &&
+    /^[A-Za-z0-9_\-]{16,128}$/.test(apiKey)
+  ) {
     try {
-      const resp = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/apikey:${apiKey}`, {
-        headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
-      });
+      const encodedKey = encodeURIComponent(apiKey);
+      const resp = await fetch(
+        `${process.env.UPSTASH_REDIS_REST_URL}/get/apikey:${encodedKey}`,
+        {
+          headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+        }
+      );
       const data = await resp.json();
       if (data && data.result) {
         tenant = JSON.parse(data.result);
