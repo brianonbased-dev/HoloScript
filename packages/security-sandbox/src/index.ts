@@ -175,11 +175,26 @@ export class HoloScriptSandbox {
   private auditLog: SecurityAuditLog[] = [];
   private parser: HoloScriptPlusParser;
 
+  /**
+   * SEC-01 / SEC-02: Globals that must never appear in guest code.
+   * Both text-scan (pre-validation) and VM-level shadow enforce this list.
+   * vm2 already blocks most of these at runtime; this layer gives a
+   * human-readable rejection message before code ever enters the VM.
+   */
   private static readonly GLOBALS_BLOCKLIST = [
     'WebAssembly',
     'SharedArrayBuffer',
     'eval',
-    'Function'
+    'Function',
+    // SEC-02: process / env exfiltration — vm2 does not expose these by default,
+    // but explicit pre-rejection provides defense-in-depth and a clear audit trail.
+    'process',
+    'globalThis',
+    // SEC-03: module-system access
+    'require',
+    'Buffer',
+    // SEC-04: Atomics can be combined with SAB for timing side-channels
+    'Atomics',
   ];
 
   constructor(options: SandboxOptions = {}) {
@@ -235,6 +250,25 @@ export class HoloScriptSandbox {
       if (depth < 0) return 'Invalid syntax: unbalanced closing brace';
     }
     if (depth !== 0) return `Invalid syntax: ${depth} unclosed brace(s)`;
+
+    // SEC-05: Prototype chain escape patterns.
+    // Detect attempts like ({}).__proto__.constructor.constructor('return process')()
+    // or Object.getPrototypeOf(x).constructor which can traverse to Function and
+    // then to the host global scope.
+    const protoEscapePatterns = [
+      /__proto__/,
+      /\.constructor\s*(?:\.|\[)/,
+      /getPrototypeOf\s*\(/,
+      /setPrototypeOf\s*\(/,
+      /Object\.prototype/,
+      /Function\.prototype/,
+    ];
+    for (const pattern of protoEscapePatterns) {
+      if (pattern.test(code)) {
+        return `Blocked: prototype chain escape pattern detected (SEC-05)`;
+      }
+    }
+
     return null;
   }
 
@@ -313,6 +347,17 @@ export class HoloScriptSandbox {
     });
 
     // Step 2: Create isolated VM
+    // SEC-01..SEC-04: Shadow potentially leaked host globals inside the VM.
+    // vm2 does not expose process/require/Buffer by default, but explicit overrides
+    // prevent a future vm2 upgrade from accidentally re-exposing them.
+    const blockedGlobal = (name: string) => {
+      const err = () => {
+        throw new Error(`${name} is not accessible in the HoloScript security sandbox`);
+      };
+      // Return a Proxy so both .x and () access are blocked.
+      return new Proxy({}, { get: err, apply: err, construct: err });
+    };
+
     const vm = new VM({
       timeout: this.options.timeout,
       wasm: false,
@@ -323,8 +368,19 @@ export class HoloScriptSandbox {
           error: (...args: unknown[]) => console.error('[SANDBOX]', ...args),
           warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
         },
-        // Shadow host WebAssembly (vm2 can expose it); SEC-01 — no guest wasm compile.
+        // SEC-01: Shadow host WebAssembly; no guest wasm compile/instantiate.
         WebAssembly: createBlockedWebAssemblySurface(),
+        // SEC-02: Shadow process — prevents env var exfiltration.
+        process: blockedGlobal('process'),
+        // SEC-02: Shadow globalThis — prevents re-resolving blocked globals.
+        globalThis: blockedGlobal('globalThis'),
+        // SEC-03: Shadow require/Buffer.
+        require: blockedGlobal('require'),
+        Buffer: blockedGlobal('Buffer'),
+        // SEC-04: Shadow Atomics.
+        Atomics: blockedGlobal('Atomics'),
+        // SEC-04: Ensure SharedArrayBuffer is not constructible.
+        SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
       },
     });
 

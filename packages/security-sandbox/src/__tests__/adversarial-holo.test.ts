@@ -263,6 +263,93 @@ describe('Adversarial: Sandbox Escape', () => {
             : 'sandbox-runtime',
     });
   });
+
+  it('S6. process.env exfiltration — env var access is blocked', async () => {
+    // SEC-02: Attempts to read API keys or secrets from process.env.
+    // Blocked at both text-scan level (GLOBALS_BLOCKLIST) and VM level
+    // (process is shadowed with a blocked proxy in the sandbox).
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const secret = process.env.HOLOMESH_API_KEY;
+      secret;
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S6',
+      category: 'Sandbox Escape',
+      description: 'process.env exfiltration — API key access attempt',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S7. globalThis re-resolution — blocked global via globalThis is blocked', async () => {
+    // SEC-02: Attacker tries to bypass text-scan by accessing blocked globals
+    // through globalThis which is shadowed in the VM sandbox.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const g = globalThis;
+      const proc = g.process;
+      proc.exit(1);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S7',
+      category: 'Sandbox Escape',
+      description: 'globalThis.process re-resolution escape attempt',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S8. __proto__ constructor chain escape is blocked', async () => {
+    // SEC-05: Classic prototype chain escape pattern.
+    // ({}).__proto__.constructor.constructor('return process')()
+    // Blocked by preValidateStructure __proto__ detection.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const escape = ({}).__proto__.constructor.constructor('return process')();
+      escape.exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S8',
+      category: 'Sandbox Escape',
+      description: '__proto__.constructor chain — prototype chain escape',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   MessageCircle,
   Sparkles,
+  ImagePlus,
   Wand2,
   FolderGit2,
   Globe,
@@ -27,6 +28,7 @@ interface NavItem {
 const coreItems: NavItem[] = [
   { label: 'Start', href: '/start', icon: MessageCircle, exact: true },
   { label: 'Vibe', href: '/vibe', icon: Sparkles, exact: true },
+  { label: 'Playground', href: '/playground', icon: ImagePlus, exact: true },
   { label: 'Create', href: '/create', icon: Wand2, exact: false },
   { label: 'Projects', href: '/projects', icon: FolderGit2, exact: false },
 ];

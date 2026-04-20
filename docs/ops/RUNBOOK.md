@@ -102,6 +102,7 @@ Escalation: <name + phone/slack>
 
 ## Related
 
+- [TTFHW measurement protocol](./time-to-first-hologram-wow.md)
 - [Marketplace publication readiness](../distribution/marketplace-publication-readiness.md)
 - [Integration Hub](../../packages/studio/INTEGRATION_HUB.md) (connector APIs)
 - [NUMBERS.md](../NUMBERS.md) — verification commands

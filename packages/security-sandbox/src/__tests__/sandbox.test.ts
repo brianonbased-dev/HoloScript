@@ -82,7 +82,8 @@ describe('HoloScriptSandbox', () => {
       const result = await sandbox.executeHoloScript(maliciousCode, { source: 'ai-generated' });
 
       expect(result.success).toBe(false);
-      expect(result.error?.type).toBe('runtime');
+      // require is now caught at validation level (GLOBALS_BLOCKLIST); runtime is also valid
+      expect(['validation', 'runtime']).toContain(result.error?.type);
     });
 
     it('should prevent network access', async () => {
@@ -106,7 +107,8 @@ describe('HoloScriptSandbox', () => {
       const result = await sandbox.executeHoloScript(maliciousCode, { source: 'ai-generated' });
 
       expect(result.success).toBe(false);
-      expect(result.error?.type).toBe('runtime');
+      // process is now caught at validation level (GLOBALS_BLOCKLIST); runtime is also valid
+      expect(['validation', 'runtime']).toContain(result.error?.type);
     });
 
     it('should enforce timeout limits', async () => {
@@ -180,7 +182,7 @@ describe('HoloScriptSandbox', () => {
 
       const logs = largeSandbox.getAuditLogs();
       expect(logs.length).toBeLessThanOrEqual(1000);
-    });
+    }, 15_000); // 1100 VM executions; 15 s budget
 
     it('should clear audit logs', async () => {
       await sandbox.executeHoloScript('1 + 1', { source: 'user' });
