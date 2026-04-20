@@ -712,6 +712,12 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  if (url === '/ops/status') {
+    const { handleOpsStatusRequest } = await import('./ops/tool-ops-status.js');
+    await handleOpsStatusRequest(req, res);
+    return;
+  }
+
   // Prometheus metrics endpoint (v5.6 Observable Platform)
   if (url === '/metrics') {
     const { handleMetricsRequest } = await import('./health-check');

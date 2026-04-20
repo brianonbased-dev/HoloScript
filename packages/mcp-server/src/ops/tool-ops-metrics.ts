@@ -45,6 +45,15 @@ function activeAnomaliesGauge(): number {
   return Date.now() - lastAnomalyAlertAt < w ? 1 : 0;
 }
 
+/** Snapshot for /ops/status JSON */
+export function getSecuredToolStats(): { requests: number; errors: number } {
+  return { requests: requestTotal, errors: errorTotal };
+}
+
+export function getActiveAnomaliesSnapshot(): number {
+  return activeAnomaliesGauge();
+}
+
 /**
  * Prometheus exposition for Grafana scrape (exact metric names per P.008.02).
  */
