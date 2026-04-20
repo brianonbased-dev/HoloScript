@@ -24,6 +24,7 @@ export type {
 export { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
 export type {
   TripleOutputResult,
+  TripleOutputGenerationMeta,
   MCPServerCard,
   MCPServerInfo,
   MCPTransportConfig,

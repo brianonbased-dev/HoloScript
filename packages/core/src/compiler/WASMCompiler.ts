@@ -15,7 +15,13 @@
 
 import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
-import { CompilerBase, createTestCompilerToken, type CompilerToken } from './CompilerBase';
+import {
+  CompilerBase,
+  createTestCompilerToken,
+  type CompilerToken,
+  type BaseCompilerOptions,
+  type CompilationResult,
+} from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import { compileDomainBlocks, compileMaterialBlock } from './DomainBlockCompilerMixin';
 
@@ -23,7 +29,7 @@ import { compileDomainBlocks, compileMaterialBlock } from './DomainBlockCompiler
 // TYPES
 // =============================================================================
 
-export interface WASMCompilerOptions {
+export interface WASMCompilerOptions extends BaseCompilerOptions {
   /** Output format: 'wat' for text, 'wasm' for binary */
   format?: 'wat' | 'wasm';
   /** Enable debug symbols */
@@ -39,6 +45,11 @@ export interface WASMCompilerOptions {
   /** Module name */
   moduleName?: string;
 }
+
+type WASMRuntimeOptions = Omit<
+  WASMCompilerOptions,
+  'generateDocs' | 'docsOptions' | 'provenanceHash'
+>;
 
 export interface WASMCompileResult {
   /** WebAssembly Text Format output */
@@ -135,16 +146,21 @@ export class WASMCompiler extends CompilerBase {
     totalSize: 0,
   };
 
+  private readonly docGenerationOptions: BaseCompilerOptions;
+
   constructor(options: WASMCompilerOptions = {}) {
     super();
+    const { generateDocs, docsOptions, provenanceHash, ...wasmRest } = options;
+    this.docGenerationOptions = { generateDocs, docsOptions, provenanceHash };
+    const w = wasmRest as WASMRuntimeOptions;
     this.options = {
-      format: options.format || 'wat',
-      debug: options.debug ?? false,
-      memoryPages: options.memoryPages || 16, // 1MB default
-      simd: options.simd ?? false,
-      threads: options.threads ?? false,
-      generateBindings: options.generateBindings ?? true,
-      moduleName: options.moduleName || 'holoscript',
+      format: w.format || 'wat',
+      debug: w.debug ?? false,
+      memoryPages: w.memoryPages || 16, // 1MB default
+      simd: w.simd ?? false,
+      threads: w.threads ?? false,
+      generateBindings: w.generateBindings ?? true,
+      moduleName: w.moduleName || 'holoscript',
     };
   }
 
@@ -159,7 +175,7 @@ export class WASMCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: CompilerToken,
     outputPath?: string
-  ): WASMCompileResult {
+  ): WASMCompileResult | CompilationResult {
     // Ensure the agentToken is handled as per base class expectations
     this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
@@ -206,13 +222,14 @@ export class WASMCompiler extends CompilerBase {
     // Generate JS bindings
     const bindings = this.options.generateBindings ? this.generateBindings(composition) : '';
 
-    return {
+    const result: WASMCompileResult = {
       wat: this.lines.join('\n'),
       bindings,
       memoryLayout: this.memoryLayout,
       exports: this.exports,
       imports: this.imports,
     };
+    return this.withTripleOutputIfRequested(composition, result, this.docGenerationOptions);
   }
 
   /**

@@ -44,23 +44,10 @@ export class Native2DCompiler extends CompilerBase {
     // 3. Generate markup
     if (isReact) {
       const code = this.generateReactComponent(composition.name, elements, composition, options);
-      if (options?.generateDocs) {
-        return {
-          output: code,
-          documentation: this.generateDocumentation(composition, code, options.docsOptions),
-        };
-      }
-      return code;
-    } else {
-      const code = this.generateHTMLPage(composition.name, elements, composition);
-      if (options?.generateDocs) {
-        return {
-          output: code,
-          documentation: this.generateDocumentation(composition, code, options.docsOptions),
-        };
-      }
-      return code;
+      return this.withTripleOutputIfRequested(composition, code, options);
     }
+    const code = this.generateHTMLPage(composition.name, elements, composition);
+    return this.withTripleOutputIfRequested(composition, code, options);
   }
 
   // ============================================================================

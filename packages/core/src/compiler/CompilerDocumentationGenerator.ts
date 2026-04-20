@@ -245,6 +245,12 @@ export interface MCPToolManifest {
 /**
  * Options for documentation generation
  */
+/** Optional metadata emitted into `.well-known/mcp` `_meta` for a specific compilation. */
+export interface TripleOutputGenerationMeta {
+  /** Short stable digest of compiled payload (e.g. sha256 hex prefix) */
+  compilationDigest?: string;
+}
+
 export interface DocumentationGeneratorOptions {
   /** Service base URL for MCP server card */
   serviceUrl?: string;
@@ -332,11 +338,12 @@ export class CompilerDocumentationGenerator {
   generate(
     composition: HoloComposition,
     targetName: string,
-    compiledCode: string | Record<string, string>
+    compiledCode: string | Record<string, string>,
+    generationMeta?: TripleOutputGenerationMeta
   ): TripleOutputResult {
     return {
       llmsTxt: this.generateLlmsTxt(composition, targetName, compiledCode),
-      wellKnownMcp: this.generateMCPServerCard(composition, targetName),
+      wellKnownMcp: this.generateMCPServerCard(composition, targetName, generationMeta),
       markdownDocs: this.generateMarkdownDocs(composition, targetName, compiledCode),
     };
   }
@@ -484,7 +491,11 @@ export class CompilerDocumentationGenerator {
    * The card includes legacy compatibility fields (name, version at root)
    * for backward compatibility with v1.0.0 consumers.
    */
-  private generateMCPServerCard(composition: HoloComposition, targetName: string): MCPServerCard {
+  private generateMCPServerCard(
+    composition: HoloComposition,
+    targetName: string,
+    generationMeta?: TripleOutputGenerationMeta
+  ): MCPServerCard {
     const tools = this.extractMCPTools(composition, targetName);
     const sanitizedName = this.sanitizeServiceName(composition.name || 'holoscript-composition');
     const compositionTitle = composition.name || 'Untitled';
@@ -511,6 +522,14 @@ export class CompilerDocumentationGenerator {
     // Also register common utility endpoints
     endpoints.health = `${this.options.serviceUrl}/health`;
     endpoints.render = `${this.options.serviceUrl}/api/render`;
+
+    const holoscriptMeta: Record<string, unknown> = {
+      compiler_target: targetName,
+      generated_at: new Date().toISOString(),
+    };
+    if (generationMeta?.compilationDigest) {
+      holoscriptMeta.compilation_digest = generationMeta.compilationDigest;
+    }
 
     return {
       // SEP-1960 fields
@@ -558,6 +577,10 @@ export class CompilerDocumentationGenerator {
       },
 
       documentation: this.options.contactDocumentation || undefined,
+
+      _meta: {
+        holoscript: holoscriptMeta,
+      },
 
       // Legacy compatibility (v1.0.0)
       name: sanitizedName,
@@ -617,11 +640,7 @@ export class CompilerDocumentationGenerator {
               position: {
                 type: 'object',
                 description: 'Spatial position',
-                properties: {
-                  x: { type: 'number' },
-                  y: { type: 'number' },
-                  z: { type: 'number' },
-                },
+                properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
               },
             },
           },
@@ -753,9 +772,8 @@ export class CompilerDocumentationGenerator {
         const objRec = obj as unknown as Record<string, unknown>;
         const transform = objRec.transform as Record<string, unknown> | undefined;
         const pos = (objRec.position || transform?.position) as
-          | { x: number; y: number; z: number }
-          | undefined;
-        const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
+          [number, number, number] | undefined;
+        const posStr = pos ? `(${pos[0]}, ${pos[1]}, ${pos[2]})` : 'N/A';
         const traitNames = obj.traits
           ? this.extractTraitNames(obj.traits).join(', ') || 'none'
           : 'none';

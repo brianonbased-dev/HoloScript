@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 /**
  * Base Compiler Interface with Agent Identity Integration
  *
@@ -39,6 +41,7 @@ import {
   CompilerDocumentationGenerator,
   type TripleOutputResult,
   type DocumentationGeneratorOptions,
+  type TripleOutputGenerationMeta,
 } from './CompilerDocumentationGenerator';
 import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 
@@ -177,7 +180,9 @@ export interface CompilationResult {
     | ARCompilationResult
     | VRRCompilationResult
     | AndroidXRCompileResult
-    | IOSCompileResult;
+    | IOSCompileResult
+    /** Structured outputs (e.g. WASM bundle) when paired with triple-output docs */
+    | Record<string, unknown>;
 
   /** Optional documentation bundle (if generateDocs enabled) */
   documentation?: TripleOutputResult;
@@ -538,10 +543,73 @@ export abstract class CompilerBase implements ICompiler {
   protected generateDocumentation(
     composition: HoloComposition,
     compiledCode: string | Record<string, string>,
-    options?: DocumentationGeneratorOptions
+    options?: DocumentationGeneratorOptions,
+    generationMeta?: TripleOutputGenerationMeta
   ): TripleOutputResult {
     const generator = this.getDocumentationGenerator(options);
-    return generator.generate(composition, this.compilerName, compiledCode);
+    return generator.generate(composition, this.compilerName, compiledCode, generationMeta);
+  }
+
+  /**
+   * Normalize primary compiler output for llms.txt / markdown (avoid huge/binary payloads).
+   */
+  protected serializeOutputForDocumentation(
+    output: CompilationResult['output']
+  ): string | Record<string, string> {
+    if (typeof output === 'string') {
+      return output.length > 200_000 ? output.slice(0, 200_000) : output;
+    }
+    if (output && typeof output === 'object') {
+      const rec = output as Record<string, unknown>;
+      if ('gltf' in rec || 'buffers' in rec) {
+        return {
+          _kind: 'binary_or_gltf_bundle',
+          keys: Object.keys(rec).join(','),
+        };
+      }
+      const vals = Object.values(rec);
+      if (vals.length > 0 && vals.every((v) => typeof v === 'string')) {
+        return rec as Record<string, string>;
+      }
+      try {
+        const json = JSON.stringify(output);
+        return json.length > 200_000 ? json.slice(0, 200_000) : json;
+      } catch {
+        return { _kind: 'non_serializable', keys: Object.keys(rec).join(',') };
+      }
+    }
+    return String(output);
+  }
+
+  /** Short digest for MCP card `_meta.holoscript.compilation_digest`. */
+  protected digestForDocumentation(docPayload: string | Record<string, string>): string {
+    const payload = typeof docPayload === 'string' ? docPayload : JSON.stringify(docPayload);
+    return createHash('sha256').update(payload).digest('hex').slice(0, 16);
+  }
+
+  /**
+   * When `generateDocs` is set on {@link BaseCompilerOptions}, returns a {@link CompilationResult}
+   * with `documentation` (llms.txt, .well-known/mcp, markdown); otherwise returns `output` unchanged.
+   */
+  protected withTripleOutputIfRequested(
+    composition: HoloComposition,
+    output: unknown,
+    opts?: BaseCompilerOptions
+  ): unknown | CompilationResult {
+    if (!opts?.generateDocs) {
+      return output;
+    }
+    const docPayload = this.serializeOutputForDocumentation(output as CompilationResult['output']);
+    const generationMeta: TripleOutputGenerationMeta = {
+      compilationDigest: this.digestForDocumentation(docPayload),
+    };
+    const documentation = this.generateDocumentation(
+      composition,
+      docPayload,
+      opts.docsOptions,
+      generationMeta
+    );
+    return { output, documentation };
   }
 
   /**

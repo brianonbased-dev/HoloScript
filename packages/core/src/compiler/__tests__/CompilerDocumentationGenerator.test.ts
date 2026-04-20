@@ -90,6 +90,19 @@ describe('CompilerDocumentationGenerator', () => {
       expect(typeof result.wellKnownMcp).toBe('object');
       expect(typeof result.markdownDocs).toBe('string');
     });
+
+    it('embeds holoscript compilation metadata in MCP card _meta', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'const scene = 1;', {
+        compilationDigest: 'abc123deadbeef',
+      });
+      const hs = (result.wellKnownMcp._meta as { holoscript?: Record<string, unknown> })?.holoscript;
+      expect(hs).toMatchObject({
+        compiler_target: 'r3f',
+        compilation_digest: 'abc123deadbeef',
+      });
+      expect(typeof hs?.generated_at).toBe('string');
+    });
   });
 
   describe('llms.txt generation', () => {
