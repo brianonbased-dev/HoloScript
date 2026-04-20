@@ -101,6 +101,23 @@ describe('/api/daemon/jobs route', () => {
     expect(createDaemonJobMock).not.toHaveBeenCalled();
   });
 
+  it('POST rejects shell-like projectPath outside workspace (SEC-T02 $(whoami) case)', async () => {
+    const req = new Request('http://localhost/api/daemon/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-1',
+        profile: 'balanced',
+        projectDna: { domain: 'general' },
+        projectPath: '/tmp/$(whoami)',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(createDaemonJobMock).not.toHaveBeenCalled();
+  });
+
   it('POST creates and returns job when payload is valid', async () => {
     createDaemonJobMock.mockReturnValue({ id: 'dj-created', status: 'queued' });
 
