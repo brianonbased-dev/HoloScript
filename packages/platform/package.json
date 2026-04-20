@@ -65,6 +65,7 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/core-types": "workspace:*",
+    "@holoscript/marketplace-api": "workspace:*",
     "@holoscript/plugin-film-vfx": "workspace:*",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.0",

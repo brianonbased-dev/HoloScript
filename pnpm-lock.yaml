@@ -1955,6 +1955,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/marketplace-api':
+        specifier: workspace:*
+        version: link:../marketplace-api
       '@holoscript/medical-plugin':
         specifier: workspace:*
         version: link:../plugins/medical-plugin
