@@ -1,15 +1,18 @@
 /**
- * WebCodecsDepthPipeline — Zero-copy GPU pipeline for real-time video depth.
+ * WebCodecsDepthPipeline — WebCodecs → depth inference for real-time video.
  *
- * Uses the WebCodecs API (VideoDecoder + VideoFrame) to keep frames on the GPU,
- * avoiding CPU round-trips during depth estimation. Decodes video frames directly
- * into GPU-backed VideoFrame objects, processes depth via the DepthEstimationService,
- * and outputs depth-displaced frames at the source framerate.
+ * **Paths**
+ * - **Default:** `VideoFrame` → `createImageBitmap` → `OffscreenCanvas` → `getImageData`
+ *   → `DepthEstimationService` (Transformers.js). One CPU readback is required for ONNX/WebGPU ML input today.
+ * - **Optional WebGPU upload:** when `gpuDevice` is set and the frame **already matches** the target
+ *   width/height (no downscale), uses `GPUQueue.copyExternalImageToTexture` from the `VideoFrame`
+ *   (see https://www.w3.org/TR/webgpu/#dom-gpuqueue-copyexternalimagetotexture ) then a single
+ *   `copyTextureToBuffer` readback into `ImageData`. This drops the `ImageBitmap` + 2D canvas blit
+ *   for that case — a step toward a full GPU-resident depth stack once the model consumes `GPUTexture`.
  *
- * Pipeline: VideoDecoder → VideoFrame → createImageBitmap → OffscreenCanvas
- *           → DepthEstimationService → DepthResult stream
+ * Pipeline (default): VideoDecoder → VideoFrame → bitmap/canvas → DepthEstimationService
  *
- * @see W.157: WebCodecs zero-copy is 3-5x faster than MediaSource + canvas drawImage
+ * @see W.157: WebCodecs decode path avoids MediaSource + canvas drawImage for decode
  * @see G.151.01: Decouple video playback rate from VR render rate
  */
 
@@ -27,6 +30,12 @@ export interface WebCodecsDepthConfig {
   temporalAlpha: number;
   /** Codec to accept. Default: 'vp9' */
   codec: 'h264' | 'vp9' | 'av1';
+  /**
+   * Optional WebGPU device. When set and the decoded frame size already equals the
+   * inference size (no downscale), uploads with copyExternalImageToTexture instead of
+   * createImageBitmap + 2D canvas.
+   */
+  gpuDevice?: GPUDevice;
   /** Frame callback — called with each depth result */
   onFrame?: (result: DepthResult, frameIndex: number, timestamp: number) => void;
   /** Error callback */
@@ -65,13 +74,68 @@ const CODEC_STRINGS: Record<string, string> = {
   av1: 'av01.0.04M.08',
 };
 
+/** WebGPU row pitch for copyTextureToBuffer (256-byte aligned). */
+export function webgpuBytesPerRowRgba8(widthPx: number): number {
+  return 256 * Math.ceil((widthPx * 4) / 256);
+}
+
+/**
+ * VideoFrame → rgba8unorm texture via copyExternalImageToTexture, then one readback to ImageData.
+ * Caller must close `frame` after this resolves (this does not close the frame).
+ */
+export async function videoFrameToImageDataViaWebGPU(
+  device: GPUDevice,
+  frame: VideoFrame,
+  width: number,
+  height: number
+): Promise<ImageData> {
+  const queue = device.queue;
+  const texture = device.createTexture({
+    size: { width, height, depthOrArrayLayers: 1 },
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
+  });
+  const bytesPerRow = webgpuBytesPerRowRgba8(width);
+  const buffer = device.createBuffer({
+    size: bytesPerRow * height,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
+  queue.copyExternalImageToTexture(
+    // VideoFrame is valid per WebGPU spec; lib.dom may lag the union type.
+    { source: frame as unknown as CanvasImageSource },
+    { texture },
+    { width, height, depthOrArrayLayers: 1 }
+  );
+
+  const encoder = device.createCommandEncoder();
+  encoder.copyTextureToBuffer(
+    { texture },
+    { buffer, bytesPerRow, rowsPerImage: height },
+    { width, height, depthOrArrayLayers: 1 }
+  );
+  queue.submit([encoder.finish()]);
+
+  await buffer.mapAsync(GPUMapMode.READ);
+  const mapped = new Uint8Array(buffer.getMappedRange());
+  const tight = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    tight.set(mapped.subarray(y * bytesPerRow, y * bytesPerRow + width * 4), y * width * 4);
+  }
+  buffer.unmap();
+  buffer.destroy();
+  texture.destroy();
+
+  return new ImageData(tight, width, height);
+}
+
 // ── Pipeline ─────────────────────────────────────────────────────────────────
 
 /**
- * Zero-copy video depth pipeline using WebCodecs API.
+ * WebCodecs video depth pipeline (decode → pixels → DepthEstimationService).
  *
- * Keeps frames on the GPU path (VideoFrame → ImageBitmap → OffscreenCanvas)
- * and only reads pixel data for depth inference at reduced resolution.
+ * Uses GPU-accelerated **upload** when `gpuDevice` is provided and no resize is needed;
+ * Transformers.js depth still receives `ImageData` until a texture-native path exists.
  *
  * Usage:
  * ```typescript
@@ -86,6 +150,7 @@ export class WebCodecsDepthPipeline {
   private decoder: any = null; // VideoDecoder
   private config: WebCodecsDepthConfig;
   private depthService: DepthEstimationService;
+  private gpuDevice: GPUDevice | null = null;
   private canvas: OffscreenCanvas | null = null;
   private ctx: OffscreenCanvasRenderingContext2D | null = null;
   private _running = false;
@@ -124,6 +189,7 @@ export class WebCodecsDepthPipeline {
    */
   async initialize(config?: Partial<WebCodecsDepthConfig>): Promise<void> {
     if (config) Object.assign(this.config, config);
+    this.gpuDevice = this.config.gpuDevice ?? null;
 
     if (!WebCodecsDepthPipeline.isSupported()) {
       throw new Error('WebCodecs API not supported in this browser');
@@ -212,23 +278,45 @@ export class WebCodecsDepthPipeline {
     this._totalDecodeMs += performance.now() - decodeStart;
 
     try {
-      // Zero-copy path: VideoFrame → createImageBitmap → OffscreenCanvas → ImageData
-      const bitmap = await createImageBitmap(frame);
-      const w = Math.min(bitmap.width, this.config.maxDepthResolution);
-      const h = Math.min(bitmap.height, this.config.maxDepthResolution);
+      const dw = frame.displayWidth ?? (frame as { codedWidth?: number }).codedWidth ?? 0;
+      const dh = frame.displayHeight ?? (frame as { codedHeight?: number }).codedHeight ?? 0;
+      const w = Math.min(dw, this.config.maxDepthResolution);
+      const h = Math.min(dh, this.config.maxDepthResolution);
 
-      // Resize canvas if needed
-      if (this.canvas && (this.canvas.width !== w || this.canvas.height !== h)) {
-        this.canvas.width = w;
-        this.canvas.height = h;
+      let imageData: ImageData | null = null;
+
+      if (
+        this.gpuDevice &&
+        dw === w &&
+        dh === h &&
+        w > 0 &&
+        h > 0
+      ) {
+        try {
+          imageData = await videoFrameToImageDataViaWebGPU(this.gpuDevice, frame, w, h);
+        } catch {
+          imageData = null;
+        }
       }
 
-      // Draw bitmap to canvas (GPU-backed transfer)
-      this.ctx?.drawImage(bitmap, 0, 0, w, h);
-      bitmap.close();
+      if (!imageData) {
+        const bitmap = await createImageBitmap(frame, {
+          resizeWidth: w,
+          resizeHeight: h,
+          resizeQuality: 'medium',
+        });
 
-      // Extract pixel data for depth inference
-      const imageData = this.ctx?.getImageData(0, 0, w, h);
+        if (this.canvas && (this.canvas.width !== w || this.canvas.height !== h)) {
+          this.canvas.width = w;
+          this.canvas.height = h;
+        }
+
+        this.ctx?.drawImage(bitmap, 0, 0, w, h);
+        bitmap.close();
+
+        imageData = this.ctx?.getImageData(0, 0, w, h) ?? null;
+      }
+
       if (!imageData) {
         frame.close();
         return null;
@@ -276,6 +364,7 @@ export class WebCodecsDepthPipeline {
       }
     }
     this.decoder = null;
+    this.gpuDevice = null;
     this.canvas = null;
     this.ctx = null;
   }

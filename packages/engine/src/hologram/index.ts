@@ -35,7 +35,11 @@ export { MVHEVCCompiler } from './MVHEVCCompiler';
 
 export type { MVHEVCConfig, MVHEVCStereoView, MVHEVCCompilationResult } from './MVHEVCCompiler';
 
-// WebCodecs Depth Pipeline (zero-copy GPU video depth)
-export { WebCodecsDepthPipeline } from './WebCodecsDepthPipeline';
+// WebCodecs depth pipeline (WebCodecs decode + optional WebGPU texture upload)
+export {
+  WebCodecsDepthPipeline,
+  webgpuBytesPerRowRgba8,
+  videoFrameToImageDataViaWebGPU,
+} from './WebCodecsDepthPipeline';
 
 export type { WebCodecsDepthConfig, WebCodecsDepthStats } from './WebCodecsDepthPipeline';
