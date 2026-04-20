@@ -12,6 +12,16 @@ import type http from 'http';
 import { json, parseJsonBody, extractParam } from './utils';
 import { getClient } from './orchestrator-client';
 import { handleTeamRoomConnection, getRoomPresence, getRoomStats } from './team-room';
+import {
+  handleTtuLiveConnection,
+  getTtuPresence,
+  getTtuStats,
+  getTtuHistory,
+  publishTtuFrame,
+  submitTtuStep,
+  type TtuFrame,
+  type TtuScene,
+} from './ttu-feed';
 import { handleBountyRoutes } from './routes/bounty-routes';
 import { handleBoardRoutes } from './routes/board-routes';
 import { handleTeamRoutes } from './routes/team-routes';
@@ -87,6 +97,98 @@ export async function handleHoloMeshRoute(
     const allStats = getRoomStats();
     const stats = { connected: allStats[teamId] || 0 };
     json(res, 200, { success: true, teamId, stats });
+    return true;
+  }
+
+  // 1c. TTU multi-agent feed sessions (sibling task _0v98 — Phase 2 swarm builder).
+  // Mirrors the team-room SSE/REST shape: many agents share one session,
+  // any can publish frames, any can request the next frame via /step.
+  // Endpoint identity matches the canonical CRDT URI shape used by
+  // TextToUniverseTrait + the prophetic-GI HoloMesh transport:
+  //   crdt://holomesh/feed/ttu/<sessionId>  ↔  /api/holomesh/ttu/<sessionId>/...
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/live$/) && method === 'GET') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/live', '');
+    const searchParams = new URL(url, 'http://localhost').searchParams;
+    handleTtuLiveConnection(req, res, sessionId, searchParams);
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/presence$/) && method === 'GET') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/presence', '');
+    const online = getTtuPresence(sessionId);
+    json(res, 200, { success: true, sessionId, online });
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/stats$/) && method === 'GET') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/stats', '');
+    const all = getTtuStats();
+    const stats = all[sessionId] || { connected: 0, pending: 0, queued: 0 };
+    json(res, 200, { success: true, sessionId, stats });
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/history$/) && method === 'GET') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/history', '');
+    const events = getTtuHistory(sessionId);
+    json(res, 200, { success: true, sessionId, events });
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/publish$/) && method === 'POST') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/publish', '');
+    let body: any;
+    try {
+      body = _body ? JSON.parse(_body) : await parseJsonBody(req);
+    } catch {
+      json(res, 400, { success: false, error: 'invalid JSON body' });
+      return true;
+    }
+    const frame = body?.frame as TtuFrame | undefined;
+    if (!frame || !Array.isArray(frame.probes) || typeof frame.frameId !== 'number') {
+      json(res, 400, { success: false, error: 'frame { frameId, probes, ... } is required' });
+      return true;
+    }
+    const publisherAgentId =
+      typeof body.agent_id === 'string' ? body.agent_id : undefined;
+    const result = publishTtuFrame(sessionId, frame, publisherAgentId);
+    json(res, 200, { success: true, sessionId, ...result });
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/ttu\/[^/]+\/step$/) && method === 'POST') {
+    const sessionId = extractParam(url, '/api/holomesh/ttu/').replace('/step', '');
+    let body: any;
+    try {
+      body = _body ? JSON.parse(_body) : await parseJsonBody(req);
+    } catch {
+      json(res, 400, { success: false, error: 'invalid JSON body' });
+      return true;
+    }
+    const scene = body?.scene as TtuScene | undefined;
+    if (
+      !scene ||
+      !Array.isArray(scene.cameraPosition) ||
+      !Array.isArray(scene.sunDirection) ||
+      !Array.isArray(scene.sunColor)
+    ) {
+      json(res, 400, {
+        success: false,
+        error: 'scene { cameraPosition, cameraForward, sunDirection, sunColor } is required',
+      });
+      return true;
+    }
+    const agentId = typeof body.agent_id === 'string' ? body.agent_id : 'anonymous';
+    const timeoutMs = Number.isFinite(body.timeout_ms) ? Number(body.timeout_ms) : undefined;
+    try {
+      const frame = await submitTtuStep(sessionId, scene, agentId, timeoutMs);
+      json(res, 200, { success: true, sessionId, frame });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'unknown error';
+      // 504 Gateway Timeout is the right code when no producer responded in budget.
+      const status = msg.includes('no frame within') ? 504 : 500;
+      json(res, status, { success: false, sessionId, error: msg });
+    }
     return true;
   }
 
