@@ -1,0 +1,103 @@
+name: E2E Smoke (every commit)
+
+# Runs a minimal smoke suite on every push to main regardless of which paths
+# changed. Full sharded E2E is in studio-ci.yml (path-filtered for cost).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Playwright Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Build core (required by studio)
+        run: pnpm --filter @holoscript/core build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Build studio
+        run: pnpm --filter @holoscript/studio build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Install Playwright chromium
+        run: pnpm --filter @holoscript/studio exec playwright install --with-deps chromium
+
+      - name: Start studio server
+        run: |
+          pnpm --filter @holoscript/studio exec next start --port 3100 &
+          # Wait for server to be ready (up to 30s)
+          for i in $(seq 1 30); do
+            curl -s http://localhost:3100 > /dev/null && echo "Server ready after ${i}s" && break
+            sleep 1
+          done
+        env:
+          NODE_ENV: production
+
+      - name: Run smoke tests
+        run: pnpm --filter @holoscript/studio exec playwright test e2e/studio-smoke.spec.ts
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3100
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-playwright-report
+          path: packages/studio/playwright-report/
+          retention-days: 7
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-screenshots
+          path: packages/studio/test-results/
+          retention-days: 3
+
+      - name: Write smoke result to job summary
+        if: always()
+        run: |
+          echo "## E2E Smoke Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Spec: \`e2e/studio-smoke.spec.ts\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
