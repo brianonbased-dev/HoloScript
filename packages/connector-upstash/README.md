@@ -2,6 +2,14 @@
 
 Upstash MCP Connector for HoloScript Studio Integration Hub.
 
+## Delivery status (Integration Hub)
+
+| Capability | Status |
+|------------|--------|
+| Redis + Vector + QStash MCP tools (`UpstashConnector`) | Shipped — see sections below and `src/tools.ts` |
+| Vector ↔ semantic-search-hub / composition embeddings | Shipped (orchestrator integration as configured in deployment) |
+| QStash scheduling helpers | Shipped — see QStash tool family in this package |
+
 ## Three Subsystems
 
 ### 1. Redis Subsystem
