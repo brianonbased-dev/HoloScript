@@ -159,6 +159,15 @@ export default defineConfig({
           environment: 'node',
         },
       },
+      {
+        test: {
+          name: 'docs-ops',
+          root: resolve(__dirname),
+          include: ['docs/ops/**/*.test.ts'],
+          exclude: ['**/node_modules/**', '**/dist/**'],
+          environment: 'node',
+        },
+      },
     ],
   },
 });
