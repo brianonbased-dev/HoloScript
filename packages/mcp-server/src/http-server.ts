@@ -62,6 +62,7 @@ import {
   readBearerToken,
   readXForwardedFor,
 } from './security/bypass-detection';
+import { ensureMcpOtelTracer, withMcpToolExecutionSpan } from './telemetry/mcp-tool-tracing';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
@@ -368,6 +369,25 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
  * JSON-RPC fallback, and A2A tasks route through here.
  */
 async function securedToolExecution(
+  toolName: string,
+  args: Record<string, unknown>,
+  auth: TokenIntrospection,
+  options?: {
+    sessionId?: string;
+    requestPath?: string;
+    requestMethod?: string;
+    ip?: string;
+    tcpPeerIp?: string;
+    rawXForwardedFor?: string;
+    bearerToken?: string;
+  }
+): Promise<{ result: unknown; isError: boolean }> {
+  return withMcpToolExecutionSpan(toolName, auth, () =>
+    securedToolExecutionInner(toolName, args, auth, options)
+  );
+}
+
+async function securedToolExecutionInner(
   toolName: string,
   args: Record<string, unknown>,
   auth: TokenIntrospection,
@@ -2631,6 +2651,8 @@ initStores();
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
+  ensureMcpOtelTracer();
+  const otlp = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
   console.info(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
   console.info(
     `   Transport: Streamable HTTP (default)${ALLOW_SSE_TRANSPORT ? ' + SSE session mode enabled' : ' (SSE session mode disabled on Railway)'}`
@@ -2645,6 +2667,9 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
   console.info(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
   console.info(`   Audit: EU AI Act compliant (Articles 12-14)`);
+  if (otlp) {
+    console.info(`   OpenTelemetry: MCP tool spans → OTLP (${otlp})`);
+  }
   console.info(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
   console.info(
     `   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`
