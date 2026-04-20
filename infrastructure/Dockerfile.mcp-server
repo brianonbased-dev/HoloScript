@@ -33,6 +33,7 @@ COPY scripts/docker/tsup.core.docker.cjs scripts/docker/tsup.core.docker.cjs
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
+COPY packages/core-types/ packages/core-types/
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
@@ -92,6 +93,7 @@ COPY --from=manifests /manifests/ ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
+COPY --from=builder /app/packages/core-types/dist packages/core-types/dist
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
@@ -110,6 +112,7 @@ COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/script
 # Force workspace symlinks for packages that core externalizes at runtime.
 # pnpm's virtual store may not create these in the paths CJS require() expects.
 RUN mkdir -p /app/node_modules/@holoscript && \
+    ln -sfn /app/packages/core-types /app/node_modules/@holoscript/core-types && \
     ln -sfn /app/packages/framework /app/node_modules/@holoscript/framework && \
     ln -sfn /app/packages/engine /app/node_modules/@holoscript/engine && \
     ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \
@@ -123,6 +126,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 
 # Fail fast if critical build artifacts are missing
 RUN test -f /app/packages/core/dist/index.cjs && \
+    test -f /app/packages/core-types/dist/ans.cjs && \
     test -f /app/packages/engine/dist/choreography/index.cjs && \
     test -f /app/packages/framework/dist/learning/index.cjs
 

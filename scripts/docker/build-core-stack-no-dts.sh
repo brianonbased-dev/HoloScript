@@ -3,7 +3,13 @@ set -eu
 
 # Build shared runtime dependency chain in order (no DTS for Docker runtime images).
 
-cd packages/crdt
+# core-types first — pure types + a few runtime values, no workspace deps.
+# Core's Docker bundle requires @holoscript/core-types/ans.cjs at runtime
+# (e.g. A2AAgentCardCompiler imports ANSCapabilityPath).
+cd packages/core-types
+npx tsup --no-dts
+
+cd ../crdt
 npx tsup --no-dts
 
 cd ../agent-protocol
