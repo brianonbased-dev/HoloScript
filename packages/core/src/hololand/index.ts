@@ -92,6 +92,30 @@ export {
   resetPhysicsBoundsRegistry,
 } from './PhysicsBoundsRegistry';
 
+// Multi-agent cross-validation (closes the confabulation loop — peer
+// divergence on world-state events feeds back into AgentRiskRegistry).
+export {
+  // Types
+  type WorldStateClaim,
+  type Observation,
+  type ToleranceConfig,
+  type ConsensusResult,
+  type RoundSnapshot,
+  type CrossValidationRegistryConfig,
+  type SubmissionResult,
+
+  // Class
+  CrossValidationRegistry,
+
+  // Pure helpers
+  computeConsensus,
+  suggestedQuorum,
+
+  // Singleton
+  getCrossValidationRegistry,
+  resetCrossValidationRegistry,
+} from './CrossValidationRegistry';
+
 // Streaming Protocol
 export {
   StreamProtocol,
