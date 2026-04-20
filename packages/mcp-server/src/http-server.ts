@@ -77,6 +77,7 @@ import {
   maybeStartRailwayAutoscaleLoop,
   registerMcpAutoscaleSessions,
 } from './ops/railway-autoscale-loop.js';
+import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -720,6 +721,12 @@ const httpServer = http.createServer(async (req, res) => {
   if (url === '/ops/status') {
     const { handleOpsStatusRequest } = await import('./ops/tool-ops-status.js');
     await handleOpsStatusRequest(req, res);
+    return;
+  }
+
+  if (url === '/ops/lb-weights') {
+    const { handleLbWeightsRequest } = await import('./ops/predictive-cloudflare-lb.js');
+    handleLbWeightsRequest(req, res);
     return;
   }
 
@@ -2798,6 +2805,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
   console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
   maybeStartRailwayAutoscaleLoop({ port: PORT });
+  maybeStartPredictiveCloudflareLbLoop();
 });
 
 // ─── Thermodynamic consolidation timer ─────────────────────────────────────
