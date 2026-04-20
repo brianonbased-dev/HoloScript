@@ -72,12 +72,16 @@ import { initStores } from './holomesh/state';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
+import { recordMcpToolCallMetric } from './ops/tool-anomaly-bridge.js';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';
+import { resolveStoreRoot } from './hologram-renderer';
+import { promises as fsPromises } from 'fs';
+import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
 
 const { OPERATION_COSTS } = require('@holoscript/absorb-service/credits') as {
   OPERATION_COSTS: Record<string, { baseCostCents: number; description: string }>;
@@ -402,142 +406,151 @@ async function securedToolExecutionInner(
   }
 ): Promise<{ result: unknown; isError: boolean }> {
   const startTime = Date.now();
+  let toolMetricError = false;
 
-  const bypass = await checkRateLimitBypass({
-    toolName,
-    directIp: options?.ip,
-    tcpPeerIp: options?.tcpPeerIp,
-    rawXForwardedFor: options?.rawXForwardedFor,
-    bearerToken: options?.bearerToken,
-  });
-  if (!bypass.allowed) {
-    return {
-      result: {
-        error: 'Request blocked by rate-limit bypass heuristics',
-        code: bypass.reason || 'bypass_denied',
-      },
-      isError: true,
-    };
-  }
-
-  // Run triple-gate security check
-  const gateResult = runTripleGate(toolName, args, auth);
-
-  // Audit log the invocation (pass or fail)
-  const invocationId = auditLog.logToolInvocation({
-    toolName,
-    args,
-    auth,
-    gateResult,
-    requestPath: options?.requestPath,
-    requestMethod: options?.requestMethod,
-    ip: options?.ip,
-    sessionId: options?.sessionId,
-  });
-
-  // If gates failed, return denial
-  if (!gateResult.passed) {
-    auditLog.logToolResult({
-      invocationId,
+  try {
+    const bypass = await checkRateLimitBypass({
       toolName,
-      status: 'denied',
-      durationMs: Date.now() - startTime,
-      errorMessage: gateResult.reason,
-      auth,
-      sessionId: options?.sessionId,
+      directIp: options?.ip,
+      tcpPeerIp: options?.tcpPeerIp,
+      rawXForwardedFor: options?.rawXForwardedFor,
+      bearerToken: options?.bearerToken,
     });
-
-    return {
-      result: {
-        error: `Security gate ${gateResult.gate} denied: ${gateResult.reason}`,
-        gate: gateResult.gate,
-        riskLevel: gateResult.riskLevel,
-      },
-      isError: true,
-    };
-  }
-
-  // Enforce Tenant Config / Billing Limits
-  const tenantCtx = (auth as TokenIntrospectionWithTenant).tenantContext;
-  if (tenantCtx) {
-    const rl = getRateLimit(
-      `tenant_${tenantCtx.tenantId}`,
-      tenantCtx.limits.rateLimitRequestsPerMin
-    );
-    if (rl.remaining <= 0) {
+    if (!bypass.allowed) {
+      toolMetricError = true;
       return {
         result: {
-          error: `Tenant rate limit exceeded (${tenantCtx.limits.rateLimitRequestsPerMin} req/min). Please upgrade tier from ${tenantCtx.subscriptionTier}.`,
+          error: 'Request blocked by rate-limit bypass heuristics',
+          code: bypass.reason || 'bypass_denied',
         },
         isError: true,
       };
     }
 
-    // Abstracted async usage tracking for billing
-    if (process.env.DATABASE_URL) {
-      Promise.resolve().then(async () => {
-        try {
-          const { Pool } = require('pg');
-          const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
-          });
-          await pool.query(
-            'UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1',
-            [tenantCtx.tenantId]
-          );
-        } catch (e) {
-          console.error('[Telemetry] Failed to update usage:', e);
-        }
+    // Run triple-gate security check
+    const gateResult = runTripleGate(toolName, args, auth);
+
+    // Audit log the invocation (pass or fail)
+    const invocationId = auditLog.logToolInvocation({
+      toolName,
+      args,
+      auth,
+      gateResult,
+      requestPath: options?.requestPath,
+      requestMethod: options?.requestMethod,
+      ip: options?.ip,
+      sessionId: options?.sessionId,
+    });
+
+    // If gates failed, return denial
+    if (!gateResult.passed) {
+      toolMetricError = true;
+      auditLog.logToolResult({
+        invocationId,
+        toolName,
+        status: 'denied',
+        durationMs: Date.now() - startTime,
+        errorMessage: gateResult.reason,
+        auth,
+        sessionId: options?.sessionId,
       });
-    }
-  }
 
-  // Execute the tool
-  try {
-    const dispatchResult = await _handleSingleToolLogic(toolName, args);
-
-    if ((dispatchResult as { isError?: boolean }).isError) {
-      const errorText =
-        (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ||
-        `Tool execution failed: ${toolName}`;
-      throw new Error(errorText);
+      return {
+        result: {
+          error: `Security gate ${gateResult.gate} denied: ${gateResult.reason}`,
+          gate: gateResult.gate,
+          riskLevel: gateResult.riskLevel,
+        },
+        isError: true,
+      };
     }
 
-    const resultText =
-      (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ?? 'null';
-    let result: unknown = resultText;
+    // Enforce Tenant Config / Billing Limits
+    const tenantCtx = (auth as TokenIntrospectionWithTenant).tenantContext;
+    if (tenantCtx) {
+      const rl = getRateLimit(
+        `tenant_${tenantCtx.tenantId}`,
+        tenantCtx.limits.rateLimitRequestsPerMin
+      );
+      if (rl.remaining <= 0) {
+        toolMetricError = true;
+        return {
+          result: {
+            error: `Tenant rate limit exceeded (${tenantCtx.limits.rateLimitRequestsPerMin} req/min). Please upgrade tier from ${tenantCtx.subscriptionTier}.`,
+          },
+          isError: true,
+        };
+      }
+
+      // Abstracted async usage tracking for billing
+      if (process.env.DATABASE_URL) {
+        Promise.resolve().then(async () => {
+          try {
+            const { Pool } = require('pg');
+            const pool = new Pool({
+              connectionString: process.env.DATABASE_URL,
+              ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+            });
+            await pool.query(
+              'UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1',
+              [tenantCtx.tenantId]
+            );
+          } catch (e) {
+            console.error('[Telemetry] Failed to update usage:', e);
+          }
+        });
+      }
+    }
+
+    // Execute the tool
     try {
-      result = JSON.parse(resultText);
-    } catch {
-      // keep raw text result
+      const dispatchResult = await _handleSingleToolLogic(toolName, args);
+
+      if ((dispatchResult as { isError?: boolean }).isError) {
+        const errorText =
+          (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ||
+          `Tool execution failed: ${toolName}`;
+        throw new Error(errorText);
+      }
+
+      const resultText =
+        (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ?? 'null';
+      let result: unknown = resultText;
+      try {
+        result = JSON.parse(resultText);
+      } catch {
+        // keep raw text result
+      }
+
+      auditLog.logToolResult({
+        invocationId,
+        toolName,
+        status: 'success',
+        durationMs: Date.now() - startTime,
+        auth,
+        sessionId: options?.sessionId,
+      });
+
+      return { result, isError: false };
+    } catch (error) {
+      toolMetricError = true;
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[MCP] Tool error: ${toolName}`, message);
+
+      auditLog.logToolResult({
+        invocationId,
+        toolName,
+        status: 'error',
+        durationMs: Date.now() - startTime,
+        errorMessage: message,
+        auth,
+        sessionId: options?.sessionId,
+      });
+
+      return { result: { error: message }, isError: true };
     }
-
-    auditLog.logToolResult({
-      invocationId,
-      toolName,
-      status: 'success',
-      durationMs: Date.now() - startTime,
-      auth,
-      sessionId: options?.sessionId,
-    });
-
-    return { result, isError: false };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[MCP] Tool error: ${toolName}`, message);
-
-    auditLog.logToolResult({
-      invocationId,
-      toolName,
-      status: 'error',
-      durationMs: Date.now() - startTime,
-      errorMessage: message,
-      auth,
-      sessionId: options?.sessionId,
-    });
-
-    return { result: { error: message }, isError: true };
+  } finally {
+    recordMcpToolCallMetric(toolName, Date.now() - startTime, toolMetricError);
   }
 }
 
@@ -1058,6 +1071,57 @@ const httpServer = http.createServer(async (req, res) => {
       // Fallback: redirect to a placeholder or return 202
       res.writeHead(202, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'generating', retry_after: 3 }));
+    }
+    return;
+  }
+
+  // GET /api/hologram/:hash/:artifact — serve content-addressed hologram bundle artifacts
+  // Artifacts: preview.png, quilt.png, left-eye.png, right-eye.png, stereo-preview.mp4, manifest.json, scene.holo
+  const hologramArtifactMatch = url?.match(/^\/api\/hologram\/([a-f0-9]{64})\/([\w.-]+)$/);
+  if (hologramArtifactMatch && req.method === 'GET') {
+    const bundleHash = hologramArtifactMatch[1];
+    const artifactName = hologramArtifactMatch[2];
+
+    const ALLOWED_ARTIFACTS: Record<string, string> = {
+      'preview.png': 'image/png',
+      'quilt.png': 'image/png',
+      'left-eye.png': 'image/png',
+      'right-eye.png': 'image/png',
+      'stereo-preview.mp4': 'video/mp4',
+      'manifest.json': 'application/json',
+      'scene.holo': 'text/plain; charset=utf-8',
+    };
+
+    const mimeType = ALLOWED_ARTIFACTS[artifactName];
+    if (!mimeType) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unknown artifact', allowed: Object.keys(ALLOWED_ARTIFACTS) }));
+      return;
+    }
+
+    const artifactPath = pathJoin(resolveStoreRoot(), bundleHash, artifactName);
+    try {
+      const data = await fsPromises.readFile(artifactPath);
+      const cacheControl = mimeType.startsWith('image/') || mimeType === 'video/mp4'
+        ? 'public, max-age=86400, immutable'
+        : 'public, max-age=3600';
+      res.writeHead(200, {
+        'Content-Type': mimeType,
+        'Content-Length': data.length.toString(),
+        'Cache-Control': cacheControl,
+        'X-Bundle-Hash': bundleHash,
+      });
+      res.end(data);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Artifact not found', hash: bundleHash, artifact: artifactName }));
+      } else {
+        const message = err instanceof Error ? err.message : String(err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to read artifact', detail: message }));
+      }
     }
     return;
   }

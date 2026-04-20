@@ -10,7 +10,24 @@ export interface ToolCallMetric {
   timestamp: number;
 }
 
-export type AnomalyAlertHandler = (detail: { reason: string; windowSize: number; errorRate: number }) => void;
+export type AnomalyAlertDetail = {
+  reason: string;
+  windowSize: number;
+  errorRate: number;
+  /** p95 of tool latency (ms) across the current window */
+  p95LatencyMs: number;
+  /** Approximate tool calls per minute from first to last sample in the window */
+  requestRatePerMin: number;
+};
+
+export type AnomalyAlertHandler = (detail: AnomalyAlertDetail) => void;
+
+function computeP95LatencyMs(latenciesMs: number[]): number {
+  if (latenciesMs.length === 0) return 0;
+  const sorted = [...latenciesMs].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.ceil(0.95 * sorted.length) - 1);
+  return sorted[idx]!;
+}
 
 /**
  * Ingests tool-call metrics in a sliding window; fires when error rate crosses threshold.
@@ -43,10 +60,19 @@ export class AnomalyDetector {
     const errors = this.window.filter((m) => m.error).length;
     const errorRate = errors / this.window.length;
     if (errorRate >= this.opts.maxErrorRate) {
+      const latenciesMs = this.window.map((m) => m.latencyMs);
+      const p95LatencyMs = computeP95LatencyMs(latenciesMs);
+      const tFirst = this.window[0]!.timestamp;
+      const tLast = this.window[this.window.length - 1]!.timestamp;
+      const spanMin = Math.max((tLast - tFirst) / 60_000, 1e-6);
+      const requestRatePerMin = this.window.length / spanMin;
+
       this.opts.onAlert({
         reason: 'high_tool_error_rate',
         windowSize: this.window.length,
         errorRate,
+        p95LatencyMs,
+        requestRatePerMin,
       });
     }
   }

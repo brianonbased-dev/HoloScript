@@ -54,6 +54,8 @@ describe('ops pipeline (P.008.03)', () => {
     const arg = onAlert.mock.calls[0]![0];
     expect(arg.reason).toBe('high_tool_error_rate');
     expect(arg.errorRate).toBeGreaterThanOrEqual(0.4);
+    expect(arg.p95LatencyMs).toBeGreaterThanOrEqual(35);
+    expect(arg.requestRatePerMin).toBeGreaterThan(0);
   });
 
   it('AutoScalingLoop evaluates policy and calls scaler mock', async () => {
