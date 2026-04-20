@@ -4,8 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoValidator';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../_lib/cors';
 
 const MAX_REQUESTS_PER_MIN = 10;
+// SEC-T03: cap untrusted prompt length before any LLM spend.
+const MAX_PROMPT_CHARS = 4000;
 
 const STARTER_TEMPLATES = [
   {
@@ -83,6 +87,11 @@ const MOCK_SCENE_TEMPLATE = `composition "CloudFallbackScene" {
 }`;
 
 export async function POST(request: NextRequest) {
+  // SEC-T03: require auth on every paid-LLM route. Rate-limit + credit gates
+  // are kept below for defense in depth.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const limit = rateLimit(
     request,
     { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
@@ -109,6 +118,13 @@ export async function POST(request: NextRequest) {
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
         { success: false, code: '', error: 'Prompt is required' },
+        { status: 400 }
+      );
+    }
+
+    if (prompt.length > MAX_PROMPT_CHARS) {
+      return NextResponse.json(
+        { success: false, code: '', error: `Prompt exceeds ${MAX_PROMPT_CHARS} chars` },
         { status: 400 }
       );
     }
@@ -299,13 +315,11 @@ async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, {
+      methods: 'GET, POST, OPTIONS',
+    }),
   });
 }

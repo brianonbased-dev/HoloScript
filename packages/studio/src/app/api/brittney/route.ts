@@ -8,7 +8,7 @@ export const maxDuration = 300;
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
@@ -17,8 +17,12 @@ import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../_lib/cors';
 
 const MAX_REQUESTS_PER_MIN = 20;
+// SEC-T03: cap per-message input size to bound LLM spend from a single request.
+const MAX_MESSAGE_CHARS = 4000;
 
 /* System prompt lives in @/lib/brittney/systemPrompt.ts */
 
@@ -57,6 +61,10 @@ function getBaseUrl(request: Request): string {
 }
 
 export async function POST(request: NextRequest) {
+  // SEC-T03: gate on authenticated session before any LLM spend.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const limit = rateLimit(
     request,
     { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
@@ -85,6 +93,21 @@ export async function POST(request: NextRequest) {
   }
 
   const { messages, sceneContext } = body;
+
+  // SEC-T03: reject oversize messages before constructing the LLM request.
+  const oversize = (messages ?? []).find(
+    (m) => typeof m.content === 'string' && m.content.length > MAX_MESSAGE_CHARS
+  );
+  if (oversize) {
+    return sseResponse([
+      {
+        type: 'error',
+        payload: `Message exceeds ${MAX_MESSAGE_CHARS} chars`,
+      },
+      { type: 'done', payload: null },
+    ]);
+  }
+
   const client = new Anthropic({ apiKey });
 
   const claudeMessages: Anthropic.MessageParam[] = (messages ?? []).map((m) => ({
@@ -296,13 +319,11 @@ function sseHeaders(): HeadersInit {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, {
+      methods: 'GET, POST, OPTIONS',
+    }),
   });
 }

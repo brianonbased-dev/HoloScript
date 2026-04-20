@@ -3,8 +3,12 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../../_lib/cors';
 
 const MAX_REQUESTS_PER_MIN = 10;
+// SEC-T03: cap untrusted prompt length before any LLM spend.
+const MAX_PROMPT_CHARS = 4000;
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
@@ -13,6 +17,10 @@ const MAX_REQUESTS_PER_MIN = 10;
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
+  // SEC-T03: require authenticated session before any paid-LLM call.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const limit = rateLimit(
     req,
     { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
@@ -37,6 +45,13 @@ export async function POST(req: NextRequest) {
   const { prompt, baseColor = '#ffffff' } = body;
   if (!prompt) {
     return NextResponse.json({ error: '`prompt` is required' }, { status: 400 });
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    return NextResponse.json(
+      { error: `prompt exceeds ${MAX_PROMPT_CHARS} chars` },
+      { status: 400 }
+    );
   }
 
   const systemPrompt = `You are a GLSL fragment shader expert. Your job is to generate a
@@ -231,13 +246,11 @@ async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<st
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, {
+      methods: 'GET, POST, OPTIONS',
+    }),
   });
 }

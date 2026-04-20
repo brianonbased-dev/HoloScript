@@ -28,6 +28,8 @@ import {
   MODEL_CONFIG,
 } from '../../../lib/voice/prompt';
 import { validateHoloOutput, normalizeHoloOutput } from '../../../lib/voice/validator';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../_lib/cors';
 import type {
   VoiceToHoloRequest,
   VoiceToHoloResponse,
@@ -35,6 +37,8 @@ import type {
 } from '../../../lib/voice/types';
 
 export const maxDuration = 30;
+// SEC-T03: cap user utterance length before any paid LLM call.
+const MAX_UTTERANCE_CHARS = 4000;
 
 function makeClient(): Anthropic | null {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -83,6 +87,12 @@ async function callModel(
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloResponse | VoiceToHoloError>> {
+  // SEC-T03: gate on authenticated session before touching any LLM key.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) {
+    return auth as NextResponse<VoiceToHoloError>;
+  }
+
   const client = makeClient();
   if (!client) {
     return NextResponse.json(
@@ -105,6 +115,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
   if (!utterance) {
     return NextResponse.json(
       { error: { kind: 'no-transcript', message: 'Empty utterance' } },
+      { status: 400 }
+    );
+  }
+
+  if (utterance.length > MAX_UTTERANCE_CHARS) {
+    return NextResponse.json(
+      {
+        error: {
+          kind: 'llm-request-failed',
+          message: `Utterance exceeds ${MAX_UTTERANCE_CHARS} chars`,
+        },
+      },
       { status: 400 }
     );
   }
@@ -186,13 +208,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
   });
 }
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: corsHeaders(request, {
+      methods: 'POST, OPTIONS',
+      headers: 'Content-Type',
+    }),
   });
 }

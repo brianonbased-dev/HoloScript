@@ -3,8 +3,12 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
+import { requireAuth } from '@/lib/api-auth';
+import { corsHeaders } from '../_lib/cors';
 
 const MAX_REQUESTS_PER_MIN = 30;
+// SEC-T03: cap untrusted prefix/suffix length before any LLM spend.
+const MAX_PROMPT_CHARS = 4000;
 
 /**
  * POST /api/autocomplete
@@ -155,6 +159,10 @@ function getProviders(): Provider[] {
 }
 
 export async function POST(request: NextRequest) {
+  // SEC-T03: require authenticated session before any paid-LLM call.
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
   const limit = rateLimit(
     request,
     { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
@@ -178,6 +186,13 @@ export async function POST(request: NextRequest) {
   const prefix = body.prefix ?? '';
   const suffix = body.suffix ?? '';
   const maxTokens = Math.min(body.maxTokens ?? 64, 256);
+
+  if (prefix.length > MAX_PROMPT_CHARS || suffix.length > MAX_PROMPT_CHARS) {
+    return NextResponse.json(
+      { error: `prefix/suffix exceeds ${MAX_PROMPT_CHARS} chars` },
+      { status: 400 }
+    );
+  }
 
   if (!prefix.trim()) {
     return NextResponse.json({ completion: '' });
@@ -225,13 +240,11 @@ export async function POST(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, {
+      methods: 'GET, POST, OPTIONS',
+    }),
   });
 }
