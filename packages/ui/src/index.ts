@@ -9,3 +9,4 @@ export * from './components/Input';
 export * from './components/Badge';
 export * from './components/Spinner';
 export * from './components/StatCard';
+export * from './components/UncertaintyIndicator';
