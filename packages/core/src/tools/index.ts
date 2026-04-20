@@ -28,6 +28,10 @@ export {
   type MaterialEditorConfig,
   type MaterialPreset,
 } from './MaterialEditor';
+export {
+  listMaterialEditorQuickPickPresetNames,
+  listMaterialEditorQuickPickPresetsByCategory,
+} from './materialPresetQuickPick';
 
 // Scene Inspector
 export { SceneInspector } from './SceneInspector';
