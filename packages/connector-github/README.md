@@ -6,6 +6,15 @@ GitHub MCP Connector for HoloScript Studio Integration Hub.
 
 `@holoscript/connector-github` bridges HoloScript Studio to GitHub's REST API, providing MCP tools for repository management, issue tracking, pull request workflows, GitHub Actions automation, and HoloScript-specific CI/CD operations.
 
+## Delivery status (Integration Hub)
+
+| Capability | Status |
+|------------|--------|
+| GitHub MCP bridge (`GitHubConnector`, `listTools` / `executeTool`) | Shipped — see `src/tools.ts` and tests |
+| Actions workflow templates | Shipped — `templates/.github/workflows/holoscript-ci.yml`, `holoscript-agentic.yml` |
+| HoloScript compile preview tool (`github_holoscript_compile_preview`) | Shipped |
+| PR comments with **rich 3D scene diffs** | Not a connector-only feature — depends on Studio / render pipeline integration (track separately) |
+
 ## Features
 
 - **Repository Operations**: Create, list, and get repository information
