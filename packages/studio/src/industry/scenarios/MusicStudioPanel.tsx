@@ -132,7 +132,16 @@ export function MusicStudioPanel() {
         <div style={s.sectionTitle}>🎹 Keyboard</div>
         <div style={{ display: 'flex', gap: 2 }}>
           {NOTES.map((n) => (
-            <div key={n} style={s.key(n.includes('#'), n === note)} onClick={() => setNote(n)}>
+            <div
+              key={n}
+              style={s.key(n.includes('#'), n === note)}
+              onClick={() => setNote(n)}
+              role="button"
+              tabIndex={0}
+              aria-label={n}
+              aria-pressed={n === note}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setNote(n)}
+            >
               <div
                 style={{
                   fontSize: 8,

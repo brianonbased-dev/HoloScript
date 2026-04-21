@@ -20,7 +20,17 @@ export function SandboxAuditorPanel() {
   return (
     <div style={s.panel} data-testid="sandbox-panel">
       <div style={s.header}>🛡️ Rbac Sandbox Auditor</div>
-      <div style={{ marginBottom: 10 }}>Trust Level: {trustLevel} <input type="range" min="0" max="100" value={trustLevel} onChange={e => setTrustLevel(Number(e.target.value))} /></div>
+      <div style={{ marginBottom: 10 }}>Trust Level: {trustLevel} <input
+        type="range"
+        min="0"
+        max="100"
+        value={trustLevel}
+        onChange={e => setTrustLevel(Number(e.target.value))}
+        aria-label="Trust level"
+        aria-valuenow={trustLevel}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      /></div>
       
       {reqs.map((req, i) => {
         const { allowed, reason } = validateStdlibPolicy(req, trustLevel);

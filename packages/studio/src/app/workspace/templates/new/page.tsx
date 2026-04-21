@@ -84,28 +84,28 @@ function TemplateConfigurationForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Template ID</label>
-              <input {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="template-core-ui" />
+              <label htmlFor="template-id" className="block text-xs font-medium text-zinc-400 mb-1">Template ID</label>
+              <input id="template-id" {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="template-core-ui" />
               {errors.id && <p className="text-red-400 text-[10px] mt-1">{errors.id.message}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
-              <input {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Core UI Scaffold" />
+              <label htmlFor="template-name" className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
+              <input id="template-name" {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Core UI Scaffold" />
               {errors.name && <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
-              <input {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
+              <label htmlFor="template-version" className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
+              <input id="template-version" {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
               {errors.version && <p className="text-red-400 text-[10px] mt-1">{errors.version.message}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Template Type</label>
-              <select {...register('type')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none">
+              <label htmlFor="template-type" className="block text-xs font-medium text-zinc-400 mb-1">Template Type</label>
+              <select id="template-type" {...register('type')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none">
                 <option value="scene">3D Scene</option>
                 <option value="agent_swarm">Agent Swarm</option>
                 <option value="ui">User Interface</option>
@@ -116,8 +116,8 @@ function TemplateConfigurationForm() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
-            <textarea {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="What makes this template useful?" />
+            <label htmlFor="template-description" className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
+            <textarea id="template-description" {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="What makes this template useful?" />
           </div>
 
           <div className="flex items-center gap-2 mt-4 text-sm">

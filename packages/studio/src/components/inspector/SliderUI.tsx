@@ -67,7 +67,13 @@ export function PBRSlider({
             autoFocus
           />
         ) : (
-          <span className="font-mono cursor-text hover:text-studio-text" onClick={startEdit}>
+          <span
+            className="font-mono cursor-text hover:text-studio-text"
+            role="button"
+            tabIndex={0}
+            onClick={startEdit}
+            onKeyDown={(e) => e.key === 'Enter' && startEdit()}
+          >
             {value.toFixed(step < 0.01 ? 3 : 2)}
           </span>
         )}
@@ -88,6 +94,10 @@ export function PBRSlider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
+        aria-label={label}
+        aria-valuenow={value}
+        aria-valuemin={min}
+        aria-valuemax={max}
         className="w-full -mt-1.5 opacity-0 cursor-pointer h-4"
         style={{ position: 'relative', zIndex: 1 }}
       />

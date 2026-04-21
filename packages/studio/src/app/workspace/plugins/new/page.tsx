@@ -80,39 +80,39 @@ function PluginConfigurationForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Plugin ID</label>
-              <input {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="plugin-physics-havok" />
+              <label htmlFor="plugin-id" className="block text-xs font-medium text-zinc-400 mb-1">Plugin ID</label>
+              <input id="plugin-id" {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="plugin-physics-havok" />
               {errors.id && <p className="text-red-400 text-[10px] mt-1">{errors.id.message}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
-              <input {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Havok Physics Adapter" />
+              <label htmlFor="plugin-name" className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
+              <input id="plugin-name" {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Havok Physics Adapter" />
               {errors.name && <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
-              <input {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
+              <label htmlFor="plugin-version" className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
+              <input id="plugin-version" {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
               {errors.version && <p className="text-red-400 text-[10px] mt-1">{errors.version.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Author</label>
-              <input {...register('author')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="holoscript-core" />
+              <label htmlFor="plugin-author" className="block text-xs font-medium text-zinc-400 mb-1">Author</label>
+              <input id="plugin-author" {...register('author')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="holoscript-core" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Entry Point</label>
-            <input {...register('entryPoint')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white font-mono" placeholder="src/index.ts" />
+            <label htmlFor="plugin-entrypoint" className="block text-xs font-medium text-zinc-400 mb-1">Entry Point</label>
+            <input id="plugin-entrypoint" {...register('entryPoint')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white font-mono" placeholder="src/index.ts" />
             {errors.entryPoint && <p className="text-red-400 text-[10px] mt-1">{errors.entryPoint.message}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
-            <textarea {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white" placeholder="Describe the plugin's capabilities..." />
+            <label htmlFor="plugin-description" className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
+            <textarea id="plugin-description" {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white" placeholder="Describe the plugin's capabilities..." />
           </div>
         </div>
 

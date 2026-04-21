@@ -65,20 +65,20 @@ function TraitConfigurationForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-zinc-800 p-5 rounded border border-zinc-700">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Trait ID (CamelCase)</label>
-            <input {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="oceanBuoyancy" />
+            <label htmlFor="trait-id" className="block text-xs font-medium text-zinc-400 mb-1">Trait ID (CamelCase)</label>
+            <input id="trait-id" {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="oceanBuoyancy" />
             {errors.id && <p className="text-red-400 text-[10px] mt-1">{errors.id.message}</p>}
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
-            <input {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Ocean Buoyancy" />
+            <label htmlFor="trait-name" className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
+            <input id="trait-name" {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Ocean Buoyancy" />
             {errors.name && <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1">Category</label>
-          <select {...register('category')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none">
+          <label htmlFor="trait-category" className="block text-xs font-medium text-zinc-400 mb-1">Category</label>
+          <select id="trait-category" {...register('category')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none">
             <option value="behavior">Behavior / Logic</option>
             <option value="visual">Visual / Rendering</option>
             <option value="physics">Physics / Mechanics</option>
@@ -88,8 +88,8 @@ function TraitConfigurationForm() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
-          <textarea {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Applies Archimedes' principle to dynamic rigid bodies..." />
+          <label htmlFor="trait-description" className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
+          <textarea id="trait-description" {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Applies Archimedes' principle to dynamic rigid bodies..." />
           {errors.description && <p className="text-red-400 text-[10px] mt-1">{errors.description.message}</p>}
         </div>
 

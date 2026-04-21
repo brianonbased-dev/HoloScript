@@ -18,7 +18,19 @@ export function UniversalCompilerDashboard() {
       <div style={s.header}>📦 Universal Compiler Export</div>
       <div style={{ marginBottom: 16 }}>
         AST Nodes: {nodes} 
-        <input type="range" min="100" max="10000" value={nodes} onChange={e => setNodes(Number(e.target.value))} style={{ marginLeft: 10 }} />
+        <input
+          id="ast-nodes"
+          type="range"
+          min="100"
+          max="10000"
+          value={nodes}
+          onChange={e => setNodes(Number(e.target.value))}
+          aria-label="AST node count"
+          aria-valuenow={nodes}
+          aria-valuemin={100}
+          aria-valuemax={10000}
+          style={{ marginLeft: 10 }}
+        />
       </div>
 
       {targets.map((t, i) => (

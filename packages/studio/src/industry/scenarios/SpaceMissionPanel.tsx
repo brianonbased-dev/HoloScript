@@ -271,7 +271,16 @@ export function SpaceMissionPanel() {
           {bodies
             .filter(([k]) => k !== 'sun')
             .map(([key]) => (
-              <div key={key} style={styles.bodyCard(key === origin)} onClick={() => setOrigin(key)}>
+              <div
+              key={key}
+              style={styles.bodyCard(key === origin)}
+              onClick={() => setOrigin(key)}
+              role="button"
+              tabIndex={0}
+              aria-pressed={key === origin}
+              aria-label={key.charAt(0).toUpperCase() + key.slice(1)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setOrigin(key)}
+            >
                 <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
                 <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
               </div>
@@ -289,6 +298,11 @@ export function SpaceMissionPanel() {
                 key={key}
                 style={styles.bodyCard(key === destination)}
                 onClick={() => setDestination(key)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={key === destination}
+                aria-label={key.charAt(0).toUpperCase() + key.slice(1)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setDestination(key)}
               >
                 <span style={styles.bodyEmoji}>{BODY_EMOJIS[key]}</span>
                 <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>

@@ -119,25 +119,25 @@ function AgentConfigurationForm() {
           <h2 className="text-lg font-semibold border-b border-zinc-700 pb-2">1. Identity & Classification</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Agent ID</label>
-              <input {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="agent-x1" />
+              <label htmlFor="agent-id" className="block text-xs font-medium text-zinc-400 mb-1">Agent ID</label>
+              <input id="agent-id" {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="agent-x1" />
               {errors.id && <p className="text-red-400 text-[10px] mt-1">{errors.id.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Human-Readable Name</label>
-              <input {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Sentinel Protocol" />
+              <label htmlFor="agent-name" className="block text-xs font-medium text-zinc-400 mb-1">Human-Readable Name</label>
+              <input id="agent-name" {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Sentinel Protocol" />
               {errors.name && <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
-              <input {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
+              <label htmlFor="agent-version" className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
+              <input id="agent-version" {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
               {errors.version && <p className="text-red-400 text-[10px] mt-1">{errors.version.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Trust Profile</label>
-              <select {...register('trustLevel')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white">
+              <label htmlFor="agent-trust" className="block text-xs font-medium text-zinc-400 mb-1">Trust Profile</label>
+              <select id="agent-trust" {...register('trustLevel')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white">
                 <option value="local">Local (In-process, Highest Trust)</option>
                 <option value="verified">Verified (Cryptographic Sig)</option>
                 <option value="known">Known (Ecosystem default)</option>
@@ -146,8 +146,8 @@ function AgentConfigurationForm() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
-            <textarea {...register('description')} rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white" placeholder="What does this agent do?" />
+            <label htmlFor="agent-description" className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
+            <textarea id="agent-description" {...register('description')} rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm text-white" placeholder="What does this agent do?" />
           </div>
         </div>
 
