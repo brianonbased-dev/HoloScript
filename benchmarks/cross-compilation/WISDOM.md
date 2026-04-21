@@ -259,6 +259,42 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** “Impossible → automatic” means one **authoring graph** fans out through **target manifests** (Metal/Vulkan/WebGPU/DirectX) with **declared missing features**, not separate Unity vs Unreal authoring paths. Cross-compilation already proves the model: preserve **semantic parity** while codegen swaps. The product promise is **repeatable exports**—same CI hash produces the same C++/Swift/TS bundles within declared tolerances.
 
+### S.014 | Sycophancy detection metrics (chat / Studio surfaces) | ⚡0.75
+
+**Research capture:** Track **praise-to-evidence ratio** (affirmations per grounded citation), **contradiction yield** (user correction rate after assistant claims), and **stance entropy** when users push back. For HoloScript frontends, log **tool-call fanout**: retries that only rephrase without new `@trait` lookups are a sycophancy warning. Ship dashboards that score sessions, not single turns—short agreeable answers often look good per message and bad per task.
+
+### S.015 | Multi-agent motivation in HoloLand | ⚡0.75
+
+**Research capture:** Treat **motivation** as **competing equilibria** over shared resources (attention, tokens, plot hooks). Instrument **claim latency** on shared objects, **defection events** (grab without negotiation), and **norm invocation rate** (explicit appeals to team rules). Compare runs with and without **reputation persistence** to test whether emergence is stable or novelty-only.
+
+### S.016 | `@snn` RFC-0042 vs mesa-optimization risk (review) | ⚡0.7
+
+**Research capture:** Spiking pipelines that **co-train with reward predictors** can exhibit **mesa** shapes—fast policies that satisfy surrogate losses while bypassing intended physics checks. Mitigations: **freeze** world-model heads during certain epochs, require **counterfactual rollouts** that break surrogate coherence, and keep **audit traces** of spike-to-action decoding. RFC reviews should gate **deployment** on adversarial suites, not accuracy alone.
+
+### S.017 | Robotics: URDF/SDF as single exported truth | ⚡0.85
+
+**Research capture:** Replace the “three incompatible files” sprawl by making **HoloScript joints + `@rigid` graphs** the only authored robotics layer; **URDF/SDF are compiler outputs**, not hand-edited sidecars. Deterministic export hashes prove **sim ↔ real** alignment when the same snapshot feeds Isaac/ROS/MoveIt. Document **lossy edges** (limits, collision approximations) in manifest warnings.
+
+### S.018 | Trait graphs as benchmark ground truth (ScanNet-class) | ⚡0.8
+
+**Research capture:** Indoor scene benchmarks often label **geometry**, not **interaction affordance**. Export **entity-linked trait bundles** per room as JSON alongside meshes: `sittable`, `graspable`, `navigable` become **supervision targets** superior to RGB-only masks for embodied agents. Publish **splits by trait density** so models can’t chase easy wall/floor majority classes.
+
+### S.019 | Isaac Lab ↔ HoloScript URDF/SDF bridge | ⚡0.75
+
+**Research capture:** Isaac Lab expects **USD/URDF** plus **differentiable sim hooks**. HoloScript’s role: emit **URDF + signed distance collision stubs** from the same trait snapshot used by game runtimes, then wrap Lab envs with **adapter layers** that map joint names 1:1. Automate **domain randomization** parameters from manifest enums so sim-to-real sweeps track compiler versions.
+
+### S.020 | WCAG 3.x / XR accessibility alignment | ⚡0.75
+
+**Research capture:** WCAG 3 shifts toward **outcomes and holistic scoring**; XR needs **spatial focus order**, **motion minimization**, and **equivalent modes** for non-visual navigation. Map HoloScript **access traits** to proposed **XR accessibility guidelines** as **machine-checkable rules** in CI (e.g., minimum target size in steradians at default FOV).
+
+### S.021 | Scenethesis / SceneCraft vs trait constraints | ⚡0.7
+
+**Research capture:** Agentic scene generators emphasize **constraint satisfaction** over full simulation. HoloScript’s differentiator is **typed traits** that **bind to physics/time**—use generated layouts as drafts, then run **validation passes** (`@collidable` overlap, `@snap` graph connectivity). Position HoloScript as **lint + repair loop** on top of black-box generators, not a replacement for them.
+
+### S.022 | URDFormer → HoloScript → multi-engine as an IR stack | ⚡0.75
+
+**Research capture:** Image→URDF pipelines output **articulation trees** that still need semantic cleanup. HoloScript can sit as **IR**: ingest raw URDF + inferred meshes, attach **traits and authoring metadata**, then fan out to Unity/Unreal/WebGPU with **per-target simplification**. Version the IR with **hash-linked provenance** from the vision model checkpoint.
+
 ---
 
 ## Next Optimization Opportunities
