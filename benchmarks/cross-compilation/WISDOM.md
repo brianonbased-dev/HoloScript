@@ -247,6 +247,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Hand-built VR scenarios used to mean bespoke USD prep and proprietary toolchains—**high fixed cost per scenario**. Declarative HoloScript + trait compilers collapse repeated labor into **parameter sweeps** (same `@scene` graph, different datasets). The metric to watch is **$/minute of interactive experience** after amortizing toolchain: when regeneration is cheap, marginal cost approaches **hosting + assets**, not engineering hours.
 
+### S.011 | Inoculation-style robustness for VR agent prompts | ⚡0.7
+
+**Research capture:** **Inoculation** (showing weakened adversarial prompts before real attacks) can lift refusal robustness in chat models. For **embodied** HoloScript loops, pair text probes with **simulated affordance violations** (grab unreachable objects, ignore physics) staged from mild → severe. Log policy corrections as training traces so the agent learns **early abstention** rather than catastrophic late fixes.
+
 ---
 
 ## Next Optimization Opportunities
