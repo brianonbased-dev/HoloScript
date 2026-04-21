@@ -170,6 +170,70 @@ export interface TraitApplication {
   context?: ProvenanceContext;
 }
 
+// =============================================================================
+// VECTOR VALUE SUPPORT (paper-3 §5.2 extension)
+// =============================================================================
+
+/**
+ * A numeric vector (fixed-length array of numbers).
+ * Used for stress tensors, velocity fields, displacement vectors, etc.
+ */
+export type VectorValue = number[];
+
+/** Return true when value is a non-empty VectorValue (array of numbers). */
+export function isVectorValue(v: unknown): v is VectorValue {
+  return Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'number');
+}
+
+/** L2-magnitude of a VectorValue. */
+export function vecMagnitude(v: VectorValue): number {
+  let sum = 0;
+  for (const x of v) sum += x * x;
+  return Math.sqrt(sum);
+}
+
+/** Component-wise addition: a + b (same dimensionality required). */
+export function vecAdd(a: VectorValue, b: VectorValue): VectorValue {
+  if (a.length !== b.length) {
+    throw new Error(`Vector dimensionality mismatch: ${a.length} vs ${b.length}`);
+  }
+  return a.map((ai, i) => ai + b[i]);
+}
+
+/** Component-wise max: max(a_i, b_i). */
+export function vecComponentMax(a: VectorValue, b: VectorValue): VectorValue {
+  if (a.length !== b.length) {
+    throw new Error(`Vector dimensionality mismatch: ${a.length} vs ${b.length}`);
+  }
+  return a.map((ai, i) => Math.max(ai, b[i]));
+}
+
+/** Component-wise min: min(a_i, b_i). */
+export function vecComponentMin(a: VectorValue, b: VectorValue): VectorValue {
+  if (a.length !== b.length) {
+    throw new Error(`Vector dimensionality mismatch: ${a.length} vs ${b.length}`);
+  }
+  return a.map((ai, i) => Math.min(ai, b[i]));
+}
+
+/**
+ * Authority-weighted blend: picks the vector from the higher-authority source.
+ * When authority is equal, falls back to magnitude tiebreak then lexicographic.
+ */
+export function vecAuthorityPick(
+  a: VectorValue, weightA: number,
+  b: VectorValue, weightB: number,
+): VectorValue {
+  const eps = 1e-12;
+  if (Math.abs(weightA - weightB) > eps) return weightA > weightB ? a : b;
+  // Tiebreak: larger magnitude wins (physical dominance)
+  const magA = vecMagnitude(a);
+  const magB = vecMagnitude(b);
+  if (Math.abs(magA - magB) > eps) return magA >= magB ? a : b;
+  // Final tiebreak: lexicographic on stringified values
+  return JSON.stringify(a) <= JSON.stringify(b) ? a : b;
+}
+
 export interface ConflictResolutionRule {
   /** Domain property (e.g., 'type', 'mass', 'color') */
   property: string;
@@ -183,7 +247,13 @@ export interface ConflictResolutionRule {
     | 'tropical-max-plus'
     | 'strict-error'
     | 'domain-override'
-    | 'authority-weighted';
+    | 'authority-weighted'
+    // ── vector strategies (paper-3 §5.2) ──
+    | 'vec-component-max'
+    | 'vec-component-min'
+    | 'vec-component-sum'
+    | 'vec-magnitude-max'
+    | 'vec-authority-weighted';
   /** If domain-override, defines the precedence of trait sources */
   precedence?: string[];
 }
@@ -231,6 +301,13 @@ export class ProvenanceSemiring {
       precedence: ['material', 'color', 'hoverable', 'glowing'],
     });
     this.rules.set('opacity', { property: 'opacity', strategy: 'min' });
+    // Vector physics properties (paper-3 §5.2)
+    this.rules.set('velocity', { property: 'velocity', strategy: 'vec-component-sum' });
+    this.rules.set('acceleration', { property: 'acceleration', strategy: 'vec-component-sum' });
+    this.rules.set('angularVelocity', { property: 'angularVelocity', strategy: 'vec-component-sum' });
+    this.rules.set('stressTensor', { property: 'stressTensor', strategy: 'vec-component-max' });
+    this.rules.set('displacementField', { property: 'displacementField', strategy: 'vec-magnitude-max' });
+    this.rules.set('forceField', { property: 'forceField', strategy: 'vec-authority-weighted' });
   }
 
   /**
@@ -423,6 +500,85 @@ export class ProvenanceSemiring {
           }
           return tieBreakProvenance(a, b);
         }
+      }
+
+      // ── vector strategies (paper-3 §5.2) ────────────────────────────────
+      case 'vec-component-max': {
+        if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
+          throw new Error(
+            `vec-component-max requires VectorValue on property '${property}': ` +
+            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+          );
+        }
+        const srcA = String(a.source);
+        const srcB = String(b.source);
+        return {
+          value: vecComponentMax(a.value, b.value),
+          source: srcA < srcB ? `${srcA}⊕max${srcB}` : `${srcB}⊕max${srcA}`,
+        };
+      }
+
+      case 'vec-component-min': {
+        if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
+          throw new Error(
+            `vec-component-min requires VectorValue on property '${property}': ` +
+            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+          );
+        }
+        const srcA = String(a.source);
+        const srcB = String(b.source);
+        return {
+          value: vecComponentMin(a.value, b.value),
+          source: srcA < srcB ? `${srcA}⊕min${srcB}` : `${srcB}⊕min${srcA}`,
+        };
+      }
+
+      case 'vec-component-sum': {
+        if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
+          throw new Error(
+            `vec-component-sum requires VectorValue on property '${property}': ` +
+            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+          );
+        }
+        const srcA = String(a.source);
+        const srcB = String(b.source);
+        return {
+          value: vecAdd(a.value, b.value),
+          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
+        };
+      }
+
+      case 'vec-magnitude-max': {
+        if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
+          throw new Error(
+            `vec-magnitude-max requires VectorValue on property '${property}': ` +
+            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+          );
+        }
+        const magA = vecMagnitude(a.value);
+        const magB = vecMagnitude(b.value);
+        const eps = 1e-12;
+        if (Math.abs(magA - magB) <= eps) {
+          // Equal magnitude: pick by lexicographic source for commutativity
+          const srcA = String(a.source);
+          const srcB = String(b.source);
+          return srcA <= srcB ? a : b;
+        }
+        return magA > magB ? a : b;
+      }
+
+      case 'vec-authority-weighted': {
+        if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
+          throw new Error(
+            `vec-authority-weighted requires VectorValue on property '${property}': ` +
+            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+          );
+        }
+        const winner = vecAuthorityPick(a.value, weightA, b.value, weightB);
+        const isA = winner === a.value;
+        return isA
+          ? { value: a.value, source: a.source, context: a.context }
+          : { value: b.value, source: b.source, context: b.context };
       }
 
       case 'strict-error':
