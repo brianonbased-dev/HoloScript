@@ -40,6 +40,7 @@ overrides:
   next: '>=15.5.15'
   '@apollo/server': '>=5.5.0'
   elliptic: '>=6.6.1'
+  bigint-buffer: '>=1.1.5'
   three: 0.182.0
   '@react-three/fiber': 9.5.0
   protobufjs: '>=7.5.5'
@@ -427,6 +428,9 @@ importers:
       '@holoscript/core-types':
         specifier: workspace:^
         version: link:../core-types
+      '@holoscript/engine':
+        specifier: workspace:^
+        version: link:../engine
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider

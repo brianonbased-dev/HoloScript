@@ -39,6 +39,20 @@ function createWalletMaterial(): { privateKey: string; address: string } {
   return { privateKey, address };
 }
 
+function validateAgentName(name: string): string | null {
+  if (name.length < 2 || name.length > 64) {
+    return 'agentName must be 2-64 chars';
+  }
+  // Safe display + storage profile:
+  // - Starts/ends with alphanumeric
+  // - Allows internal spaces, dots, underscores, hyphens
+  // - Blocks control chars and leading/trailing separators
+  if (!/^[A-Za-z0-9][A-Za-z0-9 ._-]*[A-Za-z0-9]$/.test(name)) {
+    return 'agentName may contain letters, numbers, spaces, dot, underscore, hyphen and must start/end with alphanumeric';
+  }
+  return null;
+}
+
 function normalizeEntry(entry: MeshKnowledgeEntry): Record<string, unknown> {
   return {
     id: entry.id,
@@ -167,8 +181,9 @@ export async function handleTeamRoutes(
     const description = (body.description as string | undefined)?.trim() || '';
     const capabilities = (body.capabilities as string[]) || [];
 
-    if (name.length < 2 || name.length > 64) {
-      json(res, 400, { error: 'agentName must be 2-64 chars' });
+    const nameValidationError = validateAgentName(name);
+    if (nameValidationError) {
+      json(res, 400, { error: nameValidationError });
       return true;
     }
 
@@ -358,8 +373,9 @@ export async function handleTeamRoutes(
         json(res, 400, { error: 'Missing name' });
         return true;
       }
-      if (name.length < 2 || name.length > 64) {
-        json(res, 400, { error: 'name must be 2-64 chars' });
+      const nameValidationError = validateAgentName(name);
+      if (nameValidationError) {
+        json(res, 400, { error: nameValidationError });
         return true;
       }
       const duplicate = Array.from(agentKeyStore.values()).some(
