@@ -391,6 +391,38 @@ describe('createHologram — happy path', () => {
   });
 });
 
+describe('createHologram — sequentialRender', () => {
+  it('invokes quilt then mvhevc then parallax in order', async () => {
+    const order: string[] = [];
+    const providers: HologramProviders = {
+      depth: makeDepthProvider(),
+      quilt: {
+        async render() {
+          order.push('quilt');
+          return new Uint8Array([1]);
+        },
+      },
+      mvhevc: {
+        async encode() {
+          order.push('mvhevc');
+          return new Uint8Array([2]);
+        },
+      },
+      parallax: {
+        async encode() {
+          order.push('parallax');
+          return new Uint8Array([3]);
+        },
+      },
+    };
+    await createHologram(new Uint8Array([1]), 'image', providers, {
+      targets: ['quilt', 'mvhevc', 'parallax'],
+      sequentialRender: true,
+    });
+    expect(order).toEqual(['quilt', 'mvhevc', 'parallax']);
+  });
+});
+
 describe('createHologram — error propagation', () => {
   it('wraps depth provider errors as CreateHologramError(depth_failed)', async () => {
     const providers: HologramProviders = {

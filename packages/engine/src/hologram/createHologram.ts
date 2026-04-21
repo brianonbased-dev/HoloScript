@@ -117,6 +117,12 @@ export interface CreateHologramOptions {
   targets?: HologramTarget[];
   /** Override the default clock (for deterministic tests) */
   now?: () => Date;
+  /**
+   * When true, run quilt / mvhevc / parallax encoders one after another instead
+   * of in parallel. Node hologram-worker uses this so Playwright can reuse a
+   * single browser across targets.
+   */
+  sequentialRender?: boolean;
 }
 
 export class CreateHologramError extends Error {
@@ -256,7 +262,14 @@ export async function createHologram(
 
   let rendered: [HologramTarget, Uint8Array][];
   try {
-    rendered = await Promise.all(renderPromises);
+    if (options.sequentialRender) {
+      rendered = [];
+      for (const p of renderPromises) {
+        rendered.push(await p);
+      }
+    } else {
+      rendered = await Promise.all(renderPromises);
+    }
   } catch (err) {
     throw new CreateHologramError(
       'render_failed',
