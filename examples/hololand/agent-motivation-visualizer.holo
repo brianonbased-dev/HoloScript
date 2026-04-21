@@ -1,0 +1,720 @@
+// =============================================================================
+// VR Agent Motivation Visualizer
+// =============================================================================
+// Real-time display of active reward signals per agent in a multi-agent
+// HoloLand world. Each agent has a floating sphere showing motivation state:
+// - Position: X = intrinsic motivation, Y = social motivation, Z = task motivation
+// - Color: blended gradient reflecting reward signal strength (dim=low, bright=high)
+// - Ring size: confidence / belief update magnitude
+// - Animated "flow" particles: reward gradient descent trajectory
+// - Heartbeat beacon: agent presence + communication link
+//
+// Use case: AI researchers visualizing emergent multi-agent motivation in
+// collaborative VR environments. Real-time binding to agent observation streams.
+// =============================================================================
+
+composition "VR Agent Motivation Visualizer" {
+    @author("HoloScript_Core")
+    @version("1.0.0")
+    @networked
+    @tags(["motivation", "ai-agents", "visualization", "rewards", "hololand", "research"])
+
+    environment {
+        skyColor: "#0a0a15"
+        horizonColor: "#0f1628"
+        groundColor: "#050810"
+        grid: true
+        gridColor: "#1a2a4a"
+        ambientLight: 0.25
+        fog: { type: "exponential", color: "#0a0a15", density: 0.004 }
+    }
+
+    post_processing {
+        bloom { intensity: 0.65, threshold: 0.5 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.4, radius: 0.8 }
+    }
+
+    // =========================================================================
+    // SECTION 0: FLOOR & ORIGIN MARKERS
+    // =========================================================================
+
+    object "Research_Floor" {
+        geometry: "plane"
+        scale: [200, 1, 200]
+        material: "reflective_dark"
+        @physics(type: "static")
+    }
+
+    object "Origin_Marker" @glowing {
+        position: [0, 0.05, 0]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#ff0088"
+        emissive: "#ff0088"
+        emissiveIntensity: 0.8
+    }
+
+    object "Spawn_Point" @glowing {
+        position: [0, 0.05, -20]
+        geometry: "cylinder"
+        scale: [2, 0.05, 2]
+        color: "#00ccff"
+        emissive: "#00ccff"
+        emissiveIntensity: 0.5
+    }
+
+    // =========================================================================
+    // SECTION 1: LEGEND & REFERENCE FRAME
+    // =========================================================================
+
+    object "Legend_Panel_BG" {
+        @hologram
+        position: [-30, 10, -20]
+        geometry: "plane"
+        scale: [16, 16, 1]
+        color: "#0a0f20"
+        opacity: 0.85
+        rotation: [0, 0, 0]
+    }
+
+    object "Legend_Title" {
+        @hologram
+        position: [-30, 18, -20]
+        geometry: "text"
+        properties: {
+            text: "AGENT MOTIVATION SPACE"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Legend_Axis_X" {
+        @hologram
+        @glowing
+        position: [-30, 15, -20]
+        geometry: "text"
+        properties: {
+            text: "X: Intrinsic Motivation  (red)"
+            fontSize: 14
+            color: "#ff6666"
+        }
+    }
+
+    object "Legend_Axis_Y" {
+        @hologram
+        @glowing
+        position: [-30, 13, -20]
+        geometry: "text"
+        properties: {
+            text: "Y: Social Motivation  (green)"
+            fontSize: 14
+            color: "#66ff66"
+        }
+    }
+
+    object "Legend_Axis_Z" {
+        @hologram
+        @glowing
+        position: [-30, 11, -20]
+        geometry: "text"
+        properties: {
+            text: "Z: Task Motivation  (blue)"
+            fontSize: 14
+            color: "#6666ff"
+        }
+    }
+
+    object "Legend_Color" {
+        @hologram
+        position: [-30, 8.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Color: blended reward signal strength"
+            fontSize: 12
+            color: "#88aacc"
+        }
+    }
+
+    object "Legend_Size" {
+        @hologram
+        position: [-30, 7, -20]
+        geometry: "text"
+        properties: {
+            text: "Ring size: confidence / belief update"
+            fontSize: 12
+            color: "#88aacc"
+        }
+    }
+
+    object "Legend_Beacon" {
+        @hologram
+        position: [-30, 5.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Beacon: agent presence + link health"
+            fontSize: 12
+            color: "#88aacc"
+        }
+    }
+
+    // Axis indicator at origin
+    object "Axis_X_Line" @glowing {
+        position: [5, 0.5, 0]
+        geometry: "cylinder"
+        scale: [10, 0.05, 0.05]
+        color: "#ff6666"
+        emissive: "#ff6666"
+        emissiveIntensity: 0.6
+    }
+
+    object "Axis_Y_Line" @glowing {
+        position: [0, 5, 0]
+        geometry: "cylinder"
+        scale: [0.05, 10, 0.05]
+        color: "#66ff66"
+        emissive: "#66ff66"
+        emissiveIntensity: 0.6
+    }
+
+    object "Axis_Z_Line" @glowing {
+        position: [0, 0.5, 5]
+        geometry: "cylinder"
+        scale: [0.05, 0.05, 10]
+        color: "#6666ff"
+        emissive: "#6666ff"
+        emissiveIntensity: 0.6
+    }
+
+    // =========================================================================
+    // SECTION 2: AGENT MOTIVATION SPHERES
+    // Up to 6 agents can be visualized simultaneously.
+    // Each sphere uses @reactive to bind to live agent observation streams.
+    // Position encodes motivation type; color encodes signal strength.
+    // =========================================================================
+
+    object "Agent_1_Sphere" @glowing {
+        @animated(animation: "pulse", speed: 1.2)
+        @reactive(
+            source: "agent:1:motivation:signal",
+            property: "position",
+            map: { x: "intrinsic_reward", y: "social_reward", z: "task_reward" }
+        )
+        @reactive(
+            source: "agent:1:motivation:color",
+            property: "color",
+            map: { blend: "rgb(intrinsic, social, task)" }
+        )
+        position: [0, 1.5, 0]
+        geometry: "sphere"
+        scale: [1.0, 1.0, 1.0]
+        color: "#ff6699"
+        emissive: "#ff6699"
+        emissiveIntensity: 0.8
+    }
+
+    object "Agent_1_Ring" @glowing {
+        @animated(animation: "rotate", speed: 2.0, axis: [0.7, 0.3, 0.3])
+        @reactive(source: "agent:1:confidence", property: "scale", map: { ring_scale: "0.5 + confidence * 2.0" })
+        position: [0, 1.5, 0]
+        geometry: "torus"
+        scale: [1.2, 0.12, 1.2]
+        color: "#ff6699"
+        emissive: "#ff6699"
+        emissiveIntensity: 0.5
+        opacity: 0.7
+        rotation: [0, 0, 45]
+    }
+
+    object "Agent_1_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 0.8)
+        @reactive(source: "agent:1:connected", property: "color", map: { online: "#00ff88", offline: "#ff2244" })
+        position: [0, 3.5, 0]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Agent_1_Label" {
+        @hologram
+        @reactive(source: "agent:1:id")
+        position: [0, 0.2, 0]
+        geometry: "text"
+        properties: {
+            text: "Agent 1"
+            fontSize: 16
+            color: "#ffaacc"
+            align: "center"
+        }
+    }
+
+    object "Agent_1_Reward_Readout" {
+        @hologram
+        @reactive(source: "agent:1:motivation:signal")
+        position: [0, -1.2, 0]
+        geometry: "text"
+        properties: {
+            text: "intrinsic: --\nsocial: --\ntask: --"
+            fontSize: 12
+            color: "#99ccff"
+            align: "center"
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Agent 2 Sphere (displaced along X: intrinsic motivation focus)
+    // ──────────────────────────────────────────────────────────────────────
+
+    object "Agent_2_Sphere" @glowing {
+        @animated(animation: "pulse", speed: 1.3)
+        @reactive(
+            source: "agent:2:motivation:signal",
+            property: "position",
+            map: { x: "intrinsic_reward", y: "social_reward", z: "task_reward" }
+        )
+        @reactive(source: "agent:2:motivation:color", property: "color")
+        position: [8, 1.5, 4]
+        geometry: "sphere"
+        scale: [1.0, 1.0, 1.0]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.8
+    }
+
+    object "Agent_2_Ring" @glowing {
+        @animated(animation: "rotate", speed: 1.8, axis: [0.3, 0.7, 0.2])
+        position: [8, 1.5, 4]
+        geometry: "torus"
+        scale: [1.2, 0.12, 1.2]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.5
+        opacity: 0.7
+        rotation: [30, 0, 0]
+    }
+
+    object "Agent_2_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 0.9)
+        position: [8, 3.5, 4]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Agent_2_Label" {
+        @hologram
+        position: [8, 0.2, 4]
+        geometry: "text"
+        properties: {
+            text: "Agent 2"
+            fontSize: 16
+            color: "#ffccaa"
+            align: "center"
+        }
+    }
+
+    object "Agent_2_Reward_Readout" {
+        @hologram
+        position: [8, -1.2, 4]
+        geometry: "text"
+        properties: {
+            text: "intrinsic: --\nsocial: --\ntask: --"
+            fontSize: 12
+            color: "#99ccff"
+            align: "center"
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Agent 3 Sphere (displaced along Y: social motivation focus)
+    // ──────────────────────────────────────────────────────────────────────
+
+    object "Agent_3_Sphere" @glowing {
+        @animated(animation: "pulse", speed: 1.4)
+        @reactive(
+            source: "agent:3:motivation:signal",
+            property: "position",
+            map: { x: "intrinsic_reward", y: "social_reward", z: "task_reward" }
+        )
+        @reactive(source: "agent:3:motivation:color", property: "color")
+        position: [-8, 1.5, 4]
+        geometry: "sphere"
+        scale: [1.0, 1.0, 1.0]
+        color: "#66ff88"
+        emissive: "#66ff88"
+        emissiveIntensity: 0.8
+    }
+
+    object "Agent_3_Ring" @glowing {
+        @animated(animation: "rotate", speed: 2.2, axis: [0.2, 0.3, 0.7])
+        position: [-8, 1.5, 4]
+        geometry: "torus"
+        scale: [1.2, 0.12, 1.2]
+        color: "#66ff88"
+        emissive: "#66ff88"
+        emissiveIntensity: 0.5
+        opacity: 0.7
+        rotation: [60, 0, 0]
+    }
+
+    object "Agent_3_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 0.85)
+        position: [-8, 3.5, 4]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Agent_3_Label" {
+        @hologram
+        position: [-8, 0.2, 4]
+        geometry: "text"
+        properties: {
+            text: "Agent 3"
+            fontSize: 16
+            color: "#ccffaa"
+            align: "center"
+        }
+    }
+
+    object "Agent_3_Reward_Readout" {
+        @hologram
+        position: [-8, -1.2, 4]
+        geometry: "text"
+        properties: {
+            text: "intrinsic: --\nsocial: --\ntask: --"
+            fontSize: 12
+            color: "#99ccff"
+            align: "center"
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Agent 4 Sphere (displaced along Z: task motivation focus)
+    // ──────────────────────────────────────────────────────────────────────
+
+    object "Agent_4_Sphere" @glowing {
+        @animated(animation: "pulse", speed: 1.1)
+        @reactive(
+            source: "agent:4:motivation:signal",
+            property: "position",
+            map: { x: "intrinsic_reward", y: "social_reward", z: "task_reward" }
+        )
+        @reactive(source: "agent:4:motivation:color", property: "color")
+        position: [0, 1.5, 10]
+        geometry: "sphere"
+        scale: [1.0, 1.0, 1.0]
+        color: "#6699ff"
+        emissive: "#6699ff"
+        emissiveIntensity: 0.8
+    }
+
+    object "Agent_4_Ring" @glowing {
+        @animated(animation: "rotate", speed: 1.6, axis: [0.4, 0.2, 0.5])
+        position: [0, 1.5, 10]
+        geometry: "torus"
+        scale: [1.2, 0.12, 1.2]
+        color: "#6699ff"
+        emissive: "#6699ff"
+        emissiveIntensity: 0.5
+        opacity: 0.7
+        rotation: [90, 0, 0]
+    }
+
+    object "Agent_4_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.0)
+        position: [0, 3.5, 10]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Agent_4_Label" {
+        @hologram
+        position: [0, 0.2, 10]
+        geometry: "text"
+        properties: {
+            text: "Agent 4"
+            fontSize: 16
+            color: "#aaccff"
+            align: "center"
+        }
+    }
+
+    object "Agent_4_Reward_Readout" {
+        @hologram
+        position: [0, -1.2, 10]
+        geometry: "text"
+        properties: {
+            text: "intrinsic: --\nsocial: --\ntask: --"
+            fontSize: 12
+            color: "#99ccff"
+            align: "center"
+        }
+    }
+
+    // =========================================================================
+    // SECTION 3: MOTIVATION GRADIENT FLOWS (PARTICLES)
+    // Animated bezier curves showing reward signal descent trajectory
+    // (gradient of motivation field). Each agent's "flow" path pulses with
+    // signal strength.
+    // =========================================================================
+
+    object "Flow_1_Descent" @glowing {
+        @animated(animation: "flow", speed: 2.5, direction: "forward")
+        @bezier(start: [0, 1.5, 0], control: [0, 0.8, -3], end: [0, 0.2, -8])
+        geometry: "tube"
+        scale: [0.06, 0.06, 0.06]
+        color: "#ff6699"
+        emissive: "#ff6699"
+        emissiveIntensity: 0.6
+        opacity: 0.6
+    }
+
+    object "Flow_2_Descent" @glowing {
+        @animated(animation: "flow", speed: 2.3, direction: "forward")
+        @bezier(start: [8, 1.5, 4], control: [12, 0.8, 6], end: [14, 0.2, 8])
+        geometry: "tube"
+        scale: [0.06, 0.06, 0.06]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.6
+        opacity: 0.6
+    }
+
+    object "Flow_3_Descent" @glowing {
+        @animated(animation: "flow", speed: 2.4, direction: "forward")
+        @bezier(start: [-8, 1.5, 4], control: [-12, 0.8, 6], end: [-14, 0.2, 8])
+        geometry: "tube"
+        scale: [0.06, 0.06, 0.06]
+        color: "#66ff88"
+        emissive: "#66ff88"
+        emissiveIntensity: 0.6
+        opacity: 0.6
+    }
+
+    object "Flow_4_Descent" @glowing {
+        @animated(animation: "flow", speed: 2.2, direction: "forward")
+        @bezier(start: [0, 1.5, 10], control: [0, 0.8, 14], end: [0, 0.2, 18])
+        geometry: "tube"
+        scale: [0.06, 0.06, 0.06]
+        color: "#6699ff"
+        emissive: "#6699ff"
+        emissiveIntensity: 0.6
+        opacity: 0.6
+    }
+
+    // =========================================================================
+    // SECTION 4: INTER-AGENT COMMUNICATION ARCS
+    // Bidirectional arcs between agents showing social motivation links
+    // (when agents are collaborating or attending to each other).
+    // Opacity and color intensity scale with link strength.
+    // =========================================================================
+
+    object "Link_1_2" @glowing {
+        @animated(animation: "flow", speed: 1.5, direction: "bidirectional")
+        @bezier(start: [0, 1.5, 0], control: [4, 3.5, 2], end: [8, 1.5, 4])
+        geometry: "tube"
+        scale: [0.04, 0.04, 0.04]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.4
+        opacity: 0.4
+    }
+
+    object "Link_1_3" @glowing {
+        @animated(animation: "flow", speed: 1.4, direction: "bidirectional")
+        @bezier(start: [0, 1.5, 0], control: [-4, 3.5, 2], end: [-8, 1.5, 4])
+        geometry: "tube"
+        scale: [0.04, 0.04, 0.04]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.4
+        opacity: 0.4
+    }
+
+    object "Link_1_4" @glowing {
+        @animated(animation: "flow", speed: 1.6, direction: "bidirectional")
+        @bezier(start: [0, 1.5, 0], control: [0, 3.5, 5], end: [0, 1.5, 10])
+        geometry: "tube"
+        scale: [0.04, 0.04, 0.04]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.4
+        opacity: 0.4
+    }
+
+    object "Link_2_3" @glowing {
+        @animated(animation: "flow", speed: 1.3, direction: "bidirectional")
+        @bezier(start: [8, 1.5, 4], control: [0, 3.5, 4], end: [-8, 1.5, 4])
+        geometry: "tube"
+        scale: [0.04, 0.04, 0.04]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.4
+        opacity: 0.4
+    }
+
+    // =========================================================================
+    // SECTION 5: REAL-TIME GLOBAL STATISTICS & HEATMAP
+    // Aggregate motivation statistics visible at [+30, 10, -20]
+    // =========================================================================
+
+    object "Stats_Panel_BG" {
+        @hologram
+        position: [30, 10, -20]
+        geometry: "plane"
+        scale: [14, 14, 1]
+        color: "#0a0f20"
+        opacity: 0.85
+    }
+
+    object "Stats_Title" {
+        @hologram
+        position: [30, 18, -20]
+        geometry: "text"
+        properties: {
+            text: "MOTIVATION STATISTICS"
+            fontSize: 22
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Stats_Avg_Intrinsic" {
+        @hologram
+        @reactive(source: "motivation:global:avg_intrinsic")
+        position: [30, 15.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Avg Intrinsic: --"
+            fontSize: 14
+            color: "#ff6666"
+            align: "center"
+        }
+    }
+
+    object "Stats_Avg_Social" {
+        @hologram
+        @reactive(source: "motivation:global:avg_social")
+        position: [30, 13.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Avg Social: --"
+            fontSize: 14
+            color: "#66ff66"
+            align: "center"
+        }
+    }
+
+    object "Stats_Avg_Task" {
+        @hologram
+        @reactive(source: "motivation:global:avg_task")
+        position: [30, 11.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Avg Task: --"
+            fontSize: 14
+            color: "#6666ff"
+            align: "center"
+        }
+    }
+
+    object "Stats_Convergence" {
+        @hologram
+        @reactive(source: "motivation:global:convergence_state")
+        position: [30, 9.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Convergence: --"
+            fontSize: 14
+            color: "#ccaa66"
+            align: "center"
+        }
+    }
+
+    object "Stats_Timestamp" {
+        @hologram
+        @reactive(source: "motivation:global:timestamp")
+        position: [30, 7.5, -20]
+        geometry: "text"
+        properties: {
+            text: "Updated: --"
+            fontSize: 12
+            color: "#334455"
+            align: "center"
+        }
+    }
+
+    // =========================================================================
+    // SECTION 6: LOGIC — Agent observation streaming & binding
+    // =========================================================================
+
+    logic "MotivationObserver" {
+        trigger: { type: "interval", every: 100 }
+
+        actions: [
+            {
+                fetch: "https://aiworkspace-production.up.railway.app/api/agents/observations"
+                method: "GET"
+                into: "agent:*:motivation:signal"
+                transform: {
+                    signal: { intrinsic_reward: "$.intrinsic", social_reward: "$.social", task_reward: "$.task" }
+                }
+            },
+            {
+                fetch: "https://aiworkspace-production.up.railway.app/api/agents/confidence"
+                method: "GET"
+                into: "agent:*:confidence"
+                transform: { confidence: "$.belief_update_magnitude" }
+            },
+            {
+                fetch: "https://aiworkspace-production.up.railway.app/api/agents/connectivity"
+                method: "GET"
+                into: "agent:*:connected"
+                transform: { connected: { statusCode: 200 } }
+            }
+        ]
+    }
+
+    logic "GlobalMotivationAggregator" {
+        trigger: { type: "state_change", watch: ["agent:1:motivation:signal", "agent:2:motivation:signal", "agent:3:motivation:signal", "agent:4:motivation:signal"] }
+
+        actions: [
+            {
+                compute: "average"
+                sources: ["agent:1:motivation:signal:intrinsic_reward", "agent:2:motivation:signal:intrinsic_reward", "agent:3:motivation:signal:intrinsic_reward", "agent:4:motivation:signal:intrinsic_reward"]
+                into: "motivation:global:avg_intrinsic"
+                format: "{value:.2f}"
+            },
+            {
+                compute: "average"
+                sources: ["agent:1:motivation:signal:social_reward", "agent:2:motivation:signal:social_reward", "agent:3:motivation:signal:social_reward", "agent:4:motivation:signal:social_reward"]
+                into: "motivation:global:avg_social"
+                format: "{value:.2f}"
+            },
+            {
+                compute: "average"
+                sources: ["agent:1:motivation:signal:task_reward", "agent:2:motivation:signal:task_reward", "agent:3:motivation:signal:task_reward", "agent:4:motivation:signal:task_reward"]
+                into: "motivation:global:avg_task"
+                format: "{value:.2f}"
+            },
+            {
+                compute: "timestamp_now"
+                into: "motivation:global:timestamp"
+                format: "HH:mm:ss UTC"
+            }
+        ]
+    }
+}
