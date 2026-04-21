@@ -243,6 +243,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** “Emergent societies” need **persistent norms** (market rules, reputation decay, language tokens) compiled from data, not one-off dialogue trees. HoloScript should treat **culture** as **CRDT-backed institutions**—contracts, memetic tags, and memory shards that survive session restarts—while traits gate who can propose amendments. Benchmarks should report **social elasticity**: how often norms change vs physics state changes, to separate theater from emergence.
 
+### S.010 | Scenario marginal cost (democratization) | ⚡0.85
+
+**Research capture:** Hand-built VR scenarios used to mean bespoke USD prep and proprietary toolchains—**high fixed cost per scenario**. Declarative HoloScript + trait compilers collapse repeated labor into **parameter sweeps** (same `@scene` graph, different datasets). The metric to watch is **$/minute of interactive experience** after amortizing toolchain: when regeneration is cheap, marginal cost approaches **hosting + assets**, not engineering hours.
+
 ---
 
 ## Next Optimization Opportunities
