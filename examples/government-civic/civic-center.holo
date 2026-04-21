@@ -1,0 +1,151 @@
+composition "CivicCenter" {
+  // Government / Civic XR scene — powered by @holoscript/plugin-government-civic
+  // Demonstrates: permits, public meetings, service requests, voting records, and compliance.
+
+  environment {
+    skybox: "city-day"
+    ambient_light: 0.55
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.8 }
+  }
+
+  // ── Permit Kiosk ─────────────────────────────────────────────────────────────
+  template "PermitKiosk" {
+    geometry: "cube"
+    color: "#1a3a5c"
+    @permit {
+      applicationNumber: "P-2026-001"
+      permitType: "building"
+      applicantName: "Sunrise Development LLC"
+      projectAddress: "400 Oak Ave, Block 4, Parcel 04-2819-0040"
+      submittedAt: "2026-04-01T09:00:00Z"
+      reviewDeadlineDays: 30
+      showStatusBadge: true
+    }
+    @pointable
+    @glowing { color: "#4a9eff", intensity: 0.3 }
+  }
+
+  object "NorthPermitKiosk" using "PermitKiosk" {
+    position: [-6, 1, 0]
+    scale: [1, 2, 0.5]
+    state { label: "Building Permit #P-2026-001" }
+  }
+
+  // ── City Council Chamber ──────────────────────────────────────────────────────
+  template "CouncilChamber" {
+    geometry: "model/council-chamber.glb"
+    @public_meeting {
+      meetingType: "city_council"
+      meetingId: "CC-2026-04-22"
+      title: "April 22, 2026 — Regular Session"
+      scheduledAt: "2026-04-22T18:00:00Z"
+      location: "City Hall, Room 101"
+      quorumRequired: 4
+      membersPresent: 5
+      publicCommentMinutesPerSpeaker: 3
+      streamUrl: "https://city.example.gov/livestream"
+      accessibilityFeatures: ["captioning", "sign_language", "hearing_loop"]
+      agenda: [
+        { id: "1", title: "Call to Order", type: "action", durationMinutes: 5, requiresVote: false },
+        { id: "2", title: "Public Comment Period", type: "public_comment", durationMinutes: 30, requiresVote: false },
+        { id: "3", title: "Budget Amendment FY2026", type: "vote", durationMinutes: 20, requiresVote: true },
+        { id: "4", title: "Zoning Variance — 400 Oak Ave", type: "vote", durationMinutes: 15, requiresVote: true },
+        { id: "5", title: "Adjournment", type: "action", durationMinutes: 5, requiresVote: false }
+      ]
+    }
+    @spatial_audio { radius: 15, rolloff: "linear" }
+    @networked
+  }
+
+  object "MainChamber" using "CouncilChamber" {
+    position: [0, 0, -10]
+  }
+
+  // ── 311 Service Request Board ─────────────────────────────────────────────────
+  template "ServicePanel" {
+    geometry: "plane"
+    color: "#f5f0e8"
+    @service_request {
+      requestId: "SR-2026-1042"
+      category: "pothole"
+      description: "Large pothole on Main St between 3rd and 4th Ave, causing vehicle damage"
+      location: "Main St & 3rd Ave, Sector 4"
+      coordinates: { lat: 37.7749, lng: -122.4194 }
+      submittedAt: "2026-04-18T14:30:00Z"
+      priority: "high"
+      targetResolutionDays: 3
+      department: "Public Works"
+      isAnonymous: false
+    }
+    @pointable
+  }
+
+  object "ServiceRequestBoard" using "ServicePanel" {
+    position: [6, 1.5, 0]
+    scale: [3, 2, 0.05]
+    state { label: "311 Requests — Today" }
+  }
+
+  // ── Voting Record Display ─────────────────────────────────────────────────────
+  template "VotingDisplay" {
+    geometry: "plane"
+    color: "#0d2340"
+    @voting_record {
+      voteId: "V-2026-04-22-001"
+      voteType: "council_vote"
+      title: "FY2026 Budget Amendment — $2.1M Infrastructure"
+      description: "Allocate $2.1M from general fund reserves for emergency road infrastructure repairs"
+      motionText: "Move to adopt Resolution 2026-19 amending the FY2026 budget by $2.1M for infrastructure"
+      scheduledAt: "2026-04-22T19:15:00Z"
+      requiredMajority: "simple"
+      eligibleVoters: ["CM-Rivera", "CM-Chen", "CM-Okonkwo", "CM-Patel", "Mayor-Williams"]
+      showLiveResults: true
+      showMemberVotes: true
+    }
+    @glowing { color: "#ffd700", intensity: 0.2 }
+    @pointable
+  }
+
+  object "VoteBoard" using "VotingDisplay" {
+    position: [0, 2, 5]
+    scale: [4, 2.5, 0.05]
+  }
+
+  // ── Compliance Status ─────────────────────────────────────────────────────────
+  template "ComplianceMonitor" {
+    geometry: "cube"
+    color: "#1c4520"
+    @civic_compliance {
+      entityId: "city-portal-main"
+      entityType: "website"
+      frameworks: ["ADA", "WCAG", "FOIA", "section508"]
+      foiaEnabled: true
+      foiaResponseDaysLimit: 20
+      accessibilityStandard: "WCAG_2_1_AA"
+      auditLogRetentionDays: 2555
+      isPublicRecord: true
+    }
+    @pointable
+    @glowing { color: "#22c55e", intensity: 0.25 }
+  }
+
+  object "ComplianceTerminal" using "ComplianceMonitor" {
+    position: [0, 1, 8]
+    scale: [1, 1.8, 0.4]
+    state { label: "Compliance Status: ADA | WCAG | FOIA" }
+  }
+
+  // ── Spatial grouping ─────────────────────────────────────────────────────────
+  spatial_group "MainFloor" {
+    children: ["NorthPermitKiosk", "ServiceRequestBoard", "VoteBoard", "ComplianceTerminal"]
+  }
+
+  spatial_group "Chamber" {
+    children: ["MainChamber"]
+  }
+}

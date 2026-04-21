@@ -1,0 +1,10 @@
+{
+  "name": "@holoscript/plugin-government-civic",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for government and civic services — permits, public meetings, service requests, voting records, and ADA/FOIA compliance.",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "license": "MIT"
+}
