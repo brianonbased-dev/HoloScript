@@ -248,7 +248,7 @@ Skills are concentrated knowledge files — the best single-file summary of each
 | Codebase intelligence | `.claude/skills/holoscript-absorb/SKILL.md` | Graph scanning, semantic search, GraphRAG, impact analysis |
 | HoloMesh agent network | `.claude/skills/holomesh/SKILL.md` | Agent registration, gossip, CRDT sync, trust, reputation tiers |
 | Knowledge oracle | `.claude/skills/holomesh-oracle/SKILL.md` | Oracle research findings, thermodynamic trust, neuroscience model |
-| Team coordination | `.claude/skills/room/SKILL.md` | Board API, task lifecycle, knowledge, messaging, modes |
+| Team coordination | `~/.ai-ecosystem/.claude/skills/room/SKILL.md` | Board API, **`/room add-tasks`** (`POST …/board`), task lifecycle, modes; never fabricate `task_*` IDs (phantom-ID pitfall) |
 | Codebase scanning | `.claude/skills/scan/SKILL.md` | TODO/FIXME, git health, code quality, coverage, knowledge gaps |
 | Neuroscience / SNN | `.claude/skills/neuroscience/SKILL.md` | SNN-WebGPU, cognitive architecture, memory consolidation |
 | Documentation audit | `.claude/skills/documenter/SKILL.md` | Voice rules, staleness, version consistency, agent-first writing |
