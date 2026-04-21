@@ -219,6 +219,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Accessibility stops being a post-pass when **focus order, semantics, and motor affordances** are fields on UI / spatial traits (not a separate “skin”). Compilers should map the same declaration to **ARIA-like roles on web**, **VoiceOver labels on Apple**, and **controller-first focus paths on XR** without authors maintaining three checklists. Haptics, dwell-click, and resize hit targets become **variant dimensions** of `@tactile_ui` (or successor traits) so benchmark outputs can report **which access guarantees survived** per target.
 
+### S.004 | Semantics in source, not reconstructed from pixels | ⚡0.9
+
+**Research capture:** Vision models that infer objects from RGB(-D) keep rediscovering structure the engine already knew. HoloScript’s bet is **traits + `.holo` graphs as ground truth**: agents train against **symbolic scene graphs** (entity IDs, affordances, physics stubs) instead of re-labeling meshes. That shrinks sample complexity for RL/IL and makes evaluations **reproducible** (same scene hash → same semantics). Compilers should export **parallel JSON/Proto views** of traits for offline training pipelines without rasterizing first.
+
 ---
 
 ## Next Optimization Opportunities
