@@ -137,6 +137,19 @@ else
     echo -e "  ${GREEN}✓${NC} No stale build artifacts"
 fi
 
+# Gate 5b: Tracked emit artifacts must match scripts/allowlists/package-src-emit-legacy.txt
+# (CI runs the same script; keeps allowlist honest when removing legacy shadows).
+echo "  ├─ Tracked src emit allowlist (packages/*/src/)..."
+VERIFY_SRC_OUT=$(run_with_timeout 20 node scripts/verify-no-js-in-package-src.mjs 2>&1)
+VERIFY_SRC_STATUS=$?
+if [ "$VERIFY_SRC_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ verify-no-js-in-package-src failed${NC}"
+    echo "$VERIFY_SRC_OUT"
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Emit allowlist OK"
+fi
+
 # Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 

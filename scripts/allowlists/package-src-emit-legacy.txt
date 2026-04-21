@@ -1,0 +1,17 @@
+# Frozen allowlist: committed .js / .d.ts under packages/*/src/ only.
+# New entries require founder approval (shadow files break TS resolution).
+# Remove a line when the file is deleted from the repo.
+packages/cli/src/HoloScriptCLI.d.ts
+packages/cli/src/args.d.ts
+packages/cli/src/cli.d.ts
+packages/cli/src/formatters.d.ts
+packages/cli/src/index.d.ts
+packages/cli/src/lsp/server.d.ts
+packages/cli/src/lsp/server.js
+packages/cli/src/repl.d.ts
+packages/engine/src/wgsl-raw.d.ts
+packages/linter/src/index.d.ts
+packages/linter/src/index.js.map
+packages/studio/src/lib/empty-module.js
+packages/visualizer-client/src/vite-env.d.ts
+packages/vscode-extension/src/types/holoscript-sdk.d.ts

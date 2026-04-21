@@ -58,6 +58,9 @@ jobs:
       - name: Verify Claude plugin.json matches .claude/skills
         run: pnpm verify:claude-plugin-skills
 
+      - name: Verify packages/*/src/ has no new JS or .d.ts shadows (allowlisted legacy only)
+        run: pnpm verify:package-src-no-emit
+
       - name: Check hotspot test coverage
         run: pnpm tests:hotspots
 

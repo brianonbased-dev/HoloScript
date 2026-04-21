@@ -561,7 +561,32 @@ if (!FLAGS.json) {
   console.log(C.dim('=' .repeat(50)));
 }
 
+function checkPackageSrcEmitAllowlist() {
+  const start = Date.now();
+  const script = join(__dirname, 'verify-no-js-in-package-src.mjs');
+  const result = spawnSync(process.execPath, [script], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    timeout: 120_000,
+    stdio: 'pipe',
+  });
+  const duration = Date.now() - start;
+  const out = `${result.stderr || ''}${result.stdout || ''}`.trim();
+  if (result.status === 0) {
+    record('package_src_emit', 'pass', 'packages/*/src/ emit artifacts match allowlist', [], duration);
+  } else {
+    record(
+      'package_src_emit',
+      'fail',
+      'JS or .d.ts under packages/*/src/ outside allowlist (or stale allowlist line)',
+      [{ file: script, reason: out.slice(0, 2000) || `exit ${result.status}` }],
+      duration
+    );
+  }
+}
+
 if (shouldRun('lockfile')) checkLockfile();
+if (shouldRun('package_src_emit') || shouldRun('src_emit')) checkPackageSrcEmitAllowlist();
 if (shouldRun('imports') || shouldRun('prefixed_imports')) checkPrefixedImports();
 if (shouldRun('loaders') || shouldRun('loader_imports')) checkLoaderImports();
 if (shouldRun('typescript') || shouldRun('ts')) checkTypeScript();
