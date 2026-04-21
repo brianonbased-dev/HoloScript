@@ -76,6 +76,8 @@ Decide, then tell the user what you decided and why. Stop at first match:
 
 Before self-authorizing an operation, check **[Action reversibility + blast registry](docs/team/ACTION_REVERSIBILITY_REGISTRY.md)**. Anything outside the table is founder-gated until the registry is updated for that session.
 
+In **multi-round peer** loops (audit / review arcs), use **[Peer-drift detection](docs/team/PEER_DRIFT_DETECTION.md)** so later rounds cannot silently contradict verified state or claim “fixed” without evidence.
+
 ## Key Principles
 
 - **Simulation-first.** Digital twin before physical twin.
