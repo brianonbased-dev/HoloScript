@@ -78,6 +78,8 @@ Before self-authorizing an operation, check **[Action reversibility + blast regi
 
 In **multi-round peer** loops (audit / review arcs), use **[Peer-drift detection](docs/team/PEER_DRIFT_DETECTION.md)** so later rounds cannot silently contradict verified state or claim “fixed” without evidence.
 
+Before **strategic** (architecture / scope) calls, follow **[Precedent-query-first](docs/team/PRECEDENT_QUERY_FIRST.md)** — search team knowledge, default to precedent when present, ping the founder only when the store has nothing relevant.
+
 ## Key Principles
 
 - **Simulation-first.** Digital twin before physical twin.
