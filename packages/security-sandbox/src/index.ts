@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import { VM } from 'vm2';
+import * as nodeVm from 'node:vm';
 import { parseHoloStrict, HoloScriptPlusParser } from '@holoscript/core';
 import { HoloBytecodeBuilder, HoloVM } from '@holoscript/holo-vm';
 
@@ -270,9 +270,10 @@ export class HoloScriptSandbox {
     // has to be broken to reach the host. Reviewers: do not treat a clever
     // regex bypass as a vulnerability; evaluate against the actual boundary.
     //
-    // Future note: SEC-T16 migrates vm2 → isolated-vm. At that point the REAL
-    // boundary moves to a true V8 isolate (OS-level), and this layer remains
-    // the same first-pass heuristic against a stronger underlying boundary.
+    // SEC-T16 DONE: vm2 replaced with node:vm hardened runInContext shim.
+    // The REAL boundary is now node:vm's isolated context (no prototype chain
+    // bleed between the guest context and host). This heuristic layer remains
+    // the same first-pass scan against that hardened underlying boundary.
     //
     // Detects attempts like:
     //   ({}).__proto__.constructor.constructor('return process')()
@@ -397,8 +398,8 @@ export class HoloScriptSandbox {
 
     // Step 2: Create isolated VM
     // SEC-01..SEC-04: Shadow potentially leaked host globals inside the VM.
-    // vm2 does not expose process/require/Buffer by default, but explicit overrides
-    // prevent a future vm2 upgrade from accidentally re-exposing them.
+    // node:vm does not expose process/require/Buffer by default, but explicit
+    // overrides provide defense-in-depth and human-readable rejection messages.
     const blockedGlobal = (name: string) => {
       const err = () => {
         throw new Error(`${name} is not accessible in the HoloScript security sandbox`);
@@ -407,42 +408,41 @@ export class HoloScriptSandbox {
       return new Proxy({}, { get: err, apply: err, construct: err });
     };
 
-    const vm = new VM({
-      timeout: this.options.timeout,
-      wasm: false,
-      sandbox: {
-        ...this.options.sandbox,
-        console: {
-          log: (...args: unknown[]) => console.log('[SANDBOX]', ...args),
-          error: (...args: unknown[]) => console.error('[SANDBOX]', ...args),
-          warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
-        },
-        // SEC-01: Shadow host WebAssembly; no guest wasm compile/instantiate.
-        WebAssembly: createBlockedWebAssemblySurface(),
-        // SEC-02: Shadow process — prevents env var exfiltration.
-        process: blockedGlobal('process'),
-        // SEC-02: Shadow globalThis — prevents re-resolving blocked globals.
-        globalThis: blockedGlobal('globalThis'),
-        // SEC-03: Shadow require/Buffer.
-        require: blockedGlobal('require'),
-        Buffer: blockedGlobal('Buffer'),
-        // SEC-04: Shadow Atomics.
-        Atomics: blockedGlobal('Atomics'),
-        // SEC-04: Ensure SharedArrayBuffer is not constructible.
-        SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
-        // SEC-T15: Shadow Reflect — prevents Reflect.getPrototypeOf,
-        // Reflect.construct(Function,…), Reflect.ownKeys, etc. from reaching
-        // the host prototype chain. vm2 already restricts this at runtime;
-        // shadowing here closes off the meta-programming surface at the VM
-        // boundary as well (defense-in-depth — the real boundary is vm2's
-        // frozen context; see SEC-T16 for the isolated-vm migration).
-        Reflect: blockedGlobal('Reflect'),
+    // SEC-T16: node:vm hardened runInContext shim replaces abandoned vm2.
+    // vm.createContext() creates an entirely separate V8 context — globals
+    // set here are the *only* globals available to guest code, so prototype
+    // chain bleed from the host heap is not possible.
+    const sandboxContext: Record<string, unknown> = {
+      ...this.options.sandbox,
+      console: {
+        log: (...args: unknown[]) => console.log('[SANDBOX]', ...args),
+        error: (...args: unknown[]) => console.error('[SANDBOX]', ...args),
+        warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
       },
-    });
+      // SEC-01: Shadow host WebAssembly; no guest wasm compile/instantiate.
+      WebAssembly: createBlockedWebAssemblySurface(),
+      // SEC-02: Shadow process — prevents env var exfiltration.
+      process: blockedGlobal('process'),
+      // SEC-02: Shadow globalThis — prevents re-resolving blocked globals.
+      globalThis: blockedGlobal('globalThis'),
+      // SEC-03: Shadow require/Buffer.
+      require: blockedGlobal('require'),
+      Buffer: blockedGlobal('Buffer'),
+      // SEC-04: Shadow Atomics.
+      Atomics: blockedGlobal('Atomics'),
+      // SEC-04: Ensure SharedArrayBuffer is not constructible.
+      SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
+      // SEC-T15: Shadow Reflect — prevents Reflect.getPrototypeOf,
+      // Reflect.construct(Function,…), Reflect.ownKeys, etc.
+      Reflect: blockedGlobal('Reflect'),
+    };
+    const context = nodeVm.createContext(sandboxContext);
 
-    // Step 3: Execute in VM
+    // Step 3: Execute in isolated context — compilation and run both inside
+    // the try block so SyntaxError from invalid guest code is caught here.
     try {
-      const result = vm.run(code) as T;
+      const script = new nodeVm.Script(code);
+      const result = script.runInContext(context, { timeout: this.options.timeout }) as T;
 
       this.log({
         source: meta.source,
@@ -461,22 +461,16 @@ export class HoloScriptSandbox {
         },
       };
     } catch (error) {
-      // vm2 throws errors from a different V8 realm — instanceof checks fail
-      const errObj = error as {
-        message?: string;
-        code?: string;
-        stack?: string;
-        constructor?: { name?: string };
-      };
-      const errorMessage: string = errObj?.message ?? 'Unknown execution error';
-      const errorCode: string | undefined = errObj?.code;
-      const errorStack: string | undefined = errObj?.stack;
+      // node:vm throws proper JS errors from the same realm — instanceof works.
       const isTimeout =
-        errorCode === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
-        errorMessage.toLowerCase().includes('timed out') ||
-        errorMessage.toLowerCase().includes('timeout');
-      const isSyntaxError =
-        errObj?.constructor?.name === 'SyntaxError' || errorMessage.includes('Unexpected token');
+        (error as { code?: string })?.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
+        (error instanceof Error && (
+          error.message.toLowerCase().includes('timed out') ||
+          error.message.toLowerCase().includes('timeout')
+        ));
+      const isSyntaxError = error instanceof SyntaxError;
+      const errorMessage: string = error instanceof Error ? error.message : 'Unknown execution error';
+      const errorStack: string | undefined = error instanceof Error ? error.stack : undefined;
 
       if (isTimeout) {
         this.log({

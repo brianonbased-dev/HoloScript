@@ -19,8 +19,7 @@
   "dependencies": {
     "@holoscript/core": "workspace:^",
     "@holoscript/engine": "workspace:^",
-    "@holoscript/holo-vm": "workspace:^",
-    "vm2": "^3.9.19"
+    "@holoscript/holo-vm": "workspace:^"
   },
   "devDependencies": {
     "@holoscript/framework": "workspace:^",

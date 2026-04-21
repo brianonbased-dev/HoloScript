@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: false,
-  external: ['vm2', '@holoscript/core'],
+  external: ['@holoscript/core'],
 });
