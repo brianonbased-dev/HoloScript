@@ -19,6 +19,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { corsHeaders } from '../../_lib/cors';
 const execFileAsync = promisify(execFile);
 
 function validatePath(
@@ -127,13 +128,9 @@ export async function GET(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
