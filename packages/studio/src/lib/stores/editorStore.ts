@@ -32,6 +32,8 @@ interface EditorState {
   studioMode: StudioMode;
   /** Geometric pipeline emphasis: Draft blockout, shaded Mesh, or Sim (final + sim panel). */
   geometricViewMode: GeometricViewMode;
+  /** Indeterminate bar while batching maturity / viewport prep (draft→mesh, etc.). */
+  geometricPipelineTransitioning: boolean;
   showBenchmark: boolean;
   showPerfOverlay: boolean;
   setActivePanel: (panel: EditorPanel) => void;
@@ -42,6 +44,7 @@ interface EditorState {
   setArtMode: (mode: ArtMode) => void;
   setStudioMode: (mode: StudioMode) => void;
   setGeometricViewMode: (mode: GeometricViewMode) => void;
+  setGeometricPipelineTransitioning: (v: boolean) => void;
   setShowGovernancePanel: (v: boolean) => void;
   setShowConformancePanel: (v: boolean) => void;
   setDiffModeHash: (hash: string | null) => void;
@@ -85,6 +88,7 @@ export const useEditorStore = create<EditorState>()(
       artMode: 'none',
       studioMode: getInitialStudioMode(),
       geometricViewMode: getInitialGeometricViewMode(),
+      geometricPipelineTransitioning: false,
       showBenchmark: false,
       showPerfOverlay: false,
       setActivePanel: (activePanel) => set({ activePanel }),
@@ -109,6 +113,8 @@ export const useEditorStore = create<EditorState>()(
         }
         set({ geometricViewMode });
       },
+      setGeometricPipelineTransitioning: (geometricPipelineTransitioning) =>
+        set({ geometricPipelineTransitioning }),
       setShowBenchmark: (showBenchmark) => set({ showBenchmark }),
       togglePerfOverlay: () => set((s) => ({ showPerfOverlay: !s.showPerfOverlay })),
     }),
