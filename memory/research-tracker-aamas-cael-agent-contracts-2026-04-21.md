@@ -1,6 +1,7 @@
 # Research tracker — CAEL agent contracts (AAMAS Oct 2026)
 
 **Board:** `task_1776383022431_h3un`  
+**Last reviewed:** 2026-04-21  
 **Venue:** AAMAS (Oct 2026) — *living draft, pre-submission*  
 **Checklist discipline:** `docs/paper-program/D011_FOUR_GATE_CHECKLIST.md` · `docs/NUMBERS.md` (no unverified counts).
 
