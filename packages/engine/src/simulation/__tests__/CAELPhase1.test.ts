@@ -477,3 +477,243 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     replayed.dispose();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// Option C — useCryptographicHash feature flag (2026-04-20 SECURITY wave)
+//
+// Integration tests verifying the flag wires correctly through the three
+// contract hash sites (hashGeometry, computeStateDigest, hashCAELEntry):
+//
+//   Prereq 1: per-recorder flag scope — two recorders in the same
+//             process can have different flag values.
+//   Prereq 2: all-or-nothing consistency across the three hash sites —
+//             no site falls back silently when the flag is on.
+//   Prereq 3: cael.init.payload.hashMode self-identification; mid-trace
+//             mode tampering is caught by the shape check in
+//             verifyCAELHashChain.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Option C — useCryptographicHash feature flag', () => {
+  it('defaults to FNV-1a (Option C: fast default, SHA-256 opt-in)', () => {
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    recorder.finalize();
+    const trace = recorder.getTrace();
+    expect(trace[0].payload.hashMode).toBe('fnv1a');
+    for (const entry of trace) {
+      expect(entry.hash).toMatch(/^cael-[0-9a-f]{8}$/);
+    }
+  });
+
+  it('useCryptographicHash: true switches to SHA-256 (Prereq 2 — all three sites)', () => {
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { fixedDt: 0.01, useCryptographicHash: true },
+    );
+    recorder.step(0.03);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+
+    // Site 1: hashCAELEntry → 'cael-sha-<64hex>'
+    for (const entry of trace) {
+      expect(entry.hash).toMatch(/^cael-sha-[0-9a-f]{64}$/);
+    }
+    // Site 2: hashGeometry → 'geo-sha-<64hex>-...'
+    expect(trace[0].payload.geometryHash).toMatch(/^geo-sha-[0-9a-f]{64}-\d+n-\d+e$/);
+    // Site 3: computeStateDigest → raw 64 hex
+    const stepEvent = trace.find((e) => e.event === 'step');
+    expect(stepEvent).toBeDefined();
+    const digests = stepEvent!.payload.stateDigests as string[];
+    expect(Array.isArray(digests)).toBe(true);
+    expect(digests.length).toBeGreaterThan(0);
+    for (const d of digests) {
+      expect(d).toMatch(/^[0-9a-f]{64}$/);
+    }
+    // Self-identification (Prereq 3)
+    expect(trace[0].payload.hashMode).toBe('sha256');
+  });
+
+  it('Prereq 2 consistency — no site silently falls back to FNV-1a when flag=true', () => {
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { fixedDt: 0.01, useCryptographicHash: true },
+    );
+    recorder.step(0.05);
+    recorder.step(0.03);
+    recorder.logInteraction('toggle', { v: 1 });
+    recorder.finalize();
+
+    const observed: string[] = [];
+    for (const entry of recorder.getTrace()) {
+      observed.push(entry.hash);
+      const geom = entry.payload.geometryHash;
+      if (typeof geom === 'string' && geom !== 'no-geometry') observed.push(geom);
+      const digests = entry.payload.stateDigests;
+      if (Array.isArray(digests)) {
+        for (const d of digests) if (typeof d === 'string') observed.push(d);
+      }
+    }
+
+    const fnvPatterns = [/^[0-9a-f]{8}$/, /^cael-[0-9a-f]{8}$/, /^geo-[0-9a-f]{8}-/];
+    const shaPatterns = [/^[0-9a-f]{64}$/, /^cael-sha-[0-9a-f]{64}$/, /^geo-sha-[0-9a-f]{64}-/];
+
+    const violations = observed.filter((h) => fnvPatterns.some((p) => p.test(h)));
+    expect(violations).toEqual([]);
+    const allSha = observed.every((h) => shaPatterns.some((p) => p.test(h)));
+    expect(allSha).toBe(true);
+    expect(observed.length).toBeGreaterThan(recorder.getTrace().length);
+  });
+
+  it('Prereq 2 inverse — flag=false yields zero SHA-256 shapes', () => {
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { fixedDt: 0.01, useCryptographicHash: false },
+    );
+    recorder.step(0.03);
+    recorder.finalize();
+
+    const observed: string[] = [];
+    for (const entry of recorder.getTrace()) {
+      observed.push(entry.hash);
+      const geom = entry.payload.geometryHash;
+      if (typeof geom === 'string' && geom !== 'no-geometry') observed.push(geom);
+      const digests = entry.payload.stateDigests;
+      if (Array.isArray(digests)) {
+        for (const d of digests) if (typeof d === 'string') observed.push(d);
+      }
+    }
+
+    const shaPatterns = [/^[0-9a-f]{64}$/, /^cael-sha-[0-9a-f]{64}$/, /^geo-sha-[0-9a-f]{64}-/];
+    const violations = observed.filter((h) => shaPatterns.some((p) => p.test(h)));
+    expect(violations).toEqual([]);
+  });
+
+  it('Prereq 1 — per-recorder flag scope: two recorders can have different modes', () => {
+    const recFNV = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, useCryptographicHash: false },
+    );
+    const recSHA = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, useCryptographicHash: true },
+    );
+    recFNV.step(0.02);
+    recSHA.step(0.02);
+    recFNV.finalize();
+    recSHA.finalize();
+
+    expect(recFNV.getTrace()[0].payload.hashMode).toBe('fnv1a');
+    expect(recSHA.getTrace()[0].payload.hashMode).toBe('sha256');
+    expect(recFNV.getTrace()[1].hash).toMatch(/^cael-[0-9a-f]{8}$/);
+    expect(recSHA.getTrace()[1].hash).toMatch(/^cael-sha-[0-9a-f]{64}$/);
+  });
+
+  it('SHA-256 trace replays successfully end-to-end (integration)', async () => {
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, useCryptographicHash: true },
+    );
+    recorder.step(0.05);
+    recorder.logInteraction('set_boundary', { face: 'left' });
+    recorder.step(0.03);
+    const originalProv = recorder.finalize();
+
+    // Verify chain manually first (mode-inference path via init.payload.hashMode)
+    const chain = verifyCAELHashChain(recorder.getTrace());
+    expect(chain.valid).toBe(true);
+
+    const replayer = new CAELReplayer(recorder.toJSONL());
+    const replayed = await replayer.replay(() => mockSolver());
+    const replayedProv = replayed.getProvenance();
+
+    expect(replayedProv.totalSteps).toBe(originalProv.totalSteps);
+    expect(replayedProv.interactions.length).toBe(originalProv.interactions.length);
+    replayed.dispose();
+  });
+
+  it('Prereq 3 — mid-trace mode tamper detected (SHA → FNV hash swap)', () => {
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, useCryptographicHash: true },
+    );
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    const stepIdx = trace.findIndex((e) => e.event === 'step');
+    const tampered = trace.map((e, i) =>
+      i === stepIdx ? { ...e, hash: 'cael-deadbeef' } : e,
+    );
+
+    const result = verifyCAELHashChain(tampered);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/mid-trace mode tamper/);
+    expect(result.brokenAt).toBeGreaterThanOrEqual(stepIdx);
+  });
+
+  it('Prereq 3 — mid-trace mode tamper detected (FNV → SHA hash swap)', () => {
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    const fakeSha = 'cael-sha-' + 'b'.repeat(64);
+    const stepIdx = trace.findIndex((e) => e.event === 'step');
+    const tampered = trace.map((e, i) =>
+      i === stepIdx ? { ...e, hash: fakeSha } : e,
+    );
+
+    const result = verifyCAELHashChain(tampered);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/mid-trace mode tamper/);
+  });
+
+  it('back-compat: pre-Option-C traces (no hashMode field) verify as FNV-1a', async () => {
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const before = verifyCAELHashChain(recorder.getTrace());
+    expect(before.valid).toBe(true);
+
+    const trace = recorder.getTrace();
+    const initPayloadStripped = { ...trace[0].payload };
+    delete (initPayloadStripped as Record<string, unknown>).hashMode;
+
+    const { hashCAELEntry: computeHash } = await import('../CAELTrace');
+    const newTrace: typeof trace = [];
+    let prevHash = 'cael.genesis';
+    for (let i = 0; i < trace.length; i++) {
+      const e = trace[i];
+      const payload = i === 0 ? initPayloadStripped : e.payload;
+      const newEntry = {
+        version: e.version,
+        runId: e.runId,
+        index: e.index,
+        event: e.event,
+        timestamp: e.timestamp,
+        simTime: e.simTime,
+        prevHash,
+        payload,
+      };
+      const hash = computeHash(newEntry, 'fnv1a');
+      newTrace.push({ ...newEntry, hash });
+      prevHash = hash;
+    }
+
+    const after = verifyCAELHashChain(newTrace);
+    expect(after.valid).toBe(true);
+  });
+});
