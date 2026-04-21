@@ -223,6 +223,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Vision models that infer objects from RGB(-D) keep rediscovering structure the engine already knew. HoloScript’s bet is **traits + `.holo` graphs as ground truth**: agents train against **symbolic scene graphs** (entity IDs, affordances, physics stubs) instead of re-labeling meshes. That shrinks sample complexity for RL/IL and makes evaluations **reproducible** (same scene hash → same semantics). Compilers should export **parallel JSON/Proto views** of traits for offline training pipelines without rasterizing first.
 
+### S.005 | Economics: MIT toolchain vs per-seat runtime | ⚡0.8
+
+**Research capture:** Enterprise engines often price **per seat** or **per published title**; a **language-first** stack lowers marginal cost because the compiler and large chunks of runtime are **MIT-licensed** and forkable. Remaining costs sit in **hosted services** (HoloMesh sync, GPU farms) and **marketplace IP**, which can stay optional. Product discipline: keep **baseline export** free so small teams aren’t excluded; charge for **SLA, collaboration scale, and certified device labs**—not for compiling `.holo` to Swift.
+
 ---
 
 ## Next Optimization Opportunities
