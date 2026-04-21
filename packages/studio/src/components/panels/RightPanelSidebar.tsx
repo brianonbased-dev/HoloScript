@@ -329,7 +329,16 @@ export function RightPanelSidebar({
             {activeTab === 'saveload' && <SaveLoadPanel />}
             {activeTab === 'profiler' && <ProfilerPanel />}
             {activeTab === 'compiler' && <CompilerPanel />}
-            {activeTab === 'lod' && <LODPanel />}
+            {activeTab === 'lod' && (
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="shrink-0 overflow-y-auto">
+                  <LODPanel />
+                </div>
+                <div className="min-h-[140px] flex-1 overflow-y-auto border-t border-studio-border">
+                  <LODMetricsPanel />
+                </div>
+              </div>
+            )}
             {activeTab === 'statemachine' && <StateMachinePanel />}
             {activeTab === 'input' && <InputPanel />}
             {activeTab === 'network' && <NetworkPanel />}
