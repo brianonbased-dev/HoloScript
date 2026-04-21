@@ -177,21 +177,37 @@ export function delegateTask(
   };
 }
 
+/** Why an input row was not materialized as a new board task (batch POST transparency). */
+export type SkippedTaskReason = 'duplicate' | 'empty_title';
+
+export interface SkippedTaskEntry {
+  title: string;
+  reason: SkippedTaskReason;
+}
+
 /** Add tasks to a board with dedup against existing + done log. */
 export function addTasksToBoard(
   board: TeamTask[],
   doneLog: DoneLogEntry[],
   tasks: Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>
-): { added: TeamTask[]; updatedBoard: TeamTask[] } {
+): { added: TeamTask[]; skipped: SkippedTaskEntry[]; updatedBoard: TeamTask[] } {
   const existingNorm = new Set([
     ...board.map((t) => normalizeTitle(t.title)),
     ...doneLog.map((d) => normalizeTitle(d.title)),
   ]);
 
   const added: TeamTask[] = [];
+  const skipped: SkippedTaskEntry[] = [];
   for (const t of tasks) {
     const title = String(t.title || '').slice(0, 200);
-    if (!title || existingNorm.has(normalizeTitle(title))) continue;
+    if (!title) {
+      skipped.push({ title: '', reason: 'empty_title' });
+      continue;
+    }
+    if (existingNorm.has(normalizeTitle(title))) {
+      skipped.push({ title, reason: 'duplicate' });
+      continue;
+    }
 
     const task: TeamTask = {
       id: generateTaskId(),
@@ -213,7 +229,7 @@ export function addTasksToBoard(
     added.push(task);
   }
 
-  return { added, updatedBoard: board };
+  return { added, skipped, updatedBoard: board };
 }
 
 // ── Suggestion Operations ──

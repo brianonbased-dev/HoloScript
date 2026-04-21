@@ -434,7 +434,12 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
       });
     }
 
-    return { success: true, added: result.added.length, tasks: result.added };
+    return {
+      success: true,
+      added: result.added.length,
+      tasks: result.added,
+      skipped: result.skipped,
+    };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -568,7 +573,12 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
 
-    return { success: true, tasks_added: result.added.length, tasks: result.added };
+    return {
+      success: true,
+      tasks_added: result.added.length,
+      tasks: result.added,
+      skipped: result.skipped,
+    };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

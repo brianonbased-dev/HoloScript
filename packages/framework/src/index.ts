@@ -213,6 +213,8 @@ export {
   DoneLogAuditor,
   type TaskActionResult,
   type SuggestionActionResult,
+  type SkippedTaskReason,
+  type SkippedTaskEntry,
   claimTask,
   completeTask,
   blockTask,

@@ -122,8 +122,13 @@ export async function handleBoardRoutes(
       });
     }
 
-    // Framework expects the added tasks back in the response
-    json(res, 201, { success: true, added: result.added.length, tasks: result.added });
+    // `skipped` explains rows that did not become tasks (e.g. duplicate title vs open/done).
+    json(res, 201, {
+      success: true,
+      added: result.added.length,
+      tasks: result.added,
+      skipped: result.skipped,
+    });
     return true;
   }
 
@@ -140,6 +145,7 @@ export async function handleBoardRoutes(
     if (!team.taskBoard) team.taskBoard = [];
 
     let addedTasks: any[] = [];
+    let skippedTasks: { title: string; reason: 'duplicate' | 'empty_title' }[] = [];
     if (todoContent && todoContent.length > 0) {
       // Mock scout from todos based on expected format
       const tasksBody = todoContent.split('\n')
@@ -153,6 +159,7 @@ export async function handleBoardRoutes(
       if (tasksBody.length > 0) {
         const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody.slice(0, body.max_tasks || 50));
         addedTasks = result.added;
+        skippedTasks = result.skipped;
         team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
@@ -164,6 +171,7 @@ export async function handleBoardRoutes(
         priority: 1
       }]);
       addedTasks = result.added;
+      skippedTasks = result.skipped;
       team.taskBoard = result.updatedBoard;
     }
 
@@ -178,7 +186,7 @@ export async function handleBoardRoutes(
       }
     }
 
-    json(res, 201, { success: true, tasks_added: addedTasks.length, tasks: addedTasks });
+    json(res, 201, { success: true, tasks_added: addedTasks.length, tasks: addedTasks, skipped: skippedTasks });
     return true;
   }
 

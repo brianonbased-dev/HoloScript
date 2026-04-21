@@ -34,4 +34,29 @@ describe('addTasksToBoard', () => {
     expect(added[0].metadata).toEqual({ step: 2 });
     expect(added[0].onComplete).toEqual([{ type: 'notify', label: 'x' }]);
   });
+
+  it('returns skipped duplicate titles so batch clients can reconcile IDs vs server truth', () => {
+    const { added: first, updatedBoard: b1, skipped: s0 } = addTasksToBoard([], [], [
+      { title: 'Unique A', description: '', source: 't', priority: 1 },
+      { title: 'Unique B', description: '', source: 't', priority: 1 },
+    ]);
+    expect(s0).toHaveLength(0);
+    expect(first).toHaveLength(2);
+
+    const { added, skipped } = addTasksToBoard(b1, [], [
+      { title: 'Unique A', description: 'dup', source: 't', priority: 1 },
+      { title: 'Unique C', description: '', source: 't', priority: 1 },
+    ]);
+    expect(added).toHaveLength(1);
+    expect(added[0].title).toBe('Unique C');
+    expect(skipped).toEqual([{ title: 'Unique A', reason: 'duplicate' }]);
+  });
+
+  it('records empty_title when title is missing', () => {
+    const { added, skipped } = addTasksToBoard([], [], [
+      { title: '', description: 'x', source: 't', priority: 1 } as any,
+    ]);
+    expect(added).toHaveLength(0);
+    expect(skipped).toEqual([{ title: '', reason: 'empty_title' }]);
+  });
 });
