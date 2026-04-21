@@ -8,11 +8,22 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Go up from scripts/ to core/, then to dist/
-const distDir = path.join(__dirname, '..', 'dist');
+const coreRoot = path.join(__dirname, '..');
+const distDir = path.join(coreRoot, 'dist');
+
+// Subpath export @holoscript/core/trait-docs — emit real .d.ts (tsup has dts: false)
+try {
+  execSync('npx tsc -p tsconfig.trait-docs.json', { cwd: coreRoot, stdio: 'inherit' });
+  console.log('✓ Created traitDocs/traitDocs.d.ts');
+} catch (err) {
+  console.error('✗ trait-docs declaration emit failed:', err?.message ?? err);
+  process.exit(1);
+}
 
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {

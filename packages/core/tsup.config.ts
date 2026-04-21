@@ -73,6 +73,9 @@ export default defineConfig({
     // Compiler barrel (re-exports all compilers for @holoscript/compiler)
     'compiler/index': 'src/compiler/index.ts',
 
+    // LSP trait hover docs (shared with CompilerDocumentationGenerator)
+    'traitDocs/traitDocs': 'src/traitDocs/traitDocs.ts',
+
     // Sub-barrel focused entry points (lighter than monolithic index.ts)
     'entries/scripting': 'src/entries/scripting.ts',
     'entries/interop': 'src/entries/interop.ts',

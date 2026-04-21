@@ -24,6 +24,7 @@
  */
 
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+import { formatTraitDocCompact, getTraitDoc } from '../traitDocs/traitDocs.js';
 
 // =============================================================================
 // TYPES
@@ -816,7 +817,9 @@ export class CompilerDocumentationGenerator {
           if (this.options.includeTraitDocs) {
             const doc = this.getTraitDocumentation(trait);
             if (doc) {
-              sections.push(`  ${doc}`);
+              for (const line of doc.split('\n')) {
+                sections.push(line === '' ? '' : `  ${line}`);
+              }
             }
           }
         }
@@ -1130,14 +1133,11 @@ export class CompilerDocumentationGenerator {
     return 'Other';
   }
 
-  /**
-   * Get documentation string for a trait (stub - can be extended with trait metadata)
-   */
-  private getTraitDocumentation(_trait: string): string | null {
-    // This is a stub. In a real implementation, this would query the trait
-    // metadata system or trait registry for comprehensive documentation.
-    // For now, return null to skip inline trait docs.
-    return null;
+  /** Resolve trait docs from the shared LSP trait database (now in @holoscript/core). */
+  private getTraitDocumentation(trait: string): string | null {
+    const doc = getTraitDoc(trait);
+    if (!doc) return null;
+    return formatTraitDocCompact(doc);
   }
 
   /**

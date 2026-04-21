@@ -83,6 +83,11 @@
       "import": "./dist/compiler/*.js",
       "require": "./dist/compiler/*.cjs"
     },
+    "./trait-docs": {
+      "types": "./dist/traitDocs/traitDocs.d.ts",
+      "import": "./dist/traitDocs/traitDocs.js",
+      "require": "./dist/traitDocs/traitDocs.cjs"
+    },
     "./traits": {
       "types": "./dist/traits/index.d.ts",
       "import": "./dist/traits/index.js"
@@ -125,7 +130,9 @@
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:narrow": "tsc --noEmit -p tsconfig.narrow.json"
   },
   "keywords": [
     "holoscript",
