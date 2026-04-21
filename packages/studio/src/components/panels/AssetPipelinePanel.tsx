@@ -6,7 +6,7 @@
  * maturity stages. Shows scene-wide stats and batch operations.
  *
  * @see W.080 — Geometric shapes as pixels pipeline
- * @see FE-1 — Draft/Mesh/Sim toggle directive
+ * @see FE-1 — Draft/Mesh/Sim toggle (main toolbar: `GeometricViewModeSegment`)
  */
 import React, { useState, useMemo, useCallback } from 'react';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';

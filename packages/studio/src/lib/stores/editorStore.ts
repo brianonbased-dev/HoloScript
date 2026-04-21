@@ -10,6 +10,9 @@ export type GizmoMode = 'translate' | 'rotate' | 'scale';
 export type ArtMode = 'none' | 'sketch' | 'paint' | 'generative';
 export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character' | 'scenarios';
 
+/** Draft/Mesh/Sim — toolbar pipeline stage (W.080 / FE-1). `sim` maps scene maturity to `final`. */
+export type GeometricViewMode = 'draft' | 'mesh' | 'sim';
+
 interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
@@ -27,6 +30,8 @@ interface EditorState {
   gizmoMode: GizmoMode;
   artMode: ArtMode;
   studioMode: StudioMode;
+  /** Geometric pipeline emphasis: Draft blockout, shaded Mesh, or Sim (final + sim panel). */
+  geometricViewMode: GeometricViewMode;
   showBenchmark: boolean;
   showPerfOverlay: boolean;
   setActivePanel: (panel: EditorPanel) => void;
@@ -36,6 +41,7 @@ interface EditorState {
   setGizmoMode: (mode: GizmoMode) => void;
   setArtMode: (mode: ArtMode) => void;
   setStudioMode: (mode: StudioMode) => void;
+  setGeometricViewMode: (mode: GeometricViewMode) => void;
   setShowGovernancePanel: (v: boolean) => void;
   setShowConformancePanel: (v: boolean) => void;
   setDiffModeHash: (hash: string | null) => void;
@@ -58,6 +64,12 @@ const getInitialStudioMode = (): StudioMode => {
     : 'creator';
 };
 
+const getInitialGeometricViewMode = (): GeometricViewMode => {
+  if (typeof window === 'undefined') return 'mesh';
+  const saved = window.localStorage.getItem('studio-geometric-view-mode') as GeometricViewMode | null;
+  return saved && ['draft', 'mesh', 'sim'].includes(saved) ? saved : 'mesh';
+};
+
 export const useEditorStore = create<EditorState>()(
   devtools(
     (set) => ({
@@ -72,6 +84,7 @@ export const useEditorStore = create<EditorState>()(
       gizmoMode: 'translate',
       artMode: 'none',
       studioMode: getInitialStudioMode(),
+      geometricViewMode: getInitialGeometricViewMode(),
       showBenchmark: false,
       showPerfOverlay: false,
       setActivePanel: (activePanel) => set({ activePanel }),
@@ -89,6 +102,12 @@ export const useEditorStore = create<EditorState>()(
       setStudioMode: (studioMode) => {
         if (typeof window !== 'undefined') window.localStorage.setItem('studio-mode', studioMode);
         set({ studioMode });
+      },
+      setGeometricViewMode: (geometricViewMode) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('studio-geometric-view-mode', geometricViewMode);
+        }
+        set({ geometricViewMode });
       },
       setShowBenchmark: (showBenchmark) => set({ showBenchmark }),
       togglePerfOverlay: () => set((s) => ({ showPerfOverlay: !s.showPerfOverlay })),

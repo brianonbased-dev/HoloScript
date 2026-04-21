@@ -6,7 +6,7 @@ export { useAIStore } from './aiStore';
 export { useSceneGraphStore } from './sceneGraphStore';
 export type { TraitConfig, SceneNode } from './sceneGraphStore';
 export { useEditorStore } from './editorStore';
-export type { GizmoMode, ArtMode, StudioMode } from './editorStore';
+export type { GizmoMode, ArtMode, StudioMode, GeometricViewMode } from './editorStore';
 export { useCharacterStore } from './characterStore';
 export type { WardrobeSlot, WardrobeItem } from './characterStore';
 export { useWardrobeStore } from './wardrobeStore';

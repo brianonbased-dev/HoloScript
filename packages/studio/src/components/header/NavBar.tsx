@@ -1,4 +1,5 @@
 import { SearchBar } from './SearchBar';
+import { GeometricViewModeSegment } from './GeometricViewModeSegment';
 import { Toolbar } from './Toolbar';
 import { useEditorStore } from '@/lib/stores';
 import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
@@ -15,7 +16,12 @@ export function NavBar({ setShowSetupWizard, setShowImportWizard }: NavBarProps)
 
   return (
     <header role="banner" aria-label="Studio editor toolbar" className="grid h-12 grid-cols-[1fr_auto_1fr] items-center border-b border-studio-border bg-studio-panel px-2 sm:px-4 gap-1 sm:gap-2">
-      <SearchBar />
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+        <GeometricViewModeSegment />
+        <div className="min-w-0 flex-1">
+          <SearchBar />
+        </div>
+      </div>
 
       <div className="flex justify-center">
         <button
