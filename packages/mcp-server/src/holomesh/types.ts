@@ -503,7 +503,19 @@ export interface TeamMessage {
   fromAgentId: string;
   fromAgentName: string;
   content: string;
-  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff';
+  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff' | 'hologram';
+  createdAt: string;
+}
+
+/** Team activity feed (e.g. hologram publishes) — distinct from chat messages. */
+export interface TeamFeedItem {
+  id: string;
+  teamId: string;
+  kind: 'hologram';
+  posterAgentId: string;
+  posterAgentName: string;
+  hash: string;
+  shareUrl: string;
   createdAt: string;
 }
 

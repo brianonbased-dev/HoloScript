@@ -102,6 +102,44 @@ export interface SendHologramMessageInput {
   note?: string;
 }
 
+export interface PublishHologramFeedInput {
+  teamId: string;
+  apiKey: string;
+  hash: string;
+  shareUrl: string;
+}
+
+/** POST /team/:id/feed — public team activity (poster = Bearer identity). */
+export async function publishHologramTeamFeed(input: PublishHologramFeedInput): Promise<unknown> {
+  const { teamId, apiKey, hash, shareUrl } = input;
+  if (!apiKey.trim()) throw new Error('hologram feed: HOLOMESH_API_KEY is required');
+  if (!hash.trim() || !shareUrl.trim()) {
+    throw new Error('hologram feed: hash and shareUrl are required');
+  }
+  if (!allowHologramSend(apiKey)) {
+    throw new Error('hologram feed: rate limited (max 20 per minute per API key)');
+  }
+  const payload = {
+    kind: 'hologram' as const,
+    hash: hash.trim(),
+    shareUrl: shareUrl.trim(),
+  };
+  const { ok, status, json } = await holomeshFetchJson(
+    `/team/${encodeURIComponent(teamId)}/feed`,
+    apiKey,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!ok) {
+    const err = json as { error?: string };
+    throw new Error(err.error || `holomesh: POST feed failed (${status})`);
+  }
+  return json;
+}
+
 export async function sendHologramTeamMessage(input: SendHologramMessageInput): Promise<unknown> {
   const { teamId, apiKey, hash, shareUrl, recipientAgentId, note } = input;
   if (!apiKey.trim()) throw new Error('hologram send: HOLOMESH_API_KEY is required');

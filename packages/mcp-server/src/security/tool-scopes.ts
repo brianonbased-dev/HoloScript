@@ -44,6 +44,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_hologram_compile_quilt: ['tools:write'],
   holo_hologram_compile_mvhevc: ['tools:write'],
   holo_hologram_render: ['tools:write'],
+  holo_hologram_publish_feed: ['tools:write'],
   holo_hologram_send: ['tools:write'],
   render_preview: ['tools:write'],
   create_share_link: ['tools:write'],
@@ -221,6 +222,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   browser_screenshot: 'high',
   holo_absorb_repo: 'high',
   holo_hologram_render: 'high',
+  holo_hologram_publish_feed: 'high',
   holo_hologram_send: 'high',
 
   // Critical: admin operations, self-modification

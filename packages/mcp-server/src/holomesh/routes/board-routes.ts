@@ -3,6 +3,7 @@ import {
   teamStore, 
   teamPresenceStore,
   teamMessageStore,
+  teamFeedStore,
   persistTeamStore 
 } from '../state';
 import { 
@@ -35,7 +36,29 @@ import {
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage } from '../types';
+import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem } from '../types';
+
+const MAX_FEED_QUERY = 100;
+
+function validateHologramFeedInput(hash: string, shareUrl: string): string | null {
+  if (!/^[a-zA-Z0-9._-]{6,128}$/.test(hash)) {
+    return 'hash must be 6–128 url-safe characters';
+  }
+  let u: URL;
+  try {
+    u = new URL(shareUrl);
+  } catch {
+    return 'shareUrl must be a valid URL';
+  }
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && u.hostname === 'localhost')) {
+    return 'shareUrl must be https (or http://localhost for dev)';
+  }
+  const host = u.hostname.toLowerCase();
+  if (host !== 'localhost' && !host.endsWith('holoscript.net') && !host.endsWith('railway.app')) {
+    return 'shareUrl host must be holoscript.net, railway.app, or localhost';
+  }
+  return null;
+}
 
 /**
  * Handle all board, task, and presence routes for HoloMesh teams.
@@ -326,6 +349,72 @@ export async function handleBoardRoutes(
     
     const messages = teamMessageStore.get(teamId) || [];
     json(res, 200, { success: true, messages });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/feed — team activity feed (hologram publishes, etc.)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/feed$/) && method === 'GET') {
+    const access = requireTeamAccess(req, res, url, 'messages:read');
+    if (!access) return true;
+    const { teamId } = access;
+    const limitParam = new URL(url, 'http://localhost').searchParams.get('limit');
+    const limit = Math.min(
+      MAX_FEED_QUERY,
+      Math.max(1, limitParam ? parseInt(limitParam, 10) || 30 : 30)
+    );
+    const items = teamFeedStore.get(teamId) || [];
+    const slice = items.slice(-limit);
+    json(res, 200, { success: true, items: slice, count: slice.length });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/feed — append feed item (poster identity from auth only)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/feed$/) && method === 'POST') {
+    const access = requireTeamAccess(req, res, url, 'messages:write');
+    if (!access) return true;
+    const { teamId, caller } = access;
+    const body = await parseJsonBody(req);
+    const kind = body.kind as string;
+    if (kind !== 'hologram') {
+      json(res, 400, { error: 'Only kind "hologram" is supported' });
+      return true;
+    }
+    const posterIdBody = typeof body.posterAgentId === 'string' ? body.posterAgentId.trim() : '';
+    if (posterIdBody && posterIdBody !== caller.id) {
+      json(res, 403, { error: 'posterAgentId must match authenticated agent' });
+      return true;
+    }
+    const hash = typeof body.hash === 'string' ? body.hash.trim() : '';
+    const shareUrl = typeof body.shareUrl === 'string' ? body.shareUrl.trim() : '';
+    const err = validateHologramFeedInput(hash, shareUrl);
+    if (err) {
+      json(res, 400, { error: err });
+      return true;
+    }
+    const item: TeamFeedItem = {
+      id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      teamId,
+      kind: 'hologram',
+      posterAgentId: caller.id,
+      posterAgentName: caller.name,
+      hash,
+      shareUrl,
+      createdAt: new Date().toISOString(),
+    };
+    const list = teamFeedStore.get(teamId) || [];
+    list.push(item);
+    const cap = 200;
+    const trimmed = list.length > cap ? list.slice(-cap) : list;
+    teamFeedStore.set(teamId, trimmed);
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'feed:hologram' as any,
+      agent: caller.name,
+      data: { id: item.id, hash, shareUrl, posterAgentId: caller.id },
+    });
+
+    json(res, 201, { success: true, item });
     return true;
   }
 

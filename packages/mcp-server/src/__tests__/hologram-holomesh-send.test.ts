@@ -4,6 +4,7 @@ import {
   __resetHologramSendRateForTests,
   assertRecipientOnTeam,
   fetchTeamMemberIds,
+  publishHologramTeamFeed,
   resolveHolomeshApiBase,
   sendHologramTeamMessage,
 } from '../hologram-holomesh-send';
@@ -110,6 +111,31 @@ describe('hologram-holomesh-send', () => {
         recipientAgentId: 'peer1',
       }),
     ).rejects.toThrow('rate limited');
+  });
+
+  it('publishHologramTeamFeed POSTs to team feed', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      const u = String(url);
+      if (u.includes('/team/t1/feed')) {
+        return new Response(JSON.stringify({ success: true, item: { id: 'f1' } }), { status: 201 });
+      }
+      return new Response('not found', { status: 404 });
+    }) as typeof fetch;
+
+    const out = await publishHologramTeamFeed({
+      teamId: 't1',
+      apiKey: 'k1',
+      hash: 'deadbeef',
+      shareUrl: 'https://studio.holoscript.net/g/deadbeef',
+    });
+
+    expect((out as { success?: boolean }).success).toBe(true);
+    expect(calls.length).toBe(1);
+    const body = JSON.parse((calls[0].init?.body as string) ?? '{}');
+    expect(body.kind).toBe('hologram');
+    expect(body.hash).toBe('deadbeef');
   });
 
   it('fetchTeamMemberIds throws on HTTP error', async () => {

@@ -14,7 +14,7 @@ import {
 } from '@holoscript/engine/hologram';
 import { renderHologramBundle } from './hologram-renderer';
 import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram-worker-client';
-import { sendHologramTeamMessage } from './hologram-holomesh-send';
+import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-holomesh-send';
 
 type HologramMediaType = 'image' | 'gif' | 'video';
 type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
@@ -166,6 +166,23 @@ export const hologramToolDefinitions: Tool[] = [
         },
       },
       required: ['mediaType'],
+    },
+  },
+  {
+    name: 'holo_hologram_publish_feed',
+    description:
+      'Publish a hologram (hash + shareUrl) to the team activity feed on HoloMesh. Uses HOLOMESH_API_KEY; poster identity is the authenticated agent. Rate-limited like holo_hologram_send.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        hash: { type: 'string', description: 'Content hash from worker or local bundle.' },
+        shareUrl: { type: 'string', description: 'Public https share URL for the hologram viewer.' },
+        teamId: {
+          type: 'string',
+          description: 'HoloMesh team id. Defaults to HOLOMESH_TEAM_ID when omitted.',
+        },
+      },
+      required: ['hash', 'shareUrl'],
     },
   },
   {
@@ -353,6 +370,22 @@ export function toHoloCode(mediaType: HologramMediaType, source: string, name?: 
 }
 
 export async function handleHologramTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+  if (name === 'holo_hologram_publish_feed') {
+    const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
+    const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
+    const teamIdRaw = typeof args.teamId === 'string' ? args.teamId.trim() : '';
+    const teamId = teamIdRaw || process.env.HOLOMESH_TEAM_ID?.trim() || '';
+    const apiKey = process.env.HOLOMESH_API_KEY?.trim() || '';
+    if (!hash || !shareUrl) {
+      throw new Error('hologram publish_feed: hash and shareUrl are required');
+    }
+    if (!teamId) {
+      throw new Error('hologram publish_feed: teamId is required (or set HOLOMESH_TEAM_ID)');
+    }
+    const out = await publishHologramTeamFeed({ teamId, apiKey, hash, shareUrl });
+    return { ok: true, teamId, holomesh: out };
+  }
+
   if (name === 'holo_hologram_send') {
     const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
     const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';

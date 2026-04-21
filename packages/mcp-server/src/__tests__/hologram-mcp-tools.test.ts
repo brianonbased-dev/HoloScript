@@ -20,9 +20,10 @@ vi.mock('../hologram-worker-client', () => ({
 
 vi.mock('../hologram-holomesh-send', () => ({
   sendHologramTeamMessage: vi.fn(async () => ({ success: true, message: { id: 'm' } })),
+  publishHologramTeamFeed: vi.fn(async () => ({ success: true, item: { id: 'f1' } })),
 }));
 
-import { sendHologramTeamMessage } from '../hologram-holomesh-send';
+import { publishHologramTeamFeed, sendHologramTeamMessage } from '../hologram-holomesh-send';
 import {
   handleHologramTool,
   hologramToolDefinitions,
@@ -42,6 +43,7 @@ describe('hologram mcp tools', () => {
 
   afterEach(() => {
     vi.mocked(sendHologramTeamMessage).mockClear();
+    vi.mocked(publishHologramTeamFeed).mockClear();
   });
 
   it('defines expected hologram tools', () => {
@@ -50,6 +52,7 @@ describe('hologram mcp tools', () => {
     expect(names).toContain('holo_hologram_compile_quilt');
     expect(names).toContain('holo_hologram_compile_mvhevc');
     expect(names).toContain('holo_hologram_render');
+    expect(names).toContain('holo_hologram_publish_feed');
     expect(names).toContain('holo_hologram_send');
   });
 
@@ -58,6 +61,7 @@ describe('hologram mcp tools', () => {
     expect(isHologramToolName('holo_hologram_compile_quilt')).toBe(true);
     expect(isHologramToolName('holo_hologram_compile_mvhevc')).toBe(true);
     expect(isHologramToolName('holo_hologram_render')).toBe(true);
+    expect(isHologramToolName('holo_hologram_publish_feed')).toBe(true);
     expect(isHologramToolName('holo_hologram_send')).toBe(true);
     expect(isHologramToolName('holo_reconstruct_from_video')).toBe(false);
   });
@@ -254,6 +258,23 @@ describe('hologram mcp tools', () => {
         shareUrl: 'https://share',
         recipientAgentId: 'agent_z',
         teamId: 'team_t',
+      }),
+    );
+  });
+
+  it('holo_hologram_publish_feed delegates to HoloMesh helper', async () => {
+    const out = (await handleHologramTool('holo_hologram_publish_feed', {
+      hash: 'hh2',
+      shareUrl: 'https://studio.holoscript.net/g/hh2',
+      teamId: 'team_tf',
+    })) as { ok: boolean };
+
+    expect(out.ok).toBe(true);
+    expect(publishHologramTeamFeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hash: 'hh2',
+        shareUrl: 'https://studio.holoscript.net/g/hh2',
+        teamId: 'team_tf',
       }),
     );
   });

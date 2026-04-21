@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import type { 
   Team, 
-  TeamMessage, 
+  TeamMessage,
+  TeamFeedItem,
   TeamPresenceEntry, 
   RegisteredAgent, 
   StoredComment, 
@@ -63,7 +64,11 @@ export const paidAccessStore: Set<string> = new Set(); // "agentId:entryId" → 
 export const teamStore: Map<string, Team> = new Map(); // teamId → Team
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
+/** Public team feed (hologram publishes, etc.) — poster identity is server-authoritative */
+export const teamFeedStore: Map<string, TeamFeedItem[]> = new Map();
 export const agentTeamIndex: Map<string, string[]> = new Map(); // agentId → teamIds[]
+
+const MAX_TEAM_FEED_ITEMS = 200;
 
 /** HoloDoor — per-team merged policy (owner PATCH) + telemetry ring buffer */
 export const holoDoorPolicyByTeam: Map<string, Record<string, unknown>> = new Map();
@@ -109,6 +114,7 @@ export function persistTeamStore(): void {
     ...t,
     presence: teamPresenceStore.get(t.id) ? Array.from(teamPresenceStore.get(t.id)!.values()) : [],
     messages: teamMessageStore.get(t.id) || [],
+    feed: teamFeedStore.get(t.id) || [],
     knowledgeMarketplace: (t as any).knowledgeMarketplace?.toJSON?.() || (t as any).knowledgeMarketplace,
     bounties: (t as any).bounties?.toJSON?.() || t.bounties,
   }));
@@ -281,6 +287,10 @@ export function initStores(): void {
       }
       if (t.messages) {
         teamMessageStore.set(t.id, t.messages);
+      }
+      const feedRaw = (t as { feed?: TeamFeedItem[] }).feed;
+      if (feedRaw && Array.isArray(feedRaw)) {
+        teamFeedStore.set(t.id, feedRaw.slice(-MAX_TEAM_FEED_ITEMS));
       }
 
       // Re-index members

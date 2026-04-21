@@ -1610,6 +1610,74 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.messages.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('POST /api/holomesh/team/:id/feed appends hologram item (poster from auth)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `feed-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/feed`,
+        {
+          kind: 'hologram',
+          hash: 'abc123deadbeef',
+          shareUrl: 'https://studio.holoscript.net/g/abc123deadbeef',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/feed`);
+
+      expect(postRes._status).toBe(201);
+      expect(postRes._body.item.kind).toBe('hologram');
+      expect(postRes._body.item.hash).toBe('abc123deadbeef');
+      expect(postRes._body.item.posterAgentId).toBeTruthy();
+
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/feed?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/feed?limit=10`);
+
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.items.length).toBeGreaterThanOrEqual(1);
+      expect(getRes._body.items[getRes._body.items.length - 1].hash).toBe('abc123deadbeef');
+    });
+
+    it('POST /api/holomesh/team/:id/feed rejects posterAgentId mismatch', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `feed-bad-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/feed`,
+        {
+          kind: 'hologram',
+          hash: 'abc123deadbeef',
+          shareUrl: 'https://studio.holoscript.net/g/x',
+          posterAgentId: 'someone_else',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/feed`);
+
+      expect(postRes._status).toBe(403);
+    });
+
     it('POST /api/holomesh/team/:id/message rejects missing content', async () => {
       const createReq = mockReq(
         'POST',
