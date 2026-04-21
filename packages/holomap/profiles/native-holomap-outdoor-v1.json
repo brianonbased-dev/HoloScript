@@ -1,0 +1,9 @@
+{
+  "id": "native-holomap-outdoor-v1",
+  "plainName": "Native scene (HoloMap Outdoor)",
+  "vertical": "outdoor",
+  "modelId": "holomap/outdoor-v1",
+  "ingestPath": "holomap",
+  "description": "Outdoor urban variant with stronger global scale stabilization.",
+  "intendedTraits": ["reconstruction_source", "geospatial", "scale_ambiguous"]
+}

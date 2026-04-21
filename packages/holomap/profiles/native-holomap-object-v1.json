@@ -1,0 +1,9 @@
+{
+  "id": "native-holomap-object-v1",
+  "plainName": "Native scene (HoloMap Object)",
+  "vertical": "object",
+  "modelId": "holomap/object-v1",
+  "ingestPath": "holomap",
+  "description": "Close-range object scan variant with fine local geometry priors.",
+  "intendedTraits": ["reconstruction_source", "close_range_scan", "turntable_capture"]
+}

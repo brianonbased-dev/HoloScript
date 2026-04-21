@@ -1,0 +1,9 @@
+{
+  "id": "native-holomap-indoor-v1",
+  "plainName": "Native scene (HoloMap Indoor)",
+  "vertical": "indoor",
+  "modelId": "holomap/indoor-v1",
+  "ingestPath": "holomap",
+  "description": "Indoor SLAM-heavy variant with stronger loop-closure and low-light priors.",
+  "intendedTraits": ["reconstruction_source", "slam_heavy", "low_light"]
+}
