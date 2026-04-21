@@ -61,6 +61,43 @@ jobs:
       - name: Check hotspot test coverage
         run: pnpm tests:hotspots
 
+      # SECURITY-mode gate (2026-04-20): stale .js/.d.ts shadows in src/
+      # silently shadow the .ts source in Node module resolution. 224
+      # found during Wave-2 item 5a debugging; 58 more cleaned during
+      # the follow-up sweep. Pre-commit hook catches untracked shadows
+      # locally (the primary dev-env-pollution threat); CI here catches
+      # PRs that would ADD new tracked .js/.d.ts files in src/. Allows
+      # the 12 existing tracked hand-crafted declarations (legacy; not
+      # removed by this gate) while blocking new additions.
+      - name: Check for new build-artifact shadows in src/
+        run: |
+          # Determine base commit: PR base for PRs, HEAD~1 for push events
+          if [ -n "${{ github.base_ref }}" ]; then
+            BASE="origin/${{ github.base_ref }}"
+            git fetch --no-tags --prune origin "${{ github.base_ref }}" || true
+          else
+            BASE="HEAD~1"
+          fi
+          # Files added (not modified) by this PR/commit under src/
+          NEW=$(git diff --name-only --diff-filter=A "$BASE"...HEAD 2>/dev/null \
+            | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts|d\.ts\.map)$' || true)
+          if [ -n "$NEW" ]; then
+            echo "::error::This PR adds new .js/.d.ts shadow files in packages/*/src/"
+            echo ""
+            echo "New files:"
+            echo "$NEW" | sed 's/^/  /'
+            echo ""
+            echo "packages/*/src/ should contain .ts sources only at runtime."
+            echo "Committed .js/.d.ts can silently shadow .ts in Node module"
+            echo "resolution (observed during Wave-2 item 5a debugging)."
+            echo ""
+            echo "If these files are intentional hand-crafted declarations,"
+            echo "discuss with the founder before merging — the allowlist of"
+            echo "12 tracked files is legacy, not growing."
+            exit 1
+          fi
+          echo "✓ No new shadow files added by this PR/commit"
+
       - name: Repository health summary
         if: always()
         run: node scripts/repo-health.js --summary-only

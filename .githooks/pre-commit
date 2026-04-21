@@ -88,10 +88,59 @@ if [ -f "scripts/check-workspace-deps.js" ]; then
     fi
 fi
 
-# Gate 5: Complexity — skipped (not configured)
+# Gate 5: Stale build-artifact shadow check (fast, fails loud).
+# Background: ai-ecosystem 2026-04-20 SECURITY-mode audit found 224
+# stale .js/.d.ts/.map shadows in packages/engine/src/simulation/ that
+# silently shadowed .ts source in Node module resolution, masking
+# Wave-2 item 5a edits during test runs. Src/ is effectively .ts-only
+# at runtime (compiled output lives in dist/); any UNTRACKED .js/.d.ts
+# under packages/*/src/ is stale tsc output and should be deleted.
+# Note: some .d.ts files are tracked in src/ (hand-crafted type
+# declarations, e.g. packages/cli/src/HoloScriptCLI.d.ts). Those are
+# intentional and not flagged by this gate — we check UNTRACKED-
+# non-ignored files only (git ls-files --others --exclude-standard).
+# Knowledge store entry: grad-stale-js-shadow-debugging (confidence 0.9).
+echo "  ├─ Stale build-artifact check..."
+# Node's module resolution prefers .js and .d.ts over co-located .ts
+# when both exist, and does NOT respect .gitignore. Untracked/gitignored
+# .js or .d.ts files in src/ silently shadow the .ts source — the
+# Wave-2 item 5a debugging incident (2026-04-20) was 224 such files in
+# packages/engine/src/simulation/ masking source edits from vitest.
+#
+# Gate scope: .js, .js.map, .d.ts under packages/*/src/. Drops
+# .d.ts.map since those don't participate in Node module resolution
+# (822 of them are tracked as tsc sourcemap output — separate hygiene
+# issue, not a security gate concern).
+# Uses find (sees gitignored too) minus tracked (the ~13 intentional
+# hand-crafted declarations that stay as-is).
+# Knowledge store: grad-stale-js-shadow-debugging (confidence 0.9).
+ALL_SHADOWS=$(find packages/*/src -type f \( -name '*.js' -o -name '*.js.map' -o -name '*.d.ts' \) 2>/dev/null | sort)
+TRACKED_SHADOWS=$(git ls-files 2>/dev/null | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts)$' | sort || true)
+if [ -z "$ALL_SHADOWS" ]; then
+    UNTRACKED_SHADOWS=""
+else
+    UNTRACKED_SHADOWS=$(comm -23 <(printf '%s\n' "$ALL_SHADOWS") <(printf '%s\n' "$TRACKED_SHADOWS") 2>/dev/null)
+fi
+if [ -n "$UNTRACKED_SHADOWS" ]; then
+    SHADOW_COUNT=$(echo "$UNTRACKED_SHADOWS" | wc -l | tr -d ' ')
+    echo -e "  ${RED}❌ $SHADOW_COUNT stale (untracked) build artifact(s) in packages/*/src/${NC}"
+    echo "     First few:"
+    echo "$UNTRACKED_SHADOWS" | head -5 | sed 's/^/       /'
+    echo "     These can silently shadow .ts source in Node module"
+    echo "     resolution (vitest/tsx reads stale compiled .js over"
+    echo "     current .ts edits — tests pass/fail unpredictably)."
+    echo "     Fix: delete them (they regenerate on build):"
+    echo "       find packages/*/src \\( -name '*.js' -o -name '*.js.map' \\"
+    echo "         -o -name '*.d.ts' \\) -type f -delete"
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} No stale build artifacts"
+fi
+
+# Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 
-# Gate 6: Security audit — DISABLED for pre-commit
+# Gate 7: Security audit — DISABLED for pre-commit
 echo -e "  ├─ Security audit... ${YELLOW}⚠ skipped (CI handles this)${NC}"
 
 # Final result
