@@ -277,6 +277,7 @@ HoloScript release lanes are managed under `scripts/version-policy.json` (for ex
 - [Absorb service](https://absorb.holoscript.net/health) — codebase intelligence
 - [Studio](./packages/studio/README.md) — universal IDE
 - [Academy](./docs/academy/level-1-fundamentals/01-what-is-holoscript.md) — learning path
+- [TypeScript API reference](https://holoscript.net/docs/api/) — TypeDoc output (run `pnpm docs:api` locally → [`docs/api/`](./docs/api/))
 - [Examples](./examples/README.md) — copy-paste starting points
 - [Strategy](./docs/strategy/ROADMAP.md) — roadmap and vision
 - [Plugins](./packages/plugins/) — domain extensions

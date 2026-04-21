@@ -10,6 +10,20 @@ on:
       - 'scripts/check-roadmap-drift.mjs'
       - 'scripts/check-doc-count-drift.mjs'
       - 'package.json'
+      - 'typedoc.json'
+      - 'pnpm-lock.yaml'
+      - 'packages/core/**'
+      - 'packages/engine/**'
+      - 'packages/mcp-server/**'
+      - 'packages/cli/**'
+      - 'packages/runtime/**'
+      - 'packages/linter/**'
+      - 'packages/formatter/**'
+      - 'packages/llm-provider/**'
+      - 'packages/partner-sdk/**'
+      - 'packages/ai-validator/**'
+      - 'packages/security-sandbox/**'
+      - 'packages/comparative-benchmarks/**'
   pull_request:
     branches: [main]
     paths:
@@ -19,6 +33,20 @@ on:
       - 'scripts/check-roadmap-drift.mjs'
       - 'scripts/check-doc-count-drift.mjs'
       - 'package.json'
+      - 'typedoc.json'
+      - 'pnpm-lock.yaml'
+      - 'packages/core/**'
+      - 'packages/engine/**'
+      - 'packages/mcp-server/**'
+      - 'packages/cli/**'
+      - 'packages/runtime/**'
+      - 'packages/linter/**'
+      - 'packages/formatter/**'
+      - 'packages/llm-provider/**'
+      - 'packages/partner-sdk/**'
+      - 'packages/ai-validator/**'
+      - 'packages/security-sandbox/**'
+      - 'packages/comparative-benchmarks/**'
 
 jobs:
   docs-build:
@@ -65,3 +93,57 @@ jobs:
 
       - name: Check docs count drift markers
         run: pnpm docs:counts:drift
+
+  typedoc-api:
+    name: TypeDoc API reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: holoscript-typedoc-verify
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build core (TypeDoc reads compiled outputs)
+        run: pnpm --filter @holoscript/core build
+
+      - name: Generate TypeDoc
+        run: pnpm docs:api
+
+      - name: Verify generated API docs
+        shell: bash
+        run: |
+          test -f docs/api/index.html || { echo "::error::TypeDoc did not emit docs/api/index.html"; ls -la docs/api || true; exit 1; }
+          echo "✓ TypeDoc output present"
