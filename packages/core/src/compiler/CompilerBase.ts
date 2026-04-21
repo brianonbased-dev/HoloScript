@@ -119,6 +119,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   WebGPUCompiler: 'webgpu',
   R3FCompiler: 'r3f',
   PlayCanvasCompiler: 'playcanvas',
+  ThreeJSCompiler: 'threejs',
   WASMCompiler: 'wasm',
   TSLCompiler: 'tsl',
   URDFCompiler: 'urdf',

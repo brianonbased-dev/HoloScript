@@ -226,6 +226,7 @@ export { telemetry } from './monitoring/telemetry';
 export type {
   HSPlusAST,
   VRTraitName,
+  TraitBehavior,
   SystemNode,
   ComponentNode,
   ImportNode,
@@ -302,6 +303,7 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
+export { ThreeJSCompiler, type ThreeJSCompilerOptions } from './compiler/ThreeJSCompiler';
 export {
   AndroidXRCompiler,
   type AndroidXRCompilerOptions,
@@ -954,7 +956,8 @@ export {
   type CullingMode,
   type LodStrategy,
   type GPUResourceTier,
-  type LODLevel,
+  /** Rendering-trait LOD step config (distinct from `performance/LODSystem` LODLevel). */
+  type LODLevel as RenderingLODLevel,
   type CullingConfig,
   type BatchingConfig,
   type TextureOptimization,

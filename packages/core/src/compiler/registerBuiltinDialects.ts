@@ -160,6 +160,29 @@ export function registerBuiltinDialects(): void {
       },
       outputExtensions: ['.js'],
     },
+    {
+      name: 'threejs',
+      domain: 'web3d',
+      description:
+        'Compiles to vanilla Three.js TypeScript (bypasses R3F for bundle-critical deployments)',
+      supportedTraits: [
+        'physics',
+        'collidable',
+        'grabbable',
+        'hoverable',
+        'audio',
+        'animation',
+        'particles',
+        'material',
+        'shadow',
+      ],
+      riskTier: 'standard',
+      factory: (opts) => {
+        const { ThreeJSCompiler } = require('./ThreeJSCompiler');
+        return new ThreeJSCompiler(opts);
+      },
+      outputExtensions: ['.ts'],
+    },
 
     // ── VR/XR ─────────────────────────────────────────────────────────────
     {

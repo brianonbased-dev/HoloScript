@@ -154,6 +154,7 @@ export type CompilerName =
   | 'webgpu'
   | 'r3f'
   | 'playcanvas'
+  | 'threejs'
   // runtime
   | 'wasm'
   | 'node-service'
@@ -229,8 +230,7 @@ export const ANSCapabilityPath = {
   BABYLON: '/compile/web3d/babylon',
   WEBGPU: '/compile/web3d/webgpu',
   R3F: '/compile/web3d/r3f',
-  PLAYCANVAS: '/compile/web3d/playcanvas',
-
+  PLAYCANVAS: '/compile/web3d/playcanvas',  THREEJS: '/compile/web3d/threejs',
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',
@@ -305,6 +305,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   webgpu: ANSDomain.WEB3D,
   r3f: ANSDomain.WEB3D,
   playcanvas: ANSDomain.WEB3D,
+  threejs: ANSDomain.WEB3D,
   // runtime
   wasm: ANSDomain.RUNTIME,
   'node-service': ANSDomain.RUNTIME,
@@ -363,6 +364,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   webgpu: ANSCapabilityPath.WEBGPU,
   r3f: ANSCapabilityPath.R3F,
   playcanvas: ANSCapabilityPath.PLAYCANVAS,
+  threejs: ANSCapabilityPath.THREEJS,
   wasm: ANSCapabilityPath.WASM,
   'node-service': ANSCapabilityPath.NODE_SERVICE,
   'nextjs-api': ANSCapabilityPath.NEXTJS_API,
