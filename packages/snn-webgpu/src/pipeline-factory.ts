@@ -15,6 +15,7 @@ import SPIKE_ENCODE_SHADER from './shaders/spike-encode.wgsl?raw';
 import SPIKE_DECODE_SHADER from './shaders/spike-decode.wgsl?raw';
 import TROPICAL_ACTIVATION_SHADER from './shaders/tropical-activation.wgsl?raw';
 import TROPICAL_GRAPH_SHADER from './shaders/tropical-graph.wgsl?raw';
+import LIF_LARGE_SCALE_SHADER from './shaders/lif-large-scale.wgsl?raw';
 
 /** All available compute shader entry points. */
 export type ShaderEntryPoint =
@@ -38,7 +39,10 @@ export type ShaderEntryPoint =
   | 'tropical_activate'
   // Tropical graph algebra
   | 'tropical_min_plus_gemm'
-  | 'tropical_spmv';
+  | 'tropical_spmv'
+  // Hierarchical large-scale
+  | 'lif_step_partitioned'
+  | 'synaptic_current_shared_tiled';
 
 /** Shader source category. */
 export type ShaderCategory =
@@ -47,7 +51,8 @@ export type ShaderCategory =
   | 'encode'
   | 'decode'
   | 'tropical'
-  | 'tropicalGraph';
+  | 'tropicalGraph'
+  | 'largescale';
 
 /** Mapping from category to WGSL source code. */
 const SHADER_SOURCES: Record<ShaderCategory, string> = {
@@ -57,6 +62,7 @@ const SHADER_SOURCES: Record<ShaderCategory, string> = {
   decode: SPIKE_DECODE_SHADER,
   tropical: TROPICAL_ACTIVATION_SHADER,
   tropicalGraph: TROPICAL_GRAPH_SHADER,
+  largescale: LIF_LARGE_SCALE_SHADER,
 };
 
 /** Entry point to category mapping. */
@@ -76,6 +82,8 @@ const ENTRY_POINT_CATEGORY: Record<ShaderEntryPoint, ShaderCategory> = {
   tropical_activate: 'tropical',
   tropical_min_plus_gemm: 'tropicalGraph',
   tropical_spmv: 'tropicalGraph',
+  lif_step_partitioned: 'largescale',
+  synaptic_current_shared_tiled: 'largescale',
 };
 
 /** Cached pipeline entry. */
