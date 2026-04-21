@@ -4,6 +4,7 @@
  * Comprehensive test suite for the HoloScript runtime engine.
  */
 
+import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloScriptRuntime } from './HoloScriptRuntime';
 import { HoloScriptCodeParser } from './HoloScriptCodeParser';
@@ -464,6 +465,43 @@ describe('HoloScriptRuntime', () => {
       expect(runtime.getContext().variables.size).toBe(0);
       expect(runtime.getContext().functions.size).toBe(0);
       expect(runtime.getExecutionHistory()).toHaveLength(0);
+    });
+  });
+
+  describe('W4-T3 Wave-1 characterization (split gate)', () => {
+    function sortKeysDeep(v: unknown): unknown {
+      if (v === null || typeof v !== 'object') return v;
+      if (Array.isArray(v)) return v.map(sortKeysDeep);
+      const o = v as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(o).sort()) {
+        if (key === 'loc' || key === 'location' || key === 'range') continue;
+        out[key] = sortKeysDeep(o[key]);
+      }
+      return out;
+    }
+
+    it('HoloScriptRuntime fingerprint for fixed characterization orb', async () => {
+      const runtime = new HoloScriptRuntime();
+      const orb: OrbNode = {
+        type: 'orb',
+        name: 'wave1_char_orb',
+        properties: { note: 'w4-t3 characterization' },
+        methods: [],
+        position: [0, 1, 2],
+        hologram: { shape: 'orb', color: '#112233', size: 1, glow: false, interactive: false },
+      };
+      const result = await runtime.executeNode(orb);
+      const out = result.output as Record<string, unknown>;
+      const stable = {
+        success: result.success,
+        spatialPosition: result.spatialPosition,
+        name: out?.name,
+        propsNote: (out?.properties as Record<string, unknown> | undefined)?.note,
+      };
+      const payload = JSON.stringify(sortKeysDeep(stable as unknown as Record<string, unknown>));
+      const h = createHash('sha256').update(payload, 'utf8').digest('hex');
+      expect(h).toBe('cee9fd2b2ffaec178944cfc540fdd2b3864f198084f79cee9beef33484121d0d');
     });
   });
 });

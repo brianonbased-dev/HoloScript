@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { describe, it, expect } from 'vitest';
 import { HoloCompositionParser } from '../HoloCompositionParser';
 
@@ -258,6 +259,34 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
         [10, 0, 10],
         [0, 0, 10],
       ]);
+    });
+  });
+
+  describe('W4-T3 Wave-1 characterization — HoloCompositionParser', () => {
+    function sortKeysDeep(v: unknown): unknown {
+      if (v === null || typeof v !== 'object') return v;
+      if (Array.isArray(v)) return v.map(sortKeysDeep);
+      const o = v as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(o).sort()) {
+        if (key === 'loc' || key === 'location' || key === 'range') continue;
+        out[key] = sortKeysDeep(o[key]);
+      }
+      return out;
+    }
+
+    it('stable SHA-256 of sorted AST for empty Wave1 gate composition', () => {
+      const source = `
+        composition "Wave1SplitCharacterization" {
+        }
+      `;
+      const result = parser.parse(source);
+      expect(result.success).toBe(true);
+      const ast = result.ast!;
+      const h = createHash('sha256')
+        .update(JSON.stringify(sortKeysDeep(ast)), 'utf8')
+        .digest('hex');
+      expect(h).toBe('d32fd941e3ff84419e0875f867f854018d691adc2fb4d7438ce831b902302c3c');
     });
   });
 });

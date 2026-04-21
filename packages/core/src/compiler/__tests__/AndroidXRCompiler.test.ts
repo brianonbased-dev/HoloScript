@@ -1,5 +1,19 @@
+import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
+
+function hashRecordStrings(obj: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const k of Object.keys(obj).sort()) {
+    const v = obj[k];
+    if (typeof v === 'string') {
+      parts.push(`${k}:${createHash('sha256').update(v, 'utf8').digest('hex')}`);
+    } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+      parts.push(`${k}:${hashRecordStrings(v as Record<string, unknown>)}`);
+    }
+  }
+  return createHash('sha256').update(parts.join('|'), 'utf8').digest('hex');
+}
 import type { AndroidXRCompileResult } from '../AndroidXRCompiler';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -549,6 +563,16 @@ describe('AndroidXRCompiler', () => {
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.buildGradle).toContain('media3-exoplayer');
+  });
+
+  describe('W4-T3 Wave-1 characterization (split gate)', () => {
+    it('AndroidXRCompiler fingerprint for empty Wave1 gate composition', () => {
+      const comp = minimalComposition({ name: 'Wave1SplitCharacterization' });
+      const out = compiler.compile(comp, 'test-token');
+      expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
+        'f99185f18b140f085d1cdf82ec0af8063cfbbfc89ab86a58353b13ddb4e91252'
+      );
+    });
   });
 
   // ─── Convenience export ───────────────────────────────────────────

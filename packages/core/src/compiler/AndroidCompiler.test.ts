@@ -5,9 +5,23 @@
  * Verifies correct Kotlin code generation for ARCore experiences.
  */
 
+import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AndroidCompiler, type AndroidCompilerOptions } from './AndroidCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+
+function hashRecordStrings(obj: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const k of Object.keys(obj).sort()) {
+    const v = obj[k];
+    if (typeof v === 'string') {
+      parts.push(`${k}:${createHash('sha256').update(v, 'utf8').digest('hex')}`);
+    } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+      parts.push(`${k}:${hashRecordStrings(v as Record<string, unknown>)}`);
+    }
+  }
+  return createHash('sha256').update(parts.join('|'), 'utf8').digest('hex');
+}
 
 describe('AndroidCompiler', () => {
   let compiler: AndroidCompiler;
@@ -280,6 +294,16 @@ describe('AndroidCompiler', () => {
 
       expect(result.stateFile).toBeDefined();
       expect(result.stateFile.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('W4-T3 Wave-1 characterization (split gate)', () => {
+    it('AndroidCompiler fingerprint for empty Wave1 gate composition', () => {
+      const composition = createComposition({ name: 'Wave1SplitCharacterization' });
+      const out = compiler.compile(composition);
+      expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
+        '8cea083e2fd602f6dc12e727bfd51d0e0cf0bcd14b936220dcec0a84a164c119'
+      );
     });
   });
 });

@@ -5,9 +5,23 @@
  * face tracking traits (ARFaceAnchor, blendshapes, emotion detection, gaze, etc.).
  */
 
+import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IOSCompiler } from './IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+
+function hashRecordStrings(obj: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const k of Object.keys(obj).sort()) {
+    const v = obj[k];
+    if (typeof v === 'string') {
+      parts.push(`${k}:${createHash('sha256').update(v, 'utf8').digest('hex')}`);
+    } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+      parts.push(`${k}:${hashRecordStrings(v as Record<string, unknown>)}`);
+    }
+  }
+  return createHash('sha256').update(parts.join('|'), 'utf8').digest('hex');
+}
 
 describe('IOSCompiler — TrueDepth Face Tracking', () => {
   let compiler: IOSCompiler;
@@ -401,6 +415,17 @@ describe('IOSCompiler — TrueDepth Face Tracking', () => {
       expect(result.sceneFile).toBeDefined();
       expect(result.stateFile).toBeDefined();
       expect(result.infoPlist).toBeDefined();
+    });
+  });
+
+  describe('W4-T3 Wave-1 characterization (split gate)', () => {
+    it('IOSCompiler fingerprint for empty Wave1 gate composition', () => {
+      const c = new IOSCompiler();
+      const composition = createComposition({ name: 'Wave1SplitCharacterization' });
+      const out = c.compile(composition);
+      expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
+        '8b378b3578b7611a755b4313e2476bef9a30d860211316f2f982341840530e96'
+      );
     });
   });
 });
