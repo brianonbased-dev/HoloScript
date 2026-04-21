@@ -19,6 +19,7 @@ import { rateLimit } from '@/lib/rate-limiter';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
+import { readJsonBody } from '../_lib/body-size';
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
@@ -82,15 +83,22 @@ export async function POST(request: NextRequest) {
     ]);
   }
 
-  let body: { messages?: Array<{ role: string; content: string }>; sceneContext?: string };
-  try {
-    body = await request.json();
-  } catch {
+  // SEC-T17: cap body bytes before parsing. Per-message content is capped
+  // below at MAX_MESSAGE_CHARS (4KB); 32KB body budget covers multi-turn
+  // history + sceneContext without exposing the 300s maxDuration to abuse.
+  const parsed = await readJsonBody<{
+    messages?: Array<{ role: string; content: string }>;
+    sceneContext?: string;
+  }>(request, { maxBytes: 32_000 });
+  if (!parsed.ok) {
+    const msg =
+      parsed.error === 'payload_too_large' ? 'Body exceeds size limit' : 'Invalid JSON body';
     return sseResponse([
-      { type: 'error', payload: 'Invalid JSON body' },
+      { type: 'error', payload: msg },
       { type: 'done', payload: null },
     ]);
   }
+  const body = parsed.body;
 
   const { messages, sceneContext } = body;
 

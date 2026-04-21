@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/api-auth';
+import { readJsonBody } from '../../_lib/body-size';
 import {
   createDaemonJob,
   listDaemonJobs,
@@ -49,12 +50,15 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  // SEC-T17: cap body bytes. Daemon job payloads are small — projectId +
+  // profile enum + projectDna metadata. 16KB leaves headroom for projectDna
+  // blobs while keeping this well under the 300s maxDuration abuse lane.
+  const readResult = await readJsonBody<unknown>(request, { maxBytes: 16_384 });
+  if (!readResult.ok) {
+    const msg = readResult.error === 'payload_too_large' ? 'Body exceeds 16KB limit' : 'Invalid JSON body';
+    return NextResponse.json({ error: msg }, { status: readResult.status });
   }
+  const raw: unknown = readResult.body;
 
   const parsed = CreateJobSchema.safeParse(raw);
   if (!parsed.success) {
@@ -81,10 +85,10 @@ export async function POST(request: NextRequest) {
   const created = createDaemonJob({
     projectId: body.projectId,
     profile: body.profile,
-    projectDna: body.projectDna,
+    projectDna: body.projectDna as unknown as CreateDaemonJobInput['projectDna'],
     projectPath: body.projectPath,
-    customLimits: body.customLimits,
-  } as CreateDaemonJobInput);
+    customLimits: body.customLimits as CreateDaemonJobInput['customLimits'],
+  });
 
   return NextResponse.json({ job: created }, { status: 201 });
 }

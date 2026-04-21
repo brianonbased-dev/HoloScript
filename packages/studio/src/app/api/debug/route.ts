@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
+import { readJsonBody } from '../_lib/body-size';
 
 /**
  * POST /api/debug
@@ -146,12 +147,13 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
-  let body: DebugRequest;
-  try {
-    body = (await request.json()) as DebugRequest;
-  } catch {
-    return NextResponse.json({ error: 'Bad JSON' }, { status: 400 });
+  // SEC-T17: cap body bytes before parsing. 64KB matches the inner `code`
+  // cap below; JSON/breakpoint-array overhead is negligible at this scale.
+  const parsed = await readJsonBody<DebugRequest>(request, { maxBytes: 65_536 });
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: parsed.status });
   }
+  const body = parsed.body;
 
   const { code = '', breakpoints = [], action = 'start', currentFrame = -1 } = body;
 

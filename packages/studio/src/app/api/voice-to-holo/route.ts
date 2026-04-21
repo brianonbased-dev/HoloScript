@@ -30,6 +30,7 @@ import {
 import { validateHoloOutput, normalizeHoloOutput } from '../../../lib/voice/validator';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
+import { readJsonBody } from '../_lib/body-size';
 import type {
   VoiceToHoloRequest,
   VoiceToHoloResponse,
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
   // SEC-T03: gate on authenticated session before touching any LLM key.
   const auth = await requireAuth();
   if (auth instanceof NextResponse) {
-    return auth as NextResponse<VoiceToHoloError>;
+    return auth as unknown as NextResponse<VoiceToHoloError>;
   }
 
   const client = makeClient();
@@ -101,15 +102,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
     );
   }
 
-  let body: VoiceToHoloRequest;
-  try {
-    body = await req.json();
-  } catch {
+  // SEC-T17: cap body bytes. This route takes utterance *text* (not audio)
+  // plus an optional previous composition. Utterance is capped at 4KB below;
+  // 64KB covers a large previous composition + JSON overhead. The task brief
+  // suggested 1MB based on "voice samples", but audio is transcribed client-
+  // side before reaching here — only text is posted.
+  const parsed = await readJsonBody<VoiceToHoloRequest>(req, { maxBytes: 65_536 });
+  if (!parsed.ok) {
+    const message =
+      parsed.error === 'payload_too_large'
+        ? `Body exceeds ${parsed.limit}-byte limit`
+        : 'Invalid JSON body';
     return NextResponse.json(
-      { error: { kind: 'llm-request-failed', message: 'Invalid JSON body' } },
-      { status: 400 }
+      { error: { kind: 'llm-request-failed', message } },
+      { status: parsed.status }
     );
   }
+  const body = parsed.body;
 
   const utterance = (body.utterance ?? '').trim();
   if (!utterance) {

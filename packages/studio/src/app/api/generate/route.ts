@@ -6,6 +6,7 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoValidator';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
+import { readJsonBody } from '../_lib/body-size';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -111,8 +112,21 @@ export async function POST(request: NextRequest) {
   const gate = await checkCredits(request, 'studio_generate');
   if (gate.error) return gate.error;
 
+  // SEC-T17: cap body bytes. Prompt is internally capped at MAX_PROMPT_CHARS
+  // (4KB); 32KB body budget leaves ample JSON/existingCode headroom.
+  const parsed = await readJsonBody<{ prompt?: unknown; existingCode?: unknown }>(
+    request,
+    { maxBytes: 32_000 }
+  );
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { success: false, code: '', error: parsed.error },
+      { status: parsed.status, headers }
+    );
+  }
+
   try {
-    const body = await request.json();
+    const body = parsed.body;
     const { prompt, existingCode } = body;
 
     if (!prompt || typeof prompt !== 'string') {
