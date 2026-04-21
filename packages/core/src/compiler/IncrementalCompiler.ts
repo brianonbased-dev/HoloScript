@@ -38,6 +38,8 @@ import {
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { UnauthorizedCompilerAccessError } from './CompilerBase';
+import { BuildCache, type CacheEntryType } from './BuildCache';
+import { computeContentHash } from '../deploy/provenance';
 
 /**
  * Types of changes detected during AST diff
@@ -230,6 +232,8 @@ export class IncrementalCompiler {
   private dependencyGraph: Map<string, Set<string>> = new Map();
   private traitGraph: TraitDependencyGraph;
   private semanticCache: SemanticCache | null = null;
+  /** Persistent disk cache keyed by provenance content-hash (paper-10). */
+  private buildCache: BuildCache | null = null;
 
   constructor(
     traitGraph?: TraitDependencyGraph,
@@ -237,9 +241,16 @@ export class IncrementalCompiler {
       enableSemanticCache?: boolean;
       redisUrl?: string;
       cacheTTL?: number;
+      /**
+       * Persistent build cache for cross-session provenance-aware caching.
+       * When supplied, compiled objects are stored/retrieved by their SHA-256
+       * content hash (paper-10 §3.2 "content-addressable cache").
+       */
+      buildCache?: BuildCache;
     }
   ) {
     this.traitGraph = traitGraph || globalTraitGraph;
+    this.buildCache = options?.buildCache ?? null;
 
     // Initialize semantic cache if enabled
     if (options?.enableSemanticCache) {
@@ -847,6 +858,8 @@ export class IncrementalCompiler {
 
     for (const [name, obj] of allObjects) {
       const hash = hashContent(serializeObject(obj));
+      // SHA-256 provenance hash for content-addressable cross-session caching (paper-10 §3.2)
+      const provenanceHash = computeContentHash(serializeObject(obj));
 
       // Register object with trait graph for dependency tracking
       const traitUsages = this.extractTraitUsages(obj.traits || []);
@@ -857,8 +870,22 @@ export class IncrementalCompiler {
         template: (obj as Extensible<HoloObjectDecl>).template as string | undefined,
       });
 
+      // Provenance-keyed persistent cache: check FIRST, superseding AST diff (paper-10 §3.2).
+      // Same content hash means same compiled output regardless of session or diff result.
+      if (this.buildCache) {
+        const provResult = await this.buildCache.getByProvenanceHash<string>(
+          provenanceHash,
+          'compiled'
+        );
+        if (provResult.hit) {
+          cachedObjects.push(name);
+          compiledParts.push(provResult.entry!.data);
+          continue;
+        }
+      }
+
       if (skipUnchanged && !recompileSet.has(name)) {
-        // Try semantic cache first (if enabled)
+        // Try semantic cache (Redis-backed, if enabled)
         if (this.semanticCache) {
           const astHash = hashASTSubtree(obj);
           const semanticResult = await this.semanticCache.get<string>(astHash, 'compiled-object');
@@ -885,6 +912,13 @@ export class IncrementalCompiler {
 
       // Update in-memory cache
       this.setCached(name, hash, compiled, []);
+
+      // Persist to provenance-keyed build cache (paper-10: survives across sessions)
+      if (this.buildCache) {
+        await this.buildCache.setByProvenanceHash(provenanceHash, 'compiled', compiled, {
+          tags: ['incremental-compiler', newAST.name || 'unknown'],
+        });
+      }
 
       // Update semantic cache (if enabled)
       if (this.semanticCache) {

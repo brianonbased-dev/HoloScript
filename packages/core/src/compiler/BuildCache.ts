@@ -402,6 +402,112 @@ export class BuildCache {
   }
 
   /**
+   * Get a cache entry keyed directly by a provenance content-hash.
+   *
+   * Provenance-keyed entries are content-addressable: the same source content
+   * always maps to the same cache slot regardless of where it lives on disk.
+   * Use `computeContentHash` from `deploy/provenance` to derive `provenanceHash`.
+   */
+  async getByProvenanceHash<T>(
+    provenanceHash: string,
+    type: CacheEntryType
+  ): Promise<CacheLookupResult<T>> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const key = `prov:${type}:${provenanceHash}`;
+    const meta = this.index.get(key);
+
+    if (!meta) {
+      this.missCount++;
+      return { hit: false, reason: 'not_found' };
+    }
+
+    // Check TTL and version (no mtime check — content-hash is the invariant)
+    if (Date.now() - meta.createdAt > this.options.ttl) {
+      this.missCount++;
+      this.index.delete(key);
+      return { hit: false, reason: 'stale' };
+    }
+    if (meta.version !== this.options.version) {
+      this.missCount++;
+      this.index.delete(key);
+      return { hit: false, reason: 'version_mismatch' };
+    }
+
+    const entryPath = this.getEntryPath(key, type);
+    if (!existsSync(entryPath)) {
+      this.missCount++;
+      this.index.delete(key);
+      return { hit: false, reason: 'not_found' };
+    }
+
+    try {
+      const rawData = readFileSync(entryPath, 'utf-8');
+      const data: T = meta.compressed ? JSON.parse(decompress(rawData)) : JSON.parse(rawData);
+
+      meta.accessedAt = Date.now();
+      meta.accessCount++;
+      this.index.set(key, meta);
+      this.hitCount++;
+      this.log(`Provenance cache hit: ${provenanceHash} (${type})`);
+
+      return { hit: true, entry: { meta, data } };
+    } catch {
+      this.missCount++;
+      return { hit: false, reason: 'corrupted' };
+    }
+  }
+
+  /**
+   * Store a cache entry keyed directly by a provenance content-hash.
+   *
+   * The `provenanceHash` must be the full 64-hex SHA-256 digest produced by
+   * `computeContentHash` from `deploy/provenance` — the same value recorded in
+   * `ProvenanceBlock.hash`.  This ensures BuildCache entries can be correlated
+   * with deploy-time provenance records.
+   */
+  async setByProvenanceHash<T>(
+    provenanceHash: string,
+    type: CacheEntryType,
+    data: T,
+    options?: { dependencies?: string[]; tags?: string[] }
+  ): Promise<void> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const key = `prov:${type}:${provenanceHash}`;
+    const serialized = JSON.stringify(data);
+    const shouldCompress =
+      this.options.enableCompression && serialized.length > this.options.compressionThreshold;
+    const entryData = shouldCompress ? compress(serialized) : serialized;
+
+    const meta: CacheEntryMeta = {
+      type,
+      sourceHash: provenanceHash,
+      sourcePath: `provenance:${provenanceHash}`,
+      sourceModifiedTime: 0,
+      createdAt: Date.now(),
+      accessedAt: Date.now(),
+      accessCount: 0,
+      size: entryData.length,
+      compressed: shouldCompress,
+      version: this.options.version,
+      dependencies: options?.dependencies,
+      tags: options?.tags,
+    };
+
+    const entryPath = this.getEntryPath(key, type);
+    writeFileSync(entryPath, entryData);
+    this.index.set(key, meta);
+    await this.saveIndex();
+    this.log(`Provenance cache set: ${provenanceHash} (${type}), size: ${meta.size}`);
+    await this.enforceMaxSize();
+  }
+
+  /**
    * Invalidate cache entries for a source file
    */
   async invalidate(sourcePath: string, types?: CacheEntryType[]): Promise<number> {
