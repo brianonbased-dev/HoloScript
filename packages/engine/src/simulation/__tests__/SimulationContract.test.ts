@@ -478,3 +478,112 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// Route 2d — steady-state terminal canonicalization (Wave-2 item 6)
+//
+// solve() is non-iterative; it converges to a steady state rather than
+// stepping through time. Route 2d captures a single terminal digest at
+// solve() completion, exposed via the same getStateDigests() API as
+// Route 2b's per-step sequence. Rationale + formal treatment in
+// ai-ecosystem research/2026-04-20_property-4-route-2-proof-outline.md
+// Limitation #3 "Route 2d sketch" (now implemented).
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
+  function steadyStateSolverWith(values: Float32Array): SimSolver & { solved: boolean } {
+    return {
+      mode: 'steady-state',
+      fieldNames: ['stress'],  // stress → q_f = 1000 Pa from registry
+      solved: false,
+      step(_dt: number) { /* not used for steady-state */ },
+      solve() { this.solved = true; },
+      getField(): FieldData | null { return values; },
+      getStats() { return { converged: this.solved }; },
+      dispose() {},
+    };
+  }
+
+  it('solve() pushes exactly one terminal digest', async () => {
+    const contracted = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([1e5, 2e5, 3e5])),
+      {}, { fixedDt: 0.01 },
+    );
+    expect(contracted.getStateDigests().length).toBe(0); // none before
+    await contracted.solve();
+    expect(contracted.getStateDigests().length).toBe(1); // exactly one after
+    expect(contracted.getStateDigests()[0]).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it('terminal digest is deterministic across independent runs', async () => {
+    const a = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([5e5, 5e5, 5e5])),
+      {}, {},
+    );
+    const b = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([5e5, 5e5, 5e5])),
+      {}, {},
+    );
+    await a.solve();
+    await b.solve();
+    expect(a.getStateDigests()).toEqual(b.getStateDigests());
+  });
+
+  it('terminal digest is stable under perturbations below stress q_f (1000 Pa)', async () => {
+    // stress q_f = 1000 Pa. A 100 Pa perturbation → same lattice cell.
+    const a = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([2e6, 2e6, 2e6])),
+      {}, {},
+    );
+    const b = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([2e6 + 100, 2e6, 2e6])),
+      {}, {},
+    );
+    await a.solve();
+    await b.solve();
+    expect(a.getStateDigests()[0]).toBe(b.getStateDigests()[0]);
+  });
+
+  it('terminal digest changes when stress differs above q_f (1000 Pa)', async () => {
+    const a = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([1e6, 1e6, 1e6])),
+      {}, {},
+    );
+    const b = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([1e6 + 5000, 1e6, 1e6])),
+      {}, {},
+    );
+    await a.solve();
+    await b.solve();
+    expect(a.getStateDigests()[0]).not.toBe(b.getStateDigests()[0]);
+  });
+
+  it('solve() inherits fail-closed NaN guard from computeStateDigest', async () => {
+    const contracted = new ContractedSimulation(
+      steadyStateSolverWith(new Float32Array([1e5, NaN, 3e5])),
+      {}, {},
+    );
+    await expect(contracted.solve()).rejects.toThrow(/Non-finite value in field "stress" at index 1/);
+  });
+
+  it('solve() + step() digests are ordered in the same array (Route 2b + 2d share getStateDigests)', async () => {
+    // A hybrid solver that can both step and solve
+    const values = new Float32Array([1e5, 2e5, 3e5]);
+    const solver: SimSolver = {
+      mode: 'transient',
+      fieldNames: ['stress'],
+      step(_dt: number) { values[0] += 1000; },  // 1 q_f per sub-step
+      solve() { values[0] += 10000; },           // 10 q_f on solve
+      getField() { return values; },
+      getStats() { return {}; },
+      dispose() {},
+    };
+    const contracted = new ContractedSimulation(solver, {}, { fixedDt: 0.01 });
+    contracted.step(0.02); // 2 sub-steps → 2 Route-2b digests
+    await contracted.solve(); // 1 terminal Route-2d digest
+    const digests = contracted.getStateDigests();
+    expect(digests.length).toBe(3); // 2 step + 1 solve
+    // Each quantization cell bumps by 1 q_f per step → each digest distinct
+    expect(new Set(digests).size).toBe(3);
+  });
+});

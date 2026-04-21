@@ -570,10 +570,31 @@ export class ContractedSimulation {
   }
 
   /** Solve a steady-state system (not time-stepped).
-   *  Enforces Guarantee 1 (geometry integrity) before solving. */
+   *  Enforces Guarantee 1 (geometry integrity) before solving.
+   *
+   *  Route 2d (paper-3 Appendix A, Wave-2 item 6): captures a single
+   *  terminal state digest at solve() completion. For steady-state
+   *  solvers the convergence loop has already damped reduction-order
+   *  variance — δ_fp is bounded by the solver's convergence tolerance
+   *  (typically ≤ 10^-6 of field scale, much tighter than in-step
+   *  atomic-reduction drift). So Route 2d typically achieves cross-
+   *  adapter bit-identity at the lattice level with margin ≥ 10^3×,
+   *  tighter than Route 2b's stepped bound.
+   *
+   *  The terminal digest is exposed via the same getStateDigests()
+   *  API as Route 2b's per-step sequence; for a Route-2d replay there
+   *  is exactly one digest to compare.
+   *
+   *  See: ai-ecosystem research/2026-04-20_property-4-route-2-proof-outline.md
+   *  (Limitation #3, "Route 2d sketch" — now implemented).
+   */
   async solve(): Promise<void> {
     this.enforceGeometryIntegrity();
     await this.solver.solve();
+    // Route 2d: single terminal canonicalization on the converged
+    // state. Fail-closed on NaN/Infinity (inherits guard from
+    // computeStateDigest).
+    this.stateDigests.push(this.computeStateDigest());
   }
 
   /** Enforce Guarantee 1: halt if geometry has been corrupted.
