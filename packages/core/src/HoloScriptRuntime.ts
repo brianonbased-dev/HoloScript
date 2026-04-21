@@ -253,8 +253,19 @@ export class HoloScriptRuntime {
     // Initialize Extension Registry
     this.extensionRegistry = new ExtensionRegistry(this);
 
-    // Wire up state machine hook executor to this runtime's expression evaluator
-    stateMachineInterpreter.interpret(); // Stub call to ensure it's used
+    // Wire up state machine interpreter to this runtime's expression evaluator.
+    // The interpreter itself is pure: it owns machine state + transition dispatch,
+    // and delegates (a) onEntry/onExit code execution and (b) transition-guard
+    // evaluation to executors we install here. Both are thin adapters over
+    // evaluateExpression() so hook code and guard expressions resolve against the
+    // same reactive state / variable bindings the rest of the runtime sees.
+    //
+    // NOTE: the interpreter is a module-level singleton (see engine/runtime/
+    // StateMachineInterpreter.ts). If multiple runtimes exist in the same process
+    // the last to initialize wins — acceptable today (we instantiate one runtime
+    // per workspace), but follow-up if we ever need per-runtime isolation.
+    stateMachineInterpreter.setHookExecutor((code) => this.evaluateExpression(code));
+    stateMachineInterpreter.setGuardEvaluator((expr) => this.evaluateExpression(expr));
   }
 
   /**

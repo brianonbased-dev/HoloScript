@@ -7,21 +7,58 @@ export interface StateMachineInstance {
   context: Record<string, any>;
 }
 
-/** Hook executor function type */
+/** Hook executor function type — evaluates an onEntry/onExit code block */
 export type HookExecutor = (code: string, context: Record<string, any>) => any;
 
 /**
- * StateMachineInterpreter - Handles runtime execution of spatial state machines
+ * Guard evaluator function type — evaluates a transition condition expression.
+ * Must return a truthy/falsy value. If no guard evaluator is registered, transitions
+ * with conditions are treated as ungated (condition ignored, logged once).
+ */
+export type GuardEvaluator = (expression: string, context: Record<string, any>) => unknown;
+
+/**
+ * StateMachineInterpreter - Handles runtime execution of spatial state machines.
+ *
+ * The interpreter is pure: it owns state-machine definitions, current state, entry/exit
+ * dispatch, and transition resolution. Code execution (onEntry/onExit bodies) and guard
+ * expressions are delegated to executor hooks injected by the host runtime. This keeps
+ * the interpreter free of any dependency on the expression evaluator.
+ *
+ * Wiring (done once by HoloScriptRuntime during init):
+ *   stateMachineInterpreter.setHookExecutor((code, ctx) => runtime.evaluateExpression(code));
+ *   stateMachineInterpreter.setGuardEvaluator((expr, ctx) => runtime.evaluateExpression(expr));
+ *
+ * Per-instance lifecycle:
+ *   createInstance(id, definition, ctx)  -> registers, fires initial onEntry
+ *   sendEvent(id, event)                 -> finds transition, checks guard, dispatches
+ *   transitionTo(id, targetState)        -> runs exit -> change -> entry
+ *   removeInstance(id)                   -> discards (no teardown hook yet)
  */
 export class StateMachineInterpreter {
   private instances: Map<string, StateMachineInstance> = new Map();
   private hookExecutor: HookExecutor | null = null;
+  private guardEvaluator: GuardEvaluator | null = null;
+  private guardMissingWarned = false;
 
   /**
-   * Set the hook executor function (called by runtime during initialization)
+   * Set the hook executor function (called by runtime during initialization).
+   * The executor evaluates onEntry/onExit code blocks in the runtime's expression
+   * evaluator scope, augmented with the instance's context.
    */
   public setHookExecutor(executor: HookExecutor): void {
     this.hookExecutor = executor;
+  }
+
+  /**
+   * Set the guard evaluator function (called by runtime during initialization).
+   * The evaluator returns a truthy/falsy value for a transition's optional
+   * condition expression. Without it, conditional transitions are treated as
+   * ungated (the condition is ignored and a single warning is logged).
+   */
+  public setGuardEvaluator(evaluator: GuardEvaluator): void {
+    this.guardEvaluator = evaluator;
+    this.guardMissingWarned = false;
   }
 
   /**
@@ -53,22 +90,62 @@ export class StateMachineInterpreter {
   }
 
   /**
-   * Process an event and trigger transitions
+   * Process an event and trigger transitions.
+   *
+   * Resolution:
+   *  1. Find transitions matching (currentState, event).
+   *  2. For each match, evaluate optional `condition` via the registered guard
+   *     evaluator; take the first whose guard is truthy (or that has no guard).
+   *  3. If a transition fires, dispatch to transitionTo() which runs
+   *     exit-hook -> state change -> entry-hook in that order.
+   *  4. If no transition matches (or all guards fail), return false silently —
+   *     unmatched events are tolerated, not an error.
    */
   public sendEvent(id: string, event: string): boolean {
     const instance = this.instances.get(id);
     if (!instance) return false;
 
-    const transition = instance.definition.transitions.find(
+    const candidates = instance.definition.transitions.filter(
       (t) => t.from === instance.currentState && t.event === event
     );
 
-    if (transition) {
-      this.transitionTo(id, transition.to);
-      return true;
+    for (const transition of candidates) {
+      if (!transition.condition) {
+        this.transitionTo(id, transition.to);
+        return true;
+      }
+      if (this.evaluateGuard(transition.condition, instance.context)) {
+        this.transitionTo(id, transition.to);
+        return true;
+      }
     }
 
     return false;
+  }
+
+  /**
+   * Evaluate a transition guard. Returns truthy/falsy.
+   * If no guard evaluator is registered, logs once and treats the guard as passing
+   * (condition becomes a no-op) so machines still advance during early-boot/tests.
+   */
+  private evaluateGuard(expression: string, context: Record<string, any>): boolean {
+    if (!this.guardEvaluator) {
+      if (!this.guardMissingWarned) {
+        logger.warn(
+          `[StateMachine] No guard evaluator registered - conditional transitions will fire ungated`
+        );
+        this.guardMissingWarned = true;
+      }
+      return true;
+    }
+    try {
+      return Boolean(this.guardEvaluator(expression, context));
+    } catch (error: unknown) {
+      logger.error(
+        `[StateMachine] Guard evaluation failed for "${expression}": ${error instanceof Error ? error.message : String(error)}`
+      );
+      return false;
+    }
   }
 
   /**
