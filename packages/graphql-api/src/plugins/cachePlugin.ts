@@ -164,7 +164,7 @@ export function createCachePlugin(
 
   return {
     async requestDidStart(): Promise<GraphQLRequestListener<BaseContext>> {
-      const _cacheHit = false;
+      let _cacheHit = false;
       let operationName: string | undefined;
 
       return {
@@ -179,7 +179,7 @@ export function createCachePlugin(
           // Check cache
           const cached = cache.get(operationName, request.variables);
           if (cached) {
-            cacheHit = true;
+            _cacheHit = true;
             (request as CacheableRequest).__cachedResult = cached;
           }
         },
