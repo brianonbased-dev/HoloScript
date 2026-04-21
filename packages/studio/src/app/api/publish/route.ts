@@ -10,6 +10,7 @@ import { sharedScenes } from '../../../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
+import { corsHeaders } from '../_lib/cors';
 /**
  * POST /api/publish
  * Body: HoloScene v2 JSON (same shape as serializer output)
@@ -114,13 +115,9 @@ export async function GET(req: Request) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
 
+import { corsHeaders } from '../_lib/cors';
 /**
  * GET  /api/keyframes?sceneId=  — list all tracks + keyframes for a scene
  * POST /api/keyframes            — add/update a keyframe: { sceneId, track, time, value }
@@ -114,13 +115,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

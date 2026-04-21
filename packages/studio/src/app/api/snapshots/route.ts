@@ -7,6 +7,7 @@ import { eq, desc } from 'drizzle-orm';
 import { isStorageConfigured, uploadFile, deleteFile } from '../../../lib/storage-s3';
 import { logger } from '@/lib/logger';
 
+import { corsHeaders } from '../_lib/cors';
 /**
  * /api/snapshots — scene snapshot store.
  *
@@ -171,13 +172,9 @@ export async function DELETE(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

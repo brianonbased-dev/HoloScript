@@ -7,6 +7,7 @@ import path from 'path';
 import { requireAuth } from '@/lib/api-auth';
 import { logger } from '@/lib/logger';
 
+import { corsHeaders } from '../_lib/cors';
 export const runtime = 'nodejs';
 
 /**
@@ -61,13 +62,9 @@ ${rawStack || 'No stack trace available'}
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

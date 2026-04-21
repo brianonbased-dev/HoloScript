@@ -6,6 +6,7 @@ import { assets } from '../../../db/schema';
 import { eq, desc, ilike, or, sql } from 'drizzle-orm';
 import { requireAuth } from '../../../lib/api-auth';
 
+import { corsHeaders } from '../_lib/cors';
 /**
  * /api/assets — Asset catalog.
  *
@@ -315,13 +316,9 @@ export async function POST(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
