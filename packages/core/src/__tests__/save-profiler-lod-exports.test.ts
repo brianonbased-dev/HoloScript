@@ -33,7 +33,7 @@ describe('SaveManager exports', () => {
     expect(mgr.isCorrupted('s1')).toBe(false);
     // Tamper with data
     const slot = mgr.getSlot('s1')!;
-    slot.data.x = 999;
+    slot.data[0] = 999;
     expect(mgr.isCorrupted('s1')).toBe(true);
   });
 
@@ -59,104 +59,95 @@ describe('SaveManager exports', () => {
 });
 
 describe('Profiler exports', () => {
-  it('tracks frame timing', () => {
+  it('tracks spans in a session', () => {
     const prof = new Profiler();
-    prof.beginFrame();
-    prof.endFrame();
-    expect(prof.getFrameHistory().length).toBe(1);
-    expect(prof.getLastFrame()).not.toBeNull();
+    prof.start('test-session');
+    prof.beginSpan('Physics');
+    prof.endSpan();
+    const result = prof.stop();
+    expect(result.samples.length).toBeGreaterThan(0);
+    expect(result.samples[0].name).toBe('Physics');
   });
 
-  it('profiles scopes and builds summaries', () => {
+  it('profiles multiple spans', () => {
     const prof = new Profiler();
-    prof.beginFrame();
-    prof.beginScope('Physics');
-    prof.endScope();
-    prof.beginScope('Rendering');
-    prof.endScope();
-    prof.endFrame();
-    const summaries = prof.getAllSummaries();
-    expect(summaries.length).toBe(2);
-    expect(summaries.find((s) => s.name === 'Physics')).toBeDefined();
+    prof.start();
+    prof.beginSpan('Physics');
+    prof.endSpan();
+    prof.beginSpan('Rendering');
+    prof.endSpan();
+    const result = prof.stop();
+    expect(result.samples.length).toBe(2);
+    expect(result.samples.find((s) => s.name === 'Physics')).toBeDefined();
   });
 
-  it('profile() wraps sync functions', () => {
+  it('returns name and duration in stop result', () => {
     const prof = new Profiler();
-    prof.beginFrame();
-    const result = prof.profile('Math', () => 2 + 2);
-    prof.endFrame();
-    expect(result).toBe(4);
-    expect(prof.getSummary('Math')?.callCount).toBe(1);
+    prof.start('measure');
+    prof.beginSpan('Work');
+    prof.endSpan();
+    const result = prof.stop();
+    expect(result.name).toBe('measure');
+    expect(result.duration).toBeGreaterThanOrEqual(0);
   });
 
-  it('takes memory snapshots', () => {
+  it('captures memory snapshots during session', () => {
     const prof = new Profiler();
-    prof.takeMemorySnapshot('before');
-    prof.takeMemorySnapshot('after');
-    expect(prof.getMemorySnapshots().length).toBe(2);
+    prof.start();
+    prof.captureMemory();
+    const result = prof.stop();
+    expect(result).toBeDefined();
+    expect(result.memorySnapshots).toBeDefined();
   });
 
-  it('enable/disable controls profiling', () => {
+  it('can be restarted after stop', () => {
     const prof = new Profiler();
-    prof.setEnabled(false);
-    expect(prof.isEnabled()).toBe(false);
-    prof.beginFrame();
-    prof.endFrame();
-    expect(prof.getFrameHistory().length).toBe(0);
+    prof.start('first');
+    prof.stop();
+    prof.start('second');
+    prof.beginSpan('Task');
+    prof.endSpan();
+    const result = prof.stop();
+    expect(result.name).toBe('second');
+    expect(result.samples.length).toBe(1);
   });
 });
 
 describe('LODManager exports', () => {
   it('registers and queries objects', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('tree', {
-      levels: [
-        { distance: 0, triangleCount: 1000 },
-        { distance: 50, triangleCount: 100 },
-      ],
-    });
-    expect(mgr.getRegisteredObjects()).toContain('tree');
-    expect(mgr.getCurrentLevel('tree')).toBe(0);
+    const mgr = new LODManager();
+    mgr.register('tree', [0, 0, 0]);
+    expect(mgr.getObjectCount()).toBe(1);
+    expect(mgr.getObject('tree')).toBeDefined();
   });
 
   it('updates LOD state after camera move', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register(
-      'obj',
-      {
-        levels: [
-          { distance: 0, triangleCount: 5000 },
-          { distance: 20, triangleCount: 500 },
-        ],
-      },
-      [100, 0, 0]
-    );
-    mgr.setCameraPosition([0, 0, 0]);
+    const mgr = new LODManager();
+    mgr.register('obj', [100, 0, 0]);
+    mgr.setViewerPosition(0, 0, 0);
     mgr.update(0.016);
-    // After update, state should exist for the object
-    const state = mgr.getState('obj');
-    expect(state).toBeDefined();
+    const obj = mgr.getObject('obj');
+    expect(obj).toBeDefined();
+    expect(obj!.currentLevel).toBeGreaterThanOrEqual(0);
   });
 
   it('unregisters objects', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('a', { levels: [{ distance: 0, triangleCount: 100 }] });
+    const mgr = new LODManager();
+    mgr.register('a', [0, 0, 0]);
     mgr.unregister('a');
-    expect(mgr.getRegisteredObjects()).not.toContain('a');
+    expect(mgr.getObject('a')).toBeUndefined();
+    expect(mgr.getObjectCount()).toBe(0);
   });
 
-  it('forced LOD level overrides distance', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('obj', {
-      levels: [
-        { distance: 0, triangleCount: 5000 },
-        { distance: 20, triangleCount: 500 },
-        { distance: 50, triangleCount: 50 },
-      ],
-    });
-    mgr.setForcedLevel('obj', 2);
+  it('selects higher LOD at greater distance', () => {
+    const mgr = new LODManager();
+    mgr.register('obj', [1000, 0, 0]);
+    mgr.setViewerPosition(0, 0, 0);
     mgr.update(0.016);
-    expect(mgr.getCurrentLevel('obj')).toBe(2);
+    const obj = mgr.getObject('obj');
+    expect(obj).toBeDefined();
+    // At distance 1000, should be at a higher LOD level (lower detail)
+    expect(obj!.currentLevel).toBeGreaterThan(0);
   });
 });
 
