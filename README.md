@@ -89,6 +89,8 @@ These verticals have foundation traits but no dedicated domain coverage yet:
 
 Every gap shares the same pattern: the infrastructure traits exist, the domain plugin doesn't. The plugin system (`packages/plugins/`) is designed exactly for this — add domain-specific traits without touching core.
 
+**Vertical README epics (optional backlog):** some packages have deep READMEs, others are stubs. Tracked in [`docs/vertical-readme-epics.md`](docs/vertical-readme-epics.md) for prioritization; split into one board child task per vertical when a row is ready to ship.
+
 ## How it composes (the loops)
 
 Individual traits solve individual problems. When you wire them together, autonomous loops emerge:
