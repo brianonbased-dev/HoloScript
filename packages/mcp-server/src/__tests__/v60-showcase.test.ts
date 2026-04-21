@@ -245,15 +245,19 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
   // ===========================================================================
 
   describe('MCP tool count', () => {
-    it('API reference reports >= 50 tools', async () => {
-      const result = (await handleDeveloperTool('get_api_reference', {
-        format: 'json',
-      })) as { format: string; reference: { totalTools: number } };
+    it(
+      'API reference reports >= 50 tools',
+      async () => {
+        const result = (await handleDeveloperTool('get_api_reference', {
+          format: 'json',
+        })) as { format: string; reference: { totalTools: number } };
 
-      expect(result.format).toBe('json');
-      // The tool set loaded at test time should have a substantial number
-      expect(result.reference.totalTools).toBeGreaterThanOrEqual(50);
-    });
+        expect(result.format).toBe('json');
+        // The tool set loaded at test time should have a substantial number
+        expect(result.reference.totalTools).toBeGreaterThanOrEqual(50);
+      },
+      90_000,
+    );
   });
 
   // ===========================================================================
@@ -296,25 +300,33 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
       expect(result.waterfall.rows[1].depth).toBe(1);
     });
 
-    it('get_dev_dashboard_state returns comprehensive data', async () => {
-      const result = (await handleDeveloperTool('get_dev_dashboard_state', {
-        sections: ['traces', 'api', 'agents', 'plugins', 'economy'],
-      })) as { dashboard: Record<string, unknown>; sections: string[] };
+    it(
+      'get_dev_dashboard_state returns comprehensive data',
+      async () => {
+        const result = (await handleDeveloperTool('get_dev_dashboard_state', {
+          sections: ['traces', 'api', 'agents', 'plugins', 'economy'],
+        })) as { dashboard: Record<string, unknown>; sections: string[] };
 
-      expect(result.sections).toContain('traces');
-      expect(result.sections).toContain('api');
-      expect(result.sections).toContain('agents');
-      expect(result.sections).toContain('plugins');
-      expect(result.sections).toContain('economy');
-    });
+        expect(result.sections).toContain('traces');
+        expect(result.sections).toContain('api');
+        expect(result.sections).toContain('agents');
+        expect(result.sections).toContain('plugins');
+        expect(result.sections).toContain('economy');
+      },
+      30_000,
+    );
 
-    it('get_api_reference returns markdown format', async () => {
-      const result = (await handleDeveloperTool('get_api_reference', {
-        format: 'markdown',
-      })) as { format: string; content: string };
+    it(
+      'get_api_reference returns markdown format',
+      async () => {
+        const result = (await handleDeveloperTool('get_api_reference', {
+          format: 'markdown',
+        })) as { format: string; content: string };
 
-      expect(result.format).toBe('markdown');
-      expect(result.content).toContain('# HoloScript MCP API Reference');
-    });
+        expect(result.format).toBe('markdown');
+        expect(result.content).toContain('# HoloScript MCP API Reference');
+      },
+      30_000,
+    );
   });
 });

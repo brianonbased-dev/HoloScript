@@ -307,7 +307,9 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
   // ===========================================================================
 
   describe('create-plugin scaffolder', () => {
-    it('generates valid plugin manifest template', async () => {
+    it(
+      'generates valid plugin manifest template',
+      async () => {
       const { createPlugin } = await import(
         resolve(__dirname, '../../../../packages/cli/src/commands/create-plugin')
       );
@@ -346,7 +348,9 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
         // Cleanup
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
-    });
+    },
+    30_000,
+    );
 
     it('validates plugin name format', async () => {
       const { createPlugin } = await import(

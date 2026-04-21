@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as absorbMcp from '@holoscript/absorb-service/mcp';
 
 // We test the persistence functions by importing the module and calling the
 // exported handler, then checking the filesystem side effects.
@@ -178,16 +179,20 @@ describe('Self-Improve Tools', () => {
     it(
       'holo_self_diagnose should return error when GraphRAG not ready',
       async () => {
-        const { handleSelfImproveTool } = await import('../self-improve-tools.js');
-        const result = (await handleSelfImproveTool('holo_self_diagnose', {
-          focus: 'coverage',
-          maxResults: 3,
-        })) as any;
-        // GraphRAG won't be initialized in test environment → should get helpful error
-        expect(result).toBeDefined();
-        expect(result.error || result.candidates).toBeDefined();
+        const readySpy = vi.spyOn(absorbMcp, 'isGraphRAGReady').mockReturnValue(false);
+        try {
+          const { handleSelfImproveTool } = await import('../self-improve-tools.js');
+          const result = (await handleSelfImproveTool('holo_self_diagnose', {
+            focus: 'coverage',
+            maxResults: 3,
+          })) as { error?: string; candidates?: unknown; hint?: string };
+          expect(result).toBeDefined();
+          expect(result.error || result.candidates).toBeDefined();
+        } finally {
+          readySpy.mockRestore();
+        }
       },
-      60_000,
+      30_000,
     );
   });
 

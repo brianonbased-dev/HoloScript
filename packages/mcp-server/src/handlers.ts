@@ -235,8 +235,13 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return handleGenerateObject(args);
     case 'generate_scene':
       return handleGenerateScene(args);
-    case 'generate_semantic_ui':
-      return generateSemanticUIForMCP(args.description as string, args);
+    case 'generate_semantic_ui': {
+      const desc = args.description;
+      if (typeof desc !== 'string' || !desc.trim()) {
+        throw new Error('generate_semantic_ui: description is required (non-empty string)');
+      }
+      return generateSemanticUIForMCP(desc, args);
+    }
     case 'get_syntax_reference':
       return handleGetSyntaxReference(args);
     case 'get_examples':

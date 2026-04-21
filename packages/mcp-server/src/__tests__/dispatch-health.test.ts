@@ -42,8 +42,10 @@ describe('dispatch health check', () => {
     expect(staticDupes).toEqual([]);
   });
 
-  it(`registers ${allTools.length} tools total`, () => {
-    expect(allTools.length).toBeGreaterThanOrEqual(156);
+  it('registers unique tool names without duplicate definitions', () => {
+    const uniqueNames = new Set(allTools.map((t) => t.name));
+    expect(uniqueNames.size).toBeGreaterThanOrEqual(156);
+    expect(allTools.length).toBe(uniqueNames.size);
   });
 
   // Tools dispatched by index.ts cascade handlers BEFORE the catch-all.

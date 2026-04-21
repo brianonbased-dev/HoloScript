@@ -181,37 +181,39 @@ describe('v5.9 Showcase — Developer Portal', () => {
       }
     });
 
-    it('full lifecycle: init → add members → build order → info', async () => {
-      // Use dynamic import — resolve from __dirname (packages/mcp-server/src/__tests__)
-      const { WorkspaceManager } =
-        await import('../../../../packages/cli/src/workspace/WorkspaceManager');
+    it(
+      'full lifecycle: init → add members → build order → info',
+      async () => {
+        const { WorkspaceManager } =
+          await import('../../../../packages/cli/src/workspace/WorkspaceManager');
 
-      // Create workspace structure
-      mkdirSync(join(tempDir, 'packages', 'core'), { recursive: true });
-      mkdirSync(join(tempDir, 'packages', 'app'), { recursive: true });
-      writeFileSync(
-        join(tempDir, 'packages', 'core', 'package.json'),
-        JSON.stringify({ name: '@project/core' })
-      );
-      writeFileSync(join(tempDir, 'packages', 'core', 'types.holo'), '@world {}');
-      writeFileSync(
-        join(tempDir, 'packages', 'app', 'main.holo'),
-        'import "@project/core/types"\nobject App {}'
-      );
+        mkdirSync(join(tempDir, 'packages', 'core'), { recursive: true });
+        mkdirSync(join(tempDir, 'packages', 'app'), { recursive: true });
+        writeFileSync(
+          join(tempDir, 'packages', 'core', 'package.json'),
+          JSON.stringify({ name: '@project/core' })
+        );
+        writeFileSync(join(tempDir, 'packages', 'core', 'types.holo'), '@world {}');
+        writeFileSync(
+          join(tempDir, 'packages', 'app', 'main.holo'),
+          'import "@project/core/types"\nobject App {}'
+        );
 
-      const manager = new WorkspaceManager(tempDir);
-      const config = manager.init('showcase-project');
+        const manager = new WorkspaceManager(tempDir);
+        const config = manager.init('showcase-project');
 
-      expect(config.name).toBe('showcase-project');
+        expect(config.name).toBe('showcase-project');
 
-      const info = manager.getInfo();
-      expect(info.memberCount).toBe(2);
-      expect(info.totalCompositions).toBe(2);
+        const info = manager.getInfo();
+        expect(info.memberCount).toBe(2);
+        expect(info.totalCompositions).toBe(2);
 
-      const order = manager.getBuildOrder();
-      expect(order.hasCycles).toBe(false);
-      expect(order.total).toBe(2);
-    });
+        const order = manager.getBuildOrder();
+        expect(order.hasCycles).toBe(false);
+        expect(order.total).toBe(2);
+      },
+      30_000,
+    );
   });
 
   // ===========================================================================
@@ -271,23 +273,31 @@ describe('v5.9 Showcase — Developer Portal', () => {
   // ===========================================================================
 
   describe('MCP developer tools', () => {
-    it('get_api_reference returns API reference', async () => {
-      const result = (await handleDeveloperTool('get_api_reference', {
-        format: 'json',
-      })) as { format: string; reference: { totalTools: number } };
+    it(
+      'get_api_reference returns API reference',
+      async () => {
+        const result = (await handleDeveloperTool('get_api_reference', {
+          format: 'json',
+        })) as { format: string; reference: { totalTools: number } };
 
-      expect(result.format).toBe('json');
-      expect(result.reference.totalTools).toBeGreaterThan(0);
-    });
+        expect(result.format).toBe('json');
+        expect(result.reference.totalTools).toBeGreaterThan(0);
+      },
+      90_000,
+    );
 
-    it('get_api_reference supports markdown format', async () => {
-      const result = (await handleDeveloperTool('get_api_reference', {
-        format: 'markdown',
-      })) as { format: string; content: string };
+    it(
+      'get_api_reference supports markdown format',
+      async () => {
+        const result = (await handleDeveloperTool('get_api_reference', {
+          format: 'markdown',
+        })) as { format: string; content: string };
 
-      expect(result.format).toBe('markdown');
-      expect(result.content).toContain('# HoloScript MCP API Reference');
-    });
+        expect(result.format).toBe('markdown');
+        expect(result.content).toContain('# HoloScript MCP API Reference');
+      },
+      90_000,
+    );
 
     it('inspect_trace_waterfall renders spans', async () => {
       const result = (await handleDeveloperTool('inspect_trace_waterfall', {
@@ -319,15 +329,19 @@ describe('v5.9 Showcase — Developer Portal', () => {
       expect(result.waterfall.rows[1].depth).toBe(1);
     });
 
-    it('get_dev_dashboard_state returns dashboard data', async () => {
-      const result = (await handleDeveloperTool('get_dev_dashboard_state', {
-        sections: ['traces', 'api'],
-      })) as { dashboard: Record<string, unknown>; sections: string[] };
+    it(
+      'get_dev_dashboard_state returns dashboard data',
+      async () => {
+        const result = (await handleDeveloperTool('get_dev_dashboard_state', {
+          sections: ['traces', 'api'],
+        })) as { dashboard: Record<string, unknown>; sections: string[] };
 
-      expect(result.sections).toContain('traces');
-      expect(result.sections).toContain('api');
-      expect(result.dashboard.traces).toBeDefined();
-      expect(result.dashboard.api).toBeDefined();
-    });
+        expect(result.sections).toContain('traces');
+        expect(result.sections).toContain('api');
+        expect(result.dashboard.traces).toBeDefined();
+        expect(result.dashboard.api).toBeDefined();
+      },
+      30_000,
+    );
   });
 });

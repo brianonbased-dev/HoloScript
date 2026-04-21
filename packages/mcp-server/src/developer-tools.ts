@@ -175,8 +175,20 @@ export async function handleDeveloperTool(
 // HANDLERS
 // =============================================================================
 
+async function loadToolsCatalog(): Promise<Tool[]> {
+  // `tools.ts` imports this module; a dynamic import can resolve before `export const tools`
+  // is assigned. Yield and retry briefly so the circular init can complete.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const mod = await import('./tools');
+    const catalog = mod.tools;
+    if (Array.isArray(catalog) && catalog.length > 0) return catalog;
+  }
+  throw new Error('MCP tools catalog failed to initialize');
+}
+
 async function handleGetApiReference(args: Record<string, unknown>): Promise<unknown> {
-  const { tools } = await import('./tools');
+  const tools = await loadToolsCatalog();
   const generator = getDocsGenerator();
   const ref = generator.generate(tools);
 
@@ -353,12 +365,12 @@ async function handleGetDevDashboardState(args: Record<string, unknown>): Promis
 
   if (sections.includes('api')) {
     try {
-      const { tools } = await import('./tools');
+      const tools = await loadToolsCatalog();
+      const generator = getDocsGenerator();
+      const ref = generator.generate(tools);
       state.api = {
         totalTools: tools.length,
-        categories: new Set(
-          tools.map((t) => getDocsGenerator().generate([t]).categories[0]?.name || 'General')
-        ).size,
+        categories: ref.categories.length,
       };
     } catch {
       state.api = { totalTools: 0, categories: 0 };

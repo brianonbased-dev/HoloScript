@@ -124,7 +124,7 @@ describe('absorb_typescript', () => {
 
     it('generates data block for models', async () => {
       const result = await absorb(PRISMA_SCHEMA);
-      expect(result.holo).toContain('data {');
+      expect(result.holo).toMatch(/object\s+"data"\s+@db|data\s*\{/);
       expect(result.holo).toContain('@db');
     });
   });

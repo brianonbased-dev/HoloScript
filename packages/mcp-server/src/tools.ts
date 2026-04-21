@@ -42,7 +42,6 @@ import { holotestTools } from './holotest-tools';
 import { refactorCodegenTools } from './refactor-codegen-tools';
 import { traitTools } from './trait-tools';
 import { worldGeneratorTools } from './world-generator-tools';
-import { holoMapToolDefinitions } from './holomap-mcp-tools';
 import { hologramToolDefinitions } from './hologram-mcp-tools';
 
 /**
@@ -801,7 +800,6 @@ export const tools: Tool[] = [
   ...refactorCodegenTools,
   ...traitTools,
   ...worldGeneratorTools,
-  ...holoMapToolDefinitions,
   ...hologramToolDefinitions,
 ];
 
