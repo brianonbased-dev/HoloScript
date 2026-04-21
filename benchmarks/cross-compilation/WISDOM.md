@@ -239,6 +239,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Self-Determination Theory stresses **relatedness**—agents that only optimize narrow reward counters may still **game** them unless social signals carry **provenance** (who proposed the task, peer review flags). A hypothesis worth testing: **explicit cooperative credit assignment** (shared team reward + identity-linked critiques) raises the cost of deceptive mesa policies because exploitation becomes socially legible. For HoloLand multi-agent runs, log **turn-taking fairness** and **help offers** as first-class metrics, not only task completion.
 
+### S.009 | Culture systems: scripted NPCs → emergent social graphs | ⚡0.8
+
+**Research capture:** “Emergent societies” need **persistent norms** (market rules, reputation decay, language tokens) compiled from data, not one-off dialogue trees. HoloScript should treat **culture** as **CRDT-backed institutions**—contracts, memetic tags, and memory shards that survive session restarts—while traits gate who can propose amendments. Benchmarks should report **social elasticity**: how often norms change vs physics state changes, to separate theater from emergence.
+
 ---
 
 ## Next Optimization Opportunities
