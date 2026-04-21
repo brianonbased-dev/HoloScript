@@ -59,8 +59,14 @@ export interface CLIOptions {
     | 'remove-hooks'
     | 'setup-mcp'
     | 'issue-key'
+    | 'quickstart'
+    | 'init'
     | 'help'
     | 'version';
+  /** Scaffold project only (no server) — for quickstart command */
+  scaffoldOnly?: boolean;
+  /** Skip auto-opening browser — for quickstart command */
+  noOpen?: boolean;
   input?: string;
   output?: string;
   verbose: boolean;
@@ -281,6 +287,8 @@ export function parseArgs(args: string[]): CLIOptions {
           'remove-hooks',
           'setup-mcp',
           'issue-key',
+          'quickstart',
+          'init',
           'help',
           'version',
         ].includes(arg)
@@ -502,6 +510,12 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--always-on':
         options.alwaysOn = true;
         break;
+      case '--scaffold-only':
+        options.scaffoldOnly = true;
+        break;
+      case '--no-open':
+        options.noOpen = true;
+        break;
       case '--cycle-interval-sec':
         options.cycleIntervalSec = parseInt(args[++i], 10) || 30;
         break;
@@ -637,6 +651,12 @@ Usage: holoscript <command> [options] [input]
                     Use --json for machine-readable output
 
   \x1b[33mSelf-Improvement:\x1b[0m
+  quickstart [name] Scaffold a working .holo project and open in browser
+                    Alias: init. Under 5 minutes, zero prior knowledge assumed
+                    Use --port <n> to set the dev server port (default: 3030)
+                    Use --scaffold-only to create files without serving
+                    Use --no-open to skip auto-opening the browser
+
   self-improve      Run autonomous self-improvement pipeline
                     Absorbs codebase, finds untested code via GraphRAG,
                     generates tests, validates, and optionally commits
@@ -805,6 +825,11 @@ Usage: holoscript <command> [options] [input]
   holoscript self-improve --max-failures 5    # Allow more retries
 
   \x1b[2m# Codebase Intelligence\x1b[0m
+  holoscript quickstart                         # Scaffold + serve + open browser
+  holoscript quickstart my-scene                # Named project
+  holoscript quickstart --scaffold-only         # Files only, no server
+  holoscript init                               # Alias for quickstart
+
   holoscript absorb .                           # Scan current directory
   holoscript absorb packages/core --json        # Emit JSON graph
   holoscript absorb . --for-agent               # Agent-optimized manifest

@@ -17,6 +17,7 @@ import { WatchService } from './WatchService';
 import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
 import { hologramCommand } from './commands/hologram';
+import { quickstartCommand } from './commands/quickstart';
 import {
   getVersionString,
   getVersionInfo,
@@ -3719,6 +3720,17 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
+      break;
+    }
+
+    case 'quickstart':
+    case 'init': {
+      await quickstartCommand({
+        projectName: options.input,
+        port: options.port,
+        scaffoldOnly: options.scaffoldOnly,
+        noOpen: options.noOpen,
+      });
       break;
     }
 
