@@ -6,13 +6,7 @@
  * cross-platform runtime services.
  */
 
-import type {
-  WorldDefinition,
-  WorldConfig,
-  WorldEnvironment,
-  SceneNode,
-  WorldLODConfig,
-} from './WorldDefinitionSchema';
+import type { WorldDefinition } from './WorldDefinitionSchema';
 
 // ============================================================================
 // Hololand Connection State
@@ -141,8 +135,8 @@ export interface AudioService {
 
   /** Set listener orientation */
   setListenerOrientation(
-    forward: { x: number; y: number; z: number },
-    up: { x: number; y: number; z: number }
+    forward: [number, number, number],
+    up: [number, number, number]
   ): void;
 
   /** Set master volume */
@@ -157,7 +151,7 @@ export interface AudioPlayOptions {
   pitch?: number;
   loop?: boolean;
   spatial?: boolean;
-  position?: { x: number; y: number; z: number };
+  position?: [number, number, number];
   rolloff?: number;
   maxDistance?: number;
 }
@@ -185,8 +179,8 @@ export interface PhysicsService {
 
   /** Raycast */
   raycast(
-    origin: { x: number; y: number; z: number },
-    direction: { x: number; y: number; z: number },
+    origin: [number, number, number],
+    direction: [number, number, number],
     maxDistance: number
   ): RaycastResult | null;
 
@@ -194,7 +188,7 @@ export interface PhysicsService {
   overlap(shape: ColliderShape, position: [number, number, number]): PhysicsBody[];
 
   /** Set gravity */
-  setGravity(gravity: { x: number; y: number; z: number }): void;
+  setGravity(gravity: [number, number, number]): void;
 
   /** Step simulation */
   step(deltaTime: number): void;
@@ -212,7 +206,7 @@ export interface RigidBodyConfig {
 
 export interface ColliderShape {
   type: 'box' | 'sphere' | 'capsule' | 'mesh' | 'convex';
-  size?: { x: number; y: number; z: number };
+  size?: [number, number, number];
   radius?: number;
   height?: number;
   meshData?: ArrayBuffer;
@@ -222,18 +216,18 @@ export interface PhysicsBody {
   id: string;
   setPosition(position: [number, number, number]): void;
   setRotation(rotation: { x: number; y: number; z: number; w: number }): void;
-  setVelocity(velocity: { x: number; y: number; z: number }): void;
-  applyForce(force: { x: number; y: number; z: number }): void;
-  applyImpulse(impulse: { x: number; y: number; z: number }): void;
-  getPosition(): { x: number; y: number; z: number };
-  getVelocity(): { x: number; y: number; z: number };
+  setVelocity(velocity: [number, number, number]): void;
+  applyForce(force: [number, number, number]): void;
+  applyImpulse(impulse: [number, number, number]): void;
+  getPosition(): [number, number, number];
+  getVelocity(): [number, number, number];
   destroy(): void;
 }
 
 export interface RaycastResult {
   body: PhysicsBody;
-  point: { x: number; y: number; z: number };
-  normal: { x: number; y: number; z: number };
+  point: [number, number, number];
+  normal: [number, number, number];
   distance: number;
 }
 
@@ -659,12 +653,8 @@ export class HololandClient {
           setVelocity: () => {},
           applyForce: () => {},
           applyImpulse: () => {},
-          getPosition: () => ({
-            x: config.position[0],
-            y: config.position[1],
-            z: config.position[2],
-          }),
-          getVelocity: () => ({ x: 0, y: 0, z: 0 }),
+          getPosition: () => ([config.position[0], config.position[1], config.position[2]]),
+          getVelocity: () => ([0, 0, 0]),
           destroy: () => {},
         };
       },
@@ -799,37 +789,39 @@ export class HololandClient {
     this.connectionInfo.latency = 50;
   }
 
-  private async fetchWorldDefinition(_worldId: string): Promise<WorldDefinition> {
-    // Would fetch from server - return stub for now
-    await new Promise((resolve) => setTimeout(resolve, 50));
+  private async fetchWorldDefinition(worldId: string): Promise<WorldDefinition> {
+    // Derive HTTP base URL from WebSocket server URL
+    const httpBaseUrl = this.config.serverUrl
+      .replace(/^wss:\/\//, 'https://')
+      .replace(/^ws:\/\//, 'http://');
 
-    return {
-      schemaVersion: '1.0.0',
-      metadata: {
-        id: _worldId,
-        name: 'Stub World',
-        displayName: 'Stub World',
-        version: '1.0.0',
-        tags: [],
-        previewImages: [],
-        platforms: ['web'],
-        category: 'experience',
-        createdAt: new Date().toISOString(),
-        modifiedAt: new Date().toISOString(),
-        status: 'published',
-        metadata: {},
-      },
-      config: {} as WorldConfig,
-      environment: {} as WorldEnvironment,
-      zones: [],
-      spawnPoints: [],
-      assetManifest: '',
-      prefabs: [],
-      sceneGraph: {} as SceneNode,
-      scripts: [],
-      events: [],
-      lod: {} as WorldLODConfig,
+    const url = `${httpBaseUrl}/api/worlds/${encodeURIComponent(worldId)}`;
+
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
     };
+    if (this.config.apiKey) {
+      headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.connectionTimeout);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch world "${worldId}": ${response.status} ${response.statusText}`);
+      }
+
+      return (await response.json()) as WorldDefinition;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private log(...args: unknown[]): void {
