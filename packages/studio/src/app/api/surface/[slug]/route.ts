@@ -79,6 +79,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 }
 
 
+// PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)
 export function OPTIONS() {
   return new Response(null, {
     status: 204,
