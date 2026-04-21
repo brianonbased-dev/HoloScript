@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "Codebase intelligence, recursive self-improvement pipeline, and daemon system for HoloScript",
   "type": "module",
   "main": "./dist/index.js",

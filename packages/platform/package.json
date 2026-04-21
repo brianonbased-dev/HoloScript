@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/platform",
-  "version": "6.0.3",
+  "version": "7.0.0",
   "description": "Enterprise platform layer for HoloScript (security, web3, identity, registry)",
   "type": "module",
   "main": "./dist/index.js",

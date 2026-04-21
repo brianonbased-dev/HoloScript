@@ -1,5 +1,14 @@
 # @holoscript/security-sandbox
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @holoscript/core@7.0.0
+  - @holoscript/engine@7.0.0
+  - @holoscript/holo-vm@7.0.0
+
 ## 1.2.1
 
 ### Patch Changes

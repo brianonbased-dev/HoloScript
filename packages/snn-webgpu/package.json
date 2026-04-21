@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/snn-webgpu",
-  "version": "6.0.3",
+  "version": "7.0.0",
   "description": "WebGPU compute library for Spiking Neural Network simulation. LIF neurons, synaptic weight matrices, spike encoding/decoding at 10K+ neurons per frame at 60Hz.",
   "type": "module",
   "main": "./dist/index.js",

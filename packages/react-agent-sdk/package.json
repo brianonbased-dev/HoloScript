@@ -1,6 +1,6 @@
 {
   "name": "@hololand/react-agent-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React SDK for declarative agent usage - hooks and components for building agent-powered UIs",
   "license": "MIT",
   "main": "./dist/index.js",

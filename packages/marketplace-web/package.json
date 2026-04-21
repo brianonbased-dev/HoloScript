@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/marketplace-web",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "HoloScript Trait Marketplace Web UI",
   "private": true,
   "scripts": {

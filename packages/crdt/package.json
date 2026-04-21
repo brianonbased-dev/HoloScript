@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/crdt",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Authenticated Conflict-free Replicated Data Types with DID-based signing for distributed agent state synchronization",
   "type": "module",
   "main": "./dist/index.js",

@@ -12,9 +12,83 @@ These rules keep empirical results and narrative out of “lost history” and s
 
 ---
 
-## [Unreleased] — 2026-04-14
+## [Unreleased] — 2026-04-21
 
-Finalized the core of the 8-paper research program, centering HoloScript as a provenance-native platform where trust is algebraically composable via tropical semirings.
+Option C security hardening, Route 2b/2d cross-adapter ε-tolerance for `ContractedSimulation`, paper-program deliverables across paper-2 / paper-3 / paper-7 / paper-8 / paper-9 / paper-10 / paper-11, and the first lights-out recipe infrastructure (precedent-query-first / peer-drift detection / action-reversibility registry). 325 commits across HoloScript + ai-ecosystem over the 2026-04-19 → 2026-04-21 window; 1 revert (name-normalization mis-sweep); zero chaos events.
+
+Cumulative paper-program state: paper-3 Property 4 conviction ≈ 95–98% pending hardware empirics; TVCG Rev-1 bundle 5/5 patches landed locally, HELD for editor-contact per I.009; adversarial-peer opt-in hardening shipped via `useCryptographicHash` flag.
+
+**See:** `.changeset/2026-04-21-option-c-route-2b-lights-out.md` for the consumed-by-changesets version-bump entry; `docs/daily-digests/2026-04-21-option-c-route-2b-lights-out.md` for the milestone-digest narrative (three-bullet format); and `D:/GOLD/wisdom/w_gold_191.md|192|193.md` for the graduated wisdom from the session arc (audit-as-calibration / Route 2b pattern / threat-model-driven defaults).
+
+**Lane drift noted** (not resolved by this release): `scripts/version-policy.json` platform-v6 lane marks these packages as `sync: true` (core, cli, agent-protocol, auth, config, connectors, core-types, engine, framework, holo-vm, mcp-server, r3f-renderer, runtime, sdk, semantic-2d, snn-webgpu, studio, uaal, vm-bridge, absorb-service, absorb-service-host — 21 packages). Observed pre-release drift: `core` / `cli` / `engine` / `mcp-server` at 6.0.4 but `snn-webgpu` / `holo-vm` / `agent-protocol` at 6.0.3 and `studio` at 6.0.3. The fixed-together `.changeset/config.json` group (7 packages: core, cli, agent-protocol, holo-vm, snn-webgpu, uaal, vm-bridge) will sync on `pnpm changeset version` → 6.1.0; the other platform-v6 members bump via their own changeset entries. Post-release audit recommended to confirm all 21 platform-v6 members actually landed at 6.1.0 and any miss is captured as a lane-integrity issue.
+
+### Added
+
+- **Option C — `useCryptographicHash` feature flag** (`@holoscript/core`): FNV-1a default, SHA-256 opt-in via immutable per-recorder flag. Closes 3/4 named adversarial-peer weaknesses (FNV-1a collisions, trace forgery, unattested digests). Attestation remains externally blocked on browser-vendor signing APIs. Per-field `FIELD_QUANTUM_REGISTRY` with 8 field-family prefixes; `hashBytes(bytes, mode)` single dispatcher covers CAEL hash chain + geometry hash + state digests.
+- **Route 2b — per-step canonical state projection**: `computeStateDigest()` + `stateDigests[]` on `ContractedSimulation`. Cross-adapter ε-tolerance replay guarantee under L ≤ 1 contractivity; formal proof in paper-3 Appendix A Lemmas 1-3.
+- **Route 2d — terminal canonicalization** in `ContractedSimulation.solve()` for steady-state solvers.
+- **5b explicit dispatch in Algorithm 1** (paper-3 §5.2): `sameAdapter()` predicate backed by `adapterFingerprint` in `cael.init.payload`. Same-adapter path keeps digest-based divergence-point enforcement; cross-adapter path falls through to end-to-end metric comparison.
+- **Paper-2**: hierarchical workgroup SNN scaling to 10^6 neurons; STDP navigation task with path-efficiency learning; async WebGPU shader compilation pipeline; Playwright browser harness.
+- **Paper-3**: tiebreaker hardening (agentId uniqueness + both-branches-valid-but-different scenario exercises `SemiringResolve` fallback); SHA-256 vs FNV-1a bench extended to provenance source path.
+- **Paper-7**: IK latency benchmark harness + measured results.
+- **Paper-8**: distributed transform graph with CRDT-merged hashes.
+- **Paper-9**: 5-category motion plausibility benchmark suite with measured `tab:bench` pass rates.
+- **Paper-10**: `BuildCache` / `IncrementalCompiler` wired into provenance chain.
+- **Paper-11**: trait property-write annotations 37/2794 → 63/2800 with eval-subset manifest; imperative baseline vs semiring bench.
+- **ZK commitment scheme for SimContract compliance proof** (paper-1 / capstone direction).
+- **`ProvenanceSemiring` extended to vector-valued properties** (stress tensors, velocity fields).
+- **`SimContract` extended to verify WebGPU solver GPU outputs** (paper-4 direction).
+- **Team hologram feed API** (`holo_hologram_publish_feed`, `holo_hologram_send`) + CDN-Cache-Control for SSE through edge networks.
+- **Studio FirstRunWizard**: 5-minute onboarding (GitHub → composition → deploy → live).
+- **Studio MotivationStackPanel** in agent sidebar.
+- **Lights-out recipe infrastructure**: consolidated onboarding doc + precedent-query-first recipe + CLI + peer-drift detection recipe + action-reversibility/blast-radius registry. Agents inheriting these run closer to lights-out at session start.
+- **Per-tool Prometheus metrics + structured JSON logging** in mcp-server.
+
+### Changed
+
+- **NaN/Infinity fail-closed** in `computeStateDigest`: non-finite state throws `StateIntegrityViolation` rather than silently canonicalizing to zero. CAELReplayer inherits.
+- **`computeStateDigest` uses per-field quantum** (via `FIELD_QUANTUM_REGISTRY`) instead of uniform 10^-6 across all fields. Required for fields spanning many orders of magnitude (stress ~10^5 Pa vs displacement ~10^-4 m).
+- **`adapterFingerprint` privacy**: `computeAdapterFingerprint()` helper returns SHA-256 of canonical vendor/device/driver tuple. Raw-identifier fingerprints are documented as privacy-leaky; JSDoc warnings on the `ContractConfig.adapterFingerprint` field recommend the helper.
+- **Default cognition path** already at `SNNCognitionEngine`; this release extends its backend selection with the async compilation pipeline.
+- **Paper author normalization** completed (Krzywoszyja); one earlier mis-sweep to "Taxwise" reverted in `c6ec823`; residual corrections in `cbce200`.
+
+### Fixed
+
+- **Stale `.js` / `.d.ts` shadow artifacts in `packages/*/src/`**: one-time 1,662-file sweep + pre-commit gate + CI gate preventing recurrence. Source of the 2026-04-21 Option C wiring incident that cost ~30 min of recovery.
+- **SEC-T11 CORS sweep**: 125 routes migrated, 12 marked-public (mcp-server).
+- **SEC-T15 prototype-chain pre-validation** hardening (defense-in-depth).
+- **RFC-028 PluginSandbox `postMessage` origin binding** hardened.
+- **Declared dependency versions sync** with pnpm overrides (apollo-server, next).
+- **`WasmParserBridge` hot path**: redundant `load()` await eliminated.
+- **`hololand/fetchWorldDefinition`**: stub replaced with real HTTP fetch.
+- **`TransformGraph`**: canonical `Transform3D` API.
+- **Paper-9 `tab:bench`**: measured values replace placeholder.
+- **Paper-5 novelty citations** vs LangChain / MS GraphRAG thickened.
+- **Paper-0c `entries-per-tick`** corrected to canon (4, not 5).
+- **Paper-10 compile-target set**: hardcoded cardinality generalized.
+- **MediaRecorder MIME fallback** for R3F canvas capture in Studio.
+
+### Security
+
+- **Adversarial-peer threat model scoped explicitly** in paper-3 §Limitations + TBC §Limitations (inline, not appendix). 3/4 named weaknesses closed; attestation remains externally blocked.
+- **`useCryptographicHash: true`** opts into SHA-256 on all three hash sites (geometry, state digest, CAEL chain) with mid-trace mode-change prevention via `cael.init.payload.hashMode` self-identification.
+- **`DeadElement` unified** across 5 subsystems (tree shaker, CRDT liveness, semiring `TRAIT_ZERO`, particle expiry, network heartbeat).
+
+### Deprecated / Removed
+
+- Legacy inline SNN cognition path stays in the deprecation table from the prior release; no new deprecations this window.
+
+### Memory / knowledge / vault (session-level, not package-level)
+
+- 3 GOLD additions: W.GOLD.191 (audit-as-calibration under confident peer claims), W.GOLD.192 (Route 2b ε-tolerance pattern), W.GOLD.193 (threat-model-driven defaults). Vault 180 → 183 entries (4 Diamond / 4 Platinum / 175 Gold).
+- 3 Tier-2 knowledge-store graduations: commit-eagerly-in-multi-agent, bench-deployed-path-not-proxy, session-role-morph-emergent. Store 943 → 946 entries.
+- MEMORY.md: F.023 (verify vault IDs before citing), W.072 (session role morph), W.073 (board task-creation endpoint shape), I.009 sharpening, D.010 17-paper reconciliation.
+
+---
+
+## [Previous Unreleased] — 2026-04-14
+
+Finalized the core of the research program to date (as of 2026-04-14 snapshot: 8 papers + 2 capstones; subsequently reconciled in D.010 to the full 17-paper suite spanning 3 Programs + capstones + TBC-submitted), centering HoloScript as a provenance-native platform where trust is algebraically composable via tropical semirings. Paper-program state at closing of this window is historical; see 2026-04-21 release and `~/.ai-ecosystem/memory/MEMORY.md` D.010 for current 17-paper reconciliation.
 
 ### Added
 

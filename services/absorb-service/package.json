@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service-host",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "description": "HTTP/MCP host service for @holoscript/absorb-service (engine logic lives in package)",
   "private": true,
   "type": "module",
@@ -18,9 +18,9 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@holoscript/absorb-service": "workspace:6.0.0",
+    "@holoscript/absorb-service": "workspace:7.0.0",
     "@holoscript/config": "workspace:6.0.2",
-    "@holoscript/core": "workspace:6.0.4",
+    "@holoscript/core": "workspace:7.0.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/export-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "REST API for HoloScript compilation and export with SOC 2 compliance foundations - async job processing, RBAC, audit logging, rate limiting",
   "type": "module",
   "main": "./dist/index.js",

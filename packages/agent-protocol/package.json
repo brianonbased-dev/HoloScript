@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/agent-protocol",
-  "version": "6.0.3",
+  "version": "7.0.0",
   "description": "uAA2++ Agent Protocol — Type-only protocol spec (interfaces, enums, PWG format). Implementations re-exported from @holoscript/framework.",
   "type": "module",
   "main": "./dist/index.cjs",

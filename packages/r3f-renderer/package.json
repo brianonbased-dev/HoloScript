@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/r3f-renderer",
-  "version": "6.0.3",
+  "version": "6.0.4",
   "description": "Shared React Three Fiber renderer components for HoloScript",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "6.0.4",
+  "version": "7.0.0",
   "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript — the open AI-spatial reality protocol for 3D/XR/IoT",
   "type": "module",
   "main": "./dist/index.js",

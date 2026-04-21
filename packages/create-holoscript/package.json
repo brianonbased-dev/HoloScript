@@ -1,6 +1,6 @@
 {
   "name": "create-holoscript",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Create HoloScript apps with zero configuration — 3D scene in your browser in 30 seconds via --go",
   "type": "module",
   "main": "./dist/index.js",
