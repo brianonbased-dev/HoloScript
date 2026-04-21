@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/api-auth';
 import { getDb } from '../../../../db/client';
 import { follows, users, activityFeed } from '../../../../db/schema';
-import { eq, and, _desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 /**
  * /api/social/follows — Follow/unfollow users.

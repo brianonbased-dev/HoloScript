@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/lib/logger';
-import { _useEditorStore } from '@/lib/stores';
+import { useEditorStore } from '@/lib/stores';
 
 interface RemoteCommand {
   type: 'orbit' | 'zoom' | 'pan' | 'reset' | 'select';

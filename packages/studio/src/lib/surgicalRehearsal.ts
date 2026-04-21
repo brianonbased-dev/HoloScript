@@ -5,11 +5,7 @@
  * procedure step tracking, and anatomical landmark registration.
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type OrganSystem =
   | 'cardiovascular'
@@ -111,33 +107,33 @@ export interface SurgicalSession {
 // ═══════════════════════════════════════════════════════════════════
 
 export function distance3D(a: Vec3, b: Vec3): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
 }
 
 /**
  * Calculates the shortest distance from point P to the line segment AB.
  */
 export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
-  const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
-  const ap = { x: p.x - a.x, y: p.y - a.y, z: p.z - a.z };
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
 
-  const lenSq = ab.x ** 2 + ab.y ** 2 + ab.z ** 2;
+  const lenSq = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
   // If a == b, return distance from p to a
   if (lenSq === 0) return distance3D(p, a);
 
   // Project p onto ab, but deferring the division by lenSq
-  let t = (ap.x * ab.x + ap.y * ab.y + ap.z * ab.z) / lenSq;
+  let t = (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / lenSq;
 
   // Clamp t to [0, 1] to limit to the segment
   if (t < 0) t = 0;
   else if (t > 1) t = 1;
 
   // Find the closest point on the segment
-  const closest = {
-    x: a.x + t * ab.x,
-    y: a.y + t * ab.y,
-    z: a.z + t * ab.z,
-  };
+  const closest: Vec3 = [
+    a[0] + t * ab[0],
+    a[1] + t * ab[1],
+    a[2] + t * ab[2],
+  ];
 
   return distance3D(p, closest);
 }

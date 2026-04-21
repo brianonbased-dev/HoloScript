@@ -17,10 +17,9 @@
  * FPS sparkline: 60-sample ring buffer rendered as an inline SVG polyline.
  */
 
-import { useRef, useState, _useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import * as _THREE from 'three';
 
 // ─── FPS Ring Buffer ──────────────────────────────────────────────────────────
 

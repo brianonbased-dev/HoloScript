@@ -1,5 +1,8 @@
 'use client';
 
+// Three.js cross-version compat shim — must run before any WebGLRenderer
+// touches a Material. Side-effect import. See lib/threeCompat.ts.
+import '../lib/threeCompat';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { useState, useEffect, type ReactNode, createContext, useContext, useCallback } from 'react';
@@ -12,7 +15,7 @@ import {
   flushFederatedAnalytics,
   isFederatedAnalyticsEnabled,
 } from '../lib/federatedAnalytics';
-import { _useStudioPresetStore } from '../lib/stores/studioPresetStore';
+import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
 const DevToolsInit = dynamic(
   () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),

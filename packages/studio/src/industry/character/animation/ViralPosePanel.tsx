@@ -14,12 +14,12 @@
  */
 
 import { useState } from 'react';
-import { Play, Pause, SkipForward, SkipBack, _Shuffle, Settings } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Shuffle, Settings } from 'lucide-react';
 import {
   type ViralPose,
   type PoseCategory,
   getAllPoses,
-  _getPosesByCategory,
+  getPosesByCategory,
   getTrendingPoses,
 } from '@/lib/character/poseLibrary';
 

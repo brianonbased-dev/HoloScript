@@ -322,12 +322,6 @@ export default function HomePage() {
         {/* Primary CTA -- Brittney-first experience */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/start"
-            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20 inline-block"
-          >
-            Start Building
-          </Link>
-          <Link
             href="/vibe"
             className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
           >
@@ -336,15 +330,15 @@ export default function HomePage() {
           </Link>
           <button
             onClick={() => setShowWizard(true)}
-            className="px-6 py-3 border border-white/10 hover:border-white/20 rounded-xl text-white/60 hover:text-white font-medium transition-all hidden sm:block"
+            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-emerald-600/20 hidden sm:block"
           >
             Import
           </button>
           <Link
             href="/scan-room"
-            className="px-6 py-3 border border-indigo-400/30 hover:border-indigo-300/50 rounded-xl text-indigo-300 hover:text-indigo-200 font-medium transition-all"
+            className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-indigo-600/20"
           >
-            Scan Room with Phone
+            HoloMap
           </Link>
         </div>
         <p className="text-white/30 text-sm mt-1">Free tier included. No credit card required.</p>

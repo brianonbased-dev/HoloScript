@@ -8,11 +8,11 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  _complement,
+  complement,
   complementStrand,
   transcribe,
   reverseComplement,
-  _translateCodon,
+  translateCodon,
   translateMRNA,
   gcContent,
   sequenceLength,
@@ -20,7 +20,7 @@ import {
   detectMutations,
   crisprOnTargetScore,
   type CRISPRTarget,
-  type _Nucleotide,
+  type Nucleotide,
 } from '@/lib/dnaSequencing';
 
 // ─── Styles ──────────────────────────────────────────────────────

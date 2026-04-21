@@ -214,7 +214,7 @@ export function filmPacing(scenes: Scene[]): Record<NarrativeAct, number> {
 export interface CameraKeyframe {
   time: number; // seconds
   position: [number, number, number];
-  lookAt: { x: number; y: number; z: number };
+  lookAt: [number, number, number];
   fov: number; // field of view degrees
 }
 
@@ -252,16 +252,16 @@ export function previsCamera(
 
     result.push({
       time: t,
-      position: {
-        x: lerp(keyframes[k1].position.x, keyframes[k2].position.x),
-        y: lerp(keyframes[k1].position.y, keyframes[k2].position.y),
-        z: lerp(keyframes[k1].position.z, keyframes[k2].position.z),
-      },
-      lookAt: {
-        x: lerp(keyframes[k1].lookAt.x, keyframes[k2].lookAt.x),
-        y: lerp(keyframes[k1].lookAt.y, keyframes[k2].lookAt.y),
-        z: lerp(keyframes[k1].lookAt.z, keyframes[k2].lookAt.z),
-      },
+      position: [
+        lerp(keyframes[k1].position[0], keyframes[k2].position[0]),
+        lerp(keyframes[k1].position[1], keyframes[k2].position[1]),
+        lerp(keyframes[k1].position[2], keyframes[k2].position[2]),
+      ],
+      lookAt: [
+        lerp(keyframes[k1].lookAt[0], keyframes[k2].lookAt[0]),
+        lerp(keyframes[k1].lookAt[1], keyframes[k2].lookAt[1]),
+        lerp(keyframes[k1].lookAt[2], keyframes[k2].lookAt[2]),
+      ],
       fov: lerp(keyframes[k1].fov, keyframes[k2].fov),
     });
   }

@@ -595,14 +595,15 @@ export function registerHoloScript(monaco: Monaco) {
       { token: 'string', foreground: '34d399' },
       { token: 'number.float', foreground: 'f59e0b' },
       { token: 'number.hex', foreground: 'fb923c' },
-      { token: 'identifier', foreground: 'e2e8f0' },
+      { token: 'identifier', foreground: 'ffffff' },
       { token: 'delimiter', foreground: '6b7280' },
       { token: '@brackets', foreground: '94a3b8' },
       { token: 'operator', foreground: 'c084fc' },
     ],
     colors: {
-      'editor.background': '#0a0a12',
-      'editor.foreground': '#e2e8f0',
+      // Match globals.css studio tokens: --studio-bg #0d0d14, --studio-panel #1a1a2e
+      'editor.background': '#0d0d14',
+      'editor.foreground': '#ffffff',
       'editor.lineHighlightBackground': '#1a1a2e',
       'editorCursor.foreground': '#6366f1',
       'editor.selectionBackground': '#6366f130',

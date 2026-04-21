@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useRef, useCallback, Component, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
@@ -14,7 +14,8 @@ import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
 import { GizmoController } from './GizmoController';
 import { PlacementPlane } from './PlacementSystem';
-import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
+import { HologramDropZone } from '@/components/hologram/HologramDropZone';
 import type { SceneNode } from '@/lib/stores';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
@@ -139,6 +140,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
   const artMode = useEditorStore((s) => s.artMode);
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
+  const setCode = useSceneStore((s) => s.setCode);
 
   // Sync R3F tree → scene graph store (flattens nested native asset children)
   useSceneGraphSync(r3fTree);
@@ -146,40 +148,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   // Gap 3: Pipeline maturity events → scene graph store
   usePipelineMaturitySync();
 
-  // Gap 5: Performance regression monitor → bus events for LODMetricsPanel
-  const perfResult = usePerformanceRegression({
-    thresholdMs: 9.0,
-    consecutiveFrames: 60,
-  });
-
-  const { manager: lodManager, objects: lodObjects } = useLOD();
-
-  // Perf → bus bridge: emit lodMetrics:tick so LODMetricsPanel receives real data
-  const { emit: emitBus } = useStudioBus();
-  const lastEmitRef = useRef(0);
-  useEffect(() => {
-    // Throttle to ~60Hz (every 16ms) to avoid flooding the bus
-    const now = Date.now();
-    if (now - lastEmitRef.current < 16) return;
-    lastEmitRef.current = now;
-
-    const metrics = lodManager.getMetrics();
-    const l0 = metrics.objectsPerLevel.get(0) || 0;
-    const l1 = metrics.objectsPerLevel.get(1) || 0;
-    const l2 = metrics.objectsPerLevel.get(2) || 0;
-    const l3 = metrics.objectsPerLevel.get(3) || 0;
-
-    emitBus('lodMetrics:tick', {
-      timestamp: now,
-      avgFrameTimeMs: perfResult.avgFrameTimeMs,
-      isRegressed: perfResult.isRegressed,
-      levelDistribution: [l0, l1, l2, l3],
-      totalTriangles: metrics.trianglesSaved,
-      entityCount: metrics.totalObjects,
-      regressionCount: perfResult.regressionCount,
-      recoveryCount: perfResult.recoveryCount,
-    });
-  });
+  const { objects: lodObjects } = useLOD();
 
   // ─── XR support detection ──────────────────────────────────────────────────
   const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({
@@ -267,6 +236,20 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         <Suspense fallback={null}>
           {r3fTree ? <SceneContent r3fTree={r3fTree} /> : <EmptyScene />}
         </Suspense>
+
+        {/*
+          PerformanceBridge disabled in development because pnpm resolves
+          @react-three/fiber to different store paths for studio vs
+          r3f-renderer (peer dep with multiple @types/react peers installed),
+          so Canvas context from studio's fiber instance isn't visible to
+          useFrame inside r3f-renderer's usePerformanceRegression.
+          Re-enable once fiber is deduped (pnpm overrides or a single peer).
+        */}
+        {process.env.NODE_ENV === 'production' && (
+          <PerformanceBridgeBoundary>
+            <PerformanceBridge />
+          </PerformanceBridgeBoundary>
+        )}
 
         <OrbitControls
           makeDefault
@@ -360,6 +343,15 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       {/* Builder Hotbar — Minecraft-style bottom toolbar */}
       <BuilderHotbar />
 
+      {/* Hologram drop zone — drag images/GIFs/videos to create 3D hologram compositions */}
+      <div className="absolute bottom-4 right-4 z-10 w-72">
+        <HologramDropZone
+          onCompositionGenerated={(code) => {
+            setCode(code);
+          }}
+        />
+      </div>
+
       {isDragOver && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded border-2 border-dashed border-studio-accent bg-studio-accent/10 backdrop-blur-[1px]">
           <div className="rounded-xl bg-studio-panel/90 px-6 py-4 text-center shadow-xl">
@@ -369,9 +361,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         </div>
       )}
 
-      {/* Enter VR / AR buttons */}
+      {/* Enter VR / AR buttons — top of viewer so they're visible above the scene */}
       {(xrSupport.vr || xrSupport.ar) && (
-        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
           {xrSupport.ar && (
             <button
               onClick={() => xrStore.enterAR()}
@@ -411,4 +403,66 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       )}
     </div>
   );
+}
+
+/**
+ * Silently swallow R3F context errors from the telemetry bridge so HMR or a
+ * transient missing-Canvas-context window can't take the whole scene down.
+ * Nothing inside <Canvas> should ever be a top-level crash point.
+ */
+class PerformanceBridgeBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(err: unknown) {
+    // Dev-only telemetry; log but don't surface
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[PerformanceBridge] suppressed error:', err);
+    }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+/**
+ * Bridge component that monitors performance via R3F's useFrame (must be inside Canvas)
+ * and emits metrics to the Studio bus.
+ */
+function PerformanceBridge() {
+  const perfResult = usePerformanceRegression({
+    thresholdMs: 9.0,
+    consecutiveFrames: 60,
+  });
+
+  const { manager: lodManager } = useLOD();
+  const { emit: emitBus } = useStudioBus();
+  const lastEmitRef = useRef(0);
+
+  // We use useFrame to tick the monitor, but we also use it to throttle our bus emissions
+  useFrame(() => {
+    const now = Date.now();
+    if (now - lastEmitRef.current < 16) return;
+    lastEmitRef.current = now;
+
+    const metrics = lodManager.getMetrics();
+    const l0 = metrics.objectsPerLevel.get(0) || 0;
+    const l1 = metrics.objectsPerLevel.get(1) || 0;
+    const l2 = metrics.objectsPerLevel.get(2) || 0;
+    const l3 = metrics.objectsPerLevel.get(3) || 0;
+
+    emitBus('lodMetrics:tick', {
+      timestamp: now,
+      avgFrameTimeMs: perfResult.avgFrameTimeMs,
+      isRegressed: perfResult.isRegressed,
+      levelDistribution: [l0, l1, l2, l3],
+      totalTriangles: metrics.trianglesSaved,
+      entityCount: metrics.totalObjects,
+      regressionCount: perfResult.regressionCount,
+      recoveryCount: perfResult.recoveryCount,
+    });
+  });
+
+  return null;
 }

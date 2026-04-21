@@ -10,11 +10,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface EntityState {
   id: string;
@@ -73,7 +69,9 @@ const EPSILON = 0.001;
 
 function vec3Equal(a: Vec3, b: Vec3): boolean {
   return (
-    Math.abs(a.x - b.x) < EPSILON && Math.abs(a.y - b.y) < EPSILON && Math.abs(a.z - b.z) < EPSILON
+    Math.abs(a[0] - b[0]) < EPSILON &&
+    Math.abs(a[1] - b[1]) < EPSILON &&
+    Math.abs(a[2] - b[2]) < EPSILON
   );
 }
 
@@ -161,11 +159,11 @@ export function deltaApply(base: Snapshot, patch: DeltaPatch): Snapshot {
 // ═══════════════════════════════════════════════════════════════════
 
 function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t,
-  };
+  return [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ];
 }
 
 /**

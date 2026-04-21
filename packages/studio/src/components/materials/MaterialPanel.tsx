@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Palette, X, Search, Copy, Plus, _ChevronDown } from 'lucide-react';
+import { Palette, X, Search, Copy, Plus, ChevronDown } from 'lucide-react';
 import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';

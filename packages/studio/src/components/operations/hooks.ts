@@ -116,7 +116,7 @@ export function useBuildStatus() {
       );
 
       // Simulate progressive build
-      const _tick = 0;
+      let tick = 0;
       intervalRef.current = setInterval(() => {
         tick += 1;
         setTargets((prev) => {

@@ -57,7 +57,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
   });
 
   const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
-  const { download, _downloading } = useDownload();
+  const { download } = useDownload();
   const setCode = useSceneStore((s) => s.setCode);
   const { emit } = useStudioBus();
 

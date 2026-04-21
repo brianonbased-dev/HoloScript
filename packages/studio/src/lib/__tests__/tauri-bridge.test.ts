@@ -9,7 +9,7 @@ import {
   saveProjectNative,
   loadProjectNative,
   listProjectsNative,
-  _resetTauriCache,
+  resetTauriCache,
 } from '../tauri-bridge';
 import type { PlatformCapabilities } from '../platform-detect';
 

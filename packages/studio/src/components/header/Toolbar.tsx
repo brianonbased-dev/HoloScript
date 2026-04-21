@@ -156,25 +156,16 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
 
   return (
     <nav aria-label="Editor tools" className="flex items-center justify-end gap-2">
-      <div role="status" aria-label={`AI status: ${ollamaStatus}`} className="flex items-center gap-1.5 text-xs text-studio-muted">
-        <span
-          className={`h-2 w-2 rounded-full shrink-0 ${
-            ollamaStatus === 'connected'
-              ? 'bg-studio-success'
-              : ollamaStatus === 'checking'
-                ? 'bg-studio-warning animate-pulse'
-                : 'bg-studio-error'
-          }`}
-        />
-        <span className="hidden lg:inline">
-          {ollamaStatus === 'connected'
-            ? 'AI Ready'
-            : ollamaStatus === 'checking'
-              ? 'Checking...'
-              : 'AI Offline'}
-        </span>
-      </div>
-      
+      {/* AI status indicator removed per founder annotation — kept as
+          an aria-live announcement so screen readers still get the state. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {ollamaStatus === 'connected'
+          ? 'AI ready'
+          : ollamaStatus === 'checking'
+            ? 'Checking AI connection'
+            : 'AI offline'}
+      </span>
+
       <button
         onClick={handleExportScene}
         title="Export Scene (JSON)"

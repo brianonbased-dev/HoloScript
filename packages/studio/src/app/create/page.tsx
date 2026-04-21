@@ -25,7 +25,7 @@ import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   AlertTriangle,
-  _BarChart2,
+  BarChart2,
   Move,
   RotateCw,
   RotateCcw,
@@ -40,7 +40,7 @@ import {
   Film,
   LayoutTemplate,
   Share2,
-  _Users,
+  Users,
   Lightbulb,
   Package,
   GitBranch,
@@ -81,7 +81,7 @@ import {
   PaintBucket,
   Shield,
 } from 'lucide-react';
-import type { GizmoMode, ArtMode, _StudioMode } from '@/lib/stores';
+import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
@@ -555,7 +555,6 @@ const GIZMO_BUTTONS: Array<{ mode: GizmoMode; icon: typeof Move; label: string; 
 ];
 
 function ViewportToolbar({
-  _profilerOpen,
   onToggleProfiler,
 }: {
   profilerOpen: boolean;

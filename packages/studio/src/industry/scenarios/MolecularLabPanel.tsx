@@ -5,8 +5,8 @@
  * Lighter version focused on quick analysis; full version in MolecularViewerPanel.
  */
 
-import { useState, _useMemo } from 'react';
-import { Atom, FlaskConical, Search, _BarChart3, _Shield, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Atom, FlaskConical, Search, BarChart3, Shield, CheckCircle, XCircle } from 'lucide-react';
 
 export interface QuickMolecule {
   id: string;

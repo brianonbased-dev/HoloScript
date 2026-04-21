@@ -18,17 +18,18 @@ import {
   Zap,
   Brain,
   Eye,
-  _Globe,
+  Globe,
   Cpu,
   Lock,
   Sparkles,
-  _Workflow,
+  Workflow,
   BarChart3,
   Wrench,
   CheckCircle2,
   Loader2,
-  _ChevronDown,
+  ChevronDown,
   Crown,
+  X,
 } from 'lucide-react';
 import { getMarketplaceClient } from '@/lib/marketplace/client';
 import { DEBOUNCE_INPUT } from '@/lib/ui-timings';

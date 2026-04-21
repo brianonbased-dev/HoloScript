@@ -8,9 +8,9 @@ import { useState, useCallback } from 'react';
 import {
   Key,
   Lock,
-  _Unlock,
-  _Plus,
-  _Trash2,
+  Unlock,
+  Plus,
+  Trash2,
   Clock,
   AlertCircle,
   CheckCircle,

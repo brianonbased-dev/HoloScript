@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Html, _Float, Sparkles, MeshDistortMaterial } from '@react-three/drei';
+import { Html, Float, Sparkles, MeshDistortMaterial } from '@react-three/drei';
 
 /**
  * HoloScript V6 2D UI Revolution

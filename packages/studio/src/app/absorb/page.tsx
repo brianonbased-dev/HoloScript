@@ -37,7 +37,7 @@ import {
   TierComparisonTable,
   PricingTab,
   ToolsTab,
-  _timeSince,
+  timeSince,
   formatTime,
 } from './components';
 

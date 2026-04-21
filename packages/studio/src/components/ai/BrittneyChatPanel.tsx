@@ -332,22 +332,14 @@ export function BrittneyChatPanel() {
 
   return (
     <div className="flex h-full flex-col bg-studio-panel">
-      {/* Header */}
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-studio-border px-4 py-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-studio-accent to-purple-500 text-white text-sm font-bold shadow-lg">
-          B
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-studio-text">Brittney</div>
-          <div className="flex items-center gap-1.5 text-[10px] text-studio-muted">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isThinking ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
-              }`}
-            />
-            {isThinking ? 'Thinking…' : 'AI Scene Director'}
-          </div>
-        </div>
+      {/* Header — identity removed per founder annotation; utility bar only */}
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-studio-border px-4 py-2">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            isThinking ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
+          }`}
+          aria-label={isThinking ? 'Thinking' : 'Ready'}
+        />
         <div className="ml-auto flex items-center gap-1.5 text-[10px] text-studio-muted">
           <Zap className="h-3 w-3 text-studio-accent" />
           {selectedName ? (

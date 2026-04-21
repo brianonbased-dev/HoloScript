@@ -15,7 +15,7 @@ import type {
   DaemonJobLimits,
   DaemonLogEntry,
   DaemonProfile,
-  _DaemonProjectDNA,
+  DaemonProjectDNA,
   DaemonTelemetryEvent,
   DaemonTelemetrySummary,
   PatchProposal,

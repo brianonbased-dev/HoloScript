@@ -376,11 +376,14 @@ export function RightPanelSidebar({
         {/* Search toggle */}
         <button
           onClick={() => setShowSearch(!showSearch)}
+          aria-label="Search panels"
+          aria-pressed={showSearch}
+          aria-keyshortcuts="Control+Shift+P"
           title="Search panels (Ctrl+Shift+P)"
           className={`flex items-center justify-center h-7 text-xs transition
             ${showSearch ? 'bg-studio-accent/10 text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
         >
-          🔎
+          <span aria-hidden="true">🔎</span>
         </button>
 
         {showSearch && (
@@ -415,6 +418,8 @@ export function RightPanelSidebar({
                   e.preventDefault();
                   toggleFavorite(tab.id);
                 }}
+                aria-label={`${tab.title}${isFavorite(tab.id) ? ' (pinned)' : ''}`}
+                aria-pressed={activeTab === tab.id && isOpen}
                 title={`${tab.title}${isFavorite(tab.id) ? ' ★' : ''}\nRight-click to ${isFavorite(tab.id) ? 'unpin' : 'pin'}`}
                 className={`
                   relative flex items-center justify-center h-8 w-12 text-sm transition flex-shrink-0
@@ -440,10 +445,12 @@ export function RightPanelSidebar({
         {/* Toggle button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? 'Collapse panel' : 'Expand panel'}
+          aria-expanded={isOpen}
           title={isOpen ? 'Collapse panel' : 'Expand panel'}
           className="flex items-center justify-center h-10 w-12 text-studio-muted hover:text-studio-text transition text-xs border-t border-studio-border/30"
         >
-          {isOpen ? '▸' : '◂'}
+          <span aria-hidden="true">{isOpen ? '▸' : '◂'}</span>
         </button>
       </div>
     </div>

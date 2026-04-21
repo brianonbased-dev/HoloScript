@@ -149,20 +149,38 @@ export function useViewport(): UseViewportReturn {
   useEffect(() => {
     const unsubs = [
       on('lighting:changed', (data: unknown) => {
-        const d = data as { lights?: Array<{ id?: string; type?: string; position?: { x: number; y: number; z: number }; color?: number[] | string; intensity?: number; enabled?: boolean }> } | null;
+        const d = data as {
+          lights?: Array<{
+            id?: string;
+            type?: string;
+            position?: [number, number, number] | { x: number; y: number; z: number };
+            color?: number[] | string;
+            intensity?: number;
+            enabled?: boolean;
+          }>;
+        } | null;
         if (d?.lights) {
           setState((prev) => ({
             ...prev,
-            lights: d.lights!.map((l): ViewportLight => ({
-              id: l.id || 'light',
-              type: (l.type || 'point') as ViewportLight['type'],
-              position: l.position ? [l.position.x, l.position.y, l.position.z] as [number, number, number] : [0, 5, 0],
-              color: Array.isArray(l.color)
-                ? `rgb(${Math.floor(l.color[0] * 255)},${Math.floor(l.color[1] * 255)},${Math.floor(l.color[2] * 255)})`
-                : '#ffffff',
-              intensity: l.intensity ?? 1,
-              enabled: l.enabled !== false,
-            })),
+            lights: d.lights!.map((l): ViewportLight => {
+              let pos: [number, number, number] = [0, 5, 0];
+              if (Array.isArray(l.position)) {
+                pos = l.position;
+              } else if (l.position) {
+                pos = [l.position.x, l.position.y, l.position.z];
+              }
+
+              return {
+                id: l.id || 'light',
+                type: (l.type || 'point') as ViewportLight['type'],
+                position: pos,
+                color: Array.isArray(l.color)
+                  ? `rgb(${Math.floor(l.color[0] * 255)},${Math.floor(l.color[1] * 255)},${Math.floor(l.color[2] * 255)})`
+                  : '#ffffff',
+                intensity: l.intensity ?? 1,
+                enabled: l.enabled !== false,
+              };
+            }),
           }));
         }
       }),

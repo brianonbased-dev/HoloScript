@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   flushFederatedAnalytics,
   recordFederatedEvent,
-  _resetFederatedAnalyticsForTests,
+  resetFederatedAnalyticsForTests,
 } from './federatedAnalytics';
 
 describe('federatedAnalytics', () => {

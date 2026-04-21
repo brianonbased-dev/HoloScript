@@ -5,11 +5,7 @@
  * power output, fatigue modeling, and injury risk assessment.
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type Joint = 'hip' | 'knee' | 'ankle' | 'shoulder' | 'elbow' | 'wrist' | 'spine';
 export type MotionPhase =

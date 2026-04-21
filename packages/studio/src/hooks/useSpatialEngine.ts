@@ -22,7 +22,7 @@ import {
   astarFindPath,
   generateHeightmap,
   type BridgeStatus,
-  type _Vec3,
+  type Vec3,
   type AABB,
   type Sphere,
   type Waypoint,

@@ -287,9 +287,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
-  // Don't show shell on standalone POE pages (they have their own layouts)
+  // Don't show shell on standalone POE pages (they have their own layouts).
+  // Wrap in a scrolling container because globals.css locks html/body to
+  // overflow:hidden — AppShell normally provides the scroll region, so
+  // standalone routes need their own.
   const standalonePaths = ['/', '/play', '/learn'];
-  if (standalonePaths.includes(pathname)) return <>{children}</>;
+  if (standalonePaths.includes(pathname)) {
+    return <div className="h-screen overflow-y-auto">{children}</div>;
+  }
+
+  // /create has its own full-bleed layout with GlobalNavigation — don't
+  // render a duplicate AppShell sidebar on top of it.
+  if (pathname.startsWith('/create')) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -326,7 +337,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }`
               : collapsed
                 ? 'w-14'
-                : 'w-56'
+                : 'w-48'
           }
         `}
       >
@@ -342,15 +353,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setCollapsed(!collapsed)}
               className="flex h-8 w-8 items-center justify-center rounded-md text-studio-muted transition hover:bg-studio-panel hover:text-studio-text"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? '▸' : '◂'}
+              <span aria-hidden="true">{collapsed ? '▸' : '◂'}</span>
             </button>
           )}
           {isMobile && (
             <button
               onClick={closeMobileMenu}
               className="flex h-8 w-8 items-center justify-center rounded-md text-studio-muted transition hover:bg-studio-panel hover:text-studio-text"
+              aria-label="Close menu"
               title="Close menu"
             >
               ✕
@@ -430,9 +444,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}
         {!isMobile &&
-          (pathname.startsWith('/create') ||
-            pathname.startsWith('/vibe') ||
-            pathname.startsWith('/projects/')) && <RightPanelSidebar />}
+          (pathname.startsWith('/create') || pathname.startsWith('/projects/')) && (
+            <RightPanelSidebar />
+          )}
       </main>
     </div>
   );

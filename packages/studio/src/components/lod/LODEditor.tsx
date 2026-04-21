@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Layers, Plus, Trash2, _ArrowUpDown, Eye, _Settings, BarChart3 } from 'lucide-react';
+import { Layers, Plus, Trash2, ArrowUpDown, Eye, Settings, BarChart3 } from 'lucide-react';
 
 export interface LODLevel {
   id: number;

@@ -97,7 +97,6 @@ const DEFAULT_CLIP: AnimationClip = {
 
 export function KeyframeEditor({
   onClipChange,
-  _onClose,
 }: {
   onClipChange?: (c: AnimationClip) => void;
   onClose?: () => void;

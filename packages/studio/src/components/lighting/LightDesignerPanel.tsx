@@ -5,29 +5,29 @@
  * color mixing, beat-sync controls, and cue sheet programming.
  */
 
-import React, { useState, useMemo, _useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   createFixture,
-  _setFixtureColor,
-  _setFixtureIntensity,
+  setFixtureColor,
+  setFixtureIntensity,
   mixColors,
   colorToHex,
-  _hexToColor,
+  hexToColor,
   bpmToBeatIntervalMs,
   createChasePattern,
-  _dmxAddressValid,
+  dmxAddressValid,
   detectDmxCollision,
-  _midiToIntensity,
-  _parseSMPTE,
+  midiToIntensity,
+  parseSMPTE,
   isLaserEyeSafe,
-  _exportGrandMA,
+  exportGrandMA,
   type LightFixture,
   type FixtureType,
-  type _LightCue,
+  type LightCue,
   type CueSheet,
-  type _FixtureGroup,
-  type _RGBColor,
-  _FIXTURE_CHANNEL_COUNTS,
+  type FixtureGroup,
+  type RGBColor,
+  FIXTURE_CHANNEL_COUNTS,
 } from '@/lib/dmxEngine';
 
 // ─── Styles ──────────────────────────────────────────────────────

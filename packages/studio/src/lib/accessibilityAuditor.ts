@@ -9,11 +9,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
 export type WCAGLevel = 'A' | 'AA' | 'AAA';
@@ -446,16 +442,16 @@ export function vrWheelchairPerspective(
 
   const obstaclesInView = obstacles
     .filter((o) => {
-      const dx = o.position.x - position.x;
-      const dy = o.position.y - position.y;
-      const dz = o.position.z - position.z;
+      const dx = o.position[0] - position[0];
+      const dy = o.position[1] - position[1];
+      const dz = o.position[2] - position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= maxViewDistance && o.heightCm > eyeHeight * 100;
     })
     .map((o) => o.id);
 
   return {
-    position: [position.x, eyeHeight, position.z],
+    position: [position[0], eyeHeight, position[2]],
     eyeHeight,
     fovDegrees: 90,
     reachRadius,

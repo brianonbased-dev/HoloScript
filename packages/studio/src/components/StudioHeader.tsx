@@ -36,14 +36,8 @@ export function StudioHeader() {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showImportWizard, setShowImportWizard] = useState(false);
 
-  // First-launch detection
-  useEffect(() => {
-    try {
-      const done = localStorage.getItem('holoscript-studio-tutorial-complete');
-      if (!done) setShowTutorial(true);
-    } catch (err) { logger.warn('[StudioHeader] reading tutorial state from localStorage failed:', err); }
-  }, [setShowTutorial]);
-
+  // First-launch detection moved to landing page (src/app/page.tsx) so it only
+  // fires for logged-out visitors on their initial visit to /, not every /create mount.
   const dismissTutorial = () => {
     setShowTutorial(false);
     try {

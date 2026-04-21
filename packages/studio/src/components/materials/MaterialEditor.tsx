@@ -200,20 +200,23 @@ export function MaterialEditor({ onConfigChange }: MaterialEditorProps) {
   const TextureSlot = ({
     label,
     value,
-    _onChange,
+    onChange: _onTextureChange,
   }: {
     label: string;
     value: string;
     onChange: (v: string) => void;
-  }) => (
-    <div className="flex items-center gap-2">
-      <span className="w-20 text-[10px] text-studio-muted">{label}</span>
-      <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-dashed border-studio-border bg-studio-panel/50 px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent/40">
-        <ImagePlus className="h-3 w-3" />
-        {value ? value.split('/').pop() : 'None'}
-      </label>
-    </div>
-  );
+  }) => {
+    void _onTextureChange;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="w-20 text-[10px] text-studio-muted">{label}</span>
+        <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-dashed border-studio-border bg-studio-panel/50 px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent/40">
+          <ImagePlus className="h-3 w-3" />
+          {value ? value.split('/').pop() : 'None'}
+        </label>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col overflow-auto">

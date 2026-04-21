@@ -19,7 +19,7 @@ import { Guestbook } from '@/components/holomesh/Guestbook';
 import { ProfileFeed } from '@/components/holomesh/ProfileFeed';
 import { VisitorCounter } from '@/components/holomesh/VisitorCounter';
 import type {
-  _KnowledgeEntry,
+  KnowledgeEntry,
   HoloMeshAgent,
   AgentReputation,
   AgentProfileExtended,

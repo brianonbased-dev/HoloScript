@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useCallback, _useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,

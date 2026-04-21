@@ -4,8 +4,8 @@
  * DreamJournalPanel — Dream logging, symbol tracking, lucidity scoring.
  */
 
-import { useState, _useCallback } from 'react';
-import { Moon, _Plus, _Star, _Tag, Brain, Eye, Sparkles, Search } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Moon, Plus, Star, Tag, Brain, Eye, Sparkles, Search } from 'lucide-react';
 
 export type LucidityLevel = 0 | 1 | 2 | 3 | 4 | 5;
 export type DreamMood = 'peaceful' | 'anxious' | 'joyful' | 'fearful' | 'neutral' | 'surreal';

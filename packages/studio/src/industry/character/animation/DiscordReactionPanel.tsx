@@ -14,7 +14,7 @@
  */
 
 import { useState } from 'react';
-import { Wifi, WifiOff, Play, Pause, Settings, _Zap, Plus, Trash2, TestTube } from 'lucide-react';
+import { Wifi, WifiOff, Play, Pause, Settings, Zap, Plus, Trash2, TestTube } from 'lucide-react';
 import type { ReactionTrigger, DiscordReaction } from '@/integrations/discordWebhook';
 import type { ReactionFeedback } from '@/lib/traits/reactionTriggerTrait';
 

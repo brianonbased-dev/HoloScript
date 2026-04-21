@@ -19,7 +19,7 @@ export interface Joint {
   dynamics?: { damping: number; friction: number };
   parent: string;
   child: string;
-  origin: { x: number; y: number; z: number; roll: number; pitch: number; yaw: number };
+  origin: { position: [number, number, number]; rotation: [number, number, number] }; // [x, y, z], [roll, pitch, yaw]
 }
 
 export interface Link {
@@ -103,12 +103,8 @@ export function parseRobotDefinition(urdfXml: string): RobotDefinition {
       parent,
       child,
       origin: {
-        x: ox ?? 0,
-        y: oy ?? 0,
-        z: oz ?? 0,
-        roll: roll ?? 0,
-        pitch: pitch ?? 0,
-        yaw: yaw ?? 0,
+        position: [ox ?? 0, oy ?? 0, oz ?? 0],
+        rotation: [roll ?? 0, pitch ?? 0, yaw ?? 0],
       },
     };
   });

@@ -1,14 +1,28 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
 import { Send, Loader2, CheckCircle2, XCircle, Mic, MicOff, ArrowRight } from 'lucide-react';
 import { streamBrittney, buildRichContext } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
 import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
 import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
+import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
+
+const FirstLaunchTutorial = dynamic(
+  () =>
+    import('@/components/wizard/FirstLaunchTutorial').then((m) => ({
+      default: m.FirstLaunchTutorial,
+    })),
+  { ssr: false }
+);
+
+const TUTORIAL_COMPLETE_KEY = 'holoscript-studio-tutorial-complete';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,6 +95,42 @@ function ProgressIndicator({ label }: ProgressIndicatorProps) {
 
 export function BrittneyFullScreen() {
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
+
+  // Real scene store wiring — Brittney tool calls on /start add to the shared
+  // scene store so "Open Editor" lands on a populated workspace instead of an
+  // empty one. (Previously these were no-ops and Brittney returned phantom
+  // "Created" confirmations with no viewer output.)
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const addNode = useSceneGraphStore((s) => s.addNode);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const updateNode = useSceneGraphStore((s) => s.updateNode);
+  const addTrait = useSceneGraphStore((s) => s.addTrait);
+  const removeTrait = useSceneGraphStore((s) => s.removeTrait);
+  const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
+
+  // First-launch tutorial: logged-out + has not completed it yet.
+  // Moved here from StudioHeader so the tutorial fires on the landing flow,
+  // not every time an authenticated user opens /create.
+  const [showTutorial, setShowTutorial] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStatus !== 'unauthenticated') return;
+    try {
+      if (!localStorage.getItem(TUTORIAL_COMPLETE_KEY)) setShowTutorial(true);
+    } catch {
+      // localStorage unavailable (private mode) — fall through without tutorial
+    }
+  }, [sessionStatus]);
+
+  const dismissTutorial = useCallback(() => {
+    setShowTutorial(false);
+    try {
+      localStorage.setItem(TUTORIAL_COMPLETE_KEY, 'true');
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const GREETING: ChatMessage = {
     id: '0',
@@ -161,92 +211,112 @@ export function BrittneyFullScreen() {
 
   // ----------- Send logic -----------
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isThinking) return;
+  const runSend = useCallback(
+    async (text: string) => {
+      if (!text || isThinking) return;
 
-    setInput('');
-    setShowCards(false);
+      setInput('');
+      setShowCards(false);
 
-    const userMsgId = Date.now().toString();
-    setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
-    persistMessage({ role: 'user', content: text });
+      const userMsgId = Date.now().toString();
+      setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+      persistMessage({ role: 'user', content: text });
 
-    const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
-    setLlmHistory(updatedHistory);
-    setIsThinking(true);
+      const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
+      setLlmHistory(updatedHistory);
+      setIsThinking(true);
 
-    // Minimal context for start flow (no scene yet)
-    const sceneContext = buildRichContext('', [], null, null);
+      // Minimal context for start flow (no scene yet)
+      const sceneContext = buildRichContext('', [], null, null);
 
-    const brittMsgId = (Date.now() + 1).toString();
-    setMessages((m) => [
-      ...m,
-      { id: brittMsgId, role: 'brittney', text: '', isStreaming: true, toolResults: [] },
-    ]);
+      const brittMsgId = (Date.now() + 1).toString();
+      setMessages((m) => [
+        ...m,
+        { id: brittMsgId, role: 'brittney', text: '', isStreaming: true, toolResults: [] },
+      ]);
 
-    let accumulatedText = '';
-    const toolResults: ToolResult[] = [];
+      let accumulatedText = '';
+      const toolResults: ToolResult[] = [];
 
-    try {
-      // Minimal store actions for start flow
-      const storeActions = {
-        nodes: [],
-        addTrait: () => {},
-        removeTrait: () => {},
-        setTraitProperty: () => {},
-        addNode: () => {},
-        removeNode: () => {},
-        updateNode: () => {},
-        getCode: () => '',
-        setCode: () => {},
-      };
+      try {
+        // Real store actions so Brittney's create_object/add_trait tool calls
+        // actually populate the shared scene (visible in editor after "Open Editor").
+        const setCodeFn = useSceneStore.getState().setCode;
+        const getCodeFn = () => useSceneStore.getState().code ?? '';
+        const storeActions = {
+          nodes,
+          addTrait,
+          removeTrait,
+          setTraitProperty,
+          addNode,
+          removeNode,
+          updateNode,
+          getCode: getCodeFn,
+          setCode: setCodeFn,
+        };
 
-      for await (const event of streamBrittney(updatedHistory, sceneContext)) {
-        if (event.type === 'text') {
-          accumulatedText += event.payload as string;
-          setMessages((m) =>
-            m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
-          );
-        } else if (event.type === 'tool_call') {
-          const tc = event.payload as ToolCallPayload;
-          setProgressLabel(`Running ${tc.name}...`);
-          const result = executeTool(tc.name, tc.arguments, storeActions);
-          setProgressLabel(null);
-          toolResults.push(result);
-          setMessages((m) =>
-            m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, toolResults: [...toolResults] } : msg
-            )
-          );
-        } else if (event.type === 'error') {
-          accumulatedText = `Sorry, I hit an error: ${event.payload}`;
-          setMessages((m) =>
-            m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
-            )
-          );
-        } else if (event.type === 'done') {
-          break;
+        for await (const event of streamBrittney(updatedHistory, sceneContext)) {
+          if (event.type === 'text') {
+            accumulatedText += event.payload as string;
+            setMessages((m) =>
+              m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
+            );
+          } else if (event.type === 'tool_call') {
+            const tc = event.payload as ToolCallPayload;
+            setProgressLabel(`Running ${tc.name}...`);
+            const result = executeTool(tc.name, tc.arguments, storeActions);
+            setProgressLabel(null);
+            toolResults.push(result);
+            setMessages((m) =>
+              m.map((msg) =>
+                msg.id === brittMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+              )
+            );
+          } else if (event.type === 'error') {
+            accumulatedText = `Sorry, I hit an error: ${event.payload}`;
+            setMessages((m) =>
+              m.map((msg) =>
+                msg.id === brittMsgId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
+              )
+            );
+          } else if (event.type === 'done') {
+            break;
+          }
         }
+      } catch (err) {
+        accumulatedText = `Connection error -- is the backend running? (${String(err)})`;
       }
-    } catch (err) {
-      accumulatedText = `Connection error -- is the backend running? (${String(err)})`;
-    }
 
-    setMessages((m) =>
-      m.map((msg) =>
-        msg.id === brittMsgId
-          ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
-          : msg
-      )
-    );
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === brittMsgId
+            ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
+            : msg
+        )
+      );
 
-    setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
-    persistMessage({ role: 'assistant', content: accumulatedText });
-    setIsThinking(false);
-    setProgressLabel(null);
-  }, [input, isThinking, llmHistory, persistMessage]);
+      setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
+      persistMessage({ role: 'assistant', content: accumulatedText });
+      setIsThinking(false);
+      setProgressLabel(null);
+    },
+    [
+      isThinking,
+      llmHistory,
+      persistMessage,
+      nodes,
+      addNode,
+      removeNode,
+      updateNode,
+      addTrait,
+      removeTrait,
+      setTraitProperty,
+    ]
+  );
+
+  const handleSend = useCallback(() => {
+    runSend(input.trim());
+  }, [input, runSend]);
 
   // ----------- Card selection -----------
 
@@ -258,29 +328,9 @@ export function BrittneyFullScreen() {
         inputRef.current?.focus();
         return;
       }
-      setInput(prompt);
-      setShowCards(false);
-      // Auto-submit after a brief delay so the user sees it
-      setTimeout(() => {
-        setInput('');
-        const userMsgId = Date.now().toString();
-        setMessages((m) => [...m, { id: userMsgId, role: 'user', text: prompt }]);
-        persistMessage({ role: 'user', content: prompt });
-        // Trigger send with the prompt
-        const updatedHistory: BrittneyMessage[] = [
-          ...llmHistory,
-          { role: 'user', content: prompt },
-        ];
-        setLlmHistory(updatedHistory);
-        // We need to trigger send flow manually
-        // Setting input then relying on handleSend won't work because of timing
-        // Instead, just set input and let the user press enter or click send
-      }, 100);
-      // Set input for user to review and send
-      setInput(prompt);
-      inputRef.current?.focus();
+      runSend(prompt);
     },
-    [llmHistory, persistMessage]
+    [runSend]
   );
 
   // ----------- Transition to editor -----------
@@ -305,6 +355,8 @@ export function BrittneyFullScreen() {
   const hasConversation = messages.filter((m) => m.role === 'user').length > 0;
 
   return (
+    <>
+      {showTutorial && <FirstLaunchTutorial onClose={dismissTutorial} />}
     <div
       className={`fixed inset-0 flex flex-col items-center bg-[#0a0a12] transition-all duration-500 ${
         isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
@@ -318,14 +370,18 @@ export function BrittneyFullScreen() {
 
       {/* Header bar */}
       <header className="relative z-10 flex w-full items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2">
+        <Link
+          href="/"
+          aria-label="HoloScript Studio home"
+          className="flex items-center gap-2 rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-studio-accent/40"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05] text-white/60 font-mono font-bold text-sm">
             HS
           </div>
           <span className="text-white/40 text-sm font-medium hidden sm:block">
             HoloScript Studio
           </span>
-        </div>
+        </Link>
         {hasConversation && (
           <button
             onClick={handleOpenEditor}
@@ -343,7 +399,7 @@ export function BrittneyFullScreen() {
         <div className="flex-1 overflow-y-auto space-y-4 pb-4">
           {/* Centered greeting when no conversation yet */}
           {!hasConversation && (
-            <div className="flex flex-col items-center justify-center pt-[15vh]">
+            <div className="flex flex-col items-center justify-center pt-[6vh]">
               {/* Brittney avatar */}
               <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-studio-accent to-purple-500 shadow-lg shadow-studio-accent/20">
                 <span className="text-xl font-bold text-white">B</span>
@@ -471,5 +527,6 @@ export function BrittneyFullScreen() {
         </div>
       </div>
     </div>
+    </>
   );
 }

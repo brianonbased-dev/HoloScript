@@ -5,7 +5,7 @@
  * Tracks nodes (instances) and edges (connections) in memory.
  */
 
-import { useState, useCallback, _useId } from 'react';
+import { useState, useCallback, useId } from 'react';
 
 export type PortType = 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string';
 
@@ -21,8 +21,7 @@ export interface GraphNode {
   label: string;
   category: string;
   color: string;
-  x: number;
-  y: number;
+  position: [number, number]; // [x, y]
   inputs: GraphPort[];
   outputs: GraphPort[];
 }
@@ -64,8 +63,7 @@ export function useNodeGraph() {
           label: def.label,
           category: def.category,
           color: def.color,
-          x,
-          y,
+          position: [x, y],
           inputs: def.inputs,
           outputs: def.outputs,
         },
@@ -81,9 +79,11 @@ export function useNodeGraph() {
     setSelected((s) => (s === id ? null : s));
   }, []);
 
-  const moveNode = useCallback((id: string, dx: number, dy: number) => {
-    setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, x: n.x + dx, y: n.y + dy } : n)));
-  }, []);
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.id === id ? { ...n, position: [n.position[0] + dx, n.position[1] + dy] } : n
+      )
+    );
 
   const connect = useCallback(
     (fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string) => {

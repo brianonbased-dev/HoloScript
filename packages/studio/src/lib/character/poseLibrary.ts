@@ -12,7 +12,7 @@
  * - Custom pose creation
  */
 
-import type { _Quaternion, _Vector3 } from 'three';
+import type { Quaternion, Vector3 } from 'three';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -20,17 +20,8 @@ export type PoseCategory = 'classic' | 'viral' | 'trending' | 'dance' | 'emote' 
 
 export interface BonePose {
   boneName: string;
-  rotation: {
-    x: number;
-    y: number;
-    z: number;
-    w: number;
-  };
-  position?: {
-    x: number;
-    y: number;
-    z: number;
-  };
+  rotation: [number, number, number, number]; // [x, y, z, w]
+  position?: [number, number, number]; // [x, y, z]
 }
 
 export interface ViralPose {
@@ -71,13 +62,13 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['dance', 'classic', '2016', 'meme'],
     bones: [
       // Hide face in left arm
-      { boneName: 'LeftArm', rotation: { x: 0, y: -0.9, z: 0, w: 0.436 } },
-      { boneName: 'LeftForeArm', rotation: { x: 0, y: 0, z: -0.7, w: 0.714 } },
+      { boneName: 'LeftArm', rotation: [0, -0.9, 0, 0.436] },
+      { boneName: 'LeftForeArm', rotation: [0, 0, -0.7, 0.714] },
       // Point right arm
-      { boneName: 'RightArm', rotation: { x: 0, y: 0.7, z: 0.7, w: 0.1 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneName: 'RightArm', rotation: [0, 0.7, 0.7, 0.1] },
+      { boneName: 'RightForeArm', rotation: [0, 0, 0, 1] },
       // Slight lean
-      { boneName: 'Spine', rotation: { x: 0.1, y: -0.2, z: 0, w: 0.977 } },
+      { boneName: 'Spine', rotation: [0.1, -0.2, 0, 0.977] },
     ],
   },
   {
@@ -93,9 +84,9 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['dance', 'fortnite', 'viral', 'trending'],
     bones: [
       // Swing arms (this is frame 1 of animation)
-      { boneName: 'LeftArm', rotation: { x: 0, y: -0.707, z: 0, w: 0.707 } },
-      { boneName: 'RightArm', rotation: { x: 0, y: 0.707, z: 0, w: 0.707 } },
-      { boneName: 'Hips', rotation: { x: 0, y: 0.259, z: 0, w: 0.966 } },
+      { boneName: 'LeftArm', rotation: [0, -0.707, 0, 0.707] },
+      { boneName: 'RightArm', rotation: [0, 0.707, 0, 0.707] },
+      { boneName: 'Hips', rotation: [0, 0.259, 0, 0.966] },
     ],
   },
   {
@@ -111,11 +102,11 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['dance', 'nfl', 'sports', 'viral', 'tiktok'],
     bones: [
       // High knees + arm swing
-      { boneName: 'LeftLeg', rotation: { x: 1.2, y: 0, z: 0, w: 0.362 } },
-      { boneName: 'RightLeg', rotation: { x: 0.2, y: 0, z: 0, w: 0.98 } },
-      { boneName: 'LeftArm', rotation: { x: -0.5, y: 0.3, z: -0.3, w: 0.766 } },
-      { boneName: 'RightArm', rotation: { x: -0.5, y: -0.3, z: 0.3, w: 0.766 } },
-      { boneName: 'Spine', rotation: { x: -0.1, y: 0, z: 0, w: 0.995 } },
+      { boneName: 'LeftLeg', rotation: [1.2, 0, 0, 0.362] },
+      { boneName: 'RightLeg', rotation: [0.2, 0, 0, 0.98] },
+      { boneName: 'LeftArm', rotation: [-0.5, 0.3, -0.3, 0.766] },
+      { boneName: 'RightArm', rotation: [-0.5, -0.3, 0.3, 0.766] },
+      { boneName: 'Spine', rotation: [-0.1, 0, 0, 0.995] },
     ],
   },
   {
@@ -131,13 +122,13 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['meme', 'dominance', 'gaming', 'glitch'],
     bones: [
       // Arms straight out
-      { boneName: 'LeftArm', rotation: { x: 0, y: 0, z: -0.707, w: 0.707 } },
-      { boneName: 'RightArm', rotation: { x: 0, y: 0, z: 0.707, w: 0.707 } },
-      { boneName: 'LeftForeArm', rotation: { x: 0, y: 0, z: 0, w: 1 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneName: 'LeftArm', rotation: [0, 0, -0.707, 0.707] },
+      { boneName: 'RightArm', rotation: [0, 0, 0.707, 0.707] },
+      { boneName: 'LeftForeArm', rotation: [0, 0, 0, 1] },
+      { boneName: 'RightForeArm', rotation: [0, 0, 0, 1] },
       // Stand straight
-      { boneName: 'Spine', rotation: { x: 0, y: 0, z: 0, w: 1 } },
-      { boneName: 'Head', rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneName: 'Spine', rotation: [0, 0, 0, 1] },
+      { boneName: 'Head', rotation: [0, 0, 0, 1] },
     ],
   },
   {
@@ -153,10 +144,10 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['emote', 'thinking', 'meme', 'emoji'],
     bones: [
       // Hand to chin
-      { boneName: 'RightArm', rotation: { x: 0.5, y: 0.3, z: 0.3, w: 0.766 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: 0, z: -1.2, w: 0.362 } },
+      { boneName: 'RightArm', rotation: [0.5, 0.3, 0.3, 0.766] },
+      { boneName: 'RightForeArm', rotation: [0, 0, -1.2, 0.362] },
       // Slight head tilt
-      { boneName: 'Head', rotation: { x: 0.1, y: 0.1, z: 0, w: 0.99 } },
+      { boneName: 'Head', rotation: [0.1, 0.1, 0, 0.99] },
     ],
   },
   {
@@ -171,12 +162,12 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['emote', 'shrug', 'idk', 'gesture'],
     bones: [
       // Raise arms + palms up
-      { boneName: 'LeftArm', rotation: { x: 0, y: -0.3, z: -0.5, w: 0.809 } },
-      { boneName: 'RightArm', rotation: { x: 0, y: 0.3, z: 0.5, w: 0.809 } },
-      { boneName: 'LeftForeArm', rotation: { x: 0, y: 0.5, z: -0.3, w: 0.809 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: -0.5, z: 0.3, w: 0.809 } },
+      { boneName: 'LeftArm', rotation: [0, -0.3, -0.5, 0.809] },
+      { boneName: 'RightArm', rotation: [0, 0.3, 0.5, 0.809] },
+      { boneName: 'LeftForeArm', rotation: [0, 0.5, -0.3, 0.809] },
+      { boneName: 'RightForeArm', rotation: [0, -0.5, 0.3, 0.809] },
       // Slight shoulder raise (simulated with spine tilt)
-      { boneName: 'Spine', rotation: { x: -0.05, y: 0, z: 0, w: 0.999 } },
+      { boneName: 'Spine', rotation: [-0.05, 0, 0, 0.999] },
     ],
   },
   {
@@ -191,12 +182,12 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['flex', 'strong', 'gains', 'gym'],
     bones: [
       // Both arms flexed
-      { boneName: 'LeftArm', rotation: { x: 0, y: -0.5, z: -0.7, w: 0.5 } },
-      { boneName: 'RightArm', rotation: { x: 0, y: 0.5, z: 0.7, w: 0.5 } },
-      { boneName: 'LeftForeArm', rotation: { x: 0, y: 0, z: -1.4, w: 0.17 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: 0, z: 1.4, w: 0.17 } },
+      { boneName: 'LeftArm', rotation: [0, -0.5, -0.7, 0.5] },
+      { boneName: 'RightArm', rotation: [0, 0.5, 0.7, 0.5] },
+      { boneName: 'LeftForeArm', rotation: [0, 0, -1.4, 0.17] },
+      { boneName: 'RightForeArm', rotation: [0, 0, 1.4, 0.17] },
       // Puff chest
-      { boneName: 'Spine', rotation: { x: -0.15, y: 0, z: 0, w: 0.989 } },
+      { boneName: 'Spine', rotation: [-0.15, 0, 0, 0.989] },
     ],
   },
   {
@@ -212,12 +203,12 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['love', 'heart', 'kpop', 'cute'],
     bones: [
       // Arms raised, hands together forming heart
-      { boneName: 'LeftArm', rotation: { x: -0.7, y: -0.3, z: -0.4, w: 0.516 } },
-      { boneName: 'RightArm', rotation: { x: -0.7, y: 0.3, z: 0.4, w: 0.516 } },
-      { boneName: 'LeftForeArm', rotation: { x: 0, y: 0.3, z: -0.5, w: 0.809 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: -0.3, z: 0.5, w: 0.809 } },
+      { boneName: 'LeftArm', rotation: [-0.7, -0.3, -0.4, 0.516] },
+      { boneName: 'RightArm', rotation: [-0.7, 0.3, 0.4, 0.516] },
+      { boneName: 'LeftForeArm', rotation: [0, 0.3, -0.5, 0.809] },
+      { boneName: 'RightForeArm', rotation: [0, -0.3, 0.5, 0.809] },
       // Slight lean back
-      { boneName: 'Spine', rotation: { x: -0.1, y: 0, z: 0, w: 0.995 } },
+      { boneName: 'Spine', rotation: [-0.1, 0, 0, 0.995] },
     ],
   },
   {
@@ -232,10 +223,10 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['peace', 'victory', 'classic', 'photo'],
     bones: [
       // Right hand up with peace sign
-      { boneName: 'RightArm', rotation: { x: -0.5, y: 0.5, z: 0.7, w: 0.173 } },
-      { boneName: 'RightForeArm', rotation: { x: 0, y: 0, z: 0.5, w: 0.866 } },
+      { boneName: 'RightArm', rotation: [-0.5, 0.5, 0.7, 0.173] },
+      { boneName: 'RightForeArm', rotation: [0, 0, 0.5, 0.866] },
       // Slight head tilt
-      { boneName: 'Head', rotation: { x: 0, y: 0.1, z: 0.1, w: 0.99 } },
+      { boneName: 'Head', rotation: [0, 0.1, 0.1, 0.99] },
     ],
   },
   {
@@ -251,10 +242,10 @@ export const VIRAL_POSES: ViralPose[] = [
     tags: ['dance', 'viral', '2015', 'watch-me'],
     bones: [
       // Lean and swing arm
-      { boneName: 'RightArm', rotation: { x: 0, y: 0.866, z: 0.5, w: 0 } },
-      { boneName: 'LeftArm', rotation: { x: 0, y: -0.3, z: -0.2, w: 0.93 } },
-      { boneName: 'Spine', rotation: { x: 0, y: -0.3, z: -0.2, w: 0.93 } },
-      { boneName: 'Hips', rotation: { x: 0, y: -0.259, z: 0, w: 0.966 } },
+      { boneName: 'RightArm', rotation: [0, 0.866, 0.5, 0] },
+      { boneName: 'LeftArm', rotation: [0, -0.3, -0.2, 0.93] },
+      { boneName: 'Spine', rotation: [0, -0.3, -0.2, 0.93] },
+      { boneName: 'Hips', rotation: [0, -0.259, 0, 0.966] },
     ],
   },
 ];
@@ -371,8 +362,8 @@ export function interpolatePoses(
     if (!fromBone && !toBone) return;
 
     // Use identity rotation if bone not found in either pose
-    const fromRot = fromBone?.rotation || { x: 0, y: 0, z: 0, w: 1 };
-    const toRot = toBone?.rotation || { x: 0, y: 0, z: 0, w: 1 };
+    const fromRot = fromBone?.rotation || ([0, 0, 0, 1] as [number, number, number, number]);
+    const toRot = toBone?.rotation || ([0, 0, 0, 1] as [number, number, number, number]);
 
     // Spherical linear interpolation (SLERP) for quaternions
     const interpolated = slerpQuaternion(fromRot, toRot, progress);
@@ -390,18 +381,18 @@ export function interpolatePoses(
  * Spherical linear interpolation for quaternions
  */
 function slerpQuaternion(
-  q1: { x: number; y: number; z: number; w: number },
-  q2: { x: number; y: number; z: number; w: number },
+  q1: [number, number, number, number],
+  q2: [number, number, number, number],
   t: number
-): { x: number; y: number; z: number; w: number } {
+): [number, number, number, number] {
   // Calculate dot product
-  let dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+  let dot = q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2] + q1[3] * q2[3];
 
   // If negative, negate one quaternion to take shorter path
-  let q2x = q2.x;
-  let q2y = q2.y;
-  let q2z = q2.z;
-  let q2w = q2.w;
+  let q2x = q2[0];
+  let q2y = q2[1];
+  let q2z = q2[2];
+  let q2w = q2[3];
 
   if (dot < 0) {
     q2x = -q2x;
@@ -416,12 +407,12 @@ function slerpQuaternion(
 
   // If quaternions are very close, use linear interpolation
   if (dot > 0.9995) {
-    return {
-      x: q1.x + t * (q2x - q1.x),
-      y: q1.y + t * (q2y - q1.y),
-      z: q1.z + t * (q2z - q1.z),
-      w: q1.w + t * (q2w - q1.w),
-    };
+    return [
+      q1[0] + t * (q2x - q1[0]),
+      q1[1] + t * (q2y - q1[1]),
+      q1[2] + t * (q2z - q1[2]),
+      q1[3] + t * (q2w - q1[3]),
+    ];
   }
 
   // Calculate interpolation parameters
@@ -433,12 +424,12 @@ function slerpQuaternion(
   const s0 = Math.cos(theta) - (dot * sinTheta) / sinTheta0;
   const s1 = sinTheta / sinTheta0;
 
-  return {
-    x: s0 * q1.x + s1 * q2x,
-    y: s0 * q1.y + s1 * q2y,
-    z: s0 * q1.z + s1 * q2z,
-    w: s0 * q1.w + s1 * q2w,
-  };
+  return [
+    s0 * q1[0] + s1 * q2x,
+    s0 * q1[1] + s1 * q2y,
+    s0 * q1[2] + s1 * q2z,
+    s0 * q1[3] + s1 * q2w,
+  ];
 }
 
 // ─── Easing Functions ────────────────────────────────────────────────────────

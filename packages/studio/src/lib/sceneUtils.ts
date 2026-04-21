@@ -20,8 +20,8 @@ export {
 import type { SceneNode } from './serializer';
 
 export interface BoundingBox {
-  min: { x: number; y: number; z: number };
-  max: { x: number; y: number; z: number };
+  min: [number, number, number];
+  max: [number, number, number];
 }
 
 /**
@@ -71,19 +71,20 @@ export function nodesWithTrait(nodes: SceneNode[], trait: string): SceneNode[] {
 export function sceneBounds(nodes: SceneNode[]): BoundingBox {
   const flat = flattenScene(nodes);
   if (flat.length === 0) {
-    return { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+    return { min: [0, 0, 0], max: [0, 0, 0] };
   }
 
-  const min = { x: Infinity, y: Infinity, z: Infinity };
-  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  const min: [number, number, number] = [Infinity, Infinity, Infinity];
+  const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
 
   for (const n of flat) {
-    min.x = Math.min(min.x, n.position.x);
-    min.y = Math.min(min.y, n.position.y);
-    min.z = Math.min(min.z, n.position.z);
-    max.x = Math.max(max.x, n.position.x);
-    max.y = Math.max(max.y, n.position.y);
-    max.z = Math.max(max.z, n.position.z);
+    const pos = n.position;
+    min[0] = Math.min(min[0], pos[0]);
+    min[1] = Math.min(min[1], pos[1]);
+    min[2] = Math.min(min[2], pos[2]);
+    max[0] = Math.max(max[0], pos[0]);
+    max[1] = Math.max(max[1], pos[1]);
+    max[2] = Math.max(max[2], pos[2]);
   }
 
   return { min, max };
@@ -92,12 +93,12 @@ export function sceneBounds(nodes: SceneNode[]): BoundingBox {
 /**
  * Calculate the center of a bounding box.
  */
-export function boundsCenter(bounds: BoundingBox): { x: number; y: number; z: number } {
-  return {
-    x: (bounds.min.x + bounds.max.x) / 2,
-    y: (bounds.min.y + bounds.max.y) / 2,
-    z: (bounds.min.z + bounds.max.z) / 2,
-  };
+export function boundsCenter(bounds: BoundingBox): [number, number, number] {
+  return [
+    (bounds.min[0] + bounds.max[0]) / 2,
+    (bounds.min[1] + bounds.max[1]) / 2,
+    (bounds.min[2] + bounds.max[2]) / 2,
+  ];
 }
 
 /**

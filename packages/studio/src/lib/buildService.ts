@@ -330,9 +330,11 @@ ${objects}
 
     function animate() {
       requestAnimationFrame(animate);
-      camera.position.x = 8 * Math.sin(rotX);
-      camera.position.y = 8 * rotY + 3;
-      camera.position.z = 8 * Math.cos(rotX);
+      camera.position.set(
+        8 * Math.sin(rotX),
+        8 * rotY + 3,
+        8 * Math.cos(rotX)
+      );
       camera.lookAt(0, 0, 0);
       renderer.render(scene, camera);
     }

@@ -9,13 +9,12 @@ import {
   beatsToSeconds,
   measureCount,
   dbToLinear,
-  _linearToDb,
-  panLaw,
+  linearToDb,
   isClipping,
   trackDuration,
   soloedTracks,
   type MidiTrack,
-  type _MidiNote,
+  type MidiNote,
   type TimeSignature,
   type NoteValue,
 } from '@/lib/musicProduction';
@@ -82,7 +81,6 @@ export function MusicStudioPanel() {
   const midi = useMemo(() => midiNoteNumber(note, octave), [note, octave]);
   const freq = useMemo(() => noteFrequency(note, octave), [note, octave]);
   const linear = useMemo(() => dbToLinear(gain), [gain]);
-  const { _left, _right } = useMemo(() => panLaw(0), []);
   const ts: TimeSignature = { beatsPerMeasure: 4, beatValue: 4 };
 
   const tracks: MidiTrack[] = [

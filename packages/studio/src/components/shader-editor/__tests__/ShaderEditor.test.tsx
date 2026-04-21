@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useShaderGraph, ShaderGraph as _ShaderGraph } from '../../../hooks/useShaderGraph';
+import { useShaderGraph } from '../../../hooks/useShaderGraph';
 import { useNodeSelection } from '../../../hooks/useNodeSelection';
 import { useShaderCompilation } from '../../../hooks/useShaderCompilation';
 // Local ShaderGraph stub that delegates to the Zustand store.

@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles, _Keyboard } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Sparkles, Keyboard } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 
 const SAMPLE_SCENE = `composition "My First Scene" {

@@ -88,7 +88,10 @@ export function SuggestionCards({ onSelect }: SuggestionCardsProps) {
             onClick={() => onSelect(card.prompt)}
             className="group flex flex-col items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-4 text-left transition-all duration-200 hover:border-studio-accent/30 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-studio-accent/5 focus:outline-none focus:ring-1 focus:ring-studio-accent/40"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-white/40 transition-colors group-hover:bg-studio-accent/10 group-hover:text-studio-accent">
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-white/40 transition-colors group-hover:bg-studio-accent/10 group-hover:text-studio-accent"
+              aria-hidden="true"
+            >
               <Icon className="h-5 w-5" />
             </div>
             <div>

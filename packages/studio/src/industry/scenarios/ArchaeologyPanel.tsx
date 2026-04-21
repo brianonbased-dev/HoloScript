@@ -4,8 +4,8 @@
  * ArchaeologyPanel — Excavation grid, artifact catalog, stratigraphy layers.
  */
 
-import { useState, _useCallback } from 'react';
-import { Compass, _Layers, MapPin, Camera, _Filter, _Plus, _Eye } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Compass, Layers, MapPin, Camera, Filter, Plus, Eye } from 'lucide-react';
 
 export type ArtifactCondition = 'intact' | 'fragmented' | 'damaged' | 'trace';
 export type StratLayer = { id: number; name: string; depth: number; color: string; period: string };

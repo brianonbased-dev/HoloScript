@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Terminal, Trash2, Filter, _ChevronDown, Copy, _Download } from 'lucide-react';
+import { Terminal, Trash2, Filter, ChevronDown, Copy, Download } from 'lucide-react';
 
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 

@@ -10,11 +10,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 export interface AABB {
   min: Vec3;
   max: Vec3;
@@ -23,10 +19,7 @@ export interface Sphere {
   center: Vec3;
   radius: number;
 }
-export interface Waypoint {
-  x: number;
-  y: number;
-}
+export type Waypoint = [number, number];
 
 export interface WasmModule {
   perlin_noise_2d(x: number, y: number, seed: number): number;
@@ -223,20 +216,20 @@ export function sphereSphereTest(a: Sphere, b: Sphere): boolean {
   if (wasmModule) {
     return (
       wasmModule.sphere_sphere_test(
-        a.center.x,
-        a.center.y,
-        a.center.z,
+        a.center[0],
+        a.center[1],
+        a.center[2],
         a.radius,
-        b.center.x,
-        b.center.y,
-        b.center.z,
+        b.center[0],
+        b.center[1],
+        b.center[2],
         b.radius
       ) === 1
     );
   }
-  const dx = b.center.x - a.center.x;
-  const dy = b.center.y - a.center.y;
-  const dz = b.center.z - a.center.z;
+  const dx = b.center[0] - a.center[0];
+  const dy = b.center[1] - a.center[1];
+  const dz = b.center[2] - a.center[2];
   const distSq = dx * dx + dy * dy + dz * dz;
   const radSum = a.radius + b.radius;
   return distSq <= radSum * radSum;
@@ -249,28 +242,28 @@ export function aabbOverlap(a: AABB, b: AABB): boolean {
   if (wasmModule) {
     return (
       wasmModule.aabb_overlap(
-        a.min.x,
-        a.min.y,
-        a.min.z,
-        a.max.x,
-        a.max.y,
-        a.max.z,
-        b.min.x,
-        b.min.y,
-        b.min.z,
-        b.max.x,
-        b.max.y,
-        b.max.z
+        a.min[0],
+        a.min[1],
+        a.min[2],
+        a.max[0],
+        a.max[1],
+        a.max[2],
+        b.min[0],
+        b.min[1],
+        b.min[2],
+        b.max[0],
+        b.max[1],
+        b.max[2]
       ) === 1
     );
   }
   return (
-    a.min.x <= b.max.x &&
-    a.max.x >= b.min.x &&
-    a.min.y <= b.max.y &&
-    a.max.y >= b.min.y &&
-    a.min.z <= b.max.z &&
-    a.max.z >= b.min.z
+    a.min[0] <= b.max[0] &&
+    a.max[0] >= b.min[0] &&
+    a.min[1] <= b.max[1] &&
+    a.max[1] >= b.min[1] &&
+    a.min[2] <= b.max[2] &&
+    a.max[2] >= b.min[2]
   );
 }
 
@@ -295,7 +288,7 @@ export function astarFindPath(
   // Fallback BFS implementation
   const key = (x: number, y: number) => `${x},${y}`;
   const queue: { x: number; y: number; path: Waypoint[] }[] = [
-    { x: startX, y: startY, path: [{ x: startX, y: startY }] },
+    { x: startX, y: startY, path: [[startX, startY]] },
   ];
   const visited = new Set<string>([key(startX, startY)]);
   const dirs = [
@@ -319,7 +312,7 @@ export function astarFindPath(
       if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
       if (grid[ny][nx] !== 0 || visited.has(key(nx, ny))) continue;
       visited.add(key(nx, ny));
-      queue.push({ x: nx, y: ny, path: [...path, { x: nx, y: ny }] });
+      queue.push({ x: nx, y: ny, path: [...path, [nx, ny]] });
     }
   }
   return []; // No path

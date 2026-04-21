@@ -91,13 +91,8 @@ export function analyzeLoop(clip: RecordedClip, options: LoopOptions = {}): Loop
     const startFrame = frames[0];
     const endFrame = frames[frames.length - 1];
 
-    const startQuat = new THREE.Quaternion(
-      startFrame.qx,
-      startFrame.qy,
-      startFrame.qz,
-      startFrame.qw
-    );
-    const endQuat = new THREE.Quaternion(endFrame.qx, endFrame.qy, endFrame.qz, endFrame.qw);
+    const startQuat = new THREE.Quaternion(...startFrame.rotation);
+    const endQuat = new THREE.Quaternion(...endFrame.rotation);
 
     const distance = quatDistance(startQuat, endQuat);
     boneDistances.push({ boneIndex, distance });
@@ -186,23 +181,20 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
     endFrames.forEach((endFrame, i) => {
       const t = useEasing ? easeInOutCubic(i / blendFrames) : i / blendFrames;
 
-      const startQuat = new THREE.Quaternion(
-        startFrame.qx,
-        startFrame.qy,
-        startFrame.qz,
-        startFrame.qw
-      );
-      const endQuat = new THREE.Quaternion(endFrame.qx, endFrame.qy, endFrame.qz, endFrame.qw);
+      const startQuat = new THREE.Quaternion(...startFrame.rotation);
+      const endQuat = new THREE.Quaternion(...endFrame.rotation);
 
       const blendedQuat = new THREE.Quaternion().slerpQuaternions(startQuat, endQuat, t);
 
       blendedFrames.push({
         time: endFrame.time,
         boneIndex,
-        qx: blendedQuat.x,
-        qy: blendedQuat.y,
-        qz: blendedQuat.z,
-        qw: blendedQuat.w,
+        rotation: [
+          blendedQuat.x,
+          blendedQuat.y,
+          blendedQuat.z,
+          blendedQuat.w,
+        ],
       });
     });
   });

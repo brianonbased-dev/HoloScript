@@ -14,10 +14,10 @@
  *  - Responsive layout that scales to container
  */
 
-import { useState, _useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   RotateCcw,
-  _Maximize2,
+  Maximize2,
   ZoomIn,
   ZoomOut,
   Layers,
@@ -25,8 +25,8 @@ import {
   EyeOff,
   Play,
   Pause,
-  _ChevronDown,
-  _Info,
+  ChevronDown,
+  Info,
 } from 'lucide-react';
 
 // =============================================================================

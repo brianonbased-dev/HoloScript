@@ -6,7 +6,7 @@ import { SCENE_TEMPLATES, TEMPLATE_CATEGORIES } from '@/data/sceneTemplates';
 import { QuickStartWizard } from '@/components/wizard/QuickStartWizard';
 import {
   CharacterCreationModal,
-  type _CharacterMetadata,
+  type CharacterMetadata,
 } from '@/industry/character/creation/CharacterCreationModal';
 import { ContextMenu, SimplePropertyInspector } from '@holoscript/ui';
 import { logger } from '@/lib/logger';

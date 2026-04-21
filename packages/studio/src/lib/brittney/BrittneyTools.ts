@@ -475,11 +475,19 @@ export function executeTool(
       }
 
       case 'create_object': {
+        const rawName = args.name;
+        const name = typeof rawName === 'string' ? rawName.trim() : '';
+        if (!name) {
+          return {
+            tool: toolName,
+            success: false,
+            message: 'create_object requires a non-empty name argument.',
+          };
+        }
         const id = `obj-${Date.now()}`;
-        const name = args.name as string;
         const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
-        
+
         setNextHistoryLabel(`Create "${name}"`);
         store.addNode({
           id,

@@ -10,11 +10,7 @@
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface BoundingSphere {
   center: Vec3;
@@ -58,11 +54,11 @@ export interface ThroughputSimParams {
  * @param increment Grid cell size in meters (default 0.5m)
  */
 export function gridSnap(position: Vec3, increment = 0.5): Vec3 {
-  return {
-    x: Math.round(position.x / increment) * increment,
-    y: Math.round(position.y / increment) * increment,
-    z: Math.round(position.z / increment) * increment,
-  };
+  return [
+    Math.round(position[0] / increment) * increment,
+    Math.round(position[1] / increment) * increment,
+    Math.round(position[2] / increment) * increment,
+  ];
 }
 
 // ── Distance Measurement ──────────────────────────────────────────────────────
@@ -71,9 +67,9 @@ export function gridSnap(position: Vec3, increment = 0.5): Vec3 {
  * Measures the Euclidean distance between two node positions in meters.
  */
 export function measureDistance(a: Vec3, b: Vec3): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -82,8 +78,8 @@ export function measureDistance(a: Vec3, b: Vec3): number {
  * Useful for footprint calculations on a factory floor.
  */
 export function measureFloorDistance(a: Vec3, b: Vec3): number {
-  const dx = a.x - b.x;
-  const dz = a.z - b.z;
+  const dx = a[0] - b[0];
+  const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dz * dz);
 }
 
@@ -100,7 +96,7 @@ export function safetyZone(
 ): SafetyZone {
   return {
     nodeId: node.id,
-    center: { ...node.position },
+    center: [...node.position] as Vec3,
     radius,
     type,
   };
@@ -134,24 +130,24 @@ export function findOverlappingZones(zones: SafetyZone[]): Array<[SafetyZone, Sa
 
 /** Returns the axis-aligned bounding box of an equipment node. */
 export function equipmentBounds(node: EquipmentNode): BoundingBox {
-  const halfW = node.dimensions.x / 2;
-  const halfH = node.dimensions.y / 2;
-  const halfD = node.dimensions.z / 2;
+  const halfW = node.dimensions[0] / 2;
+  const halfH = node.dimensions[1] / 2;
+  const halfD = node.dimensions[2] / 2;
   return {
-    min: { x: node.position.x - halfW, y: node.position.y - halfH, z: node.position.z - halfD },
-    max: { x: node.position.x + halfW, y: node.position.y + halfH, z: node.position.z + halfD },
+    min: [node.position[0] - halfW, node.position[1] - halfH, node.position[2] - halfD],
+    max: [node.position[0] + halfW, node.position[1] + halfH, node.position[2] + halfD],
   };
 }
 
 /** Returns true if two bounding boxes intersect (AABB test). */
 export function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
   return (
-    a.min.x <= b.max.x &&
-    a.max.x >= b.min.x &&
-    a.min.y <= b.max.y &&
-    a.max.y >= b.min.y &&
-    a.min.z <= b.max.z &&
-    a.max.z >= b.min.z
+    a.min[0] <= b.max[0] &&
+    a.max[0] >= b.min[0] &&
+    a.min[1] <= b.max[1] &&
+    a.max[1] >= b.min[1] &&
+    a.min[2] <= b.max[2] &&
+    a.max[2] >= b.min[2]
   );
 }
 

@@ -18,10 +18,7 @@ export {
 /*
  */
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+export type Vec2 = [number, number];
 
 export interface StrokePoint {
   position: Vec2;
@@ -60,21 +57,21 @@ export function catmullRomSmooth(
 
       const x =
         0.5 *
-        (2 * p1.position.x +
-          (-p0.position.x + p2.position.x) * t +
-          (2 * p0.position.x - 5 * p1.position.x + 4 * p2.position.x - p3.position.x) * t2 +
-          (-p0.position.x + 3 * p1.position.x - 3 * p2.position.x + p3.position.x) * t3);
+        (2 * p1.position[0] +
+          (-p0.position[0] + p2.position[0]) * t +
+          (2 * p0.position[0] - 5 * p1.position[0] + 4 * p2.position[0] - p3.position[0]) * t2 +
+          (-p0.position[0] + 3 * p1.position[0] - 3 * p2.position[0] + p3.position[0]) * t3);
       const y =
         0.5 *
-        (2 * p1.position.y +
-          (-p0.position.y + p2.position.y) * t +
-          (2 * p0.position.y - 5 * p1.position.y + 4 * p2.position.y - p3.position.y) * t2 +
-          (-p0.position.y + 3 * p1.position.y - 3 * p2.position.y + p3.position.y) * t3);
+        (2 * p1.position[1] +
+          (-p0.position[1] + p2.position[1]) * t +
+          (2 * p0.position[1] - 5 * p1.position[1] + 4 * p2.position[1] - p3.position[1]) * t2 +
+          (-p0.position[1] + 3 * p1.position[1] - 3 * p2.position[1] + p3.position[1]) * t3);
 
       const pressure = p1.pressure + (p2.pressure - p1.pressure) * t;
       const timestamp = p1.timestamp + (p2.timestamp - p1.timestamp) * t;
 
-      smoothed.push({ position: { x, y }, pressure, timestamp });
+      smoothed.push({ position: [x, y], pressure, timestamp });
     }
   }
 
@@ -111,12 +108,12 @@ export function rdpSimplify(points: StrokePoint[], epsilon: number = 1.0): Strok
 }
 
 function perpendicularDistance(point: Vec2, lineStart: Vec2, lineEnd: Vec2): number {
-  const dx = lineEnd.x - lineStart.x;
-  const dy = lineEnd.y - lineStart.y;
+  const dx = lineEnd[0] - lineStart[0];
+  const dy = lineEnd[1] - lineStart[1];
   const len = Math.sqrt(dx * dx + dy * dy);
-  if (len === 0) return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
+  if (len === 0) return Math.sqrt((point[0] - lineStart[0]) ** 2 + (point[1] - lineStart[1]) ** 2);
   return (
-    Math.abs(dy * point.x - dx * point.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x) / len
+    Math.abs(dy * point[0] - dx * point[1] + lineEnd[0] * lineStart[1] - lineEnd[1] * lineStart[0]) / len
   );
 }
 
@@ -143,10 +140,10 @@ export function movingAverageSmooth(points: StrokePoint[], windowSize: number = 
       sumY = 0,
       count = 0;
     for (let j = start; j <= end; j++) {
-      sumX += points[j].position.x;
-      sumY += points[j].position.y;
+      sumX += points[j].position[0];
+      sumY += points[j].position[1];
       count++;
     }
-    return { ...p, position: { x: sumX / count, y: sumY / count } };
+    return { ...p, position: [sumX / count, sumY / count] };
   });
 }

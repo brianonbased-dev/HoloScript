@@ -5,7 +5,7 @@
  * Two tabs: "Local Packs" (original curated packs) and "Poly Haven" (15K+ CC0 assets).
  */
 
-import { useState, _useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Library,
   X,
@@ -87,7 +87,7 @@ interface AssetLibraryPanelProps {
 export function AssetLibraryPanel({ onClose }: AssetLibraryPanelProps) {
   const [tab, setTab] = useState<Tab>('polyhaven');
   const [q, setQ] = useState('');
-  const { results, _total, page, pages, loading, search, setPage } = useAssetLibrary();
+  const { results, total, page, pages, loading, search, setPage } = useAssetLibrary();
   const appendCode = useSceneStore((s) => s.setCode);
   const currentCode = useSceneStore((s) => s.code) ?? '';
 

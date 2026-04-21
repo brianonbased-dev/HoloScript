@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { _useState } from 'react';
+import React, { useState } from 'react';
 import { useNodeSelection } from '../../hooks/useNodeSelection';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { X } from 'lucide-react';

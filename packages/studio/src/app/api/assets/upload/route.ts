@@ -10,7 +10,7 @@ import {
   makeAssetKey,
   sanitizeOriginalFilename,
   InvalidAssetExtensionError,
-  _uploadFile,
+  uploadFile,
 } from '../../../../lib/storage-s3';
 
 /**

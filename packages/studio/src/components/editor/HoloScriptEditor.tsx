@@ -42,7 +42,7 @@ interface HoloScriptEditorProps {
   height?: string;
 }
 
-export function HoloScriptEditor({ _height = '100%' }: HoloScriptEditorProps) {
+export function HoloScriptEditor({ height: _height = '100%' }: HoloScriptEditorProps) {
   const code = useSceneStore((s) => s.code);
   const setCode = useSceneStore((s) => s.setCode);
   const errors = useSceneStore((s) => s.errors);

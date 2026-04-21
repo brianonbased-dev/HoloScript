@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { X, Sparkles, Upload, Library, Search, Cpu, User, _Zap, Settings, Key } from 'lucide-react';
+import { X, Sparkles, Upload, Library, Search, Cpu, User, Zap, Settings, Key } from 'lucide-react';
 import APIKeysPanel, { hasAPIKey } from '@/components/settings/APIKeysPanel';
 import { logger } from '@/lib/logger';
 

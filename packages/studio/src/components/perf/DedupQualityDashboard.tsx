@@ -1,4 +1,4 @@
-import React, { _useState } from 'react';
+import React, { useState } from 'react';
 
 export const DedupQualityDashboard: React.FC = () => {
   // Scaffold UI mapping to the gap analysis metrics for Dedup Filter phase

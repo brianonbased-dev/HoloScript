@@ -14,8 +14,12 @@ import { VRHandControllers } from './VRHandController';
 import { VRBrittney } from './VRBrittney';
 import { AgentEnsemble } from './AgentEnsemble';
 
-// Create a shared XR store (module-level singleton)
+// Create a shared XR store (module-level singleton).
+// offerSession disabled: the browser's auto offer-session UI ("Enter XR" toast)
+// clutters /create. The explicit Enter VR / Enter AR buttons in SceneRenderer
+// are the intended entry points.
 export const xrStore = createXRStore({
+  offerSession: false,
   hand: { rayPointer: { rayModel: { color: '#6366f1', opacity: 0.6, maxLength: 3 } } },
   controller: { rayPointer: { rayModel: { color: '#6366f1', opacity: 0.6, maxLength: 3 } } },
 });

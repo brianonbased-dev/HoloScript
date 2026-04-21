@@ -9,37 +9,33 @@
 export { IKSolver } from './sculpt/ikSolver';
 
 function vec3Distance(a: Vec3, b: Vec3): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
-  return Math.sqrt(dx*dx + dy*dy + dz*dz);
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  const dz = a[2] - b[2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 function vec3Sub(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 function vec3Add(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 function vec3Scale(a: Vec3, s: number): Vec3 {
-  return { x: a.x * s, y: a.y * s, z: a.z * s };
+  return [a[0] * s, a[1] * s, a[2] * s];
 }
 function vec3Length(a: Vec3): number {
-  return Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z);
+  return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 }
 function vec3Normalize(a: Vec3): Vec3 {
   const len = vec3Length(a);
-  if (len === 0) return { x: 0, y: 0, z: 0 };
-  return vec3Scale(a, 1/len);
+  if (len === 0) return [0, 0, 0];
+  return vec3Scale(a, 1 / len);
 }
 
 /*
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface IKJoint {
   id: string;
@@ -91,8 +87,8 @@ export function fabrikSolve(chain: IKChain): IKResult {
   const totalLength = boneLengths.reduce((s, l) => s + l, 0);
   const targetDist = vec3Distance(chain.joints[0].position, chain.target);
 
-  const positions = chain.joints.map((j) => ({ ...j.position }));
-  const root = { ...positions[0] };
+  const positions = chain.joints.map((j) => [...j.position] as Vec3);
+  const root = [...positions[0]] as Vec3;
 
   // If target is unreachable, stretch toward it
   if (targetDist > totalLength) {
@@ -117,14 +113,14 @@ export function fabrikSolve(chain: IKChain): IKResult {
     if (endDist <= chain.tolerance) break;
 
     // Forward pass: move end effector to target
-    positions[n - 1] = { ...chain.target };
+    positions[n - 1] = [...chain.target];
     for (let i = n - 2; i >= 0; i--) {
       const dir = vec3Normalize(vec3Sub(positions[i], positions[i + 1]));
       positions[i] = vec3Add(positions[i + 1], vec3Scale(dir, boneLengths[i]));
     }
 
     // Backward pass: fix root position
-    positions[0] = { ...root };
+    positions[0] = [...root];
     for (let i = 1; i < n; i++) {
       const dir = vec3Normalize(vec3Sub(positions[i], positions[i - 1]));
       positions[i] = vec3Add(positions[i - 1], vec3Scale(dir, boneLengths[i - 1]));

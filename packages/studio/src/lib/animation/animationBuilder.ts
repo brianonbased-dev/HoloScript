@@ -12,10 +12,7 @@ export interface BoneFrame {
   time: number;
   /** index into skeleton.bones[] */
   boneIndex: number;
-  qx: number;
-  qy: number;
-  qz: number;
-  qw: number;
+  rotation: [number, number, number, number]; // [x, y, z, w]
 }
 
 export interface RecordedClip {
@@ -60,17 +57,17 @@ export function buildClipFromFrames(
     const first = boneFrames[0];
     const moved = boneFrames.some(
       (f) =>
-        Math.abs(f.qx - first.qx) > 0.001 ||
-        Math.abs(f.qy - first.qy) > 0.001 ||
-        Math.abs(f.qz - first.qz) > 0.001 ||
-        Math.abs(f.qw - first.qw) > 0.001
+        Math.abs(f.rotation[0] - first.rotation[0]) > 0.001 ||
+        Math.abs(f.rotation[1] - first.rotation[1]) > 0.001 ||
+        Math.abs(f.rotation[2] - first.rotation[2]) > 0.001 ||
+        Math.abs(f.rotation[3] - first.rotation[3]) > 0.001
     );
     if (!moved) return;
 
     const times = boneFrames.map((f) => f.time / 1000);
     const values: number[] = [];
     for (const f of boneFrames) {
-      values.push(f.qx, f.qy, f.qz, f.qw);
+      values.push(...f.rotation);
     }
 
     // Track name matches Three.js bone animation naming convention

@@ -2,7 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
-import { callMcpTool, _MCP_SERVER_URL, ABSORB_BASE } from '@/lib/services/absorb-client';
+import { callMcpTool, ABSORB_BASE } from '@/lib/services/absorb-client';
 
 export async function GET(_req: NextRequest) {
   return NextResponse.json({

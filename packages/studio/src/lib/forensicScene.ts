@@ -9,11 +9,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vector3 = [number, number, number];
 
 export type EvidenceType =
   | 'physical'
@@ -90,35 +86,35 @@ export interface CrimeScene {
 // ═══════════════════════════════════════════════════════════════════
 
 export function calculateTrajectoryLength(t: BulletTrajectory): number {
-  const dx = t.exitPoint.x - t.entryPoint.x;
-  const dy = t.exitPoint.y - t.entryPoint.y;
-  const dz = t.exitPoint.z - t.entryPoint.z;
+  const dx = t.exitPoint[0] - t.entryPoint[0];
+  const dy = t.exitPoint[1] - t.entryPoint[1];
+  const dz = t.exitPoint[2] - t.entryPoint[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 export function trajectoryDirection(t: BulletTrajectory): Vector3 {
   const len = calculateTrajectoryLength(t);
-  if (len === 0) return { x: 0, y: 0, z: 0 };
-  return {
-    x: (t.exitPoint.x - t.entryPoint.x) / len,
-    y: (t.exitPoint.y - t.entryPoint.y) / len,
-    z: (t.exitPoint.z - t.entryPoint.z) / len,
-  };
+  if (len === 0) return [0, 0, 0];
+  return [
+    (t.exitPoint[0] - t.entryPoint[0]) / len,
+    (t.exitPoint[1] - t.entryPoint[1]) / len,
+    (t.exitPoint[2] - t.entryPoint[2]) / len,
+  ];
 }
 
 export function estimateShooterPosition(t: BulletTrajectory): Vector3 {
   const dir = trajectoryDirection(t);
-  return {
-    x: t.entryPoint.x - dir.x * t.distanceToShooter,
-    y: t.entryPoint.y - dir.y * t.distanceToShooter,
-    z: t.entryPoint.z - dir.z * t.distanceToShooter,
-  };
+  return [
+    t.entryPoint[0] - dir[0] * t.distanceToShooter,
+    t.entryPoint[1] - dir[1] * t.distanceToShooter,
+    t.entryPoint[2] - dir[2] * t.distanceToShooter,
+  ];
 }
 
 export function trajectoryAngleFromHorizontal(t: BulletTrajectory): number {
-  const dy = t.exitPoint.y - t.entryPoint.y;
+  const dy = t.exitPoint[1] - t.entryPoint[1];
   const dxz = Math.sqrt(
-    (t.exitPoint.x - t.entryPoint.x) ** 2 + (t.exitPoint.z - t.entryPoint.z) ** 2
+    (t.exitPoint[0] - t.entryPoint[0]) ** 2 + (t.exitPoint[2] - t.entryPoint[2]) ** 2
   );
   return Math.atan2(dy, dxz) * (180 / Math.PI);
 }
@@ -138,10 +134,10 @@ export function classifySpatterByDropletCount(count: number): BloodSpatterPatter
 export function calculateAreaOfOrigin(spatters: BloodSpatterPattern[]): Vector3 | null {
   if (spatters.length < 2) return null;
   // Triangulation: average the computed pointOfOrigin across all patterns
-  const x = spatters.reduce((s, sp) => s + sp.pointOfOrigin.x, 0) / spatters.length;
-  const y = spatters.reduce((s, sp) => s + sp.pointOfOrigin.y, 0) / spatters.length;
-  const z = spatters.reduce((s, sp) => s + sp.pointOfOrigin.z, 0) / spatters.length;
-  return { x, y, z };
+  const x = spatters.reduce((s, sp) => s + sp.pointOfOrigin[0], 0) / spatters.length;
+  const y = spatters.reduce((s, sp) => s + sp.pointOfOrigin[1], 0) / spatters.length;
+  const z = spatters.reduce((s, sp) => s + sp.pointOfOrigin[2], 0) / spatters.length;
+  return [x, y, z];
 }
 
 export function impactAngleFromDropletRatio(width: number, length: number): number {
@@ -178,7 +174,7 @@ export function sortEvidenceBySeverity(items: EvidenceMarker[]): EvidenceMarker[
 // ═══════════════════════════════════════════════════════════════════
 
 export function distanceBetween(a: Vector3, b: Vector3): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
 }
 
 export function canWitnessSeePoint(
@@ -196,8 +192,8 @@ export function scenePerimeterArea(polygon: Vector3[]): number {
   const n = polygon.length;
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    area += polygon[i].x * polygon[j].z;
-    area -= polygon[j].x * polygon[i].z;
+    area += polygon[i][0] * polygon[j][2];
+    area -= polygon[j][0] * polygon[i][2];
   }
   return Math.abs(area) / 2;
 }
@@ -298,14 +294,14 @@ export function photogrammetryPointCloud(captures: PhotoCapture[]): {
   coverageScore: number;
 } {
   if (captures.length < 2)
-    return { centroid: { x: 0, y: 0, z: 0 }, estimatedPoints: 0, coverageScore: 0 };
+    return { centroid: [0, 0, 0], estimatedPoints: 0, coverageScore: 0 };
 
   // Centroid of all capture look-at positions
-  const centroid = {
-    x: captures.reduce((s, c) => s + c.lookAt.x, 0) / captures.length,
-    y: captures.reduce((s, c) => s + c.lookAt.y, 0) / captures.length,
-    z: captures.reduce((s, c) => s + c.lookAt.z, 0) / captures.length,
-  };
+  const centroid: Vector3 = [
+    captures.reduce((s, c) => s + c.lookAt[0], 0) / captures.length,
+    captures.reduce((s, c) => s + c.lookAt[1], 0) / captures.length,
+    captures.reduce((s, c) => s + c.lookAt[2], 0) / captures.length,
+  ];
 
   // Estimated points from overlapping coverage (proportional to captures²)
   const estimatedPoints = captures.length * captures.length * 500;
@@ -314,7 +310,7 @@ export function photogrammetryPointCloud(captures: PhotoCapture[]): {
   const angles = new Set<number>();
   for (const c of captures) {
     const angle = Math.round(
-      (Math.atan2(c.position.z - centroid.z, c.position.x - centroid.x) * 180) / Math.PI / 45
+      (Math.atan2(c.position[2] - centroid[2], c.position[0] - centroid[0]) * 180) / Math.PI / 45
     );
     angles.add(angle);
   }

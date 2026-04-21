@@ -12,7 +12,7 @@
  *  6. Play back clips via AnimationMixer
  */
 
-import { useEffect, useRef, _useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useLoader, useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';

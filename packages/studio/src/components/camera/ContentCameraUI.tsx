@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
-import { Camera, _Video, MonitorPlay, Square, _Play, Square as StopSquare } from 'lucide-react';
+import { Camera, Video, MonitorPlay, Square, Play, Square as StopSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 /**
@@ -128,8 +128,8 @@ export function ContentCameraUI() {
           <div className="bg-black/80 flex-1 transition-all duration-300 backdrop-blur-sm" />
         </div>
       )}
-      {/* Top Toolbar */}
-      <div className="pointer-events-auto flex items-center justify-between p-4">
+      {/* Top Toolbar — extra top padding so it clears the LIVE PREVIEW / panel-toggle chrome above */}
+      <div className="pointer-events-auto flex items-center justify-between px-4 pb-4 pt-14">
         <div className="flex gap-2 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur shadow-lg">
           <button
             onClick={() => setAspect('none')}

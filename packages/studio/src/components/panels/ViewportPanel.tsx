@@ -6,7 +6,7 @@
  * Responds to useStudioBus events from other panels (Terrain, Lighting, Camera).
  */
 import React, { useRef, useMemo, Suspense } from 'react';
-import { Canvas, useFrame, type _ThreeElements, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, type ThreeElements, type ThreeEvent } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
@@ -14,7 +14,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   Environment,
-  _Stats,
+  Stats,
 } from '@react-three/drei';
 import {
   useViewport,

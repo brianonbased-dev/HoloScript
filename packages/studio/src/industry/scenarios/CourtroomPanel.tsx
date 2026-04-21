@@ -7,15 +7,15 @@
 import { useState, useCallback } from 'react';
 import {
   Scale,
-  _Plus,
-  _Trash2,
-  _FileText,
+  Plus,
+  Trash2,
+  FileText,
   Clock,
   AlertTriangle,
   CheckCircle,
-  _Eye,
-  _Tag,
-  _ChevronDown,
+  Eye,
+  Tag,
+  ChevronDown,
 } from 'lucide-react';
 
 export type EvidenceType = 'document' | 'photo' | 'video' | 'audio' | 'physical' | 'testimony';

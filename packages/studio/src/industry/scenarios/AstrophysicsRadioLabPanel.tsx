@@ -1,4 +1,4 @@
-import React, { useState, useEffect, _useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   RadioSpectrumEvent,
   mapRadioToVolumetric,

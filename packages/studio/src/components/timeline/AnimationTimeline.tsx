@@ -15,7 +15,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, Trash2, _ChevronDown } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

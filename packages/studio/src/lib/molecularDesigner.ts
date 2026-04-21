@@ -71,7 +71,7 @@ export interface BindingSite {
   id: string;
   name: string;
   residues: ProteinResidue[];
-  center: { x: number; y: number; z: number };
+  center: [number, number, number];
   volume: number; // Å³
 }
 
@@ -79,7 +79,7 @@ export interface DockingResult {
   ligandId: string;
   siteId: string;
   bindingEnergy: number; // kcal/mol (negative = favorable)
-  pose: { x: number; y: number; z: number; rotX: number; rotY: number; rotZ: number };
+  pose: { position: [number, number, number]; rotation: [number, number, number] };
   contacts: Array<{
     residueId: number;
     type: 'hydrogen' | 'hydrophobic' | 'ionic' | 'pi-stack';
@@ -156,9 +156,9 @@ export const AMINO_ACID_CODES: Record<AminoAcid, string> = {
 
 export function atomDistance(a: Atom, b: Atom): number {
   return Math.sqrt(
-    (a.position.x - b.position.x) ** 2 +
-      (a.position.y - b.position.y) ** 2 +
-      (a.position.z - b.position.z) ** 2
+    (a.position[0] - b.position[0]) ** 2 +
+      (a.position[1] - b.position[1]) ** 2 +
+      (a.position[2] - b.position[2]) ** 2
   );
 }
 
@@ -180,13 +180,13 @@ export function totalCharge(atoms: Atom[]): number {
   return atoms.reduce((sum, a) => sum + a.charge, 0);
 }
 
-export function moleculeCenter(atoms: Atom[]): { x: number; y: number; z: number } {
+export function moleculeCenter(atoms: Atom[]): [number, number, number] {
   const n = atoms.length || 1;
-  return {
-    x: atoms.reduce((s, a) => s + a.position.x, 0) / n,
-    y: atoms.reduce((s, a) => s + a.position.y, 0) / n,
-    z: atoms.reduce((s, a) => s + a.position.z, 0) / n,
-  };
+  return [
+    atoms.reduce((s, a) => s + a.position[0], 0) / n,
+    atoms.reduce((s, a) => s + a.position[1], 0) / n,
+    atoms.reduce((s, a) => s + a.position[2], 0) / n,
+  ];
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -244,12 +244,12 @@ export function bindingSiteVolume(residues: ProteinResidue[]): number {
   let minZ = Infinity,
     maxZ = -Infinity;
   for (const r of residues) {
-    minX = Math.min(minX, r.position.x);
-    maxX = Math.max(maxX, r.position.x);
-    minY = Math.min(minY, r.position.y);
-    maxY = Math.max(maxY, r.position.y);
-    minZ = Math.min(minZ, r.position.z);
-    maxZ = Math.max(maxZ, r.position.z);
+    minX = Math.min(minX, r.position[0]);
+    maxX = Math.max(maxX, r.position[0]);
+    minY = Math.min(minY, r.position[1]);
+    maxY = Math.max(maxY, r.position[1]);
+    minZ = Math.min(minZ, r.position[2]);
+    maxZ = Math.max(maxZ, r.position[2]);
   }
   return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
 }
@@ -320,7 +320,7 @@ export function parsePDB(pdbText: string): ProteinResidue[] {
     const aa = AA_MAP[resName];
     if (!aa) continue;
 
-    residues.push({ id: resSeq, aminoAcid: aa, chain, position: { x, y, z } });
+    residues.push({ id: resSeq, aminoAcid: aa, chain, position: [x, y, z] });
   }
   return residues;
 }

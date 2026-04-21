@@ -5,11 +5,7 @@
  * high-density mesh geometry in HoloScript Studio using Float32Arrays.
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface BrushParameters {
   radius: number;
@@ -39,9 +35,9 @@ export function applyGrabBrush(
     const vy = positions[i + 1];
     const vz = positions[i + 2];
 
-    const dx = vx - center.x;
-    const dy = vy - center.y;
-    const dz = vz - center.z;
+    const dx = vx - center[0];
+    const dy = vy - center[1];
+    const dz = vz - center[2];
 
     const distSq = dx * dx + dy * dy + dz * dz;
 
@@ -77,9 +73,9 @@ export function applySmoothBrush(
       const vy = tempPositions[i + 1];
       const vz = tempPositions[i + 2];
 
-      const dx = vx - center.x;
-      const dy = vy - center.y;
-      const dz = vz - center.z;
+      const dx = vx - center[0];
+      const dy = vy - center[1];
+      const dz = vz - center[2];
       const distSq = dx * dx + dy * dy + dz * dz;
 
       if (distSq < radiusSq) {
@@ -91,9 +87,9 @@ export function applySmoothBrush(
           count = 0;
 
         for (let j = 0; j < tempPositions.length; j += 3) {
-          const odx = tempPositions[j] - center.x;
-          const ody = tempPositions[j + 1] - center.y;
-          const odz = tempPositions[j + 2] - center.z;
+          const odx = tempPositions[j] - center[0];
+          const ody = tempPositions[j + 1] - center[1];
+          const odz = tempPositions[j + 2] - center[2];
           if (odx * odx + ody * ody + odz * odz < radiusSq) {
             avgX += tempPositions[j];
             avgY += tempPositions[j + 1];
@@ -131,9 +127,9 @@ export function applyInflateBrush(
     const vy = positions[i + 1];
     const vz = positions[i + 2];
 
-    const dx = vx - center.x;
-    const dy = vy - center.y;
-    const dz = vz - center.z;
+    const dx = vx - center[0];
+    const dy = vy - center[1];
+    const dz = vz - center[2];
 
     const distSq = dx * dx + dy * dy + dz * dz;
 
@@ -167,20 +163,20 @@ export function applyCreaseBrush(
     const vy = positions[i + 1];
     const vz = positions[i + 2];
 
-    const dx = vx - center.x;
-    const dy = vy - center.y;
-    const dz = vz - center.z;
+    const dx = vx - center[0];
+    const dy = vy - center[1];
+    const dz = vz - center[2];
     const distSq = dx * dx + dy * dy + dz * dz;
 
     if (distSq < radiusSq) {
       const dist = Math.sqrt(distSq);
       const falloff = Math.pow(1 - dist / radius, 2); // Sharper falloff
-      const dot = dx * planeNormal.x + dy * planeNormal.y + dz * planeNormal.z;
+      const dot = dx * planeNormal[0] + dy * planeNormal[1] + dz * planeNormal[2];
       const s = falloff * strength;
 
-      positions[i] -= planeNormal.x * dot * s;
-      positions[i + 1] -= planeNormal.y * dot * s;
-      positions[i + 2] -= planeNormal.z * dot * s;
+      positions[i] -= planeNormal[0] * dot * s;
+      positions[i + 1] -= planeNormal[1] * dot * s;
+      positions[i + 2] -= planeNormal[2] * dot * s;
     }
   }
   return positions;

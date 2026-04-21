@@ -5,11 +5,7 @@
  * measurement tools, and jury-facing presentation modes.
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type AnnotationType = 'label' | 'measurement' | 'highlight' | 'arrow' | 'circle' | 'callout';
 export type EvidenceClass =
@@ -78,7 +74,9 @@ export interface MeasurementResult {
 // ═══════════════════════════════════════════════════════════════════
 
 export function distance3D(a: Vec3, b: Vec3): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+  return Math.sqrt(
+    (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+  );
 }
 
 export function createMeasurement(from: Vec3, to: Vec3, label: string): MeasurementResult {

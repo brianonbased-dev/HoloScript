@@ -57,31 +57,135 @@ function resolveValue(
 ): unknown {
   if (value === null || value === undefined) return value;
 
-  // Arrays: resolve each element
+  // Arrays: resolve each element (could be a Vector3 tuple or a list of nodes)
   if (Array.isArray(value)) {
     return value.map((v) => resolveValue(v, state, computed));
   }
 
-  // Non-string: pass through (numbers, booleans, objects)
-  if (typeof value !== 'string') return value;
+  // Handle AST objects from the modern parser
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, any>;
 
-  const str = value as string;
+    // Case 1: Simple reference { __ref: "$var" }
+    if ('__ref' in obj && typeof obj.__ref === 'string') {
+      const ref = obj.__ref;
+      if (ref.startsWith('$')) {
+        const varName = ref.slice(1);
+        if (varName in computed) return computed[varName];
+        return resolveNestedValue(state, varName);
+      }
+      return ref;
+    }
 
-  // Exact $var reference (no expression around it)
-  if (/^\$[a-zA-Z_][a-zA-Z0-9_.]*$/.test(str)) {
-    const varName = str.slice(1);
-    // Check computed first, then state
-    if (varName in computed) return computed[varName];
-    return resolveNestedValue(state, varName);
+    // Case 2: Binary/Ternary/Call expressions
+    if ('type' in obj && ['binary', 'ternary', 'call', 'literal'].includes(obj.type)) {
+      return evaluateAST(obj, state, computed);
+    }
+
+    // Regular object (like {x,y,z} or Vector3 tuple if not caught as array)
+    // Pass through if it's not a known AST node type
+    return value;
   }
 
-  // String contains $var references or expressions — evaluate
-  if (str.includes('$')) {
-    return evaluateExpression(str, state, computed);
+  // String: check for inline $var or expressions
+  if (typeof value === 'string') {
+    const str = value as string;
+
+    // Exact $var reference (no expression around it)
+    if (/^\$[a-zA-Z_][a-zA-Z0-9_.]*$/.test(str)) {
+      const varName = str.slice(1);
+      if (varName in computed) return computed[varName];
+      return resolveNestedValue(state, varName);
+    }
+
+    // String contains $var references or expressions — evaluate
+    if (str.includes('$')) {
+      return evaluateExpression(str, state, computed);
+    }
   }
 
-  // Static value
   return value;
+}
+
+/** Recursively evaluate an AST expression node */
+function evaluateAST(
+  node: Record<string, any>,
+  state: HoloSurfaceState,
+  computed: Record<string, unknown>
+): unknown {
+  switch (node.type) {
+    case 'literal':
+      return node.value;
+
+    case 'binary': {
+      const left = resolveValue(node.left, state, computed) as any;
+      const right = resolveValue(node.right, state, computed) as any;
+      switch (node.operator) {
+        case '+':
+          return left + right;
+        case '-':
+          return left - right;
+        case '*':
+          return left * right;
+        case '/':
+          return left / right;
+        case '%':
+          return left % right;
+        case '==':
+          return left == right;
+        case '!=':
+          return left != right;
+        case '>':
+          return left > right;
+        case '<':
+          return left < right;
+        case '>=':
+          return left >= right;
+        case '<=':
+          return left <= right;
+        case '&&':
+          return left && right;
+        case '||':
+          return left || right;
+        default:
+          return undefined;
+      }
+    }
+
+    case 'ternary': {
+      const condition = resolveValue(node.condition, state, computed);
+      return condition
+        ? resolveValue(node.trueValue, state, computed)
+        : resolveValue(node.falseValue, state, computed);
+    }
+
+    case 'call': {
+      // Basic support for String(), Number(), and method calls on state vars
+      const callee = node.callee as string;
+      const args = Array.isArray(node.args)
+        ? node.args.map((a: any) => resolveValue(a, state, computed))
+        : [resolveValue(node.args, state, computed)];
+
+      if (callee === 'String') return String(args[0]);
+      if (callee === 'Number') return Number(args[0]);
+      if (callee === 'Boolean') return Boolean(args[0]);
+
+      // Handle method calls like $var.toFixed(2)
+      if (callee.includes('.')) {
+        const parts = callee.split('.');
+        const methodName = parts.pop()!;
+        const targetRef = parts.join('.');
+        const targetValue = resolveValue({ __ref: targetRef }, state, computed) as any;
+        if (targetValue && typeof targetValue[methodName] === 'function') {
+          return targetValue[methodName](...args);
+        }
+      }
+      return undefined;
+    }
+
+    default:
+      return undefined;
+  }
 }
 
 /** Resolve dotted paths like "agents.filter(...)" from state */

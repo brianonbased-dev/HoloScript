@@ -16,11 +16,7 @@ export {
   reduceMesh,
 } from './sculpt/sculptingBrushes';
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface SculptBrush {
   id: string;
@@ -208,29 +204,29 @@ export function applyBrushStroke(
   brushCenter: Vec3,
   normal: Vec3
 ): Vec3 {
-  const dx = vertexPos.x - brushCenter.x;
-  const dy = vertexPos.y - brushCenter.y;
-  const dz = vertexPos.z - brushCenter.z;
+  const dx = vertexPos[0] - brushCenter[0];
+  const dy = vertexPos[1] - brushCenter[1];
+  const dz = vertexPos[2] - brushCenter[2];
   const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   const weight = falloffWeight(dist, brush.radius, brush.falloff) * brush.strength;
-  if (weight <= 0) return { x: 0, y: 0, z: 0 };
+  if (weight <= 0) return [0, 0, 0];
 
   switch (brush.type) {
     case 'standard':
-      return { x: normal.x * weight, y: normal.y * weight, z: normal.z * weight };
+      return [normal[0] * weight, normal[1] * weight, normal[2] * weight];
     case 'inflate':
-      return { x: normal.x * weight * 0.5, y: normal.y * weight * 0.5, z: normal.z * weight * 0.5 };
+      return [normal[0] * weight * 0.5, normal[1] * weight * 0.5, normal[2] * weight * 0.5];
     case 'flatten':
-      return { x: 0, y: -vertexPos.y * weight * 0.1, z: 0 };
+      return [0, -vertexPos[1] * weight * 0.1, 0];
     case 'smooth':
-      return { x: -dx * weight * 0.05, y: -dy * weight * 0.05, z: -dz * weight * 0.05 };
+      return [-dx * weight * 0.05, -dy * weight * 0.05, -dz * weight * 0.05];
     case 'pinch':
-      return { x: -dx * weight * 0.1, y: 0, z: -dz * weight * 0.1 };
+      return [-dx * weight * 0.1, 0, -dz * weight * 0.1];
     case 'grab':
-      return { x: 0, y: weight * 0.5, z: 0 }; // Placeholder — real grab uses mouse delta
+      return [0, weight * 0.5, 0]; // Placeholder — real grab uses mouse delta
     default:
-      return { x: normal.x * weight, y: normal.y * weight, z: normal.z * weight };
+      return [normal[0] * weight, normal[1] * weight, normal[2] * weight];
   }
 }
 

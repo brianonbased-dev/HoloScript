@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useHotkeys, _formatHotkeyDisplay, HOTKEYS } from '../../../hooks/useHotkeys';
+import { useHotkeys, formatHotkeyDisplay, HOTKEYS } from '../../../hooks/useHotkeys';
 
 export function HotkeyGuide() {
   const [isVisible, setIsVisible] = useState(false);

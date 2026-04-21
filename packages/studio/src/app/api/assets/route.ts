@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { assets } from '../../../db/schema';
-import { eq, desc, ilike, _or, sql } from 'drizzle-orm';
+import { eq, desc, ilike, or, sql } from 'drizzle-orm';
 import { requireAuth } from '../../../lib/api-auth';
 
 /**

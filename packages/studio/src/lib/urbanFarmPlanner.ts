@@ -9,10 +9,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+export type Vec2 = [number, number];
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 export type SoilType = 'clay' | 'sandy' | 'loam' | 'silt' | 'peat';
@@ -763,8 +760,8 @@ export function mycorrhizalNetworkSim(
   const links: MycorrhizalLink[] = [];
   for (let i = 0; i < plants.length; i++) {
     for (let j = i + 1; j < plants.length; j++) {
-      const dx = plants[i].position.x - plants[j].position.x;
-      const dy = plants[i].position.y - plants[j].position.y;
+      const dx = plants[i].position[0] - plants[j].position[0];
+      const dy = plants[i].position[1] - plants[j].position[1];
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist <= maxDistanceM) {
         const flow =
@@ -803,8 +800,8 @@ export function lorawanMeshConnect(
   const links: { from: string; to: string; signalStrength: number; connected: boolean }[] = [];
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
-      const dx = nodes[i].position.x - nodes[j].position.x;
-      const dy = nodes[i].position.y - nodes[j].position.y;
+      const dx = nodes[i].position[0] - nodes[j].position[0];
+      const dy = nodes[i].position[1] - nodes[j].position[1];
       const dist = Math.sqrt(dx * dx + dy * dy);
       const maxRange = Math.min(nodes[i].rangeM, nodes[j].rangeM);
       const connected = dist <= maxRange;
@@ -841,8 +838,8 @@ export function droneSurveyGrid(
     const x = originX + i * laneSpacingM;
     const yStart = i % 2 === 0 ? originY : originY + heightM;
     const yEnd = i % 2 === 0 ? originY + heightM : originY;
-    waypoints.push({ x, y: yStart });
-    waypoints.push({ x, y: yEnd });
+    waypoints.push([x, yStart]);
+    waypoints.push([x, yEnd]);
   }
   return waypoints;
 }

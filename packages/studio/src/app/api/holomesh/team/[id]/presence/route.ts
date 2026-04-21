@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../../db/client';
 import { holomeshTeamPresenceSessions } from '../../../../../../db/schema';
-import { eq, and, isNull, _isNotNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
 import { rateLimit } from '../../../../../../lib/rate-limiter';
 
 /**

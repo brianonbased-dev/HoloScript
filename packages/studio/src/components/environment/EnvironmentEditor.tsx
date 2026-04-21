@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Sun, Moon, Cloud, Droplets, ChevronDown, _Copy, RotateCcw } from 'lucide-react';
+import { Sun, Moon, Cloud, Droplets, ChevronDown, Copy, RotateCcw } from 'lucide-react';
 
 export interface EnvironmentConfig {
   skyType: 'color' | 'gradient' | 'hdri' | 'procedural';

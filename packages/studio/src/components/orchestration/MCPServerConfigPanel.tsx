@@ -22,12 +22,12 @@ import {
   Play,
   Check,
   AlertCircle,
-  _ChevronRight,
+  ChevronRight,
   Search,
   Settings,
 } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
-import { _MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
+import { MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
 import type { MCPServerConfig, ServerStatus, MCPTool } from '@/lib/orchestrationStore';
 import { logger } from '@/lib/logger';
 

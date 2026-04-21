@@ -23,11 +23,7 @@ export {
   applyEasing,
 } from './character/poseLibrary';
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export interface PoseData {
   id: string;
@@ -62,10 +58,10 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      hips: { x: 0, y: 0, z: 0 },
-      spine: { x: 0, y: 0, z: 0 },
-      'upper_arm.L': { x: 0, y: 0, z: -90 },
-      'upper_arm.R': { x: 0, y: 0, z: 90 },
+      hips: [0, 0, 0],
+      spine: [0, 0, 0],
+      'upper_arm.L': [0, 0, -90],
+      'upper_arm.R': [0, 0, 90],
     },
   },
   {
@@ -76,9 +72,9 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      hips: { x: 0, y: 0, z: 0 },
-      'upper_arm.L': { x: 0, y: 0, z: -45 },
-      'upper_arm.R': { x: 0, y: 0, z: 45 },
+      hips: [0, 0, 0],
+      'upper_arm.L': [0, 0, -45],
+      'upper_arm.R': [0, 0, 45],
     },
   },
   {
@@ -89,11 +85,11 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      hips: { x: 0, y: 5, z: 0 },
-      spine: { x: -3, y: 0, z: 0 },
-      'upper_arm.L': { x: 0, y: 0, z: -20 },
-      'upper_arm.R': { x: 0, y: 0, z: 15 },
-      'forearm.L': { x: -15, y: 0, z: 0 },
+      hips: [0, 5, 0],
+      spine: [-3, 0, 0],
+      'upper_arm.L': [0, 0, -20],
+      'upper_arm.R': [0, 0, 15],
+      'forearm.L': [-15, 0, 0],
     },
   },
   {
@@ -104,11 +100,11 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      hips: { x: -90, y: 0, z: 0 },
-      'upper_leg.L': { x: -90, y: 0, z: 0 },
-      'upper_leg.R': { x: -90, y: 0, z: 0 },
-      'lower_leg.L': { x: 90, y: 0, z: 0 },
-      'lower_leg.R': { x: 90, y: 0, z: 0 },
+      hips: [-90, 0, 0],
+      'upper_leg.L': [-90, 0, 0],
+      'upper_leg.R': [-90, 0, 0],
+      'lower_leg.L': [90, 0, 0],
+      'lower_leg.R': [90, 0, 0],
     },
   },
   {
@@ -119,10 +115,10 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      spine: { x: -10, y: 30, z: 0 },
-      'upper_arm.R': { x: -80, y: 0, z: 20 },
-      'forearm.R': { x: -60, y: 0, z: 0 },
-      'upper_arm.L': { x: -30, y: 0, z: -40 },
+      spine: [-10, 30, 0],
+      'upper_arm.R': [-80, 0, 20],
+      'forearm.R': [-60, 0, 0],
+      'upper_arm.L': [-30, 0, -40],
     },
   },
   {
@@ -133,9 +129,9 @@ export const BUILT_IN_POSES: PoseData[] = [
     isBuiltIn: true,
     createdAt: 0,
     boneRotations: {
-      'upper_arm.R': { x: 0, y: 0, z: 160 },
-      'forearm.R': { x: -30, y: 0, z: 0 },
-      head: { x: 0, y: -10, z: 5 },
+      'upper_arm.R': [0, 0, 160],
+      'forearm.R': [-30, 0, 0],
+      head: [0, -10, 5],
     },
   },
 ];
@@ -172,13 +168,13 @@ export function blendPoses(a: PoseData, b: PoseData, weight: number): Record<str
   const result: Record<string, Vec3> = {};
   const allBones = new Set([...Object.keys(a.boneRotations), ...Object.keys(b.boneRotations)]);
   for (const bone of allBones) {
-    const va = a.boneRotations[bone] ?? { x: 0, y: 0, z: 0 };
-    const vb = b.boneRotations[bone] ?? { x: 0, y: 0, z: 0 };
-    result[bone] = {
-      x: va.x * (1 - w) + vb.x * w,
-      y: va.y * (1 - w) + vb.y * w,
-      z: va.z * (1 - w) + vb.z * w,
-    };
+    const va = a.boneRotations[bone] ?? [0, 0, 0];
+    const vb = b.boneRotations[bone] ?? [0, 0, 0];
+    result[bone] = [
+      va[0] * (1 - w) + vb[0] * w,
+      va[1] * (1 - w) + vb[1] * w,
+      va[2] * (1 - w) + vb[2] * w,
+    ];
   }
   return result;
 }

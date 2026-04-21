@@ -15,7 +15,7 @@
  *  - 44px minimum touch targets (WCAG 2.5.5)
  */
 
-import { useState, useEffect, useCallback, useRef, _useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   PanelLeft,
   PanelRight,
@@ -299,15 +299,25 @@ export function ResponsiveStudioLayout({
 
   // Panel state per breakpoint
   const [panels, setPanels] = useState<PanelConfig>({
-    left: { visible: true, width: 260 },
+    left: { visible: true, width: 340 },
     right: { visible: true, width: 280 },
   });
 
   // Mobile drawer state
   const [mobileDrawer, setMobileDrawer] = useState<'left' | 'right' | null>(null);
 
-  // Fullscreen mode
+  // Fullscreen mode — state follows browser reality via fullscreenchange, not optimistic
   const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
+    };
+  }, []);
 
   // Auto-adjust panels for breakpoint
   useEffect(() => {
@@ -373,7 +383,7 @@ export function ResponsiveStudioLayout({
       ...prev,
       left: {
         ...prev.left,
-        width: Math.max(180, Math.min(400, prev.left.width + delta)),
+        width: Math.max(220, Math.min(560, prev.left.width + delta)),
       },
     }));
   }, []);
@@ -388,21 +398,31 @@ export function ResponsiveStudioLayout({
     }));
   }, []);
 
-  const toggleFullscreen = useCallback(() => {
-    if (fullscreen) {
-      document.exitFullscreen?.();
-    } else {
-      containerRef.current?.requestFullscreen?.();
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+      } else {
+        const el = containerRef.current;
+        if (!el?.requestFullscreen) {
+          console.warn('[ResponsiveStudioLayout] Fullscreen API unavailable in this context.');
+          return;
+        }
+        await el.requestFullscreen();
+      }
+    } catch (err) {
+      // Most common cause: Permissions Policy blocks fullscreen inside iframe previews.
+      console.warn('[ResponsiveStudioLayout] Fullscreen request rejected:', err);
     }
-    setFullscreen(!fullscreen);
-  }, [fullscreen]);
+    // state is updated by the fullscreenchange listener — no optimistic setFullscreen here
+  }, []);
 
   const transitionClass = reducedMotion ? '' : 'transition-all duration-200';
 
   return (
     <div
       ref={containerRef}
-      className="flex flex-col h-full overflow-hidden bg-studio-bg text-studio-text"
+      className="relative flex flex-col h-full overflow-hidden bg-studio-bg text-studio-text"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -410,60 +430,54 @@ export function ResponsiveStudioLayout({
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      {/* Top toolbar */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-2 py-1.5 min-h-[40px]">
-        {/* Left toggle */}
-        {leftPanel && (
-          <button
-            onClick={toggleLeft}
-            className={`rounded p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition ${
-              (breakpoint !== 'mobile' ? panels.left.visible : mobileDrawer === 'left')
-                ? 'text-studio-accent bg-studio-accent/10'
-                : 'text-studio-muted hover:text-studio-text'
-            }`}
-            title={`Toggle ${leftTitle}`}
-            aria-label={`Toggle ${leftTitle} panel`}
-          >
-            {breakpoint === 'mobile' ? (
-              <Menu className="h-4 w-4" />
-            ) : (
-              <PanelLeft className="h-4 w-4" />
-            )}
-          </button>
-        )}
-
-        {/* Center: breakpoint info */}
-        <div className="flex-1 flex items-center justify-center">
-          {showDebug && (
-            <BreakpointIndicator breakpoint={breakpoint} orientation={orientation} width={width} />
+      {/*
+        Top toolbar deleted per founder annotation — when there's no left or
+        right panel configured (e.g. /create) the bar contained only the
+        fullscreen toggle. Fullscreen is now rendered as a floating overlay
+        on the content area (below). Panel toggles render inside the header
+        only when a panel actually exists.
+      */}
+      {(leftPanel || rightPanel || showDebug) && (
+        <header className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-2 py-1.5 min-h-[40px]">
+          {leftPanel && (
+            <button
+              onClick={toggleLeft}
+              className={`rounded p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition ${
+                (breakpoint !== 'mobile' ? panels.left.visible : mobileDrawer === 'left')
+                  ? 'text-studio-accent bg-studio-accent/10'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+              title={`Toggle ${leftTitle}`}
+              aria-label={`Toggle ${leftTitle} panel`}
+            >
+              {breakpoint === 'mobile' ? (
+                <Menu className="h-4 w-4" />
+              ) : (
+                <PanelLeft className="h-4 w-4" />
+              )}
+            </button>
           )}
-        </div>
-
-        {/* Fullscreen toggle */}
-        <button
-          onClick={toggleFullscreen}
-          className="rounded p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-studio-muted hover:text-studio-text"
-          title="Toggle fullscreen"
-        >
-          {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-        </button>
-
-        {/* Right toggle */}
-        {rightPanel && (
-          <button
-            onClick={toggleRight}
-            className={`rounded p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition ${
-              (breakpoint !== 'mobile' ? panels.right.visible : mobileDrawer === 'right')
-                ? 'text-studio-accent bg-studio-accent/10'
-                : 'text-studio-muted hover:text-studio-text'
-            }`}
-            title={`Toggle ${rightTitle}`}
-            aria-label={`Toggle ${rightTitle} panel`}
-          >
-            <PanelRight className="h-4 w-4" />
-          </button>
-        )}
-      </header>
+          <div className="flex-1 flex items-center justify-center">
+            {showDebug && (
+              <BreakpointIndicator breakpoint={breakpoint} orientation={orientation} width={width} />
+            )}
+          </div>
+          {rightPanel && (
+            <button
+              onClick={toggleRight}
+              className={`rounded p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition ${
+                (breakpoint !== 'mobile' ? panels.right.visible : mobileDrawer === 'right')
+                  ? 'text-studio-accent bg-studio-accent/10'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+              title={`Toggle ${rightTitle}`}
+              aria-label={`Toggle ${rightTitle} panel`}
+            >
+              <PanelRight className="h-4 w-4" />
+            </button>
+          )}
+        </header>
+      )}
 
       {/* Main layout area */}
       <div className="flex flex-1 overflow-hidden relative">
@@ -575,6 +589,21 @@ export function ResponsiveStudioLayout({
           {bottomBar}
         </div>
       )}
+
+      {/* Floating fullscreen toggle — replaces the deleted top toolbar */}
+      <button
+        onClick={toggleFullscreen}
+        aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        aria-pressed={fullscreen}
+        title={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        className="absolute top-2 right-2 z-30 rounded-md p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center bg-studio-panel/50 text-studio-muted hover:bg-studio-panel/80 hover:text-studio-text backdrop-blur-sm transition"
+      >
+        {fullscreen ? (
+          <Minimize2 className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Maximize2 className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
     </div>
   );
 }

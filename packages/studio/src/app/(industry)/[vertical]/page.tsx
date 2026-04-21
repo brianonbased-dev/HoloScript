@@ -1,13 +1,13 @@
 'use client';
 
-import React, { _useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 import { ExportPipelinePanel } from '@/components/export/ExportPipelinePanel';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
-import { _Layers, Settings, Box, Activity, GripVertical } from 'lucide-react';
+import { Layers, Settings, Box, Activity, GripVertical } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 function PanelSplitter({

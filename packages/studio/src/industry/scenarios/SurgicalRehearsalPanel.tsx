@@ -2,7 +2,7 @@
  * SurgicalRehearsalPanel.tsx — Surgical Rehearsal Theater
  * Powered by surgicalRehearsal.ts
  */
-import React, { _useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   estimateProcedureDuration,
   bloodLossRisk,

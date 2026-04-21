@@ -4,8 +4,8 @@
  * EpidemicPanel — Epidemic heatmap with SIR model parameters and outbreak tracking.
  */
 
-import { useState, _useCallback, useMemo } from 'react';
-import { Activity, _MapPin, _TrendingUp, _Users, _AlertTriangle, _BarChart3 } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Activity, MapPin, TrendingUp, Users, AlertTriangle, BarChart3 } from 'lucide-react';
 
 export interface OutbreakZone {
   id: string;

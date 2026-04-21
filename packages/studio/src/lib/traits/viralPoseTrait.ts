@@ -456,15 +456,15 @@ export class ViralPoseTrait {
 
       // Apply rotation
       bone.quaternion.set(
-        bonePose.rotation.x,
-        bonePose.rotation.y,
-        bonePose.rotation.z,
-        bonePose.rotation.w
+        bonePose.rotation[0],
+        bonePose.rotation[1],
+        bonePose.rotation[2],
+        bonePose.rotation[3]
       );
 
       // Apply position if specified
       if (bonePose.position) {
-        bone.position.set(bonePose.position.x, bonePose.position.y, bonePose.position.z);
+        bone.position.set(bonePose.position[0], bonePose.position[1], bonePose.position[2]);
       }
     });
   }

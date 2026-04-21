@@ -9,11 +9,11 @@ import React, { useState, useMemo } from 'react';
 import {
   getMineralByHardness,
   canScratch,
-  _classifyRock,
+  classifyRock,
   pWaveSpeed,
   sWaveSpeed,
-  _seismicArrivalTime,
-  _plateDisplacementOverTime,
+  seismicArrivalTime,
+  plateDisplacementOverTime,
   earthquakeMagnitudeEnergy,
   MOHS_SCALE,
 } from '@/lib/geologySimulator';

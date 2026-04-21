@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, _useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus, X, Grip, Code2 } from 'lucide-react';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import type { TraitConfig } from '@/lib/stores';

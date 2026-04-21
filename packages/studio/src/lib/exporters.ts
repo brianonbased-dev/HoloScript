@@ -110,9 +110,9 @@ function generateFormatHeader(
           scenes: [{ name: 'HoloScene', nodes: nodes.map((_, i) => i) }],
           nodes: nodes.map((n) => ({
             name: n.name,
-            translation: [n.position.x, n.position.y, n.position.z],
+            translation: [n.position[0], n.position[1], n.position[2]],
             rotation: [0, 0, 0, 1],
-            scale: [n.scale.x, n.scale.y, n.scale.z],
+            scale: [n.scale[0], n.scale[1], n.scale[2]],
           })),
         },
         null,
@@ -121,14 +121,14 @@ function generateFormatHeader(
 
     case 'obj':
       return nodes
-        .map((n) => `# ${n.name}\ng ${n.name}\nv ${n.position.x} ${n.position.y} ${n.position.z}`)
+        .map((n) => `# ${n.name}\ng ${n.name}\nv ${n.position[0]} ${n.position[1]} ${n.position[2]}`)
         .join('\n\n');
 
     case 'usd':
       return `#usda 1.0\n(\n  defaultPrim = "HoloScene"\n)\n\ndef Xform "HoloScene" {\n${nodes
         .map(
           (n) =>
-            `  def Mesh "${n.name}" {\n    double3 xformOp:translate = (${n.position.x}, ${n.position.y}, ${n.position.z})\n  }`
+            `  def Mesh "${n.name}" {\n    double3 xformOp:translate = (${n.position[0]}, ${n.position[1]}, ${n.position[2]})\n  }`
         )
         .join('\n')}\n}`;
 
@@ -136,7 +136,7 @@ function generateFormatHeader(
       return nodes
         .map(
           (n) =>
-            `${n.type} "${n.name}" {\n  position: ${n.position.x} ${n.position.y} ${n.position.z}\n  traits: [${n.traits.join(', ')}]\n}`
+            `${n.type} "${n.name}" {\n  position: ${n.position[0]} ${n.position[1]} ${n.position[2]}\n  traits: [${n.traits.join(', ')}]\n}`
         )
         .join('\n\n');
 

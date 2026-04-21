@@ -10,7 +10,7 @@
  * - Loading progress UI
  */
 
-import { useEffect, useRef, _useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';

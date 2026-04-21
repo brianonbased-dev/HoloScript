@@ -14,11 +14,7 @@ export interface GeoPoint {
   lon: number;
   alt: number;
 }
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 export type DisasterType =
   | 'earthquake'
@@ -178,9 +174,9 @@ export function floodEvacuationUrgency(zone: FloodZone): 'immediate' | 'urgent' 
 export function routeDistanceKm(waypoints: Vec3[]): number {
   let dist = 0;
   for (let i = 1; i < waypoints.length; i++) {
-    const dx = waypoints[i].x - waypoints[i - 1].x;
-    const dy = waypoints[i].y - waypoints[i - 1].y;
-    const dz = waypoints[i].z - waypoints[i - 1].z;
+    const dx = waypoints[i][0] - waypoints[i - 1][0];
+    const dy = waypoints[i][1] - waypoints[i - 1][1];
+    const dz = waypoints[i][2] - waypoints[i - 1][2];
     dist += Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
   return dist / 1000; // meters to km
@@ -287,9 +283,9 @@ export function fallbackRadioTopology(nodes: RadioNode[]): {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i],
         b = nodes[j];
-      const dx = a.position.x - b.position.x;
-      const dy = a.position.y - b.position.y;
-      const dz = a.position.z - b.position.z;
+      const dx = a.position[0] - b.position[0];
+      const dy = a.position[1] - b.position[1];
+      const dz = a.position[2] - b.position[2];
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const maxRange = Math.min(a.rangeMeters, b.rangeMeters);
 
@@ -339,8 +335,8 @@ export function droneDeploymentGrid(
     // Alternate direction each lane (boustrophedon)
     const zStart = i % 2 === 0 ? originZ : originZ + depthM;
     const zEnd = i % 2 === 0 ? originZ + depthM : originZ;
-    waypoints.push({ position: { x, y: 0, z: zStart }, altitudeM, hoverTimeSec: 2 });
-    waypoints.push({ position: { x, y: 0, z: zEnd }, altitudeM, hoverTimeSec: 2 });
+    waypoints.push({ position: [x, 0, zStart], altitudeM, hoverTimeSec: 2 });
+    waypoints.push({ position: [x, 0, zEnd], altitudeM, hoverTimeSec: 2 });
   }
   return waypoints;
 }

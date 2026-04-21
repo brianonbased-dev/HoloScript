@@ -296,8 +296,12 @@ export interface UseDomainFilterReturn {
 }
 
 function loadDomainProfile(): DomainProfile {
+  // Default for a first-time user: 'creator' (18 panels) instead of 'all' (46 panels).
+  // WHY: landing on /create with 46 tabs is overwhelming; narrower presets keep the surface
+  //      calm until the user explicitly picks 'All' or runs the preset wizard.
+  const DEFAULT_PROFILE: DomainProfile = 'creator';
   try {
-    if (typeof window === 'undefined') return 'all';
+    if (typeof window === 'undefined') return DEFAULT_PROFILE;
     const saved = localStorage.getItem('holoscript-domain-profile') as DomainProfile | null;
     if (
       saved &&
@@ -307,7 +311,7 @@ function loadDomainProfile(): DomainProfile {
     )
       return saved;
   } catch (err) { logger.warn('[useDomainFilter] loading domain profile from localStorage failed:', err); }
-  return 'all';
+  return DEFAULT_PROFILE;
 }
 
 export function useDomainFilter(): UseDomainFilterReturn {

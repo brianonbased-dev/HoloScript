@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Smartphone, X, Loader2, RefreshCw, Wifi, WifiOff, _Joystick } from 'lucide-react';
+import { Smartphone, X, Loader2, RefreshCw, Wifi, WifiOff, Joystick } from 'lucide-react';
 import { useMobileRemote } from '@/hooks/useMobileRemote';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
