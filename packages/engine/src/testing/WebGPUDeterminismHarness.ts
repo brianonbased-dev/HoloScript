@@ -41,8 +41,15 @@
  * This is scaffolding. Implementation of the GPU compute path is the
  * separate follow-up task called out in the protocol's "Acceptance
  * criteria" section.
+ *
+ * **Mock mode (CI / wiring):** set `WEBGPU_HARNESS_MOCK=1` (Node) or
+ * `globalThis.__WEBGPU_HARNESS_MOCK__ = true` (browser) to emit a
+ * structurally valid `HarnessArtifact` with SHA-256 digests derived from
+ * the trace (no GPU). All replications share the same digest so
+ * self-consistency checks pass. The real WebGPU kernel path remains TODO.
  */
 
+import { hashBytes } from '@holoscript/core';
 import type { CAELTrace } from '../simulation/CAELTrace';
 
 /** One of the vendor matrix rows from the protocol. */
@@ -146,14 +153,86 @@ export interface HarnessConfig {
  * choice (reduction order, subgroup width chosen by the compiler,
  * memory layout), not something the harness introduces.
  */
-export async function runDeterminismHarness(
-  _config: HarnessConfig,
-): Promise<HarnessArtifact> {
+export function isHarnessMockMode(): boolean {
+  try {
+    if (typeof process !== 'undefined' && process.env?.WEBGPU_HARNESS_MOCK === '1') {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return typeof globalThis !== 'undefined' && (globalThis as { __WEBGPU_HARNESS_MOCK__?: boolean }).__WEBGPU_HARNESS_MOCK__ === true;
+}
+
+/** Deterministic digest for a scenario trace (mock path — no GPU). Excludes adapter so cross-adapter H0 can be tested. */
+async function mockFinalDigestForScenario(scenarioName: string, trace: CAELTrace): Promise<string> {
+  const payload = JSON.stringify({
+    k: 'webgpu-determinism-mock-v1',
+    scenario: scenarioName,
+    traceLen: trace.length,
+    tailHash: trace[trace.length - 1]?.hash ?? '',
+    head: trace[0]?.hash ?? '',
+  });
+  return hashBytes(payload, 'sha256');
+}
+
+async function buildMockHarnessArtifact(config: HarnessConfig): Promise<HarnessArtifact> {
+  const g = globalThis as { navigator?: { userAgent?: string } };
+  const browser =
+    typeof g.navigator !== 'undefined' && g.navigator?.userAgent
+      ? g.navigator.userAgent
+      : `node-${typeof process !== 'undefined' ? process.version : 'unknown'}`;
+
+  const adapter: AdapterIdentity = {
+    tag: config.adapterTag,
+    vendor: `mock-vendor-${config.adapterTag}`,
+    device: 'mock-device',
+    driver: 'mock-driver',
+    userAgent: browser,
+  };
+
+  const scenarios: HarnessArtifact['scenarios'] = {};
+
+  for (const [scenarioName, trace] of Object.entries(config.traces)) {
+    const digest = await mockFinalDigestForScenario(scenarioName, trace);
+    const replications: ReplicationResult[] = [];
+    for (let i = 0; i < config.replications; i++) {
+      replications.push({
+        finalStateDigest: digest,
+        wallMs: 0.42 + i * 1e-6,
+        wgslCompileMs: 0.08,
+        finalStateFields: config.captureFields
+          ? { mock_field: new Float32Array([1, 2, 3, scenarioName.length]) }
+          : undefined,
+      });
+    }
+    scenarios[scenarioName] = {
+      scenario: scenarioName,
+      traceLength: trace.length,
+      replications,
+    };
+  }
+
+  return {
+    protocol: '2026-04-20_webgpu-determinism-protocol',
+    protocolCommit: config.protocolCommit,
+    browser,
+    host: config.host,
+    adapter,
+    scenarios,
+    collectedAtMs: Date.now(),
+  };
+}
+
+export async function runDeterminismHarness(config: HarnessConfig): Promise<HarnessArtifact> {
+  if (isHarnessMockMode()) {
+    return buildMockHarnessArtifact(config);
+  }
   throw new WebGPUHarnessNotImplementedError(
-    'runDeterminismHarness() is scaffolded but not yet implemented. ' +
-      'See packages/engine/src/testing/WebGPUDeterminismHarness.ts header ' +
-      "comment and ai-ecosystem's research/2026-04-20_webgpu-determinism-protocol.md " +
-      'for the contract. Implementation is a follow-up task.',
+    'runDeterminismHarness() WebGPU path is not yet implemented. ' +
+      'Set WEBGPU_HARNESS_MOCK=1 for a structural artifact smoke, or see ' +
+      'packages/engine/src/testing/WebGPUDeterminismHarness.ts header ' +
+      "and ai-ecosystem research/2026-04-20_webgpu-determinism-protocol.md.",
   );
 }
 

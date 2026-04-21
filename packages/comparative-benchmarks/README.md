@@ -327,6 +327,8 @@ Camera-ready deliverable for **paper-12-holo-i3d.tex**: compare **cold vs warm**
 
 **HoloScript bench harness (shipped):** `runPaper12PluginProbe()` in this package writes `results/paper12-plugin-probe-*.json` and logs cold/warm `parseHolo` means plus OpenUSD LOC proxy lines — run `pnpm bench:paper12` after `pnpm build`. Unity/OpenUSD host timings remain manual until scripted loaders land.
 
+**Example captured run (for TeX / supplementary):** see repo root `benchmarks/cross-compilation/PAPER12_PLUGIN_OPENUSD_RUN.md` — host, Node version, and full JSON from a non-`PAPER12_QUICK` run.
+
 ## License
 
 MIT © Brian X Base Team

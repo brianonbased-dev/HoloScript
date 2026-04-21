@@ -28,6 +28,7 @@
     "bench:paper-rigorous": "node scripts/bench-paper-rigorous.mjs",
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
     "ops:dashboard": "tsx docs/ops/admin-cli.ts",
+    "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs",
     "clean": "pnpm -r exec rm -rf dist",
     "build:auto": "bash scripts/auto-build-manager.sh",
     "build:archive": "bash scripts/archive-build-artifacts.sh",

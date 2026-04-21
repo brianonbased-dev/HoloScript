@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebGPU determinism harness (placeholder)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+        line-height: 1.45;
+        max-width: 52rem;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebGPU determinism harness — test page stub</h1>
+    <p>
+      Full in-browser runs will load the built engine module, acquire <code>navigator.gpu</code>,
+      and invoke <code>runDeterminismHarness()</code> when the WGSL kernel path ships.
+    </p>
+    <p>
+      Until then, use the mock artifact path: <code>WEBGPU_HARNESS_MOCK=1</code> (Node) or set
+      <code>globalThis.__WEBGPU_HARNESS_MOCK__ = true</code> before importing the harness module.
+    </p>
+    <p>
+      CLI smoke: <code>pnpm webgpu:determinism:mock</code> or <code>node scripts/run-webgpu-determinism.mjs</code>
+      from the repo root.
+    </p>
+  </body>
+</html>
