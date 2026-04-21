@@ -53,7 +53,7 @@
 | **Semantic IR, not a runtime** | Agents reason over `.holo` AST; Babylon agents reason over JS scene graph | Executable Semantics whitepaper |
 | **Contracted simulation (`<2%` overhead)** | Trust by Construction — FEA with hash-verified replay | TVCG paper (submitted 2026-04-12) |
 | **Browser WebGPU for simulation** | FEA in the browser; Babylon can't do this | paper-benchmarks.test.ts |
-| **Provenance semirings (Tropical algebra)** | Algebraic trust composition nobody else has | W.GOLD.037, W.GOLD.044 |
+| **Provenance semirings (Tropical algebra)** | Algebraic trust composition nobody else has | W.GOLD.037 (semiring strategies; tropical is one resolution path) |
 
 ## Objection Handling
 

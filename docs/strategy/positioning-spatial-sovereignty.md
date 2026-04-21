@@ -114,7 +114,7 @@ Four pillars support the Spatial Sovereignty claim. Each needs dedicated proof.
 ### Pillar 4: Verification Sovereignty
 - Trust by Construction — solver + renderer share hash-verified same object
 - Deterministic replay — any simulation reproducible bit-identical
-- Provenance semirings — algebraic trust composition (W.GOLD.037, W.GOLD.044)
+- Provenance semirings — algebraic trust composition (W.GOLD.037)
 - **Proof**: IEEE TVCG paper, NAFEMS LE1 at 1.5% error, CAEL hash chains
 
 ---
