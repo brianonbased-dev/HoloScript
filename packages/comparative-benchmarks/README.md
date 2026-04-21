@@ -315,6 +315,18 @@ results/
 3. **Instancing:** Share geometry/materials where possible
 4. **Streaming:** Load/unload chunks dynamically
 
+## Paper-12 (HoloLand I3D) — plugin-loaded overhead + OpenUSD LOC
+
+Camera-ready deliverable for **paper-12-holo-i3d.tex**: compare **cold vs warm** load of the same scene with plugins enabled (USD schema libs, imaging, physics) vs HoloScript’s trait pipeline.
+
+**Metrics to capture**
+
+1. **Time-to-first-frame (TTFF)** after plugin init — split into `dlopen`/registry vs first compose.
+2. **RSS delta** at steady state (MB) with identical scene complexity.
+3. **LOC / asset weight**: for OpenUSD, count **schema + payload** lines for an equivalent declarative scene; for HoloScript, count `.holo` + resolved trait shards after compile. Use the same scene graph across both.
+
+**HoloScript bench harness:** extend this package with a `paper12PluginProbe` scenario (stub) that emits JSON next to existing `results/` reports; Unity/OpenUSD side is recorded manually or via scripted editor until automated loaders land.
+
 ## License
 
 MIT © Brian X Base Team

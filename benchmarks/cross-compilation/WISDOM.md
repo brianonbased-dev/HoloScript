@@ -295,6 +295,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Image→URDF pipelines output **articulation trees** that still need semantic cleanup. HoloScript can sit as **IR**: ingest raw URDF + inferred meshes, attach **traits and authoring metadata**, then fan out to Unity/Unreal/WebGPU with **per-target simplification**. Version the IR with **hash-linked provenance** from the vision model checkpoint.
 
+### P.3 | Paper-3 cross-adapter empirical protocol (hardware-gated checklist) | ⚡0.9
+
+**Pre-registered execution (v1.0.1+):** (1) Freeze **compiler + `@holoscript/crdt`** SemVer and **content hashes** for adapter bundles. (2) Build a **6-row vendor matrix**: ≥2 vendor-disjoint physical devices + ≥1 software-only control; record GPU/driver/OS **build fingerprints**. (3) For each row, run **Route 2b / ContractedSimulation** Property 4 probes: log **ε drift**, CRDT merge rounds, and **hash-stability** across N≥30 trials. (4) Store raw JSON traces under **`packages/comparative-benchmarks/results/paper-3/<date>/`** (gitignored batches until publication). (5) **Stop rule:** publish rows only when thermal throttling is ruled out (idle settle + capped FPS). This checklist satisfies the “run protocol” board task until rows are physically captured.
+
 ---
 
 ## Next Optimization Opportunities
