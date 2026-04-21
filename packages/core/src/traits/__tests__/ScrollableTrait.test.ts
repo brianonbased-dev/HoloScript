@@ -35,13 +35,13 @@ describe('ScrollableTrait', () => {
     // Start drag at y=0
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
-      position: { y: 0 },
+      position: [0, 0, 0] as any,
     } as any);
 
     // Drag up/down
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
-      position: { y: -0.1 },
+      position: [0, -0.1, 0] as any,
     } as any);
 
     expect(contentNode.properties.position[1]).toBeCloseTo(-0.1);
@@ -51,11 +51,11 @@ describe('ScrollableTrait', () => {
     // Drag with velocity
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
-      position: { y: 0 },
+      position: [0, 0, 0] as any,
     } as any);
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
-      position: { y: -0.1 },
+      position: [0, -0.1, 0] as any,
     } as any);
     scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
 
@@ -75,11 +75,11 @@ describe('ScrollableTrait', () => {
     // Let's drag way down
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
-      position: { y: 0 },
+      position: [0, 0, 0] as any,
     } as any);
     scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
-      position: { y: -2.0 },
+      position: [0, -2.0, 0] as any,
     } as any);
     scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
 
