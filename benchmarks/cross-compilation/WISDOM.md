@@ -251,6 +251,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** **Inoculation** (showing weakened adversarial prompts before real attacks) can lift refusal robustness in chat models. For **embodied** HoloScript loops, pair text probes with **simulated affordance violations** (grab unreachable objects, ignore physics) staged from mild → severe. Log policy corrections as training traces so the agent learns **early abstention** rather than catastrophic late fixes.
 
+### S.012 | Formal specs for motivation invariants (research partnership) | ⚡0.65
+
+**Research capture:** Pair **lightweight model checkers** (TLA+, Alloy) on discrete shards—e.g. “reward budget never exceeds R,” “commitment device cannot fire twice,” “CRDT merge is observationally deterministic.” The goal is not to prove full neural policies, but to **box** the glue layer between HoloMesh state and policy APIs. Academic partners get publishable **assume/guarantee contracts**; engineering gets regression tests that fail before bad motivation patches ship.
+
 ---
 
 ## Next Optimization Opportunities
