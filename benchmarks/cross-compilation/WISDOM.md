@@ -255,6 +255,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Pair **lightweight model checkers** (TLA+, Alloy) on discrete shards—e.g. “reward budget never exceeds R,” “commitment device cannot fire twice,” “CRDT merge is observationally deterministic.” The goal is not to prove full neural policies, but to **box** the glue layer between HoloMesh state and policy APIs. Academic partners get publishable **assume/guarantee contracts**; engineering gets regression tests that fail before bad motivation patches ship.
 
+### S.013 | Portability via trait manifests, not forked engines | ⚡0.9
+
+**Research capture:** “Impossible → automatic” means one **authoring graph** fans out through **target manifests** (Metal/Vulkan/WebGPU/DirectX) with **declared missing features**, not separate Unity vs Unreal authoring paths. Cross-compilation already proves the model: preserve **semantic parity** while codegen swaps. The product promise is **repeatable exports**—same CI hash produces the same C++/Swift/TS bundles within declared tolerances.
+
 ---
 
 ## Next Optimization Opportunities
