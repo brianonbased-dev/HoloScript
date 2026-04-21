@@ -1,0 +1,972 @@
+// =============================================================================
+// HoloScript Service Dashboard World
+// =============================================================================
+// 3D visualization of the HoloScript connected services ecosystem with
+// real-time status indicators, traffic arcs, and health gauges.
+//
+// Services visualized:
+//   - HoloScript MCP Server  (mcp.holoscript.net)
+//   - Absorb Service         (absorb.holoscript.net)
+//   - MCP Orchestrator       (mcp-orchestrator-production-45f9.up.railway.app)
+//   - HoloMesh API           (mcp.holoscript.net/api/holomesh)
+//   - Studio                 (studio-production-a071.up.railway.app)
+//   - AI Workspace           (aiworkspace-production.up.railway.app)
+//
+// Architecture: hexagonal ring of service nodes around a central hub orb.
+// Each node has a real-time status beacon (green/amber/red), request-count
+// counter, latency gauge, and animated arc back to the hub.
+// =============================================================================
+
+composition "HoloScript Service Dashboard" {
+    @author("HoloScript_Core")
+    @version("1.0.0")
+    @networked
+    @tags(["dashboard", "services", "monitoring", "ops", "hololand"])
+
+    environment {
+        skyColor: "#02020a"
+        horizonColor: "#060618"
+        groundColor: "#010108"
+        grid: true
+        gridColor: "#08102a"
+        ambientLight: 0.2
+        fog: { type: "exponential", color: "#02020a", density: 0.006 }
+    }
+
+    post_processing {
+        bloom { intensity: 0.55, threshold: 0.6 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.3, radius: 0.6 }
+    }
+
+    // =========================================================================
+    // SECTION 0: FLOOR & SPAWN POINT
+    // =========================================================================
+
+    object "Dashboard_Floor" {
+        geometry: "plane"
+        scale: [250, 1, 250]
+        material: "obsidian_reflective"
+        @physics(type: "static")
+    }
+
+    object "Floor_Ring" @glowing {
+        position: [0, 0.02, 0]
+        geometry: "torus"
+        scale: [26, 0.3, 26]
+        color: "#001833"
+        emissive: "#003366"
+        emissiveIntensity: 0.25
+        rotation: [90, 0, 0]
+    }
+
+    object "Spawn_Point" @glowing {
+        position: [0, 0.05, 12]
+        geometry: "cylinder"
+        scale: [2, 0.05, 2]
+        color: "#00aaff"
+        emissive: "#00aaff"
+        emissiveIntensity: 0.5
+    }
+
+    // =========================================================================
+    // SECTION 1: TITLE HEADER
+    // =========================================================================
+
+    object "Title_Banner" {
+        @hologram
+        position: [0, 16, -28]
+        geometry: "text"
+        properties: {
+            text: "HOLOSCRIPT SERVICE DASHBOARD"
+            fontSize: 68
+            color: "#00ccff"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Subtitle_Banner" {
+        @hologram
+        position: [0, 14.3, -28]
+        geometry: "text"
+        properties: {
+            text: "Connected Services  ·  Real-Time Health  ·  Request Telemetry"
+            fontSize: 22
+            color: "#336688"
+        }
+    }
+
+    object "Live_Tag" @glowing {
+        @hologram
+        @animated(animation: "pulse", speed: 1.2)
+        position: [0, 12.8, -28]
+        geometry: "text"
+        properties: {
+            text: "● LIVE"
+            fontSize: 18
+            color: "#00ff88"
+        }
+    }
+
+    // =========================================================================
+    // SECTION 2: CENTRAL HUB ORB
+    // Represents the ecosystem core; all service arcs radiate from here.
+    // =========================================================================
+
+    object "Hub_Core_Outer" @glowing {
+        @animated(animation: "rotate", speed: 0.3, axis: [0, 1, 0])
+        position: [0, 5, 0]
+        geometry: "sphere"
+        scale: [3.5, 3.5, 3.5]
+        color: "#001a33"
+        emissive: "#0044aa"
+        emissiveIntensity: 0.6
+        opacity: 0.35
+    }
+
+    object "Hub_Core_Inner" @glowing {
+        @animated(animation: "pulse", speed: 0.8)
+        position: [0, 5, 0]
+        geometry: "sphere"
+        scale: [2.2, 2.2, 2.2]
+        color: "#003366"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.9
+        opacity: 0.8
+    }
+
+    object "Hub_Core_Label" {
+        @hologram
+        position: [0, 8.5, 0]
+        geometry: "text"
+        properties: {
+            text: "HOLOSCRIPT\nECOSYSTEM"
+            fontSize: 22
+            color: "#00aaff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Hub_Request_Counter" {
+        @hologram
+        @reactive(source: "metrics:hub:total_requests")
+        position: [0, 3.8, 2.8]
+        geometry: "text"
+        properties: {
+            text: "-- req/s"
+            fontSize: 16
+            color: "#88ccff"
+            align: "center"
+        }
+    }
+
+    // Equatorial ring around hub
+    object "Hub_Ring_A" @glowing {
+        @animated(animation: "rotate", speed: 0.6, axis: [0, 1, 0])
+        position: [0, 5, 0]
+        geometry: "torus"
+        scale: [4.5, 0.12, 4.5]
+        color: "#0044cc"
+        emissive: "#0066ff"
+        emissiveIntensity: 0.5
+        rotation: [0, 0, 0]
+    }
+
+    object "Hub_Ring_B" @glowing {
+        @animated(animation: "rotate", speed: -0.4, axis: [1, 0.3, 0])
+        position: [0, 5, 0]
+        geometry: "torus"
+        scale: [4.5, 0.08, 4.5]
+        color: "#002288"
+        emissive: "#0044cc"
+        emissiveIntensity: 0.35
+        rotation: [60, 0, 0]
+    }
+
+    // =========================================================================
+    // SECTION 3: SERVICE NODES
+    // Six nodes at radius 22 in hexagonal arrangement (60° apart).
+    // Each node: platform pillar + status beacon + label + metric readout.
+    //
+    // Layout (top-down, Y is up):
+    //   Node 0:  MCP Server       (0°  → Z-)        [0, 0, -22]
+    //   Node 1:  Absorb           (60° → X+,Z-)    [+19, 0, -11]
+    //   Node 2:  Orchestrator     (120°→ X+,Z+)    [+19, 0, +11]
+    //   Node 3:  HoloMesh         (180°→ Z+)        [0, 0, +22]
+    //   Node 4:  Studio           (240°→ X-,Z+)    [-19, 0, +11]
+    //   Node 5:  AI Workspace     (300°→ X-,Z-)    [-19, 0, -11]
+    // =========================================================================
+
+    // ── NODE 0: HoloScript MCP Server ──────────────────────────────────────
+
+    object "Node_MCP_Base" {
+        position: [0, 0, -22]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_MCP_Pillar" {
+        position: [0, 3, -22]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_MCP_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:mcp_server", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [0, 6.5, -22]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_MCP_Label" {
+        @hologram
+        position: [0, 9.2, -22]
+        geometry: "text"
+        properties: {
+            text: "MCP SERVER"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_MCP_URL" {
+        @hologram
+        position: [0, 8, -22]
+        geometry: "text"
+        properties: {
+            text: "mcp.holoscript.net"
+            fontSize: 14
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_MCP_Metrics" {
+        @hologram
+        @reactive(source: "metrics:mcp_server")
+        position: [0, 4.6, -19.5]
+        geometry: "text"
+        properties: {
+            text: "tools: --\nreq/s: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // ── NODE 1: Absorb Service ──────────────────────────────────────────────
+
+    object "Node_Absorb_Base" {
+        position: [19, 0, -11]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_Absorb_Pillar" {
+        position: [19, 3, -11]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_Absorb_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:absorb", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [19, 6.5, -11]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_Absorb_Label" {
+        @hologram
+        position: [19, 9.2, -11]
+        geometry: "text"
+        properties: {
+            text: "ABSORB"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_Absorb_URL" {
+        @hologram
+        position: [19, 8, -11]
+        geometry: "text"
+        properties: {
+            text: "absorb.holoscript.net"
+            fontSize: 14
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_Absorb_Metrics" {
+        @hologram
+        @reactive(source: "metrics:absorb")
+        position: [21.5, 4.6, -9.5]
+        geometry: "text"
+        properties: {
+            text: "graphs: --\nentries: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // ── NODE 2: MCP Orchestrator ────────────────────────────────────────────
+
+    object "Node_Orch_Base" {
+        position: [19, 0, 11]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_Orch_Pillar" {
+        position: [19, 3, 11]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_Orch_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:orchestrator", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [19, 6.5, 11]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_Orch_Label" {
+        @hologram
+        position: [19, 9.2, 11]
+        geometry: "text"
+        properties: {
+            text: "ORCHESTRATOR"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_Orch_URL" {
+        @hologram
+        position: [19, 8, 11]
+        geometry: "text"
+        properties: {
+            text: "railway.app/orchestrator"
+            fontSize: 14
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_Orch_Metrics" {
+        @hologram
+        @reactive(source: "metrics:orchestrator")
+        position: [21.5, 4.6, 12.5]
+        geometry: "text"
+        properties: {
+            text: "servers: --\nknowledge: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // ── NODE 3: HoloMesh API ────────────────────────────────────────────────
+
+    object "Node_HoloMesh_Base" {
+        position: [0, 0, 22]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_HoloMesh_Pillar" {
+        position: [0, 3, 22]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_HoloMesh_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:holomesh", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [0, 6.5, 22]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_HoloMesh_Label" {
+        @hologram
+        position: [0, 9.2, 22]
+        geometry: "text"
+        properties: {
+            text: "HOLOMESH API"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_HoloMesh_URL" {
+        @hologram
+        position: [0, 8, 22]
+        geometry: "text"
+        properties: {
+            text: "mcp.holoscript.net/api/holomesh"
+            fontSize: 14
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_HoloMesh_Metrics" {
+        @hologram
+        @reactive(source: "metrics:holomesh")
+        position: [0, 4.6, 24.5]
+        geometry: "text"
+        properties: {
+            text: "agents: --\ntasks: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // ── NODE 4: Studio ──────────────────────────────────────────────────────
+
+    object "Node_Studio_Base" {
+        position: [-19, 0, 11]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_Studio_Pillar" {
+        position: [-19, 3, 11]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_Studio_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:studio", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [-19, 6.5, 11]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_Studio_Label" {
+        @hologram
+        position: [-19, 9.2, 11]
+        geometry: "text"
+        properties: {
+            text: "STUDIO"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_Studio_URL" {
+        @hologram
+        position: [-19, 8, 11]
+        geometry: "text"
+        properties: {
+            text: "studio-production-a071.up.railway.app"
+            fontSize: 11
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_Studio_Metrics" {
+        @hologram
+        @reactive(source: "metrics:studio")
+        position: [-21.5, 4.6, 12.5]
+        geometry: "text"
+        properties: {
+            text: "sessions: --\ncomps: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // ── NODE 5: AI Workspace ────────────────────────────────────────────────
+
+    object "Node_AIWorkspace_Base" {
+        position: [-19, 0, -11]
+        geometry: "cylinder"
+        scale: [1.4, 0.3, 1.4]
+        color: "#0a1a2a"
+        material: "metal_dark"
+        @physics(type: "static")
+    }
+
+    object "Node_AIWorkspace_Pillar" {
+        position: [-19, 3, -11]
+        geometry: "cylinder"
+        scale: [0.25, 6, 0.25]
+        color: "#0d2040"
+        material: "metal_dark"
+    }
+
+    object "Node_AIWorkspace_Beacon" @glowing {
+        @animated(animation: "pulse", speed: 1.5)
+        @reactive(source: "health:aiworkspace", property: "color", map: { healthy: "#00ff88", degraded: "#ffaa00", down: "#ff2244" })
+        position: [-19, 6.5, -11]
+        geometry: "sphere"
+        scale: [1.8, 1.8, 1.8]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Node_AIWorkspace_Label" {
+        @hologram
+        position: [-19, 9.2, -11]
+        geometry: "text"
+        properties: {
+            text: "AI WORKSPACE"
+            fontSize: 24
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Node_AIWorkspace_URL" {
+        @hologram
+        position: [-19, 8, -11]
+        geometry: "text"
+        properties: {
+            text: "aiworkspace-production.up.railway.app"
+            fontSize: 11
+            color: "#446688"
+            align: "center"
+        }
+    }
+
+    object "Node_AIWorkspace_Metrics" {
+        @hologram
+        @reactive(source: "metrics:aiworkspace")
+        position: [-21.5, 4.6, -9.5]
+        geometry: "text"
+        properties: {
+            text: "sessions: --\nknowledge: --\np50: -- ms"
+            fontSize: 14
+            color: "#88aacc"
+            align: "center"
+        }
+    }
+
+    // =========================================================================
+    // SECTION 4: TRAFFIC ARCS
+    // Animated curved beams from hub to each service node indicating
+    // live data flow. Color encodes direction (outbound=blue, inbound=cyan).
+    // =========================================================================
+
+    object "Arc_Hub_MCP" @glowing {
+        @animated(animation: "flow", speed: 2.2, direction: "forward")
+        @bezier(start: [0, 5, 0], control: [0, 10, -12], end: [0, 6.5, -22])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#0055cc"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    object "Arc_Hub_Absorb" @glowing {
+        @animated(animation: "flow", speed: 1.8, direction: "forward")
+        @bezier(start: [0, 5, 0], control: [10, 10, -7], end: [19, 6.5, -11])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#0055cc"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    object "Arc_Hub_Orch" @glowing {
+        @animated(animation: "flow", speed: 1.6, direction: "forward")
+        @bezier(start: [0, 5, 0], control: [10, 10, 7], end: [19, 6.5, 11])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#0055cc"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    object "Arc_Hub_HoloMesh" @glowing {
+        @animated(animation: "flow", speed: 2.0, direction: "bidirectional")
+        @bezier(start: [0, 5, 0], control: [0, 10, 12], end: [0, 6.5, 22])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#00aacc"
+        emissive: "#00ccff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    object "Arc_Hub_Studio" @glowing {
+        @animated(animation: "flow", speed: 1.4, direction: "forward")
+        @bezier(start: [0, 5, 0], control: [-10, 10, 7], end: [-19, 6.5, 11])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#0055cc"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    object "Arc_Hub_AIWorkspace" @glowing {
+        @animated(animation: "flow", speed: 1.9, direction: "forward")
+        @bezier(start: [0, 5, 0], control: [-10, 10, -7], end: [-19, 6.5, -11])
+        geometry: "tube"
+        scale: [0.08, 0.08, 0.08]
+        color: "#0055cc"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.7
+        opacity: 0.7
+    }
+
+    // =========================================================================
+    // SECTION 5: LEGEND PANEL (behind spawn point)
+    // =========================================================================
+
+    object "Legend_Panel_BG" {
+        @hologram
+        position: [0, 4.5, 16]
+        geometry: "plane"
+        scale: [9, 5.5, 1]
+        color: "#030d1a"
+        opacity: 0.75
+    }
+
+    object "Legend_Title" {
+        @hologram
+        position: [0, 7, 16]
+        geometry: "text"
+        properties: {
+            text: "STATUS LEGEND"
+            fontSize: 18
+            color: "#aaccee"
+            fontWeight: "bold"
+            align: "center"
+        }
+    }
+
+    object "Legend_Healthy" @glowing {
+        position: [-2.8, 5.4, 16]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 1.0
+    }
+
+    object "Legend_Healthy_Label" {
+        @hologram
+        position: [-1.0, 5.4, 16]
+        geometry: "text"
+        properties: {
+            text: "Healthy  (p99 < 500ms)"
+            fontSize: 14
+            color: "#88ccaa"
+        }
+    }
+
+    object "Legend_Degraded" @glowing {
+        position: [-2.8, 4.5, 16]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 1.0
+    }
+
+    object "Legend_Degraded_Label" {
+        @hologram
+        position: [-1.0, 4.5, 16]
+        geometry: "text"
+        properties: {
+            text: "Degraded  (p99 500ms – 2s)"
+            fontSize: 14
+            color: "#ccaa66"
+        }
+    }
+
+    object "Legend_Down" @glowing {
+        position: [-2.8, 3.6, 16]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#ff2244"
+        emissive: "#ff2244"
+        emissiveIntensity: 1.0
+    }
+
+    object "Legend_Down_Label" {
+        @hologram
+        position: [-1.0, 3.6, 16]
+        geometry: "text"
+        properties: {
+            text: "Down  (no response / 5xx)"
+            fontSize: 14
+            color: "#cc6677"
+        }
+    }
+
+    object "Legend_Arc_Blue" @glowing {
+        position: [-2.8, 2.7, 16]
+        geometry: "cylinder"
+        scale: [0.6, 0.12, 0.12]
+        color: "#0088ff"
+        emissive: "#0088ff"
+        emissiveIntensity: 0.8
+        rotation: [0, 0, 90]
+    }
+
+    object "Legend_Arc_Blue_Label" {
+        @hologram
+        position: [-1.0, 2.7, 16]
+        geometry: "text"
+        properties: {
+            text: "Outbound traffic arc"
+            fontSize: 14
+            color: "#6699cc"
+        }
+    }
+
+    object "Legend_Arc_Cyan" @glowing {
+        position: [-2.8, 1.9, 16]
+        geometry: "cylinder"
+        scale: [0.6, 0.12, 0.12]
+        color: "#00ccff"
+        emissive: "#00ccff"
+        emissiveIntensity: 0.8
+        rotation: [0, 0, 90]
+    }
+
+    object "Legend_Arc_Cyan_Label" {
+        @hologram
+        position: [-1.0, 1.9, 16]
+        geometry: "text"
+        properties: {
+            text: "Bidirectional traffic arc"
+            fontSize: 14
+            color: "#66aacc"
+        }
+    }
+
+    // =========================================================================
+    // SECTION 6: AGGREGATE STATS PANEL (top-right of view from spawn)
+    // =========================================================================
+
+    object "Stats_Panel_BG" {
+        @hologram
+        position: [14, 7, 10]
+        geometry: "plane"
+        scale: [10, 7, 1]
+        color: "#030d1a"
+        opacity: 0.8
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_Panel_Title" {
+        @hologram
+        position: [14, 10.5, 9.8]
+        geometry: "text"
+        properties: {
+            text: "ECOSYSTEM HEALTH"
+            fontSize: 20
+            color: "#00ddff"
+            fontWeight: "bold"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_Services_Up" {
+        @hologram
+        @reactive(source: "metrics:summary:services_up")
+        position: [14, 9.3, 9.8]
+        geometry: "text"
+        properties: {
+            text: "Services up: -- / 6"
+            fontSize: 16
+            color: "#00ff88"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_Total_Requests" {
+        @hologram
+        @reactive(source: "metrics:summary:total_req_s")
+        position: [14, 8.3, 9.8]
+        geometry: "text"
+        properties: {
+            text: "Total req/s: --"
+            fontSize: 16
+            color: "#88aacc"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_Error_Rate" {
+        @hologram
+        @reactive(source: "metrics:summary:error_rate")
+        position: [14, 7.3, 9.8]
+        geometry: "text"
+        properties: {
+            text: "Error rate: -- %"
+            fontSize: 16
+            color: "#cc8844"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_P50_Global" {
+        @hologram
+        @reactive(source: "metrics:summary:p50_ms")
+        position: [14, 6.3, 9.8]
+        geometry: "text"
+        properties: {
+            text: "Global p50: -- ms"
+            fontSize: 16
+            color: "#88aacc"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    object "Stats_Last_Updated" {
+        @hologram
+        @reactive(source: "metrics:summary:last_updated")
+        position: [14, 5.3, 9.8]
+        geometry: "text"
+        properties: {
+            text: "Updated: --"
+            fontSize: 13
+            color: "#334455"
+            align: "center"
+        }
+        rotation: [0, -30, 0]
+    }
+
+    // =========================================================================
+    // SECTION 7: LOGIC — health poll and metric binding
+    // =========================================================================
+
+    logic "ServiceHealthPoller" {
+        trigger: { type: "interval", every: 30 }
+
+        actions: [
+            {
+                fetch: "https://mcp.holoscript.net/health"
+                method: "GET"
+                into: "health:mcp_server"
+                transform: { healthy: { statusCode: 200 } }
+            },
+            {
+                fetch: "https://absorb.holoscript.net/health"
+                method: "GET"
+                into: "health:absorb"
+                transform: { healthy: { statusCode: 200 } }
+            },
+            {
+                fetch: "https://mcp-orchestrator-production-45f9.up.railway.app/health"
+                method: "GET"
+                into: "health:orchestrator"
+                transform: { healthy: { statusCode: 200 } }
+            },
+            {
+                fetch: "https://mcp.holoscript.net/api/holomesh/health"
+                method: "GET"
+                into: "health:holomesh"
+                transform: { healthy: { statusCode: 200 } }
+            },
+            {
+                fetch: "https://studio-production-a071.up.railway.app/api/health"
+                method: "GET"
+                into: "health:studio"
+                transform: { healthy: { statusCode: 200 } }
+            },
+            {
+                fetch: "https://aiworkspace-production.up.railway.app/api/health"
+                method: "GET"
+                into: "health:aiworkspace"
+                transform: { healthy: { statusCode: 200 } }
+            }
+        ]
+    }
+
+    logic "MetricAggregator" {
+        trigger: { type: "state_change", watch: ["health:mcp_server", "health:absorb", "health:orchestrator", "health:holomesh", "health:studio", "health:aiworkspace"] }
+
+        actions: [
+            {
+                compute: "count_healthy"
+                sources: ["health:mcp_server", "health:absorb", "health:orchestrator", "health:holomesh", "health:studio", "health:aiworkspace"]
+                into: "metrics:summary:services_up"
+                format: "{count} / 6"
+            },
+            {
+                compute: "timestamp_now"
+                into: "metrics:summary:last_updated"
+                format: "HH:mm:ss UTC"
+            }
+        ]
+    }
+}
+
