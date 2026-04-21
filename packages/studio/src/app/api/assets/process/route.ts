@@ -9,6 +9,7 @@ import { assets } from '../../../../db/schema';
 import { getSession } from '../../../../lib/api-auth';
 import { isStorageConfigured, uploadFile, makeAssetKey } from '../../../../lib/storage-s3';
 import { logger } from '@/lib/logger';
+import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
 
 import { corsHeaders } from '../../_lib/cors';
 /**
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    virusScanHookPoint(`assets/process:${ext}`, buffer);
     const category = getCategory(ext);
     const is3D = ['.glb', '.gltf'].includes(ext);
 

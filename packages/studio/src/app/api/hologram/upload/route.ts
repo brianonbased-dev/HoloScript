@@ -19,6 +19,8 @@ import { NextResponse } from 'next/server';
 import type { HologramBundle, HologramMeta } from '@holoscript/engine/hologram';
 import { HologramBundleError, HologramStoreError } from '@holoscript/engine/hologram';
 
+import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
+
 import { authorizeHologramUpload } from '../_lib/authorizeUpload';
 import { getHologramStore, MAX_HOLOGRAM_UPLOAD_BYTES } from '../_lib/store';
 
@@ -125,6 +127,11 @@ export async function POST(request: NextRequest) {
   const store = getHologramStore();
 
   try {
+    const scanChunks = [Buffer.from(bundle.depthBin), Buffer.from(bundle.normalBin)];
+    if (bundle.quiltPng?.length) scanChunks.push(Buffer.from(bundle.quiltPng));
+    if (bundle.mvhevcMp4?.length) scanChunks.push(Buffer.from(bundle.mvhevcMp4));
+    if (bundle.parallaxWebm?.length) scanChunks.push(Buffer.from(bundle.parallaxWebm));
+    virusScanHookPoint('hologram/bundle', Buffer.concat(scanChunks));
     const { hash, written } = await store.put(bundle);
     return NextResponse.json({ hash, written });
   } catch (err) {
