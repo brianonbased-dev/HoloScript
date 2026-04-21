@@ -13,8 +13,11 @@ import {
   type QuiltConfig,
 } from '@holoscript/engine/hologram';
 import { renderHologramBundle } from './hologram-renderer';
+import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram-worker-client';
+import { sendHologramTeamMessage } from './hologram-holomesh-send';
 
 type HologramMediaType = 'image' | 'gif' | 'video';
+type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
 
 type HoloProperty = { key: string; value: unknown };
 type HoloTrait = { name: string; config?: Record<string, unknown> };
@@ -36,7 +39,15 @@ export const hologramToolDefinitions: Tool[] = [
         },
         source: {
           type: 'string',
-          description: 'Media source path or URL (e.g. media/photo.jpg).',
+          description: 'Media path, file URL, or remote URL (optional if sourceUrl or sourceBase64 is set).',
+        },
+        sourceUrl: {
+          type: 'string',
+          description: 'Remote URL for media (optional alternative to source).',
+        },
+        sourceBase64: {
+          type: 'string',
+          description: 'Base64-encoded media bytes (optional alternative to source).',
         },
         name: {
           type: 'string',
@@ -51,13 +62,13 @@ export const hologramToolDefinitions: Tool[] = [
           description: 'Displacement subdivision segments override.',
         },
       },
-      required: ['mediaType', 'source'],
+      required: ['mediaType'],
     },
   },
   {
     name: 'holo_hologram_compile_quilt',
     description:
-      'Compile a hologram composition to Looking Glass quilt metadata and renderer code.',
+      'Compile a hologram composition to Looking Glass quilt metadata and renderer code. When HOLOGRAM_WORKER_URL is set, also runs worker render for quilt and returns share URLs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -65,20 +76,27 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string' },
+        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        sourceUrl: { type: 'string' },
+        sourceBase64: { type: 'string' },
         name: { type: 'string' },
+        skipStudioUpload: {
+          type: 'boolean',
+          description: 'If true, worker skips Studio upload (local/testing).',
+        },
         quiltConfig: {
           type: 'object',
-          description: 'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
+          description:
+            'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
         },
       },
-      required: ['mediaType', 'source'],
+      required: ['mediaType'],
     },
   },
   {
     name: 'holo_hologram_compile_mvhevc',
     description:
-      'Compile a hologram composition to MV-HEVC (Vision Pro) stereo metadata, Swift scaffold, and mux command.',
+      'Compile a hologram composition to MV-HEVC (Vision Pro) stereo metadata, Swift scaffold, and mux command. When HOLOGRAM_WORKER_URL is set, also runs worker render for MV-HEVC and returns share URLs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -86,20 +104,27 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string' },
+        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        sourceUrl: { type: 'string' },
+        sourceBase64: { type: 'string' },
         name: { type: 'string' },
+        skipStudioUpload: {
+          type: 'boolean',
+          description: 'If true, worker skips Studio upload (local/testing).',
+        },
         mvhevcConfig: {
           type: 'object',
-          description: 'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
+          description:
+            'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
         },
       },
-      required: ['mediaType', 'source'],
+      required: ['mediaType'],
     },
   },
   {
     name: 'holo_hologram_render',
     description:
-      'Render a content-addressed hologram bundle with actual preview/quilt image bytes and stereo video preview artifacts. Returns artifact paths, hashes, and byte lengths.',
+      'Render a content-addressed hologram bundle with preview/quilt/stereo artifacts. When HOLOGRAM_WORKER_URL is set and includeBase64 is false, calls the hologram worker for hash and share URLs. Set includeBase64 true to render locally for byte payloads.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -107,26 +132,59 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string' },
+        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        sourceUrl: { type: 'string' },
+        sourceBase64: { type: 'string' },
         name: { type: 'string' },
+        targets: {
+          type: 'array',
+          items: { type: 'string', enum: ['quilt', 'mvhevc', 'parallax'] },
+          description: 'Worker render targets (ignored for local-only render).',
+        },
+        skipStudioUpload: {
+          type: 'boolean',
+          description: 'If true, worker skips Studio upload (local/testing).',
+        },
         quiltConfig: {
           type: 'object',
-          description: 'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
+          description:
+            'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
         },
         mvhevcConfig: {
           type: 'object',
-          description: 'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
+          description:
+            'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
         },
         includeBase64: {
           type: 'boolean',
-          description: 'Include base64 payloads for PNG artifacts in the response. Defaults to false.',
+          description:
+            'Include base64 payloads for PNG artifacts. Forces local Playwright render when true.',
         },
         durationSeconds: {
           type: 'number',
-          description: 'Stereo preview video duration. Defaults to 2 seconds.',
+          description: 'Stereo preview video duration for local render. Defaults to 2 seconds.',
         },
       },
-      required: ['mediaType', 'source'],
+      required: ['mediaType'],
+    },
+  },
+  {
+    name: 'holo_hologram_send',
+    description:
+      'Post a hologram share link to a HoloMesh team room for a specific teammate. Validates recipient membership via HoloMesh API (HOLOMESH_API_KEY). Rate-limited per API key.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        hash: { type: 'string', description: 'Content hash from worker or local bundle.' },
+        shareUrl: { type: 'string', description: 'Public share URL for the hologram asset.' },
+        recipientAgentId: { type: 'string', description: 'Teammate agent id (must be on the team).' },
+        teamId: {
+          type: 'string',
+          description: 'HoloMesh team id. Defaults to HOLOMESH_TEAM_ID when omitted.',
+        },
+        note: { type: 'string', description: 'Optional short note included in the message payload.' },
+      },
+      required: ['hash', 'shareUrl', 'recipientAgentId'],
     },
   },
 ];
@@ -141,6 +199,59 @@ function assertMediaType(value: unknown): HologramMediaType {
   const s = typeof value === 'string' ? value.trim().toLowerCase() : '';
   if (s === 'image' || s === 'gif' || s === 'video') return s;
   throw new Error('hologram: mediaType must be one of image|gif|video');
+}
+
+function resolveCompositionSource(args: Record<string, unknown>, mediaType: HologramMediaType): string {
+  const s = typeof args.source === 'string' ? args.source.trim() : '';
+  const u = typeof args.sourceUrl === 'string' ? args.sourceUrl.trim() : '';
+  const b64 = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
+  if (s) return s;
+  if (u) return u;
+  if (b64) {
+    const mime =
+      mediaType === 'image' ? 'image/png' : mediaType === 'gif' ? 'image/gif' : 'video/mp4';
+    return `data:${mime};base64,${b64}`;
+  }
+  throw new Error('hologram: one of source, sourceUrl, or sourceBase64 is required');
+}
+
+async function buildWorkerMediaPayload(
+  args: Record<string, unknown>,
+  mediaType: HologramMediaType,
+): Promise<{ sourceUrl?: string; sourceBase64?: string }> {
+  const b64Field = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
+  if (b64Field) return { sourceBase64: b64Field };
+
+  const u = typeof args.sourceUrl === 'string' ? args.sourceUrl.trim() : '';
+  if (u) return { sourceUrl: u };
+
+  const s = typeof args.source === 'string' ? args.source.trim() : '';
+  if (!s) throw new Error('hologram: source media required for worker render');
+
+  if (/^https?:\/\//i.test(s)) return { sourceUrl: s };
+
+  if (/^data:/i.test(s)) {
+    const m = /^data:[^;]+;base64,(.+)$/i.exec(s);
+    if (m) return { sourceBase64: m[1] };
+  }
+
+  const { readFile } = await import('node:fs/promises');
+  const { isAbsolute, resolve } = await import('node:path');
+  const fullPath = isAbsolute(s) ? s : resolve(process.cwd(), s);
+  const buf = await readFile(fullPath);
+  return { sourceBase64: buf.toString('base64') };
+}
+
+function parseRenderTargets(args: Record<string, unknown>): HologramTarget[] {
+  const raw = args.targets;
+  const fallback: HologramTarget[] = ['quilt', 'mvhevc', 'parallax'];
+  if (!Array.isArray(raw) || raw.length === 0) return fallback;
+  const out: HologramTarget[] = [];
+  for (const t of raw) {
+    const s = String(t).toLowerCase();
+    if (s === 'quilt' || s === 'mvhevc' || s === 'parallax') out.push(s);
+  }
+  return out.length ? out : fallback;
 }
 
 function getMediaTraits(mediaType: HologramMediaType, source: string): HoloTrait[] {
@@ -242,20 +353,44 @@ export function toHoloCode(mediaType: HologramMediaType, source: string, name?: 
 }
 
 export async function handleHologramTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+  if (name === 'holo_hologram_send') {
+    const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
+    const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
+    const recipientAgentId = typeof args.recipientAgentId === 'string' ? args.recipientAgentId.trim() : '';
+    const teamIdRaw = typeof args.teamId === 'string' ? args.teamId.trim() : '';
+    const teamId = teamIdRaw || process.env.HOLOMESH_TEAM_ID?.trim() || '';
+    const note = typeof args.note === 'string' ? args.note : undefined;
+    if (!hash || !shareUrl || !recipientAgentId) {
+      throw new Error('hologram send: hash, shareUrl, and recipientAgentId are required');
+    }
+    if (!teamId) {
+      throw new Error('hologram send: teamId is required (or set HOLOMESH_TEAM_ID)');
+    }
+    const apiKey = process.env.HOLOMESH_API_KEY?.trim() || '';
+    const holomesh = await sendHologramTeamMessage({
+      teamId,
+      apiKey,
+      hash,
+      shareUrl,
+      recipientAgentId,
+      note,
+    });
+    return { ok: true, teamId, recipientAgentId, holomesh };
+  }
+
   const mediaType = assertMediaType(args.mediaType);
-  const source = typeof args.source === 'string' ? args.source.trim() : '';
-  if (!source) throw new Error('hologram: source is required');
+  const compositionSource = resolveCompositionSource(args, mediaType);
   const objectName = typeof args.name === 'string' ? args.name : undefined;
 
-  const composition = buildComposition(mediaType, source, objectName);
-  const holoCode = toHoloCode(mediaType, source, objectName);
+  const composition = buildComposition(mediaType, compositionSource, objectName);
+  const holoCode = toHoloCode(mediaType, compositionSource, objectName);
 
   switch (name) {
     case 'holo_hologram_from_media': {
       return {
         ok: true,
         mediaType,
-        source,
+        source: compositionSource,
         holoCode,
         traits: composition.objects[0]?.traits?.map((t) => t.name) ?? [],
       };
@@ -265,14 +400,60 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
       const compiler = new QuiltCompiler();
       const quiltConfig = (args.quiltConfig ?? undefined) as Partial<QuiltConfig> | undefined;
       const result = compiler.compileQuilt(composition, quiltConfig);
-      return { ok: true, mediaType, source, quilt: result };
+      const out: Record<string, unknown> = {
+        ok: true,
+        mediaType,
+        source: compositionSource,
+        quilt: result,
+      };
+      if (isHologramWorkerConfigured()) {
+        try {
+          const mediaPayload = await buildWorkerMediaPayload(args, mediaType);
+          const wr = await callHologramWorkerRender({
+            ...mediaPayload,
+            mediaType,
+            targets: ['quilt'],
+            skipUpload: args.skipStudioUpload === true,
+          });
+          out.hash = wr.hash;
+          out.shareUrl = wr.shareUrl;
+          out.quiltUrl = wr.quiltUrl;
+          out.mvhevcUrl = wr.mvhevcUrl;
+        } catch (e) {
+          out.workerError = e instanceof Error ? e.message : String(e);
+        }
+      }
+      return out;
     }
 
     case 'holo_hologram_compile_mvhevc': {
       const compiler = new MVHEVCCompiler();
       const mvhevcConfig = (args.mvhevcConfig ?? undefined) as Partial<MVHEVCConfig> | undefined;
       const result = compiler.compileMVHEVC(composition, mvhevcConfig);
-      return { ok: true, mediaType, source, mvhevc: result };
+      const out: Record<string, unknown> = {
+        ok: true,
+        mediaType,
+        source: compositionSource,
+        mvhevc: result,
+      };
+      if (isHologramWorkerConfigured()) {
+        try {
+          const mediaPayload = await buildWorkerMediaPayload(args, mediaType);
+          const wr = await callHologramWorkerRender({
+            ...mediaPayload,
+            mediaType,
+            targets: ['mvhevc'],
+            skipUpload: args.skipStudioUpload === true,
+          });
+          out.hash = wr.hash;
+          out.shareUrl = wr.shareUrl;
+          out.quiltUrl = wr.quiltUrl;
+          out.mvhevcUrl = wr.mvhevcUrl;
+        } catch (e) {
+          out.workerError = e instanceof Error ? e.message : String(e);
+        }
+      }
+      return out;
     }
 
     case 'holo_hologram_render': {
@@ -281,13 +462,36 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
       const quiltConfig = (args.quiltConfig ?? undefined) as Partial<QuiltConfig> | undefined;
       const mvhevcConfig = (args.mvhevcConfig ?? undefined) as Partial<MVHEVCConfig> | undefined;
 
+      const quilt = quiltCompiler.compileQuilt(composition, quiltConfig);
+      const mvhevc = mvhevcCompiler.compileMVHEVC(composition, mvhevcConfig);
+
+      const useWorker = isHologramWorkerConfigured() && args.includeBase64 !== true;
+      if (useWorker) {
+        const mediaPayload = await buildWorkerMediaPayload(args, mediaType);
+        const workerResult = await callHologramWorkerRender({
+          ...mediaPayload,
+          mediaType,
+          targets: parseRenderTargets(args),
+          skipUpload: args.skipStudioUpload === true,
+        });
+        return {
+          ok: true,
+          mediaType,
+          source: compositionSource,
+          holoCode,
+          quilt,
+          mvhevc,
+          worker: workerResult,
+        };
+      }
+
       const bundle = await renderHologramBundle({
         mediaType,
-        source,
+        source: compositionSource,
         name: objectName ?? 'HologramMedia',
         holoCode,
-        quilt: quiltCompiler.compileQuilt(composition, quiltConfig),
-        mvhevc: mvhevcCompiler.compileMVHEVC(composition, mvhevcConfig),
+        quilt,
+        mvhevc,
         includeBase64: args.includeBase64 === true,
         durationSeconds: typeof args.durationSeconds === 'number' ? args.durationSeconds : 2,
       });
@@ -295,7 +499,7 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
       return {
         ok: true,
         mediaType,
-        source,
+        source: compositionSource,
         holoCode,
         bundle,
       };

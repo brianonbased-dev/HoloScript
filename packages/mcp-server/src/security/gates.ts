@@ -268,6 +268,7 @@ const DOWNSTREAM_TOOLS = new Set([
   // Render (spawns processes)
   'render_preview',
   'holo_hologram_render',
+  'holo_hologram_send',
 
   // Self-improvement (daemon, filesystem, shell)
   'holo_self_diagnose',

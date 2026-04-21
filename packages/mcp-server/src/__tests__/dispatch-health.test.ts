@@ -22,6 +22,7 @@ import { monitoringTools } from '../monitoring-tools';
 import { holotestTools } from '../holotest-tools';
 import { refactorCodegenTools } from '../refactor-codegen-tools';
 import { handleTool } from '../handlers';
+import { hologramToolDefinitions } from '../hologram-mcp-tools';
 
 // tools.ts is now the single source of truth — all tool groups are included.
 const allTools = tools;
@@ -42,7 +43,7 @@ describe('dispatch health check', () => {
   });
 
   it(`registers ${allTools.length} tools total`, () => {
-    expect(allTools.length).toBeGreaterThanOrEqual(155);
+    expect(allTools.length).toBeGreaterThanOrEqual(156);
   });
 
   // Tools dispatched by index.ts cascade handlers BEFORE the catch-all.
@@ -79,6 +80,19 @@ describe('dispatch health check', () => {
           // "Unknown tool" means dispatch is broken — FAIL
           expect(msg).not.toMatch(/^Unknown tool:/);
           // Any other error (missing args, network, etc.) means dispatch WORKS
+        }
+      });
+    }
+  });
+
+  describe('hologram tool dispatch (handleTool)', () => {
+    for (const tool of hologramToolDefinitions) {
+      it(`dispatches ${tool.name} without Unknown tool`, async () => {
+        try {
+          await handleTool(tool.name, {});
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          expect(msg).not.toMatch(/^Unknown tool:/);
         }
       });
     }
