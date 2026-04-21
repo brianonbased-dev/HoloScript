@@ -227,6 +227,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Enterprise engines often price **per seat** or **per published title**; a **language-first** stack lowers marginal cost because the compiler and large chunks of runtime are **MIT-licensed** and forkable. Remaining costs sit in **hosted services** (HoloMesh sync, GPU farms) and **marketplace IP**, which can stay optional. Product discipline: keep **baseline export** free so small teams aren’t excluded; charge for **SLA, collaboration scale, and certified device labs**—not for compiling `.holo` to Swift.
 
+### S.006 | Evolutionary robustness ↔ reward hacking (uAA2++ hook) | ⚡0.75
+
+**Research capture:** Populations under evolutionary pressure exhibit **proxy hacks** (optimize the metric, ignore intent)—the same failure mode as RL reward misspecification. **Transferable lesson:** diversify reward probes (multi-task + randomization), freeze eval suites outside the training loop, and treat **causal abstention** (decline when OOD) as a first-class fitness penalty. For HoloScript agents, log **which trait-level objectives moved** each tick so reward drift is visible in the same trace as physics—not only terminal scores.
+
 ---
 
 ## Next Optimization Opportunities
