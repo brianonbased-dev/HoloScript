@@ -8,12 +8,16 @@
  * Note: This does **not** fix MCP classic SSE on multi-replica deploys where
  * GET `/mcp` and POST `/mcp/messages` hit different instances — that needs
  * sticky sessions, a single replica, or streamable HTTP (POST `/mcp` only).
+ *
+ * `CDN-Cache-Control` is honored by some edge networks even when they rewrite
+ * plain `Cache-Control`, which helps long-lived streams not get edge-buffered.
  */
 
 import type http from 'http';
 
 export function applyEdgeSafeSseHeaders(res: http.ServerResponse): void {
   res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
+  res.setHeader('CDN-Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader('Surrogate-Control', 'no-store');

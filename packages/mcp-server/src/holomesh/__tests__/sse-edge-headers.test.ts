@@ -14,6 +14,7 @@ describe('applyEdgeSafeSseHeaders', () => {
     applyEdgeSafeSseHeaders(res);
 
     expect(headers['cache-control']).toContain('no-store');
+    expect(headers['cdn-cache-control']).toContain('no-store');
     expect(headers['x-accel-buffering']).toBe('no');
     expect(headers['surrogate-control']).toBe('no-store');
     expect(headers['x-content-type-options']).toBe('nosniff');
