@@ -500,6 +500,40 @@ describe('WGSLTranslator — utility nodes', () => {
     expect(result.wgsl).toContain('0.75');
   });
 
+  it('ScreenSpaceAO requests depth texture + view/proj uniforms and samples u_screen_depth', () => {
+    const nodes = [node('ssao', 'ScreenSpaceAO'), node('out', 'output')];
+    const result = compile(nodes, [edge('ssao', 'out')]);
+    expect(result.ok).toBe(true);
+    expect(result.wgsl).toContain('view_matrix: mat4x4');
+    expect(result.wgsl).toContain('projection_matrix: mat4x4');
+    expect(result.wgsl).toContain('var u_screen_depth: texture_2d<f32>');
+    expect(result.wgsl).toContain('var u_screen_depth_sampler: sampler');
+    expect(result.wgsl).toContain('textureSample(u_screen_depth, u_screen_depth_sampler');
+    expect(result.wgsl).toContain('uniforms.view_matrix');
+  });
+
+  it('ScreenSpaceAO bindings order after material textures', () => {
+    const texId = 'texA';
+    const nodes = [
+      node(texId, 'Texture2D'),
+      node('ssao', 'ScreenSpaceAO'),
+      node('out', 'output'),
+    ];
+    const uTex = `uTexture_${texId}`;
+    const result = compile(nodes, [
+      edge(texId, 'ssao'),
+      edge('ssao', 'out'),
+    ]);
+    expect(result.ok).toBe(true);
+    const wgsl = result.wgsl!;
+    const iUni = wgsl.indexOf('var<uniform> uniforms');
+    const iTex = wgsl.indexOf(`var ${uTex}: texture_2d<f32>`);
+    const iDepth = wgsl.indexOf('u_screen_depth:');
+    expect(iUni).toBeGreaterThanOrEqual(0);
+    expect(iTex).toBeGreaterThan(iUni);
+    expect(iDepth).toBeGreaterThan(iTex);
+  });
+
   it('CustomGLSL passthrough node emits upstream value', () => {
     const nodes = [
       node('f', 'float', { value: 0.42 }),

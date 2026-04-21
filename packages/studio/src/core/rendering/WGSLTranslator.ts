@@ -54,6 +54,16 @@ export class WGSLTranslator {
   private bodyLines: string[] = [];
   /** Whether the graph references a time uniform (uTime). */
   private needsTimeUniform: boolean = false;
+  /**
+   * Screen-space depth texture injected by the Studio/WebGPU pipeline (post-depth prepass).
+   * Emits `u_screen_depth` + `u_screen_depth_sampler` after material texture bindings.
+   */
+  private needsScreenSpaceDepth: boolean = false;
+  /**
+   * View + projection matrices for unprojection / screen-space effects. When true, `Uniforms`
+   * includes `view_matrix` and `projection_matrix` (and keeps `time` in the same block).
+   */
+  private needsFrameMatrices: boolean = false;
 
   constructor(nodes: GNode[], edges: GEdge[]) {
     nodes.forEach((n) => this.nodes.set(n.id, n));
@@ -71,6 +81,8 @@ export class WGSLTranslator {
       this.emittedNodes.clear();
       this.bodyLines = [];
       this.needsTimeUniform = false;
+      this.needsScreenSpaceDepth = false;
+      this.needsFrameMatrices = false;
 
       this.addHeader();
 
@@ -121,27 +133,41 @@ export class WGSLTranslator {
    * `this.needsTimeUniform` are fully populated.
    *
    * Layout convention:
-   *   @group(0) @binding(0)  — uniform buffer (time, etc.)
-   *   @group(0) @binding(1+) — texture/sampler pairs
+   *   @group(0) @binding(0)  — uniform buffer (time-only **or** time + view/proj mats)
+   *   @group(0) @binding(1+) — material texture_2d + sampler pairs (per texture node)
+   *   last+1 / last+2     — optional screen-space depth texture + sampler (pipeline-injected)
+   *
+   * See `memory/wgsl-screen-space-bindings-contract-2026-04-22.md`.
    */
   private addUniformBindings() {
     let bindingIndex = 0;
     const lines: string[] = [];
 
-    // ── Uniform buffer (time, future: resolution, mouse, etc.) ──
-    if (this.needsTimeUniform) {
+    const needsUniformBuffer = this.needsTimeUniform || this.needsFrameMatrices;
+
+    // ── Uniform buffer ──
+    if (needsUniformBuffer) {
       lines.push(`// Uniform buffer`);
-      lines.push(`struct Uniforms {`);
-      lines.push(`  time: f32,`);
-      lines.push(`};`);
+      if (this.needsFrameMatrices) {
+        lines.push(`struct Uniforms {`);
+        lines.push(`  time: f32,`);
+        lines.push(`  _pad0: f32,`);
+        lines.push(`  _pad1: f32,`);
+        lines.push(`  _pad2: f32,`);
+        lines.push(`  view_matrix: mat4x4,`);
+        lines.push(`  projection_matrix: mat4x4,`);
+        lines.push(`};`);
+      } else {
+        lines.push(`struct Uniforms {`);
+        lines.push(`  time: f32,`);
+        lines.push(`};`);
+      }
       lines.push(`@group(0) @binding(${bindingIndex}) var<uniform> uniforms: Uniforms;`);
-      // Alias so existing body code can reference uTime directly
-      // (alias emitted as a let inside main, but we keep the global binding clean)
       bindingIndex++;
       lines.push(``);
     }
 
-    // ── Texture + sampler pairs ──
+    // ── Texture + sampler pairs (material slots) ──
     if (this.uniforms.size > 0) {
       lines.push(`// Texture bindings`);
       for (const samplerName of this.uniforms) {
@@ -150,6 +176,16 @@ export class WGSLTranslator {
         lines.push(`@group(0) @binding(${bindingIndex}) var ${samplerName}_sampler: sampler;`);
         bindingIndex++;
       }
+      lines.push(``);
+    }
+
+    // ── Screen-space depth (post-pipeline) — after material textures ──
+    if (this.needsScreenSpaceDepth) {
+      lines.push(`// Screen-space depth (pipeline-injected; linear depth in .x unless noted)`);
+      lines.push(`@group(0) @binding(${bindingIndex}) var u_screen_depth: texture_2d<f32>;`);
+      bindingIndex++;
+      lines.push(`@group(0) @binding(${bindingIndex}) var u_screen_depth_sampler: sampler;`);
+      bindingIndex++;
       lines.push(``);
     }
 
@@ -411,15 +447,31 @@ export class WGSLTranslator {
       }
 
       // ── Bake-specific nodes ────────────────────────────────────────────
+      case 'ScreenSpaceAO': {
+        // Heuristic occlusion from **linearized depth** samples plus a view-axis
+        // term so `view_matrix` is referenced. Binds `u_screen_depth` and extends
+        // `Uniforms` with view/projection (see addUniformBindings).
+        this.needsScreenSpaceDepth = true;
+        this.needsFrameMatrices = true;
+        const radius = inputs.get('radius') ?? inputs.get('a') ?? '0.002';
+        const strength = inputs.get('strength') ?? inputs.get('b') ?? '12.0';
+        const off = `in.vUv + vec2f(${radius}, 0.0)`;
+        return (
+          `(clamp(1.0 - abs(` +
+          `textureSample(u_screen_depth, u_screen_depth_sampler, in.vUv).x - ` +
+          `textureSample(u_screen_depth, u_screen_depth_sampler, ${off}).x` +
+          `) * ${strength}, 0.0, 1.0) * ` +
+          `(0.5 + 0.5 * abs((uniforms.view_matrix * vec4f(0.0, 0.0, 1.0, 0.0)).z)))`
+        );
+      }
+
       case 'AmbientOcclusion': {
         // Geometric ambient occlusion (curvature-based approximation).
         //
         // Classical SSAO (Crytek 2007) needs a depth texture, screen-space
-        // UVs, and a view matrix — none of which are available in the node
-        // translator's binding context (it emits a single per-material
-        // fragment shader with only `in.vNormal` / `in.vUv` / `in.position`
-        // as inputs). A full screen-space SSAO pass would require a
-        // deeper refactor to thread depth+view bindings into the graph.
+        // UVs, and a view matrix — use **`ScreenSpaceAO`** when those bindings
+        // are available from the Studio pipeline. This path stays **local**
+        // (normal derivatives only) so graphs without depth still compile.
         //
         // As the documented fallback (see task spec), we emit a
         // normal-derivative curvature estimator using fwidth(normal) —
@@ -506,6 +558,7 @@ export class WGSLTranslator {
       case 'Clamp':
       case 'Remap':
       case 'FogNode':
+      case 'ScreenSpaceAO':
       case 'AmbientOcclusion':
       case 'TimeInput':
       case 'timeNode':
