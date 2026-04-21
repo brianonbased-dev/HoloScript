@@ -195,6 +195,9 @@ export class HoloScriptSandbox {
     'Buffer',
     // SEC-04: Atomics can be combined with SAB for timing side-channels
     'Atomics',
+    // SEC-T15: Reflect — meta-programming surface reaches prototype chain.
+    // Shadowed in the VM sandbox as well; text-scan gives a cleaner reject.
+    'Reflect',
   ];
 
   constructor(options: SandboxOptions = {}) {
@@ -251,17 +254,63 @@ export class HoloScriptSandbox {
     }
     if (depth !== 0) return `Invalid syntax: ${depth} unclosed brace(s)`;
 
-    // SEC-05: Prototype chain escape patterns.
-    // Detect attempts like ({}).__proto__.constructor.constructor('return process')()
-    // or Object.getPrototypeOf(x).constructor which can traverse to Function and
-    // then to the host global scope.
+    // SEC-05 / SEC-T15: Prototype chain escape patterns.
+    //
+    // ─────────────────────────────────────────────────────────────────────────
+    // FIRST-PASS HEURISTIC — NOT A SECURITY BOUNDARY.
+    // ─────────────────────────────────────────────────────────────────────────
+    // This regex layer is defense-in-depth only. The REAL security boundary is
+    // the vm2 frozen context (see VM construction below, ~L361). vm2 enforces
+    // actual isolation of the prototype chain at runtime; this text-scan is a
+    // cheap first-pass that (a) produces human-readable rejection messages
+    // before code ever enters the VM, and (b) catches obviously malicious
+    // patterns at zero runtime cost.
+    //
+    // Bypassing these regexes does NOT equal a sandbox escape — vm2 still
+    // has to be broken to reach the host. Reviewers: do not treat a clever
+    // regex bypass as a vulnerability; evaluate against the actual boundary.
+    //
+    // Future note: SEC-T16 migrates vm2 → isolated-vm. At that point the REAL
+    // boundary moves to a true V8 isolate (OS-level), and this layer remains
+    // the same first-pass heuristic against a stronger underlying boundary.
+    //
+    // Detects attempts like:
+    //   ({}).__proto__.constructor.constructor('return process')()
+    //   Object.getPrototypeOf(x).constructor
+    //   Reflect.getPrototypeOf(x) / Reflect.construct(Function, ...)
+    //   []['con'+'structor']           (dynamic bracket computation)
+    //   ({})['__pro'+'to__']           (dynamic prototype access)
+    //   x[`constructor`]               (template-literal bracket access)
+    //   iter.next = fn / Symbol.iterator = fn  (iterator hijack)
+    // ─────────────────────────────────────────────────────────────────────────
     const protoEscapePatterns = [
+      // Classic proto chain
       /__proto__/,
       /\.constructor\s*(?:\.|\[)/,
       /getPrototypeOf\s*\(/,
       /setPrototypeOf\s*\(/,
       /Object\.prototype/,
       /Function\.prototype/,
+      // SEC-T15: Reflect-based prototype / meta access
+      /\bReflect\s*\.\s*(?:getPrototypeOf|setPrototypeOf|getOwnPropertyDescriptor|ownKeys|construct|apply)\b/,
+      // SEC-T15: Bracket-accessor prototype chain (single or double quotes)
+      /\[\s*['"](?:constructor|prototype|__proto__)['"]\s*\]/,
+      // SEC-T15: Template-literal bracket access for the same
+      /\[\s*`(?:constructor|prototype|__proto__)`\s*\]/,
+      // SEC-T15: Dynamic string computation inside brackets. Covers
+      //   ['con'+'structor'], ['pro'+'totype'], ['__pro'+'to__'], and
+      //   template-literal concatenation inside brackets. The regex fires
+      //   whenever a bracket contains a string-literal concatenation — this
+      //   is intentionally broad (heuristic), because legitimate HoloScript
+      //   payloads do not need dynamic bracket-computed member access.
+      /\[[^\]]*['"`][^'"`\]]*['"`]\s*\+\s*['"`][^\]]*\]/,
+      // SEC-T15: Iterator protocol manipulation — attackers can hijack
+      // Symbol.iterator to smuggle functions through for-of loops.
+      /\.\s*next\s*=/,
+      /Symbol\s*\.\s*(?:iterator|asyncIterator)\s*=/,
+      // SEC-T15: Dynamic import() — not exposed by vm2 today, but block
+      // it at the heuristic layer for clarity and for the SEC-T16 migration.
+      /\bimport\s*\(/,
     ];
     for (const pattern of protoEscapePatterns) {
       if (pattern.test(code)) {
@@ -381,6 +430,13 @@ export class HoloScriptSandbox {
         Atomics: blockedGlobal('Atomics'),
         // SEC-04: Ensure SharedArrayBuffer is not constructible.
         SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
+        // SEC-T15: Shadow Reflect — prevents Reflect.getPrototypeOf,
+        // Reflect.construct(Function,…), Reflect.ownKeys, etc. from reaching
+        // the host prototype chain. vm2 already restricts this at runtime;
+        // shadowing here closes off the meta-programming surface at the VM
+        // boundary as well (defense-in-depth — the real boundary is vm2's
+        // frozen context; see SEC-T16 for the isolated-vm migration).
+        Reflect: blockedGlobal('Reflect'),
       },
     });
 

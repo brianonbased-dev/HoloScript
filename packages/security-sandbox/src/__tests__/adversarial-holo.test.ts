@@ -350,6 +350,141 @@ describe('Adversarial: Sandbox Escape', () => {
             : 'sandbox-runtime',
     });
   });
+
+  it('S9. Reflect.getPrototypeOf — meta-programming escape is blocked', async () => {
+    // SEC-T15: Reflect.* is a first-class meta-programming surface that can
+    // reach the host prototype chain (Reflect.construct(Function, …),
+    // Reflect.getPrototypeOf(obj).constructor, etc.). Blocked at text-scan
+    // (protoEscapePatterns) and, defense-in-depth, shadowed in the VM sandbox.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const proto = Reflect.getPrototypeOf({});
+      const escape = Reflect.construct(proto.constructor.constructor, ['return process']);
+      escape().exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S9',
+      category: 'Sandbox Escape',
+      description: 'Reflect.getPrototypeOf / Reflect.construct meta escape (SEC-T15)',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S10. Dynamic bracket computation — ["con"+"structor"] is blocked', async () => {
+    // SEC-T15: Dynamic string computation inside bracket accessors. The naive
+    // literal regex /\.constructor\s*(?:\.|\[)/ misses
+    //   [].['con'+'structor']
+    //   ({})['__pro'+'to__']
+    // Blocked by the dynamic-bracket heuristic in protoEscapePatterns.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const ctor = []['con'+'structor'];
+      const escape = ctor.constructor('return process')();
+      escape.exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S10',
+      category: 'Sandbox Escape',
+      description: 'Dynamic bracket computation [".con"+"structor"] (SEC-T15)',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S11. Dynamic __proto__ bracket access — ({})["__pro"+"to__"] is blocked', async () => {
+    // SEC-T15: The literal /__proto__/ regex catches the string verbatim, but
+    // a dynamic computation like ["__pro"+"to__"] bypasses it. The dynamic-
+    // bracket heuristic in protoEscapePatterns catches this construction.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const proto = ({})["__pro"+"to__"];
+      const escape = proto.constructor.constructor('return process')();
+      escape.exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S11',
+      category: 'Sandbox Escape',
+      description: 'Dynamic __proto__ bracket access ["__pro"+"to__"] (SEC-T15)',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S12. Bracket-accessor prototype chain — x["constructor"] is blocked', async () => {
+    // SEC-T15: Literal quoted bracket access like x['constructor'] or
+    // x["prototype"] — caught by the quoted-bracket heuristic in
+    // protoEscapePatterns.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const ctor = ({})["constructor"];
+      const escape = ctor["constructor"]('return process')();
+      escape.exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S12',
+      category: 'Sandbox Escape',
+      description: 'Bracket-accessor prototype chain ["constructor"] (SEC-T15)',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
+  it('S13. Valid benign code — a simple JS expression still executes', async () => {
+    // SEC-T15: Regression guard — the expanded heuristics must NOT trip on
+    // plain arithmetic / string concatenation that has no prototype-chain
+    // access. If this test fails, we've introduced a false-positive that
+    // would break legitimate trusted payloads.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const result = await sandbox.executeHoloScript<number>('2 + 2', { source: 'trusted' });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(4);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
