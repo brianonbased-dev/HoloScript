@@ -161,6 +161,7 @@ export * from './RenderingTrait';
 export * from './RenderJobPersistence';
 export * from './RenderNetworkTrait';
 export * from './ReverbZoneTrait';
+export * from './RewardTrait';
 export { rigidbodyHandler } from './RigidbodyTrait';
 export * from './RoadmapTrait';
 export * from './RoleTrait';

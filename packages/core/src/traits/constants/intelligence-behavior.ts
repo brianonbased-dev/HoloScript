@@ -43,4 +43,6 @@ export const INTELLIGENCE_BEHAVIOR_TRAITS = [
   // V43 Tier 1: Planning & Behavior
   'behavior_tree',
   'goal_oriented',
+  // Grounded reward shaping
+  'reward_shaping',
 ] as const;
