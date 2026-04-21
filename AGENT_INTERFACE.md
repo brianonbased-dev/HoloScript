@@ -74,6 +74,8 @@ Decide, then tell the user what you decided and why. Stop at first match:
 7. Test failing? → Fix if yours, skip if pre-existing
 8. Ask user? → Only for: novel features, budget >$5, destructive ops
 
+Before self-authorizing an operation, check **[Action reversibility + blast registry](docs/team/ACTION_REVERSIBILITY_REGISTRY.md)**. Anything outside the table is founder-gated until the registry is updated for that session.
+
 ## Key Principles
 
 - **Simulation-first.** Digital twin before physical twin.
