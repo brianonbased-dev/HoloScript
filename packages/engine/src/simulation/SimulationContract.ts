@@ -98,10 +98,107 @@ export interface ContractConfig {
    *    cross-adapter → skip digest enforcement (Appendix A Lemma 3
    *                    regime boundary; fall through to metric-
    *                    comparison in the dispute oracle)
-   *  Production format: vendor+architecture+device+driver+UA. Tests:
-   *  any stable string. If absent at record-time, the trace is treated
-   *  as cross-adapter for all replays (safe fallback). */
+   *
+   *  **SECURITY NOTES** (Wave-2 SECURITY-mode audit 2026-04-20 — see
+   *  ai-ecosystem research/2026-04-20_adapter-fingerprint-security-audit.md):
+   *
+   *  - Privacy: if supplied as a raw concatenation
+   *    (e.g. "vendor=Intel;device=UHD;driver=31.0"), this field
+   *    leaks exact hardware identifiers to anyone who reads the
+   *    trace. For traces shared externally (reviewer packages,
+   *    peer-to-peer dispute exchanges, debugging exports), PREFER
+   *    the SHA-256-hashed output of `computeAdapterFingerprint()`
+   *    below — opaque 256-bit digest that preserves
+   *    equivalence-class comparison (sameAdapter() still works)
+   *    while closing the raw-identifier leak.
+   *
+   *  - Forgeability: this field is trust-the-caller. No validation
+   *    against the actual WebGPU adapter at runtime, no signed
+   *    attestation. In adversarial multi-agent settings a hostile
+   *    agent can forge this field to either (a) force strict
+   *    enforcement on genuinely-cross-adapter traces (DoS via
+   *    spurious StateIntegrityViolation) or (b) bypass strict
+   *    enforcement on genuinely-same-adapter traces by claiming
+   *    different hardware. For single-tenant local development
+   *    this is a non-issue; for production multi-agent contracts
+   *    the fingerprint MUST come from a trusted source (WebGPU
+   *    adapter info API called at recorder-construction time by
+   *    trusted code, not user-supplied) and ideally
+   *    cryptographically signed. Full attestation is deferred to
+   *    a follow-up (see audit memo §Future hardening).
+   *
+   *  - Recommended use: pass the output of
+   *    `await computeAdapterFingerprint(adapterInfo)` rather than
+   *    a raw string. See helper below.
+   *
+   *  If absent at record-time, the trace is treated as
+   *  cross-adapter for all replays (safe fallback). */
   adapterFingerprint?: string;
+}
+
+// ── Adapter fingerprint helper (Wave-2 SECURITY-mode 2026-04-20) ─────────────
+
+/**
+ * Canonical WebGPU adapter info (subset matching the W3C WebGPU
+ * `GPUAdapterInfo` shape). All fields are optional; missing fields
+ * canonicalize to empty string, which still produces a stable digest
+ * but with less discriminative power.
+ */
+export interface AdapterInfo {
+  /** GPU vendor (e.g. "Intel", "NVIDIA", "Apple", "AMD", "Qualcomm"). */
+  vendor?: string;
+  /** GPU architecture family (e.g. "gen12", "ampere", "m-series"). */
+  architecture?: string;
+  /** Specific device label (e.g. "Intel UHD Graphics 620"). */
+  device?: string;
+  /** Driver version string. */
+  driver?: string;
+  /** Browser user-agent (pins Chrome version etc.) */
+  userAgent?: string;
+}
+
+/**
+ * Compute a SHA-256 fingerprint of canonical adapter info, suitable
+ * for `ContractConfig.adapterFingerprint` (Item 5b cross-adapter
+ * dispatch).
+ *
+ * Why this helper exists (SECURITY-mode audit 2026-04-20):
+ *   - Closes the raw-hardware-identifier privacy leak: the output is
+ *     an opaque 256-bit hex string; readers see equivalence-class
+ *     identity ("these two traces used the same adapter") without
+ *     learning the raw vendor/device/driver strings.
+ *   - Canonical pipe-joined tuple prevents ambiguity between
+ *     fingerprints with different field boundaries. E.g. ("Intel",
+ *     "foo") vs ("Intelfoo", "") both raw-concat to "Intelfoo" but
+ *     pipe-canonicalize to distinct "Intel|foo" vs "Intelfoo|".
+ *
+ * What this helper does NOT solve:
+ *   - Forgeability: the caller decides what AdapterInfo to pass. A
+ *     hostile agent can still pass a made-up AdapterInfo to get any
+ *     fingerprint they want. Full mitigation requires an attested
+ *     source (the WebGPU adapter info API, called by trusted code,
+ *     ideally signed). Deferred to a follow-up commit — see audit
+ *     memo ai-ecosystem/research/2026-04-20_adapter-fingerprint-security-audit.md
+ *     §Future hardening.
+ *
+ * Returns a 64-hex-char string (SHA-256 digest). Async because it
+ * uses crypto.subtle.digest, which is Promise-based in both browser
+ * and Node ≥ 15.
+ */
+export async function computeAdapterFingerprint(info: AdapterInfo): Promise<string> {
+  const canonical = [
+    info.vendor ?? '',
+    info.architecture ?? '',
+    info.device ?? '',
+    info.driver ?? '',
+    info.userAgent ?? '',
+  ].join('|');
+  const bytes = new TextEncoder().encode(canonical);
+  // crypto.subtle.digest is available in modern browsers and Node ≥ 15
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // ── Geometry Hashing ─────────────────────────────────────────────────────────

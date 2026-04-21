@@ -9,6 +9,8 @@ import {
   validateMeshSanity,
   DeterministicStepper,
   ContractedSimulation,
+  computeAdapterFingerprint,
+  type AdapterInfo,
 } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 
@@ -585,5 +587,83 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
     expect(digests.length).toBe(3); // 2 step + 1 solve
     // Each quantization cell bumps by 1 q_f per step → each digest distinct
     expect(new Set(digests).size).toBe(3);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// computeAdapterFingerprint helper (Wave-2 SECURITY-mode audit 2026-04-20)
+//
+// Closes the raw-hardware-identifier privacy leak on shared CAEL traces
+// by hashing the canonical adapter tuple to a 256-bit opaque digest.
+// sameAdapter() equivalence-class comparison still works.
+//
+// See ai-ecosystem research/2026-04-20_adapter-fingerprint-security-audit.md
+// for threat model + deferred follow-up (signed attestation).
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('computeAdapterFingerprint (security helper)', () => {
+  it('produces a 64-hex-char SHA-256 digest', async () => {
+    const fp = await computeAdapterFingerprint({
+      vendor: 'Intel',
+      architecture: 'gen12',
+      device: 'UHD Graphics 620',
+      driver: '31.0.101.2111',
+      userAgent: 'Chrome/120',
+    });
+    expect(fp).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('identical AdapterInfo → identical fingerprint (determinism)', async () => {
+    const info: AdapterInfo = { vendor: 'NVIDIA', device: 'RTX 3060' };
+    const a = await computeAdapterFingerprint(info);
+    const b = await computeAdapterFingerprint(info);
+    expect(a).toBe(b);
+  });
+
+  it('differing fields → differing fingerprints', async () => {
+    const a = await computeAdapterFingerprint({ vendor: 'Intel', device: 'A' });
+    const b = await computeAdapterFingerprint({ vendor: 'Intel', device: 'B' });
+    expect(a).not.toBe(b);
+  });
+
+  it('pipe canonicalization resists field-boundary ambiguity', async () => {
+    // Without pipe delimiters, ("Intel", "foo") and ("Intelfoo", "")
+    // would raw-concat to the same string. Pipe-canonicalization
+    // preserves boundaries so the two produce different fingerprints.
+    const a = await computeAdapterFingerprint({ vendor: 'Intel', architecture: 'foo' });
+    const b = await computeAdapterFingerprint({ vendor: 'Intelfoo', architecture: '' });
+    expect(a).not.toBe(b);
+  });
+
+  it('empty AdapterInfo produces a well-defined fingerprint (all-empty sentinel)', async () => {
+    const fp = await computeAdapterFingerprint({});
+    // Should match the known SHA-256 of "||||" (four pipe delimiters)
+    // — deterministic sentinel value that all callers with no info
+    // share, which is why sameAdapter() returns false for this case
+    // (both absent → cross-adapter fallback, per Item 5b design).
+    expect(fp).toMatch(/^[0-9a-f]{64}$/);
+    // Verify determinism — two empty calls agree
+    const fp2 = await computeAdapterFingerprint({});
+    expect(fp).toBe(fp2);
+  });
+
+  it('output is suitable for ContractConfig.adapterFingerprint', async () => {
+    // End-to-end: compute fingerprint → pass to ContractConfig →
+    // recorder captures it → trace[0].payload.adapterFingerprint is
+    // the hashed value (not the raw tuple).
+    const { CAELRecorder } = await import('../CAELRecorder');
+    const fp = await computeAdapterFingerprint({
+      vendor: 'Apple', device: 'M2 GPU', userAgent: 'Safari/17',
+    });
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: fp },
+    );
+    recorder.finalize();
+    const trace = recorder.getTrace();
+    expect(trace[0].payload.adapterFingerprint).toBe(fp);
+    // And it's opaque (no raw vendor/device leak)
+    expect(String(trace[0].payload.adapterFingerprint)).not.toContain('Apple');
+    expect(String(trace[0].payload.adapterFingerprint)).not.toContain('M2');
   });
 });
