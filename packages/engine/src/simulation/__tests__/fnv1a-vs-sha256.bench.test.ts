@@ -173,6 +173,8 @@ function randomBytes(n: number, seed: number): Uint8Array {
 }
 
 // --- Scenario shapes ---
+
+// Paper-3 §7.5 state-vector scale ladder (simulation hashing: hashCAELEntry / computeStateDigest)
 const STATE_VECTOR_SIZES: ReadonlyArray<{ name: string; floats: number }> = [
   { name: 'bridge           (60 floats)', floats: 60 },
   { name: 'truss            (300 floats)', floats: 300 },
@@ -180,12 +182,47 @@ const STATE_VECTOR_SIZES: ReadonlyArray<{ name: string; floats: number }> = [
   { name: 'full-building    (6,000 floats)', floats: 6_000 },
 ];
 
+// Paper-3 CAEL trace payload range (CAEL entry hashing)
 const TRACE_PAYLOAD_SIZES: ReadonlyArray<{ name: string; bytes: number }> = [
   { name: 'trace entry      (500 B)', bytes: 500 },
   { name: 'small step batch (5 KB)', bytes: 5_000 },
   { name: 'medium payload   (50 KB)', bytes: 50_000 },
   { name: 'large payload    (500 KB)', bytes: 500_000 },
 ];
+
+// Paper-1 / Paper-2 / Paper-3 provenance path: deploy/provenance.ts → computeContentHash()
+// Covers the content-addressed source-hashing path used in BuildCache keying (paper-10) and
+// incremental compilation provenance chain. String sizes are representative UTF-8 .hs / .hsplus
+// source files: single-object snippet → medium composition → large multi-composition bundle →
+// whole-project manifest aggregation.
+const PROVENANCE_SOURCE_SIZES: ReadonlyArray<{ name: string; paper: string; chars: number }> = [
+  { name: 'single-object snippet   (0.5 KB)', paper: 'Paper-1/2/3', chars: 512 },
+  { name: 'medium composition      (5 KB)',   paper: 'Paper-1/2/3', chars: 5_120 },
+  { name: 'large composition       (50 KB)',  paper: 'Paper-1/2/3', chars: 51_200 },
+  { name: 'full-project manifest   (200 KB)', paper: 'Paper-1/2/3', chars: 204_800 },
+];
+
+/**
+ * Simulate realistic HoloScript source text of a given character count.
+ * Uses a deterministic PRNG to fill ASCII printable characters (0x20–0x7e)
+ * so the byte-length matches the char-length (all-ASCII UTF-8 source).
+ */
+function syntheticSource(chars: number, seed: number): Uint8Array {
+  const te = new TextEncoder();
+  const CHUNK = 80; // approx line length
+  let a = seed >>> 0;
+  let src = '';
+  while (src.length < chars) {
+    let line = '';
+    for (let i = 0; i < CHUNK && src.length + line.length < chars; i++) {
+      a = (a + 0x6d2b79f5) >>> 0;
+      const cp = 0x20 + (a % 0x5f); // printable ASCII
+      line += String.fromCharCode(cp);
+    }
+    src += line + '\n';
+  }
+  return te.encode(src.slice(0, chars));
+}
 
 const ITERATIONS = 200;
 const WARMUP = 20;
@@ -214,7 +251,7 @@ function measure(fn: (input: Uint8Array) => string, input: Uint8Array): number {
 
 describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
   it('measures three hash implementations across paper-3 state-vector scales', () => {
-    console.log('\n[security-item-3] FNV-1a vs SHA-256 (native + pure-JS) — state-vector hashing');
+    console.log('\n[security-item-3][Paper-3 §7.5] FNV-1a vs SHA-256 (native + pure-JS) — state-vector hashing');
     console.log(
       'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)',
     );
@@ -239,7 +276,7 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
   });
 
   it('measures three hash implementations across CAEL trace payload sizes', { timeout: 60_000 }, () => {
-    console.log('\n[security-item-3] FNV-1a vs SHA-256 (native + pure-JS) — CAEL trace payload hashing');
+    console.log('\n[security-item-3][Paper-3 CAEL] FNV-1a vs SHA-256 (native + pure-JS) — CAEL trace payload hashing');
     console.log(
       'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)',
     );
@@ -319,4 +356,63 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
     expect(sha256Native(input)).toBe(sha256Native(input));
     expect(sha256PureJS(input)).toBe(sha256PureJS(input));
   });
+
+  // -------------------------------------------------------------------------
+  // Paper-3 provenance path: deploy/provenance.ts → computeContentHash()
+  //
+  // The three test suites above cover binary simulation buffers (state vectors,
+  // CAEL trace payloads — Paper-3 §7.5 and CAEL entry hashing paths). This
+  // suite covers the UTF-8 string path used by:
+  //
+  //   packages/core/src/deploy/provenance.ts → computeContentHash(source)
+  //     → createHash('sha256').update(normalized, 'utf8').digest('hex')
+  //
+  // This path feeds the BuildCache key derivation (paper-10 provenance chain)
+  // and incremental compilation provenance (paper-3/CRDT artefact identity).
+  // Relevant for Papers 1, 2, and 3: any composition with a deploy/ publish
+  // step produces a content-addressed hash via this path.
+  //
+  // Method: same warmup + multi-run approach. Input is synthetic printable
+  // ASCII UTF-8, pre-encoded to Uint8Array (matches what a real TextEncoder
+  // call on normalized source would produce). FNV-1a stands for "what we
+  // would pay if we replaced the SHA-256 in computeContentHash with FNV-1a."
+  // -------------------------------------------------------------------------
+  it(
+    'measures three hash implementations across Paper-3 provenance source sizes',
+    { timeout: 60_000 },
+    () => {
+      console.log(
+        '\n[security-item-3][Paper-1/2/3 provenance] FNV-1a vs SHA-256 (native + pure-JS) — computeContentHash() path',
+      );
+      console.log('  deploy/provenance.ts → createHash(sha256).update(source, utf8) — BuildCache key derivation');
+      console.log(
+        'scenario                               paper        fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×',
+      );
+      for (const s of PROVENANCE_SOURCE_SIZES) {
+        const input = syntheticSource(s.chars, s.chars * 3571);
+        const fnvMs = measure(fnv1a, input);
+        const natMs = measure(sha256Native, input);
+        const pjsMs = measure(sha256PureJS, input);
+        const natRatio = natMs / fnvMs;
+        const pjsRatio = pjsMs / fnvMs;
+        console.log(
+          `  ${s.name.padEnd(38)} ${s.paper.padEnd(12)} ` +
+            `${(fnvMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${(natMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${(pjsMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${natRatio.toFixed(2).padStart(5)}×  ` +
+            `${pjsRatio.toFixed(2).padStart(5)}×`,
+        );
+      }
+      console.log(
+        '\n  nat-× = Native SHA-256 overhead vs FNV-1a on UTF-8 source.',
+      );
+      console.log(
+        '  pjs-× = Pure-JS SHA-256 overhead vs FNV-1a — Path 3 deployment cost on source hashing.',
+      );
+      console.log(
+        '  At 5 KB (medium composition), pure-JS should dominate the per-file compile budget if > ~10× FNV.',
+      );
+    },
+  );
 }, /* no timeout — bench is fast */);
