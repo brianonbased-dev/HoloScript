@@ -30,6 +30,8 @@ export interface IKChain {
   iterations: number;
 }
 
+export type IKSolveMode = 'analytic' | 'ccd' | 'fabrik';
+
 export interface FootPlacementConfig {
   rayHeight: number;
   rayLength: number;
@@ -72,12 +74,12 @@ export class IKSolver {
 
   setTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.target = { x, y, z };
+    if (chain) chain.target = [x, y, z];
   }
 
   setPoleTarget(chainId: string, x: number, y: number, z: number): void {
     const chain = this.chains.get(chainId);
-    if (chain) chain.poleTarget = { x, y, z };
+    if (chain) chain.poleTarget = [x, y, z];
   }
 
   setWeight(chainId: string, weight: number): void {
@@ -101,9 +103,9 @@ export class IKSolver {
     const b = mid.length; // forearm
 
     const target = chain.target;
-    const dx = target.x - root.position.x;
-    const dy = target.y - root.position.y;
-    const dz = target.z - root.position.z;
+    const dx = target[0] - root.position[0];
+    const dy = target[1] - root.position[1];
+    const dz = target[2] - root.position[2];
     const distSq = dx * dx + dy * dy + dz * dz;
     const dist = Math.sqrt(distSq);
 
@@ -126,19 +128,19 @@ export class IKSolver {
     const totalRootAngle = rootAngle + rootBendAngle * chain.weight;
 
     // Position mid bone
-    mid.position = {
-      x: root.position.x + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
-      y: root.position.y + Math.sin(totalRootAngle) * a,
-      z: root.position.z + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
-    };
+    mid.position = [
+      root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
+      root.position[1] + Math.sin(totalRootAngle) * a,
+      root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1))
+    ];
 
     // Position end bone (if exists)
     if (end) {
-      const blendedTarget: Vector3 = {
-        x: end.position.x + (target.x - end.position.x) * chain.weight,
-        y: end.position.y + (target.y - end.position.y) * chain.weight,
-        z: end.position.z + (target.z - end.position.z) * chain.weight,
-      };
+      const blendedTarget: Vector3 = [
+        end.position[0] + (target[0] - end.position[0]) * chain.weight,
+        end.position[1] + (target[1] - end.position[1]) * chain.weight,
+        end.position[2] + (target[2] - end.position[2]) * chain.weight
+      ];
       end.position = blendedTarget;
     }
 
@@ -162,14 +164,22 @@ export class IKSolver {
         const endEffector = bones[bones.length - 1];
 
         // Vector from bone to end effector
-        const toEnd = { x: endEffector.position.x - bone.position.x, y: endEffector.position.y - bone.position.y, z: endEffector.position.z - bone.position.z };
+        const toEnd = [
+          endEffector.position[0] - bone.position[0],
+          endEffector.position[1] - bone.position[1],
+          endEffector.position[2] - bone.position[2]
+        ];
 
         // Vector from bone to target
-        const toTarget = { x: target.x - bone.position.x, y: target.y - bone.position.y, z: target.z - bone.position.z };
+        const toTarget = [
+          target[0] - bone.position[0],
+          target[1] - bone.position[1],
+          target[2] - bone.position[2]
+        ];
 
         // Compute rotation angle (2D simplification in XY plane)
-        const angleEnd = Math.atan2(toEnd.y, toEnd.x);
-        const angleTarget = Math.atan2(toTarget.y, toTarget.x);
+        const angleEnd = Math.atan2(toEnd[1], toEnd[0]);
+        const angleTarget = Math.atan2(toTarget[1], toTarget[0]);
         let angle = (angleTarget - angleEnd) * chain.weight;
 
         // Apply joint limits
@@ -182,25 +192,133 @@ export class IKSolver {
           sinA = Math.sin(angle);
         for (let j = i + 1; j < bones.length; j++) {
           const child = bones[j];
-          const rx = child.position.x - bone.position.x;
-          const ry = child.position.y - bone.position.y;
-          child.position = {
-            x: bone.position.x + rx * cosA - ry * sinA,
-            y: bone.position.y + rx * sinA + ry * cosA,
-            z: child.position.z,
-          };
+          const rx = child.position[0] - bone.position[0];
+          const ry = child.position[1] - bone.position[1];
+          child.position = [
+            bone.position[0] + rx * cosA - ry * sinA,
+            bone.position[1] + rx * sinA + ry * cosA,
+            child.position[2]
+          ];
         }
       }
 
       // Check if close enough
       const end = bones[bones.length - 1];
-      const dx = end.position.x - target.x;
-      const dy = end.position.y - target.y;
-      const dz = end.position.z - target.z;
+      const dx = end.position[0] - target[0];
+      const dy = end.position[1] - target[1];
+      const dz = end.position[2] - target[2];
       if (dx * dx + dy * dy + dz * dz < 0.001) return true;
     }
 
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // FABRIK (Forward And Backward Reaching Inverse Kinematics)
+  // ---------------------------------------------------------------------------
+
+  solveFABRIK(chainId: string): boolean {
+    const chain = this.chains.get(chainId);
+    if (!chain || chain.bones.length < 2) return false;
+
+    const bones = chain.bones;
+    const target = chain.target;
+    const rootOrigin: Vector3 = {
+      x: bones[0].position.x,
+      y: bones[0].position.y,
+      z: bones[0].position.z,
+    };
+
+    const segmentLengths: number[] = [];
+    let totalLength = 0;
+    for (let i = 0; i < bones.length - 1; i += 1) {
+      const len = Math.max(1e-6, bones[i].length);
+      segmentLengths.push(len);
+      totalLength += len;
+    }
+
+    const targetDx = target.x - rootOrigin.x;
+    const targetDy = target.y - rootOrigin.y;
+    const targetDz = target.z - rootOrigin.z;
+    const rootToTarget = Math.sqrt(targetDx * targetDx + targetDy * targetDy + targetDz * targetDz);
+
+    if (rootToTarget >= totalLength) {
+      // Unreachable: stretch the chain along the root→target ray.
+      for (let i = 0; i < bones.length - 1; i += 1) {
+        const base = bones[i].position;
+        const dx = target.x - base.x;
+        const dy = target.y - base.y;
+        const dz = target.z - base.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const scale = segmentLengths[i] / dist;
+        bones[i + 1].position = {
+          x: base.x + dx * scale,
+          y: base.y + dy * scale,
+          z: base.z + dz * scale,
+        };
+      }
+      return true;
+    }
+
+    const toleranceSq = 1e-6;
+    for (let iter = 0; iter < chain.iterations; iter += 1) {
+      // Forward reaching: pin end effector to target and walk backward.
+      bones[bones.length - 1].position = { x: target.x, y: target.y, z: target.z };
+      for (let i = bones.length - 2; i >= 0; i -= 1) {
+        const child = bones[i + 1];
+        const current = bones[i];
+        const dx = current.position.x - child.position.x;
+        const dy = current.position.y - child.position.y;
+        const dz = current.position.z - child.position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const scale = segmentLengths[i] / dist;
+        current.position = {
+          x: child.position.x + dx * scale,
+          y: child.position.y + dy * scale,
+          z: child.position.z + dz * scale,
+        };
+      }
+
+      // Backward reaching: re-pin root to origin and walk forward.
+      bones[0].position = { x: rootOrigin.x, y: rootOrigin.y, z: rootOrigin.z };
+      for (let i = 0; i < bones.length - 1; i += 1) {
+        const parent = bones[i];
+        const child = bones[i + 1];
+        const dx = child.position.x - parent.position.x;
+        const dy = child.position.y - parent.position.y;
+        const dz = child.position.z - parent.position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const scale = segmentLengths[i] / dist;
+        child.position = {
+          x: parent.position.x + dx * scale,
+          y: parent.position.y + dy * scale,
+          z: parent.position.z + dz * scale,
+        };
+      }
+
+      const end = bones[bones.length - 1].position;
+      const errX = end.x - target.x;
+      const errY = end.y - target.y;
+      const errZ = end.z - target.z;
+      if (errX * errX + errY * errY + errZ * errZ <= toleranceSq) {
+        break;
+      }
+    }
+
+    return true;
+  }
+
+  solveChain(chainId: string, mode: IKSolveMode): boolean {
+    switch (mode) {
+      case 'analytic':
+        return this.solveTwoBone(chainId);
+      case 'ccd':
+        return this.solveCCD(chainId);
+      case 'fabrik':
+        return this.solveFABRIK(chainId);
+      default:
+        return false;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -220,11 +338,11 @@ export class IKSolver {
     groundHeight: number,
     dt: number
   ): Vector3 {
-    const current = this.footPositions.get(footId) ?? { x: 0, y: 0, z: 0 };
+    const current = this.footPositions.get(footId) ?? [0, 0, 0];
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);
 
-    const result = { x: current.x, y: current.y + (targetY - current.y) * blend, z: current.z };
+    const result = [current[0], current[1] + (targetY - current[1]) * blend, current[2]];
     this.footPositions.set(footId, result);
     return result;
   }

@@ -1,23 +1,26 @@
-import { IKSolver, type IKChain, type IKBone } from '../IKSolver';
+import { IKSolver, type IKChain } from '../IKSolver';
 
 export interface IKProbeSpec {
   chains: IKChain[];
-  targetSequence: Array<{ x: number; y: number; z: number }>;
+  targetSequence: ReadonlyArray<readonly [number, number, number]>;
 }
 
 export function runIKDeterminismProbe(spec: IKProbeSpec): Uint8Array {
   const solver = new IKSolver();
   for (const chain of spec.chains) {
-    // Deep clone the bones to prevent mutation leaking across independent runs
     const clonedChain: IKChain = {
       ...chain,
-      bones: chain.bones.map((b) => ({ ...b, position: { ...b.position }, rotation: { ...b.rotation } })),
+      target: { ...chain.target },
+      poleTarget: chain.poleTarget ? { ...chain.poleTarget } : undefined,
+      bones: chain.bones.map((b) => ({
+        ...b,
+        position: { ...b.position },
+        rotation: { ...b.rotation },
+      })),
     };
     solver.addChain(clonedChain);
   }
 
-  // We will collect the end effector positions after each target solve.
-  // 3 floats per chain per target = 12 bytes per chain per target
   const numTargets = spec.targetSequence.length;
   const numChains = spec.chains.length;
   const buffer = new Float32Array(numTargets * numChains * 3);
@@ -25,7 +28,7 @@ export function runIKDeterminismProbe(spec: IKProbeSpec): Uint8Array {
 
   for (const target of spec.targetSequence) {
     for (const chain of spec.chains) {
-      solver.setTarget(chain.id, target.x, target.y, target.z);
+      solver.setTarget(chain.id, target[0], target[1], target[2]);
     }
     solver.solveAll();
 
@@ -43,7 +46,6 @@ export function runIKDeterminismProbe(spec: IKProbeSpec): Uint8Array {
   return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 }
 
-// A canonical 3-bone IK chain for the probe
 export const PAPER_P2_IK_CANONICAL_SPEC: Readonly<IKProbeSpec> = Object.freeze({
   chains: [
     {
@@ -59,9 +61,9 @@ export const PAPER_P2_IK_CANONICAL_SPEC: Readonly<IKProbeSpec> = Object.freeze({
     },
   ],
   targetSequence: Object.freeze([
-    { x: 1, y: 1, z: 1 },
-    { x: -1, y: 2, z: 0 },
-    { x: 0, y: 0.5, z: 0.5 },
-    { x: 2, y: 2, z: 2 },
-  ]) as ReadonlyArray<{ x: number; y: number; z: number }>,
+    [1, 1, 1],
+    [-1, 2, 0],
+    [0, 0.5, 0.5],
+    [2, 2, 2],
+  ]) as ReadonlyArray<[number, number, number]>,
 });
