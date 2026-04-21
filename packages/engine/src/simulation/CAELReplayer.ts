@@ -9,6 +9,27 @@ import {
 
 type SolverFactory = (config: Record<string, unknown>) => SimSolver;
 
+/**
+ * Options for CAELReplayer.replay().
+ *
+ * Item 5b (paper-3 §5.2 Algorithm 1 dispatch): the replayer compares
+ * the trace's recorded adapter fingerprint (cael.init.payload.
+ * adapterFingerprint) against the current replay environment's
+ * fingerprint. Matching fingerprints → same-adapter → strict digest
+ * enforcement. Differing (or either absent) → cross-adapter → skip
+ * digest enforcement (per Appendix A Lemma 3 regime where per-step
+ * digest identity is not expected across adapters).
+ */
+export interface ReplayOptions {
+  /** Adapter fingerprint of the CURRENT replay environment. In
+   *  production this is vendor+architecture+device+driver+UA (matching
+   *  the format used at record time); in tests any stable string.
+   *  If omitted, replayer treats the replay as cross-adapter (safe
+   *  fallback — no strict enforcement, dispute oracle falls through
+   *  to metric comparison). */
+  currentAdapterFingerprint?: string;
+}
+
 export class CAELReplayer {
   private readonly trace: CAELTrace;
 
@@ -24,7 +45,30 @@ export class CAELReplayer {
     return verifyCAELHashChain(this.trace);
   }
 
-  async replay(solverFactory: SolverFactory): Promise<ContractedSimulation> {
+  /**
+   * sameAdapter predicate (Item 5b): compares the trace's recorded
+   * adapter fingerprint against the replay environment's current
+   * fingerprint. Both must be present as non-empty strings AND equal
+   * for sameAdapter() to return true. Any null/undefined/empty or
+   * mismatch returns false (cross-adapter fallback).
+   *
+   * Exposed as a public static helper because paper-3 §5.2
+   * Algorithm 1's pseudocode uses sameAdapter() in the dispute
+   * oracle's dispatch branch; external code (dispute oracle, CRDT
+   * merge) can reuse the same predicate for consistent semantics.
+   */
+  static sameAdapter(
+    recordedFingerprint: string | null | undefined,
+    currentFingerprint: string | null | undefined,
+  ): boolean {
+    if (!recordedFingerprint || !currentFingerprint) return false;
+    return recordedFingerprint === currentFingerprint;
+  }
+
+  async replay(
+    solverFactory: SolverFactory,
+    options: ReplayOptions = {},
+  ): Promise<ContractedSimulation> {
     const verification = this.verify();
     if (!verification.valid) {
       throw new Error(`Invalid CAEL hash chain: ${verification.reason ?? 'unknown reason'}`);
@@ -40,6 +84,22 @@ export class CAELReplayer {
 
     const config = decodeCAELValue(init.payload.config) as Record<string, unknown>;
     const contractConfig = (decodeCAELValue(init.payload.contractConfig) as ContractConfig | undefined) ?? {};
+
+    // Item 5b dispatch: compare the trace's recorded adapter fingerprint
+    // (captured at record-time by CAELRecorder) against the replay
+    // environment's current fingerprint (passed in via ReplayOptions).
+    // Same-adapter → strict digest enforcement (Item 5a behavior).
+    // Cross-adapter → skip digest enforcement (fall through to
+    // metric-comparison in the dispute oracle, per Appendix A Lemma 3
+    // regime boundary for cross-adapter replay).
+    const recordedAdapterFingerprint = typeof init.payload.adapterFingerprint === 'string'
+      ? init.payload.adapterFingerprint
+      : null;
+    const currentAdapterFingerprint = options.currentAdapterFingerprint ?? null;
+    const isSameAdapter = CAELReplayer.sameAdapter(
+      recordedAdapterFingerprint,
+      currentAdapterFingerprint,
+    );
 
     const solver = solverFactory(config);
     const contracted = new ContractedSimulation(solver, config, contractConfig);
@@ -63,7 +123,7 @@ export class CAELReplayer {
           const digestsBefore = contracted.getStateDigests().length;
           contracted.step(wallDelta);
           const actualDigests = contracted.getStateDigests().slice(digestsBefore);
-          this.validateDigests(i, 'step', entry.payload.stateDigests, actualDigests);
+          this.validateDigests(i, 'step', entry.payload.stateDigests, actualDigests, isSameAdapter);
           break;
         }
         case 'interaction': {
@@ -79,7 +139,7 @@ export class CAELReplayer {
           const digestsBefore = contracted.getStateDigests().length;
           await contracted.solve();
           const actualDigests = contracted.getStateDigests().slice(digestsBefore);
-          this.validateDigests(i, 'solve', entry.payload.stateDigests, actualDigests);
+          this.validateDigests(i, 'solve', entry.payload.stateDigests, actualDigests, isSameAdapter);
           break;
         }
         case 'final':
@@ -99,35 +159,50 @@ export class CAELReplayer {
   /**
    * Validate per-step (Route 2b) or terminal (Route 2d) state digests
    * captured by CAELRecorder against the digests re-computed during
-   * replay. Same-adapter mismatch is a hard error: the replay diverged
-   * from the recorded state, which is a state-integrity violation.
+   * replay.
    *
-   * Cross-adapter mismatch is expected per Appendix A Lemma 3 (regime
-   * boundary at n* ≈ 416 for structural stress, probability-1 in the
-   * long-trace regime). 5a/5b dispatch is founder-routed; until that
-   * lands, this replayer is Item-5a-style (strict enforcement always).
-   * The cael.init payload schema extension needed for adapter
-   * fingerprinting (F10) is a sub-dependency of 5b and not yet
-   * implemented.
+   * Item 5b dispatch (founder-approved 2026-04-20):
+   *   - same-adapter → strict enforcement: mismatch is a hard error,
+   *     indicating state-integrity violation (replay diverged from
+   *     recorded state on the same physical adapter, which should not
+   *     happen under a deterministic contract).
+   *   - cross-adapter → skip validation: per Appendix A Lemma 3, the
+   *     per-step straddle probability p_f is non-zero across adapters,
+   *     and digest-sequence mismatch over n steps is *expected* in the
+   *     regime n > n* (~416 for structural stress). Disputes between
+   *     cross-adapter branches fall through to end-to-end metric
+   *     comparison in the dispute oracle (paper-3 §5.2 Algorithm 1's
+   *     else branch).
    *
-   * Backward compat: traces recorded BEFORE Wave-2 item 5a have no
-   * `stateDigests` field. Validation is skipped silently in that case.
-   * New recorders always capture digests.
+   * Backward compat:
+   *   - Traces recorded BEFORE Wave-2 item 5a have no `stateDigests`
+   *     field. Validation is skipped silently for absent/malformed
+   *     fields (Array.isArray guard).
+   *   - Traces recorded BEFORE Item 5b have no `adapterFingerprint`
+   *     field; isSameAdapter evaluates to false (cross-adapter
+   *     fallback), so validation is skipped. This is the safe default.
    *
    * Fail-closed on NaN: if computeStateDigest throws a state-integrity
    * violation (non-finite value per Wave-1.5 guard), the error
    * propagates up through `contracted.step()` or `contracted.solve()`
    * and bypasses this validator entirely — the replayer inherits the
-   * same fail-closed semantics as the contract itself.
+   * same fail-closed semantics as the contract itself, even on
+   * cross-adapter replays where digest comparison is skipped.
    */
   private validateDigests(
     eventIndex: number,
     eventLabel: string,
     expected: unknown,
     actual: readonly string[],
+    isSameAdapter: boolean,
   ): void {
     // Backward compat: absent or malformed field → skip validation
     if (!Array.isArray(expected)) return;
+
+    // Item 5b dispatch: skip strict enforcement on cross-adapter
+    // replays. Mismatch would be expected, not a bug. Dispute oracle
+    // handles cross-adapter resolution via metric comparison.
+    if (!isSameAdapter) return;
 
     if (expected.length !== actual.length) {
       throw new Error(

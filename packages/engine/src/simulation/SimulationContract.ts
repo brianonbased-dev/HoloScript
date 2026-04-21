@@ -89,6 +89,19 @@ export interface ContractConfig {
   logInteractions?: boolean;
   /** Solver type label */
   solverType?: string;
+  /** Opaque adapter fingerprint for cross-adapter dispute dispatch
+   *  (paper-3 §5.2 Algorithm 1, 5b). Recorded into cael.init.payload
+   *  at trace-record time; compared by CAELReplayer.sameAdapter()
+   *  against the replay environment's current fingerprint at
+   *  replay-time to dispatch digest-enforcement mode:
+   *    same-adapter → strict digest enforcement (Item 5a behavior)
+   *    cross-adapter → skip digest enforcement (Appendix A Lemma 3
+   *                    regime boundary; fall through to metric-
+   *                    comparison in the dispute oracle)
+   *  Production format: vendor+architecture+device+driver+UA. Tests:
+   *  any stable string. If absent at record-time, the trace is treated
+   *  as cross-adapter for all replays (safe fallback). */
+  adapterFingerprint?: string;
 }
 
 // ── Geometry Hashing ─────────────────────────────────────────────────────────

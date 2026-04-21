@@ -133,21 +133,31 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
   });
 
   it('enforces digest match on same-adapter replay (passing case)', async () => {
-    // mockSolver is deterministic; record + replay produce identical digests
-    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    // mockSolver is deterministic; record + replay on the same adapter
+    // produce identical digests under the strict-enforcement path.
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+    );
     recorder.step(0.03);
     recorder.step(0.02);
     recorder.finalize();
 
     const replayer = new CAELReplayer(recorder.toJSONL());
-    // No throw = success
-    const replayed = await replayer.replay(() => mockSolver());
+    // Pass matching fingerprint → sameAdapter() === true → strict mode
+    const replayed = await replayer.replay(() => mockSolver(), {
+      currentAdapterFingerprint: 'test-adapter-A',
+    });
     expect(replayed.getStateDigests().length).toBeGreaterThan(0);
     replayed.dispose();
   });
 
   it('throws on tampered step digest (trace divergence)', async () => {
-    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    // Fingerprint both sides to engage same-adapter strict mode
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+    );
     recorder.step(0.02);
     recorder.finalize();
 
@@ -199,13 +209,17 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     }
 
     const replayer = new CAELReplayer(trace);
-    await expect(replayer.replay(() => mockSolver())).rejects.toThrow(
-      /state-digest mismatch at step event/,
-    );
+    // Pass matching fingerprint to engage same-adapter strict mode
+    await expect(
+      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' }),
+    ).rejects.toThrow(/state-digest mismatch at step event/);
   });
 
   it('throws on digest count mismatch (sub-step count diverged)', async () => {
-    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+    );
     recorder.step(0.02);
     recorder.finalize();
 
@@ -240,9 +254,10 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     }
 
     const replayer = new CAELReplayer(trace);
-    await expect(replayer.replay(() => mockSolver())).rejects.toThrow(
-      /state-digest count mismatch/,
-    );
+    // Pass matching fingerprint to engage same-adapter strict mode
+    await expect(
+      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' }),
+    ).rejects.toThrow(/state-digest count mismatch/);
   });
 
   it('backward compat: replays traces without stateDigests field without throwing', async () => {
@@ -280,6 +295,184 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     const replayer = new CAELReplayer(trace);
     const replayed = await replayer.replay(() => mockSolver());
     // Silent fallback; no throw
+    expect(replayed.getProvenance().totalSteps).toBeGreaterThan(0);
+    replayed.dispose();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// CAEL 5b cross-adapter dispatch (Wave-2, founder-approved 2026-04-20)
+//
+// paper-3 §5.2 Algorithm 1 gains a sameAdapter() dispatch: same-adapter
+// disputes use the digest-based FindDivergencePoint path (strict);
+// cross-adapter disputes skip the step-location step and fall through
+// to end-to-end metric comparison (per Appendix A Lemma 3 regime where
+// per-step digest identity is not expected across adapters).
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
+  it('records adapterFingerprint in cael.init payload when provided', () => {
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'vendor=Intel;arch=gen12;device=UHD' },
+    );
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    expect(trace[0].event).toBe('init');
+    expect(trace[0].payload.adapterFingerprint).toBe('vendor=Intel;arch=gen12;device=UHD');
+  });
+
+  it('stores adapterFingerprint as null when not provided', () => {
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    expect(trace[0].payload.adapterFingerprint).toBe(null);
+  });
+
+  it('sameAdapter() static: true iff both fingerprints present and equal', () => {
+    expect(CAELReplayer.sameAdapter('A', 'A')).toBe(true);
+    expect(CAELReplayer.sameAdapter('A', 'B')).toBe(false);
+    expect(CAELReplayer.sameAdapter('A', null)).toBe(false);
+    expect(CAELReplayer.sameAdapter(null, 'A')).toBe(false);
+    expect(CAELReplayer.sameAdapter(null, null)).toBe(false);
+    expect(CAELReplayer.sameAdapter('', 'A')).toBe(false);  // empty fingerprint treated as absent
+    expect(CAELReplayer.sameAdapter(undefined, 'A')).toBe(false);
+  });
+
+  it('cross-adapter replay skips digest enforcement (tampered digest does NOT throw)', async () => {
+    // Record on adapter A; replay on adapter B (different fingerprint).
+    // Even with tampered digests in the trace, the replayer should
+    // not throw — cross-adapter is the expected regime and digest
+    // mismatch is handled by the dispute oracle's metric comparison.
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' },
+    );
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    const stepEventIndex = trace.findIndex((e) => e.event === 'step');
+    const actualLength = (trace[stepEventIndex].payload.stateDigests as string[]).length;
+    const tamperedPayload = {
+      ...trace[stepEventIndex].payload,
+      stateDigests: Array.from({ length: actualLength }, () => 'deadbeef'),
+    };
+    const { hashCAELEntry } = await import('../CAELTrace');
+    const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
+    const newHash = hashCAELEntry({
+      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
+      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash, payload: newEntry.payload,
+    });
+    trace[stepEventIndex] = { ...newEntry, hash: newHash };
+    let prevHash = newHash;
+    for (let i = stepEventIndex + 1; i < trace.length; i++) {
+      const e = trace[i];
+      const h = hashCAELEntry({
+        version: e.version, runId: e.runId, index: e.index, event: e.event,
+        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+      });
+      trace[i] = { ...e, prevHash, hash: h };
+      prevHash = h;
+    }
+
+    const replayer = new CAELReplayer(trace);
+    // Current adapter B differs from recorded A → cross-adapter → skip
+    const replayed = await replayer.replay(() => mockSolver(), {
+      currentAdapterFingerprint: 'adapter-B',
+    });
+    expect(replayed.getProvenance().totalSteps).toBeGreaterThan(0);
+    replayed.dispose();
+  });
+
+  it('replay without currentAdapterFingerprint → cross-adapter fallback (skip)', async () => {
+    const recorder = new CAELRecorder(
+      mockSolver(), {},
+      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' },
+    );
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    const stepEventIndex = trace.findIndex((e) => e.event === 'step');
+    const actualLength = (trace[stepEventIndex].payload.stateDigests as string[]).length;
+    const tamperedPayload = {
+      ...trace[stepEventIndex].payload,
+      stateDigests: Array.from({ length: actualLength }, () => 'deadbeef'),
+    };
+    const { hashCAELEntry } = await import('../CAELTrace');
+    const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
+    const newHash = hashCAELEntry({
+      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
+      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash, payload: newEntry.payload,
+    });
+    trace[stepEventIndex] = { ...newEntry, hash: newHash };
+    let prevHash = newHash;
+    for (let i = stepEventIndex + 1; i < trace.length; i++) {
+      const e = trace[i];
+      const h = hashCAELEntry({
+        version: e.version, runId: e.runId, index: e.index, event: e.event,
+        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+      });
+      trace[i] = { ...e, prevHash, hash: h };
+      prevHash = h;
+    }
+
+    const replayer = new CAELReplayer(trace);
+    // No currentAdapterFingerprint → sameAdapter() returns false → skip
+    const replayed = await replayer.replay(() => mockSolver());
+    expect(replayed.getProvenance().totalSteps).toBeGreaterThan(0);
+    replayed.dispose();
+  });
+
+  it('trace without adapterFingerprint + replay with one → cross-adapter fallback', async () => {
+    // Old trace (pre-5b) has null fingerprint. Even if replay provides
+    // a current fingerprint, sameAdapter() returns false (null recorded
+    // means unknown/cross-adapter).
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01 });
+    // Note: no adapterFingerprint in contractConfig
+    recorder.step(0.02);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    // Verify: no fingerprint recorded
+    expect(trace[0].payload.adapterFingerprint).toBe(null);
+
+    // Tamper digest
+    const stepEventIndex = trace.findIndex((e) => e.event === 'step');
+    const actualLength = (trace[stepEventIndex].payload.stateDigests as string[]).length;
+    const tamperedPayload = {
+      ...trace[stepEventIndex].payload,
+      stateDigests: Array.from({ length: actualLength }, () => 'deadbeef'),
+    };
+    const { hashCAELEntry } = await import('../CAELTrace');
+    const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
+    const newHash = hashCAELEntry({
+      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
+      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash, payload: newEntry.payload,
+    });
+    trace[stepEventIndex] = { ...newEntry, hash: newHash };
+    let prevHash = newHash;
+    for (let i = stepEventIndex + 1; i < trace.length; i++) {
+      const e = trace[i];
+      const h = hashCAELEntry({
+        version: e.version, runId: e.runId, index: e.index, event: e.event,
+        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+      });
+      trace[i] = { ...e, prevHash, hash: h };
+      prevHash = h;
+    }
+
+    const replayer = new CAELReplayer(trace);
+    // Current fingerprint provided but trace has none → sameAdapter false → skip
+    const replayed = await replayer.replay(() => mockSolver(), {
+      currentAdapterFingerprint: 'adapter-B',
+    });
     expect(replayed.getProvenance().totalSteps).toBeGreaterThan(0);
     replayed.dispose();
   });

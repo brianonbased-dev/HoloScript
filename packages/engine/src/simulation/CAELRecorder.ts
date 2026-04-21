@@ -34,6 +34,11 @@ export class CAELRecorder {
       geometryHash: replay.geometryHash,
       config: encodeCAELValue(config),
       contractConfig: encodeCAELValue(contractConfig),
+      // Item 5b: surface adapterFingerprint as a top-level payload
+      // field for O(1) access by CAELReplayer.sameAdapter() without
+      // having to decode the entire contractConfig. Null when absent
+      // (safe fallback: replayer treats null as cross-adapter).
+      adapterFingerprint: contractConfig.adapterFingerprint ?? null,
     });
   }
 
