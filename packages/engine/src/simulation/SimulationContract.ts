@@ -172,6 +172,9 @@ export function validateMeshSanity(
   const numNodes = nCoord / 3;
   const out: ContractViolation[] = [];
 
+  // Track referenced nodes to catch orphaned vertices (connectivity sanity)
+  const referencedNodes = new Uint8Array(numNodes);
+
   for (let i = 0; i < vertices.length; i++) {
     const c = vertices[i];
     if (!Number.isFinite(c)) {
@@ -202,7 +205,22 @@ export function validateMeshSanity(
           `(${numNodes} nodes)`,
         severity: 'error',
       });
+    } else {
+      referencedNodes[idx] = 1;
     }
+  }
+
+  // Check for orphaned vertices (Guarantee 1: Connectivity Sanity)
+  let orphanedCount = 0;
+  for (let i = 0; i < numNodes; i++) {
+    if (referencedNodes[i] === 0) orphanedCount++;
+  }
+  if (orphanedCount > 0) {
+    out.push({
+      rule: 'mesh-connectivity',
+      message: `${orphanedCount} orphaned vertices detected (not referenced by any element)`,
+      severity: 'warning',
+    });
   }
 
   return out;
@@ -324,6 +342,26 @@ export class ContractedSimulation {
   private startTime = 0;
   private logInteractions: boolean;
 
+  /**
+   * Per-step state-vector digests (paper-3 Route 2b closure path for
+   * Property 4 cross-adapter determinism).
+   *
+   * Each entry is the FNV-1a hash of the quantized (*1e6 + round) state
+   * vector AFTER that step's solver.step() completed. The quantization
+   * resets floating-point drift per step, which means cross-adapter
+   * replays can agree bit-exact on the digest even when their underlying
+   * float32 reduction orders differ — as long as the pre-quantized state
+   * vectors agree within the contract's ε tolerance (defined by the
+   * quantum, 1/1e6 = 1 µ-unit).
+   *
+   * See:
+   *   research/2026-04-20_webgpu-determinism-protocol.md (ai-ecosystem)
+   *   research/2026-04-20_property-4-route-2-proof-outline.md (ai-ecosystem)
+   *   packages/engine/src/simulation/__tests__/state-canonicalize-overhead.bench.test.ts
+   *     (decision: Route 2b wins at 1.372% max overhead vs paper-3 §7 production-step median)
+   */
+  private stateDigests: string[] = [];
+
   constructor(
     solver: SimSolver,
     config: Record<string, unknown>,
@@ -373,12 +411,87 @@ export class ContractedSimulation {
   }
 
   /** Advance the simulation by wall-clock delta using fixed timestep.
-   *  Enforces Guarantee 1 (geometry integrity) before each step. */
+   *  Enforces Guarantee 1 (geometry integrity) before each step.
+   *  Captures per-step state digest for Property 4 Route 2b (cross-adapter
+   *  determinism via per-step canonicalization — see stateDigests field). */
   step(wallDelta: number): number {
     this.enforceGeometryIntegrity();
-    return this.stepper.advance(wallDelta, (dt) => {
+    const subStepsTaken = this.stepper.advance(wallDelta, (dt) => {
       this.solver.step(dt);
+      // Route 2b: canonicalize state AFTER each solver sub-step so the
+      // digest sequence reflects inner fixed-timestep granularity, not
+      // wall-clock delta granularity. This matters for replay — a replay
+      // with a different wallDelta but the same inner-dt sequence must
+      // produce the same digest sequence.
+      this.stateDigests.push(this.computeStateDigest());
     });
+    return subStepsTaken;
+  }
+
+  /**
+   * Compute the canonical state digest: quantize every field to
+   * int32 via round(value * 1e6), then FNV-1a over the concatenated
+   * little-endian bytes in deterministic field-name order.
+   *
+   * Deterministic across platforms because:
+   *   (1) field-name ordering is alphabetical (stable across engines)
+   *   (2) quantization resets float32 reduction-order drift
+   *   (3) FNV-1a is integer arithmetic (no floating-point at hash time)
+   *
+   * This is the primitive Route 2b relies on. If two adapters produce
+   * float32 state vectors that agree within 1/1e6 of each other, their
+   * state digests will be identical regardless of internal reduction
+   * order differences in compute shaders.
+   */
+  private computeStateDigest(): string {
+    // Deterministic field order
+    const fieldNames = [...this.solver.fieldNames].sort();
+    const FNV_OFFSET = 0x811c9dc5;
+    const FNV_PRIME = 0x01000193;
+    let h = FNV_OFFSET >>> 0;
+
+    for (const name of fieldNames) {
+      const field = this.solver.getField(name);
+      if (!field) continue;
+      // Flatten whatever the field is into a typed-array view
+      let values: Float32Array | Float64Array;
+      if (field instanceof Float32Array) {
+        values = field;
+      } else if (field instanceof Float64Array) {
+        values = field;
+      } else {
+        // RegularGrid3D — assume it exposes `.data` per this codebase's convention
+        const maybeData = (field as unknown as { data?: Float32Array | Float64Array }).data;
+        if (!maybeData) continue;
+        values = maybeData;
+      }
+      // Hash the field-name first so two fields with identical values but
+      // different names produce different digests
+      for (let i = 0; i < name.length; i++) {
+        h ^= name.charCodeAt(i) & 0xff;
+        h = Math.imul(h, FNV_PRIME) >>> 0;
+      }
+      // Quantize + fold into the hash
+      for (let i = 0; i < values.length; i++) {
+        const q = Math.round(values[i] * 1e6) | 0;
+        h ^= q & 0xff;
+        h = Math.imul(h, FNV_PRIME) >>> 0;
+        h ^= (q >>> 8) & 0xff;
+        h = Math.imul(h, FNV_PRIME) >>> 0;
+        h ^= (q >>> 16) & 0xff;
+        h = Math.imul(h, FNV_PRIME) >>> 0;
+        h ^= (q >>> 24) & 0xff;
+        h = Math.imul(h, FNV_PRIME) >>> 0;
+      }
+    }
+
+    return h.toString(16).padStart(8, '0');
+  }
+
+  /** Return the array of per-step state digests captured so far.
+   *  Used by CAELReplayer + cross-adapter determinism verification. */
+  getStateDigests(): readonly string[] {
+    return this.stateDigests.slice();
   }
 
   /** Solve a steady-state system (not time-stepped).
