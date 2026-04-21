@@ -1,7 +1,9 @@
 /**
  * PluginSandbox — iframe-based plugin isolation for HoloScript Studio
  *
- * Architecture index: RFC-028 (plugin sandboxing); remaining hardening is tracked in design backlog, not inline TODOs.
+ * Architecture index: RFC-028 (plugin sandboxing). Host hardening: verify postMessage
+ * `event.source` matches the plugin iframe, safe bootstrap embedding for manifest fields,
+ * referrer policy on the iframe, and structured child→parent messages only after origin checks.
  *
  * Architecture:
  *   Each plugin runs in a dedicated iframe with restricted permissions.
@@ -177,6 +179,15 @@ function isPluginMessage(data: unknown): data is PluginMessage {
     typeof msg.pluginId === 'string' &&
     typeof msg.timestamp === 'number'
   );
+}
+
+/** Escape text embedded into bootstrap HTML (title, etc.). */
+function escapeHtmlForBootstrap(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // =============================================================================
@@ -482,6 +493,7 @@ export class PluginSandbox {
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', SANDBOX_ATTRIBUTES);
+    iframe.setAttribute('referrerpolicy', 'no-referrer');
     iframe.setAttribute('data-plugin-id', manifest.id);
     iframe.style.width = '0';
     iframe.style.height = '0';
@@ -495,13 +507,13 @@ export class PluginSandbox {
       <html>
       <head>
         ${CSP_META}
-        <title>Plugin: ${manifest.name}</title>
+        <title>Plugin: ${escapeHtmlForBootstrap(manifest.name)}</title>
       </head>
       <body>
         <script>
           // Plugin sandbox runtime
           (function() {
-            const pluginId = "${manifest.id}";
+            const pluginId = ${JSON.stringify(manifest.id)};
 
             // Message handler
             window.addEventListener('message', function(event) {
@@ -598,6 +610,13 @@ export class PluginSandbox {
 
     const instance = this.plugins.get(data.pluginId);
     if (!instance) return;
+
+    // RFC-028: only accept messages from this plugin's iframe (not other windows/embeds).
+    const frame = instance.iframe;
+    const childWindow = frame?.contentWindow ?? null;
+    if (childWindow == null || event.source !== childWindow) {
+      return;
+    }
 
     // Rate limiting
     if (!this.checkRateLimit(data.pluginId)) {
