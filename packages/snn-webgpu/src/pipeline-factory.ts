@@ -94,6 +94,8 @@ export class PipelineFactory {
   private ctx: GPUContext;
   private moduleCache: Map<ShaderCategory, GPUShaderModule> = new Map();
   private pipelineCache: Map<ShaderEntryPoint, PipelineCacheEntry> = new Map();
+  /** Deduplicates in-flight async pipeline compilations for the same entry point. */
+  private pendingAsync: Map<ShaderEntryPoint, Promise<GPUComputePipeline>> = new Map();
 
   constructor(ctx: GPUContext) {
     this.ctx = ctx;
@@ -139,6 +141,63 @@ export class PipelineFactory {
     });
 
     return pipeline;
+  }
+
+  /**
+   * Asynchronously get or create a compute pipeline for a specific entry point.
+   * Avoids stalling the main thread during driver shader compilation.
+   * Results are cached identically to getPipeline() — subsequent calls return from cache.
+   * Concurrent calls for the same entry point share a single in-flight compilation.
+   */
+  async getPipelineAsync(entryPoint: ShaderEntryPoint): Promise<GPUComputePipeline> {
+    const cached = this.pipelineCache.get(entryPoint);
+    if (cached) {
+      return cached.pipeline;
+    }
+
+    // Return in-flight promise if one already exists for this entry point
+    const pending = this.pendingAsync.get(entryPoint);
+    if (pending) {
+      return pending;
+    }
+
+    const category = ENTRY_POINT_CATEGORY[entryPoint];
+    const module = this.getShaderModule(category);
+
+    const promise = this.ctx
+      .createComputePipelineAsync(module, entryPoint, 'auto', `snn-pipeline-async-${entryPoint}`)
+      .then(pipeline => {
+        this.pipelineCache.set(entryPoint, { pipeline, module, category, entryPoint });
+        this.pendingAsync.delete(entryPoint);
+        return pipeline;
+      });
+
+    this.pendingAsync.set(entryPoint, promise);
+    return promise;
+  }
+
+  /**
+   * Warm up multiple pipelines in parallel using async compilation.
+   * Call during scene/model load to precompile shaders before they are needed.
+   * @param entryPoints - list of entry points to precompile; defaults to all available
+   */
+  async warmupAsync(entryPoints?: ShaderEntryPoint[]): Promise<void> {
+    const targets = entryPoints ?? this.getAvailableEntryPoints();
+    await Promise.all(targets.map(ep => this.getPipelineAsync(ep)));
+  }
+
+  /**
+   * Retrieve compilation diagnostics (errors and warnings) for a shader module.
+   * Surfaces WGSL compilation errors that are otherwise silent in some browsers.
+   * @returns array of GPUCompilationMessage objects, or [] if not supported
+   */
+  async checkShaderCompilationErrors(category: ShaderCategory): Promise<GPUCompilationMessage[]> {
+    const module = this.getShaderModule(category);
+    if (typeof module.getCompilationInfo !== 'function') {
+      return [];
+    }
+    const info = await module.getCompilationInfo();
+    return Array.from(info.messages);
   }
 
   /**
@@ -229,5 +288,6 @@ export class PipelineFactory {
   clearCache(): void {
     this.pipelineCache.clear();
     this.moduleCache.clear();
+    this.pendingAsync.clear();
   }
 }

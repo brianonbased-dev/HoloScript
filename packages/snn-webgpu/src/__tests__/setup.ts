@@ -192,6 +192,10 @@ class MockShaderModule {
   constructor(descriptor: GPUShaderModuleDescriptor) {
     this.label = descriptor.label ?? '';
   }
+
+  async getCompilationInfo(): Promise<GPUCompilationInfo> {
+    return { messages: [] } as unknown as GPUCompilationInfo;
+  }
 }
 
 class MockGPUDevice {
@@ -226,6 +230,10 @@ class MockGPUDevice {
   }
 
   createComputePipeline(descriptor: any): MockComputePipeline {
+    return new MockComputePipeline(descriptor);
+  }
+
+  async createComputePipelineAsync(descriptor: any): Promise<MockComputePipeline> {
     return new MockComputePipeline(descriptor);
   }
 

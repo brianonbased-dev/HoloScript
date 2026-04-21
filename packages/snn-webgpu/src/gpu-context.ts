@@ -210,6 +210,27 @@ export class GPUContext {
   }
 
   /**
+   * Create a compute pipeline asynchronously.
+   * Avoids stalling the main/render thread during driver shader compilation.
+   * Prefer this over createComputePipeline for first-time pipeline creation.
+   */
+  async createComputePipelineAsync(
+    module: GPUShaderModule,
+    entryPoint: string,
+    layout: GPUPipelineLayout | 'auto' = 'auto',
+    label?: string
+  ): Promise<GPUComputePipeline> {
+    return this.device.createComputePipelineAsync({
+      label: label ?? `compute-pipeline-async-${entryPoint}`,
+      layout,
+      compute: {
+        module,
+        entryPoint,
+      },
+    });
+  }
+
+  /**
    * Submit a command buffer and wait for completion.
    */
   async submitAndWait(commandBuffer: GPUCommandBuffer): Promise<void> {
