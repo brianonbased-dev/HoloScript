@@ -205,4 +205,130 @@ describe('LWWRegister', () => {
       expect(state?.count).toBe(1);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Paper-3 tiebreaker hardening
+  // Guards assumptions around globally unique agentId/source and verifies
+  // that "both-valid" concurrent conflict scenarios converge deterministically.
+  // See Paper-3 §4.3 (provenance semiring dispute resolution).
+  // -----------------------------------------------------------------------
+  describe('tiebreaker hardening (Paper-3)', () => {
+    describe('agentId uniqueness guard', () => {
+      it('createTestSigner produces distinct DIDs for the same name called twice', () => {
+        const s1 = createTestSigner('npc-ai');
+        const s2 = createTestSigner('npc-ai');
+        // Private key is random on each call → DIDs must differ
+        expect(s1.getDID()).not.toBe(s2.getDID());
+      });
+
+      it('same actorDid same timestamp — deterministic via operationId tiebreaker', () => {
+        const sharedDid = 'did:test:shared-agent';
+        const timestamp = 1_000_000;
+
+        // Two operations from the same agent at the same millisecond
+        const appliedFirst = register1.applyRemoteOperation('op-alpha', 'burst-a', timestamp, sharedDid);
+        const appliedSecond = register1.applyRemoteOperation('op-zeta', 'burst-z', timestamp, sharedDid);
+
+        // Second op has higher operationId ('op-zeta' > 'op-alpha') → should win
+        expect(appliedFirst).toBe(true);
+        expect(appliedSecond).toBe(true);
+        expect(register1.get()).toBe('burst-z');
+      });
+
+      it('same actorDid same timestamp same operationId — idempotent (no change)', () => {
+        const did = 'did:test:idempotent';
+        const timestamp = 1_000_000;
+
+        register1.applyRemoteOperation('op-same', 'value-1', timestamp, did);
+        const reapplied = register1.applyRemoteOperation('op-same', 'value-1', timestamp, did);
+
+        // Exact duplicate must be a no-op
+        expect(reapplied).toBe(false);
+        expect(register1.get()).toBe('value-1');
+      });
+    });
+
+    describe('both-valid concurrent scenarios', () => {
+      it('two valid concurrent writes converge to same value on all replicas (order: 1→2)', () => {
+        const timestamp = Date.now();
+        const didA = 'did:test:agent-alpha';
+        const didB = 'did:test:agent-beta';
+
+        // Replica 1: receives A then B
+        register1.applyRemoteOperation('op-a', 'value-a', timestamp, didA);
+        register1.applyRemoteOperation('op-b', 'value-b', timestamp, didB);
+
+        // Replica 2: receives B then A
+        register2.applyRemoteOperation('op-b', 'value-b', timestamp, didB);
+        register2.applyRemoteOperation('op-a', 'value-a', timestamp, didA);
+
+        // Both replicas must converge to the same value
+        expect(register1.get()).toBe(register2.get());
+        // 'did:test:agent-beta' > 'did:test:agent-alpha' lexicographically → beta wins
+        expect(register1.get()).toBe('value-b');
+      });
+
+      it('both-valid: three concurrent agents converge regardless of application order', () => {
+        const timestamp = Date.now();
+        const ops = [
+          { id: 'op-1', value: 'alpha', did: 'did:test:aaa' },
+          { id: 'op-2', value: 'beta',  did: 'did:test:bbb' },
+          { id: 'op-3', value: 'gamma', did: 'did:test:ccc' },
+        ] as const;
+
+        // Six possible orderings — spot-check three
+        const permutations: Array<[number, number, number]> = [
+          [0, 1, 2],
+          [2, 1, 0],
+          [1, 2, 0],
+        ];
+
+        const results: (string | null)[] = [];
+        for (const perm of permutations) {
+          const reg = new LWWRegister<string>('perm-test', signer1);
+          for (const i of perm) {
+            reg.applyRemoteOperation(ops[i].id, ops[i].value, timestamp, ops[i].did);
+          }
+          results.push(reg.get());
+        }
+
+        // All permutations must produce the same winner
+        expect(new Set(results).size).toBe(1);
+        // 'did:test:ccc' is lexicographically largest → gamma wins
+        expect(results[0]).toBe('gamma');
+      });
+
+      it('both-valid: commutativity holds when one op is newer', async () => {
+        // Agent 1 writes at t=100, Agent 2 writes at t=200 (both valid)
+        const reg1 = new LWWRegister<string>('commute-test', signer1);
+        const reg2 = new LWWRegister<string>('commute-test', signer2);
+
+        // Replica 1: older-first, then newer
+        reg1.applyRemoteOperation('old-op', 'old-value', 100, 'did:test:writer-1');
+        reg1.applyRemoteOperation('new-op', 'new-value', 200, 'did:test:writer-2');
+
+        // Replica 2: newer-first, then older
+        reg2.applyRemoteOperation('new-op', 'new-value', 200, 'did:test:writer-2');
+        reg2.applyRemoteOperation('old-op', 'old-value', 100, 'did:test:writer-1');
+
+        expect(reg1.get()).toBe('new-value');
+        expect(reg2.get()).toBe('new-value');
+      });
+
+      it('both-valid: tiebreaker is total order (no draw possible)', () => {
+        // With only two DIDs and one timestamp, there must be a single winner
+        const timestamp = Date.now();
+        const reg = new LWWRegister<number>('total-order', signer1);
+
+        reg.applyRemoteOperation('op-x', 1, timestamp, 'did:test:x');
+        reg.applyRemoteOperation('op-y', 2, timestamp, 'did:test:y');
+
+        // Must have chosen exactly one value — no null, no undefined
+        const winner = reg.get();
+        expect(winner === 1 || winner === 2).toBe(true);
+        // Deterministic: 'did:test:y' > 'did:test:x'
+        expect(winner).toBe(2);
+      });
+    });
+  });
 });

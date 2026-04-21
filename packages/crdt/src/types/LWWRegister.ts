@@ -126,6 +126,16 @@ export class LWWRegister<T> {
       if (actorDid > this.current.actorDid) {
         this.current = { value, timestamp, actorDid, operationId };
         return true;
+      } else if (actorDid === this.current.actorDid) {
+        // Same agent, same timestamp: use operationId as final tiebreaker
+        // Prevents non-determinism when the same agent emits two ops at the
+        // same millisecond (e.g., burst writes on a fast machine).
+        // Paper-3 §4.3: agentId must be globally unique; if two distinct logical
+        // operations share an actorDid, operationId uniqueness is the last line of defence.
+        if (operationId > this.current.operationId) {
+          this.current = { value, timestamp, actorDid, operationId };
+          return true;
+        }
       }
     }
 
