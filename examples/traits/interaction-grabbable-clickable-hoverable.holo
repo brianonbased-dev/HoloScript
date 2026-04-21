@@ -1,0 +1,202 @@
+/**
+ * Interaction Traits Showcase — @grabbable, @clickable, @hoverable, @draggable, @pointable, @scalable
+ *
+ * Demonstrates the core interaction trait family in a virtual showroom where
+ * products can be picked up, examined, dragged to a compare zone, and scaled
+ * for detail inspection.
+ *
+ * These traits power every direct-manipulation XR/web interaction.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative — no per-frame hooks needed)
+ * @traits @grabbable, @clickable, @hoverable, @draggable, @pointable, @scalable
+ */
+
+composition "Interaction Traits Showroom" {
+  environment {
+    skybox: "showroom"
+    ambient_light: 0.8
+    floor: true
+  }
+
+  // ========================================================================
+  // GRABBABLE — pick up and reposition freely
+  // ========================================================================
+
+  template "GrabbableProduct" {
+    @grabbable {
+      hand: "both"
+      snap_on_release: false
+      highlight_on_near: true
+    }
+    @pointable {
+      cursor_style: "grab"
+    }
+    geometry: "cube"
+    state {
+      label: ""
+      grabbed: false
+    }
+    onGrab: {
+      set grabbed true
+      play_audio "grab.ogg"
+    }
+    onRelease: {
+      set grabbed false
+    }
+  }
+
+  spatial_group "Product Shelf" {
+    object "product_a" using "GrabbableProduct" {
+      position: [-1.5, 1.2, -2.0]
+      color: "#e63946"
+      state { label: "Product A" }
+    }
+    object "product_b" using "GrabbableProduct" {
+      position: [0.0, 1.2, -2.0]
+      color: "#457b9d"
+      state { label: "Product B" }
+    }
+    object "product_c" using "GrabbableProduct" {
+      position: [1.5, 1.2, -2.0]
+      color: "#2a9d8f"
+      state { label: "Product C" }
+    }
+  }
+
+  // ========================================================================
+  // CLICKABLE — button-style press interactions
+  // ========================================================================
+
+  template "ClickButton" {
+    @clickable {
+      feedback: "haptic"
+      cooldown_ms: 300
+    }
+    @hoverable {
+      scale_on_hover: 1.08
+      color_on_hover: "#ffd166"
+    }
+    geometry: "cylinder"
+    state {
+      label: ""
+      press_count: 0
+    }
+    onClick: {
+      increment press_count
+      play_audio "click.ogg"
+      animate "press_down" duration 0.1
+    }
+  }
+
+  spatial_group "Control Panel" {
+    object "btn_lights" using "ClickButton" {
+      position: [-0.5, 1.0, 0.0]
+      color: "#f4f1de"
+      state { label: "Lights" }
+    }
+    object "btn_music" using "ClickButton" {
+      position: [0.5, 1.0, 0.0]
+      color: "#f4f1de"
+      state { label: "Music" }
+    }
+  }
+
+  // ========================================================================
+  // HOVERABLE — surface-level pointer feedback (no click needed)
+  // ========================================================================
+
+  template "HoverCard" {
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: ""
+      glow_on_hover: true
+      glow_color: "#a8dadc"
+    }
+    geometry: "plane"
+    state {
+      tooltip_text: ""
+    }
+  }
+
+  spatial_group "Info Cards" {
+    object "card_specs" using "HoverCard" {
+      position: [2.5, 1.5, -1.0]
+      rotation: [0, -30, 0]
+      scale: [0.8, 1.2, 1.0]
+      state { tooltip_text: "View Technical Specs" }
+    }
+    object "card_pricing" using "HoverCard" {
+      position: [2.5, 0.5, -1.0]
+      rotation: [0, -30, 0]
+      scale: [0.8, 1.2, 1.0]
+      state { tooltip_text: "View Pricing" }
+    }
+  }
+
+  // ========================================================================
+  // DRAGGABLE — constrained 2D drag (table surface)
+  // ========================================================================
+
+  template "DraggableToken" {
+    @draggable {
+      constrain_axis: "xz"
+      bounds: { min: [-2, 0, -2], max: [2, 0, 2] }
+      snap_grid: 0.25
+    }
+    @hoverable {
+      cursor_style: "move"
+    }
+    geometry: "cylinder"
+    state {
+      slot: -1
+    }
+  }
+
+  object "table_surface" {
+    geometry: "plane"
+    position: [0, 0.85, 1.0]
+    scale: [4.0, 1.0, 4.0]
+    color: "#d4a373"
+  }
+
+  spatial_group "Draggable Tokens" {
+    object "token_red" using "DraggableToken" {
+      position: [-1.0, 0.9, 1.0]
+      scale: [0.3, 0.05, 0.3]
+      color: "#e63946"
+    }
+    object "token_blue" using "DraggableToken" {
+      position: [0.5, 0.9, 1.0]
+      scale: [0.3, 0.05, 0.3]
+      color: "#457b9d"
+    }
+  }
+
+  // ========================================================================
+  // SCALABLE — pinch-to-scale for detail inspection
+  // ========================================================================
+
+  template "ScalableModel" {
+    @scalable {
+      min_scale: 0.5
+      max_scale: 3.0
+      uniform: true
+    }
+    @grabbable {
+      hand: "both"
+    }
+    geometry: "sphere"
+    state {
+      current_scale: 1.0
+    }
+    onScale: {
+      set current_scale event.scale
+    }
+  }
+
+  object "inspect_globe" using "ScalableModel" {
+    position: [-3.0, 1.2, 0.0]
+    color: "#264653"
+  }
+}

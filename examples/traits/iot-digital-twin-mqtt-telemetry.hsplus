@@ -1,0 +1,253 @@
+/**
+ * IoT & Digital Twin Traits — @iot_sensor, @digital_twin, @mqtt_bridge, @telemetry
+ *
+ * Demonstrates the IoT trait family in a smart factory floor scene with
+ * live sensor data, a digital twin of physical machinery, MQTT bridging
+ * to real-world systems, and telemetry dashboards.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior — requires onSensorUpdate and streaming event hooks)
+ * @traits @iot_sensor, @digital_twin, @mqtt_bridge, @telemetry
+ */
+
+composition "Smart Factory Digital Twin" {
+  environment {
+    skybox: "industrial_interior"
+    ambient_light: 0.7
+    floor: true
+    grid_overlay: true
+  }
+
+  // ========================================================================
+  // MQTT_BRIDGE — connects the scene to a real MQTT broker
+  // ========================================================================
+
+  object "mqtt_gateway" {
+    @mqtt_bridge {
+      broker: "mqtt://factory.internal:1883"
+      client_id: "holoscript-twin-01"
+      topics: [
+        "factory/+/temperature",
+        "factory/+/vibration",
+        "factory/+/power_kw",
+        "factory/+/status"
+      ]
+      qos: 1
+      reconnect_interval_ms: 5000
+    }
+    state {
+      connected: false
+      last_message_ts: 0
+    }
+    onConnect: {
+      set connected true
+      broadcast "mqtt_ready" {}
+    }
+    onDisconnect: {
+      set connected false
+    }
+    onMessage: {
+      route_to_sensor event.topic event.payload
+    }
+  }
+
+  // ========================================================================
+  // IOT_SENSOR — live data feeds from physical sensors
+  // ========================================================================
+
+  template "TemperatureSensor" {
+    @iot_sensor {
+      type: "temperature"
+      unit: "celsius"
+      poll_interval_ms: 2000
+      alert_threshold: { high: 85.0, low: -10.0 }
+      interpolate: true
+    }
+    @telemetry {
+      record: true
+      buffer_size: 500
+      export_format: "prometheus"
+      metrics: ["value", "alert_state"]
+    }
+    geometry: "cylinder"
+    state {
+      sensor_id: ""
+      value: 0.0
+      alert_state: "normal"
+      unit: "°C"
+    }
+    onSensorUpdate: {
+      set value event.value
+      if event.value > 85 {
+        set alert_state "critical"
+        play_audio "alarm_high.ogg"
+        broadcast "temperature_alert" { sensor: state.sensor_id, value: event.value }
+      } else_if event.value > 70 {
+        set alert_state "warning"
+      } else {
+        set alert_state "normal"
+      }
+    }
+  }
+
+  template "VibrationSensor" {
+    @iot_sensor {
+      type: "vibration"
+      unit: "mm/s"
+      poll_interval_ms: 500
+      alert_threshold: { high: 7.1 }
+    }
+    @telemetry {
+      record: true
+      buffer_size: 1000
+      metrics: ["value", "rms", "peak"]
+    }
+    geometry: "sphere"
+    state {
+      sensor_id: ""
+      value: 0.0
+      rms: 0.0
+      peak: 0.0
+      alert_state: "normal"
+    }
+    onSensorUpdate: {
+      set value event.value
+      set rms event.rms
+      set peak event.peak
+      if event.peak > 7.1 {
+        set alert_state "critical"
+        broadcast "vibration_alert" { sensor: state.sensor_id, peak: event.peak }
+      } else {
+        set alert_state "normal"
+      }
+    }
+  }
+
+  // ========================================================================
+  // DIGITAL_TWIN — synchronized 3D representation of physical machine
+  // ========================================================================
+
+  template "CNCMachineTwin" {
+    @digital_twin {
+      physical_asset_id: ""
+      sync_properties: ["position", "rotation", "state.spindle_rpm", "state.feed_rate", "state.status"]
+      sync_interval_ms: 100
+      divergence_alert_threshold: 0.05
+    }
+    @telemetry {
+      record: true
+      buffer_size: 2000
+      metrics: ["spindle_rpm", "feed_rate", "power_kw", "status"]
+      export_format: "prometheus"
+    }
+    geometry: "cube"
+    state {
+      physical_asset_id: ""
+      spindle_rpm: 0
+      feed_rate: 0.0
+      power_kw: 0.0
+      status: "idle"
+      cycle_time_s: 0
+      parts_produced: 0
+    }
+    onTwinSync: {
+      set spindle_rpm event.spindle_rpm
+      set feed_rate event.feed_rate
+      set power_kw event.power_kw
+      set status event.status
+    }
+    onDivergenceAlert: {
+      broadcast "twin_divergence" {
+        asset: state.physical_asset_id
+        property: event.property
+        physical: event.physical_value
+        digital: event.digital_value
+      }
+    }
+  }
+
+  spatial_group "CNC Machines" {
+    object "cnc_01" using "CNCMachineTwin" {
+      position: [-4.0, 0.6, -4.0]
+      scale: [1.5, 1.2, 2.0]
+      color: "#4a4e69"
+      state { physical_asset_id: "factory-cnc-001" }
+    }
+    object "cnc_02" using "CNCMachineTwin" {
+      position: [0.0, 0.6, -4.0]
+      scale: [1.5, 1.2, 2.0]
+      color: "#4a4e69"
+      state { physical_asset_id: "factory-cnc-002" }
+    }
+    object "cnc_03" using "CNCMachineTwin" {
+      position: [4.0, 0.6, -4.0]
+      scale: [1.5, 1.2, 2.0]
+      color: "#4a4e69"
+      state { physical_asset_id: "factory-cnc-003" }
+    }
+  }
+
+  spatial_group "Temperature Sensors" {
+    object "temp_cnc_01" using "TemperatureSensor" {
+      position: [-4.0, 1.4, -4.0]
+      scale: [0.1, 0.2, 0.1]
+      color: "#e9c46a"
+      state { sensor_id: "temp-cnc-001" }
+    }
+    object "temp_cnc_02" using "TemperatureSensor" {
+      position: [0.0, 1.4, -4.0]
+      scale: [0.1, 0.2, 0.1]
+      color: "#e9c46a"
+      state { sensor_id: "temp-cnc-002" }
+    }
+    object "temp_cnc_03" using "TemperatureSensor" {
+      position: [4.0, 1.4, -4.0]
+      scale: [0.1, 0.2, 0.1]
+      color: "#e9c46a"
+      state { sensor_id: "temp-cnc-003" }
+    }
+  }
+
+  spatial_group "Vibration Sensors" {
+    object "vib_cnc_01" using "VibrationSensor" {
+      position: [-4.0, 1.8, -4.0]
+      scale: [0.08, 0.08, 0.08]
+      color: "#f4a261"
+      state { sensor_id: "vib-cnc-001" }
+    }
+    object "vib_cnc_02" using "VibrationSensor" {
+      position: [0.0, 1.8, -4.0]
+      scale: [0.08, 0.08, 0.08]
+      color: "#f4a261"
+      state { sensor_id: "vib-cnc-002" }
+    }
+  }
+
+  // ========================================================================
+  // KPI dashboard — reads from @telemetry streams
+  // ========================================================================
+
+  object "kpi_dashboard" {
+    @telemetry {
+      subscribe: ["temp-cnc-*", "vib-cnc-*", "factory-cnc-*"]
+      aggregate: true
+      window_ms: 60000
+    }
+    geometry: "plane"
+    position: [0, 2.4, -8.5]
+    scale: [6.0, 2.0, 1.0]
+    color: "#0d1b2a"
+    state {
+      avg_temp: 0.0
+      max_vib: 0.0
+      total_power_kw: 0.0
+      machines_running: 0
+    }
+    onTelemetryAggregate: {
+      set avg_temp event.aggregates.temperature.mean
+      set max_vib event.aggregates.vibration.max
+      set total_power_kw event.aggregates.power_kw.sum
+      set machines_running event.aggregates.status.count_active
+    }
+  }
+}

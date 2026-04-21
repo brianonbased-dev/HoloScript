@@ -1,0 +1,199 @@
+/**
+ * Multiplayer Networking Traits — @networked, @synced, @persistent, @owned, @replicated, @host_only
+ *
+ * Demonstrates the networking trait family in a collaborative 3D whiteboard
+ * room where multiple users can draw, place sticky notes, and move objects,
+ * with full state sync across peers.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior — requires per-event sync callbacks)
+ * @traits @networked, @synced, @persistent, @owned, @replicated, @host_only
+ */
+
+composition "Collaborative Whiteboard Room" {
+  environment {
+    skybox: "office_lounge"
+    ambient_light: 0.9
+    floor: true
+  }
+
+  // ========================================================================
+  // NETWORKED — root session object; owns the peer topology
+  // ========================================================================
+
+  object "session" {
+    @networked {
+      room_id: "collab-room-default"
+      max_peers: 12
+      transport: "webrtc"
+      ice_servers: ["stun:stun.l.google.com:19302"]
+    }
+    state {
+      peer_count: 0
+      host_id: ""
+    }
+    onPeerJoin: {
+      increment peer_count
+      broadcast "peer_join" { id: event.peer_id, ts: event.timestamp }
+    }
+    onPeerLeave: {
+      decrement peer_count
+      release_owned_objects event.peer_id
+    }
+  }
+
+  // ========================================================================
+  // SYNCED — positions sync across all peers on change
+  // ========================================================================
+
+  template "SyncedStickyNote" {
+    @synced {
+      properties: ["position", "rotation", "state.text", "state.color"]
+      interpolate: true
+      interpolation_ms: 80
+    }
+    @owned {
+      transfer_on_release: true
+      owner_can_delete: true
+    }
+    @grabbable {
+      hand: "both"
+    }
+    geometry: "plane"
+    state {
+      text: ""
+      color: "#ffd166"
+      author: ""
+    }
+    onGrab: {
+      claim_ownership self
+    }
+    onRelease: {
+      sync_now self
+    }
+    onChange "state.text": {
+      sync_now self
+    }
+  }
+
+  spatial_group "Sticky Notes" {
+    object "note_1" using "SyncedStickyNote" {
+      position: [-1.5, 1.6, -3.0]
+      rotation: [0, 0, 5]
+      state { text: "Welcome to the collab room!", color: "#ffd166", author: "host" }
+    }
+    object "note_2" using "SyncedStickyNote" {
+      position: [0.0, 1.8, -3.0]
+      rotation: [0, 0, -3]
+      state { text: "Add your ideas here", color: "#a8dadc", author: "" }
+    }
+    object "note_3" using "SyncedStickyNote" {
+      position: [1.5, 1.4, -3.0]
+      rotation: [0, 0, 8]
+      state { text: "", color: "#c3f73a", author: "" }
+    }
+  }
+
+  // ========================================================================
+  // PERSISTENT — survives session disconnect, restored on rejoin
+  // ========================================================================
+
+  template "PersistentWhiteboardLine" {
+    @persistent {
+      storage: "server"
+      ttl: 604800
+      restore_on_join: true
+    }
+    @replicated {
+      authority: "host"
+      conflict_resolution: "last_write_wins"
+    }
+    geometry: "plane"
+    state {
+      path_data: ""
+      stroke_color: "#1d3557"
+      stroke_width: 0.02
+    }
+  }
+
+  object "whiteboard_canvas" {
+    @persistent {
+      storage: "server"
+      ttl: 604800
+      restore_on_join: true
+    }
+    geometry: "plane"
+    position: [0, 1.5, -3.05]
+    scale: [4.0, 2.5, 1.0]
+    color: "#f8f9fa"
+    state {
+      stroke_count: 0
+    }
+    onDraw: {
+      increment stroke_count
+      spawn "PersistentWhiteboardLine" {
+        path_data: event.path
+        stroke_color: event.color
+      }
+    }
+  }
+
+  // ========================================================================
+  // OWNED — each avatar is owned exclusively by its controlling peer
+  // ========================================================================
+
+  template "UserAvatar" {
+    @owned {
+      ownership: "exclusive"
+      transfer_on_release: false
+    }
+    @synced {
+      properties: ["position", "rotation", "state.display_name", "state.cursor_pos"]
+      interpolate: true
+      interpolation_ms: 50
+    }
+    @networked {
+      visibility: "all_peers"
+    }
+    geometry: "capsule"
+    state {
+      display_name: "Anonymous"
+      cursor_pos: [0, 0, 0]
+      is_typing: false
+    }
+  }
+
+  // Avatar spawned per peer automatically — template reference for runtime
+  object "avatar_template_ref" {
+    state {
+      template: "UserAvatar"
+      spawn_on_join: true
+      spawn_position: [0, 0, 0]
+    }
+  }
+
+  // ========================================================================
+  // HOST_ONLY — admin controls only the host can operate
+  // ========================================================================
+
+  object "admin_panel" {
+    @host_only {
+      visible_to_others: false
+    }
+    @clickable {
+      feedback: "visual"
+    }
+    geometry: "plane"
+    position: [3.5, 1.5, -1.0]
+    rotation: [0, -60, 0]
+    scale: [1.0, 1.5, 1.0]
+    color: "#1d3557"
+    state {
+      room_locked: false
+    }
+    onClick: {
+      toggle room_locked
+      broadcast "room_lock_changed" { locked: state.room_locked }
+    }
+  }
+}

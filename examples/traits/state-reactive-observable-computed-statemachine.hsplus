@@ -1,0 +1,216 @@
+/**
+ * State & Reactive Traits — @state, @reactive, @observable, @computed, @state_machine
+ *
+ * Demonstrates the state-management trait family in a smart home control
+ * panel where room temperature, lighting, and appliance states are
+ * observable, computed values update automatically, and a state machine
+ * governs the house's "mode" (day / night / away / eco).
+ *
+ * WHY .hsplus: @reactive requires onStateChange hooks that fire per-property;
+ * @computed requires recalc on dependency change — neither can be expressed
+ * in static .holo. The reactive event loop makes .hsplus the right format.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ * @traits @state, @reactive, @observable, @computed, @state_machine
+ */
+
+composition "Smart Home Control Panel" {
+  environment {
+    skybox: "living_room"
+    ambient_light: 0.7
+    floor: true
+  }
+
+  // ========================================================================
+  // STATE + OBSERVABLE — shared home state that other objects subscribe to
+  // ========================================================================
+
+  object "home_state" {
+    @state {
+      persistent: true
+      storage: "local"
+    }
+    @observable {
+      broadcast_on_change: true
+      channel: "home_events"
+    }
+    state {
+      mode: "day"
+      occupancy: true
+      temperature_target: 21.0
+      temperature_current: 20.5
+      humidity_pct: 45
+      outdoor_temp: 12.0
+      time_of_day: "morning"
+      lights_on_count: 0
+      appliances_on_count: 0
+    }
+  }
+
+  // ========================================================================
+  // REACTIVE — objects that update automatically when observed state changes
+  // ========================================================================
+
+  template "ReactiveLight" {
+    @reactive {
+      watch: ["home_state.mode", "home_state.occupancy"]
+      debounce_ms: 100
+    }
+    @state { persistent: false }
+    geometry: "sphere"
+    state {
+      on: true
+      brightness: 0.8
+      color: "#fff4e0"
+    }
+    onStateChange "home_state.mode": {
+      if event.value == "night" {
+        set brightness 0.3
+        set color "#ff8c69"
+      } else_if event.value == "away" {
+        set on false
+      } else_if event.value == "eco" {
+        set brightness 0.5
+      } else {
+        set on true
+        set brightness 0.8
+        set color "#fff4e0"
+      }
+    }
+    onStateChange "home_state.occupancy": {
+      if !event.value { set on false }
+      else { set on true }
+    }
+  }
+
+  spatial_group "Room Lights" {
+    object "light_living"  using "ReactiveLight" { position: [0.0,  2.8, -1.0] state { brightness: 0.9 } }
+    object "light_kitchen" using "ReactiveLight" { position: [-3.0, 2.8, -1.0] state { brightness: 0.85 } }
+    object "light_hallway" using "ReactiveLight" { position: [3.0,  2.8, -1.0] state { brightness: 0.6 } }
+  }
+
+  // ========================================================================
+  // COMPUTED — automatically derived values (no manual set required)
+  // ========================================================================
+
+  object "energy_monitor" {
+    @computed {
+      fields: {
+        heating_on: "home_state.temperature_current < home_state.temperature_target - 0.5"
+        cooling_on: "home_state.temperature_current > home_state.temperature_target + 0.5"
+        energy_kw: "home_state.lights_on_count * 0.06 + home_state.appliances_on_count * 0.4 + (computed.heating_on ? 2.5 : 0) + (computed.cooling_on ? 1.8 : 0)"
+        cost_per_hour: "computed.energy_kw * 0.28"
+        co2_g_per_hour: "computed.energy_kw * 233"
+      }
+      update_on: ["home_state.*", "home_state.lights_on_count", "home_state.appliances_on_count"]
+    }
+    geometry: "plane"
+    position: [0, 1.5, 1.8]
+    scale: [1.6, 1.0, 1.0]
+    color: "#0d1b2a"
+    state {
+      heating_on: false
+      cooling_on: false
+      energy_kw: 0.0
+      cost_per_hour: 0.0
+      co2_g_per_hour: 0.0
+    }
+  }
+
+  // ========================================================================
+  // STATE_MACHINE — house mode transitions with guard conditions
+  // ========================================================================
+
+  object "house_mode_controller" {
+    @state_machine {
+      initial: "day"
+      states: {
+        day: {
+          on_enter: "set_day_scene"
+          transitions: [
+            { event: "sunset",   to: "night",   guard: "home_state.occupancy" },
+            { event: "leave",    to: "away",    guard: "always" },
+            { event: "eco_mode", to: "eco",     guard: "always" }
+          ]
+        }
+        night: {
+          on_enter: "set_night_scene"
+          transitions: [
+            { event: "sunrise",  to: "day",     guard: "home_state.occupancy" },
+            { event: "leave",    to: "away",    guard: "always" },
+            { event: "eco_mode", to: "eco",     guard: "always" }
+          ]
+        }
+        away: {
+          on_enter: "set_away_scene"
+          transitions: [
+            { event: "arrive",   to: "day",     guard: "time_is_daytime" },
+            { event: "arrive",   to: "night",   guard: "time_is_night" }
+          ]
+        }
+        eco: {
+          on_enter: "set_eco_scene"
+          transitions: [
+            { event: "eco_off",  to: "day",     guard: "time_is_daytime" },
+            { event: "eco_off",  to: "night",   guard: "time_is_night" }
+          ]
+        }
+      }
+      actions: {
+        set_day_scene: {
+          set home_state.mode "day"
+          set home_state.temperature_target 21.0
+        }
+        set_night_scene: {
+          set home_state.mode "night"
+          set home_state.temperature_target 18.5
+        }
+        set_away_scene: {
+          set home_state.mode "away"
+          set home_state.temperature_target 15.0
+          set home_state.occupancy false
+        }
+        set_eco_scene: {
+          set home_state.mode "eco"
+          set home_state.temperature_target 17.0
+        }
+      }
+    }
+    state {
+      current_mode: "day"
+    }
+    onStateTransition: {
+      set current_mode event.to
+      broadcast "mode_changed" { mode: event.to, from: event.from }
+    }
+  }
+
+  // ========================================================================
+  // Mode selector UI — triggers state machine events
+  // ========================================================================
+
+  template "ModeButton" {
+    @clickable {
+      feedback: "haptic"
+    }
+    @hoverable {
+      scale_on_hover: 1.1
+    }
+    geometry: "cube"
+    state {
+      mode: ""
+      label: ""
+    }
+    onClick: {
+      trigger_event state.mode on "house_mode_controller"
+    }
+  }
+
+  spatial_group "Mode Controls" {
+    object "btn_day"   using "ModeButton" { position: [-1.5, 1.6, 1.8] scale: [0.4, 0.25, 0.1] color: "#ffd166" state { mode: "day",  label: "Day" } }
+    object "btn_night" using "ModeButton" { position: [-0.5, 1.6, 1.8] scale: [0.4, 0.25, 0.1] color: "#457b9d" state { mode: "night", label: "Night" } }
+    object "btn_away"  using "ModeButton" { position: [0.5,  1.6, 1.8] scale: [0.4, 0.25, 0.1] color: "#e63946" state { mode: "away",  label: "Away" } }
+    object "btn_eco"   using "ModeButton" { position: [1.5,  1.6, 1.8] scale: [0.4, 0.25, 0.1] color: "#2a9d8f" state { mode: "eco",   label: "Eco" } }
+  }
+}

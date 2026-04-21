@@ -1,0 +1,201 @@
+/**
+ * AI Behavior Traits — @npc, @pathfinding, @llm_agent, @behavior_tree, @goal_oriented, @crowd
+ *
+ * Demonstrates AI/behavior traits in a virtual museum where autonomous
+ * NPC guides lead tours, answer questions, avoid obstacles, and coordinate
+ * with other agents via goal-oriented planning.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative — AI logic defined in trait configs)
+ * @traits @npc, @pathfinding, @llm_agent, @behavior_tree, @goal_oriented, @crowd
+ */
+
+composition "AI Museum Guide Demo" {
+  environment {
+    skybox: "museum_interior"
+    ambient_light: 0.85
+    floor: true
+  }
+
+  // ========================================================================
+  // NPC — baseline identity and interaction layer
+  // ========================================================================
+
+  template "MuseumVisitor" {
+    @npc {
+      name: ""
+      faction: "visitor"
+      awareness_radius: 3.0
+      idle_behavior: "wander"
+      wander_bounds: { min: [-6, 0, -6], max: [6, 0, 6] }
+    }
+    @crowd {
+      separation_radius: 0.8
+      cohesion_weight: 0.3
+      avoid_obstacles: true
+    }
+    @pathfinding {
+      nav_mesh: "museum_floor"
+      speed: 0.8
+      stop_distance: 0.5
+    }
+    geometry: "capsule"
+    state {
+      name: "Visitor"
+      current_exhibit: ""
+    }
+  }
+
+  spatial_group "Museum Visitors" {
+    object "visitor_1" using "MuseumVisitor" { position: [-3.0, 0.0, -2.0] state { name: "Alex" } }
+    object "visitor_2" using "MuseumVisitor" { position: [1.5, 0.0, -4.0] state { name: "Sam" } }
+    object "visitor_3" using "MuseumVisitor" { position: [4.0, 0.0, -1.0] state { name: "Jo" } }
+    object "visitor_4" using "MuseumVisitor" { position: [-1.0, 0.0, -5.0] state { name: "Riley" } }
+  }
+
+  // ========================================================================
+  // BEHAVIOR_TREE — structured decision logic for NPC guide
+  // ========================================================================
+
+  template "TourGuide" {
+    @npc {
+      name: "Guide"
+      faction: "staff"
+      awareness_radius: 6.0
+    }
+    @pathfinding {
+      nav_mesh: "museum_floor"
+      speed: 1.2
+      stop_distance: 0.6
+    }
+    @behavior_tree {
+      root: "selector"
+      tree: {
+        selector: [
+          {
+            sequence: "greet_nearby_visitor"
+            conditions: ["visitor_in_range", "not_already_greeted"]
+            actions: ["face_visitor", "play_greeting_animation", "speak greeting_line"]
+          },
+          {
+            sequence: "lead_tour_segment"
+            conditions: ["tour_active", "at_waypoint"]
+            actions: ["point_at_exhibit", "speak exhibit_description", "advance_waypoint"]
+          },
+          {
+            sequence: "patrol_loop"
+            conditions: ["tour_inactive"]
+            actions: ["navigate_to_next_patrol_point"]
+          }
+        ]
+      }
+    }
+    geometry: "capsule"
+    color: "#1d6fa4"
+    state {
+      tour_active: false
+      current_waypoint: 0
+      greeted_visitors: []
+    }
+  }
+
+  object "guide_alice" using "TourGuide" {
+    position: [0.0, 0.0, 0.0]
+    state { tour_active: true, current_waypoint: 0 }
+  }
+
+  // ========================================================================
+  // LLM_AGENT — natural language question answering at exhibit plaques
+  // ========================================================================
+
+  template "SmartPlaque" {
+    @llm_agent {
+      model: "gpt-4o-mini"
+      system_prompt: "You are a knowledgeable museum guide explaining the exhibit. Answer in 2-3 sentences. Stay factual."
+      context_window: 4096
+      temperature: 0.4
+      max_tokens: 200
+      voice_output: true
+      voice_model: "tts-1"
+      voice: "nova"
+    }
+    @clickable {
+      feedback: "haptic"
+    }
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: "Ask me about this exhibit"
+    }
+    geometry: "plane"
+    state {
+      exhibit_name: ""
+      exhibit_facts: ""
+      conversation_history: []
+    }
+    onClick: {
+      open_input_panel "What would you like to know?"
+    }
+    onUserInput: {
+      append conversation_history { role: "user", content: event.input }
+      trigger llm_completion
+    }
+  }
+
+  spatial_group "Exhibit Plaques" {
+    object "plaque_ancient_rome" using "SmartPlaque" {
+      position: [-4.0, 1.4, -5.0]
+      scale: [1.0, 0.5, 1.0]
+      color: "#e9c46a"
+      state {
+        exhibit_name: "Ancient Rome Gallery"
+        exhibit_facts: "Collection of Roman artifacts from 100 BC - 400 AD. Features bronze statues, pottery, and scrolls."
+      }
+    }
+    object "plaque_space_age" using "SmartPlaque" {
+      position: [4.0, 1.4, -5.0]
+      scale: [1.0, 0.5, 1.0]
+      color: "#4cc9f0"
+      state {
+        exhibit_name: "Space Age Exhibit"
+        exhibit_facts: "Original equipment from Apollo program missions. Includes spacesuit, lunar samples, and mission control replica."
+      }
+    }
+  }
+
+  // ========================================================================
+  // GOAL_ORIENTED — planner-driven behavior (GOAP style)
+  // ========================================================================
+
+  template "SecurityGuard" {
+    @npc {
+      name: "Security"
+      faction: "security"
+      awareness_radius: 8.0
+    }
+    @pathfinding {
+      nav_mesh: "museum_floor"
+      speed: 2.0
+      stop_distance: 0.5
+    }
+    @goal_oriented {
+      goals: [
+        { name: "maintain_security", priority: 10, conditions: ["no_intruders_detected"] },
+        { name: "investigate_alert", priority: 90, conditions: ["alert_triggered"] },
+        { name: "patrol", priority: 5, conditions: ["always"] }
+      ]
+      actions: [
+        { name: "patrol_waypoints", provides: "patrol", cost: 1 },
+        { name: "move_to_alert_source", provides: "investigate_alert", cost: 2 },
+        { name: "radio_backup", provides: "maintain_security", cost: 3 }
+      ]
+    }
+    geometry: "capsule"
+    color: "#264653"
+    state {
+      alert_triggered: false
+      alert_position: [0, 0, 0]
+    }
+  }
+
+  object "guard_main" using "SecurityGuard" { position: [0.0, 0.0, 2.0] }
+}

@@ -1,0 +1,209 @@
+/**
+ * Visual FX Traits Showcase — @glowing, @emissive, @animated, @billboard, @particle, @transparent, @reflective
+ *
+ * Demonstrates the full visual effects trait family in a sci-fi corridor scene.
+ * Each section isolates one visual trait with a concrete, realistic use case.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative — static definitions with animation triggers)
+ * @traits @glowing, @emissive, @animated, @billboard, @particle, @transparent, @reflective
+ */
+
+composition "Visual FX Traits Gallery" {
+  environment {
+    skybox: "space_station"
+    ambient_light: 0.2
+    fog: { color: "#050520", density: 0.04 }
+  }
+
+  // ========================================================================
+  // GLOWING — soft edge-glow for UI elements and collectibles
+  // ========================================================================
+
+  template "GlowOrb" {
+    @glowing {
+      color: "#00f5ff"
+      intensity: 2.5
+      radius: 0.8
+      pulse: true
+      pulse_speed: 1.2
+    }
+    geometry: "sphere"
+    state {
+      collected: false
+    }
+    onClick: {
+      set collected true
+      disable_trait "glowing"
+      play_audio "collect.ogg"
+    }
+  }
+
+  spatial_group "Collectible Orbs" {
+    object "orb_1" using "GlowOrb" { position: [-4.0, 1.5, -3.0] color: "#00f5ff" }
+    object "orb_2" using "GlowOrb" { position: [0.0, 2.0, -5.0] color: "#ff6b6b" }
+    object "orb_3" using "GlowOrb" { position: [4.0, 1.5, -3.0] color: "#c3f73a" }
+  }
+
+  // ========================================================================
+  // EMISSIVE — self-illuminating surfaces (panels, screens, lava)
+  // ========================================================================
+
+  template "EmissivePanel" {
+    @emissive {
+      intensity: 3.0
+      color: "#1a1aff"
+      cast_light: true
+      light_range: 2.0
+    }
+    geometry: "plane"
+    state {
+      active: true
+    }
+  }
+
+  spatial_group "Corridor Panels" {
+    object "panel_left_1"  using "EmissivePanel" { position: [-3.0, 1.5, -2.0] rotation: [0, 90, 0] }
+    object "panel_left_2"  using "EmissivePanel" { position: [-3.0, 1.5, -6.0] rotation: [0, 90, 0] }
+    object "panel_right_1" using "EmissivePanel" { position: [3.0, 1.5, -2.0] rotation: [0, -90, 0] }
+    object "panel_right_2" using "EmissivePanel" { position: [3.0, 1.5, -6.0] rotation: [0, -90, 0] }
+  }
+
+  // ========================================================================
+  // ANIMATED — keyframe and procedural animation
+  // ========================================================================
+
+  template "RotatingGear" {
+    @animated {
+      clip: "spin"
+      loop: infinite
+      speed: 0.4
+    }
+    geometry: "cylinder"
+    state {
+      speed_multiplier: 1.0
+    }
+  }
+
+  template "BobbingPlatform" {
+    @animated {
+      clip: "bob"
+      loop: infinite
+      speed: 0.8
+      keyframes: [
+        { time: 0.0, position_y: 0.0 },
+        { time: 1.0, position_y: 0.4 },
+        { time: 2.0, position_y: 0.0 }
+      ]
+    }
+    geometry: "cube"
+  }
+
+  spatial_group "Machinery" {
+    object "gear_large"  using "RotatingGear" { position: [-5.0, 2.0, -4.0] scale: [1.5, 0.3, 1.5] color: "#aaa" }
+    object "gear_small"  using "RotatingGear" { position: [-4.2, 1.5, -4.0] scale: [0.8, 0.3, 0.8] color: "#888" state { speed_multiplier: -1.8 } }
+    object "platform_a"  using "BobbingPlatform" { position: [0.0, 0.5, -4.0] scale: [1.5, 0.15, 1.5] color: "#444" }
+  }
+
+  // ========================================================================
+  // BILLBOARD — always faces the camera (HUD labels, health bars, markers)
+  // ========================================================================
+
+  template "FloatingLabel" {
+    @billboard {
+      axis: "y"
+      offset_y: 0.3
+    }
+    @transparent {
+      opacity: 0.9
+    }
+    geometry: "plane"
+    state {
+      label: ""
+    }
+  }
+
+  spatial_group "Waypoint Markers" {
+    object "wp_start" using "FloatingLabel" {
+      position: [0.0, 0.0, 0.0]
+      scale: [0.8, 0.3, 1.0]
+      color: "#00ff88"
+      state { label: "START" }
+    }
+    object "wp_exit" using "FloatingLabel" {
+      position: [0.0, 0.0, -8.0]
+      scale: [0.8, 0.3, 1.0]
+      color: "#ff4444"
+      state { label: "EXIT" }
+    }
+  }
+
+  // ========================================================================
+  // PARTICLE — continuous emitters and burst effects
+  // ========================================================================
+
+  template "SteamVent" {
+    @particle {
+      emitter: "cone"
+      rate: 40
+      lifetime: 1.2
+      velocity: [0, 1.5, 0]
+      spread: 0.3
+      color_start: "#ffffff"
+      color_end: "#ffffff00"
+      size_start: 0.1
+      size_end: 0.4
+    }
+    geometry: "cylinder"
+    state {
+      active: true
+    }
+  }
+
+  template "SparkEmitter" {
+    @particle {
+      emitter: "point"
+      rate: 80
+      lifetime: 0.6
+      velocity: [0, 2.0, 0]
+      spread: 1.5
+      gravity: -4.0
+      color_start: "#ffd700"
+      color_end: "#ff4400"
+      size_start: 0.05
+      size_end: 0.0
+    }
+    geometry: "sphere"
+    state {
+      active: true
+    }
+  }
+
+  spatial_group "Vents and Sparks" {
+    object "vent_1" using "SteamVent"   { position: [2.0, 0.0, -3.0] scale: [0.3, 0.2, 0.3] color: "#555" }
+    object "vent_2" using "SteamVent"   { position: [-2.0, 0.0, -7.0] scale: [0.3, 0.2, 0.3] color: "#555" }
+    object "spark_1" using "SparkEmitter" { position: [-2.5, 1.8, -5.0] scale: [0.1, 0.1, 0.1] color: "#333" }
+  }
+
+  // ========================================================================
+  // TRANSPARENT — glass, water, UI overlays
+  // ========================================================================
+
+  template "GlassPane" {
+    @transparent {
+      opacity: 0.25
+      refraction: true
+      refraction_strength: 0.02
+    }
+    @reflective {
+      reflectivity: 0.4
+      roughness: 0.05
+    }
+    geometry: "plane"
+  }
+
+  spatial_group "Glass Walls" {
+    object "glass_left"  using "GlassPane" { position: [-3.0, 1.5, -5.0] rotation: [0, 90, 0] scale: [4.0, 3.0, 1.0] color: "#88ccff" }
+    object "glass_right" using "GlassPane" { position: [3.0, 1.5, -5.0] rotation: [0, -90, 0] scale: [4.0, 3.0, 1.0] color: "#88ccff" }
+  }
+}

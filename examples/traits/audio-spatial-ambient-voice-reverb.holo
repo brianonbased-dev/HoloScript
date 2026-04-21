@@ -1,0 +1,203 @@
+/**
+ * Audio Traits — @spatial_audio, @ambient, @voice_activated, @reverb
+ *
+ * Demonstrates the audio trait family in a concert hall scene with
+ * realistic 3D positional audio, ambient soundscape, voice-activated
+ * lighting controls, and room-scale reverb zones.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative)
+ * @traits @spatial_audio, @ambient, @voice_activated, @reverb
+ */
+
+composition "Concert Hall Audio Demo" {
+  environment {
+    skybox: "concert_hall_night"
+    ambient_light: 0.3
+    floor: true
+  }
+
+  // ========================================================================
+  // SPATIAL_AUDIO — positional 3D sound sources on stage
+  // ========================================================================
+
+  template "InstrumentSource" {
+    @spatial_audio {
+      src: ""
+      loop: true
+      autoplay: true
+      volume: 0.8
+      rolloff: "inverse"
+      rolloff_factor: 1.5
+      ref_distance: 2.0
+      max_distance: 20.0
+      cone_inner_angle: 120
+      cone_outer_angle: 300
+      cone_outer_gain: 0.1
+    }
+    geometry: "cube"
+    state {
+      instrument: ""
+      playing: true
+    }
+    onClick: {
+      toggle playing
+      if playing { play_audio src } else { stop_audio src }
+    }
+  }
+
+  spatial_group "Stage Instruments" {
+    object "piano" using "InstrumentSource" {
+      position: [-2.0, 0.5, -8.0]
+      scale: [1.2, 0.5, 0.6]
+      color: "#2b2b2b"
+      state { instrument: "piano", src: "audio/piano-loop.ogg" }
+    }
+    object "violin_section" using "InstrumentSource" {
+      position: [1.0, 0.5, -7.5]
+      scale: [0.3, 0.6, 0.3]
+      color: "#8B4513"
+      state { instrument: "violin", src: "audio/violin-loop.ogg" }
+    }
+    object "bass" using "InstrumentSource" {
+      position: [3.0, 0.6, -8.0]
+      scale: [0.4, 0.8, 0.4]
+      color: "#1a1a2e"
+      state { instrument: "bass", src: "audio/bass-loop.ogg" }
+    }
+    object "drums" using "InstrumentSource" {
+      position: [0.0, 0.4, -9.5]
+      scale: [1.0, 0.6, 1.0]
+      color: "#333"
+      state { instrument: "drums", src: "audio/drums-loop.ogg" }
+    }
+  }
+
+  // ========================================================================
+  // AMBIENT — background soundscape (non-positional)
+  // ========================================================================
+
+  object "hall_ambience" {
+    @ambient {
+      src: "audio/hall-crowd-murmur.ogg"
+      volume: 0.25
+      loop: true
+      autoplay: true
+      fade_in: 2.0
+    }
+    geometry: "sphere"
+    position: [0, 0, 0]
+    scale: [0.01, 0.01, 0.01]
+    state {
+      crowd_size: "medium"
+    }
+  }
+
+  object "outdoor_rain" {
+    @ambient {
+      src: "audio/rain-exterior.ogg"
+      volume: 0.1
+      loop: true
+      autoplay: true
+      distance_falloff: false
+    }
+    geometry: "sphere"
+    position: [0, 10, 0]
+    scale: [0.01, 0.01, 0.01]
+    state {
+      intensity: "light"
+    }
+  }
+
+  // ========================================================================
+  // VOICE_ACTIVATED — voice commands control lights and playback
+  // ========================================================================
+
+  object "voice_control_node" {
+    @voice_activated {
+      language: "en-US"
+      continuous: true
+      confidence_threshold: 0.75
+      wake_word: "maestro"
+      commands: [
+        { phrase: "lights on", action: "enable_group lights" },
+        { phrase: "lights off", action: "disable_group lights" },
+        { phrase: "play music", action: "broadcast play_all" },
+        { phrase: "stop music", action: "broadcast stop_all" },
+        { phrase: "dim lights", action: "set_group_state lights dim true" }
+      ]
+    }
+    geometry: "sphere"
+    position: [0, 2.0, 0]
+    scale: [0.1, 0.1, 0.1]
+    color: "#ff6b6b"
+    state {
+      listening: true
+      last_command: ""
+    }
+    onVoiceCommand: {
+      set last_command event.phrase
+      play_audio "audio/ack.ogg"
+    }
+  }
+
+  // ========================================================================
+  // REVERB — zone-based acoustic modeling
+  // ========================================================================
+
+  template "ReverbZone" {
+    @reverb {
+      room_size: 0.8
+      decay: 2.5
+      pre_delay: 0.02
+      wet: 0.6
+      dry: 0.9
+      high_freq_damping: 0.5
+    }
+    geometry: "cube"
+    state {
+      active: true
+    }
+  }
+
+  spatial_group "Acoustic Zones" {
+    // Main auditorium — large lush reverb
+    object "reverb_main_hall" using "ReverbZone" {
+      position: [0, 5, -5]
+      scale: [20, 10, 20]
+      color: "#ffffff08"
+      state { active: true }
+    }
+    // Stage area — slightly shorter reverb (close mic feel)
+    object "reverb_stage" {
+      @reverb {
+        room_size: 0.4
+        decay: 0.8
+        pre_delay: 0.005
+        wet: 0.25
+        dry: 0.98
+      }
+      geometry: "cube"
+      position: [0, 3, -8]
+      scale: [8, 6, 6]
+      color: "#ffffff04"
+      state { active: true }
+    }
+    // Foyer — bright reflective reverb
+    object "reverb_foyer" {
+      @reverb {
+        room_size: 0.6
+        decay: 1.2
+        pre_delay: 0.015
+        wet: 0.7
+        dry: 0.85
+        high_freq_damping: 0.1
+      }
+      geometry: "cube"
+      position: [0, 3, 6]
+      scale: [12, 6, 8]
+      color: "#ffffff04"
+      state { active: true }
+    }
+  }
+}

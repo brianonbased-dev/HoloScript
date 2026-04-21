@@ -1,0 +1,232 @@
+/**
+ * XR Spatial Traits — @anchor, @tracked, @world_locked, @hand_tracked, @eye_tracked, @spatial_audio
+ *
+ * Demonstrates spatial/XR trait family in an augmented reality workspace
+ * overlay — persistent anchors, hand-tracked tools, gaze-activated content,
+ * and world-locked UI panels that stay fixed in physical space.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative)
+ * @traits @anchor, @tracked, @world_locked, @hand_tracked, @eye_tracked
+ */
+
+composition "AR Workspace Overlay" {
+  environment {
+    skybox: "passthrough"
+    ambient_light: 1.0
+    ar_mode: true
+    floor_detection: true
+    plane_detection: ["horizontal", "vertical"]
+  }
+
+  // ========================================================================
+  // ANCHOR — persists at exact real-world coordinates between sessions
+  // ========================================================================
+
+  template "PersistentAnchor" {
+    @anchor {
+      type: "world"
+      persist: true
+      align_to_surface: true
+      surface_types: ["horizontal_plane"]
+    }
+    geometry: "sphere"
+    state {
+      label: ""
+      anchor_id: ""
+      confirmed: false
+    }
+    onAnchorFound: {
+      set confirmed true
+      animate "confirm_pulse" once
+    }
+    onAnchorLost: {
+      set confirmed false
+    }
+  }
+
+  // Desk anchors — placed once, restored on every session
+  object "desk_anchor_left" using "PersistentAnchor" {
+    position: [-0.6, 0.75, -0.4]
+    scale: [0.04, 0.04, 0.04]
+    color: "#00ff88"
+    state { label: "desk_left", anchor_id: "anchor_desk_left_v1" }
+  }
+  object "desk_anchor_right" using "PersistentAnchor" {
+    position: [0.6, 0.75, -0.4]
+    scale: [0.04, 0.04, 0.04]
+    color: "#00ff88"
+    state { label: "desk_right", anchor_id: "anchor_desk_right_v1" }
+  }
+
+  // ========================================================================
+  // WORLD_LOCKED — UI panels that don't drift as the user moves
+  // ========================================================================
+
+  template "WorldLockedPanel" {
+    @world_locked {
+      lock_rotation: true
+      lock_position: true
+      drift_correction: "continuous"
+    }
+    @anchor {
+      type: "local"
+      persist: false
+    }
+    geometry: "plane"
+    state {
+      visible: true
+    }
+  }
+
+  object "task_list_panel" using "WorldLockedPanel" {
+    position: [0.8, 1.4, -0.6]
+    rotation: [0, -40, 0]
+    scale: [0.5, 0.7, 1.0]
+    color: "#1a1a2e"
+    state { visible: true }
+  }
+
+  object "clock_panel" using "WorldLockedPanel" {
+    position: [-0.85, 1.6, -0.5]
+    rotation: [0, 40, 0]
+    scale: [0.3, 0.15, 1.0]
+    color: "#16213e"
+    state { visible: true }
+  }
+
+  // ========================================================================
+  // TRACKED — follows a real-world marker or device
+  // ========================================================================
+
+  template "TrackedMarker" {
+    @tracked {
+      target: "image_marker"
+      marker_image: ""
+      prediction: true
+      lost_behavior: "freeze"
+    }
+    geometry: "plane"
+    state {
+      marker_id: ""
+      tracking: false
+    }
+    onTrackingFound: {
+      set tracking true
+      fade_in self duration 0.3
+    }
+    onTrackingLost: {
+      set tracking false
+    }
+  }
+
+  object "book_ar_overlay" using "TrackedMarker" {
+    position: [0, 0.01, 0]
+    scale: [0.15, 0.22, 1.0]
+    color: "#4361ee"
+    state { marker_id: "book_cover_v1" }
+  }
+
+  // ========================================================================
+  // HAND_TRACKED — objects that attach to or respond to hand skeleton
+  // ========================================================================
+
+  template "HandTool" {
+    @hand_tracked {
+      hand: "dominant"
+      attach_to: "index_tip"
+      offset: [0, 0.02, 0.04]
+      follow_fingers: true
+    }
+    geometry: "sphere"
+    state {
+      active: false
+      tool_type: "pointer"
+    }
+    onPinch: {
+      set active true
+      play_audio "activate.ogg"
+    }
+    onPinchRelease: {
+      set active false
+    }
+  }
+
+  object "hand_cursor" using "HandTool" {
+    scale: [0.02, 0.02, 0.02]
+    color: "#00f5ff"
+    state { tool_type: "pointer" }
+  }
+
+  template "HandPalette" {
+    @hand_tracked {
+      hand: "non_dominant"
+      attach_to: "palm"
+      always_face_user: true
+    }
+    @world_locked {
+      lock_rotation: false
+      lock_position: false
+    }
+    geometry: "plane"
+    state {
+      open: false
+      selected_tool: "pointer"
+    }
+    onHandOpen: {
+      set open true
+      show_ui "tool_palette"
+    }
+    onHandClose: {
+      set open false
+      hide_ui "tool_palette"
+    }
+  }
+
+  object "tool_palette" using "HandPalette" {
+    scale: [0.2, 0.12, 1.0]
+    color: "#1a1a2e"
+  }
+
+  // ========================================================================
+  // EYE_TRACKED — gaze-activated content reveals
+  // ========================================================================
+
+  template "GazeReveal" {
+    @eye_tracked {
+      dwell_time_ms: 800
+      dwell_action: "reveal"
+      look_away_action: "hide"
+      foveal_radius: 0.04
+    }
+    @hoverable {
+      show_gaze_reticle: true
+    }
+    geometry: "cube"
+    state {
+      revealed: false
+    }
+    onGazeDwell: {
+      set revealed true
+      animate "expand" duration 0.4
+      play_audio "reveal.ogg"
+    }
+    onGazeExit: {
+      set revealed false
+      animate "collapse" duration 0.3
+    }
+  }
+
+  spatial_group "Gaze Reveals" {
+    object "reveal_docs" using "GazeReveal" {
+      position: [0.0, 1.5, -0.8]
+      scale: [0.06, 0.06, 0.06]
+      color: "#f72585"
+    }
+    object "reveal_calendar" using "GazeReveal" {
+      position: [0.3, 1.3, -0.7]
+      scale: [0.06, 0.06, 0.06]
+      color: "#7209b7"
+    }
+  }
+}

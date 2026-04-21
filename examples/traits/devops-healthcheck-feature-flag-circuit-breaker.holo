@@ -1,0 +1,214 @@
+/**
+ * DevOps Traits — @deploy, @healthcheck, @feature_flag, @circuit_breaker, @canary
+ *
+ * Demonstrates the DevOps trait family in an operations dashboard scene —
+ * a 3D spatial representation of a microservices deployment where you can
+ * toggle feature flags, view health status, trigger canary rollouts, and
+ * watch circuit breakers trip and recover.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative — no per-frame hooks needed)
+ * @traits @deploy, @healthcheck, @feature_flag, @circuit_breaker, @canary
+ */
+
+composition "Live Ops Dashboard" {
+  environment {
+    skybox: "dark_data_center"
+    ambient_light: 0.15
+    fog: { color: "#050520", density: 0.02 }
+  }
+
+  // ========================================================================
+  // HEALTHCHECK — live service health represented as 3D status orbs
+  // ========================================================================
+
+  template "ServiceNode" {
+    @healthcheck {
+      endpoint: ""
+      interval_ms: 5000
+      timeout_ms: 3000
+      expected_status: 200
+      retries: 2
+    }
+    @glowing {
+      color: "#00ff88"
+      intensity: 2.0
+      pulse: false
+    }
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: ""
+    }
+    geometry: "sphere"
+    state {
+      service_name: ""
+      endpoint: ""
+      status: "unknown"
+      latency_ms: 0
+      uptime_pct: 100.0
+      last_checked: 0
+    }
+    onHealthy: {
+      set status "healthy"
+      set_trait "glowing" { color: "#00ff88", pulse: false }
+      set latency_ms event.latency_ms
+    }
+    onDegraded: {
+      set status "degraded"
+      set_trait "glowing" { color: "#ffd166", pulse: true, pulse_speed: 0.8 }
+      set latency_ms event.latency_ms
+    }
+    onUnhealthy: {
+      set status "unhealthy"
+      set_trait "glowing" { color: "#ef233c", pulse: true, pulse_speed: 2.0 }
+      play_audio "alert.ogg"
+    }
+  }
+
+  spatial_group "Service Grid" {
+    object "svc_api_gateway"   using "ServiceNode" { position: [0.0,  2.0, -4.0] state { service_name: "api-gateway",   endpoint: "http://api-gateway/health" } }
+    object "svc_auth"          using "ServiceNode" { position: [-3.0, 2.0, -3.0] state { service_name: "auth-service",  endpoint: "http://auth/health" } }
+    object "svc_user"          using "ServiceNode" { position: [-1.5, 2.0, -3.0] state { service_name: "user-service",  endpoint: "http://users/health" } }
+    object "svc_orders"        using "ServiceNode" { position: [1.5,  2.0, -3.0] state { service_name: "order-service", endpoint: "http://orders/health" } }
+    object "svc_notifications" using "ServiceNode" { position: [3.0,  2.0, -3.0] state { service_name: "notifications", endpoint: "http://notify/health" } }
+    object "svc_db_primary"    using "ServiceNode" { position: [-2.0, 0.8, -2.0] state { service_name: "postgres-primary", endpoint: "http://db-proxy/health" } }
+    object "svc_db_replica"    using "ServiceNode" { position: [2.0,  0.8, -2.0] state { service_name: "postgres-replica", endpoint: "http://db-proxy-r/health" } }
+    object "svc_redis"         using "ServiceNode" { position: [0.0,  0.8, -2.0] state { service_name: "redis-cache",    endpoint: "http://redis-proxy/health" } }
+  }
+
+  // ========================================================================
+  // FEATURE_FLAG — toggleable switches, safely visible to ops only
+  // ========================================================================
+
+  template "FeatureFlagSwitch" {
+    @feature_flag {
+      flag_key: ""
+      provider: "launchdarkly"
+      context_kind: "environment"
+      context_key: "production"
+    }
+    @clickable {
+      feedback: "haptic"
+    }
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: ""
+    }
+    geometry: "cube"
+    state {
+      flag_key: ""
+      enabled: false
+      rollout_pct: 0
+      label: ""
+    }
+    onClick: {
+      toggle enabled
+      update_flag state.flag_key { enabled: state.enabled }
+      broadcast "flag_changed" { key: state.flag_key, enabled: state.enabled }
+    }
+    onFlagUpdate: {
+      set enabled event.enabled
+      set rollout_pct event.rollout_pct
+    }
+  }
+
+  spatial_group "Feature Flags" {
+    object "flag_new_checkout"    using "FeatureFlagSwitch" { position: [-4.0, 1.6, 0.0] color: "#4cc9f0" state { flag_key: "new-checkout-v2",    label: "New Checkout",     rollout_pct: 50 } }
+    object "flag_dark_mode"       using "FeatureFlagSwitch" { position: [-4.0, 1.0, 0.0] color: "#4cc9f0" state { flag_key: "dark-mode-beta",      label: "Dark Mode Beta",   rollout_pct: 100 } }
+    object "flag_ai_rec"          using "FeatureFlagSwitch" { position: [-4.0, 0.4, 0.0] color: "#4cc9f0" state { flag_key: "ai-recommendations",   label: "AI Recs",          rollout_pct: 10 } }
+    object "flag_new_search"      using "FeatureFlagSwitch" { position: [-3.2, 1.6, 0.0] color: "#4cc9f0" state { flag_key: "new-search-index",     label: "New Search",       rollout_pct: 0 } }
+  }
+
+  // ========================================================================
+  // CIRCUIT_BREAKER — visualizes trip/reset cycle for downstream calls
+  // ========================================================================
+
+  template "CircuitBreakerNode" {
+    @circuit_breaker {
+      failure_threshold: 5
+      success_threshold: 2
+      timeout_ms: 30000
+      half_open_requests: 1
+    }
+    @glowing {
+      color: "#00ff88"
+      intensity: 1.5
+    }
+    geometry: "cylinder"
+    state {
+      cb_state: "closed"
+      failure_count: 0
+      last_trip_ts: 0
+    }
+    onCircuitOpen: {
+      set cb_state "open"
+      set failure_count event.failure_count
+      set last_trip_ts event.timestamp
+      set_trait "glowing" { color: "#ef233c", pulse: true }
+      play_audio "circuit_open.ogg"
+    }
+    onCircuitHalfOpen: {
+      set cb_state "half_open"
+      set_trait "glowing" { color: "#ffd166", pulse: true }
+    }
+    onCircuitClose: {
+      set cb_state "closed"
+      set failure_count 0
+      set_trait "glowing" { color: "#00ff88", pulse: false }
+    }
+  }
+
+  spatial_group "Circuit Breakers" {
+    object "cb_payment_provider" using "CircuitBreakerNode" { position: [2.0, 1.2, 0.5] color: "#264653" }
+    object "cb_email_service"    using "CircuitBreakerNode" { position: [3.0, 1.2, 0.5] color: "#264653" }
+    object "cb_search_index"     using "CircuitBreakerNode" { position: [4.0, 1.2, 0.5] color: "#264653" }
+  }
+
+  // ========================================================================
+  // CANARY / DEPLOY — progressive rollout control
+  // ========================================================================
+
+  object "deploy_canary_orders_v2" {
+    @canary {
+      service: "order-service"
+      canary_version: "v2.1.4"
+      stable_version: "v2.0.8"
+      initial_weight_pct: 5
+      increment_pct: 10
+      increment_interval_ms: 300000
+      rollback_on_error_rate_pct: 2.0
+    }
+    @deploy {
+      environment: "production"
+      strategy: "canary"
+      rollback_enabled: true
+      approval_required: false
+    }
+    @clickable {
+      feedback: "visual"
+    }
+    geometry: "cube"
+    position: [0.0, 1.4, 2.0]
+    scale: [1.2, 0.8, 0.4]
+    color: "#7209b7"
+    state {
+      canary_weight_pct: 5
+      stable_weight_pct: 95
+      rollout_status: "in_progress"
+      error_rate_pct: 0.0
+    }
+    onCanaryStep: {
+      set canary_weight_pct event.canary_pct
+      set stable_weight_pct event.stable_pct
+    }
+    onCanaryRollback: {
+      set rollout_status "rolled_back"
+      set_trait "glowing" { color: "#ef233c" }
+      play_audio "rollback.ogg"
+    }
+    onCanaryComplete: {
+      set rollout_status "complete"
+      set_trait "glowing" { color: "#00ff88" }
+    }
+  }
+}

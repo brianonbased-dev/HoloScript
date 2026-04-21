@@ -1,0 +1,248 @@
+/**
+ * Web3 & Economy Traits — @stripe, @wallet, @nft_asset, @economy_primitive, @credit
+ *
+ * Demonstrates the payments/web3 trait family in a virtual art gallery
+ * where artworks can be purchased with fiat (Stripe) or crypto (wallet),
+ * minted as NFTs on purchase, and gallery credits can be earned and spent.
+ *
+ * @version 5.0.0
+ * @format .holo (declarative — payment flows defined in trait configs)
+ * @traits @stripe, @wallet, @nft_asset, @economy_primitive, @credit
+ */
+
+composition "Virtual Art Gallery Shop" {
+  environment {
+    skybox: "gallery_white"
+    ambient_light: 0.95
+    floor: true
+  }
+
+  // ========================================================================
+  // ECONOMY_PRIMITIVE — define the gallery's in-world credit currency
+  // ========================================================================
+
+  object "gallery_economy" {
+    @economy_primitive {
+      currency_name: "ArtCredit"
+      currency_symbol: "ARC"
+      decimals: 2
+      initial_supply: 1000000
+      earn_events: ["purchase_artwork", "share_gallery", "daily_visit"]
+      spend_events: ["unlock_exclusive", "tip_artist", "feature_artwork"]
+    }
+    state {
+      total_supply: 1000000
+      circulating_supply: 0
+    }
+  }
+
+  // ========================================================================
+  // WALLET — connect user's crypto wallet
+  // ========================================================================
+
+  object "wallet_connect_button" {
+    @wallet {
+      chains: ["ethereum", "polygon", "solana"]
+      auto_connect: false
+      persist_connection: true
+      show_balance: true
+      supported_tokens: ["ETH", "MATIC", "USDC", "SOL"]
+    }
+    @clickable {
+      feedback: "visual"
+    }
+    @hoverable {
+      color_on_hover: "#7209b7"
+    }
+    geometry: "cube"
+    position: [4.5, 1.6, 0.0]
+    scale: [0.6, 0.25, 0.1]
+    color: "#4361ee"
+    state {
+      connected: false
+      address: ""
+      balance_eth: 0.0
+      balance_usdc: 0.0
+    }
+    onWalletConnect: {
+      set connected true
+      set address event.address
+      set balance_eth event.balances.ETH
+      set balance_usdc event.balances.USDC
+    }
+    onWalletDisconnect: {
+      set connected false
+      set address ""
+    }
+  }
+
+  // ========================================================================
+  // NFT_ASSET — artwork objects mintable/transferable as NFTs
+  // ========================================================================
+
+  template "ArtworkNFT" {
+    @nft_asset {
+      contract: "0x0000000000000000000000000000000000000000"
+      standard: "ERC-721"
+      chain: "polygon"
+      metadata_uri: ""
+      royalty_bps: 500
+      max_supply: 10
+    }
+    @economy_primitive {
+      list_price_arc: 50
+    }
+    @grabbable {
+      hand: "both"
+    }
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: ""
+    }
+    geometry: "plane"
+    state {
+      title: ""
+      artist: ""
+      edition: ""
+      price_usd: 0.0
+      price_eth: 0.0
+      owner: "gallery"
+      minted: false
+      token_id: -1
+    }
+    onClick: {
+      open_panel "artwork_detail" {
+        title: state.title
+        artist: state.artist
+        edition: state.edition
+        price_usd: state.price_usd
+        price_eth: state.price_eth
+      }
+    }
+    onPurchaseComplete: {
+      set owner event.buyer_address
+      set minted true
+      set token_id event.token_id
+      play_audio "purchase_success.ogg"
+      spawn_effect "confetti" at self
+    }
+  }
+
+  spatial_group "Gallery Artworks" {
+    object "artwork_genesis" using "ArtworkNFT" {
+      position: [-3.0, 1.8, -3.0]
+      rotation: [0, 30, 0]
+      scale: [1.2, 1.5, 0.05]
+      color: "#e63946"
+      state {
+        title: "Genesis"
+        artist: "0xArtist"
+        edition: "1 of 10"
+        price_usd: 299.0
+        price_eth: 0.085
+        metadata_uri: "ipfs://QmGenesis/metadata.json"
+      }
+    }
+    object "artwork_solitude" using "ArtworkNFT" {
+      position: [0.0, 1.8, -4.0]
+      scale: [1.5, 1.0, 0.05]
+      color: "#457b9d"
+      state {
+        title: "Solitude"
+        artist: "0xArtist2"
+        edition: "1 of 5"
+        price_usd: 499.0
+        price_eth: 0.14
+        metadata_uri: "ipfs://QmSolitude/metadata.json"
+      }
+    }
+    object "artwork_emergence" using "ArtworkNFT" {
+      position: [3.0, 1.8, -3.0]
+      rotation: [0, -30, 0]
+      scale: [1.0, 1.8, 0.05]
+      color: "#2a9d8f"
+      state {
+        title: "Emergence"
+        artist: "0xArtist3"
+        edition: "1 of 3"
+        price_usd: 999.0
+        price_eth: 0.28
+        metadata_uri: "ipfs://QmEmergence/metadata.json"
+      }
+    }
+  }
+
+  // ========================================================================
+  // STRIPE — fiat checkout for users without crypto wallets
+  // ========================================================================
+
+  object "checkout_kiosk" {
+    @stripe {
+      publishable_key_env: "STRIPE_PUBLISHABLE_KEY"
+      currency: "usd"
+      payment_methods: ["card", "apple_pay", "google_pay"]
+      receipt_email: true
+    }
+    @clickable {
+      feedback: "visual"
+    }
+    geometry: "cube"
+    position: [0.0, 1.0, 1.5]
+    scale: [0.6, 1.4, 0.3]
+    color: "#6772e5"
+    state {
+      active_item: ""
+      active_amount_cents: 0
+      payment_status: "idle"
+    }
+    onPaymentStart: {
+      set active_item event.item_id
+      set active_amount_cents event.amount_cents
+      set payment_status "processing"
+    }
+    onPaymentSuccess: {
+      set payment_status "complete"
+      broadcast "purchase_complete" {
+        item_id: state.active_item
+        charge_id: event.charge_id
+      }
+      earn_credits "gallery_economy" 25 "purchase_artwork"
+    }
+    onPaymentFailed: {
+      set payment_status "failed"
+      play_audio "error.ogg"
+    }
+  }
+
+  // ========================================================================
+  // CREDIT — gallery credit balance display and spend UI
+  // ========================================================================
+
+  object "credit_display" {
+    @credit {
+      economy: "gallery_economy"
+      show_balance: true
+      auto_earn: true
+      auto_earn_on_events: ["daily_visit"]
+    }
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: "Your ArtCredit balance"
+    }
+    geometry: "plane"
+    position: [4.5, 2.0, 0.0]
+    scale: [0.6, 0.2, 1.0]
+    color: "#f4a261"
+    state {
+      balance: 0.0
+      pending: 0.0
+    }
+    onCreditEarned: {
+      set balance event.new_balance
+      animate "balance_pulse" once
+    }
+    onCreditSpent: {
+      set balance event.new_balance
+    }
+  }
+}
