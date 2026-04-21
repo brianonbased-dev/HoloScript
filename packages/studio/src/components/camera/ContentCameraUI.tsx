@@ -4,6 +4,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Camera, Video, MonitorPlay, Square, Play, Square as StopSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import {
+  getBestWebmMimeForMediaRecorder,
+  WEBGL_MEDIA_RECORDER_NOTES,
+} from '@/lib/export/mediaRecorderWebglSupport';
 
 /**
  * Hook to access the canvas DOM element from within R3F.
@@ -24,7 +28,9 @@ export function ContentCameraCapture() {
       const stream = canvas.captureStream(60); // 60 FPS
 
       try {
-        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+        const mimeType = getBestWebmMimeForMediaRecorder();
+        logger.debug('[ContentCamera]', WEBGL_MEDIA_RECORDER_NOTES);
+        const recorder = new MediaRecorder(stream, { mimeType });
         mediaRecorderRef.current = recorder;
         chunksRef.current = [];
 
