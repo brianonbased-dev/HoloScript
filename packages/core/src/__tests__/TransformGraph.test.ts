@@ -15,12 +15,15 @@ describe('TransformGraph', () => {
     tg.addNode('a');
     expect(tg.getNodeCount()).toBe(1);
     const local = tg.getLocalTransform('a');
-    expect(local).toEqual({ x: 0, y: 0, z: 0, sx: 1, sy: 1, sz: 1 });
+    expect(local).toEqual({
+      position: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    });
   });
 
   it('addNode with initial position', () => {
-    tg.addNode('a', { x: 10, y: 20, z: 30 });
-    expect(tg.getLocalTransform('a')!.x).toBe(10);
+    tg.addNode('a', [10, 20, 30]);
+    expect(tg.getLocalTransform('a')!.position.x).toBe(10);
   });
 
   it('removeNode removes entry', () => {
@@ -34,42 +37,42 @@ describe('TransformGraph', () => {
     tg.addNode('a');
     tg.setPosition('a', 5, 10, 15);
     const t = tg.getLocalTransform('a')!;
-    expect(t.x).toBe(5);
-    expect(t.y).toBe(10);
-    expect(t.z).toBe(15);
+    expect(t.position.x).toBe(5);
+    expect(t.position.y).toBe(10);
+    expect(t.position.z).toBe(15);
   });
 
   it('setScale updates local transform', () => {
     tg.addNode('a');
     tg.setScale('a', 2, 3, 4);
     const t = tg.getLocalTransform('a')!;
-    expect(t.sx).toBe(2);
-    expect(t.sy).toBe(3);
-    expect(t.sz).toBe(4);
+    expect(t.scale.x).toBe(2);
+    expect(t.scale.y).toBe(3);
+    expect(t.scale.z).toBe(4);
   });
 
   it('root node world position equals local', () => {
-    tg.addNode('root', { x: 10, y: 20, z: 30 });
+    tg.addNode('root', [10, 20, 30]);
     const world = tg.getWorldPosition('root')!;
-    expect(world).toEqual({ x: 10, y: 20, z: 30 });
+    expect(world).toEqual([10, 20, 30]);
   });
 
   it('child inherits parent world position', () => {
-    tg.addNode('parent', { x: 100, y: 0, z: 0 });
-    tg.addNode('child', { x: 10, y: 0, z: 0 });
+    tg.addNode('parent', [100, 0, 0]);
+    tg.addNode('child', [10, 0, 0]);
     tg.setParent('child', 'parent');
     const world = tg.getWorldPosition('child')!;
     // child world = parent.world + child.local * parent.scale
     // = (100,0,0) + (10,0,0) * (1,1,1) = (110,0,0)
-    expect(world.x).toBe(110);
+    expect(world[0]).toBe(110);
   });
 
   it('parent scale affects child world position', () => {
     tg.addNode('parent', { x: 0, y: 0, z: 0, sx: 2, sy: 2, sz: 2 });
-    tg.addNode('child', { x: 5, y: 0, z: 0 });
+    tg.addNode('child', [5, 0, 0]);
     tg.setParent('child', 'parent');
     const world = tg.getWorldPosition('child')!;
-    expect(world.x).toBe(10); // 0 + 5*2
+    expect(world[0]).toBe(10); // 0 + 5*2
   });
 
   it('setParent to null unparents', () => {
@@ -110,21 +113,21 @@ describe('TransformGraph', () => {
   });
 
   it('updateAll propagates world transforms', () => {
-    tg.addNode('p', { x: 10, y: 0, z: 0 });
-    tg.addNode('c', { x: 5, y: 0, z: 0 });
+    tg.addNode('p', [10, 0, 0]);
+    tg.addNode('c', [5, 0, 0]);
     tg.setParent('c', 'p');
     tg.updateAll();
-    expect(tg.getWorldPosition('c')!.x).toBe(15);
+    expect(tg.getWorldPosition('c')![0]).toBe(15);
   });
 
   it('deep hierarchy computes correctly', () => {
-    tg.addNode('a', { x: 1, y: 0, z: 0 });
-    tg.addNode('b', { x: 2, y: 0, z: 0 });
-    tg.addNode('c', { x: 3, y: 0, z: 0 });
+    tg.addNode('a', [1, 0, 0]);
+    tg.addNode('b', [2, 0, 0]);
+    tg.addNode('c', [3, 0, 0]);
     tg.setParent('b', 'a');
     tg.setParent('c', 'b');
     const world = tg.getWorldPosition('c')!;
     // a.world = 1, b.world = 1 + 2*1 = 3, c.world = 3 + 3*1 = 6
-    expect(world.x).toBe(6);
+    expect(world[0]).toBe(6);
   });
 });

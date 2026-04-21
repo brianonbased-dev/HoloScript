@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * TransformGraph.ts
  *
@@ -13,7 +12,12 @@ import type { Vector3 } from '@holoscript/core';
 // TYPES
 // =============================================================================
 
-import { Vector3 } from './SpatialTypes';
+/** Object-shaped 3-vector for transform TRS (distinct from tuple `Vector3` in SpatialTypes). */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 type TransformInput =
   | Partial<Transform3D>
@@ -24,17 +28,19 @@ type TransformInput =
       sx?: number;
       sy?: number;
       sz?: number;
-    };
+    }
+  /** Local position only; scale defaults to (1,1,1). */
+  | readonly [number, number, number];
 
 export interface Transform3D {
-  position: Vector3;
-  scale: Vector3;
+  position: Vec3;
+  scale: Vec3;
 }
 
 interface TransformEntry {
   id: string;
   local: Transform3D;
-  worldPosition: Vector3;
+  worldPosition: Vec3;
   parent: string | null;
   children: string[];
   dirty: boolean;
@@ -56,6 +62,22 @@ export class TransformGraph {
       position: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     };
+
+    if (local !== undefined && Array.isArray(local)) {
+      const [x, y, z] = local;
+      this.entries.set(id, {
+        id,
+        local: {
+          position: { x, y, z },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+        worldPosition: { x: 0, y: 0, z: 0 },
+        parent: null,
+        children: [],
+        dirty: true,
+      });
+      return;
+    }
 
     const input = local as Partial<Transform3D> & {
       x?: number;
@@ -169,11 +191,12 @@ export class TransformGraph {
     return e ? { ...e.local } : null;
   }
 
-  getWorldPosition(id: string): Vector3 | null {
+  getWorldPosition(id: string): [number, number, number] | null {
     const e = this.entries.get(id);
     if (!e) return null;
     if (e.dirty) this.updateWorld(id);
-    return { ...e.worldPosition };
+    const w = e.worldPosition;
+    return [w.x, w.y, w.z];
   }
 
   // ---------------------------------------------------------------------------

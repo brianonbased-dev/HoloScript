@@ -19,16 +19,19 @@ describe('TransformGraph', () => {
   it('addNode initialises default position and scale', () => {
     graph.addNode('n');
     const t = graph.getLocalTransform('n');
-    expect(t).toEqual({ x: 0, y: 0, z: 0, sx: 1, sy: 1, sz: 1 });
+    expect(t).toEqual({
+      position: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    });
   });
 
   it('addNode accepts partial local override', () => {
     graph.addNode('n', { x: 5, sy: 2 });
     const t = graph.getLocalTransform('n')!;
-    expect(t.x).toBe(5);
-    expect(t.sy).toBe(2);
-    expect(t.y).toBe(0);
-    expect(t.sx).toBe(1);
+    expect(t.position.x).toBe(5);
+    expect(t.scale.y).toBe(2);
+    expect(t.position.y).toBe(0);
+    expect(t.scale.x).toBe(1);
   });
 
   it('removeNode decreases count', () => {
@@ -96,18 +99,18 @@ describe('TransformGraph', () => {
     graph.addNode('n');
     graph.setPosition('n', 3, 4, 5);
     const t = graph.getLocalTransform('n')!;
-    expect(t.x).toBe(3);
-    expect(t.y).toBe(4);
-    expect(t.z).toBe(5);
+    expect(t.position.x).toBe(3);
+    expect(t.position.y).toBe(4);
+    expect(t.position.z).toBe(5);
   });
 
   it('setScale updates local transform', () => {
     graph.addNode('n');
     graph.setScale('n', 2, 3, 4);
     const t = graph.getLocalTransform('n')!;
-    expect(t.sx).toBe(2);
-    expect(t.sy).toBe(3);
-    expect(t.sz).toBe(4);
+    expect(t.scale.x).toBe(2);
+    expect(t.scale.y).toBe(3);
+    expect(t.scale.z).toBe(4);
   });
 
   it('getLocalTransform returns null for missing node', () => {
@@ -127,7 +130,7 @@ describe('TransformGraph', () => {
     graph.addNode('child', [5, 0, 0 ]);
     graph.setParent('child', 'parent');
     const wp = graph.getWorldPosition('child')!;
-    expect(wp.x).toBe(15); // 10 + 5*1
+    expect(wp[0]).toBe(15); // 10 + 5*1
   });
 
   it('child world position respects parent scale', () => {
@@ -135,9 +138,9 @@ describe('TransformGraph', () => {
     graph.addNode('child', [1, 1, 1 ]);
     graph.setParent('child', 'parent');
     const wp = graph.getWorldPosition('child')!;
-    expect(wp.x).toBe(2); // 0 + 1*2
-    expect(wp.y).toBe(3); // 0 + 1*3
-    expect(wp.z).toBe(4); // 0 + 1*4
+    expect(wp[0]).toBe(2); // 0 + 1*2
+    expect(wp[1]).toBe(3); // 0 + 1*3
+    expect(wp[2]).toBe(4); // 0 + 1*4
   });
 
   it('three-level hierarchy accumulates positions', () => {
@@ -148,7 +151,7 @@ describe('TransformGraph', () => {
     graph.setParent('c', 'b');
     const wp = graph.getWorldPosition('c')!;
     // a.world=1, b.world=1+(2*1)=3, c.world=3+(3*1)=6
-    expect(wp.x).toBe(6);
+    expect(wp[0]).toBe(6);
   });
 
   it('getWorldPosition returns null for missing node', () => {
@@ -167,7 +170,7 @@ describe('TransformGraph', () => {
     graph.setPosition('p', 100, 0, 0);
     // Child should reflect new parent position
     const wp = graph.getWorldPosition('c')!;
-    expect(wp.x).toBe(100);
+    expect(wp[0]).toBe(100);
   });
 
   it('setScale propagates dirty to children', () => {
@@ -177,7 +180,7 @@ describe('TransformGraph', () => {
     graph.getWorldPosition('c'); // update
     graph.setScale('p', 3, 1, 1);
     const wp = graph.getWorldPosition('c')!;
-    expect(wp.x).toBe(30); // 0 + 10*3
+    expect(wp[0]).toBe(30); // 0 + 10*3
   });
 
   // =========== Batch Update ===========
@@ -191,7 +194,7 @@ describe('TransformGraph', () => {
     graph.updateAll();
     // After batch update, getWorldPosition should return correct values
     const wp = graph.getWorldPosition('c')!;
-    expect(wp.x).toBe(6);
+    expect(wp[0]).toBe(6);
   });
 
   // =========== Queries ===========

@@ -19,7 +19,7 @@ function makeEntity(id: string, x: number, y: number, z: number, type = 'unit'):
   return {
     id,
     type,
-    position: { x, y, z },
+    position: [x, y, z],
     boundingBox: {
       min: [x - 0.5, y - 0.5, z - 0.5 ],
       max: [x + 0.5, y + 0.5, z + 0.5 ],
@@ -47,19 +47,19 @@ describe('TransformGraph', () => {
     expect(g.getNodeCount()).toBe(1);
     const t = g.getLocalTransform('A');
     expect(t).not.toBeNull();
-    expect(t!.x).toBe(0);
-    expect(t!.y).toBe(0);
-    expect(t!.z).toBe(0);
-    expect(t!.sx).toBe(1);
-    expect(t!.sy).toBe(1);
-    expect(t!.sz).toBe(1);
+    expect(t!.position.x).toBe(0);
+    expect(t!.position.y).toBe(0);
+    expect(t!.position.z).toBe(0);
+    expect(t!.scale.x).toBe(1);
+    expect(t!.scale.y).toBe(1);
+    expect(t!.scale.z).toBe(1);
   });
 
   it('addNode with initial transform overrides defaults', () => {
     g.addNode('B', { x: 5, y: 10, z: 0, sx: 2, sy: 2, sz: 1 });
     const t = g.getLocalTransform('B');
-    expect(t!.x).toBe(5);
-    expect(t!.sx).toBe(2);
+    expect(t!.position.x).toBe(5);
+    expect(t!.scale.x).toBe(2);
   });
 
   it('removeNode deletes node', () => {
@@ -117,7 +117,7 @@ describe('TransformGraph', () => {
     const wp = g.getWorldPosition('child');
     // child world = parent.world + child.local * parent.scale
     // = 10 + 5*1 = 15
-    expect(wp!.x).toBe(15);
+    expect(wp![0]).toBe(15);
   });
 
   it('world position respects parent scale', () => {
@@ -126,18 +126,18 @@ describe('TransformGraph', () => {
     g.setParent('child', 'parent');
     const wp = g.getWorldPosition('child');
     // child world = (0 + 3*2, 0 + 3*2, 0 + 0*1) = (6, 6, 0)
-    expect(wp!.x).toBe(6);
-    expect(wp!.y).toBe(6);
-    expect(wp!.z).toBe(0);
+    expect(wp![0]).toBe(6);
+    expect(wp![1]).toBe(6);
+    expect(wp![2]).toBe(0);
   });
 
   it('setPosition marks dirty and updates world position', () => {
     g.addNode('A', [0, 0, 0 ]);
     g.setPosition('A', 7, 8, 9);
     const wp = g.getWorldPosition('A');
-    expect(wp!.x).toBe(7);
-    expect(wp!.y).toBe(8);
-    expect(wp!.z).toBe(9);
+    expect(wp![0]).toBe(7);
+    expect(wp![1]).toBe(8);
+    expect(wp![2]).toBe(9);
   });
 
   it('setScale marks dirty and affects children', () => {
@@ -146,7 +146,7 @@ describe('TransformGraph', () => {
     g.setParent('child', 'parent');
     g.setScale('parent', 3, 1, 1);
     const wp = g.getWorldPosition('child');
-    expect(wp!.x).toBe(6); // 0 + 2*3
+    expect(wp![0]).toBe(6); // 0 + 2*3
   });
 
   it('getRoots returns only nodes with no parents', () => {
@@ -168,7 +168,7 @@ describe('TransformGraph', () => {
     g.setParent('leaf', 'mid');
     g.updateAll();
     const wp = g.getWorldPosition('leaf');
-    expect(wp!.x).toBe(6); // 1 + 2 + 3
+    expect(wp![0]).toBe(6); // 1 + 2 + 3
   });
 
   it('deep hierarchy computes correctly', () => {
@@ -181,7 +181,7 @@ describe('TransformGraph', () => {
     g.setParent('b', 'a');
     g.setParent('c', 'b');
     const wp = g.getWorldPosition('c');
-    expect(wp!.x).toBe(4);
+    expect(wp![0]).toBe(4);
   });
 
   it('getWorldPosition returns null for missing node', () => {

@@ -115,4 +115,5 @@ export type {
 
 // Graph and Culling systems
 export { TransformGraph } from './TransformGraph';
+export type { Transform3D, Vec3 } from './TransformGraph';
 export { FrustumCuller } from './FrustumCuller';

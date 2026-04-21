@@ -31,17 +31,17 @@ describe('TransformGraph: production', () => {
     graph.addNode('n', [5, 3, 1 ]);
     const local = graph.getLocalTransform('n');
     expect(local).not.toBeNull();
-    expect(local!.x).toBe(5);
-    expect(local!.y).toBe(3);
-    expect(local!.z).toBe(1);
+    expect(local!.position.x).toBe(5);
+    expect(local!.position.y).toBe(3);
+    expect(local!.position.z).toBe(1);
   });
 
   it('default scale is (1,1,1)', () => {
     graph.addNode('n');
     const local = graph.getLocalTransform('n');
-    expect(local!.sx).toBe(1);
-    expect(local!.sy).toBe(1);
-    expect(local!.sz).toBe(1);
+    expect(local!.scale.x).toBe(1);
+    expect(local!.scale.y).toBe(1);
+    expect(local!.scale.z).toBe(1);
   });
 
   it('removeNode decrements count', () => {
@@ -97,9 +97,9 @@ describe('TransformGraph: production', () => {
     graph.addNode('root', [10, 5, -3 ]);
     const wp = graph.getWorldPosition('root');
     expect(wp).not.toBeNull();
-    expect(wp!.x).toBe(10);
-    expect(wp!.y).toBe(5);
-    expect(wp!.z).toBe(-3);
+    expect(wp![0]).toBe(10);
+    expect(wp![1]).toBe(5);
+    expect(wp![2]).toBe(-3);
   });
 
   it('child world position = parent.local + child.local (unit scale)', () => {
@@ -108,7 +108,7 @@ describe('TransformGraph: production', () => {
     graph.setParent('c', 'p');
     graph.updateAll();
     const wp = graph.getWorldPosition('c');
-    expect(wp!.x).toBeCloseTo(15);
+    expect(wp![0]).toBeCloseTo(15);
   });
 
   it('parent scale multiplies child local offset', () => {
@@ -117,7 +117,7 @@ describe('TransformGraph: production', () => {
     graph.setParent('c', 'p');
     graph.updateAll();
     const wp = graph.getWorldPosition('c');
-    expect(wp!.x).toBeCloseTo(6); // 0 + 3 * 2
+    expect(wp![0]).toBeCloseTo(6); // 0 + 3 * 2
   });
 
   it('getWorldPosition returns null for unknown node', () => {
@@ -129,9 +129,9 @@ describe('TransformGraph: production', () => {
     graph.addNode('n');
     graph.setPosition('n', 7, 8, 9);
     const local = graph.getLocalTransform('n');
-    expect(local!.x).toBe(7);
-    expect(local!.y).toBe(8);
-    expect(local!.z).toBe(9);
+    expect(local!.position.x).toBe(7);
+    expect(local!.position.y).toBe(8);
+    expect(local!.position.z).toBe(9);
   });
 
   it('setPosition on parent propagates to child world position', () => {
@@ -140,14 +140,16 @@ describe('TransformGraph: production', () => {
     graph.setParent('c', 'p');
     graph.setPosition('p', 10, 0, 0);
     const wp = graph.getWorldPosition('c');
-    expect(wp!.x).toBeCloseTo(11);
+    expect(wp![0]).toBeCloseTo(11);
   });
 
   it('setScale updates local scale', () => {
     graph.addNode('n');
     graph.setScale('n', 3, 3, 3);
     const local = graph.getLocalTransform('n');
-    expect(local!.sx).toBe(3);
+    expect(local!.scale.x).toBe(3);
+    expect(local!.scale.y).toBe(3);
+    expect(local!.scale.z).toBe(3);
   });
 
   it('setPosition/setScale are no-ops for unknown node', () => {
@@ -163,15 +165,15 @@ describe('TransformGraph: production', () => {
     graph.setParent('b', 'a');
     graph.setParent('c', 'b');
     graph.updateAll();
-    expect(graph.getWorldPosition('c')!.x).toBeCloseTo(9); // 2+3+4
+    expect(graph.getWorldPosition('c')![0]).toBeCloseTo(9); // 2+3+4
   });
 
   it('updateAll handles multiple independent roots', () => {
     graph.addNode('r1', [1, 0, 0 ]);
     graph.addNode('r2', [-1, 0, 0 ]);
     graph.updateAll();
-    expect(graph.getWorldPosition('r1')!.x).toBe(1);
-    expect(graph.getWorldPosition('r2')!.x).toBe(-1);
+    expect(graph.getWorldPosition('r1')![0]).toBe(1);
+    expect(graph.getWorldPosition('r2')![0]).toBe(-1);
   });
 
   // ─── Deep Hierarchy ─────────────────────────────────────────────────────
@@ -181,6 +183,6 @@ describe('TransformGraph: production', () => {
       if (i > 0) graph.setParent(`n${i}`, `n${i - 1}`);
     }
     graph.updateAll();
-    expect(graph.getWorldPosition('n4')!.x).toBeCloseTo(5);
+    expect(graph.getWorldPosition('n4')![0]).toBeCloseTo(5);
   });
 });
