@@ -6,6 +6,7 @@ import { holomeshTransactions } from '../../../../../../db/schema';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 import { rateLimit } from '../../../../../../lib/rate-limiter';
 
+import { corsHeaders } from '../../../../_lib/cors';
 // USDC contract addresses by network
 const USDC_ADDRESSES: Record<string, `0x${string}`> = {
   base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -314,13 +315,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

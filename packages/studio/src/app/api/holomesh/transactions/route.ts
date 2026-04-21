@@ -6,6 +6,7 @@ import { getDb } from '../../../../db/client';
 import { holomeshTransactions } from '../../../../db/schema';
 import { desc } from 'drizzle-orm';
 
+import { corsHeaders } from '../../_lib/cors';
 export async function GET(req: NextRequest) {
   const db = getDb();
   const { searchParams } = req.nextUrl;
@@ -34,13 +35,9 @@ export async function GET(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
