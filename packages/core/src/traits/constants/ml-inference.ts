@@ -19,6 +19,9 @@ export const ML_INFERENCE_TRAITS = [
   // ─── Retrieval ────────────────────────────────────────────────────
   'vector_search', // Nearest-neighbor similarity search
   'prompt_template', // Template management with variable substitution
+
+  // ─── Vision / Depth ───────────────────────────────────────────────
+  'depth_estimation', // Monocular depth from 2D image/video (Depth Anything V2)
 ] as const;
 
 export type MLInferenceTraitName = (typeof ML_INFERENCE_TRAITS)[number];

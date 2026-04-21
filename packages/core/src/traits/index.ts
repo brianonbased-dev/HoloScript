@@ -46,6 +46,7 @@ export * from './CRDTRoomTrait';
 export * from './CRDTRoomTraitHandler';
 export * from './CronTrait';
 export * from './DataBindingTrait';
+export * from './DepthEstimationTrait';
 export * from './DestructionTrait';
 export * from './DialogTrait';
 export * from './DialogueTrait';

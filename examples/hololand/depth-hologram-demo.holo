@@ -1,0 +1,127 @@
+// Depth Estimation Hologram Demo
+// Demonstrates @depth_estimation trait on a 2D photo plane.
+// The trait computes a real-time depth map using Depth Anything V2 Small.
+// The resulting depth map drives parallax displacement for a hologram-like
+// 3D-from-2D effect, with reactive colour and opacity bindings.
+
+composition "Depth Hologram Demo" {
+  environment {
+    skybox: "dark-space"
+    skyColor: "#070d1a"
+    ambient_light: 0.15
+    bloom: { intensity: 0.45, threshold: 0.6 }
+    fog: { density: 0.04, color: "#030810" }
+  }
+
+  // ── Photo plane: source 2D image for depth analysis ─────────────────────
+  template "photo_plane" {
+    geometry: "plane"
+    scale: [3, 2, 1]
+    color: "#ffffff"
+    imageSource: "assets/demo-photo.jpg"  // swap for any static image
+
+    depthEstimation: {
+      modelId: "Xenova/depth-anything-small-hf"
+      mode: "on-demand"
+      resolution: { width: 518, height: 518 }
+      emitNormalized: true
+      cacheDb: "holoscript-depth-demo"
+    }
+
+    state {
+      depthReady: false
+      lastDepthMs: 0
+      backend: "unknown"
+    }
+
+    // Reactive bindings driven by depth observables
+    reactive: {
+      "depth:ready"  -> state.depthReady
+      "depth:backend" -> state.backend
+    }
+  }
+
+  // ── Depth-displacement layer: parallax shift based on depth map ──────────
+  template "depth_layer" {
+    geometry: "plane"
+    scale: [3, 2, 1]
+    color: "#2288ff"
+    opacity: 0.0
+
+    state { depthVisible: false }
+
+    reactive: {
+      "depth:normalized" -> { applyDisplacement: true, source: "depth_photo" }
+    }
+  }
+
+  // ── HUD showing model status ─────────────────────────────────────────────
+  template "status_hud" {
+    geometry: "plane"
+    scale: [1.2, 0.25, 1]
+    color: "#000000"
+    opacity: 0.7
+    billboard: true
+
+    text: {
+      content: "Depth: Loading model…"
+      fontSize: 0.07
+      color: "#00ffcc"
+      anchor: "center"
+    }
+
+    state { message: "Loading model…" }
+
+    reactive: {
+      "depth:ready"   -> { text.content: "Depth: Ready ✓ ({{ state.backend }})" }
+      "depth:error"   -> { text.content: "Depth: Error — {{ value }}", text.color: "#ff4444" }
+    }
+  }
+
+  spatial_group "scene" {
+    // Main photo plane with @depth_estimation
+    object "depth_photo" using "photo_plane" {
+      position: [0, 1.5, -2]
+      rotation: [0, 0, 0]
+      traits: ["@depth_estimation", "@reactive", "@billboard"]
+    }
+
+    // Parallax displacement plane (behind the photo)
+    object "depth_parallax" using "depth_layer" {
+      position: [0, 1.5, -2.1]
+      rotation: [0, 0, 0]
+      traits: ["@reactive"]
+    }
+
+    // Status HUD above the photo
+    object "status_label" using "status_hud" {
+      position: [0, 2.8, -2]
+    }
+
+    // Ground reference
+    object "ground" {
+      geometry: "plane"
+      scale: [10, 10, 1]
+      rotation: [-90, 0, 0]
+      position: [0, 0, 0]
+      color: "#0d1520"
+      traits: ["@collidable"]
+    }
+  }
+
+  logic {
+    // Trigger depth computation once model is ready
+    on "depth:ready" from "depth_photo" {
+      emit "depth:compute" to "depth_photo"
+    }
+
+    // Animate parallax based on viewer head position (XR head tracking)
+    on "frame" {
+      if "depth_photo.state.depthReady" {
+        set "depth_parallax.position.x" to "viewer.head.x * 0.08"
+        set "depth_parallax.position.y" to "1.5 + viewer.head.y * 0.05"
+        set "depth_parallax.opacity" to 0.35
+      }
+    }
+  }
+}
