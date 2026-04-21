@@ -640,7 +640,20 @@ async function handleToolForA2A(name: string, args: Record<string, unknown>): Pr
 
 const httpServer = http.createServer(async (req, res) => {
   // CORS headers (extended for OAuth 2.1)
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Default to wildcard for MCP/agent clients; restrict via CORS_ALLOWED_ORIGINS env var
+  // in deployments that serve browser-based Studio traffic alongside the MCP endpoint.
+  const allowedOrigin = process.env.CORS_ALLOWED_ORIGINS ?? '*';
+  const requestOrigin = req.headers['origin'];
+  if (allowedOrigin !== '*' && requestOrigin) {
+    const allowed = allowedOrigin.split(',').map((o) => o.trim());
+    res.setHeader(
+      'Access-Control-Allow-Origin',
+      allowed.includes(requestOrigin) ? requestOrigin : allowed[0]
+    );
+    res.setHeader('Vary', 'Origin');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',

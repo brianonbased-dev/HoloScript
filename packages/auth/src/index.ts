@@ -95,13 +95,17 @@ export class AuthService {
     this.requireAuth = config.requireAuth ?? false;
     this.publicOperations = new Set(config.publicOperations || DEFAULT_PUBLIC_OPERATIONS);
 
-    if (
-      this.jwtSecret === 'dev-secret-change-in-production' &&
-      process.env.NODE_ENV === 'production'
-    ) {
-      console.error(
-        '[AUTH ERROR] Using default JWT secret in production! Set JWT_SECRET environment variable.'
-      );
+    if (this.jwtSecret === 'dev-secret-change-in-production') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          '[AUTH] JWT_SECRET environment variable is not set. ' +
+            'Refusing to start with the default insecure secret in production.'
+        );
+      } else {
+        console.warn(
+          '[AUTH] Using default JWT secret. Set JWT_SECRET before deploying to production.'
+        );
+      }
     }
   }
 

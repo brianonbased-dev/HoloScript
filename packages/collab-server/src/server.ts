@@ -101,7 +101,14 @@ wss.on('listening', () => {
 
 wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   const url = parseUrl(req);
-  const roomId = url.searchParams.get('room') ?? 'default';
+  const rawRoomId = url.searchParams.get('room') ?? 'default';
+
+  // Validate roomId: max 128 chars, alphanumeric + hyphen/underscore only
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(rawRoomId)) {
+    ws.close(1008, 'Invalid room identifier');
+    return;
+  }
+  const roomId = rawRoomId;
 
   // ─── Auth gate ────────────────────────────────────────────────────────
   if (AUTH_SECRET) {
