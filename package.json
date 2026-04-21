@@ -27,6 +27,7 @@
     "bench:ci": "pnpm --filter @holoscript/benchmark bench:ci",
     "bench:paper-rigorous": "node scripts/bench-paper-rigorous.mjs",
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
+    "ops:dashboard": "tsx docs/ops/admin-cli.ts",
     "clean": "pnpm -r exec rm -rf dist",
     "build:auto": "bash scripts/auto-build-manager.sh",
     "build:archive": "bash scripts/archive-build-artifacts.sh",
