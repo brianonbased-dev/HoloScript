@@ -267,6 +267,7 @@ const DOWNSTREAM_TOOLS = new Set([
 
   // Render (spawns processes)
   'render_preview',
+  'holo_hologram_render',
 
   // Self-improvement (daemon, filesystem, shell)
   'holo_self_diagnose',
@@ -411,11 +412,33 @@ export function gate3EnforcePolicy(
   }
 
   // Check GPU compute
-  if (args.useGpu || args.gpuCompute) {
+  if (args.useGpu || args.gpuCompute || args.useGpuCompute) {
     if (!policy.allowGpuCompute) {
       return {
         passed: false,
         reason: 'GPU compute access denied by StdlibPolicy',
+        appliedPolicy: policy,
+      };
+    }
+  }
+
+  // Check media decode permission
+  if (args.decodeMedia || args.mediaSource || args.gifSource) {
+    if (!policy.allowMediaDecode) {
+      return {
+        passed: false,
+        reason: 'Media decode access denied by StdlibPolicy (allowMediaDecode=false)',
+        appliedPolicy: policy,
+      };
+    }
+  }
+
+  // Check depth inference permission
+  if (args.runDepthInference || args.depthSource || args.estimateDepth) {
+    if (!policy.allowDepthInference) {
+      return {
+        passed: false,
+        reason: 'Depth inference access denied by StdlibPolicy (allowDepthInference=false)',
         appliedPolicy: policy,
       };
     }

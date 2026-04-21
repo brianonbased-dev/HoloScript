@@ -19,10 +19,13 @@ export function stepSNN(neurons: Neuron[], inputCurrent: number): Neuron[] {
 }
 
 // --- Security Sandbox Logic ---
-export interface SandboxRequest { op: 'fs_write' | 'net_fetch' | 'gpu_compute'; source: string; }
+export interface SandboxRequest { op: 'fs_write' | 'net_fetch' | 'gpu_compute' | 'media_decode' | 'depth_inference'; source: string; }
 export function validateStdlibPolicy(req: SandboxRequest, trustLevel: number): { allowed: boolean; reason: string } {
   if (trustLevel < 50 && req.op === 'fs_write') return { allowed: false, reason: 'Insufficient trust for file write' };
   if (req.source === 'untrusted_agent' && req.op === 'net_fetch') return { allowed: false, reason: 'Network fetch blocked for untrusted agents' };
+  if (trustLevel < 30 && req.op === 'media_decode') return { allowed: false, reason: 'Insufficient trust for media decode' };
+  if (trustLevel < 30 && req.op === 'depth_inference') return { allowed: false, reason: 'Insufficient trust for depth inference' };
+  if (req.source === 'untrusted_agent' && req.op === 'gpu_compute') return { allowed: false, reason: 'GPU compute blocked for untrusted agents' };
   return { allowed: true, reason: 'Policy check passed' };
 }
 

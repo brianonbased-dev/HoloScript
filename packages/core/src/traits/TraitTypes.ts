@@ -78,10 +78,70 @@ export interface HostNetworkCapabilities {
   ) => Promise<HostNetworkResponse> | HostNetworkResponse;
 }
 
+/** Decoded media frame returned by HostMediaCapabilities.decodeFrames(). */
+export interface HostMediaFrame {
+  /** RGBA pixel buffer, row-major, 4 bytes per pixel. */
+  data: Uint8Array;
+  width: number;
+  height: number;
+  /** Frame display duration in milliseconds. */
+  delayMs: number;
+}
+
+/** GIF / video frame decoding capability. */
+export interface HostMediaCapabilities {
+  decodeFrames: (
+    source: string | ArrayBuffer,
+    options?: { maxFrames?: number; type?: 'gif' | 'video' }
+  ) => Promise<HostMediaFrame[]>;
+}
+
+/** Depth map result from ML inference. */
+export interface HostDepthMap {
+  /** Normalised depth values in [0, 1], row-major, one value per pixel. */
+  data: Float32Array;
+  width: number;
+  height: number;
+  /** Inference backend actually used. */
+  backend: 'webgpu' | 'wasm' | 'cpu';
+  inferenceMs: number;
+}
+
+/** ML depth estimation capability. */
+export interface HostDepthInferenceCapabilities {
+  estimateDepth: (
+    source: string | ArrayBuffer,
+    options?: { width?: number; height?: number; modelId?: string }
+  ) => Promise<HostDepthMap>;
+  readonly webgpuAvailable: boolean;
+}
+
+/** WebGPU compute kernel result. */
+export interface HostGpuComputeResult {
+  outputs: Record<string, ArrayBuffer>;
+  dispatchMs: number;
+}
+
+/** WebGPU compute dispatch capability. */
+export interface HostGpuComputeCapabilities {
+  dispatch: (
+    shader: string,
+    inputs: Record<string, ArrayBuffer>,
+    workgroups: [number, number?, number?]
+  ) => Promise<HostGpuComputeResult>;
+  readonly available: boolean;
+}
+
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;
   process?: HostProcessCapabilities;
   network?: HostNetworkCapabilities;
+  /** Media decoding capability — GIF/video frame extraction. */
+  media?: HostMediaCapabilities;
+  /** ML depth inference capability. */
+  depthInference?: HostDepthInferenceCapabilities;
+  /** GPU compute capability. */
+  gpuCompute?: HostGpuComputeCapabilities;
 }
 
 export interface TraitContext {

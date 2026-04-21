@@ -304,6 +304,143 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
     // ── Network ───────────────────────────────────────────────────────────
 
+
+    // ── Media Decode ──────────────────────────────────────────────────────
+
+    media_decode: async (params, bb) => {
+      const prefix = resolveInto(params, 'media_decode');
+
+      if (!policy.allowMediaDecode) {
+        bb[`${prefix}_error`] = 'media_decode is disabled by policy (allowMediaDecode=false)';
+        return false;
+      }
+
+      if (!caps?.media?.decodeFrames) {
+        bb[`${prefix}_error`] = 'media.decodeFrames capability not available';
+        return false;
+      }
+
+      const source = params.source;
+      if (typeof source !== 'string' && !(source instanceof ArrayBuffer)) {
+        bb[`${prefix}_error`] = 'source (URL string or ArrayBuffer) is required';
+        return false;
+      }
+
+      const maxFrames =
+        typeof params.maxFrames === 'number'
+          ? Math.min(params.maxFrames, policy.maxGifFrames ?? 500)
+          : (policy.maxGifFrames ?? 500);
+      const mediaType =
+        params.type === 'video' ? ('video' as const) : ('gif' as const);
+
+      try {
+        const frames = await caps.media.decodeFrames(source as string | ArrayBuffer, {
+          maxFrames,
+          type: mediaType,
+        });
+        bb[`${prefix}_frames`] = frames;
+        bb[`${prefix}_count`] = frames.length;
+        log(`media_decode: decoded ${frames.length} frames (type=${mediaType})`);
+        return true;
+      } catch (error) {
+        bb[`${prefix}_error`] = (error as Error).message;
+        return false;
+      }
+    },
+
+    // ── Depth Inference ───────────────────────────────────────────────────
+
+    depth_inference: async (params, bb) => {
+      const prefix = resolveInto(params, 'depth_inference');
+
+      if (!policy.allowDepthInference) {
+        bb[`${prefix}_error`] = 'depth_inference is disabled by policy (allowDepthInference=false)';
+        return false;
+      }
+
+      if (!caps?.depthInference?.estimateDepth) {
+        bb[`${prefix}_error`] = 'depthInference.estimateDepth capability not available';
+        return false;
+      }
+
+      const source = params.source;
+      if (typeof source !== 'string' && !(source instanceof ArrayBuffer)) {
+        bb[`${prefix}_error`] = 'source (image URL string or ArrayBuffer) is required';
+        return false;
+      }
+
+      const maxRes = policy.maxMediaResolution ?? 4096;
+      const width =
+        typeof params.width === 'number' ? Math.min(params.width, maxRes) : undefined;
+      const height =
+        typeof params.height === 'number' ? Math.min(params.height, maxRes) : undefined;
+      const modelId =
+        typeof params.modelId === 'string' ? params.modelId : undefined;
+
+      try {
+        const depthMap = await caps.depthInference.estimateDepth(source as string | ArrayBuffer, {
+          width,
+          height,
+          modelId,
+        });
+        bb[`${prefix}_data`] = depthMap.data;
+        bb[`${prefix}_width`] = depthMap.width;
+        bb[`${prefix}_height`] = depthMap.height;
+        bb[`${prefix}_backend`] = depthMap.backend;
+        bb[`${prefix}_inferenceMs`] = depthMap.inferenceMs;
+        log(`depth_inference: ${depthMap.width}×${depthMap.height} via ${depthMap.backend} (${depthMap.inferenceMs}ms)`);
+        return true;
+      } catch (error) {
+        bb[`${prefix}_error`] = (error as Error).message;
+        return false;
+      }
+    },
+
+    // ── GPU Compute ───────────────────────────────────────────────────────
+
+    gpu_compute: async (params, bb) => {
+      const prefix = resolveInto(params, 'gpu_compute');
+
+      if (!policy.allowGpuCompute) {
+        bb[`${prefix}_error`] = 'gpu_compute is disabled by policy (allowGpuCompute=false)';
+        return false;
+      }
+
+      if (!caps?.gpuCompute?.dispatch) {
+        bb[`${prefix}_error`] = 'gpuCompute.dispatch capability not available';
+        return false;
+      }
+
+      const shader = typeof params.shader === 'string' ? params.shader.trim() : '';
+      if (!shader) {
+        bb[`${prefix}_error`] = 'shader (WGSL source) is required';
+        return false;
+      }
+
+      const inputs: Record<string, ArrayBuffer> = {};
+      if (typeof params.inputs === 'object' && params.inputs !== null) {
+        for (const [k, v] of Object.entries(params.inputs as Record<string, unknown>)) {
+          if (v instanceof ArrayBuffer) inputs[k] = v;
+        }
+      }
+
+      const rawWg = params.workgroups;
+      const workgroups: [number, number?, number?] = Array.isArray(rawWg)
+        ? ([rawWg[0], rawWg[1], rawWg[2]] as [number, number?, number?])
+        : [1];
+
+      try {
+        const result = await caps.gpuCompute.dispatch(shader, inputs, workgroups);
+        bb[`${prefix}_outputs`] = result.outputs;
+        bb[`${prefix}_dispatchMs`] = result.dispatchMs;
+        log(`gpu_compute: dispatch completed in ${result.dispatchMs}ms`);
+        return true;
+      } catch (error) {
+        bb[`${prefix}_error`] = (error as Error).message;
+        return false;
+      }
+    },
+
     net_fetch: async (params, bb) => {
       const prefix = resolveInto(params, 'net_fetch');
       const url = typeof params.url === 'string' ? params.url.trim() : '';
