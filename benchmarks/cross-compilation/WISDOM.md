@@ -150,6 +150,8 @@ HandTrackingProvider { hands in
 
 **Fallback Strategy:** Render gaussian splats as point clouds or billboarded quads with LOD.
 
+**Intermediate LOD (research capture):** Treat **3D Gaussian splats** as a distance-bounded surrogate **between** analytic meshes (near-field interaction, deformation, physics) and impostors or light meshes (far field). Under a **global splat budget**, reserve Gaussians for viewpoints where they beat triangle throughput; past a projection-size or depth threshold, merge or subsample splats and swap to baked mesh or sprite impostor. HoloScript’s WebGPU path already stabilizes draw order via radix-class sort—LOD policy would stack **budgeted splat count** and **cutover distance** on top. For Unity/Unreal exports, apply the **same budget before engine import** so splats are not duplicated when a target also bakes a mesh from the same source.
+
 ---
 
 ### G.006 | Simulated Failures Hide Real Regressions | ⚠️CRITICAL
