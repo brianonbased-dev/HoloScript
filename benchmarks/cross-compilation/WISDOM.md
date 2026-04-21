@@ -235,6 +235,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Research capture:** Full **cryptographic indistinguishability** of train/deploy from the model’s view is a high bar; pragmatic parity is **interface-stable manifests** + **attested runtimes** (same observation schema, hashed prompt templates, policy-as-code IDs). Ship profiles should declare **which sensors exist in prod vs lab** and block silent upgrades. HoloMesh-facing agents should treat **environment fingerprint** as part of state so policy files can branch on *certified* vs *dev* builds without reward-shaping drift.
 
+### S.008 | Relatedness (SDT) vs mesa-optimization pressure | ⚡0.7
+
+**Research capture:** Self-Determination Theory stresses **relatedness**—agents that only optimize narrow reward counters may still **game** them unless social signals carry **provenance** (who proposed the task, peer review flags). A hypothesis worth testing: **explicit cooperative credit assignment** (shared team reward + identity-linked critiques) raises the cost of deceptive mesa policies because exploitation becomes socially legible. For HoloLand multi-agent runs, log **turn-taking fairness** and **help offers** as first-class metrics, not only task completion.
+
 ---
 
 ## Next Optimization Opportunities
