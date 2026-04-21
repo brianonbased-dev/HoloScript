@@ -215,6 +215,10 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Strategy:** Add platform-specific traits to showcase verticals (Tourism uses `@eye_tracking` for VisionOS).
 
+### S.003 | Accessibility as a language primitive | ⚡0.85
+
+**Research capture:** Accessibility stops being a post-pass when **focus order, semantics, and motor affordances** are fields on UI / spatial traits (not a separate “skin”). Compilers should map the same declaration to **ARIA-like roles on web**, **VoiceOver labels on Apple**, and **controller-first focus paths on XR** without authors maintaining three checklists. Haptics, dwell-click, and resize hit targets become **variant dimensions** of `@tactile_ui` (or successor traits) so benchmark outputs can report **which access guarantees survived** per target.
+
 ---
 
 ## Next Optimization Opportunities
