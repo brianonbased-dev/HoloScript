@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { listTemplates, getTemplate } from '../../../../../lib/holomesh/room-templates';
 
+import { corsHeaders } from '../../../_lib/cors';
 /**
  * GET /api/holomesh/team/templates
  *
@@ -34,13 +35,9 @@ export async function GET(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
