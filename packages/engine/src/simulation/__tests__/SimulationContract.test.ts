@@ -70,6 +70,13 @@ describe('Geometry Hashing', () => {
     const vio = validateMeshSanity(v, bad);
     expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.severity === 'error')).toBe(true);
   });
+
+  it('SEC-02: validateMeshSanity warns on orphaned vertices', () => {
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 9, 9]); // 4 nodes
+    const elements = new Uint32Array([0, 1, 2]); // references 0,1,2. Node 3 is orphaned.
+    const vio = validateMeshSanity(v, elements);
+    expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.message.includes('orphaned'))).toBe(true);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -343,5 +350,131 @@ describe('ContractedSimulation', () => {
       () => mockSolver(),
       tamperedReplay,
     )).toThrow('Replay geometry mismatch');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Per-step state digest + NaN guard (Route 2b, AUDIT 2026-04-20 Wave-1.5)
+//
+// Property 4 (cross-adapter replay determinism, paper-3 §5.4) relies on
+// computeStateDigest being fail-closed on non-finite state. A silent
+// Math.round(NaN) | 0 === 0 would canonicalize a corrupted state to zero
+// and hash it as valid — a semantic-integrity violation invisible to
+// proof review. Reviewer-facing documentation of this behavior lives in
+// ai-ecosystem research/2026-04-20_property-4-appendix-a-lemmas.md
+// Lemma 1 edge case #3.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('ContractedSimulation state digest (Route 2b)', () => {
+  function solverWithMutableField(values: Float32Array): SimSolver & { time: number } {
+    return {
+      mode: 'transient',
+      fieldNames: ['velocity'],
+      time: 0,
+      step(dt: number) { this.time += dt; },
+      solve() {},
+      getField(): FieldData | null { return values; },
+      getStats() { return { currentTime: this.time, converged: true }; },
+      dispose() {},
+    };
+  }
+
+  it('captures one digest per solver sub-step', () => {
+    const values = new Float32Array([1, 2, 3, 4, 5]);
+    const solver = solverWithMutableField(values);
+    const contracted = new ContractedSimulation(solver, {}, { fixedDt: 0.01 });
+
+    // Note: FP accumulator can yield one fewer sub-step than the naive
+    // wallDelta/fixedDt ratio (existing contract behavior — see the
+    // DeterministicStepper "produces same total steps regardless of frame
+    // timing" test that tolerates ±1). Use the returned count as the
+    // ground truth rather than hard-coding 3.
+    const subSteps = contracted.step(0.035);
+
+    const digests = contracted.getStateDigests();
+    expect(digests.length).toBe(subSteps);
+    expect(digests.length).toBeGreaterThanOrEqual(3); // ≥ 3 at 0.035s/0.01s
+    // Each digest is a hex string of length 8 (FNV-1a 32-bit)
+    for (const d of digests) {
+      expect(d).toMatch(/^[0-9a-f]{8}$/);
+    }
+  });
+
+  it('digest is deterministic across independent runs on identical state', () => {
+    const a = new ContractedSimulation(
+      solverWithMutableField(new Float32Array([0.001, 0.002, 0.003])),
+      {}, { fixedDt: 0.01 },
+    );
+    const b = new ContractedSimulation(
+      solverWithMutableField(new Float32Array([0.001, 0.002, 0.003])),
+      {}, { fixedDt: 0.01 },
+    );
+    a.step(0.01);
+    b.step(0.01);
+    expect(a.getStateDigests()).toEqual(b.getStateDigests());
+  });
+
+  it('digest changes when state changes above the per-field quantum', () => {
+    // Velocity field → q_f = 1e-3 m/s. A 1e-2 change is 10× above quantum.
+    const vA = new Float32Array([0.1, 0.2, 0.3]);
+    const vB = new Float32Array([0.1, 0.2, 0.31]); // 0.01 m/s delta, > q_f
+    const a = new ContractedSimulation(solverWithMutableField(vA), {}, { fixedDt: 0.01 });
+    const b = new ContractedSimulation(solverWithMutableField(vB), {}, { fixedDt: 0.01 });
+    a.step(0.01);
+    b.step(0.01);
+    expect(a.getStateDigests()[0]).not.toBe(b.getStateDigests()[0]);
+  });
+
+  it('digest is stable under perturbations below the per-field quantum', () => {
+    // Velocity q_f = 1e-3. Perturbation 1e-5 < q_f → same digest.
+    const vA = new Float32Array([0.5, 0.5, 0.5]);
+    const vB = new Float32Array([0.5 + 1e-5, 0.5, 0.5]);
+    const a = new ContractedSimulation(solverWithMutableField(vA), {}, { fixedDt: 0.01 });
+    const b = new ContractedSimulation(solverWithMutableField(vB), {}, { fixedDt: 0.01 });
+    a.step(0.01);
+    b.step(0.01);
+    // Both should land in the same quantization cell → identical digest
+    expect(a.getStateDigests()[0]).toBe(b.getStateDigests()[0]);
+  });
+
+  it('NaN in state throws with clear diagnostic (fail-closed contract)', () => {
+    const values = new Float32Array([1, NaN, 3]);
+    const contracted = new ContractedSimulation(
+      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+    );
+    expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 1/);
+  });
+
+  it('+Infinity in state throws (fail-closed contract)', () => {
+    const values = new Float32Array([1, 2, Infinity]);
+    const contracted = new ContractedSimulation(
+      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+    );
+    expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 2/);
+  });
+
+  it('-Infinity in state throws (fail-closed contract)', () => {
+    const values = new Float32Array([-Infinity, 2, 3]);
+    const contracted = new ContractedSimulation(
+      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+    );
+    expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 0/);
+  });
+
+  it('error message names the field and index for debuggability', () => {
+    const values = new Float32Array([0, 0, 0, 0, NaN, 0, 0]);
+    const contracted = new ContractedSimulation(
+      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+    );
+    try {
+      contracted.step(0.01);
+      throw new Error('expected NaN guard to throw');
+    } catch (err) {
+      const msg = (err as Error).message;
+      expect(msg).toContain('SimulationContract');
+      expect(msg).toContain('velocity');
+      expect(msg).toContain('index 4');
+      expect(msg).toContain('State integrity violation');
+    }
   });
 });

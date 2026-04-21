@@ -527,9 +527,28 @@ export class ContractedSimulation {
         h = Math.imul(h, FNV_PRIME) >>> 0;
       }
       // Quantize by q_f (value / q_f, rounded to nearest integer-lattice point)
-      // + fold into the hash
+      // + fold into the hash.
+      //
+      // NaN/±Infinity guard (AUDIT 2026-04-20 Wave-1.5, Appendix A Lemma 1
+      // edge case #3): without this check, Math.round(NaN) | 0 === 0 and
+      // Math.round(Infinity) | 0 === 0, which would silently canonicalize a
+      // non-finite state to zero and hash it as a valid state. That is a
+      // semantic-integrity violation that is invisible to proof review —
+      // it only surfaces in live misbehavior. Route 2b is a fail-closed
+      // contract: a solver that produces non-finite state MUST halt here,
+      // not silently elide. Downstream consumers (CAELReplayer, dispute
+      // oracle) can treat a digest-raised step as a divergence point
+      // without a separate NaN-detection pass.
       for (let i = 0; i < values.length; i++) {
-        const q = Math.round(values[i] * invQf) | 0;
+        const v = values[i];
+        if (!Number.isFinite(v)) {
+          throw new Error(
+            `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
+            `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
+            `Investigate solver.step() for the stepping that produced this state.`,
+          );
+        }
+        const q = Math.round(v * invQf) | 0;
         h ^= q & 0xff;
         h = Math.imul(h, FNV_PRIME) >>> 0;
         h ^= (q >>> 8) & 0xff;
