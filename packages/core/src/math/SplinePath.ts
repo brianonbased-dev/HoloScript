@@ -13,34 +13,10 @@
 
 export type SplineType = 'linear' | 'catmull-rom' | 'bezier';
 
-export interface SplinePoint {
-  x: number;
-  y: number;
-  z: number;
-}
+export type SplinePoint = [number, number, number];
 
-function withIndexAccess(point: SplinePoint): SplinePoint {
-  if (!Object.prototype.hasOwnProperty.call(point, 0)) {
-    Object.defineProperty(point, 0, {
-      get() {
-        return point.x;
-      },
-      enumerable: false,
-    });
-    Object.defineProperty(point, 1, {
-      get() {
-        return point.y;
-      },
-      enumerable: false,
-    });
-    Object.defineProperty(point, 2, {
-      get() {
-        return point.z;
-      },
-      enumerable: false,
-    });
-  }
-  return point;
+function P(x: number, y: number, z: number): SplinePoint {
+  return [x, y, z];
 }
 
 // =============================================================================
@@ -85,13 +61,13 @@ export class SplinePath {
   // ---------------------------------------------------------------------------
 
   addPoint(x: number, y: number, z = 0): void {
-    this.points.push({ x, y, z });
+    this.points.push(P(x, y, z));
     this.dirty = true;
   }
 
   setPoint(index: number, x: number, y: number, z = 0): void {
     if (index >= 0 && index < this.points.length) {
-      this.points[index] = { x, y, z };
+      this.points[index] = P(x, y, z);
       this.dirty = true;
     }
   }
@@ -102,7 +78,7 @@ export class SplinePath {
   }
 
   getPoints(): SplinePoint[] {
-    return [...this.points];
+    return this.points.map(([x, y, z]) => [x, y, z] as SplinePoint);
   }
   getPointCount(): number {
     return this.points.length;
@@ -113,8 +89,8 @@ export class SplinePath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): SplinePoint {
-    if (this.points.length === 0) return withIndexAccess({ x: 0, y: 0, z: 0 });
-    if (this.points.length === 1) return withIndexAccess({ ...this.points[0] });
+    if (this.points.length === 0) return P(0, 0, 0);
+    if (this.points.length === 1) return P(this.points[0][0], this.points[0][1], this.points[0][2]);
 
     t = Math.max(0, Math.min(1, t));
     const segments = this.loop ? this.points.length : this.points.length - 1;
@@ -137,11 +113,11 @@ export class SplinePath {
   private evalLinear(seg: number, t: number): SplinePoint {
     const p0 = this.getWrapped(seg);
     const p1 = this.getWrapped(seg + 1);
-    return withIndexAccess({
-      x: p0.x + (p1.x - p0.x) * t,
-      y: p0.y + (p1.y - p0.y) * t,
-      z: p0.z + (p1.z - p0.z) * t,
-    });
+    return P(
+      p0[0] + (p1[0] - p0[0]) * t,
+      p0[1] + (p1[1] - p0[1]) * t,
+      p0[2] + (p1[2] - p0[2]) * t
+    );
   }
 
   private evalCatmullRom(seg: number, t: number): SplinePoint {
@@ -161,11 +137,11 @@ export class SplinePath {
       );
     };
 
-    return withIndexAccess({
-      x: interp(p0.x, p1.x, p2.x, p3.x),
-      y: interp(p0.y, p1.y, p2.y, p3.y),
-      z: interp(p0.z, p1.z, p2.z, p3.z),
-    });
+    return P(
+      interp(p0[0], p1[0], p2[0], p3[0]),
+      interp(p0[1], p1[1], p2[1], p3[1]),
+      interp(p0[2], p1[2], p2[2], p3[2])
+    );
   }
 
   private evalBezier(seg: number, t: number): SplinePoint {
@@ -186,16 +162,16 @@ export class SplinePath {
     const tt = t * t;
     const ttt = tt * t;
 
-    return withIndexAccess({
-      x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-      y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
-      z: uuu * p0.z + 3 * uu * t * p1.z + 3 * u * tt * p2.z + ttt * p3.z,
-    });
+    return P(
+      uuu * p0[0] + 3 * uu * t * p1[0] + 3 * u * tt * p2[0] + ttt * p3[0],
+      uuu * p0[1] + 3 * uu * t * p1[1] + 3 * u * tt * p2[1] + ttt * p3[1],
+      uuu * p0[2] + 3 * uu * t * p1[2] + 3 * u * tt * p2[2] + ttt * p3[2]
+    );
   }
 
   private getWrapped(index: number): SplinePoint {
     const len = this.points.length;
-    if (len === 0) return { x: 0, y: 0, z: 0 };
+    if (len === 0) return P(0, 0, 0);
     if (this.loop) return this.points[((index % len) + len) % len];
     return this.points[Math.max(0, Math.min(len - 1, index))];
   }
@@ -226,9 +202,9 @@ export class SplinePath {
     for (let i = 1; i <= this.resolution; i++) {
       const t = i / this.resolution;
       const curr = this.evaluate(t);
-      const dx = curr.x - prev.x,
-        dy = curr.y - prev.y,
-        dz = curr.z - prev.z;
+      const dx = curr[0] - prev[0],
+        dy = curr[1] - prev[1],
+        dz = curr[2] - prev[2];
       total += Math.sqrt(dx * dx + dy * dy + dz * dz);
       this.arcLengthTable.push(total);
       prev = curr;
@@ -261,10 +237,10 @@ export class SplinePath {
     const eps = 0.001;
     const a = this.evaluate(Math.max(0, t - eps));
     const b = this.evaluate(Math.min(1, t + eps));
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      dz = b.z - a.z;
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      dz = b[2] - a[2];
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-    return { x: dx / len, y: dy / len, z: dz / len };
+    return P(dx / len, dy / len, dz / len);
   }
 }
