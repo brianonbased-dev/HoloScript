@@ -13,6 +13,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { MCP_SERVER_URL, ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 
+import { corsHeaders } from '../../../_lib/cors';
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const walletAddress = url.searchParams.get('wallet') || '';
@@ -86,13 +87,9 @@ export async function GET(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

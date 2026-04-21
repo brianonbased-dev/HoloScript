@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
 
+import { corsHeaders } from '../_lib/cors';
 /**
  * GET /api/physics — physics trait preset catalog
  * Returns physics body type presets with @physics traitSnippets.
@@ -239,13 +240,9 @@ export async function GET(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

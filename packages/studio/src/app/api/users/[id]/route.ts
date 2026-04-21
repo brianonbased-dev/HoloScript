@@ -7,6 +7,7 @@ import { eq, desc, and } from 'drizzle-orm';
 import { getSession } from '@/lib/api-auth';
 import { logger } from '@/lib/logger';
 
+import { corsHeaders } from '../../_lib/cors';
 /**
  * /api/users/[id] — User profile API.
  *
@@ -163,13 +164,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

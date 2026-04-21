@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { corsHeaders } from '../../_lib/cors';
 // ─── GET /api/studio/mcp-config ─────────────────────────────────────────────
 // Returns copy-paste MCP configuration for IDE agents (Claude, Cursor, etc.)
 // Mirrors HoloMesh V8 pattern: GET /api/holomesh/mcp-config?format=claude|cursor|generic
@@ -65,13 +66,9 @@ export async function GET(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

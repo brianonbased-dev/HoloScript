@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+import { corsHeaders } from '../../../_lib/cors';
 // ─── POST /api/studio/oracle-boost/status ────────────────────────────────────
 // Validates all oracle prerequisites for the current session.
 // Enterprise tier: always oracle_ready=true, all checks skipped.
@@ -160,13 +161,9 @@ export async function POST(request: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

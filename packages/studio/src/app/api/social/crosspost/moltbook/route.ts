@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/api-auth';
 
 import { ENDPOINTS, getMoltbookKey } from '@holoscript/config';
 
+import { corsHeaders } from '../../../_lib/cors';
 const MOLTBOOK_API_BASE = ENDPOINTS.MOLTBOOK_API;
 const MOLTBOOK_API_KEY = getMoltbookKey() || '';
 
@@ -168,13 +169,9 @@ export async function POST(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

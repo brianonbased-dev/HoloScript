@@ -10,6 +10,7 @@ import { createSSEHeartbeatStream, resolveReconnectCursor } from '@/lib/sseStrea
 
 import { ENDPOINTS } from '@holoscript/config';
 
+import { corsHeaders } from '../../../../../_lib/cors';
 const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 
 function buildBodyForGet(req: NextRequest, projectId: string): string {
@@ -111,13 +112,9 @@ export async function POST(
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

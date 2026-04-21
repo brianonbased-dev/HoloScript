@@ -50,6 +50,7 @@ interface LaunchPayload {
 
 import { ENDPOINTS, getHolomeshKey, getMoltbookKey } from '@holoscript/config';
 
+import { corsHeaders } from '../../_lib/cors';
 const HOLOMESH_BASE = ENDPOINTS.HOLOSCRIPT_MCP;
 const HOLOMESH_KEY = getHolomeshKey() || '';
 const MOLTBOOK_BASE = ENDPOINTS.MOLTBOOK_API;
@@ -237,13 +238,9 @@ export async function POST(req: NextRequest) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
