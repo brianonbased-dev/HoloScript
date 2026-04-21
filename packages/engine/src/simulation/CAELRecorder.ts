@@ -11,6 +11,7 @@ import {
   hashCAELEntry,
   toCAELJSONL,
 } from './CAELTrace';
+import type { HashMode } from './sha256';
 
 export class CAELRecorder {
   private readonly solver: SimSolver;
@@ -18,6 +19,10 @@ export class CAELRecorder {
   private readonly runId: string;
   private readonly trace: CAELTrace = [];
   private lastHash = 'cael.genesis';
+  /** Hash mode sourced from the wrapped contract (Option C Prereq 1:
+   *  per-recorder scope; Prereq 2: every append() threads this to
+   *  hashCAELEntry). Immutable for the life of the recorder. */
+  private readonly hashMode: HashMode;
 
   constructor(
     solver: SimSolver,
@@ -26,6 +31,7 @@ export class CAELRecorder {
   ) {
     this.solver = solver;
     this.contracted = new ContractedSimulation(solver, config, contractConfig);
+    this.hashMode = this.contracted.getHashMode();
     this.runId = `cael-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const replay = this.contracted.createReplay();
@@ -39,6 +45,10 @@ export class CAELRecorder {
       // having to decode the entire contractConfig. Null when absent
       // (safe fallback: replayer treats null as cross-adapter).
       adapterFingerprint: contractConfig.adapterFingerprint ?? null,
+      // Option C (Prereq 3): self-identify the hash mode so the
+      // replayer can verify every event's hash shape matches the
+      // declared mode, catching mid-trace mode tampering.
+      hashMode: this.hashMode,
     });
   }
 
@@ -131,7 +141,9 @@ export class CAELRecorder {
       payload,
     };
 
-    const hash = hashCAELEntry(entryWithoutHash);
+    // Option C Prereq 2: every CAEL entry hashes under THIS recorder's
+    // mode. hashMode is readonly — no mid-trace mode change possible.
+    const hash = hashCAELEntry(entryWithoutHash, this.hashMode);
     const entry: CAELTraceEntry = { ...entryWithoutHash, hash };
     this.trace.push(entry);
     this.lastHash = hash;

@@ -2,7 +2,23 @@
  * CAELTrace — Contracted Agent-Environment Loop artifact schema (Phase 1).
  *
  * JSONL entry format with hash-chain integrity. Each line is one event.
+ *
+ * Hash mode (Option C, 2026-04-20 SECURITY wave): the chain hash
+ * function is configurable between FNV-1a (default, fast, non-
+ * cryptographic) and SHA-256 (opt-in via ContractConfig.useCryptographicHash).
+ * Mode is threaded into hashCAELEntry + verifyCAELHashChain, and
+ * written into cael.init.payload.hashMode for trace self-identification
+ * (Prereq 3 — prevents silent-downgrade and mid-trace mode tampering).
+ *
+ * See: packages/engine/src/simulation/sha256.ts for the hash primitives.
  */
+
+import {
+  type HashMode,
+  HASH_MODE_DEFAULT,
+  hashStringForCAEL,
+  hashShapeMatchesMode,
+} from './sha256';
 
 export type CAELTraceEvent = 'init' | 'step' | 'interaction' | 'solve' | 'final';
 
@@ -25,14 +41,8 @@ interface CAELTypedArrayEnvelope {
   data: number[];
 }
 
-function fnv1a(input: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return `cael-${(h >>> 0).toString(16).padStart(8, '0')}`;
-}
+// Legacy FNV-1a string hash lives in sha256.ts as fnv1aStringLegacy.
+// CAELTrace uses it indirectly via hashStringForCAEL(input, mode).
 
 function toCanonical(value: unknown): unknown {
   if (value === null || value === undefined) return value;
@@ -104,9 +114,23 @@ export function decodeCAELValue(value: unknown): unknown {
   return out;
 }
 
-export function hashCAELEntry(entry: Omit<CAELTraceEntry, 'hash'>): string {
+/**
+ * Hash a CAEL trace entry under the given mode.
+ *
+ * Mode dispatch (Option C):
+ *   mode='fnv1a'  → 'cael-<8hex>' (legacy format, UTF-16 charCodeAt)
+ *   mode='sha256' → 'cael-sha-<64hex>' (UTF-8 bytes, SHA-256)
+ *
+ * Mode defaults to 'fnv1a' if omitted, preserving back-compat for
+ * callers that haven't been updated yet. New code should pass the
+ * mode explicitly, sourced from ContractConfig.useCryptographicHash.
+ */
+export function hashCAELEntry(
+  entry: Omit<CAELTraceEntry, 'hash'>,
+  mode: HashMode = HASH_MODE_DEFAULT,
+): string {
   const canonical = toCanonical(entry);
-  return fnv1a(JSON.stringify(canonical));
+  return hashStringForCAEL(JSON.stringify(canonical), mode);
 }
 
 export function toCAELJSONL(trace: CAELTrace): string {
@@ -122,7 +146,42 @@ export function parseCAELJSONL(jsonl: string): CAELTrace {
   return lines.map((line) => JSON.parse(line) as CAELTraceEntry);
 }
 
-export function verifyCAELHashChain(trace: CAELTrace): { valid: boolean; brokenAt?: number; reason?: string } {
+/**
+ * Verify the hash chain of a CAEL trace under a given mode.
+ *
+ * Mode semantics (Option C, Prereq 3):
+ *   - If `mode` is provided, every entry's hash must both (a) equal
+ *     the re-computed hashCAELEntry output under that mode and
+ *     (b) have a shape consistent with that mode. Any entry whose
+ *     hash shape contradicts the declared mode is a mid-trace
+ *     tamper — the verifier rejects with a specific error.
+ *   - If `mode` is omitted, infer from the trace: prefer the mode
+ *     recorded in `trace[0].payload.hashMode`, else fall back to
+ *     'fnv1a' (back-compat for pre-Option-C traces).
+ *
+ * The shape check is the Prereq 3 guard: an adversary who replaces a
+ * single event's hash with a different-mode hash (even with a
+ * matching chain recomputation) is caught before the expected-hash
+ * comparison runs.
+ */
+export function verifyCAELHashChain(
+  trace: CAELTrace,
+  mode?: HashMode,
+): { valid: boolean; brokenAt?: number; reason?: string } {
+  // Resolve mode: explicit > init payload > default
+  let resolvedMode: HashMode;
+  if (mode !== undefined) {
+    resolvedMode = mode;
+  } else if (
+    trace.length > 0 &&
+    trace[0].event === 'init' &&
+    (trace[0].payload.hashMode === 'fnv1a' || trace[0].payload.hashMode === 'sha256')
+  ) {
+    resolvedMode = trace[0].payload.hashMode;
+  } else {
+    resolvedMode = HASH_MODE_DEFAULT;
+  }
+
   let prevHash = 'cael.genesis';
 
   for (let i = 0; i < trace.length; i++) {
@@ -131,16 +190,29 @@ export function verifyCAELHashChain(trace: CAELTrace): { valid: boolean; brokenA
       return { valid: false, brokenAt: i, reason: `prevHash mismatch at index ${i}` };
     }
 
-    const expected = hashCAELEntry({
-      version: entry.version,
-      runId: entry.runId,
-      index: entry.index,
-      event: entry.event,
-      timestamp: entry.timestamp,
-      simTime: entry.simTime,
-      prevHash: entry.prevHash,
-      payload: entry.payload,
-    });
+    // Prereq 3 shape check: catches mid-trace mode tampering before
+    // the expected-hash computation.
+    if (!hashShapeMatchesMode(entry.hash, resolvedMode)) {
+      return {
+        valid: false,
+        brokenAt: i,
+        reason: `hash shape at index ${i} does not match declared mode '${resolvedMode}' — mid-trace mode tamper detected`,
+      };
+    }
+
+    const expected = hashCAELEntry(
+      {
+        version: entry.version,
+        runId: entry.runId,
+        index: entry.index,
+        event: entry.event,
+        timestamp: entry.timestamp,
+        simTime: entry.simTime,
+        prevHash: entry.prevHash,
+        payload: entry.payload,
+      },
+      resolvedMode,
+    );
 
     if (entry.hash !== expected) {
       return { valid: false, brokenAt: i, reason: `hash mismatch at index ${i}` };
