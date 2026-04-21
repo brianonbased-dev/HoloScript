@@ -132,7 +132,8 @@
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "typecheck:narrow": "tsc --noEmit -p tsconfig.narrow.json"
+    "typecheck:narrow": "tsc --noEmit -p tsconfig.narrow.json",
+    "benchmark:export-targets": "node run-vitest.mjs src/compiler/__tests__/export-manager-all-targets-bench.test.ts"
   },
   "keywords": [
     "holoscript",

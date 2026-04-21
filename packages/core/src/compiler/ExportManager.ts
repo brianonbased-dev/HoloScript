@@ -597,6 +597,8 @@ export class ExportManager {
       'tsl',
       'a2a-agent-card',
       'nir',
+      'openxr-spatial-entities',
+      'phone-sleeve-vr',
     ];
   }
 
