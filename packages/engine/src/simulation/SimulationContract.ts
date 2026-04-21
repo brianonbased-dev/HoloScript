@@ -443,6 +443,58 @@ export class ContractedSimulation {
    * state digests will be identical regardless of internal reduction
    * order differences in compute shaders.
    */
+  /**
+   * Per-field quantum registry (Route 2b, per-AUDIT 2026-04-20 proof outline).
+   *
+   * The earlier implementation used a single global quantum (round(v*1e6)),
+   * which is correct only for state normalized to O(1). Real physics state
+   * spans many orders of magnitude: stress ~10^5-10^9 Pa, displacement
+   * ~10^-4-10^-2 m, temperature ~10^2-10^3 K, velocity ~10^-1-10^1 m/s.
+   * A single global q gives either hash collisions (too coarse for small
+   * fields) or excessive boundary straddles (too tight for large fields).
+   *
+   * Per-AUDIT convention: q_f = characteristic_scale_f * 1e-3, i.e. three
+   * orders of magnitude tighter than the field's natural scale. Example:
+   * stress field with characteristic scale 10^6 Pa → q = 10^3 Pa.
+   *
+   * Field-name prefix matching lets solvers contribute fields with
+   * descriptive names (e.g., "stressField", "vonMisesStress",
+   * "principalStress1") that all map to the same stress scale.
+   *
+   * Fields not matched by any registry entry use the fallback quantum
+   * (1e-6, matching the pre-AUDIT behavior for backward compatibility
+   * with O(1)-normalized mock solvers used in existing tests).
+   */
+  private static readonly FIELD_QUANTUM_REGISTRY: ReadonlyArray<readonly [RegExp, number]> = [
+    // Stress-family fields: characteristic scale ~10^6 Pa → q = 1000 Pa
+    [/^(stress|vonMises|principal[A-Z]|deviatoric|cauchy|pk[12])/i, 1_000],
+    // Strain fields: dimensionless, characteristic scale ~10^-3 → q = 1e-6
+    [/^(strain|deformation)/i, 1e-6],
+    // Displacement/position: characteristic scale ~10^-2 m → q = 1e-5 m
+    [/^(displacement|position|offset|translation|coord)/i, 1e-5],
+    // Velocity: characteristic scale ~1 m/s → q = 1e-3 m/s
+    [/^(velocity|velo|speed)/i, 1e-3],
+    // Acceleration / force per mass: characteristic scale ~10 m/s² → q = 1e-2
+    [/^(acceleration|accel|force)/i, 1e-2],
+    // Temperature: characteristic scale ~10^2 K → q = 0.1 K
+    [/^(temperature|temp|thermal)/i, 0.1],
+    // Pressure: same family as stress; characteristic scale ~10^5 Pa → q = 100 Pa
+    [/^(pressure|press)/i, 100],
+    // Energy: characteristic scale ~10^1 J (per-element) → q = 1e-2 J
+    [/^(energy|strainEnergy|kineticEnergy|potentialEnergy)/i, 1e-2],
+  ];
+
+  private static readonly FALLBACK_QUANTUM = 1e-6;
+
+  /** Resolve the per-field quantum q_f for a given field name. Returns the
+   *  first registry match, or the fallback for unrecognized fields. */
+  private static quantumForField(name: string): number {
+    for (const [pattern, q] of ContractedSimulation.FIELD_QUANTUM_REGISTRY) {
+      if (pattern.test(name)) return q;
+    }
+    return ContractedSimulation.FALLBACK_QUANTUM;
+  }
+
   private computeStateDigest(): string {
     // Deterministic field order
     const fieldNames = [...this.solver.fieldNames].sort();
@@ -465,15 +517,19 @@ export class ContractedSimulation {
         if (!maybeData) continue;
         values = maybeData;
       }
+      // Resolve the field's quantum (per-AUDIT 2026-04-20 per-field q_f)
+      const qf = ContractedSimulation.quantumForField(name);
+      const invQf = 1 / qf;
       // Hash the field-name first so two fields with identical values but
       // different names produce different digests
       for (let i = 0; i < name.length; i++) {
         h ^= name.charCodeAt(i) & 0xff;
         h = Math.imul(h, FNV_PRIME) >>> 0;
       }
-      // Quantize + fold into the hash
+      // Quantize by q_f (value / q_f, rounded to nearest integer-lattice point)
+      // + fold into the hash
       for (let i = 0; i < values.length; i++) {
-        const q = Math.round(values[i] * 1e6) | 0;
+        const q = Math.round(values[i] * invQf) | 0;
         h ^= q & 0xff;
         h = Math.imul(h, FNV_PRIME) >>> 0;
         h ^= (q >>> 8) & 0xff;
