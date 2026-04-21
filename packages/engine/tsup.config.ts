@@ -28,6 +28,7 @@ export default defineConfig({
     'src/scene/index.ts',
     'src/ecs/index.ts',
     'src/hologram/index.ts',
+    'src/hologram/FileSystemHologramStore.ts',
     'src/vm/index.ts',
     'src/vm-bridge/index.ts',
     'src/simulation/index.ts',

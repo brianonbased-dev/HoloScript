@@ -59,6 +59,26 @@ holoscript org create my-team      # Organization management
 holoscript token create            # Token management
 ```
 
+### HoloGram — 2D → 3D Bundle
+
+Convert a still image, GIF, or video into a content-addressed HoloGram bundle (depth map + normal map + optional quilt/MV-HEVC/parallax render targets):
+
+```bash
+# Depth-only bundle (no render targets — Sprint 0a)
+holoscript hologram photo.jpg --targets ''
+
+# Full bundle with all render targets (requires hologram-worker — Sprint 0c)
+holoscript hologram photo.png --targets quilt,mvhevc,parallax
+
+# Custom output directory
+holoscript hologram clip.mp4 --out ./my-bundle --targets quilt
+
+# Named bundle (label stored in meta.json)
+holoscript hologram avatar.webp --name "My Avatar"
+```
+
+The bundle is written to `./hologram-<hash>/` by default.  Pass `--out <dir>` to override.  The directory name encodes the full content hash so bundles are self-verifying.
+
 ### Code Tools
 
 ```bash

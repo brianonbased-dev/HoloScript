@@ -127,7 +127,7 @@ export class FileSystemHologramStore implements HologramStore {
     await fs.mkdir(dirAbs, { recursive: true, mode: 0o755 });
 
     // 5. Write assets atomically (temp + rename for each).
-    const metaJson = serializeMeta(bundle.meta);
+    const metaJson = serializeMeta(bundle.meta, authoritativeHash);
     const writes: Array<Promise<void>> = [
       this.writeAtomic(metaAbs, Buffer.from(metaJson, 'utf8')),
       this.writeAtomic(
@@ -265,12 +265,14 @@ export class FileSystemHologramStore implements HologramStore {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function serializeMeta(meta: HologramMeta): string {
+function serializeMeta(meta: HologramMeta, hash: string): string {
   // Stable-ish key order for readability + diff-friendliness. NOT used
   // for hashing (see canonicalMetaJson in HologramBundle.ts).
+  // hash is included first so meta.json is self-verifying.
   return (
     JSON.stringify(
       {
+        hash,
         schemaVersion: meta.schemaVersion,
         sourceKind: meta.sourceKind,
         width: meta.width,

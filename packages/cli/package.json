@@ -44,6 +44,7 @@
   "dependencies": {
     "@holoscript/absorb-service": "workspace:^",
     "@holoscript/core": "workspace:^",
+    "@holoscript/engine": "workspace:^",
     "@holoscript/core-types": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "@holoscript/sdk": "workspace:^",

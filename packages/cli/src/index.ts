@@ -61,3 +61,5 @@ export {
   type GodotImportResult,
   type GodotImportOptions,
 } from './importers';
+
+export { hologramCommand, type HologramCommandOptions } from './commands/hologram';
