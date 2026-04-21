@@ -43,6 +43,44 @@ interface CliParseError {
   loc?: { line?: number; column?: number };
 }
 
+/**
+ * Emit a structured CLI error with a stable error code, message, usage
+ * hint, and optional remediation. Keeps output uniform across commands so
+ * users can script against error codes (grep "E001", pipe to logs, etc.).
+ *
+ * Codes follow the `E###` convention used by npm/pnpm — stable across
+ * releases so external tooling can match on them.
+ *
+ *   E001  Missing required argument
+ *   E002  File or directory not found
+ *   E003  Invalid argument value (e.g. wrong format for a flag)
+ *   E004  Unknown subcommand
+ *   E005  Missing optional dependency (e.g. puppeteer)
+ *   E006  Auth / credential missing
+ *   E007  Unsupported file type for this operation
+ *   E008  Build artifact missing (run build first)
+ *   E009  Runtime / environment error
+ *   E010  Unhandled exception (fallback)
+ */
+function cliError(
+  code: string,
+  message: string,
+  opts: { usage?: string; hint?: string; docs?: string } = {}
+): void {
+  // Red error line with code prefix.
+  console.error(`\x1b[31m[${code}] ${message}\x1b[0m`);
+  if (opts.usage) {
+    console.error(`\x1b[2mUsage:\x1b[0m ${opts.usage}`);
+  }
+  if (opts.hint) {
+    console.error(`\x1b[33mHint:\x1b[0m ${opts.hint}`);
+  }
+  if (opts.docs) {
+    console.error(`\x1b[2mDocs:\x1b[0m ${opts.docs}`);
+  }
+  console.error(`\x1b[2mRun \x1b[36mholoscript help\x1b[22m\x1b[2m for all commands.\x1b[0m`);
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
@@ -56,8 +94,10 @@ async function main(): Promise<void> {
     case 'validate':
     case 'parse': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log(`Usage: holoscript ${options.command} <file>`);
+        cliError('E001', 'No input file specified.', {
+          usage: `holoscript ${options.command} <file>`,
+          hint: 'Point at a .hs, .hsplus, or .holo source file, e.g. `holoscript parse world.hs`.',
+        });
         process.exit(1);
       }
 
@@ -65,7 +105,9 @@ async function main(): Promise<void> {
       const path = await import('path');
       const filePath = path.resolve(options.input);
       if (!fs.existsSync(filePath)) {
-        console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
+        cliError('E002', `File not found: ${filePath}`, {
+          hint: 'Check the path is relative to your current directory, or pass an absolute path.',
+        });
         process.exit(1);
       }
 
@@ -293,15 +335,19 @@ async function main(): Promise<void> {
 
     case 'pack': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input directory specified.\x1b[0m');
-        console.log('Usage: holoscript pack <directory> [output]');
+        cliError('E001', 'No input directory specified.', {
+          usage: 'holoscript pack <directory> [output]',
+          hint: 'Point at a directory containing your .holo/.hsplus assets. Output defaults to <directory>.hsa.',
+        });
         process.exit(1);
       }
       try {
         await packAsset(options.input, options.output, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error(`\x1b[31mError packing asset: ${message}\x1b[0m`);
+        cliError('E010', `Error packing asset: ${message}`, {
+          hint: 'Re-run with -v/--verbose to see the full failure and any missing trait definitions.',
+        });
         process.exit(1);
       }
       process.exit(0);
@@ -310,15 +356,19 @@ async function main(): Promise<void> {
 
     case 'unpack': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log('Usage: holoscript unpack <file.hsa> [output_dir]');
+        cliError('E001', 'No input file specified.', {
+          usage: 'holoscript unpack <file.hsa> [output_dir]',
+          hint: 'Point at a .hsa archive created by `holoscript pack`.',
+        });
         process.exit(1);
       }
       try {
         await unpackAsset(options.input, options.output, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error(`\x1b[31mError unpacking asset: ${message}\x1b[0m`);
+        cliError('E010', `Error unpacking asset: ${message}`, {
+          hint: 'Verify the .hsa file is not corrupted (try `holoscript inspect <file.hsa>`).',
+        });
         process.exit(1);
       }
       process.exit(0);
@@ -327,15 +377,19 @@ async function main(): Promise<void> {
 
     case 'inspect': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log('Usage: holoscript inspect <file.hsa>');
+        cliError('E001', 'No input file specified.', {
+          usage: 'holoscript inspect <file.hsa>',
+          hint: 'Inspect lists the manifest, traits, and assets inside a .hsa archive.',
+        });
         process.exit(1);
       }
       try {
         await inspectAsset(options.input, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error(`\x1b[31mError inspecting asset: ${message}\x1b[0m`);
+        cliError('E010', `Error inspecting asset: ${message}`, {
+          hint: 'Confirm the file is a valid .hsa archive (use `-v` for trace output).',
+        });
         process.exit(1);
       }
       process.exit(0);
@@ -346,8 +400,10 @@ async function main(): Promise<void> {
       // Get file arguments from original args array
       const diffArgs = args.filter((a) => !a.startsWith('-') && a !== 'diff');
       if (diffArgs.length < 2) {
-        console.error('\x1b[31mError: Two files required for diff.\x1b[0m');
-        console.log('Usage: holoscript diff <file1> <file2> [--json]');
+        cliError('E001', `Two files required for diff (got ${diffArgs.length}).`, {
+          usage: 'holoscript diff <file1> <file2> [--json]',
+          hint: 'Semantic diff compares AST structure, not text lines — pass two .hs/.holo files.',
+        });
         process.exit(1);
       }
 
@@ -790,8 +846,9 @@ async function main(): Promise<void> {
         if (trait) {
           console.log('\n' + formatTrait(trait, true) + '\n');
         } else {
-          console.error(`\x1b[31mUnknown trait: ${options.input}\x1b[0m`);
-          console.log('\nRun \x1b[36mholoscript traits\x1b[0m to see all available traits.');
+          cliError('E003', `Unknown trait: "${options.input}".`, {
+            hint: 'Run `holoscript traits` to list all available VR traits. Try `holoscript suggest "<desc>"` for ideas.',
+          });
           process.exit(1);
         }
       } else {
@@ -805,8 +862,10 @@ async function main(): Promise<void> {
     case 'suggest': {
       const description = options.description || options.input;
       if (!description) {
-        console.error('\x1b[31mError: No description provided.\x1b[0m');
-        console.log('Usage: holoscript suggest "a glowing orb that can be grabbed"');
+        cliError('E001', 'No description provided.', {
+          usage: 'holoscript suggest "a glowing orb that can be grabbed"',
+          hint: 'Wrap the description in quotes. Keywords like grab/throw/glow/click drive trait matching.',
+        });
         process.exit(1);
       }
 
@@ -835,8 +894,10 @@ async function main(): Promise<void> {
     case 'generate': {
       const description = options.description || options.input;
       if (!description) {
-        console.error('\x1b[31mError: No description provided.\x1b[0m');
-        console.log('Usage: holoscript generate "a red button that glows when hovered"');
+        cliError('E001', 'No description provided.', {
+          usage: 'holoscript generate "a red button that glows when hovered"',
+          hint: 'Wrap the description in quotes. Set BRITTNEY_SERVICE_URL for AI-enhanced generation.',
+        });
         process.exit(1);
       }
 
@@ -1901,12 +1962,10 @@ async function main(): Promise<void> {
       const { packageForEdge } = await import('./edge');
 
       if (!options.input) {
-        console.error('\x1b[31mError: No source file or directory specified.\x1b[0m');
-        console.log('Usage: holoscript package <source> [options]');
-        console.log(
-          '  --platform <platform>  Target platform (linux-arm64, linux-x64, windows-x64, wasm)'
-        );
-        console.log('  -o, --output <dir>     Output directory');
+        cliError('E001', 'No source file or directory specified.', {
+          usage: 'holoscript package <source> [--platform <plat>] [-o <dir>]',
+          hint: 'Valid platforms: linux-arm64 (default), linux-x64, windows-x64, wasm.',
+        });
         process.exit(1);
       }
 
@@ -1918,9 +1977,9 @@ async function main(): Promise<void> {
         });
         process.exit(0);
       } catch (error: unknown) {
-        console.error(
-          `\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
-        );
+        cliError('E010', `Error: ${error instanceof Error ? error.message : String(error)}`, {
+          hint: 'Re-run with -v/--verbose for full build output.',
+        });
         process.exit(1);
       }
       break;
@@ -1930,21 +1989,18 @@ async function main(): Promise<void> {
       const { deployToDevice } = await import('./edge');
 
       if (!options.input) {
-        console.error('\x1b[31mError: No package directory specified.\x1b[0m');
-        console.log('Usage: holoscript deploy <package-dir> --host <host> [options]');
-        console.log('  --host <host>          Target host IP or hostname (required)');
-        console.log('  -u, --username <user>  SSH username (default: holoscript)');
-        console.log('  -k, --key <path>       SSH private key path');
-        console.log('  --port <port>          SSH port (default: 22)');
-        console.log('  --remote-path <path>   Remote installation path');
-        console.log('  --service-name <name>  Systemd service name');
+        cliError('E001', 'No package directory specified.', {
+          usage: 'holoscript deploy <package-dir> --host <host> [-u <user>] [-k <key>]',
+          hint: 'Package first with `holoscript package <source>`, then deploy the output dir.',
+        });
         process.exit(1);
       }
 
       if (!options.host) {
-        console.error(
-          '\x1b[31mError: No target host specified. Use --host <ip-or-hostname>\x1b[0m'
-        );
+        cliError('E001', 'No target host specified.', {
+          usage: 'holoscript deploy <package-dir> --host <ip-or-hostname>',
+          hint: 'Add `--host <ip>` — e.g. `--host 192.168.1.100` or `--host pi.local`.',
+        });
         process.exit(1);
       }
 
@@ -2243,7 +2299,10 @@ async function main(): Promise<void> {
         }
 
         default:
-          console.error(`\x1b[31mUnknown access command: ${subcommand}\x1b[0m`);
+          cliError('E004', `Unknown access command: "${subcommand}".`, {
+            usage: 'holoscript access <grant|revoke|list> [args]',
+            hint: 'Run `holoscript access` with no subcommand to see the full help text.',
+          });
           process.exit(1);
       }
       break;
@@ -2320,7 +2379,10 @@ async function main(): Promise<void> {
         }
 
         default:
-          console.error(`\x1b[31mUnknown org command: ${subcommand}\x1b[0m`);
+          cliError('E004', `Unknown org command: "${subcommand}".`, {
+            usage: 'holoscript org <create|add-member|remove-member|list-members> [args]',
+            hint: 'Run `holoscript org` with no subcommand to see the full help text.',
+          });
           process.exit(1);
       }
       break;
@@ -2352,7 +2414,10 @@ async function main(): Promise<void> {
       const tokenPath = path.join(homeDir, '.holoscript-token');
 
       if (!fs.existsSync(tokenPath)) {
-        console.error('\x1b[31mNot logged in. Run "holoscript login" first.\x1b[0m');
+        cliError('E006', 'Not logged in to the HoloScript registry.', {
+          hint: 'Run `holoscript login` first to create a session, then retry this command.',
+          docs: 'https://holoscript.net/docs/cli/auth',
+        });
         process.exit(1);
       }
 
@@ -2402,7 +2467,10 @@ async function main(): Promise<void> {
         }
 
         default:
-          console.error(`\x1b[31mUnknown token command: ${subcommand}\x1b[0m`);
+          cliError('E004', `Unknown token command: "${subcommand}".`, {
+            usage: 'holoscript token <create|revoke|list> [args]',
+            hint: 'Run `holoscript token` with no subcommand to see the full help text.',
+          });
           process.exit(1);
       }
       break;
@@ -2410,10 +2478,10 @@ async function main(): Promise<void> {
 
     case 'screenshot': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log(
-          'Usage: holoscript screenshot <file.holo> [--output out.png] [--width 1920] [--height 1080]'
-        );
+        cliError('E001', 'No input file specified.', {
+          usage: 'holoscript screenshot <file.holo> [--output out.png] [--width 1920] [--height 1080]',
+          hint: 'Captures a PNG/JPEG/WebP of your scene via headless Chrome. Requires Puppeteer.',
+        });
         process.exit(1);
       }
 
@@ -2465,10 +2533,13 @@ async function main(): Promise<void> {
       } catch (error) {
         const err = error as Error;
         if (err.message.includes('puppeteer')) {
-          console.error('\x1b[31mError: Puppeteer not installed.\x1b[0m');
-          console.log('Run: npm install puppeteer');
+          cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
+            hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
+          });
         } else {
-          console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+          cliError('E010', `Error: ${err.message}`, {
+            hint: 'Re-run with -v/--verbose for the full stack trace.',
+          });
         }
         process.exit(1);
       }
@@ -2477,10 +2548,10 @@ async function main(): Promise<void> {
 
     case 'pdf': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log(
-          'Usage: holoscript pdf <file.holo> [--output out.pdf] [--page-format A4] [--landscape]'
-        );
+        cliError('E001', 'No input file specified.', {
+          usage: 'holoscript pdf <file.holo> [--output out.pdf] [--page-format A4] [--landscape]',
+          hint: 'Generates a PDF of your scene via headless Chrome. Requires Puppeteer.',
+        });
         process.exit(1);
       }
 
@@ -2524,10 +2595,13 @@ async function main(): Promise<void> {
       } catch (error) {
         const err = error as Error;
         if (err.message.includes('puppeteer')) {
-          console.error('\x1b[31mError: Puppeteer not installed.\x1b[0m');
-          console.log('Run: npm install puppeteer');
+          cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
+            hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
+          });
         } else {
-          console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+          cliError('E010', `Error: ${err.message}`, {
+            hint: 'Re-run with -v/--verbose for the full stack trace.',
+          });
         }
         process.exit(1);
       }
@@ -2536,8 +2610,10 @@ async function main(): Promise<void> {
 
     case 'prerender': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input file specified.\x1b[0m');
-        console.log('Usage: holoscript prerender <file.holo> [--output out.html]');
+        cliError('E001', 'No input file specified.', {
+          usage: 'holoscript prerender <file.holo> [--output out.html]',
+          hint: 'Pre-renders HTML with meta tags for SEO / social sharing. Requires Puppeteer.',
+        });
         process.exit(1);
       }
 
@@ -2581,10 +2657,13 @@ async function main(): Promise<void> {
       } catch (error) {
         const err = error as Error;
         if (err.message.includes('puppeteer')) {
-          console.error('\x1b[31mError: Puppeteer not installed.\x1b[0m');
-          console.log('Run: npm install puppeteer');
+          cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
+            hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
+          });
         } else {
-          console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+          cliError('E010', `Error: ${err.message}`, {
+            hint: 'Re-run with -v/--verbose for the full stack trace.',
+          });
         }
         process.exit(1);
       }
@@ -2890,8 +2969,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         // Find the runner script
         const runnerPath = path.resolve(rootDir, 'packages/core/dist/cli/holoscript-runner.js');
         if (!fs.existsSync(runnerPath)) {
-          console.error(`\x1b[31mDaemon runner not found: ${runnerPath}\x1b[0m`);
-          console.error('Build it: cd packages/core && npx tsup');
+          cliError('E008', `Daemon runner not found: ${runnerPath}`, {
+            hint: 'Build it with `cd packages/core && npx tsup`, or run `pnpm build` from the repo root.',
+          });
           process.exit(1);
         }
 
@@ -2920,10 +3000,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
     case 'absorb': {
       if (!options.input) {
-        console.error('\x1b[31mError: No input directory specified.\x1b[0m');
-        console.log(
-          'Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json] [--for-agent] [--depth shallow|medium|deep] [--since <git-ref>] [--impact <file1,file2>]'
-        );
+        cliError('E001', 'No input directory specified.', {
+          usage: 'holoscript absorb <directory> [-o <out.holo>] [--for-agent] [--depth shallow|medium|deep]',
+          hint: 'Try `holoscript absorb .` to scan the current directory. Use `--depth shallow` for a fast manifest-only pass.',
+        });
         process.exit(1);
       }
 
@@ -3183,11 +3263,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
     case 'query': {
       if (!options.input) {
-        console.error('\x1b[31mError: No question specified.\x1b[0m');
-        console.log(
-          'Usage: holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--llm openai|anthropic|gemini] [--model <name>] [--top-k <n>] [--force] [--json]'
-        );
-        console.log('  --force: Bypass cache and rescan the codebase');
+        cliError('E001', 'No question specified.', {
+          usage: 'holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--top-k <n>]',
+          hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer.',
+        });
         process.exit(1);
       }
 
@@ -3613,7 +3692,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await setupGitHooks({ projectPath, studioUrl });
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        cliError('E010', `Error: ${err instanceof Error ? err.message : String(err)}`, {
+          hint: 'Confirm this is a git repo (ls .git/) and that you have write access to .git/hooks.',
+        });
         process.exit(1);
       }
       break;
@@ -3629,7 +3710,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await removeGitHooks({ projectPath });
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        cliError('E010', `Error: ${err instanceof Error ? err.message : String(err)}`, {
+          hint: 'Check .git/hooks/ exists and is writable. If hooks were never installed, this is a no-op.',
+        });
         process.exit(1);
       }
       break;
@@ -3665,8 +3748,11 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       console.log('\n\x1b[1m🚀 Provisioning HoloScript MCP Environment\x1b[0m\n');
       const apiKey = options.input || process.env.HOLOSCRIPT_API_KEY;
       if (!apiKey) {
-        console.error('\x1b[31mError: No API key specified.\x1b[0m');
-        console.log('Usage: npx @holoscript/cli setup-mcp <your-api-key>');
+        cliError('E006', 'No API key specified.', {
+          usage: 'npx @holoscript/cli setup-mcp <your-api-key>',
+          hint: 'Pass the key as the first arg, or set HOLOSCRIPT_API_KEY in your environment.',
+          docs: 'https://holoscript.net/docs/mcp/setup',
+        });
         process.exit(1);
       }
       try {
@@ -3674,9 +3760,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await provisionMcpConfigs(apiKey);
         process.exit(0);
       } catch (err: unknown) {
-        console.error(
-          `\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
-        );
+        cliError('E010', `Setup failed: ${err instanceof Error ? err.message : String(err)}`, {
+          hint: 'Check network connectivity to mcp.holoscript.net and that the API key is valid.',
+        });
         process.exit(1);
       }
     }
@@ -3684,10 +3770,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'issue-key': {
       const tenantId = options.input;
       if (!tenantId) {
-        console.error('\x1b[31mError: No tenant ID specified.\x1b[0m');
-        console.log(
-          'Usage: npx @holoscript/cli issue-key <tenant_id> [--tier free|pro|enterprise]'
-        );
+        cliError('E001', 'No tenant ID specified.', {
+          usage: 'npx @holoscript/cli issue-key <tenant_id> [--tier free|pro|enterprise]',
+          hint: 'Tenant IDs are issued by the admin console; paste the UUID as the first arg.',
+        });
         process.exit(1);
       }
       const tier = options.tier || 'free';
@@ -3696,9 +3782,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await issueTenantKey(tenantId, tier);
         process.exit(0);
       } catch (err: unknown) {
-        console.error(
-          `\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
-        );
+        cliError('E010', `Setup failed: ${err instanceof Error ? err.message : String(err)}`, {
+          hint: 'Verify admin credentials and that the tenant exists on the registry.',
+        });
         process.exit(1);
       }
     }
@@ -3706,8 +3792,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'hologram': {
       const input = options.input ?? options.args?.[0];
       if (!input) {
-        console.error('\x1b[31mError: hologram requires an input file.\x1b[0m');
-        console.log('Usage: holoscript hologram <input> [--out <dir>] [--targets quilt,mvhevc,parallax] [--name <n>]');
+        cliError('E001', 'hologram requires an input file.', {
+          usage: 'holoscript hologram <input> [--out <dir>] [--targets quilt,mvhevc,parallax] [--name <n>]',
+          hint: 'Pass a 2D image (png/jpg/gif/mp4) — hologram converts it to depth-enriched formats.',
+        });
         process.exit(1);
       }
       try {
@@ -3717,7 +3805,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           name: options.name as string | undefined,
         });
       } catch (err) {
-        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        cliError('E010', `Error: ${err instanceof Error ? err.message : String(err)}`, {
+          hint: 'Re-run with --verbose to see the full depth-inference pipeline trace.',
+        });
         process.exit(1);
       }
       break;
@@ -3743,7 +3833,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
 async function watchFile(options: ReturnType<typeof parseArgs>): Promise<void> {
   if (!options.input) {
-    console.error('Error: No input file specified for watch mode.');
+    cliError('E001', 'No input file specified for watch mode.', {
+      usage: 'holoscript watch <file.hs|.holo>',
+      hint: 'Watch re-executes the file on every change. Ctrl+C to stop.',
+    });
     process.exit(1);
   }
 
@@ -3810,6 +3903,9 @@ async function watchFile(options: ReturnType<typeof parseArgs>): Promise<void> {
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error.message);
+  cliError('E010', `Fatal error: ${error?.message ?? String(error)}`, {
+    hint: 'This is an unhandled exception. Re-run with -v/--verbose, or report at https://github.com/holoscript/holoscript/issues with the stack trace below.',
+  });
+  if (error?.stack) console.error(`\x1b[2m${error.stack}\x1b[0m`);
   process.exit(1);
 });
