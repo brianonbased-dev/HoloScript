@@ -19,13 +19,27 @@ import { ImportRepoWizard } from './ImportRepoWizard';
 import { StudioSetupWizard } from './StudioSetupWizard';
 import { BrittneyWizard } from './BrittneyWizard';
 
-type OnboardingPath = null | 'import' | 'create' | 'describe';
+import { FirstRunWizard } from './FirstRunWizard';
+
+type OnboardingPath = null | 'quickstart' | 'import' | 'create' | 'describe';
 
 interface OnboardingWizardProps {
   onClose: () => void;
 }
 
 const PATHS = [
+  {
+    id: 'quickstart' as const,
+    icon: ArrowRight,
+    title: 'Quick start (5 minutes)',
+    description: 'GitHub → Pick a starter → Deploy → Live. The fastest way to get a live composition running.',
+    examples: 'Dashboard, 3D canvas, robot simulator, VR world',
+    color: 'amber',
+    borderColor: 'border-amber-500/30',
+    bgColor: 'bg-amber-500/10',
+    textColor: 'text-amber-400',
+    recommended: true,
+  },
   {
     id: 'import' as const,
     icon: Upload,
@@ -65,6 +79,10 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
   const [path, setPath] = useState<OnboardingPath>(null);
 
   // Delegate to the appropriate wizard once a path is chosen
+    if (path === 'quickstart') {
+      return <FirstRunWizard onComplete={onClose} />;
+    }
+
   if (path === 'import') {
     return <ImportRepoWizard onClose={onClose} />;
   }
@@ -88,6 +106,7 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
             <p className="text-sm text-studio-muted">How are you starting?</p>
           </div>
           <button
+                        title="Close"
             onClick={onClose}
             className="rounded-lg p-1.5 text-studio-muted transition hover:bg-white/5 hover:text-white"
           >
