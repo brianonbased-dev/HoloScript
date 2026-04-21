@@ -156,6 +156,10 @@ HandTrackingProvider { hands in
 
 **Research capture:** Shipping geometry over the wire still starts from **mature baselines** — glTF + Draco / meshopt / quantized attributes — then **progressive refinement** (LOD0 shell first, finer mip-style mesh chunks, optional displacement/normal maps). **Learned compressors** (neural implicit surfaces, vector-quantized vertex codecs, compressed eigenbasis for blend shapes) are promising when the client has a compatible decoder; they trade CPU/GPU decode latency for bitrate. For HoloScript pipelines, treat **codec choice as a target capability**: same `.holo` source should declare **minimum stream quality** (lossless Draco vs neural) so compilers pick a transport profile per platform without duplicating authoring assets.
 
+### G.005c | Shape grammar ↔ trait constraints (procedural draft) | ⚠️MODERATE
+
+**Research capture:** Classical **shape grammars** (L-systems, split grammars, CGA-style rules) generate geometry by rewriting labeled symbols. HoloScript’s angle is to treat **traits and domain blocks as constraints** on those rewrites (`@collidable` bounds facades, `@snap` aligns modules). **Draft** content can be procedurally expanded under validation: each rule application is a small AST transform, then the trait checker rejects illegal compositions instead of hand-modeling every variant. Tooling implication: keep grammar productions as **data** (JSON/YAML or `.hsplus` tables) so artists iterate rules without recompiling the engine.
+
 ---
 
 ### G.006 | Simulated Failures Hide Real Regressions | ⚠️CRITICAL
