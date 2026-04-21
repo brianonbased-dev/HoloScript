@@ -10,7 +10,6 @@
  */
 
 import type { GNode, GEdge } from '../../lib/nodeGraphStore';
-import { _NODE_TEMPLATES } from '../../lib/shaderGraph';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -413,7 +412,38 @@ export class WGSLTranslator {
 
       // ── Bake-specific nodes ────────────────────────────────────────────
       case 'AmbientOcclusion': {
-        return '1.0'; // Placeholder: AO bake requires ray-casting pass
+        // Geometric ambient occlusion (curvature-based approximation).
+        //
+        // Classical SSAO (Crytek 2007) needs a depth texture, screen-space
+        // UVs, and a view matrix — none of which are available in the node
+        // translator's binding context (it emits a single per-material
+        // fragment shader with only `in.vNormal` / `in.vUv` / `in.position`
+        // as inputs). A full screen-space SSAO pass would require a
+        // deeper refactor to thread depth+view bindings into the graph.
+        //
+        // As the documented fallback (see task spec), we emit a
+        // normal-derivative curvature estimator using fwidth(normal) —
+        // this approximates concavity from per-fragment normal variation
+        // (Mittring, "Advanced Virtual Texture Topics", SIGGRAPH 2008;
+        // also Unreal's "Cavity" term). Crevices darken, flat regions
+        // stay at ~1.0. Purely local, no extra bindings, deterministic.
+        //
+        // Inputs (optional graph edges):
+        //   radius   — scales the derivative kernel (default 1.0)
+        //   strength — scales the occlusion amount     (default 1.0)
+        //   samples  — unused in derivative mode (SSAO would use it)
+        //
+        // Output: scalar in [0,1]; 1 = fully lit, 0 = fully occluded.
+        const radius = inputs.get('radius') ?? inputs.get('a') ?? '1.0';
+        const strength = inputs.get('strength') ?? inputs.get('b') ?? '1.0';
+        // Curvature from normal derivatives. fwidth = abs(dpdx) + abs(dpdy).
+        // length(fwidth(n)) is ~0 on flat surfaces, large in crevices.
+        // Scale by radius, attenuate by strength, invert so 1=lit.
+        const nrm = 'normalize(in.vNormal)';
+        return (
+          `(1.0 - saturate(length(fwidth(${nrm})) * ${radius} * 8.0) * ` +
+          `saturate(${strength}))`
+        );
       }
 
       // ── Custom GLSL (passthrough) ──────────────────────────────────────

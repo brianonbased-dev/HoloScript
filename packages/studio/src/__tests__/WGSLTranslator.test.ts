@@ -457,11 +457,47 @@ describe('WGSLTranslator — utility nodes', () => {
     expect(result.wgsl).toContain('exp(-');
   });
 
-  it('AmbientOcclusion emits placeholder 1.0', () => {
+  it('AmbientOcclusion emits curvature-based AO using normal derivatives', () => {
     const nodes = [node('ao', 'AmbientOcclusion'), node('out', 'output')];
     const result = compile(nodes, [edge('ao', 'out')]);
-    // AO bake is a placeholder — emits 1.0 constant
-    expect(result.wgsl).toContain('1.0');
+    expect(result.ok).toBe(true);
+    // New geometric AO uses fwidth() of the normal to approximate crevice
+    // darkening (replacement for the old `1.0` placeholder).
+    expect(result.wgsl).toContain('fwidth');
+    expect(result.wgsl).toContain('in.vNormal');
+    // Output type must remain scalar f32 (the AO node contract).
+    // The declaration should be `let var_ao: f32 = (...)`.
+    expect(result.wgsl).toMatch(/let var_ao: f32 =/);
+    // Inverted form so 1=lit, 0=fully occluded.
+    expect(result.wgsl).toContain('1.0 - saturate(');
+  });
+
+  it('AmbientOcclusion output is deterministic across invocations', () => {
+    const nodes = [node('ao', 'AmbientOcclusion'), node('out', 'output')];
+    const edges = [edge('ao', 'out')];
+    const a = compile(nodes, edges);
+    const b = compile(nodes, edges);
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(a.wgsl).toBe(b.wgsl);
+  });
+
+  it('AmbientOcclusion accepts radius and strength via upstream edges', () => {
+    const nodes = [
+      node('r', 'float', { value: 2.5 }),
+      node('s', 'float', { value: 0.75 }),
+      node('ao', 'AmbientOcclusion'),
+      node('out', 'output'),
+    ];
+    const result = compile(nodes, [
+      edge('r', 'ao', 'radius'),
+      edge('s', 'ao', 'strength'),
+      edge('ao', 'out'),
+    ]);
+    expect(result.ok).toBe(true);
+    // Upstream values should be wired into the AO expression.
+    expect(result.wgsl).toContain('2.5');
+    expect(result.wgsl).toContain('0.75');
   });
 
   it('CustomGLSL passthrough node emits upstream value', () => {
