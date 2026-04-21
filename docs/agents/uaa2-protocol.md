@@ -2,7 +2,7 @@
 
 **Package**: `@holoscript/agent-protocol`
 
-The Universal Autonomous Agent (uAA2++) protocol is HoloScript's framework for building agents that can operate across spatial contexts — VR scenes, robotics, IoT, AR overlays, and cloud microservices — following the same 7-phase lifecycle.
+The Universal Autonomous Agent (uAA2++) protocol is HoloScript's framework for building agents that can operate across spatial contexts — VR scenes, robotics, IoT, AR overlays, and cloud microservices — following the same **8-phase** lifecycle (seven cognition/planning phases plus **IMPLEMENT**, the delivery phase).
 
 ---
 
@@ -24,7 +24,7 @@ const manifest: AgentManifest = {
     preferredLayer: 'real-time',
   },
   protocol: 'uaa2++',
-  lifecycle: 'seven-phase',
+  lifecycle: 'eight-phase',
 };
 ```
 
@@ -81,7 +81,7 @@ await handoff.transfer(agent, {
 
 ---
 
-## 7-Phase Lifecycle API
+## 8-Phase Lifecycle API
 
 ```ts
 import { BaseAgent, Phase } from '@holoscript/agent-protocol';
@@ -131,8 +131,19 @@ class MyAgent extends BaseAgent {
       await this.updatePriors(evaluation.failure_reason);
     }
   }
+
+  /** Phase 8 — land working change: tests, merge/commit, deploy artifact when applicable. */
+  async [Phase.Implement](ctx: SceneContext) {
+    await this.deliver(ctx);
+  }
 }
 ```
+
+### Phase 8 — IMPLEMENT
+
+`Phase.Implement` is where **reasoning becomes shipped reality**: merged code (or authored asset), passing tests/CI, and—when the task requires it—a deployment or publish step. Research-only passes may record a **decision log** instead of a PR. This phase is intentionally separate from `Evaluate` / `Adapt` so teams do not confuse “we analyzed it” with “users can run it.”
+
+**Note:** `@holoscript/agent-protocol` also exposes `ProtocolPhase` (INTAKE → … → AUTONOMIZE) for **meta** compounding workflows. The 8-step **agent lifecycle** above is orthogonal—use both when an agent both *thinks* in the seven cognitive phases and *ships* in IMPLEMENT.
 
 ---
 
