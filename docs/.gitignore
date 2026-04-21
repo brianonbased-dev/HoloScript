@@ -12,3 +12,4 @@ package-lock.json
 *.test.*
 # Exception: checked-in integration tests (P.008.03)
 !ops/ops-pipeline.test.ts
+!ops/ml-server-selection.test.ts
