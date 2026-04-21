@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core-types",
-  "version": "6.0.2",
+  "version": "7.0.0",
   "description": "Pure type definitions for HoloScript â€” lightweight mirror of @holoscript/core types with zero runtime dependencies. Canonical types live in packages/core/src/types/.",
   "type": "module",
   "main": "./dist/index.js",

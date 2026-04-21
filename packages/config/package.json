@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/config",
-  "version": "6.0.2",
+  "version": "7.0.0",
   "description": "Centralized configuration for the HoloScript platform — endpoints, auth, env validation. Server-only auth guards prevent key leakage to browser.",
   "type": "module",
   "main": "./dist/index.js",

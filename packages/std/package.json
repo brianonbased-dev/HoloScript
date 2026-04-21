@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "6.0.3",
+  "version": "7.0.0",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",

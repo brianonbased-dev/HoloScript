@@ -4,9 +4,9 @@
   "lanes": [
     {
       "name": "platform-v6",
-      "description": "Primary platform/runtime packages on major 6",
+      "description": "Primary platform/runtime packages on major 7 (lane id kept for scripts; 2026-04 platform-v7 release)",
       "enforce": "major",
-      "targetMajor": 6,
+      "targetMajor": 7,
       "sync": true,
       "packages": [
         "@holoscript/absorb-service",
@@ -17,7 +17,6 @@
         "@holoscript/auth",
         "@holoscript/config",
         "@holoscript/core-types",
-        "@holoscript/connectors",
         "@holoscript/engine",
         "@holoscript/framework",
         "@holoscript/holo-vm",
@@ -34,28 +33,28 @@
     },
     {
       "name": "tooling-v6",
-      "description": "Tooling and developer-facing support packages on major 6",
+      "description": "Tooling and developer-facing support packages on major 7 (aligned with platform lane)",
       "enforce": "major",
-      "targetMajor": 6,
+      "targetMajor": 7,
       "packages": [
         "@holoscript/benchmark",
         "@holoscript/linter",
         "@holoscript/lsp",
         "@holoscript/partner-sdk",
-        "@holoscript/visual"
+        "@holoscript/registry",
+        "@holoscript/std",
+        "@holoscript/visual",
+        "@holoscript/wasm"
       ]
     },
     {
       "name": "tooling-v3",
-      "description": "Tooling and developer-facing support packages on major 3",
+      "description": "Tooling packages remaining on major 3",
       "enforce": "major",
       "targetMajor": 3,
       "packages": [
         "@holoscript/formatter",
-        "@holoscript/fs",
-        "@holoscript/registry",
-        "@holoscript/std",
-        "@holoscript/wasm"
+        "@holoscript/fs"
       ]
     },
     {
@@ -75,6 +74,7 @@
         "@holoscript/connector-github",
         "@holoscript/connector-railway",
         "@holoscript/connector-upstash",
+        "@holoscript/adapter-postgres",
         "@holoscript/connector-vscode",
         "@holoscript/crdt",
         "@holoscript/crdt-spatial",
@@ -86,13 +86,11 @@
         "@holoscript/playground",
         "@holoscript/net-service",
         "@holoscript/security-sandbox",
-        "@holoscript/snn-poc",
         "@holoscript/spatial-index",
         "@holoscript/studio-api",
         "@holoscript/studio-bridge",
         "@holoscript/studio-plugin-sdk",
-        "brittney-service",
-        "create-holoscript-app"
+        "brittney-service"
       ]
     },
     {
@@ -112,7 +110,6 @@
       "targetMajor": 0,
       "packages": [
         "@hololand/react-agent-sdk",
-        "@holoscript/adapter-postgres",
         "@holoscript/graphql-api",
         "@holoscript/preview-component",
         "@holoscript/ui",

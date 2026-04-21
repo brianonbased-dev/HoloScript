@@ -263,7 +263,7 @@ Every number in this README points to a live source. If a number is hardcoded, i
 
 ## Release
 
-HoloScript release lanes are managed under `scripts/version-policy.json` (for example, `platform-v6`), and npm publishing is now guarded.
+HoloScript release lanes are managed under `scripts/version-policy.json` (for example, the `platform-v6` lane id targets **major 7** after the 2026-04 platform release), and npm publishing is now guarded.
 
 - Use `pnpm release:publish` for production publish flows.
 - Raw `pnpm publish` at repo root is intentionally blocked.
