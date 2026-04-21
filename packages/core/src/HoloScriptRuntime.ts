@@ -23,7 +23,8 @@ import { getSharedEventBus } from './events/EventBus';
 import { StateSynchronizer } from '@holoscript/mesh';
 import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
-import { stateMachineInterpreter } from '@holoscript/engine/runtime';
+// Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
+import * as engineRuntime from '@holoscript/engine/runtime';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
@@ -41,13 +42,6 @@ import type {
   HoloStatement,
   HoloExpression,
 } from './parser/HoloCompositionTypes';
-import { BaseVoiceSynthesizer } from '@holoscript/engine/runtime';
-import { registerVoiceSynthesizer } from '@holoscript/engine/runtime';
-import { LocalEmotionDetector } from '@holoscript/engine/runtime';
-import { registerEmotionDetector } from '@holoscript/engine/runtime';
-import { MockSpeechRecognizer } from '@holoscript/engine/runtime';
-import { registerSpeechRecognizer } from '@holoscript/engine/runtime';
-import { MethodMemoize, ObjectPool } from '@holoscript/engine/runtime';
 import type {
   ASTNode,
   OrbNode,
@@ -159,7 +153,7 @@ export class HoloScriptRuntime {
   private particleSystems: Map<string, ParticleSystem> = new Map();
   private executionHistory: ExecutionResult[] = [];
   private agentRuntimes: Map<string, HoloScriptAgentRuntime> = new Map();
-  private agentPool: ObjectPool<HoloScriptAgentRuntime>;
+  private agentPool: engineRuntime.ObjectPool<HoloScriptAgentRuntime>;
   private startTime: number = 0;
   private nodeCount: number = 0;
 
@@ -189,16 +183,16 @@ export class HoloScriptRuntime {
     this.builtinFunctions = this.initBuiltins(customFunctions);
 
     // Initialize Agent Pool
-    this.agentPool = new ObjectPool<HoloScriptAgentRuntime>(
+    this.agentPool = new engineRuntime.ObjectPool<HoloScriptAgentRuntime>(
       () => new HoloScriptAgentRuntime(), // Preallocation mode (optional args)
       (agent) => agent.destroy(),
       50
     );
 
     // Register Edge Intelligence Providers
-    registerVoiceSynthesizer();
-    registerEmotionDetector();
-    registerSpeechRecognizer();
+    engineRuntime.registerVoiceSynthesizer();
+    engineRuntime.registerEmotionDetector();
+    engineRuntime.registerSpeechRecognizer();
 
     for (const [name, fn] of this.builtinFunctions) {
       // Wrap builtins so they work when called via spread args from evaluateHoloExpression.
@@ -264,8 +258,8 @@ export class HoloScriptRuntime {
     // StateMachineInterpreter.ts). If multiple runtimes exist in the same process
     // the last to initialize wins — acceptable today (we instantiate one runtime
     // per workspace), but follow-up if we ever need per-runtime isolation.
-    stateMachineInterpreter.setHookExecutor((code) => this.evaluateExpression(code));
-    stateMachineInterpreter.setGuardEvaluator((expr) => this.evaluateExpression(expr));
+    engineRuntime.stateMachineInterpreter.setHookExecutor((code) => this.evaluateExpression(code));
+    engineRuntime.stateMachineInterpreter.setGuardEvaluator((expr) => this.evaluateExpression(expr));
   }
 
   /**
@@ -2175,7 +2169,7 @@ export class HoloScriptRuntime {
 
     // Phase 13: State Machine transitions
     if (data && typeof data === 'object' && (data as Record<string, unknown>).id) {
-      stateMachineInterpreter.sendEvent((data as Record<string, unknown>).id as string, event);
+      engineRuntime.stateMachineInterpreter.sendEvent((data as Record<string, unknown>).id as string, event);
     }
   }
 
@@ -3198,7 +3192,7 @@ export class HoloScriptRuntime {
   /**
    * Get member path from expression
    */
-  @MethodMemoize(500)
+  @engineRuntime.MethodMemoize(500)
   private getMemberPath(expr: HoloExpression): string | null {
     if (expr.type === 'Identifier') return expr.name;
     if (expr.type === 'MemberExpression') {
