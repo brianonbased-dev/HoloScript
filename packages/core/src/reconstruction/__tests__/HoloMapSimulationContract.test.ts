@@ -69,6 +69,27 @@ describe('HoloMap SimulationContract binding', () => {
     expect(a).not.toBe(b);
   });
 
+  it('verticalProfile indoor/outdoor/object changes the replay fingerprint', async () => {
+    async function fp(verticalProfile: 'indoor' | undefined) {
+      const rt = createHoloMapRuntime();
+      await rt.init({
+        ...HOLOMAP_DEFAULTS,
+        seed: 5,
+        modelHash: 'm-v',
+        videoHash: 'same',
+        verticalProfile,
+      });
+      await rt.step(baseFrame());
+      const m = await rt.finalize();
+      await rt.dispose();
+      return m.replayHash;
+    }
+
+    const baseline = await fp(undefined);
+    const indoor = await fp('indoor');
+    expect(indoor).not.toBe(baseline);
+  });
+
   it('video hash changes the replay fingerprint', async () => {
     async function fingerprintForVideo(videoHash: string) {
       const rt = createHoloMapRuntime();

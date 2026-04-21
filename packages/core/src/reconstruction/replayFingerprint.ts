@@ -27,9 +27,18 @@ export function computeHoloMapReplayFingerprint(parts: {
   videoHash?: string;
   /** Optional content-addressed weights id (IPFS CID, OCI digest, …). Omitted → same fingerprint as pre-CID builds. */
   weightCid?: string;
+  /**
+   * Specialist vertical (indoor / outdoor / object). Omitted or `generalist` → unchanged fingerprint
+   * (backward compatible). See docs/holomap/VERTICAL_WEIGHT_VARIANTS.md.
+   */
+  verticalProfile?: 'generalist' | 'indoor' | 'outdoor' | 'object';
 }): string {
   const video = parts.videoHash ?? 'no-video';
   const base = `${parts.modelHash}|${parts.seed}|${parts.weightStrategy}|${video}`;
-  const payload = parts.weightCid ? `${base}|cid:${parts.weightCid}` : base;
+  let payload = parts.weightCid ? `${base}|cid:${parts.weightCid}` : base;
+  const vert = parts.verticalProfile;
+  if (vert && vert !== 'generalist') {
+    payload += `|vert:${vert}`;
+  }
   return fnv1a32Hex(payload);
 }

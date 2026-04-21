@@ -12,6 +12,7 @@
 | MCP tool surface | `packages/mcp-server/src/holomap-mcp-tools.ts` | Public agent API |
 | Session orchestration | `packages/mcp-server/src/holo-reconstruct-sessions.ts` | Bridges MCP ↔ runtime |
 | Video fetch / limits | `packages/mcp-server/src/holo-video-ingest.ts` | `HOLOMAP_MCP_*` env |
+| Vertical weight variants (RFC Q2) | [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md), `HoloMapConfig.verticalProfile` | Specialist checkpoints vs generalist; replay fingerprint |
 
 ## When you change runtime behavior
 

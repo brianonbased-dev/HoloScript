@@ -114,7 +114,7 @@ Recommendation: run path 3 for the demo, path 2 in parallel for the production w
 ## 7. Open questions
 
 - **Q1 (blocking Sprint 2):** Integration sequencing for already-shipped P0 kernels (attention/GEMM/norm/softmax/RoPE/patch embed): what is the smallest end-to-end pass through `HoloMapRuntime.step()` that yields a reproducible acceptance-video manifest?
-- **Q2:** Do we need per-vertical fine-tunes (indoor / outdoor / object scan)? Trait-composition makes variants natural but splits training work.
+- **Q2:** Do we need per-vertical fine-tunes (indoor / outdoor / object scan)? Trait-composition makes variants natural but splits training work. **Decision (2026-04-21):** ship **generalist** weights for v1.0; add **optional specialist** `weightCid`s in v1.1+ with explicit vertical naming and replay identity — see `docs/holomap/VERTICAL_WEIGHT_VARIANTS.md`.
 - **Q3:** Where does HoloMap sit in `packages/`? Currently `packages/core/src/reconstruction/`. Alternative: `packages/reconstruction-runtime/` as its own workspace. Keep in core for Sprint 1 to minimize build graph changes; revisit if bundle size becomes an issue.
 - **Q4:** Do we share weights with HoloLand's mobile `npu_depth` path, or keep HoloMap desktop-only and NPU mobile-only? **Decision (2026-04-19):** keep **separate** weight families for v1 — see `docs/holomap/MODALITY_WEIGHTS.md`. `ModalitySelector` picks per surface without implying identical checkpoints.
 

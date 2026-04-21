@@ -15,6 +15,8 @@ Central index for **operators, integrators, and tutorial authors**. Deep technic
 | [MCP_SURFACE_VALIDATION.md](./MCP_SURFACE_VALIDATION.md) | CI + MCP | Tool list + vitest contract file |
 | [weights-cdn-fallback.md](./weights-cdn-fallback.md) | Ops | CDN, content-addressed weights, failover |
 | [reconstruction-runtime.md](./reconstruction-runtime.md) | Engineers | Code map + doc delta checklist |
+| [MODALITY_WEIGHTS.md](./MODALITY_WEIGHTS.md) | Product + eng | Desktop HoloMap vs mobile `npu_depth` weight families |
+| [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md) | Product + ML | RFC Q2: indoor / outdoor / object specialists vs generalist |
 
 ---
 

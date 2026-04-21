@@ -74,6 +74,9 @@ export interface ReconstructionStep {
 // RUNTIME CONFIG
 // =============================================================================
 
+/** Capture-domain hint for specialist weights (v1.1+); affects replay fingerprint when not `generalist`. */
+export type HoloMapVerticalProfile = 'generalist' | 'indoor' | 'outdoor' | 'object';
+
 export interface HoloMapConfig {
   /** Input resolution — rescales frames before inference */
   inputResolution: { width: number; height: number };
@@ -95,6 +98,11 @@ export interface HoloMapConfig {
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
   weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  /**
+   * Optional vertical specialist profile (pairs with a vertical-tuned `weightCid` in v1.1+).
+   * Omitted or `generalist` does not change the replay fingerprint.
+   */
+  verticalProfile?: HoloMapVerticalProfile;
   /**
    * When false, initialization requires a browser WebGPU adapter. Node / headless CI
    * should keep true (default) or use compatibility ingest (Marble) for benchmarks.
@@ -253,6 +261,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       weightStrategy: this.config.weightStrategy ?? 'distill',
       videoHash: this.config.videoHash,
       weightCid: this.config.weightCid,
+      verticalProfile: this.config.verticalProfile,
     });
     this.weightBytes = null;
     if (this.config.weightUrl) {
