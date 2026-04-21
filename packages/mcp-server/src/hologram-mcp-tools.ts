@@ -12,6 +12,7 @@ import {
   type MVHEVCConfig,
   type QuiltConfig,
 } from '@holoscript/engine/hologram';
+import { renderHologramBundle } from './hologram-renderer';
 
 type HologramMediaType = 'image' | 'gif' | 'video';
 
@@ -95,6 +96,39 @@ export const hologramToolDefinitions: Tool[] = [
       required: ['mediaType', 'source'],
     },
   },
+  {
+    name: 'holo_hologram_render',
+    description:
+      'Render a content-addressed hologram bundle with actual preview/quilt image bytes and stereo video preview artifacts. Returns artifact paths, hashes, and byte lengths.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mediaType: {
+          type: 'string',
+          enum: ['image', 'gif', 'video'],
+        },
+        source: { type: 'string' },
+        name: { type: 'string' },
+        quiltConfig: {
+          type: 'object',
+          description: 'Optional QuiltConfig overrides (views, columns, rows, resolution, baseline, device, focusDistance).',
+        },
+        mvhevcConfig: {
+          type: 'object',
+          description: 'Optional MVHEVCConfig overrides (ipd, resolution, fps, convergenceDistance, fovDegrees, quality, container, disparityScale).',
+        },
+        includeBase64: {
+          type: 'boolean',
+          description: 'Include base64 payloads for PNG artifacts in the response. Defaults to false.',
+        },
+        durationSeconds: {
+          type: 'number',
+          description: 'Stereo preview video duration. Defaults to 2 seconds.',
+        },
+      },
+      required: ['mediaType', 'source'],
+    },
+  },
 ];
 
 const HOLOGRAM_NAMES = new Set(hologramToolDefinitions.map((t) => t.name));
@@ -142,7 +176,7 @@ function getMediaTraits(mediaType: HologramMediaType, source: string): HoloTrait
   ];
 }
 
-function buildComposition(mediaType: HologramMediaType, source: string, name?: string): HoloComposition {
+export function buildComposition(mediaType: HologramMediaType, source: string, name?: string): HoloComposition {
   const objectName = (name && name.trim()) || 'HologramMedia';
   const traits = getMediaTraits(mediaType, source);
 
@@ -162,7 +196,7 @@ function buildComposition(mediaType: HologramMediaType, source: string, name?: s
   };
 }
 
-function toHoloCode(mediaType: HologramMediaType, source: string, name?: string): string {
+export function toHoloCode(mediaType: HologramMediaType, source: string, name?: string): string {
   const objectName = (name && name.trim()) || 'HologramMedia';
   const header = `composition "Hologram - ${objectName}" {`;
   const base = [
@@ -214,6 +248,7 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
   const objectName = typeof args.name === 'string' ? args.name : undefined;
 
   const composition = buildComposition(mediaType, source, objectName);
+  const holoCode = toHoloCode(mediaType, source, objectName);
 
   switch (name) {
     case 'holo_hologram_from_media': {
@@ -221,7 +256,7 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
         ok: true,
         mediaType,
         source,
-        holoCode: toHoloCode(mediaType, source, objectName),
+        holoCode,
         traits: composition.objects[0]?.traits?.map((t) => t.name) ?? [],
       };
     }
@@ -238,6 +273,32 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
       const mvhevcConfig = (args.mvhevcConfig ?? undefined) as Partial<MVHEVCConfig> | undefined;
       const result = compiler.compileMVHEVC(composition, mvhevcConfig);
       return { ok: true, mediaType, source, mvhevc: result };
+    }
+
+    case 'holo_hologram_render': {
+      const quiltCompiler = new QuiltCompiler();
+      const mvhevcCompiler = new MVHEVCCompiler();
+      const quiltConfig = (args.quiltConfig ?? undefined) as Partial<QuiltConfig> | undefined;
+      const mvhevcConfig = (args.mvhevcConfig ?? undefined) as Partial<MVHEVCConfig> | undefined;
+
+      const bundle = await renderHologramBundle({
+        mediaType,
+        source,
+        name: objectName ?? 'HologramMedia',
+        holoCode,
+        quilt: quiltCompiler.compileQuilt(composition, quiltConfig),
+        mvhevc: mvhevcCompiler.compileMVHEVC(composition, mvhevcConfig),
+        includeBase64: args.includeBase64 === true,
+        durationSeconds: typeof args.durationSeconds === 'number' ? args.durationSeconds : 2,
+      });
+
+      return {
+        ok: true,
+        mediaType,
+        source,
+        holoCode,
+        bundle,
+      };
     }
 
     default:
