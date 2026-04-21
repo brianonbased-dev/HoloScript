@@ -25,7 +25,10 @@
     "test:watch": "vitest",
     "benchmark:automate": "node scripts/run-benchmark.mjs",
     "benchmark:automate:ci": "cross-env BENCH_HEADLESS=1 BENCH_TIMEOUT_MS=180000 BENCH_REQUIRE_COMPLETED=1 node scripts/run-benchmark.mjs",
-    "benchmark:automate:local": "cross-env BENCH_HEADLESS=0 BENCH_REQUIRE_COMPLETED=0 node scripts/run-benchmark.mjs"
+    "benchmark:automate:local": "cross-env BENCH_HEADLESS=0 BENCH_REQUIRE_COMPLETED=0 node scripts/run-benchmark.mjs",
+    "test:playwright": "playwright test",
+    "test:playwright:ci": "cross-env BENCH_HEADLESS=1 BENCH_TIMEOUT_MS=120000 playwright test",
+    "test:playwright:local": "cross-env BENCH_HEADLESS=0 playwright test"
   },
   "keywords": [
     "holoscript",
@@ -48,6 +51,7 @@
   },
   "devDependencies": {
     "@holoscript/core": "workspace:^",
+    "@playwright/test": "^1.53.0",
     "@vitest/coverage-v8": "^4.0.18",
     "@webgpu/types": "^0.1.40",
     "cross-env": "^7.0.3",
