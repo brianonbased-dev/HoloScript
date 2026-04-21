@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { listDaemonJobs, getTelemetrySummary } from '@/app/api/daemon/jobs/store';
 import { loadDaemonSurface, type DaemonSurfaceKind } from '@/lib/daemon/compositionSurfaces';
 
+import { corsHeaders } from '../../_lib/cors';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const kindParam = searchParams.get('kind');
@@ -59,13 +60,9 @@ export async function GET(request: Request) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

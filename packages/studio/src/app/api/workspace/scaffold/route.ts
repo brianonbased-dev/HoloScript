@@ -15,6 +15,7 @@ import { authOptions } from '@/lib/auth';
 import { scaffoldProjectWorkspace, ScaffoldValidationError } from '@/lib/workspace/scaffolder';
 import type { ProjectDNA } from '@/lib/workspace/scaffolder';
 
+import { corsHeaders } from '../../_lib/cors';
 // ─── Request validation ─────────────────────────────────────────────────────
 
 function isProjectDNA(body: unknown): body is ProjectDNA {
@@ -78,13 +79,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

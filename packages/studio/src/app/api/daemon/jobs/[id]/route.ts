@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../store';
 
+import { corsHeaders } from '../../../_lib/cors';
 /**
  * GET /api/daemon/jobs/:id
  * GET /api/daemon/jobs/:id?view=patches  — return only patch proposals
@@ -91,13 +92,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

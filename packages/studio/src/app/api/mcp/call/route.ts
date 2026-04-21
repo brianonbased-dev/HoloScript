@@ -12,6 +12,7 @@ import { forwardAuthHeaders } from '@/lib/api-auth';
 
 import { ENDPOINTS } from '@holoscript/config/endpoints';
 
+import { corsHeaders } from '../../_lib/cors';
 let MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
   MCP_EXTERNAL_URL = `https://${MCP_EXTERNAL_URL}`;
@@ -99,13 +100,9 @@ export async function GET() {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }

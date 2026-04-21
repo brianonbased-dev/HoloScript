@@ -20,6 +20,7 @@ import path from 'node:path';
 import { listDaemonJobs, getTelemetrySummary, createDaemonJob } from '@/app/api/daemon/jobs/store';
 import type { DaemonProfile } from '@/lib/daemon/types';
 
+import { corsHeaders } from '../_lib/cors';
 // ---------------------------------------------------------------------------
 // Composition Source Loading
 // ---------------------------------------------------------------------------
@@ -203,13 +204,9 @@ export async function POST(request: Request) {
 }
 
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
-    },
+    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
   });
 }
