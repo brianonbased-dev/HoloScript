@@ -22,8 +22,8 @@ describe('WorldStreamer', () => {
     const chunk = ws.loadChunk(0, 0);
     expect(chunk).toBeDefined();
     expect(chunk.state).toBe('loaded');
-    expect(chunk.x).toBe(0);
-    expect(chunk.z).toBe(0);
+      expect(chunk.x).toBe(0);
+      expect(chunk.z).toBe(0);
   });
 
   it('loadChunk returns existing if already loaded', () => {
@@ -92,6 +92,6 @@ describe('WorldStreamer', () => {
   it('default chunk data has x and z', () => {
     const ws = new WorldStreamer();
     const chunk = ws.loadChunk(7, 8);
-    expect(chunk.data).toEqual({ x: 7, z: 8 });
+      expect(chunk.data).toEqual({ x: 7, z: 8 });
   });
 });

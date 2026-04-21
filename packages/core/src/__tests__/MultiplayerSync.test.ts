@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NetEntitySync } from '@holoscript/mesh';
+import { NetEntitySync } from '@holoscript/mesh/network/NetEntitySync';
 import { NetEventBus } from '@holoscript/mesh';
 import { SessionManager } from '@holoscript/mesh';
 

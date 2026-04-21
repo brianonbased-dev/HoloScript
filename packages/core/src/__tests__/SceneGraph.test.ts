@@ -30,13 +30,13 @@ describe('SceneNode', () => {
   it('sets and gets local transform', () => {
     root.setPosition(1, 2, 3);
     const t = root.getLocalTransform();
-    expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
+     expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('sets scale', () => {
     root.setScale(2, 2, 2);
     const t = root.getLocalTransform();
-    expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
+     expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
   });
 
   it('parent-child hierarchy', () => {
@@ -71,7 +71,7 @@ describe('SceneNode', () => {
     child.setPosition(5, 0, 0);
     root.addChild(child);
     const wp = child.getWorldPosition();
-    expect(wp.x).toBe(15);
+     expect(wp.x).toBe(15);
   });
 
   it('scale propagates to world matrix', () => {
@@ -81,7 +81,7 @@ describe('SceneNode', () => {
     child.setPosition(5, 0, 0);
     root.addChild(child);
     const wp = child.getWorldPosition();
-    expect(wp.x).toBe(10); // 5 * 2 (parent scale)
+     expect(wp.x).toBe(10); // 5 * 2 (parent scale)
   });
 
   it('dirty flag propagates to children', () => {

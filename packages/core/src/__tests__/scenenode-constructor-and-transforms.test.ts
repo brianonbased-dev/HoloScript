@@ -60,30 +60,30 @@ describe('Feature 1A: SceneNode â€” constructor and transforms', () => {
     const n = new SceneNode('n');
     n.setPosition(1, 2, 3);
     const t = n.getLocalTransform();
-    expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
+     expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('setRotation updates local transform', () => {
     const n = new SceneNode('n');
     n.setRotation(10, 20, 30);
     const t = n.getLocalTransform();
-    expect(t.rotation).toEqual({ x: 10, y: 20, z: 30 });
+     expect(t.rotation).toEqual({ x: 10, y: 20, z: 30 });
   });
 
   it('setScale updates local transform', () => {
     const n = new SceneNode('n');
     n.setScale(2, 2, 2);
     const t = n.getLocalTransform();
-    expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
+     expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
   });
 
   it('getWorldPosition reflects setPosition for root node', () => {
     const n = new SceneNode('n');
     n.setPosition(5, 10, 15);
     const wp = n.getWorldPosition();
-    expect(wp.x).toBeCloseTo(5, 3);
-    expect(wp.y).toBeCloseTo(10, 3);
-    expect(wp.z).toBeCloseTo(15, 3);
+     expect(wp.x).toBeCloseTo(5, 3);
+     expect(wp.y).toBeCloseTo(10, 3);
+     expect(wp.z).toBeCloseTo(15, 3);
   });
 
   it('getWorldMatrix returns 16-element Float64Array', () => {
@@ -489,27 +489,27 @@ describe('Feature 4A: SplinePath â€” points and evaluate', () => {
     sp.addPoint(1, 2, 3);
     sp.addPoint(10, 20, 30);
     const p = sp.evaluate(0);
-    expect(p.x).toBeCloseTo(1, 3);
-    expect(p.y).toBeCloseTo(2, 3);
+    expect(p[0]).toBeCloseTo(1, 3);
+    expect(p[1]).toBeCloseTo(2, 3);
   });
 
   it('evaluate(1) returns last point (linear)', () => {
     sp.addPoint(0, 0);
     sp.addPoint(10, 0);
     const p = sp.evaluate(1);
-    expect(p.x).toBeCloseTo(10, 3);
+    expect(p[0]).toBeCloseTo(10, 3);
   });
 
   it('evaluate(0.5) returns midpoint (linear, equal points)', () => {
     sp.addPoint(0, 0);
     sp.addPoint(10, 0);
     const p = sp.evaluate(0.5);
-    expect(p.x).toBeCloseTo(5, 3);
+    expect(p[0]).toBeCloseTo(5, 3);
   });
 
   it('empty spline evaluate returns 0,0,0', () => {
     const p = sp.evaluate(0.5);
-    expect(p).toEqual({ x: 0, y: 0, z: 0 });
+    expect(p).toEqual([0, 0, 0]);
   });
 
   it('setType/getType round-trip', () => {
@@ -525,7 +525,7 @@ describe('Feature 4A: SplinePath â€” points and evaluate', () => {
   it('getPoints() returns a copy', () => {
     sp.addPoint(1, 2);
     const pts = sp.getPoints();
-    pts.push({ x: 999, y: 999, z: 0 });
+    pts.push([999, 999, 0]);
     expect(sp.getPointCount()).toBe(1);
   });
 });
@@ -550,7 +550,7 @@ describe('Feature 4B: SplinePath â€” arc length and tangent', () => {
     sp.addPoint(0, 0, 0);
     sp.addPoint(10, 0, 0);
     const p = sp.evaluateAtDistance(0);
-    expect(p.x).toBeCloseTo(0, 2);
+    expect(p[0]).toBeCloseTo(0, 2);
   });
 
   it('evaluateAtDistance(totalLength) returns end', () => {
@@ -559,7 +559,7 @@ describe('Feature 4B: SplinePath â€” arc length and tangent', () => {
     sp.addPoint(0, 0, 0);
     sp.addPoint(10, 0, 0);
     const p = sp.evaluateAtDistance(sp.getLength());
-    expect(p.x).toBeCloseTo(10, 1);
+    expect(p[0]).toBeCloseTo(10, 1);
   });
 
   it('getTangent() returns a unit vector', () => {
@@ -568,7 +568,7 @@ describe('Feature 4B: SplinePath â€” arc length and tangent', () => {
     sp.addPoint(0, 0, 0);
     sp.addPoint(1, 0, 0);
     const tang = sp.getTangent(0.5);
-    const len = Math.sqrt(tang.x ** 2 + tang.y ** 2 + tang.z ** 2);
+    const len = Math.sqrt(tang[0] ** 2 + tang[1] ** 2 + tang[2] ** 2);
     expect(len).toBeCloseTo(1, 2);
   });
 
@@ -578,8 +578,8 @@ describe('Feature 4B: SplinePath â€” arc length and tangent', () => {
     sp.addPoint(0, 0, 0);
     sp.addPoint(10, 0, 0);
     const tang = sp.getTangent(0.5);
-    expect(tang.x).toBeGreaterThan(0);
-    expect(Math.abs(tang.y)).toBeLessThan(0.01);
+    expect(tang[0]).toBeGreaterThan(0);
+    expect(Math.abs(tang[1])).toBeLessThan(0.01);
   });
 });
 
