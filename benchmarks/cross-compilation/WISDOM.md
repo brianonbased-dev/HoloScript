@@ -152,6 +152,10 @@ HandTrackingProvider { hands in
 
 **Intermediate LOD (research capture):** Treat **3D Gaussian splats** as a distance-bounded surrogate **between** analytic meshes (near-field interaction, deformation, physics) and impostors or light meshes (far field). Under a **global splat budget**, reserve Gaussians for viewpoints where they beat triangle throughput; past a projection-size or depth threshold, merge or subsample splats and swap to baked mesh or sprite impostor. HoloScript’s WebGPU path already stabilizes draw order via radix-class sort—LOD policy would stack **budgeted splat count** and **cutover distance** on top. For Unity/Unreal exports, apply the **same budget before engine import** so splats are not duplicated when a target also bakes a mesh from the same source.
 
+### G.005b | Neural mesh compression (streaming) | ⚠️MODERATE
+
+**Research capture:** Shipping geometry over the wire still starts from **mature baselines** — glTF + Draco / meshopt / quantized attributes — then **progressive refinement** (LOD0 shell first, finer mip-style mesh chunks, optional displacement/normal maps). **Learned compressors** (neural implicit surfaces, vector-quantized vertex codecs, compressed eigenbasis for blend shapes) are promising when the client has a compatible decoder; they trade CPU/GPU decode latency for bitrate. For HoloScript pipelines, treat **codec choice as a target capability**: same `.holo` source should declare **minimum stream quality** (lossless Draco vs neural) so compilers pick a transport profile per platform without duplicating authoring assets.
+
 ---
 
 ### G.006 | Simulated Failures Hide Real Regressions | ⚠️CRITICAL
