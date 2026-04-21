@@ -34,7 +34,7 @@ describe('Editor Inspector', () => {
     await Promise.resolve();
 
     // Get component data
-    const transform = inspector.getComponentData('Transform');
+    const transform = inspector.getComponentData('Transform') as { x: number; y: number };
     expect(transform.x).toBe(10);
 
     // Modify via Inspector helper
