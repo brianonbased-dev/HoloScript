@@ -245,7 +245,7 @@ export class Analyzer {
         category: 'code',
         title: 'Slow compilation detected',
         message: `Compile time of ${summary.categoryBreakdown.compile.toFixed(2)}ms exceeds critical threshold.`,
-        action: 'Enable incremental compilation. Profile hot paths before optimizing — the Rust/WASM parser is currently slower than the JS parser under V8 (see research/2026-04-19_todo-r2-wasm-bench-results.md).',
+        action: 'Enable incremental compilation and profile hot paths. The Rust/WASM parser hot-path overhead (redundant load() awaits) was fixed in WasmParserBridge v3.3.1 — update to the latest version to benefit from the improvement.',
         documentation: 'https://holoscript.net/docs/performance/compilation',
         metric: {
           name: 'Compile Time',

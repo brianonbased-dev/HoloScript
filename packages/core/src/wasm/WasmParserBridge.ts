@@ -171,7 +171,10 @@ export class WasmParserBridge {
     const startTime = performance.now();
 
     try {
-      await this.load();
+      // Skip the load() promise overhead on hot path if already initialized
+      if (!this.initialized) {
+        await this.load();
+      }
 
       if (!this.wasmInstance) {
         throw new Error('WASM not initialized');
@@ -222,7 +225,9 @@ export class WasmParserBridge {
     source: string
   ): Promise<{ valid: boolean; errors: Array<{ message: string; line: number; column: number }> }> {
     try {
-      await this.load();
+      if (!this.initialized) {
+        await this.load();
+      }
 
       if (!this.wasmInstance) {
         throw new Error('WASM not initialized');
@@ -244,7 +249,9 @@ export class WasmParserBridge {
    */
   async getVersion(): Promise<string> {
     try {
-      await this.load();
+      if (!this.initialized) {
+        await this.load();
+      }
       return this.wasmInstance?.version() ?? 'unknown';
     } catch {
       return 'unavailable';
