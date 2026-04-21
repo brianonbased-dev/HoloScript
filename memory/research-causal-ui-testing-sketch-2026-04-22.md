@@ -64,7 +64,7 @@ Classical UI tests excel at **replaying scripts** (“click A then expect B”).
 
 ### Phase D — Full counterfactual harness
 
-- Given SCM fragment + test shell, generate **candidate interventions** and run ** Vitest parametrizations** with budgets (max cases, timeout).
+- Given SCM fragment + test shell, generate **candidate interventions** and run **Vitest parametrizations** with budgets (max cases, timeout).
 - Integrate with Playwright for **post- unit** flows only when graph spans real navigation.
 
 ## Integration points today
