@@ -32,10 +32,10 @@ describe('ReplicationManager', () => {
 
   it('updates snapshots and marks dirty', () => {
     rm.register('p1', 'character', 'host');
-    rm.updateSnapshot('p1', { position: [10, 0, 0] });
+    rm.updateSnapshot('p1', { position: { x: 10, y: 0, z: 0 } });
     const e = rm.getEntity('p1')!;
     expect(e.isDirty).toBe(true);
-    expect(e.snapshot.position[0]).toBe(10);
+    expect(e.snapshot.position.x).toBe(10);
   });
 
   it('setCustomState stores key-value', () => {
@@ -55,17 +55,17 @@ describe('ReplicationManager', () => {
 
   it('first update is full snapshot', () => {
     rm.register('p1', 'character', 'host', { updateIntervalMs: 0 });
-    rm.updateSnapshot('p1', { position: [1, 2, 3] });
+    rm.updateSnapshot('p1', { position: { x: 1, y: 2, z: 3 } });
     const updates = rm.generateUpdates(Date.now() + 100);
     expect(updates[0].isFullSnapshot).toBe(true);
   });
 
   it('subsequent updates are deltas', () => {
     rm.register('p1', 'character', 'host', { updateIntervalMs: 0 });
-    rm.updateSnapshot('p1', { position: [1, 0, 0] });
+    rm.updateSnapshot('p1', { position: { x: 1, y: 0, z: 0 } });
     rm.generateUpdates(Date.now() + 100);
     // Move again
-    rm.updateSnapshot('p1', { position: [5, 0, 0] });
+    rm.updateSnapshot('p1', { position: { x: 5, y: 0, z: 0 } });
     const updates = rm.generateUpdates(Date.now() + 200);
     if (updates.length > 0) {
       expect(updates[0].isFullSnapshot).toBe(false);
@@ -77,10 +77,10 @@ describe('ReplicationManager', () => {
     rm.applyRemoteUpdate({
       entityId: 'p1',
       timestamp: Date.now(),
-      fields: { position: [99, 0, 0] },
+      fields: { position: { x: 99, y: 0, z: 0 } },
       isFullSnapshot: true,
     });
-    expect(rm.getEntity('p1')!.snapshot.position[0]).toBe(99);
+    expect(rm.getEntity('p1')!.snapshot.position.x).toBe(99);
   });
 
   it('getStats returns entity counts', () => {
@@ -100,11 +100,11 @@ describe('ReplicationManager', () => {
 
   it('respects update interval', () => {
     rm.register('p1', 'character', 'host', { updateIntervalMs: 1000 });
-    rm.updateSnapshot('p1', { position: [1, 0, 0] });
+    rm.updateSnapshot('p1', { position: { x: 1, y: 0, z: 0 } });
     const t = Date.now();
-    const updates = rm.generateUpdates(t);
+    rm.generateUpdates(t);
     // Second call within interval should yield no updates
-    rm.updateSnapshot('p1', { position: [2, 0, 0] });
+    rm.updateSnapshot('p1', { position: { x: 2, y: 0, z: 0 } });
     const updates2 = rm.generateUpdates(t + 10);
     expect(updates2).toHaveLength(0);
   });
@@ -116,7 +116,7 @@ describe('ReplicationManager', () => {
 
 describe('ClientPrediction', () => {
   const initialState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
-  const predictor = (state: any, input: any) => ({
+  const predictor = (state: { x: number; y: number; z: number; vx: number; vy: number; vz: number }, input: { deltaTime: number; actions: Record<string, number> }) => ({
     ...state,
     x: state.x + (input.actions.moveX || 0) * input.deltaTime,
     z: state.z + (input.actions.moveZ || 0) * input.deltaTime,
