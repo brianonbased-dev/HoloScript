@@ -25,6 +25,12 @@
  */
 
 import type { SimSolver, FieldData } from './SimSolver';
+import { isGpuBackedSolver } from './SimSolver';
+import { type HashMode, HASH_MODE_DEFAULT, hashBytes } from './sha256';
+
+// Re-export so consumers can import HashMode from SimulationContract
+// without depending on the sha256 implementation module directly.
+export type { HashMode } from './sha256';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +95,29 @@ export interface ContractConfig {
   logInteractions?: boolean;
   /** Solver type label */
   solverType?: string;
+  /** Use cryptographic (SHA-256) hash at the three contract hash
+   *  sites (hashGeometry, computeStateDigest, hashCAELEntry) instead
+   *  of the default FNV-1a.
+   *
+   *  Option C (SECURITY-mode 2026-04-20): FNV-1a is the DEFAULT for
+   *  performance under the non-adversarial threat model; SHA-256 is
+   *  opt-in for adversarial-peer deployments where collision
+   *  resistance on the hash chain matters.
+   *
+   *  Performance cost: ~9-24× slower per-hash than FNV-1a at paper-3
+   *  scales (see bench `fnv1a-vs-sha256.bench.test.ts`). On a 10^4-
+   *  step full-building scenario, ~4.3 s of added hash overhead on
+   *  ~30 s total simulation wall time = ~14% regression. Do not flip
+   *  this on by default.
+   *
+   *  Mode is threaded through every contract hash site via a single
+   *  dispatcher (`hashBytes` / `hashStringForCAEL`), written into
+   *  `cael.init.payload.hashMode` at trace-record time, and verified
+   *  at replay-time — mid-trace mode tampering throws.
+   *
+   *  See: ai-ecosystem research/2026-04-20_sha256-feature-flag-design.md
+   *  (Option C + Wiring-commit prerequisites). */
+  useCryptographicHash?: boolean;
   /** Opaque adapter fingerprint for cross-adapter dispute dispatch
    *  (paper-3 §5.2 Algorithm 1, 5b). Recorded into cael.init.payload
    *  at trace-record time; compared by CAELReplayer.sameAdapter()
@@ -204,20 +233,53 @@ export async function computeAdapterFingerprint(info: AdapterInfo): Promise<stri
 // ── Geometry Hashing ─────────────────────────────────────────────────────────
 
 /**
- * Compute a fast fingerprint of mesh geometry.
- * Uses FNV-1a over quantized vertex positions and element indices with explicit
- * length prefixes and a vertex/connectivity domain separator (SEC-02): any
- * change to nodes, index count, or connectivity alters the digest.
+ * Compute a fingerprint of mesh geometry.
+ *
+ * Mode dispatch (Option C, 2026-04-20 SECURITY wiring):
+ *   'fnv1a' (default) — FNV-1a streaming with length prefixes + SEC-02
+ *                       vertex/connectivity domain separator.
+ *                       Output: 'geo-<8hex>-<n>n-<e>e'. Fast, non-
+ *                       cryptographic. Back-compat preserved bit-exactly
+ *                       with pre-Option-C output.
+ *   'sha256'          — SHA-256 over canonical byte buffer with same
+ *                       length prefixes + separator.
+ *                       Output: 'geo-sha-<64hex>-<n>n-<e>e'. Slower,
+ *                       collision-resistant. Opt-in for adversarial-peer.
+ *
+ * Any change to nodes, index count, or connectivity alters the digest
+ * in either mode.
  */
 export function hashGeometry(
   vertices: Float64Array | Float32Array | undefined,
   elements: Uint32Array | undefined,
+  mode: HashMode = HASH_MODE_DEFAULT,
 ): string {
   if (!vertices || !elements) return 'no-geometry';
 
-  let h = 2166136261;
   const nCoord = vertices.length;
   const nIdx = elements.length;
+
+  if (mode === 'sha256') {
+    // Canonical byte buffer: 4(nCoord prefix) + 4*nCoord (quantized vertices)
+    // + 4 (domain separator) + 4 (nIdx prefix) + 4*nIdx (elements).
+    const totalBytes = 4 + nCoord * 4 + 4 + 4 + nIdx * 4;
+    const buf = new Uint8Array(totalBytes);
+    const view = new DataView(buf.buffer);
+    let off = 0;
+    view.setUint32(off, nCoord >>> 0, true); off += 4;
+    for (let i = 0; i < nCoord; i++) {
+      view.setInt32(off, Math.round(vertices[i] * 1e6) | 0, true); off += 4;
+    }
+    view.setUint32(off, 0x9e3779b9, true); off += 4;       // SEC-02 separator
+    view.setUint32(off, nIdx >>> 0, true); off += 4;
+    for (let i = 0; i < nIdx; i++) {
+      view.setUint32(off, elements[i] >>> 0, true); off += 4;
+    }
+    return `geo-sha-${hashBytes(buf, 'sha256')}-${nCoord / 3}n-${nIdx}e`;
+  }
+
+  // Legacy FNV-1a streaming path (preserved bit-exactly for back-compat).
+  let h = 2166136261;
 
   for (let k = 0; k < 4; k++) {
     h ^= (nCoord >>> (8 * k)) & 0xff;
@@ -336,6 +398,79 @@ export function validateMeshSanity(
   return out;
 }
 
+// ── GPU Output Hashing ───────────────────────────────────────────────────────
+
+/**
+ * Compute a fingerprint of a GPU solver's output buffer.
+ *
+ * Called by `ContractedSimulation.asyncStep()` after each GPU step to record
+ * a compact digest of the post-step state directly from the readback buffer.
+ * This is the GPU-side analogue of `computeStateDigest()` for CPU solvers
+ * (paper-4 §5.2 — closing the gap between CPU-side contract verification and
+ * GPU-executed solvers).
+ *
+ * Mode dispatch (mirrors hashGeometry):
+ *   'fnv1a' (default) — FNV-1a streaming over quantized int32 values.
+ *                       Fast; non-cryptographic.
+ *   'sha256'          — SHA-256 over the same canonical byte buffer.
+ *                       Collision-resistant; opt-in for adversarial-peer.
+ *
+ * Quantization: values are rounded to the nearest integer multiple of
+ * GPU_OUTPUT_QUANTUM (1e-6) before hashing, which resets float32
+ * reduction-order drift across GPU vendors (same motivation as Route 2b
+ * in computeStateDigest).
+ *
+ * Throws on non-finite values (fail-closed, matching CPU-side guard).
+ */
+const GPU_OUTPUT_QUANTUM = 1e-6;
+
+export function hashGpuOutput(
+  data: Float32Array,
+  mode: HashMode = HASH_MODE_DEFAULT,
+): string {
+  if (data.length === 0) return mode === 'sha256' ? `gpu-sha-${'0'.repeat(64)}-0` : 'gpu-00000000-0';
+
+  const n = data.length;
+  const invQ = 1 / GPU_OUTPUT_QUANTUM;
+
+  if (mode === 'sha256') {
+    const buf = new Uint8Array(4 + n * 4);
+    const view = new DataView(buf.buffer);
+    view.setUint32(0, n >>> 0, true);
+    for (let i = 0; i < n; i++) {
+      const v = data[i];
+      if (!Number.isFinite(v)) {
+        throw new Error(
+          `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
+        );
+      }
+      view.setInt32(4 + i * 4, Math.round(v * invQ) | 0, true);
+    }
+    return `gpu-sha-${hashBytes(buf, 'sha256')}-${n}`;
+  }
+
+  // FNV-1a path
+  let h = 2166136261;
+  for (let k = 0; k < 4; k++) {
+    h ^= (n >>> (8 * k)) & 0xff;
+    h = Math.imul(h, 16777619);
+  }
+  for (let i = 0; i < n; i++) {
+    const v = data[i];
+    if (!Number.isFinite(v)) {
+      throw new Error(
+        `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
+      );
+    }
+    const q = Math.round(v * invQ) | 0;
+    h ^= q & 0xff; h = Math.imul(h, 16777619);
+    h ^= (q >>> 8) & 0xff; h = Math.imul(h, 16777619);
+    h ^= (q >>> 16) & 0xff; h = Math.imul(h, 16777619);
+    h ^= (q >>> 24) & 0xff; h = Math.imul(h, 16777619);
+  }
+  return `gpu-${(h >>> 0).toString(16).padStart(8, '0')}-${n}`;
+}
+
 // ── Unit Validation ──────────────────────────────────────────────────────────
 
 /** Known physical quantity ranges for sanity checking. */
@@ -429,6 +564,22 @@ export class DeterministicStepper {
     return steps;
   }
 
+  /** Async variant of advance() — awaits each step function call. Used by asyncStep(). */
+  async advanceAsync(wallDelta: number, stepFn: (dt: number) => Promise<void>): Promise<number> {
+    this.accumulator += Math.min(wallDelta, this.maxAccumulator);
+    let steps = 0;
+
+    while (this.accumulator >= this.fixedDt) {
+      await stepFn(this.fixedDt);
+      this.accumulator -= this.fixedDt;
+      this.stepCount++;
+      this.simTime += this.fixedDt;
+      steps++;
+    }
+
+    return steps;
+  }
+
   getStepCount(): number { return this.stepCount; }
   getSimTime(): number { return this.simTime; }
   getAccumulator(): number { return this.accumulator; }
@@ -472,13 +623,48 @@ export class ContractedSimulation {
    */
   private stateDigests: string[] = [];
 
+  /**
+   * Per-step GPU output digests (paper-4 §5.2 — GPU solver verification).
+   *
+   * Populated by `asyncStep()` when the wrapped solver implements
+   * `GpuBackedSolver`. Each entry is the `hashGpuOutput()` digest of the
+   * flat readback buffer returned by `solver.readbackOutput()` AFTER that
+   * step's GPU dispatch completed. An empty array when using a CPU-only
+   * solver (or when `asyncStep()` has not been called yet).
+   *
+   * Can be compared across replays to verify that two GPU runs produced
+   * identical output buffers at each step (same guarantees as CPU-side
+   * `stateDigests`, but applied to the raw GPU output before any CPU-side
+   * field transformation).
+   */
+  private gpuOutputDigests: string[] = [];
+
+  /**
+   * Hash mode for all three contract hash sites (hashGeometry,
+   * computeStateDigest, hashCAELEntry when this contract's recorder
+   * wraps it). Option C (2026-04-20 SECURITY wiring): resolved from
+   * contractConfig.useCryptographicHash at construction. Immutable
+   * for the life of the contract.
+   *
+   * Per Prereq 1 (per-recorder flag scope): no env var or global
+   * override — this is the only authoritative source.
+   */
+  private hashMode: HashMode;
+
+  /** Public accessor for the hash mode. Used by CAELRecorder to
+   *  thread the mode into hashCAELEntry calls and into
+   *  cael.init.payload.hashMode. */
+  getHashMode(): HashMode {
+    return this.hashMode;
+  }
+
   constructor(
     solver: SimSolver,
     config: Record<string, unknown>,
     contractConfig: ContractConfig = {},
   ) {
     this.solver = solver;
-    
+
     // Efficient deep clone that preserves TypedArrays via structuredClone
     try {
       this.config = structuredClone(config);
@@ -490,11 +676,16 @@ export class ContractedSimulation {
     this.solverType = contractConfig.solverType ?? 'unknown';
     this.logInteractions = contractConfig.logInteractions ?? true;
 
-    // Compute geometry hash
+    // Resolve hash mode ONCE from contractConfig. Per Prereq 1, this
+    // is the only authoritative source — no env var fallback, no
+    // module-level default override. Immutable for the contract's life.
+    this.hashMode = contractConfig.useCryptographicHash ? 'sha256' : HASH_MODE_DEFAULT;
+
+    // Compute geometry hash under the resolved mode
     const meshVertices = config.vertices as Float64Array | Float32Array | undefined;
     const meshElements = (config.tetrahedra ?? config.elements) as Uint32Array | undefined;
 
-    this.geometryHash = hashGeometry(meshVertices, meshElements);
+    this.geometryHash = hashGeometry(meshVertices, meshElements, this.hashMode);
 
     this.violations = [];
     if (contractConfig.enforceMeshSanity !== false) {
@@ -536,6 +727,51 @@ export class ContractedSimulation {
       this.stateDigests.push(this.computeStateDigest());
     });
     return subStepsTaken;
+  }
+
+  /**
+   * Async variant of `step()` for GPU-backed solvers (paper-4 §5.2).
+   *
+   * Identical to `step()` except:
+   *   1. Each sub-step awaits the solver's `step(dt)` promise (allowing
+   *      GPU command buffer submission and synchronization to complete).
+   *   2. After each sub-step, if the solver implements `GpuBackedSolver`,
+   *      `readbackOutput()` is called and the result is hashed via
+   *      `hashGpuOutput()` and appended to `gpuOutputDigests`. This
+   *      records a verifiable fingerprint of the raw GPU output buffer
+   *      at every fixed-timestep, closing the gap between CPU-side
+   *      contract verification and GPU-executed solvers.
+   *   3. CPU-side `stateDigests` (Route 2b) is still populated via
+   *      `computeStateDigest()` if `fieldNames`/`getField()` are available,
+   *      so existing replay/verification tooling continues to work.
+   *
+   * @returns Promise<number> — number of fixed sub-steps taken (same
+   *          semantics as synchronous `step()`).
+   */
+  async asyncStep(wallDelta: number): Promise<number> {
+    this.enforceGeometryIntegrity();
+    const gpuBacked = isGpuBackedSolver(this.solver);
+
+    const subStepsTaken = await this.stepper.advanceAsync(wallDelta, async (dt) => {
+      await this.solver.step(dt);
+
+      // GPU output digest (paper-4 §5.2)
+      if (gpuBacked) {
+        const gpuData = await (this.solver as import('./SimSolver').GpuBackedSolver).readbackOutput();
+        this.gpuOutputDigests.push(hashGpuOutput(gpuData, this.hashMode));
+      }
+
+      // CPU-side Route 2b digest (unchanged from synchronous step)
+      this.stateDigests.push(this.computeStateDigest());
+    });
+
+    return subStepsTaken;
+  }
+
+  /** Return the array of per-step GPU output digests captured by `asyncStep()`.
+   *  Empty when using a CPU-only solver or before `asyncStep()` is called. */
+  getGpuOutputDigests(): readonly string[] {
+    return this.gpuOutputDigests.slice();
   }
 
   /**
@@ -605,9 +841,78 @@ export class ContractedSimulation {
     return ContractedSimulation.FALLBACK_QUANTUM;
   }
 
+  /**
+   * Compute a canonical state digest under the contract's hash mode.
+   *
+   * Mode dispatch (Option C):
+   *   'fnv1a' (default) — FNV-1a streaming: field names + quantized
+   *     state folded byte-by-byte via the classic algorithm. Output:
+   *     8 hex chars. Preserved bit-exactly from pre-Option-C code.
+   *   'sha256' — builds the same canonical byte buffer and passes it
+   *     to sha256Bytes. Output: 64 hex chars. Opt-in for adversarial-
+   *     peer use; collision-resistant.
+   *
+   * Either mode shares the same NaN/±Infinity fail-closed guard
+   * (Wave-1.5): non-finite field values throw before any hashing
+   * happens, so downstream consumers inherit the integrity property
+   * in both modes.
+   */
   private computeStateDigest(): string {
-    // Deterministic field order
+    // Deterministic field order — common to both modes.
     const fieldNames = [...this.solver.fieldNames].sort();
+
+    if (this.hashMode === 'sha256') {
+      // Build canonical byte buffer: for each field, name bytes
+      // (charCodeAt & 0xff per char, matching the FNV path's byte
+      // view) + quantized int32 values (little-endian). Concatenated
+      // in sorted field order, then SHA-256 one-shot.
+      type FieldBlock = { nameBytes: Uint8Array; intBytes: Uint8Array };
+      const blocks: FieldBlock[] = [];
+      let totalBytes = 0;
+      for (const name of fieldNames) {
+        const field = this.solver.getField(name);
+        if (!field) continue;
+        let values: Float32Array | Float64Array;
+        if (field instanceof Float32Array) values = field;
+        else if (field instanceof Float64Array) values = field;
+        else {
+          const maybeData = (field as unknown as { data?: Float32Array | Float64Array }).data;
+          if (!maybeData) continue;
+          values = maybeData;
+        }
+        const qf = ContractedSimulation.quantumForField(name);
+        const invQf = 1 / qf;
+        // Pre-allocate name bytes (charCodeAt & 0xff per char, matching
+        // the FNV streaming path's byte view).
+        const nameBytes = new Uint8Array(name.length);
+        for (let i = 0; i < name.length; i++) nameBytes[i] = name.charCodeAt(i) & 0xff;
+        // Pre-allocate value bytes (4 per int32, little-endian).
+        const intBytes = new Uint8Array(values.length * 4);
+        const view = new DataView(intBytes.buffer);
+        for (let i = 0; i < values.length; i++) {
+          const v = values[i];
+          if (!Number.isFinite(v)) {
+            throw new Error(
+              `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
+              `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
+              `Investigate solver.step() for the stepping that produced this state.`,
+            );
+          }
+          view.setInt32(i * 4, Math.round(v * invQf) | 0, true);
+        }
+        blocks.push({ nameBytes, intBytes });
+        totalBytes += nameBytes.length + intBytes.length;
+      }
+      const buf = new Uint8Array(totalBytes);
+      let off = 0;
+      for (const blk of blocks) {
+        buf.set(blk.nameBytes, off); off += blk.nameBytes.length;
+        buf.set(blk.intBytes, off); off += blk.intBytes.length;
+      }
+      return hashBytes(buf, 'sha256');
+    }
+
+    // Legacy FNV-1a streaming path (preserved bit-exactly for back-compat).
     const FNV_OFFSET = 0x811c9dc5;
     const FNV_PRIME = 0x01000193;
     let h = FNV_OFFSET >>> 0;
@@ -637,18 +942,7 @@ export class ContractedSimulation {
         h = Math.imul(h, FNV_PRIME) >>> 0;
       }
       // Quantize by q_f (value / q_f, rounded to nearest integer-lattice point)
-      // + fold into the hash.
-      //
-      // NaN/±Infinity guard (AUDIT 2026-04-20 Wave-1.5, Appendix A Lemma 1
-      // edge case #3): without this check, Math.round(NaN) | 0 === 0 and
-      // Math.round(Infinity) | 0 === 0, which would silently canonicalize a
-      // non-finite state to zero and hash it as a valid state. That is a
-      // semantic-integrity violation that is invisible to proof review —
-      // it only surfaces in live misbehavior. Route 2b is a fail-closed
-      // contract: a solver that produces non-finite state MUST halt here,
-      // not silently elide. Downstream consumers (CAELReplayer, dispute
-      // oracle) can treat a digest-raised step as a divergence point
-      // without a separate NaN-detection pass.
+      // + fold into the hash. NaN/±Infinity fail-closed guard (Wave-1.5).
       for (let i = 0; i < values.length; i++) {
         const v = values[i];
         if (!Number.isFinite(v)) {
@@ -708,13 +1002,14 @@ export class ContractedSimulation {
   }
 
   /** Enforce Guarantee 1: halt if geometry has been corrupted.
-   *  Re-hashes the mesh vertices and elements and compares against the
-   *  contracted hash from construction. Throws if they diverge. */
+   *  Re-hashes the mesh vertices and elements under the contract's
+   *  hash mode and compares against the contracted hash from
+   *  construction. Throws if they diverge. */
   private enforceGeometryIntegrity(): void {
     const vertices = this.config.vertices as Float64Array | Float32Array | undefined;
     const elements = (this.config.tetrahedra ?? this.config.elements) as Uint32Array | undefined;
     if (!vertices || !elements) return; // No geometry to verify (e.g. grid-based solvers)
-    const currentHash = hashGeometry(vertices, elements);
+    const currentHash = hashGeometry(vertices, elements, this.hashMode);
     if (currentHash !== this.geometryHash) {
       throw new Error(
         `[SimulationContract] Geometry integrity violation: ` +
@@ -801,12 +1096,13 @@ export class ContractedSimulation {
     };
   }
 
-  /** Verify that the current geometry matches the contracted hash. */
+  /** Verify that the current geometry matches the contracted hash
+   *  under the contract's hash mode. */
   verifyGeometry(
     vertices: Float64Array | Float32Array,
     elements: Uint32Array,
   ): boolean {
-    const currentHash = hashGeometry(vertices, elements);
+    const currentHash = hashGeometry(vertices, elements, this.hashMode);
     return currentHash === this.geometryHash;
   }
 

@@ -45,3 +45,38 @@ export interface SimSolver {
   /** Release all resources. */
   dispose(): void;
 }
+
+// ── GPU-backed solver capability ─────────────────────────────────────────────
+
+/**
+ * GpuBackedSolver — optional capability mixin for SimSolver implementations
+ * that execute their compute on the GPU (WebGPU/WGSL shaders).
+ *
+ * SimContract integration (paper-4 §5.2):
+ *   After each `step()` or `asyncStep()`, the contract calls `readbackOutput()`
+ *   to retrieve the post-step state as a CPU-side Float32Array, hashes it via
+ *   `hashGpuOutput()`, and records it in `gpuOutputDigests`. This closes the
+ *   gap between CPU-side contract verification and GPU-executed solvers.
+ *
+ * Implementers must guarantee:
+ *   - `readbackOutput()` reads the most recently committed GPU output buffer.
+ *   - The returned array has a stable length across steps for the same mesh.
+ *   - Calling `readbackOutput()` before the first `step()` returns an
+ *     all-zeros buffer of the correct length (initial state).
+ */
+export interface GpuBackedSolver extends SimSolver {
+  /**
+   * Read the GPU output buffer (post-step state) back to CPU memory.
+   * Returns a flat Float32Array containing the interleaved field values
+   * in the order specified by `fieldNames`.
+   */
+  readbackOutput(): Promise<Float32Array>;
+}
+
+/**
+ * Type-guard: returns true when `s` exposes `readbackOutput`, indicating
+ * it is a GPU-backed solver whose output can be verified by the contract.
+ */
+export function isGpuBackedSolver(s: SimSolver): s is GpuBackedSolver {
+  return typeof (s as GpuBackedSolver).readbackOutput === 'function';
+}
