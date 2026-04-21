@@ -83,6 +83,36 @@ describe('HoloGram API routes', () => {
     expect(res.status).toBe(401);
   });
 
+  it('POST upload + GET round-trip via session auth (no worker token; drop-zone path)', async () => {
+    vi.stubEnv('HOLOGRAM_WORKER_TOKEN', '');
+    requireAuthMock.mockResolvedValue({ user: { id: 'session-user-1', email: 'u@example.com' } });
+
+    const meta = makeMeta();
+    const { depthBin, normalBin, hash } = await minimalBundleBuffers(meta);
+    const fd = new FormData();
+    fd.append('meta', JSON.stringify(meta));
+    fd.append('depth.bin', new Blob([depthBin]), 'depth.bin');
+    fd.append('normal.bin', new Blob([normalBin]), 'normal.bin');
+
+    const postReq = new NextRequest('http://localhost/api/hologram/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    const postRes = await postUpload(postReq);
+    expect(postRes.status).toBe(200);
+    const body = (await postRes.json()) as { hash: string; written: boolean };
+    expect(body.hash).toBe(hash);
+    expect(body.written).toBe(true);
+
+    const getRes = await getAsset(new Request('http://localhost/'), {
+      params: Promise.resolve({ hash, asset: 'depth.bin' }),
+    });
+    expect(getRes.status).toBe(200);
+    expect(getRes.headers.get('Cache-Control')).toContain('immutable');
+    const out = new Uint8Array(await getRes.arrayBuffer());
+    expect(out).toEqual(depthBin);
+  });
+
   it('POST /api/hologram/upload rejects Content-Length over cap with 413', async () => {
     const meta = makeMeta();
     const { depthBin, normalBin } = await minimalBundleBuffers(meta);
