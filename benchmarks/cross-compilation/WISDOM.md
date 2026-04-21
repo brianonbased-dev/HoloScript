@@ -299,6 +299,18 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 **Pre-registered execution (v1.0.1+):** (1) Freeze **compiler + `@holoscript/crdt`** SemVer and **content hashes** for adapter bundles. (2) Build a **6-row vendor matrix**: ≥2 vendor-disjoint physical devices + ≥1 software-only control; record GPU/driver/OS **build fingerprints**. (3) For each row, run **Route 2b / ContractedSimulation** Property 4 probes: log **ε drift**, CRDT merge rounds, and **hash-stability** across N≥30 trials. (4) Store raw JSON traces under **`packages/comparative-benchmarks/results/paper-3/<date>/`** (gitignored batches until publication). (5) **Stop rule:** publish rows only when thermal throttling is ruled out (idle settle + capped FPS). This checklist satisfies the “run protocol” board task until rows are physically captured.
 
+### P.9 | Paper-9 placeholder triage (method) | ⚡0.75
+
+**Triage procedure:** Run `rg -n 'TODO|FIXME|camera-ready|placeholder|unmeasured'` on the **paper-9** source tree, bucket matches into **(A)** narrative gaps, **(B)** figure captions, **(C)** bench numbers pending hardware. Resolve **(B)** first (wording-only). For **(A)** open linked HoloScript issues. For **(C)** cross-link to harness commits (`paper-6`, `paper-10`) or mark explicit “hardware-gated”. Export a CSV **id, file:line, bucket, owner** so the 244-match tail is trackable without false completion.
+
+### P.cap | Compositional trust — mechanization backlog | ⚡0.6
+
+**Future Coq/Lean effort:** isolate the **predicate** on `mergeDigest(a,b) = f(hash(a),hash(b))` style lemmas first in **paper prose**; mechanize only after hash and CRDT RGA ops are frozen. Prefer **Lean 4** with Mathlib bytes libraries for SHA-256 wire formats if green-lit.
+
+### P.13 | DumbGlass / Lotus Gate 2 benchmark coupling | ⚡0.75
+
+**Scope:** Lotus Gate 2 needs **trait-commutativity proofs** plus **dumb-glass no-placeholder benches**. Tie `paper-13-dumbglass-siggraph` eval to **`packages/core` trait semiring benches** + `fnv1a-vs-sha256` adapters (see engine benches). Until NeRF/GS contracts land, ship **WebGPU stub timings** with clearly labeled ε floors.
+
 ---
 
 ## Next Optimization Opportunities
