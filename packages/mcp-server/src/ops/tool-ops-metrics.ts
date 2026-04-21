@@ -3,6 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { getPerToolPrometheusText } from '../telemetry/mcp-tool-metrics';
 
 let requestTotal = 0;
 let errorTotal = 0;
@@ -89,7 +90,7 @@ export function buildOpsMetricsPrometheusText(): string {
     '# TYPE active_anomalies gauge',
     `active_anomalies ${active}`,
     '',
-  ].join('\n');
+  ].join('\n') + getPerToolPrometheusText();
 }
 
 export function handleOpsMetricsRequest(_req: IncomingMessage, res: ServerResponse): void {

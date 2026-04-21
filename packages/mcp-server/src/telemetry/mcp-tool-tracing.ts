@@ -13,6 +13,11 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { TokenIntrospection } from '../security/oauth21';
 import type { TokenIntrospectionWithTenant } from '../security/tenant-auth';
+import {
+  recordToolRequest,
+  generateCorrelationId,
+  emitMcpStructuredLog,
+} from './mcp-tool-metrics';
 
 let providerRegistered = false;
 
@@ -67,14 +72,26 @@ export async function withMcpToolExecutionSpan<T extends McpToolExecutionResult>
   ensureMcpOtelTracer();
   const tracer = trace.getTracer('holoscript-mcp', resolveServiceVersion());
   const started = Date.now();
+  const tier = subscriptionTier(auth);
+  const correlationId = generateCorrelationId();
+
+  emitMcpStructuredLog({
+    timestamp: new Date().toISOString(),
+    correlation_id: correlationId,
+    event: 'tool_start',
+    tool_name: toolName,
+    tier,
+    agent_id: auth.agentId,
+  });
 
   return tracer.startActiveSpan(`mcp.tool.${toolName}`, async (span) => {
     span.setAttribute('tool_name', toolName);
     span.setAttribute('tier', subscriptionTier(auth));
     if (auth.agentId) span.setAttribute('agent.id', auth.agentId);
 
+    let out: T | undefined;
     try {
-      const out = await exec();
+      out = await exec();
       span.setAttribute('latency_ms', Date.now() - started);
       span.setAttribute('error', out.isError);
       if (out.isError) {
@@ -93,7 +110,20 @@ export async function withMcpToolExecutionSpan<T extends McpToolExecutionResult>
       span.setStatus({ code: SpanStatusCode.ERROR });
       throw err;
     } finally {
+      const latencyMs = Date.now() - started;
       span.end();
+      const isError = out === undefined ? true : out.isError;
+      recordToolRequest(toolName, latencyMs, isError);
+      emitMcpStructuredLog({
+        timestamp: new Date().toISOString(),
+        correlation_id: correlationId,
+        event: 'tool_end',
+        tool_name: toolName,
+        tier,
+        agent_id: auth.agentId,
+        latency_ms: latencyMs,
+        error: isError,
+      });
     }
   });
 }
