@@ -135,7 +135,8 @@
     "typecheck:narrow": "tsc --noEmit -p tsconfig.narrow.json",
     "benchmark:export-targets": "node run-vitest.mjs src/compiler/__tests__/export-manager-all-targets-bench.test.ts",
     "benchmark:paper10:compile-matrix": "node scripts/run-paper10-compile-matrix.mjs",
-    "benchmark:paper10:compile-matrix:full": "node scripts/run-paper10-compile-matrix.mjs --full"
+    "benchmark:paper10:compile-matrix:full": "node scripts/run-paper10-compile-matrix.mjs --full",
+    "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs"
   },
   "keywords": [
     "holoscript",

@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+.ts-narrow-out/
 *.tsbuildinfo
 
 # TypeScript compiled outputs (exclude from Git, generated from .ts files)
@@ -164,6 +165,9 @@ build-visual-utf8.log
 
 # Audit results (regenerated on demand)
 audit-results/
+
+# Paper-12 probe JSON (local bench output; regenerate via pnpm bench:paper12)
+packages/comparative-benchmarks/results/paper12-plugin-probe-*.json
 
 # AI-Generated Session Reports
 *SUMMARY*.md

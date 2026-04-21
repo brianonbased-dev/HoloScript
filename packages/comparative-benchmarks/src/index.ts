@@ -259,7 +259,7 @@ export class ComparativeBenchmarks {
     const objects = Array(1000)
       .fill(null)
       .map(() => ({
-        position: [0, 0, 0],
+        position: { x: 0, y: 0, z: 0 },
         velocity: { x: 1, y: 1, z: 1 },
       }));
 
@@ -546,3 +546,10 @@ export async function runComparativeBenchmarks(
 
   return { results, report };
 }
+
+export {
+  runPaper12PluginProbe,
+  OPENUSD_EQUIVALENT_PROXY,
+  type Paper12PluginProbeResult,
+  type RunPaper12PluginProbeOptions,
+} from './paper12PluginProbe';

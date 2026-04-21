@@ -7,7 +7,8 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "holoscript-bench": "./dist/cli.js"
+    "holoscript-bench": "./dist/cli.js",
+    "holoscript-bench-paper12": "./dist/paper12-cli.js"
   },
   "files": [
     "dist",
@@ -20,6 +21,7 @@
     "bench:unity": "node dist/cli.js --target=unity",
     "bench:gltf": "node dist/cli.js --target=gltf",
     "bench:all": "node dist/cli.js --target=all",
+    "bench:paper12": "node dist/paper12-cli.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

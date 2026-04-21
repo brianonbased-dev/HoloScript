@@ -325,7 +325,7 @@ Camera-ready deliverable for **paper-12-holo-i3d.tex**: compare **cold vs warm**
 2. **RSS delta** at steady state (MB) with identical scene complexity.
 3. **LOC / asset weight**: for OpenUSD, count **schema + payload** lines for an equivalent declarative scene; for HoloScript, count `.holo` + resolved trait shards after compile. Use the same scene graph across both.
 
-**HoloScript bench harness:** extend this package with a `paper12PluginProbe` scenario (stub) that emits JSON next to existing `results/` reports; Unity/OpenUSD side is recorded manually or via scripted editor until automated loaders land.
+**HoloScript bench harness (shipped):** `runPaper12PluginProbe()` in this package writes `results/paper12-plugin-probe-*.json` and logs cold/warm `parseHolo` means plus OpenUSD LOC proxy lines — run `pnpm bench:paper12` after `pnpm build`. Unity/OpenUSD host timings remain manual until scripted loaders land.
 
 ## License
 

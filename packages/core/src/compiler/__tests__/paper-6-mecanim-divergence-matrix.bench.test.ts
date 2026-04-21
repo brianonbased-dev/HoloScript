@@ -10,6 +10,9 @@
  * proxy for Mecanim-style state-machine ordering sensitivity.
  *
  * `[paper-6][gpu-matrix]` lines are suitable for the paper’s evaluation table.
+ *
+ * Shipped entrypoint: `pnpm run benchmark:paper6:mecanim-matrix`
+ * @see memory/paper-6-mecanim-divergence-harness.md
  */
 
 import { describe, it, expect } from 'vitest';
@@ -65,6 +68,7 @@ function l1Dist(a: number[], b: number[]): number {
 
 describe('[Paper-6] 6×6 divergence matrix (ordering sensitivity)', () => {
   it('prints [paper-6][gpu-matrix] with max pairwise L1 divergence per cell', () => {
+    const tWall0 = performance.now();
     const matrix: number[][] = [];
     console.log('\n[paper-6][gpu-matrix] rows=layer count, cols=seed column');
 
@@ -104,5 +108,7 @@ describe('[Paper-6] 6×6 divergence matrix (ordering sensitivity)', () => {
       '[paper-6][gpu-matrix]\n',
       matrix.map((r) => r.map((v) => v.toFixed(3)).join('\t')).join('\n')
     );
+    const wallMs = performance.now() - tWall0;
+    console.log(`[paper-6][gpu-matrix] cells=36 wallMs=${wallMs.toFixed(1)}`);
   });
 });
