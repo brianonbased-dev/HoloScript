@@ -8,6 +8,8 @@
  */
 import React, { useState, useCallback } from 'react';
 
+import { MotivationStackPanel, MOTIVATION_STACK_DEMO, type MotivationSignal } from './MotivationStackPanel';
+
 const PHASES = [
   { id: 0, name: 'INTAKE', icon: '📥', color: '#3b82f6' },
   { id: 1, name: 'REFLECT', icon: '🔍', color: '#8b5cf6' },
@@ -45,14 +47,27 @@ function createDemoCycle(task: string): DemoCycle {
   };
 }
 
+function jitterMotivation(base: MotivationSignal[]): MotivationSignal[] {
+  return base.map((s) => ({
+    ...s,
+    value: Math.min(0.98, Math.max(0.05, s.value + (Math.random() - 0.5) * 0.12)),
+  }));
+}
+
 export function AgentCyclePanel() {
   const [cycles, setCycles] = useState<DemoCycle[]>([]);
   const [activeCycle, setActiveCycle] = useState<DemoCycle | null>(null);
+  const [motivation, setMotivation] = useState<MotivationSignal[]>(() => [...MOTIVATION_STACK_DEMO]);
 
   const runCycle = useCallback((task: string) => {
     const cycle = createDemoCycle(task);
     setCycles((prev) => [cycle, ...prev].slice(0, 20));
     setActiveCycle(cycle);
+    setMotivation((prev) => jitterMotivation(prev.length ? prev : [...MOTIVATION_STACK_DEMO]));
+  }, []);
+
+  const refreshMotivation = useCallback(() => {
+    setMotivation(jitterMotivation([...MOTIVATION_STACK_DEMO]));
   }, []);
 
   const demoTasks = [
@@ -139,6 +154,19 @@ export function AgentCyclePanel() {
             <span className="flex-shrink-0 ml-2">{c.totalMs}ms</span>
           </button>
         ))}
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={refreshMotivation}
+            className="rounded px-2 py-0.5 text-[9px] text-studio-muted transition hover:bg-studio-accent/10 hover:text-studio-accent"
+          >
+            Refresh signals
+          </button>
+        </div>
+        <MotivationStackPanel signals={motivation} />
       </div>
     </div>
   );
