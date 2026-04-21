@@ -16,6 +16,7 @@ import { packAsset, unpackAsset, inspectAsset } from './smartAssets';
 import { WatchService } from './WatchService';
 import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
+import { hologramCommand } from './commands/hologram';
 import {
   getVersionString,
   getVersionInfo,
@@ -23,6 +24,23 @@ import {
   getProfile,
   HEADLESS_PROFILE,
 } from '@holoscript/core';
+
+/**
+ * Minimal structural shape for parse errors emitted by the various parsers
+ * (HoloScriptCodeParser, HoloScriptPlusParser, composition parser). Used to
+ * replace loose error callbacks in this file — narrower than `any`, broader
+ * than importing a specific ParseError type from one parser. Safe across
+ * parser implementations that all produce `{ message, line?, column? }`.
+ */
+interface CliParseError {
+  message: string;
+  line?: number;
+  column?: number;
+  code?: string;
+  severity?: 'error' | 'warning' | 'info';
+  /** Legacy location shape from some parsers. */
+  loc?: { line?: number; column?: number };
+}
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -80,7 +98,7 @@ async function main(): Promise<void> {
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
           success = result.success;
-          errorList = result.errors.map((e: any) => ({
+          errorList = result.errors.map((e: CliParseError) => ({
             line: e.loc?.line,
             column: e.loc?.column,
             message: e.message,
@@ -97,9 +115,9 @@ async function main(): Promise<void> {
           parseResult = result;
           const parserErrors = result.errors ?? [];
           success = parserErrors.length === 0;
-          errorList = parserErrors.map((e: any) => ({
-            line: e.line,
-            column: e.column,
+          errorList = parserErrors.map((e: CliParseError | string) => ({
+            line: typeof e === 'string' ? undefined : e.line,
+            column: typeof e === 'string' ? undefined : e.column,
             message: typeof e === 'string' ? e : e.message,
           }));
         } else {
@@ -167,9 +185,17 @@ async function main(): Promise<void> {
 
         for (const node of allNodes) {
           if (node.directives) {
-            const hasGrabHook = node.directives.some((d: any) => d.hook === 'on_grab');
+            // Directives are structurally typed; narrow each entry to a record
+            // with known optional fields before field access.
+            const isDirectiveLike = (
+              v: unknown
+            ): v is { hook?: string; type?: string; name?: string } =>
+              typeof v === 'object' && v !== null;
+            const hasGrabHook = node.directives.some(
+              (d: unknown) => isDirectiveLike(d) && d.hook === 'on_grab'
+            );
             const hasGrabbableTrait = node.directives.some(
-              (d: any) => d.type === 'trait' && d.name === 'grabbable'
+              (d: unknown) => isDirectiveLike(d) && d.type === 'trait' && d.name === 'grabbable'
             );
 
             if (hasGrabHook && !hasGrabbableTrait) {
@@ -358,7 +384,7 @@ async function main(): Promise<void> {
           const result = parser.parse(content1);
           if (!result.success) {
             console.error(`\x1b[31mError parsing ${diffArgs[0]}:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.loc?.line}:${e.loc?.column}: ${e.message}`)
             );
             process.exit(1);
@@ -369,7 +395,7 @@ async function main(): Promise<void> {
           const result = parser.parse(content1);
           if (!result.success) {
             console.error(`\x1b[31mError parsing ${diffArgs[0]}:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.line}:${e.column}: ${e.message}`)
             );
             process.exit(1);
@@ -382,7 +408,7 @@ async function main(): Promise<void> {
           const result = parser.parse(content2);
           if (!result.success) {
             console.error(`\x1b[31mError parsing ${diffArgs[1]}:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.loc?.line}:${e.loc?.column}: ${e.message}`)
             );
             process.exit(1);
@@ -393,7 +419,7 @@ async function main(): Promise<void> {
           const result = parser.parse(content2);
           if (!result.success) {
             console.error(`\x1b[31mError parsing ${diffArgs[1]}:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.line}:${e.column}: ${e.message}`)
             );
             process.exit(1);
@@ -966,7 +992,7 @@ async function main(): Promise<void> {
 
           if (!result.success) {
             console.error(`\x1b[31mError parsing composition:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.loc?.line}:${e.loc?.column}: ${e.message}`)
             );
             process.exit(1);
@@ -994,7 +1020,7 @@ async function main(): Promise<void> {
 
           if (!result.success) {
             console.error(`\x1b[31mError parsing script:\x1b[0m`);
-            result.errors.forEach((e: any) =>
+            result.errors.forEach((e: CliParseError) =>
               console.error(`  ${e.line}:${e.column}: ${e.message}`)
             );
             process.exit(1);
@@ -1025,7 +1051,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for WASM:\x1b[0m`);
-            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: CliParseError) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -1486,7 +1512,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for SCM-DAG:\x1b[0m`);
-            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: CliParseError) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -1650,7 +1676,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Native 2D:\x1b[0m`);
-            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: CliParseError) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2673,7 +2699,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
       if (!result.success) {
         console.error('\x1b[31mParse errors:\x1b[0m');
-        result.errors.forEach((e: any) =>
+        result.errors.forEach((e: CliParseError) =>
           console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`)
         );
         process.exit(1);
@@ -2774,7 +2800,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
       if (!result.success) {
         console.error('\x1b[31mParse errors:\x1b[0m');
-        result.errors.forEach((e: any) =>
+        result.errors.forEach((e: CliParseError) =>
           console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`)
         );
         process.exit(1);
@@ -3674,6 +3700,26 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         );
         process.exit(1);
       }
+    }
+
+    case 'hologram': {
+      const input = options.input ?? options.args?.[0];
+      if (!input) {
+        console.error('\x1b[31mError: hologram requires an input file.\x1b[0m');
+        console.log('Usage: holoscript hologram <input> [--out <dir>] [--targets quilt,mvhevc,parallax] [--name <n>]');
+        process.exit(1);
+      }
+      try {
+        await hologramCommand(input, {
+          out: options.output as string | undefined,
+          targets: options.targets as string | undefined,
+          name: options.name as string | undefined,
+        });
+      } catch (err) {
+        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        process.exit(1);
+      }
+      break;
     }
 
     default:
