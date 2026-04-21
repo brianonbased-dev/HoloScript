@@ -70,6 +70,7 @@ export default defineConfig({
 
   // Exclude legacy dev notes and directories not part of user-facing docs
   srcExclude: [
+    'daily-digests/**', // internal milestone templates; braces trigger Vue SFC parse errors
     'knowledge/**', // legacy - content migrated to language/ section
     '_archive/**', // dev notes archived from root
     'planning/**', // sprint planning notes
