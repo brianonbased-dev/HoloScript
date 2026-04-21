@@ -19,6 +19,45 @@ import { setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 
+// =============================================================================
+// DYNAMIC MODULE INTERFACE
+// =============================================================================
+
+/**
+ * Shape of the dynamically-loaded @holoscript/core codebase module. These
+ * classes/functions are resolved at runtime via `loadCodebaseModule()` so we
+ * cannot import their types directly without pulling in heavy build artifacts
+ * at MCP startup.
+ *
+ * This structural type replaces `{ X: any; Y: any; ... }` declarations that
+ * were duplicated in 3+ call sites. Constructors and functions are typed as
+ * `(...args: unknown[]) => unknown` (structural enough to catch obvious
+ * shape mismatches while accepting the dynamic resolution pattern). Callers
+ * still operate on the returned instances via runtime-typed closures, so the
+ * precise instance types are not observable here.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DynamicCtor = (new (...args: any[]) => any) & {
+  // Dynamic classes may carry static methods (e.g., `deserialize`).
+  // Index signature keeps access type-checked without requiring each
+  // static member to be declared up front.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DynamicFn = (...args: any[]) => any;
+
+interface CodebaseModule {
+  CodebaseScanner: DynamicCtor;
+  CodebaseGraph: DynamicCtor;
+  HoloEmitter: DynamicCtor;
+  CodebaseSceneCompiler: DynamicCtor;
+  GitChangeDetector: DynamicCtor;
+  GraphRAGEngine: DynamicCtor;
+  EmbeddingIndex: DynamicCtor;
+  createEmbeddingProvider: DynamicFn;
+}
+
 
 
 // =============================================================================
@@ -771,16 +810,7 @@ export async function handleCodebaseTool(
  * Run a full codebase scan (non-incremental path).
  */
 async function runFullScan(
-  mod: {
-    CodebaseScanner: any;
-    CodebaseGraph: any;
-    HoloEmitter: any;
-    CodebaseSceneCompiler: any;
-    GitChangeDetector: any;
-    GraphRAGEngine: any;
-    EmbeddingIndex: any;
-    createEmbeddingProvider: any;
-  },
+  mod: CodebaseModule,
   rootDirsRaw: string[] | undefined,
   languages: string[] | undefined,
   maxFiles: number | undefined,
@@ -965,16 +995,7 @@ async function runFullScan(
  * Run an incremental patch (reuse cached graph, only rescan changed files).
  */
 async function runIncrementalPatch(
-  mod: {
-    CodebaseScanner: any;
-    CodebaseGraph: any;
-    GitChangeDetector: any;
-    HoloEmitter: any;
-    CodebaseSceneCompiler: any;
-    GraphRAGEngine: any;
-    EmbeddingIndex: any;
-    createEmbeddingProvider: any;
-  },
+  mod: CodebaseModule,
   rootDir: string,
   envelope: GraphCacheEnvelope,
   changes: { added: string[]; modified: string[]; deleted: string[]; headCommit: string },
@@ -1188,16 +1209,7 @@ async function runIncrementalPatch(
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
-  const mod = (await loadCodebaseModule()) as {
-    CodebaseScanner: any;
-    CodebaseGraph: any;
-    GitChangeDetector: any;
-    HoloEmitter: any;
-    CodebaseSceneCompiler: any;
-    GraphRAGEngine: any;
-    EmbeddingIndex: any;
-    createEmbeddingProvider: any;
-  };
+  const mod = (await loadCodebaseModule()) as CodebaseModule;
   const { CodebaseGraph, GitChangeDetector } = mod;
 
   const rootDir = args.rootDir as string;

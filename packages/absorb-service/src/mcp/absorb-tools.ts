@@ -38,7 +38,22 @@ function getDefaultApiKey(): string {
 
 interface StudioApiResponse {
   error?: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+/**
+ * Type-safe readers for common StudioApiResponse fields.
+ * Returns undefined if the field is absent or of the wrong shape.
+ * Use these instead of `data.balance` direct-access patterns that
+ * previously relied on the `any` index signature.
+ */
+function readStringField(data: StudioApiResponse, key: string): string | undefined {
+  const v = data[key];
+  return typeof v === 'string' ? v : undefined;
+}
+function readNumberField(data: StudioApiResponse, key: string): number | undefined {
+  const v = data[key];
+  return typeof v === 'number' ? v : undefined;
 }
 
 /**
@@ -551,16 +566,18 @@ async function handleCheckCredits(args: Record<string, unknown>): Promise<unknow
   const { ok, data } = await studioFetch('/api/absorb/credits', 'GET', apiKey);
   if (!ok) return { error: data.error || 'Failed to check credits' };
 
+  const balance = readNumberField(data, 'balance') ?? 0;
+  const tier = readStringField(data, 'tier');
   const result: Record<string, unknown> = {
-      balance: data.balance,
-      balanceDollars: `$${((data.balance ?? 0) / 100).toFixed(2)}`,
-      tier: data.tier,
+    balance,
+    balanceDollars: `$${(balance / 100).toFixed(2)}`,
+    tier,
   };
 
   if (includeHistory) {
     const historyRes = await studioFetch('/api/absorb/credits/history?limit=20', 'GET', apiKey);
     if (historyRes.ok) {
-          result.recentTransactions = historyRes.data.transactions;
+      result.recentTransactions = historyRes.data.transactions;
     }
   }
 
