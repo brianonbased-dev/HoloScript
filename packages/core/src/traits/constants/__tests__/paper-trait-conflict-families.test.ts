@@ -168,21 +168,35 @@ describe('Paper 11 Benchmark: trait conflict family census', () => {
     };
 
     const repoRoot = path.resolve(__dirname, '../../../../../../');
-    const outFile =
+    const requestedOutFile =
       process.env.PAPER_TRAIT_CONFLICT_FAMILIES_OUT ??
       path.join(repoRoot, '.bench-logs', 'paper-trait-conflict-families.json');
 
-    fs.mkdirSync(path.dirname(outFile), { recursive: true });
-    fs.writeFileSync(outFile, JSON.stringify(payload, null, 2), 'utf8');
+    let writtenOutFile = requestedOutFile;
+    try {
+      fs.mkdirSync(path.dirname(requestedOutFile), { recursive: true });
+      fs.writeFileSync(requestedOutFile, JSON.stringify(payload, null, 2), 'utf8');
+    } catch {
+      // Some Windows environments intermittently fail writing into repo-root .bench-logs.
+      // Fallback keeps benchmark/test deterministic while still emitting an artifact.
+      const fallbackOutFile = path.join(
+        process.cwd(),
+        '.bench-logs',
+        'paper-trait-conflict-families.json'
+      );
+      fs.mkdirSync(path.dirname(fallbackOutFile), { recursive: true });
+      fs.writeFileSync(fallbackOutFile, JSON.stringify(payload, null, 2), 'utf8');
+      writtenOutFile = fallbackOutFile;
+    }
 
     console.log('[paper-trait-conflict-families] trait universe:', payload.traitUniverseCount);
     console.log('[paper-trait-conflict-families] family pair rows:', payload.familyPairRows);
     console.log('[paper-trait-conflict-families] top strict rows:', payload.topByStrict.length);
     console.log('[paper-trait-conflict-families] top domain-override rows:', payload.topByDomainOverride.length);
-    console.log('[paper-trait-conflict-families] JSON artifact:', outFile);
+    console.log('[paper-trait-conflict-families] JSON artifact:', writtenOutFile);
 
     expect(payload.traitUniverseCount).toBeGreaterThan(0);
     expect(payload.familyPairRows).toBeGreaterThan(0);
-    expect(fs.existsSync(outFile)).toBe(true);
+    expect(fs.existsSync(writtenOutFile)).toBe(true);
   });
 });

@@ -66,6 +66,9 @@ export * from './social';
 // Multiplayer
 export * from './multiplayer';
 
+// Network entities
+export { NetEntitySync } from './network/NetEntitySync';
+
 // Sync — exclude JitterBuffer (already exported from network)
 export {
   type QuantizedPosition,

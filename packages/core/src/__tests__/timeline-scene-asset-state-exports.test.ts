@@ -1,8 +1,12 @@
 /**
- * @fileoverview Tests for Timeline, SceneManager, AssetRegistry, ReactiveState barrel exports
+ * @fileoverview Tests for Timeline, SceneManager, AssetRegistry, ReactiveState exports
  */
 import { describe, it, expect } from 'vitest';
-import { Timeline, SceneManager, AssetRegistry, ReactiveState, Easing } from '../index';
+import { Timeline } from '@holoscript/engine/animation/Timeline';
+import { SceneManager } from '@holoscript/engine/scene';
+import { Easing } from '@holoscript/engine/animation/AnimationEngine';
+import { AssetRegistry } from '../assets/AssetRegistry';
+import { ReactiveState } from '../state/ReactiveState';
 
 describe('Timeline exports', () => {
   it('creates sequential timeline', () => {
