@@ -162,8 +162,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (cdpKeyId && cdpKeySecret && cdpWalletSecret) {
     try {
       // Lazy import to avoid breaking builds without AgentKit configured
-      const { CdpEvmWalletProvider } = await import('@coinbase/agentkit');
-      const { erc20ActionProvider } = await import('@coinbase/agentkit');
+      const { CdpEvmWalletProvider } = await import('@holoscript/marketplace-agentkit');
+      const { erc20ActionProvider } = await import('@holoscript/marketplace-agentkit');
 
       // Amount in USDC atomic units: 1 USDC = 1e6 units; amount is cents → divide by 100
       const usdcAmount = String(Math.floor(amountNum / 100) * 1_000_000);

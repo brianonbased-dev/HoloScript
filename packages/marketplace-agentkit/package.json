@@ -1,0 +1,31 @@
+{
+  "name": "@holoscript/marketplace-agentkit",
+  "version": "1.0.0",
+  "description": "Optional Coinbase AgentKit integration for HoloScript marketplace agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@coinbase/agentkit": "^0.10.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.7.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0",
+    "tsup": "^8.0.0"
+  },
+  "keywords": [
+    "holoscript",
+    "marketplace",
+    "agentkit",
+    "coinbase",
+    "wallet"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT"
+}

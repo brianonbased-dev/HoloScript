@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@holoscript/absorb-service": "workspace:7.0.0",
-    "@holoscript/config": "workspace:6.0.2",
+    "@holoscript/config": "workspace:*",
     "@holoscript/core": "workspace:7.0.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",

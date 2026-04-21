@@ -1423,11 +1423,30 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
-  packages/marketplace-api:
+  packages/marketplace-agentkit:
     dependencies:
       '@coinbase/agentkit':
         specifier: ^0.10.4
         version: 0.10.4(@tanstack/react-query@5.97.0)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.2)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.7.0
+        version: 4.21.0
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+
+  packages/marketplace-api:
+    dependencies:
       '@holoscript/auth':
         specifier: workspace:*
         version: link:../auth
@@ -1437,6 +1456,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/marketplace-agentkit':
+        specifier: workspace:*
+        version: link:../marketplace-agentkit
       '@holoscript/registry':
         specifier: workspace:*
         version: link:../registry
@@ -1664,10 +1686,6 @@ importers:
       zod:
         specifier: ^3.24.0
         version: 3.25.76
-    optionalDependencies:
-      '@huggingface/transformers':
-        specifier: ^3.4.0
-        version: 3.8.1
     devDependencies:
       '@playwright/test':
         specifier: ^1.58.2
@@ -2306,7 +2324,7 @@ importers:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
 
   packages/plugins/economic-primitives-plugin:
     dependencies:
@@ -2324,7 +2342,7 @@ importers:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -2393,7 +2411,7 @@ importers:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -2414,11 +2432,17 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/plugins/government-civic-plugin:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../core
+
   packages/plugins/hardware-invention-plugin:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -2570,7 +2594,7 @@ importers:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -2589,7 +2613,7 @@ importers:
     dependencies:
       '@holoscript/core':
         specifier: ^6.0.0
-        version: link:../../core
+        version: 6.0.4
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -2917,9 +2941,6 @@ importers:
       '@holoscript/holo-vm':
         specifier: workspace:^
         version: link:../holo-vm
-      vm2:
-        specifier: ^3.9.19
-        version: 3.10.5
     devDependencies:
       '@holoscript/framework':
         specifier: workspace:^
@@ -3072,6 +3093,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/marketplace-agentkit':
+        specifier: workspace:*
+        version: link:../marketplace-agentkit
       '@holoscript/mesh':
         specifier: workspace:*
         version: link:../mesh
@@ -3619,13 +3643,13 @@ importers:
   services/absorb-service:
     dependencies:
       '@holoscript/absorb-service':
-        specifier: workspace:6.0.0
+        specifier: workspace:7.0.0
         version: link:../../packages/absorb-service
       '@holoscript/config':
-        specifier: workspace:6.0.2
+        specifier: workspace:*
         version: link:../../packages/config
       '@holoscript/core':
-        specifier: workspace:6.0.4
+        specifier: workspace:7.0.0
         version: link:../../packages/core
       '@modelcontextprotocol/sdk':
         specifier: '>=1.25.2'
@@ -5532,7 +5556,7 @@ packages:
       '@x402/svm': 2.9.0(@solana/kit@2.3.0)
       '@zerodev/ecdsa-validator': 5.4.9(@zerodev/sdk@5.5.7)(viem@2.38.3)
       '@zerodev/intent': 0.0.24(@zerodev/webauthn-key@5.5.0)(viem@2.38.3)
-      '@zerodev/sdk': 5.5.7(viem@2.47.2)
+      '@zerodev/sdk': 5.5.7(viem@2.38.3)
       '@zoralabs/coins-sdk': 0.2.8(abitype@1.2.3)(viem@2.38.3)
       '@zoralabs/protocol-deployments': 0.6.1
       bs58: 4.0.1
@@ -7225,6 +7249,103 @@ packages:
     deprecated: Starting with v0.73.0, this package is bundled directly inside @hey-api/openapi-ts.
     dev: false
 
+  /@holoscript/core@6.0.4:
+    resolution: {integrity: sha512-jWMkiXiT5ItVReXRzEQdE3DrYKcdGB6GHOErAp+k9CwtlpRAFmccT2yvyMLXwqwDqFXYfJmSChPQLDxa+bYADw==}
+    hasBin: true
+    peerDependencies:
+      '@holoscript/engine': workspace:*
+      '@pixiv/three-vrm': ^2.0.0
+      ioredis: ^5.3.0
+      puppeteer: ^23.0.0
+      react: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@holoscript/engine':
+        optional: true
+      '@holoscript/mesh':
+        optional: true
+      '@pixiv/three-vrm':
+        optional: true
+      ioredis:
+        optional: true
+      puppeteer:
+        optional: true
+      react:
+        optional: true
+    dependencies:
+      '@holoscript/agent-protocol': link:packages/agent-protocol
+      '@holoscript/alphafold-plugin': link:packages/plugins/alphafold-plugin
+      '@holoscript/core-types': link:packages/core-types
+      '@holoscript/domain-plugin-template': link:packages/plugins/domain-plugin-template
+      '@holoscript/medical-plugin': link:packages/plugins/medical-plugin
+      '@holoscript/mesh': link:packages/mesh
+      '@holoscript/narupa-plugin': link:packages/plugins/scientific-plugin
+      '@holoscript/platform': link:packages/platform
+      '@holoscript/plugin-banking-finance': link:packages/plugins/banking-finance-plugin
+      '@holoscript/plugin-civil-engineering': link:packages/plugins/civil-engineering-plugin
+      '@holoscript/plugin-culture-keyword': link:packages/plugins/culture-keyword-plugin
+      '@holoscript/plugin-economic-primitives': link:packages/plugins/economic-primitives-plugin
+      '@holoscript/plugin-education-lms': link:packages/plugins/education-lms-plugin
+      '@holoscript/plugin-emergency-response': link:packages/plugins/emergency-response
+      '@holoscript/plugin-fashion': link:packages/plugins/fashion-plugin
+      '@holoscript/plugin-film-vfx': link:packages/plugins/film-vfx-plugin
+      '@holoscript/plugin-film3d-volumetrics': link:packages/plugins/film3d-volumetrics-plugin
+      '@holoscript/plugin-fitness-wellness': link:packages/plugins/fitness-wellness-plugin
+      '@holoscript/plugin-forensics': link:packages/plugins/forensics-plugin
+      '@holoscript/plugin-geolocation-gis': link:packages/plugins/geolocation-gis-plugin
+      '@holoscript/plugin-hardware-invention': link:packages/plugins/hardware-invention-plugin
+      '@holoscript/plugin-hr-workforce': link:packages/plugins/hr-workforce-plugin
+      '@holoscript/plugin-insurance': link:packages/plugins/insurance-plugin
+      '@holoscript/plugin-legal-document': link:packages/plugins/legal-document-plugin
+      '@holoscript/plugin-manufacturing-qc': link:packages/plugins/manufacturing-qc-plugin
+      '@holoscript/plugin-neuroscience': link:packages/plugins/neuroscience-plugin
+      '@holoscript/plugin-restaurant': link:packages/plugins/restaurant-plugin
+      '@holoscript/plugin-retail-ecommerce': link:packages/plugins/retail-ecommerce-plugin
+      '@holoscript/plugin-therapy': link:packages/plugins/therapy-plugin
+      '@holoscript/plugin-threat-intelligence': link:packages/plugins/threat-intelligence-plugin
+      '@holoscript/plugin-trait-audit': link:packages/plugins/trait-audit-plugin
+      '@holoscript/plugin-travel-hospitality': link:packages/plugins/travel-hospitality-plugin
+      '@holoscript/plugin-urban-planning': link:packages/plugins/urban-planning-plugin
+      '@holoscript/plugin-wine-food-beverage': link:packages/plugins/wine-food-beverage-plugin
+      '@holoscript/plugin-wisdom-gotcha': link:packages/plugins/wisdom-gotcha-plugin
+      '@holoscript/radio-astronomy-plugin': link:packages/plugins/radio-astronomy-plugin
+      '@holoscript/robotics-plugin': link:packages/plugins/robotics-plugin
+      holoscript-web-preview: link:packages/plugins/web-preview
+      jose: 6.2.2
+      jsonwebtoken: 9.0.3
+      zod: 3.25.76
+    optionalDependencies:
+      '@gltf-transform/core': 3.10.1
+      '@gltf-transform/extensions': 3.10.1
+      '@gltf-transform/functions': 3.10.1
+      '@huggingface/transformers': 3.8.1
+      '@noble/post-quantum': 0.6.0
+      basis_universal: 1.16.4
+      discord.js: 14.26.2
+      dotenv: 16.6.1
+      draco3d: 1.5.7
+      ipfs-http-client: 60.0.1
+      openai: 6.34.0(ws@8.20.0)(zod@3.25.76)
+      pixelmatch: 5.3.0
+      pngjs: 7.0.0
+      three: 0.182.0
+      tree-sitter: 0.22.4
+      tree-sitter-go: 0.23.4(tree-sitter@0.22.4)
+      tree-sitter-javascript: 0.23.1(tree-sitter@0.22.4)
+      tree-sitter-python: 0.23.6(tree-sitter@0.22.4)
+      tree-sitter-rust: 0.24.0(tree-sitter@0.22.4)
+      tree-sitter-typescript: 0.23.2(tree-sitter@0.22.4)
+      web-tree-sitter: 0.24.7
+      ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - encoding
+      - react-native-b4a
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /@hono/node-server@1.19.14(hono@4.12.14):
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
     engines: {node: '>=18.14.1'}
@@ -8435,12 +8556,14 @@ packages:
 
   /@metamask/sdk-analytics@0.0.5:
     resolution: {integrity: sha512-fDah+keS1RjSUlC8GmYXvx6Y26s3Ax1U9hGpWb6GSY5SAdmTSIqp2CvYy6yW0WgLhnYhW+6xERuD0eVqV63QIQ==}
+    deprecated: No longer maintained, superseded by @metamask/connect-analytics
     dependencies:
       openapi-fetch: 0.13.8
     dev: false
 
   /@metamask/sdk-communication-layer@0.33.1(cross-fetch@4.1.0)(eciesjs@0.4.17)(eventemitter2@6.4.9)(readable-stream@3.6.2)(socket.io-client@4.8.3):
     resolution: {integrity: sha512-0bI9hkysxcfbZ/lk0T2+aKVo1j0ynQVTuB3sJ5ssPWlz+Z3VwveCkP1O7EVu1tsVVCb0YV5WxK9zmURu2FIiaA==}
+    deprecated: No longer maintained, superseded by https://docs.metamask.io/metamask-connect
     peerDependencies:
       cross-fetch: ^4.0.0
       eciesjs: '*'
@@ -8465,12 +8588,14 @@ packages:
 
   /@metamask/sdk-install-modal-web@0.32.1:
     resolution: {integrity: sha512-MGmAo6qSjf1tuYXhCu2EZLftq+DSt5Z7fsIKr2P+lDgdTPWgLfZB1tJKzNcwKKOdf6q9Qmmxn7lJuI/gq5LrKw==}
+    deprecated: No longer maintained, superseded by https://docs.metamask.io/metamask-connect
     dependencies:
       '@paulmillr/qr': 0.2.1
     dev: false
 
   /@metamask/sdk@0.33.1:
     resolution: {integrity: sha512-1mcOQVGr9rSrVcbKPNVzbZ8eCl1K0FATsYH3WJ/MH4WcZDWGECWrXJPNMZoEAkLxWiMe8jOQBumg2pmcDa9zpQ==}
+    deprecated: No longer maintained, superseded by https://docs.metamask.io/metamask-connect
     dependencies:
       '@babel/runtime': 7.29.2
       '@metamask/onboarding': 1.0.1
@@ -8512,7 +8637,7 @@ packages:
       '@metamask/superstruct': 3.2.1
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-      '@types/debug': 4.1.12
+      '@types/debug': 4.1.13
       '@types/lodash': 4.17.24
       debug: 4.4.3
       lodash: 4.18.1
@@ -8544,7 +8669,7 @@ packages:
       '@metamask/superstruct': 3.2.1
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-      '@types/debug': 4.1.12
+      '@types/debug': 4.1.13
       debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.7.4
@@ -8561,7 +8686,7 @@ packages:
       '@metamask/superstruct': 3.2.1
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-      '@types/debug': 4.1.12
+      '@types/debug': 4.1.13
       debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.7.4
@@ -14646,12 +14771,6 @@ packages:
       '@types/d3-zoom': 3.0.8
     dev: false
 
-  /@types/debug@4.1.12:
-    resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
-    dependencies:
-      '@types/ms': 2.1.0
-    dev: false
-
   /@types/debug@4.1.13:
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
     dependencies:
@@ -16489,7 +16608,7 @@ packages:
       '@metamask/sdk': 0.33.1
       '@safe-global/safe-apps-provider': 0.18.6(typescript@5.9.3)(zod@3.25.76)
       '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@3.25.76)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
       '@walletconnect/ethereum-provider': 2.21.1(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       cbw-sdk: /@coinbase/wallet-sdk@3.9.3
       porto: 0.2.35(@tanstack/react-query@5.97.0)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)
@@ -16570,7 +16689,7 @@ packages:
       viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
-  /@wagmi/core@2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2):
+  /@wagmi/core@2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3):
     resolution: {integrity: sha512-cG/xwQWsBEcKgRTkQVhH29cbpbs/TdcUJVFXCyri3ZknxhMyGv0YEjTcrNpRgt2SaswL1KrvslSNYKKo+5YEAg==}
     peerDependencies:
       '@tanstack/query-core': '>=5.0.0'
@@ -16585,7 +16704,7 @@ packages:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.9.3)
       typescript: 5.9.3
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
       zustand: 5.0.0(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -17475,7 +17594,7 @@ packages:
       '@zerodev/sdk': ^5.4.13
       viem: ^2.28.0
     dependencies:
-      '@zerodev/sdk': 5.5.7(viem@2.47.2)
+      '@zerodev/sdk': 5.5.7(viem@2.38.3)
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
@@ -17502,7 +17621,7 @@ packages:
       '@simplewebauthn/browser': 9.0.1
       '@simplewebauthn/typescript-types': 8.3.4
       '@zerodev/sdk': 5.5.7(viem@2.38.3)
-      '@zerodev/webauthn-key': 5.5.0(viem@2.47.2)
+      '@zerodev/webauthn-key': 5.5.0(viem@2.38.3)
       merkletreejs: 0.3.11
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
@@ -17516,16 +17635,7 @@ packages:
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
-  /@zerodev/sdk@5.5.7(viem@2.47.2):
-    resolution: {integrity: sha512-Sf4G13yi131H8ujun64obvXIpk1UWn64GiGJjfvGx8aIKg+OWTRz9AZHgGKK+bE/evAmqIg4nchuSvKPhOau1w==}
-    peerDependencies:
-      viem: ^2.28.0
-    dependencies:
-      semver: 7.7.4
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-    dev: false
-
-  /@zerodev/webauthn-key@5.5.0(viem@2.47.2):
+  /@zerodev/webauthn-key@5.5.0(viem@2.38.3):
     resolution: {integrity: sha512-AbD2d/qrsX7AWxJMEfwxnLbp1TjiUjc1V4ne3Q40UJxKe+lW64Td+y8OD0qSFMqgN6rQxJZ0aOAXmat8H6xluA==}
     peerDependencies:
       viem: ^2.28.0
@@ -17533,7 +17643,7 @@ packages:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7
       '@simplewebauthn/types': 12.0.0
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
   /@zoralabs/coins-sdk@0.2.8(abitype@1.2.3)(viem@2.38.3):
@@ -17745,6 +17855,7 @@ packages:
     engines: {node: '>=0.4.0'}
     dependencies:
       acorn: 8.15.0
+    dev: true
 
   /acorn-walk@8.3.5:
     resolution: {integrity: sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw==}
@@ -26288,6 +26399,7 @@ packages:
   /opensea-js@7.4.0:
     resolution: {integrity: sha512-jHg84OO6Rt1OEOQjQk0b+KoDktWtTsZIpi6p09xRzKupWlAlCO8D3qMqKjNDYQaIbstJNi6z1DQAqx+wzxvfIw==}
     engines: {node: '>=20.0.0'}
+    deprecated: This package has been renamed to @opensea/sdk. Install @opensea/sdk instead.
     requiresBuild: true
     dependencies:
       '@opensea/seaport-js': 4.0.6
@@ -27066,7 +27178,7 @@ packages:
         optional: true
     dependencies:
       '@tanstack/react-query': 5.97.0(react@18.3.1)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
       hono: 4.12.14
       idb-keyval: 6.2.2
       mipd: 0.0.7(typescript@5.9.3)
@@ -32375,15 +32487,6 @@ packages:
     resolution: {integrity: sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==}
     dev: true
 
-  /vm2@3.10.5:
-    resolution: {integrity: sha512-3P/2QDccVFBcujfCOeP8vVNuGfuBJHEuvGR8eMmI10p/iwLL2UwF5PDaNaoOS2pRGQEDmJRyeEcc8kmm2Z59RA==}
-    engines: {node: '>=6.0'}
-    hasBin: true
-    dependencies:
-      acorn: 8.15.0
-      acorn-walk: 8.3.4
-    dev: false
-
   /void-elements@3.1.0:
     resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
     engines: {node: '>=0.10.0'}
@@ -32465,7 +32568,7 @@ packages:
     dependencies:
       '@tanstack/react-query': 5.97.0(react@18.3.1)
       '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.97.0)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@3.25.76)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
       react: 18.3.1
       typescript: 5.9.3
       use-sync-external-store: 1.4.0(react@18.3.1)

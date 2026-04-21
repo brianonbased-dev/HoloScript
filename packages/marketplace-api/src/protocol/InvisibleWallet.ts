@@ -187,7 +187,7 @@ export class InvisibleWallet {
    */
   static async fromAgentKit(config: InvisibleWalletConfig = {}): Promise<InvisibleWallet> {
     try {
-      const { AgentWalletService } = await import('../agents/AgentWalletService.js');
+      const { AgentWalletService } = await import('@holoscript/marketplace-agentkit');
       const agentWallet = new AgentWalletService();
       const address = await agentWallet.initialize();
 

@@ -141,14 +141,6 @@ export { GasEstimator } from './web3/GasEstimator.js';
 export { Web3Provider } from './web3/Web3Provider.js';
 export { ViemWeb3Connector } from './web3/ViemWeb3Connector.js';
 
-export {
-  AgentKitIntegration,
-  type AgentKitOptions,
-  type AgentWallet,
-  type AgentTransaction,
-} from './agents/AgentKitIntegration.js';
-export { AgentWalletService } from './agents/AgentWalletService.js';
-
 // ─── MCPMe Billing Bridge ────────────────────────────────────────────────────
 export { MCPMeBillingBridge, getMCPMeBillingBridge, tierAllows } from './MCPMeBillingBridge.js';
 export type {

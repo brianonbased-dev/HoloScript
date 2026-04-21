@@ -33,6 +33,7 @@
     "@holoscript/absorb-service": "workspace:*",
     "@holoscript/config": "workspace:*",
     "@holoscript/connector-appstore": "workspace:*",
+    "@holoscript/marketplace-agentkit": "workspace:*",
     "@holoscript/connector-core": "workspace:*",
     "@holoscript/connector-github": "workspace:*",
     "@holoscript/connector-railway": "workspace:*",
