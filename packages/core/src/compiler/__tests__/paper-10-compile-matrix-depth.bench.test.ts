@@ -8,7 +8,9 @@
  * IncrementalCompiler with a deterministic stub, and records depth histograms.
  *
  * Set `PAPER10_FULL=1` locally for the full 20-seed matrix; CI uses a reduced grid.
+ * Shipped entrypoints: `pnpm run benchmark:paper10:compile-matrix` (+ `:full`).
  *
+ * @see memory/paper-10-depth-distribution-harness.md
  * @see packages/core/src/compiler/__tests__/paper-10-provenance-cache.test.ts
  */
 
@@ -81,6 +83,7 @@ function makeForest(seed: number, maxDepth: number, width: number): HoloComposit
 describe('[Paper-10] compile matrix — depth distribution harness', () => {
   it('depth × width × seeds: compile + histogram invariants', async () => {
     const compiler = new IncrementalCompiler();
+    const tWall0 = performance.now();
     console.log(
       `\n[paper-10][compile-matrix] FULL=${FULL} SEEDS=${SEEDS} depths=[${[...DEPTHS].join(',')}] widths=[${[...WIDTHS].join(',')}]`
     );
@@ -114,7 +117,10 @@ describe('[Paper-10] compile matrix — depth distribution harness', () => {
       }
     }
 
-    console.log(`[paper-10][compile-matrix] total cells=${cells} (seeds×depths×widths)`);
+    const wallMs = performance.now() - tWall0;
+    console.log(
+      `[paper-10][compile-matrix] total cells=${cells} (seeds×depths×widths) wallMs=${wallMs.toFixed(1)}`
+    );
     expect(cells).toBe(SEEDS * DEPTHS.length * WIDTHS.length);
   });
 });
