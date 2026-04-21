@@ -80,6 +80,8 @@ In **multi-round peer** loops (audit / review arcs), use **[Peer-drift detection
 
 Before **strategic** (architecture / scope) calls, follow **[Precedent-query-first](docs/team/PRECEDENT_QUERY_FIRST.md)** — search team knowledge, default to precedent when present, ping the founder only when the store has nothing relevant.
 
+**Lights-out onboarding (modes, F.02x shorthand, peer loop, evidence):** [docs/recipe-lights-out.md](docs/recipe-lights-out.md).
+
 ## Key Principles
 
 - **Simulation-first.** Digital twin before physical twin.
