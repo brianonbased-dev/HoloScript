@@ -11,3 +11,6 @@ export type {
 
 export { BlockoutCRDTSession } from './collaboration/blockoutCRDT';
 export type { BlockoutVec3, BlockoutVolume } from './collaboration/blockoutCRDT';
+
+export { CausalWorldModel, createVRPhysicsModel } from './world/causal';
+export type { CausalVariable, CausalEdge, CausalQueryResult } from './world/causal';
