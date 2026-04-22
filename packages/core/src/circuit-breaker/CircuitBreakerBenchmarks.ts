@@ -15,6 +15,7 @@
  * @package @holoscript/examples
  */
 
+import { readJson } from '../errors/safeJsonParse';
 import type { ExtendedGlobal } from '../types/utility-types';
 
 /** Node global with optional GC exposure (requires --expose-gc). */
@@ -875,7 +876,7 @@ export class CircuitBreakerBenchmarkSuite {
    * Deserialize results from JSON.
    */
   static deserialize(json: string): BenchmarkSuiteResults {
-    return JSON.parse(json) as BenchmarkSuiteResults;
+    return readJson(json) as BenchmarkSuiteResults;
   }
 
   /**

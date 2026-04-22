@@ -13,7 +13,22 @@
  */
 
 import * as crypto from 'crypto';
+import { z } from 'zod';
 import { AgentRole, AgentKeyPair, generateAgentKeyPair } from './AgentIdentity';
+import { safeJsonParse } from '../../errors/safeJsonParse';
+
+/**
+ * Zod schema for the serialized credential payload stored inside an
+ * {@link EncryptedCredential}. Kept loose (`z.unknown()`) on the keyPair slot
+ * since keypair shape is governed by AgentIdentity and validated downstream.
+ */
+const SerializedCredentialSchema = z.object({
+  role: z.string(),
+  token: z.string(),
+  keyPair: z.unknown(),
+  createdAt: z.string(),
+  expiresAt: z.string(),
+});
 
 /**
  * Encrypted credential storage
@@ -74,7 +89,13 @@ export interface KeystoreConfig {
  */
 export interface AuditLogEntry {
   timestamp: string;
-  event: 'key_generated' | 'key_rotated' | 'key_accessed' | 'key_expired' | 'key_deleted';
+  event:
+    | 'key_generated'
+    | 'key_rotated'
+    | 'key_accessed'
+    | 'key_expired'
+    | 'key_deleted'
+    | 'key_parse_failed';
   agentRole: AgentRole;
   details?: Record<string, unknown>;
 }
@@ -263,12 +284,26 @@ export class AgentKeystore {
 
     // Decrypt and parse
     const decrypted = this.decrypt(encrypted);
-    const parsed = JSON.parse(decrypted);
+    const parseResult = safeJsonParse(decrypted, SerializedCredentialSchema);
+    if (!parseResult.ok) {
+      this.logAudit({
+        timestamp: new Date().toISOString(),
+        event: 'key_parse_failed',
+        agentRole: role,
+        details: {
+          source: 'storage',
+          error: parseResult.error.message,
+          kind: parseResult.error.kind,
+        },
+      });
+      return null;
+    }
+    const parsed = parseResult.value;
 
     const credential: AgentCredential = {
-      role: parsed.role,
+      role: parsed.role as AgentRole,
       token: parsed.token,
-      keyPair: parsed.keyPair,
+      keyPair: parsed.keyPair as AgentKeyPair,
       createdAt: new Date(parsed.createdAt),
       expiresAt: new Date(parsed.expiresAt),
     };

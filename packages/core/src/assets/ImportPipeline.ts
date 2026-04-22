@@ -6,6 +6,7 @@
 
 import { ModelImporter, type ImportResult } from './ModelImporter';
 import { TextureProcessor, type TextureInput, type ProcessedTexture } from './TextureProcessor';
+import { readJson } from '../errors/safeJsonParse';
 
 export type PipelineStage = 'validate' | 'parse' | 'process' | 'optimize' | 'finalize';
 
@@ -92,7 +93,7 @@ export class ImportPipeline {
         job.result = result;
       } else {
         job.stage = 'process';
-        const input = JSON.parse(job.data as string) as TextureInput;
+        const input = readJson(job.data as string) as TextureInput;
         job.result = this.textureProcessor.process(input);
         job.stage = 'finalize';
       }

@@ -5,6 +5,8 @@
  * and rendering performance tuning
  */
 
+import { jsonClone } from '../errors/safeJsonParse';
+
 export type CullingMode = 'none' | 'back' | 'front' | 'both';
 export type LodStrategy = 'automatic' | 'manual' | 'disabled';
 export type GPUResourceTier = 'low' | 'medium' | 'high' | 'ultra';
@@ -187,7 +189,7 @@ export class RenderingTrait {
    * Get rendering optimization config
    */
   public getOptimization(): RenderingOptimization {
-    return JSON.parse(JSON.stringify(this.optimization));
+    return jsonClone(this.optimization);
   }
 
   /**

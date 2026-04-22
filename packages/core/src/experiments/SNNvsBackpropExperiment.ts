@@ -26,6 +26,8 @@
  * @package @holoscript/examples
  */
 
+import { readJson } from '../errors/safeJsonParse';
+
 // =============================================================================
 // TYPES & INTERFACES
 // =============================================================================
@@ -1397,7 +1399,7 @@ export class ExperimentRunner {
    * Deserialize experiment results from JSON string.
    */
   static deserialize(json: string): ExperimentResults {
-    return JSON.parse(json) as ExperimentResults;
+    return readJson(json) as ExperimentResults;
   }
 
   /**

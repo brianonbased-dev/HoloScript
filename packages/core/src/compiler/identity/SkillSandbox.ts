@@ -21,6 +21,7 @@
 
 import { AgentRole, AgentPermission } from './AgentIdentity';
 import { PackageTier } from './PackagePermissionManifest';
+import { jsonClone } from '../../errors/safeJsonParse';
 
 // =============================================================================
 // MICROSOFT 27 FAILURE MODES TAXONOMY
@@ -931,7 +932,7 @@ export class SkillSandbox {
     }
 
     // Deep-freeze input to prevent mutation
-    this.memory.input = JSON.parse(JSON.stringify(input));
+    this.memory.input = jsonClone(input);
     this.state.phase = 'initialized';
     this.audit(`Sandbox initialized for skill: ${this.manifest.id}`);
   }

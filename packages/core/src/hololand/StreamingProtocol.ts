@@ -186,7 +186,7 @@ export interface EntityState {
   transform: {
     position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
-    scale: { x: number; y: number; z: number };
+    scale: [number, number, number];
   };
 
   /** Component states */
@@ -327,7 +327,7 @@ export interface PlayerState {
   rotation: { x: number; y: number; z: number; w: number };
 
   /** Velocity */
-  velocity: { x: number; y: number; z: number };
+  velocity: [number, number, number];
 
   /** Player data */
   data: Record<string, unknown>;
@@ -493,6 +493,7 @@ export class StreamProtocol {
 
         this.connection.onmessage = (event) => {
           const message = this.deserialize(event.data);
+          if (!message) return; // malformed payload already logged; drop frame
           this.handleMessage(message);
 
           if (message.type === 'handshake_ack') {
@@ -861,9 +862,13 @@ export class StreamProtocol {
   }
 
   /**
-   * Deserialize binary to message
+   * Deserialize binary to message. Returns null on malformed payloads so the
+   * WebSocket onmessage handler does not crash the connection (W2-T1).
+   *
+   * Note: uses raw JSON.parse with a reviver because safeJsonParse does not
+   * expose the reviver hook. The outer try/catch restores crash-safety.
    */
-  private deserialize(data: ArrayBuffer | string): StreamMessage {
+  private deserialize(data: ArrayBuffer | string): StreamMessage | null {
     let json: string;
     if (data instanceof ArrayBuffer) {
       const decoder = new TextDecoder();
@@ -872,12 +877,19 @@ export class StreamProtocol {
       json = data;
     }
 
-    return JSON.parse(json, (key, value) => {
-      if (value && value.__type === 'ArrayBuffer') {
-        return new Uint8Array(value.data).buffer;
-      }
-      return value;
-    });
+    try {
+      return JSON.parse(json, (_key, value) => {
+        if (value && value.__type === 'ArrayBuffer') {
+          return new Uint8Array(value.data).buffer;
+        }
+        return value;
+      }) as StreamMessage;
+    } catch (err) {
+      console.error(
+        `[StreamingProtocol] Malformed JSON payload (${err instanceof Error ? err.message : String(err)})`
+      );
+      return null;
+    }
   }
 
   // â”€â”€â”€ Heartbeat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

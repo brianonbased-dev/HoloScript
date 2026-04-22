@@ -1,5 +1,6 @@
 // @ts-expect-error During migration
 import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
+import { readJson } from '../errors/safeJsonParse';
 /**
  * SpatialAgentOrchestrator — v4.0
  *
@@ -268,7 +269,7 @@ function parseBlueprint(json: string): SceneBlueprint {
     .replace(/```json\n?/g, '')
     .replace(/```\n?/g, '')
     .trim();
-  return JSON.parse(cleaned);
+  return readJson(cleaned) as SceneBlueprint;
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────

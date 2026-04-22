@@ -34,6 +34,7 @@
  * @version 1.0.0
  */
 
+import { readJson } from '../../errors/safeJsonParse';
 import {
   type AgentPassport,
   type AgentDIDDocument,
@@ -979,7 +980,7 @@ function deserializeCapabilityDelegationChain(reader: BinaryReader): CapabilityT
   const chain: CapabilityToken[] = [];
   for (let i = 0; i < count; i++) {
     const jsonStr = reader.readString();
-    chain.push(JSON.parse(jsonStr) as CapabilityToken);
+    chain.push(readJson(jsonStr) as CapabilityToken);
   }
   return chain;
 }

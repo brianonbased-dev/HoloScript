@@ -148,6 +148,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
+import { jsonClone } from '../errors/safeJsonParse';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -899,7 +900,6 @@ export class VRRCompiler extends CompilerBase {
     }
 
     // Top-level worlds simulation state (from v4+ AST)
-    // @ts-expect-error During migration
     const comp = normalizedComposition as unknown as Record<string, unknown>;
     const globalSimulationState = this.extractGlobalSimulationStateFromWorlds(comp);
 
@@ -1036,7 +1036,7 @@ export class VRRCompiler extends CompilerBase {
       }
     }
 
-    const apiConfig = JSON.parse(JSON.stringify(this.options.api_integrations || {}));
+    const apiConfig = jsonClone(this.options.api_integrations || {}) as Record<string, unknown>;
     if (weatherProvider && !apiConfig.weather) apiConfig.weather = { provider: weatherProvider };
     if (eventProvider && !apiConfig.events) apiConfig.events = { provider: eventProvider };
     if (inventoryProvider && !apiConfig.inventory)
