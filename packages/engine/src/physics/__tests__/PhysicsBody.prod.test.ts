@@ -77,7 +77,7 @@ describe('RigidBody — Production', () => {
 
     it('linearVelocity get/set', () => {
       body.linearVelocity = [5, 0, 0 ];
-      expect(body.linearVelocity.x).toBe(5);
+      expect(body.linearVelocity[0]).toBe(5);
     });
 
     it('gravityScale get/set', () => {
@@ -102,7 +102,7 @@ describe('RigidBody — Production', () => {
       body.applyForce([5, 0, 0 ]);
       // Force is internal, test via integration
       body.integrateForces(1.0, zeroVector());
-      expect(body.linearVelocity.x).toBeGreaterThan(0);
+      expect(body.linearVelocity[0]).toBeGreaterThan(0);
     });
 
     it('no-ops on static body', () => {
@@ -116,7 +116,7 @@ describe('RigidBody — Production', () => {
   describe('applyImpulse', () => {
     it('instantaneously changes velocity', () => {
       body.applyImpulse([5, 0, 0 ]);
-      expect(body.linearVelocity.x).toBe(5); // mass=1, so dv = impulse * inverseMass
+      expect(body.linearVelocity[0]).toBe(5); // mass=1, so dv = impulse * inverseMass
     });
 
     it('no-ops on static body', () => {
@@ -130,7 +130,7 @@ describe('RigidBody — Production', () => {
     it('accumulates torque', () => {
       body.applyTorque([0, 10, 0 ]);
       body.integrateForces(1.0, zeroVector());
-      expect(body.angularVelocity.y).toBeGreaterThan(0);
+      expect(body.angularVelocity[1]).toBeGreaterThan(0);
     });
   });
 
@@ -139,14 +139,14 @@ describe('RigidBody — Production', () => {
       body.applyForce([100, 0, 0 ]);
       body.clearForces();
       body.integrateForces(1.0, zeroVector());
-      expect(body.linearVelocity.x).toBeCloseTo(0, 5);
+      expect(body.linearVelocity[0]).toBeCloseTo(0, 5);
     });
   });
 
   describe('integrateForces', () => {
     it('applies gravity', () => {
       body.integrateForces(1.0, [0, -9.81, 0 ]);
-      expect(body.linearVelocity.y).toBeLessThan(0);
+      expect(body.linearVelocity[1]).toBeLessThan(0);
     });
 
     it('skips sleeping bodies', () => {

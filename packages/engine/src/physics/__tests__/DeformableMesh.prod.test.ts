@@ -30,7 +30,7 @@ describe('DeformableMesh — Production', () => {
     const m = mkMesh();
     const v = m.getVertex(1);
     expect(v).toBeDefined();
-    expect(v!.rest.x).toBe(1);
+    expect(v!.rest[0]).toBe(1);
   });
 
   it('getVertex returns undefined for out-of-range', () => {

@@ -113,9 +113,9 @@ describe('SpatialTypes', () => {
     it('should normalize a vector', () => {
       const v: Vector3 = [3, 4, 0 ];
       const n = normalize(v);
-      expect(n.x).toBeCloseTo(0.6);
-      expect(n.y).toBeCloseTo(0.8);
-      expect(n.z).toBe(0);
+      expect(n[0]).toBeCloseTo(0.6);
+      expect(n[1]).toBeCloseTo(0.8);
+      expect(n[2]).toBe(0);
     });
 
     it('should return zero vector for zero input', () => {

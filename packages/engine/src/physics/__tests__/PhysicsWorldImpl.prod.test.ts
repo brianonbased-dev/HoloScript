@@ -70,23 +70,23 @@ describe('PhysicsWorldImpl: production', () => {
   describe('gravity', () => {
     it('getGravity returns default gravity', () => {
       const g = world.getGravity();
-      expect(g.y).toBeCloseTo(-9.81);
+      expect(g[1]).toBeCloseTo(-9.81);
     });
 
     it('setGravity updates gravity', () => {
       world.setGravity([0, -1, 0 ]);
-      expect(world.getGravity().y).toBeCloseTo(-1);
+      expect(world.getGravity()[1]).toBeCloseTo(-1);
     });
 
     it('getGravity returns a copy (immutable)', () => {
       const g = world.getGravity();
-      g.y = 999;
-      expect(world.getGravity().y).toBeCloseTo(-9.81);
+      g[1] = 999;
+      expect(world.getGravity()[1]).toBeCloseTo(-9.81);
     });
 
     it('zero gravity constructor', () => {
       const w = new PhysicsWorldImpl({ gravity: [0, 0, 0 ] });
-      expect(w.getGravity().y).toBe(0);
+      expect(w.getGravity()[1]).toBe(0);
     });
   });
 
@@ -163,13 +163,13 @@ describe('PhysicsWorldImpl: production', () => {
     it('setLinearVelocity updates velocity', () => {
       world.setLinearVelocity('s1', [1, 2, 3 ]);
       const state = world.getBody('s1');
-      expect(state?.linearVelocity.x).toBeCloseTo(1);
+      expect(state?.linearVelocity[0]).toBeCloseTo(1);
     });
 
     it('setAngularVelocity updates angular velocity', () => {
       world.setAngularVelocity('s1', [0, 1, 0 ]);
       const state = world.getBody('s1');
-      expect(state?.angularVelocity.y).toBeCloseTo(1);
+      expect(state?.angularVelocity[1]).toBeCloseTo(1);
     });
 
     it('applyForce does not throw for existing body', () => {
@@ -360,7 +360,7 @@ describe('PhysicsWorldImpl: production', () => {
   describe('default config', () => {
     it('world with no config uses default gravity', () => {
       const w = new PhysicsWorldImpl();
-      expect(w.getGravity().y).toBeCloseTo(-9.81);
+      expect(w.getGravity()[1]).toBeCloseTo(-9.81);
     });
 
     it('multiple bodies can be added and queried independently', () => {

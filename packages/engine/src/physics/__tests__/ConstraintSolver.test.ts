@@ -9,7 +9,7 @@ import type {
 } from '@holoscript/core';
 
 function v3(x = 0, y = 0, z = 0): IVector3 {
-  return { x, y, z };
+  return [x, y, z];
 }
 function q() {
   return [0, 0, 0, 1 ];

@@ -690,9 +690,9 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
     } as NearestQuery);
 
     expect(results[0].direction).toBeDefined();
-    expect(results[0].direction!.x).toBeCloseTo(1);
-    expect(results[0].direction!.y).toBeCloseTo(0);
-    expect(results[0].direction!.z).toBeCloseTo(0);
+    expect(results[0].direction![0]).toBeCloseTo(1);
+    expect(results[0].direction![1]).toBeCloseTo(0);
+    expect(results[0].direction![2]).toBeCloseTo(0);
   });
 
   it('should handle entities directly on origin', () => {

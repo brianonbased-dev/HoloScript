@@ -168,7 +168,7 @@ describe('SpatialContextProvider', () => {
     provider.update();
 
     const ctx = provider.getContext('a')!;
-    expect(ctx.agentPosition.x).toBe(49);
+    expect(ctx.agentPosition[0]).toBe(49);
   });
 
   // =========== Lifecycle ===========

@@ -18,30 +18,54 @@ The full `vitest run --coverage` now exits **0** in this branch after the W4-T1 
 1. **One source fix** in `src/simulation/SimulationContract.ts` — `computeStateDigest()` was unconditionally spreading `this.solver.fieldNames`, which threw `is not iterable` for solver shapes that don't expose the field. The doc comments at `step()` / `asyncStep()` already promised conditional behavior; the implementation now matches by skipping the digest (returning `''`) when `fieldNames` is absent. This eliminated 309 unhandled rejections originating from `paper-benchmarks.test.ts`.
 2. **Quarantine of 45 test files** via `vitest.config.ts` `test.exclude` — 41 files that were already failing on `vitest run` (pre-coverage) plus 4 benchmark / wall-clock-sensitive files that timed out specifically under v8 coverage instrumentation. Each entry is grouped by domain in the config with a comment explaining the class of failure (test-bug / source-bug / WebGPU-only / long-running bench). All quarantined files are tracked for follow-up in **W4-T1-followup** (board task to be opened post-merge).
 
-Coverage was also re-scoped to `src/**/*.ts` (excluding `dist/`, `**/__tests__/**`, `*.test.ts`, `*.bench.ts`) so the table reflects shipping source, not the bundled build artefacts that previously added ~50 rows of `chunk-XXXXXXXX.js` noise at 0–4%.
+### W4-T1-followup triage (2026-04-22) — 12 un-quarantined
 
-### Run summary (post-fix, post-quarantine, with coverage)
+A follow-up pass triaged each quarantined file. **12 files un-quarantined** after fixing small test-side bugs (all class b, < 10 lines each). Remaining quarantine: **33 files**.
 
-| Metric | Value |
-|--------|------:|
-| Test files passed | **136** |
-| Tests passed | **2,186** |
-| Tests skipped | 1 |
-| Failed test files | 0 |
-| Errors | 0 |
-| Exit code | **0** |
-| Duration | ~286s |
+| File | Class | Fix |
+|------|-------|-----|
+| `src/shader/graph/__tests__/ShaderGraphCompiler.prod.test.ts` | b | 2 tests asserted `position[0/1]` but source returns `{x,y}` — switched to `toEqual({x, y})`. |
+| `src/spatial/__tests__/FrustumCuller.test.ts` | b | `halfX/halfY/halfZ` → `halfExtentX/halfExtentY/halfExtentZ` (source field names). |
+| `src/spatial/__tests__/SpatialModule.test.ts` | b | `normalize(v)` returns tuple; test used `.x/.y/.z`. |
+| `src/spatial/__tests__/SpatialContextProvider.test.ts` | b | `agentPosition.x` → `agentPosition[0]`. |
+| `src/spatial/__tests__/SpatialQuery.test.ts` | b | `direction.x/y/z` → `direction[0/1/2]`. |
+| `src/physics/__tests__/VehicleSystem.test.ts` | b | `toEqual([0,5,0])` failed because IVector3 has hybrid tuple+object shape; switched to per-index assertion. |
+| `src/physics/__tests__/DeformableMesh.prod.test.ts` | b | `rest.x` → `rest[0]`. |
+| `src/physics/__tests__/PhysicsWorldImpl.test.ts` | b | 4 `.x/.y/.z` → tuple access. |
+| `src/physics/__tests__/PhysicsWorldImpl.prod.test.ts` | b | 7 `.x/.y/.z` → tuple access (including a `g.y = 999` mutation check). |
+| `src/physics/__tests__/PhysicsBody.prod.test.ts` | b | 6 `.x/.y/.z` → tuple access on linearVelocity/angularVelocity. |
+| `src/physics/__tests__/ConstraintSolver.test.ts` | b | Test helper `v3()` returned `{x, y, z}`; IVector3 is `[x, y, z]`. Rewrote to tuple. |
+| `src/simulation/__tests__/StructuralSolverTET10.test.ts` | b | `stats.usedGPU` field no longer exists; removed assertion (CPU-only path). |
+
+**Remaining 33 files stay quarantined** with per-file class / root cause in the `vitest.config.ts` comments:
+
+- **Class c (source regressions)**: ClothSim (both variants), PBDSolverCPU, PhysicsActivation, PIDController, TriggerZone, VRPhysicsBridge (both variants), DataImport (CSVImporter source bug), StressRecovery (long-running), OctreeLODSystem.prod.
+- **Class c (missing `traitTestHelpers.ts` module)**: 14 trait test files (ChoreographyTrait, EmotionalVoice × 2, FlowField, HandMenu, MQTTSink × 2, MQTTSource, NetworkedAvatar × 2, Orbital × 2, SoftBody, UserMonitor). Restoring the helper module requires implementing `createMockContext`, `createMockNode`, `attachTrait`, `sendEvent`, `updateTrait`, `getEventCount`, `getLastEvent` across the trait testing surface — out of audit scope.
+- **Class d (browser / broker-gated)**: GPUPhysicsTrait × 2 (WebGPU), IoTPipeline (MQTT broker), MultiplayerNPCScene (WebRTC).
+- **BENCHES_SKIP (coverage-instrumentation-sensitive)**: `paper-0c-cael-overhead`, `NAFEMS-LE1`, `NavierStokesSolver`, `fnv1a-vs-sha256.bench` — unchanged.
+
+### Run summary (post-followup, with coverage)
+
+| Metric | Value (baseline) | Value (post-followup) |
+|--------|-----------------:|----------------------:|
+| Test files passed | 136 | **148** |
+| Tests passed | 2,186 | **2,516** |
+| Tests skipped | 1 | 1 |
+| Failed test files | 0 | 0 |
+| Errors | 0 | 0 |
+| Exit code | 0 | **0** |
+| Duration | ~286s | ~267s |
 
 ### Coverage totals — `All files` summary
 
-| Metric | % | Covered / Total |
-|--------|--:|----------------:|
-| **Lines** | **32.67%** | 11,142 / 34,101 |
-| Statements | 32.95% | 12,523 / 38,000 |
-| Functions | 27.89% | 1,827 / 6,550 |
-| Branches | 24.70% | 4,403 / 17,823 |
+| Metric | % (baseline) | % (post-followup) | Covered / Total (post-followup) |
+|--------|------------:|-----------------:|--------------------------------:|
+| **Lines** | 32.67% | **33.81%** | ~11.5K / ~34.1K |
+| Statements | 32.95% | **34.06%** | — |
+| Functions | 27.89% | **29.41%** | — |
+| Branches | 24.70% | **25.80%** | — |
 
-The **32.67% line coverage** is the real product metric for the source we ship — and it confirms the audit's "low-coverage simulation surface" framing. **285 source files (out of 445 instrumented) sit below 70% line coverage**, with 30 of those in the priority simulation / physics / contract / CAEL band.
+The **33.81% line coverage** is the real product metric for the source we ship. Coverage increased ~1.1 points line-wise by un-quarantining 12 test files; the remaining 33 quarantined files (especially the PhysicsActivation + Physics regressions) still gate a significant chunk of `src/physics/` from the table.
 
 ## Hotspots: priority files <70% line coverage (simulation / physics / contract)
 
@@ -84,18 +108,9 @@ These rows are the **W4-T2 starting backlog** — bold throughout because correc
 
 The rows that already have partial coverage (`PBDSolver` at 19.4%, `ConstraintSolver` at 49.7%, `PhysicsWorldImpl` at 57.7%, `PhysicsBody` at 59.2%) are the right targets for net-new tests in W4-T2 because they have working test scaffolding to extend.
 
-## Quarantined test files (45 total, by domain)
+## Quarantined test files — history
 
-Per task constraint "every quarantine has a TODO with a tracking task ID," each entry below is grouped in `vitest.config.ts` with a comment naming the failure class. Re-enable in W4-T1-followup as the corresponding root cause is fixed.
-
-| Domain | Files | Likely root cause |
-|--------|------:|-------------------|
-| Physics (PBD / constraint / trigger / VR bridge) | 14 | Mix of test-bug (mock setup) and source-bug (solver regressions) |
-| Simulation (TET10 / NS / SPR / data import) | 3 | One long-running bench, two real failures |
-| Spatial / LOD (octree / frustum / spatial query) | 5 | Octree LOD has 30/52 failing — shared setup regression |
-| Shader graph compiler | 1 | 2/50 failing — cheap stabilize candidate |
-| Traits (MQTT / voice / WebGPU / networked / orbital / etc.) | 18 | MQTT mocks uniformly broken (vitest-v4 mock-API regression); WebGPU traits likely browser-only |
-| Bench / coverage-instrumentation-sensitive | 4 | `paper-0c-cael-overhead`, `NAFEMS-LE1`, `NavierStokesSolver`, `fnv1a-vs-sha256.bench` — pass without coverage, fail wall-clock thresholds with v8 instrumentation |
+Initial quarantine (2026-04-22, W4-T1): **45 files**. After W4-T1-followup triage: **33 files** remain quarantined (see breakdown above). Each entry in `vitest.config.ts` carries a comment naming the failure class so the next sweep can pick targets by cost.
 
 ## Source fix detail — `SimulationContract.computeStateDigest()`
 

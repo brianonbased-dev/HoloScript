@@ -28,7 +28,7 @@ describe('PhysicsWorldImpl', () => {
   describe('construction', () => {
     it('creates with default gravity', () => {
       const g = world.getGravity();
-      expect(g.y).toBeLessThan(0);
+      expect(g[1]).toBeLessThan(0);
     });
 
     it('accepts custom config', () => {
@@ -40,12 +40,12 @@ describe('PhysicsWorldImpl', () => {
         allowSleep: false,
         broadphase: 'aabb',
       });
-      expect(w.getGravity().y).toBe(-20);
+      expect(w.getGravity()[1]).toBe(-20);
     });
 
     it('setGravity updates gravity', () => {
       world.setGravity([0, -5, 0 ]);
-      expect(world.getGravity().y).toBe(-5);
+      expect(world.getGravity()[1]).toBe(-5);
     });
   });
 
@@ -120,7 +120,7 @@ describe('PhysicsWorldImpl', () => {
     it('setLinearVelocity updates velocity', () => {
       world.setLinearVelocity('obj', [1, 2, 3 ]);
       const state = world.getBody('obj')!;
-      expect(state.linearVelocity.x).toBe(1);
+      expect(state.linearVelocity[0]).toBe(1);
     });
 
     it('applyForce does not throw', () => {

@@ -624,7 +624,7 @@ describe('StructuralSolverTET10', () => {
       expect(stats.minSafetyFactor).toBeGreaterThan(0);
       expect(stats.solveResult).not.toBeNull();
       expect(stats.solveTimeMs).toBeGreaterThan(0);
-      expect(stats.usedGPU).toBe(false);
+      // usedGPU field was removed from stats; CPU-only solver is the only path in this test context.
     });
   });
 

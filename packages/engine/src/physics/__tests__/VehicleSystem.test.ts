@@ -24,7 +24,9 @@ describe('VehicleSystem', () => {
   it('creates a vehicle at given position', () => {
     const def = createDefaultCar('v1');
     const state = sys.createVehicle(def, [0, 5, 0 ]);
-    expect(state.position).toEqual([0, 5, 0 ]);
+    expect(state.position[0]).toBe(0);
+    expect(state.position[1]).toBe(5);
+    expect(state.position[2]).toBe(0);
     expect(state.wheels.length).toBe(4);
     expect(state.speed).toBe(0);
   });
