@@ -96,6 +96,9 @@ describe('GranularMaterialSystem', () => {
 
   it('step() causes gravity-driven movement', () => {
     const id = sand.addParticle([0, 0, 0 ], 0.02);
+    // `{...vec}` spreads only enumerable properties — Vec3's `[0]/[1]/[2]`
+    // alias getters are non-enumerable, so the spread captures `x/y/z` only.
+    // Use the named form here to read the snapshot.
     const before = { ...sand.getParticle(id)!.position };
     sand.step(0.016);
     const after = sand.getParticle(id)!.position;
@@ -141,6 +144,8 @@ describe('GranularMaterialSystem', () => {
   // ── Statistics ────────────────────────────────────────────────────────────
 
   it('getCenterOfMass returns (0,0,0) for empty system', () => {
+    // getCenterOfMass returns a plain {x,y,z} object — not run through
+    // addIndexAliases — so only `.x/.y/.z` access yields a number.
     const com = sand.getCenterOfMass();
     expect(com.x).toBe(0);
     expect(com.y).toBe(0);

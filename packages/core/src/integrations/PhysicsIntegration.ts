@@ -18,6 +18,59 @@ import type { Vec3 as FluidSimVec3 } from '../traits/FluidSimulationTrait';
 import { AdvancedClothSystem } from '../traits/AdvancedClothTrait';
 
 // ============================================================================
+// Defensive coordinate accessors
+// ----------------------------------------------------------------------------
+// Different physics traits in this package back `Vec3 = { x, y, z }` with
+// different runtime shapes:
+//   • GranularMaterialTrait: real `{x,y,z}` object with `[0]/[1]/[2]` getter
+//     aliases (see addIndexAliases). Both `.x` and `[0]` work.
+//   • VoronoiFractureTrait:  real `[number,number,number]` tuple cast to
+//     `Vector3`/`Vec3`. Only `[0]/[1]/[2]` work; `.x/.y/.z` is undefined.
+//   • External callers may pass either form to convertWithVelocity().
+// The previous defensive-any pattern handled this with chains like
+// `(v as { x }).x ?? (v as number[])[0] ?? 0`. Those chains worked only
+// because the `??` fallback masked an always-undefined LHS for the tuple
+// shape. The W2-T2 audit found that the chain made bugs invisible: a
+// genuine "no value here" outcome was indistinguishable from "the named
+// half is dead". These helpers replace the chain with a single type-honest
+// accessor that prefers the numeric form (works for tuples AND aliased
+// objects), falls back to the named form, and only returns 0 when neither
+// yields a finite number.
+// ============================================================================
+
+type Coordish =
+  | Readonly<[number, number, number]>
+  | { readonly x: number; readonly y: number; readonly z: number }
+  | { readonly 0: number; readonly 1: number; readonly 2: number };
+
+function coordX(v: Coordish): number {
+  const r = v as unknown as Record<string | number, unknown>;
+  const t = r[0];
+  if (typeof t === 'number' && Number.isFinite(t)) return t;
+  const n = r.x;
+  if (typeof n === 'number' && Number.isFinite(n)) return n;
+  return 0;
+}
+
+function coordY(v: Coordish): number {
+  const r = v as unknown as Record<string | number, unknown>;
+  const t = r[1];
+  if (typeof t === 'number' && Number.isFinite(t)) return t;
+  const n = r.y;
+  if (typeof n === 'number' && Number.isFinite(n)) return n;
+  return 0;
+}
+
+function coordZ(v: Coordish): number {
+  const r = v as unknown as Record<string | number, unknown>;
+  const t = r[2];
+  if (typeof t === 'number' && Number.isFinite(t)) return t;
+  const n = r.z;
+  if (typeof n === 'number' && Number.isFinite(n)) return n;
+  return 0;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -183,12 +236,12 @@ export class DestructionToGranularConverter {
       const radius = Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Calculate direction from explosion center
-      const fx = (fragment.position as any).x ?? (fragment.position as any)[0] ?? 0;
-      const fy = (fragment.position as any).y ?? (fragment.position as any)[1] ?? 0;
-      const fz = (fragment.position as any).z ?? (fragment.position as any)[2] ?? 0;
-      const ex = (explosionCenter as any).x ?? (explosionCenter as any)[0] ?? 0;
-      const ey = (explosionCenter as any).y ?? (explosionCenter as any)[1] ?? 0;
-      const ez = (explosionCenter as any).z ?? (explosionCenter as any)[2] ?? 0;
+      const fx = coordX(fragment.position as unknown as Coordish);
+      const fy = coordY(fragment.position as unknown as Coordish);
+      const fz = coordZ(fragment.position as unknown as Coordish);
+      const ex = coordX(explosionCenter as unknown as Coordish);
+      const ey = coordY(explosionCenter as unknown as Coordish);
+      const ez = coordZ(explosionCenter as unknown as Coordish);
 
       const dir = { x: fx - ex, y: fy - ey, z: fz - ez };
 
@@ -301,12 +354,12 @@ export class GranularToDestructionStress {
 
       // Check particles within horizontal range
       for (const particle of particles) {
-        const px = (particle.position as unknown as { x: number }).x ?? (particle.position as unknown as number[])[0] ?? 0;
-        const py = (particle.position as unknown as { y: number }).y ?? (particle.position as unknown as number[])[1] ?? 0;
-        const pz = (particle.position as unknown as { z: number }).z ?? (particle.position as unknown as number[])[2] ?? 0;
-        const fx = (fragment.position as any).x ?? (fragment.position as any)[0] ?? 0;
-        const fy = (fragment.position as any).y ?? (fragment.position as any)[1] ?? 0;
-        const fz = (fragment.position as any).z ?? (fragment.position as any)[2] ?? 0;
+        const px = coordX(particle.position as unknown as Coordish);
+        const py = coordY(particle.position as unknown as Coordish);
+        const pz = coordZ(particle.position as unknown as Coordish);
+        const fx = coordX(fragment.position as unknown as Coordish);
+        const fy = coordY(fragment.position as unknown as Coordish);
+        const fz = coordZ(fragment.position as unknown as Coordish);
 
         const dx = px - fx;
         const dz = pz - fz;

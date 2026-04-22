@@ -17,8 +17,35 @@ import {
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
-function makeFragment(id: number, active: boolean, volume: number, pos = { x: 0, y: 0, z: 0 }) {
+function makeFragment(id: number, active: boolean, volume: number, pos = [0, 0, 0]) {
   return { id, active, volume, position: pos };
+}
+
+/**
+ * Build a Vec3 that supports BOTH named (`.x/.y/.z`) and tuple
+ * (`[0]/[1]/[2]`) access AND keeps the two views in sync. Matches the
+ * runtime invariant exposed by GranularMaterialSystem.addParticle() (which
+ * wraps Vec3 with addIndexAliases) and lets test assertions read either
+ * form interchangeably.
+ */
+function makeNamedVec3(x = 0, y = 0, z = 0) {
+  const obj: { x: number; y: number; z: number; 0?: number; 1?: number; 2?: number } = { x, y, z };
+  Object.defineProperty(obj, '0', {
+    get() { return obj.x; },
+    set(v: number) { obj.x = v; },
+    enumerable: false, configurable: true,
+  });
+  Object.defineProperty(obj, '1', {
+    get() { return obj.y; },
+    set(v: number) { obj.y = v; },
+    enumerable: false, configurable: true,
+  });
+  Object.defineProperty(obj, '2', {
+    get() { return obj.z; },
+    set(v: number) { obj.z = v; },
+    enumerable: false, configurable: true,
+  });
+  return obj;
 }
 
 function makeFractureSystem(fragments: ReturnType<typeof makeFragment>[]) {
@@ -40,13 +67,19 @@ function makeGranularSystem() {
   return {
     addParticle: (pos: any, radius: number) => {
       const id = nextId++;
+      // Mirror the production GranularParticle shape: position is a `{0,1,2}`
+      // -keyed Vec3 (created by spreading the input tuple); velocity/force
+      // are dual-shape `{x,y,z}` + `{0,1,2}` so PhysicsIntegration's named
+      // writes (`particle.force.y += ...`) AND tuple-style reads
+      // (`particle.force[1]`) both resolve to the same value.
+      const tupleSpread = Array.isArray(pos) ? { 0: pos[0], 1: pos[1], 2: pos[2] } : { ...pos };
       particles.push({
         id,
-        position: { ...pos },
+        position: tupleSpread,
         radius,
         mass: (4 / 3) * Math.PI * radius ** 3 * config.material.density,
-        velocity: [0, 0, 0 ],
-        force: [0, 0, 0 ],
+        velocity: makeNamedVec3(),
+        force: makeNamedVec3(),
       });
       return id;
     },
@@ -67,11 +100,17 @@ function makeFluidSystem(densityAtPos = 0.0) {
 }
 
 function makeClothSystem() {
+  // Match the AdvancedClothTrait runtime shape: position is a tuple,
+  // velocity/force are dual-shape (named writes + tuple reads). The
+  // PhysicsIntegration.ClothFluidInteraction code reads velocity by `.x`
+  // and writes velocity by `.x` (applyFluidDrag) and writes force by `.y`
+  // (applyWetWeight). Without dual-shape, the named write and the tuple
+  // read see different values.
   const particles: any[] = [
     {
       position: [0, 0, 0],
-      velocity: [1, -1, 0 ],
-      force: [0, 0, 0 ],
+      velocity: makeNamedVec3(1, -1, 0),
+      force: makeNamedVec3(0, 0, 0),
       mass: 0.5,
     },
   ];
@@ -191,10 +230,10 @@ describe('DestructionToGranularConverter — convertDestroyedFragments', () => {
 describe('DestructionToGranularConverter — convertWithVelocity', () => {
   it('converts destroyed fragments with outward velocity', () => {
     const c = new DestructionToGranularConverter();
-    const frag = makeFragment(1, false, 0.5, { x: 5, y: 0, z: 0 });
+    const frag = makeFragment(1, false, 0.5, [5, 0, 0]);
     const fracture = makeFractureSystem([frag]);
     const granular = makeGranularSystem();
-    const stats = c.convertWithVelocity(fracture as any, granular as any, { x: 0, y: 0, z: 0 }, 10);
+    const stats = c.convertWithVelocity(fracture as any, granular as any, [0, 0, 0], 10);
     expect(stats.particlesCreated).toBe(1);
     const p = granular._particles[0];
     expect(p.velocity[0]).not.toBe(0); // should have outward velocity
@@ -204,7 +243,7 @@ describe('DestructionToGranularConverter — convertWithVelocity', () => {
     const c = new DestructionToGranularConverter({ minFragmentSize: 1.0 });
     const fracture = makeFractureSystem([makeFragment(1, false, 0.001)]);
     const granular = makeGranularSystem();
-    c.convertWithVelocity(fracture as any, granular as any, { x: 0, y: 0, z: 0 }, 5);
+    c.convertWithVelocity(fracture as any, granular as any, [0, 0, 0], 5);
     expect(granular._particles).toHaveLength(0);
   });
 });
@@ -250,10 +289,10 @@ describe('GranularToDestructionStress — applyPileStress', () => {
     const gs = new GranularToDestructionStress();
     const granular = makeGranularSystem();
     // Add a particle above the fragment
-    const particleId = granular.addParticle({ x: 0, y: 2, z: 0 }, 0.1);
+    const particleId = granular.addParticle([0, 2, 0], 0.1);
     const p = granular.getParticle(particleId)!;
     p.mass = 5;
-    const fracture = makeFractureSystem([makeFragment(1, true, 0.5, { x: 0, y: 0, z: 0 })]);
+    const fracture = makeFractureSystem([makeFragment(1, true, 0.5, [0, 0, 0])]);
     gs.applyPileStress(granular as any, fracture as any);
     expect(fracture._stressed.length).toBeGreaterThan(0);
     expect(fracture._stressed[0].stress).toBeGreaterThan(0);
@@ -262,8 +301,8 @@ describe('GranularToDestructionStress — applyPileStress', () => {
   it('skips inactive fragments', () => {
     const gs = new GranularToDestructionStress();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 2, z: 0 }, 0.1);
-    const fracture = makeFractureSystem([makeFragment(1, false, 0.5, { x: 0, y: 0, z: 0 })]);
+    granular.addParticle([0, 2, 0], 0.1);
+    const fracture = makeFractureSystem([makeFragment(1, false, 0.5, [0, 0, 0])]);
     gs.applyPileStress(granular as any, fracture as any);
     expect(fracture._stressed).toHaveLength(0);
   });
@@ -272,13 +311,13 @@ describe('GranularToDestructionStress — applyPileStress', () => {
     const gs = new GranularToDestructionStress();
     const granular1 = makeGranularSystem();
     const granular2 = makeGranularSystem();
-    granular1.addParticle({ x: 0, y: 2, z: 0 }, 0.1);
+    granular1.addParticle([0, 2, 0], 0.1);
     granular1.getParticle(0)!.mass = 5;
-    granular2.addParticle({ x: 0, y: 2, z: 0 }, 0.1);
+    granular2.addParticle([0, 2, 0], 0.1);
     granular2.getParticle(0)!.mass = 5;
 
-    const f1 = makeFractureSystem([makeFragment(1, true, 0.5, { x: 0, y: 0, z: 0 })]);
-    const f2 = makeFractureSystem([makeFragment(1, true, 0.5, { x: 0, y: 0, z: 0 })]);
+    const f1 = makeFractureSystem([makeFragment(1, true, 0.5, [0, 0, 0])]);
+    const f2 = makeFractureSystem([makeFragment(1, true, 0.5, [0, 0, 0])]);
 
     gs.applyPileStress(granular1 as any, f1 as any, 1.0);
     gs.applyPileStress(granular2 as any, f2 as any, 2.0);
@@ -300,7 +339,7 @@ describe('FluidGranularInteraction — applyFluidForces', () => {
   it('applies buoyancy when fluid density > 0.1', () => {
     const fi = new FluidGranularInteraction();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 0, z: 0 }, 0.5);
+    granular.addParticle([0, 0, 0], 0.5);
     fi.applyFluidForces(makeFluidSystem(100) as any, granular as any);
     expect(granular._particles[0].force[1]).toBeGreaterThan(0);
   });
@@ -308,7 +347,7 @@ describe('FluidGranularInteraction — applyFluidForces', () => {
   it('does not apply forces when fluid density ≤ 0.1', () => {
     const fi = new FluidGranularInteraction();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 0, z: 0 }, 0.5);
+    granular.addParticle([0, 0, 0], 0.5);
     fi.applyFluidForces(makeFluidSystem(0.05) as any, granular as any);
     expect(granular._particles[0].force[1]).toBe(0);
   });
@@ -318,7 +357,7 @@ describe('FluidGranularInteraction — applyWetness', () => {
   it('increases cohesion when fluid density > 0.5', () => {
     const fi = new FluidGranularInteraction();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 0, z: 0 }, 0.3);
+    granular.addParticle([0, 0, 0], 0.3);
     const before = granular.getConfig().material.cohesion;
     fi.applyWetness(makeFluidSystem(800) as any, granular as any);
     expect(granular.getConfig().material.cohesion).toBeGreaterThan(before);
@@ -327,7 +366,7 @@ describe('FluidGranularInteraction — applyWetness', () => {
   it('does not change cohesion when fluid density ≤ 0.5', () => {
     const fi = new FluidGranularInteraction();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 0, z: 0 }, 0.3);
+    granular.addParticle([0, 0, 0], 0.3);
     const before = granular.getConfig().material.cohesion;
     fi.applyWetness(makeFluidSystem(0.1) as any, granular as any);
     expect(granular.getConfig().material.cohesion).toBe(before);
@@ -398,7 +437,7 @@ describe('PhysicsIntegrationManager', () => {
   it('update does NOT call fluid integration when fluid missing', () => {
     const m = new PhysicsIntegrationManager();
     const granular = makeGranularSystem();
-    granular.addParticle({ x: 0, y: 0, z: 0 }, 0.3);
+    granular.addParticle([0, 0, 0], 0.3);
     // No fluid system
     expect(() => m.update({ granular: granular as any })).not.toThrow();
     expect(granular._particles[0].force[1]).toBe(0);

@@ -404,14 +404,14 @@ describe('VoronoiFractureTrait', () => {
       const lod2Fragments = system.getFragmentsByLOD(2);
       if (lod0Fragments.length > 0 && lod2Fragments.length > 0) {
         const dist0 = Math.sqrt(
-          Math.pow(lod0Fragments[0].position[0] - cameraPos.x, 2) +
-            Math.pow(lod0Fragments[0].position[1] - cameraPos.y, 2) +
-            Math.pow(lod0Fragments[0].position[2] - cameraPos.z, 2)
+          Math.pow(lod0Fragments[0].position[0] - cameraPos[0], 2) +
+            Math.pow(lod0Fragments[0].position[1] - cameraPos[1], 2) +
+            Math.pow(lod0Fragments[0].position[2] - cameraPos[2], 2)
         );
         const dist2 = Math.sqrt(
-          Math.pow(lod2Fragments[0].position[0] - cameraPos.x, 2) +
-            Math.pow(lod2Fragments[0].position[1] - cameraPos.y, 2) +
-            Math.pow(lod2Fragments[0].position[2] - cameraPos.z, 2)
+          Math.pow(lod2Fragments[0].position[0] - cameraPos[0], 2) +
+            Math.pow(lod2Fragments[0].position[1] - cameraPos[1], 2) +
+            Math.pow(lod2Fragments[0].position[2] - cameraPos[2], 2)
         );
         expect(dist0).toBeLessThanOrEqual(dist2);
       }

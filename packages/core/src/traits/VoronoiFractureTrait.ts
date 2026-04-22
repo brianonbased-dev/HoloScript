@@ -31,7 +31,7 @@ export interface FractureFragment {
   /** Bounding box max */
   boundsMax: Vector3;
   /** Vertices of the fragment mesh */
-  vertices: Array<{ x: number; y: number; z: number }>;
+  vertices: Array<[number, number, number]>;
   /** Triangle indices (3 per triangle) */
   indices: number[];
   /** Current health (0 = destroyed) */
@@ -141,7 +141,7 @@ function randomPointInBounds(bounds: {
 /**
  * Computes bounding box for a set of vertices
  */
-function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>): {
+function computeBoundingBox(vertices: Array<[number, number, number]>): {
   min: Vector3;
   max: Vector3;
 } {
@@ -152,16 +152,16 @@ function computeBoundingBox(vertices: Array<{ x: number; y: number; z: number }>
     };
   }
 
-  const min: Vector3 = [vertices[0].x, vertices[0].y, vertices[0].z];
-  const max: Vector3 = [vertices[0].x, vertices[0].y, vertices[0].z];
+  const min: Vector3 = [vertices[0][0], vertices[0][1], vertices[0][2]];
+  const max: Vector3 = [vertices[0][0], vertices[0][1], vertices[0][2]];
 
   for (const v of vertices) {
-    min[0] = Math.min(min[0], v.x);
-    min[1] = Math.min(min[1], v.y);
-    min[2] = Math.min(min[2], v.z);
-    max[0] = Math.max(max[0], v.x);
-    max[1] = Math.max(max[1], v.y);
-    max[2] = Math.max(max[2], v.z);
+    min[0] = Math.min(min[0], v[0]);
+    min[1] = Math.min(min[1], v[1]);
+    min[2] = Math.min(min[2], v[2]);
+    max[0] = Math.max(max[0], v[0]);
+    max[1] = Math.max(max[1], v[1]);
+    max[2] = Math.max(max[2], v[2]);
   }
 
   return { min, max };
@@ -264,19 +264,23 @@ export class VoronoiFractureSystem {
     // Simplified fragment creation (bounding box around site)
     // In a full implementation, this would compute actual Voronoi cell boundaries
     const size = 0.2; // Approximate fragment size
-    const sx = (site.position as unknown as { x: number }).x ?? (site.position as unknown as number[])[0];
-    const sy = (site.position as unknown as { y: number }).y ?? (site.position as unknown as number[])[1];
-    const sz = (site.position as unknown as { z: number }).z ?? (site.position as unknown as number[])[2];
+    // site.position is always a Vector3 tuple here (see randomPointInBounds);
+    // an earlier defensive `(p as { x: number })[0] ?? (p as number[])[0]` cast
+    // chain was a lying type — `[0]` on a `{x:number}` cast is `any`/undefined
+    // and only the fallback ever did the work. Read the tuple directly.
+    const pos = site.position as unknown as readonly [number, number, number];
+    const sx = pos[0] ?? 0;
+    const sy = pos[1] ?? 0;
+    const sz = pos[2] ?? 0;
     const vertices = [
-      // Cube vertices around site
-      { x: sx - size, y: sy - size, z: sz - size },
-      { x: sx + size, y: sy - size, z: sz - size },
-      { x: sx + size, y: sy + size, z: sz - size },
-      { x: sx - size, y: sy + size, z: sz - size },
-      { x: sx - size, y: sy - size, z: sz + size },
-      { x: sx + size, y: sy - size, z: sz + size },
-      { x: sx + size, y: sy + size, z: sz + size },
-      { x: sx - size, y: sy + size, z: sz + size },
+      [sx - size, sy - size, sz - size],
+      [sx + size, sy - size, sz - size],
+      [sx + size, sy + size, sz - size],
+      [sx - size, sy + size, sz - size],
+      [sx - size, sy - size, sz + size],
+      [sx + size, sy - size, sz + size],
+      [sx + size, sy + size, sz + size],
+      [sx - size, sy + size, sz + size],
     ];
 
     // Cube triangle indices (12 triangles, 2 per face)
