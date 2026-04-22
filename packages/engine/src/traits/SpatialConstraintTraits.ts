@@ -1,0 +1,560 @@
+import type { Vector3 } from '@holoscript/core';
+/**
+ * Spatial Constraint Traits
+ *
+ * Runtime trait handler implementations for the three spatial constraint
+ * families: spatial_adjacent, spatial_contains, and spatial_reachable.
+ *
+ * These traits enforce spatial relationships at runtime, complementing
+ * the compile-time verification provided by SpatialConstraintValidator.
+ *
+ * @version 1.0.0
+ * @module traits/SpatialConstraintTraits
+ */
+
+import type { TraitHandler, TraitContext } from '@holoscript/core';
+import type {
+  SpatialAdjacentConfig,
+  SpatialContainsConfig,
+  SpatialReachableConfig,
+  SpatialEnforcementMode,
+  SpatialConstraintViolationEvent,
+  SpatialConstraintResolvedEvent,
+  SpatialConstraintKind,
+} from '@holoscript/engine/spatial';
+
+// =============================================================================
+// SHARED STATE & HELPERS
+// =============================================================================
+
+interface ConstraintViolation {
+  violated: boolean;
+  currentValue: number;
+  requiredValue: number;
+  lastChecked: number;
+}
+
+interface AdjacentState {
+  violation: ConstraintViolation;
+  targetPosition: Vector3 | null;
+}
+
+interface ContainsState {
+  violation: ConstraintViolation;
+  containedEntities: string[];
+}
+
+interface ReachableState {
+  violation: ConstraintViolation;
+  lastPathCheck: number;
+  isReachable: boolean;
+  pathLength: number;
+}
+
+function computeDistance3D(
+  a: Vector3,
+  b: Vector3
+): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function computeAxisDistance(
+  a: Vector3,
+  b: Vector3,
+  axis: string
+): number {
+  switch (axis) {
+    case 'x':
+      return Math.abs(b[0] - a[0]);
+    case 'y':
+      return Math.abs(b[1] - a[1]);
+    case 'z':
+      return Math.abs(b[2] - a[2]);
+    case 'xy': {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    case 'xz': {
+      const dx = b[0] - a[0];
+      const dz = b[2] - a[2];
+      return Math.sqrt(dx * dx + dz * dz);
+    }
+    case 'xyz':
+    default:
+      return computeDistance3D(a, b);
+  }
+}
+
+function emitViolation(
+  context: TraitContext,
+  kind: SpatialConstraintKind,
+  sourceId: string,
+  targetId: string,
+  message: string,
+  currentValue: number,
+  requiredValue: number
+): void {
+  const event: SpatialConstraintViolationEvent = {
+    type: 'spatial_constraint_violation',
+    constraintKind: kind,
+    sourceId,
+    targetId,
+    message,
+    currentValue,
+    requiredValue,
+    timestamp: Date.now(),
+  };
+  context.emit('spatial_constraint_violation', event);
+}
+
+function emitResolved(
+  context: TraitContext,
+  kind: SpatialConstraintKind,
+  sourceId: string,
+  targetId: string
+): void {
+  const event: SpatialConstraintResolvedEvent = {
+    type: 'spatial_constraint_resolved',
+    constraintKind: kind,
+    sourceId,
+    targetId,
+    timestamp: Date.now(),
+  };
+  context.emit('spatial_constraint_resolved', event);
+}
+
+// =============================================================================
+// SPATIAL_ADJACENT TRAIT HANDLER
+// =============================================================================
+
+/**
+ * Runtime handler for the spatial_adjacent constraint.
+ *
+ * Monitors distance between the host entity and a target entity,
+ * emitting events and optionally correcting violations.
+ *
+ * HoloScript usage:
+ * ```holoscript
+ * orb#shelf {
+ *   @spatial_adjacent(target: "book", maxDistance: 1.5, axis: "xz")
+ * }
+ * ```
+ */
+export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
+  name: 'spatial_adjacent',
+
+  defaultConfig: {
+    target: '',
+    maxDistance: 5.0,
+    minDistance: undefined,
+    axis: 'xyz',
+    bidirectional: true,
+    soft: false,
+    enforcement: 'warn',
+  },
+
+  onAttach(node, config, context) {
+    const state: AdjacentState = {
+      violation: {
+        violated: false,
+        currentValue: 0,
+        requiredValue: config.maxDistance,
+        lastChecked: 0,
+      },
+      targetPosition: null,
+    };
+    context.setState({ spatialAdjacent: state });
+  },
+
+  onUpdate(node, config, context, delta) {
+    if (!config.target || config.enforcement === 'none') return;
+
+    const state = context.getState().spatialAdjacent as AdjacentState | undefined;
+    if (!state) return;
+
+    // Get positions from context
+    const nodePos = node.position || [0, 0, 0 ];
+    const targetPos = state.targetPosition;
+    if (!targetPos) return;
+
+    const dist = computeAxisDistance(nodePos, targetPos, config.axis ?? 'xyz');
+    state.violation.currentValue = dist;
+    state.violation.lastChecked = Date.now();
+
+    const wasViolated = state.violation.violated;
+    let isViolated = false;
+
+    // Check max distance
+    if (dist > config.maxDistance) {
+      isViolated = true;
+    }
+
+    // Check min distance
+    if (config.minDistance !== undefined && dist < config.minDistance) {
+      isViolated = true;
+    }
+
+    state.violation.violated = isViolated;
+
+    if (isViolated && !wasViolated) {
+      emitViolation(
+        context,
+        'spatial_adjacent',
+        node.id || '',
+        config.target,
+        `Entity is ${dist.toFixed(2)}m from '${config.target}' (max: ${config.maxDistance}m)`,
+        dist,
+        config.maxDistance
+      );
+
+      // Enforcement
+      if (config.enforcement === 'correct' && dist > config.maxDistance) {
+        // Snap toward target
+        const ratio = config.maxDistance / dist;
+        const corrected: [number, number, number] = [
+          targetPos[0] + (nodePos[0] - targetPos[0]) * ratio,
+          targetPos[1] + (nodePos[1] - targetPos[1]) * ratio,
+          targetPos[2] + (nodePos[2] - targetPos[2]) * ratio,
+        ];
+        if (node.position) {
+          node.position[0] = corrected[0];
+          node.position[1] = corrected[1];
+          node.position[2] = corrected[2];
+        }
+      }
+    } else if (!isViolated && wasViolated) {
+      emitResolved(context, 'spatial_adjacent', node.id || '', config.target);
+    }
+
+    context.setState({ spatialAdjacent: state });
+  },
+
+  onEvent(node, config, context, event) {
+    // Listen for target position updates
+    if (
+      event.type === 'spatial_target_update' &&
+      (event as Record<string, unknown>).targetId === config.target
+    ) {
+      const state = context.getState().spatialAdjacent as AdjacentState | undefined;
+      if (state) {
+        state.targetPosition = (event as Record<string, unknown>).position as AdjacentState['targetPosition'];
+        context.setState({ spatialAdjacent: state });
+      }
+    }
+  },
+};
+
+// =============================================================================
+// SPATIAL_CONTAINS TRAIT HANDLER
+// =============================================================================
+
+/**
+ * Runtime handler for the spatial_contains constraint.
+ *
+ * Monitors whether contained entities remain within the host entity's
+ * bounding volume, emitting events and optionally correcting violations.
+ *
+ * HoloScript usage:
+ * ```holoscript
+ * orb#room {
+ *   @spatial_contains(target: "furniture", margin: 0.1, strict: true)
+ * }
+ * ```
+ */
+export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
+  name: 'spatial_contains',
+
+  defaultConfig: {
+    target: '',
+    margin: 0,
+    strict: false,
+    recursive: false,
+    soft: false,
+    enforcement: 'warn',
+  },
+
+  onAttach(node, config, context) {
+    const state: ContainsState = {
+      violation: {
+        violated: false,
+        currentValue: 0,
+        requiredValue: 0,
+        lastChecked: 0,
+      },
+      containedEntities: [],
+    };
+    context.setState({ spatialContains: state });
+  },
+
+  onUpdate(node, config, context, delta) {
+    if (!config.target || config.enforcement === 'none') return;
+
+    const state = context.getState().spatialContains as ContainsState | undefined;
+    if (!state) return;
+
+    // Container bounds from node
+    interface SphereBounds {
+      radius: number;
+      center: Vector3;
+    }
+    interface BoxBounds {
+      min: Vector3;
+      max: Vector3;
+    }
+    const nodeBounds = (node as unknown as Record<string, unknown>).bounds as
+      | (SphereBounds | BoxBounds)
+      | undefined;
+    if (!nodeBounds) return;
+
+    const nodePos = node.position || [0, 0, 0 ];
+    const margin = config.margin ?? 0;
+
+    // Check each contained entity
+    let anyViolation = false;
+
+    for (const containedId of state.containedEntities) {
+      const containedPos = context.getState()[`entity_pos_${containedId}`] as
+        [number, number, number] | undefined;
+      if (!containedPos) continue;
+
+      let isInside = false;
+
+      if ('radius' in nodeBounds) {
+        // Sphere containment
+        const dist = computeDistance3D(containedPos, nodeBounds.center);
+        isInside = dist <= nodeBounds.radius - margin;
+        state.violation.currentValue = dist;
+        state.violation.requiredValue = nodeBounds.radius - margin;
+      } else if ('min' in nodeBounds && 'max' in nodeBounds) {
+        // Box containment
+        isInside =
+          containedPos[0] >= nodeBounds.min[0] + margin &&
+          containedPos[0] <= nodeBounds.max[0] - margin &&
+          containedPos[1] >= nodeBounds.min[1] + margin &&
+          containedPos[1] <= nodeBounds.max[1] - margin &&
+          containedPos[2] >= nodeBounds.min[2] + margin &&
+          containedPos[2] <= nodeBounds.max[2] - margin;
+      }
+
+      if (!isInside) {
+        anyViolation = true;
+
+        emitViolation(
+          context,
+          'spatial_contains',
+          node.id || '',
+          containedId,
+          `Entity '${containedId}' has exited container '${node.id}'`,
+          state.violation.currentValue,
+          state.violation.requiredValue
+        );
+
+        // Enforcement: clamp position to container bounds
+        if (config.enforcement === 'correct' && 'min' in nodeBounds && 'max' in nodeBounds) {
+          const clamped = [Math.max(
+            nodeBounds.min[0] + margin,
+            Math.min(nodeBounds.max[0] - margin, containedPos[0])
+          ), Math.max(
+            nodeBounds.min[1] + margin,
+            Math.min(nodeBounds.max[1] - margin, containedPos[1])
+          ), Math.max(
+            nodeBounds.min[2] + margin,
+            Math.min(nodeBounds.max[2] - margin, containedPos[2])
+          )];
+          context.setState({ [`entity_pos_${containedId}`]: clamped });
+        }
+      }
+    }
+
+    const wasViolated = state.violation.violated;
+    state.violation.violated = anyViolation;
+    state.violation.lastChecked = Date.now();
+
+    if (!anyViolation && wasViolated) {
+      emitResolved(context, 'spatial_contains', node.id || '', config.target);
+    }
+
+    context.setState({ spatialContains: state });
+  },
+
+  onEvent(node, config, context, event) {
+    // Track contained entity registration
+    if (event.type === 'spatial_entity_registered') {
+      const state = context.getState().spatialContains as ContainsState | undefined;
+      if (state) {
+        const entityId = (event as Record<string, unknown>).entityId as string;
+        const entityType = (event as Record<string, unknown>).entityType as string;
+        if (entityId === config.target || entityType === config.target) {
+          if (!state.containedEntities.includes(entityId)) {
+            state.containedEntities.push(entityId);
+            context.setState({ spatialContains: state });
+          }
+        }
+      }
+    }
+
+    // Track contained entity position updates
+    if (event.type === 'spatial_target_update') {
+      const targetId = (event as Record<string, unknown>).targetId as string;
+      const position = (event as Record<string, unknown>).position;
+      if (position) {
+        context.setState({ [`entity_pos_${targetId}`]: position });
+      }
+    }
+  },
+};
+
+// =============================================================================
+// SPATIAL_REACHABLE TRAIT HANDLER
+// =============================================================================
+
+/**
+ * Runtime handler for the spatial_reachable constraint.
+ *
+ * Periodically checks whether an unobstructed path exists from the
+ * host entity to a target entity, emitting events on state changes.
+ *
+ * HoloScript usage:
+ * ```holoscript
+ * orb#npc {
+ *   @spatial_reachable(
+ *     target: "exit_door",
+ *     maxPathLength: 50,
+ *     algorithm: "line_of_sight"
+ *   )
+ * }
+ * ```
+ */
+export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
+  name: 'spatial_reachable',
+
+  defaultConfig: {
+    target: '',
+    maxPathLength: undefined,
+    obstacleTypes: [],
+    algorithm: 'line_of_sight',
+    agentRadius: 0.5,
+    bidirectional: true,
+    soft: false,
+    enforcement: 'warn',
+  },
+
+  onAttach(node, config, context) {
+    const state: ReachableState = {
+      violation: {
+        violated: false,
+        currentValue: 0,
+        requiredValue: config.maxPathLength ?? Infinity,
+        lastChecked: 0,
+      },
+      lastPathCheck: 0,
+      isReachable: true,
+      pathLength: 0,
+    };
+    context.setState({ spatialReachable: state });
+  },
+
+  onUpdate(node, config, context, delta) {
+    if (!config.target || config.enforcement === 'none') return;
+
+    const state = context.getState().spatialReachable as ReachableState | undefined;
+    if (!state) return;
+
+    const now = Date.now();
+    // Throttle reachability checks to every 500ms (pathfinding is expensive)
+    if (now - state.lastPathCheck < 500) return;
+    state.lastPathCheck = now;
+
+    const nodePos = node.position || [0, 0, 0 ];
+    const targetPos = context.getState()[`reachable_target_${config.target}`] as
+      [number, number, number] | undefined;
+    if (!targetPos) return;
+
+    // Simple line-of-sight check (default algorithm)
+    const dist = computeDistance3D(nodePos, targetPos);
+    state.pathLength = dist;
+    state.violation.currentValue = dist;
+    state.violation.lastChecked = now;
+
+    const wasReachable = state.isReachable;
+
+    // Check path length
+    if (config.maxPathLength !== undefined && dist > config.maxPathLength) {
+      state.isReachable = false;
+    } else {
+      // For line_of_sight, use physics raycast if available
+      if (config.algorithm === 'line_of_sight') {
+        const direction = [
+          targetPos[0] - nodePos[0],
+          targetPos[1] - nodePos[1],
+          targetPos[2] - nodePos[2]
+        ];
+        const len = Math.sqrt(
+          direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]
+        );
+        if (len > 0) {
+          const normalized = [direction[0] / len, direction[1] / len, direction[2] / len];
+          const hit = context.physics.raycast(nodePos, normalized, dist);
+          state.isReachable = !hit || hit.distance >= dist - 0.01;
+        } else {
+          state.isReachable = true;
+        }
+      } else {
+        // For navmesh/astar, assume reachable unless overridden by event
+        state.isReachable = true;
+      }
+    }
+
+    state.violation.violated = !state.isReachable;
+
+    if (!state.isReachable && wasReachable) {
+      emitViolation(
+        context,
+        'spatial_reachable',
+        node.id || '',
+        config.target,
+        `Path to '${config.target}' is blocked or exceeds max length`,
+        dist,
+        config.maxPathLength ?? Infinity
+      );
+    } else if (state.isReachable && !wasReachable) {
+      emitResolved(context, 'spatial_reachable', node.id || '', config.target);
+    }
+
+    context.setState({ spatialReachable: state });
+  },
+
+  onEvent(node, config, context, event) {
+    // Track target position for reachability
+    if (
+      event.type === 'spatial_target_update' &&
+      (event as Record<string, unknown>).targetId === config.target
+    ) {
+      context.setState({
+        [`reachable_target_${config.target}`]: (event as Record<string, unknown>).position,
+      });
+    }
+
+    // External pathfinding result (for navmesh/astar algorithms)
+    if (event.type === 'pathfinding_result') {
+      const result = event as unknown as {
+        targetId: string;
+        pathFound?: boolean;
+        pathLength?: number;
+      };
+      if (result.targetId === config.target) {
+        const state = context.getState().spatialReachable as ReachableState | undefined;
+        if (state) {
+          state.isReachable = result.pathFound === true;
+          state.pathLength = result.pathLength ?? state.pathLength;
+          state.violation.violated = !state.isReachable;
+          context.setState({ spatialReachable: state });
+        }
+      }
+    }
+  },
+};
