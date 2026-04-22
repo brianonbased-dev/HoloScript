@@ -859,7 +859,19 @@ export class ContractedSimulation {
    */
   private computeStateDigest(): string {
     // Deterministic field order — common to both modes.
-    const fieldNames = [...this.solver.fieldNames].sort();
+    // W4-T1 fix (2026-04-22): guard against solvers that don't expose
+    // fieldNames. The doc comment at solve()/asyncStep() already states
+    // digest computation is conditional on fieldNames/getField being
+    // available, but this code-path was unconditionally spreading the
+    // value, which threw `is not iterable` for several legitimate solver
+    // shapes (e.g. paper-benchmark fixtures). Skip-with-empty-digest is
+    // the documented behavior; the upstream sites are guarded by their
+    // own `if (typeof solver.getField === 'function')` checks.
+    const rawFieldNames = (this.solver as { fieldNames?: Iterable<string> }).fieldNames;
+    if (!rawFieldNames || typeof (rawFieldNames as Iterable<string>)[Symbol.iterator] !== 'function') {
+      return '';
+    }
+    const fieldNames = [...rawFieldNames].sort();
 
     if (this.hashMode === 'sha256') {
       // Build canonical byte buffer: for each field, name bytes
