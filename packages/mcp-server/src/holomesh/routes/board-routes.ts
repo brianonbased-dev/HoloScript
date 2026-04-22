@@ -9,6 +9,7 @@ import {
 import { 
   json, 
   parseJsonBody, 
+  parseQuery,
   extractParam, 
   getTeamMember, 
   hasTeamPermission,
@@ -86,6 +87,26 @@ export async function handleBoardRoutes(
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/board/done — recent done log (peer verification / F.022)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done$/) && method === 'GET') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    const log = team.doneLog || [];
+    const q = parseQuery(url);
+    const rawLimit = parseInt(String(q.get('limit') || '30'), 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(200, Math.max(1, rawLimit)) : 30;
+    const slice = log.slice(-limit).reverse();
+    json(res, 200, {
+      success: true,
+      teamId,
+      count: log.length,
+      entries: slice,
     });
     return true;
   }
@@ -213,7 +234,10 @@ export async function handleBoardRoutes(
         eventType = 'board:claimed';
         break;
       case 'done': {
-        const wrap = completeTask(team.taskBoard, taskId, caller.name, { summary: body.summary as string });
+        const wrap = completeTask(team.taskBoard, taskId, caller.name, {
+          summary: body.summary as string,
+          commit: body.commit as string | undefined,
+        });
         result = wrap.result;
         team.taskBoard = wrap.updatedBoard;
         if (result.doneEntry) team.doneLog.push(result.doneEntry);

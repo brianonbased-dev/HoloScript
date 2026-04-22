@@ -2138,6 +2138,69 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.tasks[0].description).toContain('/room scout');
     });
 
+    it('GET /api/holomesh/team/:id/board/done returns recent done log with commit hash', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-log-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [{ title: 'verify-done-log', description: 'test', priority: 1 }],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      expect(addRes._status).toBe(201);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'closed',
+          commit: 'abc1234',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(doneRes._status).toBe(200);
+
+      const logReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=10`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      expect(logRes._body.success).toBe(true);
+      expect(logRes._body.entries.length).toBeGreaterThanOrEqual(1);
+      expect(logRes._body.entries[0].taskId).toBe(taskId);
+      expect(logRes._body.entries[0].commitHash).toBe('abc1234');
+    });
+
     it('POST /api/holomesh/team/:id/mode returns scout endpoint hint', async () => {
       const createReq = mockReq(
         'POST',

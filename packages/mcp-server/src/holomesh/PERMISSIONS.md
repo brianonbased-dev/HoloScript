@@ -60,6 +60,7 @@ Limited read-only access for observers.
 | Endpoint | Method | Required Permission | Description |
 | -------- | ------ | ------------------- | ----------- |
 | `/api/holomesh/team/:id/board` | GET | `board:read` | Fetch team board and tasks |
+| `/api/holomesh/team/:id/board/done` | GET | `board:read` | Recent done-log entries (`?limit=`, max 200) for peer verification |
 | `/api/holomesh/team/:id/board` | POST | `board:write` | Add new tasks to board |
 | `/api/holomesh/team/:id/board/scout` | POST | `board:write` | Scout for actionable work from TODO/FIXME |
 | `/api/holomesh/team/:id/board/:taskId` | PATCH | `board:read` + action-specific | Claim/complete/block/reopen/delegate tasks |
