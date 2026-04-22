@@ -22,6 +22,13 @@ import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE, type ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
+
+// The engine package re-exports its own copy of HSPlusAST/HeadlessRuntime via the
+// dist barrel. Structurally identical to the src types but TS treats them as
+// distinct. These aliases bridge without resorting to `any`.
+type EngineAST = Parameters<typeof createHeadlessRuntime>[0];
+type EngineRuntime = ReturnType<typeof createHeadlessRuntime>;
+type EngineProfileName = Parameters<typeof getProfile>[0];
 const PROFILES_HEADLESS = HEADLESS_PROFILE;
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
@@ -41,6 +48,7 @@ import {
   ethToWei,
 } from '../deploy/revenue-splitter';
 import { PROTOCOL_CONSTANTS } from '../deploy/protocol-types';
+import { readJson, jsonClone } from '../errors/safeJsonParse';
 import type { ImportChainNode } from '../deploy/protocol-types';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
@@ -762,7 +770,7 @@ interface DaemonCommand {
 
     let command: DaemonCommand;
     try {
-      command = JSON.parse(raw);
+      command = readJson(raw) as DaemonCommand;
     } catch {
       send({ type: 'daemon:error', error: 'Invalid JSON command' });
       return;
@@ -956,8 +964,10 @@ async function runScript(opts: CLIOptions): Promise<void> {
   }
 
   // Create runtime
-  const profile = opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any);
-  const runtime = createHeadlessRuntime(ast as any, {
+  const profile = opts.profile === 'headless'
+    ? HEADLESS_PROFILE
+    : getProfile(opts.profile as EngineProfileName);
+  const runtime = createHeadlessRuntime(ast as unknown as EngineAST, {
     profile,
     tickRate: 10,
     debug: opts.debug,
@@ -1005,13 +1015,15 @@ async function runScript(opts: CLIOptions): Promise<void> {
     return;
   }
 
-  // For headless scripts, run a fixed number of ticks then stop
-  runTicks(runtime as any, opts.ticks);
+  // For headless scripts, run a fixed number of ticks then stop.
+  // The engine HeadlessRuntime exposes tick() on its impl class but not via the
+  // dist interface barrel; bridge through unknown.
+  runTicks(runtime as unknown as { tick: () => void }, opts.ticks);
 
   runtime.stop();
 
   // Report
-  const stats = runtime.getStats() as any;
+  const stats = runtime.getStats() as unknown as { tickCount: number; nodesProcessed: number };
   console.log(
     `[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`
   );
@@ -1034,16 +1046,22 @@ async function runScript(opts: CLIOptions): Promise<void> {
         const newSource = fs.readFileSync(filePath, 'utf-8');
         const newParseResult = parse(newSource);
         const newAst = newParseResult.ast as HSPlusAST;
-        const newRuntime = createHeadlessRuntime(newAst as any, {
-          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any),
+        const newRuntime = createHeadlessRuntime(newAst as unknown as EngineAST, {
+          profile:
+            opts.profile === 'headless'
+              ? HEADLESS_PROFILE
+              : getProfile(opts.profile as EngineProfileName),
           tickRate: 10,
           debug: opts.debug,
           hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
         });
         newRuntime.start();
-        runTicks(newRuntime as any, opts.ticks);
+        runTicks(newRuntime as unknown as { tick: () => void }, opts.ticks);
         newRuntime.stop();
-        const newStats = newRuntime.getStats() as any;
+        const newStats = newRuntime.getStats() as unknown as {
+          tickCount: number;
+          nodesProcessed: number;
+        };
         console.log(
           `[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`
         );
@@ -1077,21 +1095,27 @@ async function testScript(opts: CLIOptions): Promise<void> {
 
   // Parse and create a headless runtime to populate state for assertions
   const parseResult = parse(source);
-  const ast = parseResult.ast as any;
+  const ast = parseResult.ast as HSPlusAST;
   const profile = HEADLESS_PROFILE;
-  const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
+  const runtime = createHeadlessRuntime(ast as unknown as EngineAST, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
-  for (let i = 0; i < 50; i++) (runtime as any).tick();
+  // Note: getState() with no args is implemented on HeadlessRuntimeImpl but not exposed
+  // on the HeadlessRuntime interface. Use a typed accessor via unknown to bridge.
+  const runtimeAccess = runtime as unknown as {
+    tick: () => void;
+    getState: () => Record<string, unknown>;
+  };
+  for (let i = 0; i < 50; i++) runtimeAccess.tick();
 
   const runner = new ScriptTestRunner({
     debug: opts.debug,
-    runtimeState: (runtime as any).getState(),
+    runtimeState: runtimeAccess.getState(),
   });
   const scriptResults = runner.runTestsFromSource(source, filePath);
 
   // Also run @test blocks (native composition tests with $stateVar syntax)
   // Prefer runtime state (properly parses nested objects) over raw text extraction
-  const runtimeState = (runtime as any).getState();
+  const runtimeState = runtimeAccess.getState();
   const compositionState =
     Object.keys(runtimeState).length > 0
       ? runtimeState
@@ -1219,7 +1243,7 @@ function generateNodeTarget(ast: HSPlusAST): string {
   if (ast.root && ast.root.children) {
     for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        const name = (node as any).name || 'default';
+        const name = node.name || 'default';
         lines.push(`// ${node.type}: ${name}`);
         lines.push(`module.exports.${name} = ${JSON.stringify(node, null, 2)};`);
         lines.push('');
@@ -1241,7 +1265,7 @@ function generatePythonTarget(ast: HSPlusAST): string {
   if (ast.root && ast.root.children) {
     for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        const name = (node as any).name || 'default_obj';
+        const name = node.name || 'default_obj';
         lines.push(`# ${node.type}: ${name}`);
         lines.push(`${name} = json.loads('''${JSON.stringify(node)}''')`);
         lines.push('');
@@ -1787,7 +1811,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
   if (fs.existsSync(lockFile)) {
     try {
-      const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+      const existing = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
       const staleMs = 120_000;
       if (Date.now() - existing.heartbeat < staleMs) {
         console.error(
@@ -1889,12 +1913,12 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.mkdirSync(skillsDirAbs, { recursive: true });
   }
 
-  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
+  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as Parameters<typeof loadRuntimeSkillActions>[2], repoRoot, opts.debug);
   let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
     null;
 
   const reloadRuntimeSkills = () => {
-    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
+    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as Parameters<typeof loadRuntimeSkillActions>[2], repoRoot, opts.debug);
     if (activeRuntime) {
       for (const [name, handler] of Object.entries(runtimeSkillActions)) {
         activeRuntime.registerAction(name, handler);
@@ -2001,7 +2025,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   let daemonState: DaemonPersistedState = { ...daemonStateDefaults };
   if (fs.existsSync(stateFile)) {
     try {
-      daemonState = { ...daemonState, ...JSON.parse(fs.readFileSync(stateFile, 'utf-8')) };
+      daemonState = { ...daemonState, ...readJson(fs.readFileSync(stateFile, 'utf-8')) };
     } catch {
       /* use defaults */
     }
@@ -2012,7 +2036,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
   if (fs.existsSync(fileStateFile)) {
     try {
-      const fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8'));
+      const fileState = readJson(fs.readFileSync(fileStateFile, 'utf-8')) as Record<string, unknown>;
       config.committedFiles = fileState.committed || [];
       config.failedFiles = fileState.failures || {};
     } catch {
@@ -2058,7 +2082,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       let wisdomEntries: Array<{ focus?: string; delta?: number }> = [];
       try {
         if (fs.existsSync(wisdomFile)) {
-          wisdomEntries = JSON.parse(fs.readFileSync(wisdomFile, 'utf-8'));
+          wisdomEntries = readJson(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[];
         }
       } catch {
         /* ignore */
@@ -2116,7 +2140,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
     // Fresh AST per cycle (deep clone for clean BT state)
     // Note: JSON clone strips Maps, so materializeTraits must run after clone
-    const cycleAST = JSON.parse(JSON.stringify(compositionAST));
+    const cycleAST = jsonClone(compositionAST);
     materializeTraits(cycleAST);
 
     // Set focus in AST blackboard before runtime creation
@@ -2132,7 +2156,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     }
 
     // Create runtime with profile-aware HeadlessRuntime (auto-tick via setInterval)
-    const runtime = createHeadlessRuntime(cycleAST as any, {
+    const runtime = createHeadlessRuntime(cycleAST as unknown as EngineAST, {
       profile: HEADLESS_PROFILE,
       tickRate: 10,
       debug: opts.debug,
@@ -2379,7 +2403,7 @@ function materializeTraits(ast: unknown): void {
     }
 
     // Replace traits: always set a Map (empty or populated) to avoid
-    // plain {} left by JSON.parse(JSON.stringify(Map)) being non-iterable
+    // plain {} left by jsonClone (JSON round-trip) when a Map is non-iterable in JSON
     if (traits.size > 0) {
       n.traits = traits;
     } else if (n.traits && !(n.traits instanceof Map)) {
@@ -2523,7 +2547,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
 
   if (fs.existsSync(lockFile)) {
     try {
-      const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+      const existing = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
       if (Date.now() - existing.heartbeat < 120_000) {
         console.error(
           `[holomesh-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
@@ -2640,10 +2664,10 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
       `\n[holomesh-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`
     );
 
-    const cycleAST = JSON.parse(JSON.stringify(compositionAST));
+    const cycleAST = jsonClone(compositionAST);
     materializeTraits(cycleAST);
 
-    const runtime = createHeadlessRuntime(cycleAST as any, {
+    const runtime = createHeadlessRuntime(cycleAST as unknown as EngineAST, {
       profile: HEADLESS_PROFILE,
       tickRate: 1,
       debug: opts.debug,
@@ -2720,7 +2744,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   let lastHeartbeat = 0;
   if (fs.existsSync(lockFile)) {
     try {
-      const lock = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+      const lock = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
       lockPid = lock.pid;
       lastHeartbeat = lock.heartbeat;
       isRunning = Date.now() - lastHeartbeat < 120_000;
@@ -2734,7 +2758,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   let ds: Record<string, unknown> = {};
   if (fs.existsSync(stateFile)) {
     try {
-      ds = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      ds = readJson(fs.readFileSync(stateFile, 'utf-8')) as typeof ds;
     } catch {
       /* */
     }
@@ -2748,7 +2772,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   };
   if (fs.existsSync(fileStateFile)) {
     try {
-      fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8'));
+      fileState = readJson(fs.readFileSync(fileStateFile, 'utf-8')) as typeof fileState;
     } catch {
       /* */
     }
@@ -2759,7 +2783,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   let wisdomCount = 0;
   if (fs.existsSync(wisdomFile)) {
     try {
-      wisdomCount = (JSON.parse(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[]).length;
+      wisdomCount = (readJson(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[]).length;
     } catch {
       /* */
     }
@@ -2777,7 +2801,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   }> = [];
   if (fs.existsSync(ledgerFile)) {
     try {
-      ledger = JSON.parse(fs.readFileSync(ledgerFile, 'utf-8'));
+      ledger = readJson(fs.readFileSync(ledgerFile, 'utf-8')) as typeof ledger;
     } catch {
       /* */
     }
@@ -2796,7 +2820,7 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
         .filter(Boolean);
       telemetryCount = lines.length;
       if (lines.length > 0) {
-        lastTelemetry = JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
+        lastTelemetry = readJson(lines[lines.length - 1]) as Record<string, unknown>;
       }
     } catch {
       // ignore malformed telemetry file
