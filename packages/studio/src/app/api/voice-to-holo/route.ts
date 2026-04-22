@@ -21,6 +21,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { rateLimit } from '@/lib/rate-limiter';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 import {
   SYSTEM_PROMPT_FRESH,
   SYSTEM_PROMPT_EDIT_SUFFIX,
@@ -40,6 +42,7 @@ import type {
 export const maxDuration = 30;
 // SEC-T03: cap user utterance length before any paid LLM call.
 const MAX_UTTERANCE_CHARS = 4000;
+const MAX_REQUESTS_PER_MIN = 15;
 
 function makeClient(): Anthropic | null {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -94,6 +97,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
     return auth as unknown as NextResponse<VoiceToHoloError>;
   }
 
+  const limit = rateLimit(
+    req,
+    { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
+    'voice-to-holo'
+  );
+  if (!limit.ok) {
+    return limit.response as unknown as NextResponse<VoiceToHoloError>;
+  }
+
+  const gate = await checkCredits(req, 'studio_voice_to_holo');
+  if (gate.error) {
+    return gate.error as unknown as NextResponse<VoiceToHoloError>;
+  }
+
   const client = makeClient();
   if (!client) {
     return NextResponse.json(
@@ -142,6 +159,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
 
   const systemPrompt = buildSystemPrompt(body.previousComposition);
 
+  const jsonOk = (payload: VoiceToHoloResponse) => {
+    deductCredits(gate.userId, 'studio_voice_to_holo').catch(() => {});
+    return NextResponse.json(payload);
+  };
+
   // Turn 1: produce a candidate
   let attempt: { text: string; latencyMs: number };
   try {
@@ -164,7 +186,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
   // Fast guardrail: structural/trait/color check
   const check1 = validateHoloOutput(source);
   if (check1.ok) {
-    return NextResponse.json({
+    return jsonOk({
       holoSource: source,
       modelLatencyMs: totalLatency,
       retried: false,
@@ -210,7 +232,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloRe
     );
   }
 
-  return NextResponse.json({
+  return jsonOk({
     holoSource: source,
     modelLatencyMs: totalLatency,
     retried: true,

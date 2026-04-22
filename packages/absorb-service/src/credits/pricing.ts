@@ -44,6 +44,10 @@ export const OPERATION_COSTS = {
     baseCostCents: 2,
     description: 'Material/asset generation (up to 512 tokens)',
   },
+  studio_voice_to_holo: {
+    baseCostCents: 4,
+    description: 'Voice utterance → HoloScript (Haiku, up to 2 turns)',
+  },
 } as const;
 
 export type OperationType = keyof typeof OPERATION_COSTS;

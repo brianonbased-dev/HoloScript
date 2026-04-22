@@ -35,7 +35,8 @@ export type StudioOperation =
   | 'studio_autocomplete'
   | 'studio_generate'
   | 'studio_chat'
-  | 'studio_material';
+  | 'studio_material'
+  | 'studio_voice_to_holo';
 
 export interface CreditGateSuccess {
   userId: string;

@@ -16,6 +16,7 @@ import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
@@ -130,6 +131,10 @@ export async function POST(request: NextRequest) {
     ]);
   }
 
+  // SEC-T03: credit check before first Claude token (pricing op = Brittney chat).
+  const gate = await checkCredits(request, 'studio_chat');
+  if (gate.error) return gate.error;
+
   const systemPrompt = buildContextualPrompt(sceneContext);
 
   const baseUrl = getBaseUrl(request);
@@ -152,6 +157,7 @@ export async function POST(request: NextRequest) {
       try {
         const MAX_TOOL_ROUNDS = 5;
         let roundMessages = [...claudeMessages];
+        let debited = false;
 
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
           // Accumulate tool use blocks during streaming
@@ -163,6 +169,11 @@ export async function POST(request: NextRequest) {
             name: string;
             input: Record<string, unknown>;
           }> = [];
+
+          if (!debited) {
+            debited = true;
+            deductCredits(gate.userId, 'studio_chat').catch(() => {});
+          }
 
           const response = await client.messages.create({
             // Opus 4.7 default — most capable. Override via BRITTNEY_MODEL env
