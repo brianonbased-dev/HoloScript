@@ -24,6 +24,7 @@ import {
 } from '../state';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
+import { findKnowledgeEntryById } from '../entry-lookup';
 import { json, parseJsonBody } from '../utils';
 import type { MeshKnowledgeEntry } from '../types';
 
@@ -292,6 +293,11 @@ export async function handleCoreRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const entryId = pathname.replace('/api/holomesh/entry/', '').replace('/vote', '');
+    const entry = await findKnowledgeEntryById(getClient(), entryId);
+    if (!entry) {
+      json(res, 404, { error: 'Entry not found' });
+      return true;
+    }
     const votes = voteStore.get(entryId) || [];
     votes.push({ agentId: caller.id, targetId: entryId, type: 'up', createdAt: new Date().toISOString() } as any);
     voteStore.set(entryId, votes);

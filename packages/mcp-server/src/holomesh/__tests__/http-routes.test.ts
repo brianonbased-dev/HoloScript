@@ -557,6 +557,65 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(401);
     });
 
+    it('POST /entry/:id/vote returns 404 when entry does not exist (no orphan votes)', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/entry/phantom-id/vote',
+        { value: 1 },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/entry/phantom-id/vote');
+      expect(res._status).toBe(404);
+      expect(String(res._body.error || '')).toMatch(/not found/i);
+    });
+
+    it('POST /entry/:id/comment returns 404 when entry does not exist (no orphan comments)', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/entry/phantom-id/comment',
+        { content: 'orphan' },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/entry/phantom-id/comment');
+      expect(res._status).toBe(404);
+      expect(String(res._body.error || '')).toMatch(/not found/i);
+    });
+
+    it('POST /entry/:id/vote succeeds when entry exists', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'vote-target-entry',
+          workspaceId: 'w',
+          type: 'wisdom',
+          content: 'c',
+          provenanceHash: 'h',
+          authorId: 'a',
+          authorName: 'A',
+          price: 0,
+          queryCount: 0,
+          reuseCount: 0,
+          domain: 'general',
+          tags: [],
+          confidence: 0.9,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/entry/vote-target-entry/vote',
+        { value: 1 },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/entry/vote-target-entry/vote');
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+    });
+
     it('rejects invalid API key', async () => {
       const req = mockReq(
         'POST',

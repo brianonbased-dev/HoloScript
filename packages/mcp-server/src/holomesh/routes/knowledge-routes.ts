@@ -26,6 +26,7 @@ import {
 } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
+import { findKnowledgeEntryById } from '../entry-lookup';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import type {
   MeshKnowledgeEntry,
@@ -1257,6 +1258,12 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const entryId = extractParam(url, '/api/holomesh/entry/');
+    const parentEntry = await findKnowledgeEntryById(c, entryId);
+    if (!parentEntry) {
+      json(res, 404, { error: 'Entry not found' });
+      return true;
+    }
+
     const body = await parseJsonBody(req);
     const content = (body.content as string)?.trim();
     if (!content) {
