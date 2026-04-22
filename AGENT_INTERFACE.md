@@ -52,6 +52,8 @@ set -a && source "$ENV_FILE" 2>/dev/null && set +a
 
 Pre-commit hook (lint + secrets + deps) is the quality gate. Branches only for multi-day experimental work. Full rationale: `NORTH_STAR.md` lines 309-342.
 
+**Vault reminder (D.021):** `.githooks/commit-msg` warns (never blocks) when `memory/`, `research/`, or active `docs/**/*.md` are staged but the message lacks a tier digit ref (`W.GOLD-12`, `P.GOLD 3`, etc.). Install with `cp .githooks/commit-msg .git/hooks/commit-msg` in Git Bash, or adopt `core.hooksPath` if your team uses the `.githooks/` set exclusively.
+
 ## File Format Routing
 
 ```

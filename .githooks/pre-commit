@@ -74,11 +74,12 @@ echo -e "  ├─ TypeScript type checking... ${YELLOW}⚠ skipped (CI handles t
 # Reason: Vitest startup takes ~5s, full run 6s. CI runs full validation anyway.
 echo -e "  ├─ Tests (core validators)... ${YELLOW}⚠ skipped (CI validates all tests)${NC}"
 
-# Gate 4: Workspace dependency check (5s timeout)
+# Gate 4: Workspace dependency check (30s — slow FS on Windows/agent sandboxes)
 echo "  ├─ Workspace dependency check..."
 if [ -f "scripts/check-workspace-deps.js" ]; then
-    DEPS_OUTPUT=$(run_with_timeout 5 node scripts/check-workspace-deps.js 2>&1)
-    if [ $? -ne 0 ]; then
+    DEPS_OUTPUT=$(run_with_timeout 30 node scripts/check-workspace-deps.js 2>&1)
+    DEPS_STATUS=$?
+    if [ "$DEPS_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Hardcoded @holoscript/* versions found${NC}"
         echo "$DEPS_OUTPUT"
         echo "     Run 'node scripts/check-workspace-deps.js --fix' to auto-correct"
