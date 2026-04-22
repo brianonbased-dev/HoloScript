@@ -151,6 +151,25 @@ else
     echo -e "  ${GREEN}✓${NC} Emit allowlist OK"
 fi
 
+# Gate 5c: Untracked-sibling imports (root-cause fix for SEC-T-Zero)
+# Blocks the "32 files imported but not git-added" class of bug. Local tests
+# pass (files on disk); Railway/CI fail MODULE_NOT_FOUND on a clean checkout.
+# Opt-out: HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 for rare emergency cases.
+echo "  ├─ Untracked-sibling import check..."
+if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
+    UNTSIB_OUT=$(run_with_timeout 15 node scripts/check-untracked-sibling-imports.js 2>&1)
+    UNTSIB_STATUS=$?
+    if [ "$UNTSIB_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Staged file imports an untracked sibling${NC}"
+        echo "$UNTSIB_OUT"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} No untracked-sibling imports"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC}  scripts/check-untracked-sibling-imports.js not present (skipped)"
+fi
+
 # Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 
