@@ -183,14 +183,21 @@ export type DeepPartial<T> = {
  * Create a Vec2
  */
 export function vec2(x: number = 0, y: number = 0): Vec2 {
-  return { x, y };
+  const v = [x, y] as unknown as Vec2;
+  Object.defineProperty(v, 'x', { value: x, writable: true, enumerable: false, configurable: true });
+  Object.defineProperty(v, 'y', { value: y, writable: true, enumerable: false, configurable: true });
+  return v;
 }
 
 /**
  * Create a Vec3
  */
 export function vec3(x: number = 0, y: number = 0, z: number = 0): Vec3 {
-  return { x, y, z };
+  const v = [x, y, z] as unknown as Vec3;
+  Object.defineProperty(v, 'x', { value: x, writable: true, enumerable: false, configurable: true });
+  Object.defineProperty(v, 'y', { value: y, writable: true, enumerable: false, configurable: true });
+  Object.defineProperty(v, 'z', { value: z, writable: true, enumerable: false, configurable: true });
+  return v;
 }
 
 /**
@@ -268,7 +275,7 @@ export function vec3ToArray(v: Vec3): Vec3Array {
  * Convert array to Vec3
  */
 export function arrayToVec3(arr: Vec3Array | number[]): Vec3 {
-  return { x: arr[0] || 0, y: arr[1] || 0, z: arr[2] || 0 };
+  return vec3(arr[0] || 0, arr[1] || 0, arr[2] || 0);
 }
 
 /**

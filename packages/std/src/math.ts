@@ -124,7 +124,7 @@ export const vec3Math = {
   left: (): Vec3 => vec3(-1, 0, 0),
   right: (): Vec3 => vec3(1, 0, 0),
 
-  add: (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }),
+  add: (a: Vec3, b: Vec3): Vec3 => vec3(a.x + b.x, a.y + b.y, a.z + b.z),
   sub: (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }),
   mul: (a: Vec3, s: number): Vec3 => ({ x: a.x * s, y: a.y * s, z: a.z * s }),
   div: (a: Vec3, s: number): Vec3 => ({ x: a.x / s, y: a.y / s, z: a.z / s }),
