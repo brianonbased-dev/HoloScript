@@ -137,6 +137,14 @@ export async function uploadFile(
   return `https://${getBucket()}.s3.${process.env.S3_REGION || 'us-east-1'}.amazonaws.com/${key}`;
 }
 
+export interface PresignedPutOptions {
+  /**
+   * SEC-T12: When set, the signed PUT requires this exact Content-Length (bytes).
+   * Client must send the same byte length or S3 rejects the upload.
+   */
+  contentLength?: number;
+}
+
 /**
  * Generate a presigned upload URL for direct browser uploads.
  * Client can PUT directly to this URL without going through the server.
@@ -144,17 +152,20 @@ export async function uploadFile(
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 3600
+  expiresIn = 3600,
+  options?: PresignedPutOptions
 ): Promise<string> {
   const client = getS3Client();
   if (!client) throw new Error('S3 storage not configured');
 
+  const contentLength = options?.contentLength;
   return getSignedUrl(
     client,
     new PutObjectCommand({
       Bucket: getBucket(),
       Key: key,
       ContentType: contentType,
+      ...(contentLength !== undefined ? { ContentLength: contentLength } : {}),
     }),
     { expiresIn }
   );

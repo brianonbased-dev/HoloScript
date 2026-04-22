@@ -53,14 +53,21 @@ export async function POST(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const userId = auth.user.id;
 
-  let body: { filename?: string; contentType?: string; name?: string; category?: string };
+  let body: {
+    filename?: string;
+    contentType?: string;
+    name?: string;
+    category?: string;
+    /** Declared byte size of the file to upload — required for presigned S3 PUT (SEC-T12). */
+    fileSizeBytes?: number;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { filename, contentType, name } = body;
+  const { filename, contentType, name, fileSizeBytes } = body;
   if (!filename || !contentType) {
     return NextResponse.json({ error: 'filename and contentType are required' }, { status: 400 });
   }
@@ -102,8 +109,27 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Generate presigned URL for direct browser upload
-  const uploadUrl = await getPresignedUploadUrl(key, contentType, 3600);
+  // SEC-T12: Bind presigned PUT to an exact Content-Length so oversized objects cannot bypass the cap.
+  if (fileSizeBytes === undefined || typeof fileSizeBytes !== 'number' || !Number.isFinite(fileSizeBytes)) {
+    return NextResponse.json(
+      {
+        error: 'fileSizeBytes is required for presigned upload',
+        hint: 'Send the byte size of the file you will PUT so the URL can be bound to Content-Length.',
+      },
+      { status: 400 }
+    );
+  }
+  const maxBytes = _MAX_SIZE_MB * 1024 * 1024;
+  if (fileSizeBytes <= 0 || fileSizeBytes > maxBytes) {
+    return NextResponse.json(
+      { error: `fileSizeBytes must be between 1 and ${maxBytes} (${_MAX_SIZE_MB} MiB cap)` },
+      { status: 400 }
+    );
+  }
+
+  const uploadUrl = await getPresignedUploadUrl(key, contentType, 3600, {
+    contentLength: Math.floor(fileSizeBytes),
+  });
 
   // Pre-register asset in database so client can reference it immediately
   const db = getDb();

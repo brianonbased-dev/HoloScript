@@ -287,6 +287,8 @@ export class HoloScriptSandbox {
     const protoEscapePatterns = [
       // Classic proto chain
       /__proto__/,
+      // SEC-T15: optional chaining bypasses /\.constructor\s*(?:\.|\[)/ (e.g. obj.constructor?.constructor).
+      /\.constructor\s*\?\./,
       /\.constructor\s*(?:\.|\[)/,
       /getPrototypeOf\s*\(/,
       /setPrototypeOf\s*\(/,

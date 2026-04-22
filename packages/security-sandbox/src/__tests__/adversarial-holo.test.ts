@@ -382,6 +382,35 @@ describe('Adversarial: Sandbox Escape', () => {
     });
   });
 
+  it('S9b. Optional-chaining constructor crawl — constructor?.constructor is blocked', async () => {
+    // SEC-T15: /\.constructor\s*(?:\.|\[)/ misses `?.` — optional chaining slips past unless
+    // an explicit /\.constructor\s*\?\./ heuristic rejects it.
+    const sandbox = new HoloScriptSandbox({ timeout: 1000 });
+    const payload = `
+      const c = ({}).constructor?.constructor;
+      const escape = c('return process')();
+      escape.exit(0);
+    `;
+
+    const result = await sandbox.executeHoloScript(payload, { source: 'ai-generated' });
+
+    expect(result.success).toBe(false);
+    expect(['validation', 'runtime', 'syntax']).toContain(result.error?.type);
+
+    recordAttack({
+      id: 'S9b',
+      category: 'Sandbox Escape',
+      description: 'Optional-chaining constructor?.constructor (SEC-T15)',
+      detected: !result.success,
+      guarantee:
+        result.error?.type === 'validation'
+          ? 'sandbox-validation'
+          : result.error?.type === 'syntax'
+            ? 'sandbox-syntax'
+            : 'sandbox-runtime',
+    });
+  });
+
   it('S10. Dynamic bracket computation — ["con"+"structor"] is blocked', async () => {
     // SEC-T15: Dynamic string computation inside bracket accessors. The naive
     // literal regex /\.constructor\s*(?:\.|\[)/ misses

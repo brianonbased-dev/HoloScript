@@ -8,6 +8,17 @@ import { isStorageConfigured, uploadFile, deleteFile } from '../../../lib/storag
 import { logger } from '@/lib/logger';
 
 import { corsHeaders } from '../_lib/cors';
+import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
+
+/** SEC-T12: max raw JSON body for POST (scene code + data URL). */
+const MAX_SNAPSHOT_POST_BYTES = 36 * 1024 * 1024;
+/** SEC-T12: max decoded image bytes when data:image/* is uploaded to S3. */
+const MAX_SNAPSHOT_IMAGE_BYTES = 25 * 1024 * 1024;
+/** SEC-T12: max HoloScript snapshot code stored alongside the image. */
+const MAX_SNAPSHOT_CODE_CHARS = 2 * 1024 * 1024;
+
+const ALLOWED_SNAPSHOT_IMAGE_HEADER = /^data:image\/(png|jpeg|jpg|webp|gif);/i;
+
 /**
  * /api/snapshots — scene snapshot store.
  *
@@ -74,6 +85,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const contentLength = request.headers.get('content-length');
+  if (contentLength) {
+    const n = parseInt(contentLength, 10);
+    if (Number.isFinite(n) && n > MAX_SNAPSHOT_POST_BYTES) {
+      return Response.json(
+        { error: `Request body exceeds ${MAX_SNAPSHOT_POST_BYTES} bytes` },
+        { status: 413 }
+      );
+    }
+  }
+
   let body: Partial<Snapshot>;
   try {
     body = (await request.json()) as Partial<Snapshot>;
@@ -83,20 +105,77 @@ export async function POST(request: NextRequest) {
 
   const { sceneId = 'default', label = 'Snapshot', dataUrl = '', code = '' } = body;
 
+  if (code.length > MAX_SNAPSHOT_CODE_CHARS) {
+    return Response.json(
+      { error: `Snapshot code exceeds ${MAX_SNAPSHOT_CODE_CHARS} characters` },
+      { status: 413 }
+    );
+  }
+
+  if (dataUrl && dataUrl.startsWith('data:') && !ALLOWED_SNAPSHOT_IMAGE_HEADER.test(dataUrl.split(',')[0] ?? '')) {
+    return Response.json(
+      { error: 'Only data:image/png, jpeg, webp, or gif snapshots are allowed' },
+      { status: 400 }
+    );
+  }
+
   // Upload base64 image to S3 when configured
   let imageUrl = dataUrl;
   if (dataUrl && dataUrl.startsWith('data:image/') && isStorageConfigured()) {
     try {
-      const [header, base64Data] = dataUrl.split(',');
+      const comma = dataUrl.indexOf(',');
+      if (comma === -1) {
+        return Response.json({ error: 'Malformed data URL' }, { status: 400 });
+      }
+      const header = dataUrl.slice(0, comma);
+      const base64Data = dataUrl.slice(comma + 1);
+      const approxDecoded = Math.floor((base64Data.length * 3) / 4);
+      if (approxDecoded > MAX_SNAPSHOT_IMAGE_BYTES) {
+        return Response.json(
+          { error: `Snapshot image exceeds ${MAX_SNAPSHOT_IMAGE_BYTES} bytes (decoded estimate)` },
+          { status: 413 }
+        );
+      }
       const mimeMatch = header.match(/data:([^;]+)/);
       const mime = mimeMatch?.[1] ?? 'image/png';
-      const ext = mime.split('/')[1] ?? 'png';
+      const ext = (mime.split('/')[1] ?? 'png').replace(/[^a-z0-9]/gi, '') || 'png';
       const buffer = Buffer.from(base64Data, 'base64');
+      if (buffer.length > MAX_SNAPSHOT_IMAGE_BYTES) {
+        return Response.json(
+          { error: `Snapshot image exceeds ${MAX_SNAPSHOT_IMAGE_BYTES} bytes` },
+          { status: 413 }
+        );
+      }
+      virusScanHookPoint(`snapshots:${ext}`, buffer);
       const key = `snapshots/${sceneId}/${Date.now().toString(36)}.${ext}`;
       imageUrl = await uploadFile(key, buffer, mime);
-    } catch {
-      // Fall back to storing base64 inline
-      imageUrl = dataUrl;
+    } catch (err) {
+      logger.warn('[snapshots] S3 upload failed:', err);
+      return Response.json({ error: 'Failed to upload snapshot image' }, { status: 502 });
+    }
+  } else if (dataUrl && dataUrl.startsWith('data:image/') && !isStorageConfigured()) {
+    const comma = dataUrl.indexOf(',');
+    if (comma !== -1) {
+      const base64Data = dataUrl.slice(comma + 1);
+      const approxDecoded = Math.floor((base64Data.length * 3) / 4);
+      if (approxDecoded > MAX_SNAPSHOT_IMAGE_BYTES) {
+        return Response.json(
+          { error: `Snapshot image exceeds ${MAX_SNAPSHOT_IMAGE_BYTES} bytes` },
+          { status: 413 }
+        );
+      }
+      try {
+        const buf = Buffer.from(base64Data, 'base64');
+        if (buf.length > MAX_SNAPSHOT_IMAGE_BYTES) {
+          return Response.json(
+            { error: `Snapshot image exceeds ${MAX_SNAPSHOT_IMAGE_BYTES} bytes` },
+            { status: 413 }
+          );
+        }
+        virusScanHookPoint('snapshots:inline', buf);
+      } catch {
+        return Response.json({ error: 'Invalid base64 in data URL' }, { status: 400 });
+      }
     }
   }
 

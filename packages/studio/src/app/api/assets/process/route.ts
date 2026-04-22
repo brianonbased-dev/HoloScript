@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import { getDb } from '../../../../db/client';
 import { assets } from '../../../../db/schema';
 import { getSession } from '../../../../lib/api-auth';
@@ -144,9 +145,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // Fallback: local disk storage
+    // Fallback: local disk storage — SEC-T12: non-guessable prefix (UUID), not timestamp-only.
     await ensureUploadDir();
-    const safeName = `${Date.now()}_${name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const sanitized = name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+    const safeName = `${randomUUID()}_${sanitized || 'upload'}`;
     const savePath = path.join(UPLOAD_DIR, safeName);
     await writeFile(savePath, buffer);
 
