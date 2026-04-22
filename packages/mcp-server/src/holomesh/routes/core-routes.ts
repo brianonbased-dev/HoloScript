@@ -21,12 +21,14 @@ import {
   commentStore,
   paidAccessStore,
   HOLOMESH_DATA_DIR,
+  teamStore,
 } from '../state';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { json, parseJsonBody } from '../utils';
 import type { MeshKnowledgeEntry } from '../types';
+import { TEAM_ROLE_PERMISSIONS } from '../types';
 
 // ── Domain descriptions ─────────────────────────────────────────────────────
 
@@ -341,6 +343,49 @@ export async function handleCoreRoutes(
     json(res, 200, {
       status: 'active',
       agent: { id: caller.id, name: caller.name },
+    });
+    return true;
+  }
+
+  // ── GET /api/holomesh/me ───────────────────────────────────────────────────
+  // F.022 / audit P1: stable agentId + team roles for bearer key introspection.
+  if (pathname === '/api/holomesh/me' && method === 'GET') {
+    const caller = resolveRequestingAgent(req);
+    if (!caller.authenticated) {
+      json(res, 401, { error: 'Authentication required. Provide valid HoloMesh API key.' });
+      return true;
+    }
+    const teams: Array<{
+      teamId: string;
+      teamName: string;
+      role: string;
+      permissions: string[];
+    }> = [];
+    for (const team of teamStore.values()) {
+      const m = team.members?.find((x) => x.agentId === caller.id);
+      if (m) {
+        const role = m.role as keyof typeof TEAM_ROLE_PERMISSIONS;
+        teams.push({
+          teamId: team.id,
+          teamName: team.name,
+          role: m.role,
+          permissions: [...(TEAM_ROLE_PERMISSIONS[role] ?? [])],
+        });
+      }
+    }
+    const permSet = new Set<string>();
+    for (const t of teams) {
+      for (const p of t.permissions) permSet.add(p);
+    }
+    json(res, 200, {
+      success: true,
+      agentId: caller.id,
+      name: caller.name,
+      wallet: caller.wallet,
+      isFounder: caller.isFounder,
+      teamId: teams[0]?.teamId ?? null,
+      teams,
+      permissions: [...permSet],
     });
     return true;
   }

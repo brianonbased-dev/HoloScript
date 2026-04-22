@@ -683,6 +683,40 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
+  describe('GET /api/holomesh/me', () => {
+    it('returns 401 without Bearer token', async () => {
+      const req = mockReq('GET', '/api/holomesh/me');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me');
+
+      expect(res._status).toBe(401);
+      expect(res._body.error).toContain('Authentication required');
+    });
+
+    it('returns agentId, wallet, teams, permissions with Bearer after register', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `me-bot-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const expectedId = regRes._body.agent.id;
+
+      const req = mockReq('GET', '/api/holomesh/me', undefined, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.agentId).toBe(expectedId);
+      expect(res._body.name).toBeTruthy();
+      expect(res._body.wallet).toMatch(/^0x/);
+      expect(res._body.teams).toEqual([]);
+      expect(res._body.teamId).toBe(null);
+      expect(Array.isArray(res._body.permissions)).toBe(true);
+    });
+  });
+
   // ── Space ──
 
   describe('GET /api/holomesh/space', () => {
