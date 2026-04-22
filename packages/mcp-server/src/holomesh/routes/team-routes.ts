@@ -1,13 +1,15 @@
 import type http from 'http';
 import * as crypto from 'crypto';
-import { 
-  teamStore, 
-  agentKeyStore, 
+import { verifyTypedData } from 'viem';
+import {
+  teamStore,
+  agentKeyStore,
   walletToAgent,
   teamMessageStore,
   teamPresenceStore,
   persistTeamStore,
-  persistAgentStore 
+  persistAgentStore,
+  challengeStore
 } from '../state';
 import { 
   json, 
@@ -365,7 +367,48 @@ export async function handleTeamRoutes(
   }
 
 
-    // POST /api/holomesh/register — Legacy registration
+    // POST /api/holomesh/register/challenge — Issue nonce for proof-of-ownership
+    // Part of x402 challenge-verified registration (SEC-T-Zero fix 2026-04-22).
+    // Client flow: generate wallet locally → request challenge → sign nonce →
+    // POST /register with {wallet_address, nonce, signature} — server never sees private key.
+    if (pathname === '/api/holomesh/register/challenge' && method === 'POST') {
+      const body = await parseJsonBody(req);
+      const walletAddress = (body.wallet_address as string | undefined)?.trim();
+      if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+        json(res, 400, { error: 'wallet_address must be a valid 0x-prefixed 40-char hex address' });
+        return true;
+      }
+      const walletKey = walletAddress.toLowerCase();
+      if (walletToAgent.has(walletKey)) {
+        json(res, 409, { error: 'This wallet is already registered. Use /api/holomesh/key/challenge for key recovery.' });
+        return true;
+      }
+      const nonce = crypto.randomUUID();
+      const expiresAt = Date.now() + 300_000; // 5 min
+      challengeStore.set(nonce, { walletAddress: walletKey, expiresAt });
+      json(res, 200, {
+        success: true,
+        challenge: {
+          walletAddress,
+          domain: 'HoloMesh Registration',
+          message: `Register a new HoloMesh agent with wallet ${walletAddress}`,
+        },
+        nonce,
+        expires_in: 300,
+        instructions: {
+          next: 'POST /api/holomesh/register with {name, wallet_address, nonce, signature}',
+          sign_format: 'EIP-712 typed data: domain={name:"HoloMesh",version:"1"}, types={Registration:[{name:"nonce",type:"string"}]}, primaryType="Registration", message={nonce}',
+        },
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/register — Agent registration
+    // SEC-T-Zero fix 2026-04-22:
+    //   - x402 path (preferred): client provides {wallet_address, nonce, signature} — server verifies
+    //     ownership via EIP-712 signature recovery, NEVER sees private key.
+    //   - Legacy path (deprecated): client provides no wallet_address — server generates one + returns
+    //     private_key in response. Grace-period supported but logged + warning header returned.
     if (pathname === '/api/holomesh/register' && method === 'POST') {
       const body = await parseJsonBody(req);
       const name = (body.name as string)?.trim() || '';
@@ -386,12 +429,52 @@ export async function handleTeamRoutes(
         return true;
       }
       const providedWallet = (body.wallet_address as string | undefined)?.trim() || '';
+      const providedNonce = (body.nonce as string | undefined)?.trim() || '';
+      const providedSignature = (body.signature as string | undefined)?.trim() || '';
+      let isX402Path = false;
       if (providedWallet) {
         const walletKey = providedWallet.toLowerCase();
         if (walletToAgent.has(walletKey)) {
           json(res, 409, { error: 'This wallet is already registered' });
           return true;
         }
+        // x402 challenge-verified path: require + verify proof-of-ownership
+        if (!providedNonce || !providedSignature) {
+          json(res, 400, {
+            error: 'wallet_address provided without proof-of-ownership. Request a nonce via POST /api/holomesh/register/challenge, sign it, then include {nonce, signature} in this request. (SEC-T-Zero fix 2026-04-22.)',
+            see: 'POST /api/holomesh/register/challenge',
+          });
+          return true;
+        }
+        const record = challengeStore.get(providedNonce);
+        if (!record || record.expiresAt < Date.now()) {
+          json(res, 400, { error: 'Invalid or expired nonce' });
+          return true;
+        }
+        if (record.walletAddress !== walletKey) {
+          json(res, 400, { error: 'Wallet address does not match the nonce record' });
+          return true;
+        }
+        // Consume nonce (single-use)
+        challengeStore.delete(providedNonce);
+        try {
+          const valid = await verifyTypedData({
+            address: providedWallet as `0x${string}`,
+            domain: { name: 'HoloMesh', version: '1' },
+            types: { Registration: [{ name: 'nonce', type: 'string' }] },
+            primaryType: 'Registration',
+            message: { nonce: providedNonce },
+            signature: providedSignature as `0x${string}`,
+          });
+          if (!valid) {
+            json(res, 401, { error: 'Signature verification failed — signer does not own wallet_address' });
+            return true;
+          }
+        } catch {
+          json(res, 401, { error: 'Signature verification failed' });
+          return true;
+        }
+        isX402Path = true;
       }
       const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
       const wallet = providedWallet ? null : createWalletMaterial();
@@ -439,7 +522,15 @@ export async function handleTeamRoutes(
           createdAt: new Date().toISOString(),
         } as import('../types').MeshKnowledgeEntry]);
       } catch {}
-      json(res, 201, {
+      // SEC-T-Zero 2026-04-22: Log deprecation of legacy server-side wallet path.
+      if (wallet) {
+        console.warn(
+          `[HoloMesh /register] DEPRECATED: legacy server-side wallet generation for agent '${name}'. ` +
+          `Migrate to x402 challenge-verified flow (POST /register/challenge). ` +
+          `See SEC-T-Zero. Will be removed in future release.`
+        );
+      }
+      const resp: Record<string, unknown> = {
         success: true,
         agent: {
           id: agent.id,
@@ -449,18 +540,37 @@ export async function handleTeamRoutes(
           traits: agent.traits,
           created_at: agent.createdAt,
         },
-        wallet: wallet
-          ? {
-              private_key: wallet.privateKey,
-              address: wallet.address,
-              important: 'Save your private_key securely — it cannot be recovered.',
-            }
-          : { note: 'Using existing wallet. No private_key generated.', address: providedWallet },
         private_workspace: {
           id: `private:${walletAddress}`,
           query: 'GET /api/holomesh/knowledge/private',
         },
-      });
+      };
+      if (isX402Path) {
+        // x402 path: server never saw private key. Response confirms registration only.
+        resp.wallet = {
+          address: providedWallet,
+          source: 'client-provided (x402 challenge-verified)',
+          note: 'Ownership proven via EIP-712 signature. Server never received or stored private_key.',
+        };
+      } else if (wallet) {
+        // Legacy path: server generated wallet. DEPRECATED.
+        // Sending private_key remains here for grace-period back-compat with older clients,
+        // but the deprecation warning above is logged and the response body carries a migration hint.
+        resp.deprecation = {
+          path: 'server-side-wallet-gen',
+          migrate_to: 'POST /api/holomesh/register/challenge',
+          reason: 'Server-side wallet generation exposes private keys in transit. See SEC-T-Zero 2026-04-22.',
+        };
+        resp.wallet = {
+          private_key: wallet.privateKey,
+          address: wallet.address,
+          important: 'Save your private_key securely — it cannot be recovered.',
+          deprecated: 'Server-side wallet generation is deprecated. Use x402 challenge-verified registration (POST /register/challenge). See SEC-T-Zero.',
+        };
+      } else {
+        resp.wallet = { note: 'Using existing wallet. No private_key generated.', address: providedWallet };
+      }
+      json(res, 201, resp);
       return true;
     }
 

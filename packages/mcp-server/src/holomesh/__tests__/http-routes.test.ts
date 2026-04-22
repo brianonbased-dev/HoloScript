@@ -203,19 +203,34 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.wallet.important).toContain('Save your private_key');
     });
 
-    it('registers with existing wallet address', async () => {
+    it('registers with x402 challenge-verified client wallet', async () => {
+      // SEC-T-Zero 2026-04-22: wallet_address now requires challenge + signature proof.
+      const walletAddress = '0xABCDef1234567890abcdef1234567890ABCDef12';
+
+      // Step 1: challenge
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalRes = mockRes();
+      await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
+      expect(chalRes._status).toBe(200);
+      const nonce = chalRes._body.nonce;
+
+      // Step 2: register with signature
+      mockVerifyTypedData.mockResolvedValue(true);
       const req = mockReq('POST', '/api/holomesh/register', {
         name: 'wallet-bot',
-        wallet_address: '0xABCDef1234567890abcdef1234567890ABCDef12',
+        wallet_address: walletAddress,
+        nonce,
+        signature: '0xvalidsig',
       });
       const res = mockRes();
 
       await handleHoloMeshRoute(req, res, '/api/holomesh/register');
 
       expect(res._status).toBe(201);
-      expect(res._body.agent.wallet_address).toBe('0xABCDef1234567890abcdef1234567890ABCDef12');
+      expect(res._body.agent.wallet_address).toBe(walletAddress);
+      // CRITICAL: no private_key in response
       expect(res._body.wallet.private_key).toBeUndefined();
-      expect(res._body.wallet.note).toContain('existing wallet');
+      expect(res._body.wallet.source).toContain('client-provided');
     });
 
     it('rejects short names', async () => {
@@ -253,28 +268,33 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res2._body.error).toContain('already registered');
     });
 
-    it('rejects duplicate wallet address', async () => {
+    it('rejects duplicate wallet address (at challenge step)', async () => {
+      // SEC-T-Zero 2026-04-22: duplicate wallet blocked at /register/challenge now (earlier in flow).
       const wallet = '0x1111111111111111111111111111111111111111';
 
-      // Register first
+      // Step 1: first agent gets challenge + registers
+      const chal1Req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: wallet });
+      const chal1Res = mockRes();
+      await handleHoloMeshRoute(chal1Req, chal1Res, '/api/holomesh/register/challenge');
+      const nonce1 = chal1Res._body.nonce;
+
+      mockVerifyTypedData.mockResolvedValue(true);
       const req1 = mockReq('POST', '/api/holomesh/register', {
         name: 'bot-a',
         wallet_address: wallet,
+        nonce: nonce1,
+        signature: '0xsig',
       });
       const res1 = mockRes();
       await handleHoloMeshRoute(req1, res1, '/api/holomesh/register');
       expect(res1._status).toBe(201);
 
-      // Try same wallet
-      const req2 = mockReq('POST', '/api/holomesh/register', {
-        name: 'bot-b',
-        wallet_address: wallet,
-      });
-      const res2 = mockRes();
-      await handleHoloMeshRoute(req2, res2, '/api/holomesh/register');
-
-      expect(res2._status).toBe(409);
-      expect(res2._body.error).toContain('wallet is already registered');
+      // Step 2: duplicate blocked at challenge step
+      const chal2Req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: wallet });
+      const chal2Res = mockRes();
+      await handleHoloMeshRoute(chal2Req, chal2Res, '/api/holomesh/register/challenge');
+      expect(chal2Res._status).toBe(409);
+      expect(chal2Res._body.error).toContain('already registered');
     });
 
     it('persists agent store to disk after registration', async () => {
@@ -492,6 +512,186 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(recRes._status).toBe(400);
       expect(recRes._body.error).toContain('does not match');
+    });
+  });
+
+  // ── x402 Challenge-Verified Registration (SEC-T-Zero fix 2026-04-22) ──
+
+  describe('POST /api/holomesh/register/challenge', () => {
+    it('issues a nonce for a fresh wallet_address', async () => {
+      const walletAddress = '0x' + 'a'.repeat(40);
+      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.nonce).toBeTruthy();
+      expect(res._body.expires_in).toBe(300);
+      expect(res._body.challenge.walletAddress).toBe(walletAddress);
+      expect(res._body.instructions).toBeTruthy();
+    });
+
+    it('returns 400 for malformed wallet_address', async () => {
+      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: 'not-an-address' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
+
+      expect(res._status).toBe(400);
+      expect(res._body.error).toContain('must be a valid');
+    });
+
+    it('returns 409 for already-registered wallet', async () => {
+      // Register first (legacy path, server-gen)
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: 'already-registered-bot' });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const existingWallet = regRes._body.agent.wallet_address;
+
+      // Challenge for that wallet → 409
+      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: existingWallet });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
+
+      expect(res._status).toBe(409);
+      expect(res._body.error).toContain('already registered');
+    });
+  });
+
+  describe('POST /api/holomesh/register (x402 path)', () => {
+    it('happy path: challenge + sign + register, NO private_key in response', async () => {
+      const walletAddress = '0x' + 'b'.repeat(40);
+      // Step 1: challenge
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalRes = mockRes();
+      await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
+      const nonce = chalRes._body.nonce;
+
+      // Step 2: register with valid signature (mocked)
+      mockVerifyTypedData.mockResolvedValue(true);
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: 'x402-happy-bot',
+        wallet_address: walletAddress,
+        nonce,
+        signature: '0xvalidsig',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+
+      expect(regRes._status).toBe(201);
+      expect(regRes._body.success).toBe(true);
+      expect(regRes._body.agent.wallet_address).toBe(walletAddress);
+      // CRITICAL: server never returned private_key
+      expect(regRes._body.wallet.private_key).toBeUndefined();
+      expect(regRes._body.wallet.source).toContain('client-provided');
+      expect(regRes._body.wallet.source).toContain('x402 challenge-verified');
+    });
+
+    it('rejects wallet_address without nonce/signature with migration hint', async () => {
+      const req = mockReq('POST', '/api/holomesh/register', {
+        name: 'no-proof-bot',
+        wallet_address: '0x' + 'c'.repeat(40),
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register');
+
+      expect(res._status).toBe(400);
+      expect(res._body.error).toContain('proof-of-ownership');
+      expect(res._body.see).toContain('/register/challenge');
+    });
+
+    it('rejects invalid signature with 401', async () => {
+      const walletAddress = '0x' + 'd'.repeat(40);
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalRes = mockRes();
+      await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
+      const nonce = chalRes._body.nonce;
+
+      mockVerifyTypedData.mockResolvedValue(false);
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: 'bad-sig-bot',
+        wallet_address: walletAddress,
+        nonce,
+        signature: '0xbadsig',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+
+      expect(regRes._status).toBe(401);
+      expect(regRes._body.error).toContain('Signature verification failed');
+    });
+
+    it('rejects replay (same nonce twice)', async () => {
+      const walletA = '0x' + 'e'.repeat(40);
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletA });
+      const chalRes = mockRes();
+      await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
+      const nonce = chalRes._body.nonce;
+
+      // First use — succeeds
+      mockVerifyTypedData.mockResolvedValue(true);
+      const reg1Req = mockReq('POST', '/api/holomesh/register', {
+        name: 'replay-first',
+        wallet_address: walletA,
+        nonce,
+        signature: '0xsig',
+      });
+      const reg1Res = mockRes();
+      await handleHoloMeshRoute(reg1Req, reg1Res, '/api/holomesh/register');
+      expect(reg1Res._status).toBe(201);
+
+      // Second use of same nonce — fails (already consumed)
+      const reg2Req = mockReq('POST', '/api/holomesh/register', {
+        name: 'replay-second',
+        wallet_address: '0x' + 'f'.repeat(40),  // different wallet, doesn't matter
+        nonce,
+        signature: '0xsig',
+      });
+      const reg2Res = mockRes();
+      await handleHoloMeshRoute(reg2Req, reg2Res, '/api/holomesh/register');
+      expect(reg2Res._status).toBe(400);
+      expect(reg2Res._body.error).toContain('Invalid or expired nonce');
+    });
+
+    it('rejects wallet mismatch (nonce for A, register attempts B)', async () => {
+      // Use unique wallet values — walletA='1' and walletB='2' collide with earlier
+      // "rejects duplicate wallet address" test (challengeStore + walletToAgent share state).
+      const walletA = '0x' + '3'.repeat(40);
+      const walletB = '0x' + '4'.repeat(40);
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletA });
+      const chalRes = mockRes();
+      await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
+      const nonce = chalRes._body.nonce;
+
+      mockVerifyTypedData.mockResolvedValue(true);
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: 'mismatch-bot',
+        wallet_address: walletB,   // different wallet than challenge was for
+        nonce,
+        signature: '0xsig',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+
+      expect(regRes._status).toBe(400);
+      expect(regRes._body.error).toContain('does not match');
+    });
+  });
+
+  describe('POST /api/holomesh/register (legacy path, deprecated)', () => {
+    it('still succeeds with no wallet_address but sets deprecation signal in body', async () => {
+      const req = mockReq('POST', '/api/holomesh/register', { name: 'legacy-deprecated-bot' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register');
+
+      expect(res._status).toBe(201);
+      expect(res._body.agent.api_key).toBeTruthy();
+      expect(res._body.wallet.private_key).toBeTruthy();  // legacy behavior preserved
+      expect(res._body.wallet.deprecated).toContain('deprecated');
+      // Deprecation signal in body tells clients to migrate
+      expect(res._body.deprecation).toBeTruthy();
+      expect(res._body.deprecation.path).toBe('server-side-wallet-gen');
+      expect(res._body.deprecation.migrate_to).toContain('/register/challenge');
     });
   });
 
