@@ -126,8 +126,8 @@ export class RigidBody {
   // State Accessors
   // ============================================================================
 
-  public get position(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
-    return vec3out(this._position);
+  public get position(): IVector3 {
+    return [...this._position] as IVector3;
   }
 
   public set position(value: IVector3) {
@@ -144,8 +144,8 @@ export class RigidBody {
     this.wakeUp();
   }
 
-  public get linearVelocity(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
-    return vec3out(this._linearVelocity);
+  public get linearVelocity(): IVector3 {
+    return [...this._linearVelocity] as IVector3;
   }
 
   public set linearVelocity(value: AnyVec3) {
@@ -154,8 +154,8 @@ export class RigidBody {
     this.wakeUp();
   }
 
-  public get angularVelocity(): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
-    return vec3out(this._angularVelocity);
+  public get angularVelocity(): IVector3 {
+    return [...this._angularVelocity] as IVector3;
   }
 
   public set angularVelocity(value: AnyVec3) {

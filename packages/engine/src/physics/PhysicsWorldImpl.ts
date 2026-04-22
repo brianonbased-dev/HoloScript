@@ -788,11 +788,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   }
 
   public getGravity(): IVector3 {
-    return {
-      x: this.config.gravity[0],
-      y: this.config.gravity[1],
-      z: this.config.gravity[2]
-    } as unknown as IVector3;
+    return [...this.config.gravity] as IVector3;
   }
 
   // ============================================================================
