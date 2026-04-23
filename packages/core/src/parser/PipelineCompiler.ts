@@ -167,6 +167,42 @@ function genSource(source: PipelineSource): string {
     lines.push(`} finally {`);
     lines.push(`  await ${source.name}_client.end();`);
     lines.push(`}`);
+  } else if (source.type === 'mcp') {
+    const mcpBase = String(source.properties.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
+    const toolName = String(source.properties.tool || source.name);
+    const args = JSON.stringify(source.properties.args || {});
+
+    lines.push(
+      `const ${source.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
+    );
+    lines.push(`const ${source.name}_url = ${source.name}_base.replace(/\\/$/, '') + '/mcp';`);
+    lines.push(`const ${source.name}_headers = { 'Content-Type': 'application/json' };`);
+    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
+    lines.push(`  ${source.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
+    lines.push(`}`);
+    lines.push(`const ${source.name}_response = await fetch(${source.name}_url, {`);
+    lines.push(`  method: 'POST',`);
+    lines.push(`  headers: ${source.name}_headers,`);
+    lines.push(`  body: JSON.stringify({`);
+    lines.push(`    jsonrpc: '2.0',`);
+    lines.push(`    id: Date.now(),`);
+    lines.push(`    method: 'tools/call',`);
+    lines.push(`    params: {`);
+    lines.push(`      name: ${JSON.stringify(toolName)},`);
+    lines.push(`      arguments: ${args},`);
+    lines.push(`    },`);
+    lines.push(`  }),`);
+    lines.push(`});`);
+    lines.push(`if (!${source.name}_response.ok) {`);
+    lines.push(
+      `  throw new Error(\`MCP source ${source.name} failed: \${${source.name}_response.status} \${${source.name}_response.statusText}\`);`
+    );
+    lines.push(`}`);
+    lines.push(`const ${source.name}_json = await ${source.name}_response.json();`);
+    lines.push(`const ${source.name}_content = ${source.name}_json?.result?.content;`);
+    lines.push(`if (Array.isArray(${source.name}_content)) records.push(...${source.name}_content);`);
+    lines.push(`else if (${source.name}_json?.result != null) records.push(${source.name}_json.result);`);
+    lines.push(`else records.push(${source.name}_json);`);
   } else if (source.type === 'list') {
     lines.push(`records.push(...${JSON.stringify(source.properties.items || [])});`);
     // @ts-expect-error

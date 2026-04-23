@@ -84,4 +84,27 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('await ToolOut_invoke(records);');
     expect(result.code).not.toContain('// TODO: mcp sink not yet compiled');
   });
+
+  it('compiles mcp source with JSON-RPC tool call payload', () => {
+    const source = `
+      pipeline "McpSource" {
+        source PullData {
+          type: "mcp"
+          server: "4{env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}"
+          tool: "knowledge_query"
+        }
+        sink Out {
+          type: "stdout"
+        }
+      }
+    `.replace(/\u00024/g, '$');
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const PullData_url = PullData_base.replace(/\\/$/, '') + '/mcp';");
+    expect(result.code).toContain("method: 'tools/call'");
+    expect(result.code).toContain("name: \"knowledge_query\"");
+    expect(result.code).toContain('const PullData_content = PullData_json?.result?.content;');
+    expect(result.code).not.toContain('// TODO: mcp source not yet compiled');
+  });
 });
