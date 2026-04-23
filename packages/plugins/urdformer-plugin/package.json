@@ -1,0 +1,15 @@
+{
+  "name": "@holoscript/urdformer-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "URDFormer bridge stub. Imports URDF robot descriptions into .holo composition traits. Targets the Universal-IR coverage matrix robotics column.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "keywords": ["holoscript", "plugin", "urdf", "robotics", "urdformer", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

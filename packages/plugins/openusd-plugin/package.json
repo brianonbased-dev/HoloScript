@@ -1,0 +1,15 @@
+{
+  "name": "@holoscript/openusd-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "OpenUSD interop stub. Round-trips .holo scene graphs to USDA/USDC. Targets paper-12 OpenUSD proxy replacement.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "keywords": ["holoscript", "plugin", "openusd", "usda", "interop", "paper-12"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}
