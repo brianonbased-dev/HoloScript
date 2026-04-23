@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/msf-3d-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "MSF 3D asset interop stub — semantic-annotated 3D asset import into .holo traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "msf-3d", "semantic-annotation", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

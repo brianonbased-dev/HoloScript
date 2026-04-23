@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/nodetoy-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "NodeToy shader-graph bridge stub — maps NodeToy node graphs to @shader .holo material traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "nodetoy", "shader", "material", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

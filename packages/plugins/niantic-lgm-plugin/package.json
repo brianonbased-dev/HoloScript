@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/niantic-lgm-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Niantic Lightship / LGM geospatial bridge stub. Maps geospatial anchors + VPS responses to @geospatial .holo traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "niantic", "lgm", "lightship", "geospatial", "vps", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}
