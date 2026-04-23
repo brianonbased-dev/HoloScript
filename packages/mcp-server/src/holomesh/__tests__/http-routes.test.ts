@@ -2664,6 +2664,100 @@ describe('HoloMesh HTTP Routes', () => {
       expect(bigRes._body.hasMore).toBe(false);
     }, 30000);
 
+    it('/board.done_count and /board/done.count stay in lockstep across completions (task_1776986320321_xvv6)', async () => {
+      // Audit observation 2026-04-23: a live probe returned done_count=482 on
+      // /board but 756 entries on /board/done — two counters disagreeing for
+      // the same team. At the code level both paths read
+      // team.doneLog.length from the same in-memory store, so they cannot
+      // diverge within a single server process. The disagreement can only
+      // surface in a multi-replica / stale-snapshot scenario.
+      //
+      // This regression test locks the in-process invariant: for any sequence
+      // of completions, /board.done_count === /board/done.count at every
+      // step. If either counter ever stops reading from the canonical
+      // doneLog length, this test fails — and any future disagreement in
+      // prod is definitively a deploy / replication concern, not a code
+      // regression.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `counter-parity-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const readCounters = async () => {
+        const bReq = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/board`,
+          undefined,
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const bRes = mockRes();
+        await handleHoloMeshRoute(bReq, bRes, `/api/holomesh/team/${tid}/board`);
+        const dReq = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/board/done`,
+          undefined,
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const dRes = mockRes();
+        await handleHoloMeshRoute(dReq, dRes, `/api/holomesh/team/${tid}/board/done`);
+        expect(bRes._status).toBe(200);
+        expect(dRes._status).toBe(200);
+        return {
+          boardDoneCount: bRes._body.done_count,
+          doneListCount: dRes._body.count,
+        };
+      };
+
+      // Invariant holds on an empty board
+      const initial = await readCounters();
+      expect(initial.boardDoneCount).toBe(0);
+      expect(initial.doneListCount).toBe(0);
+      expect(initial.boardDoneCount).toBe(initial.doneListCount);
+
+      const N = 12;
+      for (let i = 0; i < N; i++) {
+        const addReq = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board`,
+          { tasks: [{ title: `parity-${i}`, description: 'p', priority: 4 }] },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const addRes = mockRes();
+        await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+        const taskId = addRes._body.tasks[0].id;
+
+        const doneReq = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/board/${taskId}`,
+          { action: 'done', summary: `closed ${i}`, commit: `c${i.toString(16).padStart(7, '0')}` },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const doneRes = mockRes();
+        await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+        expect(doneRes._status).toBe(200);
+
+        // After every single completion, both counters must agree AND
+        // advance by exactly one. This catches (a) divergent sources
+        // (e.g. /board reads a cached length) and (b) off-by-one
+        // increments (e.g. one path counts failed completions).
+        const step = await readCounters();
+        expect(step.boardDoneCount).toBe(i + 1);
+        expect(step.doneListCount).toBe(i + 1);
+        expect(step.boardDoneCount).toBe(step.doneListCount);
+      }
+
+      // Final lockstep check at N
+      const final = await readCounters();
+      expect(final.boardDoneCount).toBe(N);
+      expect(final.doneListCount).toBe(N);
+      expect(final.boardDoneCount).toBe(final.doneListCount);
+    }, 30000);
+
     it('POST /api/holomesh/team/:id/mode returns scout endpoint hint', async () => {
       const createReq = mockReq(
         'POST',

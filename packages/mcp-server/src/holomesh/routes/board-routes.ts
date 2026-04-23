@@ -72,6 +72,14 @@ export async function handleBoardRoutes(
   url: string
 ): Promise<boolean> {
   // GET /api/holomesh/team/:id/board
+  //
+  // Counter invariant (task_1776986320321_xvv6): `done_count` here MUST read
+  // the same `team.doneLog.length` that `/board/done` below returns as
+  // `count`. They are the same number derived from the same in-memory
+  // array — do not introduce a separate cache, aggregate, or write-time
+  // counter. Any divergence observed in prod is a deploy / replication
+  // concern (stale snapshot on one replica), not a code concern.
+  // Regression: http-routes.test.ts → counter-parity test.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'GET') {
     const access = requireTeamAccess(req, res, url);
     if (!access) return true;
