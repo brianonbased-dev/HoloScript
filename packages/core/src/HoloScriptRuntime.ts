@@ -61,6 +61,12 @@ import {
   executeFetchNode as executeFetchNodePure,
   type IoNodeContext,
 } from './runtime/io-node-executors';
+// W1-T4 slice 33: declaration executors extracted to ./runtime/declaration-executors
+import {
+  executeStateDeclaration as executeStateDeclarationPure,
+  executeMemoryDefinition as executeMemoryDefinitionPure,
+  type DeclarationContext,
+} from './runtime/declaration-executors';
 // W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
 import {
   handleShop as handleShopPure,
@@ -1937,14 +1943,12 @@ export class HoloScriptRuntime {
     };
   }
 
+  // W1-T4 slice 33: executeStateDeclaration extracted to
+  // ./runtime/declaration-executors. Thin wrapper.
   private async executeStateDeclaration(
     node: ASTNode & { directives?: import('./types/AdvancedTypeSystem').HSPlusDirective[] }
   ): Promise<ExecutionResult> {
-    const stateDirective = node.directives?.find((d) => d.type === 'state');
-    if (stateDirective) {
-      this.context.state.update(stateDirective.body as Record<string, HoloScriptValue>);
-    }
-    return { success: true, output: 'State updated' };
+    return executeStateDeclarationPure(node, this.buildDeclarationContext());
   }
 
   // ============================================================================
@@ -2041,31 +2045,23 @@ export class HoloScriptRuntime {
     }
   }
 
+  // W1-T4 slice 33: executeMemoryDefinition extracted to
+  // ./runtime/declaration-executors. Thin wrapper.
   private async executeMemoryDefinition(
     node:
       | import('./types').SemanticMemoryNode
       | import('./types').EpisodicMemoryNode
       | import('./types').ProceduralMemoryNode
   ): Promise<ExecutionResult> {
-    const startTime = Date.now();
+    return executeMemoryDefinitionPure(node, this.buildDeclarationContext());
+  }
 
-    // Evaluate properties to concrete config values
-    const config: Record<string, HoloScriptValue> = {};
-    for (const [key, val] of Object.entries(node.properties || {})) {
-      if (typeof val === 'string') {
-        config[key] = this.evaluateExpression(val);
-      } else {
-        config[key] = val;
-      }
-    }
-
+  private buildDeclarationContext(): DeclarationContext {
     return {
-      success: true,
-      output: {
-        type: node.type,
-        config,
+      updateState: (body) => {
+        this.context.state.update(body);
       },
-      executionTime: Date.now() - startTime,
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
     };
   }
 
