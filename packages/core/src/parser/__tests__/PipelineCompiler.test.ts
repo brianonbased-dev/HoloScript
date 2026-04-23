@@ -107,4 +107,31 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('const PullData_content = PullData_json?.result?.content;');
     expect(result.code).not.toContain('// TODO: mcp source not yet compiled');
   });
+
+  it('compiles mcp transform with JSON-RPC tool call payload', () => {
+    const source = `
+      pipeline "McpTransform" {
+        source Input {
+          type: "list"
+          items: [{ id: 1, value: "ok" }]
+        }
+        transform Enrich {
+          type: "mcp"
+          server: "4{env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}"
+          tool: "knowledge_enrich"
+        }
+        sink Out {
+          type: "stdout"
+        }
+      }
+    `.replace(/\u00024/g, '$');
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const Enrich_url = Enrich_base.replace(/\\/$/, '') + '/mcp';");
+    expect(result.code).toContain("method: 'tools/call'");
+    expect(result.code).toContain("name: \"knowledge_enrich\"");
+    expect(result.code).toContain('const Enrich_content = Enrich_json?.result?.content;');
+    expect(result.code).not.toContain("// TODO: mcp transform not yet compiled");
+  });
 });

@@ -236,6 +236,42 @@ function genTransform(transform: PipelineTransform): string {
     }
     lines.push(`  return out;`);
     lines.push(`});`);
+  } else if (transform.type === 'mcp') {
+    const mcpBase = String(transform.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
+    const toolName = String(transform.tool || transform.name);
+    const args = JSON.stringify(transform.args || {});
+
+    lines.push(
+      `const ${transform.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
+    );
+    lines.push(`const ${transform.name}_url = ${transform.name}_base.replace(/\\/$/, '') + '/mcp';`);
+    lines.push(`const ${transform.name}_headers = { 'Content-Type': 'application/json' };`);
+    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
+    lines.push(`  ${transform.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
+    lines.push(`}`);
+    lines.push(`const ${transform.name}_response = await fetch(${transform.name}_url, {`);
+    lines.push(`  method: 'POST',`);
+    lines.push(`  headers: ${transform.name}_headers,`);
+    lines.push(`  body: JSON.stringify({`);
+    lines.push(`    jsonrpc: '2.0',`);
+    lines.push(`    id: Date.now(),`);
+    lines.push(`    method: 'tools/call',`);
+    lines.push(`    params: {`);
+    lines.push(`      name: ${JSON.stringify(toolName)},`);
+    lines.push(`      arguments: { ...${args}, records, output },`);
+    lines.push(`    },`);
+    lines.push(`  }),`);
+    lines.push(`});`);
+    lines.push(`if (!${transform.name}_response.ok) {`);
+    lines.push(
+      `  throw new Error(\`MCP transform ${transform.name} failed: \${${transform.name}_response.status} \${${transform.name}_response.statusText}\`);`
+    );
+    lines.push(`}`);
+    lines.push(`const ${transform.name}_json = await ${transform.name}_response.json();`);
+    lines.push(`const ${transform.name}_content = ${transform.name}_json?.result?.content;`);
+    lines.push(`if (Array.isArray(${transform.name}_content)) records = ${transform.name}_content;`);
+    lines.push(`else if (Array.isArray(${transform.name}_json?.result)) records = ${transform.name}_json.result;`);
+    lines.push(`else if (${transform.name}_content != null) records = [${transform.name}_content];`);
   } else {
     lines.push(`// TODO: ${transform.type || 'unknown'} transform not yet compiled`);
   }
