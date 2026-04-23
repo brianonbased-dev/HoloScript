@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > callFunction > [L10] registered global function with args locks output > L10-callFunction 1`] = `"d03b9fe32f1d4601"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > callFunction > [L11] unknown function name locks the error output > L11-callFunctionMissing 1`] = `"62985481647618df"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > evaluateExpression > [L12] numeric literal expression locks output > L12-exprNumericLiteral 1`] = `"73475cb40a568e8d"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > evaluateExpression > [L13] string literal expression locks output > L13-exprStringLiteral 1`] = `"5aa762ae383fbb72"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > evaluateExpression > [L14] boolean expression locks output > L14-exprBoolean 1`] = `"b5bea41b6c623f7c"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > event emission > [L15] emit(event, data) with no handlers is a no-op (locks absence-of-effect) > L15-emitUnhandled 1`] = `"b4be57a6b5ab2773"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > execute(array) sequencing > [L9] sequential execution locks composite result > L9-sequence 1`] = `"4d101c5145caca26"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L1] orb creation locks output > L1-orb 1`] = `"0032ccad89752dbc"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L2] method definition locks output > L2-method 1`] = `"ad61961b426844d8"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L3] connection between two orbs locks output > L3-connection 1`] = `"a93a82cbfcb45638"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L4] gate (conditional) locks output > L4-gate 1`] = `"b63c6637d4c69321"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L5] stream definition locks output > L5-stream 1`] = `"b044baeb3b19ef71"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L6] state machine locks output > L6-stateMachine 1`] = `"7115770c2e676a79"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L7] UI element locks output > L7-ui 1`] = `"006ed45fb8c0c001"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > executeNode branches > [L8] generic unknown node falls back deterministically > L8-generic 1`] = `"9b24ebf665bd2ef8"`;
+
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > trait registration > [L16] registerTrait round-trip locks registry state > L16-registerTrait 1`] = `"2c89f8d3acada0e8"`;
