@@ -35,6 +35,11 @@ import {
 import { applyTransformation as applyTransformationPure } from './runtime/transformation';
 // W1-T4 slice 6: animation system extracted to ./runtime/animation-system
 import { updateAnimations as updateAnimationsPure } from './runtime/animation-system';
+// W1-T4 slice 7: visualizer helpers extracted to ./runtime/visualizer-server
+import {
+  broadcast as broadcastPure,
+  handleTimeControl as handleTimeControlPure,
+} from './runtime/visualizer-server';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2449,46 +2454,18 @@ export class HoloScriptRuntime {
 
   /**
    * Handle time control commands from visualizer
+   * (W1-T4 slice 7: impl extracted to ./runtime/visualizer-server)
    */
   private handleTimeControl(command: string, value?: unknown): void {
-    if (!this.timeManager) return;
-
-    switch (command) {
-      case 'play':
-        this.timeManager.play();
-        break;
-      case 'pause':
-        this.timeManager.pause();
-        break;
-      case 'toggle':
-        this.timeManager.togglePause();
-        break;
-      case 'setSpeed':
-        if (typeof value === 'number') {
-          this.timeManager.setTimeScale(value);
-        }
-        break;
-      case 'setDate':
-        if (value) {
-          this.timeManager.setDate(new Date(value as string | number));
-        }
-        break;
-      case 'syncRealTime':
-        this.timeManager.setDate(new Date());
-        this.timeManager.setTimeScale(1);
-        this.timeManager.play();
-        break;
-    }
+    handleTimeControlPure(this.timeManager, command, value);
   }
 
+  /**
+   * Broadcast a typed message to all connected WebSocket clients.
+   * (W1-T4 slice 7: impl extracted to ./runtime/visualizer-server)
+   */
   public broadcast(type: string, payload: unknown): void {
-    if (!this.wss) return;
-    const message = JSON.stringify({ type, payload });
-    this.wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+    broadcastPure(this.wss, type, payload);
   }
 
   // ============================================================================
