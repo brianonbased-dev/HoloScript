@@ -2301,6 +2301,41 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.tasks[0].title).toContain('TODO:');
     });
 
+    it('POST /api/holomesh/team/:id/board returns warning when description is truncated', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-warn-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const longDescription = 'd'.repeat(1200);
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [{ title: 'Warn me', description: longDescription, priority: 1 }],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board`);
+
+      expect(res._status).toBe(201);
+      expect(res._body.added).toBe(1);
+      expect(res._body.warnings).toEqual([
+        {
+          title: 'Warn me',
+          reason: 'description_truncated',
+          originalLength: 1200,
+          keptLength: 1000,
+        },
+      ]);
+    });
+
     it('POST /api/holomesh/team/:id/board/scout uses /room scout in empty-board auto-hint task', async () => {
       const createReq = mockReq(
         'POST',
@@ -2525,6 +2560,254 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._status).toBe(200);
       expect(doneRes._body.task.completedByTag).toBeUndefined();
       expect(doneRes._body.completedAs).toBeUndefined();
+    });
+
+    // ── Delete action (task_1776981805111_gbxm) ──
+    // Adds hard-remove with audit-trail tombstone so the known-404 responses
+    // from /room seed's `delete|remove|archive` (W.073) become real operations
+    // instead of silent failures. Owner-gated via config:write — matches /mode.
+
+    it('PATCH /board/:taskId delete action removes task and tombstones in done log (owner)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `delete-owner-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'delete-me-task', description: 'd', priority: 3 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const delReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'delete', reason: 'duplicate of other task', deleterTag: 'claudecode-claude' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const delRes = mockRes();
+      await handleHoloMeshRoute(delReq, delRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(delRes._status).toBe(200);
+      expect(delRes._body.success).toBe(true);
+      expect(delRes._body.deleted).toBe(true);
+      expect(delRes._body.task).toBeTruthy();
+      expect(delRes._body.task.id).toBe(taskId);
+      expect(delRes._body.reason).toBe('duplicate of other task');
+      expect(delRes._body.deletedAs.surfaceTag).toBe('claudecode-claude');
+      expect(delRes._body.tombstone).toBeTruthy();
+      expect(delRes._body.tombstone.summary).toContain('[deleted]');
+      expect(delRes._body.tombstone.summary).toContain('duplicate of other task');
+      expect(delRes._body.tombstone.completedByTag).toBe('deleted-by:claudecode-claude');
+
+      // Task is gone from the board
+      const boardReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const boardRes = mockRes();
+      await handleHoloMeshRoute(boardReq, boardRes, `/api/holomesh/team/${tid}/board`);
+      expect(boardRes._status).toBe(200);
+      expect(boardRes._body.tasks.find((t: { id: string }) => t.id === taskId)).toBeUndefined();
+
+      // Tombstone is in done log for audit trail
+      const logReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=10`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      const tomb = logRes._body.entries.find((e: { taskId: string }) => e.taskId === taskId);
+      expect(tomb).toBeTruthy();
+      expect(tomb.summary).toContain('[deleted]');
+      expect(tomb.completedByTag).toBe('deleted-by:claudecode-claude');
+      // Deletion has no commit hash (unlike a normal done closure)
+      expect(tomb.commitHash).toBeUndefined();
+    });
+
+    it('PATCH /board/:taskId delete rejects non-owner with 403', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `delete-member-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      // Member joins with invite code — gets role=member, not owner
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+      expect(joinRes._body.role).toBe('member');
+
+      // Owner creates a task
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'member-cannot-delete-me', description: 'x', priority: 3 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      // Member attempts delete — should be denied
+      const delReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'delete' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const delRes = mockRes();
+      await handleHoloMeshRoute(delReq, delRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(delRes._status).toBe(403);
+      expect(delRes._body.error).toContain('config:write');
+
+      // Task is still on the board (delete was refused, not partially applied)
+      const boardReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const boardRes = mockRes();
+      await handleHoloMeshRoute(boardReq, boardRes, `/api/holomesh/team/${tid}/board`);
+      expect(boardRes._body.tasks.find((t: { id: string }) => t.id === taskId)).toBeTruthy();
+    });
+
+    it('PATCH /board/:taskId delete of nonexistent task returns 400 with "Task not found"', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `delete-missing-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const delReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/task_does_not_exist_xxx`,
+        { action: 'delete' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const delRes = mockRes();
+      await handleHoloMeshRoute(delReq, delRes, `/api/holomesh/team/${tid}/board/task_does_not_exist_xxx`);
+      // Follows existing convention: helper-level "Task not found" → 400
+      // (claim/done/block/reopen all return 400 for missing tasks).
+      expect(delRes._status).toBe(400);
+      expect(delRes._body.error).toBe('Task not found');
+    });
+
+    it('PATCH /board/:taskId accepts remove and archive as aliases for delete', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `delete-alias-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // remove alias
+      const addReq1 = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'alias-remove-task', description: 'a', priority: 3 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes1 = mockRes();
+      await handleHoloMeshRoute(addReq1, addRes1, `/api/holomesh/team/${tid}/board`);
+      const tid1 = addRes1._body.tasks[0].id;
+
+      const delReq1 = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${tid1}`,
+        { action: 'remove' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const delRes1 = mockRes();
+      await handleHoloMeshRoute(delReq1, delRes1, `/api/holomesh/team/${tid}/board/${tid1}`);
+      expect(delRes1._status).toBe(200);
+      expect(delRes1._body.deleted).toBe(true);
+
+      // archive alias
+      const addReq2 = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'alias-archive-task', description: 'b', priority: 3 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes2 = mockRes();
+      await handleHoloMeshRoute(addReq2, addRes2, `/api/holomesh/team/${tid}/board`);
+      const tid2 = addRes2._body.tasks[0].id;
+
+      const delReq2 = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${tid2}`,
+        { action: 'archive' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const delRes2 = mockRes();
+      await handleHoloMeshRoute(delReq2, delRes2, `/api/holomesh/team/${tid}/board/${tid2}`);
+      expect(delRes2._status).toBe(200);
+      expect(delRes2._body.deleted).toBe(true);
+
+      // cancel/skip/drop are intentionally NOT aliased — semantics ambiguous.
+      // Verify they still hit the unknown-action branch.
+      const addReq3 = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'alias-cancel-task', description: 'c', priority: 3 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes3 = mockRes();
+      await handleHoloMeshRoute(addReq3, addRes3, `/api/holomesh/team/${tid}/board`);
+      const tid3 = addRes3._body.tasks[0].id;
+
+      const delReq3 = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${tid3}`,
+        { action: 'cancel' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const delRes3 = mockRes();
+      await handleHoloMeshRoute(delReq3, delRes3, `/api/holomesh/team/${tid}/board/${tid3}`);
+      expect(delRes3._status).toBe(400);
+      expect(delRes3._body.error).toContain('Unknown action');
+      // Error message lists every supported action so clients don't guess.
+      expect(delRes3._body.error).toContain('claim');
+      expect(delRes3._body.error).toContain('done');
+      expect(delRes3._body.error).toContain('block');
+      expect(delRes3._body.error).toContain('reopen');
+      expect(delRes3._body.error).toContain('delegate');
+      expect(delRes3._body.error).toContain('delete');
     });
 
     it('GET /board/done supports offset-based pagination beyond the 200-cap (task_1776981805111_pllv)', async () => {

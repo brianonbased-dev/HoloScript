@@ -167,6 +167,57 @@ export function reopenTask(board: TeamTask[], taskId: string): TaskActionResult 
   return { success: true, task };
 }
 
+/**
+ * Delete a task. Removes from board, appends a tombstone entry to doneLog so
+ * the history of the deletion survives (audit trail). Owner-gating is enforced
+ * at the HTTP layer — this pure helper assumes the caller already passed
+ * authorization and just emits the tombstone.
+ *
+ * `deleterTag` and `reason` are optional surface-attribution + justification
+ * fields. The tombstone's `summary` is prefixed with `[deleted]` so audits
+ * can distinguish a real completion from a deletion.
+ */
+export function deleteTask(
+  board: TeamTask[],
+  taskId: string,
+  deleterId: string,
+  deleterName: string,
+  opts: { deleterTag?: string; reason?: string } = {}
+): {
+  result: TaskActionResult & { tombstone?: DoneLogEntry };
+  updatedBoard: TeamTask[];
+} {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) {
+    return { result: { success: false, error: 'Task not found' }, updatedBoard: board };
+  }
+
+  const now = new Date().toISOString();
+  const reasonSuffix = opts.reason ? `: ${opts.reason}` : '';
+  const tombstone: DoneLogEntry = {
+    taskId: task.id,
+    title: task.title,
+    completedBy: deleterName,
+    ...(opts.deleterTag ? { completedByTag: `deleted-by:${opts.deleterTag}` } : {}),
+    commitHash: undefined,
+    timestamp: now,
+    summary: `[deleted] ${task.title}${reasonSuffix}`,
+  };
+
+  // Record the deletion on the task record itself so consumers reading
+  // `result.task` see what happened. `completedByTag` uses the `deleted-by:`
+  // prefix so UIs can distinguish deletion from a normal `done` closure.
+  task.completedBy = deleterName;
+  task.completedAt = now;
+  if (opts.deleterTag) task.completedByTag = `deleted-by:${opts.deleterTag}`;
+
+  const updatedBoard = board.filter((t) => t.id !== taskId);
+  return {
+    result: { success: true, task, tombstone },
+    updatedBoard,
+  };
+}
+
 /** Delegate a task from a source board to a target board. */
 export function delegateTask(
   sourceBoard: TeamTask[],
@@ -207,12 +258,25 @@ export interface SkippedTaskEntry {
   reason: SkippedTaskReason;
 }
 
+/** Non-fatal normalization warnings for rows that were added but transformed. */
+export interface TaskNormalizationWarning {
+  title: string;
+  reason: 'description_truncated';
+  originalLength: number;
+  keptLength: number;
+}
+
 /** Add tasks to a board with dedup against existing + done log. */
 export function addTasksToBoard(
   board: TeamTask[],
   doneLog: DoneLogEntry[],
   tasks: Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>
-): { added: TeamTask[]; skipped: SkippedTaskEntry[]; updatedBoard: TeamTask[] } {
+): {
+  added: TeamTask[];
+  skipped: SkippedTaskEntry[];
+  warnings: TaskNormalizationWarning[];
+  updatedBoard: TeamTask[];
+} {
   const existingNorm = new Set([
     ...board.map((t) => normalizeTitle(t.title)),
     ...doneLog.map((d) => normalizeTitle(d.title)),
@@ -220,6 +284,7 @@ export function addTasksToBoard(
 
   const added: TeamTask[] = [];
   const skipped: SkippedTaskEntry[] = [];
+  const warnings: TaskNormalizationWarning[] = [];
   for (const t of tasks) {
     const title = String(t.title || '').slice(0, 200);
     if (!title) {
@@ -231,10 +296,21 @@ export function addTasksToBoard(
       continue;
     }
 
+    const rawDescription = String(t.description || '');
+    const normalizedDescription = rawDescription.slice(0, 1000);
+    if (rawDescription.length > normalizedDescription.length) {
+      warnings.push({
+        title,
+        reason: 'description_truncated',
+        originalLength: rawDescription.length,
+        keptLength: normalizedDescription.length,
+      });
+    }
+
     const task: TeamTask = {
       id: generateTaskId(),
       title,
-      description: String(t.description || '').slice(0, 1000),
+      description: normalizedDescription,
       status: 'open',
       source: String(t.source || 'manual'),
       priority: t.priority || 5,
@@ -251,7 +327,7 @@ export function addTasksToBoard(
     added.push(task);
   }
 
-  return { added, skipped, updatedBoard: board };
+  return { added, skipped, warnings, updatedBoard: board };
 }
 
 // ── Suggestion Operations ──

@@ -25,6 +25,7 @@ import {
   blockTask,
   reopenTask,
   delegateTask,
+  deleteTask,
   auditDoneLog,
   createSuggestion,
   voteSuggestion,
@@ -186,6 +187,7 @@ export async function handleBoardRoutes(
       added: result.added.length,
       tasks: result.added,
       skipped: result.skipped,
+      warnings: result.warnings,
     });
     return true;
   }
@@ -204,6 +206,12 @@ export async function handleBoardRoutes(
 
     let addedTasks: any[] = [];
     let skippedTasks: { title: string; reason: 'duplicate' | 'empty_title' }[] = [];
+    let warnings: {
+      title: string;
+      reason: 'description_truncated';
+      originalLength: number;
+      keptLength: number;
+    }[] = [];
     if (todoContent && todoContent.length > 0) {
       // Mock scout from todos based on expected format
       const tasksBody = todoContent.split('\n')
@@ -218,6 +226,7 @@ export async function handleBoardRoutes(
         const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody.slice(0, body.max_tasks || 50));
         addedTasks = result.added;
         skippedTasks = result.skipped;
+        warnings = result.warnings;
         team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
@@ -230,6 +239,7 @@ export async function handleBoardRoutes(
       }]);
       addedTasks = result.added;
       skippedTasks = result.skipped;
+      warnings = result.warnings;
       team.taskBoard = result.updatedBoard;
     }
 
@@ -244,11 +254,17 @@ export async function handleBoardRoutes(
       }
     }
 
-    json(res, 201, { success: true, tasks_added: addedTasks.length, tasks: addedTasks, skipped: skippedTasks });
+    json(res, 201, {
+      success: true,
+      tasks_added: addedTasks.length,
+      tasks: addedTasks,
+      skipped: skippedTasks,
+      warnings,
+    });
     return true;
   }
 
-  // PATCH /api/holomesh/team/:id/board/:taskId — claim/done/block/reopen
+  // PATCH /api/holomesh/team/:id/board/:taskId — claim/done/block/reopen/delegate/delete
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'PATCH') {
     const access = requireTeamAccess(req, res, url);
     if (!access) return true;
@@ -260,7 +276,13 @@ export async function handleBoardRoutes(
     const parts = pathname.split('/');
     const taskId = parts[parts.length - 1];
     const body = await parseJsonBody(req);
-    const action = body.action as string;
+    const rawAction = body.action as string;
+    // Alias normalization: `remove` and `archive` map to `delete` so the
+    // known-404 responses from `delete|remove|archive` in W.073 all resolve.
+    // `cancel`/`skip`/`drop` intentionally stay unknown — their semantics
+    // (reopen vs delete vs defer) are ambiguous and picking wrong silently
+    // loses work. An explicit client choice is safer.
+    const action = (rawAction === 'remove' || rawAction === 'archive') ? 'delete' : rawAction;
 
     let result: any;
     let eventType: string = '';
@@ -272,6 +294,8 @@ export async function handleBoardRoutes(
     // remain the authoritative identity; tags are purely advisory labels.
     const claimedByTag = typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined;
     const completedByTag = typeof body.completedByTag === 'string' ? body.completedByTag : undefined;
+    const deleterTag = typeof body.deleterTag === 'string' ? body.deleterTag : undefined;
+    const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
 
     switch (action) {
       case 'claim':
@@ -306,7 +330,7 @@ export async function handleBoardRoutes(
           return true;
         }
         if (!targetTeam.taskBoard) targetTeam.taskBoard = [];
-        
+
         const wrap = delegateTask(team.taskBoard, targetTeam.taskBoard, taskId);
         result = wrap.result;
         team.taskBoard = wrap.updatedSource;
@@ -314,8 +338,28 @@ export async function handleBoardRoutes(
         eventType = 'board:delegated';
         break;
       }
+      case 'delete': {
+        // Owner-only gate: we don't track task creator explicitly (only the
+        // `source` string), so "creator or owner" collapses to owner-only.
+        // `config:write` is owner-only per TEAM_ROLE_PERMISSIONS (types.ts:523)
+        // plus adminRoom members inherit full permissions.
+        if (!hasTeamPermission(team, caller.id, 'config:write')) {
+          json(res, 403, { error: 'Permission denied: only team owners can delete tasks (config:write required)' });
+          return true;
+        }
+        const wrap = deleteTask(team.taskBoard, taskId, caller.id, caller.name, {
+          deleterTag,
+          reason: deleteReason,
+        });
+        result = wrap.result;
+        team.taskBoard = wrap.updatedBoard;
+        // Tombstone the deletion in doneLog so /board/done preserves history.
+        if (result.tombstone) team.doneLog.push(result.tombstone);
+        eventType = 'board:deleted';
+        break;
+      }
       default:
-        json(res, 400, { error: 'Unknown action' });
+        json(res, 400, { error: 'Unknown action — supported: claim|done|block|reopen|delegate|delete (aliases: remove, archive → delete)' });
         return true;
     }
 
@@ -325,7 +369,7 @@ export async function handleBoardRoutes(
     }
 
     persistTeamStore();
-    
+
     // Real-time broadcast
     broadcastToTeam(teamId, {
       type: eventType as any,
@@ -341,6 +385,13 @@ export async function handleBoardRoutes(
     }
     if (action === 'done' && completedByTag) {
       payload.completedAs = { id: caller.id, name: caller.name, surfaceTag: completedByTag };
+    }
+    if (action === 'delete') {
+      payload.deleted = true;
+      payload.deletedAs = { id: caller.id, name: caller.name };
+      if (deleterTag) (payload.deletedAs as Record<string, unknown>).surfaceTag = deleterTag;
+      if (deleteReason) payload.reason = deleteReason;
+      if (result.tombstone) payload.tombstone = result.tombstone;
     }
     json(res, 200, payload);
     return true;

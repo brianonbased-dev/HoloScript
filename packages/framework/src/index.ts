@@ -225,6 +225,7 @@ export {
   promoteSuggestion,
   dismissSuggestion,
   delegateTask,
+  deleteTask,
 } from './board';
 
 // Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)
