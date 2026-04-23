@@ -77,6 +77,16 @@ import {
   executeCoreConfig as executeCoreConfigPure,
   executeVisualMetadata as executeVisualMetadataPure,
 } from './runtime/system-executors';
+// W1-T4 slice 17: simple executors extracted to ./runtime/simple-executors
+import {
+  executeStateMachine as executeStateMachinePure,
+  executeExpressionStatement as executeExpressionStatementPure,
+  executeCall as executeCallPure,
+  executeEnvironment as executeEnvironmentPure,
+  executeHoloTemplate as executeHoloTemplatePure,
+  executeFocus as executeFocusPure,
+  type SimpleExecutorContext,
+} from './runtime/simple-executors';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
 import {
   executeForLoop as executeForLoopPure,
@@ -729,7 +739,10 @@ export class HoloScriptRuntime {
           result = await this.executeStream(node as StreamNode);
           break;
         case 'call':
-          result = await this.executeCall(node as ASTNode & { target?: string; args?: unknown[] });
+          result = await executeCallPure(
+            node as ASTNode & { target?: string; args?: unknown[] },
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'debug':
           result = await this.executeDebug(node);
@@ -767,16 +780,22 @@ export class HoloScriptRuntime {
           result = await this.executeGeneric(node);
           break;
         case 'expression-statement':
-          result = await this.executeExpressionStatement(node as ASTNode & { expression: string });
+          result = await executeExpressionStatementPure(
+            node as ASTNode & { expression: string },
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'scale':
           result = await this.executeScale(node as ScaleNode);
           break;
         case 'focus':
-          result = await this.executeFocus(node as FocusNode);
+          result = await executeFocusPure(node as FocusNode, this.buildSimpleExecutorContext());
           break;
         case 'environment':
-          result = await this.executeEnvironment(node as EnvironmentNode);
+          result = await executeEnvironmentPure(
+            node as EnvironmentNode,
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'composition':
         case 'Composition':
@@ -789,7 +808,10 @@ export class HoloScriptRuntime {
         case 'template':
         case 'Template':
           if (node.type === 'Template') {
-            result = await this.executeHoloTemplate(node as unknown as HoloTemplate);
+            result = await executeHoloTemplatePure(
+              node as unknown as { name: string } & Record<string, unknown>,
+              this.buildSimpleExecutorContext(),
+            );
           } else {
             result = await this.executeTemplate(node as TemplateNode);
           }
@@ -818,7 +840,10 @@ export class HoloScriptRuntime {
           );
           break;
         case 'state-machine':
-          result = await this.executeStateMachine(node as StateMachineNode);
+          result = await executeStateMachinePure(
+            node as StateMachineNode,
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'system':
           result = await executeSystemPure(node as SystemNode);
@@ -1564,31 +1589,8 @@ export class HoloScriptRuntime {
   /**
    * Execute State Machine declaration (Phase 13)
    */
-  private async executeStateMachine(node: StateMachineNode): Promise<ExecutionResult> {
-    this.context.stateMachines.set(node.name, node);
-    logger.info(`State machine registered: ${node.name}`);
-    return {
-      success: true,
-      output: { registered: node.name },
-    };
-  }
-
-  private async executeExpressionStatement(node: { expression: string }): Promise<ExecutionResult> {
-    const value = this.evaluateExpression(node.expression);
-    return {
-      success: true,
-      output: value,
-    };
-  }
-
-  private async executeCall(
-    node: ASTNode & { target?: string; args?: unknown[] }
-  ): Promise<ExecutionResult> {
-    const funcName = node.target || '';
-    const args = node.args || [];
-
-    return this.callFunction(funcName, args as HoloScriptValue[]);
-  }
+  // W1-T4 slice 17: executeStateMachine / executeExpressionStatement /
+  // executeCall extracted to ./runtime/simple-executors.
 
   private async executeDebug(node: ASTNode & { target?: string }): Promise<ExecutionResult> {
     const debugInfo = {
@@ -2471,20 +2473,7 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeFocus(node: FocusNode): Promise<ExecutionResult> {
-    this.context.focusHistory.push(node.target);
-    const results = await this.executeProgram(node.body, this.context.executionStack.length);
-
-    return {
-      success: results.every((r) => r.success),
-      output: `Focused on ${node.target}`,
-    };
-  }
-
-  private async executeEnvironment(node: EnvironmentNode): Promise<ExecutionResult> {
-    this.context.environment = { ...this.context.environment, ...node.settings };
-    return { success: true, output: 'Environment updated' };
-  }
+  // W1-T4 slice 17: executeFocus / executeEnvironment extracted to ./runtime/simple-executors.
 
   private async executeComposition(node: CompositionNode): Promise<ExecutionResult> {
     if (node.body) {
@@ -2526,7 +2515,10 @@ export class HoloScriptRuntime {
   private async executeHoloComposition(node: HoloComposition): Promise<ExecutionResult> {
     // Register templates
     for (const template of node.templates) {
-      await this.executeHoloTemplate(template);
+      await executeHoloTemplatePure(
+        template as unknown as { name: string } & Record<string, unknown>,
+        this.buildSimpleExecutorContext(),
+      );
     }
 
     // Execute environment
@@ -2551,11 +2543,7 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeHoloTemplate(node: HoloTemplate): Promise<ExecutionResult> {
-    // Store template in context
-    this.context.templates.set(node.name, node as unknown as TemplateNode);
-    return { success: true, output: `Template ${node.name} registered` };
-  }
+  // W1-T4 slice 17: executeHoloTemplate extracted to ./runtime/simple-executors.
 
   private async executeHoloObject(node: HoloObjectDecl): Promise<ExecutionResult> {
     // Convert HoloObjectDecl to OrbNode-like structure and execute logic
@@ -2940,6 +2928,23 @@ export class HoloScriptRuntime {
   // W1-T4 slice 15: executeNarrative / executeQuest / executeDialogue
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
+
+  /** Construct a SimpleExecutorContext bound to this runtime. (Slice 17) */
+  private buildSimpleExecutorContext(): SimpleExecutorContext {
+    return {
+      stateMachines: this.context.stateMachines as Map<string, StateMachineNode>,
+      templates: this.context.templates as unknown as Map<string, unknown>,
+      getEnvironment: () => this.context.environment as Record<string, unknown>,
+      setEnvironment: (env) => {
+        this.context.environment = env as Record<string, HoloScriptValue>;
+      },
+      focusHistory: this.context.focusHistory,
+      executionStackDepth: () => this.context.executionStack.length,
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
+      callFunction: (name, args) => this.callFunction(name, args),
+      executeProgram: (nodes, depth) => this.executeProgram(nodes, depth),
+    };
+  }
 
   /** Construct a NarrativeContext bound to this runtime's quest/dialogue state. */
   private buildNarrativeContext(): NarrativeContext {
