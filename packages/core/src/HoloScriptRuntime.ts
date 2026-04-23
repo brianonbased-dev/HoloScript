@@ -77,6 +77,17 @@ import {
   executeCoreConfig as executeCoreConfigPure,
   executeVisualMetadata as executeVisualMetadataPure,
 } from './runtime/system-executors';
+// W1-T4 slice 18: UI command executors extracted to ./runtime/ui-commands
+import {
+  executeShowCommand as executeShowCommandPure,
+  executeHideCommand as executeHideCommandPure,
+  executeCreateCommand as executeCreateCommandPure,
+  executeAnimateCommand as executeAnimateCommandPure,
+  executePulseCommand as executePulseCommandPure,
+  executeMoveCommand as executeMoveCommandPure,
+  executeDeleteCommand as executeDeleteCommandPure,
+  type UICommandContext,
+} from './runtime/ui-commands';
 // W1-T4 slice 17: simple executors extracted to ./runtime/simple-executors
 import {
   executeStateMachine as executeStateMachinePure,
@@ -1710,29 +1721,31 @@ export class HoloScriptRuntime {
     try {
       let result: Record<string, unknown>;
 
+      // W1-T4 slice 18: UI commands extracted — dispatch inline
+      const uiCtx = this.buildUICommandContext();
       switch (action) {
         case 'show':
-          result = await this.executeShowCommand(target, genericNode);
+          result = await executeShowCommandPure(target, genericNode, uiCtx);
           break;
         case 'hide':
-          result = await this.executeHideCommand(target, genericNode);
+          result = await executeHideCommandPure(target, genericNode, uiCtx);
           break;
         case 'create':
         case 'summon':
-          result = await this.executeCreateCommand(tokens.slice(1), genericNode);
+          result = await executeCreateCommandPure(tokens.slice(1), genericNode, uiCtx);
           break;
         case 'animate':
-          result = await this.executeAnimateCommand(target, tokens.slice(2), genericNode);
+          result = await executeAnimateCommandPure(target, tokens.slice(2), genericNode, uiCtx);
           break;
         case 'pulse':
-          result = await this.executePulseCommand(target, tokens.slice(2), genericNode);
+          result = await executePulseCommandPure(target, tokens.slice(2), genericNode, uiCtx);
           break;
         case 'move':
-          result = await this.executeMoveCommand(target, tokens.slice(2), genericNode);
+          result = await executeMoveCommandPure(target, tokens.slice(2), genericNode, uiCtx);
           break;
         case 'delete':
         case 'remove':
-          result = await this.executeDeleteCommand(target, genericNode);
+          result = await executeDeleteCommandPure(target, genericNode, uiCtx);
           break;
         default:
           // Default: create visual representation of the generic command
@@ -1755,204 +1768,9 @@ export class HoloScriptRuntime {
     }
   }
 
-  /**
-   * Execute 'show' command
-   */
-  private async executeShowCommand(
-    target: string,
-    _node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties }
-  ): Promise<Record<string, unknown>> {
-    // Create or show orb for this target
-    const hologram = _node.hologram || {
-      shape: 'orb',
-      color: '#00ffff',
-      size: 0.8,
-      glow: true,
-      interactive: true,
-    };
-
-    const position = _node.position || [0, 0, 0];
-    this.context.spatialMemory.set(target, position);
-    this.createParticleEffect(`${target}_show`, position, hologram.color, 15);
-
-    logger.info('Show command executed', { target, position });
-
-    return {
-      showed: target,
-      hologram,
-      position,
-    };
-  }
-
-  /**
-   * Execute 'hide' command
-   */
-  private async executeHideCommand(
-    target: string,
-    _node: ASTNode
-  ): Promise<Record<string, unknown>> {
-    const position = this.context.spatialMemory.get(target) || [0, 0, 0];
-    this.createParticleEffect(`${target}_hide`, position, '#ff0000', 10);
-
-    logger.info('Hide command executed', { target });
-
-    return {
-      hidden: target,
-    };
-  }
-
-  /**
-   * Execute 'create' command
-   */
-  private async executeCreateCommand(
-    tokens: string[],
-    _node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties }
-  ): Promise<Record<string, unknown>> {
-    if (tokens.length < 2) {
-      return { error: 'Create command requires shape and name' };
-    }
-
-    const shape = tokens[0];
-    const name = tokens[1];
-    const position = _node.position || [0, 0, 0];
-
-    const hologram: HologramProperties = {
-      shape: shape as HologramShape,
-      color: _node.hologram?.color || '#00ffff',
-      size: _node.hologram?.size || 1,
-      glow: _node.hologram?.glow !== false,
-      interactive: _node.hologram?.interactive !== false,
-    };
-
-    this.context.spatialMemory.set(name, position);
-    this.createParticleEffect(`${name}_create`, position, hologram.color, 20);
-
-    logger.info('Create command executed', { shape, name, position });
-
-    return {
-      created: name,
-      shape,
-      hologram,
-      position,
-    };
-  }
-
-  /**
-   * Execute 'animate' command
-   */
-  private async executeAnimateCommand(
-    target: string,
-    tokens: string[],
-    _node: ASTNode
-  ): Promise<Record<string, unknown>> {
-    const property = tokens[0] || 'position[1]';
-    const duration = parseInt(tokens[1] || '1000', 10);
-
-    const animation: Animation = {
-      target,
-      property,
-      from: 0,
-      to: 1,
-      duration,
-      startTime: Date.now(),
-      easing: 'ease-in-out',
-    };
-
-    this.animations.set(`${target}_${property}`, animation);
-
-    logger.info('Animate command executed', { target, property, duration });
-
-    return {
-      animating: target,
-      animation,
-    };
-  }
-
-  /**
-   * Execute 'pulse' command
-   */
-  private async executePulseCommand(
-    target: string,
-    tokens: string[],
-    _node: ASTNode
-  ): Promise<Record<string, unknown>> {
-    const duration = parseInt(tokens[0] || '500', 10);
-    const position = this.context.spatialMemory.get(target) || [0, 0, 0];
-
-    // Create pulsing particle effect
-    this.createParticleEffect(`${target}_pulse`, position, '#ffff00', 30);
-
-    // Create animation for scale
-    const animation: Animation = {
-      target,
-      property: 'scale',
-      from: 1,
-      to: 1.5,
-      duration,
-      startTime: Date.now(),
-      easing: 'sine',
-      yoyo: true,
-      loop: true,
-    };
-
-    this.animations.set(`${target}_pulse`, animation);
-
-    logger.info('Pulse command executed', { target, duration });
-
-    return {
-      pulsing: target,
-      duration,
-    };
-  }
-
-  /**
-   * Execute 'move' command
-   */
-  private async executeMoveCommand(
-    target: string,
-    tokens: string[],
-    _node: ASTNode
-  ): Promise<Record<string, unknown>> {
-    const x = parseFloat(tokens[0] || '0');
-    const y = parseFloat(tokens[1] || '0');
-    const z = parseFloat(tokens[2] || '0');
-    const position: SpatialPosition = [x, y, z];
-
-    const current = this.context.spatialMemory.get(target);
-    if (current) {
-      this.context.spatialMemory.set(target, position);
-      this.createConnectionStream(target, `${target}_move`, current, position, 'movement');
-    } else {
-      this.context.spatialMemory.set(target, position);
-    }
-
-    logger.info('Move command executed', { target, position });
-
-    return {
-      moved: target,
-      to: position,
-    };
-  }
-
-  /**
-   * Execute 'delete' command
-   */
-  private async executeDeleteCommand(
-    target: string,
-    _node: ASTNode
-  ): Promise<Record<string, unknown>> {
-    const position = this.context.spatialMemory.get(target);
-    if (position) {
-      this.createParticleEffect(`${target}_delete`, position, '#ff0000', 15);
-      this.context.spatialMemory.delete(target);
-    }
-
-    logger.info('Delete command executed', { target });
-
-    return {
-      deleted: target,
-    };
-  }
+  // W1-T4 slice 18: show/hide/create/animate/pulse/move/delete commands
+  // extracted to ./runtime/ui-commands. Methods deleted — dispatch is
+  // inlined above using buildUICommandContext().
 
   private async executeStructure(node: ASTNode): Promise<ExecutionResult> {
     // Handle nexus, building, and other structural elements
@@ -2928,6 +2746,18 @@ export class HoloScriptRuntime {
   // W1-T4 slice 15: executeNarrative / executeQuest / executeDialogue
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
+
+  /** Construct a UICommandContext bound to this runtime. (Slice 18) */
+  private buildUICommandContext(): UICommandContext {
+    return {
+      spatialMemory: this.context.spatialMemory,
+      animations: this.animations,
+      createParticleEffect: (name, position, color, count) =>
+        this.createParticleEffect(name, position, color, count),
+      createConnectionStream: (from, to, fromPos, toPos, dataType) =>
+        this.createConnectionStream(from, to, fromPos, toPos, dataType),
+    };
+  }
 
   /** Construct a SimpleExecutorContext bound to this runtime. (Slice 17) */
   private buildSimpleExecutorContext(): SimpleExecutorContext {
