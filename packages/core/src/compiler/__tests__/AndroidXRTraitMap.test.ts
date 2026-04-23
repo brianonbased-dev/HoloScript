@@ -432,14 +432,14 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('city_vectors'))).toBe(true);
   });
 
-  it('embedding_search keeps TODO path when feature flag disabled', () => {
+  it('embedding_search generates ANN retrieval when feature flag disabled', () => {
     const code = generateTraitCode('embedding_search', 'searchNode', {
       dimensions: 384,
       enable_sqlite_fts_stub: false,
     });
 
-    expect(code.some((l) => l.includes('Feature flag disabled'))).toBe(true);
-    expect(code.some((l) => l.includes('TODO: wire ANN retrieval'))).toBe(true);
+    expect(code.some((l) => l.includes('CosineSimilarity'))).toBe(true);
+    expect(code.some((l) => l.includes('AnnSearch'))).toBe(true);
   });
 
   // =========== Upgraded traits ===========
