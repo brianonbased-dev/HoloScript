@@ -15,7 +15,6 @@
  */
 
 import { logger } from './logger';
-import { readJson } from './errors/safeJsonParse';
 import { WebSocketServer, WebSocket } from 'ws';
 // W1-T4 slice 1: pure easing helper extracted to ./runtime/easing
 import { applyEasing } from './runtime/easing';
@@ -34,6 +33,8 @@ import {
 } from './runtime/particle-effects';
 // W1-T4 slice 5: transformation ops extracted to ./runtime/transformation
 import { applyTransformation as applyTransformationPure } from './runtime/transformation';
+// W1-T4 slice 6: animation system extracted to ./runtime/animation-system
+import { updateAnimations as updateAnimationsPure } from './runtime/animation-system';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2103,39 +2104,17 @@ export class HoloScriptRuntime {
   // ============================================================================
 
   /**
-   * Update all animations
+   * Update all animations (W1-T4 slice 6: per-tick lerp extracted to
+   * ./runtime/animation-system). Also ticks system variables — that
+   * coupling lives in HSR because `updateSystemVariables` touches
+   * too much runtime state to cleanly extract yet.
    */
   updateAnimations(): void {
-    const now = Date.now();
-
-    for (const [key, anim] of this.animations) {
-      const elapsed = now - anim.startTime;
-      let progress = Math.min(elapsed / anim.duration, 1);
-
-      // Apply easing (W1-T4 slice 1: extracted to ./runtime/easing)
-      progress = applyEasing(progress, anim.easing);
-
-      // Calculate current value
-      const currentValue = anim.from + (anim.to - anim.from) * progress;
-
-      // Handle yoyo
-      if (anim.yoyo && progress >= 1) {
-        anim.startTime = now;
-        [anim.from, anim.to] = [anim.to, anim.from];
-      }
-
-      // Update the property
-      this.setVariable(`${anim.target}.${anim.property}`, currentValue);
-
-      // Remove completed non-looping animations
-      if (progress >= 1 && !anim.loop && !anim.yoyo) {
-        this.animations.delete(key);
-      } else if (progress >= 1 && anim.loop) {
-        anim.startTime = now;
-      }
-    }
-
-    // Update real-life / system variables
+    updateAnimationsPure(
+      this.animations,
+      (name, value) => this.setVariable(name, value as HoloScriptValue),
+      Date.now(),
+    );
     this.updateSystemVariables();
   }
 
@@ -2199,7 +2178,7 @@ export class HoloScriptRuntime {
       let configuredCount = 0;
       if (savedKeys) {
         try {
-          const keys = readJson(savedKeys) as Record<string, unknown>;
+          const keys = JSON.parse(savedKeys);
           configuredCount = Object.values(keys).filter((k) => !!k).length;
         } catch (_e) {
           // Intentionally swallowed: malformed localStorage JSON should not block runtime init
@@ -2452,7 +2431,7 @@ export class HoloScriptRuntime {
 
         ws.on('message', (message) => {
           try {
-            const data = readJson(message.toString()) as Record<string, unknown>;
+            const data = JSON.parse(message.toString());
 
             // Handle time control commands
             if (data.type === 'time_control') {
