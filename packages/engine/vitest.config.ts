@@ -35,7 +35,6 @@ const QUARANTINED_TESTS: string[] = [
 
   // Simulation — real source bugs (CSVImporter uses p[0]/p[1]/p[2] on object;
   // StressRecovery ~17s long-running).
-  'src/simulation/__tests__/DataImport.test.ts',    // 1/14: CSVImporter source bug (p.x vs p[0])
   'src/simulation/__tests__/StressRecovery.test.ts',// long-running (>15s), fails under coverage
 
   // Spatial — OctreeLODSystem has 30/52 failing: shared setup regression.
