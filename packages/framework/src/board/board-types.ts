@@ -159,6 +159,22 @@ export const ROOM_PRESETS: Record<string, RoomPreset> = {
       'Do not paper over flakes; root-cause or explicit skip with issue link',
     ],
   },
+  unblock: {
+    objective:
+      'Remove what is stopping the team — commit untracked files blocking deploys, fix auth conflicts, drain failed CI, close claimed-but-uncommitted tasks, resolve capacity limits',
+    taskSources: [
+      'git ls-files --others --exclude-standard | xargs grep-back-to-committed',
+      'gh run list --status failure --limit 10',
+      'claimed tasks with no commit attached',
+      'Railway buildLogs on failed deploys',
+    ],
+    rules: [
+      'Diagnose root cause before swinging — the 2026-04-22 deploy chain was 32 files, not 1',
+      'Commit the unblocker before resuming feature work in the same session',
+      'Seed a follow-up audit task for any recurrence pattern (pre-commit hook, CI check, pattern memo)',
+      'Verify the unblock with orthogonal signals — count deltas alone can be dedupes, not regressions (W.team.1776924514845.wd3)',
+    ],
+  },
   docs: {
     objective:
       'Documentation matches ground truth — docs/NUMBERS.md policy, tier load order, archive banners, public API and MCP surfaces documented',
@@ -189,6 +205,7 @@ export const TEAM_MODES = [
   'review',
   'security',
   'stabilize',
+  'unblock',
   'docs',
   'planning',
 ] as const;
