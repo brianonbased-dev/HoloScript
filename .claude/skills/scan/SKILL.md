@@ -73,7 +73,7 @@ Check key health indicators:
 1. **Graph cache freshness**: Check if `.holoscript-graph-cache.json` exists and its age
 2. **MCP server health**: Probe `https://mcp.holoscript.net/health`
 3. **Orchestrator health**: Probe `https://mcp-orchestrator-production-45f9.up.railway.app/health`
-4. **Package.json consistency**: Quick check that core package version matches v6.0.2
+4. **Package.json consistency**: Quick check that core package version matches root (currently v7.0.0; verify via `node -p "require('./packages/core/package.json').version"`)
 5. **CRDT brain health**: Check V9 distributed memory consolidation state in `packages/mcp-server/src/holomesh/crdt-sync.ts`:
    - Grep for `DOMAIN_CONFIGS` to verify all 5 domains (security, rendering, agents, compilation, general) are present
    - Check if any domain's cold store exceeds 90% capacity (capacity field in DOMAIN_CONFIGS)
@@ -152,7 +152,7 @@ HEALTH
   MCP Server:    OK
   Orchestrator:  OK
   Graph cache:   WARN (48h old)
-  Core version:  OK (6.1.0)
+  Core version:  OK (7.0.0)
   CRDT Brain:    OK (check domains via consolidation status)
     security:    OK ([N]/50 entries, sleep Xh ago)
     rendering:   OK ([N]/200 entries, sleep Xh ago)

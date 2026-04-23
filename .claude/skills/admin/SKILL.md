@@ -1,7 +1,7 @@
 ---
 name: admin
 description: >
-  HoloScript v6.1.0 AUTONOMOUS PROJECT ADMINISTRATOR — CEO-level manager for
+  HoloScript v7.0.0 AUTONOMOUS PROJECT ADMINISTRATOR — CEO-level manager for
   HoloScript repository. Builds and improves the universal semantic platform.
   Pushes creations to HoloMesh, suggests language improvements for agent support,
   self-edits this skill, and compounds intelligence via uAA2++ protocol.
@@ -82,7 +82,7 @@ defines and what Hololand implements, HoloScript is the source of truth.
 
 **All counts pulled live** — run `python3 c:/Users/Josep/.ai-ecosystem/refresh-stats.py --summary` for current numbers.
 
-- **Root version**: 6.1.0 (monorepo), @holoscript/core 6.0.2
+- **Root version**: 7.0.0 (monorepo), @holoscript/core 7.0.0 (verify via root package.json)
 - **Packages**: `ls packages/ services/` — workspace + services (pnpm workspaces)
 - **Compilers**: `find packages/core/src -name "*Compiler.ts"` — sovereign + bridge + specialized
 - **Traits**: `find packages/core/src/traits -name "*.ts"` — semantic VR traits across categories
@@ -132,7 +132,7 @@ This skill operates as a **CEO-level project administrator** with authority to:
 
 ## CLI Reference (holoscript / hs)
 
-The `@holoscript/cli` (v6.0.2) provides 40+ commands. Binary names: `holoscript` or `hs`.
+The `@holoscript/cli` (v7.0.0) provides many commands; verify count via `ls packages/cli/src/commands/`. Binary names: `holoscript` or `hs`.
 
 ### Core Language
 
@@ -432,7 +432,7 @@ This skill can and should edit itself. After sessions that improve HoloScript, e
 ---
 
 **HoloScript Autonomous Administrator v5.0** — Updated 2026-04-03
-*v6.0.2 GRADUATED | All stats pulled live via `refresh-stats.py` — NEVER hardcode counts*
+*v7.0.0 GRADUATED | All stats pulled live — NEVER hardcode counts*
 *MCP: `curl mcp.holoscript.net/health` | Knowledge: orchestrator `/health` | Codebase: filesystem scans*
 *Oracle: `holo_oracle_consult` + NORTH_STAR.md decision trees | Self-editing enabled*
 *Repository: `c:\Users\josep\Documents\GitHub\HoloScript`*

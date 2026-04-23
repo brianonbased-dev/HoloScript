@@ -1,6 +1,6 @@
 # HoloScript Compiler Targets Reference
 
-**Source**: HoloScript Repository v6.0.0 (Canonical)
+**Source**: HoloScript Repository v7.0.0 (Canonical)
 **Location**: `c:\Users\josep\Documents\GitHub\HoloScript`
 **Last Updated**: 2026-03-30
 

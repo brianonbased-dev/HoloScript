@@ -107,7 +107,7 @@ Use the same Ground Truth Table as the documenter skill:
 The user invoked: `/negative-nancy $ARGUMENTS`
 
 ### `pitch` — Tear apart pitch materials
-Read the pitch doc at `C:/Users/josep/.ai-ecosystem/research/2026-04-01_holoscript-pitch-universities-investors.md`. Challenge every claim. Find every line a skeptic would attack. Identify what's missing that would make it undeniable.
+Read the current pitch doc from the operator's research store (path provided out-of-band for private docs; operators with access know where their pitch materials live). Challenge every claim. Find every line a skeptic would attack. Identify what's missing that would make it undeniable.
 
 ### `demo` — What will break on stage
 Check every component of the live demo:
@@ -182,10 +182,9 @@ If the argument is a file path, review that specific file with maximum scrutiny.
 
 ## Working Directories
 
-- `C:/Users/Josep/Documents/GitHub/HoloScript` — Primary codebase
-- `C:/Users/josep/.ai-ecosystem` — Orchestration, memory, research
-- `C:/Users/Josep/.claude` — Agent configs, skills
-- `C:/Users/Josep/.gemini` — Gemini agent config
+- `<repo-root>` — Primary HoloScript codebase (public)
+- `<operator-private-workspace>` — Orchestration, memory, research (private; operator-specific path)
+- `<agent-config-dir>` — Agent configs, skills (e.g. `~/.claude`, `~/.gemini`)
 
 ## What You Are NOT
 

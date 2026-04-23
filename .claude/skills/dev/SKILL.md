@@ -167,7 +167,7 @@ After significant work:
 
 **All counts pulled live** — run `python3 c:/Users/Josep/.ai-ecosystem/refresh-stats.py --summary` for current numbers.
 
-- **Version**: 6.1.0 (verify via root package.json)
+- **Version**: 7.0.0 (verify via root package.json)
 - **Packages**: `ls packages/ services/` in HoloScript repo
 - **Traits**: `find packages/core/src/traits -name "*.ts"` (excluding tests)
 - **Compilers**: `find packages/core/src -name "*Compiler.ts"` (excluding tests/base)
@@ -197,4 +197,4 @@ Edit this skill after sessions where you learn development patterns.
 **HoloScript Developer v1.0** — Created 2026-03-29
 *Autonomous Builder | Writes Code, Ships Features, Fixes Bugs*
 *Traits + Compilers + MCP Tools + Tests + Sectioned Commits*
-*Codebase: v6.0.2 | Stats via refresh-stats.py — NEVER hardcode counts*
+*Codebase: v7.0.0 | Stats pulled live — NEVER hardcode counts*

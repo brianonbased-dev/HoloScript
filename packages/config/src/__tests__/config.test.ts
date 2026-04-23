@@ -44,12 +44,16 @@ describe('auth (server-side)', () => {
   });
 
   it('returns empty string when env not set', () => {
-    delete process.env.HOLOSCRIPT_API_KEY;
+    // F.013: getMcpApiKey() reads HOLOSCRIPT_API_KEY first, then falls back to legacy MCP_API_KEY.
+    // Save both so the restore step is symmetric and doesn't leak state into the next test.
+    const savedHoloscriptKey = process.env.HOLOSCRIPT_API_KEY;
     const savedMcpKey = process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_API_KEY;
     delete process.env.MCP_API_KEY;
     try {
       expect(getMcpApiKey()).toBe('');
     } finally {
+      if (savedHoloscriptKey !== undefined) process.env.HOLOSCRIPT_API_KEY = savedHoloscriptKey;
       if (savedMcpKey !== undefined) process.env.MCP_API_KEY = savedMcpKey;
     }
   });

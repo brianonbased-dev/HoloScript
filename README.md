@@ -286,4 +286,4 @@ HoloScript release lanes are managed under `scripts/version-policy.json` (for ex
 
 ---
 
-v6.0.2 · [MIT License](./LICENSE)
+v7.0.0 · [MIT License](./LICENSE)
