@@ -43,6 +43,12 @@ import {
   broadcast as broadcastPure,
   handleTimeControl as handleTimeControlPure,
 } from './runtime/visualizer-server';
+// W1-T4 slice 30: HoloStatement executor extracted to ./runtime/holo-statement-executor
+import {
+  executeHoloProgram as executeHoloProgramPure,
+  executeHoloStatement as executeHoloStatementPure,
+  type HoloStatementContext,
+} from './runtime/holo-statement-executor';
 // W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
 import {
   handleShop as handleShopPure,
@@ -1538,124 +1544,48 @@ export class HoloScriptRuntime {
   /**
    * Execute a block of HoloStatements (HoloNode AST)
    */
+  // W1-T4 slice 30: executeHoloProgram + executeHoloStatement extracted
+  // to ./runtime/holo-statement-executor. Thin wrappers bind this
+  // runtime's getVariable/setVariable/emit/evaluateHoloExpression +
+  // telemetry into a HoloStatementContext and forward to the pure
+  // recursive executor.
   async executeHoloProgram(
     statements: HoloStatement[],
     scopeOverride?: Scope
   ): Promise<ExecutionResult[]> {
-    const results: ExecutionResult[] = [];
-    telemetry.setGauge('execution_depth', this.context.executionStack.length);
-    for (const stmt of statements) {
-      telemetry.incrementCounter('statements_executed', 1, { type: stmt.type });
-
-      const res = await telemetry.measureLatency(`execute_stmt_${stmt.type}`, () =>
-        this.executeHoloStatement(stmt, scopeOverride)
-      );
-
-      results.push(res);
-      // If a result has an output that indicates a return, stop execution
-      const last = results[results.length - 1];
-      if (last.success && last.output !== undefined && stmt.type === 'ReturnStatement') {
-        break;
-      }
-    }
-    return results;
+    return executeHoloProgramPure(statements, scopeOverride, this.buildHoloStatementContext());
   }
 
   private async executeHoloStatement(
     stmt: HoloStatement,
     scopeOverride?: Scope
   ): Promise<ExecutionResult> {
-    // console.log(`[EXEC] Statement: ${stmt.type}`, JSON.stringify(stmt).substring(0, 100));
-    const _startTime = Date.now();
-    try {
-      switch (stmt.type) {
-        case 'Assignment': {
-          const value = await this.evaluateHoloExpression(stmt.value, scopeOverride);
-          let finalValue = value;
-          if (stmt.operator !== '=') {
-            const current = this.getVariable(stmt.target, scopeOverride);
-            if (stmt.operator === '+=')
-              finalValue = (Number(current) + Number(value)) as HoloScriptValue;
-            else if (stmt.operator === '-=')
-              finalValue = (Number(current) - Number(value)) as HoloScriptValue;
-            else if (stmt.operator === '*=')
-              finalValue = (Number(current) * Number(value)) as HoloScriptValue;
-            else if (stmt.operator === '/=')
-              finalValue = (Number(current) / Number(value)) as HoloScriptValue;
-          }
-          this.setVariable(stmt.target, finalValue, scopeOverride);
-          return { success: true };
-        }
-        case 'IfStatement': {
-          const condition = await this.evaluateHoloExpression(stmt.condition, scopeOverride);
-          if (condition) {
-            await this.executeHoloProgram(stmt.consequent, scopeOverride);
-          } else if (stmt.alternate) {
-            await this.executeHoloProgram(stmt.alternate, scopeOverride);
-          }
-          return { success: true };
-        }
-        case 'WhileStatement': {
-          const MAX_ITERATIONS = 1000;
-          let iter = 0;
-          while (await this.evaluateHoloExpression(stmt.condition, scopeOverride)) {
-            if (iter++ > MAX_ITERATIONS) return { success: false, error: 'Infinite loop' };
-            await this.executeHoloProgram(stmt.body, scopeOverride);
-          }
-          return { success: true };
-        }
-        case 'ClassicForStatement': {
-          if (stmt.init) await this.executeHoloStatement(stmt.init, scopeOverride);
-          const MAX_ITERATIONS = 1000;
-          let iter = 0;
-          while (!stmt.test || (await this.evaluateHoloExpression(stmt.test, scopeOverride))) {
-            if (iter++ > MAX_ITERATIONS) return { success: false, error: 'Infinite loop' };
-            await this.executeHoloProgram(stmt.body, scopeOverride);
-            if (stmt.update) await this.executeHoloStatement(stmt.update, scopeOverride);
-          }
-          return { success: true };
-        }
-        case 'VariableDeclaration': {
-          const value = stmt.value
-            ? await this.evaluateHoloExpression(stmt.value, scopeOverride)
-            : undefined;
-          const scope = scopeOverride || this.currentScope;
-          scope.variables.set(stmt.name, value as HoloScriptValue);
-          return { success: true };
-        }
-        case 'EmitStatement': {
-          const data = stmt.data
-            ? await this.evaluateHoloExpression(stmt.data, scopeOverride)
-            : undefined;
-          this.emit(stmt.event, data);
-          return { success: true };
-        }
-        case 'AwaitStatement': {
-          const value = await this.evaluateHoloExpression(stmt.expression, scopeOverride);
-          if (value instanceof Promise) await value;
-          return { success: true };
-        }
-        case 'ReturnStatement': {
-          const value = stmt.value
-            ? await this.evaluateHoloExpression(stmt.value, scopeOverride)
-            : null;
-          return { success: true, output: value };
-        }
-        case 'ExpressionStatement': {
-          const val = await this.evaluateHoloExpression(stmt.expression, scopeOverride);
-          return { success: true, output: val };
-        }
-        default:
-          return {
-            success: false,
-            error: `Unknown stmt type: ${(stmt as { type?: string }).type}`,
-          };
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[EXEC_ERROR] Statement ${stmt.type} failed:`, errMsg);
-      return { success: false, error: errMsg };
-    }
+    return executeHoloStatementPure(stmt, scopeOverride, this.buildHoloStatementContext());
+  }
+
+  private buildHoloStatementContext(): HoloStatementContext {
+    return {
+      currentScope: this.currentScope,
+      getVariable: (name, scope) => this.getVariable(name, scope),
+      setVariable: (name, value, scope) => {
+        this.setVariable(name, value, scope);
+      },
+      emit: (event, data) => {
+        void this.emit(event, data);
+      },
+      evaluateHoloExpression: (expr, scopeOverride) =>
+        this.evaluateHoloExpression(expr as HoloExpression, scopeOverride),
+      telemetry: {
+        setGauge: (name, value) => {
+          telemetry.setGauge(name, value);
+        },
+        incrementCounter: (name, value, labels) => {
+          telemetry.incrementCounter(name, value, labels);
+        },
+        measureLatency: (name, fn) => telemetry.measureLatency(name, fn),
+        executionDepth: () => this.context.executionStack.length,
+      },
+    };
   }
 
   // W1-T4 slice: evaluateHoloExpression + getMemberPath extracted to
