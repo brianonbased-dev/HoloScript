@@ -60,6 +60,15 @@ import { updateSystemVariables as updateSystemVariablesPure } from './runtime/sy
 import { createEmptyContext } from './runtime/context-factory';
 // W1-T4 slice 11: pattern matcher extracted to ./runtime/pattern-match
 import { patternMatches as patternMatchesPure } from './runtime/pattern-match';
+// W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
+import {
+  executeForLoop as executeForLoopPure,
+  executeForEachLoop as executeForEachLoopPure,
+  executeWhileLoop as executeWhileLoopPure,
+  executeIfStatement as executeIfStatementPure,
+  executeMatch as executeMatchPure,
+  type ControlFlowContext,
+} from './runtime/control-flow';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator } from './ReactiveState';
@@ -2896,171 +2905,58 @@ export class HoloScriptRuntime {
   }
 
   // =========================================================================
-  // Control Flow Execution
+  // Control Flow Execution (W1-T4 slice 12: impls extracted to
+  // ./runtime/control-flow — wrappers below share a ControlFlowContext
+  // that threads evaluateExpression / evaluateCondition / executeNode /
+  // variables through a narrow boundary).
   // =========================================================================
 
-  /**
-   * Execute a for loop: @for item in collection { ... }
-   */
+  /** Construct a ControlFlowContext bound to this runtime's state. */
+  private buildControlFlowContext(): ControlFlowContext {
+    return {
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
+      evaluateCondition: (expr) => this.evaluateCondition(expr),
+      executeNode: (n) => this.executeNode(n),
+      variables: this.context.variables,
+    };
+  }
+
+  /** @for item in iterable { body } */
   private async executeForLoop(node: {
     variable: string;
     iterable: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const { variable, iterable, body } = node;
-
-    try {
-      // Evaluate the iterable expression
-      const collection = this.evaluateExpression(String(iterable));
-
-      if (!Array.isArray(collection) && typeof collection !== 'object') {
-        return {
-          success: false,
-          error: `Cannot iterate over non-iterable: ${typeof collection}`,
-          executionTime: Date.now() - startTime,
-        };
-      }
-
-      const items = Array.isArray(collection)
-        ? collection
-        : collection && typeof collection === 'object'
-          ? Object.entries(collection)
-          : [];
-      let lastResult: ExecutionResult = { success: true, output: null };
-
-      for (const item of items) {
-        // Set loop variable in context
-        this.context.variables.set(variable, item);
-
-        // Execute body
-        for (const bodyNode of body) {
-          lastResult = await this.executeNode(bodyNode);
-          if (!lastResult.success) break;
-        }
-
-        if (!lastResult.success) break;
-      }
-
-      // Clean up loop variable
-      this.context.variables.delete(variable);
-
-      return {
-        success: true,
-        output: lastResult.output,
-        executionTime: Date.now() - startTime,
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: `For loop error: ${error instanceof Error ? error.message : String(error)}`,
-        executionTime: Date.now() - startTime,
-      };
-    }
+    return executeForLoopPure(node, this.buildControlFlowContext());
   }
 
-  /**
-   * Execute a forEach loop: @forEach item in collection { ... }
-   */
+  /** @forEach item in collection { body } */
   private async executeForEachLoop(node: {
     variable: string;
     collection: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
-    // forEach is functionally identical to for in this context
-    return this.executeForLoop({
-      variable: node.variable,
-      iterable: node.collection,
-      body: node.body,
-    });
+    return executeForEachLoopPure(node, this.buildControlFlowContext());
   }
 
-  /**
-   * Execute a while loop: @while condition { ... }
-   */
+  /** @while condition { body } (10k-iteration safety cap) */
   private async executeWhileLoop(node: {
     condition: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const { condition, body } = node;
-    const MAX_ITERATIONS = 10000; // Safety limit
-
-    try {
-      let iterations = 0;
-      let lastResult: ExecutionResult = { success: true, output: null };
-
-      while (this.evaluateCondition(String(condition))) {
-        iterations++;
-        if (iterations > MAX_ITERATIONS) {
-          return {
-            success: false,
-            error: `While loop exceeded maximum iterations (${MAX_ITERATIONS})`,
-            executionTime: Date.now() - startTime,
-          };
-        }
-
-        for (const bodyNode of body) {
-          lastResult = await this.executeNode(bodyNode);
-          if (!lastResult.success) break;
-        }
-
-        if (!lastResult.success) break;
-      }
-
-      return {
-        success: true,
-        output: lastResult.output,
-        executionTime: Date.now() - startTime,
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: `While loop error: ${error instanceof Error ? error.message : String(error)}`,
-        executionTime: Date.now() - startTime,
-      };
-    }
+    return executeWhileLoopPure(node, this.buildControlFlowContext());
   }
 
-  /**
-   * Execute an if statement: @if condition { ... } @else { ... }
-   */
+  /** @if condition { body } @else { elseBody } */
   private async executeIfStatement(node: {
     condition: string | unknown;
     body: ASTNode[];
     elseBody?: ASTNode[];
   }): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const { condition, body, elseBody } = node;
-
-    try {
-      const conditionResult = this.evaluateCondition(String(condition));
-      const branchToExecute = conditionResult ? body : elseBody || [];
-
-      let lastResult: ExecutionResult = { success: true, output: null };
-
-      for (const bodyNode of branchToExecute) {
-        lastResult = await this.executeNode(bodyNode);
-        if (!lastResult.success) break;
-      }
-
-      return {
-        success: true,
-        output: lastResult.output,
-        executionTime: Date.now() - startTime,
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: `If statement error: ${error instanceof Error ? error.message : String(error)}`,
-        executionTime: Date.now() - startTime,
-      };
-    }
+    return executeIfStatementPure(node, this.buildControlFlowContext());
   }
 
-  /**
-   * Execute a match expression: @match subject { pattern => result, ... }
-   */
+  /** @match subject { pattern => result, ... } */
   private async executeMatch(node: {
     subject: string | unknown;
     cases: Array<{
@@ -3069,49 +2965,7 @@ export class HoloScriptRuntime {
       body: ASTNode[] | unknown;
     }>;
   }): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const { subject, cases } = node;
-
-    try {
-      const subjectValue = this.evaluateExpression(String(subject));
-
-      for (const matchCase of cases || []) {
-        const patternValue = this.evaluateExpression(String(matchCase.pattern));
-
-        // Check pattern match
-        if (patternMatchesPure(patternValue, subjectValue)) {
-          // Check guard if present
-          if (matchCase.guard && !this.evaluateCondition(String(matchCase.guard))) {
-            continue;
-          }
-
-          // Execute body
-          if (Array.isArray(matchCase.body)) {
-            let lastResult: ExecutionResult = { success: true, output: null };
-            for (const bodyNode of matchCase.body) {
-              lastResult = await this.executeNode(bodyNode);
-              if (!lastResult.success) break;
-            }
-            return lastResult;
-          } else {
-            const result = this.evaluateExpression(String(matchCase.body));
-            return { success: true, output: result, executionTime: Date.now() - startTime };
-          }
-        }
-      }
-
-      return {
-        success: false,
-        error: 'No pattern matched',
-        executionTime: Date.now() - startTime,
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: `Match expression error: ${error instanceof Error ? error.message : String(error)}`,
-        executionTime: Date.now() - startTime,
-      };
-    }
+    return executeMatchPure(node, this.buildControlFlowContext());
   }
 
   // W1-T4 slice 11: patternMatches extracted to ./runtime/pattern-match
