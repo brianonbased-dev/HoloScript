@@ -3,30 +3,38 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { resolveGitHubToken } from './middleware/github-identity.js';
+import { SERVICE_VERSION } from './version.js';
 
 const transports = new Map<string, SSEServerTransport>();
 const sessionUserMap = new Map<string, string>();
+
+/**
+ * Live tool count registered on the most recent createMcpServer() call.
+ * Updated once at first-session setup; reported in /.well-known/mcp so the
+ * discovery doc doesn't lie when the underlying @holoscript/absorb-service
+ * package changes its exported tool surface.
+ */
+let _lastRegisteredToolCount = 0;
 
 export function getSessionUserId(sessionId: string): string | undefined {
   return sessionUserMap.get(sessionId);
 }
 
 function getToolCount(): number {
-  // Count tools from the absorb service MCP modules
-  try {
-    return 20; // Known tool count from absorb-service/mcp
-  } catch {
-    return 0;
-  }
+  // Report the actual count registered on the last MCP server setup.
+  // Zero means no MCP session has initialized yet — discovery clients should
+  // still receive a valid number without a hardcoded guess.
+  return _lastRegisteredToolCount;
 }
 
 async function createMcpServer(): Promise<McpServer> {
   const server = new McpServer({
     name: 'absorb-service',
-    version: '6.0.0',
+    version: SERVICE_VERSION,
   });
 
   // Register absorb tools
+  let registeredCount = 0;
   try {
     const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
 
@@ -39,6 +47,7 @@ async function createMcpServer(): Promise<McpServer> {
         const result = await handleAbsorbServiceTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
+      registeredCount++;
     }
 
     const absorbTypescriptTools = (mcpModule.absorbTypescriptTools ?? []) as any[];
@@ -50,6 +59,7 @@ async function createMcpServer(): Promise<McpServer> {
         const result = await handleAbsorbTypescriptTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
+      registeredCount++;
     }
 
     const codebaseTools = (mcpModule.codebaseTools ?? []) as any[];
@@ -60,6 +70,7 @@ async function createMcpServer(): Promise<McpServer> {
         const result = await handleCodebaseTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
+      registeredCount++;
     }
 
     const graphRagTools = (mcpModule.graphRagTools ?? []) as any[];
@@ -70,9 +81,17 @@ async function createMcpServer(): Promise<McpServer> {
         const result = await handleGraphRagTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
+      registeredCount++;
     }
+
+    _lastRegisteredToolCount = registeredCount;
   } catch (e: any) {
     console.warn('[mcp] Failed to register absorb MCP tools:', e.message);
+    // Keep the previous known count rather than clobbering to 0 on a transient
+    // import failure; operators can still see a stale-but-useful number.
+    if (registeredCount > 0) {
+      _lastRegisteredToolCount = registeredCount;
+    }
   }
 
   return server;
@@ -162,7 +181,7 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
   res.json({
     mcpVersion: '2025-03-26',
     name: 'absorb-service',
-    version: '6.0.0',
+    version: SERVICE_VERSION,
     description: 'HoloScript Codebase Intelligence & Recursive Self-Improvement Service — scan codebases, build knowledge graphs, run GraphRAG queries, and execute recursive improvement pipelines.',
     transport: {
       type: 'sse',

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { SERVICE_VERSION } from './version.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
 import { absorbRouter } from './routes/absorb.js';
@@ -42,7 +43,17 @@ async function pingPostgresWithTimeout(db: NonNullable<ReturnType<typeof getDb>>
 type MoltbookProbeResult =
   | { status: 'ok'; count: number }
   | { status: 'timeout' }
-  | { status: 'error' };
+  | { status: 'error'; message: string };
+
+/**
+ * Last observed error message from the moltbook probe.
+ * Surfaced in /health diagnostics so operators can tell WHY the probe failed
+ * (table missing, schema drift, permission, etc.) without tailing Railway logs.
+ * Silent-swallow previously made this invisible — observed 2026-04-23: live
+ * /health reported `moltbookAgentCountProbe: "error"` with no other signal.
+ */
+let _lastMoltbookProbeError: string | null = null;
+let _loggedMoltbookProbeErrorOnce = false;
 
 async function fetchActiveMoltbookAgentsWithTimeout(
   db: NonNullable<ReturnType<typeof getDb>>,
@@ -54,10 +65,20 @@ async function fetchActiveMoltbookAgentsWithTimeout(
       const [row] = await db
         .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
         .from(moltbookAgents);
+      _lastMoltbookProbeError = null;
       return { status: 'ok', count: row?.count ?? 0 };
-    } catch {
-      // Table missing or query failed — not the same as Postgres being down
-      return { status: 'error' };
+    } catch (err) {
+      // Table missing or query failed — not the same as Postgres being down.
+      // Capture the error message so /health diagnostics can surface it.
+      const message = err instanceof Error ? err.message : String(err);
+      _lastMoltbookProbeError = message;
+      if (!_loggedMoltbookProbeErrorOnce) {
+        _loggedMoltbookProbeErrorOnce = true;
+        // One-time stderr log so Railway captures it; subsequent occurrences
+        // update _lastMoltbookProbeError silently to avoid log flooding.
+        console.error('[absorb] moltbook probe first-failure:', message);
+      }
+      return { status: 'error', message };
     }
   })();
 
@@ -174,13 +195,14 @@ app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'absorb-service',
-    version: '6.0.0',
+    version: SERVICE_VERSION,
     uptime: process.uptime(),
     database: _cachedDatabaseStatus,
     // Secondary probe: COUNT on moltbook table (slow/missing table ≠ Postgres down).
     moltbookAgentCountProbe: _cachedMoltbookProbeStatus,
     mcpSessions: getActiveSessionCount(),
     moltbookActiveAgents: _cachedMoltbookAgentCount,
+    moltbookProbeLastError: _cachedMoltbookProbeStatus === 'error' ? _lastMoltbookProbeError : null,
     diagnostics,
     timestamp: new Date().toISOString(),
   });
