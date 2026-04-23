@@ -71,6 +71,12 @@ import {
   executeDialogue as executeDialoguePure,
   type NarrativeContext,
 } from './runtime/narrative-executors';
+// W1-T4 slice 16: system executors extracted to ./runtime/system-executors
+import {
+  executeSystem as executeSystemPure,
+  executeCoreConfig as executeCoreConfigPure,
+  executeVisualMetadata as executeVisualMetadataPure,
+} from './runtime/system-executors';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
 import {
   executeForLoop as executeForLoopPure,
@@ -707,7 +713,7 @@ export class HoloScriptRuntime {
           result = await executeDialoguePure(node as DialogueNode, this.buildNarrativeContext());
           break;
         case 'visual_metadata':
-          result = await this.executeVisualMetadata(node as VisualMetadataNode);
+          result = await executeVisualMetadataPure(node as VisualMetadataNode);
           break;
         case 'method':
         case 'function':
@@ -815,10 +821,13 @@ export class HoloScriptRuntime {
           result = await this.executeStateMachine(node as StateMachineNode);
           break;
         case 'system':
-          result = await this.executeSystem(node as SystemNode);
+          result = await executeSystemPure(node as SystemNode);
           break;
         case 'core_config':
-          result = await this.executeCoreConfig(node as CoreConfigNode);
+          result = await executeCoreConfigPure(
+            node as CoreConfigNode,
+            this.context.environment as Record<string, HoloScriptValue>,
+          );
           break;
         case 'for':
           result = await this.executeForLoop(
@@ -2856,43 +2865,9 @@ export class HoloScriptRuntime {
     return null;
   }
 
-  private async executeSystem(node: SystemNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const systemId = node.id;
-    const properties = node.properties;
-
-    logger.info(`[Zero-Config] Provisioning system: ${systemId}`, properties);
-
-    switch (systemId) {
-      case 'Networking':
-        return this.setupNetworking(node);
-      case 'Physics':
-        return this.setupPhysics(node);
-      default:
-        logger.warn(`[Zero-Config] Unknown system: ${systemId}`);
-        return {
-          success: true,
-          output: `System ${systemId} not recognized, skipping provisioning`,
-          executionTime: Date.now() - startTime,
-        };
-    }
-  }
-
-  private async executeCoreConfig(node: CoreConfigNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    logger.info('[Zero-Config] Applying core configuration', node.properties);
-
-    // Merge into environment context
-    for (const [key, value] of Object.entries(node.properties)) {
-      this.context.environment[key] = value;
-    }
-
-    return {
-      success: true,
-      output: 'Core configuration applied',
-      executionTime: Date.now() - startTime,
-    };
-  }
+  // W1-T4 slice 16: executeSystem / setupNetworking / setupPhysics /
+  // executeCoreConfig extracted to ./runtime/system-executors. Methods
+  // deleted; dispatch calls the pure functions inline.
 
   // =========================================================================
   // Control Flow Execution (W1-T4 slice 12: impls extracted to
@@ -2979,32 +2954,8 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeVisualMetadata(node: VisualMetadataNode): Promise<ExecutionResult> {
-    logger.info(`[Metadata] Visual metadata processed`, node.properties);
-    return { success: true, output: 'Visual metadata applied' };
-  }
-
-  private async setupNetworking(node: SystemNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    // Logic for initializing NetworkingService would go here
-    logger.info('[Networking] Initializing multiplayer fabric...', node.properties);
-    return {
-      success: true,
-      output: 'Networking system provisioned',
-      executionTime: Date.now() - startTime,
-    };
-  }
-
-  private async setupPhysics(node: SystemNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    // Logic for initializing PhysicsEngine would go here
-    logger.info('[Physics] Initializing spatial simulation engine...', node.properties);
-    return {
-      success: true,
-      output: 'Physics system provisioned',
-      executionTime: Date.now() - startTime,
-    };
-  }
+  // W1-T4 slice 16: executeVisualMetadata / setupNetworking / setupPhysics
+  // extracted to ./runtime/system-executors.
 
   private async executeTemplate(node: TemplateNode): Promise<ExecutionResult> {
     const existing = this.context.templates.get(node.name);
