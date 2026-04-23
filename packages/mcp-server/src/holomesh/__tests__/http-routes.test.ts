@@ -2527,6 +2527,143 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._body.completedAs).toBeUndefined();
     });
 
+    it('GET /board/done supports offset-based pagination beyond the 200-cap (task_1776981805111_pllv)', async () => {
+      // Prior impl took the last `limit` entries with no offset param — a team
+      // with 753+ done entries could never see anything past the 200 most
+      // recent. Fix: add offset so clients can walk backward through the full
+      // log, plus `returned`/`hasMore` so pagination terminates cleanly.
+      //
+      // Seed 65 done entries so default page (30) + second (30) + third (5
+      // with hasMore=false) exercises every pagination path. 30s timeout
+      // covers the ~130 sequential HTTP round-trips needed to seed.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `pagination-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const TOTAL = 65;
+      for (let i = 0; i < TOTAL; i++) {
+        const addReq = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board`,
+          { tasks: [{ title: `pg-${i}`, description: 'p', priority: 4 }] },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const addRes = mockRes();
+        await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+        const taskId = addRes._body.tasks[0].id;
+
+        const doneReq = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/board/${taskId}`,
+          { action: 'done', summary: `closed ${i}`, commit: `c${i}` },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const doneRes = mockRes();
+        await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+        expect(doneRes._status).toBe(200);
+      }
+
+      // Page 1 (default limit, offset=0) — newest 30
+      const p1Req = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const p1Res = mockRes();
+      await handleHoloMeshRoute(p1Req, p1Res, `/api/holomesh/team/${tid}/board/done`);
+      expect(p1Res._status).toBe(200);
+      expect(p1Res._body.count).toBe(TOTAL);
+      expect(p1Res._body.returned).toBe(30);
+      expect(p1Res._body.offset).toBe(0);
+      expect(p1Res._body.limit).toBe(30);
+      expect(p1Res._body.hasMore).toBe(true);
+      expect(p1Res._body.entries.length).toBe(30);
+      // Newest first: entry[0] is the last-added task (index 64)
+      expect(p1Res._body.entries[0].summary).toBe('closed 64');
+      expect(p1Res._body.entries[29].summary).toBe('closed 35');
+
+      // Page 2 (offset=30, still default limit)
+      const p2Req = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?offset=30`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const p2Res = mockRes();
+      await handleHoloMeshRoute(p2Req, p2Res, `/api/holomesh/team/${tid}/board/done?offset=30`);
+      expect(p2Res._status).toBe(200);
+      expect(p2Res._body.returned).toBe(30);
+      expect(p2Res._body.offset).toBe(30);
+      expect(p2Res._body.hasMore).toBe(true);
+      expect(p2Res._body.entries[0].summary).toBe('closed 34');
+      expect(p2Res._body.entries[29].summary).toBe('closed 5');
+
+      // Page 3 (offset=60, partial — 5 remaining, hasMore=false)
+      const p3Req = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?offset=60&limit=30`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const p3Res = mockRes();
+      await handleHoloMeshRoute(p3Req, p3Res, `/api/holomesh/team/${tid}/board/done?offset=60&limit=30`);
+      expect(p3Res._status).toBe(200);
+      expect(p3Res._body.returned).toBe(5);
+      expect(p3Res._body.offset).toBe(60);
+      expect(p3Res._body.hasMore).toBe(false);
+      expect(p3Res._body.entries[0].summary).toBe('closed 4');
+      expect(p3Res._body.entries[4].summary).toBe('closed 0');
+
+      // Offset past end → empty page, still valid response
+      const emptyReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?offset=200`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const emptyRes = mockRes();
+      await handleHoloMeshRoute(emptyReq, emptyRes, `/api/holomesh/team/${tid}/board/done?offset=200`);
+      expect(emptyRes._status).toBe(200);
+      expect(emptyRes._body.returned).toBe(0);
+      expect(emptyRes._body.hasMore).toBe(false);
+      expect(emptyRes._body.entries).toEqual([]);
+
+      // Malformed offset (negative) clamps to 0
+      const negReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?offset=-5`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const negRes = mockRes();
+      await handleHoloMeshRoute(negReq, negRes, `/api/holomesh/team/${tid}/board/done?offset=-5`);
+      expect(negRes._status).toBe(200);
+      expect(negRes._body.offset).toBe(0);
+      expect(negRes._body.entries[0].summary).toBe('closed 64');
+
+      // Limit cap enforced (>200 clamps to 200)
+      const bigReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=1000`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const bigRes = mockRes();
+      await handleHoloMeshRoute(bigReq, bigRes, `/api/holomesh/team/${tid}/board/done?limit=1000`);
+      expect(bigRes._status).toBe(200);
+      expect(bigRes._body.limit).toBe(200);
+      // 65 entries total, asked for 200 → returned all 65, hasMore=false
+      expect(bigRes._body.returned).toBe(65);
+      expect(bigRes._body.hasMore).toBe(false);
+    }, 30000);
+
     it('POST /api/holomesh/team/:id/mode returns scout endpoint hint', async () => {
       const createReq = mockReq(
         'POST',

@@ -91,22 +91,51 @@ export async function handleBoardRoutes(
     return true;
   }
 
-  // GET /api/holomesh/team/:id/board/done — recent done log (peer verification / F.022)
+  // GET /api/holomesh/team/:id/board/done — done log (peer verification / F.022)
+  //
+  // Pagination: returns entries newest-first. `limit` caps per-page size
+  // (default 30, hard max 200 to keep responses under response-size guards).
+  // `offset` walks backward through history — offset=0 is the newest entry,
+  // offset=N skips the N newest. Response includes `returned`/`offset`/
+  // `hasMore` so clients can page without re-deriving bounds. `count` is
+  // the total log size (unchanged for backward compat).
+  //
+  // Bug fix (task_1776981805111_pllv): prior implementation had no offset,
+  // so a team with 753+ done entries was forever limited to the last 200 —
+  // no way to enumerate the full history. Pagination closes that gap.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done$/) && method === 'GET') {
     const access = requireTeamAccess(req, res, url);
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
     const log = team.doneLog || [];
+    const total = log.length;
     const q = parseQuery(url);
+
     const rawLimit = parseInt(String(q.get('limit') || '30'), 10);
     const limit = Number.isFinite(rawLimit) ? Math.min(200, Math.max(1, rawLimit)) : 30;
-    const slice = log.slice(-limit).reverse();
+
+    const rawOffset = parseInt(String(q.get('offset') || '0'), 10);
+    const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
+
+    // log is oldest-first append order; recency rank k is at log[total-1-k].
+    // We want ranks [offset .. offset+limit).
+    const startRank = offset;
+    const endRank = Math.min(total, offset + limit);
+    const entries: typeof log = [];
+    for (let k = startRank; k < endRank; k++) {
+      entries.push(log[total - 1 - k]);
+    }
+
     json(res, 200, {
       success: true,
       teamId,
-      count: log.length,
-      entries: slice,
+      count: total,
+      returned: entries.length,
+      offset,
+      limit,
+      hasMore: endRank < total,
+      entries,
     });
     return true;
   }
