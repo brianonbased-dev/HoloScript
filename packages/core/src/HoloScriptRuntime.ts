@@ -15,6 +15,7 @@
  */
 
 import { logger } from './logger';
+import { readJson } from './errors/safeJsonParse';
 import { WebSocketServer, WebSocket } from 'ws';
 // W1-T4 slice 1: pure easing helper extracted to ./runtime/easing
 import { applyEasing } from './runtime/easing';
@@ -2201,7 +2202,7 @@ export class HoloScriptRuntime {
       let configuredCount = 0;
       if (savedKeys) {
         try {
-          const keys = JSON.parse(savedKeys);
+          const keys = readJson(savedKeys) as Record<string, unknown>;
           configuredCount = Object.values(keys).filter((k) => !!k).length;
         } catch (_e) {
           // Intentionally swallowed: malformed localStorage JSON should not block runtime init
@@ -2389,7 +2390,7 @@ export class HoloScriptRuntime {
 
         ws.on('message', (message) => {
           try {
-            const data = JSON.parse(message.toString());
+            const data = readJson(message.toString()) as Record<string, unknown>;
 
             // Handle time control commands
             if (data.type === 'time_control') {
