@@ -60,6 +60,8 @@ import { updateSystemVariables as updateSystemVariablesPure } from './runtime/sy
 import { createEmptyContext } from './runtime/context-factory';
 // W1-T4 slice 11: pattern matcher extracted to ./runtime/pattern-match
 import { patternMatches as patternMatchesPure } from './runtime/pattern-match';
+// W1-T4 slice 13: HoloValue resolution extracted to ./runtime/holo-value
+import { resolveHoloValue } from './runtime/holo-value';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
 import {
   executeForLoop as executeForLoopPure,
@@ -430,13 +432,13 @@ export class HoloScriptRuntime {
       if (holoTpl.state) {
         for (const prop of holoTpl.state.properties) {
           if (spawnNode.properties[prop.key] === undefined) {
-            spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as HoloValue);
+            spawnNode.properties[prop.key] = resolveHoloValue(prop.value as HoloValue);
           }
         }
       }
       for (const prop of holoTpl.properties) {
         if (spawnNode.properties[prop.key] === undefined) {
-          spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as HoloValue);
+          spawnNode.properties[prop.key] = resolveHoloValue(prop.value as HoloValue);
         }
       }
 
@@ -2504,25 +2506,9 @@ export class HoloScriptRuntime {
     };
   }
 
-  private resolveHoloValue(value: HoloValue): HoloScriptValue {
-    if (value === null) return null;
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      return value;
-    }
-    if (Array.isArray(value)) {
-      return value.map((e) => this.resolveHoloValue(e));
-    }
-    // Handle Bind (pass through or resolve?)
-    if ((value as Record<string, unknown>).__bind) {
-      return value as HoloScriptValue;
-    }
-    // Handle Object
-    const obj: Record<string, HoloScriptValue> = {};
-    for (const k in value as Record<string, unknown>) {
-      obj[k] = this.resolveHoloValue((value as Record<string, unknown>)[k] as HoloValue);
-    }
-    return obj;
-  }
+  // W1-T4 slice 13: resolveHoloValue extracted to ./runtime/holo-value
+  // (pure recursive helper; private method deleted — 4 internal call
+  //  sites now use the imported function directly).
 
   private async executeHoloComposition(node: HoloComposition): Promise<ExecutionResult> {
     // Register templates
@@ -2535,7 +2521,7 @@ export class HoloScriptRuntime {
       // Convert environment properties to record
       const envSettings: Record<string, HoloScriptValue> = {};
       for (const prop of node.environment.properties) {
-        envSettings[prop.key] = this.resolveHoloValue(prop.value as HoloValue);
+        envSettings[prop.key] = resolveHoloValue(prop.value as HoloValue);
       }
       this.context.environment = { ...this.context.environment, ...envSettings };
     }
@@ -2564,13 +2550,13 @@ export class HoloScriptRuntime {
 
     // Convert properties
     for (const prop of node.properties) {
-      properties[prop.key] = this.resolveHoloValue(prop.value);
+      properties[prop.key] = resolveHoloValue(prop.value);
     }
 
     // Handle state
     if (node.state) {
       for (const prop of node.state.properties) {
-        properties[prop.key] = this.resolveHoloValue(prop.value);
+        properties[prop.key] = resolveHoloValue(prop.value);
       }
     }
 
@@ -2611,14 +2597,14 @@ export class HoloScriptRuntime {
         if (tpl.state) {
           for (const prop of tpl.state.properties) {
             if (properties[prop.key] === undefined) {
-              properties[prop.key] = this.resolveHoloValue(prop.value);
+              properties[prop.key] = resolveHoloValue(prop.value);
             }
           }
         }
         // Merge template properties
         for (const prop of tpl.properties) {
           if (properties[prop.key] === undefined) {
-            properties[prop.key] = this.resolveHoloValue(prop.value);
+            properties[prop.key] = resolveHoloValue(prop.value);
           }
         }
       }
