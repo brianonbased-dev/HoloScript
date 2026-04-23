@@ -58,6 +58,8 @@ import {
 import { updateSystemVariables as updateSystemVariablesPure } from './runtime/system-variables';
 // W1-T4 slice 10: context factory extracted to ./runtime/context-factory
 import { createEmptyContext } from './runtime/context-factory';
+// W1-T4 slice 11: pattern matcher extracted to ./runtime/pattern-match
+import { patternMatches as patternMatchesPure } from './runtime/pattern-match';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator } from './ReactiveState';
@@ -3077,7 +3079,7 @@ export class HoloScriptRuntime {
         const patternValue = this.evaluateExpression(String(matchCase.pattern));
 
         // Check pattern match
-        if (this.patternMatches(patternValue, subjectValue)) {
+        if (patternMatchesPure(patternValue, subjectValue)) {
           // Check guard if present
           if (matchCase.guard && !this.evaluateCondition(String(matchCase.guard))) {
             continue;
@@ -3112,43 +3114,9 @@ export class HoloScriptRuntime {
     }
   }
 
-  /**
-   * Check if a pattern matches a value
-   */
-  private patternMatches(pattern: HoloScriptValue, value: HoloScriptValue): boolean {
-    // Wildcard pattern
-    if (pattern === '_' || pattern === 'else' || pattern === 'default') {
-      return true;
-    }
-
-    // Direct equality
-    if (pattern === value) {
-      return true;
-    }
-
-    // Type pattern: "string" matches any string
-    if (pattern === 'string' && typeof value === 'string') return true;
-    if (pattern === 'number' && typeof value === 'number') return true;
-    if (pattern === 'boolean' && typeof value === 'boolean') return true;
-    if (pattern === 'array' && Array.isArray(value)) return true;
-    if (pattern === 'object' && typeof value === 'object' && value !== null) return true;
-
-    // Range pattern: [1, 10] matches values 1-10
-    if (Array.isArray(pattern) && pattern.length === 2) {
-      const [min, max] = pattern;
-      if (
-        typeof value === 'number' &&
-        typeof min === 'number' &&
-        typeof max === 'number' &&
-        value >= min &&
-        value <= max
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+  // W1-T4 slice 11: patternMatches extracted to ./runtime/pattern-match
+  // (pure helper; deleted method — only caller is executeMatch above,
+  //  now using patternMatchesPure directly).
 
   private async executeNarrative(node: NarrativeNode): Promise<ExecutionResult> {
     const startTime = Date.now();
