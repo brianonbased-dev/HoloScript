@@ -54,6 +54,8 @@ import {
   handleCollide as handleCollidePure,
   handleAnimate as handleAnimatePure,
 } from './runtime/primitives';
+// W1-T4 slice 9: system variables extracted to ./runtime/system-variables
+import { updateSystemVariables as updateSystemVariablesPure } from './runtime/system-variables';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2145,84 +2147,21 @@ export class HoloScriptRuntime {
   /**
    * Update real-life and system variables ($time, $user, etc.)
    */
+  /**
+   * Update real-life and system variables ($time, $user, etc.)
+   * (W1-T4 slice 9: impl extracted to ./runtime/system-variables).
+   * Threads setVariable/getVariable callbacks plus the already-read
+   * brittney_api_keys JSON string so the pure module has no
+   * hidden dependency on browser `localStorage`.
+   */
   private updateSystemVariables(): void {
-    const now = new Date();
-
-    // Time variables
-    this.setVariable('$time', now.toLocaleTimeString());
-    this.setVariable('$date', now.toLocaleDateString());
-    this.setVariable('$timestamp', now.getTime());
-    this.setVariable('$hour', now.getHours());
-    this.setVariable('$minute', now.getMinutes());
-    this.setVariable('$second', now.getSeconds());
-
-    // Mock Real-Life Data (Can be overridden by host)
-    if (this.getVariable('$user') === undefined) {
-      this.setVariable('$user', {
-        id: 'user_123',
-        name: 'Alpha Explorer',
-        level: 42,
-        rank: 'Legendary',
-        achievements: ['First World', 'Spirit Guide'],
-        preferences: { theme: 'holographic', language: 'en' },
-      });
-    }
-
-    if (this.getVariable('$location') === undefined) {
-      this.setVariable('$location', {
-        city: 'Neo Tokyo',
-        region: 'Holo-Sector 7',
-        coordinates: { lat: 35.6895, lng: 139.6917 },
-        altitude: 450,
-      });
-    }
-
-    if (this.getVariable('$weather') === undefined) {
-      this.setVariable('$weather', {
-        condition: 'Neon Mist',
-        temperature: 24,
-        humidity: 65,
-        windSpeed: 12,
-        unit: 'C',
-      });
-    }
-
-    if (this.getVariable('$wallet') === undefined) {
-      this.setVariable('$wallet', {
-        address: '0xHolo...42ff',
-        balance: 1337.5,
-        currency: 'HOLO',
-        network: 'MainNet',
-      });
-    }
-
-    if (this.getVariable('$ai_config') === undefined) {
-      const savedKeys =
-        typeof localStorage !== 'undefined' ? localStorage.getItem('brittney_api_keys') : null;
-      let configuredCount = 0;
-      if (savedKeys) {
-        try {
-          const keys = readJson(savedKeys) as Record<string, unknown>;
-          configuredCount = Object.values(keys).filter((k) => !!k).length;
-        } catch (_e) {
-          // Intentionally swallowed: malformed localStorage JSON should not block runtime init
-        }
-      }
-
-      this.setVariable('$ai_config', {
-        status: configuredCount > 0 ? 'configured' : 'pending',
-        providerCount: configuredCount,
-        lastUpdated: Date.now(),
-      });
-    }
-
-    if (this.getVariable('$chat_status') === undefined) {
-      this.setVariable('$chat_status', {
-        active: true,
-        typing: false,
-        version: '1.0.0-brittney',
-      });
-    }
+    const brittneyApiKeysJson =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('brittney_api_keys') : null;
+    updateSystemVariablesPure({
+      setVariable: (name, value) => this.setVariable(name, value as HoloScriptValue),
+      getVariable: (name) => this.getVariable(name),
+      brittneyApiKeysJson,
+    });
   }
 
   // ==========================================================================
