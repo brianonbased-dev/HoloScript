@@ -31,6 +31,8 @@ import {
   createExecutionEffect as createExecutionEffectPure,
   createDataVisualization as createDataVisualizationPure,
 } from './runtime/particle-effects';
+// W1-T4 slice 5: transformation ops extracted to ./runtime/transformation
+import { applyTransformation as applyTransformationPure } from './runtime/transformation';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -1947,100 +1949,21 @@ export class HoloScriptRuntime {
   // Transformation
   // ============================================================================
 
+  /**
+   * Thin wrapper over the extracted pure transformation operations
+   * (W1-T4 slice 5, see ./runtime/transformation). Threads
+   * setVariable / evaluateCondition / evaluateExpression through
+   * a context object so the pure module stays free of `this` binding.
+   */
   private async applyTransformation(
     data: unknown,
-    transform: TransformationNode
+    transform: TransformationNode,
   ): Promise<HoloScriptValue> {
-    const params = transform.parameters || {};
-
-    switch (transform.operation) {
-      case 'filter': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const predicate = params.predicate as string;
-        if (predicate) {
-          return data.filter((item) => {
-            this.setVariable('_item', item);
-            return this.evaluateCondition(predicate);
-          });
-        }
-        return data.filter((item) => item !== null && item !== undefined);
-      }
-
-      case 'map': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const mapper = params.mapper as string;
-        if (mapper) {
-          return data.map((item) => {
-            this.setVariable('_item', item);
-            return this.evaluateExpression(mapper);
-          });
-        }
-        return data.map((item) => ({ value: item, processed: true }));
-      }
-
-      case 'reduce': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const initial = params.initial ?? 0;
-        const reducer = params.reducer as string;
-        if (reducer) {
-          return data.reduce((acc, item) => {
-            this.setVariable('_acc', acc);
-            this.setVariable('_item', item);
-            return this.evaluateExpression(reducer);
-          }, initial);
-        }
-        return data.reduce((acc, item) => acc + (typeof item === 'number' ? item : 0), 0);
-      }
-
-      case 'sort': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const key = params.key as string;
-        const desc = params.descending as boolean;
-        const sorted = [...data].sort((a, b) => {
-          const aVal = key ? (a as Record<string, unknown>)[key] : a;
-          const bVal = key ? (b as Record<string, unknown>)[key] : b;
-          if (aVal < bVal) return desc ? 1 : -1;
-          if (aVal > bVal) return desc ? -1 : 1;
-          return 0;
-        });
-        return sorted;
-      }
-
-      case 'sum':
-        return (
-          Array.isArray(data)
-            ? data.reduce((sum, item) => sum + (typeof item === 'number' ? item : 0), 0)
-            : data
-        ) as HoloScriptValue;
-
-      case 'count':
-        return (Array.isArray(data) ? data.length : 1) as HoloScriptValue;
-
-      case 'unique':
-        return (Array.isArray(data) ? Array.from(new Set(data)) : data) as HoloScriptValue;
-
-      case 'flatten':
-        return (Array.isArray(data) ? data.flat() : data) as HoloScriptValue;
-
-      case 'reverse':
-        return (Array.isArray(data) ? [...data].reverse() : data) as HoloScriptValue;
-
-      case 'take': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const count = Number(params.count) || 10;
-        return data.slice(0, count);
-      }
-
-      case 'skip': {
-        if (!Array.isArray(data)) return data as HoloScriptValue;
-        const count = Number(params.count) || 0;
-        return data.slice(count);
-      }
-
-      default:
-        logger.warn('Unknown transformation', { operation: transform.operation });
-        return data as HoloScriptValue;
-    }
+    return applyTransformationPure(data, transform, {
+      setVariable: (name, value) => this.setVariable(name, value as HoloScriptValue),
+      evaluateCondition: (expr) => this.evaluateCondition(expr),
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
+    });
   }
 
   // ============================================================================
