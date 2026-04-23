@@ -77,6 +77,11 @@ import {
   executeCoreConfig as executeCoreConfigPure,
   executeVisualMetadata as executeVisualMetadataPure,
 } from './runtime/system-executors';
+// W1-T4 slice 24: HoloComposition executor extracted to ./runtime/holo-composition-executor
+import {
+  executeHoloComposition as executeHoloCompositionPure,
+  type HoloCompositionContext,
+} from './runtime/holo-composition-executor';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -843,7 +848,10 @@ export class HoloScriptRuntime {
         case 'composition':
         case 'Composition':
           if (node.type === 'Composition') {
-            result = await this.executeHoloComposition(node as unknown as HoloComposition);
+            result = await executeHoloCompositionPure(
+              node as unknown as HoloComposition,
+              this.buildHoloCompositionContext(),
+            );
           } else {
             result = await executeCompositionPure(
               node as CompositionNode,
@@ -2082,36 +2090,7 @@ export class HoloScriptRuntime {
   // (pure recursive helper; private method deleted — 4 internal call
   //  sites now use the imported function directly).
 
-  private async executeHoloComposition(node: HoloComposition): Promise<ExecutionResult> {
-    // Register templates
-    for (const template of node.templates) {
-      await executeHoloTemplatePure(
-        template as unknown as { name: string } & Record<string, unknown>,
-        this.buildSimpleExecutorContext(),
-      );
-    }
-
-    // Execute environment
-    if (node.environment) {
-      // Convert environment properties to record
-      const envSettings: Record<string, HoloScriptValue> = {};
-      for (const prop of node.environment.properties) {
-        envSettings[prop.key] = resolveHoloValue(prop.value as HoloValue);
-      }
-      this.context.environment = { ...this.context.environment, ...envSettings };
-    }
-
-    // Execute objects
-    const results: ExecutionResult[] = [];
-    for (const object of node.objects) {
-      results.push(await this.executeHoloObject(object));
-    }
-
-    return {
-      success: results.every((r) => r.success),
-      output: `HoloComposition ${node.name} executed`,
-    };
-  }
+  // W1-T4 slice 24: executeHoloComposition extracted to ./runtime/holo-composition-executor.
 
   // W1-T4 slice 17: executeHoloTemplate extracted to ./runtime/simple-executors.
 
@@ -2402,6 +2381,18 @@ export class HoloScriptRuntime {
   // W1-T4 slice 15: executeNarrative / executeQuest / executeDialogue
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
+
+  /** Construct a HoloCompositionContext bound to this runtime. (Slice 24) */
+  private buildHoloCompositionContext(): HoloCompositionContext {
+    return {
+      simpleExecutorContext: this.buildSimpleExecutorContext(),
+      executeHoloObject: (node) => this.executeHoloObject(node),
+      getEnvironment: () => this.context.environment as Record<string, HoloScriptValue>,
+      setEnvironment: (env) => {
+        this.context.environment = env;
+      },
+    };
+  }
 
   /** Construct an InfoExecutorContext bound to this runtime. (Slice 22) */
   private buildInfoExecutorContext(): InfoExecutorContext {
