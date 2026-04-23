@@ -20,6 +20,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { applyEasing } from './runtime/easing';
 // W1-T4 slice 2: pure physics math extracted to ./runtime/physics-math
 import { calculateArc } from './runtime/physics-math';
+// W1-T4 slice 3: condition evaluator extracted to ./runtime/condition-evaluator
+import { evaluateCondition as evaluateConditionPure } from './runtime/condition-evaluator';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -1923,72 +1925,13 @@ export class HoloScriptRuntime {
   // Condition Evaluation
   // ============================================================================
 
+  /**
+   * Thin wrapper over the extracted pure evaluator (W1-T4 slice 3,
+   * see ./runtime/condition-evaluator). Callers pass the runtime's
+   * `evaluateExpression` as the expression-resolution callback.
+   */
   private evaluateCondition(condition: string | unknown): boolean {
-    if (!condition) return false;
-    const condStr = String(condition);
-
-    const suspiciousKeywords = ['eval', 'process', 'require', '__proto__', 'constructor'];
-    if (suspiciousKeywords.some((kw) => condStr.toLowerCase().includes(kw))) {
-      logger.warn('Suspicious condition blocked', { condition });
-      return false;
-    }
-
-    try {
-      // Boolean literals
-      if (condStr.trim().toLowerCase() === 'true') return true;
-      if (condStr.trim().toLowerCase() === 'false') return false;
-
-      // Comparison operators
-      const comparisonPatterns: Array<{ regex: RegExp; logical?: string }> = [
-        { regex: /^(.+?)\s*(===|!==)\s*(.+)$/ },
-        { regex: /^(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+)$/ },
-        { regex: /^(.+?)\s*(&&)\s*(.+)$/, logical: 'and' },
-        { regex: /^(.+?)\s*(\|\|)\s*(.+)$/, logical: 'or' },
-      ];
-
-      for (const { regex, logical } of comparisonPatterns) {
-        const match = condStr.match(regex);
-        if (match) {
-          const [, leftExpr, operator, rightExpr] = match;
-          const left = this.evaluateExpression(leftExpr.trim());
-          const right = this.evaluateExpression(rightExpr.trim());
-
-          if (logical === 'and') return Boolean(left) && Boolean(right);
-          if (logical === 'or') return Boolean(left) || Boolean(right);
-
-          switch (operator) {
-            case '===':
-              return left === right;
-            case '!==':
-              return left !== right;
-            case '==':
-              return left == right;
-            case '!=':
-              return left != right;
-            case '>=':
-              return Number(left) >= Number(right);
-            case '<=':
-              return Number(left) <= Number(right);
-            case '>':
-              return Number(left) > Number(right);
-            case '<':
-              return Number(left) < Number(right);
-          }
-        }
-      }
-
-      // Negation
-      if (condStr.startsWith('!')) {
-        return !this.evaluateCondition(condStr.slice(1).trim());
-      }
-
-      // Variable truthiness
-      const value = this.evaluateExpression(condStr.trim());
-      return Boolean(value);
-    } catch (error) {
-      logger.error('Condition evaluation error', { condition, error });
-      return false;
-    }
+    return evaluateConditionPure(condition, (expr) => this.evaluateExpression(expr));
   }
 
   // ============================================================================
