@@ -222,11 +222,99 @@ for (const rel of stagedCodeFiles) {
   }
 }
 
+// ---- Inverse-case pass: orphan tests on disk but NOT tracked ----
+// Closes the 2026-04-23 gap found while auditing hologram-http-route.test.ts —
+// 8 passing tests sat on disk for 4 prior audit commits but were never
+// `git add`'d. The source file was staged/tracked, the test was not, the
+// original import-based check couldn't see the test (it's the TEST that
+// imports the SOURCE, not the other way round — staged source → untracked
+// test = inverse case).
+//
+// Policy: WARN by default (exit 0), BLOCK with HOLOMESH_STRICT_ORPHAN_TESTS=1.
+// WHY warn not block: agents legitimately stage source-only in early slices
+// and add tests in a follow-up commit. Default warning is an awareness nudge;
+// strict mode is the CI / audit-mode enforcement.
+const STRICT_ORPHAN = process.env.HOLOMESH_STRICT_ORPHAN_TESTS === '1';
+const orphanTests = []; // { source, testPath }
+
+function deriveTestCandidates(sourceRel) {
+  // Map packages/foo/src/path/name.ts → candidate test paths.
+  // Covers the two layouts in the monorepo:
+  //   1. Co-located __tests__ dir: packages/foo/src/path/__tests__/name.test.ts
+  //   2. Adjacent sibling:         packages/foo/src/path/name.test.ts
+  // We probe both conventions and all common test extensions.
+  const dir = path.posix.dirname(sourceRel);
+  const ext = path.extname(sourceRel);
+  const base = path.basename(sourceRel, ext);
+  const testExts = ['.test.ts', '.test.tsx', '.test.js', '.test.jsx', '.test.mjs'];
+  const candidates = [];
+  for (const tExt of testExts) {
+    candidates.push(`${dir}/__tests__/${base}${tExt}`);
+    candidates.push(`${dir}/${base}${tExt}`);
+  }
+  return candidates;
+}
+
+function isTestFile(rel) {
+  return /\.test\.(ts|tsx|js|jsx|mjs)$/i.test(rel);
+}
+
+for (const rel of stagedCodeFiles) {
+  // Skip test files themselves — we're looking for orphan tests of SOURCES.
+  if (isTestFile(rel)) continue;
+  // Skip non-src paths (scripts/, hooks/, etc. — test layout convention
+  // doesn't apply outside packages/*/src/).
+  if (!rel.includes('/src/')) continue;
+
+  const candidates = deriveTestCandidates(rel);
+  for (const candidate of candidates) {
+    // Short-circuit: if ANY matching test is already tracked, this source is
+    // covered — no orphan to flag even if other candidates are untracked.
+    if (trackedSet.has(candidate) || stagedSet.has(candidate)) {
+      break;
+    }
+    // Flag only if the candidate file actually exists on disk AND is in the
+    // untracked set. An absent candidate means "no test yet" — not our gate's
+    // concern; coverage is a separate discipline.
+    if (untrackedSet.has(candidate)) {
+      const absCand = path.join(ROOT, candidate);
+      if (fs.existsSync(absCand)) {
+        orphanTests.push({ source: rel, testPath: candidate });
+        break; // one orphan per source is enough to signal
+      }
+    }
+  }
+}
+
 // ---- Report ----
-if (violations.length === 0) {
+if (violations.length === 0 && orphanTests.length === 0) {
   const count = stagedCodeFiles.length;
   console.log(`${GREEN}UntrackedSiblings OK${NC} (${count} staged code file${count === 1 ? '' : 's'} scanned)`);
   process.exit(0);
+}
+
+// Orphan-only path: warn (default) or block (strict).
+if (violations.length === 0 && orphanTests.length > 0) {
+  const label = STRICT_ORPHAN ? `${RED}FAIL${NC}` : `${YELLOW}WARN${NC}`;
+  console.log(`${YELLOW}UntrackedSiblings: ${orphanTests.length} orphan test(s) on disk but not tracked${NC} [${label}]`);
+  console.log('  A test file exists on disk for a staged source file, but has never been git-added.');
+  console.log('  It will be invisible to CI / Railway build farm — same failure class as SEC-T-Zero.');
+  console.log('');
+  for (const o of orphanTests) {
+    console.log(`  ${YELLOW}${o.source}${NC}`);
+    console.log(`      orphan test: ${YELLOW}${o.testPath}${NC}`);
+  }
+  console.log('');
+  console.log(`  ${YELLOW}FIX:${NC} git add ${orphanTests.map((o) => o.testPath).join(' ')}`);
+  if (STRICT_ORPHAN) {
+    console.log(`  ${YELLOW}OR BYPASS:${NC} unset HOLOMESH_STRICT_ORPHAN_TESTS`);
+    process.exit(1);
+  } else {
+    console.log(`  ${YELLOW}STRICT MODE:${NC} HOLOMESH_STRICT_ORPHAN_TESTS=1 to block on this class.`);
+    const count = stagedCodeFiles.length;
+    console.log(`${GREEN}UntrackedSiblings OK${NC} (${count} file${count === 1 ? '' : 's'} scanned; ${orphanTests.length} orphan warning${orphanTests.length === 1 ? '' : 's'})`);
+    process.exit(0);
+  }
 }
 
 console.log(`${RED}UntrackedSiblings: ${violations.length} import(s) reference untracked sibling file(s)${NC}`);
