@@ -240,9 +240,9 @@ describe('PBDSolverCPU', () => {
       solver.step(1 / 60);
       const state = solver.getState();
       expect(state.centerOfMass).toBeDefined();
-      expect(typeof state.centerOfMass.x).toBe('number');
-      expect(typeof state.centerOfMass.y).toBe('number');
-      expect(typeof state.centerOfMass.z).toBe('number');
+      expect(typeof state.centerOfMass[0]).toBe('number');
+      expect(typeof state.centerOfMass[1]).toBe('number');
+      expect(typeof state.centerOfMass[2]).toBe('number');
     });
   });
 

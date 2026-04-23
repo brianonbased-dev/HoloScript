@@ -48,19 +48,19 @@ describe('ClothSim', () => {
     // Pin top row, let bottom fall
     cloth.pinTopRow();
     const midIdx = 4; // center of 3x3
-    const yBefore = cloth.getParticle(midIdx)!.y;
+    const yBefore = cloth.getParticle(midIdx)!.position[1];
     cloth.update(1 / 60);
-    expect(cloth.getParticle(midIdx)!.y).toBeLessThan(yBefore);
+    expect(cloth.getParticle(midIdx)!.position[1]).toBeLessThan(yBefore);
   });
 
   it('pinned particle stays in place', () => {
     cloth.createGrid(3, 3, 0.5);
     cloth.pin(0);
-    const xBefore = cloth.getParticle(0)!.x;
-    const yBefore = cloth.getParticle(0)!.y;
+    const xBefore = cloth.getParticle(0)!.position[0];
+    const yBefore = cloth.getParticle(0)!.position[1];
     cloth.update(1 / 60);
-    expect(cloth.getParticle(0)!.x).toBe(xBefore);
-    expect(cloth.getParticle(0)!.y).toBe(yBefore);
+    expect(cloth.getParticle(0)!.position[0]).toBe(xBefore);
+    expect(cloth.getParticle(0)!.position[1]).toBe(yBefore);
   });
 
   it('setWind changes wind', () => {
@@ -68,9 +68,9 @@ describe('ClothSim', () => {
     cloth.pinTopRow();
     cloth.setWind(10, 0, 0);
     const p = cloth.getParticle(4)!;
-    const xBefore = p.x;
+    const xBefore = p.position[0];
     for (let i = 0; i < 10; i++) cloth.update(1 / 60);
-    expect(cloth.getParticle(4)!.x).toBeGreaterThan(xBefore);
+    expect(cloth.getParticle(4)!.position[0]).toBeGreaterThan(xBefore);
   });
 
   it('getAABB computes bounding box', () => {

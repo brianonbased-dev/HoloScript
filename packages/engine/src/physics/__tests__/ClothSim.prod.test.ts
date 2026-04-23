@@ -30,10 +30,10 @@ describe('ClothSim — Production', () => {
     const c = new ClothSim();
     c.createGrid(2, 2, 1.0);
     c.pin(0);
-    const before = { ...c.getParticle(0)! };
+    const before = [...c.getParticle(0)!.position ];
     c.update(1 / 60);
     const after = c.getParticle(0)!;
-    expect(after.y).toBe(before.y);
+    expect(after.position[1]).toBe(before[1]);
   });
 
   it('unpin allows particle to move again', () => {
@@ -44,7 +44,7 @@ describe('ClothSim — Production', () => {
     c.update(1 / 60);
     // gravity should cause y to change
     const p = c.getParticle(0)!;
-    expect(p.y).not.toBe(0);
+    expect(p.position[1]).not.toBe(0);
   });
 
   it('pinTopRow pins all particles in first row', () => {
@@ -54,7 +54,7 @@ describe('ClothSim — Production', () => {
     c.update(1 / 60);
     for (let col = 0; col < 4; col++) {
       expect(c.getParticle(col)!.pinned).toBe(true);
-      expect(c.getParticle(col)!.y).toBe(0);
+      expect(c.getParticle(col)!.position[1]).toBe(0);
     }
   });
 
@@ -64,7 +64,7 @@ describe('ClothSim — Production', () => {
     c.createGrid(2, 2, 1.0);
     c.update(1 / 60);
     // unpinned particles should move downward
-    expect(c.getParticle(0)!.y).toBeLessThan(0);
+    expect(c.getParticle(0)!.position[1]).toBeLessThan(0);
   });
 
   // ─── Wind ─────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ describe('ClothSim — Production', () => {
     c.setWind(10, 0, 0);
     c.update(1 / 60);
     // wind in x should shift particles
-    expect(c.getParticle(0)!.x).not.toBe(0);
+    expect(c.getParticle(0)!.position[0]).not.toBe(0);
   });
 
   // ─── AABB ─────────────────────────────────────────────────────────
@@ -101,6 +101,6 @@ describe('ClothSim — Production', () => {
     c.update(1 / 60);
     // gravity is weaker, so y displacement should be smaller
     const p = c.getParticle(0)!;
-    expect(p.y).toBeLessThan(0);
+    expect(p.position[1]).toBeLessThan(0);
   });
 });

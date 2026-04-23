@@ -24,9 +24,8 @@ const QUARANTINED_TESTS: string[] = [
   // ── CLASS C: Source regressions (keep quarantined, need source fixes) ─────
   // Physics — PBD solver + cloth + constraint integration fail real assertions
   // (not tuple-access test bugs). Fixes belong in source, not tests.
-  'src/physics/__tests__/ClothSim.prod.test.ts',           // 5/19 fail, particle motion broken
-  'src/physics/__tests__/ClothSim.test.ts',                // covered by ClothSim.prod above
-  'src/physics/__tests__/PBDSolverCPU.integration.test.ts',// PBD solver regression
+  
+  
 
   // Simulation — real source bugs (CSVImporter uses p[0]/p[1]/p[2] on object;
   // StressRecovery ~17s long-running).
