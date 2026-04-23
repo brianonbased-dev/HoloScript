@@ -31,6 +31,7 @@ import type {
   EnvironmentNode,
   ExecutionResult,
   FocusNode,
+  HologramProperties,
   HoloScriptValue,
   StateMachineNode,
 } from '../types';
@@ -58,6 +59,8 @@ export interface SimpleExecutorContext {
   evaluateExpression: (expr: string) => HoloScriptValue;
   /** Function invocation (executeCall). */
   callFunction: (name: string, args: HoloScriptValue[]) => Promise<ExecutionResult>;
+  /** Variable writer (executeAssignment). Mirrors HSR's setVariable. */
+  setVariable: (name: string, value: HoloScriptValue) => void;
   /** Program executor for body blocks (executeFocus). */
   executeProgram: (nodes: ASTNode[], depth: number) => Promise<ExecutionResult[]>;
 }
@@ -130,6 +133,78 @@ export async function executeHoloTemplate(
 ): Promise<ExecutionResult> {
   ctx.templates.set(node.name, node);
   return { success: true, output: `Template ${node.name} registered` };
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Structural / value-flow executors (added in slice 19)
+// ──────────────────────────────────────────────────────────────────
+
+/** Default hologram for `nexus` structural nodes. */
+const NEXUS_HOLOGRAM: HologramProperties = {
+  shape: 'sphere',
+  color: '#9b59b6',
+  size: 3,
+  glow: true,
+  interactive: true,
+};
+
+/** Default hologram for all other structural nodes (buildings etc.). */
+const STRUCTURE_HOLOGRAM: HologramProperties = {
+  shape: 'cube',
+  color: '#e74c3c',
+  size: 4,
+  glow: true,
+  interactive: true,
+};
+
+/**
+ * Execute a `structure` AST node — produce a hologram envelope for
+ * nexus / building / other structural elements. Uses node.hologram
+ * if provided, else defaults based on node.type.
+ */
+export async function executeStructure(node: ASTNode): Promise<ExecutionResult> {
+  const hologram = node.hologram || (node.type === 'nexus' ? NEXUS_HOLOGRAM : STRUCTURE_HOLOGRAM);
+
+  return {
+    success: true,
+    output: { type: node.type, created: true },
+    hologram,
+    spatialPosition: node.position,
+  };
+}
+
+/**
+ * Execute an `assignment` AST node — evaluate the value expression
+ * and write it through the setVariable callback.
+ */
+export async function executeAssignment(
+  node: ASTNode & { name: string; value: unknown },
+  ctx: SimpleExecutorContext,
+): Promise<ExecutionResult> {
+  const value = ctx.evaluateExpression(String(node.value));
+  ctx.setVariable(node.name, value);
+
+  return {
+    success: true,
+    output: { assigned: node.name, value },
+  };
+}
+
+/**
+ * Execute a `return` AST node — evaluate node.value OR node.expression,
+ * whichever is present; empty string if both absent.
+ */
+export async function executeReturn(
+  node: ASTNode & { value?: unknown; expression?: string },
+  ctx: SimpleExecutorContext,
+): Promise<ExecutionResult> {
+  const expr = String(node.value || node.expression || '');
+  const value = ctx.evaluateExpression(expr);
+
+  return {
+    success: true,
+    output: value,
+  };
 }
 
 /**

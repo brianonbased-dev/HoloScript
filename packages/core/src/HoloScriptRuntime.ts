@@ -88,7 +88,7 @@ import {
   executeDeleteCommand as executeDeleteCommandPure,
   type UICommandContext,
 } from './runtime/ui-commands';
-// W1-T4 slice 17: simple executors extracted to ./runtime/simple-executors
+// W1-T4 slice 17 + 19: simple executors extracted to ./runtime/simple-executors
 import {
   executeStateMachine as executeStateMachinePure,
   executeExpressionStatement as executeExpressionStatementPure,
@@ -96,6 +96,9 @@ import {
   executeEnvironment as executeEnvironmentPure,
   executeHoloTemplate as executeHoloTemplatePure,
   executeFocus as executeFocusPure,
+  executeStructure as executeStructurePure,
+  executeAssignment as executeAssignmentPure,
+  executeReturn as executeReturnPure,
   type SimpleExecutorContext,
 } from './runtime/simple-executors';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
@@ -766,13 +769,19 @@ export class HoloScriptRuntime {
           break;
         case 'nexus':
         case 'building':
-          result = await this.executeStructure(node);
+          result = await executeStructurePure(node);
           break;
         case 'assignment':
-          result = await this.executeAssignment(node as ASTNode & { name: string; value: unknown });
+          result = await executeAssignmentPure(
+            node as ASTNode & { name: string; value: unknown },
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'return':
-          result = await this.executeReturn(node as ASTNode & { value: unknown });
+          result = await executeReturnPure(
+            node as ASTNode & { value: unknown },
+            this.buildSimpleExecutorContext(),
+          );
           break;
         case 'memory':
           result = await this.executeMemory(node as import('./types').MemoryNode);
@@ -1772,47 +1781,8 @@ export class HoloScriptRuntime {
   // extracted to ./runtime/ui-commands. Methods deleted — dispatch is
   // inlined above using buildUICommandContext().
 
-  private async executeStructure(node: ASTNode): Promise<ExecutionResult> {
-    // Handle nexus, building, and other structural elements
-    const hologram: HologramProperties = node.hologram || {
-      shape: node.type === 'nexus' ? 'sphere' : 'cube',
-      color: node.type === 'nexus' ? '#9b59b6' : '#e74c3c',
-      size: node.type === 'nexus' ? 3 : 4,
-      glow: true,
-      interactive: true,
-    };
-
-    return {
-      success: true,
-      output: { type: node.type, created: true },
-      hologram,
-      spatialPosition: node.position,
-    };
-  }
-
-  private async executeAssignment(
-    node: ASTNode & { name: string; value: unknown }
-  ): Promise<ExecutionResult> {
-    const value = this.evaluateExpression(String(node.value));
-    this.setVariable(node.name, value);
-
-    return {
-      success: true,
-      output: { assigned: node.name, value },
-    };
-  }
-
-  private async executeReturn(
-    node: ASTNode & { value?: unknown; expression?: string }
-  ): Promise<ExecutionResult> {
-    const expr = String(node.value || node.expression || '');
-    const value = this.evaluateExpression(expr);
-
-    return {
-      success: true,
-      output: value,
-    };
-  }
+  // W1-T4 slice 19: executeStructure / executeAssignment / executeReturn
+  // added to ./runtime/simple-executors.
 
   // ============================================================================
   // Condition Evaluation
@@ -2773,6 +2743,7 @@ export class HoloScriptRuntime {
       evaluateExpression: (expr) => this.evaluateExpression(expr),
       callFunction: (name, args) => this.callFunction(name, args),
       executeProgram: (nodes, depth) => this.executeProgram(nodes, depth),
+      setVariable: (name, value) => this.setVariable(name, value),
     };
   }
 
