@@ -56,9 +56,11 @@ import {
 } from './runtime/primitives';
 // W1-T4 slice 9: system variables extracted to ./runtime/system-variables
 import { updateSystemVariables as updateSystemVariablesPure } from './runtime/system-variables';
+// W1-T4 slice 10: context factory extracted to ./runtime/context-factory
+import { createEmptyContext } from './runtime/context-factory';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
-import { ExpressionEvaluator, createState } from './ReactiveState';
+import { ExpressionEvaluator } from './ReactiveState';
 import { getSharedEventBus } from './events/EventBus';
 import { StateSynchronizer } from '@holoscript/mesh';
 import { AttentionEngine } from '@holoscript/engine/orbital';
@@ -218,7 +220,7 @@ export class HoloScriptRuntime {
       (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>
     >
   ) {
-    this.context = this.createEmptyContext();
+    this.context = createEmptyContext();
     this.currentScope = { variables: this.context.variables };
     this.builtinFunctions = this.initBuiltins(customFunctions);
 
@@ -2400,7 +2402,7 @@ export class HoloScriptRuntime {
   }
 
   reset(): void {
-    this.context = this.createEmptyContext();
+    this.context = createEmptyContext();
     this.currentScope = { variables: this.context.variables };
     this.callStack = [];
     this.particleSystems.clear();
@@ -2412,29 +2414,9 @@ export class HoloScriptRuntime {
     // They will be initialized when the runtime is next used.
   }
 
-  private createEmptyContext(): RuntimeContext {
-    return {
-      variables: new Map(),
-      functions: new Map(),
-      exports: new Map(),
-      connections: [],
-      spatialMemory: new Map(),
-      hologramState: new Map(),
-      executionStack: [],
-      currentScale: 1,
-      scaleMagnitude: 'standard',
-      focusHistory: [],
-      environment: {},
-      templates: new Map(),
-      // HS+ State
-      state: createState({}),
-      // Phase 13: State Machines
-      stateMachines: new Map(),
-      // Narrative & Story State
-      quests: new Map(),
-      completedQuests: new Set(),
-    };
-  }
+  // W1-T4 slice 10: createEmptyContext extracted to ./runtime/context-factory
+  // (was a private method here; now called directly as module function
+  //  at the 2 internal call sites — no wrapper needed).
 
   private async executeScale(node: ScaleNode): Promise<ExecutionResult> {
     const parentScale = this.context.currentScale;
