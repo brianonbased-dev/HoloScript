@@ -18,6 +18,8 @@ import { logger } from './logger';
 import { WebSocketServer, WebSocket } from 'ws';
 // W1-T4 slice 1: pure easing helper extracted to ./runtime/easing
 import { applyEasing } from './runtime/easing';
+// W1-T4 slice 2: pure physics math extracted to ./runtime/physics-math
+import { calculateArc } from './runtime/physics-math';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2415,30 +2417,14 @@ export class HoloScriptRuntime {
 
   /**
    * Handle calculate_arc(start, end, speed)
+   * W1-T4 slice 2: math extracted to ./runtime/physics-math.calculateArc
    */
   private handleCalculateArc(args: HoloScriptValue[]): HoloScriptValue {
     if (args.length < 3) return [0, 0, 0];
-
     const start = args[0] as SpatialPosition;
     const end = args[1] as SpatialPosition;
     const speed = args[2] as number;
-
-    const dx = end[0] - start[0];
-    const dz = end[2] - start[2];
-    const dy = end[1] - start[1];
-    const dist = Math.sqrt(dx * dx + dz * dz);
-
-    if (dist < 0.1) return [0, speed, 0];
-
-    // Basic projectile velocity with upward arc
-    // v_x = dx/t, v_z = dz/t, v_y = dy/t + 0.5 * g * t
-    // simplified for now:
-    const t = dist / speed;
-    const vx = dx / t;
-    const vz = dz / t;
-    const vy = dy / t + 0.5 * 9.81 * t; // Compensate for gravity
-
-    return [vx, vy, vz];
+    return calculateArc(start, end, speed);
   }
 
   private handleAnimate(args: HoloScriptValue[]): HoloScriptValue {
