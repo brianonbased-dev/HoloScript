@@ -323,6 +323,50 @@ function genSink(sink: PipelineSink): string {
     lines.push(`} finally {`);
     lines.push(`  await ${sink.name}_client.end();`);
     lines.push(`}`);
+  } else if (sink.type === 'mcp') {
+    const mcpBase = String(sink.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
+    const toolName = String(sink.tool || sink.name);
+    const batchSize = sink.batch?.size || 0;
+    const args = JSON.stringify(sink.args || {});
+
+    lines.push(
+      `const ${sink.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
+    );
+    lines.push(`const ${sink.name}_url = ${sink.name}_base.replace(/\\/$/, '') + '/mcp';`);
+    lines.push(`const ${sink.name}_headers = { 'Content-Type': 'application/json' };`);
+    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
+    lines.push(`  ${sink.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
+    lines.push(`}`);
+
+    lines.push(`const ${sink.name}_invoke = async (payload) => {`);
+    lines.push(`  const response = await fetch(${sink.name}_url, {`);
+    lines.push(`    method: 'POST',`);
+    lines.push(`    headers: ${sink.name}_headers,`);
+    lines.push(`    body: JSON.stringify({`);
+    lines.push(`      jsonrpc: '2.0',`);
+    lines.push(`      id: Date.now(),`);
+    lines.push(`      method: 'tools/call',`);
+    lines.push(`      params: {`);
+    lines.push(`        name: ${JSON.stringify(toolName)},`);
+    lines.push(`        arguments: { ...${args}, records: payload, output },`);
+    lines.push(`      },`);
+    lines.push(`    }),`);
+    lines.push(`  });`);
+    lines.push(`  if (!response.ok) {`);
+    lines.push(
+      `    throw new Error(\`MCP sink ${sink.name} failed: \${response.status} \${response.statusText}\`);`
+    );
+    lines.push(`  }`);
+    lines.push(`};`);
+
+    if (batchSize > 0) {
+      lines.push(`for (let i = 0; i < records.length; i += ${batchSize}) {`);
+      lines.push(`  const batch = records.slice(i, i + ${batchSize});`);
+      lines.push(`  await ${sink.name}_invoke(batch);`);
+      lines.push(`}`);
+    } else {
+      lines.push(`await ${sink.name}_invoke(records);`);
+    }
   } else if (sink.type === 'stdout') {
     lines.push(`console.log(JSON.stringify(records, null, 2));`);
   } else if (sink.type === 'holo') {

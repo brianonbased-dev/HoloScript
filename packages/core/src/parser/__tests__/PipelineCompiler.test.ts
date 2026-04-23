@@ -60,4 +60,28 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('await DbIn_client.query(interpolate(`SELECT id, stock FROM inventory`));');
     expect(result.code).toContain("INSERT INTO inventory_events (payload) VALUES ($1)");
   });
+
+  it('compiles mcp sink with JSON-RPC tool call payload', () => {
+    const source = `
+      pipeline "McpSink" {
+        source Input {
+          type: "list"
+          items: [{ id: 1, value: "ok" }]
+        }
+        sink ToolOut {
+          type: "mcp"
+          server: "4{env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}"
+          tool: "knowledge_write"
+        }
+      }
+    `.replace(/\u00024/g, '$');
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const ToolOut_url = ToolOut_base.replace(/\\/$/, '') + '/mcp';");
+    expect(result.code).toContain("method: 'tools/call'");
+    expect(result.code).toContain("name: \"knowledge_write\"");
+    expect(result.code).toContain('await ToolOut_invoke(records);');
+    expect(result.code).not.toContain('// TODO: mcp sink not yet compiled');
+  });
 });
