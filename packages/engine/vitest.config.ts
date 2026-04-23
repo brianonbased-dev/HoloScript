@@ -27,22 +27,18 @@ const QUARANTINED_TESTS: string[] = [
   
   
 
-  // Simulation — real source bugs (CSVImporter uses p[0]/p[1]/p[2] on object;
-  // StressRecovery ~17s long-running).
-  'src/simulation/__tests__/StressRecovery.test.ts',// long-running (>15s), fails under coverage
+  // Simulation — StressRecovery is long-running (>17s), fails under coverage.
+  // (CSVImporter p.x/p.y/p.z bug fixed; DataImport.test.ts now runs clean — 14/14 pass.)
+  'src/simulation/__tests__/StressRecovery.test.ts', // long-running (>15s), fails under coverage
 
   // Spatial — OctreeLODSystem has 30/52 failing: shared setup regression.
   'src/spatial/__tests__/OctreeLODSystem.prod.test.ts',
 
-  // ── CLASS C: Traits — missing traitTestHelpers.ts file ───────────────────
-  // 11 trait test files import `./traitTestHelpers` which does not exist in
-  // the repo (deleted in a refactor). Restoring the helper module is a
-  // multi-test-surface task, not an audit-scope test fix.
-  'src/traits/__tests__/ChoreographyTrait.test.ts',
-  'src/traits/__tests__/EmotionalVoiceTrait.prod.test.ts',
-  'src/traits/__tests__/MQTTSinkTrait.prod.test.ts',
-  'src/traits/__tests__/NetworkedAvatarTrait.prod.test.ts',
-  'src/traits/__tests__/OrbitalTrait.prod.test.ts',
+  // NOTE: 2026-04-23 triage — `traitTestHelpers.ts` EXISTS and exports
+  // createMockNode/createMockContext/attachTrait/updateTrait/sendEvent.
+  // 6 other tests in the same directory import from it and pass (54/54).
+  // The previous "missing helper" quarantine reason was stale. Un-quarantining
+  // the 5 entries below and re-classifying on the actual failure shape.
 
   // ── CLASS D: Browser/WebGPU-only ─────────────────────────────────────────
   // GPUPhysics needs a real WebGPU adapter; not available in node vitest.

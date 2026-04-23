@@ -1,0 +1,168 @@
+{
+  "benchmark": "paper-7-ik-latency",
+  "paper_ref": "ai-ecosystem/research/paper-7-ik-siggraph.tex",
+  "spec_version": "2026-04-23_paper-7-publication-runner",
+  "ran_at": "2026-04-23T11:22:36.568Z",
+  "duration_ms": 3108,
+  "task_count": 10000,
+  "measured_runs": 5,
+  "seed": 1337,
+  "modes": [
+    "analytic",
+    "ccd",
+    "fabrik"
+  ],
+  "chain_lengths": [
+    2,
+    3,
+    5,
+    10
+  ],
+  "cells": [
+    {
+      "mode": "analytic",
+      "chainLength": 2,
+      "medianMicrosecondsPerSolve": 0.3960800000000063,
+      "runMicrosecondsPerSolve": [
+        2.731549999999993,
+        0.4912800000000061,
+        0.38723999999999703,
+        0.3960800000000063,
+        0.3704600000000028
+      ]
+    },
+    {
+      "mode": "analytic",
+      "chainLength": 3,
+      "medianMicrosecondsPerSolve": 0.46612999999999827,
+      "runMicrosecondsPerSolve": [
+        2.319820000000004,
+        0.37966999999999873,
+        0.5321900000000028,
+        0.46612999999999827,
+        0.4601499999999987
+      ]
+    },
+    {
+      "mode": "analytic",
+      "chainLength": 5,
+      "medianMicrosecondsPerSolve": 0.5539300000000026,
+      "runMicrosecondsPerSolve": [
+        0.8306699999999979,
+        1.0080699999999978,
+        0.3674099999999953,
+        0.5013399999999933,
+        0.5539300000000026
+      ]
+    },
+    {
+      "mode": "analytic",
+      "chainLength": 10,
+      "medianMicrosecondsPerSolve": 0.5445300000000088,
+      "runMicrosecondsPerSolve": [
+        2.655129999999997,
+        0.5990000000000009,
+        0.5194500000000062,
+        0.5445300000000088,
+        0.4560399999999959
+      ]
+    },
+    {
+      "mode": "ccd",
+      "chainLength": 2,
+      "medianMicrosecondsPerSolve": 2.4924099999999956,
+      "runMicrosecondsPerSolve": [
+        4.734980000000007,
+        4.0778199999999964,
+        2.4924099999999956,
+        2.4229100000000017,
+        1.7540200000000026
+      ]
+    },
+    {
+      "mode": "ccd",
+      "chainLength": 3,
+      "medianMicrosecondsPerSolve": 4.332629999999995,
+      "runMicrosecondsPerSolve": [
+        4.991970000000015,
+        4.332629999999995,
+        4.285110000000008,
+        4.717740000000004,
+        4.311760000000003
+      ]
+    },
+    {
+      "mode": "ccd",
+      "chainLength": 5,
+      "medianMicrosecondsPerSolve": 9.821209999999995,
+      "runMicrosecondsPerSolve": [
+        11.252860000000009,
+        9.821209999999995,
+        8.837490000000003,
+        7.720540000000005,
+        12.019389999999998
+      ]
+    },
+    {
+      "mode": "ccd",
+      "chainLength": 10,
+      "medianMicrosecondsPerSolve": 25.48125,
+      "runMicrosecondsPerSolve": [
+        25.48125,
+        28.62101000000002,
+        26.73110000000002,
+        21.602629999999998,
+        20.436230000000023
+      ]
+    },
+    {
+      "mode": "fabrik",
+      "chainLength": 2,
+      "medianMicrosecondsPerSolve": 1.2572200000000067,
+      "runMicrosecondsPerSolve": [
+        3.526260000000002,
+        1.7178099999999632,
+        1.2572200000000067,
+        0.8783500000000004,
+        1.1949100000000272
+      ]
+    },
+    {
+      "mode": "fabrik",
+      "chainLength": 3,
+      "medianMicrosecondsPerSolve": 1.706269999999995,
+      "runMicrosecondsPerSolve": [
+        1.706269999999995,
+        1.6849299999999858,
+        1.674369999999999,
+        1.8518399999999928,
+        1.7638300000000071
+      ]
+    },
+    {
+      "mode": "fabrik",
+      "chainLength": 5,
+      "medianMicrosecondsPerSolve": 3.0066800000000056,
+      "runMicrosecondsPerSolve": [
+        3.0409900000000105,
+        2.997960000000012,
+        3.01572000000001,
+        2.9685599999999797,
+        3.0066800000000056
+      ]
+    },
+    {
+      "mode": "fabrik",
+      "chainLength": 10,
+      "medianMicrosecondsPerSolve": 8.579889999999978,
+      "runMicrosecondsPerSolve": [
+        8.475480000000017,
+        8.88747999999996,
+        8.485109999999986,
+        8.636740000000009,
+        8.579889999999978
+      ]
+    }
+  ],
+  "markdown_table": "| Mode | 2 bones | 3 bones | 5 bones | 10 bones |\n|------|---------|---------|---------|----------|\n| Analytic | 0.40 | 0.47 | 0.55 | 0.54 |\n| CCD | 2.49 | 4.33 | 9.82 | 25.48 |\n| FABRIK | 1.26 | 1.71 | 3.01 | 8.58 |"
+}

@@ -47,6 +47,7 @@ dist/
 !.bench-logs/*paper-targets-overhead*
 !.bench-logs/*paper-trait*
 !.bench-logs/todo-r2-*
+!.bench-logs/paper-7-ik-latency*
 
 # OS
 .DS_Store
