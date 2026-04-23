@@ -105,6 +105,14 @@ import {
   type BuiltinsContext,
   type BuiltinFn,
 } from './runtime/builtins-registry';
+// W1-T4 slice 29: event system extracted to ./runtime/event-system
+import {
+  onEvent as onEventPure,
+  offEvent as offEventPure,
+  emit as emitPure,
+  triggerUIEvent as triggerUIEventPure,
+  type EventSystemContext,
+} from './runtime/event-system';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -1165,17 +1173,32 @@ export class HoloScriptRuntime {
   // Event System
   // ============================================================================
 
-  /**
-   * Register event handler
-   */
-  on(event: string, handler: EventHandler): void {
-    const handlers = this.eventHandlers.get(event) || [];
-    handlers.push(handler);
-    this.eventHandlers.set(event, handlers);
+  /** Construct an EventSystemContext bound to this runtime. (Slice 29) */
+  private buildEventSystemContext(): EventSystemContext {
+    return {
+      eventHandlers: this.eventHandlers,
+      agentRuntimes: this.agentRuntimes,
+      variables: this.context.variables,
+      traitHandlers: this.traitHandlers,
+      uiElements: this.uiElements,
+      getCurrentScale: () => this.context.currentScale,
+      globalBusEmit: (event, data) => getSharedEventBus().emit(event, data),
+      sendStateMachineEvent: (id, event) =>
+        engineRuntime.stateMachineInterpreter.sendEvent(id, event),
+    };
   }
 
   /**
-   * Register host function
+   * Register event handler.
+   * (W1-T4 slice 29: impl extracted to ./runtime/event-system.)
+   */
+  on(event: string, handler: EventHandler): void {
+    onEventPure(event, handler, this.buildEventSystemContext());
+  }
+
+  /**
+   * Register host function. Stays in HSR — direct builtinFunctions
+   * write, not part of the event-system concern.
    */
   registerFunction(name: string, handler: (args: HoloScriptValue[]) => HoloScriptValue): void {
     this.builtinFunctions.set(name, handler);
@@ -1183,114 +1206,32 @@ export class HoloScriptRuntime {
   }
 
   /**
-   * Remove event handler
+   * Remove event handler.
+   * (W1-T4 slice 29: impl extracted to ./runtime/event-system.)
    */
   off(event: string, handler?: EventHandler): void {
-    if (!handler) {
-      this.eventHandlers.delete(event);
-    } else {
-      const handlers = this.eventHandlers.get(event) || [];
-      this.eventHandlers.set(
-        event,
-        handlers.filter((h) => h !== handler)
-      );
-    }
+    offEventPure(event, handler, this.buildEventSystemContext());
   }
 
   /**
-   * Emit event
+   * Emit event through the full 5-stage dispatch.
+   * (W1-T4 slice 29: impl extracted to ./runtime/event-system.)
    */
   async emit(event: string, data?: unknown): Promise<void> {
-    logger.info(`[Runtime] Emitting event: ${event}`, data as Record<string, unknown>);
-    // 1. Dotted event handling: e.g. "AlphaCommander.mitosis_spawned"
-    if (event.includes('.')) {
-      const [target, eventName] = event.split('.');
-      const agent = this.agentRuntimes.get(target);
-      if (agent) {
-        await agent.onEvent(eventName, data);
-      }
-
-      const orb = this.context.variables.get(target);
-      if (orb && typeof orb === 'object' && (orb as Record<string, unknown>).__type === 'orb') {
-        this.forwardToTraits(orb as Record<string, unknown>, eventName, data);
-      }
-    }
-
-    // 2. Broadcast to all agents and traits
-    const orbs = Array.from(this.context.variables.values()).filter(
-      (v) => v && typeof v === 'object' && (v as Record<string, unknown>).__type === 'orb'
-    );
-    for (const agent of this.agentRuntimes.values()) {
-      await agent.onEvent(event, data);
-    }
-
-    for (const variable of orbs) {
-      await this.forwardToTraits(variable as Record<string, unknown>, event, data);
-    }
-
-    // Local handlers
-    const handlers = this.eventHandlers.get(event) || [];
-    for (const handler of handlers) {
-      try {
-        await handler(data as HoloScriptValue);
-      } catch (error) {
-        logger.error('Event handler error', { event, error });
-      }
-    }
-
-    // Global bus broadcast
-    await getSharedEventBus().emit(event, data as HoloScriptValue);
-
-    // Phase 13: State Machine transitions
-    if (data && typeof data === 'object' && (data as Record<string, unknown>).id) {
-      engineRuntime.stateMachineInterpreter.sendEvent((data as Record<string, unknown>).id as string, event);
-    }
-  }
-
-  private async forwardToTraits(orb: Record<string, unknown>, event: string, data: unknown) {
-    if (orb.directives) {
-      for (const d of orb.directives as Array<Record<string, unknown>>) {
-        if (d.type === 'trait') {
-          const handler = this.traitHandlers.get(d.name as string);
-          if (handler && handler.onEvent) {
-            // Ensure onEvent is handled properly (it might return a promise even if typed void)
-            const traitNode = orb as unknown as HSPlusNode;
-            const eventPayload: TraitEvent = {
-              type: event,
-              ...(data && typeof data === 'object' ? (data as Record<string, unknown>) : {}),
-            };
-            await handler.onEvent(
-              traitNode,
-              d.config || {},
-              {
-                emit: async (e: string, p: HoloScriptValue) => await this.emit(e, p),
-                getScaleMultiplier: () => this.context.currentScale || 1,
-              } as unknown as TraitContext,
-              eventPayload
-            );
-          }
-        }
-      }
-    }
+    return emitPure(event, data, this.buildEventSystemContext());
   }
 
   /**
-   * Trigger UI event
+   * Trigger UI event — update element.value + fire dotted event.
+   * (W1-T4 slice 29: impl extracted to ./runtime/event-system.)
    */
   async triggerUIEvent(elementName: string, eventType: string, data?: unknown): Promise<void> {
-    const element = this.uiElements.get(elementName);
-    if (!element) {
-      logger.warn('UI element not found', { elementName });
-      return;
-    }
-
-    // Update element state based on event
-    if (eventType === 'change' && data !== undefined) {
-      element.value = data as HoloScriptValue;
-    }
-
-    await this.emit(`${elementName}.${eventType}`, data);
+    return triggerUIEventPure(elementName, eventType, data, this.buildEventSystemContext());
   }
+
+  // W1-T4 slice 29: forwardToTraits extracted to ./runtime/event-system
+  // (private in HSR, now a module function; no wrapper needed — the only
+  //  former caller is emit, which now calls the extracted forwardToTraits directly).
 
   // ============================================================================
   // Animation System
