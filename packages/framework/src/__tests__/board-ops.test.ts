@@ -59,4 +59,22 @@ describe('addTasksToBoard', () => {
     expect(added).toHaveLength(0);
     expect(skipped).toEqual([{ title: '', reason: 'empty_title' }]);
   });
+
+  it('emits warning when description is truncated', () => {
+    const longDescription = 'x'.repeat(1300);
+    const { added, warnings } = addTasksToBoard([], [], [
+      { title: 'Long desc task', description: longDescription, source: 't', priority: 1 },
+    ]);
+
+    expect(added).toHaveLength(1);
+    expect(added[0].description).toHaveLength(1000);
+    expect(warnings).toEqual([
+      {
+        title: 'Long desc task',
+        reason: 'description_truncated',
+        originalLength: 1300,
+        keptLength: 1000,
+      },
+    ]);
+  });
 });

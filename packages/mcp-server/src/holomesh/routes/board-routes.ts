@@ -170,6 +170,18 @@ export async function handleBoardRoutes(
     // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
     // but only .title is used for dedup, which both have
     const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody);
+    const normalizationWarnings = Array.isArray((result as any).warnings)
+      ? (result as any).warnings
+      : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
+          const raw = String(t.description || '');
+          if (raw.length <= 1000) return [];
+          return [{
+            title: String(t.title || '').slice(0, 200),
+            reason: 'description_truncated' as const,
+            originalLength: raw.length,
+            keptLength: 1000,
+          }];
+        });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
 
@@ -187,7 +199,7 @@ export async function handleBoardRoutes(
       added: result.added.length,
       tasks: result.added,
       skipped: result.skipped,
-      warnings: result.warnings,
+      warnings: normalizationWarnings,
     });
     return true;
   }
@@ -223,10 +235,22 @@ export async function handleBoardRoutes(
           priority: l.includes('FIXME:') ? 2 : 1
         }));
       if (tasksBody.length > 0) {
-        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody.slice(0, body.max_tasks || 50));
+        const scopedTasksBody = tasksBody.slice(0, body.max_tasks || 50);
+        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, scopedTasksBody);
         addedTasks = result.added;
         skippedTasks = result.skipped;
-        warnings = result.warnings;
+        warnings = Array.isArray((result as any).warnings)
+          ? (result as any).warnings
+          : scopedTasksBody.flatMap((t: { title?: string; description?: string }) => {
+              const raw = String(t.description || '');
+              if (raw.length <= 1000) return [];
+              return [{
+                title: String(t.title || '').slice(0, 200),
+                reason: 'description_truncated' as const,
+                originalLength: raw.length,
+                keptLength: 1000,
+              }];
+            });
         team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
@@ -239,7 +263,7 @@ export async function handleBoardRoutes(
       }]);
       addedTasks = result.added;
       skippedTasks = result.skipped;
-      warnings = result.warnings;
+      warnings = Array.isArray((result as any).warnings) ? (result as any).warnings : [];
       team.taskBoard = result.updatedBoard;
     }
 

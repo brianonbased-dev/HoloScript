@@ -423,6 +423,18 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
   try {
     const team = getTeam(teamId);
     const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, tasks as any);
+    const warnings = Array.isArray((result as any).warnings)
+      ? (result as any).warnings
+      : tasks.flatMap((t) => {
+          const raw = String((t as Record<string, unknown>).description || '');
+          if (raw.length <= 1000) return [];
+          return [{
+            title: String((t as Record<string, unknown>).title || '').slice(0, 200),
+            reason: 'description_truncated' as const,
+            originalLength: raw.length,
+            keptLength: 1000,
+          }];
+        });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
 
@@ -439,6 +451,7 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
       added: result.added.length,
       tasks: result.added,
       skipped: result.skipped,
+      warnings,
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
@@ -569,7 +582,20 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
       }));
 
     const maxTasks = (args.max_tasks as number) || 50;
-    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, tasksBody.slice(0, maxTasks) as any);
+    const scopedTasks = tasksBody.slice(0, maxTasks) as any;
+    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, scopedTasks);
+    const warnings = Array.isArray((result as any).warnings)
+      ? (result as any).warnings
+      : scopedTasks.flatMap((t: { title?: string; description?: string }) => {
+          const raw = String(t.description || '');
+          if (raw.length <= 1000) return [];
+          return [{
+            title: String(t.title || '').slice(0, 200),
+            reason: 'description_truncated' as const,
+            originalLength: raw.length,
+            keptLength: 1000,
+          }];
+        });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
 
@@ -578,6 +604,7 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
       tasks_added: result.added.length,
       tasks: result.added,
       skipped: result.skipped,
+      warnings,
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
