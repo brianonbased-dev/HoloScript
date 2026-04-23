@@ -82,6 +82,11 @@ import {
   executeHoloComposition as executeHoloCompositionPure,
   type HoloCompositionContext,
 } from './runtime/holo-composition-executor';
+// W1-T4 slice 25: HoloObject executor extracted to ./runtime/holo-object-executor
+import {
+  executeHoloObject as executeHoloObjectPure,
+  type HoloObjectContext,
+} from './runtime/holo-object-executor';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -2094,74 +2099,8 @@ export class HoloScriptRuntime {
 
   // W1-T4 slice 17: executeHoloTemplate extracted to ./runtime/simple-executors.
 
-  private async executeHoloObject(node: HoloObjectDecl): Promise<ExecutionResult> {
-    // Convert HoloObjectDecl to OrbNode-like structure and execute logic
-    const properties: Record<string, HoloScriptValue> = {};
-
-    // Convert properties
-    for (const prop of node.properties) {
-      properties[prop.key] = resolveHoloValue(prop.value);
-    }
-
-    // Handle state
-    if (node.state) {
-      for (const prop of node.state.properties) {
-        properties[prop.key] = resolveHoloValue(prop.value);
-      }
-    }
-
-    // Extract position if present
-    const position = properties.position as SpatialPosition | undefined;
-
-    // Extract hologram properties
-    const hologram = {
-      shape: (properties.geometry as string) || 'sphere',
-      color: (properties.color as string) || '#ffffff',
-      size: (properties.scale as number) || (properties.size as number) || 1,
-      glow: (properties.glow as boolean) || false,
-      interactive: properties.interactive !== false,
-    } as HologramProperties;
-
-    // Construct OrbNode
-    const orbNode: OrbNode = {
-      type: 'orb',
-      name: node.name,
-      position: position, // Direct property for executeOrb
-      hologram: hologram, // Direct property for executeOrb
-      properties: properties,
-      // @ts-expect-error
-      directives: [
-        ...(node.directives || []),
-        ...(node.traits || []).map((t) => ({ type: 'trait' as const, name: t.name, ...t.config })),
-        ...(node.template ? this.context.templates.get(node.template)?.directives || [] : []), // Inherit template directives/traits
-      ],
-      traits: new Map((node.traits || []).map((t) => [t.name as VRTraitName, t.config])),
-      children: (node.children as unknown as ASTNode[]) || [],
-    };
-
-    // Handle 'using' template
-    if (node.template) {
-      const tpl = this.context.templates.get(node.template) as unknown as HoloTemplate | undefined;
-      if (tpl) {
-        // Merge template state
-        if (tpl.state) {
-          for (const prop of tpl.state.properties) {
-            if (properties[prop.key] === undefined) {
-              properties[prop.key] = resolveHoloValue(prop.value);
-            }
-          }
-        }
-        // Merge template properties
-        for (const prop of tpl.properties) {
-          if (properties[prop.key] === undefined) {
-            properties[prop.key] = resolveHoloValue(prop.value);
-          }
-        }
-      }
-    }
-
-    return this.executeOrb(orbNode);
-  }
+  // W1-T4 slice 25: executeHoloObject extracted to ./runtime/holo-object-executor.
+  // Closes board task task_1776940617322_ee53.
 
   /**
    * Execute a block of HoloStatements (HoloNode AST)
@@ -2382,11 +2321,19 @@ export class HoloScriptRuntime {
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
 
+  /** Construct a HoloObjectContext bound to this runtime. (Slice 25) */
+  private buildHoloObjectContext(): HoloObjectContext {
+    return {
+      getTemplate: (name) => this.context.templates.get(name) as unknown as HoloTemplate | undefined,
+      executeOrb: (orbNode) => this.executeOrb(orbNode),
+    };
+  }
+
   /** Construct a HoloCompositionContext bound to this runtime. (Slice 24) */
   private buildHoloCompositionContext(): HoloCompositionContext {
     return {
       simpleExecutorContext: this.buildSimpleExecutorContext(),
-      executeHoloObject: (node) => this.executeHoloObject(node),
+      executeHoloObject: (node) => executeHoloObjectPure(node, this.buildHoloObjectContext()),
       getEnvironment: () => this.context.environment as Record<string, HoloScriptValue>,
       setEnvironment: (env) => {
         this.context.environment = env;
