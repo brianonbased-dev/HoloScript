@@ -54,6 +54,13 @@ import {
   executeDebug as executeDebugPure,
   type DebugExecutorContext,
 } from './runtime/debug-executor';
+// W1-T4 slice 32: IO node executors extracted to ./runtime/io-node-executors
+import {
+  executeServerNode as executeServerNodePure,
+  executeDatabaseNode as executeDatabaseNodePure,
+  executeFetchNode as executeFetchNodePure,
+  type IoNodeContext,
+} from './runtime/io-node-executors';
 // W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
 import {
   handleShop as handleShopPure,
@@ -1878,60 +1885,27 @@ export class HoloScriptRuntime {
     logger.info(`Migration complete for ${orb.name}`);
   }
 
+  // W1-T4 slice 32: server/database/fetch executors extracted to
+  // ./runtime/io-node-executors. Thin wrappers thread the public-mode
+  // gate + logger into an IoNodeContext and forward to pure functions.
   private async executeServerNode(node: ServerNode): Promise<ExecutionResult> {
-    if (this.context.mode === 'public') {
-      return {
-        success: false,
-        error: 'SecurityViolation: Server creation blocked in public mode.',
-        executionTime: 0,
-      };
-    }
-
-    logger.info(`Starting server on port ${node.port}`);
-
-    return {
-      success: true,
-      output: `Server listening on port ${node.port}`,
-      hologram: node.hologram,
-      executionTime: 0,
-    };
+    return executeServerNodePure(node, this.buildIoNodeContext());
   }
 
   private async executeDatabaseNode(node: DatabaseNode): Promise<ExecutionResult> {
-    if (this.context.mode === 'public') {
-      return {
-        success: false,
-        error: 'SecurityViolation: DB access blocked in public mode.',
-        executionTime: 0,
-      };
-    }
-
-    logger.info(`Executing Query: ${node.query}`);
-
-    return {
-      success: true,
-      output: `Query executed: ${node.query}`,
-      hologram: node.hologram,
-      executionTime: 0,
-    };
+    return executeDatabaseNodePure(node, this.buildIoNodeContext());
   }
 
   private async executeFetchNode(node: FetchNode): Promise<ExecutionResult> {
-    if (this.context.mode === 'public') {
-      return {
-        success: false,
-        error: 'SecurityViolation: External fetch blocked in public mode.',
-        executionTime: 0,
-      };
-    }
+    return executeFetchNodePure(node, this.buildIoNodeContext());
+  }
 
-    logger.info(`Fetching: ${node.url}`);
-
+  private buildIoNodeContext(): IoNodeContext {
     return {
-      success: true,
-      output: `Fetched data from ${node.url}`,
-      hologram: node.hologram,
-      executionTime: 0,
+      isPublicMode: this.context.mode === 'public',
+      logInfo: (msg) => {
+        logger.info(msg);
+      },
     };
   }
 
