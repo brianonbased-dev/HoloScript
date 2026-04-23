@@ -126,6 +126,13 @@ import {
   executeMatch as executeMatchPure,
   type ControlFlowContext,
 } from './runtime/control-flow';
+// W1-T4 slice: HoloExpression AST evaluator + getMemberPath extracted to
+// ./runtime/holo-expression. Memoization of getMemberPath (max 500,
+// FIFO) is preserved by a module-level cache inside the pure module.
+import {
+  evaluateHoloExpression as evaluateHoloExpressionPure,
+  type HoloExpressionContext,
+} from './runtime/holo-expression';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator } from './ReactiveState';
@@ -2300,120 +2307,24 @@ export class HoloScriptRuntime {
     }
   }
 
-  private async evaluateHoloExpression(
+  // W1-T4 slice: evaluateHoloExpression + getMemberPath extracted to
+  // ./runtime/holo-expression. Thin wrapper binds this runtime's
+  // getVariable/setVariable/callFunction into a HoloExpressionContext
+  // and forwards to the pure recursive evaluator. Memoization (max 500,
+  // FIFO) is preserved via a module-level cache in the pure module.
+  private evaluateHoloExpression(
     expr: HoloExpression,
     scopeOverride?: Scope
   ): Promise<HoloScriptValue> {
-    switch (expr.type) {
-      case 'Literal':
-        return expr.value;
-      case 'Identifier':
-        return this.getVariable(expr.name, scopeOverride);
-      case 'MemberExpression': {
-        const obj = await this.evaluateHoloExpression(expr.object, scopeOverride);
-        if (obj && typeof obj === 'object') {
-          return (obj as Record<string, unknown>)[expr.property] as HoloScriptValue;
-        }
-        return undefined;
-      }
-      case 'CallExpression': {
-        if (!Array.isArray(expr.arguments)) {
-          console.error('[CRITICAL] arguments is not an array for', JSON.stringify(expr));
-          return undefined;
-        }
-        const callee = await this.evaluateHoloExpression(expr.callee, scopeOverride);
-        const args = await Promise.all(
-          expr.arguments.map((a: HoloExpression) => this.evaluateHoloExpression(a, scopeOverride))
-        );
-
-        if (typeof callee === 'function') {
-          return (callee as Function)(...args); // Spread args
-        }
-        if (expr.callee.type === 'Identifier') {
-          const result = await this.callFunction(expr.callee.name, args);
-          return result.output;
-        }
-        return undefined;
-      }
-      case 'BinaryExpression': {
-        const left = await this.evaluateHoloExpression(expr.left, scopeOverride);
-        const right = await this.evaluateHoloExpression(expr.right, scopeOverride);
-        switch (expr.operator) {
-          case '+':
-            return (Number(left) + Number(right)) as HoloScriptValue;
-          case '-':
-            return (Number(left) - Number(right)) as HoloScriptValue;
-          case '*':
-            return (Number(left) * Number(right)) as HoloScriptValue;
-          case '/':
-            return (Number(left) / Number(right)) as HoloScriptValue;
-          case '==':
-            return left == right;
-          case '===':
-            return left === right;
-          case '!=':
-            return left != right;
-          case '!==':
-            return left !== right;
-          case '<':
-            return Number(left) < Number(right);
-          case '>':
-            return Number(left) > Number(right);
-          case '<=':
-            return Number(left) <= Number(right);
-          case '>=':
-            return Number(left) >= Number(right);
-          case '&&':
-            return left && right;
-          case '||':
-            return left || right;
-          default:
-            return undefined;
-        }
-      }
-      case 'ConditionalExpression': {
-        const test = await this.evaluateHoloExpression(expr.test, scopeOverride);
-        return test
-          ? await this.evaluateHoloExpression(expr.consequent, scopeOverride)
-          : await this.evaluateHoloExpression(expr.alternate, scopeOverride);
-      }
-      case 'UpdateExpression': {
-        const val = await this.evaluateHoloExpression(expr.argument, scopeOverride);
-        const newVal = expr.operator === '++' ? (val as number) + 1 : (val as number) - 1;
-        const path = this.getMemberPath(expr.argument);
-        if (path) {
-          this.setVariable(path, newVal as HoloScriptValue, scopeOverride);
-        }
-        return expr.prefix ? newVal : val;
-      }
-      case 'ArrayExpression': {
-        return await Promise.all(
-          expr.elements.map((e) => this.evaluateHoloExpression(e, scopeOverride))
-        );
-      }
-      case 'ObjectExpression': {
-        const obj: Record<string, HoloScriptValue> = {};
-        for (const prop of expr.properties) {
-          obj[prop.key] = await this.evaluateHoloExpression(prop.value, scopeOverride);
-        }
-        return obj;
-      }
-      default:
-        return undefined;
-    }
+    return evaluateHoloExpressionPure(expr, scopeOverride, this.buildHoloExpressionContext());
   }
 
-  /**
-   * Get member path from expression
-   */
-  @engineRuntime.MethodMemoize(500)
-  private getMemberPath(expr: HoloExpression): string | null {
-    if (expr.type === 'Identifier') return expr.name;
-    if (expr.type === 'MemberExpression') {
-      const parentPath = this.getMemberPath(expr.object);
-      if (parentPath) return `${parentPath}.${expr.property}`;
-    }
-    return null;
+  private buildHoloExpressionContext(): HoloExpressionContext {
+    return {
+      getVariable: (name, scope) => this.getVariable(name, scope),
+      setVariable: (name, value, scope) => this.setVariable(name, value, scope),
+      callFunction: (name, args) => this.callFunction(name, args),
+    };
   }
 
   // W1-T4 slice 16: executeSystem / setupNetworking / setupPhysics /
