@@ -46,18 +46,10 @@ const QUARANTINED_TESTS: string[] = [
   // multi-test-surface task, not an audit-scope test fix.
   'src/traits/__tests__/ChoreographyTrait.test.ts',
   'src/traits/__tests__/EmotionalVoiceTrait.prod.test.ts',
-  'src/traits/__tests__/EmotionalVoiceTrait.test.ts',
-  'src/traits/__tests__/FlowFieldTrait.test.ts',
-  'src/traits/__tests__/HandMenuTrait.test.ts',
   'src/traits/__tests__/MQTTSinkTrait.prod.test.ts',
-  'src/traits/__tests__/MQTTSinkTrait.test.ts',
-  'src/traits/__tests__/MQTTSourceTrait.test.ts',
   'src/traits/__tests__/NetworkedAvatarTrait.prod.test.ts',
   'src/traits/__tests__/NetworkedAvatarTrait.test.ts',
   'src/traits/__tests__/OrbitalTrait.prod.test.ts',
-  'src/traits/__tests__/OrbitalTrait.test.ts',
-  'src/traits/__tests__/SoftBodyTrait.test.ts',
-  'src/traits/__tests__/UserMonitorTrait.test.ts',
 
   // ── CLASS D: Browser/WebGPU-only ─────────────────────────────────────────
   // GPUPhysics needs a real WebGPU adapter; not available in node vitest.
