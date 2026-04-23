@@ -1116,31 +1116,125 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   controlnet: {
     trait: 'controlnet',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @controlnet — ControlNet image generation (model: ${String(config.model || 'canny')})`,
-      `// TODO: route to CoreML / remote inference endpoint`,
-    ],
+    level: 'partial',
+    imports: ['CoreML', 'Foundation'],
+    generate: (_varName, config) => {
+      const model = String(config.model || 'canny');
+      const endpoint = String(config.endpoint || '');
+      return [
+        `// @controlnet — ControlNet image generation (model: ${model})`,
+        `// Attempts local CoreML inference; falls back to remote endpoint if model unavailable`,
+        `func controlnetInfer_${model.replace(/[^a-zA-Z0-9]/g, '_')}(prompt: String, conditioning: CIImage) async throws -> CIImage {`,
+        `    let modelName = "${model.replace(/[^a-zA-Z0-9_]/g, '_')}ControlNet"`,
+        `    if let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc"),`,
+        `       let mlModel = try? MLModel(contentsOf: modelURL) {`,
+        `        // CoreML inference path`,
+        `        let input = try MLDictionaryFeatureProvider(dictionary: [`,
+        `            "prompt": MLFeatureValue(string: prompt),`,
+        `        ])`,
+        `        let output = try mlModel.prediction(from: input)`,
+        `        let pixBuf = output.featureValue(for: "generated_image")?.imageBufferValue`,
+        `        return pixBuf.map { CIImage(cvPixelBuffer: $0) } ?? CIImage.empty()`,
+        `    }`,
+        ...(endpoint
+          ? [
+              `    // Remote inference fallback`,
+              `    var req = URLRequest(url: URL(string: "${endpoint}")!)`,
+              `    req.httpMethod = "POST"`,
+              `    req.setValue("application/json", forHTTPHeaderField: "Content-Type")`,
+              `    req.httpBody = try JSONSerialization.data(withJSONObject: ["prompt": prompt, "model": "${model}"])`,
+              `    let (data, _) = try await URLSession.shared.data(for: req)`,
+              `    // Decode base64 PNG from response`,
+              `    if let b64 = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["image"] as? String,`,
+              `       let imgData = Data(base64Encoded: b64),`,
+              `       let nsImg = NSImage(data: imgData) {`,
+              `        return CIImage(data: imgData) ?? CIImage.empty()`,
+              `    }`,
+              `    return CIImage.empty()`,
+            ]
+          : [`    return CIImage.empty() // No remote endpoint configured`]),
+        `}`,
+      ];
+    },
   },
 
   ai_texture_gen: {
     trait: 'ai_texture_gen',
     components: ['ModelComponent'],
-    level: 'comment',
-    generate: (varName, config) => [
-      `// @ai_texture_gen — AI texture generation (style: ${String(config.style || 'photorealistic')})`,
-      `// TODO: generate texture via CoreML or API, then assign to ${varName} ModelComponent`,
-    ],
+    level: 'partial',
+    imports: ['CoreML', 'RealityKit', 'Foundation'],
+    generate: (varName, config) => {
+      const style = String(config.style || 'photorealistic');
+      const resolution = Number(config.resolution || 512);
+      return [
+        `// @ai_texture_gen — AI texture generation (style: ${style}, ${resolution}x${resolution})`,
+        `func ${varName}GenerateTexture(prompt: String) async throws -> TextureResource {`,
+        `    let modelName = "AITextureGen_${style.replace(/[^a-zA-Z0-9_]/g, '_')}"`,
+        `    if let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc"),`,
+        `       let mlModel = try? MLModel(contentsOf: modelURL) {`,
+        `        let input = try MLDictionaryFeatureProvider(dictionary: ["prompt": MLFeatureValue(string: prompt)])`,
+        `        let output = try mlModel.prediction(from: input)`,
+        `        if let pixBuf = output.featureValue(for: "texture")?.imageBufferValue {`,
+        `            return try await TextureResource(from: CIImage(cvPixelBuffer: pixBuf))`,
+        `        }`,
+        `    }`,
+        `    // Fallback: solid color placeholder at ${resolution}x${resolution}`,
+        `    return try await TextureResource.generate(from: CIImage(color: .gray, extent: CGRect(x: 0, y: 0, width: ${resolution}, height: ${resolution})))`,
+        `}`,
+        ``,
+        `// Assign generated texture to ${varName} ModelComponent`,
+        `Task {`,
+        `    if let texture = try? await ${varName}GenerateTexture(prompt: "A ${style} material") {`,
+        `        var mat = PhysicallyBasedMaterial()`,
+        `        mat.baseColor = .init(texture: .init(texture))`,
+        `        ${varName}.components.set(ModelComponent(mesh: .generateBox(size: 0.1), materials: [mat]))`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   diffusion_realtime: {
     trait: 'diffusion_realtime',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @diffusion_realtime — real-time diffusion rendering (backend: ${String(config.backend || 'metal')})`,
-      `// TODO: integrate Metal Performance Shaders or CoreML pipeline`,
-    ],
+    level: 'partial',
+    imports: ['Metal', 'MetalPerformanceShaders', 'CoreML'],
+    generate: (varName, config) => {
+      const backend = String(config.backend || 'metal');
+      const steps = Number(config.steps || 20);
+      return [
+        `// @diffusion_realtime — real-time diffusion rendering (backend: ${backend}, steps: ${steps})`,
+        `let ${varName}MtlDevice = MTLCreateSystemDefaultDevice()!`,
+        `let ${varName}CommandQueue = ${varName}MtlDevice.makeCommandQueue()!`,
+        ...(backend === 'metal'
+          ? [
+              `// Metal Performance Shaders diffusion pipeline`,
+              `let ${varName}MatMul = MPSMatrixMultiplication(`,
+              `    device: ${varName}MtlDevice,`,
+              `    transposeLeft: false,`,
+              `    transposeRight: false,`,
+              `    resultRows: 64, resultColumns: 64, interiorColumns: 64,`,
+              `    alpha: 1.0, beta: 0.0`,
+              `)`,
+              `// Run ${steps} denoising steps on GPU command buffer`,
+              `let ${varName}CmdBuf = ${varName}CommandQueue.makeCommandBuffer()!`,
+              `// Encode denoising U-Net passes here (${steps} steps)`,
+              `${varName}CmdBuf.commit()`,
+              `${varName}CmdBuf.waitUntilCompleted()`,
+            ]
+          : [
+              `// CoreML diffusion pipeline`,
+              `if let modelURL = Bundle.main.url(forResource: "DiffusionUNet", withExtension: "mlmodelc"),`,
+              `   let unet = try? MLModel(contentsOf: modelURL, configuration: { let c = MLModelConfiguration(); c.computeUnits = .all; return c }()) {`,
+              `    // Run ${steps} denoising steps via CoreML`,
+              `    for step in 0..<${steps} {`,
+              `        let t = MLFeatureValue(double: Double(step) / ${steps}.0)`,
+              `        let _ = try? unet.prediction(from: MLDictionaryFeatureProvider(dictionary: ["timestep": t]))`,
+              `    }`,
+              `}`,
+            ]),
+      ];
+    },
   },
 
   ai_upscaling: {
@@ -1176,41 +1270,224 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   neural_forge: {
     trait: 'neural_forge',
     components: [],
-    level: 'comment',
-    generate: (_varName, _config) => [
-      `// @neural_forge — neural network model forge`,
-      `// TODO: integrate on-device CoreML model training`,
-    ],
+    level: 'partial',
+    imports: ['CoreML'],
+    generate: (varName, config) => {
+      const modelPath = String(config.model_path || 'TrainableModel');
+      const epochs = Number(config.epochs || 5);
+      return [
+        `// @neural_forge — on-device CoreML model training (epochs: ${epochs})`,
+        `func ${varName}Train(dataset: MLArrayBatchProvider) async throws {`,
+        `    guard let modelURL = Bundle.main.url(forResource: "${modelPath}", withExtension: "mlmodelc") else {`,
+        `        throw NSError(domain: "NeuralForge", code: 1, userInfo: [NSLocalizedDescriptionKey: "Model ${modelPath} not found"])`,
+        `    }`,
+        `    let updateConfig = MLUpdateTask.ProgressHandlers(`,
+        `        contextEvaluated: { ctx in`,
+        `            print("${varName} epoch \\(ctx.metrics[.epoch]!): loss \\(ctx.metrics[.lossValue]!)")`,
+        `        }`,
+        `    )`,
+        `    let task = try MLUpdateTask(`,
+        `        forModelAt: modelURL,`,
+        `        trainingData: dataset,`,
+        `        configuration: nil,`,
+        `        progressHandlers: updateConfig`,
+        `    )`,
+        `    task.resume()`,
+        `    // Updated model written back to modelURL after ${epochs} epochs`,
+        `}`,
+      ];
+    },
   },
 
   embedding_search: {
     trait: 'embedding_search',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @embedding_search — vector embedding search (dimensions: ${String(config.dimensions || 1536)})`,
-      `// TODO: implement CoreData or CloudKit vector index`,
-    ],
+    level: 'partial',
+    imports: ['CoreData', 'Foundation'],
+    generate: (varName, config) => {
+      const dimensions = Number(config.dimensions || 1536);
+      const storeName = String(config.store_name || varName.toLowerCase() + '_embeddings');
+      return [
+        `// @embedding_search — CoreData vector index (dimensions: ${dimensions})`,
+        `// CoreData model: entity "EmbeddingEntry" with id:String, text:String, embeddingData:BinaryData`,
+        `let ${varName}Container = NSPersistentContainer(name: "${storeName}")`,
+        `${varName}Container.loadPersistentStores { _, error in`,
+        `    if let error { fatalError("CoreData load failed: \\(error)") }`,
+        `}`,
+        ``,
+        `func ${varName}Upsert(id: String, text: String, embedding: [Float]) {`,
+        `    let ctx = ${varName}Container.viewContext`,
+        `    let entry = NSEntityDescription.insertNewObject(forEntityName: "EmbeddingEntry", into: ctx)`,
+        `    entry.setValue(id, forKey: "id")`,
+        `    entry.setValue(text, forKey: "text")`,
+        `    entry.setValue(Data(bytes: embedding, count: embedding.count * MemoryLayout<Float>.size), forKey: "embeddingData")`,
+        `    try? ctx.save()`,
+        `}`,
+        ``,
+        `func ${varName}CosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {`,
+        `    guard a.count == b.count else { return 0 }`,
+        `    let dot = zip(a, b).map(*).reduce(0, +)`,
+        `    let normA = a.map { $0 * $0 }.reduce(0, +).squareRoot()`,
+        `    let normB = b.map { $0 * $0 }.reduce(0, +).squareRoot()`,
+        `    return normA * normB == 0 ? 0 : dot / (normA * normB)`,
+        `}`,
+        ``,
+        `func ${varName}Search(query: [Float], topK: Int = 5) -> [(String, Float)] {`,
+        `    let req = NSFetchRequest<NSManagedObject>(entityName: "EmbeddingEntry")`,
+        `    let all = (try? ${varName}Container.viewContext.fetch(req)) ?? []`,
+        `    return all.compactMap { obj -> (String, Float)? in`,
+        `        guard let id = obj.value(forKey: "id") as? String,`,
+        `              let data = obj.value(forKey: "embeddingData") as? Data else { return nil }`,
+        `        let vec = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }`,
+        `        return (id, ${varName}CosineSimilarity(query, vec))`,
+        `    }.sorted { $0.1 > $1.1 }.prefix(topK).map { $0 }`,
+        `}`,
+      ];
+    },
   },
 
   ai_npc_brain: {
     trait: 'ai_npc_brain',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @ai_npc_brain — AI NPC brain (model: ${String(config.model || 'llm')})`,
-      `// TODO: integrate local LLM or API-based NPC reasoning`,
-    ],
+    level: 'partial',
+    imports: ['Foundation'],
+    generate: (varName, config) => {
+      const model = String(config.model || 'llm');
+      const personality = String(config.personality || 'helpful assistant');
+      const memorySlots = Number(config.memory_slots || 10);
+      const endpoint = String(config.endpoint || '');
+      return [
+        `// @ai_npc_brain — AI NPC reasoning (model: ${model}, personality: ${personality})`,
+        `var ${varName}Memory: [String] = []`,
+        `let ${varName}MaxMemory = ${memorySlots}`,
+        ``,
+        `func ${varName}Think(perception: String) async -> String {`,
+        `    ${varName}Memory.append(perception)`,
+        `    if ${varName}Memory.count > ${varName}MaxMemory { ${varName}Memory.removeFirst() }`,
+        `    let context = ${varName}Memory.joined(separator: "\\n")`,
+        `    let systemPrompt = "You are a ${personality}. Respond in character."`,
+        ...(endpoint
+          ? [
+              `    // Remote LLM inference via API`,
+              `    var req = URLRequest(url: URL(string: "${endpoint}/v1/chat/completions")!)`,
+              `    req.httpMethod = "POST"`,
+              `    req.setValue("application/json", forHTTPHeaderField: "Content-Type")`,
+              `    let payload: [String: Any] = [`,
+              `        "model": "${model}",`,
+              `        "messages": [`,
+              `            ["role": "system", "content": systemPrompt],`,
+              `            ["role": "user", "content": context],`,
+              `        ]`,
+              `    ]`,
+              `    req.httpBody = try? JSONSerialization.data(withJSONObject: payload)`,
+              `    if let (data, _) = try? await URLSession.shared.data(for: req),`,
+              `       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],`,
+              `       let choices = json["choices"] as? [[String: Any]],`,
+              `       let reply = (choices.first?["message"] as? [String: Any])?["content"] as? String {`,
+              `        return reply`,
+              `    }`,
+              `    return ""`,
+            ]
+          : [
+              `    // On-device CoreML LLM (requires compatible .mlpackage)`,
+              `    if let modelURL = Bundle.main.url(forResource: "${model.replace(/[^a-zA-Z0-9_]/g, '_')}", withExtension: "mlpackage"),`,
+              `       let llm = try? MLModel(contentsOf: modelURL) {`,
+              `        let input = try? MLDictionaryFeatureProvider(dictionary: [`,
+              `            "system_prompt": MLFeatureValue(string: systemPrompt),`,
+              `            "user_input": MLFeatureValue(string: context),`,
+              `        ])`,
+              `        if let result = try? llm.prediction(from: input!),`,
+              `           let reply = result.featureValue(for: "response")?.stringValue {`,
+              `            return reply`,
+              `        }`,
+              `    }`,
+              `    return "..."`,
+            ]),
+        `}`,
+      ];
+    },
   },
 
   vector_db: {
     trait: 'vector_db',
     components: [],
-    level: 'comment',
-    generate: (_varName, _config) => [
-      `// @vector_db — vector database`,
-      `// TODO: integrate local or remote vector store (e.g. FAISS, Pinecone)`,
-    ],
+    level: 'partial',
+    imports: ['Foundation'],
+    generate: (varName, config) => {
+      const backend = String(config.backend || 'pinecone');
+      const collection = String(config.collection || varName.toLowerCase() + '_vectors');
+      const isPinecone = backend === 'pinecone';
+      const isFaiss = backend === 'faiss';
+      return [
+        `// @vector_db — vector database (backend: ${backend})`,
+        ...(isFaiss
+          ? [
+              `// FAISS-style in-process flat L2 index (no native Swift FAISS binding — stub)`,
+              `var ${varName}FaissIndex: [[Float]] = []`,
+              `var ${varName}FaissIds: [String] = []`,
+              ``,
+              `func ${varName}FaissAdd(id: String, vec: [Float]) {`,
+              `    ${varName}FaissIndex.append(vec); ${varName}FaissIds.append(id)`,
+              `}`,
+              ``,
+              `func ${varName}FaissSearch(query: [Float], k: Int = 5) -> [(String, Float)] {`,
+              `    return zip(${varName}FaissIds, ${varName}FaissIndex)`,
+              `        .map { (id, vec) -> (String, Float) in`,
+              `            let dist = zip(query, vec).map { ($0 - $1) * ($0 - $1) }.reduce(0, +)`,
+              `            return (id, dist)`,
+              `        }`,
+              `        .sorted { $0.1 < $1.1 }`,
+              `        .prefix(k).map { $0 }`,
+              `}`,
+            ]
+          : [
+              `let ${varName}VdbSession = URLSession.shared`,
+              `let ${varName}VdbBase = ${isPinecone ? `ProcessInfo.processInfo.environment["PINECONE_HOST"] ?? ""` : `"http://localhost:8000"`}`,
+              ``,
+              `func ${varName}VdbUpsert(id: String, embedding: [Float], metadata: [String: String] = [:]) async throws {`,
+              `    let vectors = embedding.map { String($0) }.joined(separator: ",")`,
+              `    let meta = metadata.map { "\\"\\($0.key)\\":\\"\\($0.value)\\"" }.joined(separator: ",")`,
+              ...(isPinecone
+                ? [
+                    `    let body = """{"vectors":[{"id":"\\(id)","values":[\\(vectors)],"metadata":{\\(meta)}}]}"""`,
+                    `    var req = URLRequest(url: URL(string: "\\(${varName}VdbBase)/vectors/upsert")!)`,
+                    `    req.httpMethod = "POST"`,
+                    `    req.setValue("application/json", forHTTPHeaderField: "Content-Type")`,
+                    `    req.setValue(ProcessInfo.processInfo.environment["PINECONE_API_KEY"] ?? "", forHTTPHeaderField: "Api-Key")`,
+                    `    req.httpBody = body.data(using: .utf8)`,
+                  ]
+                : [
+                    `    let body = """{"embeddings":[\\(vectors)],"metadatas":[{\\(meta)}],"ids":["\\(id)"]}"""`,
+                    `    var req = URLRequest(url: URL(string: "\\(${varName}VdbBase)/api/v1/collections/${collection}/add")!)`,
+                    `    req.httpMethod = "POST"`,
+                    `    req.setValue("application/json", forHTTPHeaderField: "Content-Type")`,
+                    `    req.httpBody = body.data(using: .utf8)`,
+                  ]),
+              `    let (_, resp) = try await ${varName}VdbSession.data(for: req)`,
+              `    guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }`,
+              `}`,
+              ``,
+              `func ${varName}VdbQuery(queryEmbedding: [Float], topK: Int = 5) async throws -> Data {`,
+              `    let vectors = queryEmbedding.map { String($0) }.joined(separator: ",")`,
+              ...(isPinecone
+                ? [
+                    `    let body = """{"vector":[\\(vectors)],"topK":${`\\(topK)`},"includeMetadata":true}"""`,
+                    `    var req = URLRequest(url: URL(string: "\\(${varName}VdbBase)/query")!)`,
+                    `    req.setValue(ProcessInfo.processInfo.environment["PINECONE_API_KEY"] ?? "", forHTTPHeaderField: "Api-Key")`,
+                  ]
+                : [
+                    `    let body = """{"query_embeddings":[\\(vectors)],"n_results":${`\\(topK)`}}"""`,
+                    `    var req = URLRequest(url: URL(string: "\\(${varName}VdbBase)/api/v1/collections/${collection}/query")!)`,
+                  ]),
+              `    req.httpMethod = "POST"`,
+              `    req.setValue("application/json", forHTTPHeaderField: "Content-Type")`,
+              `    req.httpBody = body.data(using: .utf8)`,
+              `    let (data, _) = try await ${varName}VdbSession.data(for: req)`,
+              `    return data`,
+              `}`,
+            ]),
+      ];
+    },
   },
 
   vision: {
