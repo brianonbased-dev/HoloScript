@@ -20,4 +20,12 @@ describe('paper-12 plugin probe', () => {
     expect(r.openUsdEquivalent.pluginInitProxyMs).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(r.notes)).toBe(true);
   });
+
+  it('exposes plugin-generated USDA from @holoscript/openusd-plugin (Wave B Stream 3)', async () => {
+    const r = await runPaper12PluginProbe({ writeResults: false });
+    expect(r.openUsdPluginGenerated).toBeDefined();
+    expect(r.openUsdPluginGenerated.usdaLines).toBeGreaterThan(3);
+    expect(r.openUsdPluginGenerated.primitiveCount).toBe(2);
+    expect(r.openUsdPluginGenerated.generateMeanMs).toBeGreaterThanOrEqual(0);
+  });
 });

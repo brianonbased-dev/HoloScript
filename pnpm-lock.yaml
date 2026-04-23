@@ -511,6 +511,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
+      '@holoscript/openusd-plugin':
+        specifier: workspace:^
+        version: link:../plugins/openusd-plugin
       tinybench:
         specifier: ^2.9.0
         version: 2.9.0
@@ -2302,6 +2305,8 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.29)
 
+  packages/plugins/assimp-plugin: {}
+
   packages/plugins/banking-finance-plugin:
     dependencies:
       '@holoscript/core':
@@ -2481,6 +2486,8 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/plugins/marble-genie3-plugin: {}
+
   packages/plugins/medical-plugin:
     dependencies:
       '@holoscript/core':
@@ -2500,11 +2507,21 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.29)
 
+  packages/plugins/mixamo-plugin: {}
+
+  packages/plugins/msf-3d-plugin: {}
+
   packages/plugins/neuroscience-plugin:
     dependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
+
+  packages/plugins/niantic-lgm-plugin: {}
+
+  packages/plugins/nodetoy-plugin: {}
+
+  packages/plugins/openusd-plugin: {}
 
   packages/plugins/radio-astronomy-plugin:
     dependencies:
@@ -2524,6 +2541,8 @@ importers:
       vitest:
         specifier: ^1.0.0
         version: 1.6.1(@types/node@24.10.13)
+
+  packages/plugins/remotion-r3f-plugin: {}
 
   packages/plugins/restaurant-plugin:
     dependencies:
@@ -2555,6 +2574,8 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.29)
+
+  packages/plugins/scenethesis-plugin: {}
 
   packages/plugins/scientific-plugin:
     dependencies:
@@ -2589,6 +2610,8 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.29)
+
+  packages/plugins/talkinghead-plugin: {}
 
   packages/plugins/therapy-plugin:
     dependencies:
@@ -2646,6 +2669,10 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/plugins/urdformer-plugin: {}
+
+  packages/plugins/vrm-avatar-plugin: {}
+
   packages/plugins/web-preview:
     dependencies:
       '@react-three/drei':
@@ -2682,6 +2709,8 @@ importers:
       vite:
         specifier: '>=7.3.2'
         version: 7.3.2(@types/node@24.10.13)(tsx@4.21.0)
+
+  packages/plugins/web-preview-plugin: {}
 
   packages/plugins/wine-food-beverage-plugin:
     dependencies:

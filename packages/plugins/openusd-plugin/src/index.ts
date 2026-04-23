@@ -44,7 +44,10 @@ export function exportToUsda(input: UsdaExportInput): UsdaExportOutput {
   lines.push(`def Xform "World"`);
   lines.push('{');
 
-  for (const prim of input.primitives ?? [{ kind: 'xform', path: 'root' } as const]) {
+  const prims: NonNullable<UsdaExportInput['primitives']> = input.primitives ?? [
+    { kind: 'xform', path: 'root' },
+  ];
+  for (const prim of prims) {
     const typeName = prim.kind === 'mesh' ? 'Mesh' : prim.kind === 'light' ? 'SphereLight' : 'Xform';
     lines.push(`    def ${typeName} "${prim.path.replace(/\W/g, '_')}"`);
     lines.push('    {');
