@@ -49,6 +49,11 @@ import {
   executeHoloStatement as executeHoloStatementPure,
   type HoloStatementContext,
 } from './runtime/holo-statement-executor';
+// W1-T4 slice 31: debug executor extracted to ./runtime/debug-executor
+import {
+  executeDebug as executeDebugPure,
+  type DebugExecutorContext,
+} from './runtime/debug-executor';
 // W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
 import {
   handleShop as handleShopPure,
@@ -1032,34 +1037,29 @@ export class HoloScriptRuntime {
   // W1-T4 slice 17: executeStateMachine / executeExpressionStatement /
   // executeCall extracted to ./runtime/simple-executors.
 
+  // W1-T4 slice 31: executeDebug extracted to ./runtime/debug-executor.
+  // Thin wrapper binds runtime state-map references + logger into a
+  // DebugExecutorContext and forwards to the pure executor.
   private async executeDebug(node: ASTNode & { target?: string }): Promise<ExecutionResult> {
-    const debugInfo = {
-      variables: Object.fromEntries(this.currentScope.variables),
-      contextVariables: Object.fromEntries(this.context.variables),
-      functions: Array.from(this.context.functions.keys()),
-      connections: this.context.connections.length,
-      callStack: [...this.callStack],
-      uiElements: Array.from(this.uiElements.keys()),
-      animations: Array.from(this.animations.keys()),
-      executionHistory: this.executionHistory.slice(-10),
-    };
+    return executeDebugPure(node, this.buildDebugExecutorContext());
+  }
 
-    const debugOrb: HologramProperties = {
-      shape: 'pyramid',
-      color: '#ff1493',
-      size: 0.8,
-      glow: true,
-      interactive: true,
-    };
-
-    this.context.hologramState.set(`debug_${node.target || 'program'}`, debugOrb);
-
-    logger.info('Debug info', debugInfo);
-
+  private buildDebugExecutorContext(): DebugExecutorContext {
     return {
-      success: true,
-      output: debugInfo as unknown as HoloScriptValue,
-      hologram: debugOrb,
+      scopeVariables: this.currentScope.variables,
+      contextVariables: this.context.variables,
+      functions: this.context.functions,
+      connections: this.context.connections,
+      callStack: this.callStack,
+      uiElements: this.uiElements,
+      animations: this.animations,
+      executionHistory: this.executionHistory,
+      setHologramState: (key, hologram) => {
+        this.context.hologramState.set(key, hologram);
+      },
+      logInfo: (message, payload) => {
+        logger.info(message, payload);
+      },
     };
   }
 
