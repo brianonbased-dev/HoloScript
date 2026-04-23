@@ -77,6 +77,14 @@ import {
   executeCoreConfig as executeCoreConfigPure,
   executeVisualMetadata as executeVisualMetadataPure,
 } from './runtime/system-executors';
+// W1-T4 slice 20: graph executors extracted to ./runtime/graph-executors
+import {
+  executeFunction as executeFunctionPure,
+  executeConnection as executeConnectionPure,
+  executeGate as executeGatePure,
+  executeStream as executeStreamPure,
+  type GraphExecutorContext,
+} from './runtime/graph-executors';
 // W1-T4 slice 18: UI command executors extracted to ./runtime/ui-commands
 import {
   executeShowCommand as executeShowCommandPure,
@@ -741,16 +749,16 @@ export class HoloScriptRuntime {
           break;
         case 'method':
         case 'function':
-          result = await this.executeFunction(node as MethodNode);
+          result = await executeFunctionPure(node as MethodNode, this.buildGraphExecutorContext());
           break;
         case 'connection':
-          result = await this.executeConnection(node as ConnectionNode);
+          result = await executeConnectionPure(node as ConnectionNode, this.buildGraphExecutorContext());
           break;
         case 'gate':
-          result = await this.executeGate(node as GateNode);
+          result = await executeGatePure(node as GateNode, this.buildGraphExecutorContext());
           break;
         case 'stream':
-          result = await this.executeStream(node as StreamNode);
+          result = await executeStreamPure(node as StreamNode, this.buildGraphExecutorContext());
           break;
         case 'call':
           result = await executeCallPure(
@@ -1478,133 +1486,8 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeFunction(node: MethodNode): Promise<ExecutionResult> {
-    this.context.functions.set(node.name, node);
-
-    const hologram: HologramProperties = {
-      shape: 'cube',
-      color: '#ff6b35',
-      size: 1.5,
-      glow: true,
-      interactive: true,
-      ...node.hologram,
-    };
-
-    this.context.hologramState.set(node.name, hologram);
-
-    logger.info('Function defined', {
-      name: node.name,
-      params: node.parameters.map((p) => p.name),
-    });
-
-    return {
-      success: true,
-      output: `Function '${node.name}' defined with ${node.parameters.length} parameter(s)`,
-      hologram,
-      spatialPosition: node.position,
-    };
-  }
-
-  private async executeConnection(node: ConnectionNode): Promise<ExecutionResult> {
-    this.context.connections.push(node);
-
-    const fromPos = this.context.spatialMemory.get(node.from);
-    const toPos = this.context.spatialMemory.get(node.to);
-
-    if (fromPos && toPos) {
-      this.createConnectionStream(node.from, node.to, fromPos, toPos, node.dataType);
-    }
-
-    // Set up reactive binding if bidirectional
-    if (node.bidirectional) {
-      // When 'from' changes, update 'to'
-      this.on(`${node.from}.changed`, async (data) => {
-        this.setVariable(node.to, data);
-        this.emit(`${node.to}.changed`, data);
-      });
-      // When 'to' changes, update 'from'
-      this.on(`${node.to}.changed`, async (data) => {
-        this.setVariable(node.from, data);
-        this.emit(`${node.from}.changed`, data);
-      });
-    }
-
-    logger.info('Connection created', { from: node.from, to: node.to, dataType: node.dataType });
-
-    return {
-      success: true,
-      output: `Connected '${node.from}' to '${node.to}' (${node.dataType})`,
-      hologram: {
-        shape: 'cylinder',
-        color: this.getDataTypeColor(node.dataType),
-        size: 0.1,
-        glow: true,
-        interactive: false,
-      },
-    };
-  }
-
-  private async executeGate(node: GateNode): Promise<ExecutionResult> {
-    try {
-      const condition = this.evaluateCondition(node.condition);
-      const path = condition ? node.truePath : node.falsePath;
-
-      logger.info('Gate evaluation', { condition: node.condition, result: condition });
-
-      if (path.length > 0) {
-        const subResults = await this.executeProgram(path, this.callStack.length + 1);
-
-        // If the sub-program ended on an explicit return node, bubble that up.
-        // executeProgram stops when it encounters node.type === 'return'.
-        const lastResult = subResults[subResults.length - 1];
-        const selectedPathContainsReturn = path.some((n) => n.type === 'return');
-        if (selectedPathContainsReturn && lastResult?.success && lastResult.output !== undefined) {
-          return lastResult;
-        }
-      }
-
-      return {
-        success: true,
-        output: `Gate: took ${condition ? 'true' : 'false'} path`,
-        hologram: {
-          shape: 'pyramid',
-          color: condition ? '#00ff00' : '#ff0000',
-          size: 1,
-          glow: true,
-          interactive: true,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Gate execution failed: ${error}`,
-      };
-    }
-  }
-
-  private async executeStream(node: StreamNode): Promise<ExecutionResult> {
-    let data = this.getVariable(node.source);
-
-    logger.info('Stream processing', {
-      name: node.name,
-      source: node.source,
-      transforms: node.transformations.length,
-    });
-
-    for (const transform of node.transformations) {
-      data = await this.applyTransformation(data, transform);
-    }
-
-    this.setVariable(`${node.name}_result`, data);
-    this.createFlowingStream(node.name, node.position || [0, 0, 0], data);
-
-    return {
-      success: true,
-      output: `Stream '${node.name}' processed ${Array.isArray(data) ? data.length : 1} item(s)`,
-      hologram: node.hologram,
-      spatialPosition: node.position,
-    };
-  }
+  // W1-T4 slice 20: executeFunction / executeConnection / executeGate /
+  // executeStream extracted to ./runtime/graph-executors.
 
   /**
    * Execute State Machine declaration (Phase 13)
@@ -2717,6 +2600,31 @@ export class HoloScriptRuntime {
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
 
+  /** Construct a GraphExecutorContext bound to this runtime. (Slice 20) */
+  private buildGraphExecutorContext(): GraphExecutorContext {
+    return {
+      functions: this.context.functions as Map<string, MethodNode>,
+      connections: this.context.connections as ConnectionNode[],
+      hologramState: this.context.hologramState,
+      spatialMemory: this.context.spatialMemory,
+      on: (event, handler) => this.on(event, handler),
+      emit: (event, data) => {
+        void this.emit(event, data);
+      },
+      getVariable: (name) => this.getVariable(name),
+      setVariable: (name, value) => this.setVariable(name, value as HoloScriptValue),
+      createConnectionStream: (from, to, fromPos, toPos, dataType) =>
+        this.createConnectionStream(from, to, fromPos, toPos, dataType),
+      createFlowingStream: (name, position, data) =>
+        this.createFlowingStream(name, position, data),
+      getDataTypeColor: (dataType) => this.getDataTypeColor(dataType),
+      evaluateCondition: (expr) => this.evaluateCondition(expr),
+      executeProgram: (nodes, depth) => this.executeProgram(nodes, depth),
+      callStackDepth: () => this.callStack.length,
+      applyTransformation: (data, transform) => this.applyTransformation(data, transform),
+    };
+  }
+
   /** Construct a UICommandContext bound to this runtime. (Slice 18) */
   private buildUICommandContext(): UICommandContext {
     return {
@@ -2880,7 +2788,7 @@ export class HoloScriptRuntime {
       };
     }
 
-    const result = await this.executeFunction(target);
+    const result = await executeFunctionPure(target, this.buildGraphExecutorContext());
     this.createExecutionEffect(node.target, target.position || [0, 0, 0]);
 
     return {
