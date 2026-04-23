@@ -92,6 +92,13 @@ import {
   executeOrb as executeOrbPure,
   type OrbExecutorContext,
 } from './runtime/orb-executor';
+// W1-T4 slice 27: skills + directives extracted to ./runtime/skills-directives
+import {
+  loadSkill as loadSkillPure,
+  isAgent as isAgentPure,
+  applyDirectives as applyDirectivesPure,
+  updateTraits as updateTraitsPure,
+} from './runtime/skills-directives';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -2420,23 +2427,16 @@ export class HoloScriptRuntime {
     };
   }
 
+  /**
+   * Load a procedural skill (W1-T4 slice 27: impl extracted to
+   * ./runtime/skills-directives). Kept as public wrapper so external
+   * callers still hit HSR's API surface.
+   */
   public loadSkill(skill: ProceduralSkill): void {
-    logger.info(`[Procedural] Loading skill: ${skill.name} (${skill.id})`);
-
-    // Skill Merging implementation:
-    // If we receive a network version of a skill we already know, merge the success rate
-    const existing = this.proceduralSkills.get(skill.id);
-    if (existing) {
-      skill.successRate = (existing.successRate + (skill.successRate || 0)) / 2;
-    } else {
-      skill.successRate = skill.successRate || 0;
-    }
-
-    this.proceduralSkills.set(skill.id, skill);
-
-    // Broadcast newly acquired skill over Mesh
-    // Mesh resolves ProceduralSkill from package entry; cast avoids src/dist duplicate identity.
-    StateSynchronizer.getInstance().broadcastSkill(skill as never);
+    loadSkillPure(skill, {
+      proceduralSkills: this.proceduralSkills,
+      broadcastSkill: (s) => StateSynchronizer.getInstance().broadcastSkill(s as never),
+    });
   }
 
   public async executeSkill(
@@ -2508,49 +2508,20 @@ export class HoloScriptRuntime {
     };
   }
 
+  /**
+   * Walk orb directives applying trait / state / lifecycle handlers.
+   * (W1-T4 slice 27: impl extracted to ./runtime/skills-directives.)
+   */
   private applyDirectives(node: ASTNode): void {
-    if (!node.directives) return;
-
-    for (const d of node.directives) {
-      if (d.type === 'trait') {
-        logger.info(`Applying trait ${d.name} to ${node.type}`);
-
-        const handler = this.traitHandlers.get(d.name as VRTraitName);
-        if (handler) {
-          handler.onAttach?.(node as unknown as HSPlusNode, d.config || {}, {
-            emit: (event: string, payload: unknown) => this.emit(event, payload),
-            getScaleMultiplier: () => this.context.currentScale || 1,
-          } as unknown as TraitContext);
-        }
-
-        // Optional: Trigger custom initialization for specific traits
-        if (d.name === 'chat') {
-          this.emit('show-chat', d.config);
-        }
-      } else if (d.type === 'state') {
-        // Ensure local state is merged into orb properties
-        if (node && (node as unknown as Record<string, unknown>).__type === 'orb') {
-          const stateBody = d.body as Record<string, HoloScriptValue>;
-          const existingProps =
-            ((node as unknown as Record<string, unknown>).properties as Record<
-              string,
-              HoloScriptValue
-            >) || {};
-          // Only set state defaults â€” never overwrite runtime-modified values
-          for (const [key, val] of Object.entries(stateBody)) {
-            if (existingProps[key] === undefined) {
-              existingProps[key] = val;
-            }
-          }
-          (node as unknown as Record<string, unknown>).properties = existingProps;
-        }
-        this.context.state.update(d.body as Record<string, HoloScriptValue>);
-      } else if (d.type === 'lifecycle') {
-        if (d.hook === 'on_mount' || d.hook === 'mount') {
-          this.evaluateExpression(d.body);
-        }
-      }
-    }
+    applyDirectivesPure(node, {
+      traitHandlers: this.traitHandlers,
+      emit: (event, payload) => {
+        void this.emit(event, payload);
+      },
+      getCurrentScale: () => this.context.currentScale,
+      state: this.context.state,
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
+    });
   }
 
   getExecutionHistory(): ExecutionResult[] {
@@ -2573,14 +2544,11 @@ export class HoloScriptRuntime {
     return this.currentScope;
   }
 
+  /**
+   * Predicate: is this orb an agent? (W1-T4 slice 27: extracted.)
+   */
   private isAgent(node: OrbNode): boolean {
-    return !!node.directives?.some(
-      (d) =>
-        d.type === 'trait' &&
-        ((d as HSPlusTraitDirective).name === 'llm_agent' ||
-          (d as HSPlusTraitDirective).name === 'agent' ||
-          (d as HSPlusTraitDirective).name === 'companion')
-    );
+    return isAgentPure(node);
   }
 
   /**
@@ -2610,60 +2578,18 @@ export class HoloScriptRuntime {
   }
 
   /**
-   * Update all orbs that have traits with an onUpdate method
+   * Per-frame trait update — dispatches onUpdate on all active
+   * orbs (W1-T4 slice 27: impl extracted to ./runtime/skills-directives).
    */
   private updateTraits(julianDate: number): void {
-    const delta = 1 / 60; // Delta time for simulation step
-    const isLogFrame = Math.floor(julianDate * 1440) % 60 === 0;
-
-    for (const [name, value] of this.context.variables.entries()) {
-      if (
-        value &&
-        typeof value === 'object' &&
-        (value as Record<string, unknown>).__type === 'orb'
-      ) {
-        const orb = value as Record<string, unknown>;
-        if (orb.directives) {
-          for (const d of (orb.directives as Array<Record<string, unknown>>) || []) {
-            if (d.type === 'trait') {
-              const handler = this.traitHandlers.get(d.name as string);
-              if (handler && handler.onUpdate) {
-                // Execute trait update
-                const traitNode = orb as unknown as HSPlusNode;
-                handler.onUpdate(
-                  traitNode,
-                  d.config || {},
-                  {
-                    emit: (event: string, payload: unknown) => {
-                      if (event === 'position_update') {
-                        // Special handling for position updates to sync with visualizer
-                        // Using 'name' (variable key) as the authoritative ID for the visualizer
-                        const posPayload = payload as Record<string, unknown> | undefined;
-                        if (posPayload?.position) {
-                          const p = posPayload.position as
-                            [number, number, number] | [number, number, number];
-                          const tuple: [number, number, number] = Array.isArray(p)
-                            ? p
-                            : [p[0], p[1], p[2]];
-                          this.setOrbPosition(name, tuple);
-                        }
-                      }
-                      return this.emit(event, payload);
-                    },
-                    getScaleMultiplier: () => this.context.currentScale || 1,
-                    julianDate,
-                    getNode: (nodeName: string) => this.context.variables.get(nodeName),
-                    getState: () => this.getState(),
-                    setState: (updates: Record<string, HoloScriptValue>) =>
-                      this.context.state.update(updates),
-                  } as unknown as TraitContext,
-                  delta
-                );
-              }
-            }
-          }
-        }
-      }
-    }
+    updateTraitsPure(julianDate, {
+      variables: this.context.variables,
+      traitHandlers: this.traitHandlers,
+      emit: (event, payload) => this.emit(event, payload),
+      getCurrentScale: () => this.context.currentScale,
+      setOrbPosition: (name, position) => this.setOrbPosition(name, position),
+      getState: () => this.getState(),
+      setState: (updates) => this.context.state.update(updates),
+    });
   }
 }
