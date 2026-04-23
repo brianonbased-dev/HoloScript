@@ -228,15 +228,24 @@ export async function handleBoardRoutes(
     let result: any;
     let eventType: string = '';
 
+    // Surface-attribution tags from request body. These let multiple surfaces
+    // sharing one HoloMesh API key (S.IDENT legacy `antigravity-seed`) be
+    // distinguished in UI/done-log while per-surface key issuance is pending
+    // (task_1776820645291_*). The server-derived `caller.id`/`caller.name`
+    // remain the authoritative identity; tags are purely advisory labels.
+    const claimedByTag = typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined;
+    const completedByTag = typeof body.completedByTag === 'string' ? body.completedByTag : undefined;
+
     switch (action) {
       case 'claim':
-        result = claimTask(team.taskBoard, taskId, caller.id, caller.name);
+        result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
         eventType = 'board:claimed';
         break;
       case 'done': {
         const wrap = completeTask(team.taskBoard, taskId, caller.name, {
           summary: body.summary as string,
           commit: body.commit as string | undefined,
+          completedByTag,
         });
         result = wrap.result;
         team.taskBoard = wrap.updatedBoard;
@@ -291,6 +300,10 @@ export async function handleBoardRoutes(
     const payload: Record<string, unknown> = { success: true, task: result.task };
     if (action === 'claim') {
       payload.claimedAs = { id: caller.id, name: caller.name };
+      if (claimedByTag) (payload.claimedAs as Record<string, unknown>).surfaceTag = claimedByTag;
+    }
+    if (action === 'done' && completedByTag) {
+      payload.completedAs = { id: caller.id, name: caller.name, surfaceTag: completedByTag };
     }
     json(res, 200, payload);
     return true;

@@ -26,7 +26,20 @@ export interface TeamTask {
   status: TaskStatus;
   claimedBy?: string;
   claimedByName?: string;
+  /**
+   * Surface-attribution tag carried by the /room skill claim PATCH
+   * (e.g. `cursor-claude`, `claudecode-claude`, `copilot-vscode`).
+   * Distinct from `claimedBy` (server-derived agent id) and `claimedByName`
+   * (server-derived agent display name) which both come from the API key's
+   * registered identity. The tag is the caller-provided surface label and
+   * exists specifically so multiple surfaces sharing one API key (S.IDENT
+   * legacy `antigravity-seed`) can still be disambiguated in the UI/feed
+   * without waiting for per-surface key issuance (task_1776820645291_*).
+   */
+  claimedByTag?: string;
   completedBy?: string;
+  /** Surface-attribution tag for the done action — see `claimedByTag`. */
+  completedByTag?: string;
   commitHash?: string;
   source?: string;
   priority: number;
@@ -52,6 +65,8 @@ export interface DoneLogEntry {
   taskId: string;
   title: string;
   completedBy: string;
+  /** Surface-attribution tag for the done action — see `TeamTask.claimedByTag`. */
+  completedByTag?: string;
   commitHash?: string;
   timestamp: string;
   summary: string;

@@ -38,12 +38,24 @@ export interface TaskActionResult {
   doneEntry?: DoneLogEntry;
 }
 
-/** Claim an open task. Returns error if task isn't open or has unmet dependencies. */
+/**
+ * Claim an open task. Returns error if task isn't open or has unmet dependencies.
+ *
+ * `claimerTag` is the optional surface-attribution tag (e.g. `cursor-claude`,
+ * `claudecode-claude`, `copilot-vscode`) supplied by the caller via the PATCH
+ * body. When multiple surfaces share one HoloMesh API key (S.IDENT legacy
+ * `antigravity-seed`), the tag is the only way to tell which one actually
+ * claimed the task, since `claimerId`/`claimerName` come from the key's
+ * registered identity (the same agent for all sharing surfaces). Passing
+ * through to `task.claimedByTag` is a pure no-op if the tag is undefined —
+ * backward-compatible with pre-tag callers.
+ */
 export function claimTask(
   board: TeamTask[],
   taskId: string,
   claimerId: string,
-  claimerName: string
+  claimerName: string,
+  claimerTag?: string
 ): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
@@ -65,15 +77,23 @@ export function claimTask(
   task.status = 'claimed';
   task.claimedBy = claimerId;
   task.claimedByName = claimerName;
+  if (claimerTag) task.claimedByTag = claimerTag;
   return { success: true, task };
 }
 
-/** Mark a task as done. Removes from board, returns done log entry. */
+/**
+ * Mark a task as done. Removes from board, returns done log entry.
+ *
+ * `opts.completedByTag` is the optional surface-attribution tag — see
+ * `claimTask`'s `claimerTag` doc. Propagates into both the task record and
+ * the emitted `DoneLogEntry` so the `/board/done` enumeration preserves
+ * surface attribution. Backward-compatible when undefined.
+ */
 export function completeTask(
   board: TeamTask[],
   taskId: string,
   completedBy: string,
-  opts: { commit?: string; summary?: string } = {}
+  opts: { commit?: string; summary?: string; completedByTag?: string } = {}
 ): {
   result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] };
   updatedBoard: TeamTask[];
@@ -83,6 +103,7 @@ export function completeTask(
 
   task.status = 'done';
   task.completedBy = completedBy;
+  if (opts.completedByTag) task.completedByTag = opts.completedByTag;
   task.commitHash = opts.commit;
   task.completedAt = new Date().toISOString();
 
@@ -90,6 +111,7 @@ export function completeTask(
     taskId: task.id,
     title: task.title,
     completedBy,
+    ...(opts.completedByTag ? { completedByTag: opts.completedByTag } : {}),
     commitHash: task.commitHash,
     timestamp: task.completedAt,
     summary: opts.summary || task.title,

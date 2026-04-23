@@ -2401,6 +2401,132 @@ describe('HoloMesh HTTP Routes', () => {
       expect(logRes._body.entries[0].commitHash).toBe('abc1234');
     });
 
+    it('PATCH /board/:taskId honors claimedByTag and completedByTag for shared-key surface disambiguation', async () => {
+      // Identity-on-claim fix: when multiple surfaces (cursor-claude,
+      // claudecode-claude, copilot-vscode) share one HoloMesh API key
+      // (S.IDENT legacy antigravity-seed), the client-supplied surface tag
+      // must propagate into task record + done log. Prior to this fix, both
+      // claim and done PATCH bodies accepted {claimedByTag, completedByTag}
+      // but the server silently dropped them on the floor — every closure
+      // looked like antigravity-seed regardless of which surface did the work.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `surface-tag-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'surface-tag-test', description: 't', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      // Claim with surface tag
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim', claimedByTag: 'claudecode-claude' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      expect(claimRes._body.task.claimedByTag).toBe('claudecode-claude');
+      expect(claimRes._body.claimedAs.surfaceTag).toBe('claudecode-claude');
+      // Server-derived id/name still authoritative
+      expect(claimRes._body.claimedAs.id).toBeTruthy();
+      expect(claimRes._body.claimedAs.name).toBeTruthy();
+
+      // Done with a DIFFERENT surface tag (e.g. handoff scenario)
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'closed from cursor after claim from claudecode',
+          commit: 'def5678',
+          completedByTag: 'cursor-claude',
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(doneRes._status).toBe(200);
+      expect(doneRes._body.task.completedByTag).toBe('cursor-claude');
+      expect(doneRes._body.completedAs.surfaceTag).toBe('cursor-claude');
+
+      // Done log must surface the tag so /board/done enumeration preserves attribution
+      const logReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=10`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      const entry = logRes._body.entries.find((e: { taskId: string }) => e.taskId === taskId);
+      expect(entry).toBeTruthy();
+      expect(entry.completedByTag).toBe('cursor-claude');
+      expect(entry.commitHash).toBe('def5678');
+    });
+
+    it('PATCH /board/:taskId claim/done without tags still works (backward compat)', async () => {
+      // Pre-tag callers must continue to function. Tags default to undefined
+      // and are omitted from the response when absent.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `no-tag-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'no-tag-test', description: 't', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      expect(claimRes._body.task.claimedByTag).toBeUndefined();
+      expect(claimRes._body.claimedAs.surfaceTag).toBeUndefined();
+
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'done', summary: 'closed', commit: 'abc0000' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(doneRes._status).toBe(200);
+      expect(doneRes._body.task.completedByTag).toBeUndefined();
+      expect(doneRes._body.completedAs).toBeUndefined();
+    });
+
     it('POST /api/holomesh/team/:id/mode returns scout endpoint hint', async () => {
       const createReq = mockReq(
         'POST',
