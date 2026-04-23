@@ -15,6 +15,7 @@ import {
 import { decodeStep, verifyBoundedLoss } from '../spike-decoder';
 import { quantumForField, buildQuantaFor, FALLBACK_QUANTUM } from '../quantum-registry';
 import { runStageB, synthesizeSampleJSONL } from '../stage-b-jsonl';
+import { runStageC, referenceReplayer, type CanonicalStep, type SNNReplayer } from '../stage-c-shadow-replay';
 
 describe('spike-encoder', () => {
   it('canonical-sorts by (neuron_id, timestamp_us, polarity)', () => {
@@ -188,5 +189,71 @@ describe('stage-b JSONL consumption', () => {
     const r = runStageB(jsonl);
     expect(r.steps_encoded).toBe(2);
     expect(r.skipped_entries).toBe(2);
+  });
+});
+
+describe('stage-c shadow-replay', () => {
+  const canonical_trace: CanonicalStep[] = [
+    { step: 1, floats: { velocity: 0.5 } },
+    { step: 2, floats: { velocity: 0.75 }, vectors: { position: [1, 0, 0] as [number, number, number] } },
+    { step: 3, floats: { temperature: 300.5 } },
+  ];
+  const field_specs = {
+    velocity: { type: 'float' as const },
+    temperature: { type: 'float' as const },
+    position: { type: 'vector3' as const },
+  };
+
+  it('referenceReplayer passes pass criterion trivially', () => {
+    const replayer = referenceReplayer(canonical_trace);
+    const r = runStageC(canonical_trace, replayer, { field_specs });
+    expect(r.total_steps).toBe(3);
+    expect(r.digest_match_count).toBe(3);
+    expect(r.violation_step_count).toBe(0);
+    expect(r.pass_criterion_hit).toBe(true);
+  });
+
+  it('detects digest mismatch when runtime perturbs spikes', () => {
+    const ref = referenceReplayer(canonical_trace);
+    const perturbed: SNNReplayer = {
+      replayStep(step: number) {
+        const spikes = ref.replayStep(step);
+        // Drop one spike to force digest mismatch
+        return spikes.slice(1);
+      },
+    };
+    const r = runStageC(canonical_trace, perturbed, { field_specs });
+    expect(r.digest_match_count).toBeLessThan(r.total_steps);
+  });
+
+  it('pass criterion requires ≥99.99% violation-free steps', () => {
+    // Build 10000-step trace; one corrupted step → 1/10000 = 0.01% violation rate
+    // violation rate 0.0001 is the exact threshold (≤ 0.0001 passes).
+    const big: CanonicalStep[] = [];
+    for (let i = 0; i < 10_000; i++) big.push({ step: i, floats: { velocity: 0.5 } });
+    const ref = referenceReplayer(big);
+    const oneBad: SNNReplayer = {
+      replayStep(step: number) {
+        if (step === 500) return []; // drop all spikes for one step
+        return ref.replayStep(step);
+      },
+    };
+    const r = runStageC(big, oneBad, { field_specs });
+    expect(r.violation_step_count).toBe(1);
+    expect(r.pass_criterion_hit).toBe(true); // 1/10000 ≤ 0.01% threshold
+  });
+
+  it('fail_fast stops at first violation', () => {
+    const ref = referenceReplayer(canonical_trace);
+    const broken: SNNReplayer = {
+      replayStep(step: number) {
+        if (step === 2) return []; // drop all spikes
+        return ref.replayStep(step);
+      },
+    };
+    const r = runStageC(canonical_trace, broken, { field_specs, fail_fast: true });
+    // With fail_fast, we stop after step 2 (the first violation)
+    expect(r.violation_step_count).toBe(1);
+    expect(r.log.length).toBeLessThanOrEqual(2); // steps 1 and 2, not 3
   });
 });
