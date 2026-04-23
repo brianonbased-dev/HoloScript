@@ -1,6 +1,6 @@
 # HoloScript as a Universal IR for Spatial Computing — Coverage Matrix
 
-**Status:** Draft v1.1 — 2026-04-23 (Wave B Stream 3, per `research/2026-04-21_multi-mode-plan.md`). Plugin stub manifest added in §2.1.
+**Status:** Draft v1.2 — 2026-04-23 (Wave B Stream 3 + Wave D negative sweep stream 3 follow-up; per `research/2026-04-21_multi-mode-plan.md`). Plugin stub manifest in §2.1. Executable probe column + contract-gate policy in §2.2.
 **Audience:** External integrators, pipeline architects, founding-team sales.
 **Claim:** HoloScript is not a new asset format. It is an **intermediate representation** that sits **above** geometry standards (glTF, USD, FBX, VRM) and **beside** generative tools (URDFormer, Scenethesis, Marble, Genie 3), describing **semantics, behavior, and multi-target compilation** in a form that survives the trip across engines (Unity, Unreal, R3F, Godot, WebGPU, WebXR).
 
@@ -36,25 +36,42 @@ Each row summarises a single memo from `research/` or `memory/`. The matrix is *
 
 ## 2.1. Stub package manifest (2026-04-23)
 
-Thirteen interop stubs shipped under `packages/plugins/` on 2026-04-23 (Wave B Stream 3). Each has a `package.json`, `src/index.ts` mapping function, `__tests__/index.test.ts`, `vitest.config.ts`, and `tsconfig.json`. Tests: 42 passing across all 13 stubs.
+Thirteen interop stubs shipped under `packages/plugins/` on 2026-04-23 (Wave B Stream 3). Each has a `package.json`, `src/index.ts` mapping function, `__tests__/index.test.ts`, `vitest.config.ts`, and `tsconfig.json`. The three priority rows (URDF, OpenUSD, VRM) additionally ship an `__tests__/contract.test.ts` adapter-contract gate (see §2.2).
 
-| Package | Maps | Targets | Test count |
+| Package | Maps | Targets | Executable probe(s) |
 |---|---|---|---|
-| `@holoscript/openusd-plugin` | `.holo` ↔ USDA/USDC prims | paper-12 OpenUSD proxy replacement | 3 |
-| `@holoscript/urdformer-plugin` | URDF → `.holo` composition traits | robotics column of Universal-IR | 3 |
-| `@holoscript/scenethesis-plugin` | Scenethesis scene graphs → `.holo` primitives | world-synthesis column | 3 |
-| `@holoscript/niantic-lgm-plugin` | VPS anchors / LGM tiles → `@geospatial` traits | geospatial column | 3 |
-| `@holoscript/msf-3d-plugin` | Semantic-annotated 3D assets → `.holo` traits | standards column | 3 |
-| `@holoscript/marble-genie3-plugin` | Latent world-model outputs → `.holo` traits (tier `T1`, linked to paper-13 contract) | dataset / world-model column | 4 |
-| `@holoscript/nodetoy-plugin` | NodeToy graphs → `@shader` material traits | shader column | 3 |
-| `@holoscript/remotion-r3f-plugin` | Remotion compositions + R3F capture → `.holo` cinematic traits | video / live-capture column | 3 |
-| `@holoscript/vrm-avatar-plugin` | VRM 1.0 bones + expressions → `@avatar` traits | avatar column | 3 |
-| `@holoscript/mixamo-plugin` | Mixamo clip metadata → `@anim_clip` traits (read-only, no public upload API) | animation-library column | 3 |
-| `@holoscript/assimp-plugin` | FBX/OBJ/glTF scene tree → `.holo` primitives | import-pipeline column | 3 |
-| `@holoscript/talkinghead-plugin` | Viseme-driven facial animation → `@lipsync` traits | avatar + XR column | 3 |
-| `@holoscript/web-preview-plugin` | HTML iframe → `@web_surface` composition trait | composition column | 5 |
+| `@holoscript/openusd-plugin` | `.holo` ↔ USDA/USDC prims | paper-12 OpenUSD proxy replacement | [`src/__tests__/index.test.ts`](../packages/plugins/openusd-plugin/src/__tests__/index.test.ts) · **contract**: [`src/__tests__/contract.test.ts`](../packages/plugins/openusd-plugin/src/__tests__/contract.test.ts) |
+| `@holoscript/urdformer-plugin` | URDF → `.holo` composition traits | robotics column of Universal-IR | [`src/__tests__/index.test.ts`](../packages/plugins/urdformer-plugin/src/__tests__/index.test.ts) · **contract**: [`src/__tests__/contract.test.ts`](../packages/plugins/urdformer-plugin/src/__tests__/contract.test.ts) |
+| `@holoscript/vrm-avatar-plugin` | VRM 1.0 bones + expressions → `@avatar` traits | avatar column | [`src/__tests__/index.test.ts`](../packages/plugins/vrm-avatar-plugin/src/__tests__/index.test.ts) · **contract**: [`src/__tests__/contract.test.ts`](../packages/plugins/vrm-avatar-plugin/src/__tests__/contract.test.ts) |
+| `@holoscript/scenethesis-plugin` | Scenethesis scene graphs → `.holo` primitives | world-synthesis column | [`src/__tests__/index.test.ts`](../packages/plugins/scenethesis-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/niantic-lgm-plugin` | VPS anchors / LGM tiles → `@geospatial` traits | geospatial column | [`src/__tests__/index.test.ts`](../packages/plugins/niantic-lgm-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/msf-3d-plugin` | Semantic-annotated 3D assets → `.holo` traits | standards column | [`src/__tests__/index.test.ts`](../packages/plugins/msf-3d-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/marble-genie3-plugin` | Latent world-model outputs → `.holo` traits (tier `T1`, linked to paper-13 contract) | dataset / world-model column | [`src/__tests__/index.test.ts`](../packages/plugins/marble-genie3-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/nodetoy-plugin` | NodeToy graphs → `@shader` material traits | shader column | [`src/__tests__/index.test.ts`](../packages/plugins/nodetoy-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/remotion-r3f-plugin` | Remotion compositions + R3F capture → `.holo` cinematic traits | video / live-capture column | [`src/__tests__/index.test.ts`](../packages/plugins/remotion-r3f-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/mixamo-plugin` | Mixamo clip metadata → `@anim_clip` traits (read-only, no public upload API) | animation-library column | [`src/__tests__/index.test.ts`](../packages/plugins/mixamo-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/assimp-plugin` | FBX/OBJ/glTF scene tree → `.holo` primitives | import-pipeline column | [`src/__tests__/index.test.ts`](../packages/plugins/assimp-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/talkinghead-plugin` | Viseme-driven facial animation → `@lipsync` traits | avatar + XR column | [`src/__tests__/index.test.ts`](../packages/plugins/talkinghead-plugin/src/__tests__/index.test.ts) |
+| `@holoscript/web-preview-plugin` | HTML iframe → `@web_surface` composition trait | composition column | [`src/__tests__/index.test.ts`](../packages/plugins/web-preview-plugin/src/__tests__/index.test.ts) |
+
+Live test counts per stub: run `pnpm --filter @holoscript/<package> test` inside `packages/plugins/<name>-plugin/`. Aggregate counts are NOT pinned in this doc (per `HoloScript/docs/NUMBERS.md` policy) — derive via `pnpm -r --filter "./packages/plugins/*-plugin" test` or the CI summary line.
 
 **Next shipping slice per stub**: framework adapter (e.g. real USD Python bindings for openusd-plugin, real Assimp WASM wiring for assimp-plugin, actual viseme→bone weighting for talkinghead-plugin). Stubs deliberately stop at the mapping surface so compiler/trait contracts can be written against them while bindings land incrementally.
+
+## 2.2. Executable probe + adapter-contract gate (Wave D stream 3 follow-up)
+
+Every row in §2 references an **executable probe** — a `__tests__/index.test.ts` file the reader can open and run with `pnpm --filter <pkg> test`. This replaces the earlier "trust the prose" failure mode flagged in `.ai-ecosystem/research/reviews/2026-04-23-wave-d-negative-sweep/stream-3-universal-ir-negative-sweep.md` (matrix documentation ≠ execution readiness).
+
+**Contract gate** for the three priority stubs (URDF, OpenUSD, VRM) is a separate file — `src/__tests__/contract.test.ts` — that expresses the promises external integrators can rely on (shape, identity, invariants, no-throw clauses) independently of the implementation. Breaking a contract test means the matrix row can no longer claim "🟡 Adapter" status and must be demoted before the test is relaxed. Contract tests are explicitly distinct from unit tests: unit tests verify today's behavior, contract tests fence the behavior we promise not to regress.
+
+Minimum policy for a row to claim "🟡 Adapter / ✅ Native" status:
+
+1. Row links to an executable probe (`index.test.ts`).
+2. For rows flagged as adapters with external integrators, the stub SHIPS a `contract.test.ts` — URDF/OpenUSD/VRM are the 2026-04-23 canonical examples.
+3. Probe runs green in CI.
+4. Terminology source-of-truth (this doc) is cited by every update artifact (matrix update PRs, research memos, README changes).
+
+Demotion rule: if any of (1)–(3) break for a row, the row's status cell MUST be edited to add a 🔴 marker in the same commit as the test skip / removal. Silent relaxation of a probe is a matrix-integrity violation.
 
 ## 3. The shape of the IR
 
@@ -115,6 +132,7 @@ This matrix is generated by consolidating memos under `research/` and `memory/`.
 2. Add a row to section §2.
 3. Update §5 if the memo surfaces a new honest gap.
 4. If the tool needs a stub package, scaffold `packages/plugins/<name>-plugin/` with the same shape as the 13 stubs in §2.1 and add a row to the manifest.
+5. Ship at least one executable probe (`src/__tests__/index.test.ts`) and link it from the §2.1 manifest (executable-probe column). If the row claims adapter-grade status for external integrators, additionally ship `src/__tests__/contract.test.ts` following the URDF/OpenUSD/VRM template. See §2.2 for the gate policy.
 
 Do **not** pin tool versions or feature matrices from external vendors without dating the claim and citing the source URL. Vendor capabilities and access change faster than this doc ships.
 
