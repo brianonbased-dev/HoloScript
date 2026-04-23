@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Build-orchestrator concern (composite end-to-end) > [I16] multi-trait composite exercises all concerns + their interactions > I16-composite 1`] = `"247446f23af44e41"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Codegen concern (view / scene / state files) > [I1] empty composition locks baseline codegen > I1-empty 1`] = `"84d0d871757c8d13"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Codegen concern (view / scene / state files) > [I2] composition with single object locks codegen > I2-singleObject 1`] = `"71575e14f8f36e08"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Codegen concern (view / scene / state files) > [I3] composition with multiple objects locks codegen > I3-multiObject 1`] = `"62df681133514493"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Manifest concern (infoPlist) > [I4] minimal infoPlist locks manifest > I4-infoPlistMinimal 1`] = `"60641382783b55be"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Manifest concern (infoPlist) > [I5] infoPlist with scene-tagged composition locks manifest > I5-infoPlistWithScene 1`] = `"d992832118ed5149"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I6] lidar_* trait triggers lidarScannerFile — locks output > I6-lidar 1`] = `"a8edadc216069cc5"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I7] face_* trait triggers faceTrackingFile — locks output > I7-faceTracking 1`] = `"3bc98c6c58c984a0"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I8] camera_hand_* trait triggers handTrackingFile — locks output > I8-handTracking 1`] = `"4796de96bbd9c59d"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I9] roomplan_scan trait triggers roomPlanFile — locks output > I9-roomPlan 1`] = `"07e7f3add602a547"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I10] portal_* trait triggers portalARFile — locks output > I10-portal 1`] = `"746b41e8534261c2"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I11] spatial_audio trait triggers spatialAudioFile — locks output > I11-spatialAudio 1`] = `"92cfb65c3f45bcc1"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I12] object_capture trait triggers objectCaptureFile — locks output > I12-objectCapture 1`] = `"8fa270c71c45327c"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I13] shareplay_* trait triggers sharePlayFile — locks output > I13-sharePlay 1`] = `"9c66ae4b3baeba63"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I14] uwb_* trait triggers uwbPositioningFile — locks output > I14-uwb 1`] = `"df62ba06211e6159"`;
+
+exports[`IOSCompiler characterization (W4-T3 pre-split lock for W1-T1) > Resource concern (per-trait file emission) > [I15] npu_* trait triggers npuSceneFile — locks output > I15-npu 1`] = `"828b87414de0e814"`;
