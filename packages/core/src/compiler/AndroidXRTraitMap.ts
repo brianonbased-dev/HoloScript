@@ -2513,22 +2513,100 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 
   neural_link: {
     trait: 'neural_link',
-    components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @neural_link -- neural interface link (interface: ${String(config.interface_type || 'bci')})`,
-      `// TODO: implement BCI signal processing pipeline`,
+    components: ['BluetoothGatt', 'UsbManager'],
+    level: 'partial',
+    imports: [
+      'android.bluetooth.BluetoothGatt',
+      'android.bluetooth.BluetoothGattCallback',
+      'android.bluetooth.BluetoothGattCharacteristic',
+      'android.hardware.usb.UsbManager',
     ],
+    generate: (varName, config) => {
+      const interfaceType = String(config.interface_type || 'bci');
+      const sampleRate = Number(config.sample_rate || 250);
+      const channels = Number(config.channels || 8);
+      return [
+        `// @neural_link -- BCI signal processing pipeline (interface: ${interfaceType})`,
+        `// Sample rate: ${sampleRate}Hz, Channels: ${channels}`,
+        `val ${varName}SignalBuffer = ArrayDeque<FloatArray>(${sampleRate})`,
+        `val ${varName}BciCallback = object : BluetoothGattCallback() {`,
+        `    override fun onCharacteristicChanged(gatt: BluetoothGatt, char: BluetoothGattCharacteristic) {`,
+        `        val raw = char.value ?: return`,
+        `        // Decode ${channels}-channel EEG frame (${sampleRate}Hz, little-endian float32)`,
+        `        val frame = FloatArray(${channels}) { i ->`,
+        `            java.nio.ByteBuffer.wrap(raw, i * 4, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).float`,
+        `        }`,
+        `        ${varName}SignalBuffer.addLast(frame)`,
+        `        if (${varName}SignalBuffer.size > ${sampleRate}) ${varName}SignalBuffer.removeFirst()`,
+        `        val alphaPower = ${varName}BandPower(frame, 8f, 13f, ${sampleRate}f)`,
+        `        val betaPower = ${varName}BandPower(frame, 13f, 30f, ${sampleRate}f)`,
+        `        if (alphaPower > betaPower * 1.5f) { /* relaxed / focus state */ }`,
+        `        else if (betaPower > alphaPower * 1.5f) { /* active / alert state */ }`,
+        `    }`,
+        `}`,
+        ``,
+        `fun ${varName}BandPower(frame: FloatArray, lowHz: Float, highHz: Float, fs: Float): Float {`,
+        `    var power = 0f`,
+        `    val binLow = (lowHz / fs * frame.size).toInt()`,
+        `    val binHigh = (highHz / fs * frame.size).toInt().coerceAtMost(frame.size / 2)`,
+        `    for (k in binLow..binHigh) {`,
+        `        val omega = 2.0 * Math.PI * k / frame.size`,
+        `        val coeff = (2.0 * Math.cos(omega)).toFloat()`,
+        `        var d1 = 0f; var d2 = 0f`,
+        `        for (x in frame) { val d0 = x + coeff * d1 - d2; d2 = d1; d1 = d0 }`,
+        `        power += d1 * d1 + d2 * d2 - coeff * d1 * d2`,
+        `    }`,
+        `    return power`,
+        `}`,
+      ];
+    },
   },
 
   neural_forge: {
     trait: 'neural_forge',
-    components: [],
-    level: 'comment',
-    generate: () => [
-      `// @neural_forge -- neural network model forge`,
-      `// TODO: integrate on-device TFLite model training / NNAPI`,
+    components: ['TFLiteInterpreter', 'NnApiDelegate'],
+    level: 'partial',
+    imports: [
+      'org.tensorflow.lite.Interpreter',
+      'org.tensorflow.lite.nnapi.NnApiDelegate',
+      'java.io.FileInputStream',
+      'java.nio.MappedByteBuffer',
+      'java.nio.channels.FileChannel',
     ],
+    generate: (varName, config) => {
+      const modelPath = String(config.model_path || 'model.tflite');
+      const epochs = Number(config.epochs || 5);
+      return [
+        `// @neural_forge -- on-device TFLite model training / NNAPI`,
+        `// Model: ${modelPath}, epochs: ${epochs}`,
+        `val ${varName}NnApiDelegate = NnApiDelegate()`,
+        `val ${varName}Options = Interpreter.Options().apply {`,
+        `    addDelegate(${varName}NnApiDelegate)`,
+        `    setNumThreads(4)`,
+        `}`,
+        ``,
+        `fun ${varName}LoadModel(context: Context): MappedByteBuffer {`,
+        `    val afd = context.assets.openFd("${modelPath}")`,
+        `    return FileInputStream(afd.fileDescriptor).channel`,
+        `        .map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.declaredLength)`,
+        `}`,
+        ``,
+        `val ${varName}Interpreter = Interpreter(${varName}LoadModel(context), ${varName}Options)`,
+        ``,
+        `fun ${varName}TrainStep(inputs: FloatArray, labels: FloatArray) {`,
+        `    val inputMap = mapOf("x" to arrayOf(inputs), "y" to arrayOf(labels))`,
+        `    val outputMap = mutableMapOf<String, Any>("loss" to FloatArray(1))`,
+        `    ${varName}Interpreter.runSignature(inputMap, outputMap, "train")`,
+        `}`,
+        ``,
+        `fun ${varName}Train(dataset: List<Pair<FloatArray, FloatArray>>) {`,
+        `    repeat(${epochs}) { epoch ->`,
+        `        dataset.forEach { (x, y) -> ${varName}TrainStep(x, y) }`,
+        `        android.util.Log.d("NeuralForge", "${varName} epoch \${epoch + 1}/${epochs}")`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   embedding_search: {
@@ -2644,12 +2722,63 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 
   vector_db: {
     trait: 'vector_db',
-    components: [],
-    level: 'comment',
-    generate: () => [
-      `// @vector_db -- vector database`,
-      `// TODO: integrate local or remote vector store (e.g. Chroma, Pinecone)`,
+    components: ['OkHttpClient'],
+    level: 'partial',
+    imports: [
+      'okhttp3.OkHttpClient',
+      'okhttp3.Request',
+      'okhttp3.RequestBody',
+      'okhttp3.MediaType.Companion.toMediaType',
     ],
+    generate: (varName, config) => {
+      const backend = String(config.backend || 'chroma');
+      const host = String(config.host || 'http://localhost:8000');
+      const collection = String(config.collection || varName.toLowerCase() + '_vectors');
+      const isPinecone = backend === 'pinecone';
+      return [
+        `// @vector_db -- vector database (backend: ${backend})`,
+        `val ${varName}VdbClient = OkHttpClient()`,
+        `val ${varName}VdbBase = "${isPinecone ? `https://\${${varName}PineconeIndex}.svc.pinecone.io` : host}"`,
+        `val ${varName}VdbJson = "application/json; charset=utf-8".toMediaType()`,
+        ``,
+        `fun ${varName}VdbUpsert(id: String, embedding: FloatArray, metadata: Map<String, String> = emptyMap()) {`,
+        `    val vectors = embedding.joinToString(",")`,
+        `    val meta = metadata.entries.joinToString(",") { "\\"` + `\${it.key}` + `\\":\\"` + `\${it.value}` + `\\"" }`,
+        ...(isPinecone
+          ? [
+              `    val body = """{"vectors":[{"id":"$id","values":[$vectors],"metadata":{$meta}}]}"""`,
+              `    val req = Request.Builder().url("\${${varName}VdbBase}/vectors/upsert")`,
+              `        .addHeader("Api-Key", System.getenv("PINECONE_API_KEY") ?: "")`,
+              `        .post(RequestBody.create(${varName}VdbJson, body)).build()`,
+            ]
+          : [
+              `    val body = """{"embeddings":[$vectors],"metadatas":[{$meta}],"ids":["$id"]}"""`,
+              `    val req = Request.Builder().url("\${${varName}VdbBase}/api/v1/collections/${collection}/add")`,
+              `        .post(RequestBody.create(${varName}VdbJson, body)).build()`,
+            ]),
+        `    ${varName}VdbClient.newCall(req).execute().use { resp ->`,
+        `        check(resp.isSuccessful) { "VectorDb upsert failed: \${resp.code}" }`,
+        `    }`,
+        `}`,
+        ``,
+        `fun ${varName}VdbQuery(queryEmbedding: FloatArray, topK: Int = 5): String {`,
+        `    val vectors = queryEmbedding.joinToString(",")`,
+        ...(isPinecone
+          ? [
+              `    val body = """{"vector":[$vectors],"topK":$topK,"includeMetadata":true}"""`,
+              `    val req = Request.Builder().url("\${${varName}VdbBase}/query")`,
+              `        .addHeader("Api-Key", System.getenv("PINECONE_API_KEY") ?: "")`,
+              `        .post(RequestBody.create(${varName}VdbJson, body)).build()`,
+            ]
+          : [
+              `    val body = """{"query_embeddings":[$vectors],"n_results":$topK}"""`,
+              `    val req = Request.Builder().url("\${${varName}VdbBase}/api/v1/collections/${collection}/query")`,
+              `        .post(RequestBody.create(${varName}VdbJson, body)).build()`,
+            ]),
+        `    return ${varName}VdbClient.newCall(req).execute().use { it.body?.string() ?: "" }`,
+        `}`,
+      ];
+    },
   },
 
   vision: {
