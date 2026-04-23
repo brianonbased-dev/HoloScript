@@ -107,6 +107,8 @@ import {
   executeStructure as executeStructurePure,
   executeAssignment as executeAssignmentPure,
   executeReturn as executeReturnPure,
+  executeScale as executeScalePure,
+  executeComposition as executeCompositionPure,
   type SimpleExecutorContext,
 } from './runtime/simple-executors';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
@@ -814,7 +816,7 @@ export class HoloScriptRuntime {
           );
           break;
         case 'scale':
-          result = await this.executeScale(node as ScaleNode);
+          result = await executeScalePure(node as ScaleNode, this.buildSimpleExecutorContext());
           break;
         case 'focus':
           result = await executeFocusPure(node as FocusNode, this.buildSimpleExecutorContext());
@@ -830,7 +832,10 @@ export class HoloScriptRuntime {
           if (node.type === 'Composition') {
             result = await this.executeHoloComposition(node as unknown as HoloComposition);
           } else {
-            result = await this.executeComposition(node as CompositionNode);
+            result = await executeCompositionPure(
+              node as CompositionNode,
+              this.buildSimpleExecutorContext(),
+            );
           }
           break;
         case 'template':
@@ -2117,67 +2122,11 @@ export class HoloScriptRuntime {
   // (was a private method here; now called directly as module function
   //  at the 2 internal call sites — no wrapper needed).
 
-  private async executeScale(node: ScaleNode): Promise<ExecutionResult> {
-    const parentScale = this.context.currentScale;
-    this.context.currentScale *= node.multiplier;
-    this.context.scaleMagnitude = node.magnitude;
-
-    logger.info('Scale context entering', {
-      magnitude: node.magnitude,
-      multiplier: this.context.currentScale,
-    });
-
-    // Emit event for renderer sync
-    this.emit('scale:change', { multiplier: this.context.currentScale, magnitude: node.magnitude });
-
-    const results = await this.executeProgram(node.body, this.context.executionStack.length);
-
-    // Restore parent scale after block
-    this.context.currentScale = parentScale;
-
-    // Restore renderer scale
-    this.emit('scale:change', { multiplier: this.context.currentScale });
-
-    return {
-      success: results.every((r) => r.success),
-      output: `Executed scale block: ${node.magnitude}`,
-    };
-  }
+  // W1-T4 slice 21: executeScale added to ./runtime/simple-executors.
 
   // W1-T4 slice 17: executeFocus / executeEnvironment extracted to ./runtime/simple-executors.
 
-  private async executeComposition(node: CompositionNode): Promise<ExecutionResult> {
-    if (node.body) {
-      // Execute systems first
-      const systemResults = await this.executeProgram(
-        node.body.systems,
-        this.context.executionStack.length
-      );
-      // Execute configs
-      const configResults = await this.executeProgram(
-        node.body.configs,
-        this.context.executionStack.length
-      );
-      // Execute children
-      const childrenResults = await this.executeProgram(
-        node.body.children,
-        this.context.executionStack.length
-      );
-
-      const allResults = [...systemResults, ...configResults, ...childrenResults];
-      return {
-        success: allResults.every((r) => r.success),
-        output: `Composition ${node.name} executed with specialized blocks`,
-      };
-    }
-
-    return {
-      success: (await this.executeProgram(node.children, this.context.executionStack.length)).every(
-        (r) => r.success
-      ),
-      output: `Composition ${node.name} executed`,
-    };
-  }
+  // W1-T4 slice 21: executeComposition added to ./runtime/simple-executors.
 
   // W1-T4 slice 13: resolveHoloValue extracted to ./runtime/holo-value
   // (pure recursive helper; private method deleted — 4 internal call
@@ -2652,6 +2601,17 @@ export class HoloScriptRuntime {
       callFunction: (name, args) => this.callFunction(name, args),
       executeProgram: (nodes, depth) => this.executeProgram(nodes, depth),
       setVariable: (name, value) => this.setVariable(name, value),
+      setScale: (multiplier, magnitude) => {
+        this.context.currentScale = multiplier;
+        this.context.scaleMagnitude = magnitude;
+      },
+      getScale: () => ({
+        multiplier: this.context.currentScale,
+        magnitude: this.context.scaleMagnitude,
+      }),
+      emit: (event, data) => {
+        void this.emit(event, data);
+      },
     };
   }
 

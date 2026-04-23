@@ -26,13 +26,16 @@
  *         LOC 1567, 1576, 1584, 2474, 2484, 2554)
  */
 
+import { logger } from '../logger';
 import type {
   ASTNode,
+  CompositionNode,
   EnvironmentNode,
   ExecutionResult,
   FocusNode,
   HologramProperties,
   HoloScriptValue,
+  ScaleNode,
   StateMachineNode,
 } from '../types';
 
@@ -61,6 +64,12 @@ export interface SimpleExecutorContext {
   callFunction: (name: string, args: HoloScriptValue[]) => Promise<ExecutionResult>;
   /** Variable writer (executeAssignment). Mirrors HSR's setVariable. */
   setVariable: (name: string, value: HoloScriptValue) => void;
+  /** Scale state setter — executeScale multiplies and restores parentScale. */
+  setScale: (multiplier: number, magnitude: string) => void;
+  /** Scale state getter — used for restore-on-exit. */
+  getScale: () => { multiplier: number; magnitude: string };
+  /** Fire-and-forget emit — executeScale emits scale:change at enter/exit. */
+  emit: (event: string, data?: unknown) => void;
   /** Program executor for body blocks (executeFocus). */
   executeProgram: (nodes: ASTNode[], depth: number) => Promise<ExecutionResult[]>;
 }
@@ -204,6 +213,69 @@ export async function executeReturn(
   return {
     success: true,
     output: value,
+  };
+}
+
+/**
+ * Execute a `scale` AST node — multiply currentScale by the node's
+ * multiplier, execute the body block, then restore the parent scale.
+ * Emits `scale:change` events on entry and exit so the renderer
+ * can sync the transform.
+ */
+export async function executeScale(
+  node: ScaleNode,
+  ctx: SimpleExecutorContext,
+): Promise<ExecutionResult> {
+  const parent = ctx.getScale();
+  const newMultiplier = parent.multiplier * node.multiplier;
+  ctx.setScale(newMultiplier, node.magnitude);
+
+  logger.info('Scale context entering', {
+    magnitude: node.magnitude,
+    multiplier: newMultiplier,
+  });
+
+  ctx.emit('scale:change', { multiplier: newMultiplier, magnitude: node.magnitude });
+
+  const results = await ctx.executeProgram(node.body, ctx.executionStackDepth());
+
+  // Restore parent scale after block (both state + renderer)
+  ctx.setScale(parent.multiplier, parent.magnitude);
+  ctx.emit('scale:change', { multiplier: parent.multiplier });
+
+  return {
+    success: results.every((r) => r.success),
+    output: `Executed scale block: ${node.magnitude}`,
+  };
+}
+
+/**
+ * Execute a `composition` AST node. Two-path dispatch:
+ *   - If `node.body` has systems/configs/children buckets, execute
+ *     each in order and aggregate.
+ *   - Otherwise fall through to `node.children` as a flat program.
+ */
+export async function executeComposition(
+  node: CompositionNode,
+  ctx: SimpleExecutorContext,
+): Promise<ExecutionResult> {
+  if (node.body) {
+    const systemResults = await ctx.executeProgram(node.body.systems, ctx.executionStackDepth());
+    const configResults = await ctx.executeProgram(node.body.configs, ctx.executionStackDepth());
+    const childrenResults = await ctx.executeProgram(node.body.children, ctx.executionStackDepth());
+
+    const allResults = [...systemResults, ...configResults, ...childrenResults];
+    return {
+      success: allResults.every((r) => r.success),
+      output: `Composition ${node.name} executed with specialized blocks`,
+    };
+  }
+
+  return {
+    success: (await ctx.executeProgram(node.children, ctx.executionStackDepth())).every(
+      (r) => r.success,
+    ),
+    output: `Composition ${node.name} executed`,
   };
 }
 
