@@ -22,6 +22,15 @@ import { applyEasing } from './runtime/easing';
 import { calculateArc } from './runtime/physics-math';
 // W1-T4 slice 3: condition evaluator extracted to ./runtime/condition-evaluator
 import { evaluateCondition as evaluateConditionPure } from './runtime/condition-evaluator';
+// W1-T4 slice 4: particle effects extracted to ./runtime/particle-effects
+import {
+  getDataTypeColor as getDataTypeColorPure,
+  createParticleEffect as createParticleEffectPure,
+  createConnectionStream as createConnectionStreamPure,
+  createFlowingStream as createFlowingStreamPure,
+  createExecutionEffect as createExecutionEffectPure,
+  createDataVisualization as createDataVisualizationPure,
+} from './runtime/particle-effects';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2377,32 +2386,27 @@ export class HoloScriptRuntime {
   }
 
   // ============================================================================
-  // Particle Effects
+  // Particle Effects (W1-T4 slice 4: impls extracted to ./runtime/particle-effects)
+  //
+  // Methods below are thin wrappers that thread `this.particleSystems`
+  // (the Map) and the security limit into the pure implementations.
+  // Call sites elsewhere in HSR remain unchanged.
   // ============================================================================
 
   private createParticleEffect(
     name: string,
     position: SpatialPosition,
     color: string,
-    count: number
+    count: number,
   ): void {
-    const limitedCount = Math.min(count, RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem);
-    const particles: SpatialPosition[] = [];
-
-    for (let i = 0; i < limitedCount; i++) {
-      particles.push([
-        position[0] + (Math.random() - 0.5) * 2,
-        position[1] + (Math.random() - 0.5) * 2,
-        position[2] + (Math.random() - 0.5) * 2,
-      ]);
-    }
-
-    this.particleSystems.set(name, {
-      particles,
+    createParticleEffectPure(
+      this.particleSystems,
+      name,
+      position,
       color,
-      lifetime: 3000,
-      speed: 0.01,
-    });
+      count,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+    );
   }
 
   private createConnectionStream(
@@ -2410,59 +2414,42 @@ export class HoloScriptRuntime {
     to: string,
     fromPos: SpatialPosition,
     toPos: SpatialPosition,
-    dataType: string
+    dataType: string,
   ): void {
-    const streamName = `connection_${from}_${to}`;
-    const particles: SpatialPosition[] = [];
-    const steps = 20;
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      particles.push([
-        fromPos[0] + (toPos[0] - fromPos[0]) * t,
-        fromPos[1] + (toPos[1] - fromPos[1]) * t,
-        fromPos[2] + (toPos[2] - fromPos[2]) * t,
-      ]);
-    }
-
-    this.particleSystems.set(streamName, {
-      particles,
-      color: this.getDataTypeColor(dataType),
-      lifetime: 5000,
-      speed: 0.02,
-    });
+    createConnectionStreamPure(this.particleSystems, from, to, fromPos, toPos, dataType);
   }
 
   private createFlowingStream(name: string, position: SpatialPosition, data: unknown): void {
-    const count = Array.isArray(data) ? Math.min(data.length, 50) : 10;
-    this.createParticleEffect(`${name}_flow`, position, '#45b7d1', count);
+    createFlowingStreamPure(
+      this.particleSystems,
+      name,
+      position,
+      data,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+    );
   }
 
   private createExecutionEffect(name: string, position: SpatialPosition): void {
-    this.createParticleEffect(`${name}_execution`, position, '#ff4500', 30);
+    createExecutionEffectPure(
+      this.particleSystems,
+      name,
+      position,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+    );
   }
 
   private createDataVisualization(name: string, data: unknown, position: SpatialPosition): void {
-    let count = 10;
-    if (Array.isArray(data)) {
-      count = Math.min(data.length, 100);
-    } else if (typeof data === 'object' && data !== null) {
-      count = Math.min(Object.keys(data).length * 5, 50);
-    }
-    this.createParticleEffect(`${name}_visualization`, position, '#32cd32', count);
+    createDataVisualizationPure(
+      this.particleSystems,
+      name,
+      data,
+      position,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+    );
   }
 
   private getDataTypeColor(dataType: string): string {
-    const colors: Record<string, string> = {
-      string: '#ff6b35',
-      number: '#4ecdc4',
-      boolean: '#45b7d1',
-      object: '#96ceb4',
-      array: '#ffeaa7',
-      any: '#dda0dd',
-      move: '#ff69b4',
-    };
-    return colors[dataType] || '#ffffff';
+    return getDataTypeColorPure(dataType);
   }
 
   // ============================================================================
