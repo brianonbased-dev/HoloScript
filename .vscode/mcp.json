@@ -7,7 +7,7 @@
       "headers": {
         "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       },
-      "description": "HoloScript MCP — 156 tools: parse, compile, render, codebase, team board, knowledge"
+      "description": "HoloScript MCP — parse, compile, render, codebase, team board, knowledge (live tool count via GET https://mcp.holoscript.net/health → tools)"
     },
     "mcp-orchestrator": {
       "type": "http",
@@ -15,7 +15,7 @@
       "headers": {
         "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       },
-      "description": "MCP Orchestrator — tool discovery, knowledge federation (2K+ entries)"
+      "description": "MCP Orchestrator — tool discovery and knowledge federation across registered servers (live entry count via GET .../health → knowledge_entries)"
     },
     "holoscript-local": {
       "command": "node",
