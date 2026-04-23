@@ -10,9 +10,9 @@ describe('VelocitySmoother', () => {
   it('initializes with first sample (no smoothing on first call)', () => {
     const s = new VelocitySmoother(0.1);
     const result = s.update([5, 0, 0 ]);
-    expect(result.x).toBe(5);
-    expect(result.y).toBe(0);
-    expect(result.z).toBe(0);
+    expect(result[0]).toBe(5);
+    expect(result[1]).toBe(0);
+    expect(result[2]).toBe(0);
   });
 
   it('applies EMA smoothing on subsequent samples', () => {
@@ -20,7 +20,7 @@ describe('VelocitySmoother', () => {
     s.update([0, 0, 0 ]);
     const result = s.update([10, 0, 0 ]);
     // EMA: 0.1 * 10 + 0.9 * 0 = 1.0
-    expect(result.x).toBeCloseTo(1.0, 5);
+    expect(result[0]).toBeCloseTo(1.0, 5);
   });
 
   it('converges toward the input over many frames', () => {
@@ -30,7 +30,7 @@ describe('VelocitySmoother', () => {
     for (let i = 0; i < 100; i++) {
       result = s.update([5, 0, 0 ]);
     }
-    expect(result.x).toBeCloseTo(5.0, 1);
+    expect(result[0]).toBeCloseTo(5.0, 1);
   });
 
   it('getSpeed returns magnitude of smoothed velocity', () => {
@@ -43,7 +43,7 @@ describe('VelocitySmoother', () => {
     const s = new VelocitySmoother(1.0);
     s.update([7, 0, 0 ]);
     const cur = s.getCurrent();
-    expect(cur.x).toBe(7);
+    expect(cur[0]).toBe(7);
   });
 
   it('reset clears state', () => {
@@ -52,7 +52,7 @@ describe('VelocitySmoother', () => {
     s.reset();
     // After reset, first update should take value directly
     const result = s.update([3, 0, 0 ]);
-    expect(result.x).toBe(3);
+    expect(result[0]).toBe(3);
   });
 
   it('clamps alpha to valid range', () => {
@@ -60,12 +60,12 @@ describe('VelocitySmoother', () => {
     s1.update([0, 0, 0 ]);
     const r1 = s1.update([10, 0, 0 ]);
     // alpha clamped to 0.001, so result is very close to 0
-    expect(r1.x).toBeCloseTo(0.01, 1);
+    expect(r1[0]).toBeCloseTo(0.01, 1);
 
     const s2 = new VelocitySmoother(5); // clamped to 1.0
     s2.update([0, 0, 0 ]);
     const r2 = s2.update([10, 0, 0 ]);
-    expect(r2.x).toBe(10);
+    expect(r2[0]).toBe(10);
   });
 });
 
@@ -216,19 +216,19 @@ describe('WindZoneManager', () => {
 
       // At center: full force
       const atCenter = mgr.computeWindAt([0.001, 0, 0 ]);
-      expect(atCenter.y).toBeGreaterThan(3.5);
+      expect(atCenter[1]).toBeGreaterThan(3.5);
 
       // At half radius: ~50% force
       const atHalf = mgr.computeWindAt([1.0, 0, 0 ]);
-      expect(atHalf.y).toBeCloseTo(2.0, 0);
+      expect(atHalf[1]).toBeCloseTo(2.0, 0);
 
       // At radius: zero force
       const atEdge = mgr.computeWindAt([2.0, 0, 0 ]);
-      expect(atEdge.y).toBeCloseTo(0, 1);
+      expect(atEdge[1]).toBeCloseTo(0, 1);
 
       // Beyond radius: zero
       const beyond = mgr.computeWindAt([5.0, 0, 0 ]);
-      expect(beyond.y).toBe(0);
+      expect(beyond[1]).toBe(0);
     });
 
     it('returns zero if missing position or radius', () => {
@@ -261,11 +261,11 @@ describe('WindZoneManager', () => {
 
       // Directly in front (on-axis)
       const inFront = mgr.computeWindAt([5, 0, 0 ]);
-      expect(inFront.x).toBeGreaterThan(0);
+      expect(inFront[0]).toBeGreaterThan(0);
 
       // Way off to the side (outside cone)
       const offSide = mgr.computeWindAt([0, 5, 0 ]);
-      expect(offSide.x).toBe(0);
+      expect(offSide[0]).toBe(0);
     });
 
     it('returns zero if missing position or coneAngle', () => {
@@ -326,17 +326,17 @@ describe('WindZoneManager', () => {
       // At time 0, we're inside the gust window (cyclePos=0 < duration=0.8)
       // but gustT=0 so sin(0)=0, multiplier=1
       const windAtStart = mgr.computeWindAt([0, 0, 0 ]);
-      expect(windAtStart.x).toBeCloseTo(1.0, 1);
+      expect(windAtStart[0]).toBeCloseTo(1.0, 1);
 
       // Advance to mid-gust
       mgr.advanceTime(0.4); // cyclePos=0.4, gustT=0.5, sin(0.5*PI)=1.0
       const windMidGust = mgr.computeWindAt([0, 0, 0 ]);
-      expect(windMidGust.x).toBeCloseTo(3.0, 1); // 1.0 * (1 + (3-1)*1) = 3.0
+      expect(windMidGust[0]).toBeCloseTo(3.0, 1); // 1.0 * (1 + (3-1)*1) = 3.0
 
       // Advance past gust
       mgr.advanceTime(1.0); // time=1.4, cyclePos=1.4 > 0.8 duration
       const windAfterGust = mgr.computeWindAt([0, 0, 0 ]);
-      expect(windAfterGust.x).toBeCloseTo(1.0, 1); // base force only
+      expect(windAfterGust[0]).toBeCloseTo(1.0, 1); // base force only
     });
   });
 
@@ -723,8 +723,8 @@ describe('PhysicsActivationController', () => {
       });
       c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       const selfWind = c.getSelfWind();
-      expect(selfWind.x).toBeLessThan(0); // Opposing
-      expect(selfWind.x).toBeCloseTo(-3.0, 1); // 5 * -0.6 = -3
+      expect(selfWind[0]).toBeLessThan(0); // Opposing
+      expect(selfWind[0]).toBeCloseTo(-3.0, 1); // 5 * -0.6 = -3
     });
 
     it('effective wind combines external + self-wind', () => {
@@ -737,7 +737,7 @@ describe('PhysicsActivationController', () => {
       });
       const effective = c.getEffectiveWind();
       // external(1) + self-wind(-3) = -2
-      expect(effective.x).toBeCloseTo(-2.0, 1);
+      expect(effective[0]).toBeCloseTo(-2.0, 1);
     });
   });
 
@@ -756,7 +756,7 @@ describe('PhysicsActivationController', () => {
         c.update(1 / 60, { characterVelocity: [5, 0, 0 ] });
       }
       const windBefore = c.getSelfWind();
-      expect(windBefore.x).toBeLessThan(0); // Opposing rightward movement
+      expect(windBefore[0]).toBeLessThan(0); // Opposing rightward movement
 
       // Instant reversal to left
       c.update(1 / 60, { characterVelocity: [-5, 0, 0 ] });
@@ -764,9 +764,9 @@ describe('PhysicsActivationController', () => {
 
       // Self-wind should NOT have flipped instantly (EMA smoothing)
       // It should still be partially opposing the original direction
-      expect(windAfter.x).toBeLessThan(0);
+      expect(windAfter[0]).toBeLessThan(0);
       // But slightly less than before (moving toward new direction)
-      expect(windAfter.x).toBeGreaterThan(windBefore.x);
+      expect(windAfter[0]).toBeGreaterThan(windBefore[0]);
     });
   });
 
