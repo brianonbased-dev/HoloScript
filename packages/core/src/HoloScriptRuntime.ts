@@ -77,6 +77,12 @@ import {
   executeCoreConfig as executeCoreConfigPure,
   executeVisualMetadata as executeVisualMetadataPure,
 } from './runtime/system-executors';
+// W1-T4 slice 22: info executors extracted to ./runtime/info-executors
+import {
+  executeVisualize as executeVisualizePure,
+  executeUIElement as executeUIElementPure,
+  type InfoExecutorContext,
+} from './runtime/info-executors';
 // W1-T4 slice 20: graph executors extracted to ./runtime/graph-executors
 import {
   executeFunction as executeFunctionPure,
@@ -772,10 +778,10 @@ export class HoloScriptRuntime {
           result = await this.executeDebug(node);
           break;
         case 'visualize':
-          result = await this.executeVisualize(node);
+          result = await executeVisualizePure(node, this.buildInfoExecutorContext());
           break;
         case '2d-element':
-          result = await this.executeUIElement(node as unknown as UI2DNode);
+          result = await executeUIElementPure(node as unknown as UI2DNode, this.buildInfoExecutorContext());
           break;
         case 'nexus':
         case 'building':
@@ -1531,70 +1537,7 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeVisualize(node: ASTNode & { target?: string }): Promise<ExecutionResult> {
-    const target = node.target || '';
-    const data = this.getVariable(target);
-
-    if (data === undefined) {
-      return {
-        success: false,
-        error: `No data found for '${target}'`,
-      };
-    }
-
-    const visHologram: HologramProperties = {
-      shape: 'cylinder',
-      color: '#32cd32',
-      size: 1.5,
-      glow: true,
-      interactive: true,
-    };
-
-    this.createDataVisualization(target, data, node.position || [0, 0, 0]);
-
-    return {
-      success: true,
-      output: { visualizing: target, data },
-      hologram: visHologram,
-    };
-  }
-
-  private async executeUIElement(node: UI2DNode): Promise<ExecutionResult> {
-    const element: UIElementState = {
-      type: node.elementType,
-      name: node.name,
-      properties: { ...node.properties },
-      visible: true,
-      enabled: true,
-    };
-
-    // Set initial value based on element type
-    if (node.elementType === 'textinput') {
-      element.value = node.properties.value || '';
-    } else if (node.elementType === 'slider') {
-      element.value = node.properties.value || node.properties.min || 0;
-    } else if (node.elementType === 'toggle') {
-      element.value = node.properties.checked || false;
-    }
-
-    this.uiElements.set(node.name, element);
-
-    // Register event handlers
-    if (node.events) {
-      for (const [eventName, handlerName] of Object.entries(node.events)) {
-        this.on(`${node.name}.${eventName}`, async () => {
-          await this.callFunction(handlerName);
-        });
-      }
-    }
-
-    logger.info('UI element created', { type: node.elementType, name: node.name });
-
-    return {
-      success: true,
-      output: element,
-    };
-  }
+  // W1-T4 slice 22: executeVisualize / executeUIElement extracted to ./runtime/info-executors.
 
   /**
    * Execute generic voice commands
@@ -2548,6 +2491,18 @@ export class HoloScriptRuntime {
   // W1-T4 slice 15: executeNarrative / executeQuest / executeDialogue
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
+
+  /** Construct an InfoExecutorContext bound to this runtime. (Slice 22) */
+  private buildInfoExecutorContext(): InfoExecutorContext {
+    return {
+      getVariable: (name) => this.getVariable(name),
+      createDataVisualization: (name, data, position) =>
+        this.createDataVisualization(name, data, position),
+      uiElements: this.uiElements,
+      on: (event, handler) => this.on(event, handler),
+      callFunction: (name) => this.callFunction(name),
+    };
+  }
 
   /** Construct a GraphExecutorContext bound to this runtime. (Slice 20) */
   private buildGraphExecutorContext(): GraphExecutorContext {
