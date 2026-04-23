@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > composition rule-family > [P1] minimal composition locks output > P1-compMinimal 1`] = `"852fedd1d8b78537"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > composition rule-family > [P2] composition with environment block locks output > P2-compEnv 1`] = `"584144f1d7245e56"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > composition rule-family > [P3] composition with nested particle system locks output > P3-compParticles 1`] = `"44e9ca7351c1fc63"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > composition rule-family > [P4] composition with objects + properties locks output > P4-compObjects 1`] = `"7b17248a2f35ab07"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > cross-rule composite > [P16] composition mixing all four rule-families locks composite output > P16-composite 1`] = `"330e8a2300345f69"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > directive/trait rule-family > [P8] composition with @trait directive locks output > P8-traits 1`] = `"a2fe58a4fd4f7007"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > directive/trait rule-family > [P9] trait with config block locks output > P9-traitConfig 1`] = `"4e875e541fea57ee"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P12] malformed input (unclosed brace) locks error shape > P12-errorUnclosed 1`] = `"77564878368a6f4a"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P13] empty input locks output > P13-empty 1`] = `"1a0b1c88b4d0a139"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P14] whitespace-only input locks output > P14-whitespace 1`] = `"7217daf84887114c"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P15] comment-only input locks output > P15-commentOnly 1`] = `"59d00f83454913c7"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > expression rule-family > [P5] numeric expressions in property values lock output > P5-exprNumeric 1`] = `"924bfabff74c90e5"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > expression rule-family > [P6] string expressions lock output > P6-exprString 1`] = `"f7ffc559be4cd252"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > expression rule-family > [P7] boolean + array expressions lock output > P7-exprMixed 1`] = `"d9b5b06aa5101cb4"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > import rule-family > [P10] composition with import statement locks output > P10-import 1`] = `"44e4990e607b1586"`;
+
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > import rule-family > [P11] composition with multiple imports locks output > P11-multiImport 1`] = `"a8749fdc6f76c11b"`;
