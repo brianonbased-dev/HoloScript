@@ -64,6 +64,13 @@ import { createEmptyContext } from './runtime/context-factory';
 import { patternMatches as patternMatchesPure } from './runtime/pattern-match';
 // W1-T4 slice 13: HoloValue resolution extracted to ./runtime/holo-value
 import { resolveHoloValue } from './runtime/holo-value';
+// W1-T4 slice 15: narrative executors extracted to ./runtime/narrative-executors
+import {
+  executeNarrative as executeNarrativePure,
+  executeQuest as executeQuestPure,
+  executeDialogue as executeDialoguePure,
+  type NarrativeContext,
+} from './runtime/narrative-executors';
 // W1-T4 slice 12: control flow execution extracted to ./runtime/control-flow
 import {
   executeForLoop as executeForLoopPure,
@@ -689,14 +696,15 @@ export class HoloScriptRuntime {
         case 'object':
           result = await this.executeOrb(node as OrbNode);
           break;
+        // W1-T4 slice 15: narrative executors extracted — dispatched inline
         case 'narrative':
-          result = await this.executeNarrative(node as NarrativeNode);
+          result = await executeNarrativePure(node as NarrativeNode, this.buildNarrativeContext());
           break;
         case 'quest':
-          result = await this.executeQuest(node as QuestNode);
+          result = await executeQuestPure(node as QuestNode, this.buildNarrativeContext());
           break;
         case 'dialogue':
-          result = await this.executeDialogue(node as DialogueNode);
+          result = await executeDialoguePure(node as DialogueNode, this.buildNarrativeContext());
           break;
         case 'visual_metadata':
           result = await this.executeVisualMetadata(node as VisualMetadataNode);
@@ -2954,55 +2962,20 @@ export class HoloScriptRuntime {
   // (pure helper; deleted method — only caller is executeMatch above,
   //  now using patternMatchesPure directly).
 
-  private async executeNarrative(node: NarrativeNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    logger.info(`[Narrative] Initializing narrative: ${node.id}`);
+  // W1-T4 slice 15: executeNarrative / executeQuest / executeDialogue
+  // extracted to ./runtime/narrative-executors. Methods deleted —
+  // dispatch calls the pure functions directly with a shared context.
 
-    // Register all quests in the narrative
-    for (const quest of node.quests) {
-      this.context.quests.set(quest.id, quest);
-    }
-
-    // Auto-start the narrative if startNode is provided
-    if (node.startNode) {
-      logger.info(`[Narrative] Auto-starting at node: ${node.startNode}`);
-    }
-
+  /** Construct a NarrativeContext bound to this runtime's quest/dialogue state. */
+  private buildNarrativeContext(): NarrativeContext {
     return {
-      success: true,
-      output: `Narrative ${node.id} initialized with ${node.quests.length} quests`,
-      executionTime: Date.now() - startTime,
-    };
-  }
-
-  private async executeQuest(node: QuestNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    logger.info(`[Narrative] Starting quest: ${node.title}`, { questId: node.id });
-
-    this.context.activeQuestId = node.id;
-    this.context.quests.set(node.id, node);
-
-    return {
-      success: true,
-      output: `Quest ${node.id} started`,
-      executionTime: Date.now() - startTime,
-    };
-  }
-
-  private async executeDialogue(node: DialogueNode): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    logger.info(`[Narrative] Dialogue: ${node.speaker} says "${node.text}"`);
-
-    // Update dialogue state
-    this.context.dialogueState = {
-      currentNodeId: node.id,
-      speaker: node.speaker,
-    };
-
-    return {
-      success: true,
-      output: `Dialogue node ${node.id} executed`,
-      executionTime: Date.now() - startTime,
+      quests: this.context.quests as Map<string, QuestNode>,
+      setActiveQuestId: (id) => {
+        this.context.activeQuestId = id;
+      },
+      setDialogueState: (state) => {
+        this.context.dialogueState = state;
+      },
     };
   }
 
