@@ -4,14 +4,22 @@
  */
 
 import { useState, useCallback } from 'react';
-import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft, Box } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { X, Upload, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';
 import { StudioEvents } from '@/lib/analytics';
 import { useDaemonJobs, type DaemonProfile, type DaemonProjectDNA } from '@/hooks/useDaemonJobs';
 import { OperationsSurfacePanel } from '@/components/daemon/OperationsSurfacePanel';
 import { logger } from '@/lib/logger';
+import { inferProjectDNA } from '@/lib/marketplace/projectDNAInference';
+import { TypeSelectionStep } from './TypeSelectionStep';
+import { FileUploadStep } from './FileUploadStep';
+import { AnalysisStep } from './AnalysisStep';
+import { ThumbnailStep } from './ThumbnailStep';
+import { MetadataStep } from './MetadataStep';
+import { DaemonConfigStep } from './DaemonConfigStep';
+import { PreviewStep } from './PreviewStep';
+import { SubmitStep } from './SubmitStep';
 
 interface UploadWizardProps {
   onClose: () => void;
@@ -35,59 +43,6 @@ type WizardStep =
   | 'daemon'
   | 'preview'
   | 'submit';
-
-function inferProjectDNA(file: File): DaemonProjectDNA {
-  const lower = file.name.toLowerCase();
-  const ext = lower.includes('.') ? lower.slice(lower.lastIndexOf('.')) : '';
-
-  if (['.holo', '.hs', '.hsplus', '.glb', '.gltf', '.vrm', '.fbx'].includes(ext)) {
-    return {
-      kind: 'spatial',
-      confidence: 0.9,
-      detectedStack: ['holoscript', ext.replace('.', '')],
-      recommendedProfile: 'balanced',
-      notes: ['Spatial/XR content detected. Include trait and runtime profile validation checks.'],
-    };
-  }
-
-  if (['.zip', '.tar', '.gz', '.tgz'].includes(ext)) {
-    return {
-      kind: 'service',
-      confidence: 0.7,
-      detectedStack: ['archive', 'legacy-project'],
-      recommendedProfile: 'balanced',
-      notes: ['Archive upload detected. Run absorb-first analysis before edits.'],
-    };
-  }
-
-  if (['.py', '.ipynb', '.csv', '.jsonl', '.parquet'].includes(ext)) {
-    return {
-      kind: 'data',
-      confidence: 0.86,
-      detectedStack: ['python', 'data-pipeline'],
-      recommendedProfile: 'quick',
-      notes: ['Data workload detected. Prioritize parsing and schema-safe checks.'],
-    };
-  }
-
-  if (['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte'].includes(ext)) {
-    return {
-      kind: 'frontend',
-      confidence: 0.88,
-      detectedStack: ['web', ext.replace('.', '')],
-      recommendedProfile: 'balanced',
-      notes: ['Frontend project detected. Emphasize typefix + coverage + docs paths.'],
-    };
-  }
-
-  return {
-    kind: 'unknown',
-    confidence: 0.45,
-    detectedStack: [ext || 'unknown'],
-    recommendedProfile: 'quick',
-    notes: ['Unknown format. Start with conservative daemon profile.'],
-  };
-}
 
 export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProps) {
   const isRemix = !!remixFrom;
@@ -275,408 +230,77 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
 
         {/* Step Content */}
         <div className="p-6">
-          {/* Step 1: Content Type Selection */}
           {currentStep === 'type' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Select Content Type</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {Object.entries(CONTENT_TYPE_METADATA).map(([type, meta]) => {
-                  const Icon = (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[meta.icon] || Box;
-                  const isSelected = selectedType === type;
-
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => setSelectedType(type as ContentType)}
-                      className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition ${
-                        isSelected
-                          ? 'border-studio-accent bg-studio-accent/10 text-studio-accent'
-                          : 'border-studio-border bg-studio-surface text-studio-muted hover:border-studio-accent/40 hover:text-studio-text'
-                      }`}
-                    >
-                      <Icon className="h-6 w-6" />
-                      <span className="text-xs font-medium">{meta.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <TypeSelectionStep
+              selectedType={selectedType}
+              onChangeType={setSelectedType}
+            />
           )}
 
-          {/* Step 2: File Upload */}
           {currentStep === 'file' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Upload File</h3>
-              <div
-                onDrop={(e) => handleDrop(e, 'content')}
-                onDragOver={handleDragOver}
-                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-studio-border bg-studio-surface p-12 transition hover:border-studio-accent/40"
-              >
-                <Upload className="h-12 w-12 text-studio-muted" />
-                <p className="mt-4 text-sm font-medium text-studio-text">
-                  {contentFile ? contentFile.name : 'Drag & drop file or click to browse'}
-                </p>
-                <p className="mt-1 text-xs text-studio-muted">
-                  {selectedType && `Accepted: ${CONTENT_TYPE_METADATA[selectedType].fileExtension}`}
-                </p>
-                <input
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="content-file"
-                  accept={selectedType ? CONTENT_TYPE_METADATA[selectedType].fileExtension : '*'}
-                />
-                <label
-                  htmlFor="content-file"
-                  className="mt-4 cursor-pointer rounded-lg bg-studio-accent px-4 py-2 text-xs font-medium text-white transition hover:bg-studio-accent/80"
-                >
-                  Choose File
-                </label>
-              </div>
-            </div>
+            <FileUploadStep
+              contentFile={contentFile}
+              projectDNA={projectDNA}
+              onChangeFile={(file) => {
+                setContentFile(file);
+                const dna = inferProjectDNA(file);
+                setProjectDNA(dna);
+                setDaemonProfile(dna.recommendedProfile);
+              }}
+              onProjectDNADetected={(dna) => {
+                setProjectDNA(dna);
+                setDaemonProfile(dna.recommendedProfile);
+              }}
+            />
           )}
 
-          {/* Step 3: Thumbnail Upload */}
-          {currentStep === 'analysis' && projectDNA && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Project DNA Analysis</h3>
-              <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-studio-muted">Detected Project Type</p>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-studio-text">
-                      {projectDNA.kind}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-studio-muted">Confidence</p>
-                    <p className="text-sm font-semibold text-studio-accent">
-                      {Math.round(projectDNA.confidence * 100)}%
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-xs text-studio-muted">Detected Stack</p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {projectDNA.detectedStack.map((item) => (
-                      <span
-                        key={item}
-                        className="rounded bg-studio-accent/20 px-2 py-0.5 text-[10px] text-studio-accent"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-xs text-studio-muted">Recommendation</p>
-                  <p className="text-xs text-studio-text">
-                    Use <span className="font-semibold">{projectDNA.recommendedProfile}</span>{' '}
-                    daemon profile.
-                  </p>
-                </div>
-
-                <ul className="mt-3 space-y-1 text-[11px] text-studio-muted">
-                  {projectDNA.notes.map((note) => (
-                    <li key={note}>• {note}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+          {currentStep === 'analysis' && (
+            <AnalysisStep projectDNA={projectDNA} />
           )}
 
-          {/* Step 4: Thumbnail Upload */}
           {currentStep === 'thumbnail' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Upload Thumbnail</h3>
-              <div
-                onDrop={(e) => handleDrop(e, 'thumbnail')}
-                onDragOver={handleDragOver}
-                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-studio-border bg-studio-surface p-12 transition hover:border-studio-accent/40"
-              >
-                {thumbnailFile ? (
-                  <img
-                    src={URL.createObjectURL(thumbnailFile)}
-                    alt="Thumbnail preview"
-                    className="h-48 w-48 rounded-lg object-cover"
-                  />
-                ) : (
-                  <>
-                    <Image className="h-12 w-12 text-studio-muted" />
-                    <p className="mt-4 text-sm font-medium text-studio-text">
-                      Drag & drop thumbnail or click to browse
-                    </p>
-                    <p className="mt-1 text-xs text-studio-muted">
-                      Recommended: 800x600px, PNG or JPG
-                    </p>
-                  </>
-                )}
-                <input
-                  type="file"
-                  onChange={handleThumbnailSelect}
-                  className="hidden"
-                  id="thumbnail-file"
-                  accept="image/png,image/jpeg"
-                />
-                <label
-                  htmlFor="thumbnail-file"
-                  className="mt-4 cursor-pointer rounded-lg bg-studio-accent px-4 py-2 text-xs font-medium text-white transition hover:bg-studio-accent/80"
-                >
-                  Choose Thumbnail
-                </label>
-              </div>
-            </div>
+            <ThumbnailStep
+              thumbnailFile={thumbnailFile}
+              onChangeThumbnail={setThumbnailFile}
+            />
           )}
 
-          {/* Step 5: Metadata Form */}
           {currentStep === 'metadata' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Content Details</h3>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-studio-muted">Title *</label>
-                <input
-                  type="text"
-                  value={metadata.name}
-                  onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
-                  className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
-                  placeholder="Enter content title"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-studio-muted">
-                  Description *
-                </label>
-                <textarea
-                  value={metadata.description}
-                  onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
-                  className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
-                  placeholder="Describe your content"
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-studio-muted">
-                    Category *
-                  </label>
-                  <select
-                    title="Select content category"
-                    value={metadata.category}
-                    onChange={(e) => setMetadata({ ...metadata, category: e.target.value })}
-                    className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
-                  >
-                    <option value="">Select category</option>
-                    <optgroup label="AI Skills & Configs">
-                      <option value="ai-skills">AI Skills</option>
-                      <option value="agent-configs">Agent Configs</option>
-                      <option value="mcp-bundles">MCP Bundles</option>
-                    </optgroup>
-                    <optgroup label="Training Data">
-                      <option value="training-data">Training Datasets</option>
-                    </optgroup>
-                    <optgroup label="AI Orchestration">
-                      <option value="ai-workflows">AI Workflows</option>
-                      <option value="behavior-trees">Behavior Trees</option>
-                    </optgroup>
-                    <optgroup label="3D Content">
-                      <option value="scenes">3D Scenes</option>
-                      <option value="characters">Characters</option>
-                      <option value="models">3D Models</option>
-                      <option value="materials">Materials</option>
-                      <option value="templates">Templates & Starters</option>
-                    </optgroup>
-                    <optgroup label="Animation & VFX">
-                      <option value="animations">Animations</option>
-                      <option value="vfx">Particle Effects / VFX</option>
-                      <option value="physics">Physics Presets</option>
-                    </optgroup>
-                    <optgroup label="Audio">
-                      <option value="audio">Sound Effects</option>
-                      <option value="music">Music</option>
-                    </optgroup>
-                    <optgroup label="XR">
-                      <option value="vr-environments">VR Environments</option>
-                      <option value="ar-experiences">AR Experiences</option>
-                    </optgroup>
-                    <optgroup label="Development">
-                      <option value="plugins">Plugins</option>
-                      <option value="scripts">Scripts</option>
-                      <option value="presets">Presets</option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-studio-muted">
-                    License *
-                  </label>
-                  <select
-                    title="Select content license"
-                    value={metadata.license}
-                    onChange={(e) => setMetadata({ ...metadata, license: e.target.value as typeof metadata.license })}
-                    className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
-                  >
-                    <option value="MIT">MIT</option>
-                    <option value="CC0">CC0 (Public Domain)</option>
-                    <option value="CC-BY">CC-BY</option>
-                    <option value="CC-BY-SA">CC-BY-SA</option>
-                    <option value="Commercial">Commercial</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-studio-muted">
-                  Tags (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={metadata.tags.join(', ')}
-                  onChange={(e) =>
-                    setMetadata({
-                      ...metadata,
-                      tags: e.target.value
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                  className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
-                  placeholder="e.g., vr, animation, beginner-friendly"
-                />
-              </div>
-            </div>
+            <MetadataStep
+              metadata={metadata}
+              onChangeMetadata={(key, value) => {
+                setMetadata({ ...metadata, [key]: value });
+              }}
+            />
           )}
 
-          {/* Step 6: Daemon Profile */}
           {currentStep === 'daemon' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Daemon Optimization</h3>
-
-              <label className="flex items-center gap-3 rounded-lg border border-studio-border bg-studio-surface p-3">
-                <input
-                  type="checkbox"
-                  checked={enableDaemon}
-                  onChange={(e) => setEnableDaemon(e.target.checked)}
-                />
-                <div>
-                  <p className="text-sm font-medium text-studio-text">Run daemon after upload</p>
-                  <p className="text-xs text-studio-muted">
-                    Legacy-first absorb + quality checks with safe dry-run patch planning.
-                  </p>
-                </div>
-              </label>
-
-              {enableDaemon && (
-                <div className="grid grid-cols-3 gap-3">
-                  {(
-                    [
-                      { value: 'quick', label: 'Quick', desc: 'Typefix + smoke checks' },
-                      { value: 'balanced', label: 'Balanced', desc: 'Typefix + docs + coverage' },
-                      { value: 'deep', label: 'Deep', desc: 'Full legacy analysis matrix' },
-                    ] as const
-                  ).map((profile) => (
-                    <button
-                      key={profile.value}
-                      onClick={() => setDaemonProfile(profile.value)}
-                      className={`rounded-lg border p-3 text-left transition ${
-                        daemonProfile === profile.value
-                          ? 'border-studio-accent bg-studio-accent/10'
-                          : 'border-studio-border bg-studio-surface hover:border-studio-accent/40'
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-studio-text">{profile.label}</p>
-                      <p className="mt-1 text-xs text-studio-muted">{profile.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {daemonJobError && (
-                <p className="text-xs text-red-400">Daemon job setup error: {daemonJobError}</p>
-              )}
-            </div>
+            <DaemonConfigStep
+              enableDaemon={enableDaemon}
+              daemonProfile={daemonProfile}
+              onChangeEnableDaemon={setEnableDaemon}
+              onChangeDaemonProfile={setDaemonProfile}
+            />
           )}
 
-          {/* Step 7: Preview */}
           {currentStep === 'preview' && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-studio-text">Preview</h3>
-              <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <div className="flex gap-4">
-                  {thumbnailFile && (
-                    <img
-                      src={URL.createObjectURL(thumbnailFile)}
-                      alt={metadata.name}
-                      className="h-32 w-32 rounded-lg object-cover"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-studio-text">{metadata.name}</h4>
-                    <p className="mt-1 text-xs text-studio-muted">{metadata.description}</p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {metadata.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded bg-studio-accent/20 px-2 py-0.5 text-[10px] text-studio-accent"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-studio-muted">
-                      <span>License: {metadata.license}</span>
-                      <span>Category: {metadata.category}</span>
-                      <span>Daemon: {enableDaemon ? daemonProfile : 'disabled'}</span>
-                      {contentFile && <span>Size: {(contentFile.size / 1024).toFixed(1)} KB</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PreviewStep
+              selectedType={selectedType}
+              contentFile={contentFile}
+              thumbnailFile={thumbnailFile}
+              metadata={metadata}
+              projectDNA={projectDNA}
+              enableDaemon={enableDaemon}
+              daemonProfile={daemonProfile}
+            />
           )}
 
-          {/* Step 8: Submitting */}
           {currentStep === 'submit' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              {uploading ? (
-                <>
-                  <div className="h-16 w-16 animate-spin rounded-full border-4 border-studio-border border-t-studio-accent" />
-                  <p className="mt-4 text-sm font-medium text-studio-text">
-                    Uploading... {progress}%
-                  </p>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-16 w-16 text-green-500" />
-                  <p className="mt-4 text-sm font-medium text-studio-text">
-                    Content uploaded successfully!
-                  </p>
-                  <p className="mt-1 text-xs text-studio-muted">
-                    Your content is now pending moderation.
-                  </p>
-                  {enableDaemon && (
-                    <div className="mt-2 space-y-2 text-center">
-                      <p className="text-xs text-studio-muted">
-                        Daemon job queued{daemonJobId ? `: ${daemonJobId}` : ''}
-                        {creatingDaemonJob ? ' (starting...)' : ''}
-                      </p>
-                      <button
-                        onClick={() => setShowOperationsSurface(true)}
-                        className="rounded bg-studio-accent px-3 py-1 text-[11px] font-medium text-white hover:bg-studio-accent/80"
-                      >
-                        Open 2D HoloScript Operations Surface
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <SubmitStep
+              uploading={uploading}
+              progress={progress}
+              daemonJobId={daemonJobId}
+            />
           )}
         </div>
 
