@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/web-preview-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Web-preview bridge stub — embeds iframe HTML content as @web_surface .holo traits for composition into spatial scenes.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "web-preview", "iframe", "html-surface", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

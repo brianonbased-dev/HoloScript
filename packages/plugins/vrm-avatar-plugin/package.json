@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/vrm-avatar-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "VRM 1.0 avatar interop stub — maps VRM expression/humanoid bones to @avatar .holo traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "vrm", "avatar", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

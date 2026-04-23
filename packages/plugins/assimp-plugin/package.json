@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/assimp-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Assimp FBX/OBJ/glTF import bridge stub — maps Assimp scene tree to .holo primitives.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "assimp", "fbx", "obj", "gltf", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

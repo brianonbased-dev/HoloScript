@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/mixamo-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Mixamo animation-library bridge stub — maps Mixamo animation clip metadata to @anim_clip .holo traits (read-only per no-public-upload-API).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "mixamo", "animation", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

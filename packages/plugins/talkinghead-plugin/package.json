@@ -1,0 +1,12 @@
+{
+  "name": "@holoscript/talkinghead-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "TalkingHead WebXR bridge stub — maps viseme-driven facial animation to @lipsync .holo traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
+  "keywords": ["holoscript", "plugin", "talkinghead", "lipsync", "viseme", "universal-ir"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}
