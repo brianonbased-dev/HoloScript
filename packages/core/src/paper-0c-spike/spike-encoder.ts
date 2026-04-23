@@ -158,11 +158,15 @@ export function encodeStep(input: CAELStepInput, quanta: FieldQuanta = {}): Spik
   const window = input.window_us ?? 10_000; // default 10 ms
   const spikes: Spike[] = [];
 
+  // Avoid Array.prototype.push(...bigArr) — V8's argument stack cap overflows at
+  // ~100k items. Use explicit loops for float/vector fanout which can produce
+  // large spike counts on small quanta.
   if (input.floats) {
     for (const [field, value] of Object.entries(input.floats)) {
       const q = quanta[field] ?? DEFAULT_FLOAT_QUANTUM;
       const base = fieldToNeuronBase(field);
-      spikes.push(...encodeFloat(value, q, base, window));
+      const emitted = encodeFloat(value, q, base, window);
+      for (let i = 0; i < emitted.length; i++) spikes.push(emitted[i]);
     }
   }
 
@@ -170,7 +174,8 @@ export function encodeStep(input: CAELStepInput, quanta: FieldQuanta = {}): Spik
     for (const [field, v] of Object.entries(input.vectors)) {
       const q = quanta[field] ?? DEFAULT_FLOAT_QUANTUM;
       const base = fieldToNeuronBase(field);
-      spikes.push(...encodeVector3(v, q, base, window));
+      const emitted = encodeVector3(v, q, base, window);
+      for (let i = 0; i < emitted.length; i++) spikes.push(emitted[i]);
     }
   }
 

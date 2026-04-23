@@ -13,6 +13,8 @@ import {
   type Spike,
 } from '../spike-encoder';
 import { decodeStep, verifyBoundedLoss } from '../spike-decoder';
+import { quantumForField, buildQuantaFor, FALLBACK_QUANTUM } from '../quantum-registry';
+import { runStageB, synthesizeSampleJSONL } from '../stage-b-jsonl';
 
 describe('spike-encoder', () => {
   it('canonical-sorts by (neuron_id, timestamp_us, polarity)', () => {
@@ -131,5 +133,60 @@ describe('spike-decoder bounded-loss', () => {
     for (const id of decoded.action_neuron_ids) {
       expect(id).toBeGreaterThanOrEqual(1_000_000);
     }
+  });
+});
+
+describe('quantum-registry', () => {
+  it('returns engine-matching quanta for known field families', () => {
+    expect(quantumForField('velocity')).toBe(1e-3);
+    expect(quantumForField('position')).toBe(1e-5);
+    expect(quantumForField('temperature')).toBe(0.1);
+    expect(quantumForField('stress')).toBe(1_000);
+    expect(quantumForField('pressure')).toBe(100);
+    expect(quantumForField('vonMisesStress')).toBe(1_000);
+    expect(quantumForField('displacement')).toBe(1e-5);
+  });
+
+  it('falls back for unknown field names', () => {
+    expect(quantumForField('zzz_unknown_field')).toBe(FALLBACK_QUANTUM);
+    expect(quantumForField('')).toBe(FALLBACK_QUANTUM);
+  });
+
+  it('buildQuantaFor composes per-field quanta', () => {
+    const q = buildQuantaFor(['velocity', 'position', 'mystery']);
+    expect(q.velocity).toBe(1e-3);
+    expect(q.position).toBe(1e-5);
+    expect(q.mystery).toBe(FALLBACK_QUANTUM);
+  });
+});
+
+describe('stage-b JSONL consumption', () => {
+  it('encodes synthetic JSONL trace, produces deterministic chain hash', () => {
+    const jsonl = synthesizeSampleJSONL(10);
+    const r1 = runStageB(jsonl);
+    const r2 = runStageB(jsonl);
+    expect(r1.steps_encoded).toBe(10); // init + final skipped
+    expect(r1.skipped_entries).toBeGreaterThanOrEqual(2);
+    expect(r1.total_spikes).toBeGreaterThan(0);
+    expect(r1.spike_chain_hash).toBe(r2.spike_chain_hash); // determinism
+    expect(r1.spike_chain_hash).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it('different traces produce different chain hashes', () => {
+    const a = runStageB(synthesizeSampleJSONL(5));
+    const b = runStageB(synthesizeSampleJSONL(10));
+    expect(a.spike_chain_hash).not.toBe(b.spike_chain_hash);
+  });
+
+  it('skips malformed JSON lines gracefully', () => {
+    const jsonl = [
+      JSON.stringify({ event: 'step', step: 1, state: { velocity: 0.5 } }),
+      'not json',
+      '',
+      JSON.stringify({ event: 'step', step: 2, state: { velocity: 0.75 } }),
+    ].join('\n');
+    const r = runStageB(jsonl);
+    expect(r.steps_encoded).toBe(2);
+    expect(r.skipped_entries).toBe(2);
   });
 });
