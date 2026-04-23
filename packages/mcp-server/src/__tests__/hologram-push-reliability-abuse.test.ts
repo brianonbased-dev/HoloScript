@@ -362,40 +362,50 @@ describe('hologram push layer — reliability + abuse matrix', () => {
       expect(allowHologramSend(k2)).toBe(true);
     });
 
-    it('oversized base64 payload is forwarded unchanged to the worker', async () => {
-      // Document current contract: the MCP tool layer does NOT cap request
-      // size; that enforcement lives on the worker HTTP surface. If/when a
-      // cap is added at this layer, flip this test to assert a rejection
-      // BEFORE the worker call. Tracking: the worker must apply the cap
-      // or the MCP tool must gain a MAX_BASE64_BYTES guard.
+    it('oversized base64 payload is rejected before the worker call', async () => {
+      // Contract (landed via task_1776979351938_aov9): the MCP tool layer
+      // now enforces a MAX_BASE64_BYTES cap BEFORE reaching the worker.
+      // Previously this test documented the inverse (forwarded unchanged)
+      // and was flagged by the hologram-reliability-matrix as
+      // id=oversized-payload-rejection, expected=gap. The cap lives in
+      // `hologram-mcp-tools.ts` (DEFAULT_MAX_HOLOGRAM_BASE64_BYTES, override
+      // via env HOLOGRAM_MCP_MAX_BASE64_BYTES).
       workerConfiguredMock.mockReturnValue(true);
-      const seen: Array<{ len: number }> = [];
-      callWorkerMock.mockImplementation(async (input: { sourceBase64?: string }) => {
-        seen.push({ len: input.sourceBase64?.length ?? 0 });
-        return {
-          hash: 'h',
-          shareUrl: 'https://s/u',
-          quiltUrl: 'https://s/q',
-          mvhevcUrl: 'https://s/m',
-          targets: ['quilt'],
-        };
-      });
+      const prevCap = process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
+      process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES = String(1 * 1024 * 1024); // 1 MiB cap
 
-      // 12 MB of base64 (~9 MB of decoded bytes) — comfortably above any
-      // sane inline-MCP payload threshold.
-      const huge = 'A'.repeat(12 * 1024 * 1024);
-      const result = (await handleHologramTool('holo_hologram_compile_quilt', {
-        mediaType: 'image',
-        sourceBase64: huge,
-      })) as Record<string, unknown>;
+      try {
+        const seen: Array<{ len: number }> = [];
+        callWorkerMock.mockImplementation(async (input: { sourceBase64?: string }) => {
+          seen.push({ len: input.sourceBase64?.length ?? 0 });
+          return {
+            hash: 'h',
+            shareUrl: 'https://s/u',
+            quiltUrl: 'https://s/q',
+            mvhevcUrl: 'https://s/m',
+            targets: ['quilt'],
+          };
+        });
 
-      expect(result.ok).toBe(true);
-      expect(result.hash).toBe('h');
-      expect(seen.length).toBe(1);
-      expect(seen[0].len).toBe(huge.length);
-      // TODO(W-D stream-5): add MCP-tier MAX_BASE64_BYTES cap. When it lands,
-      // change this test to assert that the oversized call rejects BEFORE
-      // reaching the worker.
+        // 12 MB of base64 — comfortably above the 1 MiB test cap.
+        const huge = 'A'.repeat(12 * 1024 * 1024);
+        await expect(
+          handleHologramTool('holo_hologram_compile_quilt', {
+            mediaType: 'image',
+            sourceBase64: huge,
+          }),
+        ).rejects.toThrow(/oversized hologram payload/);
+
+        // The worker must NOT have been called — rejection happens BEFORE
+        // send/render. This is the positive assertion the matrix entry
+        // `oversized-payload-rejection` (abuse-path, high severity)
+        // requires.
+        expect(seen.length).toBe(0);
+        expect(callWorkerMock).not.toHaveBeenCalled();
+      } finally {
+        if (prevCap === undefined) delete process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
+        else process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES = prevCap;
+      }
     });
 
     it('data: URL with no base64 section is passed through as composition source', async () => {

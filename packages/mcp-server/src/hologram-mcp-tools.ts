@@ -19,6 +19,42 @@ import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-hol
 type HologramMediaType = 'image' | 'gif' | 'video';
 type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
 
+/**
+ * Maximum inline base64 payload length accepted by the MCP tool layer before
+ * we ever reach the worker or local renderer. This is intentionally tighter
+ * than {@link import('../../../studio/src/app/api/hologram/_lib/store').MAX_HOLOGRAM_UPLOAD_BYTES}
+ * (Studio's dedicated upload route, 100 MiB) because MCP payloads travel
+ * inline over JSON-RPC and are far more expensive per byte. Override with
+ * `HOLOGRAM_MCP_MAX_BASE64_BYTES` (decimal byte count).
+ *
+ * Source gap: .ai-ecosystem/scripts/hologram-reliability-matrix.json
+ * (id: oversized-payload-rejection — abuse-path, high severity).
+ */
+const DEFAULT_MAX_HOLOGRAM_BASE64_BYTES = 10 * 1024 * 1024; // 10 MiB of base64 (~7.5 MiB decoded)
+
+function getMaxHologramBase64Bytes(): number {
+  const raw = process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
+  if (!raw) return DEFAULT_MAX_HOLOGRAM_BASE64_BYTES;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MAX_HOLOGRAM_BASE64_BYTES;
+  return parsed;
+}
+
+function assertBase64WithinLimit(b64: string): void {
+  const cap = getMaxHologramBase64Bytes();
+  if (b64.length > cap) {
+    throw new Error(
+      `hologram: oversized hologram payload — sourceBase64 length ${b64.length} exceeds cap ${cap} bytes (set HOLOGRAM_MCP_MAX_BASE64_BYTES to override)`,
+    );
+  }
+}
+
+function assertInlineSourceWithinLimit(source: string): void {
+  if (!source.startsWith('data:')) return;
+  const m = /^data:[^;]+;base64,(.+)$/i.exec(source);
+  if (m) assertBase64WithinLimit(m[1]);
+}
+
 type HoloProperty = { key: string; value: unknown };
 type HoloTrait = { name: string; config?: Record<string, unknown> };
 type HoloObjectDecl = { traits?: HoloTrait[]; properties: HoloProperty[] };
@@ -222,9 +258,13 @@ function resolveCompositionSource(args: Record<string, unknown>, mediaType: Holo
   const s = typeof args.source === 'string' ? args.source.trim() : '';
   const u = typeof args.sourceUrl === 'string' ? args.sourceUrl.trim() : '';
   const b64 = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
-  if (s) return s;
+  if (s) {
+    assertInlineSourceWithinLimit(s);
+    return s;
+  }
   if (u) return u;
   if (b64) {
+    assertBase64WithinLimit(b64);
     const mime =
       mediaType === 'image' ? 'image/png' : mediaType === 'gif' ? 'image/gif' : 'video/mp4';
     return `data:${mime};base64,${b64}`;
@@ -237,7 +277,10 @@ async function buildWorkerMediaPayload(
   mediaType: HologramMediaType,
 ): Promise<{ sourceUrl?: string; sourceBase64?: string }> {
   const b64Field = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
-  if (b64Field) return { sourceBase64: b64Field };
+  if (b64Field) {
+    assertBase64WithinLimit(b64Field);
+    return { sourceBase64: b64Field };
+  }
 
   const u = typeof args.sourceUrl === 'string' ? args.sourceUrl.trim() : '';
   if (u) return { sourceUrl: u };
@@ -249,14 +292,19 @@ async function buildWorkerMediaPayload(
 
   if (/^data:/i.test(s)) {
     const m = /^data:[^;]+;base64,(.+)$/i.exec(s);
-    if (m) return { sourceBase64: m[1] };
+    if (m) {
+      assertBase64WithinLimit(m[1]);
+      return { sourceBase64: m[1] };
+    }
   }
 
   const { readFile } = await import('node:fs/promises');
   const { isAbsolute, resolve } = await import('node:path');
   const fullPath = isAbsolute(s) ? s : resolve(process.cwd(), s);
   const buf = await readFile(fullPath);
-  return { sourceBase64: buf.toString('base64') };
+  const encoded = buf.toString('base64');
+  assertBase64WithinLimit(encoded);
+  return { sourceBase64: encoded };
 }
 
 function parseRenderTargets(args: Record<string, unknown>): HologramTarget[] {

@@ -87,6 +87,85 @@ describe('hologram mcp tools', () => {
     ).rejects.toThrow('recipientAgentId');
   });
 
+  // Matrix gap: .ai-ecosystem/scripts/hologram-reliability-matrix.json
+  //   id=oversized-payload-rejection (abuse-path, high severity)
+  //   match="oversized hologram payload" — keep this literal string in place
+  //   below so the matrix checker flips `actual` from gap → covered.
+  describe('rejects oversized hologram payload before send/render', () => {
+    const prevCap = process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
+
+    beforeEach(() => {
+      // Pin a small cap so tests stay fast and deterministic.
+      process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES = '1024';
+    });
+
+    afterEach(() => {
+      if (prevCap === undefined) delete process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
+      else process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES = prevCap;
+    });
+
+    it('rejects holo_hologram_from_media when sourceBase64 exceeds cap', async () => {
+      const huge = 'A'.repeat(2048);
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          sourceBase64: huge,
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/oversized hologram payload/);
+    });
+
+    it('rejects holo_hologram_compile_quilt before worker call when payload oversized', async () => {
+      workerConfiguredMock.mockReturnValue(true);
+      const huge = 'B'.repeat(2048);
+
+      await expect(
+        handleHologramTool('holo_hologram_compile_quilt', {
+          mediaType: 'image',
+          sourceBase64: huge,
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/oversized hologram payload/);
+
+      // Critical: the worker must NOT be called for oversized payloads —
+      // this is the "before send/render" contract the reliability matrix
+      // asserts (id=oversized-payload-rejection).
+      expect(callWorkerMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects holo_hologram_render before worker/bundle call when payload oversized', async () => {
+      workerConfiguredMock.mockReturnValue(true);
+      const huge = 'C'.repeat(2048);
+
+      await expect(
+        handleHologramTool('holo_hologram_render', {
+          mediaType: 'image',
+          sourceBase64: huge,
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/oversized hologram payload/);
+
+      expect(callWorkerMock).not.toHaveBeenCalled();
+      expect(renderHologramBundleMock).not.toHaveBeenCalled();
+    });
+
+    it('accepts payloads at or below the cap', async () => {
+      const ok = 'D'.repeat(1024);
+      const result = (await handleHologramTool('holo_hologram_from_media', {
+        mediaType: 'image',
+        sourceBase64: ok,
+      })) as Record<string, unknown>;
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects oversized inline data: URLs in `source` field', async () => {
+      const huge = 'E'.repeat(2048);
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          source: `data:image/png;base64,${huge}`,
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/oversized hologram payload/);
+    });
+  });
+
   it('generates .holo composition from image input', async () => {
     const result = (await handleHologramTool('holo_hologram_from_media', {
       mediaType: 'image',
