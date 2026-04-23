@@ -26,6 +26,29 @@ export class VRPhysicsBridge {
     this.onHaptic = onHaptic || (() => {});
   }
 
+  private getVec3Component(v: unknown, idx: 0 | 1 | 2): number {
+    if (Array.isArray(v)) return Number(v[idx] ?? 0);
+    if (v && typeof v === 'object') {
+      const o = v as { x?: number; y?: number; z?: number };
+      if (idx === 0) return Number(o.x ?? 0);
+      if (idx === 1) return Number(o.y ?? 0);
+      return Number(o.z ?? 0);
+    }
+    return 0;
+  }
+
+  private getQuatComponent(q: unknown, idx: 0 | 1 | 2 | 3): number {
+    if (Array.isArray(q)) return Number(q[idx] ?? (idx === 3 ? 1 : 0));
+    if (q && typeof q === 'object') {
+      const o = q as { x?: number; y?: number; z?: number; w?: number };
+      if (idx === 0) return Number(o.x ?? 0);
+      if (idx === 1) return Number(o.y ?? 0);
+      if (idx === 2) return Number(o.z ?? 0);
+      return Number(o.w ?? 1);
+    }
+    return idx === 3 ? 1 : 0;
+  }
+
   public update(
     vrContext: { hands: { left: VRHand | null; right: VRHand | null } },
     delta: number
@@ -64,18 +87,21 @@ export class VRPhysicsBridge {
     let body = this.world.getBody(bodyId);
 
     if (!body) {
+      const px = this.getVec3Component(hand.position, 0);
+      const py = this.getVec3Component(hand.position, 1);
+      const pz = this.getVec3Component(hand.position, 2);
       // Create Kinematic Body for Hand (Palm)
       const config: IRigidBodyConfig = {
         id: bodyId,
         type: 'kinematic',
         mass: 1, // Infinite mass for kinematic
         transform: {
-          position: [hand.position?.[0] ?? 0, hand.position?.[1] ?? 0, hand.position?.[2] ?? 0],
+          position: [px, py, pz],
           rotation: [
-            hand.rotation?.[0] ?? 0,
-            hand.rotation?.[1] ?? 0,
-            hand.rotation?.[2] ?? 0,
-            hand.rotation?.[3] ?? 1,
+            this.getQuatComponent(hand.rotation, 0),
+            this.getQuatComponent(hand.rotation, 1),
+            this.getQuatComponent(hand.rotation, 2),
+            this.getQuatComponent(hand.rotation, 3),
           ],
         },
         shape: {
@@ -94,7 +120,11 @@ export class VRPhysicsBridge {
 
     if (body) {
       // Calculate Velocity (vital for throwing)
-      const currentPos = hand.position || [0, 0, 0];
+      const currentPos: IVector3 = [
+        this.getVec3Component(hand.position, 0),
+        this.getVec3Component(hand.position, 1),
+        this.getVec3Component(hand.position, 2),
+      ];
       const prevPos = this.lastPositions.get(bodyId) || currentPos;
 
       // Prevent divide by zero
@@ -118,12 +148,12 @@ export class VRPhysicsBridge {
 
       // Update Body Transform
       this.world.setPosition(bodyId, [currentPos[0], currentPos[1], currentPos[2]]);
-      if (hand.rotation) {
+      if (hand.rotation && typeof this.world.setRotation === 'function') {
         this.world.setRotation(bodyId, [
-          hand.rotation[0],
-          hand.rotation[1],
-          hand.rotation[2],
-          hand.rotation[3],
+          this.getQuatComponent(hand.rotation, 0),
+          this.getQuatComponent(hand.rotation, 1),
+          this.getQuatComponent(hand.rotation, 2),
+          this.getQuatComponent(hand.rotation, 3),
         ]);
       }
 
