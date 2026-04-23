@@ -99,6 +99,12 @@ import {
   applyDirectives as applyDirectivesPure,
   updateTraits as updateTraitsPure,
 } from './runtime/skills-directives';
+// W1-T4 slice 28: builtins registry extracted to ./runtime/builtins-registry
+import {
+  createBuiltinsMap,
+  type BuiltinsContext,
+  type BuiltinFn,
+} from './runtime/builtins-registry';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -404,330 +410,40 @@ export class HoloScriptRuntime {
   /**
    * Initialize built-in functions
    */
-  private initBuiltins(
-    customFunctions?: Record<
-      string,
-      (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>
-    >
-  ): Map<string, (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>> {
-    const builtins = new Map<
-      string,
-      (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>
-    >();
-
-    // Inject Custom Functions
-    if (customFunctions) {
-      for (const [name, func] of Object.entries(customFunctions)) {
-        builtins.set(name, func);
-      }
-    }
-
-    // Display commands
-    builtins.set('show', (args) => {
-      const target = String(args[0]);
-      const element = this.uiElements.get(target);
-      if (element) element.visible = true;
-      const hologram = this.context.hologramState.get(target);
-      if (hologram) {
-        this.createParticleEffect(`${target}_show`, [0, 0, 0], hologram.color, 15);
-      }
-      logger.info('show', { target });
-      return { shown: target };
-    });
-
-    builtins.set('hide', (args) => {
-      const target = String(args[0]);
-      const element = this.uiElements.get(target);
-      if (element) element.visible = false;
-      logger.info('hide', { target });
-      return { hidden: target };
-    });
-
-    // Animation commands
-    builtins.set('pulsate', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      const options = (args[1] as Record<string, HoloScriptValue>) || {};
-      const duration = Number(options.duration) || 1000;
-      const color = String(options.color || '#ffffff');
-
-      const position = this.context.spatialMemory.get(target) || [0, 0, 0];
-      this.createParticleEffect(`${target}_pulse`, position, color, 30);
-
-      return { pulsing: target, duration };
-    });
-
-    builtins.set('animate', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      const options = (args[1] as Record<string, HoloScriptValue>) || {};
-
-      const animation: Animation = {
-        target,
-        property: String(options.property || 'position[1]'),
-        from: Number(options.from || 0),
-        to: Number(options.to || 1),
-        duration: Number(options.duration || 1000),
-        startTime: Date.now(),
-        easing: String(options.easing || 'linear'),
-        loop: Boolean(options.loop),
-        yoyo: Boolean(options.yoyo),
-      };
-
-      this.animations.set(`${target}_${animation.property}`, animation);
-      return { animating: target, animation };
-    });
-
-    // Spatial commands
-    builtins.set('spawn', async (args): Promise<HoloScriptValue> => {
-      const config = args[0] as HoloScriptValue;
-      // Legacy support for (name, position)
-      if (typeof config === 'string') {
-        const target = config;
-        const position = (args[1] as SpatialPosition) || [0, 0, 0];
-        this.context.spatialMemory.set(target, position);
-        this.createParticleEffect(`${target}_spawn`, position, '#00ff00', 25);
-        return { spawned: target, at: position };
-      }
-
-      // Mitosis support for ({ template, id, position, ... })
-      const spawnConfig = config as Record<string, unknown>;
-      const templateName = String(spawnConfig.template);
-      const id = String(spawnConfig.id || `${templateName}_${Date.now()}`);
-      const position = (spawnConfig.position as SpatialPosition) || [0, 0, 0];
-
-      const template = this.context.templates.get(templateName);
-      if (!template) {
-        logger.error(`[Mitosis] Template ${templateName} not found`);
-        return { error: `Template ${templateName} not found` };
-      }
-
-      // Create an OrbNode from the template
-      const spawnNode: OrbNode = {
-        type: 'orb',
-        name: id,
-        position: position,
-        properties: { ...((spawnConfig.config as Record<string, HoloScriptValue>) || {}) }, // Initial state from config
-        children: template.children,
-        traits: template.traits,
-        directives: template.directives,
-      };
-
-      // Merge template state and default properties if not overridden in config
-      const holoTpl = template as unknown as HoloTemplate;
-      if (holoTpl.state) {
-        for (const prop of holoTpl.state.properties) {
-          if (spawnNode.properties[prop.key] === undefined) {
-            spawnNode.properties[prop.key] = resolveHoloValue(prop.value as HoloValue);
-          }
-        }
-      }
-      for (const prop of holoTpl.properties) {
-        if (spawnNode.properties[prop.key] === undefined) {
-          spawnNode.properties[prop.key] = resolveHoloValue(prop.value as HoloValue);
-        }
-      }
-
-      // Execute the newly created orb
-      await executeOrbPure(spawnNode, this.buildOrbExecutorContext());
-
-      // If there's a parent, notify them of the mitosis event
-      if (spawnConfig.parentId || spawnConfig.parent_id) {
-        const parentId = String(spawnConfig.parentId || spawnConfig.parent_id);
-        await this.emit(`mitosis_spawned`, { parentId, childId: id });
-
-        // Also emit on the specific orb event bus if needed
-        await this.emit(`${parentId}.mitosis_spawned`, { childId: id });
-      }
-
-      return { spawned: id, template: templateName };
-    });
-
-    builtins.set('notifyParent', async (args): Promise<HoloScriptValue> => {
-      const parentId = String(args[0]);
-      const data = args[1];
-
-      await this.emit(`mitosis_child_complete`, {
-        parentId,
-        childId: (args[2] as string) || 'unknown',
-        result: data,
-      });
-
-      await this.emit(`${parentId}.mitosis_child_complete`, {
-        childId: (args[2] as string) || 'unknown',
-        result: data,
-      });
-
-      return { notified: parentId };
-    });
-
-    builtins.set('despawn', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      if (this.context.hologramState.has(target)) {
-        const pos = this.context.spatialMemory.get(target) || [0, 0, 0];
-        this.createParticleEffect(`${target}_despawn`, pos, '#ff0000', 30);
-        this.context.hologramState.delete(target);
-        this.context.variables.delete(target);
-        this.context.spatialMemory.delete(target);
-        logger.info('despawn', { target });
-        return { despawned: target };
-      }
-      return { msg: 'Target not found', target };
-    });
-
-    builtins.set('move', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      const position = (args[1] as SpatialPosition) || [0, 0, 0];
-
-      const current = this.context.spatialMemory.get(target);
-      if (current) {
-        this.context.spatialMemory.set(target, position);
-        this.createConnectionStream(target, `${target}_dest`, current, position, 'move');
-      }
-
-      return { moved: target, to: position };
-    });
-
-    // Data commands
-    builtins.set('set', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      const value = args[1];
-      this.setVariable(target, value);
-      return { set: target, value };
-    });
-
-    builtins.set('get', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      return this.getVariable(target);
-    });
-
-    // Math functions
-    builtins.set('add', (args): HoloScriptValue => Number(args[0]) + Number(args[1]));
-    builtins.set('subtract', (args): HoloScriptValue => Number(args[0]) - Number(args[1]));
-    builtins.set('multiply', (args): HoloScriptValue => Number(args[0]) * Number(args[1]));
-    builtins.set(
-      'divide',
-      (args): HoloScriptValue => (Number(args[1]) !== 0 ? Number(args[0]) / Number(args[1]) : 0)
-    );
-    builtins.set('mod', (args): HoloScriptValue => Number(args[0]) % Number(args[1]));
-    builtins.set('abs', (args): HoloScriptValue => Math.abs(Number(args[0])));
-    builtins.set('floor', (args): HoloScriptValue => Math.floor(Number(args[0])));
-    builtins.set('ceil', (args): HoloScriptValue => Math.ceil(Number(args[0])));
-    builtins.set('round', (args): HoloScriptValue => Math.round(Number(args[0])));
-    builtins.set('min', (args): HoloScriptValue => Math.min(...args.map(Number)));
-    builtins.set('max', (args): HoloScriptValue => Math.max(...args.map(Number)));
-    builtins.set('random', (): HoloScriptValue => Math.random());
-
-    // String functions
-    builtins.set('concat', (args): HoloScriptValue => args.map(String).join(''));
-    builtins.set('length', (args): HoloScriptValue => {
-      const val = args[0];
-      if (typeof val === 'string') return val.length;
-      if (Array.isArray(val)) return val.length;
-      return 0;
-    });
-    builtins.set(
-      'substring',
-      (args): HoloScriptValue => String(args[0]).substring(Number(args[1]), Number(args[2]))
-    );
-
-    builtins.set('wait', async (args): Promise<HoloScriptValue> => {
-      const ms = Number(args[0]) || 0;
-      await new Promise((resolve) => setTimeout(resolve, ms));
-      return { waited: ms };
-    });
-
-    builtins.set('print', (args): HoloScriptValue => {
-      console.log(`[HoloScript]`, ...args);
-      return { printed: args.join(' ') };
-    });
-    builtins.set('uppercase', (args): HoloScriptValue => String(args[0]).toUpperCase());
-    builtins.set('lowercase', (args): HoloScriptValue => String(args[0]).toLowerCase());
-
-    // Array functions
-    builtins.set('push', (args): HoloScriptValue => {
-      const arr = args[0];
-      if (Array.isArray(arr)) {
-        (arr as HoloScriptValue[]).push(args[1]);
-        return arr;
-      }
-      return [args[0], args[1]];
-    });
-    builtins.set('pop', (args): HoloScriptValue => {
-      const arr = args[0];
-      if (Array.isArray(arr)) return arr.pop();
-      return undefined;
-    });
-    builtins.set('at', (args): HoloScriptValue => {
-      const arr = args[0];
-      const index = Number(args[1]);
-      if (Array.isArray(arr)) return arr[index];
-      return undefined;
-    });
-
-    builtins.set('showSettings', (): HoloScriptValue => {
-      this.emit('show-settings');
-      return true as HoloScriptValue;
-    });
-
-    builtins.set('openChat', (args): HoloScriptValue => {
-      const config = args[0] || {};
-      this.emit('show-chat', config);
-      return true as HoloScriptValue;
-    });
-
-    // Console/Debug
-    builtins.set('log', (args): HoloScriptValue => {
-      logger.info('HoloScript log', { args });
-      return args[0];
-    });
-    builtins.set('print', (args): HoloScriptValue => {
-      const message = args.map(String).join(' ');
-      logger.info('print', { message });
-      return message;
-    });
-
-    // Type checking
-    builtins.set('typeof', (args): HoloScriptValue => typeof args[0]);
-    builtins.set('isArray', (args): HoloScriptValue => Array.isArray(args[0]));
-    builtins.set(
-      'isNumber',
-      (args): HoloScriptValue => typeof args[0] === 'number' && !isNaN(args[0])
-    );
-    builtins.set('isString', (args): HoloScriptValue => typeof args[0] === 'string');
-
-    // New Primitives
-    // W1-T4 slice 8: primitive handlers extracted to ./runtime/primitives
-    // emit is threaded in as a fire-and-forget callback (matches pre-extraction)
-    const emitFn = (event: string, data?: unknown): void => {
-      void this.emit(event, data);
+  /** Construct a BuiltinsContext bound to this runtime. (Slice 28) */
+  private buildBuiltinsContext(): BuiltinsContext {
+    return {
+      uiElements: this.uiElements,
+      hologramState: this.context.hologramState,
+      spatialMemory: this.context.spatialMemory,
+      animations: this.animations,
+      variables: this.context.variables,
+      templates: this.context.templates as unknown as Map<string, TemplateNode>,
+      executionStack: this.context.executionStack,
+      agentRuntimes: this.agentRuntimes,
+      createParticleEffect: (name, position, color, count) =>
+        this.createParticleEffect(name, position, color, count),
+      createConnectionStream: (from, to, fromPos, toPos, dataType) =>
+        this.createConnectionStream(from, to, fromPos, toPos, dataType),
+      emit: (event, data) => this.emit(event, data),
+      setVariable: (name, value) => this.setVariable(name, value),
+      getVariable: (name) => this.getVariable(name),
+      executeOrb: (orbNode) => executeOrbPure(orbNode, this.buildOrbExecutorContext()),
+      calculateArc: (args) => this.handleCalculateArc(args),
     };
-    builtins.set('shop', (args) => handleShopPure(args, emitFn));
-    builtins.set('inventory', (args) => handleInventoryPure(args, emitFn));
-    builtins.set('purchase', (args) => handlePurchasePure(args, emitFn));
-    builtins.set('presence', (args) => handlePresencePure(args, emitFn));
-    builtins.set('invite', (args) => handleInvitePure(args, emitFn));
-    builtins.set('share', (args) => handleSharePure(args, emitFn));
-    builtins.set('physics', (args) => handlePhysicsPure(args, emitFn));
-    builtins.set('gravity', (args) => handleGravityPure(args, emitFn));
-    builtins.set('collide', (args) => handleCollidePure(args, emitFn));
-    builtins.set('animate', (args) => handleAnimatePure(args, emitFn));
-    builtins.set('calculate_arc', (args) => this.handleCalculateArc(args));
-    builtins.set(
-      'sleep',
-      (args) => new Promise((resolve) => setTimeout(resolve, Number(args[0]) || 0))
-    );
-    builtins.set('think', async (args) => {
-      const activeNode = this.context.executionStack[this.context.executionStack.length - 1];
-      if (!activeNode) return 'No context';
-      const agentId = (activeNode as unknown as Record<string, unknown>).name as string;
-      const agentRuntime = this.agentRuntimes.get(agentId);
-      if (agentRuntime) {
-        return await agentRuntime.think(String(args[0] || ''));
-      }
-      return 'Thinking only available for agents.';
-    });
-
-    return builtins;
   }
+
+  /**
+   * Initialize built-in functions (W1-T4 slice 28: impl extracted to
+   * ./runtime/builtins-registry). Thin wrapper that constructs the
+   * context bag + delegates to createBuiltinsMap.
+   */
+  private initBuiltins(
+    customFunctions?: Record<string, BuiltinFn>,
+  ): Map<string, BuiltinFn> {
+    return createBuiltinsMap(this.buildBuiltinsContext(), customFunctions);
+  }
+
 
   /**
    * Register a global function from an extension
