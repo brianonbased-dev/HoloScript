@@ -67,6 +67,8 @@ import {
   executeMemoryDefinition as executeMemoryDefinitionPure,
   type DeclarationContext,
 } from './runtime/declaration-executors';
+// W1-T4 slice 34: node-type dispatch registry replaces the 225-LOC switch
+import { dispatchNode } from './runtime/node-type-registry';
 // W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
 import {
   handleShop as handleShopPure,
@@ -504,219 +506,22 @@ export class HoloScriptRuntime {
   }
 
   /**
-   * Execute a single AST node
+   * Execute a single AST node.
+   *
+   * W1-T4 slice 34: the 225-LOC switch that used to live here is now a
+   * Map<nodeType, handler> in ./runtime/node-type-registry. This method
+   * keeps only the bookkeeping (executionStack push/pop, executionHistory
+   * append, startTime/executionTime, error catch) — dispatch is a table
+   * lookup. Adding a new node type is a one-line registry entry.
    */
   async executeNode(node: ASTNode): Promise<ExecutionResult> {
     const startTime = Date.now();
     try {
       this.context.executionStack.push(node);
-
-      let result: ExecutionResult;
-
-      const nodeType = (node as unknown as Record<string, unknown>).type as string;
-      switch (nodeType) {
-        case 'orb':
-        case 'object':
-          result = await executeOrbPure(node as OrbNode, this.buildOrbExecutorContext());
-          break;
-        // W1-T4 slice 15: narrative executors extracted — dispatched inline
-        case 'narrative':
-          result = await executeNarrativePure(node as NarrativeNode, this.buildNarrativeContext());
-          break;
-        case 'quest':
-          result = await executeQuestPure(node as QuestNode, this.buildNarrativeContext());
-          break;
-        case 'dialogue':
-          result = await executeDialoguePure(node as DialogueNode, this.buildNarrativeContext());
-          break;
-        case 'visual_metadata':
-          result = await executeVisualMetadataPure(node as VisualMetadataNode);
-          break;
-        case 'method':
-        case 'function':
-          result = await executeFunctionPure(node as MethodNode, this.buildGraphExecutorContext());
-          break;
-        case 'connection':
-          result = await executeConnectionPure(node as ConnectionNode, this.buildGraphExecutorContext());
-          break;
-        case 'gate':
-          result = await executeGatePure(node as GateNode, this.buildGraphExecutorContext());
-          break;
-        case 'stream':
-          result = await executeStreamPure(node as StreamNode, this.buildGraphExecutorContext());
-          break;
-        case 'call':
-          result = await executeCallPure(
-            node as ASTNode & { target?: string; args?: unknown[] },
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'debug':
-          result = await this.executeDebug(node);
-          break;
-        case 'visualize':
-          result = await executeVisualizePure(node, this.buildInfoExecutorContext());
-          break;
-        case '2d-element':
-          result = await executeUIElementPure(node as unknown as UI2DNode, this.buildInfoExecutorContext());
-          break;
-        case 'nexus':
-        case 'building':
-          result = await executeStructurePure(node);
-          break;
-        case 'assignment':
-          result = await executeAssignmentPure(
-            node as ASTNode & { name: string; value: unknown },
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'return':
-          result = await executeReturnPure(
-            node as ASTNode & { value: unknown },
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'memory':
-          result = await this.executeMemory(node as import('./types').MemoryNode);
-          break;
-        case 'semantic-memory':
-        case 'episodic-memory':
-        case 'procedural-memory':
-          result = await this.executeMemoryDefinition(
-            node as
-              | import('./types').SemanticMemoryNode
-              | import('./types').EpisodicMemoryNode
-              | import('./types').ProceduralMemoryNode
-          );
-          break;
-        case 'generic':
-          result = await this.executeGeneric(node);
-          break;
-        case 'expression-statement':
-          result = await executeExpressionStatementPure(
-            node as ASTNode & { expression: string },
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'scale':
-          result = await executeScalePure(node as ScaleNode, this.buildSimpleExecutorContext());
-          break;
-        case 'focus':
-          result = await executeFocusPure(node as FocusNode, this.buildSimpleExecutorContext());
-          break;
-        case 'environment':
-          result = await executeEnvironmentPure(
-            node as EnvironmentNode,
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'composition':
-        case 'Composition':
-          if (node.type === 'Composition') {
-            result = await executeHoloCompositionPure(
-              node as unknown as HoloComposition,
-              this.buildHoloCompositionContext(),
-            );
-          } else {
-            result = await executeCompositionPure(
-              node as CompositionNode,
-              this.buildSimpleExecutorContext(),
-            );
-          }
-          break;
-        case 'template':
-        case 'Template':
-          if (node.type === 'Template') {
-            result = await executeHoloTemplatePure(
-              node as unknown as { name: string } & Record<string, unknown>,
-              this.buildSimpleExecutorContext(),
-            );
-          } else {
-            result = await this.executeTemplate(node as TemplateNode);
-          }
-          break;
-        case 'migration':
-          // Migration nodes are usually inside templates, but if executed directly, skip or log
-          result = { success: true, output: 'Migration block registered' };
-          break;
-        case 'server':
-          result = await this.executeServerNode(node as ServerNode);
-          break;
-        case 'database':
-          result = await this.executeDatabaseNode(node as DatabaseNode);
-          break;
-        case 'fetch':
-          result = await this.executeFetchNode(node as FetchNode);
-          break;
-        case 'execute':
-          result = await this.executeTarget(node as ExecuteNode);
-          break;
-        case 'state-declaration':
-          result = await this.executeStateDeclaration(
-            node as ASTNode & {
-              directives?: import('./types/AdvancedTypeSystem').HSPlusDirective[];
-            }
-          );
-          break;
-        case 'state-machine':
-          result = await executeStateMachinePure(
-            node as StateMachineNode,
-            this.buildSimpleExecutorContext(),
-          );
-          break;
-        case 'system':
-          result = await executeSystemPure(node as SystemNode);
-          break;
-        case 'core_config':
-          result = await executeCoreConfigPure(
-            node as CoreConfigNode,
-            this.context.environment as Record<string, HoloScriptValue>,
-          );
-          break;
-        case 'for':
-          result = await this.executeForLoop(
-            node as ASTNode & { variable: string; iterable: string | unknown; body: ASTNode[] }
-          );
-          break;
-        case 'forEach':
-          result = await this.executeForEachLoop(
-            node as ASTNode & { variable: string; collection: string | unknown; body: ASTNode[] }
-          );
-          break;
-        case 'while':
-          result = await this.executeWhileLoop(
-            node as ASTNode & { condition: string | unknown; body: ASTNode[] }
-          );
-          break;
-        case 'if':
-          result = await this.executeIfStatement(
-            node as ASTNode & { condition: string | unknown; body: ASTNode[]; elseBody?: ASTNode[] }
-          );
-          break;
-        case 'match':
-          result = await this.executeMatch(
-            node as ASTNode & {
-              subject: string | unknown;
-              cases: Array<{
-                pattern: string | unknown;
-                guard?: string | unknown;
-                body: ASTNode[] | unknown;
-              }>;
-            }
-          );
-          break;
-        default:
-          result = {
-            success: false,
-            error: `Unknown node type: ${node.type}`,
-            executionTime: Date.now() - startTime,
-          };
-      }
-
+      const result = await dispatchNode(node, this);
       result.executionTime = Date.now() - startTime;
       this.executionHistory.push(result);
       this.context.executionStack.pop();
-
       return result;
     } catch (error) {
       const execTime = Date.now() - startTime;
@@ -725,10 +530,8 @@ export class HoloScriptRuntime {
         error: error instanceof Error ? error.message : String(error),
         executionTime: execTime,
       };
-
       this.executionHistory.push(errorResult);
       this.context.executionStack.pop();
-
       return errorResult;
     }
   }
