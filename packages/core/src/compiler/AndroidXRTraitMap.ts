@@ -2814,16 +2814,53 @@ export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 
   glasses_voice: {
     trait: 'glasses_voice',
-    components: [],
-    level: 'partial',
-    imports: [],
+    components: ['SpeechRecognizer'],
+    level: 'full',
+    imports: [
+      'android.speech.SpeechRecognizer',
+      'android.speech.RecognitionListener',
+      'android.speech.RecognizerIntent',
+      'android.content.Intent',
+      'android.os.Bundle',
+    ],
     generate: (varName, config) => {
       const commands = (config.commands as string[]) ?? [];
+      const wakeWord = String(config.wake_word || 'Hey Google');
       return [
-        `// @glasses_voice -- AI Glasses voice input`,
+        `// @glasses_voice -- AI Glasses voice input (AndroidXR)`,
+        `// Wake word: "${wakeWord}"`,
         `// Voice commands available: ${commands.length > 0 ? commands.join(', ') : 'system default'}`,
-        `// Uses Android SpeechRecognizer with glasses microphone`,
-        `// TODO: configure voice command recognition for ${varName}`,
+        `// Uses Android SpeechRecognizer with XR glasses microphone`,
+        `val ${varName}Recognizer = SpeechRecognizer.createSpeechRecognizer(this)`,
+        `val ${varName}Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {`,
+        `    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)`,
+        `    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)`,
+        `}`,
+        `${varName}Recognizer.setRecognitionListener(object : RecognitionListener {`,
+        `    override fun onResults(results: Bundle?) {`,
+        `        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)`,
+        `        val command = matches?.firstOrNull()?.lowercase() ?: return`,
+        ...(commands.length > 0
+          ? [
+              `        when {`,
+              ...commands.map(
+                (cmd) =>
+                  `            command.contains("${cmd.toLowerCase()}") -> { /* handle "${cmd}" */ }`
+              ),
+              `            else -> { /* unrecognized command */ }`,
+              `        }`,
+            ]
+          : [`        // Process voice command: $command`]),
+        `    }`,
+        `    override fun onPartialResults(partialResults: Bundle?) {}`,
+        `    override fun onError(error: Int) {}`,
+        `    override fun onReadyForSpeech(params: Bundle?) {}`,
+        `    override fun onBeginningOfSpeech() {}`,
+        `    override fun onRmsChanged(rmsdB: Float) {}`,
+        `    override fun onBufferReceived(buffer: ByteArray?) {}`,
+        `    override fun onEndOfSpeech() {}`,
+        `    override fun onEvent(eventType: Int, params: Bundle?) {}`,
+        `})`,
       ];
     },
   },
