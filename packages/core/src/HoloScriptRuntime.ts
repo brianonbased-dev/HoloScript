@@ -40,6 +40,19 @@ import {
   broadcast as broadcastPure,
   handleTimeControl as handleTimeControlPure,
 } from './runtime/visualizer-server';
+// W1-T4 slice 8: primitive command handlers extracted to ./runtime/primitives
+import {
+  handleShop as handleShopPure,
+  handleInventory as handleInventoryPure,
+  handlePurchase as handlePurchasePure,
+  handlePresence as handlePresencePure,
+  handleInvite as handleInvitePure,
+  handleShare as handleSharePure,
+  handlePhysics as handlePhysicsPure,
+  handleGravity as handleGravityPure,
+  handleCollide as handleCollidePure,
+  handleAnimate as handleAnimatePure,
+} from './runtime/primitives';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -580,16 +593,21 @@ export class HoloScriptRuntime {
     builtins.set('isString', (args): HoloScriptValue => typeof args[0] === 'string');
 
     // New Primitives
-    builtins.set('shop', (args) => this.handleShop(args));
-    builtins.set('inventory', (args) => this.handleInventory(args));
-    builtins.set('purchase', (args) => this.handlePurchase(args));
-    builtins.set('presence', (args) => this.handlePresence(args));
-    builtins.set('invite', (args) => this.handleInvite(args));
-    builtins.set('share', (args) => this.handleShare(args));
-    builtins.set('physics', (args) => this.handlePhysics(args));
-    builtins.set('gravity', (args) => this.handleGravity(args));
-    builtins.set('collide', (args) => this.handleCollide(args));
-    builtins.set('animate', (args) => this.handleAnimate(args));
+    // W1-T4 slice 8: primitive handlers extracted to ./runtime/primitives
+    // emit is threaded in as a fire-and-forget callback (matches pre-extraction)
+    const emitFn = (event: string, data?: unknown): void => {
+      void this.emit(event, data);
+    };
+    builtins.set('shop', (args) => handleShopPure(args, emitFn));
+    builtins.set('inventory', (args) => handleInventoryPure(args, emitFn));
+    builtins.set('purchase', (args) => handlePurchasePure(args, emitFn));
+    builtins.set('presence', (args) => handlePresencePure(args, emitFn));
+    builtins.set('invite', (args) => handleInvitePure(args, emitFn));
+    builtins.set('share', (args) => handleSharePure(args, emitFn));
+    builtins.set('physics', (args) => handlePhysicsPure(args, emitFn));
+    builtins.set('gravity', (args) => handleGravityPure(args, emitFn));
+    builtins.set('collide', (args) => handleCollidePure(args, emitFn));
+    builtins.set('animate', (args) => handleAnimatePure(args, emitFn));
     builtins.set('calculate_arc', (args) => this.handleCalculateArc(args));
     builtins.set(
       'sleep',
@@ -2207,73 +2225,14 @@ export class HoloScriptRuntime {
   }
 
   // ==========================================================================
-  // COMMERCE PRIMITIVES
+  // COMMERCE / SOCIAL / PHYSICS / ANIMATION PRIMITIVES
+  // (W1-T4 slice 8: extracted to ./runtime/primitives, registered
+  //  inline in initBuiltins via emit-injection — no wrappers needed)
+  //
+  // handleCalculateArc (below) stays — it's structured differently
+  // from the emit-pattern primitives: it does real math via
+  // calculateArc (slice 2), not an event dispatch.
   // ==========================================================================
-
-  private handleShop(args: HoloScriptValue[]): HoloScriptValue {
-    const config = args[0] || {};
-    this.emit('shop', config);
-    return { success: true, type: 'shop', config };
-  }
-
-  private handleInventory(args: HoloScriptValue[]): HoloScriptValue {
-    const item = args[0];
-    const action = args[1] || 'add';
-    this.emit('inventory', { item, action });
-    return { success: true, item, action };
-  }
-
-  private handlePurchase(args: HoloScriptValue[]): HoloScriptValue {
-    const productId = args[0];
-    this.emit('purchase', { productId });
-    return { success: true, productId, status: 'pending' };
-  }
-
-  // ==========================================================================
-  // SOCIAL PRIMITIVES
-  // ==========================================================================
-
-  private handlePresence(args: HoloScriptValue[]): HoloScriptValue {
-    const config = args[0] || {};
-    this.emit('presence', config);
-    return { success: true, active: true };
-  }
-
-  private handleInvite(args: HoloScriptValue[]): HoloScriptValue {
-    const userId = args[0];
-    this.emit('invite', { userId });
-    return { success: true, userId };
-  }
-
-  private handleShare(args: HoloScriptValue[]): HoloScriptValue {
-    const scriptId = args[0];
-    const targetUserId = args[1];
-    this.emit('share', { scriptId, targetUserId });
-    return { success: true, scriptId };
-  }
-
-  // ==========================================================================
-  // PHYSICS PRIMITIVES
-  // ==========================================================================
-
-  private handlePhysics(args: HoloScriptValue[]): HoloScriptValue {
-    const config = args[0] || {};
-    this.emit('physics', config);
-    return { success: true, enabled: (config as Record<string, unknown>).enabled !== false };
-  }
-
-  private handleGravity(args: HoloScriptValue[]): HoloScriptValue {
-    const value = args[0] ?? 9.81;
-    this.emit('gravity', { value });
-    return { success: true, value };
-  }
-
-  private handleCollide(args: HoloScriptValue[]): HoloScriptValue {
-    const target = args[0];
-    const handler = args[1];
-    this.emit('collide', { target, handler });
-    return { success: true, target };
-  }
 
   /**
    * Handle calculate_arc(start, end, speed)
@@ -2285,12 +2244,6 @@ export class HoloScriptRuntime {
     const end = args[1] as SpatialPosition;
     const speed = args[2] as number;
     return calculateArc(start, end, speed);
-  }
-
-  private handleAnimate(args: HoloScriptValue[]): HoloScriptValue {
-    const options = args[0] || {};
-    this.emit('animate', options);
-    return { success: true, options };
   }
 
   // ============================================================================
