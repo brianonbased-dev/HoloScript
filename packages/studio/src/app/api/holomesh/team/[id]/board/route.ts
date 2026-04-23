@@ -13,6 +13,25 @@ const HOLOMESH_API_URL =
 const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const STALE_CLAIM_MS = 30 * 60 * 1000; // 30 minutes
 
+async function fetchDoneCount(teamId: string): Promise<number | null> {
+  try {
+    const headers: Record<string, string> = {};
+    if (HOLOMESH_API_KEY) headers.Authorization = `Bearer ${HOLOMESH_API_KEY}`;
+
+    const res = await fetch(
+      `${HOLOMESH_API_URL}/api/holomesh/team/${teamId}/board/done?limit=1&offset=0`,
+      { headers }
+    );
+    if (!res.ok) return null;
+
+    const json = (await res.json()) as { count?: unknown };
+    const count = typeof json.count === 'number' ? json.count : Number(json.count);
+    return Number.isFinite(count) ? count : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -71,12 +90,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const claimed = rows.filter((r) => r.status === 'claimed');
         const blocked = rows.filter((r) => r.status === 'blocked');
         const done = rows.filter((r) => r.status === 'done');
+        const doneCount = await fetchDoneCount(id);
         return NextResponse.json({
           success: true,
           source: 'db',
           expired: staleIds.length > 0 ? staleIds : undefined,
           board: { open, claimed, blocked },
-          done: { total: done.length, recent: done.slice(0, 10) },
+          done: { total: doneCount ?? done.length, recent: done.slice(0, 10) },
         });
       }
     }

@@ -108,6 +108,25 @@ describe('GET /api/holomesh/team/[id]/board', () => {
     expect(proxyMock).not.toHaveBeenCalled();
   });
 
+  it('uses /board/done count as authoritative done.total when DB rows exist', async () => {
+    const rows = [
+      { id: 'task1', status: 'open', priority: 2, syncedAt: new Date() },
+      { id: 'task2', status: 'done', priority: 1, syncedAt: new Date() },
+    ];
+    getDbMock.mockReturnValue(makeDb(rows));
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ count: 756, entries: [] }),
+    } as unknown as Response);
+
+    const res = await boardGET(makeReq(), teamParam());
+    const body = await res.json();
+
+    expect(body.source).toBe('db');
+    expect(body.done.total).toBe(756);
+    expect(body.done.recent).toHaveLength(1);
+  });
+
   it('auto-expires stale claimed tasks (> 30 min)', async () => {
     const staleDate = new Date(Date.now() - 35 * 60 * 1000); // 35 min ago
     const rows = [
