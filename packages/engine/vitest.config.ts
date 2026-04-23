@@ -48,7 +48,6 @@ const QUARANTINED_TESTS: string[] = [
   'src/traits/__tests__/EmotionalVoiceTrait.prod.test.ts',
   'src/traits/__tests__/MQTTSinkTrait.prod.test.ts',
   'src/traits/__tests__/NetworkedAvatarTrait.prod.test.ts',
-  'src/traits/__tests__/NetworkedAvatarTrait.test.ts',
   'src/traits/__tests__/OrbitalTrait.prod.test.ts',
 
   // ── CLASS D: Browser/WebGPU-only ─────────────────────────────────────────
