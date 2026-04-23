@@ -27,7 +27,6 @@ const QUARANTINED_TESTS: string[] = [
   'src/physics/__tests__/ClothSim.prod.test.ts',           // 5/19 fail, particle motion broken
   'src/physics/__tests__/ClothSim.test.ts',                // covered by ClothSim.prod above
   'src/physics/__tests__/PBDSolverCPU.integration.test.ts',// PBD solver regression
-  'src/physics/__tests__/PIDController.test.ts',           // 4/73 fail, stepSingle returns undefined components
   'src/physics/__tests__/TriggerZone.test.ts',             // 7/11 fail, getZonesForEntity returns empty
   'src/physics/__tests__/VRPhysicsBridge.prod.test.ts',    // 8/10 fail, VR bridge source regression
   'src/physics/__tests__/VRPhysicsBridge.test.ts',         // VR bridge test

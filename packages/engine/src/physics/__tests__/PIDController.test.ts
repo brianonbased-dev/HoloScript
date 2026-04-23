@@ -115,8 +115,8 @@ describe('Vector3Arithmetic', () => {
     const v: IVector3 = [1, 2, 3 ];
     const c = Vector3Arithmetic.clone(v);
     expect(c).toEqual(v);
-    c.x = 99;
-    expect(v.x).toBe(1); // Original unchanged
+    c[0] = 99;
+    expect(v[0]).toBe(1); // Original unchanged
   });
 });
 
@@ -594,20 +594,18 @@ describe('PIDController<IVector3> (Vector3)', () => {
   it('should produce vector output', () => {
     controller.setSetpoint([10, 0, 0 ]);
     const output = controller.step([0, 0, 0 ], 0.02);
-    expect(output).toHaveProperty('x');
-    expect(output).toHaveProperty('y');
-    expect(output).toHaveProperty('z');
+    expect(output).toHaveLength(3);
     // X component should be non-zero (driving toward setpoint)
-    expect(output.x).not.toBe(0);
+    expect(output[0]).not.toBe(0);
   });
 
   it('should handle multi-axis setpoints', () => {
     controller.setSetpoint([5, -3, 8 ]);
     const output = controller.step([0, 0, 0 ], 0.02);
     // All components should have some contribution
-    expect(Number.isFinite(output.x)).toBe(true);
-    expect(Number.isFinite(output.y)).toBe(true);
-    expect(Number.isFinite(output.z)).toBe(true);
+    expect(Number.isFinite(output[0])).toBe(true);
+    expect(Number.isFinite(output[1])).toBe(true);
+    expect(Number.isFinite(output[2])).toBe(true);
   });
 
   it('should report vector velocity magnitude', () => {
@@ -638,9 +636,9 @@ describe('PIDController<IVector3> (Vector3)', () => {
   it('should work with stepSingle for simple 3D control', () => {
     controller.setSetpoint([5, 5, 5 ]);
     const output = controller.stepSingle([0, 0, 0 ], 0.01);
-    expect(Number.isFinite(output.x)).toBe(true);
-    expect(Number.isFinite(output.y)).toBe(true);
-    expect(Number.isFinite(output.z)).toBe(true);
+    expect(Number.isFinite(output[0])).toBe(true);
+    expect(Number.isFinite(output[1])).toBe(true);
+    expect(Number.isFinite(output[2])).toBe(true);
   });
 });
 
