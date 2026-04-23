@@ -16,6 +16,8 @@
 
 import { logger } from './logger';
 import { WebSocketServer, WebSocket } from 'ws';
+// W1-T4 slice 1: pure easing helper extracted to ./runtime/easing
+import { applyEasing } from './runtime/easing';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
@@ -2232,8 +2234,8 @@ export class HoloScriptRuntime {
       const elapsed = now - anim.startTime;
       let progress = Math.min(elapsed / anim.duration, 1);
 
-      // Apply easing
-      progress = this.applyEasing(progress, anim.easing);
+      // Apply easing (W1-T4 slice 1: extracted to ./runtime/easing)
+      progress = applyEasing(progress, anim.easing);
 
       // Calculate current value
       const currentValue = anim.from + (anim.to - anim.from) * progress;
@@ -2443,26 +2445,6 @@ export class HoloScriptRuntime {
     const options = args[0] || {};
     this.emit('animate', options);
     return { success: true, options };
-  }
-
-  private applyEasing(t: number, easing: string): number {
-    switch (easing) {
-      case 'easeIn':
-        return t * t;
-      case 'easeOut':
-        return t * (2 - t);
-      case 'easeInOut':
-        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-      case 'easeInQuad':
-        return t * t;
-      case 'easeOutQuad':
-        return t * (2 - t);
-      case 'easeInOutQuad':
-        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-      case 'linear':
-      default:
-        return t;
-    }
   }
 
   // ============================================================================
