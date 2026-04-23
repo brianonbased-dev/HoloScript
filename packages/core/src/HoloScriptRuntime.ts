@@ -24,6 +24,7 @@ import { calculateArc } from './runtime/physics-math';
 // W1-T4 slice 3: condition evaluator extracted to ./runtime/condition-evaluator
 import { evaluateCondition as evaluateConditionPure } from './runtime/condition-evaluator';
 // W1-T4 slice 4: particle effects extracted to ./runtime/particle-effects
+// W1-T4 slice 14: updateParticles added to same module
 import {
   getDataTypeColor as getDataTypeColorPure,
   createParticleEffect as createParticleEffectPure,
@@ -31,6 +32,7 @@ import {
   createFlowingStream as createFlowingStreamPure,
   createExecutionEffect as createExecutionEffectPure,
   createDataVisualization as createDataVisualizationPure,
+  updateParticles as updateParticlesPure,
 } from './runtime/particle-effects';
 // W1-T4 slice 5: transformation ops extracted to ./runtime/transformation
 import { applyTransformation as applyTransformationPure } from './runtime/transformation';
@@ -2384,18 +2386,12 @@ export class HoloScriptRuntime {
     return new Map(this.particleSystems);
   }
 
+  /**
+   * Advance all particle systems by deltaTime.
+   * (W1-T4 slice 14: impl extracted to ./runtime/particle-effects)
+   */
   updateParticles(deltaTime: number): void {
-    for (const [name, system] of this.particleSystems) {
-      system.lifetime -= deltaTime;
-      system.particles.forEach((particle) => {
-        particle[0] += (Math.random() - 0.5) * system.speed;
-        particle[1] += (Math.random() - 0.5) * system.speed;
-        particle[2] += (Math.random() - 0.5) * system.speed;
-      });
-      if (system.lifetime <= 0) {
-        this.particleSystems.delete(name);
-      }
-    }
+    updateParticlesPure(this.particleSystems, deltaTime);
   }
 
   getContext(): RuntimeContext {

@@ -208,6 +208,31 @@ export function createExecutionEffect(
 }
 
 /**
+ * Advance all particle systems by `deltaTime` ms. Jitters each
+ * particle by ±0.5 × speed per axis and decrements lifetime.
+ * Systems whose lifetime drops to ≤ 0 are removed from the Map.
+ *
+ * Called every frame by the host when visualizer is active.
+ * Mutates `particleSystems` in place.
+ */
+export function updateParticles(
+  particleSystems: Map<string, ParticleSystem>,
+  deltaTime: number,
+): void {
+  for (const [name, system] of particleSystems) {
+    system.lifetime -= deltaTime;
+    system.particles.forEach((particle) => {
+      particle[0] += (Math.random() - 0.5) * system.speed;
+      particle[1] += (Math.random() - 0.5) * system.speed;
+      particle[2] += (Math.random() - 0.5) * system.speed;
+    });
+    if (system.lifetime <= 0) {
+      particleSystems.delete(name);
+    }
+  }
+}
+
+/**
  * Create a data-visualization particle effect. Count is based on
  * data shape: arrays → min(length, 100); objects → min(keys × 5, 50);
  * primitives → fixed default.
