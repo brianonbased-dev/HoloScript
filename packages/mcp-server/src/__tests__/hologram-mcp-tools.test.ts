@@ -166,6 +166,121 @@ describe('hologram mcp tools', () => {
     });
   });
 
+  // Matrix gap: .ai-ecosystem/scripts/hologram-reliability-matrix.json
+  //   id=malformed-media-input (abuse-path, high severity)
+  //   match="malformed media payload" — keep this literal string in place
+  //   below so the matrix checker flips `actual` from gap → covered.
+  //
+  // The contract under test: when a caller hands us a syntactically-invalid
+  // media/depth payload (base64 with non-alphabet bytes, a data: URL that
+  // lacks a valid `;base64,<payload>` section, an empty-MIME data: URL, or
+  // garbage bytes inside an inline data: URL), the MCP tool layer must
+  // refuse the input with an explicit error — never silently forward it
+  // to the worker or the local renderer. A malformed media payload that
+  // slips through would either crash the Playwright renderer with a
+  // confusing decode error, or get written to a bundle as an unreadable
+  // artifact. Catching it at the composition boundary is the cheapest
+  // place in the pipeline.
+  describe('rejects malformed media payload before send/render', () => {
+    it('rejects holo_hologram_from_media when sourceBase64 contains non-base64 bytes', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          sourceBase64: '!!!this is not base64!!!',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_from_media when sourceBase64 contains unicode', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          // Mojibake / utf-8 bytes that Node sometimes produces when a
+          // caller forgets to base64-encode their buffer.
+          sourceBase64: 'café☕️binary',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_from_media when source is a data: URL with empty MIME', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          source: 'data:;base64,AAAA',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_from_media when source is a data: URL with no base64 payload', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          // Valid MIME, `;base64,` present but payload after comma is empty.
+          source: 'data:image/png;base64,',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_from_media when inline data: URL carries non-base64 bytes', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          source: 'data:image/png;base64,!!!not-base64***',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_compile_quilt before worker call when base64 is malformed', async () => {
+      workerConfiguredMock.mockReturnValue(true);
+
+      await expect(
+        handleHologramTool('holo_hologram_compile_quilt', {
+          mediaType: 'image',
+          sourceBase64: '*** not base64 ***',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+
+      // Critical: the worker must NOT be called for a malformed payload —
+      // this is the "before send/render" contract the reliability matrix
+      // asserts (id=malformed-media-input).
+      expect(callWorkerMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects holo_hologram_render before worker/bundle call when base64 is malformed', async () => {
+      workerConfiguredMock.mockReturnValue(true);
+
+      await expect(
+        handleHologramTool('holo_hologram_render', {
+          mediaType: 'image',
+          sourceBase64: 'spaces and !!! punctuation ???',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+
+      expect(callWorkerMock).not.toHaveBeenCalled();
+      expect(renderHologramBundleMock).not.toHaveBeenCalled();
+    });
+
+    it('accepts valid base64 alphabet (RFC 4648) after rejecting malformed siblings', async () => {
+      // Sanity: we are not over-rejecting — a well-formed base64 string
+      // with every character class (A-Z a-z 0-9 + / and trailing =) flows
+      // through without hitting the malformed-media-payload guard.
+      const ok = (await handleHologramTool('holo_hologram_from_media', {
+        mediaType: 'image',
+        sourceBase64: 'AbCd0123+/Ef==',
+      })) as Record<string, unknown>;
+      expect(ok.ok).toBe(true);
+      expect(ok.source).toBe('data:image/png;base64,AbCd0123+/Ef==');
+    });
+
+    it('accepts URL-safe base64 alphabet (- and _)', async () => {
+      const ok = (await handleHologramTool('holo_hologram_from_media', {
+        mediaType: 'image',
+        sourceBase64: 'AbCd-_0123',
+      })) as Record<string, unknown>;
+      expect(ok.ok).toBe(true);
+    });
+  });
+
   it('generates .holo composition from image input', async () => {
     const result = (await handleHologramTool('holo_hologram_from_media', {
       mediaType: 'image',

@@ -49,10 +49,59 @@ function assertBase64WithinLimit(b64: string): void {
   }
 }
 
+/**
+ * Reject obviously-invalid base64 before we build a data: URL or forward bytes
+ * to the worker. This is intentionally conservative: we accept the RFC 4648
+ * base64 alphabet (A–Z, a–z, 0–9, +, /) plus the URL-safe variant (-, _), and
+ * tolerate trailing `=` padding plus inline whitespace. Anything else (e.g.
+ * `"!!!not base64!!!"`, ASCII control chars, unicode, null) is refused with
+ * an explicit "malformed media payload" error instead of silently flowing
+ * into the worker as a broken data: URL.
+ *
+ * Source gap: .ai-ecosystem/scripts/hologram-reliability-matrix.json
+ * (id: malformed-media-input — abuse-path, high severity).
+ */
+const BASE64_RE = /^[A-Za-z0-9+/\-_]+=*$/;
+
+function assertBase64WellFormed(b64: string): void {
+  if (b64.length === 0) {
+    // Empty-string branch is handled by resolveCompositionSource which throws
+    // "one of source, sourceUrl, or sourceBase64 is required"; don't shadow it.
+    return;
+  }
+  const stripped = b64.replace(/\s+/g, '');
+  if (stripped.length === 0 || !BASE64_RE.test(stripped)) {
+    throw new Error(
+      'hologram: malformed media payload — sourceBase64 contains non-base64 characters (RFC 4648 alphabet A-Z a-z 0-9 + / = or URL-safe - _ only)',
+    );
+  }
+}
+
 function assertInlineSourceWithinLimit(source: string): void {
   if (!source.startsWith('data:')) return;
   const m = /^data:[^;]+;base64,(.+)$/i.exec(source);
-  if (m) assertBase64WithinLimit(m[1]);
+  if (m) {
+    assertBase64WithinLimit(m[1]);
+    assertBase64WellFormed(m[1]);
+    return;
+  }
+  // `data:` prefix but no `<mime>;base64,<payload>` shape — this is a malformed
+  // media payload (e.g. `data:;base64,xyz` with empty mime, or `data:image/png`
+  // with no payload). Reject with an explicit error rather than silently
+  // passing garbage into the composition / worker.
+  // The narrow exception is `data:<mime>` with NO `;base64,` section, which
+  // some existing callers pass as a composition-only source — that case is
+  // kept as a pass-through in the non-base64 branch below.
+  if (/^data:[^;]*;base64,?$/i.test(source)) {
+    throw new Error(
+      'hologram: malformed media payload — data: URL is missing a base64 payload after ";base64,"',
+    );
+  }
+  if (/^data:;base64,/i.test(source)) {
+    throw new Error(
+      'hologram: malformed media payload — data: URL has empty MIME type before ";base64,"',
+    );
+  }
 }
 
 type HoloProperty = { key: string; value: unknown };
@@ -265,6 +314,7 @@ function resolveCompositionSource(args: Record<string, unknown>, mediaType: Holo
   if (u) return u;
   if (b64) {
     assertBase64WithinLimit(b64);
+    assertBase64WellFormed(b64);
     const mime =
       mediaType === 'image' ? 'image/png' : mediaType === 'gif' ? 'image/gif' : 'video/mp4';
     return `data:${mime};base64,${b64}`;
@@ -279,6 +329,7 @@ async function buildWorkerMediaPayload(
   const b64Field = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
   if (b64Field) {
     assertBase64WithinLimit(b64Field);
+    assertBase64WellFormed(b64Field);
     return { sourceBase64: b64Field };
   }
 
@@ -294,7 +345,16 @@ async function buildWorkerMediaPayload(
     const m = /^data:[^;]+;base64,(.+)$/i.exec(s);
     if (m) {
       assertBase64WithinLimit(m[1]);
+      assertBase64WellFormed(m[1]);
       return { sourceBase64: m[1] };
+    }
+    // Malformed data: URL (no `<mime>;base64,<payload>` section). Surface an
+    // explicit error instead of falling through to the filesystem branch
+    // where `readFile('data:image/png')` would produce a misleading ENOENT.
+    if (/^data:[^;]*;base64,?$/i.test(s) || /^data:;base64,/i.test(s) || /^data:[^,;]*$/i.test(s)) {
+      throw new Error(
+        'hologram: malformed media payload — worker received a data: URL without a valid ";base64,<payload>" section',
+      );
     }
   }
 
