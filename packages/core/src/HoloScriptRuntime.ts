@@ -87,6 +87,11 @@ import {
   executeHoloObject as executeHoloObjectPure,
   type HoloObjectContext,
 } from './runtime/holo-object-executor';
+// W1-T4 slice 26: Orb executor extracted to ./runtime/orb-executor
+import {
+  executeOrb as executeOrbPure,
+  type OrbExecutorContext,
+} from './runtime/orb-executor';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -515,7 +520,7 @@ export class HoloScriptRuntime {
       }
 
       // Execute the newly created orb
-      await this.executeOrb(spawnNode);
+      await executeOrbPure(spawnNode, this.buildOrbExecutorContext());
 
       // If there's a parent, notify them of the mitosis event
       if (spawnConfig.parentId || spawnConfig.parent_id) {
@@ -757,7 +762,7 @@ export class HoloScriptRuntime {
       switch (nodeType) {
         case 'orb':
         case 'object':
-          result = await this.executeOrb(node as OrbNode);
+          result = await executeOrbPure(node as OrbNode, this.buildOrbExecutorContext());
           break;
         // W1-T4 slice 15: narrative executors extracted — dispatched inline
         case 'narrative':
@@ -1278,244 +1283,8 @@ export class HoloScriptRuntime {
   // Node Executors
   // ============================================================================
 
-  private async executeOrb(node: OrbNode): Promise<ExecutionResult> {
-    const scale = this.context.currentScale || 1;
-
-    // 1. STATE RECONCILIATION: Check for existing orb instance
-    const existingRaw = this.context.variables.get(node.name);
-    const existingOrb = isOrbData(existingRaw) ? existingRaw : undefined;
-    const isUpdate = !!existingOrb;
-
-    let pos: [number, number, number] = [0, 0, 0];
-    if (Array.isArray(node.position)) {
-      pos = [
-        Number(node.position[0]) || 0,
-        Number(node.position[1]) || 0,
-        Number(node.position[2]) || 0,
-      ];
-    } else if (node.position) {
-      pos = [
-        Number((node.position as any)[0]) || 0,
-        Number((node.position as any)[1]) || 0,
-        Number((node.position as any)[2]) || 0,
-      ];
-    }
-
-    const adjustedPos: [number, number, number] = [
-      pos[0] * scale,
-      pos[1] * scale,
-      pos[2] * scale,
-    ];
-
-    if (node.position) {
-      this.context.spatialMemory.set(node.name, adjustedPos);
-    }
-
-    // 2. PROPERTY EVALUATION
-    const evaluatedProperties: Record<string, HoloScriptValue> = {};
-
-    // Handle both Record (HS+ Type) and Array (HS Composition ObjectProperty)
-    if (Array.isArray(node.properties)) {
-      for (const prop of node.properties as Array<{ key: string; value: HoloScriptValue }>) {
-        const key = prop.key;
-        const val = prop.value;
-        if (typeof val === 'string') {
-          evaluatedProperties[key] = this.evaluateExpression(val);
-        } else {
-          evaluatedProperties[key] = val;
-        }
-      }
-    } else if (node.properties) {
-      for (const [key, val] of Object.entries(node.properties)) {
-        if (typeof val === 'string') {
-          evaluatedProperties[key] = this.evaluateExpression(val);
-        } else {
-          evaluatedProperties[key] = val;
-        }
-      }
-    }
-
-    // 3. TEMPLATE MERGING (Inherit properties from template)
-    const orbNodeExt = node as OrbNode & { template?: string };
-    if (orbNodeExt.template) {
-      const tpl = this.context.templates.get(orbNodeExt.template) as unknown as
-        | TemplateNode
-        | undefined;
-      if (tpl) {
-        // Merge template properties if not overridden by orb
-        if (tpl.properties) {
-          for (const [key, val] of Object.entries(tpl.properties)) {
-            if (evaluatedProperties[key] === undefined) {
-              if (typeof val === 'string') {
-                evaluatedProperties[key] = this.evaluateExpression(val);
-              } else {
-                evaluatedProperties[key] = val;
-              }
-            }
-          }
-        }
-
-        // Note: Template children/traits are handled via directives
-        if (tpl.directives) {
-          // Prepend template directives so orb directives can override if needed (though usually directives accumulate)
-          // Actually for things like @state, we might want unique processing.
-          // For now, simpler concatenation.
-          // Careful: node.directives might be undefined.
-          const existingDirectives = node.directives || [];
-          // We want template directives to be processed, but maybe orb directives take precedence?
-          // Directives are usually "actions" or "metadata". Accumulating them is standard.
-          node.directives = [...tpl.directives, ...existingDirectives];
-        }
-      }
-    }
-
-    const hologram = node.hologram
-      ? {
-          ...node.hologram,
-          size:
-            (node.hologram.size ||
-              Number(evaluatedProperties.size) ||
-              Number(evaluatedProperties.scale) ||
-              1) * scale,
-        }
-      : {
-          color: (evaluatedProperties.color as string) || '#ffffff',
-          size:
-            (Number(evaluatedProperties.size) || Number(evaluatedProperties.scale) || 1) * scale,
-          shape: (evaluatedProperties.geometry || 'sphere') as HologramShape,
-          glow: !!evaluatedProperties.glow,
-          interactive: !!evaluatedProperties.interactive,
-        };
-
-    // 4. MIGRATION LOGIC
-    if (isUpdate && node.template) {
-      const tpl = this.context.templates.get(node.template);
-      const oldTpl = existingOrb?._templateRef;
-
-      if (tpl && oldTpl && tpl.version !== undefined && oldTpl.version !== undefined) {
-        if (Number(tpl.version) > Number(oldTpl.version)) {
-          logger.info(
-            `Template version increase detected for ${node.name}: ${oldTpl.version} -> ${tpl.version}`
-          );
-
-          // Find applicable migrations
-          const migrations = tpl.migrations || [];
-          const migration = migrations.find((m) => m.fromVersion === Number(oldTpl.version));
-
-          if (migration) {
-            logger.info(`Executing migration from version ${oldTpl.version} for ${node.name}`);
-            await this.executeMigrationBlock(existingOrb, migration);
-          }
-        }
-      }
-    }
-
-    const orbData = isUpdate
-      ? existingOrb
-      : {
-          __type: 'orb',
-          id: node.name,
-          name: node.name,
-          created: Date.now(),
-          // Methods bound to this orb
-          show: () => this.builtinFunctions.get('show')!([node.name]),
-          hide: () => this.builtinFunctions.get('hide')!([node.name]),
-          pulse: (opts?: Record<string, unknown>) =>
-            this.builtinFunctions.get('pulse')!([node.name, opts as HoloScriptValue]),
-        };
-
-    // Update dynamic properties but preserve existing ones that aren't in the new definition (State Preservation)
-    if (isUpdate) {
-      // Merge new properties into existing ones, but we might want to be selective
-      // For now, new script properties take precedence, but old ones not in script are kept
-      // @ts-expect-error During migration
-      orbData.properties = {
-        // @ts-expect-error During migration
-        ...(orbData.properties as Record<string, HoloScriptValue>),
-        ...evaluatedProperties,
-      };
-    } else {
-      // @ts-expect-error During migration
-      orbData.properties = evaluatedProperties;
-    }
-
-    // @ts-expect-error During migration
-    orbData.directives = node.directives || [];
-    // @ts-expect-error During migration
-    orbData.position = adjustedPos;
-    // @ts-expect-error During migration
-    orbData.hologram = hologram;
-    // @ts-expect-error During migration
-    orbData._templateRef = node.template ? this.context.templates.get(node.template) : undefined;
-
-    if (!isUpdate) {
-      this.context.variables.set(node.name, orbData as HoloScriptValue);
-    }
-
-    if (hologram) {
-      this.context.hologramState.set(node.name, hologram);
-    }
-
-    // Apply directives
-    if (node.directives) {
-      this.applyDirectives(orbData as unknown as ASTNode);
-
-      // State handling: if @state is present, it might override some properties
-      // Historically applyDirectives updates global state, we might need a local merge
-    }
-
-    if (!isUpdate) {
-      this.createParticleEffect(`${node.name}_creation`, adjustedPos, '#00ffff', 20);
-    }
-
-    // If it's an LLM agent, initialize its specialized runtime
-    if (this.isAgent(node)) {
-      if (!isUpdate || !this.agentRuntimes.has(node.name)) {
-        const agentRuntime = this.agentPool.acquire();
-        agentRuntime.reset(node, this);
-        this.agentRuntimes.set(node.name, agentRuntime);
-        (orbData as Record<string, unknown>).state = agentRuntime.getState();
-
-        // Bind all methods
-        (node.directives as Array<{ type: string; name: string }>)
-          ?.filter((d) => d.type === 'method')
-          .forEach((m) => {
-            (orbData as Record<string, unknown>)[m.name] = (...args: HoloScriptValue[]) =>
-              agentRuntime.executeAction(m.name, args);
-          });
-      }
-    }
-
-    logger.info(isUpdate ? 'Orb updated' : 'Orb created', {
-      name: node.name,
-      // @ts-expect-error During migration
-      properties: Object.keys(orbData.properties as Record<string, unknown>),
-      scale,
-    });
-
-    // Broadcast update
-    this.broadcast(isUpdate ? 'orb_updated' : 'orb_created', {
-      orb: {
-        id: node.name,
-        name: node.name,
-        position: adjustedPos,
-        // @ts-expect-error During migration
-        properties: orbData.properties,
-        hologram: hologram,
-        traits:
-          node.directives
-            ?.filter((d) => d.type === 'trait')
-            .map((d) => (d as unknown as { name: string }).name) || [],
-      },
-    });
-
-    return {
-      success: true,
-      output: orbData,
-      hologram: hologram,
-      spatialPosition: adjustedPos,
-    };
-  }
+  // W1-T4 slice 26: executeOrb extracted to ./runtime/orb-executor.
+  // Closes board task task_1776940471985_57z8.
 
   // W1-T4 slice 20: executeFunction / executeConnection / executeGate /
   // executeStream extracted to ./runtime/graph-executors.
@@ -2321,11 +2090,42 @@ export class HoloScriptRuntime {
   // extracted to ./runtime/narrative-executors. Methods deleted —
   // dispatch calls the pure functions directly with a shared context.
 
+  /** Construct an OrbExecutorContext bound to this runtime. (Slice 26) */
+  private buildOrbExecutorContext(): OrbExecutorContext {
+    return {
+      getCurrentScale: () => this.context.currentScale,
+      getVariable: (name) => this.getVariable(name),
+      setVariable: (name, value) => this.setVariable(name, value),
+      setSpatialPosition: (name, pos) => {
+        this.context.spatialMemory.set(name, pos);
+      },
+      evaluateExpression: (expr) => this.evaluateExpression(expr),
+      getTemplate: (name) => this.context.templates.get(name) as unknown as TemplateNode | undefined,
+      setHologramState: (name, hologram) => {
+        this.context.hologramState.set(name, hologram);
+      },
+      executeMigrationBlock: (existingOrb, migration) =>
+        this.executeMigrationBlock(existingOrb, migration),
+      getBuiltinFunction: (name) => this.builtinFunctions.get(name),
+      applyDirectives: (node) => this.applyDirectives(node),
+      isAgent: (node) => this.isAgent(node),
+      getAgentRuntime: (name) => this.agentRuntimes.get(name),
+      setAgentRuntime: (name, runtime) => {
+        this.agentRuntimes.set(name, runtime);
+      },
+      acquireAgentRuntime: () => this.agentPool.acquire(),
+      parentRuntime: this,
+      createParticleEffect: (name, position, color, count) =>
+        this.createParticleEffect(name, position, color, count),
+      broadcast: (event, payload) => this.broadcast(event, payload),
+    };
+  }
+
   /** Construct a HoloObjectContext bound to this runtime. (Slice 25) */
   private buildHoloObjectContext(): HoloObjectContext {
     return {
       getTemplate: (name) => this.context.templates.get(name) as unknown as HoloTemplate | undefined,
-      executeOrb: (orbNode) => this.executeOrb(orbNode),
+      executeOrb: (orbNode) => executeOrbPure(orbNode, this.buildOrbExecutorContext()),
     };
   }
 
