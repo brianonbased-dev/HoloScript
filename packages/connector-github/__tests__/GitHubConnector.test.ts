@@ -3,7 +3,7 @@ import { GitHubConnector } from '../src/GitHubConnector.js';
 
 // Mock @octokit/rest
 vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn().mockImplementation(() => ({
+  Octokit: vi.fn().mockImplementation(function () { return ({
     rest: {
       users: {
         getAuthenticated: vi.fn().mockResolvedValue({ status: 200, data: { login: 'testuser' } }),
@@ -67,7 +67,7 @@ vi.mock('@octokit/rest', () => ({
         }),
       },
     },
-  })),
+  }); }),
 }));
 
 // Mock @octokit/auth-token
