@@ -560,8 +560,40 @@ async function handleFinalize(
     return;
   }
 
-  // Atomic registry transition (stubbed; see retireCustodialSigner).
-  const retirement = retireCustodialSigner(agent.id, newWalletAddress);
+  // Atomic registry transition. Wrapped in try/catch because
+  // retireCustodialSigner delegates to identity/custody-registry.ts, which
+  // can throw on DB failure, staged-write rollback, or injected failure
+  // (_setFailAfterStageForTests). The atomicity contract in _dny4 guarantees
+  // NO partial state mutation on throw — so we can safely signal "retry safe"
+  // to the client. Without this guard, the throw propagates uncaught through
+  // handleFinalize → handleIdentityExportRoutes → Node default error handler
+  // and the client sees a connection-level 500 with NO JSON body (r0pp
+  // integration finding 2026-04-24, task_1777008639101_xq23).
+  let retirement: RetirementResult;
+  try {
+    retirement = retireCustodialSigner(agent.id, newWalletAddress);
+  } catch (err) {
+    // Log with the original error name/message for debugging; never leak
+    // internal details in the client response body.
+    const errName = err instanceof Error ? err.name : 'UnknownError';
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(
+      '[identity-export] retireCustodialSigner threw during /finalize for user ' +
+        agent.id +
+        ': ' +
+        errName +
+        ': ' +
+        errMsg
+    );
+    json(res, 500, {
+      success: false,
+      error: 'registry_transaction_failed',
+      message:
+        'Custody registration could not be committed; retry is safe (no partial state).',
+      code: 'registry_error',
+    });
+    return;
+  }
 
   // Mark session finalized (Invariant #2 consumed; idempotency keys now map
   // to 'consumed' for any further ops).

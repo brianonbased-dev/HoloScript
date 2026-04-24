@@ -36,7 +36,12 @@ import {
   _resetIdentityExportStateForTests,
   _resetPrepareRateLimitForTests,
 } from '../identity-export-routes';
-import { RETIRED_ID_SHAPE } from '../../identity/custody-registry';
+import {
+  RETIRED_ID_SHAPE,
+  _setFailAfterStageForTests,
+  _resetCustodyRegistryForTests,
+  isSelfCustodyActive,
+} from '../../identity/custody-registry';
 import { keyRegistry, exportSessionStore } from '../../state';
 import type { KeyRecord } from '../../types';
 
@@ -196,12 +201,15 @@ beforeEach(() => {
   exportSessionStore.clear();
   _resetIdentityExportStateForTests();
   _resetPrepareRateLimitForTests();
+  _resetCustodyRegistryForTests();
+  _setFailAfterStageForTests(null);
   seedTestKey();
   // Disable 2FA gate by default — specific tests re-enable it.
   delete process.env.REQUIRE_2FA;
 });
 
 afterEach(() => {
+  _setFailAfterStageForTests(null);
   process.env = { ...originalEnv };
 });
 
@@ -647,6 +655,111 @@ describe('retireCustodialSigner — registry delegation (post-_dny4)', () => {
     expect(result.retiredCustodialSignerId).toMatch(RETIRED_ID_SHAPE);
     expect(result.effectiveAt).toBeTruthy();
     expect(userCustodyMode.get('user-x')).toBe('self_custody_active');
+  });
+});
+
+// ── /finalize registry-throw hardening (task_1777008639101_xq23) ───────────
+//
+// Defense-in-depth: when retireCustodialSigner throws (any stage), /finalize
+// MUST convert it to a structured 500 JSON response, NEVER leak the internal
+// error message, and leave zero side effects. The cross-layer suite
+// (tier2-self-custody-integration.test.ts) asserts the full pipeline; this
+// block asserts the route-layer contract in isolation and at least one
+// non-registry-wrapped injection path.
+
+describe('/finalize registry-throw hardening (task_xq23)', () => {
+  it('returns structured 500 { error: registry_transaction_failed, code: registry_error } when registry throws', async () => {
+    const flow = await runFlow();
+    const sig = signNonce(flow.nonce, flow.wallet.privateKey);
+
+    // Arm the same injection used by the cross-layer suite.
+    _setFailAfterStageForTests('pre_commit');
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const finRes = await callRoute(
+      'POST',
+      ROUTE_FINALIZE,
+      {
+        export_session_id: flow.sessionId,
+        new_wallet_address: '0xNewWalletAddress',
+        nonce_signature_b64: sig,
+        package_manifest_hash: flow.manifestHash,
+        new_wallet_public_key_pem: flow.wallet.publicKeyPem,
+      },
+      authHeader()
+    );
+
+    _setFailAfterStageForTests(null);
+
+    // Structured 500 (NOT a rejected promise, NOT a connection-level 500).
+    expect(finRes._status).toBe(500);
+    expect(finRes._body.success).toBe(false);
+    expect(finRes._body.error).toBe('registry_transaction_failed');
+    expect(finRes._body.code).toBe('registry_error');
+    expect(typeof finRes._body.message).toBe('string');
+    // Internal error detail MUST NOT leak to client body.
+    expect(finRes._body.message).not.toMatch(/injected failure/);
+    expect(finRes._body.message).not.toMatch(/stage_mode|stage_pubkey|stage_audit|pre_commit/);
+
+    // Server-side log captured the original error for debugging.
+    // Capture call state before mockRestore (which clears mock history).
+    const errCallCount = errSpy.mock.calls.length;
+    const logArg = errSpy.mock.calls[0]?.[0];
+    errSpy.mockRestore();
+    expect(errCallCount).toBeGreaterThan(0);
+    expect(typeof logArg).toBe('string');
+    expect(logArg).toContain('[identity-export]');
+
+    // Atomicity: registry unchanged, session NOT marked finalized.
+    expect(isSelfCustodyActive(TEST_USER_ID)).toBe(false);
+    expect(userCustodyMode.get(TEST_USER_ID)).toBeUndefined();
+    const session = exportSessionStore.get(flow.sessionId);
+    expect(session?.status).toBe('packaged');
+  });
+
+  it('retry after injection cleared converges to self_custody_active', async () => {
+    const flow = await runFlow();
+    const sig = signNonce(flow.nonce, flow.wallet.privateKey);
+
+    _setFailAfterStageForTests('stage_audit');
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const fail = await callRoute(
+      'POST',
+      ROUTE_FINALIZE,
+      {
+        export_session_id: flow.sessionId,
+        new_wallet_address: '0xRetryAddress',
+        nonce_signature_b64: sig,
+        package_manifest_hash: flow.manifestHash,
+        new_wallet_public_key_pem: flow.wallet.publicKeyPem,
+      },
+      authHeader()
+    );
+    expect(fail._status).toBe(500);
+    expect(fail._body.error).toBe('registry_transaction_failed');
+
+    _setFailAfterStageForTests(null);
+    errSpy.mockRestore();
+
+    // Retry on the SAME session — session was left in 'packaged', session is
+    // re-finalizable, no latent corrupt state.
+    const retry = await callRoute(
+      'POST',
+      ROUTE_FINALIZE,
+      {
+        export_session_id: flow.sessionId,
+        new_wallet_address: '0xRetryAddress',
+        nonce_signature_b64: sig,
+        package_manifest_hash: flow.manifestHash,
+        new_wallet_public_key_pem: flow.wallet.publicKeyPem,
+      },
+      authHeader()
+    );
+    expect(retry._status).toBe(200);
+    expect(retry._body.status).toBe('self_custody_active');
+    expect(retry._body.retired_custodial_signer_id).toMatch(RETIRED_ID_SHAPE);
+    expect(isSelfCustodyActive(TEST_USER_ID)).toBe(true);
   });
 });
 

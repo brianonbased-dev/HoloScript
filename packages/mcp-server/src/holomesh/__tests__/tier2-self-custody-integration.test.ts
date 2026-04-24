@@ -603,47 +603,35 @@ describe('Spec #5 — Atomicity under injected failure (cross-layer, load-bearin
       // DOES NOT swallow the failure silently.
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      // ─── DOCUMENTED BUG (r0pp integration-surface finding, 2026-04-24) ───
-      // _ards handleFinalize does NOT wrap retireCustodialSigner() in
-      // try/catch. When _dny4 injects a failure, the throw bubbles past the
-      // route boundary and rejects the handler promise. In a real HTTP
-      // listener, Node's default error handler converts this to a
-      // connection-level 500 (no JSON body). In this test harness the
-      // rejection surfaces as a thrown promise. The spec expects a
-      // structured 500/503 JSON error — this is a real bug, filed as an
-      // F.025 task and NOT patched inline per r0pp constraints.
-      //
-      // Current behavior captured here:
-      //   - The handler promise rejects with the injection error.
-      //   - res._status is never written (stays 0).
-      //   - No JSON body is emitted.
-      //
-      // When _ards is hardened (follow-up task), swap this try/catch for
-      // `expect([500, 503]).toContain(finRes._status)` and re-enable the
-      // structured-error-body assertions.
-      let finRes: CapturedRes | null = null;
-      let caughtError: Error | null = null;
+      // ─── HARDENED PATH (task_1777008639101_xq23, 2026-04-24) ──────────────
+      // _ards handleFinalize now wraps retireCustodialSigner in try/catch and
+      // returns a STRUCTURED 500 with { error: 'registry_transaction_failed',
+      // code: 'registry_error' }. Atomicity on _dny4's side is unchanged —
+      // staged-write contract still guarantees no partial mutation. The
+      // error body signals "retry safe" to the client.
+      let finRes: CapturedRes;
+      let errCallCount = 0;
       try {
         finRes = await makeAuthedFinalizeReq(flow);
-      } catch (err) {
-        caughtError = err as Error;
       } finally {
         unsubscribe();
+        // Capture call count BEFORE mockRestore() clears the mock history.
+        errCallCount = errSpy.mock.calls.length;
         errSpy.mockRestore();
       }
 
-      // (1) HTTP surface observed: either (a) the throw surfaced as a
-      // rejected promise at the test harness boundary, or (b) a future
-      // hardened _ards caught it and returned a 500/503. Both satisfy the
-      // spec's "returns 500 or 503" AT A PRODUCTION HTTP BOUNDARY. The
-      // hardening task will turn this into (b); the test accepts either.
-      if (caughtError) {
-        expect(caughtError.message).toMatch(
-          /injected failure at (stage_mode|stage_pubkey|stage_audit|pre_commit)/
-        );
-      } else {
-        expect([500, 503]).toContain(finRes!._status);
-      }
+      // (1) HTTP surface: structured 500 with the canonical error shape.
+      expect(finRes._status).toBe(500);
+      expect(finRes._body.success).toBe(false);
+      expect(finRes._body.error).toBe('registry_transaction_failed');
+      expect(finRes._body.code).toBe('registry_error');
+      // Client-safe message — MUST NOT leak internal error details.
+      expect(typeof finRes._body.message).toBe('string');
+      expect(finRes._body.message).not.toMatch(
+        /injected failure at (stage_mode|stage_pubkey|stage_audit|pre_commit)/
+      );
+      // Server-side MUST have logged the original error for debugging.
+      expect(errCallCount).toBeGreaterThan(0);
 
       // (2) Registry state UNCHANGED (atomicity contract at the load-
       // bearing layer). This is the critical assertion — even though _ards
