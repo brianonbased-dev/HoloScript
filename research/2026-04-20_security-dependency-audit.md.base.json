@@ -1,0 +1,13 @@
+{
+  "anchored_at": 1777056685,
+  "basescan_url": "https://basescan.org/tx/0x4293fe88f6d7e3702b85e1e63eceb3cea36ae4bfc2c8ceecf7049da98bc1c030",
+  "block_hash": "88622425f17001f4a5a5bdab3648322fec7cccb1a10dba9ded541d2db6dddd48",
+  "block_number": 45133642,
+  "chain": "base-mainnet",
+  "chain_id": 8453,
+  "file_sha256": "f2cf341d9765199b8ade67a868ffa827797443af5e2c6f6d04332b0f14d40fc2",
+  "gas_used": 22280,
+  "status": "mined",
+  "tx_hash": "0x4293fe88f6d7e3702b85e1e63eceb3cea36ae4bfc2c8ceecf7049da98bc1c030",
+  "wallet": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3"
+}
