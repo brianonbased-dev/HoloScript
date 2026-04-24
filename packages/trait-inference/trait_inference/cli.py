@@ -213,6 +213,169 @@ def cmd_baseline_run(args: argparse.Namespace) -> int:
 
 
 # ----------------------------------------------------------------------------
+# model — train / eval / sweep
+# ----------------------------------------------------------------------------
+
+def _load_label_space(path: Path) -> tuple[str, ...]:
+    """Load label space JSON emitted by extract_trait_constants."""
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    return tuple(obj["all_traits"])
+
+
+def cmd_model_train(args: argparse.Namespace) -> int:
+    from trait_inference.model.trainer import TraitTrainer, TrainConfig
+
+    label_space = _load_label_space(args.label_space)
+    train_pairs = load_jsonl(args.train)
+    val_pairs = load_jsonl(args.val)
+
+    cfg = TrainConfig(
+        model_name=args.model_name,
+        label_space=label_space,
+        output_dir=str(args.output_dir),
+        num_epochs=args.num_epochs,
+        train_batch_size=args.batch_size,
+        eval_batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        seed=args.seed,
+        fp16=not args.no_fp16,
+    )
+    trainer = TraitTrainer(cfg)
+    summary = trainer.train(train_pairs, val_pairs)
+
+    payload = {
+        "config": cfg.to_dict(),
+        "train_size": len(train_pairs),
+        "val_size": len(val_pairs),
+        **summary,
+    }
+    _emit(payload, args.output)
+    return 0
+
+
+def cmd_model_eval(args: argparse.Namespace) -> int:
+    from trait_inference.metrics import bootstrap_ci, exact_match_rate, f1_macro
+    from trait_inference.model.decoder import TraitDecoder, TraitDecoderConfig
+
+    label_space = _load_label_space(args.label_space)
+    eval_pairs = load_jsonl(args.eval)
+
+    cfg = TraitDecoderConfig(
+        model_name=str(args.checkpoint),
+        label_space=label_space,
+        device="cpu" if args.no_fp16 else "cuda",
+    )
+    decoder = TraitDecoder(cfg)
+
+    descriptions = [p.description for p in eval_pairs]
+    gold = [list(p.trait_set) for p in eval_pairs]
+    preds = decoder.predict_batch(descriptions)
+
+    f1m = f1_macro(gold, preds, label_space=label_space)
+    em = exact_match_rate(gold, preds)
+    ci = bootstrap_ci(
+        gold, preds, metric="f1_macro",
+        b=args.bootstrap_b, seed=args.seed, label_space=label_space,
+    )
+    payload = {
+        "checkpoint": str(args.checkpoint),
+        "eval_size": len(eval_pairs),
+        "label_space_size": len(label_space),
+        "f1_macro": f1m,
+        "exact_match": em,
+        "bootstrap_ci": ci.to_dict(),
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _emit(payload, args.output)
+    return 0
+
+
+def cmd_model_sweep(args: argparse.Namespace) -> int:
+    from trait_inference.model.sweep import SweepConfig, TraitSweep
+
+    cfg = SweepConfig(
+        fractional_factorial_pruned=not args.no_prune,
+        reseed_n=args.reseed_n,
+    )
+    sweep = TraitSweep(cfg)
+    summary = sweep.emit_cells(args.output_dir)
+    _emit(summary, None)
+    return 0
+
+
+def cmd_eval_ablations(args: argparse.Namespace) -> int:
+    """Run the 5-row ablation matrix per spec §3.5.
+
+    Heavy GPU work — caller is expected to have a trained checkpoint.
+    Each ablation runs the model with a perturbed input or a different
+    training condition; total compute ≈ 4-6× the baseline training run.
+    """
+    from trait_inference.eval.ablations import AblationConfig, AblationMatrix
+    from trait_inference.model.decoder import TraitDecoder, TraitDecoderConfig
+
+    label_space = _load_label_space(args.label_space)
+    train_pairs = load_jsonl(args.train)
+    eval_pairs = load_jsonl(args.eval)
+
+    decoder_cfg = TraitDecoderConfig(
+        model_name=str(args.checkpoint),
+        label_space=label_space,
+        device="cpu" if args.no_fp16 else "cuda",
+    )
+    decoder = TraitDecoder(decoder_cfg)
+
+    # Baseline validity = fraction of decoder predictions that are
+    # subsets of label_space (expected ≥0.95 with constrained decoding).
+    descs = [p.description for p in eval_pairs]
+    baseline_preds = decoder.predict_batch(descs)
+    ls_set = set(label_space)
+    baseline_validity = (
+        sum(1 for p in baseline_preds if all(t in ls_set for t in p)) / len(baseline_preds)
+        if baseline_preds else 0.0
+    )
+
+    # Ablation 2 needs an UNCONSTRAINED variant — same model, no
+    # outlines regex. Stub: run decoder.predict_batch directly via
+    # transformers generate (no FSM). For Phase 2 v0 we emit a
+    # structured "needs separate impl" placeholder; full unconstrained
+    # variant is a Phase 2.1 follow-up.
+    def _unconstrained_stub(descriptions: list[str]) -> list[list[str]]:
+        # Returns empty predictions — flagged as Phase 2.1 deferral.
+        # Eval harness records this honestly rather than fabricating.
+        return [[] for _ in descriptions]
+
+    # Ablation 3 needs train_eval_at_size_fn — Phase 2.1 deferral
+    def _train_size_stub(n: int) -> float:
+        return 0.0
+
+    # Ablation 4 needs brittney_only_train_eval_fn — Phase 2.1 deferral
+    def _brittney_only_stub(_pairs: list[Pair]) -> float:
+        return 0.0
+
+    matrix = AblationMatrix(AblationConfig(
+        label_space=label_space,
+        bootstrap_b=args.bootstrap_b,
+        seed=args.seed,
+    ))
+    results = matrix.run_all(
+        predict_fn=decoder.predict_batch,
+        unconstrained_predict_fn=_unconstrained_stub,
+        train_eval_at_size_fn=_train_size_stub,
+        brittney_only_train_eval_fn=_brittney_only_stub,
+        eval_pairs=eval_pairs,
+        train_pairs=train_pairs,
+        baseline_validity=baseline_validity,
+    )
+    results["phase_2_1_deferrals"] = [
+        "constrained_decoding_off (need unconstrained variant)",
+        "training_size_sweep (need 3 separate train runs)",
+        "source_ablation_brittney_only (need separate train run)",
+    ]
+    _emit(results, args.output)
+    return 0
+
+
+# ----------------------------------------------------------------------------
 # parser construction
 # ----------------------------------------------------------------------------
 
@@ -269,6 +432,55 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Tune tfidf threshold on --val split")
     bl_run.add_argument("--brittney-k", type=int, default=8)
     bl_run.set_defaults(func=cmd_baseline_run)
+
+    # model — Phase 2 contribution model (requires [model] extras)
+    md = sub.add_parser("model", help="Contribution model (requires .[model])").add_subparsers(dest="md_cmd", required=True)
+
+    md_train = md.add_parser("train", help="Fine-tune the constrained-decoding trait model")
+    md_train.add_argument("--train", type=Path, required=True)
+    md_train.add_argument("--val", type=Path, required=True)
+    md_train.add_argument("--label-space", type=Path, required=True,
+                          help="Path to trait_label_space.json (from extract-traits)")
+    md_train.add_argument("--model-name", default="Qwen/Qwen2.5-0.5B")
+    md_train.add_argument("--output-dir", type=Path, default=Path("checkpoints/trait_decoder_v0"))
+    md_train.add_argument("--num-epochs", type=int, default=20)
+    md_train.add_argument("--batch-size", type=int, default=32)
+    md_train.add_argument("--learning-rate", type=float, default=5e-5)
+    md_train.add_argument("--seed", type=int, default=42)
+    md_train.add_argument("--no-fp16", action="store_true",
+                          help="Disable fp16 (use for CPU smoke tests)")
+    md_train.add_argument("--output", type=Path, default=None)
+    md_train.set_defaults(func=cmd_model_train)
+
+    md_eval = md.add_parser("eval", help="Evaluate a trained model on a split")
+    md_eval.add_argument("--checkpoint", type=Path, required=True)
+    md_eval.add_argument("--eval", type=Path, required=True)
+    md_eval.add_argument("--label-space", type=Path, required=True)
+    md_eval.add_argument("--bootstrap-b", type=int, default=1000)
+    md_eval.add_argument("--seed", type=int, default=42)
+    md_eval.add_argument("--no-fp16", action="store_true")
+    md_eval.add_argument("--output", type=Path, default=None)
+    md_eval.set_defaults(func=cmd_model_eval)
+
+    md_sweep = md.add_parser("sweep", help="Emit hyperparameter-sweep cell configs")
+    md_sweep.add_argument("--output-dir", type=Path, required=True)
+    md_sweep.add_argument("--no-prune", action="store_true",
+                          help="Emit full 162-cell grid instead of pruned ~30")
+    md_sweep.add_argument("--reseed-n", type=int, default=5)
+    md_sweep.set_defaults(func=cmd_model_sweep)
+
+    # eval — Phase 4 ablation matrix
+    ev = sub.add_parser("eval", help="Evaluation harness").add_subparsers(dest="ev_cmd", required=True)
+    ev_ablations = ev.add_parser("ablations", help="Run 5-row ablation matrix (requires .[model])")
+    ev_ablations.add_argument("--checkpoint", type=Path, required=True)
+    ev_ablations.add_argument("--train", type=Path, required=True)
+    ev_ablations.add_argument("--eval", type=Path, required=True)
+    ev_ablations.add_argument("--label-space", type=Path, required=True)
+    ev_ablations.add_argument("--bootstrap-b", type=int, default=1000)
+    ev_ablations.add_argument("--seed", type=int, default=42)
+    ev_ablations.add_argument("--no-fp16", action="store_true")
+    ev_ablations.add_argument("--output", type=Path, default=None)
+    ev_ablations.set_defaults(func=cmd_eval_ablations)
 
     return p
 

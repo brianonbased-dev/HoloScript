@@ -171,8 +171,16 @@ switch ($Phase) {
         ) -join ' && '
     }
     'train' {
-        $cmd = "echo 'Phase 3 train command not yet implemented — depends on contribution model module landing'"
-        # When model module ships, replace with: trait-inference model train --train ... --val ... --output $remoteOut
+        # Train phase — requires [model] extras (installed above) +
+        # extracted label space + train/val/novel JSONL splits already
+        # synced. Caller must have run scripts/extract_trait_constants.py
+        # locally and synced the resulting trait_label_space.json.
+        $cmd = @(
+            "cd /root/trait-inference",
+            "trait-inference dataset split /root/dataset.jsonl --output-dir /root/splits",
+            "trait-inference model train --train /root/splits/train.jsonl --val /root/splits/val.jsonl --label-space /root/trait-inference/trait_inference/data/trait_label_space.json --output-dir /root/checkpoints/v0 --num-epochs 20 --batch-size 32 --learning-rate 5e-5 --output ${remoteOut}.train-summary",
+            "trait-inference model eval --checkpoint /root/checkpoints/v0 --eval /root/splits/held_out_novel.jsonl --label-space /root/trait-inference/trait_inference/data/trait_label_space.json --bootstrap-b 1000 --output ${remoteOut}.headline-novel"
+        ) -join ' && '
     }
 }
 & Invoke-Expression "$ssh '$cmd'"
