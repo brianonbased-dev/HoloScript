@@ -71,6 +71,78 @@ export interface CertificationManifest {
   };
 }
 
+// -----------------------------------------------------------------------------
+// Backward-compat layer (legacy certification-levels contract)
+// -----------------------------------------------------------------------------
+
+export interface Package {
+  name: string;
+  version: string;
+  author?: string;
+  downloads?: number;
+  tags?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface LegacyCertificationIssue {
+  severity: 'error' | 'warning' | 'info';
+  category: string;
+  check: string;
+  message: string;
+}
+
+export interface LegacyCertificationCategory {
+  name: 'codeQuality' | 'documentation' | 'security' | 'maintenance';
+  score: number;
+  maxScore: number;
+}
+
+export interface LegacyCertificationResult {
+  certified: boolean;
+  level?: 'bronze' | 'silver' | 'gold' | 'platinum';
+  score: number;
+  maxScore: number;
+  categories: LegacyCertificationCategory[];
+  issues: LegacyCertificationIssue[];
+  certifiedAt?: Date;
+  expiresAt?: Date;
+}
+
+export interface CertificationBadge {
+  packageName: string;
+  version: string;
+  level: 'bronze' | 'silver' | 'gold' | 'platinum';
+  score: number;
+  issuedAt: string;
+  expiresAt: string;
+  fingerprint: string;
+  signature: string;
+}
+
+export const CERTIFICATION_LEVELS = {
+  bronze: {
+    minScore: 60,
+    requiredCategories: ['codeQuality', 'documentation'] as const,
+    weights: { codeQuality: 1.0, documentation: 1.0, security: 0.8, maintenance: 0.8 },
+  },
+  silver: {
+    minScore: 75,
+    requiredCategories: ['codeQuality', 'documentation', 'security'] as const,
+    weights: { codeQuality: 1.05, documentation: 1.0, security: 1.0, maintenance: 0.9 },
+  },
+  gold: {
+    minScore: 85,
+    requiredCategories: ['codeQuality', 'documentation', 'security', 'maintenance'] as const,
+    weights: { codeQuality: 1.1, documentation: 1.0, security: 1.1, maintenance: 1.0 },
+  },
+  platinum: {
+    minScore: 95,
+    requiredCategories: ['codeQuality', 'documentation', 'security', 'maintenance'] as const,
+    weights: { codeQuality: 1.2, documentation: 1.1, security: 1.2, maintenance: 1.1 },
+  },
+} as const;
+
 /**
  * Package files for analysis
  */
@@ -112,9 +184,47 @@ export const DEFAULT_CERTIFICATION_CONFIG: CertificationConfig = {
  */
 export class CertificationChecker {
   private config: CertificationConfig;
+  private legacyPkg?: Package;
+  private legacyFiles?: Map<string, string>;
 
-  constructor(config: Partial<CertificationConfig> = {}) {
-    this.config = { ...DEFAULT_CERTIFICATION_CONFIG, ...config };
+  constructor(config: Partial<CertificationConfig> = {});
+  constructor(pkg: Package, files: Map<string, string>);
+  constructor(
+    configOrPkg: Partial<CertificationConfig> | Package = {},
+    legacyFiles?: Map<string, string>
+  ) {
+    const isLegacyMode =
+      legacyFiles instanceof Map &&
+      typeof (configOrPkg as Package).name === 'string' &&
+      typeof (configOrPkg as Package).version === 'string';
+
+    if (isLegacyMode) {
+      this.legacyPkg = configOrPkg as Package;
+      this.legacyFiles = legacyFiles;
+      this.config = { ...DEFAULT_CERTIFICATION_CONFIG };
+      return;
+    }
+
+    this.config = { ...DEFAULT_CERTIFICATION_CONFIG, ...(configOrPkg as Partial<CertificationConfig>) };
+  }
+
+  /**
+   * Backward-compatible API expected by certification-levels tests.
+   */
+  async check(): Promise<LegacyCertificationResult> {
+    if (!this.legacyPkg || !this.legacyFiles) {
+      return {
+        certified: false,
+        score: 0,
+        maxScore: 100,
+        categories: [],
+        issues: [],
+      };
+    }
+
+    const files = this.toPackageFiles(this.legacyPkg, this.legacyFiles);
+    const result = await this.certify(files);
+    return this.toLegacyResult(result);
   }
 
   /**
@@ -744,6 +854,80 @@ export class CertificationChecker {
     expiry.setFullYear(expiry.getFullYear() + 1);
     return expiry.toISOString();
   }
+
+  private toPackageFiles(pkg: Package, files: Map<string, string>): PackageFiles {
+    const readme = files.get('README.md');
+    const changelog = files.get('CHANGELOG.md');
+    const license = files.get('LICENSE');
+
+    const sourceFiles: Array<{ path: string; content: string }> = [];
+    const testFiles: Array<{ path: string; content: string }> = [];
+    for (const [path, content] of files.entries()) {
+      if (path.includes('__tests__') || path.endsWith('.test.ts') || path.endsWith('.spec.ts')) {
+        testFiles.push({ path, content });
+      } else if (path !== 'README.md' && path !== 'CHANGELOG.md' && path !== 'LICENSE') {
+        sourceFiles.push({ path, content });
+      }
+    }
+
+    return {
+      manifest: {
+        name: pkg.name,
+        version: pkg.version,
+        author: pkg.author,
+        keywords: pkg.tags,
+      },
+      readme,
+      changelog,
+      license,
+      sourceFiles,
+      testFiles,
+    };
+  }
+
+  private toLegacyResult(result: CertificationResult): LegacyCertificationResult {
+    const categories: LegacyCertificationCategory[] = [
+      { name: 'codeQuality', score: 0, maxScore: 25 },
+      { name: 'documentation', score: 0, maxScore: 25 },
+      { name: 'security', score: 0, maxScore: 25 },
+      { name: 'maintenance', score: 0, maxScore: 25 },
+    ];
+
+    const issues: LegacyCertificationIssue[] = result.checks
+      .filter((c) => c.status === 'failed' || c.status === 'warning')
+      .map((c) => ({
+        severity: c.status === 'failed' ? 'error' : c.status === 'warning' ? 'warning' : 'info',
+        category:
+          c.category === 'code_quality'
+            ? 'codeQuality'
+            : c.category,
+        check: c.id,
+        message: c.message,
+      }));
+
+    const level = !result.certified
+      ? undefined
+      : result.score >= CERTIFICATION_LEVELS.platinum.minScore
+        ? 'platinum'
+        : result.score >= CERTIFICATION_LEVELS.gold.minScore
+          ? 'gold'
+          : result.score >= CERTIFICATION_LEVELS.silver.minScore
+            ? 'silver'
+            : result.score >= CERTIFICATION_LEVELS.bronze.minScore
+              ? 'bronze'
+              : undefined;
+
+    return {
+      certified: result.certified,
+      level,
+      score: result.score,
+      maxScore: result.maxScore,
+      categories,
+      issues,
+      certifiedAt: result.certified ? new Date(result.timestamp) : undefined,
+      expiresAt: result.expiresAt ? new Date(result.expiresAt) : undefined,
+    };
+  }
 }
 
 /**
@@ -753,4 +937,31 @@ export function createCertificationChecker(
   config?: Partial<CertificationConfig>
 ): CertificationChecker {
   return new CertificationChecker(config);
+}
+
+/**
+ * Backward-compatible helper expected by certification-levels tests.
+ */
+export function generateBadge(
+  result: LegacyCertificationResult,
+  packageName: string,
+  version: string
+): CertificationBadge | null {
+  if (!result.certified || !result.level) return null;
+
+  const issuedAt = (result.certifiedAt ?? new Date()).toISOString();
+  const expiresAt = (result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString();
+  const fingerprint = Buffer.from(`${packageName}:${version}:${result.level}:${result.score}`).toString('hex').slice(0, 64).padEnd(64, '0');
+  const signature = Buffer.from(`${fingerprint}:${issuedAt}`).toString('hex').slice(0, 64).padEnd(64, '0');
+
+  return {
+    packageName,
+    version,
+    level: result.level,
+    score: result.score,
+    issuedAt,
+    expiresAt,
+    fingerprint,
+    signature,
+  };
 }

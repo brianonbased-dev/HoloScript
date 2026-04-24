@@ -5,7 +5,11 @@
  */
 
 import { createHmac } from 'crypto';
-import type { CertificationResult } from './CertificationChecker';
+import type {
+  CertificationResult,
+  LegacyCertificationResult,
+  CertificationBadge,
+} from './CertificationChecker';
 
 /**
  * Badge display format
@@ -333,3 +337,109 @@ export function createBadgeGenerator(): BadgeGenerator {
  * Default badge generator instance
  */
 export const defaultBadgeGenerator = createBadgeGenerator();
+
+// -----------------------------------------------------------------------------
+// Backward-compat API expected by certification-levels tests
+// -----------------------------------------------------------------------------
+
+const legacyBadgeStore = new Map<string, CertificationBadge>();
+
+function legacyBadgeKey(packageName: string, version: string): string {
+  return `${packageName}@${version}`;
+}
+
+function makeFingerprint(packageName: string, version: string, level: string, score: number): string {
+  return createHmac('sha256', SIGNING_KEY)
+    .update(`${packageName}:${version}:${level}:${score}`)
+    .digest('hex');
+}
+
+function makeSignature(fingerprint: string, issuedAt: string, expiresAt: string): string {
+  return createHmac('sha256', SIGNING_KEY)
+    .update(`${fingerprint}:${issuedAt}:${expiresAt}`)
+    .digest('hex');
+}
+
+export function issueBadge(
+  packageName: string,
+  version: string,
+  result: LegacyCertificationResult
+): CertificationBadge | null {
+  if (!result.certified || !result.level) return null;
+
+  const issuedAt = (result.certifiedAt ?? new Date()).toISOString();
+  const expiresAt = (result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString();
+  const fingerprint = makeFingerprint(packageName, version, result.level, result.score);
+  const signature = makeSignature(fingerprint, issuedAt, expiresAt);
+
+  return {
+    packageName,
+    version,
+    level: result.level,
+    score: result.score,
+    issuedAt,
+    expiresAt,
+    fingerprint,
+    signature,
+  };
+}
+
+export function verifyBadge(badge: CertificationBadge): {
+  valid: boolean;
+  reason?: string;
+  badge?: CertificationBadge;
+} {
+  const expectedFingerprint = makeFingerprint(badge.packageName, badge.version, badge.level, badge.score);
+  if (badge.fingerprint !== expectedFingerprint) {
+    return { valid: false, reason: 'Fingerprint mismatch' };
+  }
+
+  const expectedSignature = makeSignature(badge.fingerprint, badge.issuedAt, badge.expiresAt);
+  if (badge.signature !== expectedSignature) {
+    return { valid: false, reason: 'Invalid signature' };
+  }
+
+  if (new Date(badge.expiresAt).getTime() <= Date.now()) {
+    return { valid: false, reason: 'Badge expired' };
+  }
+
+  return { valid: true, badge };
+}
+
+export function generateBadgeSVG(badge: CertificationBadge): string {
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="20">
+  <rect width="110" height="20" fill="#555"/>
+  <rect x="110" width="110" height="20" fill="#4c1"/>
+  <text x="55" y="14" fill="#fff" font-family="sans-serif" font-size="11" text-anchor="middle">HoloScript Certified</text>
+  <text x="165" y="14" fill="#fff" font-family="sans-serif" font-size="11" text-anchor="middle">${badge.level}</text>
+</svg>`.trim();
+}
+
+export function generateMarkdownBadge(badge: CertificationBadge): string {
+  const label = encodeURIComponent('HoloScript Certified');
+  const message = encodeURIComponent(badge.level);
+  return `![HoloScript Certified](https://img.shields.io/badge/${label}-${message}-4c1)`;
+}
+
+export function storeBadge(badge: CertificationBadge): void {
+  legacyBadgeStore.set(legacyBadgeKey(badge.packageName, badge.version), badge);
+}
+
+export function getBadge(packageName: string, version: string): CertificationBadge | undefined {
+  return legacyBadgeStore.get(legacyBadgeKey(packageName, version));
+}
+
+export function listBadges(): CertificationBadge[] {
+  return Array.from(legacyBadgeStore.values());
+}
+
+export function revokeBadge(packageName: string, version: string): boolean {
+  return legacyBadgeStore.delete(legacyBadgeKey(packageName, version));
+}
+
+export function isActivelyCertified(packageName: string, version: string): boolean {
+  const badge = getBadge(packageName, version);
+  if (!badge) return false;
+  return verifyBadge(badge).valid;
+}
