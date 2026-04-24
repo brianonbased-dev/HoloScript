@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { HoloCompositionParser } from '@holoscript/core';
 import type {
   VoiceState,
   VoiceTurn,
@@ -154,10 +155,27 @@ export function useVoiceAuthoring(
         }
 
         setState('validating');
-        // Parser round-trip goes here when compiler-wasm is wired into the
-        // client. For now the server-side validator is our gate (plan b).
-        // TODO: import { HoloCompositionParser } from '@holoscript/compiler-wasm'
-        //       and re-parse here so the client never renders invalid input.
+        try {
+          const parser = new HoloCompositionParser();
+          const parseResult = (parser as { parse: (source: string) => unknown }).parse(
+            data.holoSource
+          ) as { errors?: Array<{ message?: string } | string> } | null;
+          const parseErrors = Array.isArray(parseResult?.errors) ? parseResult.errors : [];
+          if (parseErrors.length > 0) {
+            fail({
+              kind: 'parse-failed-after-retry',
+              message: 'Client-side composition parse failed',
+              details: parseErrors,
+            });
+            return;
+          }
+        } catch (err) {
+          fail({
+            kind: 'parse-failed-after-retry',
+            message: err instanceof Error ? err.message : 'Client-side composition parse failed',
+          });
+          return;
+        }
 
         setHoloSource(data.holoSource);
         setState('ready');
