@@ -238,8 +238,8 @@ export class SpatialCognitiveAgent {
         const id = this.world.spawn(name);
         this.world.setComponent(id, 0x01, {
           // ComponentType.Transform
-          position: { x, y, z },
-          rotation: [0, 0, 0, 1 ],
+          position: [x, y, z],
+          rotation: [0, 0, 0],
           scale: [1, 1, 1 ],
         });
         proxy.push(id);
@@ -273,11 +273,11 @@ export class SpatialCognitiveAgent {
         const z = (operands?.[3] as number) ?? 0;
         this.world.setComponent(entityId, 0x01, {
           // ComponentType.Transform
-          position: { x, y, z },
-          rotation: [0, 0, 0, 1 ],
+          position: [x, y, z],
+          rotation: [0, 0, 0],
           scale: [1, 1, 1 ],
         });
-        proxy.push({ teleported: true, entityId, position: { x, y, z } });
+        proxy.push({ teleported: true, entityId, position: [x, y, z] });
       }
     );
 

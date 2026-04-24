@@ -58,7 +58,7 @@ describe('captureSceneSnapshot', () => {
 
     const snapshot = captureSceneSnapshot(world);
     expect(snapshot.entities[0].transform).toBeDefined();
-    expect(snapshot.entities[0].transform?.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(snapshot.entities[0].transform?.position).toEqual([1, 2, 3]);
   });
 
   it('should capture parent-child relationships', () => {
@@ -133,7 +133,7 @@ describe('applyActions', () => {
     applyActions(world, [{ type: 'move', entityId: id, position: [10, 20, 30] }]);
 
     const transform = world.getComponent<any>(id, ComponentType.Transform);
-    expect(transform.position).toEqual({ x: 10, y: 20, z: 30 });
+    expect(transform.position).toEqual([10, 20, 30]);
   });
 
   it('should apply traits', () => {
@@ -348,7 +348,7 @@ describe('Spatial opcode handlers', () => {
 
     const result = await cognitiveVM.execute(bytecode);
     const transform = world.getComponent<any>(entityId, ComponentType.Transform);
-    expect(transform.position).toEqual({ x: 100, y: 200, z: 300 });
+    expect(transform.position).toEqual([100, 200, 300]);
     expect((result.stackTop as any).teleported).toBe(true);
   });
 

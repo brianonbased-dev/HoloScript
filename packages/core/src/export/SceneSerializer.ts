@@ -15,6 +15,7 @@ import {
   IQuaternion,
   createIdentityTransform,
 } from './SceneGraph';
+import { jsonClone, readJson } from '../errors/safeJsonParse';
 
 // ============================================================================
 // Types
@@ -287,7 +288,7 @@ export class SceneSerializer {
    * Deserialize a scene graph from JSON
    */
   deserialize(json: string, options: IDeserializeOptions = {}): ISceneGraph {
-    const parsed = JSON.parse(json) as ISceneGraph;
+    const parsed = readJson(json) as ISceneGraph;
 
     if (options.validate) {
       const validation = this.validate(parsed);
@@ -451,7 +452,7 @@ export class SceneSerializer {
    * Clone a scene graph
    */
   clone(sceneGraph: ISceneGraph): ISceneGraph {
-    return JSON.parse(JSON.stringify(sceneGraph));
+    return jsonClone(sceneGraph);
   }
 
   /**
@@ -644,7 +645,7 @@ export class SceneSerializer {
   }
 
   private cloneNode(node: ISceneNode): ISceneNode {
-    return JSON.parse(JSON.stringify(node));
+    return jsonClone(node);
   }
 
   private arrayBufferToBase64DataUri(buffer: ArrayBuffer): string {
