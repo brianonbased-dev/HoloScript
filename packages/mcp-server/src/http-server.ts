@@ -667,7 +667,17 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // Pathname for route matching (no query string); fullUrl preserves the
+  // query so sub-route handlers can parse pagination/filter params. Bug
+  // surfaced 2026-04-24: GET /board/done?limit=5&offset=30 was being
+  // handled with empty query because handleHoloMeshRoute was receiving
+  // the query-stripped path. parseQuery(url) inside the handler then
+  // returned an empty URLSearchParams and pinned defaults regardless of
+  // the request. Sub-route handlers do their own pathname extraction via
+  // `new URL(url, 'http://localhost').pathname`, so passing the full URL
+  // is strictly more correct than passing the bare path.
   const url = req.url?.split('?')[0];
+  const fullUrl = req.url || url || '';
   const clientIP = getClientIP(req);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1864,7 +1874,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url?.startsWith('/api/holomesh/')) {
     const { handleHoloMeshRoute } = await import('./holomesh/http-routes');
-    const handled = await handleHoloMeshRoute(req, res, url);
+    const handled = await handleHoloMeshRoute(req, res, fullUrl);
     if (handled) return;
   }
 
