@@ -23,6 +23,18 @@ import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
 const ABSORB_BASE = ENDPOINTS.ABSORB_SERVICE;
 const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 
+// Guard: validate ABSORB_BASE is a well-formed http/https URL to prevent SSRF via misconfiguration
+(function validateAbsorbBase() {
+  try {
+    const parsed = new URL(ABSORB_BASE);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new Error(`ABSORB_SERVICE must be an http/https URL, got protocol: ${parsed.protocol}`);
+    }
+  } catch (e) {
+    throw new Error(`Invalid ABSORB_SERVICE endpoint: ${ABSORB_BASE} — ${String(e)}`);
+  }
+})();
+
 // Admin bypass — comma-separated GitHub usernames that skip credit checks
 const ADMIN_GITHUB_USERNAMES = new Set(
   (process.env.ADMIN_GITHUB_USERNAMES || '')

@@ -37,7 +37,7 @@ export interface GenerationStatus {
 // ─── API Configuration ───────────────────────────────────────────────────────
 
 function getAPIConfig() {
-  return {
+  const config = {
     meshy: {
       baseUrl: '/api/proxy/meshy',
       apiKey: 'proxy_mode',
@@ -47,6 +47,13 @@ function getAPIConfig() {
       apiKey: 'proxy_mode',
     },
   };
+  // Guard: base URLs must be relative paths to prevent open-redirect / SSRF
+  for (const [provider, cfg] of Object.entries(config)) {
+    if (!cfg.baseUrl.startsWith('/')) {
+      throw new Error(`AI provider '${provider}' baseUrl must be a relative path, got: ${cfg.baseUrl}`);
+    }
+  }
+  return config;
 }
 
 // ─── Mock Mode (Development) ─────────────────────────────────────────────────

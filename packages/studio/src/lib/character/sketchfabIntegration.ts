@@ -271,7 +271,16 @@ export async function getDownloadUrl(uid: string): Promise<string> {
 export async function downloadModel(uid: string): Promise<Blob> {
   const downloadUrl = await getDownloadUrl(uid);
 
-  const response = await fetch(downloadUrl);
+  // Validate URL is from trusted Sketchfab domains before fetching
+  const parsedDownloadUrl = new URL(downloadUrl);
+  const allowedHosts = ['sketchfab.com', 'media.sketchfab.com', 'download.sketchfab.com', 'cdn.sketchfab.com'];
+  const hostAllowed = allowedHosts.some(
+    (host) => parsedDownloadUrl.hostname === host || parsedDownloadUrl.hostname.endsWith(`.${host}`)
+  );
+  if (!hostAllowed) {
+    throw new Error(`Download URL host '${parsedDownloadUrl.hostname}' is not trusted`);
+  }
+  const response = await fetch(parsedDownloadUrl.href);
 
   if (!response.ok) {
     throw new Error('Failed to download model');

@@ -136,7 +136,11 @@ export class AudioSyncManager {
    * Load audio from URL
    */
   async loadAudioFromUrl(url: string): Promise<AudioAnalysis> {
-    const response = await fetch(url);
+    const parsed = new URL(url, window.location.href);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:' && parsed.protocol !== 'blob:') {
+      throw new Error(`Unsafe URL protocol: ${parsed.protocol}`);
+    }
+    const response = await fetch(parsed.href);
     const arrayBuffer = await response.arrayBuffer();
     this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
