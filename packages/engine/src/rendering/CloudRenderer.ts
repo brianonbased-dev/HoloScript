@@ -27,7 +27,7 @@ export interface CloudConfig {
 }
 
 export interface CloudSample {
-  position: [number, number, number];
+  position: [number, number, number] & { x: number; y: number; z: number };
   density: number;
   lighting: number;
 }
@@ -128,8 +128,13 @@ export class CloudRenderer {
       transmittance *= Math.exp(-d * stepSize * 0.1);
     }
 
+    const position = [x, y, z] as [number, number, number] & { x: number; y: number; z: number };
+    Object.defineProperty(position, 'x', { value: x, enumerable: false });
+    Object.defineProperty(position, 'y', { value: y, enumerable: false });
+    Object.defineProperty(position, 'z', { value: z, enumerable: false });
+
     return {
-      position: [x, y, z],
+      position,
       density,
       lighting: transmittance,
     };

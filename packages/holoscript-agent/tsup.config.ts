@@ -10,6 +10,8 @@ export default defineConfig({
     'src/holomesh-client.ts',
     'src/commit-hook.ts',
     'src/ablation.ts',
+    'src/supervisor.ts',
+    'src/supervisor-config.ts',
     'src/types.ts',
   ],
   format: ['esm'],

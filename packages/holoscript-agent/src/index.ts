@@ -17,6 +17,10 @@ import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
 import type { AblationProviderSpec, AblationTaskSpec } from './ablation.js';
+import { Supervisor } from './supervisor.js';
+import type { ProviderFactory } from './supervisor.js';
+import { loadSupervisorConfig } from './supervisor-config.js';
+import type { AgentSpec } from './supervisor-config.js';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
@@ -37,6 +41,12 @@ async function main(): Promise<void> {
       return;
     case 'ablate':
       await cmdAblate(args.slice(1));
+      return;
+    case 'supervise':
+      await cmdSupervise(args.slice(1));
+      return;
+    case 'status':
+      await cmdStatus(args.slice(1));
       return;
     case 'help':
     case '--help':
@@ -93,6 +103,79 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   process.on('SIGINT', onSig);
   process.on('SIGTERM', onSig);
   await runner.runForever({ tickIntervalMs: interval });
+}
+
+function supervisorProviderFactory(): ProviderFactory {
+  return (spec: AgentSpec) => {
+    switch (spec.provider) {
+      case 'anthropic':
+        return createAnthropicProvider({ defaultModel: spec.model });
+      case 'openai':
+        return createOpenAIProvider({ defaultModel: spec.model });
+      case 'gemini':
+        return createGeminiProvider({ defaultModel: spec.model });
+      case 'local-llm':
+        return createLocalLLMProvider({
+          baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
+          model: spec.model,
+        });
+      case 'mock':
+        return createMockProvider();
+      default:
+        throw new Error(`Provider "${spec.provider}" not yet wired in supervisor — Phase 2.5 deliverable.`);
+    }
+  };
+}
+
+async function cmdSupervise(rest: string[]): Promise<void> {
+  const cfgPath = rest.find((a) => a.startsWith('--config='))?.split('=')[1];
+  if (!cfgPath) {
+    throw new Error('Usage: holoscript-agent supervise --config=<path-to-agents.json>');
+  }
+  const teamId = process.env.HOLOMESH_TEAM_ID;
+  if (!teamId) throw new Error('HOLOMESH_TEAM_ID env var required for supervise command');
+
+  const config = loadSupervisorConfig(cfgPath);
+  const sup = new Supervisor({
+    config,
+    providerFactory: supervisorProviderFactory(),
+    teamId,
+    meshApiBase: process.env.HOLOMESH_API_BASE,
+    logger: (ev) => console.log(JSON.stringify(ev)),
+  });
+
+  const onSig = async () => {
+    await sup.stop();
+    setTimeout(() => process.exit(0), 250);
+  };
+  process.on('SIGINT', onSig);
+  process.on('SIGTERM', onSig);
+
+  await sup.start();
+  console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'supervise-running', config: cfgPath }));
+
+  const reportEvery = Number(process.env.HOLOSCRIPT_AGENT_STATUS_REPORT_MS ?? '300000');
+  if (reportEvery > 0) {
+    setInterval(() => {
+      console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'supervisor-status', ...sup.status() }));
+    }, reportEvery);
+  }
+}
+
+async function cmdStatus(rest: string[]): Promise<void> {
+  const cfgPath = rest.find((a) => a.startsWith('--config='))?.split('=')[1];
+  if (!cfgPath) {
+    throw new Error('Usage: holoscript-agent status --config=<path-to-agents.json>');
+  }
+  const config = loadSupervisorConfig(cfgPath);
+  console.log(JSON.stringify({
+    config: cfgPath,
+    agentCount: config.agents.length,
+    enabled: config.agents.filter((a) => a.enabled !== false).map((a) => a.handle),
+    disabled: config.agents.filter((a) => a.enabled === false).map((a) => a.handle),
+    globalBudgetUsdPerDay: config.globalBudgetUsdPerDay ?? null,
+    defaultTickIntervalMs: config.defaultTickIntervalMs ?? null,
+  }, null, 2));
 }
 
 async function cmdAblate(rest: string[]): Promise<void> {
@@ -259,6 +342,8 @@ USAGE
   holoscript-agent ablate --spec=<path>             run a cross-LLM ablation; spec = JSON with task + providers
                           [--out-md=<path>]         optional: write markdown ablation table
                           [--out-json=<path>]       optional: write structured JSON matrix
+  holoscript-agent supervise --config=<path>        run N agents from agents.json (multi-agent daemon)
+  holoscript-agent status --config=<path>           print parsed config summary (validates schema)
   holoscript-agent help                             print this
 
 REQUIRED ENV

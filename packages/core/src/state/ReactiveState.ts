@@ -125,8 +125,8 @@ function createReactiveProxy<T extends object>(
       track(obj, key);
       const value = Reflect.get(obj, key);
 
-      // Deep reactivity for nested objects
-      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      // Deep reactivity for nested objects and arrays
+      if (value !== null && typeof value === 'object') {
         return createReactiveProxy(value as T, onMutation);
       }
 

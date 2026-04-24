@@ -71,13 +71,16 @@ export class LODManager {
 
   register(
     id: string,
-    position: [number, number, number],
+    position: [number, number, number] | { x: number; y: number; z: number },
     levels?: LODLevel[],
     bias = 1
   ): LODObject {
+    const pos = Array.isArray(position)
+      ? [position[0], position[1], position[2]]
+      : [position.x, position.y, position.z];
     const obj: LODObject = {
       id,
-      position: [...position  ],
+      position: [...pos],
       currentLevel: 0,
       levels: levels ?? [...this.config.defaultLevels],
       bias,

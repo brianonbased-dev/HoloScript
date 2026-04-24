@@ -17,7 +17,10 @@ export interface FrustumPlane {
 
 export interface BoundingSphere {
   id: string;
-  position: [number, number, number];
+  position?: [number, number, number];
+  x?: number;
+  y?: number;
+  z?: number;
   radius: number;
 }
 
@@ -65,11 +68,12 @@ export class FrustumCuller {
    * Test if a bounding sphere is visible.
    */
   isVisible(sphere: BoundingSphere): boolean {
+    const [sx, sy, sz] = sphere.position ?? [sphere.x ?? 0, sphere.y ?? 0, sphere.z ?? 0];
     for (const plane of this.planes) {
       const dist =
-          plane.nx * sphere.position[0] +
-          plane.ny * sphere.position[1] +
-          plane.nz * sphere.position[2] +
+          plane.nx * sx +
+          plane.ny * sy +
+          plane.nz * sz +
         plane.d;
       if (dist < -sphere.radius) return false; // Fully behind this plane
     }

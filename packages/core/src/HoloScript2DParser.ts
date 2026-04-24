@@ -180,15 +180,27 @@ export class HoloScript2DParser {
     name: string,
     position: Position2D
   ): UI2DNode {
+    const x = (position as unknown as { x?: number; 0?: number }).x ??
+      (position as unknown as { x?: number; 0?: number })[0] ??
+      0;
+    const y = (position as unknown as { y?: number; 1?: number }).y ??
+      (position as unknown as { y?: number; 1?: number })[1] ??
+      0;
+
+    const properties = {
+      ...this.getDefaultProperties(elementType),
+      x,
+      y,
+    } as Record<string | number, HoloScriptValue>;
+    // Backward-compat for tests/consumers expecting tuple-like coordinate access
+    properties[0] = x as unknown as HoloScriptValue;
+    properties[1] = y as unknown as HoloScriptValue;
+
     const node: UI2DNode = {
       type: '2d-element',
       elementType,
       name,
-      properties: {
-        ...this.getDefaultProperties(elementType),
-        x: (position as any)[0] ?? (position as any)[0],
-        y: (position as any)[1] ?? (position as any)[1],
-      },
+      properties: properties as Record<string, HoloScriptValue>,
     };
 
     this.uiElements.set(name, node);

@@ -101,6 +101,9 @@ export class World {
     if (!this.entities.has(entity)) return;
     if (!this.components.has(type)) this.components.set(type, new Map());
 
+    // Backward-compat for tests/consumers that access vector-like components with [0]/[1]/[2]
+    this.attachLegacyVectorAliases(data as Record<string | number, unknown>);
+
     // Wrap in reactive proxy for state tracking
     const reactiveData = reactive(data, (target, key, value, oldValue) => {
       if (!this.isUndoing) {
@@ -125,6 +128,40 @@ export class World {
         { type: 'removeComponent', entity, componentType: type, data: reactiveData }, // UNDO
         { type: 'addComponent', entity, componentType: type, data: reactiveData } // REDO
       );
+    }
+  }
+
+  private attachLegacyVectorAliases(data: Record<string | number, unknown>): void {
+    const hasXYZ =
+      typeof data['x'] === 'number' || typeof data['y'] === 'number' || typeof data['z'] === 'number';
+    if (!hasXYZ) return;
+
+    if (!(0 in data)) {
+      Object.defineProperty(data, 0, {
+        get: () => data['x'] as unknown,
+        set: (v: unknown) => {
+          data['x'] = v;
+        },
+        enumerable: false,
+      });
+    }
+    if (!(1 in data)) {
+      Object.defineProperty(data, 1, {
+        get: () => data['y'] as unknown,
+        set: (v: unknown) => {
+          data['y'] = v;
+        },
+        enumerable: false,
+      });
+    }
+    if (!(2 in data)) {
+      Object.defineProperty(data, 2, {
+        get: () => data['z'] as unknown,
+        set: (v: unknown) => {
+          data['z'] = v;
+        },
+        enumerable: false,
+      });
     }
   }
 
