@@ -312,14 +312,26 @@ export async function handleBoardRoutes(
     let result: any;
     let eventType: string = '';
 
-    // Surface-attribution tags from request body. These let multiple surfaces
-    // sharing one HoloMesh API key (S.IDENT legacy `antigravity-seed`) be
-    // distinguished in UI/done-log while per-surface key issuance is pending
-    // (task_1776820645291_*). The server-derived `caller.id`/`caller.name`
-    // remain the authoritative identity; tags are purely advisory labels.
-    const claimedByTag = typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined;
-    const completedByTag = typeof body.completedByTag === 'string' ? body.completedByTag : undefined;
-    const deleterTag = typeof body.deleterTag === 'string' ? body.deleterTag : undefined;
+    // Surface-attribution tags. With W.087 vertex C (01424bcd6) + vertex B
+    // (51558fa) live, `caller.surfaceTag` is the server-stored snapshot from
+    // /register time and is the authoritative source. The caller is also the
+    // actor for claim/done/delete — the tag must describe their own surface,
+    // not an arbitrary string chosen per-request.
+    //
+    // Body-declared tags are fallback-only for legacy agents that registered
+    // before `surfaceTag` was persisted on `RegisteredAgent`. A caller with a
+    // server-stored surfaceTag CANNOT override it via body — defense-in-depth
+    // against surface impersonation in the done-log / board UI.
+    //
+    // Still advisory in the sense that caller.id/caller.name remain the
+    // authoritative identity; what changed is that the tag field can no
+    // longer be arbitrarily reassigned per-request.
+    const claimedByTag = caller.surfaceTag
+      ?? (typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined);
+    const completedByTag = caller.surfaceTag
+      ?? (typeof body.completedByTag === 'string' ? body.completedByTag : undefined);
+    const deleterTag = caller.surfaceTag
+      ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
     const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
 
     switch (action) {

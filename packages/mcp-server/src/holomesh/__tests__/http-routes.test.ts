@@ -2704,6 +2704,90 @@ describe('HoloMesh HTTP Routes', () => {
       expect(entry.commitHash).toBe('def5678');
     });
 
+    // W.087 vertex B+C hardening — SECURITY: once an agent is registered with
+    // surface_tag on RegisteredAgent (see 01424bcd6), body.claimedByTag /
+    // body.completedByTag / body.deleterTag cannot override it. Closes
+    // task_1777050402454_50h3 (same vuln class as surfaceTag spoofing).
+    it('PATCH /board/:taskId refuses body.claimedByTag / completedByTag / deleterTag override when caller.surfaceTag is set', async () => {
+      // 1. Register a victim agent with surface_tag=claude-code
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `tag-spoof-${Date.now()}`,
+        surface_tag: 'claude-code',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      expect([200, 201]).toContain(regRes._status);
+      const victimApiKey = regRes._body.agent.api_key;
+
+      // 2. Create a team + task under the victim
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `tag-spoof-team-${Date.now()}` },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'tag-spoof-target', description: 't', priority: 1 }] },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      // 3. Claim with body.claimedByTag=copilot (spoof attempt)
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim', claimedByTag: 'copilot' }, // ← attempted spoof
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      // Server-stored surfaceTag (claude-code) MUST win over body.claimedByTag (copilot)
+      expect(claimRes._body.task.claimedByTag).toBe('claude-code');
+      expect(claimRes._body.task.claimedByTag).not.toBe('copilot');
+      expect(claimRes._body.claimedAs.surfaceTag).toBe('claude-code');
+
+      // 4. Done with body.completedByTag=cursor (spoof attempt)
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'tag-spoof-test',
+          commit: 'abcdef0',
+          completedByTag: 'cursor', // ← attempted spoof
+        },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(doneRes._status).toBe(200);
+      expect(doneRes._body.task.completedByTag).toBe('claude-code');
+      expect(doneRes._body.task.completedByTag).not.toBe('cursor');
+      expect(doneRes._body.completedAs.surfaceTag).toBe('claude-code');
+
+      // 5. Done-log projection also shows the register-time tag, not the spoof
+      const logReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=10`,
+        undefined,
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      const entry = logRes._body.entries.find((e: { taskId: string }) => e.taskId === taskId);
+      expect(entry?.completedByTag).toBe('claude-code');
+    });
+
     it('PATCH /board/:taskId claim/done without tags still works (backward compat)', async () => {
       // Pre-tag callers must continue to function. Tags default to undefined
       // and are omitted from the response when absent.
