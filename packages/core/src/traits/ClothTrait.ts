@@ -50,9 +50,9 @@ interface ClothConfig {
   pin_vertices: Array<[number, number]>; // Grid coordinates to pin
 }
 
-function vecToTuple(v: { x?: number; y?: number; z?: number } | [number, number, number]): [number, number, number] {
+function vecToTuple(v: [number, number, number] | [number, number, number]): [number, number, number] {
   if (Array.isArray(v)) return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
-  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
+  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
 }
 
 // =============================================================================
@@ -142,7 +142,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
 
     if (event.type === 'cloth_vertex_update') {
       // Update vertex positions from physics
-      const positions = event.positions as Array<{ x?: number; y?: number; z?: number } | [number, number, number]>;
+      const positions = event.positions as Array<[number, number, number] | [number, number, number]>;
       const res = config.resolution;
 
       for (let i = 0; i < res && i < positions.length / res; i++) {
@@ -161,10 +161,10 @@ export const clothHandler: TraitHandler<ClothConfig> = {
         vertices: state.vertices,
       });
     } else if (event.type === 'wind_update') {
-      state.windForce = vecToTuple(event.direction as { x?: number; y?: number; z?: number } | [number, number, number]);
+      state.windForce = vecToTuple(event.direction as [number, number, number] | [number, number, number]);
     } else if (event.type === 'cloth_apply_force') {
-      const force = event.force as { x: number; y: number; z: number };
-      const position = event.position as { x: number; y: number; z: number } | undefined;
+      const force = event.force as [number, number, number];
+      const position = event.position as [number, number, number] | undefined;
 
       context.emit?.('cloth_external_force', {
         node,
@@ -176,7 +176,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       const x = event.x as number;
       const y = event.y as number;
 
-      if (state.vertices[x]?.[y]) {
+      if (typeof x === 'number' && typeof y === 'number' && state.vertices[x]?.[y]) {
         state.vertices[x][y].isPinned = true;
 
         context.emit?.('cloth_update_pin', {
@@ -189,7 +189,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       const x = event.x as number;
       const y = event.y as number;
 
-      if (state.vertices[x]?.[y]) {
+      if (typeof x === 'number' && typeof y === 'number' && state.vertices[x]?.[y]) {
         state.vertices[x][y].isPinned = false;
 
         context.emit?.('cloth_update_pin', {
