@@ -5,7 +5,34 @@
  * procedure step tracking, and anatomical landmark registration.
  */
 
-export type Vec3 = [number, number, number];
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  [index: number]: number;
+}
+
+type Vec3Like = Vec3 | [number, number, number] | { x: number; y: number; z: number };
+
+function coordX(v: Vec3Like): number {
+  return (v as { x?: number }).x ?? (v as Record<number, number>)[0] ?? 0;
+}
+
+function coordY(v: Vec3Like): number {
+  return (v as { y?: number }).y ?? (v as Record<number, number>)[1] ?? 0;
+}
+
+function coordZ(v: Vec3Like): number {
+  return (v as { z?: number }).z ?? (v as Record<number, number>)[2] ?? 0;
+}
+
+function asVec3(x: number, y: number, z: number): Vec3 {
+  const v = { x, y, z } as Vec3;
+  Object.defineProperty(v, '0', { value: x, enumerable: false, writable: true });
+  Object.defineProperty(v, '1', { value: y, enumerable: false, writable: true });
+  Object.defineProperty(v, '2', { value: z, enumerable: false, writable: true });
+  return v;
+}
 
 export type OrganSystem =
   | 'cardiovascular'
@@ -106,16 +133,23 @@ export interface SurgicalSession {
 // Core Functions
 // ═══════════════════════════════════════════════════════════════════
 
-export function distance3D(a: Vec3, b: Vec3): number {
-  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+export function distance3D(a: Vec3Like, b: Vec3Like): number {
+  const dx = coordX(a) - coordX(b);
+  const dy = coordY(a) - coordY(b);
+  const dz = coordZ(a) - coordZ(b);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 /**
  * Calculates the shortest distance from point P to the line segment AB.
  */
-export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
-  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+export function distanceToSegment(p: Vec3Like, a: Vec3Like, b: Vec3Like): number {
+  const ax = coordX(a), ay = coordY(a), az = coordZ(a);
+  const bx = coordX(b), by = coordY(b), bz = coordZ(b);
+  const px = coordX(p), py = coordY(p), pz = coordZ(p);
+
+  const ab = [bx - ax, by - ay, bz - az];
+  const ap = [px - ax, py - ay, pz - az];
 
   const lenSq = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
   // If a == b, return distance from p to a
@@ -129,11 +163,7 @@ export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
   else if (t > 1) t = 1;
 
   // Find the closest point on the segment
-  const closest: Vec3 = [
-    a[0] + t * ab[0],
-    a[1] + t * ab[1],
-    a[2] + t * ab[2],
-  ];
+  const closest: Vec3 = asVec3(ax + t * ab[0], ay + t * ab[1], az + t * ab[2]);
 
   return distance3D(p, closest);
 }
