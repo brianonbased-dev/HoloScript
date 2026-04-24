@@ -168,6 +168,29 @@ export class TraitComposer {
       deadElements,
     } = this.semiring.add(applications);
 
+    // Backward-compat: expose vec-like numeric aliases when x/y/z are present
+    if ('x' in mergedDefaultConfig && !('0' in mergedDefaultConfig)) {
+      Object.defineProperty(mergedDefaultConfig, '0', {
+        value: (mergedDefaultConfig as Record<string, unknown>).x,
+        writable: true,
+        enumerable: false,
+      });
+    }
+    if ('y' in mergedDefaultConfig && !('1' in mergedDefaultConfig)) {
+      Object.defineProperty(mergedDefaultConfig, '1', {
+        value: (mergedDefaultConfig as Record<string, unknown>).y,
+        writable: true,
+        enumerable: false,
+      });
+    }
+    if ('z' in mergedDefaultConfig && !('2' in mergedDefaultConfig)) {
+      Object.defineProperty(mergedDefaultConfig, '2', {
+        value: (mergedDefaultConfig as Record<string, unknown>).z,
+        writable: true,
+        enumerable: false,
+      });
+    }
+
     // C3: Log dead elements encountered during composition for diagnostics
     if (deadElements.length > 0) {
       warnings.push(

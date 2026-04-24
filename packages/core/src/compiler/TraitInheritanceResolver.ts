@@ -459,6 +459,7 @@ export class TraitInheritanceResolver {
       ...parent.properties,
       ...this.propertiesToRecord(def.properties),
     };
+    this.addLegacyXYZAliases(mergedProperties);
 
     // Merge event handlers: child handlers override parent handlers with same event name
     const mergedHandlers = this.mergeEventHandlers(parent.eventHandlers, def.eventHandlers || []);
@@ -496,6 +497,34 @@ export class TraitInheritanceResolver {
   /**
    * Convert HoloTraitProperty[] to a flat Record.
    */
+  private addLegacyXYZAliases(record: Record<string, HoloValue>): void {
+    if ('x' in record && !('0' in record)) {
+      Object.defineProperty(record, '0', {
+        value: record.x,
+        writable: true,
+        enumerable: false,
+      });
+    }
+    if ('y' in record && !('1' in record)) {
+      Object.defineProperty(record, '1', {
+        value: record.y,
+        writable: true,
+        enumerable: false,
+      });
+    }
+    if ('z' in record && !('2' in record)) {
+      Object.defineProperty(record, '2', {
+        value: record.z,
+        writable: true,
+        enumerable: false,
+      });
+    }
+
+    if ('x' in record && '0' in record) (record as unknown as Record<number, HoloValue>)[0] = record.x;
+    if ('y' in record && '1' in record) (record as unknown as Record<number, HoloValue>)[1] = record.y;
+    if ('z' in record && '2' in record) (record as unknown as Record<number, HoloValue>)[2] = record.z;
+  }
+
   private propertiesToRecord(
     properties: HoloTraitProperty[] | undefined
   ): Record<string, HoloValue> {
@@ -504,6 +533,7 @@ export class TraitInheritanceResolver {
     for (const prop of properties) {
       result[prop.key] = prop.value;
     }
+    this.addLegacyXYZAliases(result);
     return result;
   }
 
