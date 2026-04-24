@@ -13,7 +13,7 @@ export type IVector3 = [number, number, number];
 export interface BonePose {
   boneId: string;
   position: IVector3;
-  rotation: [number, number, number, number];
+  rotation: [number, number, number, number] & { x: number; y: number; z: number; w: number };
 }
 
 export interface TransitionConfig {
@@ -54,11 +54,37 @@ export class AnimationTransitionSystem {
             (v as { x: number; y: number; z: number }).z ?? 0];
   }
 
+  private toQuat4(
+    q:
+      | ([number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>)
+      | { x: number; y: number; z: number; w: number }
+  ): [number, number, number, number] & { x: number; y: number; z: number; w: number } {
+    const x = Array.isArray(q) ? (q[0] ?? 0) : (q.x ?? 0);
+    const y = Array.isArray(q) ? (q[1] ?? 0) : (q.y ?? 0);
+    const z = Array.isArray(q) ? (q[2] ?? 0) : (q.z ?? 0);
+    const w = Array.isArray(q) ? (q[3] ?? 1) : (q.w ?? 1);
+    const out = [x, y, z, w] as [number, number, number, number] & {
+      x: number;
+      y: number;
+      z: number;
+      w: number;
+    };
+    Object.defineProperty(out, 'x', { value: x, enumerable: false });
+    Object.defineProperty(out, 'y', { value: y, enumerable: false });
+    Object.defineProperty(out, 'z', { value: z, enumerable: false });
+    Object.defineProperty(out, 'w', { value: w, enumerable: false });
+    return out;
+  }
+
   private normalizePose(pose: BonePose[]): BonePose[] {
     return pose.map((p) => ({
       ...p,
       position: this.toVec3(p.position as IVector3 | { x: number; y: number; z: number }),
-      rotation: [...p.rotation] as [number, number, number, number],
+      rotation: this.toQuat4(
+        p.rotation as
+          | ([number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>)
+          | { x: number; y: number; z: number; w: number }
+      ),
     }));
   }
 
@@ -171,15 +197,18 @@ export class AnimationTransitionSystem {
   }
 
   private slerpQuat(
-    a: [number, number, number, number],
-    b: [number, number, number, number],
+    a: [number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>,
+    b: [number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>,
     t: number
-  ): [number, number, number, number] {
-    let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
-    let bx = b[0],
-      by = b[1],
-      bz = b[2],
-      bw = b[3];
+  ): [number, number, number, number] & { x: number; y: number; z: number; w: number } {
+    const aq = this.toQuat4(a);
+    const bq = this.toQuat4(b);
+
+    let dot = aq[0] * bq[0] + aq[1] * bq[1] + aq[2] * bq[2] + aq[3] * bq[3];
+    let bx = bq[0],
+      by = bq[1],
+      bz = bq[2],
+      bw = bq[3];
     if (dot < 0) {
       bx = -bx;
       by = -by;
@@ -188,11 +217,11 @@ export class AnimationTransitionSystem {
       dot = -dot;
     }
 
-    const rx = a[0] + (bx - a[0]) * t;
-    const ry = a[1] + (by - a[1]) * t;
-    const rz = a[2] + (bz - a[2]) * t;
-    const rw = a[3] + (bw - a[3]) * t;
+    const rx = aq[0] + (bx - aq[0]) * t;
+    const ry = aq[1] + (by - aq[1]) * t;
+    const rz = aq[2] + (bz - aq[2]) * t;
+    const rw = aq[3] + (bw - aq[3]) * t;
     const len = Math.sqrt(rx * rx + ry * ry + rz * rz + rw * rw) || 1;
-    return [rx / len, ry / len, rz / len, rw / len];
+    return this.toQuat4([rx / len, ry / len, rz / len, rw / len]);
   }
 }

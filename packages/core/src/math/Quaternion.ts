@@ -65,11 +65,14 @@ export function fromEuler(pitch: number, yaw: number, roll: number): Quat {
   );
 }
 
-/** Build a quaternion from axis (unit vec) and angle (radians). */
+/** Build a quaternion from axis and angle (radians). Normalizes the axis. */
 export function fromAxisAngle(ax: number, ay: number, az: number, angle: number): Quat {
+  const len = Math.sqrt(ax * ax + ay * ay + az * az);
+  if (len < 1e-10) return identity();
+  const inv = 1 / len;
   const half = angle * 0.5;
   const s = Math.sin(half);
-  return asQuat(ax * s, ay * s, az * s, Math.cos(half));
+  return asQuat(ax * inv * s, ay * inv * s, az * inv * s, Math.cos(half));
 }
 
 // =============================================================================
@@ -145,12 +148,12 @@ export function slerp(a: QuatLike, b: QuatLike, t: number): Quat {
   const s0 = Math.cos(theta) - (d * sinTheta) / sinTheta0;
   const s1 = sinTheta / sinTheta0;
 
-  return asQuat(
+  return normalize(asQuat(
     qx(a) * s0 + bx * s1,
     qy(a) * s0 + by * s1,
     qz(a) * s0 + bz * s1,
     qw(a) * s0 + bw * s1
-  );
+  ));
 }
 
 /** Rotate a 3D vector by a unit quaternion. */

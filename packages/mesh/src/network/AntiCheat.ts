@@ -44,6 +44,17 @@ export class AntiCheat {
   private actionCounts: Map<string, { count: number; windowStart: number }> = new Map();
   private config: AntiCheatConfig;
 
+  private toVec3(v: { x: number; y: number; z: number } | [number, number, number]): {
+    x: number;
+    y: number;
+    z: number;
+  } {
+    if (Array.isArray(v)) {
+      return { x: v[0] ?? 0, y: v[1] ?? 0, z: v[2] ?? 0 };
+    }
+    return { x: v.x ?? 0, y: v.y ?? 0, z: v.z ?? 0 };
+  }
+
   constructor(config: Partial<AntiCheatConfig> = {}) {
     this.config = {
       maxSpeed: config.maxSpeed ?? 20,
@@ -57,10 +68,11 @@ export class AntiCheat {
   /**
    * Register a player for monitoring
    */
-  registerPlayer(playerId: string, position = { x: 0, y: 0, z: 0 }): void {
+  registerPlayer(playerId: string, position: { x: number; y: number; z: number } | [number, number, number] = { x: 0, y: 0, z: 0 }): void {
+    const pos = this.toVec3(position);
     this.players.set(playerId, {
       id: playerId,
-      position,
+      position: pos,
       velocity: { x: 0, y: 0, z: 0 },
       lastUpdateAt: Date.now(),
       violations: [],
@@ -82,18 +94,20 @@ export class AntiCheat {
    */
   validatePositionUpdate(
     playerId: string,
-    newPosition: { x: number; y: number; z: number }
+    newPosition: { x: number; y: number; z: number } | [number, number, number]
   ): { valid: boolean; violation?: Violation } {
     const player = this.players.get(playerId);
     if (!player) return { valid: false };
     if (player.banned) return { valid: false };
 
+    const next = this.toVec3(newPosition);
+
     const now = Date.now();
     const dt = (now - player.lastUpdateAt) / 1000; // seconds
 
-    const dx = newPosition.x - player.position.x;
-    const dy = newPosition.y - player.position.y;
-    const dz = newPosition.z - player.position.z;
+    const dx = next.x - player.position.x;
+    const dy = next.y - player.position.y;
+    const dz = next.z - player.position.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Teleport detection
@@ -126,7 +140,7 @@ export class AntiCheat {
     }
 
     // Accept update
-    player.position = { ...newPosition };
+    player.position = { ...next };
     player.lastUpdateAt = now;
     if (dt > 0) {
       player.velocity = { x: dx / dt, y: dy / dt, z: dz / dt };
