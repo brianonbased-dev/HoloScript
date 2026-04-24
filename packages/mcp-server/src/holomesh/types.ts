@@ -619,6 +619,13 @@ export interface RegisteredAgent {
    * SEC-T-Zero fix 2026-04-22 installed the flow; this flag surfaces its result.
    */
   x402Verified?: boolean;
+  /**
+   * Surface tag snapshotted once at /register time from `body.surface_tag`.
+   * Downstream heartbeats and joins use this value; they cannot override it
+   * by re-declaring the field on /presence or /join. Defense-in-depth against
+   * an agent claiming another surface's tag post-enrollment.
+   */
+  surfaceTag?: string;
 }
 
 // --- Social Metadata ---

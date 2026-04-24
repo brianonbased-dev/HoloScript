@@ -438,13 +438,22 @@ export async function handleBoardRoutes(
 
     const isFirst = !presenceMap.has(caller.id);
     // Carry wallet + x402 verification + surface tag on every heartbeat so
-    // GET /presence distinguishes per-surface x402 seats. Surface tag is
-    // declared by the caller on each beat (body.surface_tag); falls back to
-    // the team member's stored surfaceTag snapshot when omitted.
+    // GET /presence distinguishes per-surface x402 seats.
+    //
+    // Surface tag precedence (defense-in-depth against spoofing):
+    //   1. caller.surfaceTag   — server-stored, snapshotted at /register
+    //   2. teamMember.surfaceTag — snapshot from the join record
+    //   3. body.surface_tag    — only for legacy agents that predate (1)
+    //
+    // Once an agent is registered with a surface, subsequent heartbeats
+    // cannot reassign it via request body. Body is fallback-only.
     const teamMember = team.members.find((m) => m.agentId === caller.id);
     const declaredSurfaceTag = typeof body.surface_tag === 'string'
       ? (body.surface_tag as string)
       : undefined;
+    const resolvedSurfaceTag = caller.surfaceTag
+      ?? teamMember?.surfaceTag
+      ?? declaredSurfaceTag;
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,
@@ -453,7 +462,7 @@ export async function handleBoardRoutes(
       lastHeartbeat: new Date().toISOString(),
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
-      surfaceTag: declaredSurfaceTag || teamMember?.surfaceTag,
+      surfaceTag: resolvedSurfaceTag,
     };
     presenceMap.set(caller.id, entry);
 

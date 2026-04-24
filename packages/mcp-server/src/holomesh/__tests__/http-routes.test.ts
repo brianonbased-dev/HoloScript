@@ -1980,6 +1980,60 @@ describe('HoloMesh HTTP Routes', () => {
       expect(getRes._body.online[0].walletAddress).toMatch(/^0x/);
     });
 
+    // W.087 vertex C hardening — SECURITY: surfaceTag spoofing defense-in-depth.
+    // surfaceTag is snapshotted on RegisteredAgent at /register time; subsequent
+    // /presence heartbeats cannot reassign it via body.surface_tag. See
+    // task_1777049263971_imm1 (filed + closed in one arc).
+    it('POST /api/holomesh/team/:id/presence refuses to let body.surface_tag override the register-time snapshot', async () => {
+      // 1. Register a fresh agent declaring surface_tag=claude-code
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `spoof-test-${Date.now()}`,
+        surface_tag: 'claude-code',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      expect([200, 201]).toContain(regRes._status);
+      const victimApiKey = regRes._body.agent.api_key;
+
+      // 2. Create a team under that agent
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `spoof-team-${Date.now()}` },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      expect(createRes._status).toBe(201);
+      const tid = createRes._body.team.id;
+
+      // 3. POST /presence trying to claim surface_tag=copilot (spoof attempt)
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'vscode', surface_tag: 'copilot' }, // ← attempted spoof
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+      // Server-stored surfaceTag from /register MUST win.
+      expect(beatRes._body.presence.surfaceTag).toBe('claude-code');
+      expect(beatRes._body.presence.surfaceTag).not.toBe('copilot');
+
+      // 4. Also verify /members projection surfaces the register-time tag
+      const membersReq = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${victimApiKey}`,
+      });
+      const membersRes = mockRes();
+      await handleHoloMeshRoute(membersReq, membersRes, `/api/holomesh/team/${tid}/members`);
+      expect(membersRes._status).toBe(200);
+      const selfMember = membersRes._body.members.find(
+        (m: { agentId: string; surfaceTag?: string }) => m.agentId === regRes._body.agent.id
+      );
+      expect(selfMember?.surfaceTag).toBe('claude-code');
+    });
+
     // ── Messaging ──
 
     it('POST /api/holomesh/team/:id/message sends team message', async () => {

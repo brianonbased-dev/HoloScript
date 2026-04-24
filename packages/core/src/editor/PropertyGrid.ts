@@ -60,6 +60,23 @@ export class PropertyGrid {
   private groups: Map<string, PropertyGroupConfig> = new Map();
   private maxHistorySize: number = 100;
 
+  private syncLegacyNumericAliases(target: Record<string, unknown>): void {
+    // Backward compat for legacy callers/tests expecting vec-like [0]/[1]/[2]
+    if ('x' in target && !('0' in target)) {
+      Object.defineProperty(target, '0', { value: target.x, writable: true, enumerable: false });
+    }
+    if ('y' in target && !('1' in target)) {
+      Object.defineProperty(target, '1', { value: target.y, writable: true, enumerable: false });
+    }
+    if ('z' in target && !('2' in target)) {
+      Object.defineProperty(target, '2', { value: target.z, writable: true, enumerable: false });
+    }
+
+    if ('x' in target && '0' in target) (target as Record<number, unknown>)[0] = target.x;
+    if ('y' in target && '1' in target) (target as Record<number, unknown>)[1] = target.y;
+    if ('z' in target && '2' in target) (target as Record<number, unknown>)[2] = target.z;
+  }
+
   /**
    * Register property descriptors for a component type
    */
@@ -78,7 +95,9 @@ export class PropertyGrid {
    * Set values for a specific target (entity/component)
    */
   setValues(targetId: string, values: Record<string, unknown>): void {
-    this.values.set(targetId, { ...values });
+    const snapshot = { ...values };
+    this.syncLegacyNumericAliases(snapshot);
+    this.values.set(targetId, snapshot);
   }
 
   /**
@@ -110,6 +129,7 @@ export class PropertyGrid {
     }
 
     target[key] = newValue;
+    this.syncLegacyNumericAliases(target);
   }
 
   /**
@@ -137,6 +157,7 @@ export class PropertyGrid {
     const target = this.values.get(change.targetId);
     if (target) {
       target[change.key] = change.oldValue;
+      this.syncLegacyNumericAliases(target);
     }
     return change;
   }

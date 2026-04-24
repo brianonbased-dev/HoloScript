@@ -234,7 +234,7 @@ export async function handleTeamRoutes(
             joinedAt: new Date().toISOString(),
             walletAddress: agent.walletAddress,
             x402Verified: agent.x402Verified === true,
-            surfaceTag: ide,
+            surfaceTag: agent.surfaceTag ?? ide,
           });
           persistTeamStore();
           broadcastToRoom(team.id, {
@@ -482,12 +482,21 @@ export async function handleTeamRoutes(
       const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
       const wallet = providedWallet ? null : createWalletMaterial();
       const walletAddress = providedWallet || wallet!.address;
+      // Snapshot surface_tag once at /register — downstream handlers will
+      // always prefer this server-stored value over body.surface_tag. An
+      // agent can self-declare whatever it wants at enrollment (low-risk:
+      // that's just the agent labeling itself), but it cannot retroactively
+      // impersonate another surface via later requests.
+      const registerSurfaceTag = typeof body.surface_tag === 'string'
+        ? ((body.surface_tag as string).trim() || undefined)
+        : undefined;
       const agent: RegisteredAgent = {
         id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         apiKey,
         walletAddress,
         name,
         x402Verified: isX402Path,
+        surfaceTag: registerSurfaceTag,
         traits: Array.isArray(body.traits) ? body.traits : [],
         reputation: 0,
         profile: {
@@ -720,9 +729,12 @@ export async function handleTeamRoutes(
       return true;
     }
 
-    const joinSurfaceTag = typeof body.surface_tag === 'string'
-      ? (body.surface_tag as string)
-      : (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
+    // Server-stored surfaceTag (from /register) takes precedence — body fields
+    // are only fallback for legacy agents that registered before surfaceTag
+    // was snapshotted on RegisteredAgent.
+    const joinSurfaceTag = caller.surfaceTag
+      ?? (typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined)
+      ?? (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
     team.members.push({
       agentId: caller.id,
       agentName: caller.name,
@@ -830,10 +842,16 @@ export async function handleTeamRoutes(
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const body = await parseJsonBody(req);
+    // caller.surfaceTag (snapshotted at /register) wins over body.surface_tag.
+    // Body is only honored when the caller predates this change (no server-
+    // stored surfaceTag) and no join-time TeamMember snapshot exists.
     const declaredSurfaceTag = typeof body.surface_tag === 'string'
       ? (body.surface_tag as string)
       : undefined;
     const teamMember = team.members.find((m) => m.agentId === caller.id);
+    const resolvedSurfaceTag = caller.surfaceTag
+      ?? teamMember?.surfaceTag
+      ?? declaredSurfaceTag;
     const entry = {
       agentId: caller.id,
       agentName: caller.name,
@@ -842,7 +860,7 @@ export async function handleTeamRoutes(
       lastHeartbeat: new Date().toISOString(),
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
-      surfaceTag: declaredSurfaceTag || teamMember?.surfaceTag,
+      surfaceTag: resolvedSurfaceTag,
     } as import('../types').TeamPresenceEntry;
     if (!teamPresenceStore.has(teamId)) teamPresenceStore.set(teamId, new Map());
     teamPresenceStore.get(teamId)!.set(caller.id, entry);
