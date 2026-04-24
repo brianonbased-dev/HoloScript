@@ -9,7 +9,12 @@
 import { AgentWalletService } from './AgentWalletService.js';
 
 export interface AgentKitOptions {
-  network: 'base' | 'ethereum' | 'solana';
+  // Solana intentionally excluded (2026-04-24 security review): @coinbase/agentkit's
+  // Solana path pulls in @solana/buffer-layout-utils -> bigint-buffer ≤1.1.5 which
+  // carries an unpatched CWE-120 buffer overflow in toBigIntLE(). We don't use Solana,
+  // so narrow the type to make the vulnerable path unreachable by construction.
+  // See research/2026-04-20_security-dependency-audit.md (2026-04-24 refresh).
+  network: 'base' | 'ethereum';
   rpc_url?: string;
   api_key?: string;
   tee_enabled: boolean;
@@ -27,7 +32,12 @@ export interface AgentKitOptions {
 export interface AgentWallet {
   agent_id: string;
   address: string;
-  network: 'base' | 'ethereum' | 'solana';
+  // Solana intentionally excluded (2026-04-24 security review): @coinbase/agentkit's
+  // Solana path pulls in @solana/buffer-layout-utils -> bigint-buffer ≤1.1.5 which
+  // carries an unpatched CWE-120 buffer overflow in toBigIntLE(). We don't use Solana,
+  // so narrow the type to make the vulnerable path unreachable by construction.
+  // See research/2026-04-20_security-dependency-audit.md (2026-04-24 refresh).
+  network: 'base' | 'ethereum';
   balance: {
     USDC: number;
     ETH?: number;
