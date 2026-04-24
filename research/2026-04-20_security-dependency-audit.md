@@ -145,12 +145,57 @@ Original memo's risk assessment for `bigint-buffer` was LOW because the vulnerab
 
 This doesn't remove the vulnerable dependency (still a transitive via agentkit) but makes the call path unreachable from HoloScript code **by TypeScript's type system**, not just by convention.
 
-### Still deferred
+### Still deferred (updated 2026-04-24+)
 
-- **`cargo audit` on `packages/compiler-wasm`** — `cargo` is installed (`/c/Users/josep/.cargo/bin/cargo`) but `cargo-audit` subcommand isn't. Not installing without explicit founder approval (touches global cargo state). Filed as separate board task.
 - **`@solana/buffer-layout-utils` upstream watch** — no new release since 2026-04-20; still on `bigint-buffer@1.1.5`. No action.
 - **Moderate advisories triage** — 12 total, dev-tool transitives; not supply-chain critical path. Quarterly sweep.
 
 ### Anchor
 
 This memo OTS-anchored 2026-04-24; Base L2 unsigned-tx staged next to it. When broadcast, it becomes the dual-anchored canonical security-posture record.
+
+---
+
+## 2026-04-24+ Rust side — `cargo audit` pass on `packages/compiler-wasm`
+
+Founder `/founder` proxy ruling 2026-04-24 (review-mode session) cleared the install. Executed:
+
+```bash
+cargo install cargo-audit --locked       # installed cargo-audit v0.22.1 to ~/.cargo/bin/
+cd packages/compiler-wasm
+cargo audit --json
+```
+
+**Result**: **0 vulnerabilities across 49 crate dependencies.**
+
+```json
+{
+  "database": {
+    "advisory-count": 1058,
+    "last-commit": "9937d7fbef619f1cb96bafc76a2ee6bba75bfcb6",
+    "last-updated": "2026-04-24T15:03:21+02:00"
+  },
+  "lockfile": { "dependency-count": 49 },
+  "settings": {
+    "informational_warnings": ["unmaintained", "unsound", "notice"]
+  },
+  "vulnerabilities": { "found": false, "count": 0, "list": [] },
+  "warnings": {}
+}
+```
+
+Zero advisories, zero warnings, zero informational flags. Advisory database was fresh (pulled 2026-04-24, 1058 advisories, RustSec HEAD `9937d7fbef`). No `[patch.crates-io]` overrides required; no feature gates adjusted.
+
+**Context**: `packages/compiler-wasm` is the Rust WASM parser that runs on untrusted `.hs`/`.hsplus` content — supply-chain posture on the Rust side is load-bearing for any parser security claim. This clean pass materially reduces the attack surface the pnpm side can't cover.
+
+**Combined 2026-04-24 posture** (both sides):
+
+| Side | critical | high | moderate | low | total |
+|------|---------:|-----:|---------:|----:|------:|
+| npm (pnpm audit) | 0 | 1 (bigint-buffer, un-patchable, Solana path narrowed by construction via 731cbd171) | 12 | 1 | 14 |
+| Rust (cargo audit) | 0 | 0 | 0 | 0 | **0** |
+| **combined critical path** | **0** | **1 (mitigated at type level)** | 12 (dev-tool transitives) | 1 | 14 |
+
+The Rust side is clean. The npm side has one un-patchable HIGH whose vulnerable call path is unreachable from HoloScript code by TypeScript's type system (731cbd171). Residual 12 moderates are dev-tool transitives (eslint, vitest, storybook, postcss) not on the critical path; quarterly sweep per `task_1777055403556_cv35`.
+
+**Re-audit cadence**: pair `cargo audit` runs with the quarterly pnpm sweep so both sides refresh together. Both are `< 30s` commands once installed.
