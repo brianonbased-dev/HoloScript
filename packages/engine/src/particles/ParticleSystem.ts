@@ -123,8 +123,39 @@ export class ParticleSystem {
     }
   }
 
+  private ensureLegacyPositionAliases(p: Particle): void {
+    const aliasTarget = p as unknown as Record<number, unknown>;
+    if (!(0 in aliasTarget)) {
+      Object.defineProperty(aliasTarget, 0, {
+        get: () => p.x,
+        set: (v: unknown) => {
+          if (typeof v === 'number') p.x = v;
+        },
+        enumerable: false,
+      });
+    }
+    if (!(1 in aliasTarget)) {
+      Object.defineProperty(aliasTarget, 1, {
+        get: () => p.y,
+        set: (v: unknown) => {
+          if (typeof v === 'number') p.y = v;
+        },
+        enumerable: false,
+      });
+    }
+    if (!(2 in aliasTarget)) {
+      Object.defineProperty(aliasTarget, 2, {
+        get: () => p.z,
+        set: (v: unknown) => {
+          if (typeof v === 'number') p.z = v;
+        },
+        enumerable: false,
+      });
+    }
+  }
+
   private createDeadParticle(): Particle {
-    return {
+    const p: Particle = {
       alive: false,
       age: 0,
       lifetime: 1,
@@ -146,6 +177,8 @@ export class ParticleSystem {
       rotation: 0,
       rotationSpeed: 0,
     };
+    this.ensureLegacyPositionAliases(p);
+    return p;
   }
 
   /**
