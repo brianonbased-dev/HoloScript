@@ -1,17 +1,18 @@
 import type http from 'http';
-import { 
-  teamStore, 
+import {
+  teamStore,
   teamPresenceStore,
   teamMessageStore,
   teamFeedStore,
-  persistTeamStore 
+  agentKeyStore,
+  persistTeamStore
 } from '../state';
-import { 
-  json, 
-  parseJsonBody, 
+import {
+  json,
+  parseJsonBody,
   parseQuery,
-  extractParam, 
-  getTeamMember, 
+  extractParam,
+  getTeamMember,
   hasTeamPermission,
   requireTeamAccess,
   pruneStalePresence
@@ -38,7 +39,7 @@ import {
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem } from '../types';
+import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem, RegisteredAgent } from '../types';
 
 const MAX_FEED_QUERY = 100;
 
@@ -174,12 +175,13 @@ export async function handleBoardRoutes(
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
           const raw = String(t.description || '');
-          if (raw.length <= 1000) return [];
+          // Kept in sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+          if (raw.length <= 2000) return [];
           return [{
             title: String(t.title || '').slice(0, 200),
             reason: 'description_truncated' as const,
             originalLength: raw.length,
-            keptLength: 1000,
+            keptLength: 2000,
           }];
         });
     team.taskBoard = result.updatedBoard;
@@ -311,14 +313,26 @@ export async function handleBoardRoutes(
     let result: any;
     let eventType: string = '';
 
-    // Surface-attribution tags from request body. These let multiple surfaces
-    // sharing one HoloMesh API key (S.IDENT legacy `antigravity-seed`) be
-    // distinguished in UI/done-log while per-surface key issuance is pending
-    // (task_1776820645291_*). The server-derived `caller.id`/`caller.name`
-    // remain the authoritative identity; tags are purely advisory labels.
-    const claimedByTag = typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined;
-    const completedByTag = typeof body.completedByTag === 'string' ? body.completedByTag : undefined;
-    const deleterTag = typeof body.deleterTag === 'string' ? body.deleterTag : undefined;
+    // Surface-attribution tags. With W.087 vertex C (01424bcd6) + vertex B
+    // (51558fa) live, `caller.surfaceTag` is the server-stored snapshot from
+    // /register time and is the authoritative source. The caller is also the
+    // actor for claim/done/delete — the tag must describe their own surface,
+    // not an arbitrary string chosen per-request.
+    //
+    // Body-declared tags are fallback-only for legacy agents that registered
+    // before `surfaceTag` was persisted on `RegisteredAgent`. A caller with a
+    // server-stored surfaceTag CANNOT override it via body — defense-in-depth
+    // against surface impersonation in the done-log / board UI.
+    //
+    // Still advisory in the sense that caller.id/caller.name remain the
+    // authoritative identity; what changed is that the tag field can no
+    // longer be arbitrarily reassigned per-request.
+    const claimedByTag = caller.surfaceTag
+      ?? (typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined);
+    const completedByTag = caller.surfaceTag
+      ?? (typeof body.completedByTag === 'string' ? body.completedByTag : undefined);
+    const deleterTag = caller.surfaceTag
+      ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
     const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
 
     switch (action) {
@@ -436,12 +450,32 @@ export async function handleBoardRoutes(
     }
 
     const isFirst = !presenceMap.has(caller.id);
+    // Carry wallet + x402 verification + surface tag on every heartbeat so
+    // GET /presence distinguishes per-surface x402 seats.
+    //
+    // Surface tag precedence (defense-in-depth against spoofing):
+    //   1. caller.surfaceTag   — server-stored, snapshotted at /register
+    //   2. teamMember.surfaceTag — snapshot from the join record
+    //   3. body.surface_tag    — only for legacy agents that predate (1)
+    //
+    // Once an agent is registered with a surface, subsequent heartbeats
+    // cannot reassign it via request body. Body is fallback-only.
+    const teamMember = team.members.find((m) => m.agentId === caller.id);
+    const declaredSurfaceTag = typeof body.surface_tag === 'string'
+      ? (body.surface_tag as string)
+      : undefined;
+    const resolvedSurfaceTag = caller.surfaceTag
+      ?? teamMember?.surfaceTag
+      ?? declaredSurfaceTag;
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,
       ideType: body.ide_type as string,
       status: (body.status as any) || 'active',
       lastHeartbeat: new Date().toISOString(),
+      walletAddress: caller.walletAddress,
+      x402Verified: caller.x402Verified === true,
+      surfaceTag: resolvedSurfaceTag,
     };
     presenceMap.set(caller.id, entry);
 
@@ -457,6 +491,65 @@ export async function handleBoardRoutes(
     const online = Array.from(presenceMap.values());
 
     json(res, 200, { success: true, online, presence: entry, online_count: online.length });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/members — W.087 vertex C
+  //
+  // Membership listing with wallet / x402 / surface attribution. Ships as the
+  // canonical "who is on this team" endpoint so agents can disambiguate
+  // per-surface x402 seats from the shared founder key (which was the
+  // blind-spot that drove F.022 and S.IDENT Dim-1 open for weeks).
+  //
+  // Response fields per member (all required keys present even when empty):
+  //   - agentId, agentName, role, joinedAt — always set (from TeamMember)
+  //   - walletAddress — backfilled from agentKeyStore when the TeamMember
+  //     snapshot is missing it (legacy members joined before types.ts shipped
+  //     these fields in this commit)
+  //   - x402Verified — ditto (inferred from RegisteredAgent.x402Verified)
+  //   - surfaceTag — from TeamMember snapshot or, when absent, the last
+  //     observed presence entry's surfaceTag (heartbeats declare this)
+  //
+  // Auth: team membership (same gate as GET /presence). Non-members 403.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/members$/) && method === 'GET') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    const presenceMap = teamPresenceStore.get(teamId);
+
+    // Build an agentId → RegisteredAgent backfill index (by id, not apiKey).
+    const byAgentId = new Map<string, RegisteredAgent>();
+    for (const a of agentKeyStore.values()) {
+      byAgentId.set(a.id, a);
+    }
+
+    const members = team.members.map((m) => {
+      const registered = byAgentId.get(m.agentId);
+      const presence = presenceMap?.get(m.agentId);
+      const walletAddress = m.walletAddress ?? registered?.walletAddress;
+      const x402Verified = m.x402Verified ?? (registered?.x402Verified === true);
+      const surfaceTag = m.surfaceTag ?? presence?.surfaceTag;
+      return {
+        agentId: m.agentId,
+        agentName: m.agentName,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        walletAddress,
+        x402Verified,
+        surfaceTag,
+        online: Boolean(presence),
+        lastHeartbeat: presence?.lastHeartbeat,
+      };
+    });
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      count: members.length,
+      members,
+    });
     return true;
   }
 

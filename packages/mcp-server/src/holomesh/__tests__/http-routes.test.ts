@@ -1859,6 +1859,181 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.online[0].ideType).toBe('cursor');
     });
 
+    // ── Members + x402/surface observability (W.087 vertex C) ──
+
+    it('GET /api/holomesh/team/:id/members returns wallet + x402 + surface attribution', async () => {
+      // Create team
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `members-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const ic = createRes._body.team.invite_code;
+
+      // Member joins with a surface tag
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: ic, surface_tag: 'claude-code' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      // Member beats with surface_tag
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'vscode', surface_tag: 'claude-code', status: 'active' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+
+      // GET /members — owner sees both members with wallet + x402Verified + surfaceTag
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.teamId).toBe(tid);
+      expect(res._body.count).toBe(2);
+      const owner = res._body.members.find((m: any) => m.agentId === ownerAgentId);
+      const member = res._body.members.find((m: any) => m.agentId === memberAgentId);
+      expect(owner).toBeDefined();
+      expect(member).toBeDefined();
+      // Owner — from POST /team creation, wallet/x402 snapshotted
+      expect(owner.role).toBe('owner');
+      expect(owner.walletAddress).toMatch(/^0x/);
+      expect(typeof owner.x402Verified).toBe('boolean');
+      // Member — joined via /join with surface_tag, online via /presence
+      expect(member.role).toBe('member');
+      expect(member.walletAddress).toMatch(/^0x/);
+      expect(member.surfaceTag).toBe('claude-code');
+      expect(member.online).toBe(true);
+      expect(member.lastHeartbeat).toBeTruthy();
+    });
+
+    it('GET /api/holomesh/team/:id/members 403s non-members', async () => {
+      // Create team with owner, don't let member join
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `members-403-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${memberApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
+
+      expect(res._status).toBe(403);
+    });
+
+    it('GET /api/holomesh/team/:id/presence surfaces wallet + x402Verified + surfaceTag on heartbeat', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `pres-x402-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Beat with surface_tag declared
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'claude-code', surface_tag: 'claude-code' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+      expect(beatRes._body.presence.surfaceTag).toBe('claude-code');
+      expect(beatRes._body.presence.walletAddress).toMatch(/^0x/);
+      expect(typeof beatRes._body.presence.x402Verified).toBe('boolean');
+
+      // Read back via GET
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/presence`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/presence`);
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.online[0].surfaceTag).toBe('claude-code');
+      expect(getRes._body.online[0].walletAddress).toMatch(/^0x/);
+    });
+
+    // W.087 vertex C hardening — SECURITY: surfaceTag spoofing defense-in-depth.
+    // surfaceTag is snapshotted on RegisteredAgent at /register time; subsequent
+    // /presence heartbeats cannot reassign it via body.surface_tag. See
+    // task_1777049263971_imm1 (filed + closed in one arc).
+    it('POST /api/holomesh/team/:id/presence refuses to let body.surface_tag override the register-time snapshot', async () => {
+      // 1. Register a fresh agent declaring surface_tag=claude-code
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `spoof-test-${Date.now()}`,
+        surface_tag: 'claude-code',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      expect([200, 201]).toContain(regRes._status);
+      const victimApiKey = regRes._body.agent.api_key;
+
+      // 2. Create a team under that agent
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `spoof-team-${Date.now()}` },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      expect(createRes._status).toBe(201);
+      const tid = createRes._body.team.id;
+
+      // 3. POST /presence trying to claim surface_tag=copilot (spoof attempt)
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'vscode', surface_tag: 'copilot' }, // ← attempted spoof
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+      // Server-stored surfaceTag from /register MUST win.
+      expect(beatRes._body.presence.surfaceTag).toBe('claude-code');
+      expect(beatRes._body.presence.surfaceTag).not.toBe('copilot');
+
+      // 4. Also verify /members projection surfaces the register-time tag
+      const membersReq = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${victimApiKey}`,
+      });
+      const membersRes = mockRes();
+      await handleHoloMeshRoute(membersReq, membersRes, `/api/holomesh/team/${tid}/members`);
+      expect(membersRes._status).toBe(200);
+      const selfMember = membersRes._body.members.find(
+        (m: { agentId: string; surfaceTag?: string }) => m.agentId === regRes._body.agent.id
+      );
+      expect(selfMember?.surfaceTag).toBe('claude-code');
+    });
+
     // ── Messaging ──
 
     it('POST /api/holomesh/team/:id/message sends team message', async () => {
@@ -2327,7 +2502,9 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const longDescription = 'd'.repeat(1200);
+      // W.085 fix (2026-04-24): cap raised 1000 → 2000. Input sized above the
+      // new cap so truncation still fires and warning shape is asserted.
+      const longDescription = 'd'.repeat(2200);
       const req = mockReq(
         'POST',
         `/api/holomesh/team/${tid}/board`,
@@ -2345,8 +2522,8 @@ describe('HoloMesh HTTP Routes', () => {
         {
           title: 'Warn me',
           reason: 'description_truncated',
-          originalLength: 1200,
-          keptLength: 1000,
+          originalLength: 2200,
+          keptLength: 2000,
         },
       ]);
     });
@@ -2527,6 +2704,90 @@ describe('HoloMesh HTTP Routes', () => {
       expect(entry).toBeTruthy();
       expect(entry.completedByTag).toBe('cursor-claude');
       expect(entry.commitHash).toBe('def5678');
+    });
+
+    // W.087 vertex B+C hardening — SECURITY: once an agent is registered with
+    // surface_tag on RegisteredAgent (see 01424bcd6), body.claimedByTag /
+    // body.completedByTag / body.deleterTag cannot override it. Closes
+    // task_1777050402454_50h3 (same vuln class as surfaceTag spoofing).
+    it('PATCH /board/:taskId refuses body.claimedByTag / completedByTag / deleterTag override when caller.surfaceTag is set', async () => {
+      // 1. Register a victim agent with surface_tag=claude-code
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `tag-spoof-${Date.now()}`,
+        surface_tag: 'claude-code',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      expect([200, 201]).toContain(regRes._status);
+      const victimApiKey = regRes._body.agent.api_key;
+
+      // 2. Create a team + task under the victim
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `tag-spoof-team-${Date.now()}` },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'tag-spoof-target', description: 't', priority: 1 }] },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      // 3. Claim with body.claimedByTag=copilot (spoof attempt)
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim', claimedByTag: 'copilot' }, // ← attempted spoof
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      // Server-stored surfaceTag (claude-code) MUST win over body.claimedByTag (copilot)
+      expect(claimRes._body.task.claimedByTag).toBe('claude-code');
+      expect(claimRes._body.task.claimedByTag).not.toBe('copilot');
+      expect(claimRes._body.claimedAs.surfaceTag).toBe('claude-code');
+
+      // 4. Done with body.completedByTag=cursor (spoof attempt)
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'tag-spoof-test',
+          commit: 'abcdef0',
+          completedByTag: 'cursor', // ← attempted spoof
+        },
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(doneRes._status).toBe(200);
+      expect(doneRes._body.task.completedByTag).toBe('claude-code');
+      expect(doneRes._body.task.completedByTag).not.toBe('cursor');
+      expect(doneRes._body.completedAs.surfaceTag).toBe('claude-code');
+
+      // 5. Done-log projection also shows the register-time tag, not the spoof
+      const logReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/done?limit=10`,
+        undefined,
+        { authorization: `Bearer ${victimApiKey}` }
+      );
+      const logRes = mockRes();
+      await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
+      expect(logRes._status).toBe(200);
+      const entry = logRes._body.entries.find((e: { taskId: string }) => e.taskId === taskId);
+      expect(entry?.completedByTag).toBe('claude-code');
     });
 
     it('PATCH /board/:taskId claim/done without tags still works (backward compat)', async () => {
@@ -3952,6 +4213,123 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(503);
       expect(res._body.error).toContain('MOLTBOOK_API_KEY');
+    });
+  });
+
+  // ── Sovereign Migrate (founder-override gate) ──
+  //
+  // task_1777050402454_28wq (2026-04-24): POST /api/holomesh/sovereign/migrate
+  // must not let non-founder callers fabricate migration records for other
+  // agents by supplying body.agentId. Non-founders always get caller.id in
+  // migration.agentId; founders may override for legitimate simulation.
+  describe('POST /api/holomesh/sovereign/migrate', () => {
+    let nonFounderApiKey: string;
+    let nonFounderAgentId: string;
+    let counter = 0;
+
+    async function registerAgent(name: string): Promise<{ apiKey: string; agentId: string }> {
+      const uniqueName = `${name}-${++counter}-${Math.random().toString(36).slice(2, 8)}`;
+      const req = mockReq('POST', '/api/holomesh/register', { name: uniqueName });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register');
+      if (res._status !== 201) throw new Error(`Register failed: ${JSON.stringify(res._body)}`);
+      return { apiKey: res._body.agent.api_key, agentId: res._body.agent.id };
+    }
+
+    beforeEach(async () => {
+      const agent = await registerAgent('migrate-nonfounder');
+      nonFounderApiKey = agent.apiKey;
+      nonFounderAgentId = agent.agentId;
+    });
+
+    it('non-founder: body.agentId=<other> is IGNORED and migration.agentId = caller.id', async () => {
+      const victimId = 'agent_victim_9999';
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: victimId, fromCluster: 'cluster_a', toCluster: 'cluster_b' },
+        { authorization: `Bearer ${nonFounderApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      // The core assertion: body.agentId was IGNORED — migration.agentId is caller's id,
+      // not the attacker-supplied victim id.
+      expect(res._body.migration.agentId).toBe(nonFounderAgentId);
+      expect(res._body.migration.agentId).not.toBe(victimId);
+      expect(res._body.migration.impersonated).toBe(false);
+      // signedBy/signedById agree with the coerced agentId.
+      expect(res._body.migration.signedById).toBe(nonFounderAgentId);
+    });
+
+    it('non-founder: omitting body.agentId still yields migration.agentId = caller.id', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { fromCluster: 'cluster_1', toCluster: 'cluster_2' },
+        { authorization: `Bearer ${nonFounderApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.agentId).toBe(nonFounderAgentId);
+      expect(res._body.migration.impersonated).toBe(false);
+    });
+
+    it('founder: body.agentId=<other> is HONORED but response flags impersonated=true', async () => {
+      // HOLOSCRIPT_API_KEY=test-api-key resolves to isFounder via env-key fallback.
+      const otherAgentId = 'agent_other_12345';
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: otherAgentId, fromCluster: 'cluster_a', toCluster: 'cluster_b' },
+        { authorization: `Bearer test-api-key` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.agentId).toBe(otherAgentId);
+      expect(res._body.migration.impersonated).toBe(true);
+      // signedById differs from migration.agentId — downstream consumers see the split.
+      expect(res._body.migration.signedById).not.toBe(otherAgentId);
+    });
+
+    it('founder: omitting body.agentId defaults to caller.id and impersonated=false', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { fromCluster: 'cluster_1' },
+        { authorization: `Bearer test-api-key` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.impersonated).toBe(false);
+      // For founder self-migration, agentId equals signedById.
+      expect(res._body.migration.agentId).toBe(res._body.migration.signedById);
+    });
+
+    it('unauthenticated: 401/403 before any migration record is produced', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: 'agent_victim_0001' }
+        // no authorization header
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      // requireAuth returns 401; the exact code belongs to auth-utils, we only
+      // care that no migration body was returned.
+      expect(res._status).toBeGreaterThanOrEqual(401);
+      expect(res._body?.migration).toBeUndefined();
     });
   });
 
