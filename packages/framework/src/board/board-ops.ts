@@ -297,7 +297,13 @@ export function addTasksToBoard(
     }
 
     const rawDescription = String(t.description || '');
-    const normalizedDescription = rawDescription.slice(0, 1000);
+    // Cap unified with the suggestion-description cap at line 367 (2000).
+    // W.085 post-mortem: agents repeatedly hit the old 1000 cap while filing
+    // security-audit tasks (~3 reproductions 2026-04-23 to 2026-04-24). The
+    // warning signal already existed; raising the cap reduces false friction
+    // without changing the signal shape — callers still get `warnings[]`
+    // on overflow, just at a higher threshold.
+    const normalizedDescription = rawDescription.slice(0, 2000);
     if (rawDescription.length > normalizedDescription.length) {
       warnings.push({
         title,

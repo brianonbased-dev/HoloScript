@@ -427,12 +427,13 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
       ? (result as any).warnings
       : tasks.flatMap((t) => {
           const raw = String((t as Record<string, unknown>).description || '');
-          if (raw.length <= 1000) return [];
+          // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+          if (raw.length <= 2000) return [];
           return [{
             title: String((t as Record<string, unknown>).title || '').slice(0, 200),
             reason: 'description_truncated' as const,
             originalLength: raw.length,
-            keptLength: 1000,
+            keptLength: 2000,
           }];
         });
     team.taskBoard = result.updatedBoard;
@@ -588,12 +589,13 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
       ? (result as any).warnings
       : scopedTasks.flatMap((t: { title?: string; description?: string }) => {
           const raw = String(t.description || '');
-          if (raw.length <= 1000) return [];
+          // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+          if (raw.length <= 2000) return [];
           return [{
             title: String(t.title || '').slice(0, 200),
             reason: 'description_truncated' as const,
             originalLength: raw.length,
-            keptLength: 1000,
+            keptLength: 2000,
           }];
         });
     team.taskBoard = result.updatedBoard;

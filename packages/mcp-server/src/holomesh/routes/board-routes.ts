@@ -175,12 +175,13 @@ export async function handleBoardRoutes(
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
           const raw = String(t.description || '');
-          if (raw.length <= 1000) return [];
+          // Kept in sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
+          if (raw.length <= 2000) return [];
           return [{
             title: String(t.title || '').slice(0, 200),
             reason: 'description_truncated' as const,
             originalLength: raw.length,
-            keptLength: 1000,
+            keptLength: 2000,
           }];
         });
     team.taskBoard = result.updatedBoard;

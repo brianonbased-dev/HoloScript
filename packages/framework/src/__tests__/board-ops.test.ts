@@ -61,20 +61,35 @@ describe('addTasksToBoard', () => {
   });
 
   it('emits warning when description is truncated', () => {
-    const longDescription = 'x'.repeat(1300);
+    // W.085 fix (2026-04-24): cap raised 1000 → 2000 to unify with the
+    // suggestion-description cap and reduce false-friction on security
+    // audit tasks (~3 reproductions 2026-04-23 → 2026-04-24).
+    const longDescription = 'x'.repeat(2300);
     const { added, warnings } = addTasksToBoard([], [], [
       { title: 'Long desc task', description: longDescription, source: 't', priority: 1 },
     ]);
 
     expect(added).toHaveLength(1);
-    expect(added[0].description).toHaveLength(1000);
+    expect(added[0].description).toHaveLength(2000);
     expect(warnings).toEqual([
       {
         title: 'Long desc task',
         reason: 'description_truncated',
-        originalLength: 1300,
-        keptLength: 1000,
+        originalLength: 2300,
+        keptLength: 2000,
       },
     ]);
+  });
+
+  it('accepts descriptions up to the 2000-char cap without warning', () => {
+    // Boundary regression: W.085 fix must not introduce off-by-one at the cap.
+    const exactlyCapped = 'y'.repeat(2000);
+    const { added, warnings } = addTasksToBoard([], [], [
+      { title: 'Exactly cap', description: exactlyCapped, source: 't', priority: 1 },
+    ]);
+
+    expect(added).toHaveLength(1);
+    expect(added[0].description).toHaveLength(2000);
+    expect(warnings).toHaveLength(0);
   });
 });

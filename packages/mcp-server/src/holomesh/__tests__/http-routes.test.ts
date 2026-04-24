@@ -2502,7 +2502,9 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const longDescription = 'd'.repeat(1200);
+      // W.085 fix (2026-04-24): cap raised 1000 → 2000. Input sized above the
+      // new cap so truncation still fires and warning shape is asserted.
+      const longDescription = 'd'.repeat(2200);
       const req = mockReq(
         'POST',
         `/api/holomesh/team/${tid}/board`,
@@ -2520,8 +2522,8 @@ describe('HoloMesh HTTP Routes', () => {
         {
           title: 'Warn me',
           reason: 'description_truncated',
-          originalLength: 1200,
-          keptLength: 1000,
+          originalLength: 2200,
+          keptLength: 2000,
         },
       ]);
     });
