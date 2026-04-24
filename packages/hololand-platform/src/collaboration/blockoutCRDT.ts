@@ -13,20 +13,19 @@ import type { Vec3 } from '@holoscript/crdt-spatial/bridge';
 
 const NODE_PREFIX = 'blockout:';
 
-export interface BlockoutVec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+// NOTE: `@holoscript/crdt-spatial`'s `Vec3` is a `{x, y, z}` object — NOT a
+// tuple. Historical code here treated it as `[x, y, z]`, which silently
+// stored `undefined` into the LoroMap (pos.x on an array is undefined) and
+// produced undefined reads on `getVolume`. The surface-level type equality
+// to our own `BlockoutVec3` lets us pass it straight through with no
+// conversion now.
+
+export type BlockoutVec3 = Vec3;
 
 export interface BlockoutVolume {
   id: string;
   center: BlockoutVec3;
   halfExtents: BlockoutVec3;
-}
-
-function toTuple(v: BlockoutVec3): Vec3 {
-  return [v.x, v.y, v.z];
 }
 
 export class BlockoutCRDTSession {
@@ -45,16 +44,20 @@ export class BlockoutCRDTSession {
    */
   upsertVolume(id: string, center: BlockoutVec3, halfExtents: BlockoutVec3): void {
     const nid = this.nodeId(id);
-    const scale: Vec3 = [halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2];
+    const scale: Vec3 = {
+      x: halfExtents.x * 2,
+      y: halfExtents.y * 2,
+      z: halfExtents.z * 2,
+    };
     if (!this.bridge.hasNode(nid)) {
       this.bridge.registerNode(nid, {
-        position: toTuple(center),
-        rotation: [0, 0, 0, 1],
+        position: center,
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale,
       });
       return;
     }
-    this.bridge.setPosition(nid, toTuple(center));
+    this.bridge.setPosition(nid, center);
     this.bridge.setScale(nid, scale);
   }
 
@@ -68,8 +71,8 @@ export class BlockoutCRDTSession {
     if (!p || !s) return null;
     return {
       id,
-      center: { x: p[0], y: p[1], z: p[2] },
-      halfExtents: { x: s[0] / 2, y: s[1] / 2, z: s[2] / 2 },
+      center: { x: p.x, y: p.y, z: p.z },
+      halfExtents: { x: s.x / 2, y: s.y / 2, z: s.z / 2 },
     };
   }
 

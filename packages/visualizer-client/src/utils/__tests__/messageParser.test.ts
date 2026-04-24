@@ -121,7 +121,10 @@ describe('applyOrbUpdate', () => {
     const updateMsg = parseMessage(
       JSON.stringify({
         type: 'orb_update',
-        payload: { orb: { id: 'earth', name: 'Earth', position: [1, 0, 0], properties: {} } },
+        // Use the {x,y,z} form consistently with makeOrb() + the file's other
+        // tests. parseMessage passes payload.orb through unchanged, so the
+        // inline payload shape must match the shape the assertions expect.
+        payload: { orb: { id: 'earth', name: 'Earth', position: { x: 1, y: 0, z: 0 }, properties: {} } },
       }),
     )!;
     const result = applyOrbUpdate(existing, updateMsg);

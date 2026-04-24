@@ -209,7 +209,12 @@ describe('types â€” conversion utilities', () => {
     const arr = vec3ToArray(v);
     expect(arr).toEqual([1, 2, 3]);
     const v2 = arrayToVec3(arr);
-    expect(v2).toEqual({ x: 1, y: 2, z: 3 });
+    // vec3() returns an Array-backed Vec3 with non-enumerable x/y/z accessors
+    // (types.ts:195). toEqual on {x,y,z} therefore fails on structure
+    // mismatch — assert each accessor instead to test the behavioral contract.
+    expect(v2.x).toBe(1);
+    expect(v2.y).toBe(2);
+    expect(v2.z).toBe(3);
   });
 
   it('quatToArray / arrayToQuat round-trip', () => {
@@ -717,8 +722,16 @@ describe('vec2Math', () => {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 describe('vec3Math', () => {
   it('zero / one factory functions', () => {
-    expect(vec3Math.zero()).toEqual({ x: 0, y: 0, z: 0 });
-    expect(vec3Math.one()).toEqual({ x: 1, y: 1, z: 1 });
+    // vec3() is Array-backed with non-enumerable x/y/z (types.ts:195); test
+    // accessor contract rather than object structure.
+    const z = vec3Math.zero();
+    expect(z.x).toBe(0);
+    expect(z.y).toBe(0);
+    expect(z.z).toBe(0);
+    const o = vec3Math.one();
+    expect(o.x).toBe(1);
+    expect(o.y).toBe(1);
+    expect(o.z).toBe(1);
   });
 
   it('up / down / forward / back factory functions', () => {
@@ -729,8 +742,12 @@ describe('vec3Math', () => {
   });
 
   it('add', () => {
+    // vec3Math.add returns a vec3() (Array-backed with non-enumerable x/y/z).
+    // Assert accessor contract instead of object structure.
     const r = vec3Math.add({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 });
-    expect(r).toEqual({ x: 5, y: 7, z: 9 });
+    expect(r.x).toBe(5);
+    expect(r.y).toBe(7);
+    expect(r.z).toBe(9);
   });
 
   it('sub', () => {
