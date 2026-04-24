@@ -9,7 +9,7 @@
 
 import type http from 'http';
 
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
+const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 const ABSORB_URL = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
 const ABSORB_KEY =
   process.env.ABSORB_API_KEY ||

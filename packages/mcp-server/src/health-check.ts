@@ -123,6 +123,6 @@ export function handleHealthRequest(
   version: string
 ): void {
   const health = buildHealthStatus(toolCount, version);
-  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(health));
 }

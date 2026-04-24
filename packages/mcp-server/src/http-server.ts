@@ -677,7 +677,7 @@ const httpServer = http.createServer(async (req, res) => {
   // Health check (unauthenticated for Railway)
   if (url === '/health') {
     const oauthStats = oauth.getStats();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify({
         status: 'healthy',
@@ -708,7 +708,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // Extended health check with render capabilities
   if (url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify({
         status: 'healthy',
@@ -758,7 +758,7 @@ const httpServer = http.createServer(async (req, res) => {
       : `http://localhost:${PORT}`;
 
     res.writeHead(200, {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
     });
     res.end(
@@ -840,7 +840,7 @@ const httpServer = http.createServer(async (req, res) => {
     url === '/.well-known/oauth-authorization-server'
   ) {
     res.writeHead(200, {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
     });
     res.end(JSON.stringify(oauth.getOpenIDConfiguration(), null, 2));
@@ -861,7 +861,7 @@ const httpServer = http.createServer(async (req, res) => {
 
     const card = buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
     res.writeHead(200, {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
     });
     res.end(JSON.stringify(card, null, 2));
@@ -911,7 +911,7 @@ const httpServer = http.createServer(async (req, res) => {
     };
 
     res.writeHead(200, {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
     });
     res.end(JSON.stringify(lite, null, 2));
@@ -930,7 +930,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(Buffer.from(delta));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -953,11 +953,11 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       const response = await handleInboundGossip(body, worldState, discovery);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(response));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: false, error: message }));
     }
     return;
@@ -969,7 +969,7 @@ const httpServer = http.createServer(async (req, res) => {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : `http://localhost:${PORT}`;
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify(
         {
@@ -1009,7 +1009,7 @@ const httpServer = http.createServer(async (req, res) => {
       // Validate JSON-RPC 2.0 envelope
       const parsed = parseJsonRpcRequest(body);
       if ('error' in parsed) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(parsed.error));
         return;
       }
@@ -1030,12 +1030,12 @@ const httpServer = http.createServer(async (req, res) => {
         agentCardBuilder
       );
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(response, null, 2));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       // JSON-RPC spec: parse errors return -32700
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           jsonrpc: '2.0',
@@ -1055,7 +1055,7 @@ const httpServer = http.createServer(async (req, res) => {
   if (sceneMatch && req.method === 'GET') {
     const scene = getScene(sceneMatch[1]);
     if (!scene) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
@@ -1068,7 +1068,7 @@ const httpServer = http.createServer(async (req, res) => {
   if (embedMatch && req.method === 'GET') {
     const scene = getScene(embedMatch[1]);
     if (!scene) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
@@ -1086,7 +1086,7 @@ const httpServer = http.createServer(async (req, res) => {
     const sceneId = thumbnailMatch[1];
     const scene = getScene(sceneId);
     if (!scene) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
@@ -1107,7 +1107,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(buffer);
     } else {
       // Fallback: redirect to a placeholder or return 202
-      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.writeHead(202, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ status: 'generating', retry_after: 3 }));
     }
     return;
@@ -1132,7 +1132,7 @@ const httpServer = http.createServer(async (req, res) => {
 
     const mimeType = ALLOWED_ARTIFACTS[artifactName];
     if (!mimeType) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Unknown artifact', allowed: Object.keys(ALLOWED_ARTIFACTS) }));
       return;
     }
@@ -1153,11 +1153,11 @@ const httpServer = http.createServer(async (req, res) => {
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Artifact not found', hash: bundleHash, artifact: artifactName }));
       } else {
         const message = err instanceof Error ? err.message : String(err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Failed to read artifact', detail: message }));
       }
     }
@@ -1168,11 +1168,11 @@ const httpServer = http.createServer(async (req, res) => {
   if (apiSceneMatch && req.method === 'GET') {
     const scene = getScene(apiSceneMatch[1]);
     if (!scene) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(scene));
     return;
   }
@@ -1221,7 +1221,7 @@ const httpServer = http.createServer(async (req, res) => {
         ip: clientIP,
       });
 
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           client_id: clientId,
@@ -1235,7 +1235,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_client_metadata', error_description: message }));
     }
     return;
@@ -1248,11 +1248,11 @@ const httpServer = http.createServer(async (req, res) => {
       const params = new URLSearchParams(queryString);
       const result = await oauth2.handleAuthorizeGet(params);
 
-      res.writeHead(result.status, { 'Content-Type': 'application/json' });
+      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result.body, null, 2));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;
@@ -1270,7 +1270,7 @@ const httpServer = http.createServer(async (req, res) => {
         codeChallengeMethod: 'S256',
       });
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           code,
@@ -1279,7 +1279,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;
@@ -1292,7 +1292,7 @@ const httpServer = http.createServer(async (req, res) => {
 
     if (rl.remaining <= 0) {
       res.writeHead(429, {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
       });
       res.end(
@@ -1344,7 +1344,7 @@ const httpServer = http.createServer(async (req, res) => {
           break;
 
         default:
-          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(
             JSON.stringify({
               error: 'unsupported_grant_type',
@@ -1361,7 +1361,7 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       res.writeHead(200, {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store',
         Pragma: 'no-cache',
       });
@@ -1375,7 +1375,7 @@ const httpServer = http.createServer(async (req, res) => {
         reason: message,
       });
 
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_grant', error_description: message }));
     }
     return;
@@ -1396,11 +1396,11 @@ const httpServer = http.createServer(async (req, res) => {
       }
 
       // RFC 7009: Always return 200, even if token was not found
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ revoked }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;
@@ -1413,7 +1413,7 @@ const httpServer = http.createServer(async (req, res) => {
       const token = body.token as string;
       const result = oauth.introspect(token);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           active: result.active,
@@ -1426,7 +1426,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;
@@ -1439,7 +1439,7 @@ const httpServer = http.createServer(async (req, res) => {
   // MCP SSE endpoint
   if (url === '/mcp' && req.method === 'GET') {
     if (!ALLOW_SSE_TRANSPORT) {
-      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           error: 'SSE transport disabled',
@@ -1462,7 +1462,7 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       res.writeHead(401, {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
       });
       res.end(
@@ -1498,7 +1498,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/mcp/messages' && req.method === 'POST') {
     if (!ALLOW_SSE_TRANSPORT) {
-      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           error: 'SSE message endpoint disabled',
@@ -1515,14 +1515,14 @@ const httpServer = http.createServer(async (req, res) => {
     const sessionId = params.get('sessionId');
 
     if (!sessionId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Session ID required in query parameters' }));
       return;
     }
 
     const transport = transports.get(sessionId);
     if (!transport) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Session not found', sessionId }));
       return;
     }
@@ -1563,11 +1563,11 @@ const httpServer = http.createServer(async (req, res) => {
       const task = createTask(request);
       const executed = await executeTask(task, handleToolForA2A);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(taskToResponse(executed), null, 2));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -1592,7 +1592,7 @@ const httpServer = http.createServer(async (req, res) => {
     if (params.get('offset')) filters.offset = parseInt(params.get('offset')!, 10);
 
     const result = listTasks(filters);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify(
         {
@@ -1611,11 +1611,11 @@ const httpServer = http.createServer(async (req, res) => {
   if (taskGetMatch && req.method === 'GET') {
     const task = getTask(taskGetMatch[1]);
     if (!task) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Task not found', id: taskGetMatch[1] }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(taskToResponse(task), null, 2));
     return;
   }
@@ -1625,11 +1625,11 @@ const httpServer = http.createServer(async (req, res) => {
   if (taskDeleteMatch && req.method === 'DELETE') {
     const task = cancelTask(taskDeleteMatch[1]);
     if (!task) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Task not found', id: taskDeleteMatch[1] }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(taskToResponse(task), null, 2));
     return;
   }
@@ -1642,7 +1642,7 @@ const httpServer = http.createServer(async (req, res) => {
     // Auth required
     const authed = await checkAuth(req);
     if (!authed) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
     }
@@ -1651,19 +1651,19 @@ const httpServer = http.createServer(async (req, res) => {
       const userId = body.userId as string;
       const operation = body.operation as string;
       if (!userId || !operation) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
         return;
       }
       const opCost = OPERATION_COSTS[operation];
       if (!opCost) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: `Unknown operation: ${operation}` }));
         return;
       }
       if (!pgPool) {
         // No DB — allow all requests (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: true, balance: Infinity, required: opCost.baseCostCents }));
         return;
       }
@@ -1673,10 +1673,10 @@ const httpServer = http.createServer(async (req, res) => {
       );
       const balance = result.rows[0]?.balance_cents ?? 0;
       if (balance >= opCost.baseCostCents) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: true, balance, required: opCost.baseCostCents }));
       } else {
-        res.writeHead(402, { 'Content-Type': 'application/json' });
+        res.writeHead(402, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             error: 'Insufficient credits',
@@ -1688,7 +1688,7 @@ const httpServer = http.createServer(async (req, res) => {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Credit check failed', detail: message }));
     }
     return;
@@ -1698,7 +1698,7 @@ const httpServer = http.createServer(async (req, res) => {
     // Auth required
     const authed = await checkAuth(req);
     if (!authed) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
     }
@@ -1707,19 +1707,19 @@ const httpServer = http.createServer(async (req, res) => {
       const userId = body.userId as string;
       const operation = body.operation as string;
       if (!userId || !operation) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
         return;
       }
       const opCost = OPERATION_COSTS[operation];
       if (!opCost) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: `Unknown operation: ${operation}` }));
         return;
       }
       if (!pgPool) {
         // No DB — accept deduction silently (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents }));
         return;
       }
@@ -1734,7 +1734,7 @@ const httpServer = http.createServer(async (req, res) => {
         [opCost.baseCostCents, userId]
       );
       if (result.rowCount === 0) {
-        res.writeHead(402, { 'Content-Type': 'application/json' });
+        res.writeHead(402, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             error: 'Insufficient credits',
@@ -1758,7 +1758,7 @@ const httpServer = http.createServer(async (req, res) => {
           ]
         )
         .catch((txErr: unknown) => console.error('[credits] Failed to record transaction:', txErr));
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           ok: true,
@@ -1768,7 +1768,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Credit deduction failed', detail: message }));
     }
     return;
@@ -1782,13 +1782,13 @@ const httpServer = http.createServer(async (req, res) => {
   if (url === '/api/moltbook/crosspost' && req.method === 'POST') {
     const authed = await checkAuth(req);
     if (!authed) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
       return;
     }
     const moltKey = process.env.MOLTBOOK_API_KEY || '';
     if (!moltKey) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           success: false,
@@ -1808,7 +1808,7 @@ const httpServer = http.createServer(async (req, res) => {
         built = buildMoltbookCrosspostPayload(flat);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: false, error: msg }));
         return;
       }
@@ -1830,7 +1830,7 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       if (!created.success) {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             success: false,
@@ -1841,7 +1841,7 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           success: true,
@@ -1852,7 +1852,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: false, error: 'Crosspost handler failed', detail: message }));
     }
     return;
@@ -1892,7 +1892,7 @@ const httpServer = http.createServer(async (req, res) => {
     // Prune old entries (older than 60s)
     while (timestamps.length > 0 && timestamps[0] < now - 60_000) timestamps.shift();
     if (timestamps.length >= 60) {
-      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' });
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '60' });
       res.end(JSON.stringify({ error: 'Rate limit exceeded. 60 requests per minute.' }));
       return;
     }
@@ -1903,18 +1903,18 @@ const httpServer = http.createServer(async (req, res) => {
 
       // Input size limit (100KB)
       if (typeof body.code === 'string' && body.code.length > 100_000) {
-        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Input too large. Maximum 100KB.' }));
         return;
       }
 
       if (!body.code || typeof body.code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
         return;
       }
       if (!body.target || typeof body.target !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             error:
@@ -1929,11 +1929,11 @@ const httpServer = http.createServer(async (req, res) => {
         target: body.target,
         options: body.options || {},
       });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -1944,7 +1944,7 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       if (!body.code || typeof body.code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
         return;
       }
@@ -1957,11 +1957,11 @@ const httpServer = http.createServer(async (req, res) => {
         quality: (body.quality as 'draft' | 'preview' | 'production') || 'preview',
         skipRemote: true,
       });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -1984,7 +1984,7 @@ const httpServer = http.createServer(async (req, res) => {
         if (isFreeTool) {
           auth = { active: true, scopes: ['tools:read'], agentId: 'anonymous' };
         } else {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid token required' }));
           return;
         }
@@ -1992,7 +1992,7 @@ const httpServer = http.createServer(async (req, res) => {
 
       if (method === 'tools/list') {
         const allTools = [...tools, ...PluginManager.getTools()];
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             jsonrpc: '2.0',
@@ -2015,7 +2015,7 @@ const httpServer = http.createServer(async (req, res) => {
           bearerToken: readBearerToken(req),
         });
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             jsonrpc: '2.0',
@@ -2043,7 +2043,7 @@ const httpServer = http.createServer(async (req, res) => {
       }
 
       // Fallback for other methods
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           jsonrpc: '2.0',
@@ -2053,7 +2053,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message } }));
     }
     return;
@@ -2065,7 +2065,7 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const { tool, args } = body as { tool: string; args?: Record<string, unknown> };
       if (!tool || typeof tool !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: tool (string)' }));
         return;
       }
@@ -2081,11 +2081,11 @@ const httpServer = http.createServer(async (req, res) => {
         requestMethod: 'POST',
       });
 
-      res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json' });
+      res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: !isError, result }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2096,7 +2096,7 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       if (!body.code || typeof body.code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
         return;
       }
@@ -2107,11 +2107,11 @@ const httpServer = http.createServer(async (req, res) => {
         platform: (body.platform as 'x' | 'generic' | 'codesandbox' | 'stackblitz') || 'x',
         skipRemote: true,
       });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2122,7 +2122,7 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       if (!body.code || typeof body.code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
         return;
       }
@@ -2134,7 +2134,7 @@ const httpServer = http.createServer(async (req, res) => {
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           id: scene.id,
@@ -2145,7 +2145,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2156,7 +2156,7 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       if (!body.code || typeof body.code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
         return;
       }
@@ -2170,7 +2170,7 @@ const httpServer = http.createServer(async (req, res) => {
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           id: scene.id,
@@ -2188,7 +2188,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2201,7 +2201,7 @@ const httpServer = http.createServer(async (req, res) => {
       const [username, name] = parts.map(decodeURIComponent);
       const found = findSceneByAuthor(username, name);
       if (found) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             id: found.id,
@@ -2213,11 +2213,11 @@ const httpServer = http.createServer(async (req, res) => {
           })
         );
       } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: `Composition @${username}/${name} not found` }));
       }
     } else {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Expected /api/registry/:username/:name' }));
     }
     return;
@@ -2235,7 +2235,7 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const code = body.code as string;
       if (!code || typeof code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code' }));
         return;
       }
@@ -2328,7 +2328,7 @@ const httpServer = http.createServer(async (req, res) => {
         }
       }
 
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           url: sceneUrl,
@@ -2342,7 +2342,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2355,7 +2355,7 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const code = body.code as string;
       if (!code || typeof code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: code' }));
         return;
       }
@@ -2408,7 +2408,7 @@ const httpServer = http.createServer(async (req, res) => {
       // 6. Check if already published
       const existing = protocolRecords.get(contentHash);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           contentHash,
@@ -2423,7 +2423,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2439,7 +2439,7 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const contentHash = body.contentHash as string;
       if (!contentHash) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: contentHash' }));
         return;
       }
@@ -2464,11 +2464,11 @@ const httpServer = http.createServer(async (req, res) => {
         sceneResult.sceneUrl = `${baseUrl}/scene/${scene.id}`;
         sceneResult.embedUrl = `${baseUrl}/embed/${scene.id}`;
       }
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(sceneResult));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2484,11 +2484,11 @@ const httpServer = http.createServer(async (req, res) => {
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;
-      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ metadataURI: `${baseUrl}/metadata/${hash}` }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2498,7 +2498,7 @@ const httpServer = http.createServer(async (req, res) => {
   if (url?.startsWith('/api/protocol/revenue/') && req.method === 'GET') {
     const hash = url.replace('/api/protocol/revenue/', '');
     if (!hash) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Missing content hash' }));
       return;
     }
@@ -2518,7 +2518,7 @@ const httpServer = http.createServer(async (req, res) => {
         };
       const dist = calculateRevenueDistribution(price, creator, []);
       const lines = formatRevenueDistribution(dist);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           totalPrice: dist.totalPrice.toString(),
@@ -2539,7 +2539,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2551,7 +2551,7 @@ const httpServer = http.createServer(async (req, res) => {
     const records = Array.from(protocolRecords.values()).filter(
       (r: Record<string, unknown>) => r.author === author
     );
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(records));
     return;
   }
@@ -2560,17 +2560,17 @@ const httpServer = http.createServer(async (req, res) => {
   if (url?.startsWith('/api/protocol/') && req.method === 'GET') {
     const hash = url.replace('/api/protocol/', '');
     if (!hash || hash.includes('/')) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Invalid content hash' }));
       return;
     }
     const record = protocolRecords.get(hash);
     if (!record) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Protocol record not found' }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(record));
     return;
   }
@@ -2580,7 +2580,7 @@ const httpServer = http.createServer(async (req, res) => {
     const hash = url.replace('/api/collect/', '');
     const record = protocolRecords.get(hash);
     if (!record) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Composition not found' }));
       return;
     }
@@ -2591,7 +2591,7 @@ const httpServer = http.createServer(async (req, res) => {
       const currentCount = (record.editionCount as number) || 0;
       record.editionCount = currentCount + quantity;
       const editions = Array.from({ length: quantity }, (_, i) => currentCount + i + 1);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
           editions,
@@ -2600,7 +2600,7 @@ const httpServer = http.createServer(async (req, res) => {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: message }));
     }
     return;
@@ -2611,11 +2611,11 @@ const httpServer = http.createServer(async (req, res) => {
     const hash = url.replace('/metadata/', '');
     const meta = protocolMetadata.get(hash);
     if (!meta) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Metadata not found' }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(meta));
     return;
   }
@@ -2627,12 +2627,12 @@ const httpServer = http.createServer(async (req, res) => {
   if (url === '/admin/audit' && req.method === 'GET') {
     const auth = await authenticateRequest(req);
     if (!auth.active) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required for admin audit access' }));
       return;
     }
     if (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin')) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Insufficient scope. Requires admin:* or tools:admin' }));
       return;
     }
@@ -2643,7 +2643,7 @@ const httpServer = http.createServer(async (req, res) => {
     const limit = limitRaw ? parseInt(limitRaw, 10) : 50;
 
     const result = queryAdminOperationsAudit(limit);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ success: true, ...result }, null, 2));
     return;
   }
@@ -2656,14 +2656,14 @@ const httpServer = http.createServer(async (req, res) => {
     // Audit logs require authentication
     const auth = await authenticateRequest(req);
     if (!auth.active) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required for audit access' }));
       return;
     }
 
     // Only admin scope can view audit logs
     if (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin')) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Insufficient scope. Requires admin:* or tools:admin' }));
       return;
     }
@@ -2684,7 +2684,7 @@ const httpServer = http.createServer(async (req, res) => {
       humanReviewOnly: params.get('humanReviewOnly') === 'true',
     });
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(result, null, 2));
     return;
   }
@@ -2696,12 +2696,12 @@ const httpServer = http.createServer(async (req, res) => {
       !auth.active ||
       (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))
     ) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(auditLog.getComplianceStats(), null, 2));
     return;
   }
@@ -2713,7 +2713,7 @@ const httpServer = http.createServer(async (req, res) => {
       !auth.active ||
       (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))
     ) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));
       return;
     }
@@ -2739,7 +2739,7 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // 404 for everything else
-  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ error: 'Not Found' }));
 });
 
