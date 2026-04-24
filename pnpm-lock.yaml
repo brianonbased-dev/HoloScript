@@ -1331,20 +1331,7 @@ importers:
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
   packages/holoscript-agent:
-    dependencies:
-      '@holoscript/llm-provider':
-        specifier: workspace:*
-        version: link:../llm-provider
     devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.13
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
