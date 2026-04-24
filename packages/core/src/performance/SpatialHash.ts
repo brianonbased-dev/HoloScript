@@ -7,9 +7,7 @@
 
 export interface SpatialEntity {
   id: string;
-  x: number;
-  y: number;
-  z: number;
+  position: [number, number, number];
   radius?: number;
 }
 
@@ -79,9 +77,9 @@ export class SpatialHash {
             seen.add(id);
 
             const e = this.entities.get(id)!;
-            const dx = e.x - x,
-              dy = e.y - y,
-              dz = e.z - z;
+            const dx = e.position[0] - x,
+              dy = e.position[1] - y,
+              dz = e.position[2] - z;
             const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (dist <= radius + (e.radius || 0)) {
               results.push(e);
@@ -111,12 +109,12 @@ export class SpatialHash {
 
   private getOccupiedCells(e: SpatialEntity): string[] {
     const r = e.radius || 0;
-    const minCx = Math.floor((e.x - r) / this.cellSize);
-    const maxCx = Math.floor((e.x + r) / this.cellSize);
-    const minCy = Math.floor((e.y - r) / this.cellSize);
-    const maxCy = Math.floor((e.y + r) / this.cellSize);
-    const minCz = Math.floor((e.z - r) / this.cellSize);
-    const maxCz = Math.floor((e.z + r) / this.cellSize);
+    const minCx = Math.floor((e.position[0] - r) / this.cellSize);
+    const maxCx = Math.floor((e.position[0] + r) / this.cellSize);
+    const minCy = Math.floor((e.position[1] - r) / this.cellSize);
+    const maxCy = Math.floor((e.position[1] + r) / this.cellSize);
+    const minCz = Math.floor((e.position[2] - r) / this.cellSize);
+    const maxCz = Math.floor((e.position[2] + r) / this.cellSize);
 
     const keys: string[] = [];
     for (let cx = minCx; cx <= maxCx; cx++) {

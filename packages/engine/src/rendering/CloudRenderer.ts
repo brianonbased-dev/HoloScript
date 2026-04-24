@@ -89,8 +89,8 @@ export class CloudRenderer {
       1 - Math.abs(relY - this.config.thickness / 2) / (this.config.thickness / 2);
 
     // Wind offset
-    const wx = x + this.config.windSpeed[0] * this.time;
-    const wz = z + this.config.windSpeed[2] * this.time;
+    const wx = x + this.config.windSpeed.x * this.time;
+    const wz = z + this.config.windSpeed.z * this.time;
 
     // Layered noise (approximated with sin-based pseudo noise)
     let noise = 0;

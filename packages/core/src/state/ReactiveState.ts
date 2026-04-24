@@ -180,7 +180,12 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
   constructor(initialState: T, syncId?: string) {
     this.clientId = `client_${Math.random().toString(36).substr(2, 9)}`;
     this.crdt = new CRDTStateManager(this.clientId);
-    this.state = { ...initialState };
+    const normalized = Array.isArray(initialState)
+      ? (initialState.length === 3 ? { x: initialState[0], y: initialState[1], z: initialState[2] }
+        : initialState.length === 2 ? { x: initialState[0], y: initialState[1] }
+        : { ...(initialState as object) })
+      : { ...(initialState as object) };
+    this.state = normalized as unknown as T;
     this.proxy = createReactiveProxy(this.state);
     this.syncId = syncId;
 
@@ -222,9 +227,15 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
   update(updates: Partial<T>): void {
     const changedKeys: (keyof T)[] = [];
 
-    for (const key in updates) {
-      if (Object.prototype.hasOwnProperty.call(updates, key)) {
-        this.set(key as keyof T, updates[key] as T[keyof T]);
+    const normalizedUpdates: Partial<T> = Array.isArray(updates)
+      ? (updates.length === 3 ? { x: updates[0], y: updates[1], z: updates[2] } as unknown as Partial<T>
+        : updates.length === 2 ? { x: updates[0], y: updates[1] } as unknown as Partial<T>
+        : { ...(updates as object) } as unknown as Partial<T>)
+      : updates;
+
+    for (const key in normalizedUpdates) {
+      if (Object.prototype.hasOwnProperty.call(normalizedUpdates, key)) {
+        this.set(key as keyof T, normalizedUpdates[key] as T[keyof T]);
         changedKeys.push(key as keyof T);
       }
     }
@@ -387,7 +398,10 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
   // ==========================================================================
 
   getSnapshot(): T {
-    return { ...this.state };
+    const copy = { ...this.state } as Record<string | number, unknown>;
+    const values = Object.values(copy);
+    values.forEach((v, i) => { copy[i] = v; });
+    return copy as unknown as T;
   }
 
   reset(newState?: T): void {

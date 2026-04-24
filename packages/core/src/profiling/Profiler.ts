@@ -95,6 +95,14 @@ export class Profiler {
   private callStack: Array<{ name: string; startTime: number }> = [];
   private hotspotMap: Map<string, { totalTime: number; callCount: number }> = new Map();
 
+  // Frame-based profiling state
+  private frameHistory: Array<{ frameNumber: number; totalTime: number; scopes: unknown[]; timestamp: number }> = [];
+  private maxFrames = 300;
+  private currentFrameData: { frameNumber: number; totalTime: number; scopes: Array<{ name: string; startTime: number; endTime: number; duration: number; depth: number; children: unknown[] }>; timestamp: number } | null = null;
+  private frameCounter = 0;
+  private scopeStack: Array<{ name: string; startTime: number; endTime: number; duration: number; depth: number; children: unknown[] }> = [];
+  private frameSummaries: Map<string, { name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> = new Map();
+
   /**
    * Start profiling session
    */
@@ -352,6 +360,91 @@ export class Profiler {
    */
   get running(): boolean {
     return this.isRunning;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Frame-based profiling API
+  // ---------------------------------------------------------------------------
+
+  beginFrame(): void {
+    this.currentFrameData = {
+      frameNumber: this.frameCounter++,
+      totalTime: 0,
+      scopes: [],
+      timestamp: typeof performance !== 'undefined' ? performance.now() : Date.now(),
+    };
+    this.scopeStack = [];
+  }
+
+  endFrame(): void {
+    if (!this.currentFrameData) return;
+    this.currentFrameData.totalTime =
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) -
+      this.currentFrameData.timestamp;
+    this.frameHistory.push(this.currentFrameData);
+    if (this.frameHistory.length > this.maxFrames) this.frameHistory.shift();
+    this.currentFrameData = null;
+  }
+
+  beginScope(name: string): void {
+    if (!this.currentFrameData) return;
+    const scope = {
+      name,
+      startTime: typeof performance !== 'undefined' ? performance.now() : Date.now(),
+      endTime: 0,
+      duration: 0,
+      depth: this.scopeStack.length,
+      children: [] as unknown[],
+    };
+    if (this.scopeStack.length > 0) {
+      this.scopeStack[this.scopeStack.length - 1].children.push(scope);
+    } else {
+      this.currentFrameData.scopes.push(scope);
+    }
+    this.scopeStack.push(scope);
+  }
+
+  endScope(): void {
+    if (this.scopeStack.length === 0) return;
+    const scope = this.scopeStack.pop()!;
+    scope.endTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    scope.duration = scope.endTime - scope.startTime;
+    // Update frame summary
+    let summary = this.frameSummaries.get(scope.name);
+    if (!summary) {
+      summary = { name: scope.name, avgTime: 0, minTime: Infinity, maxTime: 0, totalTime: 0, callCount: 0 };
+      this.frameSummaries.set(scope.name, summary);
+    }
+    summary.callCount++;
+    summary.totalTime += scope.duration;
+    summary.minTime = Math.min(summary.minTime, scope.duration);
+    summary.maxTime = Math.max(summary.maxTime, scope.duration);
+    summary.avgTime = summary.totalTime / summary.callCount;
+  }
+
+  profile<T>(name: string, fn: () => T): T {
+    this.beginScope(name);
+    try {
+      return fn();
+    } finally {
+      this.endScope();
+    }
+  }
+
+  getFrameHistory(): Array<{ frameNumber: number; totalTime: number; scopes: unknown[]; timestamp: number }> {
+    return [...this.frameHistory];
+  }
+
+  getAllSummaries(): Array<{ name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> {
+    return [...this.frameSummaries.values()];
+  }
+
+  getSlowestScopes(count = 5): Array<{ name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> {
+    return [...this.frameSummaries.values()].sort((a, b) => b.maxTime - a.maxTime).slice(0, count);
+  }
+
+  getSummary(name: string): { name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number } | undefined {
+    return this.frameSummaries.get(name);
   }
 
   private getHighResTime(): number {

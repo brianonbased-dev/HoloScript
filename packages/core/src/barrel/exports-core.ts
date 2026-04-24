@@ -1,3 +1,16 @@
+// Safe JSON parsing utilities
+// Asset Registry
+export { AssetRegistry } from '../assets/AssetRegistry';
+
+// Safe JSON parsing utilities
+export {
+  safeJsonParse,
+  safeJsonParseSchema,
+  jsonClone,
+  readJson,
+} from '../errors/safeJsonParse';
+export type { JsonParseError, SafeJsonResult, JsonParseResult } from '../errors/safeJsonParse';
+
 // Trait System types
 export { TraitContext, TraitEvent, type RaycastHit } from '../traits/TraitTypes';
 
