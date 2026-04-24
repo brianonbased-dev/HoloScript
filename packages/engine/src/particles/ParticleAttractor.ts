@@ -33,6 +33,7 @@ export interface Particle {
   vy: number;
   vz: number;
   alive: boolean;
+  [index: number]: number | boolean;
 }
 
 // =============================================================================
@@ -54,9 +55,9 @@ export class ParticleAttractorSystem {
       for (const p of particles) {
         if (!p.alive) continue;
 
-        const dx = attractor.position[0] - p[0];
-        const dy = attractor.position[1] - p[1];
-        const dz = attractor.position[2] - p[2];
+        const dx = attractor.position[0] - p.x;
+        const dy = attractor.position[1] - p.y;
+        const dz = attractor.position[2] - p.z;
         const distSq = dx * dx + dy * dy + dz * dz;
         const dist = Math.sqrt(distSq);
 
@@ -85,6 +86,10 @@ export class ParticleAttractorSystem {
           p.vy += ny * force * dt;
           p.vz += nz * force * dt;
         }
+
+        (p as Particle & Record<number, number | boolean>)[0] = p.x;
+        (p as Particle & Record<number, number | boolean>)[1] = p.y;
+        (p as Particle & Record<number, number | boolean>)[2] = p.z;
       }
     }
   }

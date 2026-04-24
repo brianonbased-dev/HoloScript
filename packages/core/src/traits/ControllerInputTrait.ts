@@ -260,20 +260,27 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
       state.prevGrip[hand] = gripPressed;
 
       // Thumbstick movement
+      const thumb = controller.thumbstick as unknown as { x?: number; y?: number; 0?: number; 1?: number };
       const stickX =
-        applyDeadzone(controller.thumbstick.x, config.deadzone) * config.thumbstick_sensitivity;
+        applyDeadzone((thumb.x ?? thumb[0] ?? 0) as number, config.deadzone) *
+        config.thumbstick_sensitivity;
       const stickY =
-        applyDeadzone(controller.thumbstick.y, config.deadzone) *
+        applyDeadzone((thumb.y ?? thumb[1] ?? 0) as number, config.deadzone) *
         config.thumbstick_sensitivity *
         (config.invert_y ? -1 : 1);
 
       if (stickX !== 0 || stickY !== 0) {
-        context.emit?.('controller_thumbstick', {
+        const payload = {
           node,
           hand,
           x: stickX,
           y: stickY,
           delta,
+          0: stickX,
+          1: stickY,
+        } as Record<string | number, unknown>;
+        context.emit?.('controller_thumbstick', {
+          ...payload,
         });
       }
     }

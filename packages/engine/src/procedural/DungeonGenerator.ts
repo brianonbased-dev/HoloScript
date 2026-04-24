@@ -11,6 +11,7 @@ export interface Room {
   width: number;
   height: number;
   connected: number[];
+  [index: number]: number;
 }
 
 export interface Corridor {
@@ -72,7 +73,10 @@ export class DungeonGenerator {
       const y = this.randInt(1, this.config.height - h - 1);
 
       if (!this.overlaps(x, y, w, h)) {
-        this.rooms.push({ id: this.nextRoomId++, x, y, width: w, height: h, connected: [] });
+        const room: Room = { id: this.nextRoomId++, x, y, width: w, height: h, connected: [] };
+        room[0] = room.x;
+        room[1] = room.y;
+        this.rooms.push(room);
       }
     }
 
@@ -87,10 +91,10 @@ export class DungeonGenerator {
   private overlaps(x: number, y: number, w: number, h: number): boolean {
     for (const room of this.rooms) {
       if (
-        x < room[0] + room.width + 1 &&
-        x + w + 1 > room[0] &&
-        y < room[1] + room.height + 1 &&
-        y + h + 1 > room[1]
+        x < room.x + room.width + 1 &&
+        x + w + 1 > room.x &&
+        y < room.y + room.height + 1 &&
+        y + h + 1 > room.y
       )
         return true;
     }
@@ -98,10 +102,10 @@ export class DungeonGenerator {
   }
 
   private connectRooms(a: Room, b: Room): void {
-    const ax = Math.floor(a[0] + a.width / 2);
-    const ay = Math.floor(a[1] + a.height / 2);
-    const bx = Math.floor(b[0] + b.width / 2);
-    const by = Math.floor(b[1] + b.height / 2);
+    const ax = Math.floor(a.x + a.width / 2);
+    const ay = Math.floor(a.y + a.height / 2);
+    const bx = Math.floor(b.x + b.width / 2);
+    const by = Math.floor(b.y + b.height / 2);
 
     const points: { x: number; y: number }[] = [];
 

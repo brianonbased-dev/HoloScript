@@ -24,6 +24,12 @@ export interface LocomotionConfig {
   comfortVignette: boolean;
 }
 
+export type LocomotionPosition = [number, number, number] & {
+  x: number;
+  y: number;
+  z: number;
+};
+
 export class VRLocomotion {
   private config: LocomotionConfig;
   private position: [number, number, number] = [0, 0, 0 ];
@@ -96,8 +102,12 @@ export class VRLocomotion {
     return this.config.comfortVignette && this.config.mode === 'smooth';
   }
 
-  getPosition(): { x: number; y: number; z: number } {
-    return { x: this.position[0], y: this.position[1], z: this.position[2] };
+  getPosition(): LocomotionPosition {
+    const tuple = [this.position[0], this.position[1], this.position[2]] as LocomotionPosition;
+    tuple.x = tuple[0];
+    tuple.y = tuple[1];
+    tuple.z = tuple[2];
+    return tuple;
   }
   getRotation(): number {
     return this.rotation;

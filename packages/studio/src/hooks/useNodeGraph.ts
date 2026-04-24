@@ -22,6 +22,8 @@ export interface GraphNode {
   category: string;
   color: string;
   position: [number, number]; // [x, y]
+  x: number;
+  y: number;
   inputs: GraphPort[];
   outputs: GraphPort[];
 }
@@ -64,6 +66,8 @@ export function useNodeGraph() {
           category: def.category,
           color: def.color,
           position: [x, y],
+          x,
+          y,
           inputs: def.inputs,
           outputs: def.outputs,
         },
@@ -79,11 +83,16 @@ export function useNodeGraph() {
     setSelected((s) => (s === id ? null : s));
   }, []);
 
+  const moveNode = useCallback((id: string, dx: number, dy: number) => {
     setNodes((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, position: [n.position[0] + dx, n.position[1] + dy] } : n
-      )
+      prev.map((n) => {
+        if (n.id !== id) return n;
+        const nextX = n.position[0] + dx;
+        const nextY = n.position[1] + dy;
+        return { ...n, position: [nextX, nextY], x: nextX, y: nextY };
+      })
     );
+  }, []);
 
   const connect = useCallback(
     (fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string) => {

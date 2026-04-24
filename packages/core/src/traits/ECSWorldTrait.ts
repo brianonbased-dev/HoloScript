@@ -119,8 +119,43 @@ export class ECSWorld {
 
   // ── Component add/get/remove ──
 
+  private normalizeTransform(
+    t: TransformComponent & Record<string | number, unknown>
+  ): TransformComponent & Record<string | number, unknown> {
+    const pos = Array.isArray(t.position)
+      ? (t.position as [number, number, number])
+      : ([(t['x'] as number) ?? 0, (t['y'] as number) ?? 0, (t['z'] as number) ?? 0] as [number, number, number]);
+    const rot = Array.isArray(t.rotation)
+      ? (t.rotation as [number, number, number])
+      : ([(t['rx'] as number) ?? 0, (t['ry'] as number) ?? 0, (t['rz'] as number) ?? 0] as [number, number, number]);
+    const scale = Array.isArray(t.scale)
+      ? (t.scale as [number, number, number])
+      : ([(t['sx'] as number) ?? 1, (t['sy'] as number) ?? 1, (t['sz'] as number) ?? 1] as [number, number, number]);
+
+    t.position = pos;
+    t.rotation = rot;
+    t.scale = scale;
+
+    t['x'] = pos[0];
+    t['y'] = pos[1];
+    t['z'] = pos[2];
+    t['rx'] = rot[0];
+    t['ry'] = rot[1];
+    t['rz'] = rot[2];
+    t['sx'] = scale[0];
+    t['sy'] = scale[1];
+    t['sz'] = scale[2];
+
+    // Backward-compat for tuple-style transform[0..2] access in tests/consumers.
+    t[0] = pos[0];
+    t[1] = pos[1];
+    t[2] = pos[2];
+
+    return t;
+  }
+
   addTransform(id: EntityId, t: TransformComponent): this {
-    this.transforms.set(id, t);
+    this.transforms.set(id, this.normalizeTransform(t as TransformComponent & Record<string | number, unknown>));
     this.masks.set(id, (this.masks.get(id) ?? 0) | ComponentType.Transform);
     return this;
   }
@@ -150,7 +185,9 @@ export class ECSWorld {
   }
 
   getTransform(id: EntityId): TransformComponent | undefined {
-    return this.transforms.get(id);
+    const t = this.transforms.get(id) as (TransformComponent & Record<string | number, unknown>) | undefined;
+    if (!t) return undefined;
+    return this.normalizeTransform(t);
   }
   getVelocity(id: EntityId): VelocityComponent | undefined {
     return this.velocities.get(id);
@@ -273,6 +310,15 @@ export function physicsSystem(world: ECSWorld, dt: number): void {
     if ('position' in t) {
       t['position'] = pos;
       t['rotation'] = rot;
+      t['x'] = pos[0];
+      t['y'] = pos[1];
+      t['z'] = pos[2];
+      t['rx'] = rot[0];
+      t['ry'] = rot[1];
+      t['rz'] = rot[2];
+      t[0] = pos[0];
+      t[1] = pos[1];
+      t[2] = pos[2];
     } else {
       t['x'] = pos[0];
       t['y'] = pos[1];
@@ -320,6 +366,12 @@ export function agentMovementSystem(world: ECSWorld, dt: number): void {
 
       if ('position' in t) {
         t['position'] = pos;
+        t['x'] = pos[0];
+        t['y'] = pos[1];
+        t['z'] = pos[2];
+        t[0] = pos[0];
+        t[1] = pos[1];
+        t[2] = pos[2];
       } else {
         t['x'] = pos[0];
         t['y'] = pos[1];

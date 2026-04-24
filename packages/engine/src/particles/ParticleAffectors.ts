@@ -111,6 +111,7 @@ export function floorBounce(
     if (p.y <= floorY && p.vy < 0) {
       p.y = floorY;
       p.vy = -p.vy * bounciness;
+      (p as Particle & Record<number, number>)[1] = p.y;
     }
   };
 }

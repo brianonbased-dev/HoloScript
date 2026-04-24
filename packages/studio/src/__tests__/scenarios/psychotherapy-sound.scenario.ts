@@ -348,7 +348,7 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
       { id: 'crackling', position: [1, 0, -0.5], type: 'nature' as const },
     ];
     expect(asmrSources).toHaveLength(3);
-    expect(asmrSources[1].position.x).toBeLessThan(0);
+    expect(asmrSources[1].position[0]).toBeLessThan(0);
   });
 
   it('HIPAA-compliant session log redacts patient PII', () => {

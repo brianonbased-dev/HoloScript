@@ -70,7 +70,15 @@ const COCO_17_KEYPOINTS = [
 // =============================================================================
 
 function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: number): Keypoint[] {
-  if (buffer.length === 0) return current;
+  const withCompat = (kp: Keypoint): Keypoint => {
+    const out = { ...kp } as Keypoint & { [index: number]: number | undefined };
+    out[0] = out.x;
+    out[1] = out.y;
+    out[2] = out.z;
+    return out;
+  };
+
+  if (buffer.length === 0) return current.map(withCompat);
 
   const smoothed: Keypoint[] = [];
 
@@ -83,7 +91,7 @@ function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: n
       continue;
     }
 
-    smoothed.push({
+    smoothed.push(withCompat({
       x: curr.x * (1 - smoothing) + prev.x * smoothing,
       y: curr.y * (1 - smoothing) + prev.y * smoothing,
       z:
@@ -92,7 +100,7 @@ function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: n
           : curr.z,
       confidence: curr.confidence,
       name: curr.name,
-    });
+    }));
   }
 
   return smoothed;

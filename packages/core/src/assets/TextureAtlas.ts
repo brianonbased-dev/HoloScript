@@ -16,6 +16,7 @@ export interface TextureRect {
   y: number;
   width: number;
   height: number;
+  [index: number]: number;
 }
 
 export interface AtlasEntry {
@@ -106,16 +107,21 @@ export class TextureAtlas {
     const placement = this.placeOnShelf(finalW, finalH);
     if (!placement) return null;
 
+    const rect: TextureRect = {
+      x: placement.x + pad,
+      y: placement.y + pad,
+      width: rotated ? height : width,
+      height: rotated ? width : height,
+    };
+    // Backward-compat: allow tuple-style rect[0]/rect[1] reads.
+    rect[0] = rect.x;
+    rect[1] = rect.y;
+
     const entry: AtlasEntry = {
       id,
       sourceWidth: width,
       sourceHeight: height,
-      rect: {
-        x: placement.x + pad,
-        y: placement.y + pad,
-        width: rotated ? height : width,
-        height: rotated ? width : height,
-      },
+      rect,
       uv: {
         u0: (placement.x + pad) / this.getAtlasWidth(),
         v0: (placement.y + pad) / this.getAtlasHeight(),

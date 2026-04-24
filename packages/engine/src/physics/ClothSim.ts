@@ -17,6 +17,7 @@ export interface ClothParticle {
   prevPosition: Vector3;
   mass: number;
   pinned: boolean;
+  [index: number]: number | boolean | Vector3;
 }
 
 export interface ClothConstraint {
@@ -38,6 +39,13 @@ export interface ClothConfig {
 // =============================================================================
 
 export class ClothSim {
+  private syncParticleCompat(p: ClothParticle): ClothParticle {
+    (p as ClothParticle & Record<number, number>)[0] = p.position[0];
+    (p as ClothParticle & Record<number, number>)[1] = p.position[1];
+    (p as ClothParticle & Record<number, number>)[2] = p.position[2];
+    return p;
+  }
+
   private particles: ClothParticle[] = [];
   private constraints: ClothConstraint[] = [];
   private config: ClothConfig;
@@ -73,6 +81,7 @@ export class ClothSim {
           mass: 1,
           pinned: false,
         });
+        this.syncParticleCompat(this.particles[this.particles.length - 1]);
       }
     }
 
@@ -141,6 +150,7 @@ export class ClothSim {
       p.position[0] += vx + (wind[0] * dt2) / p.mass;
       p.position[1] += vy + gravity * dt2;
       p.position[2] += vz + (wind[2] * dt2) / p.mass;
+      this.syncParticleCompat(p);
     }
 
     // Constraint solving
@@ -168,11 +178,13 @@ export class ClothSim {
           pa[0] -= ox;
           pa[1] -= oy;
           pa[2] -= oz;
+          this.syncParticleCompat(a);
         }
         if (!b.pinned) {
           pb[0] += ox;
           pb[1] += oy;
           pb[2] += oz;
+          this.syncParticleCompat(b);
         }
       }
     }
@@ -191,7 +203,8 @@ export class ClothSim {
   // ---------------------------------------------------------------------------
 
   getParticle(index: number): ClothParticle | undefined {
-    return this.particles[index];
+    const particle = this.particles[index];
+    return particle ? this.syncParticleCompat(particle) : undefined;
   }
   getParticleCount(): number {
     return this.particles.length;

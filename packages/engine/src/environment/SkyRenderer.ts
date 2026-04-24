@@ -31,7 +31,7 @@ export interface CloudLayer {
   speed: { x: number; z: number };
   color: { r: number; g: number; b: number; a: number };
   scale: number;
-  offset: { x: number; z: number };
+  offset: { x: number; z: number } & Record<number, number>;
 }
 
 export interface CelestialBody {
@@ -49,6 +49,12 @@ export interface CelestialBody {
 let _cloudId = 0;
 
 export class SkyRenderer {
+  private syncCloudCompat(layer: CloudLayer): CloudLayer {
+    layer.offset[0] = layer.offset.x;
+    layer.offset[2] = layer.offset.z;
+    return layer;
+  }
+
   private gradient: SkyGradient = {
     top: { r: 0.3, g: 0.5, b: 0.9 },
     horizon: { r: 0.7, g: 0.8, b: 1 },
@@ -124,18 +130,25 @@ export class SkyRenderer {
   // Clouds
   // ---------------------------------------------------------------------------
 
-  addCloudLayer(coverage: number, altitude = 1000, speed?: { x: number; z: number }): CloudLayer {
+  addCloudLayer(
+    coverage: number,
+    altitude = 1000,
+    speed?: { x: number; z: number } | [number, number, number]
+  ): CloudLayer {
     const id = `cloud_${_cloudId++}`;
+    const resolvedSpeed = Array.isArray(speed)
+      ? { x: speed[0] ?? 0, z: speed[2] ?? 0 }
+      : (speed ?? { x: 5, z: 0 });
     const layer: CloudLayer = {
       id,
       altitude,
       coverage,
-      speed: speed ?? { x: 5, z: 0 },
+      speed: resolvedSpeed,
       color: { r: 1, g: 1, b: 1, a: 0.8 },
       scale: 1,
-      offset: { x: 0, z: 0 },
+      offset: { x: 0, z: 0, 0: 0, 2: 0 },
     };
-    this.clouds.set(id, layer);
+    this.clouds.set(id, this.syncCloudCompat(layer));
     return layer;
   }
 
@@ -143,7 +156,7 @@ export class SkyRenderer {
     return this.clouds.delete(id);
   }
   getCloudLayers(): CloudLayer[] {
-    return [...this.clouds.values()];
+    return [...this.clouds.values()].map((layer) => this.syncCloudCompat(layer));
   }
   getCloudCount(): number {
     return this.clouds.size;
@@ -153,6 +166,7 @@ export class SkyRenderer {
     for (const layer of this.clouds.values()) {
       layer.offset.x += layer.speed.x * dt;
       layer.offset.z += layer.speed.z * dt;
+      this.syncCloudCompat(layer);
     }
   }
 

@@ -41,6 +41,7 @@ export interface CollidableParticle {
   vz: number;
   lifetime: number;
   alive: boolean;
+  [index: number]: number | boolean;
 }
 
 export type SubEmitCallback = (x: number, y: number, z: number, count: number) => void;
@@ -50,6 +51,12 @@ export type SubEmitCallback = (x: number, y: number, z: number, count: number) =
 // =============================================================================
 
 export class ParticleCollisionSystem {
+  private syncParticleCompat(p: CollidableParticle): void {
+    (p as CollidableParticle & Record<number, number | boolean>)[0] = p.x;
+    (p as CollidableParticle & Record<number, number | boolean>)[1] = p.y;
+    (p as CollidableParticle & Record<number, number | boolean>)[2] = p.z;
+  }
+
   private planes: CollisionPlane[] = [];
   private spheres: CollisionSphere[] = [];
   private subEmitCallback: SubEmitCallback | null = null;
@@ -83,12 +90,12 @@ export class ParticleCollisionSystem {
 
       // Plane collisions
       for (const plane of this.planes) {
-        const dist = plane.nx * p[0] + plane.ny * p[1] + plane.nz * p[2] + plane.d;
+        const dist = plane.nx * p.x + plane.ny * p.y + plane.nz * p.z + plane.d;
         if (dist < 0) {
           // Push out
-          p[0] -= plane.nx * dist;
-          p[1] -= plane.ny * dist;
-          p[2] -= plane.nz * dist;
+          p.x -= plane.nx * dist;
+          p.y -= plane.ny * dist;
+          p.z -= plane.nz * dist;
 
           // Reflect velocity
           const vDotN = p.vx * plane.nx + p.vy * plane.ny + p.vz * plane.nz;
@@ -105,16 +112,18 @@ export class ParticleCollisionSystem {
           p.lifetime -= plane.lifetimeLoss;
           if (p.lifetime <= 0) p.alive = false;
 
+          this.syncParticleCompat(p);
+
           this.collisionCount++;
-          if (this.subEmitCallback) this.subEmitCallback(p[0], p[1], p[2], this.subEmitCount);
+          if (this.subEmitCallback) this.subEmitCallback(p.x, p.y, p.z, this.subEmitCount);
         }
       }
 
       // Sphere collisions
       for (const sphere of this.spheres) {
-        const dx = p[0] - sphere.cx,
-          dy = p[1] - sphere.cy,
-          dz = p[2] - sphere.cz;
+        const dx = p.x - sphere.cx,
+          dy = p.y - sphere.cy,
+          dz = p.z - sphere.cz;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist < sphere.radius && dist > 0) {
@@ -124,9 +133,9 @@ export class ParticleCollisionSystem {
 
           // Push out
           const pen = sphere.radius - dist;
-          p[0] += nx * pen;
-          p[1] += ny * pen;
-          p[2] += nz * pen;
+          p.x += nx * pen;
+          p.y += ny * pen;
+          p.z += nz * pen;
 
           // Reflect
           const vDotN = p.vx * nx + p.vy * ny + p.vz * nz;
@@ -138,6 +147,8 @@ export class ParticleCollisionSystem {
           p.vx *= 1 - sphere.friction;
           p.vy *= 1 - sphere.friction;
           p.vz *= 1 - sphere.friction;
+
+          this.syncParticleCompat(p);
 
           this.collisionCount++;
         }
