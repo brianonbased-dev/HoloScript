@@ -247,6 +247,80 @@ function extractBlock(
   return results;
 }
 
+function parseInlineObjectLiteral(value: string): Record<string, unknown> | undefined {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return undefined;
+
+  const inner = trimmed.slice(1, -1).trim();
+  if (!inner) return {};
+
+  const parts: string[] = [];
+  let current = '';
+  let depth = 0;
+  let inQuote: '"' | "'" | null = null;
+
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    const prev = i > 0 ? inner[i - 1] : '';
+
+    if (inQuote) {
+      current += ch;
+      if (ch === inQuote && prev !== '\\') inQuote = null;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inQuote = ch;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '{' || ch === '[') depth++;
+    if (ch === '}' || ch === ']') depth--;
+
+    if (ch === ',' && depth === 0) {
+      if (current.trim()) parts.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (current.trim()) parts.push(current.trim());
+
+  const out: Record<string, unknown> = {};
+  for (const part of parts) {
+    const idx = part.indexOf(':');
+    if (idx <= 0) return undefined;
+
+    const key = part.slice(0, idx).trim().replace(/^['"]|['"]$/g, '');
+    const rawVal = part.slice(idx + 1).trim();
+
+    let parsed: unknown = rawVal;
+    if (
+      (rawVal.startsWith('"') && rawVal.endsWith('"')) ||
+      (rawVal.startsWith("'") && rawVal.endsWith("'"))
+    ) {
+      parsed = rawVal.slice(1, -1);
+    } else if (rawVal === 'true') {
+      parsed = true;
+    } else if (rawVal === 'false') {
+      parsed = false;
+    } else if (/^-?\d+$/.test(rawVal)) {
+      parsed = parseInt(rawVal, 10);
+    } else if (/^-?\d+\.\d+$/.test(rawVal)) {
+      parsed = parseFloat(rawVal);
+    } else if (rawVal.startsWith('{') && rawVal.endsWith('}')) {
+      parsed = parseInlineObjectLiteral(rawVal) ?? rawVal;
+    }
+
+    out[key] = parsed;
+  }
+
+  return out;
+}
+
 function parseProperties(content: string): Record<string, unknown> {
   const props: Record<string, unknown> = {};
   const lines = content.split('\n');
@@ -304,7 +378,10 @@ function parseProperties(content: string): Record<string, unknown> {
       // Parse typed values
       if (typeof val === 'string') {
         const strVal = val as string;
-        if (strVal.startsWith('"') && strVal.endsWith('"')) {
+        const inlineObject = parseInlineObjectLiteral(strVal);
+        if (inlineObject) {
+          val = inlineObject;
+        } else if (strVal.startsWith('"') && strVal.endsWith('"')) {
           val = strVal.slice(1, -1);
         } else if (strVal.startsWith("'") && strVal.endsWith("'")) {
           val = strVal.slice(1, -1);
@@ -610,6 +687,7 @@ function parsePipelineContent(
       output: p.output as string | Record<string, unknown> | undefined,
       server: p.server as string | undefined,
       tool: p.tool as string | undefined,
+      args: p.args as Record<string, unknown> | undefined,
       method: p.method as string | undefined,
       url: p.url as string | undefined,
       timeout: typeof p.timeout === 'string' ? parseDuration(p.timeout as string) : undefined,
@@ -691,6 +769,7 @@ function parsePipelineContent(
       append: p.append as boolean | undefined,
       server: p.server as string | undefined,
       tool: p.tool as string | undefined,
+      args: p.args as Record<string, unknown> | undefined,
       template: p.template as string | undefined,
       hash: p.hash as string | undefined,
       properties: p,

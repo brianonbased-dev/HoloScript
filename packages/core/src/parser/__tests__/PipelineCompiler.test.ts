@@ -119,6 +119,7 @@ describe('PipelineCompiler (parser target)', () => {
           type: "mcp"
           server: "4{env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}"
           tool: "knowledge_enrich"
+          args: { namespace: "products", limit: 5 }
         }
         sink Out {
           type: "stdout"
@@ -131,6 +132,7 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("const Enrich_url = Enrich_base.replace(/\\/$/, '') + '/mcp';");
     expect(result.code).toContain("method: 'tools/call'");
     expect(result.code).toContain("name: \"knowledge_enrich\"");
+    expect(result.code).toContain('arguments: { ...{"namespace":"products","limit":5}, records, output },');
     expect(result.code).toContain('const Enrich_content = Enrich_json?.result?.content;');
     expect(result.code).not.toContain("// TODO: mcp transform not yet compiled");
   });
