@@ -117,3 +117,40 @@ One wisdom entry synced summarizing the pattern: *"pnpm.overrides is the primary
 cd C:/Users/Josep/Documents/GitHub/HoloScript
 pnpm audit --json | node -e "let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d); console.log(j.metadata.vulnerabilities);});"
 ```
+
+---
+
+## 2026-04-24 Refresh (security-mode follow-up pass)
+
+Re-ran `pnpm audit` on 2026-04-24. Current posture:
+
+| Severity | 2026-04-20 (after) | 2026-04-24 | Net |
+|----------|-------------------:|-----------:|-----|
+| critical | 0                  | 0          | held |
+| high     | 1                  | 1          | held (same `bigint-buffer` transitive) |
+| moderate | 11                 | 12         | +1 new advisory (postcss GHSA-qx2v-qp2m-jg93, CVSS 6.1, XSS via dev-tooling transitive) |
+| low      | 1                  | 1          | held |
+| **total**| **13**             | **14**     | +1 |
+
+The un-patchable `bigint-buffer` HIGH (GHSA-3gc7-fjrx-p6mg) is still the only HIGH. Dependency count 3280 → 3317 (+37) reflects normal active development, not supply-chain churn. No CRITICAL regression.
+
+### Defense-in-depth: narrow the vulnerable path by construction
+
+Original memo's risk assessment for `bigint-buffer` was LOW because the vulnerable `toBigIntLE()` call path is not exercised by HoloScript code (grep confirms zero actual `network: 'solana'` assignments across `packages/`). 2026-04-24 commit promotes that empirical claim to a **type-level guarantee**:
+
+- `packages/marketplace-agentkit/src/AgentKitIntegration.ts:12,30` — narrowed `network: 'base' | 'ethereum' | 'solana'` to `network: 'base' | 'ethereum'`.
+- Future code that tries to pass `'solana'` gets a compile-time error pointing at this memo via the inline comment. Stronger guarantee than grep-based vigilance.
+- Typecheck passes cleanly post-change.
+- Commit: `731cbd171` — `security(marketplace-agentkit): narrow network type union to remove 'solana'`.
+
+This doesn't remove the vulnerable dependency (still a transitive via agentkit) but makes the call path unreachable from HoloScript code **by TypeScript's type system**, not just by convention.
+
+### Still deferred
+
+- **`cargo audit` on `packages/compiler-wasm`** — `cargo` is installed (`/c/Users/josep/.cargo/bin/cargo`) but `cargo-audit` subcommand isn't. Not installing without explicit founder approval (touches global cargo state). Filed as separate board task.
+- **`@solana/buffer-layout-utils` upstream watch** — no new release since 2026-04-20; still on `bigint-buffer@1.1.5`. No action.
+- **Moderate advisories triage** — 12 total, dev-tool transitives; not supply-chain critical path. Quarterly sweep.
+
+### Anchor
+
+This memo OTS-anchored 2026-04-24; Base L2 unsigned-tx staged next to it. When broadcast, it becomes the dual-anchored canonical security-posture record.

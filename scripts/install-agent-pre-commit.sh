@@ -94,10 +94,25 @@ fi
 
 # --- Gate 2: Secret scanner (runs even when SKIP_HOOKS=1) ---
 DIFF=$(git diff --cached -U0 2>/dev/null | grep "^+" | grep -v "^+++" || true)
+
+# Files exempt from the 0x<64-hex> "private key" scan because they
+# intentionally embed SHA-256 hashes (anchor receipts, Base-L2 tx
+# sidecars, OTS receipts). Mirrors ai-ecosystem/hooks/pre-commit-secrets-citations.sh.
+EXEMPT_HEX='\.(base-unsigned\.json|base\.json|ots)$|^scripts/broadcast_base(_[0-9]{4}-[0-9]{2}-[0-9]{2})?\.html$'
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null || true)
+UNIVERSAL_FILES=$(echo "$STAGED_FILES" | grep -v -E "$EXEMPT_HEX" || true)
+if [ -n "$UNIVERSAL_FILES" ]; then
+  HEX_SCAN_DIFF=$(git diff --cached -U0 -- $UNIVERSAL_FILES 2>/dev/null | grep "^+" | grep -v "^+++" || true)
+else
+  HEX_SCAN_DIFF=""
+fi
+
 SECRET_FOUND=0
 check_secret() {
-  local desc="$1" pattern="$2"
-  local match=$(echo "$DIFF" | grep -oE "$pattern" | head -1)
+  local desc="$1" pattern="$2" scope="${3:-all}"
+  local body="$DIFF"
+  [ "$scope" = "universal" ] && body="$HEX_SCAN_DIFF"
+  local match=$(echo "$body" | grep -oE "$pattern" | head -1)
   if [ -n "$match" ]; then
     [ $SECRET_FOUND -eq 0 ] && echo -e "${RED}SECRET DETECTED in staged files:${NC}"
     echo -e "  ${RED}$desc${NC}: ${match:0:25}..."
@@ -113,7 +128,9 @@ if [ -n "$DIFF" ]; then
   check_secret "GitHub PAT"        'github_pat_[A-Za-z0-9_]{20,}'
   check_secret "NPM token"         'npm_[A-Za-z0-9]{20,}'
   check_secret "Absorb API key"    'absorb_[a-f0-9]{40,}'
-  check_secret "Private key (hex)" '0x[a-f0-9]{64}'
+  # 0x<64-hex> is ambiguous (private key vs SHA-256 vs tx calldata).
+  # Scoped to files outside the anchor-sidecar set to avoid false positives.
+  check_secret "Private key (hex)" '0x[a-f0-9]{64}' "universal"
 fi
 if [ $SECRET_FOUND -eq 1 ]; then
   echo -e "${RED}COMMIT BLOCKED — secrets in staged files.${NC} Use env vars instead."
