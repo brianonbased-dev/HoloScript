@@ -216,6 +216,110 @@ describe('createDataVisualization', () => {
 // updateParticles (slice 14)
 // ──────────────────────────────────────────────────────────────────
 
+// ═══════════════════════════════════════════════════════════════════════
+// TECHNIQUE (c) STATISTICAL CHARACTERIZATION — Q2 EMPIRICAL PROOF
+//
+// The unit tests above MOCK Math.random to 0.5 for determinism. Real
+// particle behavior uses unmocked Math.random: positions scatter in a
+// stochastic cloud around the center. Hash-locking individual positions
+// is impossible (flaky on every run), but the DISTRIBUTION is statistically
+// stable — mean ≈ center, variance determined by (range)² / 12 (uniform
+// distribution variance formula).
+//
+// Technique (c): run N samples, compute distribution parameters, assert
+// they fall in bounds. Stable if SUT is statistically deterministic.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('createParticleEffect — TECHNIQUE (c) statistical characterization', () => {
+  // IMPORTANT: un-mock Math.random for this suite to get real stochastic
+  // behavior. The beforeEach above mocks Math.random to 0.5; we restore it
+  // inside each statistical test via afterEach → vi.restoreAllMocks.
+  beforeEach(() => {
+    vi.restoreAllMocks(); // undo the global 0.5 mock
+  });
+
+  it('PROPERTY: 1,000-particle mean position is near the center (within 0.1)', () => {
+    const systems = new Map<string, ParticleSystem>();
+    createParticleEffect(systems, 'stat', [10, 20, 30], '#fff', 1000, 10000);
+    const particles = systems.get('stat')!.particles;
+
+    const mean = [0, 0, 0];
+    for (const p of particles) {
+      mean[0] += p[0];
+      mean[1] += p[1];
+      mean[2] += p[2];
+    }
+    mean[0] /= particles.length;
+    mean[1] /= particles.length;
+    mean[2] /= particles.length;
+
+    // Jitter is (Math.random() - 0.5) * 2 → uniform on [-1, 1]
+    // Expected mean = center; Standard error of mean = sqrt(var/N) = sqrt(1/3 / 1000) ≈ 0.018
+    // So |observed mean - expected| should be well under 0.1 with n=1000
+    expect(Math.abs(mean[0] - 10)).toBeLessThan(0.1);
+    expect(Math.abs(mean[1] - 20)).toBeLessThan(0.1);
+    expect(Math.abs(mean[2] - 30)).toBeLessThan(0.1);
+  });
+
+  it('PROPERTY: 1,000-particle variance is near 1/3 (uniform [-1,1] theoretical)', () => {
+    // For U(-1,1), Var = (2)² / 12 = 1/3 ≈ 0.333
+    const systems = new Map<string, ParticleSystem>();
+    createParticleEffect(systems, 's', [0, 0, 0], '#fff', 1000, 10000);
+    const particles = systems.get('s')!.particles;
+
+    const mean = particles.reduce((acc, p) => acc + p[0], 0) / particles.length;
+    const variance =
+      particles.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / particles.length;
+
+    // Theoretical variance is 1/3 ≈ 0.333. With n=1000, sample variance
+    // should be within ±0.05 of theoretical with high probability.
+    expect(variance).toBeGreaterThan(0.28);
+    expect(variance).toBeLessThan(0.38);
+  });
+
+  it('PROPERTY: statistical fingerprint is stable across independent runs (tolerance-bounded)', () => {
+    function runAndFingerprint(): { mean: number; variance: number } {
+      const systems = new Map<string, ParticleSystem>();
+      createParticleEffect(systems, 's', [0, 0, 0], '#fff', 2000, 10000);
+      const ps = systems.get('s')!.particles;
+      const mean = ps.reduce((acc, p) => acc + p[0], 0) / ps.length;
+      const variance =
+        ps.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / ps.length;
+      return { mean, variance };
+    }
+
+    // Run 3 independent samples. Each mean + variance should land in
+    // the same narrow band — the statistical fingerprint.
+    const runs = [runAndFingerprint(), runAndFingerprint(), runAndFingerprint()];
+    for (const r of runs) {
+      expect(r.mean).toBeGreaterThan(-0.1);
+      expect(r.mean).toBeLessThan(0.1);
+      expect(r.variance).toBeGreaterThan(0.28);
+      expect(r.variance).toBeLessThan(0.38);
+    }
+    // Cross-run stability: max pairwise mean difference bounded
+    const means = runs.map((r) => r.mean);
+    const maxSpread = Math.max(...means) - Math.min(...means);
+    // Per CLT, spread between two independent n=2000 means is ~2 × SE
+    // SE = sqrt(1/3 / 2000) ≈ 0.013, so 2×SE ≈ 0.026; allow 3×SE for safety.
+    expect(maxSpread).toBeLessThan(0.08);
+  });
+
+  it('PROPERTY: connection-stream interpolation is EXACT (deterministic — no statistical needed)', () => {
+    // This test ANCHORS the distinction: connection streams use NO
+    // Math.random — their positions are exactly linear interpolation.
+    // Unlike createParticleEffect, this is deterministic without a mock.
+    const systems = new Map<string, ParticleSystem>();
+    createConnectionStream(systems, 'a', 'b', [0, 0, 0], [20, 40, 60], 'number');
+    const ps = systems.get('connection_a_b')!.particles;
+
+    // Particle k/20 should be at (k/20) × target
+    expect(ps[0]).toEqual([0, 0, 0]);
+    expect(ps[10]).toEqual([10, 20, 30]);
+    expect(ps[20]).toEqual([20, 40, 60]);
+  });
+});
+
 describe('updateParticles', () => {
   it('decrements lifetime by deltaTime', () => {
     const systems = new Map<string, ParticleSystem>();
