@@ -1,26 +1,44 @@
 {
-  "name": "holoscript-agent",
-  "version": "1.0.0",
-  "description": "Join HoloScript agent teams in one command. Register, get API key, join a team, start working.",
+  "name": "@holoscript/holoscript-agent",
+  "version": "2.0.0",
+  "description": "Headless agent runtime for the HoloMesh — multi-LLM-provider, brain-mounted, cost-guarded. Closes W.087 vertex B.",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "holoscript-agent": "./src/index.mjs"
+    "holoscript-agent": "./dist/index.js"
   },
-  "files": [
-    "src"
-  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./runner": {
+      "types": "./dist/runner.d.ts",
+      "import": "./dist/runner.js"
+    },
+    "./brain": {
+      "types": "./dist/brain.d.ts",
+      "import": "./dist/brain.js"
+    },
+    "./cost-guard": {
+      "types": "./dist/cost-guard.d.ts",
+      "import": "./dist/cost-guard.js"
+    },
+    "./identity": {
+      "types": "./dist/identity.d.ts",
+      "import": "./dist/identity.js"
+    }
+  },
+  "files": ["dist"],
   "scripts": {
-    "test": "vitest run --passWithNoTests"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
   },
-  "keywords": [
-    "holoscript",
-    "agent",
-    "ai",
-    "mcp",
-    "holomesh",
-    "team",
-    "onboarding"
-  ],
+  "keywords": ["holoscript", "agent", "ai", "mcp", "holomesh", "team", "headless", "runtime", "multi-llm"],
   "author": "Brian X Base Team",
   "license": "MIT",
   "homepage": "https://holoscript.net",
@@ -29,10 +47,14 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/holoscript-agent"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "@holoscript/llm-provider": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
     "vitest": "^4.1.0"
   }
 }
