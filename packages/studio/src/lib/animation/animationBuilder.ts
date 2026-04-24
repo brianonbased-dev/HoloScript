@@ -12,7 +12,12 @@ export interface BoneFrame {
   time: number;
   /** index into skeleton.bones[] */
   boneIndex: number;
-  rotation: [number, number, number, number]; // [x, y, z, w]
+  /** Quaternion — supports both object notation (qx, qy, qz, qw) and tuple notation (rotation) */
+  qx?: number;
+  qy?: number;
+  qz?: number;
+  qw?: number;
+  rotation?: [number, number, number, number]; // [x, y, z, w] (legacy tuple notation)
 }
 
 export interface RecordedClip {
@@ -55,19 +60,32 @@ export function buildClipFromFrames(
     // Check if bone actually moved (skip static bones to save memory)
     if (boneFrames.length < 2) return;
     const first = boneFrames[0];
-    const moved = boneFrames.some(
-      (f) =>
-        Math.abs(f.rotation[0] - first.rotation[0]) > 0.001 ||
-        Math.abs(f.rotation[1] - first.rotation[1]) > 0.001 ||
-        Math.abs(f.rotation[2] - first.rotation[2]) > 0.001 ||
-        Math.abs(f.rotation[3] - first.rotation[3]) > 0.001
-    );
+    
+    // Support both quaternion access patterns: { qx, qy, qz, qw } and { rotation: [...] }
+    const getQuat = (f: BoneFrame) => [
+      f.qx ?? (f.rotation?.[0] ?? 0),
+      f.qy ?? (f.rotation?.[1] ?? 0),
+      f.qz ?? (f.rotation?.[2] ?? 0),
+      f.qw ?? (f.rotation?.[3] ?? 1),
+    ];
+    
+    const firstQuat = getQuat(first);
+    const moved = boneFrames.some((f) => {
+      const q = getQuat(f);
+      return (
+        Math.abs(q[0] - firstQuat[0]) > 0.001 ||
+        Math.abs(q[1] - firstQuat[1]) > 0.001 ||
+        Math.abs(q[2] - firstQuat[2]) > 0.001 ||
+        Math.abs(q[3] - firstQuat[3]) > 0.001
+      );
+    });
     if (!moved) return;
 
     const times = boneFrames.map((f) => f.time / 1000);
     const values: number[] = [];
     for (const f of boneFrames) {
-      values.push(...f.rotation);
+      const q = getQuat(f);
+      values.push(...q);
     }
 
     // Track name matches Three.js bone animation naming convention
