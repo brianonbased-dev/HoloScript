@@ -59,7 +59,7 @@ interface GaussianSplatState {
   memoryUsage: number;
   boundingBox: { min: [number, number, number]; max: [number, number, number] };
   renderHandle: unknown;
-  lastCameraPosition: { x: number; y: number; z: number } | [number, number, number] | null;
+  lastCameraPosition: [number, number, number] | [number, number, number] | null;
   needsSort: boolean;
   /** Current LOD level index (0 = highest detail) */
   currentLODLevel: number;
@@ -161,17 +161,21 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
     if (!state || !state.isLoaded) return;
 
     // Check if camera moved and needs resort
-    const cameraPos = context.camera?.position as unknown as
-      | { x?: number; y?: number; z?: number }
-      | [number, number, number]
-      | undefined;
-    const cx = Array.isArray(cameraPos) ? (cameraPos[0] ?? 0) : (cameraPos?.x ?? 0);
-    const cy = Array.isArray(cameraPos) ? (cameraPos[1] ?? 0) : (cameraPos?.y ?? 0);
-    const cz = Array.isArray(cameraPos) ? (cameraPos[2] ?? 0) : (cameraPos?.z ?? 0);
-    const last = state.lastCameraPosition;
-    const lx = Array.isArray(last) ? (last[0] ?? 0) : (last?.x ?? 0);
-    const ly = Array.isArray(last) ? (last[1] ?? 0) : (last?.y ?? 0);
-    const lz = Array.isArray(last) ? (last[2] ?? 0) : (last?.z ?? 0);
+    const get3 = (v: unknown, i: 0 | 1 | 2): number => {
+      if (!v) return 0;
+      if (Array.isArray(v)) return (v[i] as number) ?? 0;
+      return ((v as { x?: number; y?: number; z?: number })[i === 0 ? 'x' : i === 1 ? 'y' : 'z'] ?? 0) as number;
+    };
+
+    const cameraPos = context.camera?.position as unknown;
+    const cx = get3(cameraPos, 0);
+    const cy = get3(cameraPos, 1);
+    const cz = get3(cameraPos, 2);
+
+    const last = state.lastCameraPosition as unknown;
+    const lx = get3(last, 0);
+    const ly = get3(last, 1);
+    const lz = get3(last, 2);
     if (cameraPos && state.lastCameraPosition) {
       const dx = cx - lx;
       const dy = cy - ly;
@@ -180,10 +184,10 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
 
       if (distMoved > 0.1) {
         state.needsSort = true;
-        state.lastCameraPosition = { x: cx, y: cy, z: cz };
+        state.lastCameraPosition = [cx, cy, cz];
       }
     } else if (cameraPos) {
-      state.lastCameraPosition = { x: cx, y: cy, z: cz };
+      state.lastCameraPosition = [cx, cy, cz];
     }
 
     // Request sort if needed
