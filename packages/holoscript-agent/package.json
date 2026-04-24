@@ -29,6 +29,10 @@
     "./identity": {
       "types": "./dist/identity.d.ts",
       "import": "./dist/identity.js"
+    },
+    "./commit-hook": {
+      "types": "./dist/commit-hook.d.ts",
+      "import": "./dist/commit-hook.js"
     }
   },
   "files": ["dist"],

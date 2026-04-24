@@ -8,6 +8,7 @@ export default defineConfig({
     'src/cost-guard.ts',
     'src/identity.ts',
     'src/holomesh-client.ts',
+    'src/commit-hook.ts',
     'src/types.ts',
   ],
   format: ['esm'],

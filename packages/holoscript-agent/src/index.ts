@@ -13,7 +13,8 @@ import { loadBrain } from './brain.js';
 import { CostGuard } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { AgentRunner } from './runner.js';
-import type { AgentIdentity } from './types.js';
+import { makeCommitHook } from './commit-hook.js';
+import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -55,6 +56,8 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     teamId: identity.teamId,
   });
 
+  const commitHook = buildCommitHook(identity, mesh);
+
   const runner = new AgentRunner({
     identity,
     brain,
@@ -62,6 +65,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     costGuard,
     mesh,
     logger: (ev) => console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev })),
+    onTaskExecuted: commitHook,
   });
 
   console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'boot', identity: identityForLog(identity), brain: { domain: brain.domain, tags: brain.capabilityTags, tier: brain.scopeTier } }));
@@ -112,6 +116,30 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
   }
 }
 
+function buildCommitHook(
+  identity: AgentIdentity,
+  mesh: HolomeshClient
+): ((result: ExecutionResult, task: BoardTask) => Promise<void>) | undefined {
+  const enabled = (process.env.HOLOSCRIPT_AGENT_COMMIT_RESPONSES ?? '').toLowerCase();
+  if (enabled !== '1' && enabled !== 'true') return undefined;
+
+  const outputDir = process.env.HOLOSCRIPT_AGENT_OUTPUT_DIR ?? 'agent-out';
+  const workingDir = process.env.HOLOSCRIPT_AGENT_WORKING_DIR ?? process.cwd();
+  const scope = process.env.HOLOSCRIPT_AGENT_COMMIT_SCOPE ?? `agent(${identity.handle})`;
+  const writer = makeCommitHook({ outputDir, workingDir, scope });
+
+  return async (result, task) => {
+    const out = await writer(result, task, identity);
+    await mesh.sendMessageOnTask(
+      task.id,
+      `[${identity.handle}] response committed at ${out.commitHash?.slice(0, 12) ?? '(no-hash)'} -> ${out.filePath}`
+    );
+    if (out.commitHash) {
+      await mesh.markDone(task.id, `auto: ${task.title}`, out.commitHash);
+    }
+  };
+}
+
 function scopeTierFromEnv(): 'cold' | 'warm' | 'hot' {
   const t = (process.env.HOLOSCRIPT_AGENT_SCOPE_TIER ?? 'warm').toLowerCase();
   if (t === 'cold' || t === 'warm' || t === 'hot') return t;
@@ -150,6 +178,10 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_STATE_DIR         where to persist cost state (default ~/.holoscript-agent/cost-state)
   HOLOSCRIPT_AGENT_SURFACE           label for handoffs / presence (default = handle)
   HOLOMESH_API_BASE                  default https://mcp.holoscript.net/api/holomesh
+  HOLOSCRIPT_AGENT_COMMIT_RESPONSES  "1" or "true" → write responses as memos and git-commit them
+  HOLOSCRIPT_AGENT_OUTPUT_DIR        memo output dir (rel to working dir, default "agent-out")
+  HOLOSCRIPT_AGENT_WORKING_DIR       git repo to commit into (default process.cwd())
+  HOLOSCRIPT_AGENT_COMMIT_SCOPE      commit subject scope (default "agent(<handle>)")
 `);
 }
 
