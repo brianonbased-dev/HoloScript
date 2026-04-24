@@ -56,6 +56,33 @@ interface RewardState {
   eventScores: Map<string, number>; // Per-event accumulated score
 }
 
+function toVec3(value: unknown): [number, number, number] | null {
+  if (!Array.isArray(value) || value.length < 3) return null;
+  const [x, y, z] = value;
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') return null;
+  return [x, y, z];
+}
+
+function resolveTargetPosition(
+  targetId: string,
+  context: any
+): [number, number, number] | null {
+  if (!targetId) return null;
+
+  const physicsPos = toVec3(context?.physics?.getBodyPosition?.(targetId));
+  if (physicsPos) return physicsPos;
+
+  const state = context?.getState?.();
+  const sceneNodePos =
+    toVec3(state?.scene?.nodes?.[targetId]?.position) ||
+    toVec3(state?.nodes?.[targetId]?.position) ||
+    toVec3(state?.objects?.[targetId]?.position);
+
+  if (sceneNodePos) return sceneNodePos;
+
+  return null;
+}
+
 /**
  * RewardTrait
  *
@@ -136,9 +163,9 @@ export const rewardTraitHandler: TraitHandler<RewardShapeConfig> = {
           const targetId = event.config.targetObjectId as string;
           const maxDist = (event.config.maxDist as number) ?? 10;
 
-          // In a full implementation, query scene graph for target position
-          // For now, use a placeholder
-          const targetPos: [number, number, number] = [0, 0, 0]; // TODO: resolve from scene
+          // Resolve target from physics scene first, then state snapshots.
+          // Fall back to origin to preserve legacy behavior when unresolved.
+          const targetPos = resolveTargetPosition(targetId, context) ?? ([0, 0, 0] as [number, number, number]);
 
           const dx = currentPos[0] - targetPos[0];
           const dy = currentPos[1] - targetPos[1];
