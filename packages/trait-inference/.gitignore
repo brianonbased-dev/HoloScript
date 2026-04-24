@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Build
+build/
+dist/
+
+# Data — large, downloaded, not committed
+data/*.jsonl
+data/*.parquet
+data/raw/
+data/cached/
+
+# Trained models
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+
+# Measurements — kept out of git, archived separately per anchor protocol
+measurements/*.json
+measurements/raw/
+
+# Vast.ai instance state
+.vast-instance-id
+.vast-ssh-known-hosts
+
+# IDE
+.vscode/
+.idea/
