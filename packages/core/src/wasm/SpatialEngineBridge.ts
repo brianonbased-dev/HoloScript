@@ -19,6 +19,11 @@ export interface Vec3 {
   z: number;
 }
 
+type Vec3Like = Vec3 | [number, number, number];
+const vx = (v: Vec3Like) => (v as Vec3).x ?? (v as [number, number, number])[0] ?? 0;
+const vy = (v: Vec3Like) => (v as Vec3).y ?? (v as [number, number, number])[1] ?? 0;
+const vz = (v: Vec3Like) => (v as Vec3).z ?? (v as [number, number, number])[2] ?? 0;
+
 export interface WasmExports {
   // Memory
   memory: WebAssembly.Memory;
@@ -274,63 +279,63 @@ export class SpatialEngineBridge {
   // Collision
   // ---------------------------------------------------------------------------
 
-  sphereSphereTest(aPos: Vec3, aRadius: number, bPos: Vec3, bRadius: number): boolean {
+  sphereSphereTest(aPos: Vec3Like, aRadius: number, bPos: Vec3Like, bRadius: number): boolean {
     if (this.wasm)
       return (
         this.wasm.sphere_sphere_test(
-          aPos[0],
-          aPos[1],
-          aPos[2],
+          vx(aPos),
+          vy(aPos),
+          vz(aPos),
           aRadius,
-          bPos[0],
-          bPos[1],
-          bPos[2],
+          vx(bPos),
+          vy(bPos),
+          vz(bPos),
           bRadius
         ) === 1
       );
     return sphereSphereTest_fallback(
-      aPos[0],
-      aPos[1],
-      aPos[2],
+      vx(aPos),
+      vy(aPos),
+      vz(aPos),
       aRadius,
-      bPos[0],
-      bPos[1],
-      bPos[2],
+      vx(bPos),
+      vy(bPos),
+      vz(bPos),
       bRadius
     );
   }
 
-  aabbOverlap(aMin: Vec3, aMax: Vec3, bMin: Vec3, bMax: Vec3): boolean {
+  aabbOverlap(aMin: Vec3Like, aMax: Vec3Like, bMin: Vec3Like, bMax: Vec3Like): boolean {
     if (this.wasm)
       return (
         this.wasm.aabb_overlap(
-          aMin[0],
-          aMin[1],
-          aMin[2],
-          aMax[0],
-          aMax[1],
-          aMax[2],
-          bMin[0],
-          bMin[1],
-          bMin[2],
-          bMax[0],
-          bMax[1],
-          bMax[2]
+          vx(aMin),
+          vy(aMin),
+          vz(aMin),
+          vx(aMax),
+          vy(aMax),
+          vz(aMax),
+          vx(bMin),
+          vy(bMin),
+          vz(bMin),
+          vx(bMax),
+          vy(bMax),
+          vz(bMax)
         ) === 1
       );
     return aabbOverlap_fallback(
-      aMin[0],
-      aMin[1],
-      aMin[2],
-      aMax[0],
-      aMax[1],
-      aMax[2],
-      bMin[0],
-      bMin[1],
-      bMin[2],
-      bMax[0],
-      bMax[1],
-      bMax[2]
+      vx(aMin),
+      vy(aMin),
+      vz(aMin),
+      vx(aMax),
+      vy(aMax),
+      vz(aMax),
+      vx(bMin),
+      vy(bMin),
+      vz(bMin),
+      vx(bMax),
+      vy(bMax),
+      vz(bMax)
     );
   }
 

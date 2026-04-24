@@ -9,7 +9,25 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export type Vec3 = [number, number, number];
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  [index: number]: number;
+}
+
+type Vec3Like = Vec3 | [number, number, number] | { x: number; y: number; z: number };
+
+function vx(v: Vec3Like): number { return (v as Vec3).x ?? (v as [number, number, number])[0] ?? 0; }
+function vy(v: Vec3Like): number { return (v as Vec3).y ?? (v as [number, number, number])[1] ?? 0; }
+function vz(v: Vec3Like): number { return (v as Vec3).z ?? (v as [number, number, number])[2] ?? 0; }
+function vec3(x: number, y: number, z: number): Vec3 {
+  const v = { x, y, z } as Vec3;
+  Object.defineProperty(v, '0', { value: x, enumerable: false });
+  Object.defineProperty(v, '1', { value: y, enumerable: false });
+  Object.defineProperty(v, '2', { value: z, enumerable: false });
+  return v;
+}
 
 export interface VRHeadset {
   position: Vec3;
@@ -70,8 +88,8 @@ export interface WalkthroughWaypoint {
  * Calculate parabolic teleport arc from hand position + direction.
  */
 export function teleportArc(
-  origin: Vec3,
-  direction: Vec3,
+  origin: Vec3Like,
+  direction: Vec3Like,
   gravity: number = 9.81,
   steps: number = 30,
   stepTime: number = 0.05
@@ -79,14 +97,16 @@ export function teleportArc(
   const arc: Vec3[] = [];
   for (let i = 0; i <= steps; i++) {
     const t = i * stepTime;
-    arc.push([
-      origin[0] + direction[0] * t,
-      origin[1] + direction[1] * t - 0.5 * gravity * t * t,
-      origin[2] + direction[2] * t,
-    ]);
+    arc.push(
+      vec3(
+        vx(origin) + vx(direction) * t,
+        vy(origin) + vy(direction) * t - 0.5 * gravity * t * t,
+        vz(origin) + vz(direction) * t
+      )
+    );
     // Stop if we hit the ground
-    if (arc[arc.length - 1][1] < 0) {
-      arc[arc.length - 1][1] = 0;
+    if (arc[arc.length - 1].y < 0) {
+      arc[arc.length - 1] = vec3(arc[arc.length - 1].x, 0, arc[arc.length - 1].z);
       break;
     }
   }
@@ -97,20 +117,20 @@ export function teleportArc(
  * Validate a teleport target (must be within room bounds and on a flat surface).
  */
 export function validateTeleportTarget(
-  target: Vec3,
+  target: Vec3Like,
   bounds: RoomBounds,
   _maxSlope: number = 30 // degrees
 ): TeleportTarget {
-  const dx = target[0] - bounds.center[0];
-  const dz = target[2] - bounds.center[2];
+  const dx = vx(target) - vx(bounds.center);
+  const dz = vz(target) - vz(bounds.center);
   const inBounds = Math.abs(dx) <= bounds.widthM / 2 && Math.abs(dz) <= bounds.depthM / 2;
-  const distance = Math.sqrt(dx * dx + target[1] * target[1] + dz * dz);
+  const distance = Math.sqrt(dx * dx + vy(target) * vy(target) + dz * dz);
 
   return {
-    id: `tp-${Math.round(target[0])}-${Math.round(target[2])}`,
-    position: target,
-    normal: [0, 1, 0],
-    isValid: inBounds && target[1] >= 0 && target[1] < 0.3, // Near floor level
+    id: `tp-${Math.round(vx(target))}-${Math.round(vz(target))}`,
+    position: vec3(vx(target), vy(target), vz(target)),
+    normal: vec3(0, 1, 0),
+    isValid: inBounds && vy(target) >= 0 && vy(target) < 0.3, // Near floor level
     distance,
   };
 }
@@ -123,14 +143,14 @@ export function validateTeleportTarget(
  * Check if a position is within room bounds (with a warning margin).
  */
 export function isInBounds(
-  position: Vec3,
+  position: Vec3Like,
   bounds: RoomBounds,
   marginM: number = 0.3
 ): { inBounds: boolean; distanceToBoundary: number; nearBoundary: boolean } {
   const halfW = bounds.widthM / 2 - marginM;
   const halfD = bounds.depthM / 2 - marginM;
-  const dx = Math.abs(position[0] - bounds.center[0]);
-  const dz = Math.abs(position[2] - bounds.center[2]);
+  const dx = Math.abs(vx(position) - vx(bounds.center));
+  const dz = Math.abs(vz(position) - vz(bounds.center));
   const distToBoundary = Math.min(halfW - dx, halfD - dz);
 
   return {
@@ -177,10 +197,10 @@ export function detectGesture(hand: HandPose): HandPose['gesture'] {
   return 'unknown';
 }
 
-function vec3Dist(a: Vec3, b: Vec3): number {
-  const dx = b[0] - a[0],
-    dy = b[1] - a[1],
-    dz = b[2] - a[2];
+function vec3Dist(a: Vec3Like, b: Vec3Like): number {
+  const dx = vx(b) - vx(a),
+    dy = vy(b) - vy(a),
+    dz = vz(b) - vz(a);
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -204,14 +224,14 @@ export function handReachDistance(hand: HandPose, shoulderHeight: number = 1.4):
  * Apply comfort settings to movement vector.
  */
 export function applyComfortMovement(inputDirection: Vec3, settings: ComfortSettings): Vec3 {
-  if (settings.teleportOnly) return [0, 0, 0]; // No smooth movement
+  if (settings.teleportOnly) return vec3(0, 0, 0); // No smooth movement
 
   const speed = settings.movementSpeed;
-  return [
-    inputDirection[0] * speed,
-    settings.seatedMode ? 0 : inputDirection[1] * speed,
-    inputDirection[2] * speed,
-  ];
+  return vec3(
+    vx(inputDirection) * speed,
+    settings.seatedMode ? 0 : vy(inputDirection) * speed,
+    vz(inputDirection) * speed
+  );
 }
 
 /**

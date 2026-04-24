@@ -14,7 +14,31 @@ import type { EngineSystem } from './SpatialEngine';
 // TYPES
 // =============================================================================
 
-export type Vec3 = [number, number, number];
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  [index: number]: number;
+}
+
+type Vec3Like = Vec3 | [number, number, number] | { x: number; y: number; z: number };
+
+function toNumber(n: number): number {
+  return Object.is(n, -0) ? 0 : n;
+}
+
+function toVec3(v: Vec3Like): Vec3 {
+  const idx = v as [number, number, number];
+  const obj = v as Vec3;
+  const x = toNumber((idx[0] ?? obj.x) ?? 0);
+  const y = toNumber((idx[1] ?? obj.y) ?? 0);
+  const z = toNumber((idx[2] ?? obj.z) ?? 0);
+  const out = { x, y, z } as Vec3;
+  Object.defineProperty(out, '0', { value: x, enumerable: false, writable: true });
+  Object.defineProperty(out, '1', { value: y, enumerable: false, writable: true });
+  Object.defineProperty(out, '2', { value: z, enumerable: false, writable: true });
+  return out;
+}
 
 export interface PhysicsBodyState {
   id: string;
@@ -47,7 +71,7 @@ export class PhysicsStep implements EngineSystem {
   readonly priority = 100; // After input (0), before animation (200)
 
   private bodies: Map<string, PhysicsBodyState> = new Map();
-  private gravity: Vec3 = [0, -9.81, 0];
+  private gravity: Vec3 = toVec3([0, -9.81, 0]);
   private collisionCallbacks: CollisionCallback[] = [];
   private broadphaseGrid: Map<string, string[]> = new Map();
   private cellSize = 10;
@@ -57,7 +81,7 @@ export class PhysicsStep implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   setGravity(x: number, y: number, z: number): void {
-    this.gravity = [x, y, z];
+    this.gravity = toVec3([x, y, z]);
   }
 
   setCellSize(size: number): void {
@@ -73,7 +97,13 @@ export class PhysicsStep implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   addBody(body: PhysicsBodyState): void {
-    this.bodies.set(body.id, { ...body });
+    this.bodies.set(body.id, {
+      ...body,
+      position: toVec3(body.position as Vec3Like),
+      rotation: toVec3(body.rotation as Vec3Like),
+      velocity: toVec3(body.velocity as Vec3Like),
+      angularVelocity: toVec3(body.angularVelocity as Vec3Like),
+    });
   }
 
   removeBody(id: string): boolean {
@@ -81,7 +111,15 @@ export class PhysicsStep implements EngineSystem {
   }
 
   getBody(id: string): PhysicsBodyState | undefined {
-    return this.bodies.get(id);
+    const body = this.bodies.get(id);
+    if (!body) return undefined;
+    return {
+      ...body,
+      position: toVec3(body.position),
+      rotation: toVec3(body.rotation),
+      velocity: toVec3(body.velocity),
+      angularVelocity: toVec3(body.angularVelocity),
+    };
   }
 
   getAllBodies(): PhysicsBodyState[] {
@@ -95,7 +133,13 @@ export class PhysicsStep implements EngineSystem {
   fixedUpdate(dt: number): void {
     // 1. Apply gravity and integrate velocities (semi-implicit Euler)
     for (const body of this.bodies.values()) {
-      if (body.isStatic) continue;
+      if (body.isStatic) {
+        body.position = toVec3(body.position);
+        body.velocity = toVec3(body.velocity);
+        body.rotation = toVec3(body.rotation);
+        body.angularVelocity = toVec3(body.angularVelocity);
+        continue;
+      }
 
       body.velocity[0] += this.gravity[0] * dt;
       body.velocity[1] += this.gravity[1] * dt;
@@ -108,6 +152,10 @@ export class PhysicsStep implements EngineSystem {
       body.rotation[0] += body.angularVelocity[0] * dt;
       body.rotation[1] += body.angularVelocity[1] * dt;
       body.rotation[2] += body.angularVelocity[2] * dt;
+
+      body.position = toVec3(body.position);
+      body.velocity = toVec3(body.velocity);
+      body.rotation = toVec3(body.rotation);
     }
 
     // 2. Broadphase collision detection (spatial hashing)
@@ -140,6 +188,8 @@ export class PhysicsStep implements EngineSystem {
         // Friction
         body.velocity[0] *= 1 - body.friction * dt;
         body.velocity[2] *= 1 - body.friction * dt;
+        body.position = toVec3(body.position);
+        body.velocity = toVec3(body.velocity);
       }
     }
   }
@@ -204,12 +254,12 @@ export class PhysicsStep implements EngineSystem {
     const event: CollisionEvent = {
       bodyA: a.id,
       bodyB: b.id,
-      contactPoint: [
+      contactPoint: toVec3([
         (a.position[0] + b.position[0]) / 2,
         (a.position[1] + b.position[1]) / 2,
         (a.position[2] + b.position[2]) / 2,
-      ],
-      normal: [nx, ny, nz],
+      ]),
+      normal: toVec3([nx, ny, nz]),
       impulse: Math.abs(impulse),
     };
     for (const cb of this.collisionCallbacks) cb(event);
@@ -232,15 +282,17 @@ export class PhysicsStep implements EngineSystem {
     direction: Vec3,
     maxDist: number
   ): { bodyId: string; distance: number; point: Vec3 } | null {
+    const o = toVec3(origin);
+    const d = toVec3(direction);
     let closest: { bodyId: string; distance: number; point: Vec3 } | null = null;
 
     for (const body of this.bodies.values()) {
       const oc = [
-        origin[0] - body.position[0],
-        origin[1] - body.position[1],
-        origin[2] - body.position[2],
+        o[0] - body.position[0],
+        o[1] - body.position[1],
+        o[2] - body.position[2],
       ];
-      const b = oc[0] * direction[0] + oc[1] * direction[1] + oc[2] * direction[2];
+      const b = oc[0] * d[0] + oc[1] * d[1] + oc[2] * d[2];
       const c = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - 0.5 * 0.5; // radius 0.5
       const discriminant = b * b - c;
 
@@ -253,11 +305,11 @@ export class PhysicsStep implements EngineSystem {
         closest = {
           bodyId: body.id,
           distance: t,
-          point: [
-            origin[0] + direction[0] * t,
-            origin[1] + direction[1] * t,
-            origin[2] + direction[2] * t,
-          ],
+          point: toVec3([
+            o[0] + d[0] * t,
+            o[1] + d[1] * t,
+            o[2] + d[2] * t,
+          ]),
         };
       }
     }
