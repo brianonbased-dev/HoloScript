@@ -10,7 +10,25 @@
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type Vec3 = [number, number, number];
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  [index: number]: number;
+}
+
+/**
+ * Factory helper to create Vec3 from tuple or object.
+ * Supports both { x, y, z } and [x, y, z] access patterns.
+ * Numeric indices are non-enumerable for clean toEqual() assertions.
+ */
+export function vec3(x: number, y: number, z: number): Vec3 {
+  const v = { x, y, z } as any;
+  Object.defineProperty(v, '0', { value: x, enumerable: false });
+  Object.defineProperty(v, '1', { value: y, enumerable: false });
+  Object.defineProperty(v, '2', { value: z, enumerable: false });
+  return v as Vec3;
+}
 
 export interface BoundingSphere {
   center: Vec3;
@@ -33,8 +51,8 @@ export interface EquipmentNode {
   id: string;
   name: string;
   type: string;
-  position: Vec3;
-  dimensions: Vec3; // width, height, depth in meters
+  position: Vec3 | [number, number, number] | { x: number; y: number; z: number };
+  dimensions: Vec3 | [number, number, number] | { x: number; y: number; z: number };
   traits: string[];
 }
 
@@ -50,15 +68,18 @@ export interface ThroughputSimParams {
  * Snaps a world-space position to the nearest grid point.
  * Useful for aligning equipment on a factory floor grid.
  *
- * @param position  Input world position
+ * @param position  Input world position (supports {x,y,z} or [0,1,2])
  * @param increment Grid cell size in meters (default 0.5m)
  */
-export function gridSnap(position: Vec3, increment = 0.5): Vec3 {
-  return [
-    Math.round(position[0] / increment) * increment,
-    Math.round(position[1] / increment) * increment,
-    Math.round(position[2] / increment) * increment,
-  ];
+export function gridSnap(position: Vec3 | { x: number; y: number; z: number }, increment = 0.5): Vec3 {
+  const x = position.x ?? position[0];
+  const y = position.y ?? position[1];
+  const z = position.z ?? position[2];
+  return vec3(
+    Math.round(x / increment) * increment,
+    Math.round(y / increment) * increment,
+    Math.round(z / increment) * increment
+  );
 }
 
 // ── Distance Measurement ──────────────────────────────────────────────────────
@@ -66,10 +87,19 @@ export function gridSnap(position: Vec3, increment = 0.5): Vec3 {
 /**
  * Measures the Euclidean distance between two node positions in meters.
  */
-export function measureDistance(a: Vec3, b: Vec3): number {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  const dz = a[2] - b[2];
+export function measureDistance(
+  a: Vec3 | { x: number; y: number; z: number },
+  b: Vec3 | { x: number; y: number; z: number }
+): number {
+  const ax = a.x ?? a[0];
+  const ay = a.y ?? a[1];
+  const az = a.z ?? a[2];
+  const bx = b.x ?? b[0];
+  const by = b.y ?? b[1];
+  const bz = b.z ?? b[2];
+  const dx = ax - bx;
+  const dy = ay - by;
+  const dz = az - bz;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -77,9 +107,16 @@ export function measureDistance(a: Vec3, b: Vec3): number {
  * Measures the floor-plane (XZ) distance, ignoring Y (height).
  * Useful for footprint calculations on a factory floor.
  */
-export function measureFloorDistance(a: Vec3, b: Vec3): number {
-  const dx = a[0] - b[0];
-  const dz = a[2] - b[2];
+export function measureFloorDistance(
+  a: Vec3 | { x: number; y: number; z: number },
+  b: Vec3 | { x: number; y: number; z: number }
+): number {
+  const ax = a.x ?? a[0];
+  const az = a.z ?? a[2];
+  const bx = b.x ?? b[0];
+  const bz = b.z ?? b[2];
+  const dx = ax - bx;
+  const dz = az - bz;
   return Math.sqrt(dx * dx + dz * dz);
 }
 
@@ -90,13 +127,15 @@ export function measureFloorDistance(a: Vec3, b: Vec3): number {
  * Safety zones mark exclusion areas around industrial equipment.
  */
 export function safetyZone(
-  node: { id: string; position: Vec3 },
+  node: { id: string; position: Vec3 | { x: number; y: number; z: number } },
   radius: number,
   type: SafetyZone['type'] = 'exclusion'
 ): SafetyZone {
+  const pos = node.position;
+  const center = vec3(pos.x ?? pos[0], pos.y ?? pos[1], pos.z ?? pos[2]);
   return {
     nodeId: node.id,
-    center: [...node.position] as Vec3,
+    center,
     radius,
     type,
   };
@@ -105,7 +144,10 @@ export function safetyZone(
 /**
  * Returns true if a point is inside a safety zone.
  */
-export function isInsideSafetyZone(point: Vec3, zone: SafetyZone): boolean {
+export function isInsideSafetyZone(
+  point: Vec3 | { x: number; y: number; z: number },
+  zone: SafetyZone
+): boolean {
   return measureDistance(point, zone.center) < zone.radius;
 }
 
@@ -130,24 +172,39 @@ export function findOverlappingZones(zones: SafetyZone[]): Array<[SafetyZone, Sa
 
 /** Returns the axis-aligned bounding box of an equipment node. */
 export function equipmentBounds(node: EquipmentNode): BoundingBox {
-  const halfW = node.dimensions[0] / 2;
-  const halfH = node.dimensions[1] / 2;
-  const halfD = node.dimensions[2] / 2;
+  const halfW = (Array.isArray(node.dimensions) ? node.dimensions[0] : node.dimensions.x) / 2;
+  const halfH = (Array.isArray(node.dimensions) ? node.dimensions[1] : node.dimensions.y) / 2;
+  const halfD = (Array.isArray(node.dimensions) ? node.dimensions[2] : node.dimensions.z) / 2;
+  const px = Array.isArray(node.position) ? node.position[0] : node.position.x;
+  const py = Array.isArray(node.position) ? node.position[1] : node.position.y;
+  const pz = Array.isArray(node.position) ? node.position[2] : node.position.z;
   return {
-    min: [node.position[0] - halfW, node.position[1] - halfH, node.position[2] - halfD],
-    max: [node.position[0] + halfW, node.position[1] + halfH, node.position[2] + halfD],
+    min: vec3(px - halfW, py - halfH, pz - halfD),
+    max: vec3(px + halfW, py + halfH, pz + halfD),
   };
 }
 
 /** Returns true if two bounding boxes intersect (AABB test). */
 export function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
+  const a_min_x = a.min.x ?? a.min[0];
+  const a_max_x = a.max.x ?? a.max[0];
+  const a_min_y = a.min.y ?? a.min[1];
+  const a_max_y = a.max.y ?? a.max[1];
+  const a_min_z = a.min.z ?? a.min[2];
+  const a_max_z = a.max.z ?? a.max[2];
+  const b_min_x = b.min.x ?? b.min[0];
+  const b_max_x = b.max.x ?? b.max[0];
+  const b_min_y = b.min.y ?? b.min[1];
+  const b_max_y = b.max.y ?? b.max[1];
+  const b_min_z = b.min.z ?? b.min[2];
+  const b_max_z = b.max.z ?? b.max[2];
   return (
-    a.min[0] <= b.max[0] &&
-    a.max[0] >= b.min[0] &&
-    a.min[1] <= b.max[1] &&
-    a.max[1] >= b.min[1] &&
-    a.min[2] <= b.max[2] &&
-    a.max[2] >= b.min[2]
+    a_min_x <= b_max_x &&
+    a_max_x >= b_min_x &&
+    a_min_y <= b_max_y &&
+    a_max_y >= b_min_y &&
+    a_min_z <= b_max_z &&
+    a_max_z >= b_min_z
   );
 }
 
