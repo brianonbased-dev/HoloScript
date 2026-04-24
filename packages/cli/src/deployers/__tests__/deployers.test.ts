@@ -1,9 +1,52 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
 import { createDeployer, DeployConfig, BuildOutput } from '../index';
 import { CloudflareDeployer } from '../CloudflareDeployer';
 import { VercelDeployer } from '../VercelDeployer';
 import { NginxDeployer } from '../NginxDeployer';
 import { BaseDeployer } from '../BaseDeployer';
+
+// ============================================================================
+// Network + FS Mocks
+// ============================================================================
+//
+// The CF + Vercel deployers make real HTTP calls to their platform APIs and
+// read build-output files from disk. In tests we never want to hit the
+// network or real paths like /tmp/build-output, so we stub fetch + fs.readFile.
+//
+// The fetch mock returns success envelopes WITHOUT a `result.url` / `url`
+// field so that `createDeployment` falls back to the conventional URL
+// (e.g. `https://<project>.pages.dev`). This lets the tests assert both
+// the default URL shape AND the custom-domain fallback path.
+//
+// NginxDeployer is unaffected: it uses injectable sshExecutor/scpUploader
+// mocks set up in its own beforeEach and does not touch fetch or fs.readFile.
+
+function installDeployerNetworkMocks(): void {
+  vi.spyOn(fs.promises, 'readFile').mockImplementation(
+    async () => Buffer.from('mock-build-output')
+  );
+
+  const successfulResponse = () =>
+    ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      // CF envelope: { success, result }. Vercel: bare object.
+      // We return a union so both adapters parse without error; neither
+      // includes a `url`/`result.url`, so createDeployment uses fallback.
+      json: async () => ({
+        success: true,
+        result: { id: 'mock-deployment-id' },
+        id: 'mock-vercel-id',
+        readyState: 'READY',
+        alias: [],
+        deployments: [],
+      }),
+    }) as Response;
+
+  vi.stubGlobal('fetch', vi.fn(async () => successfulResponse()));
+}
 
 // ============================================================================
 // Test Helpers
@@ -140,10 +183,16 @@ describe('CloudflareDeployer', () => {
   let deployer: CloudflareDeployer;
 
   beforeEach(() => {
+    installDeployerNetworkMocks();
     deployer = new CloudflareDeployer({
       apiToken: 'cf-test-token-123',
       accountId: 'cf-account-456',
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('should be an instance of BaseDeployer', () => {
@@ -287,10 +336,16 @@ describe('VercelDeployer', () => {
   let deployer: VercelDeployer;
 
   beforeEach(() => {
+    installDeployerNetworkMocks();
     deployer = new VercelDeployer({
       apiToken: 'vercel-test-token-789',
       teamId: 'team-abc',
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('should be an instance of BaseDeployer', () => {
@@ -786,6 +841,15 @@ describe('createDeployer', () => {
 // ============================================================================
 
 describe('Multi-region deployment', () => {
+  beforeEach(() => {
+    installDeployerNetworkMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('should deploy to multiple regions', async () => {
     const deployer = new CloudflareDeployer({
       apiToken: 'token',
@@ -808,6 +872,15 @@ describe('Multi-region deployment', () => {
 // ============================================================================
 
 describe('Edge configuration', () => {
+  beforeEach(() => {
+    installDeployerNetworkMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('should include edge config in Cloudflare deploy', async () => {
     const deployer = new CloudflareDeployer({
       apiToken: 'token',

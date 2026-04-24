@@ -12,8 +12,13 @@ import { PackagePackager } from '../publish/packager';
 // ─── Traits Data + Utilities ─────────────────────────────────────────────
 
 describe('TRAITS Data — Integrity', () => {
-  it('has 49 traits', () => {
-    expect(Object.keys(TRAITS).length).toBe(49);
+  it('has at least one trait with no duplicate keys', () => {
+    // Live count, no hardcoded stat — per CLAUDE.md "Zero Hardcoded Stats" rule.
+    // Invariants: non-empty registry, keys are unique (Object.keys guarantees
+    // this by construction, but we assert for intent).
+    const keys = Object.keys(TRAITS);
+    expect(keys.length).toBeGreaterThan(0);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it('every trait has required fields', () => {
@@ -31,22 +36,14 @@ describe('TRAITS Data — Integrity', () => {
     }
   });
 
-  it('categories are valid', () => {
-    const validCategories = [
-      'interaction',
-      'physics',
-      'visual',
-      'networking',
-      'behavior',
-      'spatial',
-      'audio',
-      'state',
-    ];
-    for (const [key, trait] of Object.entries(TRAITS)) {
-      expect(validCategories, `${key} has invalid category: ${trait.category}`).toContain(
-        trait.category
-      );
-    }
+  it('categories are valid (every trait category appears in getCategories)', () => {
+    // Invariant (not a hardcoded list): the set of categories declared on
+    // traits must be exactly the set returned by getCategories(). New
+    // categories are valid automatically as long as this invariant holds —
+    // we do NOT pin to a static allowlist, which would drift.
+    const declaredCategories = new Set(Object.values(TRAITS).map((t) => t.category));
+    const reportedCategories = new Set(getCategories().map((c) => c.name));
+    expect(reportedCategories).toEqual(declaredCategories);
   });
 });
 
@@ -63,17 +60,11 @@ describe('getTraitsByCategory — Production', () => {
     expect(traits.every((t) => t.category === 'physics')).toBe(true);
   });
 
-  it('returns all categories', () => {
-    const categories = [
-      'interaction',
-      'physics',
-      'visual',
-      'networking',
-      'behavior',
-      'spatial',
-      'audio',
-      'state',
-    ] as const;
+  it('returns traits for every declared category', () => {
+    // Derive the live category list from TRAITS rather than hardcoding —
+    // new categories are covered automatically.
+    const categories = Array.from(new Set(Object.values(TRAITS).map((t) => t.category)));
+    expect(categories.length).toBeGreaterThan(0);
     for (const cat of categories) {
       const traits = getTraitsByCategory(cat);
       expect(traits.length, `${cat} should have traits`).toBeGreaterThan(0);
@@ -82,15 +73,20 @@ describe('getTraitsByCategory — Production', () => {
 });
 
 describe('getCategories — Production', () => {
-  it('returns all 8 categories', () => {
+  it('returns exactly one entry per distinct trait category', () => {
     const cats = getCategories();
-    expect(cats.length).toBe(8);
+    const distinct = new Set(Object.values(TRAITS).map((t) => t.category));
+    expect(cats.length).toBe(distinct.size);
+    // Every reported category is actually used by at least one trait.
+    for (const cat of cats) {
+      expect(distinct.has(cat.name)).toBe(true);
+    }
   });
 
-  it('counts sum to 49', () => {
+  it('counts sum to total trait count', () => {
     const cats = getCategories();
     const total = cats.reduce((sum, c) => sum + c.count, 0);
-    expect(total).toBe(49);
+    expect(total).toBe(Object.keys(TRAITS).length);
   });
 
   it('each category has name and count', () => {
