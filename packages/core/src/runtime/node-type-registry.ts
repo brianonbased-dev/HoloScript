@@ -64,7 +64,6 @@ import {
   executeNarrative as executeNarrativePure,
   executeQuest as executeQuestPure,
   executeDialogue as executeDialoguePure,
-  executeVisualMetadata as executeVisualMetadataPure,
 } from './narrative-executors';
 import {
   executeFunction as executeFunctionPure,
@@ -93,6 +92,7 @@ import { executeHoloComposition as executeHoloCompositionPure } from './holo-com
 import {
   executeSystem as executeSystemPure,
   executeCoreConfig as executeCoreConfigPure,
+  executeVisualMetadata as executeVisualMetadataPure,
 } from './system-executors';
 
 // Slice 31/32/33 runtime modules — used via the RuntimeDispatcher's build*Ctx methods.
