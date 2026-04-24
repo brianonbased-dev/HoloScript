@@ -837,6 +837,21 @@ describe('HoloMesh HTTP Routes', () => {
   // ── Read Endpoints (no auth required) ──
 
   describe('Read endpoints (unauthenticated)', () => {
+    it('GET /api/holomesh/health exposes board warnings contract metadata', async () => {
+      const req = mockReq('GET', '/api/holomesh/health');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/health');
+
+      expect(res._status).toBe(200);
+      expect(res._body.status).toBe('operational');
+      expect(res._body.contracts?.board_add_warnings_field).toEqual({
+        path: '/api/holomesh/team/:id/board',
+        expectedType: 'array',
+        requiredForLongDescriptions: true,
+        reason: 'description truncation metadata must be machine-detectable',
+      });
+    });
+
     it('GET /feed works without auth', async () => {
       const req = mockReq('GET', '/api/holomesh/feed');
       const res = mockRes();

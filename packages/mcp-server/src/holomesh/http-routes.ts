@@ -206,7 +206,15 @@ export async function handleHoloMeshRoute(
     json(res, 200, { 
       status: 'operational', 
       version: '6.1.0',
-      orchestrator: getClient().getAgentId() ? 'connected' : 'disconnected'
+      orchestrator: getClient().getAgentId() ? 'connected' : 'disconnected',
+      contracts: {
+        board_add_warnings_field: {
+          path: '/api/holomesh/team/:id/board',
+          expectedType: 'array',
+          requiredForLongDescriptions: true,
+          reason: 'description truncation metadata must be machine-detectable',
+        },
+      },
     });
     return true;
   }
