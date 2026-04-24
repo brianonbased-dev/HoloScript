@@ -2528,6 +2528,64 @@ describe('HoloMesh HTTP Routes', () => {
       ]);
     });
 
+    // Guards task_1776981805111_g5g1 — batch POST body dropped `tags` silently
+    // pre-fix, which broke `/room board <tag>` filtering and bounty-team dispatch
+    // for programmatically-created tasks. Unit-level coverage exists in
+    // packages/framework/src/__tests__/board-ops.test.ts, but this lane asserts
+    // the invariant survives the HTTP route layer: tags present in the request
+    // must appear on (1) the POST response body, and (2) the subsequent
+    // GET /board projection of the same task.
+    it('POST /api/holomesh/team/:id/board persists tags and surfaces them on GET /board (round-trip)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-tags-roundtrip-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const inputTags = ['paper-farming', 'paper-7', 'priority:high'];
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'Tags roundtrip task',
+              description: 'verifies tags survive POST + GET',
+              priority: 1,
+              tags: inputTags,
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/board`);
+
+      expect(postRes._status).toBe(201);
+      expect(postRes._body.added).toBe(1);
+      const postedTask = postRes._body.tasks[0];
+      expect(postedTask.tags).toEqual(inputTags);
+      const taskId = postedTask.id;
+
+      const getReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+
+      expect(getRes._status).toBe(200);
+      const fetched = (getRes._body.tasks || []).find((t: { id: string }) => t.id === taskId);
+      expect(fetched).toBeDefined();
+      expect(fetched.tags).toEqual(inputTags);
+    });
+
     it('POST /api/holomesh/team/:id/board/scout uses /room scout in empty-board auto-hint task', async () => {
       const createReq = mockReq(
         'POST',
