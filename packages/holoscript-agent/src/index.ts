@@ -6,6 +6,7 @@ import {
   createOpenAIProvider,
   createGeminiProvider,
   createMockProvider,
+  createLocalLLMProvider,
 } from '@holoscript/llm-provider';
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
@@ -109,9 +110,14 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
       return createGeminiProvider({ defaultModel: identity.llmModel });
     case 'mock':
       return createMockProvider();
+    case 'local-llm':
+      return createLocalLLMProvider({
+        baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
+        model: identity.llmModel,
+      });
     default:
       throw new Error(
-        `Provider "${p}" not yet wired in CLI — Phase 2 deliverable. Use anthropic | openai | gemini | mock for now.`
+        `Provider "${p}" not yet wired in CLI — Phase 2 deliverable. Use anthropic | openai | gemini | local-llm | mock for now.`
       );
   }
 }
@@ -163,7 +169,7 @@ USAGE
 
 REQUIRED ENV
   HOLOSCRIPT_AGENT_HANDLE            agent handle (e.g. "security-auditor")
-  HOLOSCRIPT_AGENT_PROVIDER          anthropic | openai | gemini | mock
+  HOLOSCRIPT_AGENT_PROVIDER          anthropic | openai | gemini | local-llm | mock
   HOLOSCRIPT_AGENT_MODEL             model id (e.g. "claude-opus-4-7")
   HOLOSCRIPT_AGENT_BRAIN             path to .hsplus brain composition
   HOLOSCRIPT_AGENT_WALLET            0x… wallet address
@@ -182,6 +188,7 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_OUTPUT_DIR        memo output dir (rel to working dir, default "agent-out")
   HOLOSCRIPT_AGENT_WORKING_DIR       git repo to commit into (default process.cwd())
   HOLOSCRIPT_AGENT_COMMIT_SCOPE      commit subject scope (default "agent(<handle>)")
+  HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL  local-llm provider base URL (default http://localhost:8080)
 `);
 }
 
