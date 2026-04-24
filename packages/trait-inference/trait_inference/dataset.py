@@ -133,8 +133,14 @@ def make_splits(
       4. Reserve groups whose trait_sets are unique-in-corpus for
          held_out_novel; remaining groups distributed by frac.
     """
-    if not 0.99 <= train_frac + val_frac + indist_frac <= 1.0:
-        raise ValueError("split fractions must leave room for held_out_novel")
+    total = train_frac + val_frac + indist_frac
+    if total >= 1.0:
+        raise ValueError(
+            f"split fractions must leave room for held_out_novel "
+            f"(train+val+indist={total:.3f}, must be <1.0)"
+        )
+    if any(f < 0 for f in (train_frac, val_frac, indist_frac)):
+        raise ValueError("split fractions must be non-negative")
 
     rng = random.Random(seed)
 
