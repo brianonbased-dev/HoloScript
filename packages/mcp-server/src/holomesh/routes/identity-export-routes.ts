@@ -69,6 +69,15 @@ import {
   type ExportPackage,
 } from '../export-package';
 import type { ExportSession } from '../types';
+import {
+  retireCustodialSigner as registryRetireCustodialSigner,
+  isSelfCustodyActive,
+  _getUserCustodyModeForTests,
+  _setUserCustodyModeForTests,
+  _resetCustodyRegistryForTests,
+  type CustodyMode as RegistryCustodyMode,
+  type RetirementResult as RegistryRetirementResult,
+} from '../identity/custody-registry';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -81,16 +90,39 @@ export const ROUTE_PREPARE = '/api/identity/self-custody/export/prepare';
 export const ROUTE_PACKAGE = '/api/identity/self-custody/export/package';
 export const ROUTE_FINALIZE = '/api/identity/self-custody/export/finalize';
 
-// ── Shadow state (replaced by _dny4 atomic-registry when it lands) ───────────
+// ── Custody state (owned by identity/custody-registry.ts after _dny4) ────────
 
-export type CustodyMode = 'custodial_active' | 'self_custody_active';
+/** Re-exported so downstream callers that typed on this module's CustodyMode
+ *  don't break. Authoritative type lives in custody-registry.ts. */
+export type CustodyMode = RegistryCustodyMode;
 
 /**
- * Per-user custody mode. Mirrors what the atomic-registry layer will own.
- * Keeping this as a module-level export so tests can reset it and _dny4 can
- * hand it off to the real store.
+ * BACK-COMPAT shim. Tests and legacy callers imported `userCustodyMode` as a
+ * Map from this module. _dny4 moved the authoritative store into
+ * identity/custody-registry.ts. This Proxy wraps the registry test helpers
+ * so existing code (`userCustodyMode.get(id)`, `userCustodyMode.set(id, m)`,
+ * `userCustodyMode.clear()`) keeps working without changes.
+ *
+ * New code should import `isSelfCustodyActive` / `requireCustodial` /
+ * `_setUserCustodyModeForTests` from custody-registry directly.
  */
-export const userCustodyMode: Map<string, CustodyMode> = new Map();
+export const userCustodyMode: Pick<
+  Map<string, CustodyMode>,
+  'get' | 'set' | 'clear' | 'has'
+> = {
+  get: (userId: string) => _getUserCustodyModeForTests(userId),
+  set: (userId: string, mode: CustodyMode) => {
+    _setUserCustodyModeForTests(userId, mode);
+    return userCustodyMode;
+  },
+  clear: () => {
+    // Delegates to the registry test reset. A tighter reset (clear only the
+    // custody-mode map) is intentionally not exposed — tests should use
+    // `_resetCustodyRegistryForTests` to reset the full registry instead.
+    _resetCustodyRegistryForTests();
+  },
+  has: (userId: string) => _getUserCustodyModeForTests(userId) !== undefined,
+} as unknown as Pick<Map<string, CustodyMode>, 'get' | 'set' | 'clear' | 'has'>;
 
 /** Per-user prepare-attempt timestamps for rate-limiting (enumeration defense). */
 const prepareAttemptsByAgent: Map<string, number[]> = new Map();
@@ -169,50 +201,22 @@ export function _resetPrepareRateLimitForTests(): void {
   prepareAttemptsByAgent.clear();
 }
 
-// ── Atomic retirement stub (replaced by _dny4) ───────────────────────────────
+// ── Atomic retirement — delegates to identity/custody-registry (_dny4) ───────
 
 /**
- * Retire the custodial signer for a user and mark the user as self-custody.
- *
- * STUB for _dny4. Expected real implementation:
- *   1. Begin atomic transaction against the identity registry.
- *   2. Mark current custodial signer as 'retired' with effective_at timestamp.
- *   3. Bind the user's new wallet address as the active signer.
- *   4. Commit transaction.
- *   5. Return the retired signer's ID for audit.
- *
- * Current stub: generates a deterministic fake signer ID (derived from user_id
- * + timestamp) so happy-path tests can assert structural correctness. DO NOT
- * rely on this in production — the task spec explicitly calls this out.
+ * Thin delegate to the real registry. The full atomicity contract,
+ * staged-write buffer, and audit-event emission live in
+ * identity/custody-registry.ts. Shape preserved here so route handlers
+ * don't change.
  */
-export interface RetirementResult {
-  retiredCustodialSignerId: string;
-  effectiveAt: string;
-}
+export type RetirementResult = RegistryRetirementResult;
 
 export function retireCustodialSigner(
   userId: string,
   newWalletAddress: string,
   now = new Date()
 ): RetirementResult {
-  // Stub ID is prefixed so it's greppable in logs.
-  const retiredId = `custodial-signer-STUB-${crypto
-    .createHash('sha256')
-    .update(`${userId}:${now.getTime()}`)
-    .digest('hex')
-    .slice(0, 16)}`;
-
-  // Shadow-track the transition so invariant #1 is enforceable pre-_dny4.
-  userCustodyMode.set(userId, 'self_custody_active');
-
-  console.info(
-    `[identity-export] STUB retirement: user=${userId} new_wallet=${newWalletAddress} retired_signer=${retiredId}`
-  );
-
-  return {
-    retiredCustodialSignerId: retiredId,
-    effectiveAt: now.toISOString(),
-  };
+  return registryRetireCustodialSigner(userId, newWalletAddress, now);
 }
 
 // ── Handler: prepare ─────────────────────────────────────────────────────────
@@ -229,7 +233,7 @@ async function handlePrepare(
   // Invariant #1: if already self-custody, prepare is a no-op from user's
   // perspective — no new session. Return 409 explicitly so the UI can route
   // the user to the "already migrated" flow.
-  if (userCustodyMode.get(userId) === 'self_custody_active') {
+  if (isSelfCustodyActive(userId)) {
     json(res, 409, {
       success: false,
       error: 'already_self_custody',
@@ -480,10 +484,7 @@ async function handleFinalize(
 
   // Invariant #1 re-check: if the user is already self-custody, finalize is
   // an idempotent no-op. This is the replay branch for acceptance test #3.
-  if (
-    userCustodyMode.get(agent.id) === 'self_custody_active' &&
-    session.status === 'finalized'
-  ) {
+  if (isSelfCustodyActive(agent.id) && session.status === 'finalized') {
     json(res, 200, {
       success: true,
       status: 'self_custody_active',
@@ -608,6 +609,55 @@ export async function handleIdentityExportRoutes(
     return true;
   }
 
+  return false;
+}
+
+// ── Invariant #1 guard for custodial signing endpoints ──────────────────────
+
+/**
+ * Spec acceptance test #6: "post-migration, custodial signing endpoint
+ * rejects migrated user."
+ *
+ * Current server status: the holomesh server does NOT ship a user-facing
+ * custodial signing endpoint. Wallet-bound signatures are produced
+ * client-side and verified on the server via `/api/holomesh/key/challenge`
+ * + `/api/holomesh/key/register` (core-routes.ts). There is no route that
+ * signs on behalf of a custodial user — the user's wallet is always the
+ * signer.
+ *
+ * Therefore acceptance test #6 currently degenerates to: "any future
+ * custodial-signing endpoint added to this server must call
+ * `requireCustodial(userId)` at its top and return HTTP 403 if the user
+ * has migrated." The guard lives in `identity/custody-registry.ts`
+ * (exported `requireCustodial`). The route-layer adapter below is the
+ * integration seam.
+ *
+ * When a real custodial-signing endpoint lands, it calls
+ * `rejectIfMigratedToSelfCustody(userId, res)` at the top of its handler.
+ * If this returns `true` the endpoint must not continue (response is
+ * already written). If `false`, the user is still custodial and the
+ * endpoint proceeds normally.
+ *
+ * TODO(post-_dny4): when `/api/identity/custodial/sign` or similar lands,
+ * wire the first line of its handler to:
+ *     if (rejectIfMigratedToSelfCustody(agent.id, res)) return;
+ * Test: `packages/mcp-server/src/holomesh/identity/__tests__/
+ *        custody-registry.test.ts` already verifies the guard shape; the
+ *        endpoint-level test lives alongside that endpoint when shipped.
+ */
+export function rejectIfMigratedToSelfCustody(
+  userId: string,
+  res: http.ServerResponse
+): boolean {
+  if (isSelfCustodyActive(userId)) {
+    json(res, 403, {
+      success: false,
+      error: 'user_migrated_to_self_custody',
+      message:
+        'User has migrated to self-custody. Custodial signing is permanently disabled for this user.',
+    });
+    return true;
+  }
   return false;
 }
 

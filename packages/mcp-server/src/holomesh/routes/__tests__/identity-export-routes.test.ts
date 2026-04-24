@@ -36,6 +36,7 @@ import {
   _resetIdentityExportStateForTests,
   _resetPrepareRateLimitForTests,
 } from '../identity-export-routes';
+import { RETIRED_ID_SHAPE } from '../../identity/custody-registry';
 import { keyRegistry, exportSessionStore } from '../../state';
 import type { KeyRecord } from '../../types';
 
@@ -257,7 +258,10 @@ describe('POST /api/identity/self-custody/export/* — happy path (spec #1)', ()
 
     expect(finRes._status).toBe(200);
     expect(finRes._body.status).toBe('self_custody_active');
-    expect(finRes._body.retired_custodial_signer_id).toMatch(/^custodial-signer-STUB-/);
+    // _dny4 shipped: retired-id now matches the canonical registry shape
+    // `retired-custodial-<userId>-<iso-timestamp>`. Shape asserted via the
+    // exported RETIRED_ID_SHAPE regex so both sides stay in sync.
+    expect(finRes._body.retired_custodial_signer_id).toMatch(RETIRED_ID_SHAPE);
     expect(finRes._body.effective_at).toBeTruthy();
     expect(userCustodyMode.get(TEST_USER_ID)).toBe('self_custody_active');
   });
@@ -340,7 +344,7 @@ describe('replay (spec #3)', () => {
     // Custody mode stays self_custody_active (no double-transition).
     expect(userCustodyMode.get(TEST_USER_ID)).toBe('self_custody_active');
     // Sanity: the first retirement id is still the canonical one.
-    expect(firstRetiredId).toMatch(/^custodial-signer-STUB-/);
+    expect(firstRetiredId).toMatch(RETIRED_ID_SHAPE);
   });
 });
 
@@ -633,12 +637,14 @@ describe('session-id tampering', () => {
   });
 });
 
-// ── Retirement stub — structural contract for _dny4 ────────────────────────
+// ── Retirement delegate — structural contract (post-_dny4) ─────────────────
 
-describe('retireCustodialSigner stub (_dny4 handoff)', () => {
-  it('produces a greppable stubbed ID the real layer will replace', () => {
+describe('retireCustodialSigner — registry delegation (post-_dny4)', () => {
+  it('delegates to custody-registry and returns a canonical retired-id', () => {
     const result = retireCustodialSigner('user-x', '0xNewWallet');
-    expect(result.retiredCustodialSignerId).toMatch(/^custodial-signer-STUB-[0-9a-f]{16}$/);
+    // Registry shape: `retired-custodial-<userId>-<iso-timestamp>`. Asserted
+    // against RETIRED_ID_SHAPE so the route and registry cannot drift.
+    expect(result.retiredCustodialSignerId).toMatch(RETIRED_ID_SHAPE);
     expect(result.effectiveAt).toBeTruthy();
     expect(userCustodyMode.get('user-x')).toBe('self_custody_active');
   });
