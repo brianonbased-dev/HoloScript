@@ -15,6 +15,10 @@ import { CostGuard } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
+import { runAblation, renderAblationMarkdown } from './ablation.js';
+import type { AblationProviderSpec, AblationTaskSpec } from './ablation.js';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
 
 async function main(): Promise<void> {
@@ -30,6 +34,9 @@ async function main(): Promise<void> {
       return;
     case 'whoami':
       await cmdWhoami();
+      return;
+    case 'ablate':
+      await cmdAblate(args.slice(1));
       return;
     case 'help':
     case '--help':
@@ -86,6 +93,90 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   process.on('SIGINT', onSig);
   process.on('SIGTERM', onSig);
   await runner.runForever({ tickIntervalMs: interval });
+}
+
+async function cmdAblate(rest: string[]): Promise<void> {
+  const specPath = rest.find((a) => a.startsWith('--spec='))?.split('=')[1];
+  if (!specPath) {
+    throw new Error('Usage: holoscript-agent ablate --spec=<path-to-ablation.json> [--out-md=<path>] [--out-json=<path>]');
+  }
+  const outMd = rest.find((a) => a.startsWith('--out-md='))?.split('=')[1];
+  const outJson = rest.find((a) => a.startsWith('--out-json='))?.split('=')[1];
+  if (!existsSync(specPath)) throw new Error(`Spec file not found: ${specPath}`);
+
+  const spec = JSON.parse(readFileSync(specPath, 'utf8')) as {
+    task: AblationTaskSpec;
+    providers: Array<{
+      label: string;
+      provider: 'anthropic' | 'openai' | 'gemini' | 'local-llm' | 'mock';
+      model: string;
+      pricePerMtokInput?: number;
+      pricePerMtokOutput?: number;
+      pricePerCallUsd?: number;
+    }>;
+    timeoutPerCellMs?: number;
+  };
+
+  const providers: AblationProviderSpec[] = spec.providers.map((p) => ({
+    label: p.label,
+    provider: p.provider,
+    model: p.model,
+    build: () => {
+      switch (p.provider) {
+        case 'anthropic':
+          return createAnthropicProvider({ defaultModel: p.model });
+        case 'openai':
+          return createOpenAIProvider({ defaultModel: p.model });
+        case 'gemini':
+          return createGeminiProvider({ defaultModel: p.model });
+        case 'local-llm':
+          return createLocalLLMProvider({
+            baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
+            model: p.model,
+          });
+        case 'mock':
+          return createMockProvider();
+      }
+    },
+    pricer: p.pricePerCallUsd != null
+      ? () => p.pricePerCallUsd!
+      : p.pricePerMtokInput != null && p.pricePerMtokOutput != null
+        ? (u) => (u.promptTokens * p.pricePerMtokInput! + u.completionTokens * p.pricePerMtokOutput!) / 1_000_000
+        : undefined,
+  }));
+
+  const startMsg = JSON.stringify({ ts: new Date().toISOString(), ev: 'ablation-start', task: spec.task.taskId, cells: providers.length });
+  console.log(startMsg);
+
+  const matrix = await runAblation({
+    task: spec.task,
+    providers,
+    timeoutPerCellMs: spec.timeoutPerCellMs,
+  });
+
+  if (outJson) {
+    mkdirSync(dirname(resolve(outJson)), { recursive: true });
+    writeFileSync(outJson, JSON.stringify(matrix, null, 2), 'utf8');
+  }
+  if (outMd) {
+    mkdirSync(dirname(resolve(outMd)), { recursive: true });
+    writeFileSync(outMd, renderAblationMarkdown(matrix), 'utf8');
+  }
+  if (!outMd && !outJson) {
+    console.log(renderAblationMarkdown(matrix));
+  }
+
+  console.log(JSON.stringify({
+    ts: new Date().toISOString(),
+    ev: 'ablation-done',
+    task: matrix.taskId,
+    cells: matrix.cells.length,
+    errors: matrix.cells.filter((c) => c.errorMessage).length,
+    totalCostUsd: matrix.totalCostUsd,
+    promptHash: matrix.promptHash,
+    outMd: outMd ?? null,
+    outJson: outJson ?? null,
+  }));
 }
 
 async function cmdWhoami(): Promise<void> {
@@ -162,10 +253,13 @@ function printHelp(): void {
   console.log(`holoscript-agent — headless agent runtime
 
 USAGE
-  holoscript-agent run         start the daemon (heartbeat + claim + execute loop)
-  holoscript-agent tick        single tick, then exit (useful in CI / cron / smoke tests)
-  holoscript-agent whoami      verify identity tuple resolves end-to-end (/me + env)
-  holoscript-agent help        print this
+  holoscript-agent run                              start the daemon (heartbeat + claim + execute loop)
+  holoscript-agent tick                             single tick, then exit (useful in CI / cron / smoke tests)
+  holoscript-agent whoami                           verify identity tuple resolves end-to-end (/me + env)
+  holoscript-agent ablate --spec=<path>             run a cross-LLM ablation; spec = JSON with task + providers
+                          [--out-md=<path>]         optional: write markdown ablation table
+                          [--out-json=<path>]       optional: write structured JSON matrix
+  holoscript-agent help                             print this
 
 REQUIRED ENV
   HOLOSCRIPT_AGENT_HANDLE            agent handle (e.g. "security-auditor")

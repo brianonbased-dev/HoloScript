@@ -9,6 +9,7 @@ export default defineConfig({
     'src/identity.ts',
     'src/holomesh-client.ts',
     'src/commit-hook.ts',
+    'src/ablation.ts',
     'src/types.ts',
   ],
   format: ['esm'],

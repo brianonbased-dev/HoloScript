@@ -33,6 +33,10 @@
     "./commit-hook": {
       "types": "./dist/commit-hook.d.ts",
       "import": "./dist/commit-hook.js"
+    },
+    "./ablation": {
+      "types": "./dist/ablation.d.ts",
+      "import": "./dist/ablation.js"
     }
   },
   "files": ["dist"],
