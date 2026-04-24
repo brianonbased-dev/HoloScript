@@ -232,6 +232,9 @@ export async function handleTeamRoutes(
             agentName: agent.name,
             role: 'member' as TeamRole,
             joinedAt: new Date().toISOString(),
+            walletAddress: agent.walletAddress,
+            x402Verified: agent.x402Verified === true,
+            surfaceTag: ide,
           });
           persistTeamStore();
           broadcastToRoom(team.id, {
@@ -484,6 +487,7 @@ export async function handleTeamRoutes(
         apiKey,
         walletAddress,
         name,
+        x402Verified: isX402Path,
         traits: Array.isArray(body.traits) ? body.traits : [],
         reputation: 0,
         profile: {
@@ -625,7 +629,14 @@ export async function handleTeamRoutes(
       ownerName: caller.name,
       inviteCode,
       maxSlots: 20,
-      members: [{ agentId: caller.id, agentName: caller.name, role: 'owner', joinedAt: new Date().toISOString() }],
+      members: [{
+        agentId: caller.id,
+        agentName: caller.name,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+        walletAddress: caller.walletAddress,
+        x402Verified: caller.x402Verified === true,
+      }],
       waitlist: [],
       createdAt: new Date().toISOString(),
       taskBoard: [],
@@ -709,11 +720,17 @@ export async function handleTeamRoutes(
       return true;
     }
 
+    const joinSurfaceTag = typeof body.surface_tag === 'string'
+      ? (body.surface_tag as string)
+      : (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
     team.members.push({
       agentId: caller.id,
       agentName: caller.name,
       role: 'member',
-      joinedAt: new Date().toISOString()
+      joinedAt: new Date().toISOString(),
+      walletAddress: caller.walletAddress,
+      x402Verified: caller.x402Verified === true,
+      surfaceTag: joinSurfaceTag,
     });
     persistTeamStore();
 
@@ -813,12 +830,19 @@ export async function handleTeamRoutes(
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const body = await parseJsonBody(req);
+    const declaredSurfaceTag = typeof body.surface_tag === 'string'
+      ? (body.surface_tag as string)
+      : undefined;
+    const teamMember = team.members.find((m) => m.agentId === caller.id);
     const entry = {
       agentId: caller.id,
       agentName: caller.name,
       ideType: (body.ideType as string) || 'unknown',
       status: (body.status as string) || 'active',
       lastHeartbeat: new Date().toISOString(),
+      walletAddress: caller.walletAddress,
+      x402Verified: caller.x402Verified === true,
+      surfaceTag: declaredSurfaceTag || teamMember?.surfaceTag,
     } as import('../types').TeamPresenceEntry;
     if (!teamPresenceStore.has(teamId)) teamPresenceStore.set(teamId, new Map());
     teamPresenceStore.get(teamId)!.set(caller.id, entry);

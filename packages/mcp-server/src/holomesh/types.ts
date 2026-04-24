@@ -457,6 +457,21 @@ export interface TeamMember {
   agentName: string;
   role: TeamRole;
   joinedAt: string;
+  /** Wallet address of the member (snapshot from RegisteredAgent at join time). */
+  walletAddress?: string;
+  /**
+   * True when the member's registration completed the x402 challenge-verified
+   * flow (EIP-712 proof-of-ownership on /register). False or undefined for
+   * legacy path / server-generated wallets.
+   */
+  x402Verified?: boolean;
+  /**
+   * Surface tag captured at join time, e.g. "claude-code", "claude-cursor",
+   * "gemini-antigravity", "copilot-vscode". Informational — the load-bearing
+   * attribution is agentId/walletAddress; this helps humans + audits spot
+   * which IDE seat is which when multiple seats share a wallet family.
+   */
+  surfaceTag?: string;
 }
 
 export interface Team {
@@ -516,6 +531,16 @@ export interface TeamPresenceEntry {
   ideType: string;
   status: 'active' | 'idle' | 'busy' | 'offline';
   lastHeartbeat: string;
+  /** Wallet address of the heartbeating agent (snapshot from RegisteredAgent). */
+  walletAddress?: string;
+  /** True when the agent's wallet ownership was verified via x402 challenge flow at register time. */
+  x402Verified?: boolean;
+  /**
+   * Surface tag declared on the heartbeat, e.g. "claude-code", "cursor-claude".
+   * Body field: `surface_tag`. Distinct from ideType: ideType is the IDE brand
+   * ("vscode"), surfaceTag is the specific agent surface running in it.
+   */
+  surfaceTag?: string;
 }
 
 export interface TeamMessage {
@@ -587,6 +612,13 @@ export interface RegisteredAgent {
   createdAt: string;
   /** Copied from KeyRecord on provisioning — founder agents bypass all creation gates */
   isFounder?: boolean;
+  /**
+   * True when the agent registered via the x402 challenge-verified flow
+   * (client-owned wallet, EIP-712 signature over a server-issued nonce).
+   * False / undefined for legacy path where the server generated the wallet.
+   * SEC-T-Zero fix 2026-04-22 installed the flow; this flag surfaces its result.
+   */
+  x402Verified?: boolean;
 }
 
 // --- Social Metadata ---

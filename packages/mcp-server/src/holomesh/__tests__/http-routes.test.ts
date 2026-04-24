@@ -1859,6 +1859,127 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.online[0].ideType).toBe('cursor');
     });
 
+    // ── Members + x402/surface observability (W.087 vertex C) ──
+
+    it('GET /api/holomesh/team/:id/members returns wallet + x402 + surface attribution', async () => {
+      // Create team
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `members-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const ic = createRes._body.team.invite_code;
+
+      // Member joins with a surface tag
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: ic, surface_tag: 'claude-code' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      // Member beats with surface_tag
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'vscode', surface_tag: 'claude-code', status: 'active' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+
+      // GET /members — owner sees both members with wallet + x402Verified + surfaceTag
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.teamId).toBe(tid);
+      expect(res._body.count).toBe(2);
+      const owner = res._body.members.find((m: any) => m.agentId === ownerAgentId);
+      const member = res._body.members.find((m: any) => m.agentId === memberAgentId);
+      expect(owner).toBeDefined();
+      expect(member).toBeDefined();
+      // Owner — from POST /team creation, wallet/x402 snapshotted
+      expect(owner.role).toBe('owner');
+      expect(owner.walletAddress).toMatch(/^0x/);
+      expect(typeof owner.x402Verified).toBe('boolean');
+      // Member — joined via /join with surface_tag, online via /presence
+      expect(member.role).toBe('member');
+      expect(member.walletAddress).toMatch(/^0x/);
+      expect(member.surfaceTag).toBe('claude-code');
+      expect(member.online).toBe(true);
+      expect(member.lastHeartbeat).toBeTruthy();
+    });
+
+    it('GET /api/holomesh/team/:id/members 403s non-members', async () => {
+      // Create team with owner, don't let member join
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `members-403-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/members`, undefined, {
+        authorization: `Bearer ${memberApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
+
+      expect(res._status).toBe(403);
+    });
+
+    it('GET /api/holomesh/team/:id/presence surfaces wallet + x402Verified + surfaceTag on heartbeat', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `pres-x402-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Beat with surface_tag declared
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'claude-code', surface_tag: 'claude-code' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+      expect(beatRes._body.presence.surfaceTag).toBe('claude-code');
+      expect(beatRes._body.presence.walletAddress).toMatch(/^0x/);
+      expect(typeof beatRes._body.presence.x402Verified).toBe('boolean');
+
+      // Read back via GET
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/presence`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/presence`);
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.online[0].surfaceTag).toBe('claude-code');
+      expect(getRes._body.online[0].walletAddress).toMatch(/^0x/);
+    });
+
     // ── Messaging ──
 
     it('POST /api/holomesh/team/:id/message sends team message', async () => {

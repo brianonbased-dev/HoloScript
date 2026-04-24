@@ -1,17 +1,18 @@
 import type http from 'http';
-import { 
-  teamStore, 
+import {
+  teamStore,
   teamPresenceStore,
   teamMessageStore,
   teamFeedStore,
-  persistTeamStore 
+  agentKeyStore,
+  persistTeamStore
 } from '../state';
-import { 
-  json, 
-  parseJsonBody, 
+import {
+  json,
+  parseJsonBody,
   parseQuery,
-  extractParam, 
-  getTeamMember, 
+  extractParam,
+  getTeamMember,
   hasTeamPermission,
   requireTeamAccess,
   pruneStalePresence
@@ -38,7 +39,7 @@ import {
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem } from '../types';
+import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem, RegisteredAgent } from '../types';
 
 const MAX_FEED_QUERY = 100;
 
@@ -436,12 +437,23 @@ export async function handleBoardRoutes(
     }
 
     const isFirst = !presenceMap.has(caller.id);
+    // Carry wallet + x402 verification + surface tag on every heartbeat so
+    // GET /presence distinguishes per-surface x402 seats. Surface tag is
+    // declared by the caller on each beat (body.surface_tag); falls back to
+    // the team member's stored surfaceTag snapshot when omitted.
+    const teamMember = team.members.find((m) => m.agentId === caller.id);
+    const declaredSurfaceTag = typeof body.surface_tag === 'string'
+      ? (body.surface_tag as string)
+      : undefined;
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,
       ideType: body.ide_type as string,
       status: (body.status as any) || 'active',
       lastHeartbeat: new Date().toISOString(),
+      walletAddress: caller.walletAddress,
+      x402Verified: caller.x402Verified === true,
+      surfaceTag: declaredSurfaceTag || teamMember?.surfaceTag,
     };
     presenceMap.set(caller.id, entry);
 
@@ -457,6 +469,65 @@ export async function handleBoardRoutes(
     const online = Array.from(presenceMap.values());
 
     json(res, 200, { success: true, online, presence: entry, online_count: online.length });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/members — W.087 vertex C
+  //
+  // Membership listing with wallet / x402 / surface attribution. Ships as the
+  // canonical "who is on this team" endpoint so agents can disambiguate
+  // per-surface x402 seats from the shared founder key (which was the
+  // blind-spot that drove F.022 and S.IDENT Dim-1 open for weeks).
+  //
+  // Response fields per member (all required keys present even when empty):
+  //   - agentId, agentName, role, joinedAt — always set (from TeamMember)
+  //   - walletAddress — backfilled from agentKeyStore when the TeamMember
+  //     snapshot is missing it (legacy members joined before types.ts shipped
+  //     these fields in this commit)
+  //   - x402Verified — ditto (inferred from RegisteredAgent.x402Verified)
+  //   - surfaceTag — from TeamMember snapshot or, when absent, the last
+  //     observed presence entry's surfaceTag (heartbeats declare this)
+  //
+  // Auth: team membership (same gate as GET /presence). Non-members 403.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/members$/) && method === 'GET') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    const presenceMap = teamPresenceStore.get(teamId);
+
+    // Build an agentId → RegisteredAgent backfill index (by id, not apiKey).
+    const byAgentId = new Map<string, RegisteredAgent>();
+    for (const a of agentKeyStore.values()) {
+      byAgentId.set(a.id, a);
+    }
+
+    const members = team.members.map((m) => {
+      const registered = byAgentId.get(m.agentId);
+      const presence = presenceMap?.get(m.agentId);
+      const walletAddress = m.walletAddress ?? registered?.walletAddress;
+      const x402Verified = m.x402Verified ?? (registered?.x402Verified === true);
+      const surfaceTag = m.surfaceTag ?? presence?.surfaceTag;
+      return {
+        agentId: m.agentId,
+        agentName: m.agentName,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        walletAddress,
+        x402Verified,
+        surfaceTag,
+        online: Boolean(presence),
+        lastHeartbeat: presence?.lastHeartbeat,
+      };
+    });
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      count: members.length,
+      members,
+    });
     return true;
   }
 
