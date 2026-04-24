@@ -29,6 +29,7 @@ import type {
   HoloTraitDefinition,
   HoloObjectTrait,
   HoloObjectProperty,
+  SourceRange,
   SourceLocation,
 } from '../parser/HoloCompositionTypes';
 
@@ -80,20 +81,33 @@ export function serializeNodeId(id: HoloGraphNodeId): string {
 }
 
 /**
- * SourceLocation to line/column mapping for provenance.
+ * SourceRange (AST `loc`) to line/column mapping for provenance.
  */
 export function extractSourceLocation(
-  loc: SourceLocation | undefined
+  loc: SourceRange | SourceLocation | undefined
 ): { line: number; column: number; endLine?: number; endColumn?: number } {
   if (!loc) {
     return { line: 0, column: 0 };
   }
 
+  // Compat: some fixtures provide a flat SourceLocation-like object (line/column)
+  // instead of SourceRange(start/end). Accept both to avoid brittle mapper crashes.
+  if ('line' in loc && 'column' in loc && !('start' in loc)) {
+    return {
+      line: loc.line ?? 0,
+      column: loc.column ?? 0,
+    };
+  }
+
+  const range = loc as SourceRange;
+  const start = range.start ?? ({ line: 0, column: 0 } as SourceLocation);
+  const end = range.end;
+
   return {
-    line: loc.start?.line ?? 0,
-    column: loc.start?.column ?? 0,
-    endLine: loc.end?.line,
-    endColumn: loc.end?.column,
+    line: start.line ?? 0,
+    column: start.column ?? 0,
+    endLine: end?.line,
+    endColumn: end?.column,
   };
 }
 
