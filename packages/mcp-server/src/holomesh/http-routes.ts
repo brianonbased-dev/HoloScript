@@ -29,6 +29,7 @@ import { handleKnowledgeRoutes } from './routes/knowledge-routes';
 import { handleAdminRoutes } from './routes/admin-routes';
 import { handleCoreRoutes } from './routes/core-routes';
 import { handleHoloDoorRoutes } from './routes/holodoor-routes';
+import { handleIdentityExportRoutes } from './routes/identity-export-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
@@ -198,6 +199,7 @@ export async function handleHoloMeshRoute(
   if (await handleBountyRoutes(req, res, pathname, method, url)) return true;
   if (await handleBoardRoutes(req, res, pathname, method, url)) return true;
   if (await handleHoloDoorRoutes(req, res, pathname, method, url)) return true;
+  if (await handleIdentityExportRoutes(req, res, pathname, method, url)) return true;
   if (await handleTeamRoutes(req, res, pathname, method, url)) return true;
   if (await handleKnowledgeRoutes(req, res, pathname, method, url)) return true;
 
