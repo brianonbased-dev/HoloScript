@@ -4130,6 +4130,123 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
+  // ── Sovereign Migrate (founder-override gate) ──
+  //
+  // task_1777050402454_28wq (2026-04-24): POST /api/holomesh/sovereign/migrate
+  // must not let non-founder callers fabricate migration records for other
+  // agents by supplying body.agentId. Non-founders always get caller.id in
+  // migration.agentId; founders may override for legitimate simulation.
+  describe('POST /api/holomesh/sovereign/migrate', () => {
+    let nonFounderApiKey: string;
+    let nonFounderAgentId: string;
+    let counter = 0;
+
+    async function registerAgent(name: string): Promise<{ apiKey: string; agentId: string }> {
+      const uniqueName = `${name}-${++counter}-${Math.random().toString(36).slice(2, 8)}`;
+      const req = mockReq('POST', '/api/holomesh/register', { name: uniqueName });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/register');
+      if (res._status !== 201) throw new Error(`Register failed: ${JSON.stringify(res._body)}`);
+      return { apiKey: res._body.agent.api_key, agentId: res._body.agent.id };
+    }
+
+    beforeEach(async () => {
+      const agent = await registerAgent('migrate-nonfounder');
+      nonFounderApiKey = agent.apiKey;
+      nonFounderAgentId = agent.agentId;
+    });
+
+    it('non-founder: body.agentId=<other> is IGNORED and migration.agentId = caller.id', async () => {
+      const victimId = 'agent_victim_9999';
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: victimId, fromCluster: 'cluster_a', toCluster: 'cluster_b' },
+        { authorization: `Bearer ${nonFounderApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      // The core assertion: body.agentId was IGNORED — migration.agentId is caller's id,
+      // not the attacker-supplied victim id.
+      expect(res._body.migration.agentId).toBe(nonFounderAgentId);
+      expect(res._body.migration.agentId).not.toBe(victimId);
+      expect(res._body.migration.impersonated).toBe(false);
+      // signedBy/signedById agree with the coerced agentId.
+      expect(res._body.migration.signedById).toBe(nonFounderAgentId);
+    });
+
+    it('non-founder: omitting body.agentId still yields migration.agentId = caller.id', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { fromCluster: 'cluster_1', toCluster: 'cluster_2' },
+        { authorization: `Bearer ${nonFounderApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.agentId).toBe(nonFounderAgentId);
+      expect(res._body.migration.impersonated).toBe(false);
+    });
+
+    it('founder: body.agentId=<other> is HONORED but response flags impersonated=true', async () => {
+      // HOLOSCRIPT_API_KEY=test-api-key resolves to isFounder via env-key fallback.
+      const otherAgentId = 'agent_other_12345';
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: otherAgentId, fromCluster: 'cluster_a', toCluster: 'cluster_b' },
+        { authorization: `Bearer test-api-key` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.agentId).toBe(otherAgentId);
+      expect(res._body.migration.impersonated).toBe(true);
+      // signedById differs from migration.agentId — downstream consumers see the split.
+      expect(res._body.migration.signedById).not.toBe(otherAgentId);
+    });
+
+    it('founder: omitting body.agentId defaults to caller.id and impersonated=false', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { fromCluster: 'cluster_1' },
+        { authorization: `Bearer test-api-key` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      expect(res._status).toBe(200);
+      expect(res._body.migration.impersonated).toBe(false);
+      // For founder self-migration, agentId equals signedById.
+      expect(res._body.migration.agentId).toBe(res._body.migration.signedById);
+    });
+
+    it('unauthenticated: 401/403 before any migration record is produced', async () => {
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/migrate',
+        { agentId: 'agent_victim_0001' }
+        // no authorization header
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/sovereign/migrate');
+
+      // requireAuth returns 401; the exact code belongs to auth-utils, we only
+      // care that no migration body was returned.
+      expect(res._status).toBeGreaterThanOrEqual(401);
+      expect(res._body?.migration).toBeUndefined();
+    });
+  });
+
   // ── Route Matching ──
 
   describe('Route matching', () => {

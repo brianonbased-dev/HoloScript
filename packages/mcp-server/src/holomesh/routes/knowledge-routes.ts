@@ -677,12 +677,29 @@ export async function handleKnowledgeRoutes(
   }
 
   // POST /api/holomesh/sovereign/migrate — simulate agent state migration via LifePods
+  //
+  // SECURITY (task_1777050402454_28wq, 2026-04-24): body.agentId is honored ONLY
+  // for founders. Non-founder callers CANNOT specify agentId — it is always
+  // coerced to caller.id. Rationale: endpoint returns a simulated signed
+  // migration record (snapshotHash + signedBy); a non-founder caller supplying
+  // body.agentId=<victim-id> would produce a payload where migration.agentId
+  // diverges from signedBy, letting downstream consumers who read agentId
+  // before signedBy attribute the migration to the victim. Founders retain
+  // override for legitimate cross-agent migration simulation (e.g. admin
+  // tooling testing migration flows on behalf of another agent). The response
+  // now surfaces `impersonated: true` when a founder overrides, so consumers
+  // can distinguish self-signed migrations from founder-simulated ones.
   if (pathname === '/api/holomesh/sovereign/migrate' && method === 'POST') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
     const body = await parseJsonBody(req);
-    const agentId = (body.agentId as string | undefined)?.trim() || caller.id;
+    const requestedAgentId = (body.agentId as string | undefined)?.trim();
+    const impersonated = Boolean(
+      requestedAgentId && caller.isFounder && requestedAgentId !== caller.id,
+    );
+    // Founder-override gate: non-founders always get caller.id regardless of body.agentId.
+    const agentId = caller.isFounder && requestedAgentId ? requestedAgentId : caller.id;
     const fromCluster = (body.fromCluster as string | undefined)?.trim() || 'cluster_1';
     const toCluster = (body.toCluster as string | undefined)?.trim() || 'cluster_2';
     const mode = ((body.mode as string | undefined)?.trim() || 'live-cutover');
@@ -702,6 +719,8 @@ export async function handleKnowledgeRoutes(
         status: 'simulated-complete',
         snapshotHash,
         signedBy: caller.name,
+        signedById: caller.id,
+        impersonated,
         completedAt: new Date().toISOString(),
       },
     });
