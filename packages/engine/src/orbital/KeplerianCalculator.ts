@@ -35,6 +35,15 @@ export interface Position3D {
   x: number;
   y: number;
   z: number;
+  [index: number]: number;
+}
+
+function asPosition3D(x: number, y: number, z: number): Position3D {
+  const p = { x, y, z } as Position3D;
+  Object.defineProperty(p, '0', { value: x, enumerable: false });
+  Object.defineProperty(p, '1', { value: y, enumerable: false });
+  Object.defineProperty(p, '2', { value: z, enumerable: false });
+  return p;
 }
 
 /**
@@ -173,7 +182,7 @@ export function calculatePosition(elements: OrbitalElements, julianDate: number)
 
   const z = sinOmega * sinI * xOrbital + cosOmega * sinI * yOrbital;
 
-  return { x, y, z };
+  return asPosition3D(x, y, z);
 }
 
 /**
