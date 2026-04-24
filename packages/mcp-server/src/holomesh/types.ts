@@ -87,6 +87,27 @@ export interface MeshKnowledgeEntry {
   metadata?: Record<string, unknown>;
 }
 
+// --- Tier2 Self-Custody Export Session (V3 foundation) ---
+
+export type ExportSessionStatus = 'prepared' | 'packaged' | 'finalized' | 'expired';
+
+export interface ExportSession {
+  sessionId: string;
+  userId: string;
+  createdAt: number;
+  expiresAt: number;
+  status: ExportSessionStatus;
+  serverNonce: string;
+  idempotencyKeys: Set<string>;
+  consumedAt?: number;
+  packageManifestHash?: string;
+}
+
+export interface SerializedExportSession
+  extends Omit<ExportSession, 'idempotencyKeys'> {
+  idempotencyKeys: string[];
+}
+
 // --- Reputation ---
 
 export interface AgentReputation {

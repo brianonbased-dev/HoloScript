@@ -16,8 +16,14 @@ import type {
   SelfImprovingWorldSession,
   KnowledgeTransaction,
   KeyRecord,
+  ExportSession,
 } from './types';
 import { BountyManager, KnowledgeMarketplace } from '@holoscript/framework';
+import {
+  deserializeExportSession,
+  isExportSessionExpired,
+  serializeExportSession,
+} from './export-session';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -92,6 +98,9 @@ export const challengeStore: Map<string, { walletAddress: string; expiresAt: num
 // Key Registry — unified identity anchor
 export const keyRegistry: Map<string, KeyRecord> = new Map(); // token → KeyRecord
 
+// Tier2 Self-Custody Export Sessions (V3 foundation)
+export const exportSessionStore: Map<string, ExportSession> = new Map(); // sessionId → export session
+
 // ── Persistence Logic ─────────────────────────────────────────────────────────
 
 const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
@@ -99,6 +108,7 @@ const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
 const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
 const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
 const HOLODOOR_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'holodoor-store.json');
+const EXPORT_SESSION_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'export-sessions.json');
 
 export function persistHoloDoorStore(): void {
   atomicWriteJSON(HOLODOOR_STORE_PATH, {
@@ -164,6 +174,19 @@ export function persistSocialStore(): void {
     bountySubmissions: Array.from(bountySubmissionStore.entries()),
     bountyMiniGames: Array.from(bountyMiniGameStore.entries()),
     bountyGovernance: Array.from(bountyGovernanceStore.entries()),
+    savedAt: new Date().toISOString(),
+  });
+}
+
+export function persistExportSessionStore(): void {
+  const now = Date.now();
+  const sessions = Array.from(exportSessionStore.values())
+    .filter((s) => !isExportSessionExpired(s, now))
+    .map((s) => serializeExportSession(s));
+
+  atomicWriteJSON(EXPORT_SESSION_STORE_PATH, {
+    version: 1,
+    sessions,
     savedAt: new Date().toISOString(),
   });
 }
@@ -316,6 +339,17 @@ export function initStores(): void {
     for (const [tid, evs] of Object.entries(holoDoorData.events as Record<string, unknown[]>)) {
       const list = Array.isArray(evs) ? (evs as Record<string, unknown>[]) : [];
       holoDoorEventsByTeam.set(tid, list);
+    }
+  }
+
+  const exportSessionData = readJSON(EXPORT_SESSION_STORE_PATH);
+  if (exportSessionData?.sessions && Array.isArray(exportSessionData.sessions)) {
+    const now = Date.now();
+    for (const raw of exportSessionData.sessions) {
+      const session = deserializeExportSession(raw);
+      if (!session) continue;
+      if (isExportSessionExpired(session, now)) continue;
+      exportSessionStore.set(session.sessionId, session);
     }
   }
 }
