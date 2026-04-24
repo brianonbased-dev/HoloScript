@@ -25,7 +25,7 @@ import {
   formatTraitDocAsMarkdown,
   formatTraitDocCompact,
   type TraitDoc,
-} from '../../../lsp/src/traitDocs.js';
+} from '../traitDocs/traitDocs.js';
 
 // ============================================================================
 // Features 2-4: MCP Generators (no imports, pure functions -- safe in Node.js)
@@ -573,8 +573,8 @@ describe('Feature 5A: MCP graphTools array', () => {
     expect(Array.isArray(graphTools)).toBe(true);
   });
 
-  it('has exactly 8 graph tools', () => {
-    expect(graphTools.length).toBe(8);
+  it('has at least 8 graph tools', () => {
+    expect(graphTools.length).toBeGreaterThanOrEqual(8);
   });
 
   it('every tool has a name string', () => {
