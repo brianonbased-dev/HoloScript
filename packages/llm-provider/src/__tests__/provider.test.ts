@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { MockAdapter } from '../adapters/mock';
+import { extractTraits } from '../base-adapter';
 import { OpenAIAdapter, OPENAI_MODELS } from '../adapters/openai';
 import { AnthropicAdapter, ANTHROPIC_MODELS } from '../adapters/anthropic';
 import { GeminiAdapter, GEMINI_MODELS } from '../adapters/gemini';
@@ -219,8 +220,10 @@ describe('AnthropicAdapter (metadata)', () => {
 
   it('has expected available models', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
-    expect(adapter.models).toContain('claude-sonnet-4-5-20250929');
-    expect(adapter.models).toContain('claude-haiku-4-5-20251001');
+    // Adapter uses aliases (not date-suffixed IDs) — anthropic.ts:25 explicit
+    // design decision. Aliases auto-resolve to the latest pinned build.
+    expect(adapter.models).toContain('claude-sonnet-4-5');
+    expect(adapter.models).toContain('claude-haiku-4-5');
   });
 
   it('ANTHROPIC_MODELS constant is populated', () => {
@@ -228,9 +231,12 @@ describe('AnthropicAdapter (metadata)', () => {
     expect(ANTHROPIC_MODELS).toContain('claude-opus-4-6');
   });
 
-  it('uses claude-haiku-4-5 as default HoloScript model', () => {
+  it('uses claude-opus-4-7 as default HoloScript model', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('claude-haiku-4-5-20251001');
+    // Adapter explicitly defaults to most-capable model — see anthropic.ts:76-78
+    // "NEVER silently downgrade. Callers opt down to Sonnet/Haiku when they want
+    // cost/speed tradeoffs." Test renamed 2026-04-23 to match current policy.
+    expect(adapter.defaultHoloScriptModel).toBe('claude-opus-4-7');
   });
 
   it('includes Claude 4 family models', () => {
@@ -453,16 +459,10 @@ describe('BaseLLMAdapter (via MockAdapter)', () => {
   });
 
   it('extractTraits finds all @trait references', () => {
-    class TestableMock extends MockAdapter {
-      public testExtractTraits(code: string): string[] {
-        return this.extractTraits(code);
-      }
-    }
-
-    const testable = new TestableMock();
-
+    // extractTraits moved from class method to module export (2026-04-23).
+    // Import from '../base-adapter'; no class-round-trip needed.
     const code = 'cube { @color(red) @position(0, 1, 0) @grabbable @physics }';
-    const traits = testable.testExtractTraits(code);
+    const traits = extractTraits(code);
 
     expect(traits).toContain('@color');
     expect(traits).toContain('@position');
@@ -472,15 +472,8 @@ describe('BaseLLMAdapter (via MockAdapter)', () => {
   });
 
   it('extractTraits deduplicates traits', () => {
-    class TestableMock extends MockAdapter {
-      public testExtractTraits(code: string): string[] {
-        return this.extractTraits(code);
-      }
-    }
-
-    const testable = new TestableMock();
     const code = 'cube { @color(red) } sphere { @color(blue) }';
-    const traits = testable.testExtractTraits(code);
+    const traits = extractTraits(code);
 
     // @color appears twice but should be deduped
     expect(traits.filter((t) => t === '@color')).toHaveLength(1);

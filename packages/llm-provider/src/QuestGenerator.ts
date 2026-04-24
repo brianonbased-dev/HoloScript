@@ -64,8 +64,10 @@ export class QuestGenerator {
         maxTokens: 500,
       });
 
-      // Simple extraction of JSON from Markdown blocks if present
-      let content = completion.content;
+      // Simple extraction of JSON from Markdown blocks if present.
+      // Defensive: fall back to empty string if adapter returns no `content`
+      // (was crashing at .match() on undefined — see test-fix 2026-04-23).
+      let content = completion.content ?? '';
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (jsonMatch) {
         content = jsonMatch[1];

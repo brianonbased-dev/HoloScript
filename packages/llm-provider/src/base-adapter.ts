@@ -54,7 +54,14 @@ cube {
 
 const TRAIT_REGEX = /@([a-zA-Z_][a-zA-Z0-9_]*)/g;
 
-function extractTraits(code: string): string[] {
+/**
+ * Extract unique @trait references from a HoloScript code snippet.
+ * Exported for direct testing — was inline-called from validateAndTrack
+ * below. 2026-04-23: exported so provider.test.ts can assert its contract
+ * without the class-method round-trip that broke when it moved out of
+ * BaseLLMAdapter.
+ */
+export function extractTraits(code: string): string[] {
   const traits = new Set<string>();
 
   for (const match of code.matchAll(TRAIT_REGEX)) {

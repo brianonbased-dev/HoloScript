@@ -16,7 +16,13 @@ function createMockManager(responseText: string, shouldFail = false): LLMProvide
   return {
     complete: vi.fn().mockImplementation(async () => {
       if (shouldFail) throw new Error('LLM unavailable');
-      return { text: responseText, provider: 'mock', tokensUsed: 10, latencyMs: 50 };
+      // Match LLMCompletionResponse contract (types.ts:61) — `content`, not `text`.
+      return {
+        content: responseText,
+        provider: 'mock',
+        model: 'mock',
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      };
     }),
   } as any;
 }

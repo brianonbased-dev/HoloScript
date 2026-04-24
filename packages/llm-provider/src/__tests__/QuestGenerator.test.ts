@@ -5,16 +5,18 @@ import { MockAdapter } from '../adapters/mock';
 
 describe('QuestGenerator', () => {
   test('should parse valid JSON narrative hooks', async () => {
-    // We override the default mock response to output JSON
+    // We override the default mock response to output JSON.
+    // Match LLMCompletionResponse contract (types.ts:61) — `content`, not `text`.
     class QuestMockAdapter extends MockAdapter {
       async complete(req: any): Promise<any> {
         return {
-          text: JSON.stringify({
+          content: JSON.stringify({
             title: 'Neon Coffee Run',
             description: 'Find the hidden holographic beans.',
             npc_greeting: 'Welcome to CyberBrew! We need your help.',
             success_message: 'You found them! Enjoy your latte.',
           }),
+          provider: 'mock',
           model: 'mock',
           usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
         };
