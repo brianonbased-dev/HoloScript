@@ -1,0 +1,101 @@
+name: Test Snapshot (S.TST refresher)
+
+# Refreshes docs/test-snapshot.json with live pass/fail/total counts so
+# MEMORY.md S.TST in agent workspaces no longer drifts silently between
+# manual `pnpm test` runs.
+#
+# Closes ai-ecosystem board task: task_1776987250351_ljyi
+# (Option (a) — nightly GH Action). The matching reader hook is
+# ai-ecosystem/hooks/sessionstart/s-tst-refresh.mjs.
+
+on:
+  schedule:
+    # Nightly at 09:00 UTC (= ~02:00 Pacific). Off-peak Railway window so
+    # nothing else competes for shared runners.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    # Manual trigger — agents can fire after a known suite-wide change.
+
+permissions:
+  contents: write   # commit docs/test-snapshot.json back to main
+
+concurrency:
+  group: test-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: Refresh test snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need full history so the commit step pushes cleanly to main.
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      # Workspace packages publish from `./dist/...` exports — vitest can't
+      # resolve `@holoscript/mesh`, `@holoscript/platform`, etc. without a
+      # build first (same constraint as test.yml CI).
+      - name: Build workspace packages
+        run: pnpm build
+
+      - name: Run core tests (capture output)
+        id: core
+        continue-on-error: true   # we record fail counts, never gate on them
+        run: |
+          mkdir -p /tmp/snap
+          set -o pipefail
+          node --max-old-space-size=16384 run-vitest.mjs 2>&1 | tee /tmp/snap/core.log
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=16384'
+
+      - name: Run studio tests (capture output)
+        id: studio
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/snap
+          set -o pipefail
+          pnpm --filter @holoscript/studio test 2>&1 | tee /tmp/snap/studio.log
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+
+      - name: Run snn-webgpu tests (capture output)
+        id: snn
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/snap
+          set -o pipefail
+          pnpm --filter @holoscript/snn-webgpu test 2>&1 | tee /tmp/snap/snn.log
+
+      - name: Parse + write snapshot JSON
+        run: node scripts/build-test-snapshot.mjs /tmp/snap docs/test-snapshot.json
+        env:
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Commit snapshot back to main (if changed)
+        run: |
+          # No-op if no diff — keeps history clean.
+          if git diff --quiet -- docs/test-snapshot.json; then
+            echo "[snapshot] No change in docs/test-snapshot.json — skipping commit."
+            exit 0
+          fi
+          git config user.name  "holoscript-bot"
+          git config user.email "bot@holoscript.net"
+          git add docs/test-snapshot.json
+          git commit -m "chore(test-snapshot): refresh S.TST counts from $(date -u +%Y-%m-%d) CI run
+
+[skip ci]
+Run: ${GH_RUN_URL:-n/a}
+Closes board task: task_1776987250351_ljyi (option a wiring)"
+          git push origin HEAD:main
+        env:
+          GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
