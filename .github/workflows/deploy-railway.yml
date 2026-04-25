@@ -173,16 +173,31 @@ jobs:
 
           case "$SERVICE" in
             all)
-              echo "[preflight] full workspace build (service=all or push-triggered)"
-              pnpm build
+              # Iterate each deployable service and build only its
+              # transitive dep tree. This avoids the pnpm 8.12 root-build
+              # whack-a-mole where pre-flight kept failing on packages
+              # outside any deployable service's tree (radio-astronomy-
+              # plugin → r3f-renderer, comparative-benchmarks →
+              # openusd-plugin, etc.). pnpm's `--filter "X..."` form
+              # correctly scopes + topo-sorts within a defined tree.
+              # Per-service iteration is N times slower than a single
+              # workspace build but is the only form pnpm 8 reliably
+              # honors edges in. See deploy-streak-fixes 2026-04-25
+              # (commits b2477e157, f1de5af9e, f93bf9a8f, 07f050ab8).
+              for svc in mcp-server studio marketplace-web marketplace-api export-api llm-service absorb-service; do
+                echo "[preflight] building @holoscript/$svc dependency tree"
+                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." build || exit 1
+              done
               ;;
             mcp-server|studio|marketplace-web|marketplace-api|export-api|llm-service|absorb-service)
               echo "[preflight] targeted build of @holoscript/$SERVICE dependency tree"
               pnpm -r --workspace-concurrency=1 --filter "@holoscript/$SERVICE..." build
               ;;
             *)
-              echo "[preflight] unknown service '$SERVICE'; falling back to full build"
-              pnpm build
+              echo "[preflight] unknown service '$SERVICE'; iterating all deployable services"
+              for svc in mcp-server studio marketplace-web marketplace-api export-api llm-service absorb-service; do
+                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." build || exit 1
+              done
               ;;
           esac
 
