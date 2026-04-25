@@ -31,13 +31,14 @@ function mockProvider(opts: { promptTokens: number; completionTokens: number; co
   };
 }
 
-function mockMesh(opts: { tasks: BoardTask[] }) {
+function mockMesh(opts: { tasks: BoardTask[]; heartbeatImpl?: () => Promise<void>; joinTeamImpl?: () => Promise<{ success: boolean; role?: string; members?: number }> }) {
   const claimed: string[] = [];
   const messages: Array<{ taskId: string; body: string }> = [];
   return {
     claimed,
     messages,
-    heartbeat: vi.fn(async () => undefined),
+    heartbeat: vi.fn(opts.heartbeatImpl ?? (async () => undefined)),
+    joinTeam: vi.fn(opts.joinTeamImpl ?? (async () => ({ success: true, role: 'member', members: 31 }))),
     getOpenTasks: vi.fn(async () => opts.tasks),
     claim: vi.fn(async (id: string) => {
       claimed.push(id);
@@ -47,6 +48,7 @@ function mockMesh(opts: { tasks: BoardTask[] }) {
       messages.push({ taskId, body });
     }),
     markDone: vi.fn(async () => undefined),
+    postAuditRecords: vi.fn(async () => ({ appended: 0, rejected: 0 })),
     whoAmI: vi.fn(async () => ({ agentId: 'agent_test', surface: 'mock' })),
   };
 }
@@ -177,6 +179,152 @@ describe('AgentRunner.tick', () => {
     expect(events[0].agent.handle).toBe('security-auditor');
     expect(events[0].task?.id).toBe('t-aud');
     expect(events[0].execution?.totalTokens).toBe(300);
+  });
+
+  // task_1777112258989_eeyp: heartbeat-403 self-rejoin tests.
+  describe('auto-rejoin on 403 Not a member (task_1777112258989_eeyp)', () => {
+    function notAMemberError() {
+      return new Error('HoloMesh POST /team/team_test/presence 403: {"error":"Not a member of this team"}');
+    }
+
+    it('catches 403 Not a member from heartbeat, calls joinTeam, retries heartbeat, then proceeds', async () => {
+      const tasks: BoardTask[] = [
+        { id: 't-recover', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      ];
+      let heartbeatCall = 0;
+      const mesh = mockMesh({
+        tasks,
+        heartbeatImpl: async () => {
+          heartbeatCall++;
+          if (heartbeatCall === 1) throw notAMemberError();
+          return undefined;
+        },
+      });
+      const events: Array<Record<string, unknown>> = [];
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+        logger: (e) => events.push(e),
+      });
+
+      const result = await runner.tick();
+      expect(result.action).toBe('executed');
+      expect(mesh.heartbeat).toHaveBeenCalledTimes(2); // initial 403 + retry-after-rejoin
+      expect(mesh.joinTeam).toHaveBeenCalledTimes(1);
+      expect(events.some((e) => e.ev === 'auto-rejoin-attempt')).toBe(true);
+      expect(events.some((e) => e.ev === 'auto-rejoin-success')).toBe(true);
+      expect(events.some((e) => e.ev === 'auto-rejoin-heartbeat-recovered')).toBe(true);
+    });
+
+    it('does NOT call joinTeam more than once per process even across multiple ticks', async () => {
+      const tasks: BoardTask[] = [
+        { id: 't-stick', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      ];
+      let heartbeatCall = 0;
+      const mesh = mockMesh({
+        tasks,
+        heartbeatImpl: async () => {
+          heartbeatCall++;
+          // First call: 403 (triggers rejoin). All subsequent calls succeed.
+          if (heartbeatCall === 1) throw notAMemberError();
+          return undefined;
+        },
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+
+      await runner.tick(); // first tick: 403 → rejoin → retry → execute
+      await runner.tick(); // second tick: heartbeat clean
+      await runner.tick(); // third tick: heartbeat clean
+
+      expect(mesh.joinTeam).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT auto-rejoin on a 403 with a different error body (insufficient permissions)', async () => {
+      const tasks: BoardTask[] = [
+        { id: 't-perm', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      ];
+      const mesh = mockMesh({
+        tasks,
+        heartbeatImpl: async () => {
+          throw new Error('HoloMesh POST /team/team_test/presence 403: {"error":"Insufficient permissions"}');
+        },
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+
+      await expect(runner.tick()).rejects.toThrow(/Insufficient permissions/);
+      expect(mesh.joinTeam).not.toHaveBeenCalled();
+    });
+
+    it('does NOT auto-rejoin on non-403 errors (network failure, 500)', async () => {
+      const tasks: BoardTask[] = [
+        { id: 't-net', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      ];
+      const mesh = mockMesh({
+        tasks,
+        heartbeatImpl: async () => {
+          throw new Error('HoloMesh POST /team/team_test/presence 500: internal server error');
+        },
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+
+      await expect(runner.tick()).rejects.toThrow(/500/);
+      expect(mesh.joinTeam).not.toHaveBeenCalled();
+    });
+
+    it('marks joinedThisProcess=true even if joinTeam itself throws (no retry storm on join endpoint)', async () => {
+      const tasks: BoardTask[] = [
+        { id: 't-joinfail', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      ];
+      const mesh = mockMesh({
+        tasks,
+        heartbeatImpl: async () => {
+          throw notAMemberError();
+        },
+        joinTeamImpl: async () => {
+          throw new Error('HoloMesh POST /team/team_test/join 403: {"error":"Team at capacity"}');
+        },
+      });
+      const events: Array<Record<string, unknown>> = [];
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1 }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+        logger: (e) => events.push(e),
+      });
+
+      // First tick: heartbeat 403 → joinTeam throws → tick re-throws.
+      await expect(runner.tick()).rejects.toThrow(/Team at capacity/);
+      expect(mesh.joinTeam).toHaveBeenCalledTimes(1);
+      expect(events.some((e) => e.ev === 'auto-rejoin-failed')).toBe(true);
+
+      // Second tick: heartbeat is still 403, but joinedThisProcess is now true,
+      // so we DO NOT call joinTeam again. The 403 propagates.
+      await expect(runner.tick()).rejects.toThrow(/Not a member/);
+      expect(mesh.joinTeam).toHaveBeenCalledTimes(1); // STILL one — no retry storm
+    });
   });
 
   it('routes the response through onTaskExecuted when supplied (Phase 1.5 commit hook)', async () => {

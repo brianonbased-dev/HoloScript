@@ -37,6 +37,19 @@ export class AgentRunner {
   // its prior chain state and shouldn't fake continuity). prev_hash=null
   // is a valid value the audit-store accepts.
   private prevCaelChain: string | null = null;
+  // Self-recovery flag for the auto-rejoin path (task_1777112258989_eeyp).
+  // When the heartbeat returns 403 "Not a member of this team" — typical of
+  // a fresh Vast.ai worker whose provisioning didn't atomically /join, or of
+  // a worker whose membership was reaped — the runner calls mesh.joinTeam()
+  // ONCE per process and retries the heartbeat. After a successful rejoin
+  // we set this flag so subsequent 403s on the same process don't loop back
+  // into joinTeam (avoiding a retry storm if the team-cap is full or the
+  // join itself is permanently rejected). On process restart the flag
+  // resets, which is the correct semantics: a fresh process gets one fresh
+  // chance to self-rejoin. Discovered 2026-04-25 SSH-probing 5 fleet
+  // workers stuck in indefinite 403→tick-error→sleep→retry loops; without
+  // this, a fresh-deploy of an unjoined agent stays silent forever.
+  private joinedThisProcess = false;
 
   constructor(private readonly opts: AgentRunnerOptions) {}
 
@@ -44,7 +57,7 @@ export class AgentRunner {
     const { identity, brain, mesh, costGuard, provider, logger } = this.opts;
     const log = logger ?? (() => undefined);
 
-    await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface });
+    await this.heartbeatWithAutoRejoin();
 
     if (costGuard.isOverBudget()) {
       const state = costGuard.getState();
@@ -226,6 +239,71 @@ export class AgentRunner {
 
   stop(): void {
     this.stopped = true;
+  }
+
+  /**
+   * Heartbeat with one-shot self-rejoin on 403 "Not a member of this team".
+   *
+   * Pairs with task_1777112258989_eeyp: fresh-deploy fleet workers whose
+   * provisioning didn't atomically call /join (or whose membership was
+   * reaped) hit 403 every tick and never recover. We detect the specific
+   * server error string (see packages/mcp-server/src/holomesh/routes/
+   * team-routes.ts:903 → `{ error: 'Not a member' }` for /presence), call
+   * mesh.joinTeam() ONCE per runner process, and retry the heartbeat.
+   *
+   * Strict scope:
+   *  - Only retries on 403 + "Not a member" body. Any other 403 (insufficient
+   *    permissions, signing failure) re-throws unchanged.
+   *  - Only retries ONCE per process. If we already rejoined this process and
+   *    the heartbeat is *still* 403, the team is rejecting us for a reason
+   *    /join can't fix (e.g. capacity, ban) — surface the error.
+   *  - If joinTeam() itself throws, we DO mark joinedThisProcess=true before
+   *    re-throwing so we don't slam the join endpoint on every subsequent
+   *    tick. The next tick will surface the same heartbeat 403 and the
+   *    runner-level catch in runForever logs tick-error and sleeps. Operator
+   *    inspection (SSH/log) is the recovery path at that point.
+   */
+  private async heartbeatWithAutoRejoin(): Promise<void> {
+    const { identity, mesh, logger } = this.opts;
+    const log = logger ?? (() => undefined);
+    try {
+      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface });
+    } catch (err) {
+      if (!this.isNotAMemberError(err) || this.joinedThisProcess) {
+        throw err;
+      }
+      log({ ev: 'auto-rejoin-attempt', reason: 'heartbeat-403-not-a-member' });
+      // Mark BEFORE the join call so a thrown joinTeam() can't loop us.
+      this.joinedThisProcess = true;
+      try {
+        const joinResult = await mesh.joinTeam();
+        log({ ev: 'auto-rejoin-success', role: joinResult.role, members: joinResult.members });
+      } catch (joinErr) {
+        log({
+          ev: 'auto-rejoin-failed',
+          message: joinErr instanceof Error ? joinErr.message : String(joinErr),
+        });
+        throw joinErr;
+      }
+      // Retry the heartbeat exactly once. If it still fails (including with
+      // another 403), the new error propagates — joinedThisProcess is now
+      // true so we won't retry-loop on the next tick.
+      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface });
+      log({ ev: 'auto-rejoin-heartbeat-recovered' });
+    }
+  }
+
+  /**
+   * Detect the server's "Not a member" 403 error from HolomeshClient.req().
+   * The error message format is: `HoloMesh POST /team/<id>/presence 403: <body>`
+   * where body contains `{"error":"Not a member"}` (or "Not a member of this team").
+   * Match conservatively: BOTH a "403" status marker AND the "Not a member"
+   * substring must appear, so unrelated 403s (insufficient permissions,
+   * signing failures) do NOT trigger a rejoin.
+   */
+  private isNotAMemberError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return / 403:/.test(msg) && /Not a member/i.test(msg);
   }
 }
 
