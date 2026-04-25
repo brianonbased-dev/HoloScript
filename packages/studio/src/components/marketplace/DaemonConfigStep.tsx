@@ -1,5 +1,5 @@
 import React from 'react';
-import { DaemonProfile } from '@holoscript/types';
+import type { DaemonProfile } from '@/lib/daemon/types';
 
 interface DaemonConfigStepProps {
   enableDaemon: boolean;

@@ -34,6 +34,7 @@ WORKDIR /app
 
 COPY --from=deps /app/ ./
 COPY packages/crdt/ packages/crdt/
+COPY packages/crdt-spatial/ packages/crdt-spatial/
 COPY packages/core/ packages/core/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/

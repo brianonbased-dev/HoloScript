@@ -1,5 +1,5 @@
 import React from 'react';
-import { Metadata } from '@holoscript/types';
+import type { Metadata } from '@/lib/marketplace/types';
 
 interface MetadataStepProps {
   metadata: Metadata;

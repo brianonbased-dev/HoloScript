@@ -1,5 +1,5 @@
 import React from 'react';
-import { DaemonProjectDNA } from '@holoscript/types';
+import type { DaemonProjectDNA } from '@/lib/daemon/types';
 
 interface AnalysisStepProps {
   projectDNA: DaemonProjectDNA | null;

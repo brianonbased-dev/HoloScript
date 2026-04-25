@@ -1,5 +1,5 @@
 import React from 'react';
-import { ContentType, CONTENT_TYPE_METADATA } from '@holoscript/types';
+import { type ContentType, CONTENT_TYPE_METADATA } from '@/lib/marketplace/types';
 
 interface TypeSelectionStepProps {
   selectedType: ContentType | null;

@@ -1,6 +1,23 @@
 /**
- * Marketplace types for community content
+ * Marketplace types for community content.
+ *
+ * `Metadata` here is the ephemeral form used by the marketplace upload
+ * wizard (MetadataStep / PreviewStep) — a flat shape the user types into
+ * the form, separate from the persisted `MarketplaceItem`. Was previously
+ * imported from a non-existent `@holoscript/types` package, blocking
+ * studio strict tsc.
  */
+
+/** Marketplace upload-wizard metadata form. All fields user-editable. */
+export interface Metadata {
+  name?: string;
+  description?: string;
+  category?: string;
+  license?: string;
+  version?: string;
+  tags?: string[];
+  [key: string]: unknown;
+}
 
 /**
  * All supported content types in HoloScript marketplace

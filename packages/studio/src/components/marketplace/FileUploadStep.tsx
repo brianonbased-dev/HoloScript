@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { DaemonProjectDNA } from '@holoscript/types';
+import type { DaemonProjectDNA } from '@/lib/daemon/types';
 import { inferProjectDNA } from '../../lib/marketplace/projectDNAInference';
 
 interface FileUploadStepProps {

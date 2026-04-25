@@ -1,5 +1,6 @@
 import React from 'react';
-import { ContentType, Metadata, DaemonProjectDNA, DaemonProfile } from '@holoscript/types';
+import type { ContentType, Metadata } from '@/lib/marketplace/types';
+import type { DaemonProjectDNA, DaemonProfile } from '@/lib/daemon/types';
 
 interface PreviewStepProps {
   selectedType: ContentType | null;

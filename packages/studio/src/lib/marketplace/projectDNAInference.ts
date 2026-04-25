@@ -1,4 +1,4 @@
-import { DaemonProjectDNA } from '@holoscript/types';
+import type { DaemonProjectDNA } from '@/lib/daemon/types';
 
 /**
  * Infer project DNA from uploaded file
