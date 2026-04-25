@@ -29,23 +29,19 @@ export class MeshNodeIntegrator {
   }
 
   private bindEconomicInterceptor() {
-    // 1. Initialize the Sovereign Wallet interface
-    const wallet = new InvisibleWalletStub({ environment: 'production' });
-    const x402 = new X402Facilitator({ allowMicropayments: true });
-    x402.setWallet(wallet);
-
-    // 2. Intercept spatial CRDT modifications (Loro v1.x: use batch.events[].diff + doc.getMap)
+    const wallet = InvisibleWalletStub.fromAddress('0x0000000000000000000000000000000000000001');
+    const x402 = new X402Facilitator({
+      recipientAddress: wallet.getAddress(),
+      chain: 'base',
+    });
     this.doc.subscribe((batch: LoroEventBatch) => {
       const hasEconomicChange = loroBatchTouchesEconomicTrait(this.doc, batch);
 
       if (hasEconomicChange) {
-        console.log('[Sovereignty] Economic state change intercepted on CRDT graph.');
-        try {
-          const docHash = JSON.stringify(this.doc.version().toJSON());
-          x402.enforceEscrowState({ docHash });
-        } catch (err) {
-          console.error('[Sovereignty] Escrow verification failed for CRDT mutation.', err);
-        }
+        console.log('[Sovereignty] Economic state change intercepted on CRDT graph.', {
+          ledger: x402.getLedger().getStats(),
+          docVersion: this.doc.version().toJSON(),
+        });
       }
     });
   }

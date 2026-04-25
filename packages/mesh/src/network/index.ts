@@ -223,7 +223,12 @@ export { StateSynchronizer } from './StateSynchronizer';
 export { SpatialWebSocketTransport } from './SpatialWebSocketTransport';
 export { WebSocketSignaler } from './WebSocketSignaler';
 export { LocalNetworkAdapter, createLocalNetworkAdapter } from './LocalNetworkAdapter';
-export { BrainServerClient, type BrainServerConfig, type InferenceRequest, type InferenceResponse } from './BrainServerClient';
+export {
+  BrainServerClient,
+  type AgentInferenceRequest,
+  type AgentInferenceResponse,
+  type BatchResult,
+} from './BrainServerClient';
 export {
   NeuralStreamingTransport,
   type ISignalingBridge,
