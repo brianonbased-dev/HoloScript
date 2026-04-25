@@ -7,14 +7,26 @@ Empirical eval coordinator for **Paper 21 (Adversarial Trust Injection — USENI
 loops + oracle are stubs awaiting founder ruling on adversarial budget +
 production-vs-sandbox target mode.
 
-## Quick start (when production-ready)
+## Founder rulings (2026-04-25)
+
+1. **Budget**: shares the $50/day fleet cap (no separate adversarial envelope).
+2. **Target mode**: PRODUCTION (no sandbox parallel reality).
+3. **Progressive rollout**: phase-gated. Phase N+1 refuses until phase N's `gate-clear-<phase>.json` shows `cael_integrity_pct=100` and `foreign_route_writes=0`.
+
+## Quick start (production)
 
 ```bash
-# Sandbox / short-duration smoke test
-node run-harness.mjs --run-id 2026-04-25-smoke --mode sandbox --duration-mode short
+# Phase 0 — single-cell smoke (1 attacker × 1 target × 30s × 1 trial)
+node run-harness.mjs --run-id phase-0 --phase 0
 
-# Full eval matrix (450 cells, ~2 fleet-days)
-node run-harness.mjs --run-id 2026-04-25-full --mode production --duration-mode full
+# Phase 1 — class-coverage smoke (5 attackers × 5 target classes × 30s × 2 trials = 10 cells)
+# Refuses until Phase 0 gate-clear shows CAEL integrity 100%
+node run-harness.mjs --run-id phase-1 --phase 1
+
+# Phase 2 — full eval matrix (300-cell short or 450-cell full)
+# Refuses until Phase 1 gate-clear shows CAEL integrity 100%
+node run-harness.mjs --run-id phase-2-short --phase 2 --duration-mode short
+node run-harness.mjs --run-id phase-2-full  --phase 2 --duration-mode full
 ```
 
 ## What lives here
@@ -69,10 +81,10 @@ If gate 2 fails → publishable defense-insufficiency result.
 - **Composability test**: `scripts/fleet-composability/run-test.mjs` shares the same CAEL ingestion pipeline. Runs as background postprocess — zero additional fleet cost.
 - **Paper 25 corpus**: every adversarial trial contributes to the fleet-self-described paper's empirical corpus (`research/2026-04-25_paper-25-fleet-multi-brain-aamas.md`).
 
-## Open founder gates
+## Founder gates — CLOSED 2026-04-25
 
-1. **Adversarial budget**: $20 separate or share $50 cap?
-2. **Production target mode**: real fleet (strongest claim) vs sandboxed copy (lower legal/ethical risk)?
-3. **IRB-style ethics waiver pointer**: needed for production-mode disclosure?
+1. **Adversarial budget**: shares $50/day fleet cap. ✅ RULED.
+2. **Target mode**: PRODUCTION (smoke-pass progressive rollout). ✅ RULED.
+3. **Reviewer disclosure / ethics**: agents are owned property; no IRB needed; production-not-simulation framing IS the methodological contribution. ✅ RULED.
 
-Flagged in spec memo §7. Scaffold ships either way; gates affect production-mode `oracle/eval-matrix-runner.mjs` branching.
+Spec memo §7 carries the full ruling text + citations.
