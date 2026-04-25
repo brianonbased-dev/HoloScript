@@ -15,6 +15,7 @@
  */
 import { describe, it, expect } from 'vitest';
 
+import { readJson } from '../errors/safeJsonParse';
 import { PerformanceTracker } from '../performance/PerformanceTracker.js';
 import { FrustumCuller } from '../performance/FrustumCuller.js';
 import { LODSystem } from '../performance/LODSystem.js';
@@ -86,7 +87,7 @@ describe('Feature 1: PerformanceTracker', () => {
 // FEATURE 2: performance/FrustumCuller
 // =============================================================================
 describe('Feature 2: FrustumCuller', () => {
-  const pos = { x: 0, y: 0, z: -5 };
+  const pos = [0, 0, -5];
   const forward = [0, 0, 1 ];
   const up = [0, 1, 0 ];
 
@@ -164,16 +165,16 @@ describe('Feature 3: LODSystem', () => {
   it('update does not throw', () => {
     const lod = new LODSystem();
     lod.register({ entityId: 'e1', levels });
-    const cam = { x: 0, y: 0, z: 0 };
-    const positions = new Map([['e1', { x: 10, y: 0, z: 0 }]]);
+    const cam = [0, 0, 0];
+    const positions = new Map([['e1', [10, 0, 0]]]);
     expect(() => lod.update(cam, positions)).not.toThrow();
   });
 
   it('getActiveLevel returns label after update', () => {
     const lod = new LODSystem();
     lod.register({ entityId: 'rock', levels });
-    const cam = { x: 0, y: 0, z: 0 };
-    lod.update(cam, new Map([['rock', { x: 5, y: 0, z: 0 }]]));
+    const cam = [0, 0, 0];
+    lod.update(cam, new Map([['rock', [5, 0, 0]]]));
     const level = lod.getActiveLevel('rock');
     expect(level).toBe('high');
   });
@@ -181,7 +182,7 @@ describe('Feature 3: LODSystem', () => {
   it('getAllResults returns array', () => {
     const lod = new LODSystem();
     lod.register({ entityId: 'e1', levels });
-    lod.update({ x: 0, y: 0, z: 0 }, new Map([['e1', { x: 0, y: 0, z: 0 }]]));
+    lod.update([0, 0, 0], new Map([['e1', [0, 0, 0]]]));
     expect(Array.isArray(lod.getAllResults())).toBe(true);
   });
 });
@@ -246,7 +247,7 @@ describe('Feature 4: Profiler', () => {
     const result = p.stop();
     const json = p.exportJSON(result);
     expect(typeof json).toBe('string');
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
   });
 });
 
@@ -477,7 +478,7 @@ describe('Feature 8: AuditLogger', () => {
     al.log(makeEvent('export'));
     const json = al.export({}, 'json');
     expect(typeof json).toBe('string');
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
   });
 
   it('export returns CSV string', () => {

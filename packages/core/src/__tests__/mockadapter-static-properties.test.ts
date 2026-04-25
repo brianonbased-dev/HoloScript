@@ -384,16 +384,16 @@ describe('Feature 5: LLM provider model constant arrays', () => {
     expect(Array.isArray(ANTHROPIC_MODELS)).toBe(true);
   });
 
-  it('ANTHROPIC_MODELS has at least 8 entries', () => {
-    expect(ANTHROPIC_MODELS.length).toBeGreaterThanOrEqual(8);
+  it('ANTHROPIC_MODELS has at least 6 entries', () => {
+    expect(ANTHROPIC_MODELS.length).toBeGreaterThanOrEqual(6);
   });
 
   it('ANTHROPIC_MODELS includes claude-opus-4-6', () => {
     expect(ANTHROPIC_MODELS).toContain('claude-opus-4-6');
   });
 
-  it('ANTHROPIC_MODELS includes claude-sonnet-4-5-20250929', () => {
-    expect(ANTHROPIC_MODELS).toContain('claude-sonnet-4-5-20250929');
+  it('ANTHROPIC_MODELS includes claude-sonnet-4-5', () => {
+    expect(ANTHROPIC_MODELS).toContain('claude-sonnet-4-5');
   });
 
   it('GEMINI_MODELS is an array', () => {

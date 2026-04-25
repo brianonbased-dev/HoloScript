@@ -12,6 +12,13 @@ import type { ProvenanceContext } from '../compiler/traits/ProvenanceSemiring';
 
 export type SpatialPosition = [number, number, number];
 
+/** Runtime trait behavior handle (mesh / agent interop). */
+export interface TraitBehavior {
+  traitId?: string;
+  name?: string;
+  enabled?: boolean;
+}
+
 export type HologramShape =
   | 'orb'
   | 'cube'

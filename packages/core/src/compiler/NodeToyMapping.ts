@@ -230,9 +230,10 @@ const OUTPUT_NODES = new Set(['FragColor', 'Output', 'Emission', 'Alpha', 'Disca
  *
  * @example
  * ```typescript
+ * import { readJson } from '../errors/safeJsonParse';
  * import { mapNodeToyToShader } from './NodeToyMapping';
  *
- * const graph: NodeToyGraph = JSON.parse(nodetoySerialized);
+ * const graph: NodeToyGraph = readJson(nodetoySerialized) as NodeToyGraph;
  * const result = mapNodeToyToShader(graph);
  *
  * // Use in HoloScript

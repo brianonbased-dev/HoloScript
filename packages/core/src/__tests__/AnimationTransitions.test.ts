@@ -105,7 +105,7 @@ describe('AnimationTransitionSystem', () => {
     sys.startAnimToRagdoll('e1', pose);
     const results = sys.update(0.5, new Map([['e1', rotPose]]), new Map([['e1', pose]]));
     const q = results.get('e1')![0].rotation;
-    const len = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    const len = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q.w * q.w);
     expect(len).toBeCloseTo(1, 3);
   });
 });

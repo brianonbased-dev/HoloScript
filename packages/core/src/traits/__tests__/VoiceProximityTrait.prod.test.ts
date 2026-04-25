@@ -264,9 +264,9 @@ describe('voiceProximityHandler.onEvent — voice_distance_update', () => {
       speakerPosition: [4, 0, 0 ],
     });
     const pv = (node as any).__voiceProximityState.panningVector;
-    expect(pv.x).toBeCloseTo(1, 5);
-    expect(pv.y).toBeCloseTo(0, 5);
-    expect(pv.z).toBeCloseTo(0, 5);
+    expect(pv[0]).toBeCloseTo(1, 5);
+    expect(pv[1]).toBeCloseTo(0, 5);
+    expect(pv[2]).toBeCloseTo(0, 5);
   });
 
   it('zone multiplier applied when both speaker and listener in zone', () => {

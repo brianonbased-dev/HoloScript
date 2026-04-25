@@ -185,7 +185,7 @@ describe('TraitCompositionCompiler — config merge (semiring-based)', () => {
       () => undefined
     );
 
-    expect(result.defaultConfig.x).toBe(42);
+    expect(result.defaultConfig[0]).toBe(42);
   });
 });
 
@@ -451,7 +451,7 @@ describe('TraitComposer — defaultConfig merge (semiring-based)', () => {
     );
 
     expect(result.warnings.some((w) => w.includes('x'))).toBe(true);
-    expect(result.handler.defaultConfig?.x).toBe(1);
+    expect(result.handler.defaultConfig[0]).toBe(1);
   });
 });
 

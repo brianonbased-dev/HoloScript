@@ -918,7 +918,7 @@ export class GLTFPipeline extends CompilerBase {
   constructor(options: GLTFPipelineOptions = {}) {
     super();
     this.options = {
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
       format: options.format ?? 'glb',
       dracoCompression: options.dracoCompression ?? false,
       quantize: options.quantize ?? true,

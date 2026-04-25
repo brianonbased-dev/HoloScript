@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
@@ -29,10 +30,10 @@ import {
 
 // Load test fixtures via fs to avoid Vite/Rollup .gltf parse issues
 const fixturesDir = resolve(__dirname, 'fixtures');
-const marbleManifest = JSON.parse(
+const marbleManifest = readJson(
   readFileSync(resolve(fixturesDir, 'marble-sample-manifest.json'), 'utf-8')
 );
-const colliderGLTF = JSON.parse(
+const colliderGLTF = readJson(
   readFileSync(resolve(fixturesDir, 'marble-collider-sample.gltf'), 'utf-8')
 );
 

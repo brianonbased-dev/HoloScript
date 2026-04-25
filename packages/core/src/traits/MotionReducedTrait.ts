@@ -99,10 +99,10 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
     // Velocity limiting
     const nodeRecord = node as unknown as Record<string, unknown>;
     if (nodeRecord.velocity) {
-      const vel = nodeRecord.velocity as { x?: number; y?: number; z?: number } | [number, number, number];
-      const vx = Array.isArray(vel) ? (vel[0] ?? 0) : (vel.x ?? 0);
-      const vy = Array.isArray(vel) ? (vel[1] ?? 0) : (vel.y ?? 0);
-      const vz = Array.isArray(vel) ? (vel[2] ?? 0) : (vel.z ?? 0);
+      const vel = nodeRecord.velocity as [number, number, number] | [number, number, number];
+      const vx = Array.isArray(vel) ? (vel[0] ?? 0) : (vel[0] ?? 0);
+      const vy = Array.isArray(vel) ? (vel[1] ?? 0) : (vel[1] ?? 0);
+      const vz = Array.isArray(vel) ? (vel[2] ?? 0) : (vel[2] ?? 0);
       const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
 
       if (speed > config.max_velocity) {
@@ -112,9 +112,9 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
           vel[1] = vy * scale;
           vel[2] = vz * scale;
         } else {
-          vel.x = vx * scale;
-          vel.y = vy * scale;
-          vel.z = vz * scale;
+          vel[0] = vx * scale;
+          vel[1] = vy * scale;
+          vel[2] = vz * scale;
         }
 
         context.emit?.('on_motion_clamped', {

@@ -389,7 +389,7 @@ describe('NodeGraph — Production', () => {
       'Double',
       [{ name: 'x', type: 'number', defaultValue: 0 }],
       [{ name: 'result', type: 'number' }],
-      (_node, inputs) => ({ result: (inputs.x as number) * 2 })
+      (_node, inputs) => ({ result: (inputs[0] as number) * 2 })
     );
     const n = g.addNode('Double');
     n.inputs.find((p) => p.name === 'x')!.defaultValue = 7;

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenXRSpatialEntitiesCompiler } from '../OpenXRSpatialEntitiesCompiler';
 import type { SpatialEntitiesDocument } from '../OpenXRSpatialEntitiesCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 // ---------------------------------------------------------------------------
 // RBAC Mock (W.013: All HoloScript compiler tests need RBAC mock)
@@ -58,7 +59,7 @@ function compileAndParse(
   composition: HoloComposition
 ): SpatialEntitiesDocument {
   const json = compiler.compile(composition, 'test-token');
-  return JSON.parse(json) as SpatialEntitiesDocument;
+  return readJson(json) as SpatialEntitiesDocument;
 }
 
 // ===========================================================================
@@ -102,7 +103,7 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
-      expect(() => JSON.parse(result)).not.toThrow();
+      expect(() => readJson(result)).not.toThrow();
     });
 
     it('includes correct schema version', () => {
@@ -188,7 +189,7 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
       const entity = doc.entities[0];
       expect(entity.name).toBe('MyCube');
       expect(entity.entityType).toBe('object');
-      expect(entity.pose.position).toEqual({ x: 1, y: 2, z: 3 });
+      expect(entity.pose.position).toEqual([1, 2, 3]);
       expect(entity.parentId).toBeNull();
     });
 
@@ -301,9 +302,9 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
       const q = doc.entities[0].pose.orientation;
       // 90-degree rotation around X axis
       expect(q.w).toBeCloseTo(Math.cos(Math.PI / 4), 5);
-      expect(q.x).toBeCloseTo(Math.sin(Math.PI / 4), 5);
-      expect(q.y).toBeCloseTo(0, 5);
-      expect(q.z).toBeCloseTo(0, 5);
+      expect(q[0]).toBeCloseTo(Math.sin(Math.PI / 4), 5);
+      expect(q[1]).toBeCloseTo(0, 5);
+      expect(q[2]).toBeCloseTo(0, 5);
     });
 
     it('processes child objects with parent ID', () => {
@@ -388,7 +389,7 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
       const entity = doc.entities[0];
       expect(entity.name).toBe('Room1');
       expect(entity.entityType).toBe('group');
-      expect(entity.pose.position).toEqual({ x: 10, y: 0, z: 5 });
+      expect(entity.pose.position).toEqual([10, 0, 5]);
     });
 
     it('nests objects under group parent ID', () => {
@@ -574,7 +575,7 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
 
       const wp = doc.entities.find((e) => e.entityType === 'waypoint');
       expect(wp).toBeDefined();
-      expect(wp!.pose.position).toEqual({ x: 1, y: 2, z: 3 });
+      expect(wp!.pose.position).toEqual([1, 2, 3]);
     });
 
     it('includes anchor component with persistence on waypoints', () => {
@@ -795,7 +796,7 @@ describe('OpenXRSpatialEntitiesCompiler', () => {
       const entity = doc.entities[0];
       expect(entity.entityType).toBe('annotation');
       expect(entity.name).toBe('InfoPanel');
-      expect(entity.pose.position).toEqual({ x: 0, y: 2, z: -3 });
+      expect(entity.pose.position).toEqual([0, 2, -3]);
 
       // Check 2D bounds component
       const boundsComp = entity.components.find(

@@ -73,7 +73,7 @@ export interface CRDTRoomInterestRegionDecl {
   /** Unique region identifier */
   id: string;
   /** Center position as [x, y, z] tuple or {x, y, z} object */
-  center: [number, number, number] | { x: number; y: number; z: number };
+  center: [number, number, number] | [number, number, number];
   /** Radius of the interest region */
   radius: number;
   /** Priority level: 0 = critical, 1 = high, 2 = normal, 3 = low */
@@ -380,12 +380,12 @@ export function validateCRDTRoomTraitConfig(config: CRDTRoomTraitConfig): void {
  * to the standard {x, y, z} format expected by CRDTRoom.
  */
 export function normalizeCenter(
-  center: [number, number, number] | { x: number; y: number; z: number }
+  center: [number, number, number] | [number, number, number]
 ): Vector3 {
   if (Array.isArray(center)) {
     return [center[0], center[1], center[2] ];
   }
-  return [center.x, center.y, center.z];
+  return [center[0], center[1], center[2]];
 }
 
 /**
@@ -436,7 +436,7 @@ export function parseCRDTRoomTraitConfig(raw: Record<string, unknown>): CRDTRoom
       const region = r as Record<string, unknown>;
       return {
         id: String(region.id),
-        center: region.center as [number, number, number] | { x: number; y: number; z: number },
+        center: region.center as [number, number, number] | [number, number, number],
         radius: Number(region.radius),
         priority: Number(region.priority ?? 2),
         syncRateHz: Number(region.syncRateHz ?? 20),

@@ -245,8 +245,8 @@ describe('USDZExporter', () => {
           },
         ],
         bounds: {
-          min: { x: 0, y: 0, z: 0 },
-          max: { x: 1, y: 1, z: 1 },
+          min: [0, 0, 0],
+          max: [1, 1, 1],
         },
       };
       sceneGraph.meshes.push(mesh);
@@ -518,8 +518,8 @@ function createSimpleTriangleMesh(): IMesh {
       },
     ],
     bounds: {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 1, y: 1, z: 0 },
+      min: [0, 0, 0],
+      max: [1, 1, 0],
     },
   };
 }
@@ -538,8 +538,8 @@ function createIndexedMesh(): IMesh {
       },
     ],
     bounds: {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 1, y: 1, z: 1 },
+      min: [0, 0, 0],
+      max: [1, 1, 1],
     },
   };
 }
@@ -558,8 +558,8 @@ function createMeshWithNormals(): IMesh {
       },
     ],
     bounds: {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 1, y: 1, z: 1 },
+      min: [0, 0, 0],
+      max: [1, 1, 1],
     },
   };
 }
@@ -578,8 +578,8 @@ function createMeshWithUVs(): IMesh {
       },
     ],
     bounds: {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 1, y: 1, z: 1 },
+      min: [0, 0, 0],
+      max: [1, 1, 1],
     },
   };
 }

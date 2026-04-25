@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createState } from '../state/ReactiveState';
-import { eventBus } from '@holoscript/engine/runtime/EventBus';
+import { getSharedEventBus } from '../events/EventBus';
 
 describe('CRDT State Synchronization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eventBus.clear();
+    getSharedEventBus().clear();
   });
 
   it('should synchronize state between two clients', () => {
@@ -32,7 +32,7 @@ describe('CRDT State Synchronization', () => {
 
     // Incoming "remote" op with OLDER/LOWER clock should be ignored
     // Current local clock is 1 (from set('count', 5))
-    eventBus.emit('state_sync:shared_session', {
+    getSharedEventBus().emit('state_sync:shared_session', {
       source: 'remote',
       op: {
         clientId: 'other_client',
@@ -45,7 +45,7 @@ describe('CRDT State Synchronization', () => {
     expect(stateA.get('count')).toBe(5);
 
     // Incoming "remote" op with NEWER/HIGHER clock should win
-    eventBus.emit('state_sync:shared_session', {
+    getSharedEventBus().emit('state_sync:shared_session', {
       source: 'remote',
       op: {
         clientId: 'other_client',
@@ -59,24 +59,22 @@ describe('CRDT State Synchronization', () => {
   });
 
   it('should handle lexicographical clientId tie-breaking for same timestamp', () => {
-    const now = Date.now();
-
     // We manually emit ops to test the CRDT logic directly via the state sync listeners
     const state = createState({ val: 0 }, 'session');
 
     // Client "Z" (higher) vs Client "A" (lower)
-    eventBus.emit('state_sync:session', {
+    getSharedEventBus().emit('state_sync:session', {
       op: { clientId: 'Client_A', clock: 100, key: 'val', value: 10 },
     });
     expect(state.get('val')).toBe(10);
 
-    eventBus.emit('state_sync:session', {
+    getSharedEventBus().emit('state_sync:session', {
       op: { clientId: 'Client_Z', clock: 100, key: 'val', value: 20 },
     });
     expect(state.get('val')).toBe(20);
 
     // Lower clientId should NOT override even if it arrives later
-    eventBus.emit('state_sync:session', {
+    getSharedEventBus().emit('state_sync:session', {
       op: { clientId: 'Client_B', clock: 100, key: 'val', value: 15 },
     });
     expect(state.get('val')).toBe(20);

@@ -16,6 +16,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { readJson } from '../errors/safeJsonParse';
 import { SceneNode } from '@holoscript/engine/scene';
 import { SceneSerializer } from '@holoscript/engine/scene';
 import { SceneDeserializer } from '@holoscript/engine/scene';
@@ -285,7 +286,7 @@ describe('Feature 2B: SceneSerializer â€” sanitization', () => {
 
   it('toJSON returns a parseable JSON string', () => {
     const json = ser.toJSON(makeNode('root'));
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
   });
 });
 
@@ -398,7 +399,7 @@ describe('Feature 3B: SceneManager â€” exportJSON/importJSON', () => {
     mgr.save('s', makeNode('root'));
     const json = mgr.exportJSON('s');
     expect(typeof json).toBe('string');
-    expect(() => JSON.parse(json!)).not.toThrow();
+    expect(() => readJson(json!)).not.toThrow();
   });
 
   it('exportJSON() returns null for unknown scene', () => {

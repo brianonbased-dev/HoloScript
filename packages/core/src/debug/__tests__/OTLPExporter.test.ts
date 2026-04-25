@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { OTLPExporter, OTLPHttpError } from '../OTLPExporter';
 import { TelemetryCollector } from '../TelemetryCollector';
 import type { OTelSpan } from '../TelemetryTypes';
@@ -30,7 +31,7 @@ function makeMockFetch(status = 200, body = '{}'): ReturnType<typeof vi.fn> {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
-    json: () => Promise.resolve(JSON.parse(body)),
+    json: () => Promise.resolve(readJson(body)),
   });
 }
 

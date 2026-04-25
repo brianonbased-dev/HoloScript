@@ -6,6 +6,7 @@
  * sourceContentFor, sources), combineSourceMaps.
  */
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { SourceMapGenerator, SourceMapConsumer, combineSourceMaps } from '../SourceMapGenerator';
 
 describe('SourceMapGenerator — Production', () => {
@@ -75,7 +76,7 @@ describe('SourceMapGenerator — Production', () => {
   it('toString returns valid JSON', () => {
     const gen = mkGenerator();
     const json = gen.toString();
-    const parsed = JSON.parse(json);
+    const parsed = readJson(json) as { version: number };
     expect(parsed.version).toBe(3);
   });
 

@@ -21,13 +21,13 @@ import {
 // HELPERS
 // =============================================================================
 
-function createBody(id: string, pos: { x: number; y: number; z: number }): IRigidBodyState {
+function createBody(id: string, pos: [number, number, number]): IRigidBodyState {
   return {
     id,
     position: { ...pos },
     rotation: [0, 0, 0, 1 ],
-    linearVelocity: { x: 0, y: 0, z: 0 },
-    angularVelocity: { x: 0, y: 0, z: 0 },
+    linearVelocity: [0, 0, 0],
+    angularVelocity: [0, 0, 0],
     isSleeping: false,
     isActive: true,
   };
@@ -41,16 +41,16 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should solve distance constraint and produce corrections', () => {
     const solver = new ConstraintSolver({ iterations: 10 });
 
-    const bodyA = createBody('a', { x: 0, y: 0, z: 0 });
-    const bodyB = createBody('b', { x: 3, y: 0, z: 0 }); // 3m apart
+    const bodyA = createBody('a', [0, 0, 0]);
+    const bodyB = createBody('b', [3, 0, 0]); // 3m apart
 
     const constraint: IDistanceConstraint = {
       type: 'distance',
       id: 'dist_1',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 2, // want 2m, currently 3m
     };
 
@@ -61,22 +61,22 @@ describe('Cycle 105: Physics Refinement', () => {
     expect(corrections.size).toBeGreaterThan(0);
     const corrA = corrections.get('a');
     expect(corrA).toBeDefined();
-    expect(corrA!.linearVelocity.x).toBeGreaterThan(0); // Push A toward B
+    expect(corrA!.linearVelocity[0]).toBeGreaterThan(0); // Push A toward B
   });
 
   it('should solve spring constraint with damping', () => {
     const solver = new ConstraintSolver({ iterations: 5 });
 
-    const bodyA = createBody('a', { x: 0, y: 0, z: 0 });
-    const bodyB = createBody('b', { x: 5, y: 0, z: 0 }); // Stretched
+    const bodyA = createBody('a', [0, 0, 0]);
+    const bodyB = createBody('b', [5, 0, 0]); // Stretched
 
     const constraint: ISpringConstraint = {
       type: 'spring',
       id: 'spring_1',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       restLength: 2,
       stiffness: 100,
       damping: 5,
@@ -91,16 +91,16 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should detect breakable constraints', () => {
     const solver = new ConstraintSolver({ iterations: 5 });
 
-    const bodyA = createBody('a', { x: 0, y: 0, z: 0 });
-    const bodyB = createBody('b', { x: 100, y: 0, z: 0 }); // Far apart
+    const bodyA = createBody('a', [0, 0, 0]);
+    const bodyB = createBody('b', [100, 0, 0]); // Far apart
 
     const constraint: IDistanceConstraint = {
       type: 'distance',
       id: 'breakable',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
-      pivotB: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 1,
       breakForce: 0.1, // Very low break force
     };
@@ -115,14 +115,14 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should solve hinge constraint with motor', () => {
     const solver = new ConstraintSolver({ iterations: 5 });
 
-    const bodyA = createBody('a', { x: 0, y: 0, z: 0 });
+    const bodyA = createBody('a', [0, 0, 0]);
 
     const constraint: IHingeConstraint = {
       type: 'hinge',
       id: 'hinge_motor',
       bodyA: 'a',
-      pivotA: { x: 0, y: 0, z: 0 },
-      axisA: { x: 0, y: 1, z: 0 },
+      pivotA: [0, 0, 0],
+      axisA: [0, 1, 0],
       motor: { targetVelocity: 5, maxForce: 100 },
     };
 
@@ -132,7 +132,7 @@ describe('Cycle 105: Physics Refinement', () => {
     const corrA = corrections.get('a');
     expect(corrA).toBeDefined();
     // Motor should produce angular velocity correction
-    expect(corrA!.angularVelocity.y).toBeGreaterThan(0);
+    expect(corrA!.angularVelocity[1]).toBeGreaterThan(0);
   });
 
   // -------------------------------------------------------------------------
@@ -141,7 +141,7 @@ describe('Cycle 105: Physics Refinement', () => {
 
   it('should create humanoid ragdoll with correct bone/constraint count', () => {
     const system = new RagdollSystem();
-    const ragdoll = system.createHumanoid('hero', { x: 0, y: 5, z: 0 });
+    const ragdoll = system.createHumanoid('hero', [0, 5, 0]);
 
     expect(ragdoll.bodies).toHaveLength(HUMANOID_PRESET.length);
     // Constraints = bones with parents (all except root pelvis)
@@ -154,7 +154,7 @@ describe('Cycle 105: Physics Refinement', () => {
 
   it('should create quadruped ragdoll', () => {
     const system = new RagdollSystem();
-    const ragdoll = system.createQuadruped('dog', { x: 0, y: 2, z: 0 });
+    const ragdoll = system.createQuadruped('dog', [0, 2, 0]);
 
     expect(ragdoll.bodies).toHaveLength(QUADRUPED_PRESET.length);
     expect(ragdoll.constraints.length).toBeGreaterThan(0);
@@ -167,7 +167,7 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should create default car with 4 wheels', () => {
     const system = new VehicleSystem();
     const carDef = createDefaultCar('player_car');
-    const car = system.createVehicle(carDef, { x: 0, y: 1, z: 0 });
+    const car = system.createVehicle(carDef, [0, 1, 0]);
 
     expect(car.wheels).toHaveLength(4);
     expect(car.speed).toBe(0);
@@ -182,7 +182,7 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should create truck with 6 wheels', () => {
     const system = new VehicleSystem();
     const truckDef = createTruck('big_rig');
-    const truck = system.createVehicle(truckDef, { x: 0, y: 2, z: 0 });
+    const truck = system.createVehicle(truckDef, [0, 2, 0]);
 
     expect(truck.wheels).toHaveLength(6);
     expect(truck.definition.chassisMass).toBe(5000);
@@ -191,7 +191,7 @@ describe('Cycle 105: Physics Refinement', () => {
   it('should accelerate, steer, and brake a vehicle', () => {
     const system = new VehicleSystem();
     const carDef = createDefaultCar('test_car');
-    system.createVehicle(carDef, { x: 0, y: 0.65, z: 0 });
+    system.createVehicle(carDef, [0, 0.65, 0]);
 
     // Throttle
     system.setThrottle('test_car', 1.0);
@@ -200,7 +200,7 @@ describe('Cycle 105: Physics Refinement', () => {
 
     const afterThrottle = system.getVehicle('test_car')!;
     const speed = Math.sqrt(
-      afterThrottle.linearVelocity.x ** 2 + afterThrottle.linearVelocity.z ** 2
+      afterThrottle.linearVelocity[0] ** 2 + afterThrottle.linearVelocity[2] ** 2
     );
     expect(speed).toBeGreaterThan(0);
 
@@ -216,7 +216,7 @@ describe('Cycle 105: Physics Refinement', () => {
     for (let i = 0; i < 100; i++) system.update('test_car', 1 / 60);
     const afterBrake = system.getVehicle('test_car')!;
     const brakingSpeed = Math.sqrt(
-      afterBrake.linearVelocity.x ** 2 + afterBrake.linearVelocity.z ** 2
+      afterBrake.linearVelocity[0] ** 2 + afterBrake.linearVelocity[2] ** 2
     );
     expect(brakingSpeed).toBeLessThan(speed); // Should have slowed down
   });

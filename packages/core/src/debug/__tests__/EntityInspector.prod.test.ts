@@ -15,7 +15,7 @@ function makeEntity(id: string, name: string, tags: string[] = [], active = true
     active,
     parentId: null,
     components: new Map([
-      ['Transform', { x: 0, y: 0, z: 0 }],
+      ['Transform', [0, 0, 0]],
       ['Health', { hp: 100, max: 100 }],
     ]),
   };

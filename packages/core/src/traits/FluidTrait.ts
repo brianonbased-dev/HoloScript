@@ -245,19 +245,19 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
     } else if (event.type === 'fluid_add_emitter') {
       const emitterId = (event.emitterId as string) || `emitter_${state.emitters.size}`;
 
-      const pos = event.position as { x: number; y: number; z: number } | undefined;
-      const vel = event.velocity as { x: number; y: number; z: number } | undefined;
+      const pos = event.position as [number, number, number] | undefined;
+      const vel = event.velocity as [number, number, number] | undefined;
       state.emitters.set(emitterId, {
-        position: pos ? [pos.x, pos.y, pos.z] : [0, 0, 0],
+        position: pos ? [pos[0], pos[1], pos[2]] : [0, 0, 0],
         rate: (event.rate as number) || 100,
-        velocity: vel ? ([vel.x, vel.y, vel.z] as Vector3) : ([0, -1, 0] as Vector3),
+        velocity: vel ? ([vel[0], vel[1], vel[2]] as Vector3) : ([0, -1, 0] as Vector3),
       });
     } else if (event.type === 'fluid_remove_emitter') {
       const emitterId = event.emitterId as string;
       state.emitters.delete(emitterId);
     } else if (event.type === 'fluid_add_particles') {
-      const positions = event.positions as Array<{ x: number; y: number; z: number }>;
-      const velocities = (event.velocities as Array<{ x: number; y: number; z: number }>) || [];
+      const positions = event.positions as Array<[number, number, number]>;
+      const velocities = (event.velocities as Array<[number, number, number]>) || [];
 
       context.emit?.('fluid_spawn_particles', {
         node,
@@ -265,7 +265,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
         velocities,
       });
     } else if (event.type === 'fluid_splash') {
-      const position = event.position as { x: number; y: number; z: number };
+      const position = event.position as [number, number, number];
       const force = (event.force as number) || 10;
       const radius = (event.radius as number) || 0.5;
 

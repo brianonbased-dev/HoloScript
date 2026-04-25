@@ -10,6 +10,7 @@
 
 import { BaseAIProvider, type AIProviderConfig } from '../HololandExtensionPoint';
 import type { AIGeneratedNarrative, AIGeneratedQuest } from '../HololandTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 /**
  * Custom AI provider implementation
@@ -225,7 +226,7 @@ export class CustomAIProvider extends BaseAIProvider {
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = readJson(jsonMatch[0]) as Record<string, unknown>;
         return {
           id: `quest_${Date.now()}`,
           ...parsed,

@@ -11,19 +11,19 @@ describe('World History (Undo/Redo)', () => {
     const transform = world.getComponent<any>(entity, 'Transform');
 
     // 1. Change value
-    transform.x = 10;
+    transform[0] = 10;
     await Promise.resolve(); // flush reactivity
-    expect(transform.x).toBe(10);
+    expect(transform[0]).toBe(10);
 
     // 2. Undo
     world.undo();
     await Promise.resolve();
-    expect(transform.x).toBe(0);
+    expect(transform[0]).toBe(0);
 
     // 3. Redo
     world.redo();
     await Promise.resolve();
-    expect(transform.x).toBe(10);
+    expect(transform[0]).toBe(10);
   });
 
   it('should undo/redo entity creation', () => {

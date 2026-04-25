@@ -89,7 +89,7 @@ describe('UIDataBinding', () => {
   it('getModel returns shallow copy', () => {
     db.set('x', 10);
     const model = db.getModel();
-    model.x = 99;
+    model[0] = 99;
     expect(db.get('x')).toBe(10); // unchanged
   });
 });

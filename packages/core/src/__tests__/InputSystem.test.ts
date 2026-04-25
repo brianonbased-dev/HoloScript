@@ -26,8 +26,8 @@ describe('Input System (Cycle 183)', () => {
     it('should track mouse position', () => {
       input.setMousePosition(100, 200);
       const pos = input.getMousePosition();
-      expect(pos.x).toBe(100);
-      expect(pos.y).toBe(200);
+      expect(pos[0]).toBe(100);
+      expect(pos[1]).toBe(200);
     });
 
     it('should map actions to keys', () => {

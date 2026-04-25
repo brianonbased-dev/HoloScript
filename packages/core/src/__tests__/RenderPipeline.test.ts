@@ -112,9 +112,9 @@ describe('Cycle 147: Render Pipeline', () => {
       range: 20,
     });
 
-    const near = lm.calculateAttenuation('lamp', { x: 0, y: 4, z: 0 });
-    const far = lm.calculateAttenuation('lamp', { x: 0, y: -14, z: 0 });
-    const beyond = lm.calculateAttenuation('lamp', { x: 0, y: -15, z: 0 });
+    const near = lm.calculateAttenuation('lamp', [0, 4, 0]);
+    const far = lm.calculateAttenuation('lamp', [0, -14, 0]);
+    const beyond = lm.calculateAttenuation('lamp', [0, -15, 0]);
 
     expect(near).toBeGreaterThan(far);
     expect(beyond).toBe(0);
@@ -130,10 +130,10 @@ describe('Cycle 147: Render Pipeline', () => {
       weight: 1,
     });
 
-    const inside = lm.sampleGI({ x: 1, y: 0, z: 0 });
+    const inside = lm.sampleGI([1, 0, 0]);
     expect(inside[0]).toBeGreaterThan(0);
 
-    const outside = lm.sampleGI({ x: 20, y: 0, z: 0 }); // Outside radius → ambient
+    const outside = lm.sampleGI([20, 0, 0]); // Outside radius → ambient
     const amb = lm.getAmbient();
     expect(outside[0]).toBeCloseTo(amb.color[0] * amb.intensity, 2);
   });
@@ -157,11 +157,11 @@ describe('Cycle 147: Render Pipeline', () => {
     });
 
     // All layers, near camera
-    const visible = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 50);
+    const visible = lm.getVisibleLights([0, 0, 0], 50);
     expect(visible.length).toBe(2); // sun + close
 
     // Layer filter — only layer 2 (sun has all layers so still included)
-    const layer2 = lm.getVisibleLights({ x: 0, y: 0, z: 0 }, 50, 2);
+    const layer2 = lm.getVisibleLights([0, 0, 0], 50, 2);
     expect(layer2.some((l) => l.id === 'sun')).toBe(true); // Sun passes all masks
     expect(layer2.some((l) => l.id === 'close')).toBe(false); // Close is layer 1, mask 2 → excluded
   });

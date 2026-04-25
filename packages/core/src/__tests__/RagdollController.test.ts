@@ -75,7 +75,7 @@ describe('RagdollController', () => {
 
   it('applyImpulse changes velocity inversely with mass', () => {
     rag.addBone('spine', null, 10, 1);
-    rag.applyImpulse('spine', { x: 100, y: 0, z: 0 });
+    rag.applyImpulse('spine', [100, 0, 0]);
     expect(rag.getBone('spine')!.velocity[0]).toBe(10); // 100/10
   });
 
@@ -84,12 +84,12 @@ describe('RagdollController', () => {
     rag.addBone('head', 'spine', 3, 0.5);
     rag.goRagdoll();
     // Apply large impulse to head only
-    rag.applyImpulse('head', { x: 0, y: 100, z: 0 });
+    rag.applyImpulse('head', [0, 100, 0]);
     rag.update(0.1);
     const spine = rag.getBone('spine')!.position;
     const head = rag.getBone('head')!.position;
     const dist = Math.sqrt(
-      (head.x - spine.x) ** 2 + (head.y - spine.y) ** 2 + (head.z - spine.z) ** 2
+      (head[0] - spine[0]) ** 2 + (head[1] - spine[1]) ** 2 + (head[2] - spine[2]) ** 2
     );
     // Distance should be constrained close to bone length (0.5)
     expect(dist).toBeCloseTo(0.5, 0);

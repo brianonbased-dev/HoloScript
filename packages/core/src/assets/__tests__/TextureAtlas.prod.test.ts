@@ -66,8 +66,8 @@ describe('TextureAtlas — pack', () => {
   it('padding offset reflected in rect.x and rect.y', () => {
     const a = new TextureAtlas(makeConfig({ padding: 4 }));
     const e = a.pack('t', 64, 64)!;
-    expect(e.rect.x).toBeGreaterThanOrEqual(4);
-    expect(e.rect.y).toBeGreaterThanOrEqual(4);
+    expect(e.rect[0]).toBeGreaterThanOrEqual(4);
+    expect(e.rect[1]).toBeGreaterThanOrEqual(4);
     expect(e.padding).toBe(4);
   });
 
@@ -82,8 +82,8 @@ describe('TextureAtlas — pack', () => {
     const e1 = atlas.pack('a', 100, 50)!;
     const e2 = atlas.pack('b', 100, 50)!;
     // They should be on the same row — e2.rect.x > e1.rect.x
-    expect(e2.rect.x).toBeGreaterThan(e1.rect.x);
-    expect(e2.rect.y).toBe(e1.rect.y);
+    expect(e2.rect[0]).toBeGreaterThan(e1.rect[0]);
+    expect(e2.rect[1]).toBe(e1.rect[1]);
   });
 
   it('returns null for texture wider than maxWidth', () => {

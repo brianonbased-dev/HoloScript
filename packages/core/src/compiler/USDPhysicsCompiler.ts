@@ -243,7 +243,7 @@ export class USDPhysicsCompiler extends CompilerBase {
       enableArticulation: options.enableArticulation ?? true,
       targetContext: options.targetContext ?? 'isaac_sim',
       embedSemanticAST: options.embedSemanticAST ?? true,
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

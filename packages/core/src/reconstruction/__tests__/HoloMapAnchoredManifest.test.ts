@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { readJson } from '../../errors/safeJsonParse';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -11,14 +12,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 describe('Anchored manifest (OA3)', () => {
   it('example JSON satisfies contract', () => {
     const raw = readFileSync(join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'), 'utf8');
-    const m = JSON.parse(raw) as ReconstructionManifest;
+    const m = readJson(raw) as ReconstructionManifest;
     expect(() => assertHoloMapManifestContract(m)).not.toThrow();
     expect(m.provenance.opentimestampsProof).toContain('.ots');
     expect(m.provenance.baseCalldataTx).toContain('tx/');
   });
 
   it('mergeAnchoredProvenance fills URLs', () => {
-    const base: ReconstructionManifest = JSON.parse(
+    const base: ReconstructionManifest = readJson(
       readFileSync(join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'), 'utf8'),
     ) as ReconstructionManifest;
     const cleared = {

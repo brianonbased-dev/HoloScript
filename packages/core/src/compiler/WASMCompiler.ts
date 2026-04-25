@@ -122,7 +122,7 @@ export class WASMCompiler extends CompilerBase {
     return ANSCapabilityPath.WASM;
   }
 
-  private options: Required<WASMCompilerOptions>;
+  private options: Required<WASMRuntimeOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
   private stateVars: StateVariable[] = [];
@@ -229,7 +229,11 @@ export class WASMCompiler extends CompilerBase {
       exports: this.exports,
       imports: this.imports,
     };
-    return this.withTripleOutputIfRequested(composition, result, this.docGenerationOptions);
+    return this.withTripleOutputIfRequested(
+      composition,
+      result,
+      this.docGenerationOptions
+    ) as WASMCompileResult | CompilationResult;
   }
 
   /**
@@ -1086,7 +1090,7 @@ export function compileToWASM(
   options?: WASMCompilerOptions
 ): WASMCompileResult {
   const compiler = new WASMCompiler(options);
-  return compiler.compile(composition, createTestCompilerToken());
+  return compiler.compile(composition, createTestCompilerToken()) as WASMCompileResult;
 }
 
 /**

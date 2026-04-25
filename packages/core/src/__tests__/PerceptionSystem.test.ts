@@ -26,7 +26,7 @@ describe('PerceptionSystem', () => {
 
   it('entity perceives stimulus within range and FOV', () => {
     sys.registerEntity('guard', [{ type: 'sight', range: 50, fov: 120, sensitivity: 1 }]);
-    sys.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    sys.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     sys.addStimulus({
       id: 's1',
       type: 'sight',
@@ -56,7 +56,7 @@ describe('PerceptionSystem', () => {
 
   it('entity does not perceive stimulus outside FOV', () => {
     sys.registerEntity('guard', [{ type: 'sight', range: 50, fov: 90, sensitivity: 1 }]);
-    sys.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }); // facing +x
+    sys.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]); // facing +x
     sys.addStimulus({
       id: 's1',
       type: 'sight',

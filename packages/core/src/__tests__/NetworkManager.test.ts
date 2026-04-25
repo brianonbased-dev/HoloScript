@@ -48,7 +48,7 @@ describe('NetworkManager', () => {
     expect(msgs.length).toBe(1);
     expect(msgs[0].type).toBe('state_sync');
     expect(msgs[0].senderId).toBe('player-1');
-    expect(msgs[0].payload.x).toBe(1);
+    expect(msgs[0].payload[0]).toBe(1);
   });
 
   it('does not broadcast when disconnected', () => {

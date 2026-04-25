@@ -14,7 +14,7 @@ describe('Cycle 148: AI Senses', () => {
       { type: 'sight', range: 20, fov: 90, sensitivity: 1 },
       { type: 'hearing', range: 30, fov: 360, sensitivity: 0.8 },
     ]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
+    ps.setEntityTransform('guard', [0, 0, 0], [0, 0, 1]);
 
     // Stimulus in front (Z+) — should be seen
     ps.addStimulus({
@@ -85,11 +85,11 @@ describe('Cycle 148: AI Senses', () => {
       mass: 1,
     };
 
-    const seekForce = SteeringBehaviors.seek(agent, { x: 10, y: 0, z: 0 });
-    expect(seekForce.x).toBeGreaterThan(0); // Toward +X
+    const seekForce = SteeringBehaviors.seek(agent, [10, 0, 0]);
+    expect(seekForce[0]).toBeGreaterThan(0); // Toward +X
 
-    const fleeForce = SteeringBehaviors.flee(agent, { x: 10, y: 0, z: 0 });
-    expect(fleeForce.x).toBeLessThan(0); // Away from +X
+    const fleeForce = SteeringBehaviors.flee(agent, [10, 0, 0]);
+    expect(fleeForce[0]).toBeLessThan(0); // Away from +X
   });
 
   it('should arrive and slow down near target', () => {
@@ -101,11 +101,11 @@ describe('Cycle 148: AI Senses', () => {
       mass: 1,
     };
 
-    const farForce = SteeringBehaviors.arrive(agent, { x: 100, y: 0, z: 0 }, 10);
-    const nearForce = SteeringBehaviors.arrive(agent, { x: 3, y: 0, z: 0 }, 10);
+    const farForce = SteeringBehaviors.arrive(agent, [100, 0, 0], 10);
+    const nearForce = SteeringBehaviors.arrive(agent, [3, 0, 0], 10);
 
     // Near force should be weaker (slowing down)
-    expect(Math.abs(nearForce.x)).toBeLessThan(Math.abs(farForce.x));
+    expect(Math.abs(nearForce[0])).toBeLessThan(Math.abs(farForce[0]));
   });
 
   it('should produce flock forces for a group', () => {

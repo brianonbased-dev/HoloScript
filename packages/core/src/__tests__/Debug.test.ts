@@ -10,9 +10,9 @@ describe('Cycle 120: Debug & Profiler Tools', () => {
 
   it('should draw and query primitives', () => {
     const debug = new DebugRenderer();
-    debug.drawLine({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, DebugColors.red, 5);
-    debug.drawSphere({ x: 5, y: 5, z: 5 }, 2, DebugColors.blue, 5);
-    debug.drawBox({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 }, DebugColors.green, 5);
+    debug.drawLine([0, 0, 0], [10, 0, 0], DebugColors.red, 5);
+    debug.drawSphere([5, 5, 5], 2, DebugColors.blue, 5);
+    debug.drawBox([0, 0, 0], [1, 1, 1], DebugColors.green, 5);
 
     expect(debug.getDrawCallCount()).toBe(3);
     expect(debug.getDrawCallsByType('line')).toHaveLength(1);
@@ -21,8 +21,8 @@ describe('Cycle 120: Debug & Profiler Tools', () => {
 
   it('should expire draw calls after duration', () => {
     const debug = new DebugRenderer();
-    debug.drawLine({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, DebugColors.red, 1); // 1 sec
-    debug.drawSphere({ x: 5, y: 5, z: 5 }, 2, DebugColors.blue, 5); // 5 sec
+    debug.drawLine([0, 0, 0], [10, 0, 0], DebugColors.red, 1); // 1 sec
+    debug.drawSphere([5, 5, 5], 2, DebugColors.blue, 5); // 5 sec
 
     debug.update(2); // 2 seconds passed
     expect(debug.getDrawCallCount()).toBe(1); // Only sphere remains
@@ -31,7 +31,7 @@ describe('Cycle 120: Debug & Profiler Tools', () => {
   it('should disable rendering', () => {
     const debug = new DebugRenderer();
     debug.setEnabled(false);
-    debug.drawLine({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    debug.drawLine([0, 0, 0], [1, 0, 0]);
     expect(debug.getDrawCallCount()).toBe(0);
   });
 

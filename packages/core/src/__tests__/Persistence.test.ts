@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { World } from '@holoscript/engine/ecs/World';
 import { EditorUI } from '../editor/EditorUI';
 
@@ -33,21 +34,18 @@ describe('Editor Persistence', () => {
     const editor = new EditorUI(world);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { x: 123 });
+    world.addComponent(e1, 'Transform', { position: [123, 0, 0] });
 
     const success = editor.persistence.save('test_scene');
     expect(success).toBe(true);
 
     const stored = localStorage.getItem('holoscript_scene_test_scene');
     expect(stored).toBeDefined();
-    // Parse to be robust against formatting
-    const json = JSON.parse(stored!);
-    // Navigate to position[0]
-    // root -> children[0] -> properties -> position -> x
-    // But structure depends on whether it's root or child.
-    // My serializer wraps in root.
-    // Let's just Regex check or deep check if simple.
-    expect(stored).toMatch(/"x":\s*123/);
+    const json = readJson(stored!) as {
+      root?: { children?: Array<{ properties?: { position?: number[] } }> };
+    };
+    const pos = json.root?.children?.[0]?.properties?.position;
+    expect(pos?.[0]).toBe(123);
   });
 
   it('should load scene from storage', () => {
@@ -56,7 +54,7 @@ describe('Editor Persistence', () => {
 
     // 1. Save initial scene
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { x: 999 });
+    world.addComponent(e1, 'Transform', { position: [999, 0, 0] });
     editor.persistence.save('saved_scene');
 
     // 2. Clear / Modify world
@@ -82,7 +80,7 @@ describe('Editor Persistence', () => {
       const t = world.getComponent<any>(e, 'Transform');
       if (t) {
         // Check flat x OR nested position[0]
-        const x = t.x ?? t.position?.x;
+        const x = Array.isArray(t.position) ? t.position[0] : (t as { x?: number }).x;
         if (x === 999) found = true;
       }
     });

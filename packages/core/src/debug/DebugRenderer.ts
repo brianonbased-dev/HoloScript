@@ -69,8 +69,8 @@ export class DebugRenderer {
   // ---------------------------------------------------------------------------
 
   drawLine(
-    from: { x: number; y: number; z: number },
-    to: { x: number; y: number; z: number },
+    from: [number, number, number],
+    to: [number, number, number],
     color = DebugColors.green,
     duration = 0
   ): string {
@@ -78,8 +78,8 @@ export class DebugRenderer {
   }
 
   drawRay(
-    origin: { x: number; y: number; z: number },
-    direction: { x: number; y: number; z: number },
+    origin: [number, number, number],
+    direction: [number, number, number],
     length = 10,
     color = DebugColors.yellow,
     duration = 0
@@ -88,8 +88,8 @@ export class DebugRenderer {
   }
 
   drawArrow(
-    from: { x: number; y: number; z: number },
-    to: { x: number; y: number; z: number },
+    from: [number, number, number],
+    to: [number, number, number],
     headSize = 0.3,
     color = DebugColors.cyan,
     duration = 0
@@ -98,7 +98,7 @@ export class DebugRenderer {
   }
 
   drawSphere(
-    center: { x: number; y: number; z: number },
+    center: [number, number, number],
     radius: number,
     color = DebugColors.white,
     duration = 0
@@ -107,8 +107,8 @@ export class DebugRenderer {
   }
 
   drawBox(
-    center: { x: number; y: number; z: number },
-    size: { x: number; y: number; z: number },
+    center: [number, number, number],
+    size: [number, number, number],
     color = DebugColors.green,
     duration = 0
   ): string {
@@ -116,9 +116,9 @@ export class DebugRenderer {
   }
 
   drawCircle(
-    center: { x: number; y: number; z: number },
+    center: [number, number, number],
     radius: number,
-    normal: { x: number; y: number; z: number },
+    normal: [number, number, number],
     color = DebugColors.blue,
     duration = 0
   ): string {
@@ -135,7 +135,7 @@ export class DebugRenderer {
   }
 
   drawGrid(
-    center: { x: number; y: number; z: number },
+    center: [number, number, number],
     size: number,
     divisions: number,
     color = DebugColors.gray,

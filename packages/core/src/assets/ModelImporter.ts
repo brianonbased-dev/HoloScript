@@ -10,7 +10,7 @@ export interface ImportedMesh {
   vertexCount: number;
   indexCount: number;
   materialId: string | null;
-  bounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } };
+  bounds: { min: [number, number, number]; max: [number, number, number] };
 }
 
 export interface ImportedMaterial {
@@ -64,8 +64,8 @@ export class ModelImporter {
         indexCount: 2048,
         materialId: 'mat_0',
         bounds: {
-          min: { x: -1, y: -1, z: -1 },
-          max: { x: 1, y: 1, z: 1 },
+          min: [-1, -1, -1],
+          max: [1, 1, 1],
         },
       });
       materials.push({
@@ -84,8 +84,8 @@ export class ModelImporter {
         indexCount: 1024,
         materialId: null,
         bounds: {
-          min: { x: -1, y: 0, z: -1 },
-          max: { x: 1, y: 2, z: 1 },
+          min: [-1, 0, -1],
+          max: [1, 2, 1],
         },
       });
       warnings.push('OBJ format does not support PBR materials');
@@ -97,8 +97,8 @@ export class ModelImporter {
         indexCount: 4096,
         materialId: 'mat_0',
         bounds: {
-          min: { x: -2, y: -2, z: -2 },
-          max: { x: 2, y: 2, z: 2 },
+          min: [-2, -2, -2],
+          max: [2, 2, 2],
         },
       });
       materials.push({

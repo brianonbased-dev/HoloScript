@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readJson, jsonClone } from '../../errors/safeJsonParse';
 import {
   BUILTIN_NORM_PROVENANCE,
   BUILTIN_NORMS,
@@ -82,7 +83,7 @@ describe('NormProvenance — serialize / deserialize round-trip', () => {
       recordedAtIso: '2026-04-19T00:00:00.000Z',
     };
     const wire = JSON.stringify(serializeNormProvenance(original));
-    const restored = deserializeNormProvenance(JSON.parse(wire));
+    const restored = deserializeNormProvenance(readJson(wire) as unknown);
     expect(restored).toEqual(original);
   });
 
@@ -97,7 +98,7 @@ describe('NormProvenance — serialize / deserialize round-trip', () => {
     ];
     for (const source of sources) {
       const wire = JSON.stringify(serializeNormProvenance({ source }));
-      expect(deserializeNormProvenance(JSON.parse(wire)).source).toBe(source);
+      expect(deserializeNormProvenance(readJson(wire) as unknown).source).toBe(source);
     }
   });
 
@@ -214,7 +215,7 @@ describe('CulturalNorm — backward compatibility', () => {
       },
     };
     const wire = JSON.stringify(norm);
-    const restored = JSON.parse(wire) as CulturalNorm;
+    const restored = readJson(wire) as CulturalNorm;
     expect(restored.provenance).toEqual(norm.provenance);
     // Deserialize-via-helper also succeeds.
     expect(deserializeNormProvenance(restored.provenance)).toEqual(norm.provenance);
@@ -231,7 +232,7 @@ describe('CulturalNorm — backward compatibility', () => {
       activationThreshold: 0.5,
       strength: 'moderate',
     };
-    const restored = JSON.parse(JSON.stringify(legacy)) as CulturalNorm;
+    const restored = jsonClone(legacy) as CulturalNorm;
     expect(restored.provenance).toBeUndefined();
     expect(restored).toEqual(legacy);
   });
@@ -280,7 +281,7 @@ describe('CulturalTraceTrait — backward compatibility', () => {
       },
     };
     const wire = JSON.stringify(trace);
-    const restored = JSON.parse(wire) as CulturalTraceTrait;
+    const restored = readJson(wire) as CulturalTraceTrait;
     expect(restored.normProvenance).toEqual(trace.normProvenance);
   });
 });

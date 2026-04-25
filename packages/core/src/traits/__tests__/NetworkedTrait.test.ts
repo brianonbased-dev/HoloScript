@@ -159,7 +159,7 @@ describe('NetworkedTrait', () => {
     it('getState returns a copy (not internal map)', () => {
       t.setProperty('x', 1);
       const state = t.getState();
-      state.x = 999;
+      state[0] = 999;
       expect(t.getProperty('x')).toBe(1);
     });
 

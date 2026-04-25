@@ -19,6 +19,7 @@ import type {
   HoloState,
   HoloLogic,
 } from '../parser/HoloCompositionTypes';
+import { readJson } from '../errors/safeJsonParse';
 
 describe('DTDLCompiler', () => {
   let compiler: DTDLCompiler;
@@ -77,7 +78,7 @@ describe('DTDLCompiler', () => {
 
   // Helper to parse DTDL output
   function parseDTDL(output: string): DTDLInterface[] {
-    return JSON.parse(output);
+    return readJson(output);
   }
 
   describe('Basic Compilation', () => {
@@ -85,7 +86,7 @@ describe('DTDLCompiler', () => {
       const composition = createComposition();
       const output = compiler.compile(composition);
 
-      expect(() => JSON.parse(output)).not.toThrow();
+      expect(() => readJson(output)).not.toThrow();
       const interfaces = parseDTDL(output);
       expect(Array.isArray(interfaces)).toBe(true);
     });
@@ -732,7 +733,7 @@ describe('DTDLCompiler', () => {
       const composition = createComposition();
       const output = compiler.compile(composition);
 
-      expect(() => JSON.parse(output)).not.toThrow();
+      expect(() => readJson(output)).not.toThrow();
       const interfaces = parseDTDL(output);
       expect(interfaces.length).toBeGreaterThan(0);
     });

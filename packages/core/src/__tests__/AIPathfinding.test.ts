@@ -13,19 +13,19 @@ describe('AI & Pathfinding (Cycle 180)', () => {
       nav = new NavMesh();
       // Create a simple 3-node path: A → B → C
       const a = nav.addPolygon([
-        { x: 0, z: 0 },
-        { x: 2, z: 0 },
-        { x: 1, z: 2 },
+        [0, 0, 0],
+        [2, 0, 0],
+        [1, 0, 2],
       ]);
       const b = nav.addPolygon([
-        { x: 2, z: 0 },
-        { x: 4, z: 0 },
-        { x: 3, z: 2 },
+        [2, 0, 0],
+        [4, 0, 0],
+        [3, 0, 2],
       ]);
       const c = nav.addPolygon([
-        { x: 4, z: 0 },
-        { x: 6, z: 0 },
-        { x: 5, z: 2 },
+        [4, 0, 0],
+        [6, 0, 0],
+        [5, 0, 2],
       ]);
       nav.connect(a, b);
       nav.connect(b, c);
@@ -45,9 +45,9 @@ describe('AI & Pathfinding (Cycle 180)', () => {
 
     it('should return null for disconnected polygons', () => {
       const isolated = nav.addPolygon([
-        { x: 100, z: 100 },
-        { x: 102, z: 100 },
-        { x: 101, z: 102 },
+        [100, 0, 100],
+        [102, 0, 100],
+        [101, 0, 102],
       ]);
       expect(nav.findPath(0, isolated)).toBeNull();
     });
@@ -69,8 +69,8 @@ describe('AI & Pathfinding (Cycle 180)', () => {
 
     beforeEach(() => {
       agent = {
-        position: { x: 0, z: 0 },
-        velocity: { x: 1, z: 0 },
+        position: [0, 0, 0],
+        velocity: [1, 0, 0],
         maxSpeed: 5,
         maxForce: 10,
         mass: 1,
@@ -78,36 +78,36 @@ describe('AI & Pathfinding (Cycle 180)', () => {
     });
 
     it('should seek toward a target', () => {
-      const force = SteeringBehavior.seek(agent, { x: 10, z: 0 });
+      const force = SteeringBehavior.seek(agent, [10, 0, 0]);
       expect(force[0]).toBeGreaterThan(0);
     });
 
     it('should flee away from a target', () => {
-      const force = SteeringBehavior.flee(agent, { x: 10, z: 0 });
+      const force = SteeringBehavior.flee(agent, [10, 0, 0]);
       expect(force[0]).toBeLessThan(0);
     });
 
     it('should arrive and decelerate near target', () => {
-      agent.position = { x: 9, z: 0 };
-      const force = SteeringBehavior.arrive(agent, { x: 10, z: 0 }, 5);
+      agent.position = [9, 0, 0];
+      const force = SteeringBehavior.arrive(agent, [10, 0, 0], 5);
       expect(Math.abs(force[0])).toBeLessThan(agent.maxSpeed);
     });
 
     it('should avoid obstacles', () => {
-      const force = SteeringBehavior.avoid(agent, [{ position: { x: 3, z: 0 }, radius: 1 }], 5);
+      const force = SteeringBehavior.avoid(agent, [{ position: [3, 0, 0], radius: 1 }], 5);
       expect(force[0]).toBeLessThan(0); // pushed away
     });
 
     it('should blend multiple steering outputs', () => {
       const result = SteeringBehavior.blend(
         [
-          { force: { x: 5, z: 0 }, type: 'seek', weight: 0.5 },
-          { force: { x: 0, z: 5 }, type: 'avoid', weight: 0.5 },
+          { force: [5, 0, 0], type: 'seek', weight: 0.5 },
+          { force: [0, 0, 5], type: 'avoid', weight: 0.5 },
         ],
         10
       );
-      expect(result.x).toBeGreaterThan(0);
-      expect(result.z).toBeGreaterThan(0);
+      expect(result[0]).toBeGreaterThan(0);
+      expect(result[2]).toBeGreaterThan(0);
     });
   });
 

@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import {
   SemanticDiffEngine,
   semanticDiff,
@@ -651,7 +652,7 @@ describe('diffToJSON', () => {
     const json = diffToJSON(result);
 
     expect(typeof json).toBe('string');
-    const parsed = JSON.parse(json);
+    const parsed = readJson(json) as SemanticDiffResult;
     expect(parsed.equivalent).toBe(true);
   });
 

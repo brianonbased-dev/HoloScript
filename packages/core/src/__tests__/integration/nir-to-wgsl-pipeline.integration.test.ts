@@ -18,6 +18,7 @@ import { NIRCompiler } from '../../compiler/NIRCompiler';
 import { NIRToWGSLCompiler } from '../../compiler/NIRToWGSLCompiler';
 import { validateNIRGraph, type NIRGraph } from '../../compiler/NIRTraitMap';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 // Mock RBAC for tests (W.013 pattern)
 vi.mock('../../compiler/identity/AgentRBAC', async (importOriginal) => {
@@ -82,7 +83,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       expect(nirJson).toBeTruthy();
 
       // Verify the intermediate NIR JSON is parseable
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
       expect(nirGraph.version).toBe('0.5.0');
       expect(nirGraph.nodes).toBeDefined();
       expect(nirGraph.edges).toBeDefined();
@@ -152,7 +153,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
     it('compiles through the full pipeline without errors', () => {
       // Step 1: NIR
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
 
       // Step 2: WGSL
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
@@ -170,7 +171,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
 
     it('preserves topological ordering through the pipeline', () => {
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // Execution order should contain nodes from the graph
@@ -200,7 +201,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
 
     it('generates correct buffer connections between NIR graph edges', () => {
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // Every non-boundary edge in NIR should map to a buffer connection
@@ -301,7 +302,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       });
 
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // spike_encoder is a composite trait that maps to multiple NIR nodes
@@ -338,7 +339,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       });
 
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
 
       // Validate the graph as an intermediate checkpoint
       const validation = validateNIRGraph(nirGraph);
@@ -398,7 +399,7 @@ describe('Integration: NIRCompiler -> NIRToWGSLCompiler Pipeline', () => {
       });
 
       const nirJson = nirCompiler.compile(composition, 'test-token');
-      const nirGraph: NIRGraph = JSON.parse(nirJson);
+      const nirGraph: NIRGraph = readJson(nirJson);
       const wgslResult = wgslCompiler.compileNIRGraph(nirJson);
 
       // The WGSL result should carry the original source name

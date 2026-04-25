@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnrealCompiler, compileToUnreal } from '../UnrealCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -241,7 +242,7 @@ describe('UnrealCompiler — Production', () => {
     const c = new UnrealCompiler({ generateBlueprints: true });
     const result = c.compile(makeComp({ objects: [makeObj('Wall')] }), 'test-token');
     expect(typeof result.blueprintJson).toBe('string');
-    const parsed = JSON.parse(result.blueprintJson!);
+    const parsed = readJson(result.blueprintJson!);
     expect(parsed).toBeDefined();
   });
 

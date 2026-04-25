@@ -362,7 +362,7 @@ describe('E2E: Profiler', () => {
 describe('E2E: LOD Manager', () => {
   it('registers objects and queries levels', () => {
     const mgr = new LODManager({ autoUpdate: false } as any);
-    mgr.register('tree', { x: 0, y: 0, z: 0 }, [
+    mgr.register('tree', [0, 0, 0], [
       { level: 0, maxDistance: 0, meshDetail: 1 },
       { level: 1, maxDistance: 20, meshDetail: 0.5 },
       { level: 2, maxDistance: 50, meshDetail: 0.1 },
@@ -374,7 +374,7 @@ describe('E2E: LOD Manager', () => {
 
   it('forced level override', () => {
     const mgr = new LODManager({ autoUpdate: false } as any);
-    mgr.register('obj', { x: 0, y: 0, z: 0 }, [
+    mgr.register('obj', [0, 0, 0], [
       { level: 0, maxDistance: 0, meshDetail: 1 },
       { level: 1, maxDistance: 20, meshDetail: 0.5 },
       { level: 2, maxDistance: 50, meshDetail: 0.1 },
@@ -629,8 +629,8 @@ describe('E2E: Reactive State', () => {
   });
 
   it('update batch changes', () => {
-    const state = new ReactiveState({ x: 0, y: 0, z: 0 });
-    state.update({ x: 1, y: 2, z: 3 });
+    const state = new ReactiveState([0, 0, 0]);
+    state.update([1, 2, 3]);
     expect(state.get('x')).toBe(1);
     expect(state.get('y')).toBe(2);
     expect(state.get('z')).toBe(3);

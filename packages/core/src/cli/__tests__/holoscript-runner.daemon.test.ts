@@ -3,6 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { readJson } from '../../errors/safeJsonParse';
 
 interface DaemonHarness {
   proc: ChildProcessWithoutNullStreams;
@@ -81,7 +82,7 @@ function startDaemon(): DaemonHarness {
       lines.push(line);
       if (line.startsWith('{') && line.endsWith('}')) {
         try {
-          json.push(JSON.parse(line) as Record<string, unknown>);
+          json.push(readJson(line) as Record<string, unknown>);
         } catch {
           // Ignore non-JSON lines.
         }

@@ -97,15 +97,15 @@ describe('TerrainTexturing', () => {
   });
 
   it('computeTriplanarWeights sums to 1', () => {
-    const w = tex.computeTriplanarWeights({ x: 0.5, y: 0.7, z: 0.3 });
-    const sum = w.x + w.y + w.z;
+    const w = tex.computeTriplanarWeights([0.5, 0.7, 0.3]);
+    const sum = w[0] + w[1] + w[2];
     expect(sum).toBeCloseTo(1);
   });
 
   it('triplanar sharpness concentrates weight on dominant axis', () => {
     tex.setTriplanar({ sharpness: 8 });
-    const w = tex.computeTriplanarWeights({ x: 0, y: 1, z: 0 });
-    expect(w.y).toBeCloseTo(1);
+    const w = tex.computeTriplanarWeights([0, 1, 0]);
+    expect(w[1]).toBeCloseTo(1);
   });
 
   it('detail layers are tracked', () => {

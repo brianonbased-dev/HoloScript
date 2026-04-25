@@ -6,6 +6,8 @@
  * Browser-compatible: Uses in-memory storage when file system unavailable
  */
 
+import { readJson } from '../errors/safeJsonParse';
+
 // Environment detection - safe for both browser and Node
 const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 
@@ -158,7 +160,7 @@ export class PerformanceTracker {
       const fileBaseline = this.nodeStorage.read('baseline.json');
       if (fileBaseline) {
         try {
-          this.baseline = JSON.parse(fileBaseline);
+          this.baseline = readJson(fileBaseline) as PerformanceBaseline;
         } catch {
           // Keep existing baseline
         }
@@ -172,7 +174,7 @@ export class PerformanceTracker {
     const content = this.storage.read(STORAGE_KEY_BASELINE);
     if (content) {
       try {
-        this.baseline = JSON.parse(content);
+        this.baseline = readJson(content) as PerformanceBaseline;
       } catch (e) {
         console.warn('Failed to load baseline metrics:', e);
       }
@@ -301,7 +303,7 @@ export class PerformanceTracker {
     const content = this.storage.read(STORAGE_KEY_HISTORY);
     if (content) {
       try {
-        history = JSON.parse(content);
+        history = readJson(content) as PerformanceMetric[];
       } catch (e) {
         console.warn('Failed to load history:', e);
       }

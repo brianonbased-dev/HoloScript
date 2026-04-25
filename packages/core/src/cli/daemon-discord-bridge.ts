@@ -20,6 +20,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { createHmac } from 'crypto';
+import { readJson } from '../errors/safeJsonParse';
 
 interface BridgeState {
   outboxLineOffset: number;
@@ -95,7 +96,7 @@ function ensureDir(dirPath: string): void {
 function readState(filePath: string): BridgeState {
   try {
     if (!fs.existsSync(filePath)) return { outboxLineOffset: 0 };
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as BridgeState;
+    return readJson(fs.readFileSync(filePath, 'utf-8')) as BridgeState;
   } catch {
     return { outboxLineOffset: 0 };
   }
@@ -121,7 +122,7 @@ function readJsonl(filePath: string): QueueEnvelope[] {
   const out: QueueEnvelope[] = [];
   for (const line of lines) {
     try {
-      const parsed = JSON.parse(line) as QueueEnvelope;
+      const parsed = readJson(line) as QueueEnvelope;
       out.push(parsed);
     } catch {
       // Ignore malformed line; keep bridge alive.

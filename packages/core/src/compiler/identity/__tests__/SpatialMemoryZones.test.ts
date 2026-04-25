@@ -905,7 +905,7 @@ describe('SpatialMemoryZones', () => {
 
       enforcer.validateSpatialOperation(
         'token',
-        { x: 5, y: 5, z: 5 },
+        [5, 5, 5],
         SpatialPermission.SPATIAL_READ
       );
 

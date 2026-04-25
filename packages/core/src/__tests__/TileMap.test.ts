@@ -24,12 +24,12 @@ describe('Cycle 159: Tile Map System', () => {
   it('should convert world and tile coordinates', () => {
     const map = new TileMap(100, 100, 32);
     const tile = map.worldToTile(100, 70);
-    expect(tile.x).toBe(3); // 100/32 = 3.125 → 3
-    expect(tile.y).toBe(2); // 70/32 = 2.1875 → 2
+    expect(tile[0]).toBe(3); // 100/32 = 3.125 → 3
+    expect(tile[1]).toBe(2); // 70/32 = 2.1875 → 2
 
     const world = map.tileToWorld(3, 2);
-    expect(world.x).toBe(96);
-    expect(world.y).toBe(64);
+    expect(world[0]).toBe(96);
+    expect(world[1]).toBe(64);
   });
 
   // -------------------------------------------------------------------------

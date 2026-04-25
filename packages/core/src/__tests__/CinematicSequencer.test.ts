@@ -194,15 +194,15 @@ describe('CameraRig', () => {
     const state = rig.update(0.01);
     // During active shake, offsets should be non-zero
     const hasShake =
-      state.shakeOffset.x !== 0 || state.shakeOffset.y !== 0 || state.shakeOffset.z !== 0;
+      state.shakeOffset[0] !== 0 || state.shakeOffset[1] !== 0 || state.shakeOffset[2] !== 0;
     expect(hasShake).toBe(true);
   });
 
   it('dolly moves along path', () => {
     const rig = new CameraRig({ mode: 'dolly', speed: 10 });
     rig.setDollyPath([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
+      [0, 0, 0],
+      [10, 0, 0],
     ]);
     const before = rig.getState().position[0];
     rig.update(0.5);

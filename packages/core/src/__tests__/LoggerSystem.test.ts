@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { HoloLogger } from '../logging/HoloLogger';
 import {
   LoggerFactory,
@@ -117,7 +118,7 @@ describe('Logger Migration (Cycle 172)', () => {
         logger: 'x',
         timestamp: 123,
       });
-      const parsed = JSON.parse(output);
+      const parsed = readJson(output);
       expect(parsed.level).toBe('warn');
     });
 

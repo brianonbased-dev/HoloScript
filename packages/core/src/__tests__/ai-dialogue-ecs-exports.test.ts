@@ -174,7 +174,7 @@ describe('ECS exports', () => {
 
     const found = world.query(ComponentType.Transform);
     expect(found).toContain(id);
-    expect(world.getTransform(id)?.x).toBe(1);
+    expect(world.getTransform(id)[0]).toBe(1);
   });
 
   it('ECSWorld destroys entities', () => {

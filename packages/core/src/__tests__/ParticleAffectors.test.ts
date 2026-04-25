@@ -81,7 +81,7 @@ describe('ParticleAffectors', () => {
   it('floorBounce reverses vy when below floor', () => {
     const p = particle({ y: -1, vy: -5 });
     floorBounce(0, 0.6)(p, 0.016);
-    expect(p.y).toBe(0);
+    expect(p[1]).toBe(0);
     expect(p.vy).toBeCloseTo(3);
   });
 

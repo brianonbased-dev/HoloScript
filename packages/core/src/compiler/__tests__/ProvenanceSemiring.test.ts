@@ -269,7 +269,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
 
       const result = semiring.add(traits);
       expect(result.deadElements).toHaveLength(2);
-      expect(result.config.z).toBe(1);
+      expect(result.config[2]).toBe(1);
     });
 
     it('DeadElement covers all five subsystem types', () => {

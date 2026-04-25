@@ -141,7 +141,7 @@ describe('Audio Engine exports', () => {
 
   it('AudioEngine updateListener and spatial computation', () => {
     const engine = new AudioEngine();
-    engine.setListenerPosition({ x: 0, y: 0, z: 0 });
+    engine.setListenerPosition([0, 0, 0]);
     engine.play('far-sound', { position: [100, 0, 0], volume: 1 });
     engine.update(0.016);
     const sources = engine.getActiveSources();
@@ -160,7 +160,7 @@ describe('Audio Engine exports', () => {
 
   it('AudioEngine distance attenuation reduces far sources', () => {
     const engine = new AudioEngine();
-    engine.setListenerPosition({ x: 0, y: 0, z: 0 });
+    engine.setListenerPosition([0, 0, 0]);
     engine.play('near', { position: [1, 0, 0], volume: 1 });
     engine.play('far', { position: [50, 0, 0], volume: 1 });
     engine.update(0.016);
@@ -172,8 +172,8 @@ describe('Audio Engine exports', () => {
 
   it('AudioEngine panning biases for lateral sources', () => {
     const engine = new AudioEngine();
-    engine.setListenerPosition({ x: 0, y: 0, z: 0 });
-    engine.setListenerOrientation({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 });
+    engine.setListenerPosition([0, 0, 0]);
+    engine.setListenerOrientation([0, 0, -1], [0, 1, 0]);
     engine.play('right', { position: [5, 0, 0], volume: 1 });
     engine.update(0.016);
     const s = engine.getActiveSources()[0];
@@ -205,11 +205,11 @@ describe('TileMap exports', () => {
   it('TileMap world/tile coordinate conversion', () => {
     const tm = new TileMap(10, 10, 32);
     const tc = tm.worldToTile(100, 64);
-    expect(tc.x).toBe(3);
-    expect(tc.y).toBe(2);
+    expect(tc[0]).toBe(3);
+    expect(tc[1]).toBe(2);
     const wc = tm.tileToWorld(3, 2);
-    expect(wc.x).toBe(96);
-    expect(wc.y).toBe(64);
+    expect(wc[0]).toBe(96);
+    expect(wc[1]).toBe(64);
   });
 
   it('TileMap auto-tiling applies rules', () => {

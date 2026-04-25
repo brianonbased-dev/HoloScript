@@ -26,6 +26,7 @@ import { SyncProtocol, type TransportType, type SyncState } from '@holoscript/me
 import { WebSocketTransport, type NetworkMessage } from '@holoscript/mesh';
 import { WebRTCTransport } from '@holoscript/mesh';
 import { logger } from '../logger';
+import { readJson } from '../errors/safeJsonParse';
 
 export type NetworkSyncMode = 'owner' | 'shared' | 'server';
 export type NetworkChannel = 'reliable' | 'unreliable' | 'ordered';
@@ -610,7 +611,7 @@ export class NetworkedTrait {
         let rotation = [...latest.rotation] as [number, number, number, number];
 
         // Extrapolate Position using linear velocity
-        const vel = props.velocity as { x: number; y: number; z: number } | undefined;
+        const vel = props.velocity as [number, number, number] | undefined;
         if (vel) {
           position[0] += vel[0] * dtSec;
           position[1] += vel[1] * dtSec;
@@ -618,7 +619,7 @@ export class NetworkedTrait {
         }
 
         // Extrapolate Rotation using angular velocity (quaternion integration)
-        const aVel = props.angularVelocity as { x: number; y: number; z: number } | undefined;
+        const aVel = props.angularVelocity as [number, number, number] | undefined;
         if (aVel) {
           const wx = aVel[0] * dtSec;
           const wy = aVel[1] * dtSec;
@@ -951,7 +952,7 @@ export class NetworkedTrait {
   public deserialize(buffer: ArrayBuffer): void {
     const decoder = new TextDecoder();
     const json = decoder.decode(buffer);
-    const state = JSON.parse(json);
+    const state = readJson(json) as Parameters<NetworkedTrait['applyState']>[0];
     this.applyState(state);
   }
 

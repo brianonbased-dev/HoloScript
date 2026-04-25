@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { EditorPersistence } from '../../editor/EditorPersistence';
 import { World } from '@holoscript/engine/ecs/World';
 
@@ -53,7 +54,7 @@ describe('EditorPersistence — Production Tests', () => {
       persistence.save('test');
       const raw = mockLS.getItem('holoscript_scene_test');
       expect(raw).not.toBeNull();
-      expect(() => JSON.parse(raw!)).not.toThrow();
+      expect(() => readJson(raw!)).not.toThrow();
     });
 
     it('overwrites previous save for same name', () => {

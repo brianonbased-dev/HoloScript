@@ -84,7 +84,7 @@ describe('Cycle 112: Particle System', () => {
         ...baseConfig,
         id: `shape_${shape}`,
         emissionShape: shape,
-        shapeParams: { radius: 2, angle: 30, extents: { x: 1, y: 1, z: 1 }, length: 3 },
+        shapeParams: { radius: 2, angle: 30, extents: [1, 1, 1], length: 3 },
       };
       const emitter = new ParticleEmitter(cfg);
       emitter.play();
@@ -130,7 +130,7 @@ describe('Cycle 112: Particle System', () => {
       id: 'gravity',
       type: 'gravity',
       strength: 9.8,
-      direction: { x: 0, y: -1, z: 0 },
+      direction: [0, -1, 0],
     });
 
     const particles = emitter.getAliveParticles();
@@ -192,7 +192,7 @@ describe('Cycle 112: Particle System', () => {
 
   it('should manage force fields', () => {
     const forces = new ParticleForceSystem();
-    forces.addForce({ id: 'f1', type: 'wind', strength: 5, direction: { x: 1, y: 0, z: 0 } });
+    forces.addForce({ id: 'f1', type: 'wind', strength: 5, direction: [1, 0, 0] });
     forces.addForce({ id: 'f2', type: 'turbulence', strength: 2, frequency: 1 });
     expect(forces.getForceCount()).toBe(2);
 

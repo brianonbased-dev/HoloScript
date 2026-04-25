@@ -210,8 +210,8 @@ describe('LightingModel exports', () => {
   it('calculateAttenuation falls off with distance', () => {
     const lm = new LightingModel();
     lm.addLight({ id: 'p', type: 'point', position: [0, 0, 0], range: 10 });
-    const near = lm.calculateAttenuation('p', { x: 1, y: 0, z: 0 });
-    const far = lm.calculateAttenuation('p', { x: 8, y: 0, z: 0 });
+    const near = lm.calculateAttenuation('p', [1, 0, 0]);
+    const far = lm.calculateAttenuation('p', [8, 0, 0]);
     expect(near).toBeGreaterThan(far);
   });
 

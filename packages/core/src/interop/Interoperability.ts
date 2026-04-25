@@ -7,6 +7,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { readJson } from '../errors/safeJsonParse';
 
 /**
  * Module resolver for TypeScript/JavaScript integration
@@ -91,7 +92,9 @@ export class ModuleResolver {
       const packageJsonPath = path.join(nodeModulesPath, 'package.json');
 
       if (fs.existsSync(packageJsonPath)) {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        const packageJson = readJson(fs.readFileSync(packageJsonPath, 'utf-8')) as {
+          main?: string;
+        };
         return this.findModuleFile(path.join(nodeModulesPath, packageJson.main || 'index.js'));
       }
 

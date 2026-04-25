@@ -15,19 +15,20 @@ import type {
   HSPlusCompileResult,
 } from './types/AdvancedTypeSystem';
 
-import type { HSPlusNode } from './types/HoloScriptPlus';
+import type { HSPlusNode, Vector3, Transform } from './types/HoloScriptPlus';
 import type {
   VRTraitName,
   ASTNode,
   SpatialPosition,
   HologramShape,
   HologramProperties,
+  TraitBehavior,
 } from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
 
-export type { TraitBehavior } from './types/index';
-export type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties };
+export type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties, TraitBehavior };
+export type { Vector3, Transform };
 
 // ============================================================================
 // Spatial Types (re-exported from types/base — canonical definitions live there)
@@ -1214,11 +1215,7 @@ export type {
   ShareContent,
   ShareResult,
   ParticleConfig,
-  Vector3,
-  Transform,
 } from './types/HoloScriptPlus';
-
-export type { Vector3, Transform };
 
 // ============================================================================
 // Scene Graph Types (First-Class)

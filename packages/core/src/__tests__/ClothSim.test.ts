@@ -24,8 +24,8 @@ describe('ClothSim', () => {
 
   it('particles start at grid positions', () => {
     const p = cloth.getParticle(5); // row1, col1
-    expect(p?.x).toBeCloseTo(1);
-    expect(p?.z).toBeCloseTo(1);
+    expect(p[0]).toBeCloseTo(1);
+    expect(p[2]).toBeCloseTo(1);
   });
 
   it('pins a particle so it stays fixed', () => {
@@ -34,15 +34,15 @@ describe('ClothSim', () => {
     cloth.update(0.016);
     cloth.update(0.016);
     const after = cloth.getParticle(0)!;
-    expect(after.x).toBeCloseTo(before.x);
-    expect(after.y).toBeCloseTo(before.y);
+    expect(after[0]).toBeCloseTo(before[0]);
+    expect(after[1]).toBeCloseTo(before[1]);
   });
 
   it('unpinned particles fall under gravity', () => {
-    const yBefore = cloth.getParticle(5)!.y;
+    const yBefore = cloth.getParticle(5)![1];
     cloth.update(0.016);
     cloth.update(0.016);
-    expect(cloth.getParticle(5)!.y).toBeLessThan(yBefore);
+    expect(cloth.getParticle(5)![1]).toBeLessThan(yBefore);
   });
 
   it('pinTopRow pins all first-row particles', () => {
@@ -66,7 +66,7 @@ describe('ClothSim', () => {
     for (let i = 0; i < 20; i++) cloth.update(0.016);
     // Bottom-right corner should drift to the right
     const p = cloth.getParticle(15)!;
-    expect(p.x).toBeGreaterThan(3); // original x=3
+    expect(p[0]).toBeGreaterThan(3); // original x=3
   });
 
   it('getGridSize returns correct dimensions', () => {

@@ -56,7 +56,7 @@ describe('CloudRenderer', () => {
 
   it('sampleLighting returns density and transmittance', () => {
     const sample = cloud.sampleLighting(100, 225, 100);
-    expect(sample.position).toEqual({ x: 100, y: 225, z: 100 });
+    expect(sample.position).toEqual([100, 225, 100]);
     expect(typeof sample.density).toBe('number');
     expect(sample.lighting).toBeGreaterThanOrEqual(0);
     expect(sample.lighting).toBeLessThanOrEqual(1);

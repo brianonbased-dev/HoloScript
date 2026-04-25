@@ -124,9 +124,9 @@ function smoothPose(current: JointPose, prev: JointPose, smoothing: number): Joi
       prev.position[2] * s + current.position[2] * inv,
     ],
     rotation: {
-      x: prev.rotation.x * s + current.rotation.x * inv,
-      y: prev.rotation.y * s + current.rotation.y * inv,
-      z: prev.rotation.z * s + current.rotation.z * inv,
+      x: prev.rotation[0] * s + current.rotation[0] * inv,
+      y: prev.rotation[1] * s + current.rotation[1] * inv,
+      z: prev.rotation[2] * s + current.rotation[2] * inv,
       w: prev.rotation.w * s + current.rotation.w * inv,
     },
     confidence: current.confidence,

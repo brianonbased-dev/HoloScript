@@ -184,11 +184,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       // Sync back to internal vertex state
       state.vertices = particles.map((p) => ({
         position: [p.position[0], p.position[1], p.position[2]],
-        restPosition: {
-          x: p.previousPosition[0],
-          y: p.previousPosition[1],
-          z: p.previousPosition[2],
-        },
+        restPosition: [p.previousPosition[0], p.previousPosition[1], p.previousPosition[2]],
         velocity: [p.velocity[0], p.velocity[1], p.velocity[2] ],
         normal: [0, 1, 0 ],
       }));
@@ -213,8 +209,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     if (!state) return;
 
     if (event.type === 'soft_body_vertex_update') {
-      const positions = event.positions as Array<{ x: number; y: number; z: number }>;
-      const normals = (event.normals as Array<{ x: number; y: number; z: number }>) || [];
+      const positions = event.positions as Array<[number, number, number]>;
+      const normals = (event.normals as Array<[number, number, number]>) || [];
 
       // Update vertices
       for (let i = 0; i < positions.length; i++) {
@@ -261,8 +257,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
         });
       }
     } else if (event.type === 'soft_body_apply_force') {
-      const force = event.force as { x: number; y: number; z: number };
-      const position = event.position as { x: number; y: number; z: number } | undefined;
+      const force = event.force as [number, number, number];
+      const position = event.position as [number, number, number] | undefined;
       const radius = (event.radius as number) || 0.1;
 
       context.emit?.('soft_body_external_force', {
@@ -272,14 +268,14 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
         radius,
       });
     } else if (event.type === 'soft_body_poke') {
-      const position = event.position as { x: number; y: number; z: number } | [number, number, number];
+      const position = event.position as [number, number, number] | [number, number, number];
       const force = (event.force as number) || 10;
       const dirInput =
-        (event.direction as { x?: number; y?: number; z?: number } | [number, number, number]) ||
+        (event.direction as [number, number, number] | [number, number, number]) ||
         [0, -1, 0 ];
       const direction: [number, number, number] = Array.isArray(dirInput)
         ? [dirInput[0] ?? 0, dirInput[1] ?? -1, dirInput[2] ?? 0]
-        : [dirInput.x ?? 0, dirInput.y ?? -1, dirInput.z ?? 0];
+        : [dirInput[0] ?? 0, dirInput[1] ?? -1, dirInput[2] ?? 0];
 
       context.emit?.('soft_body_impulse', {
         node,
@@ -289,8 +285,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     } else if (event.type === 'soft_body_set_anchor') {
       const vertexIndex = event.vertexIndex as number;
       const targetPosition = event.targetPosition as
-        | { x: number; y: number; z: number }
-        | undefined;
+        [number, number, number] | undefined;
 
       context.emit?.('soft_body_anchor_vertex', {
         node,
@@ -307,7 +302,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     } else if (event.type === 'soft_body_grab_start') {
       // Grab interaction: find closest vertices and create compliant attachments
       const handId = (event.handId as string) || 'default';
-      const handPosition = event.handPosition as { x: number; y: number; z: number };
+      const handPosition = event.handPosition as [number, number, number];
       const grabRadius = (event.grabRadius as number) || 0.15;
 
       context.emit?.('soft_body_grab_begin', {
@@ -319,7 +314,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     } else if (event.type === 'soft_body_grab_update') {
       // Update grab target as hand moves
       const handId = (event.handId as string) || 'default';
-      const handPosition = event.handPosition as { x: number; y: number; z: number };
+      const handPosition = event.handPosition as [number, number, number];
 
       context.emit?.('soft_body_grab_move', {
         node,

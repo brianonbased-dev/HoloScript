@@ -8,6 +8,7 @@
  */
 
 import { NeuralState } from '../traits/NeuralForgeTrait';
+import { readJson } from '../errors/safeJsonParse';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -37,7 +38,7 @@ export class PersonaLoader {
     try {
       const filePath = path.join(this.storageDir, `${npcId}.json`);
       const data = await fs.readFile(filePath, 'utf-8');
-      return JSON.parse(data) as NeuralState;
+      return readJson(data) as NeuralState;
     } catch (e) {
       return null;
     }

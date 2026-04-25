@@ -381,7 +381,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       // Verify transform component was set
       const transform = world.getComponent<any>(result.stackTop as number, ComponentType.Transform);
-      expect(transform.position).toEqual({ x: 10, y: 5, z: 20 });
+      expect(transform.position).toEqual([10, 5, 20]);
     });
 
     it('UAAL render hologram opcode sets geometry and material', async () => {
@@ -418,7 +418,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       const result = await cognitiveVM.execute(bytecode);
       const transform = world.getComponent<any>(entityId, ComponentType.Transform);
-      expect(transform.position).toEqual({ x: 50, y: 100, z: 200 });
+      expect(transform.position).toEqual([50, 100, 200]);
       expect((result.stackTop as any).teleported).toBe(true);
     });
 
@@ -596,10 +596,10 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       expect(snapshot.timestamp).toBeGreaterThan(0);
 
       const player = snapshot.entities.find((e) => e.name === 'Player');
-      expect(player?.transform?.position).toEqual({ x: 1, y: 2, z: 3 });
+      expect(player?.transform?.position).toEqual([1, 2, 3]);
 
       const enemy = snapshot.entities.find((e) => e.name === 'Enemy');
-      expect(enemy?.transform?.position).toEqual({ x: 10, y: 0, z: 5 });
+      expect(enemy?.transform?.position).toEqual([10, 0, 5]);
     });
 
     it('applyActions batch-mutates the ECS world', () => {
@@ -626,7 +626,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
 
       // Verify move
       const transform = world.getComponent<any>(existingId, ComponentType.Transform);
-      expect(transform.position).toEqual({ x: 99, y: 99, z: 99 });
+      expect(transform.position).toEqual([99, 99, 99]);
 
       // Verify trait
       const entity = world.getEntity(existingId);

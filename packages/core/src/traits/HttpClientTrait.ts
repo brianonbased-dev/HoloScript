@@ -25,6 +25,7 @@ import type {
   TraitContext,
   TraitEvent,
 } from './TraitTypes';
+import { readJson } from '../errors/safeJsonParse';
 
 export interface HttpClientConfig {
   base_url: string;
@@ -119,7 +120,7 @@ async function parseResponse(
   if (response.body !== undefined) {
     if (typeof response.body === 'string') {
       try {
-        return JSON.parse(response.body);
+        return readJson(response.body);
       } catch {
         return response.body;
       }

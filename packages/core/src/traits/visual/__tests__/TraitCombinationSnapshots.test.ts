@@ -11,6 +11,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { readJson } from '../../../errors/safeJsonParse';
 import { TraitCompositor } from '../TraitCompositor';
 import { registerAllPresets } from '../index';
 import {
@@ -348,7 +349,7 @@ describe('AssetManifest', () => {
 
     it('toJSON() produces valid JSON', () => {
       const json = new AssetManifestBuilder('test', '1.0.0').model('rock', 'rock.glb').toJSON();
-      expect(() => JSON.parse(json)).not.toThrow();
+      expect(() => readJson(json)).not.toThrow();
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { SceneSerializer } from '@holoscript/engine/scene';
 import { SceneDeserializer } from '@holoscript/engine/scene';
 import { SceneManager } from '@holoscript/engine/scene';
@@ -74,8 +75,8 @@ describe('Scene Serialization', () => {
       const serializer = new SceneSerializer();
       const json = serializer.toJSON(makeTestScene(), 'json_test');
 
-      expect(() => JSON.parse(json)).not.toThrow();
-      const parsed = JSON.parse(json);
+      expect(() => readJson(json)).not.toThrow();
+      const parsed = readJson(json) as Record<string, unknown>;
       expect(parsed.name).toBe('json_test');
     });
   });

@@ -97,7 +97,7 @@ describe('Cycle 132: Weather & Time of Day', () => {
 
   it('should manage cloud layers', () => {
     const sky = new SkyRenderer();
-    const c1 = sky.addCloudLayer(0.5, 1000, { x: 3, z: 0 });
+    const c1 = sky.addCloudLayer(0.5, 1000, [3, 0, 0]);
     sky.addCloudLayer(0.8, 2000);
 
     expect(sky.getCloudCount()).toBe(2);
@@ -105,7 +105,7 @@ describe('Cycle 132: Weather & Time of Day', () => {
 
     sky.updateClouds(1);
     const layers = sky.getCloudLayers();
-    expect(layers[0].offset.x).toBe(3); // Moved
+    expect(layers[0].offset[0]).toBe(3); // Moved
   });
 
   it('should apply time-of-day presets', () => {

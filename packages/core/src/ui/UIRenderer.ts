@@ -176,9 +176,9 @@ export class UIRenderer {
 
     // Check this node
     const r = this.getWorldRect(node);
-    if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) {
+    if (x >= r[0] && x <= r[0] + r.width && y >= r[1] && y <= r[1] + r.height) {
       if (node.interactive) {
-        return { node, localX: x - r.x, localY: y - r.y };
+        return { node, localX: x - r[0], localY: y - r[1] };
       }
     }
 
@@ -186,12 +186,12 @@ export class UIRenderer {
   }
 
   getWorldRect(node: UINode): UIRect {
-    let x = node.rect.x;
-    let y = node.rect.y;
+    let x = node.rect[0];
+    let y = node.rect[1];
     let p = node.parent;
     while (p) {
-      x += p.rect.x;
-      y += p.rect.y;
+      x += p.rect[0];
+      y += p.rect[1];
       p = p.parent;
     }
     return { x, y, width: node.rect.width, height: node.rect.height };

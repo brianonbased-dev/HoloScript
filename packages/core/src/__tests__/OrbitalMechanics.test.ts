@@ -41,21 +41,21 @@ const CIRCULAR: OrbitalElements = {
 describe('KeplerianCalculator', () => {
   it('calculatePosition returns 3D point', () => {
     const pos = calculatePosition(EARTH, 0);
-    expect(typeof pos.x).toBe('number');
-    expect(typeof pos.y).toBe('number');
-    expect(typeof pos.z).toBe('number');
+    expect(typeof pos[0]).toBe('number');
+    expect(typeof pos[1]).toBe('number');
+    expect(typeof pos[2]).toBe('number');
   });
 
   it('circular orbit at t=0 is at ~1 AU distance', () => {
     const pos = calculatePosition(CIRCULAR, 0);
-    const dist = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+    const dist = Math.sqrt(pos[0] ** 2 + pos[1] ** 2 + pos[2] ** 2);
     expect(dist).toBeCloseTo(1.0, 2);
   });
 
   it('circular orbit distance remains ~1 AU at any time', () => {
     for (const t of [0, 90, 180, 270]) {
       const pos = calculatePosition(CIRCULAR, t);
-      const dist = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+      const dist = Math.sqrt(pos[0] ** 2 + pos[1] ** 2 + pos[2] ** 2);
       expect(dist).toBeCloseTo(1.0, 2);
     }
   });
@@ -64,8 +64,8 @@ describe('KeplerianCalculator', () => {
     const eccentric: OrbitalElements = { ...CIRCULAR, eccentricity: 0.5 };
     const p1 = calculatePosition(eccentric, 0);
     const p2 = calculatePosition(eccentric, eccentric.orbitalPeriod / 2);
-    const d1 = Math.sqrt(p1.x ** 2 + p1.y ** 2 + p1.z ** 2);
-    const d2 = Math.sqrt(p2.x ** 2 + p2.y ** 2 + p2.z ** 2);
+    const d1 = Math.sqrt(p1[0] ** 2 + p1[1] ** 2 + p1[2] ** 2);
+    const d2 = Math.sqrt(p2[0] ** 2 + p2[1] ** 2 + p2[2] ** 2);
     // Periapsis vs apoapsis should differ
     expect(Math.abs(d1 - d2)).toBeGreaterThan(0.1);
   });
@@ -96,8 +96,8 @@ describe('KeplerianCalculator', () => {
 
   it('generateOrbitalPath closes the loop (first == last)', () => {
     const path = generateOrbitalPath(CIRCULAR, 20);
-    expect(path[0].x).toBeCloseTo(path[path.length - 1].x, 5);
-    expect(path[0].y).toBeCloseTo(path[path.length - 1].y, 5);
+    expect(path[0][0]).toBeCloseTo(path[path.length - 1][0], 5);
+    expect(path[0][1]).toBeCloseTo(path[path.length - 1][1], 5);
   });
 });
 

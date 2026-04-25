@@ -73,8 +73,8 @@ describe('StyleResolver', () => {
     resolver.addRule('.a', { x: 'a' });
     resolver.addRule('.b', { x: 'b', y: 'b' });
     const style = resolver.resolve('div', ['a', 'b']);
-    expect(style.x).toBe('b'); // last class wins
-    expect(style.y).toBe('b');
+    expect(style[0]).toBe('b'); // last class wins
+    expect(style[1]).toBe('b');
   });
 
   // fromTokens static factory

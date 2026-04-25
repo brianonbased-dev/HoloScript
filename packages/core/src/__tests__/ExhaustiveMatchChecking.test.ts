@@ -135,7 +135,7 @@ composition "complex" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const orb = result.ast.root || result.ast.children?.[0];
-      const matchExpr = orb.properties?.x;
+      const matchExpr = orb.properties[0];
       expect(matchExpr.sourceLocation).toBeDefined();
       expect(matchExpr.sourceLocation.line).toBeGreaterThan(0);
     });

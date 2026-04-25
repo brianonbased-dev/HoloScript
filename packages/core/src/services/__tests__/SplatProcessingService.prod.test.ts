@@ -13,9 +13,9 @@ function buildSplatBuffer(splats: { x: number; y: number; z: number; sx: number;
   for (let i = 0; i < splats.length; i++) {
     const off = i * 32;
     const s = splats[i];
-    view.setFloat32(off + 0, s.x, true);
-    view.setFloat32(off + 4, s.y, true);
-    view.setFloat32(off + 8, s.z, true);
+    view.setFloat32(off + 0, s[0], true);
+    view.setFloat32(off + 4, s[1], true);
+    view.setFloat32(off + 8, s[2], true);
     view.setFloat32(off + 12, s.sx, true);
     view.setFloat32(off + 16, s.sy, true);
     view.setFloat32(off + 20, s.sz, true);
@@ -64,7 +64,7 @@ describe('SplatProcessingService — Production', () => {
         { x: 100, y: 0, z: 0, sx: 1, sy: 1, sz: 1 },  // Far
       ]);
       const data = await svc.parseSplat(buf);
-      const sorted = svc.sortSplat(data, { x: 0, y: 0, z: 0 });
+      const sorted = svc.sortSplat(data, [0, 0, 0]);
       expect(sorted[0]).toBe(1); // Farthest first
     });
   });
@@ -75,7 +75,7 @@ describe('SplatProcessingService — Production', () => {
         { x: 5, y: 0, z: 0, sx: 2, sy: 2, sz: 2 },
       ]);
       const data = await svc.parseSplat(buf);
-      const hit = svc.intersectRay(data, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+      const hit = svc.intersectRay(data, [0, 0, 0], [1, 0, 0]);
       expect(hit).not.toBeNull();
       expect(hit!.index).toBe(0);
       expect(hit!.distance).toBeGreaterThan(0);
@@ -86,7 +86,7 @@ describe('SplatProcessingService — Production', () => {
         { x: 5, y: 0, z: 0, sx: 0.1, sy: 0.1, sz: 0.1 },
       ]);
       const data = await svc.parseSplat(buf);
-      const hit = svc.intersectRay(data, { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+      const hit = svc.intersectRay(data, [0, 0, 0], [0, 1, 0]);
       expect(hit).toBeNull();
     });
   });

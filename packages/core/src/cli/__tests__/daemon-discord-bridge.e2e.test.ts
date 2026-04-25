@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { spawn, type ChildProcess } from 'child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import * as os from 'os';
@@ -179,7 +180,7 @@ describe('daemon-discord-bridge e2e', () => {
 
       const inboxRaw = readFileSync(inboxPath, 'utf-8').trim().split(/\r?\n/).filter(Boolean);
       expect(inboxRaw.length).toBeGreaterThan(0);
-      const latest = JSON.parse(inboxRaw[inboxRaw.length - 1]) as {
+      const latest = readJson(inboxRaw[inboxRaw.length - 1]) as {
         metadata?: { signature?: string };
         message?: string;
       };

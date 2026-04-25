@@ -120,7 +120,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
     const noonSun = mgr.getEnvironment().skybox.sunPosition!;
 
     // Sun should be higher at noon than sunrise
-    expect(noonSun.y).toBeGreaterThan(sunriseSun.y);
+    expect(noonSun[1]).toBeGreaterThan(sunriseSun[1]);
   });
 
   it('should manage weather and update fog', () => {
@@ -162,7 +162,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
 
     expect(stroke.affectedCells.length).toBeGreaterThan(0);
     // Center should have been raised
-    const centerCell = stroke.affectedCells.find((c) => c.x === 16 && c.z === 16);
+    const centerCell = stroke.affectedCells.find((c) => c[0] === 16 && c[2] === 16);
     expect(centerCell).toBeDefined();
     expect(centerCell!.newHeight).toBeGreaterThan(centerCell!.oldHeight);
   });

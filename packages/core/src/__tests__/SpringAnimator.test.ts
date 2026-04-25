@@ -103,23 +103,23 @@ describe('SpringAnimator', () => {
 
 describe('Vec3SpringAnimator', () => {
   it('initial value matches', () => {
-    const v = new Vec3SpringAnimator({ x: 1, y: 2, z: 3 });
-    expect(v.getValue()).toEqual({ x: 1, y: 2, z: 3 });
+    const v = new Vec3SpringAnimator([1, 2, 3]);
+    expect(v.getValue()).toEqual([1, 2, 3]);
   });
 
   it('animates toward target', () => {
-    const v = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 });
-    v.setTarget({ x: 10, y: 20, z: 30 });
+    const v = new Vec3SpringAnimator([0, 0, 0]);
+    v.setTarget([10, 20, 30]);
     v.update(1 / 60);
     const val = v.getValue();
-    expect(val.x).toBeGreaterThan(0);
-    expect(val.y).toBeGreaterThan(0);
-    expect(val.z).toBeGreaterThan(0);
+    expect(val[0]).toBeGreaterThan(0);
+    expect(val[1]).toBeGreaterThan(0);
+    expect(val[2]).toBeGreaterThan(0);
   });
 
   it('isAtRest when all axes settle', () => {
-    const v = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 });
-    v.setTarget({ x: 5, y: 5, z: 5 });
+    const v = new Vec3SpringAnimator([0, 0, 0]);
+    v.setTarget([5, 5, 5]);
     for (let i = 0; i < 600; i++) v.update(1 / 60);
     expect(v.isAtRest()).toBe(true);
   });

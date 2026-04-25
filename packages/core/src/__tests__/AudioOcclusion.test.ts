@@ -15,14 +15,14 @@ describe('AudioOcclusionSystem', () => {
   });
 
   it('no occlusion without raycast provider', () => {
-    const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    const r = occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(r.occluded).toBe(false);
     expect(r.occlusionFactor).toBe(0);
   });
 
   it('computes occlusion with raycast hits', () => {
     occ.setRaycastProvider(() => [{ distance: 3, materialId: 'glass', thickness: 0.1 }]);
-    const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    const r = occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(r.occluded).toBe(true);
     expect(r.hitCount).toBe(1);
     expect(r.totalTransmissionLoss).toBe(6); // glass=6dB
@@ -34,14 +34,14 @@ describe('AudioOcclusionSystem', () => {
       { distance: 2, materialId: 'glass', thickness: 0.1 },
       { distance: 5, materialId: 'concrete', thickness: 0.3 },
     ]);
-    const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    const r = occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(r.totalTransmissionLoss).toBe(36); // glass 6 + concrete 30
   });
 
   it('caps total loss at maxTransmissionLoss', () => {
     occ.setMaxTransmissionLoss(20);
     occ.setRaycastProvider(() => [{ distance: 2, materialId: 'concrete', thickness: 0.3 }]);
-    const r = occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    const r = occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(r.totalTransmissionLoss).toBe(20);
     expect(r.occlusionFactor).toBe(1); // capped = max
   });
@@ -61,14 +61,14 @@ describe('AudioOcclusionSystem', () => {
 
   it('caches results', () => {
     occ.setRaycastProvider(() => [{ distance: 3, materialId: 'glass', thickness: 0.1 }]);
-    occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(occ.getCachedResult('src1')).toBeDefined();
     expect(occ.getCachedResult('src1')!.hitCount).toBe(1);
   });
 
   it('clearCache removes cached results', () => {
     occ.setRaycastProvider(() => [{ distance: 3, materialId: 'glass', thickness: 0.1 }]);
-    occ.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    occ.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     occ.clearCache();
     expect(occ.getCachedResult('src1')).toBeUndefined();
   });
@@ -85,7 +85,7 @@ describe('AudioOcclusionSystem', () => {
 
   it('same-position source returns non-occluded', () => {
     occ.setRaycastProvider(() => [{ distance: 0, materialId: 'glass', thickness: 0 }]);
-    const r = occ.computeOcclusion({ x: 5, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }, 'src1');
+    const r = occ.computeOcclusion([5, 0, 0], [5, 0, 0], 'src1');
     expect(r.occluded).toBe(false);
   });
 });

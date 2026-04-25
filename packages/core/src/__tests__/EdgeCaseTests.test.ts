@@ -124,12 +124,12 @@ describe('Cycle 110: Edge Case Tests', () => {
   it('should snap to server position when distance exceeds threshold', () => {
     const interp = new NetworkInterpolation({ snapThreshold: 5 });
     const result = interp.smoothCorrection(
-      { x: 0, y: 0, z: 0 },
-      { x: 100, y: 0, z: 0 }, // Far away
+      [0, 0, 0],
+      [100, 0, 0], // Far away
       0.016
     );
     // Should snap directly
-    expect(result.x).toBe(100);
+    expect(result[0]).toBe(100);
   });
 
   // -------------------------------------------------------------------------

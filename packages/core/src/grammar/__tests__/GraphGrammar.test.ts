@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   GraphGrammar,
   NodeType,
@@ -25,7 +26,7 @@ beforeEach(() => {
 describe('GraphGrammar', () => {
   describe('Node creation', () => {
     it('should create non-terminal nodes', () => {
-      const node = createNonTerminal('Village', { x: 0, y: 0, z: 0 });
+      const node = createNonTerminal('Village', [0, 0, 0]);
 
       expect(node.type).toBe(NodeType.NON_TERMINAL);
       expect(node.symbol).toBe('Village');
@@ -34,21 +35,21 @@ describe('GraphGrammar', () => {
     });
 
     it('should create terminal nodes with traits', () => {
-      const node = createTerminal('cube', ['grabbable', 'physics'], { x: 1, y: 2, z: 3 });
+      const node = createTerminal('cube', ['grabbable', 'physics'], [1, 2, 3]);
 
       expect(node.type).toBe(NodeType.TERMINAL);
       expect(node.symbol).toBe('cube');
       expect(node.traits).toEqual(['grabbable', 'physics']);
-      expect(node.transform.position).toEqual({ x: 1, y: 2, z: 3 });
+      expect(node.transform.position).toEqual([1, 2, 3]);
     });
 
     it('should create anchor nodes with bounds', () => {
       const node = createAnchor(
         'spawn',
-        { x: 0, y: 0, z: 0 },
+        [0, 0, 0],
         {
-          min: { x: -10, y: 0, z: -10 },
-          max: { x: 10, y: 5, z: 10 },
+          min: [-10, 0, -10],
+          max: [10, 5, 10],
         }
       );
 
@@ -66,7 +67,7 @@ describe('GraphGrammar', () => {
         symbol: 'Start',
         weight: 1.0,
         tags: [],
-        produce: () => [createTerminal('end', [], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('end', [], [0, 0, 0])],
       });
 
       expect(grammar.getRulesForSymbol('Start').length).toBe(1);
@@ -107,8 +108,8 @@ describe('GraphGrammar', () => {
         weight: 1.0,
         tags: [],
         produce: () => [
-          createTerminal('a', ['visible'], { x: 0, y: 0, z: 0 }),
-          createTerminal('b', ['collidable'], { x: 1, y: 0, z: 0 }),
+          createTerminal('a', ['visible'], [0, 0, 0]),
+          createTerminal('b', ['collidable'], [1, 0, 0]),
         ],
       });
 
@@ -126,14 +127,14 @@ describe('GraphGrammar', () => {
         symbol: 'A',
         weight: 1.0,
         tags: [],
-        produce: () => [createNonTerminal('B', { x: 0, y: 0, z: 0 })],
+        produce: () => [createNonTerminal('B', [0, 0, 0])],
       });
       grammar.addRule({
         id: 'b-to-terminal',
         symbol: 'B',
         weight: 1.0,
         tags: [],
-        produce: () => [createTerminal('leaf', ['visible'], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('leaf', ['visible'], [0, 0, 0])],
       });
 
       const result = grammar.expand({ seed: 42 });
@@ -148,7 +149,7 @@ describe('GraphGrammar', () => {
         symbol: 'Recursive',
         weight: 1.0,
         tags: [],
-        produce: () => [createNonTerminal('Recursive', { x: 0, y: 0, z: 0 })],
+        produce: () => [createNonTerminal('Recursive', [0, 0, 0])],
       });
 
       const result = grammar.expand({ maxDepth: 3, seed: 42 });
@@ -165,7 +166,7 @@ describe('GraphGrammar', () => {
         weight: 1.0,
         tags: [],
         produce: () =>
-          Array.from({ length: 50 }, (_, i) => createNonTerminal('Prolific', { x: i, y: 0, z: 0 })),
+          Array.from({ length: 50 }, (_, i) => createNonTerminal('Prolific', [i, 0, 0])),
       });
 
       const result = grammar.expand({ maxNodes: 20, seed: 42 });
@@ -202,7 +203,7 @@ describe('GraphGrammar', () => {
         symbol: 'Start',
         weight: 1.0,
         tags: [],
-        produce: () => [createTerminal('end', [], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('end', [], [0, 0, 0])],
       });
 
       const result = grammar.expand({ seed: 42 });
@@ -217,14 +218,14 @@ describe('GraphGrammar', () => {
         symbol: 'Start',
         weight: 0.01,
         tags: [],
-        produce: () => [createTerminal('rare', [], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('rare', [], [0, 0, 0])],
       });
       grammar.addRule({
         id: 'common',
         symbol: 'Start',
         weight: 0.99,
         tags: [],
-        produce: () => [createTerminal('common', [], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('common', [], [0, 0, 0])],
       });
 
       // Run many expansions and check the common rule wins most
@@ -246,7 +247,7 @@ describe('GraphGrammar', () => {
         weight: 1.0,
         minDepth: 3,
         tags: [],
-        produce: () => [createTerminal('deep', [], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('deep', [], [0, 0, 0])],
       });
 
       const result = grammar.expand({ seed: 42 });
@@ -263,9 +264,9 @@ describe('GraphGrammar', () => {
         weight: 1.0,
         tags: [],
         produce: () => [
-          createNonTerminal('Item', { x: 0, y: 0, z: 0 }),
-          createNonTerminal('Item', { x: 1, y: 0, z: 0 }),
-          createNonTerminal('Item', { x: 2, y: 0, z: 0 }),
+          createNonTerminal('Item', [0, 0, 0]),
+          createNonTerminal('Item', [1, 0, 0]),
+          createNonTerminal('Item', [2, 0, 0]),
         ],
       });
       grammar.addRule({
@@ -273,7 +274,7 @@ describe('GraphGrammar', () => {
         symbol: 'Item',
         weight: 1.0,
         tags: [],
-        produce: () => [createTerminal('item', ['visible'], { x: 0, y: 0, z: 0 })],
+        produce: () => [createTerminal('item', ['visible'], [0, 0, 0])],
       });
 
       const result = grammar.expand({
@@ -295,7 +296,7 @@ describe('GraphGrammar', () => {
       expect(rule.symbol).toBe('turret');
       expect(rule.tags).toContain('composition');
 
-      const produced = rule.produce(createNonTerminal('turret', { x: 0, y: 0, z: 0 }), {
+      const produced = rule.produce(createNonTerminal('turret', [0, 0, 0]), {
         depth: 0,
         maxDepth: 10,
         seed: 0,
@@ -316,7 +317,7 @@ describe('GraphGrammar', () => {
       expect(rule.id).toBe('tmpl_Soldier');
       expect(rule.symbol).toBe('Soldier');
 
-      const produced = rule.produce(createNonTerminal('Soldier', { x: 0, y: 0, z: 0 }), {
+      const produced = rule.produce(createNonTerminal('Soldier', [0, 0, 0]), {
         depth: 0,
         maxDepth: 10,
         seed: 0,
@@ -354,7 +355,7 @@ describe('GraphGrammar', () => {
     it('should serialize grammar metadata', () => {
       const grammar = createVillageGrammar();
       const serialized = grammar.serialize();
-      const parsed = JSON.parse(serialized);
+      const parsed = readJson(serialized) as { version: number; startSymbol: string; rules: unknown[] };
 
       expect(parsed.version).toBe(1);
       expect(parsed.startSymbol).toBe('Village');

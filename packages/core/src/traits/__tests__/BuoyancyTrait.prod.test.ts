@@ -119,7 +119,7 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
     // First call: buoyancy/net force upward
     const netForce = calls[0][1].force;
     // objectWeight = 500 * 1 * 9.81 = 4905, buoyancy = 1000 * 1 * 1 * 9.81 = 9810, net = 4905
-    expect(netForce.y).toBeCloseTo(4905, 0);
+    expect(netForce[1]).toBeCloseTo(4905, 0);
   });
   it('does NOT emit apply_force when above water (submersionRatio=0)', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: -10 }, 5, 1);
@@ -155,7 +155,7 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
     // 3 forces: buoyancy, drag, flow
     expect(forceCalls.length).toBeGreaterThanOrEqual(3);
     const flowForce = forceCalls[2][1].force;
-    expect(flowForce.x).toBeGreaterThan(0);
+    expect(flowForce[0]).toBeGreaterThan(0);
   });
   it('does NOT emit flow force when flow_strength = 0', () => {
     const { node, cfg, ctx } = attachNode(

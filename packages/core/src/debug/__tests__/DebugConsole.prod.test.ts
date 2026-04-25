@@ -97,7 +97,7 @@ describe('DebugConsole — Production', () => {
     it('unwatch removes variable', () => {
       console_.watchVariable('x', () => 1);
       expect(console_.unwatchVariable('x')).toBe(true);
-      expect(console_.getWatchedValues().x).toBeUndefined();
+      expect(console_.getWatchedValues()[0]).toBeUndefined();
     });
   });
 

@@ -21,14 +21,14 @@ function makeRM() {
   return new ReplicationManager();
 }
 
-const pos0 = () => ({ x: 0, y: 0, z: 0 });
+const pos0 = () => ([0, 0, 0]);
 const quat0 = () => ({ x: 0, y: 0, z: 0, w: 1 });
 
 function makeSnapshot(
   overrides: Partial<{
     position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
-    velocity: { x: number; y: number; z: number };
+    velocity: [number, number, number];
   }> = {}
 ) {
   return {

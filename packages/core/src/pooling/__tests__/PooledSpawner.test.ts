@@ -28,9 +28,9 @@ describe('PooledSpawner', () => {
   });
 
   it('spawn with position and rotation', () => {
-    const entity = spawner.spawn('bullet', { x: 1, y: 2, z: 3 }, { x: 0, y: 90, z: 0 });
-    expect(entity!.position).toEqual({ x: 1, y: 2, z: 3 });
-    expect(entity!.rotation).toEqual({ x: 0, y: 90, z: 0 });
+    const entity = spawner.spawn('bullet', [1, 2, 3], [0, 90, 0]);
+    expect(entity!.position).toEqual([1, 2, 3]);
+    expect(entity!.rotation).toEqual([0, 90, 0]);
   });
 
   it('spawn with custom data', () => {

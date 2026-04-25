@@ -2,6 +2,7 @@
  * Sprint 4 Acceptance Tests â€” v3.13.0
  */
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { HoloScriptTypeChecker } from '../HoloScriptTypeChecker';
 import { TypeAliasRegistry } from '../types/TypeAliasRegistry';
 import { ParallelParser, createParallelParser } from '../parser/ParallelParser';
@@ -216,7 +217,7 @@ describe('SourceMapV2, () => {
     expect(new SourceMapV2().toJSON()).toMatchObject({ version: 3 });
   });
   test('toString valid JSON', () => {
-    expect(() => JSON.parse(new SourceMapV2().toString())).not.toThrow();
+    expect(() => readJson(new SourceMapV2().toString())).not.toThrow();
   });
   test('toInlineComment has base64', () => {
     expect(new SourceMapV2().toInlineComment()).toContain('base64,');
@@ -290,7 +291,7 @@ describe('TreemapGenerator, () => {
     expect(g.generate([{ name: 'a.ts', size: 1 }], 'MyTitle')).toContain('MyTitle');
   });
   test('toJSON parseable', () => {
-    expect(JSON.parse(g.toJSON([{ name: 'a.ts', size: 1 }]))[0].name).toBe('a.ts');
+    expect(readJson(g.toJSON([{ name: 'a.ts', size: 1 }]))[0].name).toBe('a.ts');
   });
   test('empty no throw', () => {
     expect(() => g.generate([])).not.toThrow();
@@ -347,7 +348,7 @@ describe('BundleAnalyzer, () => {
     expect(a.formatTerminal(a.analyze(mk([['a.ts', 500]])))).toContain('Bundle Analysis');
   });
   test('formatJSON parseable', () => {
-    expect(() => JSON.parse(a.formatJSON(a.analyze(mk([['a.ts', 1]]))))).not.toThrow();
+    expect(() => readJson(a.formatJSON(a.analyze(mk([['a.ts', 1]]))))).not.toThrow();
   });
   test('toHTML valid HTML', () => {
     expect(a.toHTML(a.analyze(mk([['a.ts', 1000]])))).toContain('<!DOCTYPE html>');

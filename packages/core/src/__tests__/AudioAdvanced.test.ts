@@ -19,13 +19,13 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
       id: 'room1',
       shape: 'box',
       position: [0, 0, 0],
-      size: { x: 5, y: 3, z: 5 },
+      size: [5, 3, 5],
       reverb: REVERB_PRESETS.room,
       priority: 1,
       fadeDistance: 2,
     });
 
-    system.updateListenerPosition({ x: 2, y: 1, z: 2 });
+    system.updateListenerPosition([2, 1, 2]);
     expect(system.isListenerInsideZone('room1')).toBe(true);
 
     const zones = system.getActiveZones();
@@ -39,14 +39,14 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
       id: 'hall',
       shape: 'sphere',
       position: [0, 0, 0],
-      size: { x: 10, y: 10, z: 10 },
+      size: [10, 10, 10],
       reverb: REVERB_PRESETS.hall,
       priority: 1,
       fadeDistance: 5,
     });
 
     // Outside sphere at distance 12 (2 into fade zone of 5)
-    system.updateListenerPosition({ x: 12, y: 0, z: 0 });
+    system.updateListenerPosition([12, 0, 0]);
     const zones = system.getActiveZones();
     expect(zones).toHaveLength(1);
     expect(zones[0].isInside).toBe(false);
@@ -60,7 +60,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
       id: 'z1',
       shape: 'box',
       position: [0, 0, 0],
-      size: { x: 5, y: 3, z: 5 },
+      size: [5, 3, 5],
       reverb: REVERB_PRESETS.cathedral,
       priority: 2,
       fadeDistance: 3,
@@ -69,13 +69,13 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
       id: 'z2',
       shape: 'box',
       position: [8, 0, 0],
-      size: { x: 5, y: 3, z: 5 },
+      size: [5, 3, 5],
       reverb: REVERB_PRESETS.outdoor,
       priority: 1,
       fadeDistance: 3,
     });
 
-    system.updateListenerPosition({ x: 0, y: 0, z: 0 });
+    system.updateListenerPosition([0, 0, 0]);
     const reverb = system.getEffectiveReverb();
     expect(reverb).not.toBeNull();
     expect(reverb!.decay).toBe(REVERB_PRESETS.cathedral.decay);
@@ -87,7 +87,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
 
   it('should compute no occlusion without obstacles', () => {
     const occlusion = new AudioOcclusionSystem();
-    const result = occlusion.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src1');
+    const result = occlusion.computeOcclusion([0, 0, 0], [10, 0, 0], 'src1');
     expect(result.occluded).toBe(false);
     expect(result.occlusionFactor).toBe(0);
   });
@@ -123,7 +123,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     const occlusion = new AudioOcclusionSystem();
     occlusion.setRaycastProvider((_ray) => [{ distance: 5, materialId: 'wood', thickness: 0.1 }]);
 
-    const result = occlusion.computeOcclusion({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 'src4');
+    const result = occlusion.computeOcclusion([0, 0, 0], [10, 0, 0], 'src4');
     expect(result.occluded).toBe(true);
     expect(result.totalTransmissionLoss).toBe(OCCLUSION_MATERIALS.wood.transmissionLoss);
   });

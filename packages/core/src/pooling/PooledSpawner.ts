@@ -16,9 +16,9 @@ import { ObjectPool } from './ObjectPool';
 export interface SpawnedEntity {
   id: string;
   prefabId: string;
-  position: { x: number; y: number; z: number };
-  rotation: { x: number; y: number; z: number };
-  scale: { x: number; y: number; z: number };
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
   active: boolean;
   lifetime: number; // seconds, 0 = infinite
   elapsed: number;
@@ -56,9 +56,9 @@ export class PooledSpawner {
       factory: () => ({
         id: '',
         prefabId: def.id,
-        position: { x: 0, y: 0, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
         active: false,
         lifetime: 0,
         elapsed: 0,
@@ -67,9 +67,9 @@ export class PooledSpawner {
       reset: (e) => {
         e.active = false;
         e.elapsed = 0;
-        e.position.x = e.position.y = e.position.z = 0;
-        e.rotation.x = e.rotation.y = e.rotation.z = 0;
-        e.scale.x = e.scale.y = e.scale.z = 1;
+        e.position[0] = e.position[1] = e.position[2] = 0;
+        e.rotation[0] = e.rotation[1] = e.rotation[2] = 0;
+        e.scale[0] = e.scale[1] = e.scale[2] = 1;
         e.data = {};
       },
       initialSize: def.poolSize,
@@ -86,8 +86,8 @@ export class PooledSpawner {
 
   spawn(
     prefabId: string,
-    position?: { x: number; y: number; z: number },
-    rotation?: { x: number; y: number; z: number },
+    position?: [number, number, number],
+    rotation?: [number, number, number],
     data?: Record<string, unknown>
   ): SpawnedEntity | null {
     const pool = this.pools.get(prefabId);

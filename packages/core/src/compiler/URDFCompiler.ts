@@ -894,11 +894,10 @@ export class URDFCompiler extends CompilerBase {
       // Extract axis
       if (jointConfig.axis) {
         const axis = jointConfig.axis as
-          | { x?: number; y?: number; z?: number }
-          | [number?, number?, number?];
+          [number, number, number] | [number?, number?, number?];
         joint.axis = Array.isArray(axis)
           ? [axis[0] ?? 0, axis[1] ?? 0, axis[2] ?? 1]
-          : [axis.x ?? 0, axis.y ?? 0, axis.z ?? 1];
+          : [axis[0] ?? 0, axis[1] ?? 0, axis[2] ?? 1];
       }
 
       // Extract limits (for revolute/prismatic joints)

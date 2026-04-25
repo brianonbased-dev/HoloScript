@@ -7,31 +7,31 @@ describe('NavMesh Stress Testing & Fallbacks', () => {
 
     // Island A
     const a1 = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 10 },
-      { x: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 0, 10],
+      [0, 0, 10],
     ]);
     const a2 = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 20, z: 0 },
-      { x: 20, z: 10 },
-      { x: 10, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [20, 0, 10],
+      [10, 0, 10],
     ]);
     nav.connect(a1, a2);
 
     // Island B (disjointed)
     const b1 = nav.addPolygon([
-      { x: 100, z: 0 },
-      { x: 110, z: 0 },
-      { x: 110, z: 10 },
-      { x: 100, z: 10 },
+      [100, 0, 0],
+      [110, 0, 0],
+      [110, 0, 10],
+      [100, 0, 10],
     ]);
     const b2 = nav.addPolygon([
-      { x: 110, z: 0 },
-      { x: 120, z: 0 },
-      { x: 120, z: 10 },
-      { x: 110, z: 10 },
+      [110, 0, 0],
+      [120, 0, 0],
+      [120, 0, 10],
+      [110, 0, 10],
     ]);
     nav.connect(b1, b2);
 
@@ -47,10 +47,10 @@ describe('NavMesh Stress Testing & Fallbacks', () => {
     for (let x = 0; x < GRID_SIZE; x++) {
       for (let z = 0; z < GRID_SIZE; z++) {
         nav.addPolygon([
-          { x: x * 10, z: z * 10 },
-          { x: (x + 1) * 10, z: z * 10 },
-          { x: (x + 1) * 10, z: (z + 1) * 10 },
-          { x: x * 10, z: (z + 1) * 10 },
+          [x * 10, 0, z * 10],
+          [(x + 1) * 10, 0, z * 10],
+          [(x + 1) * 10, 0, (z + 1) * 10],
+          [x * 10, 0, (z + 1) * 10],
         ]);
       }
     }
@@ -84,22 +84,22 @@ describe('NavMesh Stress Testing & Fallbacks', () => {
   it('should fall back gracefully when internal polygon is deleted or walled off', () => {
     const nav = new NavMesh();
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 10 },
-      { x: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 0, 10],
+      [0, 0, 10],
     ]);
     const b = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 20, z: 0 },
-      { x: 20, z: 10 },
-      { x: 10, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [20, 0, 10],
+      [10, 0, 10],
     ]);
     const c = nav.addPolygon([
-      { x: 20, z: 0 },
-      { x: 30, z: 0 },
-      { x: 30, z: 10 },
-      { x: 20, z: 10 },
+      [20, 0, 0],
+      [30, 0, 0],
+      [30, 0, 10],
+      [20, 0, 10],
     ]);
 
     nav.connect(a, b);

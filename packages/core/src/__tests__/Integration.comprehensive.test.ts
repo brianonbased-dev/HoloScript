@@ -119,7 +119,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         array: { items: [1, 2, 3] },
       };
 
-      expect(types.simple.x).toBe(1);
+      expect(types.simple[0]).toBe(1);
       expect(types.nested.outer.inner).toBe('value');
       expect(types.array.items).toEqual([1, 2, 3]);
     });
@@ -129,11 +129,11 @@ describe('Integration Tests - End-to-End Pipeline', () => {
     it('should convert position attributes correctly', () => {
       const attributes = {
         position_array: [0, 1, 2],
-        position_props: { x: 0, y: 1, z: 2 },
+        position_props: [0, 1, 2],
       };
 
       expect(attributes.position_array).toHaveLength(3);
-      expect(attributes.position_props.x).toBe(0);
+      expect(attributes.position_props[0]).toBe(0);
     });
 
     it('should convert color attributes through pipeline', () => {
@@ -161,13 +161,13 @@ describe('Integration Tests - End-to-End Pipeline', () => {
 
     it('should convert rotation attributes through pipeline', () => {
       const rotations = {
-        euler: { x: 0, y: 90, z: 0 },
+        euler: [0, 90, 0],
         quaternion: { x: 0, y: 0.707, z: 0, w: 0.707 },
         axis_angle: { axis: [0, 1, 0], angle: 90 },
       };
 
-      expect(rotations.euler.y).toBe(90);
-      expect(rotations.quaternion.y).toBeCloseTo(0.707, 2);
+      expect(rotations.euler[1]).toBe(90);
+      expect(rotations.quaternion[1]).toBeCloseTo(0.707, 2);
     });
   });
 

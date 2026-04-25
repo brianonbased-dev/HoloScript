@@ -89,8 +89,8 @@ describe('World — component operations', () => {
     const e = w.createEntity();
     w.addComponent(e, 'position', { x: 1, y: 2 });
     const pos = w.getComponent<{ x: number; y: number }>(e, 'position');
-    expect(pos?.x).toBe(1);
-    expect(pos?.y).toBe(2);
+    expect(pos[0]).toBe(1);
+    expect(pos[1]).toBe(2);
   });
 
   it('hasComponent returns true after addComponent', () => {
@@ -132,8 +132,8 @@ describe('World — component operations', () => {
     const e = w.createEntity();
     w.addComponent(e, 'pos', { x: 0, y: 0 });
     const comp = w.getComponent<{ x: number; y: number }>(e, 'pos')!;
-    comp.x = 42;
-    expect(w.getComponent<{ x: number; y: number }>(e, 'pos')?.x).toBe(42);
+    comp[0] = 42;
+    expect(w.getComponent<{ x: number; y: number }>(e, 'pos')[0]).toBe(42);
   });
 
   it('getComponentTypes returns all component type names for entity', () => {

@@ -15,6 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { SpatialTrainingDataGenerator } from '@holoscript/framework/training';
 import type {
   SpatialTrainingJSONLEntry,
@@ -34,7 +35,7 @@ function parseJSONL(jsonl: string): SpatialTrainingJSONLEntry[] {
   const lines = jsonl.split('\n').filter((line) => line.trim() !== '');
   return lines.map((line, idx) => {
     try {
-      return JSON.parse(line) as SpatialTrainingJSONLEntry;
+      return readJson(line) as SpatialTrainingJSONLEntry;
     } catch (e) {
       throw new Error(
         `Failed to parse JSONL line ${idx + 1}: ${(e as Error).message}\nLine: ${line}`
@@ -135,7 +136,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
 
       // Each line must be individually parseable
       for (const line of lines) {
-        expect(() => JSON.parse(line)).not.toThrow();
+        expect(() => readJson(line)).not.toThrow();
       }
 
       // Line count must match example count
@@ -453,7 +454,7 @@ describe('Integration: SpatialTrainingDataGenerator -> JSONL Pipeline', () => {
       const examples = generator.generate();
       const json = generator.exportJSON(examples);
 
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed.length).toBe(examples.length);
 

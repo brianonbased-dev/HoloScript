@@ -101,7 +101,7 @@ export class GodotCompiler extends CompilerBase {
       className: options.className || 'GeneratedScene',
       indent: options.indent || '\t',
       godotVersion: options.godotVersion || '4.3',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

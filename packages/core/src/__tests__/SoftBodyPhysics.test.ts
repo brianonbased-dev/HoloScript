@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { jsonClone } from '../errors/safeJsonParse';
 import {
   SoftBodySolver,
   type Particle,
@@ -15,7 +16,7 @@ describe('SoftBodySolver', () => {
 
   beforeEach(() => {
     // Clone particles to avoid mutation across tests
-    const particles = JSON.parse(JSON.stringify(initialState));
+    const particles = jsonClone(initialState);
     solver = new SoftBodySolver(particles, constraints);
   });
 

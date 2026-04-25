@@ -7,6 +7,8 @@
  * @see https://sourcemaps.info/spec.html
  */
 
+import { readJson } from './errors/safeJsonParse';
+
 // Base64 VLQ encoding characters
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -282,7 +284,7 @@ export class SourceMapConsumer {
   > = new Map();
 
   constructor(sourceMap: SourceMap | string) {
-    this.sourceMap = typeof sourceMap === 'string' ? JSON.parse(sourceMap) : sourceMap;
+    this.sourceMap = typeof sourceMap === 'string' ? (readJson(sourceMap) as SourceMap) : sourceMap;
     this.decodeMappings();
   }
 

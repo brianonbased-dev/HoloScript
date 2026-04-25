@@ -91,7 +91,7 @@ export function noteNameToMidi(name: string): number {
 }
 
 export function zeroVector(): Vec3 {
-  return { x: 0, y: 0, z: 0 };
+  return [0, 0, 0] as unknown as Vec3;
 }
 
 export function defaultOrientation(): Orientation {

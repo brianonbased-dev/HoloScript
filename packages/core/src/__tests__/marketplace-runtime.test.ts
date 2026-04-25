@@ -333,8 +333,8 @@ describe('CultureRuntime', () => {
       valence: 0.9,
       normId: 'resource_sharing',
     });
-    runtime.leaveTrace('agent1', 'zone_a', 'treasure_here', { x: 10, y: 0, z: 10 });
-    const traces = runtime.perceiveTraces('zone_a', { x: 11, y: 0, z: 10 });
+    runtime.leaveTrace('agent1', 'zone_a', 'treasure_here', [10, 0, 10]);
+    const traces = runtime.perceiveTraces('zone_a', [11, 0, 10]);
     expect(traces).toHaveLength(1);
   });
 

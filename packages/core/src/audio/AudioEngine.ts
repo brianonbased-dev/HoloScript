@@ -1,4 +1,4 @@
-type Vec3 = { x: number; y: number; z: number };
+type Vec3 = [number, number, number];
 type Vec3Tuple = [number, number, number];
 
 export interface AudioSourceOptions {
@@ -31,9 +31,9 @@ export class AudioEngine {
   private sources: Map<string, AudioSource> = new Map();
   private masterVolume = 1;
   private masterMuted = false;
-  private listenerPos: Vec3 = { x: 0, y: 0, z: 0 };
-  private listenerForward: Vec3 = { x: 0, y: 0, z: -1 };
-  private listenerUp: Vec3 = { x: 0, y: 1, z: 0 };
+  private listenerPos: Vec3 = [0, 0, 0];
+  private listenerForward: Vec3 = [0, 0, -1];
+  private listenerUp: Vec3 = [0, 1, 0];
   private counter = 0;
 
   play(soundId: string, options: AudioSourceOptions = {}): string {
@@ -42,7 +42,7 @@ export class AudioEngine {
     const toTuple = (v?: Vec3Tuple | Vec3): Vec3Tuple | undefined => {
       if (!v) return undefined;
       if (Array.isArray(v)) return v as Vec3Tuple;
-      return [(v as Vec3).x, (v as Vec3).y, (v as Vec3).z];
+      return [(v as Vec3)[0], (v as Vec3)[1], (v as Vec3)[2]];
     };
 
     const src: AudioSource = {
@@ -103,9 +103,9 @@ export class AudioEngine {
 
   getListener(): { position: Vec3Tuple; forward: Vec3Tuple; up: Vec3Tuple } {
     return {
-      position: [this.listenerPos.x, this.listenerPos.y, this.listenerPos.z],
-      forward: [this.listenerForward.x, this.listenerForward.y, this.listenerForward.z],
-      up: [this.listenerUp.x, this.listenerUp.y, this.listenerUp.z],
+      position: [this.listenerPos[0], this.listenerPos[1], this.listenerPos[2]],
+      forward: [this.listenerForward[0], this.listenerForward[1], this.listenerForward[2]],
+      up: [this.listenerUp[0], this.listenerUp[1], this.listenerUp[2]],
     };
   }
 
@@ -129,9 +129,9 @@ export class AudioEngine {
       let vol = src.volume * this.masterVolume;
 
       if (src.spatialize && src.position) {
-        const dx = src.position[0] - this.listenerPos.x;
-        const dy = src.position[1] - this.listenerPos.y;
-        const dz = src.position[2] - this.listenerPos.z;
+        const dx = src.position[0] - this.listenerPos[0];
+        const dy = src.position[1] - this.listenerPos[1];
+        const dz = src.position[2] - this.listenerPos[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (distance > 0) {
@@ -158,9 +158,9 @@ export class AudioEngine {
   }
 
   private crossNorm(a: Vec3, b: Vec3): Vec3Tuple {
-    const cx = a.y * b.z - a.z * b.y;
-    const cy = a.z * b.x - a.x * b.z;
-    const cz = a.x * b.y - a.y * b.x;
+    const cx = a[1] * b[2] - a[2] * b[1];
+    const cy = a[2] * b[0] - a[0] * b[2];
+    const cz = a[0] * b[1] - a[1] * b[0];
     const len = Math.sqrt(cx * cx + cy * cy + cz * cz) || 1;
     return [cx / len, cy / len, cz / len];
   }

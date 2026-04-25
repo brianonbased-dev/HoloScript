@@ -26,6 +26,7 @@ import {
 } from 'fs';
 import { join } from 'path';
 import { deflateSync, inflateSync } from 'node:zlib';
+import { readJson } from '../errors/safeJsonParse';
 
 /**
  * Cache entry types
@@ -203,7 +204,10 @@ export class BuildCache {
     if (existsSync(this.indexPath)) {
       try {
         const indexData = readFileSync(this.indexPath, 'utf-8');
-        const parsed = JSON.parse(indexData);
+        const parsed = readJson(indexData) as {
+          version: number;
+          entries: Array<{ key: string; meta: CacheEntryMeta }>;
+        };
 
         // Validate version
         if (parsed.version !== this.options.version) {
@@ -325,9 +329,9 @@ export class BuildCache {
       let data: T;
 
       if (meta.compressed) {
-        data = JSON.parse(decompress(rawData));
+        data = readJson(decompress(rawData)) as T;
       } else {
-        data = JSON.parse(rawData);
+        data = readJson(rawData) as T;
       }
 
       // Update access stats
@@ -445,7 +449,9 @@ export class BuildCache {
 
     try {
       const rawData = readFileSync(entryPath, 'utf-8');
-      const data: T = meta.compressed ? JSON.parse(decompress(rawData)) : JSON.parse(rawData);
+      const data: T = (meta.compressed
+        ? readJson(decompress(rawData))
+        : readJson(rawData)) as T;
 
       meta.accessedAt = Date.now();
       meta.accessCount++;

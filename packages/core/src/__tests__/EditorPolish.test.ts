@@ -134,12 +134,12 @@ describe('World Editor Polish (Cycle 169)', () => {
 
     it('should set values with undo history', () => {
       grid.setValue('entity1', 'x', 10);
-      expect(grid.getValues('entity1')?.x).toBe(10);
+      expect(grid.getValues('entity1')[0]).toBe(10);
       expect(grid.getHistoryCount()).toBe(1);
 
       const undone = grid.undo();
       expect(undone?.oldValue).toBe(0);
-      expect(grid.getValues('entity1')?.x).toBe(0);
+      expect(grid.getValues('entity1')[0]).toBe(0);
     });
 
     it('should batch edit across targets', () => {

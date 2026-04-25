@@ -39,7 +39,7 @@ function mockNode(id = 'obj-1', props: Record<string, any> = {}) {
   };
 }
 
-function mockHand(pos: { x: number; y: number; z: number }, pinch = 0): any {
+function mockHand(pos: [number, number, number], pinch = 0): any {
   return {
     position: { ...pos },
     pinchStrength: pinch,
@@ -70,7 +70,7 @@ describe('GrabbableTrait', () => {
   it('grabs when hand is close and pinching', () => {
     const node = mockNode();
     const ctx = mockContext();
-    ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.right = mockHand([0, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'physics_grab',
@@ -81,7 +81,7 @@ describe('GrabbableTrait', () => {
   it('does not grab when hand is too far', () => {
     const node = mockNode();
     const ctx = mockContext();
-    ctx.vr.hands.right = mockHand({ x: 5, y: 5, z: 5 }, 0.95);
+    ctx.vr.hands.right = mockHand([5, 5, 5], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
   });
@@ -91,12 +91,12 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
 
     // First: grab
-    ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.right = mockHand([0, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     ctx.emit.mockClear();
 
     // Then: release (pinch < 0.5)
-    ctx.vr.hands.right = mockHand({ x: 0.1, y: 0, z: 0 }, 0.3);
+    ctx.vr.hands.right = mockHand([0.1, 0, 0], 0.3);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'physics_release',
@@ -109,12 +109,12 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
 
     // Grab
-    ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.right = mockHand([0, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     ctx.emit.mockClear();
 
     // Move hand and release
-    ctx.vr.hands.right = mockHand({ x: 1, y: 0, z: 0 }, 0.1);
+    ctx.vr.hands.right = mockHand([1, 0, 0], 0.1);
     trait.onUpdate(node, ctx as any, 0.016);
 
     const releaseCall = ctx.emit.mock.calls.find((c) => c[0] === 'physics_release');
@@ -128,13 +128,13 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
 
     // Grab with right
-    ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.right = mockHand([0, 0, 0], 0.95);
     ctx.vr.hands.left = null;
     trait.onUpdate(node, ctx as any, 0.016);
     ctx.emit.mockClear();
 
     // Grab with left too
-    ctx.vr.hands.left = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.left = mockHand([0, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'physics_release',
@@ -147,14 +147,14 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
 
     // Both hands close and grabbing
-    ctx.vr.hands.left = mockHand({ x: -0.05, y: 0, z: 0 }, 0.95);
-    ctx.vr.hands.right = mockHand({ x: 0.05, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.left = mockHand([-0.05, 0, 0], 0.95);
+    ctx.vr.hands.right = mockHand([0.05, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016); // grab left
     ctx.emit.mockClear();
 
     // Spread hands apart (double distance)
-    ctx.vr.hands.left = mockHand({ x: -0.1, y: 0, z: 0 }, 0.95);
-    ctx.vr.hands.right = mockHand({ x: 0.1, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.left = mockHand([-0.1, 0, 0], 0.95);
+    ctx.vr.hands.right = mockHand([0.1, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Scale should have increased
@@ -166,7 +166,7 @@ describe('GrabbableTrait', () => {
     const ctx = mockContext();
 
     // Grab first
-    ctx.vr.hands.right = mockHand({ x: 0, y: 0, z: 0 }, 0.95);
+    ctx.vr.hands.right = mockHand([0, 0, 0], 0.95);
     trait.onUpdate(node, ctx as any, 0.016);
     ctx.emit.mockClear();
 
@@ -218,11 +218,11 @@ describe('PressableTrait', () => {
     const node = mockNode('btn-3', { distance: 0.01, triggerPoint: 0.5 });
     const ctx = mockContext();
     // First update captures initial pos
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Move past trigger (0.5 * 0.01 = 0.005)
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0.008 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0.008]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith('ui_press_start', { nodeId: 'btn-3' });
     expect(ctx.haptics.pulse).toHaveBeenCalled();
@@ -233,21 +233,21 @@ describe('PressableTrait', () => {
     const ctx = mockContext();
 
     // Initial
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Press
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0.008 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0.008]);
     trait.onUpdate(node, ctx as any, 0.016);
     ctx.emit.mockClear();
 
     // Partial release (still above releasePoint at 0.3 → 0.003)
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0.004 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0.004]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('ui_press_end', expect.anything());
 
     // Full release (below 0.003)
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0.002 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0.002]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith('ui_press_end', { nodeId: 'btn-4' });
   });
@@ -304,11 +304,11 @@ describe('SlidableTrait', () => {
     const ctx = mockContext();
 
     // First update: initial pos (will emit 0.5 center value)
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Move to max → should emit value ~1.0
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0.1, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0.1, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'ui_value_change',
@@ -324,11 +324,11 @@ describe('SlidableTrait', () => {
     const node = mockNode('slider-3', { axis: 'x', length: 0.2 });
     const ctx = mockContext();
 
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Move way past max
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 10, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([10, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
     // Last emitted value should be clamped to 1
     const calls = ctx.emit.mock.calls.filter((c) => c[0] === 'ui_value_change');
@@ -340,11 +340,11 @@ describe('SlidableTrait', () => {
     const node = mockNode('slider-4', { axis: 'x', length: 1.0 }); // 1m track
     const ctx = mockContext();
 
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
 
     // Move from center (0.5) to 0.6 (cross a 10% boundary)
-    ctx.physics.getBodyPosition.mockReturnValue({ x: 0.15, y: 0, z: 0 });
+    ctx.physics.getBodyPosition.mockReturnValue([0.15, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.haptics.rumble).toHaveBeenCalled();
   });

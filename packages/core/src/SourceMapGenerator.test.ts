@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readJson } from './errors/safeJsonParse';
 import { SourceMapGenerator, SourceMapConsumer } from './SourceMapGenerator';
 
 describe('SourceMapGenerator', () => {
@@ -163,7 +164,7 @@ describe('SourceMapGenerator', () => {
     it('produces JSON string', () => {
       const gen = new SourceMapGenerator({ file: 'out.js' });
       const json = gen.toString();
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json) as { version: number; sources: string[] };
       expect(parsed.version).toBe(3);
     });
 

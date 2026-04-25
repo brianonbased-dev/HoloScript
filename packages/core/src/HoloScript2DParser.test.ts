@@ -307,8 +307,8 @@ describe('HoloScript2DParser', () => {
       const node = parser.parse2DGesture('tap', [100, 200]);
       expect(node).not.toBeNull();
       expect(node!.elementType).toBe('button');
-      expect(node!.properties.x).toBe(100);
-      expect(node!.properties.y).toBe(200);
+      expect(node!.properties[0]).toBe(100);
+      expect(node!.properties[1]).toBe(200);
     });
 
     it('should create textinput on double-tap gesture', () => {

@@ -12,18 +12,14 @@ export interface SpatialAudioSourceConfig {
 }
 
 export class SpatialAudioSource {
-  private position: { x: number; y: number; z: number };
+  private position: [number, number, number];
   private volume: number;
   private playing = false;
   private config: SpatialAudioSourceConfig;
 
   constructor(config: SpatialAudioSourceConfig) {
     this.config = { ...config };
-    this.position = {
-      x: config.position[0],
-      y: config.position[1],
-      z: config.position[2],
-    };
+    this.position = [config.position[0], config.position[1], config.position[2]];
     this.volume = config.volume ?? 1;
   }
 
@@ -37,12 +33,12 @@ export class SpatialAudioSource {
   getVolume(): number { return this.volume; }
   setVolume(v: number): void { this.volume = v; }
 
-  getPosition(): { x: number; y: number; z: number } {
-    return { ...this.position };
+  getPosition(): [number, number, number] {
+    return [...this.position] as [number, number, number];
   }
 
   setPosition(x: number, y: number, z: number): void {
-    this.position = { x, y, z };
+    this.position = [x, y, z];
   }
 
   getConfig(): SpatialAudioSourceConfig {

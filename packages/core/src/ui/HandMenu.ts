@@ -1,5 +1,5 @@
 export interface HandLike {
-  position?: [number, number, number] | { x?: number; y?: number; z?: number };
+  position?: [number, number, number] | [number, number, number];
   rotation?: unknown;
   orientation?: unknown;
 }
@@ -37,7 +37,7 @@ const MENU_Y_OFFSET = 0.12;
 const TOGGLE_DEBOUNCE_MS = 250;
 
 function coord(
-  value: [number, number, number] | { x?: number; y?: number; z?: number } | undefined,
+  value: [number, number, number] | [number, number, number] | undefined,
   index: 0 | 1 | 2,
   key: 'x' | 'y' | 'z'
 ): number {

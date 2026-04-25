@@ -103,6 +103,8 @@ export interface HoloComposition extends HoloNode {
   timelines: HoloTimeline[];
   audio: HoloAudio[];
   zones: HoloZone[];
+  /** Declarative world blocks (environment / physics container). */
+  worlds?: HoloWorld[];
   ui?: HoloUI;
   transitions: HoloTransition[];
   conditionals: HoloConditionalBlock[];
@@ -281,6 +283,23 @@ export interface HoloZone extends HoloNode {
 
 export interface HoloZoneProperty extends HoloNode {
   type: 'ZoneProperty';
+  key: string;
+  value: HoloValue;
+}
+
+// =============================================================================
+// WORLD (scene environment / physics container)
+// =============================================================================
+
+export interface HoloWorld extends HoloNode {
+  type: 'World';
+  name?: string;
+  properties?: HoloWorldProperty[];
+  children?: HoloObjectDecl[];
+}
+
+export interface HoloWorldProperty extends HoloNode {
+  type: 'WorldProperty';
   key: string;
   value: HoloValue;
 }

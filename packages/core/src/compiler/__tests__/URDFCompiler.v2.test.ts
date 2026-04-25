@@ -191,7 +191,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]
@@ -213,7 +213,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]
@@ -246,7 +246,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]
@@ -267,7 +267,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
           mimic: {
             joint: 'leader_joint',
@@ -586,7 +586,7 @@ describe('URDFCompiler v2.0 — Mimic Joints', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: 0, max: 45 },
           mimic: {
             joint: 'finger_left_joint',
@@ -610,7 +610,7 @@ describe('URDFCompiler v2.0 — Mimic Joints', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -180, max: 180 },
           mimic: {
             joint: 'gear_leader_joint',
@@ -640,7 +640,7 @@ describe('URDFCompiler v2.0 — Safety Controllers', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
           safetyController: {
             softLowerLimit: -1.2,
@@ -669,7 +669,7 @@ describe('URDFCompiler v2.0 — Safety Controllers', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
         },
       ]
     );
@@ -802,7 +802,7 @@ describe('URDFCompiler v2.0 — Convenience Functions', () => {
           {
             name: 'joint',
             jointType: 'revolute',
-            axis: { x: 0, y: 0, z: 1 },
+            axis: [0, 0, 1],
             limits: { min: -90, max: 90 },
           },
         ]
@@ -1030,7 +1030,7 @@ describe('URDFCompiler v2.0 — Joint Type Mapping', () => {
         {
           name: 'joint',
           jointType,
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
         },
       ]
     );
@@ -1298,7 +1298,7 @@ describe('URDFCompiler v2.0 — Full Integration', () => {
               name: 'joint',
               jointType: 'revolute',
               connectedBody: 'base',
-              axis: { x: 0, y: 0, z: 1 },
+              axis: [0, 0, 1],
               limits: { min: -180, max: 180, effort: 100, velocity: 2 },
               damping: 0.5,
               friction: 0.1,
@@ -1387,7 +1387,7 @@ describe('URDFCompiler v2.0 — Full Integration', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]
@@ -1461,7 +1461,7 @@ describe('URDFCompiler v2.0 — Package Name', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]
@@ -1483,7 +1483,7 @@ describe('URDFCompiler v2.0 — Package Name', () => {
         {
           name: 'joint',
           jointType: 'revolute',
-          axis: { x: 0, y: 0, z: 1 },
+          axis: [0, 0, 1],
           limits: { min: -90, max: 90 },
         },
       ]

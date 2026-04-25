@@ -7,7 +7,7 @@ import { RaycastSystem, type Ray, type Collider } from '@holoscript/engine/physi
 
 describe('RaycastSystem', () => {
   let rs: RaycastSystem;
-  const xRay: Ray = { origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } };
+  const xRay: Ray = { origin: [-5, 0, 0], direction: [1, 0, 0] };
 
   beforeEach(() => {
     rs = new RaycastSystem();
@@ -17,7 +17,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'box',
       type: 'aabb',
-      shape: { min: { x: 1, y: -1, z: -1 }, max: { x: 3, y: 1, z: 1 } },
+      shape: { min: [1, -1, -1], max: [3, 1, 1] },
       layer: 1,
     });
     const hit = rs.raycast(xRay);
@@ -30,7 +30,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'box',
       type: 'aabb',
-      shape: { min: { x: 1, y: 5, z: 5 }, max: { x: 3, y: 6, z: 6 } },
+      shape: { min: [1, 5, 5], max: [3, 6, 6] },
       layer: 1,
     });
     expect(rs.raycast(xRay)).toBeNull();
@@ -40,7 +40,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'ball',
       type: 'sphere',
-      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 1,
     });
     const hit = rs.raycast(xRay);
@@ -52,7 +52,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'ball',
       type: 'sphere',
-      shape: { center: { x: 5, y: 10, z: 0 }, radius: 1 },
+      shape: { center: [5, 10, 0], radius: 1 },
       layer: 1,
     });
     expect(rs.raycast(xRay)).toBeNull();
@@ -62,7 +62,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'wall',
       type: 'plane',
-      shape: { normal: { x: 1, y: 0, z: 0 }, distance: -3 },
+      shape: { normal: [1, 0, 0], distance: -3 },
       layer: 1,
     });
     const hit = rs.raycast(xRay);
@@ -71,11 +71,11 @@ describe('RaycastSystem', () => {
   });
 
   it('ray-plane parallel returns null', () => {
-    const upRay: Ray = { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 1, z: 0 } };
+    const upRay: Ray = { origin: [0, 0, 0], direction: [0, 1, 0] };
     rs.addCollider({
       entityId: 'wall',
       type: 'plane',
-      shape: { normal: { x: 0, y: 0, z: 1 }, distance: 5 },
+      shape: { normal: [0, 0, 1], distance: 5 },
       layer: 1,
     });
     expect(rs.raycast(upRay)).toBeNull();
@@ -85,7 +85,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'a',
       type: 'sphere',
-      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 2,
     });
     expect(rs.raycast(xRay, Infinity, 1)).toBeNull(); // mask=1, layer=2 → no hit
@@ -96,13 +96,13 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: { x: 10, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [10, 0, 0], radius: 1 },
       layer: 1,
     });
     rs.addCollider({
       entityId: 'near',
       type: 'sphere',
-      shape: { center: { x: 3, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [3, 0, 0], radius: 1 },
       layer: 1,
     });
     const hits = rs.raycastAll(xRay);
@@ -114,7 +114,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: { x: 100, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [100, 0, 0], radius: 1 },
       layer: 1,
     });
     expect(rs.raycast(xRay, 10)).toBeNull();
@@ -124,7 +124,7 @@ describe('RaycastSystem', () => {
     rs.addCollider({
       entityId: 'x',
       type: 'sphere',
-      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 1,
     });
     rs.removeCollider('x');

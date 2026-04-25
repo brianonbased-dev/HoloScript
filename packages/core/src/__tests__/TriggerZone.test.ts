@@ -19,7 +19,7 @@ function sphereZone(): TriggerZoneConfig {
 function boxZone(): TriggerZoneConfig {
   return {
     id: 'zone2',
-    shape: { type: 'box', position: [50, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
+    shape: { type: 'box', position: [50, 0, 0], halfExtents: [5, 5, 5] },
     enabled: true,
     tags: ['shop'],
   };

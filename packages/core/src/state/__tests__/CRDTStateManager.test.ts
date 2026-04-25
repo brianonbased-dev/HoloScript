@@ -32,28 +32,28 @@ describe('CRDTStateManager', () => {
     it('should accept new key operations', () => {
       const op: CRDTOperation = { clientId: 'client-B', clock: 1, key: 'x', value: 42 };
       expect(crdt.reconcile(op)).toBe(true);
-      expect(crdt.getSnapshot().x).toBe(42);
+      expect(crdt.getSnapshot()[0]).toBe(42);
     });
 
     it('should accept higher clock updates', () => {
       crdt.reconcile({ clientId: 'client-B', clock: 1, key: 'x', value: 10 });
       const accepted = crdt.reconcile({ clientId: 'client-B', clock: 2, key: 'x', value: 20 });
       expect(accepted).toBe(true);
-      expect(crdt.getSnapshot().x).toBe(20);
+      expect(crdt.getSnapshot()[0]).toBe(20);
     });
 
     it('should reject lower clock updates', () => {
       crdt.reconcile({ clientId: 'client-B', clock: 5, key: 'x', value: 50 });
       const rejected = crdt.reconcile({ clientId: 'client-B', clock: 3, key: 'x', value: 30 });
       expect(rejected).toBe(false);
-      expect(crdt.getSnapshot().x).toBe(50);
+      expect(crdt.getSnapshot()[0]).toBe(50);
     });
 
     it('should tie-break by clientId (lexicographic)', () => {
       crdt.reconcile({ clientId: 'client-A', clock: 1, key: 'x', value: 'A' });
       const result = crdt.reconcile({ clientId: 'client-B', clock: 1, key: 'x', value: 'B' });
       expect(result).toBe(true); // B > A lexicographically
-      expect(crdt.getSnapshot().x).toBe('B');
+      expect(crdt.getSnapshot()[0]).toBe('B');
     });
   });
 

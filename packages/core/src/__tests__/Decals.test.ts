@@ -11,13 +11,13 @@ describe('Cycle 138: Decals & Projectors', () => {
     const d1 = ds.spawn({
       textureId: 'blood',
       position: [0, 0, 0],
-      normal: { x: 0, y: 1, z: 0 },
+      normal: [0, 1, 0],
       lifetime: 5,
     });
     const d2 = ds.spawn({
       textureId: 'crack',
       position: [1, 0, 0],
-      normal: { x: 0, y: 1, z: 0 },
+      normal: [0, 1, 0],
       lifetime: 3,
     });
 
@@ -30,7 +30,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     const d3 = ds.spawn({
       textureId: 'scorch',
       position: [2, 0, 0],
-      normal: { x: 0, y: 1, z: 0 },
+      normal: [0, 1, 0],
     });
     expect(d3).toBeDefined();
   });
@@ -40,7 +40,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     ds.spawn({
       textureId: 'test',
       position: [0, 0, 0],
-      normal: { x: 0, y: 1, z: 0 },
+      normal: [0, 1, 0],
       lifetime: 2,
       fadeInDuration: 0.5,
       fadeOutDuration: 0.5,
@@ -68,7 +68,7 @@ describe('Cycle 138: Decals & Projectors', () => {
       ds.spawn({
         textureId: `tex${i}`,
         position: [i, 0, 0],
-        normal: { x: 0, y: 1, z: 0 },
+        normal: [0, 1, 0],
       });
     }
 
@@ -83,7 +83,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     const pl = new ProjectorLight();
     pl.create({
       position: [0, 10, 0],
-      direction: { x: 0, y: -1, z: 0 },
+      direction: [0, -1, 0],
       cookieTextureId: 'spotlight_cookie',
       fov: 60,
       aspectRatio: 1,
@@ -99,10 +99,10 @@ describe('Cycle 138: Decals & Projectors', () => {
     expect(pl.getCount()).toBe(1);
 
     // Point directly below at distance 5 should be in frustum
-    expect(pl.isPointInFrustum('spot1', { x: 0, y: 5, z: 0 })).toBe(true);
+    expect(pl.isPointInFrustum('spot1', [0, 5, 0])).toBe(true);
 
     // Point way off to the side should not be in frustum
-    expect(pl.isPointInFrustum('spot1', { x: 100, y: 5, z: 0 })).toBe(false);
+    expect(pl.isPointInFrustum('spot1', [100, 5, 0])).toBe(false);
   });
 
   it('should compute falloff attenuation', () => {
@@ -110,7 +110,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     pl.create({
       id: 'p1',
       position: [0, 0, 0],
-      direction: { x: 0, y: 0, z: 1 },
+      direction: [0, 0, 1],
       cookieTextureId: 'cookie',
       fov: 90,
       aspectRatio: 1,
@@ -147,7 +147,7 @@ describe('Cycle 138: Decals & Projectors', () => {
       });
     }
 
-    const batches = batcher.buildBatches({ x: 0, y: 0, z: 0 });
+    const batches = batcher.buildBatches([0, 0, 0]);
     expect(batches.length).toBeGreaterThan(0);
 
     const stats = batcher.getStats();
@@ -178,8 +178,8 @@ describe('Cycle 138: Decals & Projectors', () => {
     });
 
     const batches = batcher.buildBatches(
-      { x: 0, y: 0, z: 0 },
-      (pos) => pos.x < 100 // Simple frustum test
+      [0, 0, 0],
+      (pos) => pos[0] < 100 // Simple frustum test
     );
 
     const stats = batcher.getStats();

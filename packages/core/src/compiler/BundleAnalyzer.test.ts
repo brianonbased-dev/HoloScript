@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import {
   BundleAnalyzer,
   createBundleAnalyzer,
@@ -377,7 +378,7 @@ describe('BundleAnalyzer', () => {
       const report = analyzer.analyze(input);
       const json = analyzer.generateJsonReport(report);
 
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json) as Record<string, unknown>;
       expect(parsed.version).toBe('1.0.0');
       expect(parsed.modules).toBeDefined();
       expect(parsed.chunks).toBeDefined();

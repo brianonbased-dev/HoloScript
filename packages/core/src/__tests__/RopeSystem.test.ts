@@ -12,18 +12,18 @@ describe('RopeSystem', () => {
   });
 
   it('createRope and getRopeCount', () => {
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 0 });
+    rs.createRope('r1', [0, 10, 0], [0, 0, 0]);
     expect(rs.getRopeCount()).toBe(1);
   });
 
   it('createRope generates correct number of nodes', () => {
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 0 }, { segmentCount: 5 });
+    rs.createRope('r1', [0, 10, 0], [0, 0, 0], { segmentCount: 5 });
     const nodes = rs.getRopeNodes('r1');
     expect(nodes).toHaveLength(6); // segments + 1
   });
 
   it('nodes are interpolated between start and end', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { segmentCount: 2 });
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0], { segmentCount: 2 });
     const nodes = rs.getRopeNodes('r1');
     expect(nodes[0].position[0]).toBeCloseTo(0);
     expect(nodes[1].position[0]).toBeCloseTo(5);
@@ -31,18 +31,18 @@ describe('RopeSystem', () => {
   });
 
   it('pinNode prevents movement', () => {
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 0 }, { segmentCount: 5 });
+    rs.createRope('r1', [0, 10, 0], [0, 0, 0], { segmentCount: 5 });
     rs.pinNode('r1', 0);
     const posBefore = { ...rs.getRopeNodes('r1')[0].position };
     rs.update(0.016); // one frame
     const posAfter = rs.getRopeNodes('r1')[0].position;
-    expect(posAfter.x).toBeCloseTo(posBefore.x);
-    expect(posAfter.y).toBeCloseTo(posBefore.y);
-    expect(posAfter.z).toBeCloseTo(posBefore.z);
+    expect(posAfter[0]).toBeCloseTo(posBefore[0]);
+    expect(posAfter[1]).toBeCloseTo(posBefore[1]);
+    expect(posAfter[2]).toBeCloseTo(posBefore[2]);
   });
 
   it('unpinNode allows movement', () => {
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 0 }, { segmentCount: 3 });
+    rs.createRope('r1', [0, 10, 0], [0, 0, 0], { segmentCount: 3 });
     rs.pinNode('r1', 1);
     expect(rs.getRopeNodes('r1')[1].pinned).toBe(true);
     rs.unpinNode('r1', 1);
@@ -50,7 +50,7 @@ describe('RopeSystem', () => {
   });
 
   it('update applies gravity to unpinned nodes', () => {
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 10, y: 10, z: 0 }, { segmentCount: 2 });
+    rs.createRope('r1', [0, 10, 0], [10, 10, 0], { segmentCount: 2 });
     const yBefore = rs.getRopeNodes('r1')[1].position[1];
     rs.update(0.1);
     const yAfter = rs.getRopeNodes('r1')[1].position[1];
@@ -59,27 +59,27 @@ describe('RopeSystem', () => {
   });
 
   it('getRopeLength computes total length', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { segmentCount: 2 });
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0], { segmentCount: 2 });
     const len = rs.getRopeLength('r1');
     expect(len).toBeCloseTo(10, 0);
   });
 
   it('getTension is 0 for relaxed rope', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { segmentCount: 2 });
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0], { segmentCount: 2 });
     // Before simulation, segments match ideal length → tension ≈ 0
     const tension = rs.getTension('r1', 0);
     expect(tension).toBeCloseTo(0, 1);
   });
 
   it('attach adds attachment to rope', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 });
-    rs.attach('r1', { nodeIndex: 0, entityId: 'hook', offset: { x: 0, y: 0, z: 0 } });
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0]);
+    rs.attach('r1', { nodeIndex: 0, entityId: 'hook', offset: [0, 0, 0] });
     // No crash — attachment stored
     expect(rs.getRopeCount()).toBe(1);
   });
 
   it('removeRope deletes rope', () => {
-    rs.createRope('r1', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 });
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0]);
     rs.removeRope('r1');
     expect(rs.getRopeCount()).toBe(0);
     expect(rs.getRopeNodes('r1')).toHaveLength(0);
@@ -92,8 +92,8 @@ describe('RopeSystem', () => {
   it('constraint solving maintains segment length', () => {
     rs.createRope(
       'r1',
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
+      [0, 0, 0],
+      [10, 0, 0],
       { segmentCount: 4, iterations: 20, elasticity: 1 }
     );
     rs.pinNode('r1', 0);

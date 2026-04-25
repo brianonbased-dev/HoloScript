@@ -55,7 +55,7 @@ describe('HumanoidLoader — Production', () => {
 
   describe('setLookAt', () => {
     it('no-ops for missing avatar', () => {
-      loader.setLookAt('missing', { x: 0, y: 0, z: 1 });
+      loader.setLookAt('missing', [0, 0, 1]);
     });
   });
 

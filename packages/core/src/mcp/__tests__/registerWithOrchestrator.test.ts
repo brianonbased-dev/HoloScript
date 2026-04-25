@@ -15,6 +15,7 @@ import {
   type RegistrationConfig,
 } from '../registerWithOrchestrator';
 import { HOLOSCRIPT_MCP_TOOLS } from '../HoloScriptMCPAdapter';
+import { readJson } from '../../errors/safeJsonParse';
 
 // =============================================================================
 // MOCK SETUP
@@ -216,7 +217,7 @@ describe('registerWithOrchestrator', () => {
 
     // Verify the registration body includes the custom id
     const registerCall = mockFetch.mock.calls[1];
-    const body = JSON.parse(registerCall[1].body);
+    const body = readJson(registerCall[1].body as string);
     expect(body.id).toBe('custom-holo');
   });
 
@@ -232,7 +233,7 @@ describe('registerWithOrchestrator', () => {
     await registerWithOrchestrator();
 
     const registerCall = mockFetch.mock.calls[1];
-    const body = JSON.parse(registerCall[1].body);
+    const body = readJson(registerCall[1].body as string);
     expect(body.tools).toHaveLength(5);
 
     // Tools are serialized as string names

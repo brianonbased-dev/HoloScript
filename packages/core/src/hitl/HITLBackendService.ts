@@ -9,6 +9,7 @@
  */
 
 import { logger } from '../logger';
+import { readJson } from '../errors/safeJsonParse';
 
 // =============================================================================
 // TYPES
@@ -477,7 +478,9 @@ export class HITLBackendService {
 
         this.ws.onmessage = (event) => {
           try {
-            const message = JSON.parse(event.data);
+            const message = readJson(
+              typeof event.data === 'string' ? event.data : String(event.data)
+            ) as Record<string, unknown>;
             this.handleMessage(message);
           } catch (err) {
             logger.error('[HITLBackend] Failed to parse message', { error: String(err) });

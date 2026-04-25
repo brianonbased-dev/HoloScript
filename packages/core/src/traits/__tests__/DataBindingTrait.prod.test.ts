@@ -232,7 +232,7 @@ describe('dataBindingHandler.onEvent — data_binding_data', () => {
       type: 'data_binding_data',
       data: { other: 1 },
     });
-    expect((node as any).x).toBeUndefined();
+    expect((node as any)[0]).toBeUndefined();
   });
   it('does not apply numeric binding immediately when interpolation=true', () => {
     const { node, ctx, config } = attach({

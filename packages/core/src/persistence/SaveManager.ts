@@ -7,6 +7,8 @@
  * @module persistence
  */
 
+import { jsonClone, readJson } from '../errors/safeJsonParse';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -81,7 +83,7 @@ export class SaveManager {
       id: slotId,
       name,
       timestamp: Date.now(),
-      data: JSON.parse(serialized), // Deep copy
+      data: jsonClone(data), // Deep copy
       checksum: this.computeChecksum(serialized),
       version: this.config.version,
       playtime: this.playtime,
@@ -104,7 +106,7 @@ export class SaveManager {
       return null; // Corrupt
     }
 
-    this.currentData = JSON.parse(serialized);
+    this.currentData = readJson(serialized) as Record<string, unknown>;
     for (const listener of this.loadListeners) listener(slot);
     return this.currentData;
   }
@@ -170,7 +172,7 @@ export class SaveManager {
 
   importAll(json: string): number {
     try {
-      const slots: SaveSlot[] = JSON.parse(json);
+      const slots = readJson(json) as SaveSlot[];
       for (const slot of slots) this.slots.set(slot.id, slot);
       return slots.length;
     } catch {

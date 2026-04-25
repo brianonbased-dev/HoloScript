@@ -23,6 +23,7 @@ import {
   handleAgentCreate,
   type MCPToolResult,
 } from '../HoloScriptMCPAdapter';
+import { readJson } from '../../errors/safeJsonParse';
 
 // Mock the RBAC check so compilers pass without real tokens
 vi.mock('../../compiler/identity/AgentRBAC', async (importOriginal) => {
@@ -308,7 +309,7 @@ describe('handleGenerateSpatialTraining', () => {
     const lines = data.content.split('\n').filter((l) => l.trim());
     expect(lines.length).toBe(data.exampleCount);
     for (const line of lines) {
-      expect(() => JSON.parse(line)).not.toThrow();
+      expect(() => readJson(line)).not.toThrow();
     }
   });
 

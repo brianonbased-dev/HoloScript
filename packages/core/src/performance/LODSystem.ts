@@ -50,16 +50,16 @@ export class LODSystem {
    * Update all LOD levels based on camera position.
    */
   update(
-    cameraPos: { x: number; y: number; z: number },
-    entityPositions: Map<string, { x: number; y: number; z: number }>
+    cameraPos: [number, number, number],
+    entityPositions: Map<string, [number, number, number]>
   ): void {
     for (const [entityId, config] of this.configs) {
       const pos = entityPositions.get(entityId);
       if (!pos) continue;
 
-      const dx = pos.x - cameraPos.x;
-      const dy = pos.y - cameraPos.y;
-      const dz = pos.z - cameraPos.z;
+      const dx = pos[0] - cameraPos[0];
+      const dy = pos[1] - cameraPos[1];
+      const dz = pos[2] - cameraPos[2];
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       // Find the appropriate LOD level

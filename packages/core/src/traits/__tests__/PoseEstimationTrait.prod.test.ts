@@ -234,7 +234,7 @@ describe("onEvent 'pose_detected'", () => {
     });
     // Store the first pose in buffer
     const poseAfterFirst = getState(node).detected_pose!;
-    expect(poseAfterFirst[0].x).toBeCloseTo(50, 1);
+    expect(poseAfterFirst[0][0]).toBeCloseTo(50, 1);
 
     // Second detection: smoothing=0 → result = current * 1 + prev * 0 = current
     const kps2 = [{ x: 100, y: 200, z: 0, confidence: 0.9, name: 'nose' }];
@@ -243,7 +243,7 @@ describe("onEvent 'pose_detected'", () => {
       keypoints: kps2,
       confidence: 0.9,
     });
-    expect(getState(node).detected_pose![0].x).toBeCloseTo(100, 1);
+    expect(getState(node).detected_pose![0][0]).toBeCloseTo(100, 1);
   });
 
   it('smoothing=0.5: x is midpoint between current and previous', () => {
@@ -260,7 +260,7 @@ describe("onEvent 'pose_detected'", () => {
       keypoints: [{ x: 100, y: 0, confidence: 1, name: 'nose' }],
       confidence: 1,
     });
-    expect(getState(node).detected_pose![0].x).toBeCloseTo(50, 1);
+    expect(getState(node).detected_pose![0][0]).toBeCloseTo(50, 1);
   });
 });
 

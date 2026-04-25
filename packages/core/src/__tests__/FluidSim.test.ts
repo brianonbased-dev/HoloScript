@@ -17,42 +17,42 @@ describe('FluidSim', () => {
   });
 
   it('addParticle increases count', () => {
-    sim.addParticle({ x: 0, y: 0, z: 0 });
+    sim.addParticle([0, 0, 0]);
     expect(sim.getParticleCount()).toBe(1);
   });
 
   it('addParticle with velocity', () => {
-    sim.addParticle({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    sim.addParticle([0, 0, 0], [1, 0, 0]);
     expect(sim.getParticles()[0].velocity[0]).toBe(1);
   });
 
   it('addBlock creates grid of particles', () => {
-    const count = sim.addBlock({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 0 }, 0.5);
+    const count = sim.addBlock([0, 0, 0], [1, 1, 0], 0.5);
     expect(count).toBe(9); // 3x3x1
     expect(sim.getParticleCount()).toBe(9);
   });
 
   it('update moves particles under gravity', () => {
-    sim.addParticle({ x: 0, y: 5, z: 0 });
+    sim.addParticle([0, 5, 0]);
     sim.update();
     expect(sim.getParticles()[0].position[1]).toBeLessThan(5);
   });
 
   it('boundary enforcement clamps position', () => {
     sim = new FluidSim({
-      boundaryMin: { x: -1, y: -1, z: -1 },
-      boundaryMax: { x: 1, y: 1, z: 1 },
+      boundaryMin: [-1, -1, -1],
+      boundaryMax: [1, 1, 1],
       boundaryDamping: 0.3,
       timeStep: 0.1,
     });
-    sim.addParticle({ x: 0, y: -0.9, z: 0 }, { x: 0, y: -100, z: 0 });
+    sim.addParticle([0, -0.9, 0], [0, -100, 0]);
     sim.update();
     const p = sim.getParticles()[0];
     expect(p.position[1]).toBeGreaterThanOrEqual(-1);
   });
 
   it('getKineticEnergy is non-negative', () => {
-    sim.addParticle({ x: 0, y: 5, z: 0 });
+    sim.addParticle([0, 5, 0]);
     sim.update();
     expect(sim.getKineticEnergy()).toBeGreaterThanOrEqual(0);
   });
@@ -62,13 +62,13 @@ describe('FluidSim', () => {
   });
 
   it('getAverageDensity positive with particles', () => {
-    sim.addParticle({ x: 0, y: 0, z: 0 });
+    sim.addParticle([0, 0, 0]);
     sim.update();
     expect(sim.getAverageDensity()).toBeGreaterThan(0);
   });
 
   it('clear removes all particles', () => {
-    sim.addParticle({ x: 0, y: 0, z: 0 });
+    sim.addParticle([0, 0, 0]);
     sim.clear();
     expect(sim.getParticleCount()).toBe(0);
   });
@@ -76,7 +76,7 @@ describe('FluidSim', () => {
   it('setConfig updates configuration', () => {
     sim.setConfig({ viscosity: 500 });
     // No throw, just verify it runs
-    sim.addParticle({ x: 0, y: 0, z: 0 });
+    sim.addParticle([0, 0, 0]);
     sim.update();
     expect(sim.getParticleCount()).toBe(1);
   });

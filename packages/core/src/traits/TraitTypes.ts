@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 import type {
   VRTraitName,
   VRHand,

@@ -40,6 +40,7 @@ import { WorkflowStep } from './identity/AgentIdentity';
 import { UnauthorizedCompilerAccessError } from './CompilerBase';
 import { BuildCache, type CacheEntryType } from './BuildCache';
 import { computeContentHash } from '../deploy/provenance';
+import { readJson } from '../errors/safeJsonParse';
 
 /**
  * Types of changes detected during AST diff
@@ -1046,7 +1047,7 @@ export class IncrementalCompiler {
    * Restore compiler state from serialized data
    */
   static deserialize(json: string): IncrementalCompiler {
-    const data: SerializedCache = JSON.parse(json);
+    const data: SerializedCache = readJson(json) as SerializedCache;
 
     if (data.version !== 1) {
       throw new Error(`Unsupported cache version: ${data.version}`);
@@ -1118,7 +1119,7 @@ export function serializeCache(compiler: IncrementalCompiler): string {
  * Restore cache from serialized JSON
  */
 export function deserializeCache(json: string): IncrementalCompiler {
-  const data: SerializedCache = JSON.parse(json);
+  const data: SerializedCache = readJson(json) as SerializedCache;
 
   if (data.version !== 1) {
     throw new Error(`Unsupported cache version: ${data.version}`);

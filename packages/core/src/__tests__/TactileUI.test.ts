@@ -9,7 +9,7 @@ describe('Tactile UI Interactions', () => {
   let physicsBodyPos: any;
 
   beforeEach(() => {
-    physicsBodyPos = { x: 0, y: 0, z: 0 };
+    physicsBodyPos = [0, 0, 0];
     node = {
       id: 'test_node',
       properties: {
@@ -58,7 +58,7 @@ describe('Tactile UI Interactions', () => {
 
       // Simulate physics moving body down Z axis (local)
       // Pressed in by 0.06 (60% of distance)
-      physicsBodyPos.z = 0.06;
+      physicsBodyPos[2] = 0.06;
 
       trait.onUpdate(node, context, 0.016);
 
@@ -71,12 +71,12 @@ describe('Tactile UI Interactions', () => {
 
       // Setup: Already pressed
       trait.onUpdate(node, context, 0.016);
-      physicsBodyPos.z = 0.06;
+      physicsBodyPos[2] = 0.06;
       trait.onUpdate(node, context, 0.016);
       expect(context.emit).toHaveBeenCalledWith('ui_press_start', { nodeId: 'test_node' });
 
       // Release to 0.02 (20%)
-      physicsBodyPos.z = 0.02;
+      physicsBodyPos[2] = 0.02;
       trait.onUpdate(node, context, 0.016);
 
       expect(context.emit).toHaveBeenCalledWith('ui_press_end', { nodeId: 'test_node' });
@@ -95,7 +95,7 @@ describe('Tactile UI Interactions', () => {
       // Move to 0.25 (75% mark? No, Center=0.5. -0.5=0, 0.5=1.
       // Value = (Delta + L/2) / L
       // Delta = 0.25. (0.25 + 0.5) / 1.0 = 0.75.
-      physicsBodyPos.x = 0.25;
+      physicsBodyPos[0] = 0.25;
 
       trait.onUpdate(node, context, 0.016);
 
@@ -110,7 +110,7 @@ describe('Tactile UI Interactions', () => {
       const trait = new SlidableTrait();
       trait.onUpdate(node, context, 0.016);
 
-      physicsBodyPos.x = 0.1; // 10% change -> 0.6 value
+      physicsBodyPos[0] = 0.1; // 10% change -> 0.6 value
       trait.onUpdate(node, context, 0.016);
 
       expect(context.haptics.rumble).toHaveBeenCalled();

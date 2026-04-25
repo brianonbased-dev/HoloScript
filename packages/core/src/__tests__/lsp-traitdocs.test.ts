@@ -11,6 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { readJson } from '../errors/safeJsonParse';
 // ============================================================================
 // Feature 1: LSP â€” traitDocs
 // ============================================================================
@@ -22,7 +23,7 @@ import {
   getTraitsByCategory,
   formatTraitDocAsMarkdown,
   formatTraitDocCompact,
-} from '../../../lsp/src/traitDocs.js';
+} from '../traitDocs/traitDocs.js';
 import { PromptBuilder } from '../../../lsp/src/ai/PromptBuilder.js';
 import type { CompletionContext } from '../../../lsp/src/ai/ContextGatherer.js';
 
@@ -588,26 +589,26 @@ describe('Feature 2C: SpamDetector', () => {
 describe('Feature 3A: Std types & factories', () => {
   it('vec2() creates a 2D vector with defaults', () => {
     const v = vec2();
-    expect(v.x).toBe(0);
-    expect(v.y).toBe(0);
+    expect(v[0]).toBe(0);
+    expect(v[1]).toBe(0);
   });
 
   it('vec2(x, y) creates a 2D vector with values', () => {
     const v = vec2(3, 4);
-    expect(v.x).toBe(3);
-    expect(v.y).toBe(4);
+    expect(v[0]).toBe(3);
+    expect(v[1]).toBe(4);
   });
 
   it('vec3() creates a 3D vector with defaults', () => {
     const v = vec3();
-    expect(v.x).toBe(0);
-    expect(v.y).toBe(0);
-    expect(v.z).toBe(0);
+    expect(v[0]).toBe(0);
+    expect(v[1]).toBe(0);
+    expect(v[2]).toBe(0);
   });
 
   it('vec3(x, y, z) creates vector with values', () => {
     const v = vec3(1, 2, 3);
-    expect(v).toEqual({ x: 1, y: 2, z: 3 });
+    expect(v).toEqual([1, 2, 3]);
   });
 
   it('quat() creates identity quaternion', () => {
@@ -644,7 +645,7 @@ describe('Feature 3A: Std types & factories', () => {
 
   it('arrayToVec3() converts tuple to Vec3', () => {
     const v = arrayToVec3([4, 5, 6]);
-    expect(v).toEqual({ x: 4, y: 5, z: 6 });
+    expect(v).toEqual([4, 5, 6]);
   });
 
   it('colorToHex() converts RGB to hex string', () => {
@@ -720,7 +721,7 @@ describe('Feature 3B: Std math', () => {
   it('vec3Math.add() adds two vectors', () => {
     const a = vec3(1, 2, 3);
     const b = vec3(4, 5, 6);
-    expect(vec3Math.add(a, b)).toEqual({ x: 5, y: 7, z: 9 });
+    expect(vec3Math.add(a, b)).toEqual([5, 7, 9]);
   });
 
   it('quatMath.identity() returns {x:0,y:0,z:0,w:1}', () => {
@@ -1123,12 +1124,12 @@ describe('Feature 4B: MCP training-generators', () => {
     const ex = ALL_TRAINING_EXAMPLES[0];
     const jsonl = toAlpacaJsonl(ex);
     expect(typeof jsonl).toBe('string');
-    expect(() => JSON.parse(jsonl)).not.toThrow();
+    expect(() => readJson(jsonl)).not.toThrow();
   });
 
   it('toAlpacaJsonl() output has instruction and output fields', () => {
     const ex = ALL_TRAINING_EXAMPLES[0];
-    const parsed = JSON.parse(toAlpacaJsonl(ex));
+    const parsed = readJson(toAlpacaJsonl(ex));
     expect(parsed.instruction).toBeDefined();
     expect(parsed.output).toBeDefined();
   });
@@ -1142,7 +1143,7 @@ describe('Feature 4B: MCP training-generators', () => {
       .filter((l) => l.length > 0);
     expect(lines.length).toBe(3);
     for (const line of lines) {
-      expect(() => JSON.parse(line)).not.toThrow();
+      expect(() => readJson(line)).not.toThrow();
     }
   });
 });

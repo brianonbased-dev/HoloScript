@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ReferenceExporterRegistry } from '../ReferenceExporters';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 function makeComposition(name: string = 'TestScene'): HoloComposition {
   return {
@@ -233,7 +234,7 @@ describe('ReferenceExporterRegistry', () => {
     it('generates valid DTDL JSON', () => {
       const result = registry.export('dtdl' as any, makeComposition('DigitalTwin'));
       expect(result!.format).toBe('json');
-      const parsed = JSON.parse(result!.output);
+      const parsed = readJson(result!.output) as Record<string, unknown>;
       expect(parsed['@context']).toBe('dtmi:dtdl:context;2');
       expect(parsed['@type']).toBe('Interface');
       expect(parsed.displayName).toBe('DigitalTwin');

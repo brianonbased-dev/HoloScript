@@ -61,8 +61,8 @@ describe('UIEventRouter', () => {
 
     it('emit() includes x and y when provided', () => {
       const event = router.emit('btn', 'pointerDown', 10, 20);
-      expect(event.x).toBe(10);
-      expect(event.y).toBe(20);
+      expect(event[0]).toBe(10);
+      expect(event[1]).toBe(20);
     });
 
     it('emit() includes value when provided', () => {
@@ -210,9 +210,9 @@ describe('UIEventRouter', () => {
 
     it('passes x and y to all three emitted events', () => {
       const coords: Array<[number | undefined, number | undefined]> = [];
-      router.on('btn', 'pointerDown', (e) => coords.push([e.x, e.y]));
-      router.on('btn', 'pointerUp', (e) => coords.push([e.x, e.y]));
-      router.on('btn', 'click', (e) => coords.push([e.x, e.y]));
+      router.on('btn', 'pointerDown', (e) => coords.push([e[0], e[1]]));
+      router.on('btn', 'pointerUp', (e) => coords.push([e[0], e[1]]));
+      router.on('btn', 'click', (e) => coords.push([e[0], e[1]]));
       router.click('btn', 5, 10);
       expect(coords).toEqual([
         [5, 10],

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { Profiler } from '../Profiler';
 
 describe('Profiler', () => {
@@ -115,7 +116,7 @@ describe('Profiler', () => {
     const result = profiler.stop();
     const json = profiler.exportJSON(result);
     expect(typeof json).toBe('string');
-    const parsed = JSON.parse(json);
+    const parsed = readJson(json);
     expect(parsed).toHaveProperty('name');
     expect(parsed).toHaveProperty('samples');
   });

@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { PerformanceTracker } from '../../performance/PerformanceTracker';
 import { PerformanceReportGenerator } from '../../performance/PerformanceReportGenerator';
 import * as fs from 'fs';
@@ -132,7 +133,7 @@ describe('Performance Tracking System Integration', () => {
     expect(fs.existsSync(savedPath)).toBe(true);
 
     const loadedContent = fs.readFileSync(savedPath, 'utf-8');
-    const loadedReport = JSON.parse(loadedContent);
+    const loadedReport = readJson(loadedContent);
 
     expect(loadedReport.timestamp).toBe(report.timestamp);
     expect(loadedReport.totalMetrics).toBe(report.totalMetrics);

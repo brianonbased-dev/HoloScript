@@ -20,8 +20,8 @@ function makePool(
   return new ObjectPool<Particle>({
     factory: () => ({ x: 0, y: 0, alive: false }),
     reset: (p) => {
-      p.x = 0;
-      p.y = 0;
+      p[0] = 0;
+      p[1] = 0;
       p.alive = false;
     },
     initialSize: opts.initial ?? 5,

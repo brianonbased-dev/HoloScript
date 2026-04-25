@@ -19,7 +19,7 @@ const POSITION = Symbol('position');
 const HEALTH = Symbol('health');
 const MESH = Symbol('mesh');
 
-type PositionData = { x: number; y: number; z: number };
+type PositionData = [number, number, number];
 type HealthData = { hp: number; max: number };
 type MeshData = { visible: boolean; castShadow: boolean };
 
@@ -77,14 +77,14 @@ describe('Inspector — componentTypes (entity with components)', () => {
 
   it('returns single component type when entity has one component', () => {
     const entity = world.createEntity();
-    world.addComponent(entity, POSITION, { x: 0, y: 0, z: 0 });
+    world.addComponent(entity, POSITION, [0, 0, 0]);
     sel.select(entity);
     expect(inspector.componentTypes).toContain(POSITION);
   });
 
   it('returns all component types for entity with multiple components', () => {
     const entity = world.createEntity();
-    world.addComponent(entity, POSITION, { x: 1, y: 2, z: 3 });
+    world.addComponent(entity, POSITION, [1, 2, 3]);
     world.addComponent(entity, HEALTH, { hp: 100, max: 100 });
     world.addComponent(entity, MESH, { visible: true, castShadow: false });
     sel.select(entity);
@@ -98,7 +98,7 @@ describe('Inspector — componentTypes (entity with components)', () => {
   it('updates when selection changes', () => {
     const e1 = world.createEntity();
     const e2 = world.createEntity();
-    world.addComponent(e1, POSITION, { x: 0, y: 0, z: 0 });
+    world.addComponent(e1, POSITION, [0, 0, 0]);
     world.addComponent(e2, HEALTH, { hp: 50, max: 100 });
     sel.select(e1);
     expect(inspector.componentTypes).toContain(POSITION);
@@ -129,24 +129,24 @@ describe('Inspector — getComponentData', () => {
 
   it('returns component data for selected entity', () => {
     const entity = world.createEntity();
-    world.addComponent<PositionData>(entity, POSITION, { x: 5, y: 10, z: 15 });
+    world.addComponent<PositionData>(entity, POSITION, [5, 10, 15]);
     sel.select(entity);
     const data = inspector.getComponentData(POSITION) as PositionData;
-    expect(data.x).toBe(5);
-    expect(data.y).toBe(10);
-    expect(data.z).toBe(15);
+    expect(data[0]).toBe(5);
+    expect(data[1]).toBe(10);
+    expect(data[2]).toBe(15);
   });
 
   it('returns undefined for component not present on entity', () => {
     const entity = world.createEntity();
-    world.addComponent(entity, POSITION, { x: 0, y: 0, z: 0 });
+    world.addComponent(entity, POSITION, [0, 0, 0]);
     sel.select(entity);
     expect(inspector.getComponentData(HEALTH)).toBeUndefined();
   });
 
   it('returns live data (same object reference)', () => {
     const entity = world.createEntity();
-    world.addComponent<PositionData>(entity, POSITION, { x: 0, y: 0, z: 0 });
+    world.addComponent<PositionData>(entity, POSITION, [0, 0, 0]);
     sel.select(entity);
     const d1 = inspector.getComponentData(POSITION);
     const d2 = inspector.getComponentData(POSITION);
@@ -175,11 +175,11 @@ describe('Inspector — setProperty', () => {
 
   it('setProperty updates the component data', () => {
     const entity = world.createEntity();
-    world.addComponent<PositionData>(entity, POSITION, { x: 0, y: 0, z: 0 });
+    world.addComponent<PositionData>(entity, POSITION, [0, 0, 0]);
     sel.select(entity);
     inspector.setProperty(POSITION, 'x', 42);
     const data = inspector.getComponentData(POSITION) as PositionData;
-    expect(data.x).toBe(42);
+    expect(data[0]).toBe(42);
   });
 
   it('setProperty on missing component does nothing', () => {

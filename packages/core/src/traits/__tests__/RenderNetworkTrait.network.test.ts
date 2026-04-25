@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { renderNetworkHandler } from '../RenderNetworkTrait';
 
 // ─── Fetch mock setup ──────────────────────────────────────────────────────────
@@ -516,7 +517,7 @@ describe('webhook notifications on job complete', () => {
 
     const webhookCall = fetchMock.mock.calls.find(([url]: [string]) => url === webhookUrl);
     expect(webhookCall).toBeDefined();
-    const body = JSON.parse(webhookCall![1].body);
+    const body = readJson(webhookCall![1].body);
     expect(body.event).toBe('job_complete');
     expect(body.jobId).toBe('wh-job-1');
   });

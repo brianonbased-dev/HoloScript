@@ -13,6 +13,7 @@ import {
   type NIRNode,
 } from '../NIRTraitMap';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 // Mock RBAC for tests (W.013 pattern)
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -62,7 +63,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('neuron1', 'lif_neuron')] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       expect(result.version).toBe('0.5.0');
       expect(result.metadata.generator).toContain('NIRCompiler');
       expect(result.metadata.targetPlatforms).toHaveLength(5);
@@ -73,7 +74,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('neuron1', 'lif_neuron')] as any,
       });
-      const result = JSON.parse(c.compile(comp, 'test-token'));
+      const result = readJson(c.compile(comp, 'test-token'));
       expect(result.metadata.targetPlatforms).toEqual(['loihi2', 'spinnaker2']);
     });
 
@@ -82,7 +83,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('neuron1', 'lif_neuron')] as any,
       });
-      const result = JSON.parse(c.compile(comp, 'test-token'));
+      const result = readJson(c.compile(comp, 'test-token'));
       const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
       expect(lifNode).toBeDefined();
       expect(lifNode.params.tau).toHaveLength(256);
@@ -105,7 +106,7 @@ describe('NIRCompiler', () => {
   describe('minimal compilation', () => {
     it('compiles empty composition to valid JSON', () => {
       const json = compiler.compile(makeComposition(), 'test-token');
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
       expect(parsed.version).toBeDefined();
       expect(parsed.nodes).toBeDefined();
       expect(parsed.edges).toBeDefined();
@@ -113,7 +114,7 @@ describe('NIRCompiler', () => {
     });
 
     it('generates Input and Output boundary nodes', () => {
-      const result = JSON.parse(compiler.compile(makeComposition(), 'test-token'));
+      const result = readJson(compiler.compile(makeComposition(), 'test-token'));
       expect(result.nodes['input']).toBeDefined();
       expect(result.nodes['input'].type).toBe('Input');
       expect(result.nodes['output']).toBeDefined();
@@ -122,20 +123,20 @@ describe('NIRCompiler', () => {
 
     it('can disable boundary node generation', () => {
       const c = new NIRCompiler({ autoGenerateBoundaryNodes: false });
-      const result = JSON.parse(c.compile(makeComposition(), 'test-token'));
+      const result = readJson(c.compile(makeComposition(), 'test-token'));
       expect(result.nodes['input']).toBeUndefined();
       expect(result.nodes['output']).toBeUndefined();
     });
 
     it('includes source name in metadata', () => {
-      const result = JSON.parse(
+      const result = readJson(
         compiler.compile(makeComposition({ name: 'MyBrain' }), 'test-token')
       );
       expect(result.metadata.source).toBe('MyBrain');
     });
 
     it('includes generation timestamp', () => {
-      const result = JSON.parse(compiler.compile(makeComposition(), 'test-token'));
+      const result = readJson(compiler.compile(makeComposition(), 'test-token'));
       expect(result.metadata.generatedAt).toBeDefined();
       // Verify it's a valid ISO date string
       expect(() => new Date(result.metadata.generatedAt)).not.toThrow();
@@ -157,7 +158,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
 
       expect(lifNode).toBeDefined();
@@ -179,7 +180,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const cubaNode = Object.values(result.nodes).find((n: any) => n.type === 'CubaLIF') as any;
 
       expect(cubaNode).toBeDefined();
@@ -198,7 +199,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const ifNode = Object.values(result.nodes).find((n: any) => n.type === 'IF') as any;
 
       expect(ifNode).toBeDefined();
@@ -210,7 +211,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('readout', 'leaky_integrator', { size: 10, tau: 50.0 })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const liNode = Object.values(result.nodes).find((n: any) => n.type === 'LI') as any;
 
       expect(liNode).toBeDefined();
@@ -222,7 +223,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('accum', 'integrator', { size: 8 })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const intNode = Object.values(result.nodes).find((n: any) => n.type === 'Integrator') as any;
 
       expect(intNode).toBeDefined();
@@ -233,7 +234,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('layer', 'lif_neuron')] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
       expect(lifNode.params.tau).toHaveLength(128); // default
     });
@@ -253,7 +254,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const affineNode = Object.values(result.nodes).find((n: any) => n.type === 'Affine') as any;
 
       expect(affineNode).toBeDefined();
@@ -271,7 +272,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const linearNode = Object.values(result.nodes).find((n: any) => n.type === 'Linear') as any;
 
       expect(linearNode).toBeDefined();
@@ -291,7 +292,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const convNode = Object.values(result.nodes).find((n: any) => n.type === 'Conv2d') as any;
 
       expect(convNode).toBeDefined();
@@ -318,7 +319,7 @@ describe('NIRCompiler', () => {
           }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
 
       // Should generate both gain (Affine) and threshold nodes
       const gainNode = Object.values(result.nodes).find((n: any) => n.id?.includes('gain')) as any;
@@ -344,7 +345,7 @@ describe('NIRCompiler', () => {
           makeNeuronObject('rate_enc', 'rate_encoder', { input_size: 128, tau: 5.0 }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
 
       const scaleNode = Object.values(result.nodes).find((n: any) =>
         n.id?.includes('scale')
@@ -363,7 +364,7 @@ describe('NIRCompiler', () => {
           makeNeuronObject('decoder', 'spike_decoder', { output_size: 10, tau: 30.0 }),
         ] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
 
       const liNode = Object.values(result.nodes).find(
         (n: any) => n.type === 'LI' && n.metadata?.source_trait === 'spike_decoder'
@@ -384,7 +385,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('delay_line', 'spike_delay', { size: 64, delay: 3.0 })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const delayNode = Object.values(result.nodes).find((n: any) => n.type === 'Delay') as any;
 
       expect(delayNode).toBeDefined();
@@ -396,7 +397,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('pool', 'spike_pooling', { kernel_size: 4 })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const poolNode = Object.values(result.nodes).find((n: any) => n.type === 'SumPooling') as any;
 
       expect(poolNode).toBeDefined();
@@ -407,7 +408,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('flat', 'flatten', { input_shape: [16, 7, 7] })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const flatNode = Object.values(result.nodes).find((n: any) => n.type === 'Flatten') as any;
 
       expect(flatNode).toBeDefined();
@@ -418,7 +419,7 @@ describe('NIRCompiler', () => {
       const comp = makeComposition({
         objects: [makeNeuronObject('scale', 'scaling', { size: 32, scale: 0.5 })] as any,
       });
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const scaleNode = Object.values(result.nodes).find((n: any) => n.type === 'Scale') as any;
 
       expect(scaleNode).toBeDefined();
@@ -452,7 +453,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
 
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
 
       // Should have Input, Output, plus all intermediate nodes
       expect(result.nodes['input']).toBeDefined();
@@ -486,7 +487,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
 
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
 
       // Verify sequential connectivity exists
       expect(result.edges.length).toBeGreaterThan(0);
@@ -509,7 +510,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
 
-      const result = JSON.parse(c.compile(comp, 'test-token'));
+      const result = readJson(c.compile(comp, 'test-token'));
       // With no auto-connect and no boundary nodes, should have no auto-generated edges
       expect(result.edges.length).toBe(0);
     });
@@ -538,7 +539,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
 
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const lifNode = Object.values(result.nodes).find((n: any) => n.type === 'LIF') as any;
 
       expect(lifNode).toBeDefined();
@@ -562,7 +563,7 @@ describe('NIRCompiler', () => {
         ] as any,
       });
 
-      const result = JSON.parse(c.compile(comp, 'test-token'));
+      const result = readJson(c.compile(comp, 'test-token'));
       // Conv2d should be excluded since synsense_speck is not in its platforms
       const convNodes = Object.values(result.nodes).filter((n: any) => n.type === 'Conv2d');
       expect(convNodes.length).toBe(0);
@@ -588,7 +589,7 @@ describe('NIRCompiler', () => {
         objects: [makeNeuronObject('layer', 'lif_neuron', { num_neurons: 64 })] as any,
       });
 
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       expect(result.nodes['input'].params.shape).toEqual([784]);
       expect(result.nodes['output'].params.shape).toEqual([10]);
     });
@@ -604,7 +605,7 @@ describe('NIRCompiler', () => {
         objects: [makeNeuronObject('my layer!@#$%', 'lif_neuron', { num_neurons: 16 })] as any,
       });
 
-      const result = JSON.parse(compiler.compile(comp, 'test-token'));
+      const result = readJson(compiler.compile(comp, 'test-token'));
       const nodeIds = Object.keys(result.nodes);
       const lifNodeId = nodeIds.find((id) => id !== 'input' && id !== 'output');
       expect(lifNodeId).toMatch(/^[a-z0-9_]+$/);
@@ -618,7 +619,7 @@ describe('NIRCompiler', () => {
   describe('graph validation', () => {
     it('includes validation warnings for invalid graphs', () => {
       // A graph with no objects but boundary nodes should be valid
-      const result = JSON.parse(compiler.compile(makeComposition(), 'test-token'));
+      const result = readJson(compiler.compile(makeComposition(), 'test-token'));
       // If there are warnings, they should be in metadata
       if (result.metadata.validationWarnings) {
         expect(Array.isArray(result.metadata.validationWarnings)).toBe(true);
@@ -627,7 +628,7 @@ describe('NIRCompiler', () => {
 
     it('does not validate when validation is disabled', () => {
       const c = new NIRCompiler({ validateGraph: false });
-      const result = JSON.parse(c.compile(makeComposition(), 'test-token'));
+      const result = readJson(c.compile(makeComposition(), 'test-token'));
       expect(result.metadata.validationWarnings).toBeUndefined();
     });
   });

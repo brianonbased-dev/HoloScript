@@ -12,14 +12,14 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const mesh = new NavMesh();
     // Two triangles side by side in XZ plane
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
-      { x: 5, y: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [5, 0, 10],
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 },
-      { x: 20, y: 0, z: 0 },
-      { x: 15, y: 0, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [15, 0, 10],
     ]);
     mesh.connectPolygons(p1.id, p2.id);
     return mesh;
@@ -30,13 +30,13 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     expect(mesh.getPolygonCount()).toBe(2);
 
     // Point inside first triangle
-    const found = mesh.findPolygonAtPoint({ x: 5, y: 0, z: 3 });
+    const found = mesh.findPolygonAtPoint([5, 0, 3]);
     expect(found).not.toBeNull();
   });
 
   it('should find nearest polygon and walkable neighbors', () => {
     const mesh = buildSimpleMesh();
-    const nearest = mesh.findNearestPolygon({ x: 50, y: 0, z: 50 });
+    const nearest = mesh.findNearestPolygon([50, 0, 50]);
     expect(nearest).not.toBeNull();
 
     // Check neighbors
@@ -51,28 +51,28 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should find path through nav mesh', () => {
     const mesh = new NavMesh();
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
-      { x: 10, y: 0, z: 10 },
-      { x: 0, y: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 0, 10],
+      [0, 0, 10],
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 },
-      { x: 20, y: 0, z: 0 },
-      { x: 20, y: 0, z: 10 },
-      { x: 10, y: 0, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [20, 0, 10],
+      [10, 0, 10],
     ]);
     const p3 = mesh.addPolygon([
-      { x: 20, y: 0, z: 0 },
-      { x: 30, y: 0, z: 0 },
-      { x: 30, y: 0, z: 10 },
-      { x: 20, y: 0, z: 10 },
+      [20, 0, 0],
+      [30, 0, 0],
+      [30, 0, 10],
+      [20, 0, 10],
     ]);
     mesh.connectPolygons(p1.id, p2.id);
     mesh.connectPolygons(p2.id, p3.id);
 
     const pathfinder = new AStarPathfinder(mesh);
-    const result = pathfinder.findPath({ x: 5, y: 0, z: 5 }, { x: 25, y: 0, z: 5 });
+    const result = pathfinder.findPath([5, 0, 5], [25, 0, 5]);
 
     expect(result.found).toBe(true);
     expect(result.path.length).toBeGreaterThan(0);
@@ -82,25 +82,25 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
   it('should avoid dynamic obstacles', () => {
     const mesh = new NavMesh();
     const p1 = mesh.addPolygon([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
-      { x: 10, y: 0, z: 10 },
-      { x: 0, y: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 0, 10],
+      [0, 0, 10],
     ]);
     const p2 = mesh.addPolygon([
-      { x: 10, y: 0, z: 0 },
-      { x: 20, y: 0, z: 0 },
-      { x: 20, y: 0, z: 10 },
-      { x: 10, y: 0, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [20, 0, 10],
+      [10, 0, 10],
     ]);
     mesh.connectPolygons(p1.id, p2.id);
 
     const pathfinder = new AStarPathfinder(mesh);
     // Block the center of p2
-    pathfinder.addObstacle('wall', { x: 15, y: 0, z: 5 }, 20);
+    pathfinder.addObstacle('wall', [15, 0, 5], 20);
     expect(pathfinder.getObstacleCount()).toBe(1);
 
-    const result = pathfinder.findPath({ x: 5, y: 0, z: 5 }, { x: 15, y: 0, z: 5 });
+    const result = pathfinder.findPath([5, 0, 5], [15, 0, 5]);
     // Path may not be found since the destination polygon center is blocked
     expect(result.found).toBe(false);
   });
@@ -110,9 +110,9 @@ describe('Cycle 118: Pathfinding & Navigation', () => {
     const pathfinder = new AStarPathfinder(mesh);
 
     const path = [
-      { x: 0, y: 0, z: 0 },
-      { x: 5, y: 0, z: 0.1 }, // Nearly collinear
-      { x: 10, y: 0, z: 0 },
+      [0, 0, 0],
+      [5, 0, 0.1],
+      [10, 0, 0],
     ];
     const smoothed = pathfinder.smoothPath(path);
     expect(smoothed.length).toBeLessThanOrEqual(path.length);

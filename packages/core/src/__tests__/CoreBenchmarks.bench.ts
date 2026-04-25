@@ -16,6 +16,7 @@ import { EntityRegistry } from '@holoscript/engine/ecs';
 import { ComponentStore } from '@holoscript/engine/ecs';
 import { BoneSystem } from '../animation/BoneSystem';
 import { IKSolver } from '../animation/IKSolver';
+import { readJson } from '../errors/safeJsonParse';
 
 // =============================================================================
 // ANIMATION ENGINE BENCHMARKS
@@ -217,7 +218,7 @@ describe('Serialization Performance', () => {
       });
     }
     const json = JSON.stringify(nodes);
-    JSON.parse(json);
+    readJson(json);
   });
 
   bench('Map serialize (1000 entries via Array.from)', () => {
@@ -226,6 +227,6 @@ describe('Serialization Performance', () => {
       map.set(`key-${i}`, { value: i, label: `Item ${i}` });
     }
     const serialized = JSON.stringify(Array.from(map.entries()));
-    const restored = new Map(JSON.parse(serialized));
+    const restored = new Map(readJson(serialized) as [string, unknown][]);
   });
 });

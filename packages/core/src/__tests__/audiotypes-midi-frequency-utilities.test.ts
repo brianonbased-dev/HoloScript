@@ -97,7 +97,7 @@ function makeEmitterCfg2(max = 50): EmitterCfg2 {
     startSpeed: 1,
     startSize: 0.1,
     startColor: { r: 1, g: 1, b: 1, a: 1 },
-    gravity: { x: 0, y: -9.8, z: 0 },
+    gravity: [0, -9.8, 0],
     worldSpace: true,
     prewarm: false,
   };
@@ -133,7 +133,7 @@ describe('Feature 1A: AudioTypes â€” MIDI / frequency utilities', () => {
   });
 
   it('zeroVector returns { x:0, y:0, z:0 }', () => {
-    expect(zeroVector()).toEqual({ x: 0, y: 0, z: 0 });
+    expect(zeroVector()).toEqual([0, 0, 0]);
   });
 
   it('defaultOrientation has forward and up', () => {
@@ -295,7 +295,7 @@ describe('Feature 2A: AudioEngine', () => {
   });
 
   it('setListenerPosition updates listener', () => {
-    engine.setListenerPosition({ x: 5, y: 0, z: 5 });
+    engine.setListenerPosition([5, 0, 5]);
     const l = engine.getListener();
     expect(l.position[0]).toBe(5);
   });
@@ -351,14 +351,14 @@ describe('Feature 3A: SpatialAudioSource', () => {
 
   it('getPosition returns initial position', () => {
     const pos = src.getPosition();
-    expect(pos).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(pos).toMatchObject([0, 0, 0]);
   });
 
   it('setPosition updates position', () => {
     src.setPosition(3, 1, 2);
     const pos = src.getPosition();
-    expect(pos.x).toBe(3);
-    expect(pos.y).toBe(1);
+    expect(pos[0]).toBe(3);
+    expect(pos[1]).toBe(1);
   });
 
   it('getConfig returns config object', () => {

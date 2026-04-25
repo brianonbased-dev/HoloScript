@@ -83,9 +83,9 @@ describe('Cycle 143: Object Pooling', () => {
       onSpawn: () => spawnCount++,
     });
 
-    const e = spawner.spawn('bullet', { x: 10, y: 0, z: 5 })!;
+    const e = spawner.spawn('bullet', [10, 0, 5])!;
     expect(e).not.toBeNull();
-    expect(e.position.x).toBe(10);
+    expect(e.position[0]).toBe(10);
     expect(spawnCount).toBe(1);
 
     spawner.despawn(e.id);

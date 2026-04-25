@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { SceneManager, SavedScene } from '@holoscript/engine/scene';
 
 /**
@@ -96,7 +97,7 @@ describe('SceneManager', () => {
     const json = mgr.exportJSON('my-scene');
     expect(json).toBeDefined();
     expect(typeof json).toBe('string');
-    const parsed = JSON.parse(json!);
+    const parsed = readJson(json!);
     expect(parsed.scene).toBeDefined();
     expect(parsed.scene.name).toBe('my-scene');
   });

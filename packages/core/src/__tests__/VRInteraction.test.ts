@@ -18,8 +18,8 @@ describe('VR Interaction (Cycle 179)', () => {
 
     it('should update joint positions', () => {
       tracker.updateJoints('right', {
-        thumb_tip: { x: 0.1, y: 0.2, z: 0.3 },
-        index_tip: { x: 0.15, y: 0.25, z: 0.35 },
+        thumb_tip: [0.1, 0.2, 0.3],
+        index_tip: [0.15, 0.25, 0.35],
       });
       expect(tracker.isTracked('right')).toBe(true);
       expect(tracker.getJoint('right', 'thumb_tip')).toBeDefined();
@@ -27,18 +27,18 @@ describe('VR Interaction (Cycle 179)', () => {
 
     it('should detect pinch gesture', () => {
       tracker.updateStrength('right', 0.9, 0.1);
-      tracker.updateJoints('right', { thumb_tip: { x: 0, y: 0, z: 0 } });
+      tracker.updateJoints('right', { thumb_tip: [0, 0, 0] });
       expect(tracker.getGesture('right')).toBe('pinch');
     });
 
     it('should detect grab gesture', () => {
       tracker.updateStrength('right', 0.1, 0.9);
-      tracker.updateJoints('right', { thumb_tip: { x: 0, y: 0, z: 0 } });
+      tracker.updateJoints('right', { thumb_tip: [0, 0, 0] });
       expect(tracker.getGesture('right')).toBe('grab');
     });
 
     it('should record gesture history', () => {
-      tracker.updateJoints('right', { thumb_tip: { x: 0, y: 0, z: 0 } });
+      tracker.updateJoints('right', { thumb_tip: [0, 0, 0] });
       expect(tracker.getGestureHistory().length).toBeGreaterThan(0);
     });
   });
@@ -51,9 +51,9 @@ describe('VR Interaction (Cycle 179)', () => {
     });
 
     it('should teleport to valid targets', () => {
-      const result = loco.teleport({ x: 5, y: 0, z: 3, valid: true, normal: { x: 0, y: 1, z: 0 } });
+      const result = loco.teleport({ x: 5, y: 0, z: 3, valid: true, normal: [0, 1, 0] });
       expect(result).toBe(true);
-      expect(loco.getPosition().x).toBe(5);
+      expect(loco.getPosition()[0]).toBe(5);
     });
 
     it('should reject teleport beyond range', () => {
@@ -62,7 +62,7 @@ describe('VR Interaction (Cycle 179)', () => {
         y: 0,
         z: 99,
         valid: true,
-        normal: { x: 0, y: 1, z: 0 },
+        normal: [0, 1, 0],
       });
       expect(result).toBe(false);
     });
@@ -73,7 +73,7 @@ describe('VR Interaction (Cycle 179)', () => {
         y: 0,
         z: 1,
         valid: false,
-        normal: { x: 0, y: 1, z: 0 },
+        normal: [0, 1, 0],
       });
       expect(result).toBe(false);
     });
@@ -87,7 +87,7 @@ describe('VR Interaction (Cycle 179)', () => {
 
     it('should smooth move', () => {
       loco.move(1, 0, 1);
-      expect(loco.getPosition().x).toBeGreaterThan(0);
+      expect(loco.getPosition()[0]).toBeGreaterThan(0);
     });
 
     it('should compute boundary fade', () => {

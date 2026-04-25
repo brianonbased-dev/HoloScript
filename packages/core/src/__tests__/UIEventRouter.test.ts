@@ -25,8 +25,8 @@ describe('UIEventRouter', () => {
     const evt = cb.mock.calls[0][0];
     expect(evt.targetId).toBe('w1');
     expect(evt.type).toBe('hover');
-    expect(evt.x).toBe(10);
-    expect(evt.y).toBe(20);
+    expect(evt[0]).toBe(10);
+    expect(evt[1]).toBe(20);
   });
 
   it('emit with no handlers still logs event', () => {

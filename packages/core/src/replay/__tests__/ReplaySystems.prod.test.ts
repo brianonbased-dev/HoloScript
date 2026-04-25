@@ -318,8 +318,8 @@ describe('GhostRunner', () => {
 
   it('sample() accumulates position data during recording', () => {
     ghost.startRecording();
-    ghost.sample(0.1, { x: 0, y: 0, z: 0 }, 0, 5);
-    ghost.sample(0.1, { x: 1, y: 0, z: 0 }, 0, 5);
+    ghost.sample(0.1, [0, 0, 0], 0, 5);
+    ghost.sample(0.1, [1, 0, 0], 0, 5);
     const run = ghost.finishRecording('run1');
     expect(run.samples).toHaveLength(2);
     expect(run.samples[0].position).toEqual([0, 0, 0]);
@@ -327,7 +327,7 @@ describe('GhostRunner', () => {
   });
 
   it('sample() is ignored when not recording', () => {
-    ghost.sample(0.1, { x: 10, y: 0, z: 0 }, 0, 5);
+    ghost.sample(0.1, [10, 0, 0], 0, 5);
     ghost.startRecording();
     const run = ghost.finishRecording('empty');
     expect(run.samples).toHaveLength(0);
@@ -335,7 +335,7 @@ describe('GhostRunner', () => {
 
   it('finishRecording creates a run and stores it', () => {
     ghost.startRecording();
-    ghost.sample(0.5, { x: 0, y: 0, z: 0 }, 0, 10);
+    ghost.sample(0.5, [0, 0, 0], 0, 10);
     const run = ghost.finishRecording('speedrun');
     expect(run.name).toBe('speedrun');
     expect(ghost.getRunCount()).toBe(1);
@@ -345,7 +345,7 @@ describe('GhostRunner', () => {
 
   it('first run is always personal best', () => {
     ghost.startRecording();
-    ghost.sample(1.0, { x: 0, y: 0, z: 0 }, 0, 10);
+    ghost.sample(1.0, [0, 0, 0], 0, 10);
     const run = ghost.finishRecording('first');
     expect(run.isPersonalBest).toBe(true);
     expect(ghost.getPersonalBest()).toBe(run);
@@ -353,11 +353,11 @@ describe('GhostRunner', () => {
 
   it('faster run beats personal best', () => {
     ghost.startRecording();
-    ghost.sample(2.0, { x: 0, y: 0, z: 0 }, 0, 5);
+    ghost.sample(2.0, [0, 0, 0], 0, 5);
     const slow = ghost.finishRecording('slow');
 
     ghost.startRecording();
-    ghost.sample(1.0, { x: 0, y: 0, z: 0 }, 0, 10);
+    ghost.sample(1.0, [0, 0, 0], 0, 10);
     const fast = ghost.finishRecording('fast');
 
     expect(fast.isPersonalBest).toBe(true);
@@ -367,11 +367,11 @@ describe('GhostRunner', () => {
 
   it('slower run does not beat personal best', () => {
     ghost.startRecording();
-    ghost.sample(1.0, { x: 0, y: 0, z: 0 }, 0, 10);
+    ghost.sample(1.0, [0, 0, 0], 0, 10);
     const fast = ghost.finishRecording('fast');
 
     ghost.startRecording();
-    ghost.sample(2.0, { x: 0, y: 0, z: 0 }, 0, 5);
+    ghost.sample(2.0, [0, 0, 0], 0, 5);
     const slow = ghost.finishRecording('slow');
 
     expect(slow.isPersonalBest).toBe(false);
@@ -382,7 +382,7 @@ describe('GhostRunner', () => {
     // Record 3 runs with different times
     [3.0, 1.0, 2.0].forEach((time, idx) => {
       ghost.startRecording();
-      ghost.sample(time, { x: idx, y: 0, z: 0 }, 0, 5);
+      ghost.sample(time, [idx, 0, 0], 0, 5);
       ghost.finishRecording(`run-${idx}`);
     });
 
@@ -399,7 +399,7 @@ describe('GhostRunner', () => {
 
   it('startPlayback returns true for known run', () => {
     ghost.startRecording();
-    ghost.sample(0.5, { x: 0, y: 0, z: 0 }, 0, 5);
+    ghost.sample(0.5, [0, 0, 0], 0, 5);
     const run = ghost.finishRecording('pb');
     const ok = ghost.startPlayback(run.id);
     expect(ok).toBe(true);
@@ -407,8 +407,8 @@ describe('GhostRunner', () => {
 
   it('updatePlayback advances and returns current sample', () => {
     ghost.startRecording();
-    ghost.sample(0.5, { x: 0, y: 0, z: 0 }, 0, 5);
-    ghost.sample(0.5, { x: 5, y: 0, z: 0 }, 0, 5);
+    ghost.sample(0.5, [0, 0, 0], 0, 5);
+    ghost.sample(0.5, [5, 0, 0], 0, 5);
     const run = ghost.finishRecording('run');
     ghost.startPlayback(run.id);
     // sample0.time=0.5, sample1.time=1.0
@@ -422,7 +422,7 @@ describe('GhostRunner', () => {
 
   it('stopPlayback removes run from active playbacks', () => {
     ghost.startRecording();
-    ghost.sample(0.5, { x: 0, y: 0, z: 0 }, 0, 5);
+    ghost.sample(0.5, [0, 0, 0], 0, 5);
     const run = ghost.finishRecording('r');
     ghost.startPlayback(run.id);
     ghost.stopPlayback(run.id);
@@ -437,11 +437,11 @@ describe('GhostRunner', () => {
 
   it('compareAtTime returns deltaTime and deltaPosition', () => {
     ghost.startRecording();
-    ghost.sample(1.0, { x: 0, y: 0, z: 0 }, 0, 5);
+    ghost.sample(1.0, [0, 0, 0], 0, 5);
     const runA = ghost.finishRecording('A');
 
     ghost.startRecording();
-    ghost.sample(1.0, { x: 3, y: 4, z: 0 }, 0, 5); // 5 units away
+    ghost.sample(1.0, [3, 4, 0], 0, 5); // 5 units away
     const runB = ghost.finishRecording('B');
 
     const cmp = ghost.compareAtTime(runA.id, runB.id, 0.5);
@@ -451,9 +451,9 @@ describe('GhostRunner', () => {
 
   it('timestamps accumulate correctly across samples', () => {
     ghost.startRecording();
-    ghost.sample(0.3, { x: 0, y: 0, z: 0 }, 0, 1);
-    ghost.sample(0.4, { x: 1, y: 0, z: 0 }, 0, 1);
-    ghost.sample(0.2, { x: 2, y: 0, z: 0 }, 0, 1);
+    ghost.sample(0.3, [0, 0, 0], 0, 1);
+    ghost.sample(0.4, [1, 0, 0], 0, 1);
+    ghost.sample(0.2, [2, 0, 0], 0, 1);
     const run = ghost.finishRecording('timestamps');
     expect(run.samples[0].time).toBeCloseTo(0.3);
     expect(run.samples[1].time).toBeCloseTo(0.7);

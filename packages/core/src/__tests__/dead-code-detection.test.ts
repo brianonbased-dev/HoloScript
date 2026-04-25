@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 
 // â”€â”€ Feature 1: Dead Code Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { SimpleReferenceGraph } from '../analysis/SimpleReferenceGraph';
@@ -535,8 +536,8 @@ describe('Feature 4: Complexity Metrics', () => {
       const files = new Map([['main.holo', 'const x = 1;']]);
       const report = analyzer.analyze(files);
       const json = reporter.formatJSON(report);
-      expect(() => JSON.parse(json)).not.toThrow();
-      const parsed = JSON.parse(json);
+      expect(() => readJson(json)).not.toThrow();
+      const parsed = readJson(json) as Record<string, unknown>;
       expect(parsed).toHaveProperty('files');
     });
   });

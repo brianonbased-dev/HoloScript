@@ -3,6 +3,7 @@ import { spawnSync } from 'child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { readJson } from '../../errors/safeJsonParse';
 
 function resolveRunnerCommand(): { args: string[] } {
   // Always use tsx to run from source — the compiled dist bundle has ESM/CJS
@@ -35,7 +36,7 @@ function runStatusJson(cwd: string): Record<string, unknown> {
     .filter(Boolean);
 
   expect(lines.length).toBeGreaterThan(0);
-  return JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
+  return readJson(lines[lines.length - 1]) as Record<string, unknown>;
 }
 
 describe('holoscript daemon status --json', () => {

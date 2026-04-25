@@ -43,8 +43,8 @@ describe('CameraRig', () => {
   it('dolly update moves along path', () => {
     rig.setMode('dolly');
     rig.setDollyPath([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
+      [0, 0, 0],
+      [10, 0, 0],
     ]);
     rig.update(1); // moves along path
     const state = rig.getState();
@@ -53,7 +53,7 @@ describe('CameraRig', () => {
 
   it('dolly with single point does not crash', () => {
     rig.setMode('dolly');
-    rig.setDollyPath([{ x: 0, y: 0, z: 0 }]);
+    rig.setDollyPath([[0, 0, 0]]);
     expect(() => rig.update(1)).not.toThrow();
   });
 
@@ -101,7 +101,7 @@ describe('CameraRig', () => {
     rig.shake('explosion');
     const state = rig.update(0.01);
     const offset = state.shakeOffset;
-    const magnitude = Math.sqrt(offset.x ** 2 + offset.y ** 2 + offset.z ** 2);
+    const magnitude = Math.sqrt(offset[0] ** 2 + offset[1] ** 2 + offset[2] ** 2);
     expect(magnitude).toBeGreaterThan(0);
   });
 
@@ -109,9 +109,9 @@ describe('CameraRig', () => {
     rig.shake('light'); // duration 0.3
     rig.update(0.5); // exceed duration
     const state = rig.getState();
-    expect(state.shakeOffset.x).toBe(0);
-    expect(state.shakeOffset.y).toBe(0);
-    expect(state.shakeOffset.z).toBe(0);
+    expect(state.shakeOffset[0]).toBe(0);
+    expect(state.shakeOffset[1]).toBe(0);
+    expect(state.shakeOffset[2]).toBe(0);
   });
 
   it('addShakePreset registers custom preset', () => {
@@ -122,7 +122,7 @@ describe('CameraRig', () => {
   it('shake with unknown preset is noop', () => {
     rig.shake('nonexistent');
     const state = rig.update(0.016);
-    expect(state.shakeOffset.x).toBe(0);
+    expect(state.shakeOffset[0]).toBe(0);
   });
 
   // --- getState returns combined pos + shake ---

@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   AuditLogger,
   InMemoryAuditStorage,
@@ -239,7 +240,7 @@ describe('AuditLogger', () => {
 
     it('should export as JSON', () => {
       const json = logger.export({ tenantId: 't1' }, 'json');
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
 
       expect(parsed).toHaveLength(2);
       expect(parsed[0].tenantId).toBe('t1');
@@ -280,7 +281,7 @@ describe('AuditLogger', () => {
 
     it('should export empty JSON array when no events match', () => {
       const json = logger.export({ tenantId: 'nonexistent' }, 'json');
-      expect(JSON.parse(json)).toEqual([]);
+      expect(readJson(json)).toEqual([]);
     });
   });
 

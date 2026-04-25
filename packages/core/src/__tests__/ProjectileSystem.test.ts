@@ -30,7 +30,7 @@ describe('ProjectileSystem', () => {
   it('projectile moves along direction on update', () => {
     const id = ps.spawn('owner', 0, 0, 0, 1, 0, 0, config());
     ps.update(1);
-    expect(ps.getProjectile(id)!.x).toBeCloseTo(20); // speed=20, dt=1
+    expect(ps.getProjectile(id)![0]).toBeCloseTo(20); // speed=20, dt=1
   });
 
   it('projectile dies after lifetime', () => {

@@ -40,13 +40,13 @@ describe('SplinePath', () => {
   it('getPoints returns copies', () => {
     spline.addPoint(1, 2, 3);
     const pts = spline.getPoints();
-    expect(pts[0]).toEqual({ x: 1, y: 2, z: 3 });
+    expect(pts[0]).toEqual([1, 2, 3]);
   });
 
   it('setPoint updates a point', () => {
     spline.addPoint(0, 0);
     spline.setPoint(0, 5, 5);
-    expect(spline.getPoints()[0]).toEqual({ x: 5, y: 5, z: 0 });
+    expect(spline.getPoints()[0]).toEqual([5, 5, 0]);
   });
 
   it('removePoint decreases count', () => {
@@ -65,8 +65,8 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 10);
     const p = spline.evaluate(0);
-    expect(p.x).toBeCloseTo(0);
-    expect(p.y).toBeCloseTo(0);
+    expect(p[0]).toBeCloseTo(0);
+    expect(p[1]).toBeCloseTo(0);
   });
 
   it('evaluate t=1 returns last point (linear)', () => {
@@ -74,8 +74,8 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 10);
     const p = spline.evaluate(1);
-    expect(p.x).toBeCloseTo(10);
-    expect(p.y).toBeCloseTo(10);
+    expect(p[0]).toBeCloseTo(10);
+    expect(p[1]).toBeCloseTo(10);
   });
 
   it('evaluate midpoint (linear)', () => {
@@ -83,8 +83,8 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 20);
     const p = spline.evaluate(0.5);
-    expect(p.x).toBeCloseTo(5);
-    expect(p.y).toBeCloseTo(10);
+    expect(p[0]).toBeCloseTo(5);
+    expect(p[1]).toBeCloseTo(10);
   });
 
   // ---------------------------------------------------------------------------
@@ -99,8 +99,8 @@ describe('SplinePath', () => {
     const mid = spline.evaluate(0.5);
     // Catmull-rom should produce a smooth curve that differs from linear
     expect(mid).toBeDefined();
-    expect(typeof mid.x).toBe('number');
-    expect(typeof mid.y).toBe('number');
+    expect(typeof mid[0]).toBe('number');
+    expect(typeof mid[1]).toBe('number');
   });
 
   // ---------------------------------------------------------------------------
@@ -109,13 +109,13 @@ describe('SplinePath', () => {
 
   it('evaluate empty spline returns zero', () => {
     const p = spline.evaluate(0.5);
-    expect(p).toEqual({ x: 0, y: 0, z: 0 });
+    expect(p).toEqual([0, 0, 0]);
   });
 
   it('evaluate single point returns that point', () => {
     spline.addPoint(3, 7, 1);
     const p = spline.evaluate(0.5);
-    expect(p).toEqual({ x: 3, y: 7, z: 1 });
+    expect(p).toEqual([3, 7, 1]);
   });
 
   // ---------------------------------------------------------------------------
@@ -134,8 +134,8 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 0);
     const p = spline.evaluateAtDistance(5);
-    expect(p.x).toBeCloseTo(5, 0);
-    expect(p.y).toBeCloseTo(0, 0);
+    expect(p[0]).toBeCloseTo(5, 0);
+    expect(p[1]).toBeCloseTo(0, 0);
   });
 
   // ---------------------------------------------------------------------------
@@ -147,9 +147,9 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 0);
     const t = spline.getTangent(0.5);
-    const len = Math.sqrt(t.x ** 2 + t.y ** 2 + t.z ** 2);
+    const len = Math.sqrt(t[0] ** 2 + t[1] ** 2 + t[2] ** 2);
     expect(len).toBeCloseTo(1, 1);
-    expect(t.x).toBeCloseTo(1, 1);
-    expect(t.y).toBeCloseTo(0, 1);
+    expect(t[0]).toBeCloseTo(1, 1);
+    expect(t[1]).toBeCloseTo(0, 1);
   });
 });

@@ -54,7 +54,7 @@ describe('Cycle 141: Damage & Combat', () => {
       id: 'hb1',
       ownerId: 'player',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
       damage: 50,
       damageType: 'physical',
@@ -64,14 +64,14 @@ describe('Cycle 141: Damage & Combat', () => {
       id: 'hr1',
       ownerId: 'enemy',
       position: [1, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
     });
     cm.addHurtBox({
       id: 'hr2',
       ownerId: 'player',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
     }); // Self — should NOT hit
 
@@ -114,7 +114,7 @@ describe('Cycle 141: Damage & Combat', () => {
   it('should find targets by range and priority', () => {
     const cm = new CombatManager();
     const targets = cm.findTargets(
-      { x: 0, y: 0, z: 0 },
+      [0, 0, 0],
       [
         { entityId: 'far', position: [100, 0, 0] },
         { entityId: 'close', position: [3, 0, 0], priority: 1 },

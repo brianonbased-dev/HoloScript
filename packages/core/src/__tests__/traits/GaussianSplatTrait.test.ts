@@ -267,7 +267,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
 
   it('sets needsSort and emits splat_sort when camera moves', () => {
     const { node, ctx, st, cfg } = attachLoaded();
-    st.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    st.lastCameraPosition = [0, 0, 0];
     ctx.camera = { position: [1, 0, 0] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
@@ -278,7 +278,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
 
   it('no splat_sort when sort_mode=radix', () => {
     const { node, ctx, st, cfg } = attachLoaded({ sort_mode: 'radix' });
-    st.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    st.lastCameraPosition = [0, 0, 0];
     st.needsSort = true;
     ctx.camera = { position: [1, 0, 0] };
 
@@ -292,12 +292,12 @@ describe('GaussianSplatTrait — onUpdate', () => {
     ctx.camera = { position: [5, 5, 5] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
-    expect(st.lastCameraPosition).toEqual({ x: 5, y: 5, z: 5 });
+    expect(st.lastCameraPosition).toEqual([5, 5, 5]);
   });
 
   it('no sort when camera moves less than threshold (0.1)', () => {
     const { node, ctx, st, cfg } = attachLoaded();
-    st.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    st.lastCameraPosition = [0, 0, 0];
     ctx.camera = { position: [0.05, 0, 0] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
@@ -334,7 +334,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
 
   it('emits splat_lod_change when camera crosses threshold', () => {
     const { node, ctx, st, cfg } = attachLoadedWithLOD();
-    st.lastCameraPosition = { x: 5, y: 5, z: 5 };
+    st.lastCameraPosition = [5, 5, 5];
     // Camera at (5,5,50) -> dist from center (5,5,5) = 45 -> beyond 30 -> level 3
     ctx.camera = { position: [5, 5, 50] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
@@ -347,7 +347,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
 
   it('does NOT emit splat_lod_change when mode=none', () => {
     const { node, ctx, st, cfg } = attachLoadedWithLOD({ mode: 'none' });
-    st.lastCameraPosition = { x: 5, y: 5, z: 5 };
+    st.lastCameraPosition = [5, 5, 5];
     ctx.camera = { position: [5, 5, 50] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_lod_change')).toBe(false);
@@ -355,7 +355,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
 
   it('does NOT emit splat_lod_change when level stays the same', () => {
     const { node, ctx, st, cfg } = attachLoadedWithLOD();
-    st.lastCameraPosition = { x: 5, y: 5, z: 5 };
+    st.lastCameraPosition = [5, 5, 5];
     st.currentLODLevel = 0;
     // Camera at center -> dist = 0 -> level 0 (same as current)
     ctx.camera = { position: [5, 5.2, 5] };
@@ -380,7 +380,7 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
     const st = getState(node);
     st.isLoaded = true;
     st.splatCount = splatCount;
-    st.lastCameraPosition = { x: 0, y: 0, z: 0 };
+    st.lastCameraPosition = [0, 0, 0];
     ctx.emitted.length = 0;
     return { node, ctx, st, cfg };
   }

@@ -30,27 +30,27 @@ describe('VehicleSystem', () => {
 
   it('createVehicle stores vehicle state', () => {
     const def = createDefaultCar('car1');
-    const state = sys.createVehicle(def, { x: 0, y: 2, z: 0 });
+    const state = sys.createVehicle(def, [0, 2, 0]);
     expect(state.id).toBe('car1');
     expect(state.speed).toBe(0);
     expect(state.wheels).toHaveLength(4);
   });
 
   it('getVehicle returns stored vehicle', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 2, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 2, 0]);
     expect(sys.getVehicle('car1')).toBeDefined();
     expect(sys.getVehicle('nope')).toBeUndefined();
   });
 
   it('removeVehicle deletes vehicle', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 2, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 2, 0]);
     expect(sys.removeVehicle('car1')).toBe(true);
     expect(sys.getVehicle('car1')).toBeUndefined();
   });
 
   it('setThrottle and update accelerates vehicle', () => {
     const def = createDefaultCar('car1');
-    sys.createVehicle(def, { x: 0, y: 1, z: 0 });
+    sys.createVehicle(def, [0, 1, 0]);
     sys.setThrottle('car1', 1.0);
     for (let i = 0; i < 60; i++) sys.update('car1', 1 / 60);
     const v = sys.getVehicle('car1')!;
@@ -58,7 +58,7 @@ describe('VehicleSystem', () => {
   });
 
   it('setBrake reduces speed', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 1, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 1, 0]);
     sys.setThrottle('car1', 1.0);
     for (let i = 0; i < 30; i++) sys.update('car1', 1 / 60);
     const speedBefore = sys.getVehicle('car1')!.speed;
@@ -69,7 +69,7 @@ describe('VehicleSystem', () => {
   });
 
   it('setSteering clamps to max angle', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 1, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 1, 0]);
     sys.setSteering('car1', 5.0); // way past max
     expect(sys.getVehicle('car1')!.steerAngle).toBeLessThanOrEqual(
       createDefaultCar('x').maxSteerAngle
@@ -77,13 +77,13 @@ describe('VehicleSystem', () => {
   });
 
   it('vehicle falls under gravity when airborne', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 10, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 10, 0]);
     sys.update('car1', 1 / 60);
     expect(sys.getVehicle('car1')!.position[1]).toBeLessThan(10);
   });
 
   it('wheel rotation increases with speed', () => {
-    sys.createVehicle(createDefaultCar('car1'), { x: 0, y: 1, z: 0 });
+    sys.createVehicle(createDefaultCar('car1'), [0, 1, 0]);
     sys.setThrottle('car1', 1.0);
     for (let i = 0; i < 30; i++) sys.update('car1', 1 / 60);
     const wheels = sys.getVehicle('car1')!.wheels;

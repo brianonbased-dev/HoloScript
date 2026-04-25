@@ -32,8 +32,8 @@ describe('PropertyGrid', () => {
     const pg = new PropertyGrid();
     const vals = { x: 5 };
     pg.setValues('e1', vals);
-    vals.x = 99;
-    expect(pg.getValues('e1')!.x).toBe(5);
+    vals[0] = 99;
+    expect(pg.getValues('e1')![0]).toBe(5);
   });
 
   it('getValues returns undefined for unknown', () => {
@@ -45,7 +45,7 @@ describe('PropertyGrid', () => {
     const pg = new PropertyGrid();
     pg.setValues('e1', { x: 0 });
     pg.setValue('e1', 'x', 42);
-    expect(pg.getValues('e1')!.x).toBe(42);
+    expect(pg.getValues('e1')![0]).toBe(42);
     expect(pg.getHistoryCount()).toBe(1);
   });
 
@@ -61,7 +61,7 @@ describe('PropertyGrid', () => {
     pg.setValue('e1', 'x', 42);
     const change = pg.undo();
     expect(change!.newValue).toBe(42);
-    expect(pg.getValues('e1')!.x).toBe(0);
+    expect(pg.getValues('e1')![0]).toBe(0);
   });
 
   it('undo returns undefined when empty', () => {
@@ -83,8 +83,8 @@ describe('PropertyGrid', () => {
     pg.setValues('e3', { x: 0 });
     const count = pg.batchSetValue(['e1', 'e2', 'e3'], 'x', 99);
     expect(count).toBe(3);
-    expect(pg.getValues('e1')!.x).toBe(99);
-    expect(pg.getValues('e3')!.x).toBe(99);
+    expect(pg.getValues('e1')![0]).toBe(99);
+    expect(pg.getValues('e3')![0]).toBe(99);
   });
 
   it('batchSetValue skips unknown targets', () => {

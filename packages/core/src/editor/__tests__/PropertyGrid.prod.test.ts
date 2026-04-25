@@ -44,8 +44,8 @@ describe('PropertyGrid — Production Tests', () => {
     it('stores a snapshot (not reference)', () => {
       const src = { x: 1 };
       pg.setValues('e', src);
-      src.x = 99;
-      expect(pg.getValues('e')!.x).toBe(1);
+      src[0] = 99;
+      expect(pg.getValues('e')![0]).toBe(1);
     });
   });
 
@@ -71,7 +71,7 @@ describe('PropertyGrid — Production Tests', () => {
       pg.setValue('e1', 'x', 20);
       // undo restores old value
       pg.undo();
-      expect(pg.getValues('e1')!.x).toBe(10);
+      expect(pg.getValues('e1')![0]).toBe(10);
     });
 
     it('caps history at maxHistorySize (100)', () => {

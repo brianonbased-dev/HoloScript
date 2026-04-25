@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../../errors/safeJsonParse';
 import { AgentCardExporter } from '../AgentCardExporter';
 import type { HoloComposition, HoloObjectTrait } from '../../../parser/HoloCompositionTypes';
 
@@ -155,8 +156,8 @@ describe('AgentCardExporter', () => {
     const composition = createTestComposition();
     const result = exporter.export(composition);
 
-    expect(() => JSON.parse(result.json)).not.toThrow();
-    const parsed = JSON.parse(result.json);
+    expect(() => readJson(result.json)).not.toThrow();
+    const parsed = readJson(result.json);
     expect(parsed.id).toBe(result.card.id);
   });
 

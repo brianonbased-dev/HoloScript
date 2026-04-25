@@ -170,21 +170,21 @@ export class GrabbableTrait implements Trait {
   private initialObjectRotation: Vector3 | null = null;
 
   private toArr3(
-    v: [number, number, number] | { x: number; y: number; z: number }
+    v: [number, number, number] | [number, number, number]
   ): [number, number, number] {
-    return Array.isArray(v) ? v : [v.x, v.y, v.z];
+    return Array.isArray(v) ? v : [v[0], v[1], v[2]];
   }
 
   private getDistance(
-    p1: { x?: number; y?: number; z?: number } | [number, number, number],
-    p2: { x?: number; y?: number; z?: number } | [number, number, number]
+    p1: [number, number, number] | [number, number, number],
+    p2: [number, number, number] | [number, number, number]
   ): number {
-    const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
-    const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
-    const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
-    const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
-    const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
-    const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
+    const x1 = Array.isArray(p1) ? p1[0] : (p1[0] ?? 0);
+    const y1 = Array.isArray(p1) ? p1[1] : (p1[1] ?? 0);
+    const z1 = Array.isArray(p1) ? p1[2] : (p1[2] ?? 0);
+    const x2 = Array.isArray(p2) ? p2[0] : (p2[0] ?? 0);
+    const y2 = Array.isArray(p2) ? p2[1] : (p2[1] ?? 0);
+    const z2 = Array.isArray(p2) ? p2[2] : (p2[2] ?? 0);
     const dx = x1 - x2;
     const dy = y1 - y2;
     const dz = z1 - z2;

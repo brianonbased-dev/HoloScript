@@ -146,29 +146,29 @@ describe('Networking Hardening (Cycle 170)', () => {
     });
 
     it('should accept valid position updates', () => {
-      ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
+      ac.registerPlayer('p1', [0, 0, 0]);
 
       // Small move after enough time
       const state = ac.getPlayerState('p1')!;
       state.lastUpdateAt = Date.now() - 1000; // 1 second ago
-      const result = ac.validatePositionUpdate('p1', { x: 5, y: 0, z: 0 });
+      const result = ac.validatePositionUpdate('p1', [5, 0, 0]);
       expect(result.valid).toBe(true);
     });
 
     it('should detect teleport violations', () => {
-      ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
-      const result = ac.validatePositionUpdate('p1', { x: 100, y: 0, z: 0 });
+      ac.registerPlayer('p1', [0, 0, 0]);
+      const result = ac.validatePositionUpdate('p1', [100, 0, 0]);
       expect(result.valid).toBe(false);
       expect(result.violation?.type).toBe('teleport');
     });
 
     it('should detect speed violations', () => {
-      ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
+      ac.registerPlayer('p1', [0, 0, 0]);
       const state = ac.getPlayerState('p1')!;
       state.lastUpdateAt = Date.now() - 100; // 0.1 seconds ago
 
       // Attempt to move 20 units in 0.1s = 200 u/s > max 10
-      const result = ac.validatePositionUpdate('p1', { x: 20, y: 0, z: 0 });
+      const result = ac.validatePositionUpdate('p1', [20, 0, 0]);
       expect(result.valid).toBe(false);
       expect(result.violation?.type).toBe('speed');
     });
@@ -184,10 +184,10 @@ describe('Networking Hardening (Cycle 170)', () => {
     });
 
     it('should auto-ban after threshold', () => {
-      ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
+      ac.registerPlayer('p1', [0, 0, 0]);
       // Generate 3 violations to trigger auto-ban (banThreshold=3)
       for (let i = 0; i < 3; i++) {
-        ac.validatePositionUpdate('p1', { x: 999, y: 0, z: 0 });
+        ac.validatePositionUpdate('p1', [999, 0, 0]);
         // Reset position for next violation
         const state = ac.getPlayerState('p1')!;
         state.position = [0, 0, 0 ];
@@ -196,8 +196,8 @@ describe('Networking Hardening (Cycle 170)', () => {
     });
 
     it('should track violation count', () => {
-      ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
-      ac.validatePositionUpdate('p1', { x: 999, y: 0, z: 0 });
+      ac.registerPlayer('p1', [0, 0, 0]);
+      ac.validatePositionUpdate('p1', [999, 0, 0]);
       expect(ac.getViolationCount('p1')).toBe(1);
     });
   });

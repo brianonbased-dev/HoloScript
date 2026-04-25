@@ -29,7 +29,7 @@ export type Vector3 = [number, number, number];
 /**
  * 3D Vector as object with x/y/z properties
  */
-export type Vector3Object = { x: number; y: number; z: number };
+export type Vector3Object = [number, number, number];
 
 function withVectorAliases(v: [number, number, number]): Vector3 {
   Object.defineProperty(v, 'x', {

@@ -245,7 +245,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         objectId: { type: 'string' },
         grabPoint: {
           type: 'object',
-          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
         },
       },
     },
@@ -278,7 +278,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         thrown: { type: 'boolean' },
         velocity: {
           type: 'object',
-          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
         },
       },
     },
@@ -606,7 +606,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         objectId: { type: 'string' },
         seatOffset: {
           type: 'object',
-          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
         },
         speed: { type: 'number', default: 5.0 },
       },
@@ -755,7 +755,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         respawnDelay: { type: 'number', default: 5.0, description: 'Delay in seconds' },
         respawnPoint: {
           type: 'object',
-          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
         },
         maxRespawns: { type: 'number', default: -1, description: '-1 for unlimited' },
       },
@@ -802,7 +802,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
         teleported: { type: 'boolean' },
         destination: {
           type: 'object',
-          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          properties: [{ type: 'number' }, { type: 'number' }, { type: 'number' }],
         },
       },
     },

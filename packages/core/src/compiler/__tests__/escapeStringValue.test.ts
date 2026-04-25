@@ -8,6 +8,7 @@
  * @version 1.0.0
  */
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { escapeStringValue, type EscapeTarget } from '../CompilerBase';
 
 // ---------------------------------------------------------------------------
@@ -365,9 +366,9 @@ describe('escapeStringValue — JSON', () => {
   it('produces valid JSON when wrapped in quotes', () => {
     const escaped = escapeStringValue(PAYLOADS.jsonInjection, target);
     const json = `"${escaped}"`;
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
     // Parsed value should be the original payload (round-trip)
-    expect(JSON.parse(json)).toBe(PAYLOADS.jsonInjection);
+    expect(readJson(json)).toBe(PAYLOADS.jsonInjection);
   });
 });
 

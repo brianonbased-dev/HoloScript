@@ -13,6 +13,7 @@
  */
 
 import { logger } from '../logger';
+import { readJson } from '../errors/safeJsonParse';
 import { wasmModuleCache } from './WasmModuleCache';
 
 // WASM module exports interface (from Rust)
@@ -182,7 +183,7 @@ export class WasmParserBridge {
 
       const resultJson = this.wasmInstance.parse(source);
       const parseTime = performance.now() - startTime;
-      const parsed = JSON.parse(resultJson);
+      const parsed = readJson(resultJson) as Record<string, unknown>;
 
       if (parsed.errors) {
         return {
@@ -234,7 +235,10 @@ export class WasmParserBridge {
       }
 
       const resultJson = this.wasmInstance.validate_detailed(source);
-      return JSON.parse(resultJson);
+      return readJson(resultJson) as {
+        valid: boolean;
+        errors: Array<{ message: string; line: number; column: number }>;
+      };
     } catch (err) {
       logger.warn('[WasmParserBridge] Validation failed:', { error: String(err) });
       return {

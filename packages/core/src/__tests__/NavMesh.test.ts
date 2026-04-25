@@ -13,14 +13,14 @@ describe('NavMesh', () => {
 
   it('addPolygon returns incrementing id', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 10, z: 0 },
-      { x: 5, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [5, 0, 10],
     ]);
     const b = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 20, z: 0 },
-      { x: 15, z: 10 },
+      [10, 0, 0],
+      [20, 0, 0],
+      [15, 0, 10],
     ]);
     expect(b).toBeGreaterThan(a);
     expect(nav.getPolygonCount()).toBe(2);
@@ -28,10 +28,10 @@ describe('NavMesh', () => {
 
   it('addPolygon computes center correctly', () => {
     const id = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 10 },
-      { x: 0, z: 10 },
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 0, 10],
+      [0, 0, 10],
     ]);
     const p = nav.getPolygon(id)!;
     expect(p.center[0]).toBeCloseTo(5);
@@ -40,14 +40,14 @@ describe('NavMesh', () => {
 
   it('connect links two polygons bidirectionally', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const b = nav.addPolygon([
-      { x: 5, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 5 },
+      [5, 0, 0],
+      [10, 0, 0],
+      [10, 0, 5],
     ]);
     expect(nav.connect(a, b)).toBe(true);
     expect(nav.getPolygon(a)!.neighbors).toContain(b);
@@ -57,16 +57,16 @@ describe('NavMesh', () => {
   it('findPath returns null for non-walkable start', () => {
     const a = nav.addPolygon(
       [
-        { x: 0, z: 0 },
-        { x: 5, z: 0 },
-        { x: 5, z: 5 },
+        [0, 0, 0],
+        [5, 0, 0],
+        [5, 0, 5],
       ],
       false
     );
     const b = nav.addPolygon([
-      { x: 5, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 5 },
+      [5, 0, 0],
+      [10, 0, 0],
+      [10, 0, 5],
     ]);
     nav.connect(a, b);
     expect(nav.findPath(a, b)).toBeNull();
@@ -74,14 +74,14 @@ describe('NavMesh', () => {
 
   it('findPath returns direct path for connected neighbors', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const b = nav.addPolygon([
-      { x: 5, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 5 },
+      [5, 0, 0],
+      [10, 0, 0],
+      [10, 0, 5],
     ]);
     nav.connect(a, b);
     const path = nav.findPath(a, b);
@@ -92,33 +92,33 @@ describe('NavMesh', () => {
 
   it('findPath returns null when disconnected', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const b = nav.addPolygon([
-      { x: 50, z: 50 },
-      { x: 60, z: 50 },
-      { x: 55, z: 60 },
+      [50, 0, 50],
+      [60, 0, 50],
+      [55, 0, 60],
     ]);
     expect(nav.findPath(a, b)).toBeNull();
   });
 
   it('findPath routes through multiple polygons', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const b = nav.addPolygon([
-      { x: 5, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 5 },
+      [5, 0, 0],
+      [10, 0, 0],
+      [10, 0, 5],
     ]);
     const c = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 15, z: 0 },
-      { x: 15, z: 5 },
+      [10, 0, 0],
+      [15, 0, 0],
+      [15, 0, 5],
     ]);
     nav.connect(a, b);
     nav.connect(b, c);
@@ -129,22 +129,22 @@ describe('NavMesh', () => {
 
   it('findPath avoids non-walkable polygons', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const wall = nav.addPolygon(
       [
-        { x: 5, z: 0 },
-        { x: 10, z: 0 },
-        { x: 10, z: 5 },
+        [5, 0, 0],
+        [10, 0, 0],
+        [10, 0, 5],
       ],
       false
     );
     const c = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 15, z: 0 },
-      { x: 15, z: 5 },
+      [10, 0, 0],
+      [15, 0, 0],
+      [15, 0, 5],
     ]);
     nav.connect(a, wall);
     nav.connect(wall, c);
@@ -153,9 +153,9 @@ describe('NavMesh', () => {
 
   it('setWalkable toggles walkability', () => {
     const id = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     nav.setWalkable(id, false);
     expect(nav.getPolygon(id)!.walkable).toBe(false);
@@ -163,19 +163,19 @@ describe('NavMesh', () => {
 
   it('smoothPath removes intermediate waypoints within range', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const b = nav.addPolygon([
-      { x: 5, z: 0 },
-      { x: 10, z: 0 },
-      { x: 10, z: 5 },
+      [5, 0, 0],
+      [10, 0, 0],
+      [10, 0, 5],
     ]);
     const c = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 15, z: 0 },
-      { x: 15, z: 5 },
+      [10, 0, 0],
+      [15, 0, 0],
+      [15, 0, 5],
     ]);
     nav.connect(a, b);
     nav.connect(b, c);
@@ -186,41 +186,41 @@ describe('NavMesh', () => {
 
   it('findPath with custom cost prefers cheaper route', () => {
     const a = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 5, z: 0 },
-      { x: 5, z: 5 },
+      [0, 0, 0],
+      [5, 0, 0],
+      [5, 0, 5],
     ]);
     const expensive = nav.addPolygon(
       [
-        { x: 5, z: 0 },
-        { x: 10, z: 0 },
-        { x: 10, z: 5 },
+        [5, 0, 0],
+        [10, 0, 0],
+        [10, 0, 5],
       ],
       true,
       100
     );
     const cheap1 = nav.addPolygon(
       [
-        { x: 0, z: 5 },
-        { x: 5, z: 5 },
-        { x: 5, z: 10 },
+        [0, 0, 5],
+        [5, 0, 5],
+        [5, 0, 10],
       ],
       true,
       1
     );
     const cheap2 = nav.addPolygon(
       [
-        { x: 5, z: 5 },
-        { x: 10, z: 5 },
-        { x: 10, z: 10 },
+        [5, 0, 5],
+        [10, 0, 5],
+        [10, 0, 10],
       ],
       true,
       1
     );
     const end = nav.addPolygon([
-      { x: 10, z: 0 },
-      { x: 15, z: 0 },
-      { x: 15, z: 5 },
+      [10, 0, 0],
+      [15, 0, 0],
+      [15, 0, 5],
     ]);
     nav.connect(a, expensive);
     nav.connect(expensive, end);

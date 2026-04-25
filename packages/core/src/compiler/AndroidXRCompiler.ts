@@ -133,7 +133,7 @@ export class AndroidXRCompiler extends CompilerBase {
       minSdk: options.minSdk || 30,
       targetSdk: options.targetSdk || 35,
       formFactor: options.formFactor || 'headset',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

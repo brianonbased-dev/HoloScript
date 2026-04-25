@@ -22,6 +22,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { Profiler, profiler } from '../Profiler';
 
 let p: Profiler;
@@ -312,7 +313,7 @@ describe('Profiler', () => {
       const result = p.stop();
       const json = p.exportJSON(result);
       expect(typeof json).toBe('string');
-      expect(() => JSON.parse(json)).not.toThrow();
+      expect(() => readJson(json)).not.toThrow();
     });
 
     it('JSON contains the profile name', () => {

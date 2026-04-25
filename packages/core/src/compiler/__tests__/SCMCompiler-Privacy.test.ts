@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SCMCompiler } from '../SCMCompiler';
 import type { HoloComposition } from '../../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -46,7 +47,7 @@ describe('SCMCompiler - Privacy-Preserving Causal Discovery', () => {
     const compiler = new SCMCompiler({ privacyMask: false });
 
     const resultJson = compiler.compile(mockComposition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     // Assert actual strings exist
     expect(resultJson).toContain('User_Bank_Account_Button');
@@ -63,7 +64,7 @@ describe('SCMCompiler - Privacy-Preserving Causal Discovery', () => {
     const compiler = new SCMCompiler({ privacyMask: true });
 
     const resultJson = compiler.compile(mockComposition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     // Negative assertions confirming raw logic was pruned mapping successfully securely
     expect(resultJson).not.toContain('User_Bank_Account_Button');

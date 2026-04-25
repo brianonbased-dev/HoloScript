@@ -22,10 +22,10 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
     });
 
     const mid = clip.sample(1);
-    expect(mid.get('root.position[1]')).toBeCloseTo(5, 0);
+    expect(mid.get('root.position.y')).toBeCloseTo(5, 0);
 
     const end = clip.sample(2);
-    expect(end.get('root.position[1]')).toBeCloseTo(10, 0);
+    expect(end.get('root.position.y')).toBeCloseTo(10, 0);
   });
 
   it('should fire events in time range', () => {
@@ -92,7 +92,7 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
       },
     ];
 
-    solver.addChain({ id: 'arm', bones, target: { x: 7, y: 3, z: 0 }, weight: 1, iterations: 10 });
+    solver.addChain({ id: 'arm', bones, target: [7, 3, 0], weight: 1, iterations: 10 });
     const result = solver.solveTwoBone('arm');
     expect(result).toBe(true);
 
@@ -113,7 +113,7 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
       });
     }
 
-    solver.addChain({ id: 'tail', bones, target: { x: 4, y: 4, z: 0 }, weight: 1, iterations: 20 });
+    solver.addChain({ id: 'tail', bones, target: [4, 4, 0], weight: 1, iterations: 20 });
     solver.solveCCD('tail');
 
     const chain = solver.getChain('tail')!;
@@ -129,10 +129,10 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
     solver.setFootPlacement({ enabled: true, blendSpeed: 10, footOffset: 0.1 });
 
     const pos1 = solver.updateFootPlacement('left_foot', 0, 0.1);
-    expect(pos1.y).toBeGreaterThan(0);
+    expect(pos1[1]).toBeGreaterThan(0);
 
     const pos2 = solver.updateFootPlacement('left_foot', 0, 0.1);
-    expect(pos2.y).toBeCloseTo(0.1, 0); // Settling toward footOffset
+    expect(pos2[1]).toBeCloseTo(0.1, 0); // Settling toward footOffset
   });
 
   it('should solve all chains at once', () => {
@@ -146,14 +146,14 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
     solver.addChain({
       id: 'left',
       bones: makeBones(),
-      target: { x: 4, y: 2, z: 0 },
+      target: [4, 2, 0],
       weight: 1,
       iterations: 10,
     });
     solver.addChain({
       id: 'right',
       bones: makeBones(),
-      target: { x: 4, y: -2, z: 0 },
+      target: [4, -2, 0],
       weight: 1,
       iterations: 10,
     });

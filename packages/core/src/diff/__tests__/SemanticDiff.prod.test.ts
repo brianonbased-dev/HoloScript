@@ -7,6 +7,7 @@
  * formatDiffResult, diffToJSON, and the semanticDiff convenience export.
  */
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { SemanticDiffEngine, semanticDiff, formatDiffResult, diffToJSON } from '../SemanticDiff';
 import type { ASTNode } from '../../parser/ASTNode';
 
@@ -200,7 +201,7 @@ describe('SemanticDiffEngine — Production', () => {
 
   it('summary correctly tallies added count', () => {
     const a = makeAST();
-    const b = makeAST({ x: 1, y: 2, z: 3 });
+    const b = makeAST([1, 2, 3]);
     const result = engine.diff(a, b);
     expect(result.summary.added).toBeGreaterThanOrEqual(3);
   });
@@ -275,21 +276,21 @@ describe('SemanticDiffEngine — Production', () => {
     const result = engine.diff(a, b);
     const json = diffToJSON(result);
     expect(typeof json).toBe('string');
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
   });
 
   it('diffToJSON round-trip preserves change count', () => {
     const a = makeAST({ a: 1, b: 2 });
     const b = makeAST({ a: 9, c: 3 });
     const result = engine.diff(a, b);
-    const parsed = JSON.parse(diffToJSON(result));
+    const parsed = readJson(diffToJSON(result)) as { changes: unknown[] };
     expect(parsed.changes.length).toBe(result.changes.length);
   });
 
   it('diffToJSON equivalent field is preserved', () => {
     const ast = makeAST({ v: 5 });
     const result = engine.diff(ast, ast);
-    const parsed = JSON.parse(diffToJSON(result));
+    const parsed = readJson(diffToJSON(result)) as { equivalent: boolean };
     expect(parsed.equivalent).toBe(true);
   });
 

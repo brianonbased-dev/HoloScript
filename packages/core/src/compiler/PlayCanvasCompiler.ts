@@ -93,7 +93,7 @@ export class PlayCanvasCompiler extends CompilerBase {
       enablePhysics: options.enablePhysics ?? true,
       enableXR: options.enableXR ?? false,
       indent: options.indent || '  ',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

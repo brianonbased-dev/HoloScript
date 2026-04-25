@@ -5,7 +5,7 @@ import { DecalSystem } from '@holoscript/engine/rendering';
 // C261 — Decal System
 // =============================================================================
 
-const pos = { x: 0, y: 0, z: 0 };
+const pos = [0, 0, 0];
 const normal = [0, 1, 0 ];
 
 describe('DecalSystem', () => {

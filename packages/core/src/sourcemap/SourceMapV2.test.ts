@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import {
   SourceMapGeneratorV2,
   SourceMapConsumerV2,
@@ -318,7 +319,7 @@ describe('SourceMapGeneratorV2', () => {
       });
 
       const json = generator.toString();
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
 
       expect(parsed.version).toBe(3);
       expect(parsed.file).toBe('output.js');

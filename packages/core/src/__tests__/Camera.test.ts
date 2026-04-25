@@ -12,7 +12,7 @@ describe('Cycle 123: Camera System', () => {
     const cam = new CameraController({
       mode: 'follow',
       smoothing: 1,
-      followOffset: { x: 0, y: 0, z: 0 },
+      followOffset: [0, 0, 0],
     });
     cam.setTarget(10, 0, 0);
     cam.update(1 / 60);
@@ -36,7 +36,7 @@ describe('Cycle 123: Camera System', () => {
   it('should clamp to bounds', () => {
     const cam = new CameraController({
       mode: 'free',
-      bounds: { min: { x: -10, y: -10, z: -10 }, max: { x: 10, y: 10, z: 10 } },
+      bounds: { min: [-10, -10, -10], max: [10, 10, 10] },
     });
     cam.moveCamera(100, 100, 100);
     cam.update(1 / 60);

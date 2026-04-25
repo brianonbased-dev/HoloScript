@@ -63,9 +63,9 @@ export class SlidableTrait implements Trait {
     let delta = 0;
     const cp = currentPos as any;
     const ip = this.initialPos;
-    if (axis === 'x') delta = (cp.x ?? cp[0]) - ip[0];
-    if (axis === 'y') delta = (cp.y ?? cp[1]) - ip[1];
-    if (axis === 'z') delta = (cp.z ?? cp[2]) - ip[2];
+    if (axis === 'x') delta = (cp[0] ?? cp[0]) - ip[0];
+    if (axis === 'y') delta = (cp[1] ?? cp[1]) - ip[1];
+    if (axis === 'z') delta = (cp[2] ?? cp[2]) - ip[2];
 
     // Normalize to 0-1 based on length (-length/2 to length/2)
     // Constraint min = -length/2, max = length/2

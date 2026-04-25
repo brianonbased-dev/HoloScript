@@ -8,6 +8,7 @@
  */
 
 import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
+import { readJson } from '../errors/safeJsonParse';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -244,7 +245,7 @@ export default ${safeName}Component;
     }
     if (traits.theme?.attributes) {
       try {
-        const parsedAttrs = JSON.parse(traits.theme.attributes);
+        const parsedAttrs = readJson(traits.theme.attributes) as Record<string, string>;
         for (const [key, value] of Object.entries(parsedAttrs)) {
           props += ` ${key}="${value}"`;
         }
@@ -425,7 +426,7 @@ export default ${safeName}Component;
     }
     if (traits.theme?.attributes) {
       try {
-        const parsedAttrs = JSON.parse(traits.theme.attributes);
+        const parsedAttrs = readJson(traits.theme.attributes) as Record<string, string>;
         for (const [key, value] of Object.entries(parsedAttrs)) {
           props += ` ${key}="${value}"`;
         }

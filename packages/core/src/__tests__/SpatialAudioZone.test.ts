@@ -8,8 +8,8 @@ import { SpatialAudioZoneSystem, REVERB_PRESETS } from '@holoscript/engine/audio
 const makeZone = (
   id: string,
   shape: 'box' | 'sphere',
-  pos: { x: number; y: number; z: number },
-  size: { x: number; y: number; z: number },
+  pos: [number, number, number],
+  size: [number, number, number],
   priority = 0
 ) => ({
   id,
@@ -28,19 +28,19 @@ describe('SpatialAudioZoneSystem', () => {
   });
 
   it('addZone stores zone', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [5, 5, 5]));
     expect(sys.getZoneCount()).toBe(1);
   });
 
   it('removeZone deletes zone', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [5, 5, 5]));
     sys.removeZone('z1');
     expect(sys.getZoneCount()).toBe(0);
   });
 
   it('listener inside box zone has blendWeight 1', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }));
-    sys.updateListenerPosition({ x: 0, y: 0, z: 0 });
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [10, 10, 10]));
+    sys.updateListenerPosition([0, 0, 0]);
     const active = sys.getActiveZones();
     expect(active).toHaveLength(1);
     expect(active[0].blendWeight).toBe(1);
@@ -48,22 +48,22 @@ describe('SpatialAudioZoneSystem', () => {
   });
 
   it('listener inside sphere zone has blendWeight 1', () => {
-    sys.addZone(makeZone('z1', 'sphere', { x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }));
-    sys.updateListenerPosition({ x: 5, y: 0, z: 0 });
+    sys.addZone(makeZone('z1', 'sphere', [0, 0, 0], [10, 0, 0]));
+    sys.updateListenerPosition([5, 0, 0]);
     const active = sys.getActiveZones();
     expect(active).toHaveLength(1);
     expect(active[0].isInside).toBe(true);
   });
 
   it('listener outside fadeDistance returns no active zones', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
-    sys.updateListenerPosition({ x: 100, y: 0, z: 0 });
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [5, 5, 5]));
+    sys.updateListenerPosition([100, 0, 0]);
     expect(sys.getActiveZones()).toHaveLength(0);
   });
 
   it('listener in fade band gets blendWeight between 0 and 1', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
-    sys.updateListenerPosition({ x: 7, y: 0, z: 0 }); // 2 units outside, fadeDistance=5
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [5, 5, 5]));
+    sys.updateListenerPosition([7, 0, 0]); // 2 units outside, fadeDistance=5
     const active = sys.getActiveZones();
     expect(active).toHaveLength(1);
     expect(active[0].blendWeight).toBeGreaterThan(0);
@@ -75,23 +75,23 @@ describe('SpatialAudioZoneSystem', () => {
   });
 
   it('getEffectiveReverb returns reverb preset when inside zone', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }));
-    sys.updateListenerPosition({ x: 0, y: 0, z: 0 });
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [10, 10, 10]));
+    sys.updateListenerPosition([0, 0, 0]);
     const reverb = sys.getEffectiveReverb()!;
     expect(reverb.decay).toBe(REVERB_PRESETS.room.decay);
   });
 
   it('getActiveZones sorted by priority', () => {
-    sys.addZone(makeZone('low', 'box', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, 1));
-    sys.addZone(makeZone('high', 'box', { x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 }, 5));
-    sys.updateListenerPosition({ x: 0, y: 0, z: 0 });
+    sys.addZone(makeZone('low', 'box', [0, 0, 0], [10, 10, 10], 1));
+    sys.addZone(makeZone('high', 'box', [0, 0, 0], [10, 10, 10], 5));
+    sys.updateListenerPosition([0, 0, 0]);
     const active = sys.getActiveZones();
     expect(active[0].zoneId).toBe('high');
   });
 
   it('isListenerInsideZone returns correct boolean', () => {
-    sys.addZone(makeZone('z1', 'box', { x: 0, y: 0, z: 0 }, { x: 5, y: 5, z: 5 }));
-    sys.updateListenerPosition({ x: 0, y: 0, z: 0 });
+    sys.addZone(makeZone('z1', 'box', [0, 0, 0], [5, 5, 5]));
+    sys.updateListenerPosition([0, 0, 0]);
     expect(sys.isListenerInsideZone('z1')).toBe(true);
     expect(sys.isListenerInsideZone('z2')).toBe(false);
   });
@@ -100,7 +100,7 @@ describe('SpatialAudioZoneSystem', () => {
     sys.addPortal({
       id: 'p1',
       position: [5, 0, 0],
-      normal: { x: 1, y: 0, z: 0 },
+      normal: [1, 0, 0],
       width: 2,
       height: 3,
       fromZoneId: 'z1',

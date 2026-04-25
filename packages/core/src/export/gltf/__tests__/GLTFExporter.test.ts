@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../../errors/safeJsonParse';
 import { GLTFExporter } from '../GLTFExporter';
 import {
   type IGLTFDocument,
@@ -556,7 +557,7 @@ describe('GLTFExporter GLB Format', () => {
     while (end > 0 && jsonBytes[end - 1] === 0x20) end--;
 
     const jsonString = new TextDecoder().decode(jsonBytes.subarray(0, end));
-    const parsedDoc = JSON.parse(jsonString) as IGLTFDocument;
+    const parsedDoc = readJson(jsonString) as IGLTFDocument;
 
     expect(parsedDoc.asset.version).toBe('2.0');
     expect(parsedDoc.meshes).toBeDefined();
@@ -594,7 +595,7 @@ describe('GLTFExporter JSON Format', () => {
     const result = await exporter.export(sg);
 
     expect(result.json).toBeDefined();
-    expect(() => JSON.parse(result.json!)).not.toThrow();
+    expect(() => readJson(result.json!)).not.toThrow();
   });
 
   it('produces pretty-printed JSON when requested', async () => {

@@ -33,8 +33,8 @@ describe('JointSystem', () => {
     const j = js.createJoint('spring', 'a', 'b', {
       stiffness: 10,
       damping: 0.1,
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 5, y: 0, z: 0 },
+      anchorA: [0, 0, 0],
+      anchorB: [5, 0, 0],
     });
     js.setDistance(j.id, 8); // stretched
     js.solve(0.016);
@@ -61,8 +61,8 @@ describe('JointSystem', () => {
     const j = js.createJoint('spring', 'a', 'b', {
       stiffness: 1000,
       breakForce: 5,
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 1, y: 0, z: 0 },
+      anchorA: [0, 0, 0],
+      anchorB: [1, 0, 0],
     });
     js.setDistance(j.id, 100); // extreme stretch
     js.solve(0.016);

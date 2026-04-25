@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { PerformanceTracker } from '../../performance/PerformanceTracker';
 import { PerformanceReportGenerator } from '../../performance/PerformanceReportGenerator';
 import * as fs from 'fs';
@@ -98,7 +99,7 @@ describe('PerformanceReportGenerator', () => {
     expect(fs.existsSync(savedPath)).toBe(true);
 
     const fileContent = fs.readFileSync(savedPath, 'utf-8');
-    const fileData = JSON.parse(fileContent);
+    const fileData = readJson(fileContent);
 
     expect(fileData.timestamp).toBe(report.timestamp);
     expect(fileData.totalMetrics).toBe(report.totalMetrics);

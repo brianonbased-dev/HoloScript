@@ -218,14 +218,14 @@ describe('ReactiveState — getSnapshot / reset', () => {
   it('getSnapshot returns a shallow copy of current state', () => {
     const s = makeState({ x: 5, y: 10 });
     const snap = s.getSnapshot();
-    expect(snap.x).toBe(5);
-    expect(snap.y).toBe(10);
+    expect(snap[0]).toBe(5);
+    expect(snap[1]).toBe(10);
   });
 
   it('mutating snapshot does not affect state', () => {
     const s = makeState({ x: 5 });
     const snap = s.getSnapshot();
-    (snap as any).x = 999;
+    (snap as any)[0] = 999;
     expect(s.get('x')).toBe(5);
   });
 

@@ -1,4 +1,5 @@
 import type { HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { readJson } from '../errors/safeJsonParse';
 /**
  * LocalLLMTrait — v4.0
  *
@@ -348,7 +349,7 @@ export const localLLMHandler = {
         let isDone = false;
         if (config.backend === 'ollama') {
           try {
-            const d = JSON.parse(line);
+            const d = readJson(line) as Record<string, unknown>;
             isDone = d.done;
             token = d.message?.content ?? '';
           } catch {
@@ -361,7 +362,9 @@ export const localLLMHandler = {
             isDone = true;
           } else {
             try {
-              token = JSON.parse(p).choices?.[0]?.delta?.content ?? '';
+              token =
+                (readJson(p) as { choices?: { delta?: { content?: string } }[] }).choices?.[0]
+                  ?.delta?.content ?? '';
             } catch {
               continue;
             }

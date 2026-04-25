@@ -54,8 +54,8 @@ describe('ComponentStore — pool management', () => {
 describe('ComponentStore — add', () => {
   it('add returns true and stores component', () => {
     const cs = makeCS();
-    expect(cs.add('Transform', 1, { x: 0, y: 0, z: 0 })).toBe(true);
-    expect(cs.get('Transform', 1)).toEqual({ x: 0, y: 0, z: 0 });
+    expect(cs.add('Transform', 1, [0, 0, 0])).toBe(true);
+    expect(cs.get('Transform', 1)).toEqual([0, 0, 0]);
   });
 
   it('add auto-creates pool if not pre-registered', () => {

@@ -1210,11 +1210,7 @@ function _calculateForwardVector(quaternion: { x: number; y: number; z: number; 
   const { x, y, z, w } = quaternion;
 
   // Forward is -Z axis rotated by quaternion
-  return {
-    x: 2 * (x * z + w * y),
-    y: 2 * (y * z - w * x),
-    z: 1 - 2 * (x * x + y * y),
-  };
+  return [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
 }
 
 /**

@@ -95,7 +95,7 @@ export class BabylonCompiler extends CompilerBase {
       useHavok: options.useHavok ?? true,
       enableXR: options.enableXR ?? false,
       indent: options.indent || '  ',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

@@ -9,6 +9,8 @@
  * @version 1.0.0
  */
 
+import { readJson } from '../errors/safeJsonParse';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -697,7 +699,13 @@ export class TraitDependencyGraph {
    */
   static deserialize(json: string): TraitDependencyGraph {
     const graph = new TraitDependencyGraph();
-    const data = JSON.parse(json);
+    const data = readJson(json) as {
+      version: number;
+      traitDependencies: [string, string[]][];
+      traitConflicts: [string, string[]][];
+      objectTraits: [string, ObjectTraitInfo][];
+      importEdges?: [string, string[]][];
+    };
 
     if (data.version !== 1 && data.version !== 2) {
       throw new Error(`Unsupported trait graph version: ${data.version}`);

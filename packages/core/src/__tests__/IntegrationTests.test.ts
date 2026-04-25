@@ -113,7 +113,7 @@ describe('Cycle 110: Integration Tests', () => {
 
     // Create vehicle
     const carDef = createDefaultCar('net_car');
-    const car = vehicleSystem.createVehicle(carDef, { x: 0, y: 0.65, z: 0 });
+    const car = vehicleSystem.createVehicle(carDef, [0, 0.65, 0]);
 
     // Register for replication
     replication.register('net_car', 'vehicle', 'player1', { updateIntervalMs: 0 });
@@ -214,19 +214,19 @@ describe('Cycle 110: Integration Tests', () => {
     );
 
     // Place trees at sample points
-    const treePositions: { x: number; y: number; z: number }[] = [];
+    const treePositions: [number, number, number][] = [];
     for (let i = 0; i < 5; i++) {
       const wx = 5 + i * 8;
       const wz = 25;
       const h = terrain.getHeightAt('forest', wx, wz);
-      treePositions.push({ x: wx, y: h, z: wz });
+      treePositions.push([wx, h, wz]);
     }
 
     // Generate a tree for each position
     const tree = lsys.generate(TREE_SIMPLE);
     expect(tree.segments.length).toBeGreaterThan(0);
     expect(treePositions).toHaveLength(5);
-    expect(treePositions.every((p) => p.y >= 0)).toBe(true);
+    expect(treePositions.every((p) => p[1] >= 0)).toBe(true);
   });
 
   // -------------------------------------------------------------------------

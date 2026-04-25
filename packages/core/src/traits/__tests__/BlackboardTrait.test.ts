@@ -50,7 +50,7 @@ describe('BlackboardTrait', () => {
       sendEvent(blackboardHandler, node, {}, ctx, {
         type: 'blackboard_post_belief',
         key: 'enemy_spotted',
-        value: { x: 10, z: 20 },
+        value: [10, 0, 20],
         ttl: 5000,
         authorId: 'scout-1',
       });

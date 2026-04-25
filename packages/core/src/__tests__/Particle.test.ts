@@ -69,7 +69,7 @@ describe('Particle System', () => {
     sys.update(0.5);
 
     const p = sys.getAliveParticles()[0];
-    expect(p.y).toBeLessThan(0); // Should have fallen
+    expect(p[1]).toBeLessThan(0); // Should have fallen
   });
 
   it('Applies drag affector', () => {

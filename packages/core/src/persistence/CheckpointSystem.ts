@@ -7,6 +7,8 @@
  * @module persistence
  */
 
+import { jsonClone } from '../errors/safeJsonParse';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -53,7 +55,7 @@ export class CheckpointSystem {
       id: `ckpt_${_checkId++}`,
       label,
       timestamp: Date.now(),
-      data: JSON.parse(serialized),
+      data: jsonClone(data),
       diff,
       parentId,
       size: serialized.length,
@@ -78,7 +80,7 @@ export class CheckpointSystem {
     if (idx < 0) return null;
 
     const checkpoint = this.checkpoints[idx];
-    this.currentState = JSON.parse(JSON.stringify(checkpoint.data));
+    this.currentState = jsonClone(checkpoint.data);
 
     // Remove all checkpoints after this one
     this.checkpoints = this.checkpoints.slice(0, idx + 1);

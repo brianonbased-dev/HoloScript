@@ -58,7 +58,7 @@ describe('ECSWorld — component add/get/query', () => {
   it('adds and retrieves Transform component', () => {
     const id = world.createEntity();
     world.addTransform(id, { x: 1, y: 2, z: 3, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
-    expect(world.getTransform(id)?.x).toBe(1);
+    expect(world.getTransform(id)[0]).toBe(1);
     expect(world.hasComponent(id, ComponentType.Transform)).toBe(true);
   });
 
@@ -121,7 +121,7 @@ describe('ECSWorld — physicsSystem', () => {
     world.addTransform(id, { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 });
     world.addVelocity(id, { vx: 10, vy: 0, vz: 0, angularX: 0, angularY: 0, angularZ: 0 });
     physicsSystem(world, 0.016); // ~60fps dt
-    expect(world.getTransform(id)!.x).toBeCloseTo(0.16, 3);
+    expect(world.getTransform(id)![0]).toBeCloseTo(0.16, 3);
   });
 
   it('applies angular velocity to rotation', () => {
@@ -148,7 +148,7 @@ describe('ECSWorld — agentMovementSystem', () => {
       traitMask: 0,
     });
     agentMovementSystem(world, 0.1);
-    expect(world.getTransform(id)!.x).toBeGreaterThan(0);
+    expect(world.getTransform(id)![0]).toBeGreaterThan(0);
   });
 
   it('transitions agent to idle when reaching target', () => {
@@ -180,7 +180,7 @@ describe('ECSWorld — agentMovementSystem', () => {
       traitMask: 0,
     });
     agentMovementSystem(world, 0.016);
-    expect(world.getTransform(id)!.x).toBe(0);
+    expect(world.getTransform(id)![0]).toBe(0);
   });
 });
 

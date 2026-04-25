@@ -19,15 +19,15 @@ describe('SplinePath', () => {
   // --- Edge cases ---
   it('evaluate returns origin when no points exist', () => {
     const p = spline.evaluate(0.5);
-    expect(p).toEqual({ x: 0, y: 0, z: 0 });
+    expect(p).toEqual([0, 0, 0]);
   });
 
   it('evaluate returns the single point when only one exists', () => {
     spline.addPoint(3, 7, 2);
     const p = spline.evaluate(0.5);
-    expect(p.x).toBe(3);
-    expect(p.y).toBe(7);
-    expect(p.z).toBe(2);
+    expect(p[0]).toBe(3);
+    expect(p[1]).toBe(7);
+    expect(p[2]).toBe(2);
   });
 
   // --- Point management ---
@@ -42,7 +42,7 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0);
     spline.addPoint(10, 10);
     spline.setPoint(1, 5, 5, 5);
-    expect(spline.getPoints()[1]).toEqual({ x: 5, y: 5, z: 5 });
+    expect(spline.getPoints()[1]).toEqual([5, 5, 5]);
   });
 
   it('removePoint decreases count', () => {
@@ -59,9 +59,9 @@ describe('SplinePath', () => {
     spline.addPoint(10, 20, 0);
     const p0 = spline.evaluate(0);
     const p1 = spline.evaluate(1);
-    expect(p0.x).toBeCloseTo(0);
-    expect(p1.x).toBeCloseTo(10);
-    expect(p1.y).toBeCloseTo(20);
+    expect(p0[0]).toBeCloseTo(0);
+    expect(p1[0]).toBeCloseTo(10);
+    expect(p1[1]).toBeCloseTo(20);
   });
 
   it('linear midpoint evaluate', () => {
@@ -69,7 +69,7 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0, 0);
     spline.addPoint(10, 0, 0);
     const mid = spline.evaluate(0.5);
-    expect(mid.x).toBeCloseTo(5);
+    expect(mid[0]).toBeCloseTo(5);
   });
 
   // --- Catmull-Rom ---
@@ -81,8 +81,8 @@ describe('SplinePath', () => {
     spline.addPoint(15, 10);
     const mid = spline.evaluate(0.5);
     // Should be defined and vary from linear
-    expect(typeof mid.x).toBe('number');
-    expect(typeof mid.y).toBe('number');
+    expect(typeof mid[0]).toBe('number');
+    expect(typeof mid[1]).toBe('number');
   });
 
   it('setTension changes curve shape', () => {
@@ -95,7 +95,7 @@ describe('SplinePath', () => {
     spline.setTension(1);
     const b = spline.evaluate(0.25);
     // Different tension should yield different y-values
-    expect(a.y).not.toBeCloseTo(b.y, 1);
+    expect(a[1]).not.toBeCloseTo(b[1], 1);
   });
 
   // --- Bezier ---
@@ -139,7 +139,7 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0, 0);
     spline.addPoint(10, 0, 0);
     const p = spline.evaluateAtDistance(5);
-    expect(p.x).toBeCloseTo(5, 0);
+    expect(p[0]).toBeCloseTo(5, 0);
   });
 
   // --- Tangent ---
@@ -148,9 +148,9 @@ describe('SplinePath', () => {
     spline.addPoint(0, 0, 0);
     spline.addPoint(10, 0, 0);
     const t = spline.getTangent(0.5);
-    const len = Math.sqrt(t.x * t.x + t.y * t.y + t.z * t.z);
+    const len = Math.sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
     expect(len).toBeCloseTo(1, 1);
-    expect(t.x).toBeCloseTo(1, 1);
+    expect(t[0]).toBeCloseTo(1, 1);
   });
 
   // --- getType ---

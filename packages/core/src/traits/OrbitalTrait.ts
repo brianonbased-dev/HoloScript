@@ -54,11 +54,11 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     // Scale factor to use (global vs satellite relative)
     const currentScale = mergedConfig.parent ? visualScale * satelliteScale : visualScale;
 
-    let finalPosition = {
-      x: rawPosition[0] * currentScale,
-      y: rawPosition[2] * currentScale,
-      z: rawPosition[1] * currentScale,
-    };
+    let finalPosition = [
+      rawPosition[0] * currentScale,
+      rawPosition[2] * currentScale,
+      rawPosition[1] * currentScale
+    ];
 
     // Get parent position if this is a moon/satellite
     if (mergedConfig.parent) {
@@ -81,11 +81,11 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
 
       if (parentNode && parentNode.position) {
         // Add parent's position to our orbital position
-        finalPosition = {
-           x: finalPosition.x + (parentNode.position[0] || 0),
-           y: finalPosition.y + (parentNode.position[1] || 0),
-           z: finalPosition.z + (parentNode.position[2] || 0),
-        };
+        finalPosition = [
+          finalPosition[0] + (parentNode.position[0] || 0),
+          finalPosition[1] + (parentNode.position[1] || 0),
+          finalPosition[2] + (parentNode.position[2] || 0)
+        ];
       } else {
         // Failure to find parent - Moon will end up in the Sun (0, 0, 0)
         if (typeof mergedConfig.parent === 'string') {
@@ -95,7 +95,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     }
 
     // Update node position
-    const posArray = [finalPosition.x, finalPosition.y, finalPosition.z];
+    const posArray = [finalPosition[0], finalPosition[1], finalPosition[2]];
     node.position = posArray as unknown as typeof node.position;
 
     // Emit position update event

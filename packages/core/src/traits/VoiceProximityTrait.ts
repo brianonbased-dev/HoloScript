@@ -173,8 +173,8 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
 
     if (event.type === 'voice_distance_update') {
       const distance = event.distance as number;
-      const listenerPos = event.listenerPosition as { x: number; y: number; z: number };
-      const speakerPos = event.speakerPosition as { x: number; y: number; z: number };
+      const listenerPos = event.listenerPosition as [number, number, number];
+      const speakerPos = event.speakerPosition as [number, number, number];
 
       state.distanceToListener = distance;
 
@@ -204,11 +204,11 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
 
       // Calculate panning vector
       if (distance > 0) {
-        state.panningVector = {
-          x: (speakerPos[0] - listenerPos[0]) / distance,
-          y: (speakerPos[1] - listenerPos[1]) / distance,
-          z: (speakerPos[2] - listenerPos[2]) / distance,
-        };
+        state.panningVector = [
+          (speakerPos[0] - listenerPos[0]) / distance,
+          (speakerPos[1] - listenerPos[1]) / distance,
+          (speakerPos[2] - listenerPos[2]) / distance
+        ];
       }
 
       context.emit?.('voice_proximity_changed', {

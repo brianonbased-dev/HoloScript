@@ -30,6 +30,7 @@
  */
 
 import type { TraitConstraint } from '../types';
+import { readJson } from '../errors/safeJsonParse';
 
 interface ConstraintConfig {
   traitConstraints?: TraitConstraint[];
@@ -87,7 +88,7 @@ export async function loadConstraintsFromFile(
     // Dynamic import avoids bundling `fs` in browser builds
     const { readFileSync } = await import('fs');
     const raw = readFileSync(configPath, 'utf-8');
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = readJson(raw) as unknown;
     return loadConstraintsFromConfig(parsed);
   } catch {
     return [];

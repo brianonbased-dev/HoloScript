@@ -57,7 +57,7 @@ describe('createUISlider — Production', () => {
   });
 
   it('applies position and rotation', () => {
-    const pos = { x: 5, y: 6, z: 7 };
+    const pos = [5, 6, 7];
     const node = createUISlider('s1', { position: pos });
     expect(node.properties.position).toEqual(pos);
   });

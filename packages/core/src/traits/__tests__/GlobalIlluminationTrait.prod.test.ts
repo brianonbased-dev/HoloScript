@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { GlobalIlluminationTrait } from '../../traits/GlobalIlluminationTrait';
 import type { GlobalIlluminationConfig } from '../../traits/GlobalIlluminationTrait';
 
@@ -156,7 +157,7 @@ describe('GlobalIlluminationTrait — Production Tests', () => {
   describe('compile() — Generic', () => {
     it('generic output is valid JSON', () => {
       const out = GlobalIlluminationTrait.compile(lumenConfig, 'generic');
-      expect(() => JSON.parse(out.replace(/^\/\/.*\n/, ''))).not.toThrow();
+      expect(() => readJson(out.replace(/^\/\/.*\n/, ''))).not.toThrow();
     });
   });
 });

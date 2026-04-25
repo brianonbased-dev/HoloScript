@@ -19,7 +19,7 @@ describe('Reactive ECS', () => {
     const comp = world.getComponent<{ x: number; y: number }>(entity, 'Position');
 
     expect(comp).not.toBe(data); // Proxy wrapper
-    expect(comp?.x).toBe(0);
+    expect(comp[0]).toBe(0);
   });
 
   it('should trigger effects when component data changes', async () => {

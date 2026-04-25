@@ -5956,6 +5956,7 @@ export class HoloCompositionParser {
   private parseNormSubBlock(nodeType: string): {
     type: string;
     properties: Record<string, HoloValue>;
+    loc?: import('./HoloCompositionTypes').SourceRange;
   } {
       const startLoc = this.currentLocation();
     this.expect('LBRACE');

@@ -16,6 +16,8 @@
  * @version 2.0.0
  */
 
+import { readJson } from '../errors/safeJsonParse';
+
 // Base64 VLQ encoding characters
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -594,7 +596,8 @@ export class SourceMapConsumerV2 {
   private scopeIndex: Map<string, Scope> = new Map();
 
   constructor(sourceMap: SourceMapV2 | string) {
-    this.sourceMap = typeof sourceMap === 'string' ? JSON.parse(sourceMap) : sourceMap;
+    this.sourceMap =
+      typeof sourceMap === 'string' ? (readJson(sourceMap) as SourceMapV2) : sourceMap;
     this.decodeMappings();
     this.indexScopes();
   }

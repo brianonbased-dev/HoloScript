@@ -6,6 +6,7 @@
  */
 
 import { logger } from '../logger';
+import { readJson } from '../errors/safeJsonParse';
 
 export interface AuditEntry {
   id: string;
@@ -54,7 +55,7 @@ export class HITLAuditLogger {
     if (typeof window !== 'undefined' && window.localStorage) {
       const data = window.localStorage.getItem(this.STORAGE_KEY);
       if (data) {
-        logs = JSON.parse(data);
+        logs = readJson(data) as AuditEntry[];
       }
     }
 
@@ -71,7 +72,7 @@ export class HITLAuditLogger {
 
   private static saveToLocalStorage(entry: AuditEntry): void {
     const data = window.localStorage.getItem(this.STORAGE_KEY);
-    let logs: AuditEntry[] = data ? JSON.parse(data) : [];
+    let logs: AuditEntry[] = data ? (readJson(data) as AuditEntry[]) : [];
 
     logs.push(entry);
 

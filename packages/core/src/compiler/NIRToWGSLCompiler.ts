@@ -29,6 +29,7 @@
  * @version 1.0.0
  */
 
+import { readJson } from '../errors/safeJsonParse';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
@@ -220,7 +221,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       this.validateCompilerAccess(agentToken);
     }
 
-    const graph: NIRGraph = JSON.parse(nirGraphJson);
+    const graph: NIRGraph = readJson(nirGraphJson) as NIRGraph;
     return this.compileGraph(graph);
   }
 

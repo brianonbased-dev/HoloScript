@@ -101,8 +101,8 @@ export class NodeGraphPanel {
    * Generate UI entities for a single node.
    */
   private generateNodeUI(node: LogicNode): void {
-    const worldX = this.config.position[0] + node.position.x * this.config.gridSpacing;
-    const worldY = this.config.position[1] - node.position.y * this.config.gridSpacing;
+    const worldX = this.config.position[0] + node.position[0] * this.config.gridSpacing;
+    const worldY = this.config.position[1] - node.position[1] * this.config.gridSpacing;
     const worldZ = this.config.position[2];
 
     const isSelected = this.selectedNodeId === node.id;
@@ -162,14 +162,14 @@ export class NodeGraphPanel {
 
     const fromX =
       this.config.position[0] +
-      fromNode.position.x * this.config.gridSpacing +
+      fromNode.position[0] * this.config.gridSpacing +
       this.config.nodeWidth * 0.45;
-    const fromY = this.config.position[1] - fromNode.position.y * this.config.gridSpacing;
+    const fromY = this.config.position[1] - fromNode.position[1] * this.config.gridSpacing;
     const toX =
       this.config.position[0] +
-      toNode.position.x * this.config.gridSpacing -
+      toNode.position[0] * this.config.gridSpacing -
       this.config.nodeWidth * 0.45;
-    const toY = this.config.position[1] - toNode.position.y * this.config.gridSpacing;
+    const toY = this.config.position[1] - toNode.position[1] * this.config.gridSpacing;
     const z = this.config.position[2] + 0.003;
 
     this.entities.push({

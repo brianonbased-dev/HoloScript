@@ -82,18 +82,18 @@ export interface NodeTransform {
   position: [number, number, number];
 
   /** Rotation in degrees */
-  rotation: { x: number; y: number; z: number };
+  rotation: [number, number, number];
 
   /** Scale */
-  scale: { x: number; y: number; z: number };
+  scale: [number, number, number];
 
   /** Position mode */
   positionMode: 'absolute' | 'relative' | 'random_in_bounds';
 
   /** Random bounds (for random_in_bounds mode) */
   bounds?: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: [number, number, number];
+    max: [number, number, number];
   };
 }
 
@@ -583,8 +583,8 @@ export function createNonTerminal(
     config: {},
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
       positionMode: 'relative',
     },
     children: [],
@@ -611,8 +611,8 @@ export function createTerminal(
     config,
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
       positionMode: 'relative',
     },
     children: [],
@@ -627,7 +627,7 @@ export function createTerminal(
 export function createAnchor(
   name: string,
   position: [number, number, number],
-  bounds?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
+  bounds?: { min: [number, number, number]; max: [number, number, number] }
 ): GrammarNode {
   return {
     id: `anchor_${name}_${++nodeIdCounter}`,
@@ -637,8 +637,8 @@ export function createAnchor(
     config: {},
     transform: {
       position,
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
       positionMode: bounds ? 'random_in_bounds' : 'absolute',
       bounds,
     },

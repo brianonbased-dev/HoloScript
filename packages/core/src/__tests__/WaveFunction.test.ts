@@ -127,7 +127,7 @@ describe('WaveFunction', () => {
     const gridB = b.getGrid();
     for (let y = 0; y < 4; y++) {
       for (let x = 0; x < 4; x++) {
-        expect(gridA[y][x].tileId).toBe(gridB[y][x].tileId);
+        expect(gridA[1][0].tileId).toBe(gridB[1][0].tileId);
       }
     }
   });

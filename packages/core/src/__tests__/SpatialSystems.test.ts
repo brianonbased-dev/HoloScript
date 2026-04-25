@@ -10,19 +10,19 @@ describe('Cycle 154: Spatial Systems', () => {
 
   it('should compute world positions through parent chain', () => {
     const tg = new TransformGraph();
-    tg.addNode('root', { x: 10, y: 0, z: 0 });
-    tg.addNode('child', { x: 5, y: 0, z: 0 });
+    tg.addNode('root', [10, 0, 0]);
+    tg.addNode('child', [5, 0, 0]);
     tg.setParent('child', 'root');
 
     const wp = tg.getWorldPosition('child')!;
-    expect(wp.x).toBe(15); // root(10) + child(5)
-    expect(wp.y).toBe(0);
+    expect(wp[0]).toBe(15); // root(10) + child(5)
+    expect(wp[1]).toBe(0);
   });
 
   it('should propagate dirty flags to children', () => {
     const tg = new TransformGraph();
-    tg.addNode('a', { x: 0, y: 0, z: 0 });
-    tg.addNode('b', { x: 1, y: 0, z: 0 });
+    tg.addNode('a', [0, 0, 0]);
+    tg.addNode('b', [1, 0, 0]);
     tg.setParent('b', 'a');
 
     // Force initial update
@@ -31,7 +31,7 @@ describe('Cycle 154: Spatial Systems', () => {
     // Move parent
     tg.setPosition('a', 100, 0, 0);
     const wp = tg.getWorldPosition('b')!;
-    expect(wp.x).toBe(101); // parent moved to 100 + child local 1
+    expect(wp[0]).toBe(101); // parent moved to 100 + child local 1
   });
 
   // -------------------------------------------------------------------------

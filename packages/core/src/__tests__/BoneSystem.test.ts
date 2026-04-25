@@ -56,8 +56,8 @@ describe('BoneSystem', () => {
     sys.addBone('mid', 'Mid', 'root', { tx: 3 });
     sys.addBone('leaf', 'Leaf', 'mid', { tx: 5 });
     const pos = sys.getWorldPosition('leaf');
-    expect(pos!.x).toBe(9);
-    expect(pos!.y).toBe(2);
+    expect(pos![0]).toBe(9);
+    expect(pos![1]).toBe(2);
   });
 
   it('captureBindPose inverts world transforms', () => {

@@ -136,7 +136,7 @@ export interface PhysicsConfig {
   /** Physics engine */
   engine: 'rapier' | 'cannon' | 'physx' | 'custom';
   /** Gravity vector */
-  gravity: { x: number; y: number; z: number };
+  gravity: [number, number, number];
   /** Fixed timestep (seconds) */
   fixedTimestep: number;
   /** Max substeps per frame */
@@ -290,7 +290,7 @@ export interface SkyboxConfig {
     rayleigh: number;
     mieCoefficient: number;
     mieDirectionalG: number;
-    sunPosition: { x: number; y: number; z: number };
+    sunPosition: [number, number, number];
   };
 }
 
@@ -311,7 +311,7 @@ export interface DirectionalLightConfig {
   /** Intensity */
   intensity: number;
   /** Direction vector */
-  direction: { x: number; y: number; z: number };
+  direction: [number, number, number];
   /** Cast shadows? */
   castShadow: boolean;
   /** Shadow map size */
@@ -339,7 +339,7 @@ export interface WeatherConfig {
   /** Weather intensity (0-1) */
   intensity: number;
   /** Wind direction */
-  windDirection: { x: number; y: number; z: number };
+  windDirection: [number, number, number];
   /** Wind speed */
   windSpeed: number;
   /** Enable weather transitions */
@@ -376,11 +376,11 @@ export interface WorldZone {
   /** Zone bounds */
   bounds: {
     type: 'box' | 'sphere' | 'cylinder' | 'polygon';
-    center: { x: number; y: number; z: number };
-    size?: { x: number; y: number; z: number };
+    center: [number, number, number];
+    size?: [number, number, number];
     radius?: number;
     height?: number;
-    points?: { x: number; z: number }[];
+    points?: [number, number, number][];
   };
 
   /** Zone priority (for overlapping zones) */
@@ -434,7 +434,7 @@ export interface SpawnPoint {
   position: [number, number, number];
 
   /** Rotation (euler angles) */
-  rotation: { x: number; y: number; z: number };
+  rotation: [number, number, number];
 
   /** Spawn point type */
   type: 'default' | 'respawn' | 'portal' | 'event';
@@ -514,8 +514,8 @@ export interface SceneNode {
   /** Transform */
   transform: {
     position: [number, number, number];
-    rotation: { x: number; y: number; z: number };
-    scale: { x: number; y: number; z: number };
+    rotation: [number, number, number];
+    scale: [number, number, number];
   };
 
   /** Entity/prefab reference (for 'entity' type) */
@@ -656,7 +656,7 @@ export function createWorldConfig(options: Partial<WorldConfig> = {}): WorldConf
     },
     physics: options.physics ?? {
       engine: 'rapier',
-      gravity: { x: 0, y: -9.81, z: 0 },
+      gravity: [0, -9.81, 0],
       fixedTimestep: 1 / 60,
       maxSubsteps: 4,
       collisionDetection: 'continuous',
@@ -727,7 +727,7 @@ export function createWorldEnvironment(options: Partial<WorldEnvironment> = {}):
         rayleigh: 2,
         mieCoefficient: 0.005,
         mieDirectionalG: 0.8,
-        sunPosition: { x: 0, y: 1, z: 0 },
+        sunPosition: [0, 1, 0],
       },
     },
     ambientLight: options.ambientLight ?? {
@@ -740,7 +740,7 @@ export function createWorldEnvironment(options: Partial<WorldEnvironment> = {}):
         id: 'sun',
         color: '#fffaf0',
         intensity: 1.0,
-        direction: { x: -0.5, y: -1, z: -0.5 },
+        direction: [-0.5, -1, -0.5],
         castShadow: true,
         shadowMapSize: 2048,
         shadowBias: -0.0001,
@@ -777,7 +777,7 @@ export function createWorldDefinition(
         id: 'default-spawn',
         name: 'Default Spawn',
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0 },
+        rotation: [0, 0, 0],
         type: 'default',
         priority: 10,
         capacity: 100,
@@ -792,8 +792,8 @@ export function createWorldDefinition(
       type: 'group',
       transform: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
       },
       components: [],
       children: [],

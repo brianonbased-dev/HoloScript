@@ -27,7 +27,7 @@ function makeSolver(): IKSolver {
         length: 0.25,
       },
     ],
-    target: { x: -0.7, y: 1.0, z: 0.3 },
+    target: [-0.7, 1.0, 0.3],
     weight: 1,
     iterations: 10,
   });
@@ -47,7 +47,7 @@ function makeSolver(): IKSolver {
         length: 0.25,
       },
     ],
-    target: { x: 0.7, y: 1.0, z: 0.3 },
+    target: [0.7, 1.0, 0.3],
     weight: 1,
     iterations: 10,
   });

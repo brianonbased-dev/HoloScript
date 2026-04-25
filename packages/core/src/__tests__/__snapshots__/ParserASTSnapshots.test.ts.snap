@@ -10,11 +10,11 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
           "configs": [],
           "properties": {
             "color": "red",
-            "position": {
-              "x": 0,
-              "y": 1,
-              "z": -2,
-            },
+            "position": [
+              0,
+              1,
+              -2,
+            ],
           },
           "systems": [],
         },
@@ -34,11 +34,11 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
         "name": "Consistency",
         "properties": {
           "color": "red",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": -2,
-          },
+          "position": [
+            0,
+            1,
+            -2,
+          ],
         },
         "traits": Map {},
         "type": "composition",
@@ -51,11 +51,11 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
           "configs": [],
           "properties": {
             "color": "red",
-            "position": {
-              "x": 0,
-              "y": 1,
-              "z": -2,
-            },
+            "position": [
+              0,
+              1,
+              -2,
+            ],
           },
           "systems": [],
         },
@@ -75,11 +75,52 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
         "name": "Consistency",
         "properties": {
           "color": "red",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": -2,
+          "position": [
+            0,
+            1,
+            -2,
+          ],
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "red",
+            "position": [
+              0,
+              1,
+              -2,
+            ],
           },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Consistency",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Consistency",
+        "properties": {
+          "color": "red",
+          "position": [
+            0,
+            1,
+            -2,
+          ],
         },
         "traits": Map {},
         "type": "composition",
@@ -102,6 +143,7 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -109,11 +151,11 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
         "configs": [],
         "properties": {
           "color": "red",
-          "position": {
-            "x": 0,
-            "y": 1,
-            "z": -2,
-          },
+          "position": [
+            0,
+            1,
+            -2,
+          ],
         },
         "systems": [],
       },
@@ -133,18 +175,20 @@ exports[`Parser AST Visual Regression > AST Consistency Across Parsing > parsing
       "name": "Consistency",
       "properties": {
         "color": "red",
-        "position": {
-          "x": 0,
-          "y": 1,
-          "z": -2,
-        },
+        "position": [
+          0,
+          1,
+          -2,
+        ],
       },
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -230,6 +274,39 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST nodes should h
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "prop1": "value1",
+            "prop2": "value2",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Test",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Test",
+        "properties": {
+          "prop1": "value1",
+          "prop2": "value2",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -247,6 +324,7 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST nodes should h
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -279,9 +357,11 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST nodes should h
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -367,6 +447,39 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST should preserv
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "cyan",
+            "geometry": "sphere",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "PositionTest",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "PositionTest",
+        "properties": {
+          "color": "cyan",
+          "geometry": "sphere",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -384,6 +497,7 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST should preserv
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -416,9 +530,11 @@ exports[`Parser AST Visual Regression > AST Node Properties > AST should preserv
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -544,6 +660,59 @@ exports[`Parser AST Visual Regression > Basic AST Structures > array literal AST
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "colors": [
+              "red",
+              "green",
+              "blue",
+            ],
+            "numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+            ],
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "ArrayTest",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "ArrayTest",
+        "properties": {
+          "colors": [
+            "red",
+            "green",
+            "blue",
+          ],
+          "numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+          ],
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -561,6 +730,7 @@ exports[`Parser AST Visual Regression > Basic AST Structures > array literal AST
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -613,9 +783,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > array literal AST
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -642,16 +814,16 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
           "configs": [],
           "properties": {
             "transform": {
-              "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-              },
-              "rotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-              },
+              "position": [
+                0,
+                0,
+                0,
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+              ],
             },
           },
           "systems": [],
@@ -672,16 +844,16 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
         "name": "NestedTest",
         "properties": {
           "transform": {
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
+            "position": [
+              0,
+              0,
+              0,
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+            ],
           },
         },
         "traits": Map {},
@@ -695,16 +867,16 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
           "configs": [],
           "properties": {
             "transform": {
-              "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-              },
-              "rotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-              },
+              "position": [
+                0,
+                0,
+                0,
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+              ],
             },
           },
           "systems": [],
@@ -725,16 +897,69 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
         "name": "NestedTest",
         "properties": {
           "transform": {
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
+            "position": [
+              0,
+              0,
+              0,
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+            ],
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "transform": {
+              "position": [
+                0,
+                0,
+                0,
+              ],
+              "rotation": [
+                0,
+                0,
+                0,
+              ],
             },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "NestedTest",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 6,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "NestedTest",
+        "properties": {
+          "transform": {
+            "position": [
+              0,
+              0,
+              0,
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+            ],
           },
         },
         "traits": Map {},
@@ -758,6 +983,7 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -765,16 +991,16 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
         "configs": [],
         "properties": {
           "transform": {
-            "position": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
+            "position": [
+              0,
+              0,
+              0,
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+            ],
           },
         },
         "systems": [],
@@ -795,24 +1021,26 @@ exports[`Parser AST Visual Regression > Basic AST Structures > nested object AST
       "name": "NestedTest",
       "properties": {
         "transform": {
-          "position": {
-            "x": 0,
-            "y": 0,
-            "z": 0,
-          },
-          "rotation": {
-            "x": 0,
-            "y": 0,
-            "z": 0,
-          },
+          "position": [
+            0,
+            0,
+            0,
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+          ],
         },
       },
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -851,11 +1079,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > object literal AS
         "properties": {
           "color": "red",
           "geometry": "cube",
-          "scale": {
-            "x": 1,
-            "y": 1,
-            "z": 1,
-          },
+          "scale": [
+            1,
+            1,
+            1,
+          ],
         },
         "traits": Map {},
         "type": "object",
@@ -880,16 +1108,17 @@ exports[`Parser AST Visual Regression > Basic AST Structures > object literal AS
         "properties": {
           "color": "red",
           "geometry": "cube",
-          "scale": {
-            "x": 1,
-            "y": 1,
-            "z": 1,
-          },
+          "scale": [
+            1,
+            1,
+            1,
+          ],
         },
         "traits": Map {},
         "type": "object",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -907,6 +1136,7 @@ exports[`Parser AST Visual Regression > Basic AST Structures > object literal AS
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -926,18 +1156,20 @@ exports[`Parser AST Visual Regression > Basic AST Structures > object literal AS
       "properties": {
         "color": "red",
         "geometry": "cube",
-        "scale": {
-          "x": 1,
-          "y": 1,
-          "z": 1,
-        },
+        "scale": [
+          1,
+          1,
+          1,
+        ],
       },
       "traits": Map {},
       "type": "object",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -965,11 +1197,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
           "properties": {
             "color": "cyan",
             "geometry": "sphere",
-            "position": {
-              "x": 0,
-              "y": 1.5,
-              "z": -2,
-            },
+            "position": [
+              0,
+              1.5,
+              -2,
+            ],
           },
           "systems": [],
         },
@@ -990,11 +1222,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
         "properties": {
           "color": "cyan",
           "geometry": "sphere",
-          "position": {
-            "x": 0,
-            "y": 1.5,
-            "z": -2,
-          },
+          "position": [
+            0,
+            1.5,
+            -2,
+          ],
         },
         "traits": Map {},
         "type": "composition",
@@ -1008,11 +1240,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
           "properties": {
             "color": "cyan",
             "geometry": "sphere",
-            "position": {
-              "x": 0,
-              "y": 1.5,
-              "z": -2,
-            },
+            "position": [
+              0,
+              1.5,
+              -2,
+            ],
           },
           "systems": [],
         },
@@ -1033,11 +1265,54 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
         "properties": {
           "color": "cyan",
           "geometry": "sphere",
-          "position": {
-            "x": 0,
-            "y": 1.5,
-            "z": -2,
+          "position": [
+            0,
+            1.5,
+            -2,
+          ],
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "cyan",
+            "geometry": "sphere",
+            "position": [
+              0,
+              1.5,
+              -2,
+            ],
           },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "SimpleOrb",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 5,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "SimpleOrb",
+        "properties": {
+          "color": "cyan",
+          "geometry": "sphere",
+          "position": [
+            0,
+            1.5,
+            -2,
+          ],
         },
         "traits": Map {},
         "type": "composition",
@@ -1060,6 +1335,7 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -1068,11 +1344,11 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
         "properties": {
           "color": "cyan",
           "geometry": "sphere",
-          "position": {
-            "x": 0,
-            "y": 1.5,
-            "z": -2,
-          },
+          "position": [
+            0,
+            1.5,
+            -2,
+          ],
         },
         "systems": [],
       },
@@ -1093,18 +1369,20 @@ exports[`Parser AST Visual Regression > Basic AST Structures > simple compositio
       "properties": {
         "color": "cyan",
         "geometry": "sphere",
-        "position": {
-          "x": 0,
-          "y": 1.5,
-          "z": -2,
-        },
+        "position": [
+          0,
+          1.5,
+          -2,
+        ],
       },
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -1388,6 +1666,7 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
         "type": "from",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -1405,6 +1684,7 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -1687,9 +1967,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -1819,11 +2101,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
                 "color": "red",
                 "geometry": "sphere",
                 "id": "orb1",
-                "position": {
-                  "x": -1,
-                  "y": 1,
-                  "z": -2,
-                },
+                "position": [
+                  -1,
+                  1,
+                  -2,
+                ],
               },
               {
                 "@grabbable": {
@@ -1839,11 +2121,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
                 "color": "blue",
                 "geometry": "sphere",
                 "id": "orb2",
-                "position": {
-                  "x": 1,
-                  "y": 1,
-                  "z": -2,
-                },
+                "position": [
+                  1,
+                  1,
+                  -2,
+                ],
               },
             ],
           },
@@ -1968,11 +2250,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "red",
               "geometry": "sphere",
               "id": "orb1",
-              "position": {
-                "x": -1,
-                "y": 1,
-                "z": -2,
-              },
+              "position": [
+                -1,
+                1,
+                -2,
+              ],
             },
             {
               "@grabbable": {
@@ -1988,11 +2270,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "blue",
               "geometry": "sphere",
               "id": "orb2",
-              "position": {
-                "x": 1,
-                "y": 1,
-                "z": -2,
-              },
+              "position": [
+                1,
+                1,
+                -2,
+              ],
             },
           ],
         },
@@ -2110,11 +2392,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
                 "color": "red",
                 "geometry": "sphere",
                 "id": "orb1",
-                "position": {
-                  "x": -1,
-                  "y": 1,
-                  "z": -2,
-                },
+                "position": [
+                  -1,
+                  1,
+                  -2,
+                ],
               },
               {
                 "@grabbable": {
@@ -2130,11 +2412,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
                 "color": "blue",
                 "geometry": "sphere",
                 "id": "orb2",
-                "position": {
-                  "x": 1,
-                  "y": 1,
-                  "z": -2,
-                },
+                "position": [
+                  1,
+                  1,
+                  -2,
+                ],
               },
             ],
           },
@@ -2259,11 +2541,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "red",
               "geometry": "sphere",
               "id": "orb1",
-              "position": {
-                "x": -1,
-                "y": 1,
-                "z": -2,
-              },
+              "position": [
+                -1,
+                1,
+                -2,
+              ],
             },
             {
               "@grabbable": {
@@ -2279,11 +2561,302 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "blue",
               "geometry": "sphere",
               "id": "orb2",
-              "position": {
-                "x": 1,
-                "y": 1,
-                "z": -2,
+              "position": [
+                1,
+                1,
+                -2,
+              ],
+            },
+          ],
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "directives": [],
+                  "id": "idle",
+                  "loc": {
+                    "end": {
+                      "column": 6,
+                      "line": 25,
+                    },
+                    "start": {
+                      "column": 5,
+                      "line": 23,
+                    },
+                  },
+                  "name": "idle",
+                  "properties": {
+                    "grabbed": true,
+                    "on": "grab",
+                  },
+                  "traits": Map {},
+                  "type": "state",
+                },
+                {
+                  "children": [],
+                  "directives": [],
+                  "id": "grabbed",
+                  "loc": {
+                    "end": {
+                      "column": 6,
+                      "line": 28,
+                    },
+                    "start": {
+                      "column": 5,
+                      "line": 26,
+                    },
+                  },
+                  "name": "grabbed",
+                  "properties": {
+                    "flying": true,
+                    "on": "throw",
+                  },
+                  "traits": Map {},
+                  "type": "state",
+                },
+                {
+                  "children": [],
+                  "directives": [],
+                  "id": "flying",
+                  "loc": {
+                    "end": {
+                      "column": 6,
+                      "line": 31,
+                    },
+                    "start": {
+                      "column": 5,
+                      "line": 29,
+                    },
+                  },
+                  "name": "flying",
+                  "properties": {
+                    "idle": true,
+                    "on": "land",
+                  },
+                  "traits": Map {},
+                  "type": "state",
+                },
+              ],
+              "directives": [],
+              "id": "OrbController",
+              "loc": {
+                "end": {
+                  "column": 4,
+                  "line": 32,
+                },
+                "start": {
+                  "column": 3,
+                  "line": 21,
+                },
               },
+              "name": "OrbController",
+              "properties": {
+                "initial": "idle",
+              },
+              "traits": Map {},
+              "type": "state-machine",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "orbs": [
+              {
+                "@grabbable": {
+                  "config": {},
+                  "name": "grabbable",
+                  "type": "trait",
+                },
+                "@throwable": {
+                  "config": {},
+                  "name": "throwable",
+                  "type": "trait",
+                },
+                "color": "red",
+                "geometry": "sphere",
+                "id": "orb1",
+                "position": [
+                  -1,
+                  1,
+                  -2,
+                ],
+              },
+              {
+                "@grabbable": {
+                  "config": {},
+                  "name": "grabbable",
+                  "type": "trait",
+                },
+                "@throwable": {
+                  "config": {},
+                  "name": "throwable",
+                  "type": "trait",
+                },
+                "color": "blue",
+                "geometry": "sphere",
+                "id": "orb2",
+                "position": [
+                  1,
+                  1,
+                  -2,
+                ],
+              },
+            ],
+          },
+          "systems": [],
+        },
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "directives": [],
+                "id": "idle",
+                "loc": {
+                  "end": {
+                    "column": 6,
+                    "line": 25,
+                  },
+                  "start": {
+                    "column": 5,
+                    "line": 23,
+                  },
+                },
+                "name": "idle",
+                "properties": {
+                  "grabbed": true,
+                  "on": "grab",
+                },
+                "traits": Map {},
+                "type": "state",
+              },
+              {
+                "children": [],
+                "directives": [],
+                "id": "grabbed",
+                "loc": {
+                  "end": {
+                    "column": 6,
+                    "line": 28,
+                  },
+                  "start": {
+                    "column": 5,
+                    "line": 26,
+                  },
+                },
+                "name": "grabbed",
+                "properties": {
+                  "flying": true,
+                  "on": "throw",
+                },
+                "traits": Map {},
+                "type": "state",
+              },
+              {
+                "children": [],
+                "directives": [],
+                "id": "flying",
+                "loc": {
+                  "end": {
+                    "column": 6,
+                    "line": 31,
+                  },
+                  "start": {
+                    "column": 5,
+                    "line": 29,
+                  },
+                },
+                "name": "flying",
+                "properties": {
+                  "idle": true,
+                  "on": "land",
+                },
+                "traits": Map {},
+                "type": "state",
+              },
+            ],
+            "directives": [],
+            "id": "OrbController",
+            "loc": {
+              "end": {
+                "column": 4,
+                "line": 32,
+              },
+              "start": {
+                "column": 3,
+                "line": 21,
+              },
+            },
+            "name": "OrbController",
+            "properties": {
+              "initial": "idle",
+            },
+            "traits": Map {},
+            "type": "state-machine",
+          },
+        ],
+        "directives": [],
+        "id": "InteractiveScene",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 33,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "InteractiveScene",
+        "properties": {
+          "orbs": [
+            {
+              "@grabbable": {
+                "config": {},
+                "name": "grabbable",
+                "type": "trait",
+              },
+              "@throwable": {
+                "config": {},
+                "name": "throwable",
+                "type": "trait",
+              },
+              "color": "red",
+              "geometry": "sphere",
+              "id": "orb1",
+              "position": [
+                -1,
+                1,
+                -2,
+              ],
+            },
+            {
+              "@grabbable": {
+                "config": {},
+                "name": "grabbable",
+                "type": "trait",
+              },
+              "@throwable": {
+                "config": {},
+                "name": "throwable",
+                "type": "trait",
+              },
+              "color": "blue",
+              "geometry": "sphere",
+              "id": "orb2",
+              "position": [
+                1,
+                1,
+                -2,
+              ],
             },
           ],
         },
@@ -2308,6 +2881,7 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -2418,11 +2992,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "red",
               "geometry": "sphere",
               "id": "orb1",
-              "position": {
-                "x": -1,
-                "y": 1,
-                "z": -2,
-              },
+              "position": [
+                -1,
+                1,
+                -2,
+              ],
             },
             {
               "@grabbable": {
@@ -2438,11 +3012,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
               "color": "blue",
               "geometry": "sphere",
               "id": "orb2",
-              "position": {
-                "x": 1,
-                "y": 1,
-                "z": -2,
-              },
+              "position": [
+                1,
+                1,
+                -2,
+              ],
             },
           ],
         },
@@ -2567,11 +3141,11 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
             "color": "red",
             "geometry": "sphere",
             "id": "orb1",
-            "position": {
-              "x": -1,
-              "y": 1,
-              "z": -2,
-            },
+            "position": [
+              -1,
+              1,
+              -2,
+            ],
           },
           {
             "@grabbable": {
@@ -2587,20 +3161,22 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > intera
             "color": "blue",
             "geometry": "sphere",
             "id": "orb2",
-            "position": {
-              "x": 1,
-              "y": 1,
-              "z": -2,
-            },
+            "position": [
+              1,
+              1,
+              -2,
+            ],
           },
         ],
       },
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -2783,6 +3359,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "type": "ConditionalTest",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -2800,6 +3377,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -2932,9 +3510,11 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -3090,6 +3670,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > state machine A
         "type": "state-machine",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -3107,6 +3688,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > state machine A
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [
@@ -3174,9 +3756,11 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > state machine A
       "traits": Map {},
       "type": "state-machine",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -3305,6 +3889,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > timeline AST 1`
         "type": "timeline",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -3322,6 +3907,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > timeline AST 1`
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -3359,9 +3945,11 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > timeline AST 1`
       "traits": Map {},
       "type": "timeline",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -3483,6 +4071,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > accessibility trai
         "type": "ui_button",
       },
     ],
+    "compositions": [],
     "directives": [
       {
         "config": {},
@@ -3520,6 +4109,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > accessibility trai
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -3570,9 +4160,11 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > accessibility trai
       },
       "type": "ui_button",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -3667,7 +4259,11 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > multiple trait dir
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "grabbable" => {},
+          "hoverable" => {},
+          "throwable" => {},
+        },
         "type": "composition",
       },
     ],
@@ -3746,14 +4342,101 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > multiple trait dir
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "grabbable" => {},
+          "hoverable" => {},
+          "throwable" => {},
+        },
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "grabbable",
+                  "type": "trait",
+                },
+                {
+                  "config": {},
+                  "name": "hoverable",
+                  "type": "trait",
+                },
+                {
+                  "config": {},
+                  "name": "throwable",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "geometry": "sphere",
+          },
+          "systems": [],
+        },
+        "children": [
+          {
+            "children": [],
+            "directives": [
+              {
+                "config": {},
+                "name": "grabbable",
+                "type": "trait",
+              },
+              {
+                "config": {},
+                "name": "hoverable",
+                "type": "trait",
+              },
+              {
+                "config": {},
+                "name": "throwable",
+                "type": "trait",
+              },
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
+          },
+        ],
+        "directives": [],
+        "id": "InteractiveOrb",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 6,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "InteractiveOrb",
+        "properties": {
+          "geometry": "sphere",
+        },
+        "traits": Map {
+          "grabbable" => {},
+          "hoverable" => {},
+          "throwable" => {},
+        },
         "type": "composition",
       },
     ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
-    "hasVRTraits": false,
+    "hasVRTraits": true,
     "id": "root",
     "imports": [],
     "loc": {
@@ -3767,6 +4450,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > multiple trait dir
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -3842,12 +4526,18 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > multiple trait dir
       "properties": {
         "geometry": "sphere",
       },
-      "traits": Map {},
+      "traits": Map {
+        "grabbable" => {},
+        "hoverable" => {},
+        "throwable" => {},
+      },
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -3856,7 +4546,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > multiple trait dir
     "lifecycleHooks": false,
     "loops": false,
     "state": false,
-    "vrTraits": false,
+    "vrTraits": true,
   },
   "requiredCompanions": [],
   "success": true,
@@ -3922,7 +4612,9 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > single trait direc
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "grabbable" => {},
+        },
         "type": "composition",
       },
     ],
@@ -3981,14 +4673,77 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > single trait direc
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "grabbable" => {},
+        },
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "grabbable",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "geometry": "sphere",
+          },
+          "systems": [],
+        },
+        "children": [
+          {
+            "children": [],
+            "directives": [
+              {
+                "config": {},
+                "name": "grabbable",
+                "type": "trait",
+              },
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
+          },
+        ],
+        "directives": [],
+        "id": "GrabbableOrb",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "GrabbableOrb",
+        "properties": {
+          "geometry": "sphere",
+        },
+        "traits": Map {
+          "grabbable" => {},
+        },
         "type": "composition",
       },
     ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
-    "hasVRTraits": false,
+    "hasVRTraits": true,
     "id": "root",
     "imports": [],
     "loc": {
@@ -4002,6 +4757,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > single trait direc
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -4057,12 +4813,16 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > single trait direc
       "properties": {
         "geometry": "sphere",
       },
-      "traits": Map {},
+      "traits": Map {
+        "grabbable" => {},
+      },
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -4071,7 +4831,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > single trait direc
     "lifecycleHooks": false,
     "loops": false,
     "state": false,
-    "vrTraits": false,
+    "vrTraits": true,
   },
   "requiredCompanions": [],
   "success": true,
@@ -4143,7 +4903,12 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > trait with configu
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "physics" => {
+            "friction": 0.8,
+            "mass": 1.5,
+          },
+        },
         "type": "composition",
       },
     ],
@@ -4208,14 +4973,89 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > trait with configu
         "properties": {
           "geometry": "sphere",
         },
-        "traits": Map {},
+        "traits": Map {
+          "physics" => {
+            "friction": 0.8,
+            "mass": 1.5,
+          },
+        },
+        "type": "composition",
+      },
+    ],
+    "compositions": [
+      {
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {
+                    "friction": 0.8,
+                    "mass": 1.5,
+                  },
+                  "name": "physics",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "geometry": "sphere",
+          },
+          "systems": [],
+        },
+        "children": [
+          {
+            "children": [],
+            "directives": [
+              {
+                "config": {
+                  "friction": 0.8,
+                  "mass": 1.5,
+                },
+                "name": "physics",
+                "type": "trait",
+              },
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
+          },
+        ],
+        "directives": [],
+        "id": "ConfiguredOrb",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "ConfiguredOrb",
+        "properties": {
+          "geometry": "sphere",
+        },
+        "traits": Map {
+          "physics" => {
+            "friction": 0.8,
+            "mass": 1.5,
+          },
+        },
         "type": "composition",
       },
     ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
-    "hasVRTraits": false,
+    "hasVRTraits": true,
     "id": "root",
     "imports": [],
     "loc": {
@@ -4229,6 +5069,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > trait with configu
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -4290,12 +5131,19 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > trait with configu
       "properties": {
         "geometry": "sphere",
       },
-      "traits": Map {},
+      "traits": Map {
+        "physics" => {
+          "friction": 0.8,
+          "mass": 1.5,
+        },
+      },
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -4304,7 +5152,7 @@ exports[`Parser AST Visual Regression > Directive AST Nodes > trait with configu
     "lifecycleHooks": false,
     "loops": false,
     "state": false,
-    "vrTraits": false,
+    "vrTraits": true,
   },
   "requiredCompanions": [],
   "success": true,
@@ -4401,6 +5249,49 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > deeply nested st
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "level1": {
+              "level2": {
+                "level3": {
+                  "value": "nested",
+                },
+              },
+            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Deep",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 9,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Deep",
+        "properties": {
+          "level1": {
+            "level2": {
+              "level3": {
+                "value": "nested",
+              },
+            },
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -4418,6 +5309,7 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > deeply nested st
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -4460,9 +5352,11 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > deeply nested st
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -4536,6 +5430,33 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > empty compositio
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {},
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Empty",
+        "loc": {
+          "end": {
+            "column": 21,
+            "line": 1,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Empty",
+        "properties": {},
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -4553,6 +5474,7 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > empty compositio
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -4579,9 +5501,11 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > empty compositio
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -4663,6 +5587,37 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > minimal single p
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "red",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Minimal",
+        "loc": {
+          "end": {
+            "column": 37,
+            "line": 1,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Minimal",
+        "properties": {
+          "color": "red",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -4680,6 +5635,7 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > minimal single p
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -4710,9 +5666,11 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > minimal single p
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -4852,6 +5810,66 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > multiple composi
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "red",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "First",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 3,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "First",
+        "properties": {
+          "color": "red",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": "blue",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Second",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 7,
+          },
+          "start": {
+            "column": 1,
+            "line": 5,
+          },
+        },
+        "name": "Second",
+        "properties": {
+          "color": "blue",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -4869,6 +5887,7 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > multiple composi
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -5007,9 +6026,11 @@ exports[`Parser AST Visual Regression > Edge Cases and Errors > multiple composi
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -5259,6 +6280,121 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > complex expressio
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "result": {
+              "condition": {
+                "left": {
+                  "__ref": "a",
+                },
+                "operator": "??",
+                "right": {
+                  "__ref": "b",
+                },
+                "type": "binary",
+              },
+              "falseValue": {
+                "target": {
+                  "__ref": "d",
+                },
+                "type": "nullCoalescingAssignment",
+                "value": {
+                  "__ref": "e",
+                },
+              },
+              "trueValue": {
+                "__ref": "c",
+              },
+              "type": "ternary",
+            },
+            "spread": {
+              "__spread_0": {
+                "argument": {
+                  "__ref": "base",
+                },
+                "type": "spread",
+              },
+              "override": {
+                "left": {
+                  "__ref": "x",
+                },
+                "operator": "??",
+                "right": {
+                  "__ref": "y",
+                },
+                "type": "binary",
+              },
+            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "ComplexExpr",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "ComplexExpr",
+        "properties": {
+          "result": {
+            "condition": {
+              "left": {
+                "__ref": "a",
+              },
+              "operator": "??",
+              "right": {
+                "__ref": "b",
+              },
+              "type": "binary",
+            },
+            "falseValue": {
+              "target": {
+                "__ref": "d",
+              },
+              "type": "nullCoalescingAssignment",
+              "value": {
+                "__ref": "e",
+              },
+            },
+            "trueValue": {
+              "__ref": "c",
+            },
+            "type": "ternary",
+          },
+          "spread": {
+            "__spread_0": {
+              "argument": {
+                "__ref": "base",
+              },
+              "type": "spread",
+            },
+            "override": {
+              "left": {
+                "__ref": "x",
+              },
+              "operator": "??",
+              "right": {
+                "__ref": "y",
+              },
+              "type": "binary",
+            },
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -5276,6 +6412,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > complex expressio
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -5390,9 +6527,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > complex expressio
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -5546,6 +6685,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
         "type": "AssignmentTest",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -5563,6 +6703,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -5715,9 +6856,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -5859,6 +7002,67 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing o
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": {
+              "left": {
+                "__ref": "userColor",
+              },
+              "operator": "??",
+              "right": "white",
+              "type": "binary",
+            },
+            "size": {
+              "left": {
+                "__ref": "userSize",
+              },
+              "operator": "??",
+              "right": 1,
+              "type": "binary",
+            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "NullCoalesce",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "NullCoalesce",
+        "properties": {
+          "color": {
+            "left": {
+              "__ref": "userColor",
+            },
+            "operator": "??",
+            "right": "white",
+            "type": "binary",
+          },
+          "size": {
+            "left": {
+              "__ref": "userSize",
+            },
+            "operator": "??",
+            "right": 1,
+            "type": "binary",
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -5876,6 +7080,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing o
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -5936,9 +7141,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing o
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -6052,6 +7259,53 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "items": [
+              {
+                "argument": {
+                  "__ref": "defaults",
+                },
+                "type": "spread",
+              },
+              "extra",
+            ],
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "ArraySpread",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 3,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "ArraySpread",
+        "properties": {
+          "items": [
+            {
+              "argument": {
+                "__ref": "defaults",
+              },
+              "type": "spread",
+            },
+            "extra",
+          ],
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -6069,6 +7323,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -6115,9 +7370,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -6203,6 +7460,39 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "BaseOrb": true,
+            "color": "red",
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "SpreadTest",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "SpreadTest",
+        "properties": {
+          "BaseOrb": true,
+          "color": "red",
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -6220,6 +7510,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -6252,9 +7543,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > spread expression
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -6412,6 +7705,67 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > ternary operator 
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "color": {
+              "condition": {
+                "__ref": "isActive",
+              },
+              "falseValue": "gray",
+              "trueValue": "green",
+              "type": "ternary",
+            },
+            "opacity": {
+              "condition": {
+                "__ref": "isVisible",
+              },
+              "falseValue": 0,
+              "trueValue": 1,
+              "type": "ternary",
+            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "TernaryTest",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 4,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "TernaryTest",
+        "properties": {
+          "color": {
+            "condition": {
+              "__ref": "isActive",
+            },
+            "falseValue": "gray",
+            "trueValue": "green",
+            "type": "ternary",
+          },
+          "opacity": {
+            "condition": {
+              "__ref": "isVisible",
+            },
+            "falseValue": 0,
+            "trueValue": 1,
+            "type": "ternary",
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -6429,6 +7783,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > ternary operator 
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -6489,9 +7844,11 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > ternary operator 
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -6595,6 +7952,7 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
         "type": "from",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -6612,6 +7970,7 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -6714,9 +8073,11 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -6908,6 +8269,7 @@ exports[`Parser AST Visual Regression > Import and Module System > multiple impo
         "type": "from",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -6925,6 +8287,7 @@ exports[`Parser AST Visual Regression > Import and Module System > multiple impo
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -7115,9 +8478,11 @@ exports[`Parser AST Visual Regression > Import and Module System > multiple impo
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -7183,6 +8548,7 @@ exports[`Parser AST Visual Regression > Import and Module System > using stateme
         "type": "using",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -7200,6 +8566,7 @@ exports[`Parser AST Visual Regression > Import and Module System > using stateme
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -7222,9 +8589,11 @@ exports[`Parser AST Visual Regression > Import and Module System > using stateme
       "traits": Map {},
       "type": "using",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -7335,6 +8704,45 @@ exports[`Parser AST Visual Regression > Snapshot Stability Tests > AST snapshot 
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "props": {
+              "a": 1,
+              "b": 2,
+              "c": 3,
+            },
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "Stable",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 7,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "Stable",
+        "properties": {
+          "props": {
+            "a": 1,
+            "b": 2,
+            "c": 3,
+          },
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -7352,6 +8760,7 @@ exports[`Parser AST Visual Regression > Snapshot Stability Tests > AST snapshot 
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -7390,9 +8799,11 @@ exports[`Parser AST Visual Regression > Snapshot Stability Tests > AST snapshot 
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -7482,6 +8893,41 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > s
         "type": "composition",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {
+            "ButtonTemplate": true,
+            "color": "blue",
+            "glow": true,
+          },
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "CustomButton",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 5,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "CustomButton",
+        "properties": {
+          "ButtonTemplate": true,
+          "color": "blue",
+          "glow": true,
+        },
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -7499,6 +8945,7 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > s
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": {
@@ -7533,9 +8980,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > s
       "traits": Map {},
       "type": "composition",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -7615,11 +9064,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         "name": undefined,
         "properties": {
           "geometry": "cube",
-          "scale": {
-            "x": 0.2,
-            "y": 0.05,
-            "z": 0.1,
-          },
+          "scale": [
+            0.2,
+            0.05,
+            0.1,
+          ],
         },
         "traits": Map {
           "clickable" => {},
@@ -7671,11 +9120,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         "name": undefined,
         "properties": {
           "geometry": "cube",
-          "scale": {
-            "x": 0.2,
-            "y": 0.05,
-            "z": 0.1,
-          },
+          "scale": [
+            0.2,
+            0.05,
+            0.1,
+          ],
         },
         "traits": Map {
           "clickable" => {},
@@ -7683,6 +9132,7 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         "type": "ButtonTemplate",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -7700,6 +9150,7 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -7746,11 +9197,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
           "name": undefined,
           "properties": {
             "geometry": "cube",
-            "scale": {
-              "x": 0.2,
-              "y": 0.05,
-              "z": 0.1,
-            },
+            "scale": [
+              0.2,
+              0.05,
+              0.1,
+            ],
           },
           "traits": Map {
             "clickable" => {},
@@ -7802,11 +9253,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
           "name": undefined,
           "properties": {
             "geometry": "cube",
-            "scale": {
-              "x": 0.2,
-              "y": 0.05,
-              "z": 0.1,
-            },
+            "scale": [
+              0.2,
+              0.05,
+              0.1,
+            ],
           },
           "traits": Map {
             "clickable" => {},
@@ -7830,9 +9281,32 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [
+      {
+        "children": [],
+        "directives": [],
+        "loc": {
+          "end": {
+            "column": 10,
+            "line": 1,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "migrations": [],
+        "name": "ButtonTemplate",
+        "properties": {},
+        "traits": Map {},
+        "type": "template",
+        "version": undefined,
+      },
+    ],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [
@@ -7842,7 +9316,7 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
       "context": "> 1 | template ButtonTemplate {
               ^
   2 |   geometry: "cube"
-  3 |   scale: { x: 0.2, y: 0.05, z: 0.1 }",
+  3 |   scale: [0.2, 0.05, 0.1 ]",
       "endColumn": undefined,
       "endLine": undefined,
       "line": 1,
@@ -7963,6 +9437,33 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         "type": "extends",
       },
     ],
+    "compositions": [
+      {
+        "body": {
+          "children": [],
+          "configs": [],
+          "properties": {},
+          "systems": [],
+        },
+        "children": [],
+        "directives": [],
+        "id": "RedButton",
+        "loc": {
+          "end": {
+            "column": 23,
+            "line": 1,
+          },
+          "start": {
+            "column": 1,
+            "line": 1,
+          },
+        },
+        "name": "RedButton",
+        "properties": {},
+        "traits": Map {},
+        "type": "composition",
+      },
+    ],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -7980,6 +9481,7 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -8094,9 +9596,11 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -8200,6 +9704,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui component hierarc
         "type": "ui_panel",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -8217,6 +9722,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui component hierarc
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -8258,9 +9764,11 @@ exports[`Parser AST Visual Regression > UI Components AST > ui component hierarc
       "traits": Map {},
       "type": "ui_panel",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -8346,6 +9854,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_button AST 1`] = 
         "type": "ui_button",
       },
     ],
+    "compositions": [],
     "directives": [
       {
         "config": {},
@@ -8369,6 +9878,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_button AST 1`] = 
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -8401,9 +9911,11 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_button AST 1`] = 
       },
       "type": "ui_button",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -8487,6 +9999,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_panel AST 1`] = `
         "type": "ui_panel",
       },
     ],
+    "compositions": [],
     "directives": [
       {
         "config": {},
@@ -8510,6 +10023,7 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_panel AST 1`] = `
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -8541,9 +10055,11 @@ exports[`Parser AST Visual Regression > UI Components AST > ui_panel AST 1`] = `
       },
       "type": "ui_panel",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -8647,6 +10163,7 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > environment s
         "type": "MainScene",
       },
     ],
+    "compositions": [],
     "directives": [],
     "hasControlFlow": false,
     "hasState": false,
@@ -8664,6 +10181,7 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > environment s
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "body": [
@@ -8766,9 +10284,11 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > environment s
       "traits": Map {},
       "type": "fragment",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],
@@ -8872,6 +10392,7 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
         "type": "zone",
       },
     ],
+    "compositions": [],
     "directives": [
       {
         "config": {},
@@ -8895,6 +10416,7 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
       },
     },
     "migrations": undefined,
+    "npcs": [],
     "properties": {},
     "root": {
       "children": [],
@@ -8936,9 +10458,11 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
       },
       "type": "zone",
     },
+    "templates": [],
     "traits": Map {},
     "type": "Program",
     "version": "1.0",
+    "worlds": [],
   },
   "compiledExpressions": Map {},
   "errors": [],

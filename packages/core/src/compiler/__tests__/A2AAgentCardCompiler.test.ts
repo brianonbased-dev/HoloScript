@@ -5,6 +5,7 @@ import {
   type A2AAgentSkill,
 } from '../A2AAgentCardCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -47,7 +48,7 @@ function compileAndParse(
   composition: HoloComposition
 ): A2AAgentCard {
   const json = compiler.compile(composition, 'test-token');
-  return JSON.parse(json);
+  return readJson(json);
 }
 
 describe('A2AAgentCardCompiler', () => {
@@ -128,7 +129,7 @@ describe('A2AAgentCardCompiler', () => {
   describe('basic compilation', () => {
     it('compiles minimal composition to valid JSON', () => {
       const json = compiler.compile(makeComposition(), 'test-token');
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
       expect(parsed).toBeDefined();
       expect(parsed.name).toBeDefined();
       expect(parsed.description).toBeDefined();
@@ -1059,7 +1060,7 @@ describe('A2AAgentCardCompiler', () => {
       );
 
       // Parse and re-serialize should produce same result
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json);
       const reserialized = JSON.stringify(parsed, null, 2);
       expect(reserialized).toBe(json);
     });

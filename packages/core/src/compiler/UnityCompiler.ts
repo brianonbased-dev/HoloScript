@@ -111,7 +111,7 @@ export class UnityCompiler extends CompilerBase {
       className: options.className || 'GeneratedScene',
       useURP: options.useURP ?? true,
       indent: options.indent || '    ',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
       holomapPointCloud: options.holomapPointCloud,
     };
   }

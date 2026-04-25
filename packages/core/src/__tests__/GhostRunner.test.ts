@@ -9,7 +9,7 @@ describe('GhostRunner', () => {
   function recordRun(runner: GhostRunner, steps: number, speed: number, name = 'run') {
     runner.startRecording();
     for (let i = 0; i < steps; i++) {
-      runner.sample(0.1, { x: i * speed, y: 0, z: 0 }, 0, speed);
+      runner.sample(0.1, [i * speed, 0, 0], 0, speed);
     }
     return runner.finishRecording(name);
   }
@@ -25,7 +25,7 @@ describe('GhostRunner', () => {
   it('sample captures position and time', () => {
     const r = new GhostRunner();
     r.startRecording();
-    r.sample(0.1, { x: 5, y: 0, z: 0 }, 90, 10);
+    r.sample(0.1, [5, 0, 0], 90, 10);
     const run = r.finishRecording('test');
     expect(run.samples).toHaveLength(1);
     expect(run.samples[0].position).toEqual([5, 0, 0]);
@@ -35,7 +35,7 @@ describe('GhostRunner', () => {
 
   it('sample does nothing when not recording', () => {
     const r = new GhostRunner();
-    r.sample(0.1, { x: 1, y: 0, z: 0 }, 0, 1);
+    r.sample(0.1, [1, 0, 0], 0, 1);
     // no run to finish — just ensuring no crash
     expect(r.getRunCount()).toBe(0);
   });

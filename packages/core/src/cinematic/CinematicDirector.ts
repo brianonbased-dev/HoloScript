@@ -17,7 +17,7 @@ import { CameraRig } from './CameraRig';
 export interface ActorMark {
   actorId: string;
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number };
+  rotation: [number, number, number];
   animation?: string;
 }
 

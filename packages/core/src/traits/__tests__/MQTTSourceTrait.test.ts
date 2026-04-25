@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   createMockNode,
   createMockContext,
@@ -18,7 +19,7 @@ vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   MQTTClient: {
     parsePayload: vi.fn((msg: any) => {
       try {
-        return JSON.parse(msg.payload);
+        return readJson(msg.payload);
       } catch {
         return msg.payload;
       }

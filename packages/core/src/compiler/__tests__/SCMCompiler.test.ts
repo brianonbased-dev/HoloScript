@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SCMCompiler } from '../SCMCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -52,7 +53,7 @@ describe('SCMCompiler (Structural Causal Model)', () => {
 
     const compiler = new SCMCompiler();
     const resultJson = compiler.compile(composition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     // Validate Metadata
     expect(parsed.metadata).toBeDefined();

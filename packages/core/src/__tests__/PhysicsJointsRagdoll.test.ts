@@ -83,8 +83,8 @@ describe('JointSystem', () => {
     const j = js.createJoint('spring', 'a', 'b', {
       breakForce: 0.001,
       stiffness: 1000,
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 100, y: 0, z: 0 },
+      anchorA: [0, 0, 0],
+      anchorB: [100, 0, 0],
     });
     js.setDistance(j.id, 500);
     js.solve(0.016);
@@ -118,8 +118,8 @@ describe('JointSystem', () => {
     const j = js.createJoint('spring', 'a', 'b', {
       stiffness: 10,
       damping: 0.5,
-      anchorA: { x: 0, y: 0, z: 0 },
-      anchorB: { x: 1, y: 0, z: 0 },
+      anchorA: [0, 0, 0],
+      anchorB: [1, 0, 0],
     });
     js.setDistance(j.id, 3);
     js.solve(0.016);
@@ -139,32 +139,32 @@ describe('RagdollSystem', () => {
   });
 
   it('creates humanoid ragdoll from preset', () => {
-    const rag = rs.createHumanoid('human1', { x: 0, y: 5, z: 0 });
+    const rag = rs.createHumanoid('human1', [0, 5, 0]);
     expect(rag.id).toBe('human1');
     expect(rag.bodies.length).toBeGreaterThan(0);
     expect(rag.constraints.length).toBeGreaterThan(0);
   });
 
   it('creates quadruped ragdoll from preset', () => {
-    const rag = rs.createQuadruped('dog1', { x: 0, y: 1, z: 0 });
+    const rag = rs.createQuadruped('dog1', [0, 1, 0]);
     expect(rag.id).toBe('dog1');
     expect(rag.bodies.length).toBeGreaterThan(0);
   });
 
   it('retrieves ragdoll by id', () => {
-    rs.createHumanoid('h1', { x: 0, y: 0, z: 0 });
+    rs.createHumanoid('h1', [0, 0, 0]);
     expect(rs.getRagdoll('h1')).toBeDefined();
     expect(rs.getRagdoll('nope')).toBeUndefined();
   });
 
   it('removes ragdoll', () => {
-    rs.createHumanoid('h1', { x: 0, y: 0, z: 0 });
+    rs.createHumanoid('h1', [0, 0, 0]);
     expect(rs.removeRagdoll('h1')).toBe(true);
     expect(rs.getRagdoll('h1')).toBeUndefined();
   });
 
   it('calculates total mass', () => {
-    rs.createHumanoid('h1', { x: 0, y: 0, z: 0 });
+    rs.createHumanoid('h1', [0, 0, 0]);
     const mass = rs.getTotalMass('h1');
     expect(mass).toBeGreaterThan(0);
   });
@@ -192,7 +192,7 @@ describe('RagdollSystem', () => {
             length: 1,
             radius: 0.5,
             mass: 10,
-            localOffset: { x: 0, y: 0, z: 0 },
+            localOffset: [0, 0, 0],
             jointType: 'cone' as const,
           },
           {
@@ -201,12 +201,12 @@ describe('RagdollSystem', () => {
             length: 0.5,
             radius: 0.2,
             mass: 3,
-            localOffset: { x: 0, y: -1, z: 0 },
+            localOffset: [0, -1, 0],
             jointType: 'hinge' as const,
           },
         ],
       },
-      { x: 0, y: 0, z: 0 }
+      [0, 0, 0]
     );
     expect(rag.bodies).toHaveLength(2);
     expect(rag.constraints.length).toBeGreaterThanOrEqual(1);

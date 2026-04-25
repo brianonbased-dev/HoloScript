@@ -14,7 +14,7 @@ function box(
   maxY: number,
   maxZ: number
 ): AABB {
-  return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
+  return { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
 }
 
 describe('OcclusionCulling', () => {
@@ -60,7 +60,7 @@ describe('OcclusionCulling', () => {
     oc.register('inside', box(0, 0, 0, 1, 1, 1));
     oc.register('outside', box(-100, -100, -100, -99, -99, -99));
     // Simple frustum: one plane at x=0, normal pointing right (+x)
-    const plane: FrustumPlane = { normal: { x: 1, y: 0, z: 0 }, distance: 0 };
+    const plane: FrustumPlane = { normal: [1, 0, 0], distance: 0 };
     oc.setFrustum([plane]);
     oc.performCulling();
     expect(oc.getVisibleCount()).toBe(1);
@@ -142,7 +142,7 @@ describe('OcclusionCulling', () => {
     const oc = new OcclusionCulling();
     oc.register('vis', box(0, 0, 0, 1, 1, 1));
     oc.register('cull', box(-100, -100, -100, -99, -99, -99));
-    oc.setFrustum([{ normal: { x: 1, y: 0, z: 0 }, distance: 0 }]);
+    oc.setFrustum([{ normal: [1, 0, 0], distance: 0 }]);
     oc.performCulling();
     expect(oc.getCullRatio()).toBeCloseTo(0.5);
   });
@@ -151,7 +151,7 @@ describe('OcclusionCulling', () => {
     const oc = new OcclusionCulling();
     oc.register('vis', box(0, 0, 0, 1, 1, 1));
     oc.register('cull', box(-100, -100, -100, -99, -99, -99));
-    oc.setFrustum([{ normal: { x: 1, y: 0, z: 0 }, distance: 0 }]);
+    oc.setFrustum([{ normal: [1, 0, 0], distance: 0 }]);
     oc.performCulling();
     const vis = oc.getVisibleObjects();
     expect(vis.length).toBe(1);

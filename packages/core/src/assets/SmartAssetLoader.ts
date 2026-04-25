@@ -8,6 +8,7 @@
 import { AssetMetadata } from './AssetMetadata';
 import { AssetRegistry, getAssetRegistry } from './AssetRegistry';
 import { resolveAssetAlias } from './AssetAliases';
+import { readJson } from '../errors/safeJsonParse';
 
 // ============================================================================
 // Loader Configuration
@@ -399,7 +400,7 @@ export class SmartAssetLoader {
           return text as T;
         }
         try {
-          return JSON.parse(text) as T;
+          return readJson(text) as T;
         } catch {
           return text as T;
         }

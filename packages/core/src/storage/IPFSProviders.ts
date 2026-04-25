@@ -17,6 +17,7 @@ import type {
   IPFSUploadError,
   IPFSPinError,
 } from './IPFSTypes.js';
+import { readJson } from '../errors/safeJsonParse';
 
 /**
  * Pinata IPFS Provider
@@ -334,11 +335,11 @@ export class InfuraProvider implements IIPFSProvider {
     // Infura returns newline-delimited JSON
     const text = await response.text();
     const lines = text.trim().split('\n');
-    const lastLine = JSON.parse(lines[lines.length - 1]);
+    const lastLine = readJson(lines[lines.length - 1]) as { Hash: string };
 
     let totalSize = 0;
     for (const line of lines) {
-      const data = JSON.parse(line);
+      const data = readJson(line) as { Size?: number };
       totalSize += data.Size || 0;
     }
 

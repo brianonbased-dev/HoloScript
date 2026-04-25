@@ -6,8 +6,8 @@ describe('NetworkPredictor', () => {
   const initialState = { x: 0, y: 0 };
   const applyFn = (state: any, input: any) => {
     if (input.type === 'move') {
-      state.x += input.dx;
-      state.y += input.dy;
+      state[0] += input.dx;
+      state[1] += input.dy;
     }
   };
 

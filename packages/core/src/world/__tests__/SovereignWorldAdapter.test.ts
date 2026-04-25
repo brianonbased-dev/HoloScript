@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { SovereignWorldAdapter } from '../adapters/SovereignWorldAdapter';
 
 // ---------------------------------------------------------------------------
@@ -77,7 +78,7 @@ describe('SovereignWorldAdapter', () => {
     // Verify POST was called with correct path
     const postCall = fetchMock.mock.calls[0];
     expect(postCall[0]).toContain('/api/generate');
-    const body = JSON.parse(postCall[1].body as string);
+    const body = readJson(postCall[1].body as string);
     expect(body.prompt).toBe('lush alien jungle');
     expect(body.quality_preset).toBe('standard'); // 'medium' maps to 'standard'
     expect(body.output_format).toBe('splat');    // '3dgs' maps to 'splat'
@@ -154,7 +155,7 @@ describe('SovereignWorldAdapter', () => {
     const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
     await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'low' });
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    const body = readJson(fetchMock.mock.calls[0][1].body as string);
     expect(body.quality_preset).toBe('draft');
 
     // ultra
@@ -162,7 +163,7 @@ describe('SovereignWorldAdapter', () => {
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ job_id: 'j2' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
     await adapter.generate({ prompt: 'x', format: '3dgs', quality: 'ultra' });
-    const body2 = JSON.parse(fetchMock.mock.calls[2][1].body as string);
+    const body2 = readJson(fetchMock.mock.calls[2][1].body as string);
     expect(body2.quality_preset).toBe('ultra');
   });
 
@@ -178,7 +179,7 @@ describe('SovereignWorldAdapter', () => {
         .mockResolvedValueOnce({ ok: true, status: 200, json: async () => makeJobResponse() });
       const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
       await adapter.generate({ prompt: 'x', format: input, quality: 'medium' });
-      const body = JSON.parse(fetchMock.mock.calls.at(-2)![1].body as string);
+      const body = readJson(fetchMock.mock.calls.at(-2)![1].body as string);
       expect(body.output_format).toBe(expected);
     }
   });

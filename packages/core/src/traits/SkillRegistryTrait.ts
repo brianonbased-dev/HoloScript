@@ -1,12 +1,12 @@
 // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 import type {
-  Trait,
   HSPlusNode,
   TraitContext,
   TraitEvent,
   TraitHandler,
   TraitEventPayload,
 } from './TraitTypes';
+import { readJson } from '../errors/safeJsonParse';
 /**
  * SkillRegistryTrait — v4.0
  *
@@ -179,7 +179,7 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
     ],
     outputs: [{ name: 'result', type: 'object', description: 'Transformed result' }],
     async execute(inputs) {
-      const data = JSON.parse(inputs['json'] as string);
+      const data = readJson(inputs['json'] as string) as Record<string, unknown>;
       const path = inputs['path'] as string | undefined;
       if (!path) return { result: data };
       const parts = path.split('.');

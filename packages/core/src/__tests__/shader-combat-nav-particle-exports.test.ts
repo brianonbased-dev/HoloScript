@@ -69,7 +69,7 @@ describe('CombatManager exports', () => {
       id: 'hb1',
       ownerId: 'a',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
       damage: 10,
       damageType: 'physical',
@@ -79,7 +79,7 @@ describe('CombatManager exports', () => {
       id: 'hr1',
       ownerId: 'b',
       position: [0.5, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
     });
     const hits = cm.checkCollisions();
@@ -114,7 +114,7 @@ describe('CombatManager exports', () => {
   it('CombatManager findTargets sorts by distance/priority', () => {
     const cm = new CombatManager();
     const targets = cm.findTargets(
-      { x: 0, y: 0, z: 0 },
+      [0, 0, 0],
       [
         { entityId: 'far', position: [10, 0, 0] },
         { entityId: 'near', position: [2, 0, 0] },
@@ -131,7 +131,7 @@ describe('CombatManager exports', () => {
       id: 'self-hb',
       ownerId: 'player',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
       damage: 10,
       damageType: 'physical',
@@ -141,7 +141,7 @@ describe('CombatManager exports', () => {
       id: 'self-hr',
       ownerId: 'player',
       position: [0, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
     });
     const hits = cm.checkCollisions();
@@ -154,20 +154,20 @@ describe('AStarPathfinder exports', () => {
     const mesh = new NavMesh();
     const a = mesh.addPolygon(
       [
-        { x: -1, y: 0, z: -1 },
-        { x: 1, y: 0, z: -1 },
-        { x: 1, y: 0, z: 1 },
-        { x: -1, y: 0, z: 1 },
+        [-1, 0, -1],
+        [1, 0, -1],
+        [1, 0, 1],
+        [-1, 0, 1],
       ],
       true,
       1
     );
     const b = mesh.addPolygon(
       [
-        { x: 3, y: 0, z: -1 },
-        { x: 5, y: 0, z: -1 },
-        { x: 5, y: 0, z: 1 },
-        { x: 3, y: 0, z: 1 },
+        [3, 0, -1],
+        [5, 0, -1],
+        [5, 0, 1],
+        [3, 0, 1],
       ],
       true,
       1
@@ -178,7 +178,7 @@ describe('AStarPathfinder exports', () => {
 
   it('AStarPathfinder finds path between connected polygons', () => {
     const pf = new AStarPathfinder(createSimpleMesh());
-    const result = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 });
+    const result = pf.findPath([0, 0, 0], [4, 0, 0]);
     expect(result.found).toBe(true);
     expect(result.path.length).toBeGreaterThan(0);
     expect(result.cost).toBeGreaterThan(0);
@@ -186,19 +186,19 @@ describe('AStarPathfinder exports', () => {
 
   it('AStarPathfinder obstacle blocks path', () => {
     const pf = new AStarPathfinder(createSimpleMesh());
-    pf.addObstacle('wall', { x: 4, y: 0, z: 0 }, 2);
+    pf.addObstacle('wall', [4, 0, 0], 2);
     expect(pf.getObstacleCount()).toBe(1);
-    const result = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 });
+    const result = pf.findPath([0, 0, 0], [4, 0, 0]);
     expect(result.found).toBe(false);
   });
 
   it('AStarPathfinder smoothPath reduces waypoints', () => {
     const pf = new AStarPathfinder(createSimpleMesh());
     const points = [
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      { x: 2, y: 0, z: 0 },
-      { x: 3, y: 0, z: 0 },
+      [0, 0, 0],
+      [1, 0, 0],
+      [2, 0, 0],
+      [3, 0, 0],
     ];
     const smoothed = pf.smoothPath(points);
     expect(smoothed.length).toBeLessThanOrEqual(points.length);

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DTDLCompiler, DTDL_TRAIT_COMPONENTS } from '../DTDLCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -29,20 +30,20 @@ describe('DTDLCompiler', () => {
   // =========== Constructor / options ===========
 
   it('uses default options', () => {
-    const result = JSON.parse(compiler.compile(makeComposition(), 'test-token'));
+    const result = readJson(compiler.compile(makeComposition(), 'test-token'));
     expect(result[0]['@context']).toBe('dtmi:dtdl:context;3');
     expect(result[0]['@id']).toContain('dtmi:holoscript:');
   });
 
   it('respects dtdlVersion 2', () => {
     const c = new DTDLCompiler({ dtdlVersion: 2 });
-    const result = JSON.parse(c.compile(makeComposition(), 'test-token'));
+    const result = readJson(c.compile(makeComposition(), 'test-token'));
     expect(result[0]['@context']).toBe('dtmi:dtdl:context;2');
   });
 
   it('respects custom namespace and version', () => {
     const c = new DTDLCompiler({ namespace: 'dtmi:myapp', modelVersion: 5 });
-    const result = JSON.parse(c.compile(makeComposition(), 'test-token'));
+    const result = readJson(c.compile(makeComposition(), 'test-token'));
     expect(result[0]['@id']).toContain('dtmi:myapp:');
     expect(result[0]['@id']).toContain(';5');
   });
@@ -51,25 +52,25 @@ describe('DTDLCompiler', () => {
 
   it('compiles minimal composition to valid JSON', () => {
     const json = compiler.compile(makeComposition(), 'test-token');
-    const parsed = JSON.parse(json);
+    const parsed = readJson(json);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed.length).toBeGreaterThanOrEqual(1);
     expect(parsed[0]['@type']).toBe('Interface');
   });
 
   it('composition interface has displayName', () => {
-    const result = JSON.parse(compiler.compile(makeComposition({ name: 'MyRoom' }), 'test-token'));
+    const result = readJson(compiler.compile(makeComposition({ name: 'MyRoom' }), 'test-token'));
     expect(result[0].displayName).toBe('MyRoom');
   });
 
   it('includes description when option enabled', () => {
-    const result = JSON.parse(compiler.compile(makeComposition(), 'test-token'));
+    const result = readJson(compiler.compile(makeComposition(), 'test-token'));
     expect(result[0].description).toContain('Generated from HoloScript');
   });
 
   it('omits description when disabled', () => {
     const c = new DTDLCompiler({ includeDescriptions: false });
-    const result = JSON.parse(c.compile(makeComposition(), 'test-token'));
+    const result = readJson(c.compile(makeComposition(), 'test-token'));
     expect(result[0].description).toBeUndefined();
   });
 
@@ -85,7 +86,7 @@ describe('DTDLCompiler', () => {
         ],
       },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const main = result[result.length - 1]; // last is main interface for minimal
     // Find amongst all interfaces
     const allContents = result.flatMap((i: any) => i.contents || []);
@@ -102,7 +103,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'n', value: 42 }] },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'n');
     expect(props[0].schema).toBe('integer');
   });
@@ -111,7 +112,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'ratio', value: 3.14 }] },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c.name === 'ratio');
@@ -122,7 +123,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'flag', value: false }] },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c.name === 'flag');
@@ -133,7 +134,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'items', value: [1, 2, 3] }] },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c.name === 'items');
@@ -144,7 +145,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'pos', value: { x: 1, y: 2 } }] },
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result.flatMap((i: any) => i.contents || []).filter((c: any) => c.name === 'pos');
     expect(props[0].schema['@type']).toBe('Object');
     expect(props[0].schema.fields).toHaveLength(2);
@@ -162,7 +163,7 @@ describe('DTDLCompiler', () => {
         ],
       } as any,
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const commands = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c['@type'] === 'Command');
@@ -179,7 +180,7 @@ describe('DTDLCompiler', () => {
         { name: 'my_cube', properties: [{ key: 'color', value: 'red' }], traits: [] },
       ] as any,
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const rels = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c['@type'] === 'Relationship');
@@ -199,7 +200,7 @@ describe('DTDLCompiler', () => {
         },
       ] as any,
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     // Should have more than just main interface (sensor object gets its own)
     expect(result.length).toBeGreaterThan(1);
     // Find the sensor interface
@@ -221,7 +222,7 @@ describe('DTDLCompiler', () => {
         },
       ],
     } as any);
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const tmpl = result.find((i: any) => i.displayName === 'BaseObject');
     expect(tmpl).toBeDefined();
     expect(tmpl['@type']).toBe('Interface');
@@ -231,7 +232,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       templates: [{ name: 'PhysObj', traits: ['physics', 'grabbable'] }],
     } as any);
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const tmpl = result.find((i: any) => i.displayName === 'PhysObj');
     const components = tmpl.contents.filter((c: any) => c['@type'] === 'Component');
     expect(components).toHaveLength(2);
@@ -243,7 +244,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       environment: { skybox: 'sunset', ambient_light: 0.7 } as any,
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const props = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c.name === 'skybox' || c.name === 'ambientLight');
@@ -256,7 +257,7 @@ describe('DTDLCompiler', () => {
     const comp = makeComposition({
       spatialGroups: [{ name: 'group1', objects: [] }] as any,
     });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     const rels = result
       .flatMap((i: any) => i.contents || [])
       .filter((c: any) => c['@type'] === 'Relationship');
@@ -267,7 +268,7 @@ describe('DTDLCompiler', () => {
 
   it('sanitizes special characters in names', () => {
     const comp = makeComposition({ name: 'my scene!@#$%' });
-    const result = JSON.parse(compiler.compile(comp, 'test-token'));
+    const result = readJson(compiler.compile(comp, 'test-token'));
     expect(result[0]['@id']).toMatch(/^dtmi:holoscript:my_scene;/);
   });
 

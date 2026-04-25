@@ -34,13 +34,13 @@ describe('ComponentStore', () => {
   });
 
   it('add stores component for entity', () => {
-    expect(store.add('position', 1, { x: 0, y: 0, z: 0 })).toBe(true);
+    expect(store.add('position', 1, [0, 0, 0])).toBe(true);
     expect(store.has('position', 1)).toBe(true);
   });
 
   it('add returns false for duplicate', () => {
-    store.add('position', 1, { x: 0, y: 0, z: 0 });
-    expect(store.add('position', 1, { x: 1, y: 1, z: 1 })).toBe(false);
+    store.add('position', 1, [0, 0, 0]);
+    expect(store.add('position', 1, [1, 1, 1])).toBe(false);
   });
 
   it('add auto-creates pool if needed', () => {
@@ -49,10 +49,10 @@ describe('ComponentStore', () => {
   });
 
   it('get retrieves stored data', () => {
-    store.add<Position>('position', 1, { x: 5, y: 10, z: 15 });
+    store.add<Position>('position', 1, [5, 10, 15]);
     const pos = store.get<Position>('position', 1);
-    expect(pos?.x).toBe(5);
-    expect(pos?.y).toBe(10);
+    expect(pos[0]).toBe(5);
+    expect(pos[1]).toBe(10);
   });
 
   it('get returns undefined for missing', () => {

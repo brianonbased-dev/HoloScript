@@ -15,7 +15,7 @@ describe('Cycle 134: Spline & Curve System', () => {
     sp.addPoint(10, 0, 0);
 
     const mid = sp.evaluate(0.5);
-    expect(mid.x).toBeCloseTo(5, 0);
+    expect(mid[0]).toBeCloseTo(5, 0);
     expect(sp.getLength()).toBeGreaterThan(9);
   });
 
@@ -28,8 +28,8 @@ describe('Cycle 134: Spline & Curve System', () => {
     sp.addPoint(15, 10);
 
     const p = sp.evaluate(0.5);
-    expect(p.x).toBeGreaterThan(0);
-    expect(p.y).toBeDefined();
+    expect(p[0]).toBeGreaterThan(0);
+    expect(p[1]).toBeDefined();
   });
 
   it('should compute tangent direction', () => {
@@ -39,8 +39,8 @@ describe('Cycle 134: Spline & Curve System', () => {
     sp.addPoint(10, 0);
 
     const tangent = sp.getTangent(0.5);
-    expect(tangent.x).toBeCloseTo(1, 0); // Points right
-    expect(tangent.y).toBeCloseTo(0, 0);
+    expect(tangent[0]).toBeCloseTo(1, 0); // Points right
+    expect(tangent[1]).toBeCloseTo(0, 0);
   });
 
   // -------------------------------------------------------------------------
@@ -58,10 +58,10 @@ describe('Cycle 134: Spline & Curve System', () => {
     follower.play();
 
     const pos1 = follower.update(1); // After 1 second: ~50 units
-    expect(pos1.x).toBeCloseTo(50, -1);
+    expect(pos1[0]).toBeCloseTo(50, -1);
 
     const pos2 = follower.update(1); // After 2 seconds: ~100 units
-    expect(pos2.x).toBeCloseTo(100, -1);
+    expect(pos2[0]).toBeCloseTo(100, -1);
     expect(follower.isPlaying()).toBe(false); // Completed
   });
 

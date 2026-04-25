@@ -166,9 +166,9 @@ describe('PooledSpawner', () => {
 
   it('spawn assigns position and rotation', () => {
     const spawner = makeSpawner();
-    const e = spawner.spawn('bullet', { x: 1, y: 2, z: 3 }, { x: 0, y: 90, z: 0 });
-    expect(e!.position).toEqual({ x: 1, y: 2, z: 3 });
-    expect(e!.rotation).toEqual({ x: 0, y: 90, z: 0 });
+    const e = spawner.spawn('bullet', [1, 2, 3], [0, 90, 0]);
+    expect(e!.position).toEqual([1, 2, 3]);
+    expect(e!.rotation).toEqual([0, 90, 0]);
   });
 
   it('spawn returns null for unregistered prefab', () => {

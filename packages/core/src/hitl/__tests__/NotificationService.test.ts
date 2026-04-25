@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   HITLNotificationService,
   getNotificationService,
@@ -304,7 +305,7 @@ describe('HITLNotificationService', () => {
       const call = mockFetch.mock.calls.find((c) => c[0].includes('slack'));
       expect(call).toBeDefined();
       if (call) {
-        const body = JSON.parse(call[1].body);
+        const body = readJson(call[1].body);
         expect(body.text || body.blocks).toBeDefined();
       }
     });

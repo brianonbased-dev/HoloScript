@@ -2355,7 +2355,7 @@ export class R3FCompiler {
     const childNodes: R3FNode[] = [];
     if (world.children && world.children.length > 0) {
       for (const child of world.children) {
-        childNodes.push(this.compileObjectDecl(child as Record<string, unknown>, templateMap));
+        childNodes.push(this.compileObjectDecl(child as unknown as Record<string, unknown>, templateMap));
       }
     }
 

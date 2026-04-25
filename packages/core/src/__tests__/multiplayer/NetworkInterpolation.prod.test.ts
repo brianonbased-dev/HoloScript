@@ -24,14 +24,14 @@ function makeNI(bufferTimeMs = 0) {
   });
 }
 
-const origin = () => ({ x: 0, y: 0, z: 0 });
+const origin = () => ([0, 0, 0]);
 const quat0 = () => ({ x: 0, y: 0, z: 0, w: 1 });
 
 function snap(
   entityId: string,
   timestamp: number,
-  pos: { x: number; y: number; z: number } = origin(),
-  vel?: { x: number; y: number; z: number }
+  pos: [number, number, number] = origin(),
+  vel?: [number, number, number]
 ): NetworkSnapshot {
   return { entityId, timestamp, position: pos, rotation: quat0(), velocity: vel };
 }
@@ -86,8 +86,8 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
 
   it('interpolates position between two surrounding snapshots', () => {
     const ni = makeNI(0); // bufferTimeMs=0 so renderTime = currentTime
-    ni.pushSnapshot(snap('e1', 0, { x: 0, y: 0, z: 0 }));
-    ni.pushSnapshot(snap('e1', 100, { x: 10, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [0, 0, 0]));
+    ni.pushSnapshot(snap('e1', 100, [10, 0, 0]));
     // At time=50 (between 0 and 100), t=0.5 → x=5
     const state = ni.getInterpolatedState('e1', 50);
     expect(state).not.toBeNull();
@@ -98,7 +98,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
   it('extrapolates with velocity when past last snapshot', () => {
     const ni = makeNI(0);
     // snapshot at t=0, velocity=1m/s on X
-    ni.pushSnapshot(snap('e1', 0, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [0, 0, 0], [1, 0, 0]));
     // query at t=100ms (0.1s) → extrapolated x = 0 + 1*0.1 = 0.1
     const state = ni.getInterpolatedState('e1', 100);
     expect(state).not.toBeNull();
@@ -108,7 +108,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
 
   it('returns last known position when extrapolation time exceeded', () => {
     const ni = makeNI(0); // bufferTimeMs=0, maxExtrapolationMs=250
-    ni.pushSnapshot(snap('e1', 0, { x: 5, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [5, 0, 0]));
     // query at t=300ms (> 250ms max extrapolation)
     const state = ni.getInterpolatedState('e1', 300);
     expect(state).not.toBeNull();
@@ -118,7 +118,7 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
 
   it('returns future snapshot when only ahead snapshots exist', () => {
     const ni = makeNI(0);
-    ni.pushSnapshot(snap('e1', 500, { x: 99, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 500, [99, 0, 0]));
     // query at t=100 — only future snapshot available
     const state = ni.getInterpolatedState('e1', 100);
     expect(state).not.toBeNull();
@@ -134,8 +134,8 @@ describe('NetworkInterpolation — getInterpolatedState', () => {
       lerpSpeed: 10,
     });
     // snapshots at t=0 (x=0) and t=100 (x=10)
-    ni.pushSnapshot(snap('e1', 0, { x: 0, y: 0, z: 0 }));
-    ni.pushSnapshot(snap('e1', 100, { x: 10, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [0, 0, 0]));
+    ni.pushSnapshot(snap('e1', 100, [10, 0, 0]));
     // With 100ms buffer, renderTime at currentTime=150 is 150-100=50 → x≈5
     const state = ni.getInterpolatedState('e1', 150);
     expect(state?.position[0]).toBeCloseTo(5, 1);
@@ -153,11 +153,11 @@ describe('NetworkInterpolation — smoothCorrection', () => {
       lerpSpeed: 10,
     });
     const result = ni.smoothCorrection(
-      { x: 0, y: 0, z: 0 },
-      { x: 100, y: 0, z: 0 }, // far away — should snap
+      [0, 0, 0],
+      [100, 0, 0], // far away — should snap
       0.016
     );
-    expect(result.x).toBe(100);
+    expect(result[0]).toBe(100);
   });
 
   it('smoothly lerps toward server position when within threshold', () => {
@@ -168,20 +168,20 @@ describe('NetworkInterpolation — smoothCorrection', () => {
       lerpSpeed: 10,
     });
     const result = ni.smoothCorrection(
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 }, // small correction
+      [0, 0, 0],
+      [1, 0, 0], // small correction
       0.016
     );
     // Should be between 0 and 1
-    expect(result.x).toBeGreaterThan(0);
-    expect(result.x).toBeLessThan(1);
+    expect(result[0]).toBeGreaterThan(0);
+    expect(result[0]).toBeLessThan(1);
   });
 
   it('returns server pos when already at server pos', () => {
     const ni = makeNI();
-    const server = { x: 5, y: 3, z: 1 };
+    const server = [5, 3, 1];
     const result = ni.smoothCorrection(server, server, 0.016);
-    expect(result.x).toBeCloseTo(5);
+    expect(result[0]).toBeCloseTo(5);
   });
 });
 
@@ -227,8 +227,8 @@ describe('NetworkInterpolation — buffer queries', () => {
 describe('NetworkInterpolation — interpolation math', () => {
   it('full interpolation at t=0 returns start position', () => {
     const ni = makeNI(0);
-    ni.pushSnapshot(snap('e1', 0, { x: 0, y: 5, z: 0 }));
-    ni.pushSnapshot(snap('e1', 100, { x: 10, y: 5, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [0, 5, 0]));
+    ni.pushSnapshot(snap('e1', 100, [10, 5, 0]));
     const state = ni.getInterpolatedState('e1', 0);
     // renderTime = 0, before=snapshot@0, after=snapshot@100, t=0 → x=0
     expect(state?.position[0]).toBeCloseTo(0, 1);
@@ -236,8 +236,8 @@ describe('NetworkInterpolation — interpolation math', () => {
 
   it('full interpolation at t=1 returns end position', () => {
     const ni = makeNI(0);
-    ni.pushSnapshot(snap('e1', 0, { x: 0, y: 0, z: 0 }));
-    ni.pushSnapshot(snap('e1', 100, { x: 10, y: 0, z: 0 }));
+    ni.pushSnapshot(snap('e1', 0, [0, 0, 0]));
+    ni.pushSnapshot(snap('e1', 100, [10, 0, 0]));
     const state = ni.getInterpolatedState('e1', 100);
     // At renderTime=100: before@100, no after → extrapolate but within maxExtrapolation=250
     // Actually returns extrapolated (t=100 matches before exactly).

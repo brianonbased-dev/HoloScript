@@ -13,17 +13,17 @@ describe('Cycle 151: Collision Queries', () => {
     rc.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: { x: 20, y: 0, z: 0 }, radius: 2 },
+      shape: { center: [20, 0, 0], radius: 2 },
       layer: 1,
     });
     rc.addCollider({
       entityId: 'near',
       type: 'sphere',
-      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 1,
     });
 
-    const hits = rc.raycastAll({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
+    const hits = rc.raycastAll({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hits.length).toBe(2);
     expect(hits[0].entityId).toBe('near');
     expect(hits[0].distance).toBeLessThan(hits[1].distance);
@@ -34,13 +34,13 @@ describe('Cycle 151: Collision Queries', () => {
     rc.addCollider({
       entityId: 'box',
       type: 'aabb',
-      shape: { min: { x: 3, y: -1, z: -1 }, max: { x: 5, y: 1, z: 1 } },
+      shape: { min: [3, -1, -1], max: [5, 1, 1] },
       layer: 2,
     });
 
     // Layer 1 mask — should miss
     const miss = rc.raycast(
-      { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      { origin: [0, 0, 0], direction: [1, 0, 0] },
       Infinity,
       1
     );
@@ -48,7 +48,7 @@ describe('Cycle 151: Collision Queries', () => {
 
     // Layer 2 mask — should hit
     const hit = rc.raycast(
-      { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      { origin: [0, 0, 0], direction: [1, 0, 0] },
       Infinity,
       2
     );
@@ -61,11 +61,11 @@ describe('Cycle 151: Collision Queries', () => {
     rc.addCollider({
       entityId: 'ground',
       type: 'plane',
-      shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 },
+      shape: { normal: [0, 1, 0], distance: 0 },
       layer: 0xffffffff,
     });
 
-    const hit = rc.raycast({ origin: { x: 0, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } });
+    const hit = rc.raycast({ origin: [0, 10, 0], direction: [0, -1, 0] });
     expect(hit).not.toBeNull();
     expect(hit!.distance).toBeCloseTo(10, 1);
     expect(hit!.point[1]).toBeCloseTo(0, 1);
@@ -128,13 +128,13 @@ describe('Cycle 151: Collision Queries', () => {
     const tz = new TriggerZoneSystem();
     tz.addZone({
       id: 'z1',
-      shape: { type: 'box', position: [0, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
+      shape: { type: 'box', position: [0, 0, 0], halfExtents: [5, 5, 5] },
       enabled: true,
       tags: [],
     });
     tz.addZone({
       id: 'z2',
-      shape: { type: 'box', position: [3, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
+      shape: { type: 'box', position: [3, 0, 0], halfExtents: [5, 5, 5] },
       enabled: true,
       tags: [],
     });

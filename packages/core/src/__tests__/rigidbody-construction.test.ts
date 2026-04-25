@@ -31,7 +31,7 @@ function makeDynamic(id = 'b1', x = 0, y = 0, z = 0): RigidBody {
   return new RigidBody({
     id,
     type: 'dynamic',
-    transform: { position: { x, y, z }, rotation: [0, 0, 0, 1 ] },
+    transform: { position: [x, y, z], rotation: [0, 0, 0, 1 ] },
     shape: { type: 'sphere', radius: 0.5 },
     mass: 2,
   } as IRigidBodyConfig);
@@ -42,7 +42,7 @@ function makeStatic(id = 'wall'): RigidBody {
     id,
     type: 'static',
     transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
-    shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
+    shape: { type: 'box', halfExtents: [1, 1, 1] },
   } as IRigidBodyConfig);
 }
 
@@ -88,7 +88,7 @@ describe('Feature 1A: RigidBody â€” construction', () => {
 
   it('position is set from transform', () => {
     const b = makeDynamic('b', 1, 2, 3);
-    expect(b.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(b.position).toEqual([1, 2, 3]);
   });
 
   it('isActive starts true', () => {
@@ -116,46 +116,46 @@ describe('Feature 1A: RigidBody â€” construction', () => {
 describe('Feature 1B: RigidBody â€” forces and velocity', () => {
   it('applyForce() accumulates force on dynamic body', () => {
     const b = makeDynamic();
-    b.applyForce({ x: 10, y: 0, z: 0 });
-    expect(b.getForce().x).toBeGreaterThan(0);
+    b.applyForce([10, 0, 0]);
+    expect(b.getForce()[0]).toBeGreaterThan(0);
   });
 
   it('clearForces() resets accumulated force', () => {
     const b = makeDynamic();
-    b.applyForce({ x: 10, y: 0, z: 0 });
+    b.applyForce([10, 0, 0]);
     b.clearForces();
-    expect(b.getForce().x).toBe(0);
+    expect(b.getForce()[0]).toBe(0);
   });
 
   it('applyImpulse() changes linearVelocity', () => {
     const b = makeDynamic();
-    b.applyImpulse({ x: 10, y: 0, z: 0 });
-    expect(b.linearVelocity.x).toBeGreaterThan(0);
+    b.applyImpulse([10, 0, 0]);
+    expect(b.linearVelocity[0]).toBeGreaterThan(0);
   });
 
   it('linearVelocity setter works on dynamic body', () => {
     const b = makeDynamic();
-    b.linearVelocity = { x: 5, y: 0, z: 0 };
-    expect(b.linearVelocity.x).toBe(5);
+    b.linearVelocity = [5, 0, 0];
+    expect(b.linearVelocity[0]).toBe(5);
   });
 
   it('linearVelocity setter is no-op on static body', () => {
     const b = makeStatic();
-    b.linearVelocity = { x: 99, y: 0, z: 0 };
-    expect(b.linearVelocity.x).toBe(0);
+    b.linearVelocity = [99, 0, 0];
+    expect(b.linearVelocity[0]).toBe(0);
   });
 
   it('integrateVelocities() updates position from velocity', () => {
     const b = makeDynamic();
-    b.linearVelocity = { x: 10, y: 0, z: 0 };
+    b.linearVelocity = [10, 0, 0];
     b.integrateVelocities(0.1);
     expect(b.position[0]).toBeGreaterThan(0);
   });
 
   it('integrateForces() with gravity increases downward velocity', () => {
     const b = makeDynamic();
-    b.integrateForces(0.1, { x: 0, y: -9.81, z: 0 });
-    expect(b.linearVelocity.y).toBeLessThan(0);
+    b.integrateForces(0.1, [0, -9.81, 0]);
+    expect(b.linearVelocity[1]).toBeLessThan(0);
   });
 });
 
@@ -216,7 +216,7 @@ describe('Feature 2A: RaycastSystem â€” registration', () => {
     sys.addCollider({
       entityId: 'box1',
       type: 'aabb',
-      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      shape: { min: [-1, -1, -1], max: [1, 1, 1] },
       layer: 1,
     });
     expect(sys.getColliderCount()).toBe(1);
@@ -226,7 +226,7 @@ describe('Feature 2A: RaycastSystem â€” registration', () => {
     sys.addCollider({
       entityId: 'box1',
       type: 'aabb',
-      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      shape: { min: [-1, -1, -1], max: [1, 1, 1] },
       layer: 1,
     });
     sys.removeCollider('box1');
@@ -247,63 +247,63 @@ describe('Feature 2B: RaycastSystem â€” raycasting', () => {
     sys.addCollider({
       entityId: 'box',
       type: 'aabb',
-      shape: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+      shape: { min: [-1, -1, -1], max: [1, 1, 1] },
       layer: 1,
     });
     // Sphere at (5,0,0) r=1, layer 1
     sys.addCollider({
       entityId: 'sphere',
       type: 'sphere',
-      shape: { center: { x: 5, y: 0, z: 0 }, radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 1,
     });
     // Plane (Y=0, normal up), layer 1
     sys.addCollider({
       entityId: 'floor',
       type: 'plane',
-      shape: { normal: { x: 0, y: 1, z: 0 }, distance: 0 },
+      shape: { normal: [0, 1, 0], distance: 0 },
       layer: 1,
     });
   });
 
   it('ray hits AABB box', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
+    const hit = sys.raycast({ origin: [-5, 0, 0], direction: [1, 0, 0] });
     expect(hit).not.toBeNull();
     expect(hit?.entityId).toBe('box');
   });
 
   it('ray misses AABB (passes above)', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 5, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
+    const hit = sys.raycast({ origin: [-5, 5, 0], direction: [1, 0, 0] });
     expect(hit?.entityId).not.toBe('box');
   });
 
   it('ray hits sphere', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
+    const hit = sys.raycast({ origin: [-5, 0, 0], direction: [1, 0, 0] });
     // Should hit box first (distance ~4), then sphere would be hit later
     const allHits = sys.raycastAll({
-      origin: { x: 2, y: 0, z: 0 },
-      direction: { x: 1, y: 0, z: 0 },
+      origin: [2, 0, 0],
+      direction: [1, 0, 0],
     });
     const sphereHit = allHits.find((h) => h.entityId === 'sphere');
     expect(sphereHit).toBeDefined();
   });
 
   it('ray hits plane (from above)', () => {
-    const hit = sys.raycast({ origin: { x: 10, y: 10, z: 0 }, direction: { x: 0, y: -1, z: 0 } });
+    const hit = sys.raycast({ origin: [10, 10, 0], direction: [0, -1, 0] });
     expect(hit).not.toBeNull();
     expect(hit?.entityId).toBe('floor');
   });
 
   it('raycastAll returns hits sorted by distance', () => {
     // Shoot from far left, hits box, then sphere
-    const hits = sys.raycastAll({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } });
+    const hits = sys.raycastAll({ origin: [-5, 0, 0], direction: [1, 0, 0] });
     expect(hits.length).toBeGreaterThanOrEqual(2);
     expect(hits[0].distance).toBeLessThanOrEqual(hits[1].distance);
   });
 
   it('layerMask 0 returns no hits', () => {
     const hit = sys.raycast(
-      { origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+      { origin: [-5, 0, 0], direction: [1, 0, 0] },
       Infinity,
       0
     );
@@ -311,7 +311,7 @@ describe('Feature 2B: RaycastSystem â€” raycasting', () => {
   });
 
   it('RayHit has entityId, distance, point, normal', () => {
-    const hit = sys.raycast({ origin: { x: -5, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } })!;
+    const hit = sys.raycast({ origin: [-5, 0, 0], direction: [1, 0, 0] })!;
     expect(typeof hit.entityId).toBe('string');
     expect(typeof hit.distance).toBe('number');
     expect(hit.point).toBeDefined();
@@ -663,7 +663,7 @@ describe('Feature 5C: AnimClip â€” sample and blend', () => {
         [1, 10],
       ])
     );
-    // t=1.5 loops to t=0.5 â†’ should give ~5
+    // t=1.5 loops to t=0.5 → should give ~5
     const result = clip.sample(1.5);
     expect(result.get('n.x.x')).toBeCloseTo(5, 1);
   });

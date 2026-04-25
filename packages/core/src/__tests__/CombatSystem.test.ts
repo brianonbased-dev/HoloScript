@@ -23,7 +23,7 @@ describe('CombatManager', () => {
       id: 'hb1',
       ownerId: 'p1',
       position: [0, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
       damage: 10,
       damageType: 'physical',
@@ -33,7 +33,7 @@ describe('CombatManager', () => {
       id: 'hr1',
       ownerId: 'p2',
       position: [0, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
     });
     expect(cm.getHitBoxCount()).toBe(1);
@@ -45,7 +45,7 @@ describe('CombatManager', () => {
       id: 'hb',
       ownerId: 'a',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
       damage: 5,
       damageType: 'fire',
@@ -55,7 +55,7 @@ describe('CombatManager', () => {
       id: 'hr',
       ownerId: 'b',
       position: [0.5, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
     });
     const hits = cm.checkCollisions();
@@ -67,7 +67,7 @@ describe('CombatManager', () => {
       id: 'hb',
       ownerId: 'same',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
       damage: 10,
       damageType: 'physical',
@@ -77,7 +77,7 @@ describe('CombatManager', () => {
       id: 'hr',
       ownerId: 'same',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
     });
     expect(cm.checkCollisions()).toHaveLength(0);
@@ -88,7 +88,7 @@ describe('CombatManager', () => {
       id: 'hb',
       ownerId: 'a',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: false,
       damage: 5,
       damageType: 'physical',
@@ -98,7 +98,7 @@ describe('CombatManager', () => {
       id: 'hr',
       ownerId: 'b',
       position: [0, 0, 0],
-      size: { x: 2, y: 2, z: 2 },
+      size: [2, 2, 2],
       active: true,
     });
     expect(cm.checkCollisions()).toHaveLength(0);
@@ -141,7 +141,7 @@ describe('CombatManager', () => {
 
   it('target finding sorts by priority and distance', () => {
     const targets = cm.findTargets(
-      { x: 0, y: 0, z: 0 },
+      [0, 0, 0],
       [
         { entityId: 'far', position: [100, 0, 0], priority: 5 },
         { entityId: 'close', position: [5, 0, 0], priority: 10 },

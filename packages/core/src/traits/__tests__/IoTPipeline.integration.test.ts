@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { readJson } from '../../errors/safeJsonParse';
 /** Flush all pending microtasks (resolved Promises). */
 const flushPromises = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -38,7 +39,7 @@ const _clientFactory = vi.fn(() => makeMockClient());
 vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => {
   const parsePayload = vi.fn((msg: any) => {
     try {
-      return typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;
+      return typeof msg.payload === 'string' ? readJson(msg.payload) : msg.payload;
     } catch {
       return msg.payload;
     }

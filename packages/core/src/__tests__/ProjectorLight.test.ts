@@ -8,7 +8,7 @@ import { ProjectorLight } from '@holoscript/engine/rendering';
 function defaultConfig() {
   return {
     position: [0, 10, 0],
-    direction: { x: 0, y: -1, z: 0 },
+    direction: [0, -1, 0],
     cookieTextureId: 'cookie_01',
     fov: 60,
     aspectRatio: 1.0,
@@ -43,7 +43,7 @@ describe('ProjectorLight', () => {
   it('setPosition updates position', () => {
     const p = pl.create(defaultConfig());
     pl.setPosition(p.id, 5, 20, 3);
-    expect(pl.get(p.id)!.position).toEqual({ x: 5, y: 20, z: 3 });
+    expect(pl.get(p.id)!.position).toEqual([5, 20, 3]);
   });
 
   it('setIntensity clamps to non-negative', () => {
@@ -67,19 +67,19 @@ describe('ProjectorLight', () => {
   it('isPointInFrustum returns true for point in front within range', () => {
     const p = pl.create(defaultConfig());
     // Direction is (0,-1,0), point directly below at y=-5 → depth=15, within [1,50]
-    expect(pl.isPointInFrustum(p.id, { x: 0, y: -5, z: 0 })).toBe(true);
+    expect(pl.isPointInFrustum(p.id, [0, -5, 0])).toBe(true);
   });
 
   it('isPointInFrustum returns false for point behind projector', () => {
     const p = pl.create(defaultConfig());
     // Point above at y=20 → depth would be negative
-    expect(pl.isPointInFrustum(p.id, { x: 0, y: 20, z: 0 })).toBe(false);
+    expect(pl.isPointInFrustum(p.id, [0, 20, 0])).toBe(false);
   });
 
   it('isPointInFrustum returns false when disabled', () => {
     const p = pl.create(defaultConfig());
     pl.setEnabled(p.id, false);
-    expect(pl.isPointInFrustum(p.id, { x: 0, y: -5, z: 0 })).toBe(false);
+    expect(pl.isPointInFrustum(p.id, [0, -5, 0])).toBe(false);
   });
 
   it('computeAttenuation with linear falloff', () => {

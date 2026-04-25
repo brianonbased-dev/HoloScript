@@ -374,7 +374,7 @@ describe('GraphToCode converter', () => {
   });
 
   it('vector3 data node generates [x, y, z]', () => {
-    const node = makeNode('1', 'vector3', 'data', 'Vector3', { x: 1, y: 2, z: 3 });
+    const node = makeNode('1', 'vector3', 'data', 'Vector3', [1, 2, 3]);
     const converter = new GraphToCode();
     const ctx = { node, incomingEdges: [], outgoingEdges: [], processed: false, code: '' };
     const code = (converter as any).generateDataNodeCode(ctx, 'vector');

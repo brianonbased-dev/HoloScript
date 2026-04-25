@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { Sovereign3DAdapter } from '../adapters/Sovereign3DAdapter';
 
 describe('Sovereign3DAdapter', () => {
@@ -77,7 +78,7 @@ describe('Sovereign3DAdapter', () => {
     expect(out.assetUrl).toContain('.glb');
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    const reqBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    const reqBody = readJson(fetchMock.mock.calls[0][1].body as string);
     expect(reqBody.output_format).toBe('mesh');
     expect(reqBody.quality_preset).toBe('standard');
   });

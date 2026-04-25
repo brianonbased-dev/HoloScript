@@ -16,9 +16,9 @@ function makeSphere(id: string, x: number, y: number, z: number, radius = 1): Bo
 }
 
 // Camera looking down +Z axis, positioned at origin
-const CAM_POS = { x: 0, y: 0, z: 0 };
-const CAM_FWD = { x: 0, y: 0, z: 1 }; // normalized
-const CAM_UP = { x: 0, y: 1, z: 0 };
+const CAM_POS = [0, 0, 0];
+const CAM_FWD = [0, 0, 1]; // normalized
+const CAM_UP = [0, 1, 0];
 
 // ─── Suite ───────────────────────────────────────────────────────────────────
 

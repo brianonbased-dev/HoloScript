@@ -208,11 +208,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
     trait.onUpdate(node, ctx as any, 0.016); // emits value=0.5
     ctx.emit.mockClear();
     // Move body by 0.0005 → Δvalue = 0.005 < 0.01 → no emit
-    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({
-      x: 0.0005,
-      y: 0,
-      z: 0,
-    });
+    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue([0.0005, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('ui_value_change', expect.anything());
   });
@@ -275,11 +271,7 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
     ctx.emit.mockClear();
     (ctx.haptics.rumble as ReturnType<typeof vi.fn>).mockClear();
     // Move to 0.55 — same bucket (floor(0.55*10)=5, floor(0.52*10)=5)
-    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue({
-      x: 0.05,
-      y: 0,
-      z: 0,
-    });
+    (ctx.physics.getBodyPosition as ReturnType<typeof vi.fn>).mockReturnValue([0.05, 0, 0]);
     trait.onUpdate(node, ctx as any, 0.016);
     expect(ctx.haptics.rumble).not.toHaveBeenCalled();
   });

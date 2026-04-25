@@ -139,12 +139,11 @@ export const chainHandler: TraitHandler<ChainConfig> = {
     if (event.type === 'chain_link_update') {
       const linkIndex = event.linkIndex as number;
       const position = event.position as
-        | { x?: number; y?: number; z?: number }
-        | [number, number, number];
+        [number, number, number] | [number, number, number];
       const rotation = event.rotation as { x: number; y: number; z: number; w: number };
       const normalizedPos: [number, number, number] = Array.isArray(position)
         ? position
-        : [position.x ?? 0, position.y ?? 0, position.z ?? 0];
+        : [position[0] ?? 0, position[1] ?? 0, position[2] ?? 0];
 
       if (state.links[linkIndex]) {
         state.links[linkIndex].position = normalizedPos;
@@ -160,15 +159,15 @@ export const chainHandler: TraitHandler<ChainConfig> = {
       });
     } else if (event.type === 'chain_full_update') {
       const positions = event.positions as Array<
-        { x?: number; y?: number; z?: number } | [number, number, number]
+        [number, number, number] | [number, number, number]
       >;
       const rotations = event.rotations as Array<{ x: number; y: number; z: number; w: number }>;
 
       for (let i = 0; i < state.links.length && i < positions.length; i++) {
         const p = positions[i];
-        const px = Array.isArray(p) ? (p[0] ?? 0) : (p.x ?? 0);
-        const py = Array.isArray(p) ? (p[1] ?? 0) : (p.y ?? 0);
-        const pz = Array.isArray(p) ? (p[2] ?? 0) : (p.z ?? 0);
+        const px = Array.isArray(p) ? (p[0] ?? 0) : (p[0] ?? 0);
+        const py = Array.isArray(p) ? (p[1] ?? 0) : (p[1] ?? 0);
+        const pz = Array.isArray(p) ? (p[2] ?? 0) : (p[2] ?? 0);
         state.links[i].position = [px, py, pz];
         state.links[i].rotation = rotations[i] || state.links[i].rotation;
       }
@@ -226,7 +225,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
       }
     } else if (event.type === 'chain_apply_force') {
       const linkIndex = event.linkIndex as number;
-      const force = event.force as { x: number; y: number; z: number };
+      const force = event.force as [number, number, number];
 
       context.emit?.('chain_external_force', {
         node,

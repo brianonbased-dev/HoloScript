@@ -24,7 +24,7 @@ describe('CheckpointSystem', () => {
 
   it('computes diff on second checkpoint', () => {
     sys.createCheckpoint('A', { x: 1, y: 2 });
-    const cp2 = sys.createCheckpoint('B', { x: 1, y: 3, z: 4 });
+    const cp2 = sys.createCheckpoint('B', [1, 3, 4]);
     expect(cp2.diff).toEqual({ y: 3, z: 4 });
     expect(cp2.parentId).toBeDefined();
   });

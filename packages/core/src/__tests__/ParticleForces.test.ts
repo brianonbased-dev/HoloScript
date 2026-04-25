@@ -14,7 +14,7 @@ describe('Cycle 158: Particle Forces', () => {
       id: 'a1',
       shape: 'point',
       position: [10, 0, 0],
-      direction: { x: 0, y: 0, z: 0 },
+      direction: [0, 0, 0],
       strength: 100,
       radius: 50,
       killRadius: 0,
@@ -33,7 +33,7 @@ describe('Cycle 158: Particle Forces', () => {
       id: 'a1',
       shape: 'point',
       position: [0, 0, 0],
-      direction: { x: 0, y: 0, z: 0 },
+      direction: [0, 0, 0],
       strength: 1,
       radius: 50,
       killRadius: 2,
@@ -99,7 +99,7 @@ describe('Cycle 158: Particle Forces', () => {
     };
     col.resolve([p]);
 
-    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p[1]).toBeGreaterThanOrEqual(0);
     expect(p.vy).toBeGreaterThan(0); // Bounced upward
     expect(col.getCollisionCount()).toBe(1);
   });

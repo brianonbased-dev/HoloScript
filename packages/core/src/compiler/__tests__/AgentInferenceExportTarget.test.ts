@@ -5,6 +5,7 @@ import {
   createPythonAgentInferenceCompiler,
 } from '../AgentInferenceExportTarget';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -273,7 +274,7 @@ describe('compile() — TypeScript output', () => {
 
   it('config.json contains agent configuration', () => {
     const result = compiler.compile(makeAgentComposition(), '');
-    const config = JSON.parse(result['config.json']);
+    const config = readJson(result['config.json']);
     expect(config.agents).toHaveLength(1);
     expect(config.agents[0].name).toBe('MainAgent');
     expect(config.agents[0].role).toBe('customer_support');
@@ -284,7 +285,7 @@ describe('compile() — TypeScript output', () => {
 
   it('package.json has anthropic SDK dependency', () => {
     const result = compiler.compile(makeAgentComposition(), '');
-    const pkg = JSON.parse(result['package.json']);
+    const pkg = readJson(result['package.json']);
     expect(pkg.dependencies['@anthropic-ai/sdk']).toBeDefined();
     expect(pkg.name).toBe('support-bot-agent');
   });
@@ -409,7 +410,7 @@ describe('multi-agent compositions', () => {
   it('config.json has all agents', () => {
     const compiler = new AgentInferenceCompiler();
     const result = compiler.compile(makeMultiAgentComposition(), '');
-    const config = JSON.parse(result['config.json']);
+    const config = readJson(result['config.json']);
     expect(config.agents).toHaveLength(2);
   });
 });

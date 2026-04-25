@@ -42,10 +42,10 @@ describe('DungeonGenerator', () => {
     const dg = new DungeonGenerator({ width: w, height: h, seed: 42 });
     const { rooms } = dg.generate();
     for (const r of rooms) {
-      expect(r.x).toBeGreaterThanOrEqual(0);
-      expect(r.y).toBeGreaterThanOrEqual(0);
-      expect(r.x + r.width).toBeLessThanOrEqual(w);
-      expect(r.y + r.height).toBeLessThanOrEqual(h);
+      expect(r[0]).toBeGreaterThanOrEqual(0);
+      expect(r[1]).toBeGreaterThanOrEqual(0);
+      expect(r[0] + r.width).toBeLessThanOrEqual(w);
+      expect(r[1] + r.height).toBeLessThanOrEqual(h);
     }
   });
 
@@ -94,8 +94,8 @@ describe('DungeonGenerator', () => {
     const r2 = d2.generate();
     expect(r1.rooms.length).toBe(r2.rooms.length);
     for (let i = 0; i < r1.rooms.length; i++) {
-      expect(r1.rooms[i].x).toBe(r2.rooms[i].x);
-      expect(r1.rooms[i].y).toBe(r2.rooms[i].y);
+      expect(r1.rooms[i][0]).toBe(r2.rooms[i][0]);
+      expect(r1.rooms[i][1]).toBe(r2.rooms[i][1]);
     }
   });
 
@@ -107,7 +107,7 @@ describe('DungeonGenerator', () => {
     // Very unlikely to be identical
     const same =
       r1.rooms.length === r2.rooms.length &&
-      r1.rooms.every((r, i) => r.x === r2.rooms[i].x && r.y === r2.rooms[i].y);
+      r1.rooms.every((r, i) => r[0] === r2.rooms[i][0] && r[1] === r2.rooms[i][1]);
     expect(same).toBe(false);
   });
 

@@ -82,7 +82,7 @@ export class UnrealCompiler extends CompilerBase {
       engineVersion: options.engineVersion || '5.4',
       useEnhancedInput: options.useEnhancedInput ?? true,
       generateBlueprints: options.generateBlueprints ?? false,
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

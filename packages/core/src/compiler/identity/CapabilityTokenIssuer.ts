@@ -16,6 +16,7 @@
  */
 
 import * as crypto from 'crypto';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   AgentRole,
   AgentPermission,
@@ -416,7 +417,7 @@ export class CapabilityTokenIssuer {
     // --- Decode payload ---
     let payload: CapabilityTokenPayload;
     try {
-      payload = JSON.parse(base64urlDecode(payloadB64).toString('utf-8'));
+      payload = readJson(base64urlDecode(payloadB64).toString('utf-8')) as CapabilityTokenPayload;
     } catch {
       return {
         valid: false,

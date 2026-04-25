@@ -136,28 +136,28 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       // Buoyancy force (upward)
       const objectWeight = config.object_density * config.object_volume * 9.81;
       const netForce = state.buoyancyForce - objectWeight;
-      context.emit?.('apply_force', { node, force: { x: 0, y: netForce, z: 0 } });
+      context.emit?.('apply_force', { node, force: [0, netForce, 0] });
 
       // Fluid drag (opposes velocity)
       const dragCoeff = config.drag * state.submersionRatio;
       context.emit?.('apply_force', {
         node,
-        force: {
-          x: -state.velocity[0] * dragCoeff,
-          y: -state.velocity[1] * dragCoeff,
-          z: -state.velocity[2] * dragCoeff,
-        },
+        force: [
+          -state.velocity[0] * dragCoeff,
+          -state.velocity[1] * dragCoeff,
+          -state.velocity[2] * dragCoeff
+        ],
       });
 
       // Current/flow force
       if (config.flow_strength > 0) {
         context.emit?.('apply_force', {
           node,
-          force: {
-            x: config.flow_direction[0] * config.flow_strength * state.submersionRatio,
-            y: config.flow_direction[1] * config.flow_strength * state.submersionRatio,
-            z: config.flow_direction[2] * config.flow_strength * state.submersionRatio,
-          },
+          force: [
+            config.flow_direction[0] * config.flow_strength * state.submersionRatio,
+            config.flow_direction[1] * config.flow_strength * state.submersionRatio,
+            config.flow_direction[2] * config.flow_strength * state.submersionRatio
+          ],
         });
       }
     }

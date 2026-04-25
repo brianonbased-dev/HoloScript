@@ -48,8 +48,8 @@ describe('ReactiveState — Production', () => {
   it('getSnapshot returns a copy', () => {
     const s = new ReactiveState({ x: 42 });
     const snap = s.getSnapshot();
-    expect(snap.x).toBe(42);
-    snap.x = 99;
+    expect(snap[0]).toBe(42);
+    snap[0] = 99;
     expect(s.get('x')).toBe(42); // original unchanged
   });
 

@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { localLLMHandler } from '../LocalLLMTrait';
 import type { LocalLLMConfig } from '../LocalLLMTrait';
 
@@ -180,7 +181,7 @@ describe('LocalLLMTrait - llm_prompt (mocked fetch)', () => {
     await new Promise((r) => setTimeout(r, 100));
     // calls[0] = models endpoint (from onAttach), calls[1] = chat endpoint
     const chatCall = fetchSpy.mock.calls[1];
-    const body = JSON.parse((chatCall[1] as any).body);
+    const body = readJson((chatCall[1] as any).body);
     const sysMsg = body.messages.find((m: any) => m.role === 'system');
     expect(sysMsg?.content).toBe('You are a helpful spatial AI agent.');
   });

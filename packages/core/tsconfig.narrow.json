@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/compiler/**/*.ts",
+    "src/parser/**/*.ts",
+    "src/types/**/*.ts",
+    "src/math/**/*.ts",
+    "src/constants/**/*.ts",
+    "src/logger.ts",
+    "src/version.ts",
+    "src/composition/**/*.ts",
+    "src/state/**/*.ts",
+    "src/monitoring/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.bench.ts",
+    "src/**/*.prod.test.ts",
+    "src/**/__tests__/**"
+  ]
+}

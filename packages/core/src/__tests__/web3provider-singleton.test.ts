@@ -299,19 +299,19 @@ describe('Feature 2B: KeplerianCalculator â€” dateToJulian / julianToDate',
 describe('Feature 2C: KeplerianCalculator â€” calculatePosition()', () => {
   it('returns a Position3D with x, y, z', () => {
     const pos = calculatePosition(EARTH_ELEMENTS, 0);
-    expect(typeof pos.x).toBe('number');
-    expect(typeof pos.y).toBe('number');
-    expect(typeof pos.z).toBe('number');
+    expect(typeof pos[0]).toBe('number');
+    expect(typeof pos[1]).toBe('number');
+    expect(typeof pos[2]).toBe('number');
   });
 
   it('circular orbit: z â‰ˆ 0 (inclination=0)', () => {
     const pos = calculatePosition(CIRCULAR_ORBIT, 0);
-    expect(Math.abs(pos.z)).toBeLessThan(1e-6);
+    expect(Math.abs(pos[2])).toBeLessThan(1e-6);
   });
 
   it('circular orbit: distance from origin â‰ˆ semiMajorAxis', () => {
     const pos = calculatePosition(CIRCULAR_ORBIT, 0);
-    const r = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+    const r = Math.sqrt(pos[0] ** 2 + pos[1] ** 2 + pos[2] ** 2);
     expect(r).toBeCloseTo(CIRCULAR_ORBIT.semiMajorAxis, 3);
   });
 
@@ -319,19 +319,19 @@ describe('Feature 2C: KeplerianCalculator â€” calculatePosition()', () => {
     const pos0 = calculatePosition(EARTH_ELEMENTS, 0);
     const pos90 = calculatePosition(EARTH_ELEMENTS, EARTH_ELEMENTS.orbitalPeriod / 4);
     // Should be at different orbital positions
-    expect(pos0.x).not.toBeCloseTo(pos90.x, 1);
+    expect(pos0[0]).not.toBeCloseTo(pos90[0], 1);
   });
 
   it('after one full period, returns to same position', () => {
     const pos0 = calculatePosition(CIRCULAR_ORBIT, 0);
     const pos1 = calculatePosition(CIRCULAR_ORBIT, CIRCULAR_ORBIT.orbitalPeriod);
-    expect(pos0.x).toBeCloseTo(pos1.x, 3);
-    expect(pos0.y).toBeCloseTo(pos1.y, 3);
+    expect(pos0[0]).toBeCloseTo(pos1[0], 3);
+    expect(pos0[1]).toBeCloseTo(pos1[1], 3);
   });
 
   it('Earth at J2000: x is approximately 1 AU', () => {
     const pos = calculatePosition(EARTH_ELEMENTS, 0);
-    const r = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+    const r = Math.sqrt(pos[0] ** 2 + pos[1] ** 2 + pos[2] ** 2);
     // Earth's distance from Sun â‰ˆ 0.98 to 1.02 AU
     expect(r).toBeGreaterThan(0.9);
     expect(r).toBeLessThan(1.1);
@@ -358,21 +358,21 @@ describe('Feature 2D: KeplerianCalculator â€” generateOrbitalPath()', () =>
   it('each point has x, y, z', () => {
     const path = generateOrbitalPath(CIRCULAR_ORBIT, 10);
     for (const pt of path) {
-      expect(typeof pt.x).toBe('number');
-      expect(typeof pt.y).toBe('number');
-      expect(typeof pt.z).toBe('number');
+      expect(typeof pt[0]).toBe('number');
+      expect(typeof pt[1]).toBe('number');
+      expect(typeof pt[2]).toBe('number');
     }
   });
 
   it('first and last point are identical (closed loop)', () => {
     const path = generateOrbitalPath(CIRCULAR_ORBIT, 50);
-    expect(path[0].x).toBeCloseTo(path[path.length - 1].x, 5);
-    expect(path[0].y).toBeCloseTo(path[path.length - 1].y, 5);
+    expect(path[0][0]).toBeCloseTo(path[path.length - 1][0], 5);
+    expect(path[0][1]).toBeCloseTo(path[path.length - 1][1], 5);
   });
 
   it('circular orbit: all points equidistant from origin', () => {
     const path = generateOrbitalPath(CIRCULAR_ORBIT, 20);
-    const distances = path.map((p) => Math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2));
+    const distances = path.map((p) => Math.sqrt(p[0] ** 2 + p[1] ** 2 + p[2] ** 2));
     const target = CIRCULAR_ORBIT.semiMajorAxis;
     for (const d of distances) {
       expect(d).toBeCloseTo(target, 3);

@@ -61,7 +61,7 @@ describe('Cycle 152: Volumetric Effects', () => {
       samples: 16,
     });
 
-    const samples = vl.march('sun', { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+    const samples = vl.march('sun', [0, 0, 0], [0, 1, 0]);
     expect(samples.length).toBe(16);
     expect(samples[samples.length - 1].accumulated).toBeGreaterThan(0);
     // Accumulated should be monotonically increasing
@@ -80,9 +80,9 @@ describe('Cycle 152: Volumetric Effects', () => {
       intensity: 1,
     });
 
-    const near = vl.getScatteringAt('spot', { x: 5, y: 0, z: 0 });
-    const far = vl.getScatteringAt('spot', { x: 40, y: 0, z: 0 });
-    const outside = vl.getScatteringAt('spot', { x: 60, y: 0, z: 0 });
+    const near = vl.getScatteringAt('spot', [5, 0, 0]);
+    const far = vl.getScatteringAt('spot', [40, 0, 0]);
+    const outside = vl.getScatteringAt('spot', [60, 0, 0]);
 
     expect(near).toBeGreaterThan(far);
     expect(outside).toBe(0);

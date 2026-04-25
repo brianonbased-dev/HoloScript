@@ -32,28 +32,28 @@ describe('CRDTStateManager — Production', () => {
     it('accepts first operation for a key', () => {
       const op = mgr.createOperation('x', 100);
       expect(mgr.reconcile(op)).toBe(true);
-      expect(mgr.getSnapshot().x).toBe(100);
+      expect(mgr.getSnapshot()[0]).toBe(100);
     });
 
     it('accepts higher clock operation', () => {
       mgr.reconcile({ clientId: 'client-B', clock: 1, key: 'x', value: 'old' });
       const accepted = mgr.reconcile({ clientId: 'client-B', clock: 2, key: 'x', value: 'new' });
       expect(accepted).toBe(true);
-      expect(mgr.getSnapshot().x).toBe('new');
+      expect(mgr.getSnapshot()[0]).toBe('new');
     });
 
     it('rejects lower clock operation', () => {
       mgr.reconcile({ clientId: 'client-B', clock: 5, key: 'x', value: 'winner' });
       const rejected = mgr.reconcile({ clientId: 'client-B', clock: 3, key: 'x', value: 'loser' });
       expect(rejected).toBe(false);
-      expect(mgr.getSnapshot().x).toBe('winner');
+      expect(mgr.getSnapshot()[0]).toBe('winner');
     });
 
     it('tie-breaks by clientId (higher wins)', () => {
       mgr.reconcile({ clientId: 'A', clock: 1, key: 'x', value: 'A-val' });
       const result = mgr.reconcile({ clientId: 'B', clock: 1, key: 'x', value: 'B-val' });
       expect(result).toBe(true); // 'B' > 'A'
-      expect(mgr.getSnapshot().x).toBe('B-val');
+      expect(mgr.getSnapshot()[0]).toBe('B-val');
     });
 
     it('updates state vector on reconcile', () => {

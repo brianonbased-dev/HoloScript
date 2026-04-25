@@ -23,7 +23,7 @@ describe('Audio System', () => {
 
     it('Attenuates volume based on distance (inverse model)', () => {
       const engine = new AudioEngine();
-      engine.setListenerPosition({ x: 0, y: 0, z: 0 });
+      engine.setListenerPosition([0, 0, 0]);
 
       const id = engine.play('sound', {
         id: 'dist_test',
@@ -44,7 +44,7 @@ describe('Audio System', () => {
 
     it('Nearby sound is louder than distant sound', () => {
       const engine = new AudioEngine();
-      engine.setListenerPosition({ x: 0, y: 0, z: 0 });
+      engine.setListenerPosition([0, 0, 0]);
 
       const nearId = engine.play('s', {
         id: 'near',
@@ -75,8 +75,8 @@ describe('Audio System', () => {
 
     it('Computes stereo panning', () => {
       const engine = new AudioEngine();
-      engine.setListenerPosition({ x: 0, y: 0, z: 0 });
-      engine.setListenerOrientation({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 });
+      engine.setListenerPosition([0, 0, 0]);
+      engine.setListenerOrientation([0, 0, -1], [0, 1, 0]);
 
       const rightId = engine.play('s', {
         id: 'right',

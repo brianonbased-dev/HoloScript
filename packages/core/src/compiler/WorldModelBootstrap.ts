@@ -19,7 +19,18 @@
 import type {
   HoloComposition,
   HoloObjectDecl,
+  HoloObjectProperty,
+  HoloObjectTrait,
+  HoloValue,
 } from '../parser/HoloCompositionTypes';
+
+function objectProperty(key: string, value: HoloObjectProperty['value']): HoloObjectProperty {
+  return { type: 'ObjectProperty', key, value };
+}
+
+function objectTrait(name: string, config: Record<string, HoloValue> = {}): HoloObjectTrait {
+  return { type: 'ObjectTrait', name, config };
+}
 
 // =============================================================================
 // TYPES
@@ -265,30 +276,32 @@ export function aabbToHoloObject(
 ): HoloObjectDecl {
   const center = aabbCenter(aabb);
   const size = aabbSize(aabb);
-  const traits: Array<{ name: string; [key: string]: unknown }> = [];
+  const traits: HoloObjectTrait[] = [];
 
   if (options.isCollider !== false) {
-    traits.push({
-      name: 'physics',
-      mass: options.mass ?? 0, // 0 = static collider
-      shape: 'box',
-    });
-    traits.push({ name: 'collidable' });
+    traits.push(
+      objectTrait('physics', {
+        mass: options.mass ?? 0,
+        shape: 'box',
+      })
+    );
+    traits.push(objectTrait('collidable'));
   }
 
   if (options.isTrigger) {
-    traits.push({ name: 'trigger' });
+    traits.push(objectTrait('trigger'));
   }
 
   return {
+    type: 'Object',
     name,
     properties: [
-      { key: 'geometry', value: 'box' },
-      { key: 'position', value: center },
-      { key: 'scale', value: size },
+      objectProperty('geometry', 'box'),
+      objectProperty('position', center),
+      objectProperty('scale', size),
     ],
     traits,
-  } as HoloObjectDecl;
+  };
 }
 
 // =============================================================================
@@ -356,47 +369,42 @@ export function bootstrapFromMarble(
   // 3. Add provenance metadata object
   if (includeProvenance && manifest.provenance) {
     const provenanceObj: HoloObjectDecl = {
+      type: 'Object',
       name: 'MarbleProvenance',
       properties: [
-        { key: 'document_id', value: manifest.provenance.document_id },
-        { key: 'model', value: manifest.model },
-        { key: 'generated_at', value: manifest.generated_at },
+        objectProperty('document_id', manifest.provenance.document_id),
+        objectProperty('model', manifest.model),
+        objectProperty('generated_at', manifest.generated_at),
       ],
       traits: [
-        {
-          name: 'provenance',
+        objectTrait('provenance', {
           source: 'world_labs_marble',
           world_id: manifest.world_id,
-        },
+        }),
       ],
-    } as HoloObjectDecl;
+    };
     objects.push(provenanceObj);
   }
 
   // 4. Add Gaussian splat reference object
   if (includeSplatRefs && manifest.assets.splats) {
     const splatObj: HoloObjectDecl = {
+      type: 'Object',
       name: 'GaussianSplatCloud',
-      properties: [
-        { key: 'geometry', value: 'splat' },
-      ],
+      properties: [objectProperty('geometry', 'splat')],
       traits: [
-        {
-          name: 'gaussian_splat',
+        objectTrait('gaussian_splat', {
           spz_100k: manifest.assets.splats.spz_urls['100k'] || '',
           spz_500k: manifest.assets.splats.spz_urls['500k'] || '',
           spz_full: manifest.assets.splats.spz_urls.full_res || '',
-        },
+        }),
       ],
-    } as HoloObjectDecl;
+    };
 
     // If we have manifest bounds, position the splat cloud at scene center
     if (manifestAABB) {
       const center = aabbCenter(manifestAABB);
-      splatObj.properties = [
-        ...(splatObj.properties || []),
-        { key: 'position', value: center },
-      ];
+      splatObj.properties = [...(splatObj.properties || []), objectProperty('position', center)];
     }
 
     objects.push(splatObj);

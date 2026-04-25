@@ -29,6 +29,7 @@
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 import type { ScriptTestResult } from './ScriptTestTrait';
+import { readJson } from '../errors/safeJsonParse';
 
 // Re-export ScriptTestResult for consumers
 export type { ScriptTestResult } from './ScriptTestTrait';
@@ -512,7 +513,7 @@ function parseNestedBlock(body: string): Record<string, unknown> {
       }
       const arrStr = body.substring(arrStart, i).trim();
       try {
-        result[key] = JSON.parse(arrStr);
+        result[key] = readJson(arrStr);
       } catch {
         result[key] = arrStr;
       }

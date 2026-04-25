@@ -55,12 +55,12 @@ describe('ReactiveState — subscriber called on update()', () => {
     expect(calls.length).toBeGreaterThanOrEqual(1);
   });
   it('snapshot after update reflects all changes', () => {
-    const s = new ReactiveState({ x: 0, y: 0, z: 0 });
-    s.update({ x: 1, y: 2, z: 3 });
+    const s = new ReactiveState([0, 0, 0]);
+    s.update([1, 2, 3]);
     const snap = s.getSnapshot();
-    expect(snap.x).toBe(1);
-    expect(snap.y).toBe(2);
-    expect(snap.z).toBe(3);
+    expect(snap[0]).toBe(1);
+    expect(snap[1]).toBe(2);
+    expect(snap[2]).toBe(3);
   });
 });
 

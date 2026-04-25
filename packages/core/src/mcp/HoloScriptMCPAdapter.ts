@@ -18,6 +18,7 @@
  * @version 1.0.0
  */
 
+import { readJson } from '../errors/safeJsonParse';
 import { NIRCompiler, type NIRCompilerOptions } from '../compiler/NIRCompiler';
 import {
   NIRToWGSLCompiler,
@@ -327,6 +328,7 @@ export async function handleCompileNIR(args: Record<string, unknown>): Promise<M
     // Compile to NIR
     const compiler = new NIRCompiler(options);
     const nirJson = compiler.compile(parseResult.ast as HoloComposition, agentToken);
+    const nirObj = readJson(nirJson) as { nodes?: Record<string, unknown> };
 
     return {
       success: true,
@@ -335,7 +337,7 @@ export async function handleCompileNIR(args: Record<string, unknown>): Promise<M
         metadata: {
           compiler: 'NIRCompiler',
           version: '1.0.0',
-          nodeCount: JSON.parse(nirJson).nodes ? Object.keys(JSON.parse(nirJson).nodes).length : 0,
+          nodeCount: nirObj.nodes ? Object.keys(nirObj.nodes).length : 0,
         },
       },
     };

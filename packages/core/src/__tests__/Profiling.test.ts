@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { Profiler } from '../profiling/Profiler';
 
 // =============================================================================
@@ -135,8 +136,8 @@ describe('Profiler', () => {
     p.recordSpan('a', 5);
     const result = p.stop();
     const json = p.exportJSON(result);
-    expect(() => JSON.parse(json)).not.toThrow();
-    const parsed = JSON.parse(json);
+    expect(() => readJson(json)).not.toThrow();
+    const parsed = readJson(json);
     // exportJSON wraps exportChromeTrace which has traceEvents
     expect(parsed.traceEvents || parsed.samples || parsed.name).toBeDefined();
   });

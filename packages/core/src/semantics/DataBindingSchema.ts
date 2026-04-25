@@ -608,13 +608,13 @@ export function getBindingManager(): BindingManager {
 export function createFollowBinding(
   sourceEntity: string,
   targetEntity: string,
-  offset: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
+  offset: [number, number, number] = [0, 0, 0]
 ): BindingConfig {
   return createBinding(`${sourceEntity}.position`, `${targetEntity}.position`, 'entity', {
     transforms: [
       {
         type: 'custom',
-        fn: `(pos) => ({ x: pos[0] + ${offset.x}, y: pos[1] + ${offset.y}, z: pos[2] + ${offset.z} })`,
+        fn: `(pos) => ({ x: pos[0] + ${offset[0]}, y: pos[1] + ${offset[1]}, z: pos[2] + ${offset[2]} })`,
       },
     ],
   });

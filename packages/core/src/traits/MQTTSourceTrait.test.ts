@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import { mqttSourceHandler, MQTTSourceConfig } from './MQTTSourceTrait';
 import * as MQTTClientModule from '@holoscript/engine/runtime/protocols/MQTTClient';
 
@@ -8,7 +9,7 @@ vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   getMQTTClient: vi.fn(),
   registerMQTTClient: vi.fn(),
   MQTTClient: {
-    parsePayload: vi.fn((msg) => JSON.parse(msg.payload.toString())),
+    parsePayload: vi.fn((msg) => readJson(msg.payload.toString())),
   },
 }));
 

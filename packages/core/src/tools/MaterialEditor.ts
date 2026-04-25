@@ -9,7 +9,6 @@
  * eliminating duplicate PBR schemas across the codebase.
  */
 
-// @ts-expect-error During migration
 import type { MaterialDef, MaterialType } from '@holoscript/engine/rendering/MaterialLibrary';
 import {
   hexToRGBA,
@@ -19,7 +18,6 @@ import {
 
 // Re-export MaterialDef so existing consumers of MaterialEditor types
 // can access the canonical type without changing their imports.
-// @ts-expect-error During migration
 export type { MaterialDef, MaterialType } from '@holoscript/engine/rendering/MaterialLibrary';
 export {
   hexToRGBA,

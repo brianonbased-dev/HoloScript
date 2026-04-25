@@ -54,8 +54,8 @@ describe('Cycle 144: Cinematic Sequencer', () => {
   it('should move along a dolly path', () => {
     const rig = new CameraRig({ mode: 'dolly', speed: 10 });
     rig.setDollyPath([
-      { x: 0, y: 0, z: 0 },
-      { x: 10, y: 0, z: 0 },
+      [0, 0, 0],
+      [10, 0, 0],
     ]);
 
     rig.update(0.5);
@@ -68,13 +68,13 @@ describe('Cycle 144: Cinematic Sequencer', () => {
     rig.shake('heavy');
 
     const s1 = rig.update(0.01);
-    const offset1 = Math.abs(s1.shakeOffset.x) + Math.abs(s1.shakeOffset.y);
+    const offset1 = Math.abs(s1.shakeOffset[0]) + Math.abs(s1.shakeOffset[1]);
     expect(offset1).toBeGreaterThan(0);
 
     // After duration, shake should be zero
     rig.update(2);
     const s2 = rig.getState();
-    expect(s2.shakeOffset.x).toBe(0);
+    expect(s2.shakeOffset[0]).toBe(0);
   });
 
   // -------------------------------------------------------------------------

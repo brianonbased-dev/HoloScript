@@ -57,8 +57,8 @@ describe('createUIButton — Production', () => {
   });
 
   it('applies position and rotation', () => {
-    const pos = { x: 1, y: 2, z: 3 };
-    const rot = { x: 10, y: 20, z: 30 };
+    const pos = [1, 2, 3];
+    const rot = [10, 20, 30];
     const node = createUIButton('btn1', { position: pos, rotation: rot });
     expect(node.properties.position).toEqual(pos);
     expect(node.properties.rotation).toEqual(rot);

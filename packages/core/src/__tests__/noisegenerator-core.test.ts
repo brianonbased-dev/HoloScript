@@ -220,7 +220,7 @@ describe('Feature 4: WorldStreamer', () => {
 // FEATURE 5: world/LODManager
 // =============================================================================
 describe('Feature 5: LODManager', () => {
-  const pos = { x: 0, y: 0, z: 0 };
+  const pos = [0, 0, 0];
   const levels = [
     { level: 0, maxDistance: 10, meshDetail: 1.0 },
     { level: 1, maxDistance: 50, meshDetail: 0.5 },
@@ -275,7 +275,7 @@ describe('Feature 5: LODManager', () => {
 // FEATURE 6: world/OcclusionCulling
 // =============================================================================
 describe('Feature 6: OcclusionCulling', () => {
-  const bounds = { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } };
+  const bounds = { min: [-1, -1, -1], max: [1, 1, 1] };
 
   it('getTotalCount is 0 initially', () => {
     expect(new OcclusionCulling().getTotalCount()).toBe(0);
@@ -303,22 +303,22 @@ describe('Feature 6: OcclusionCulling', () => {
   it('getVisibleCount and getCulledCount sum to total', () => {
     const oc = new OcclusionCulling();
     oc.register('a', bounds);
-    oc.register('b', { min: { x: 5, y: 5, z: 5 }, max: { x: 6, y: 6, z: 6 } });
+    oc.register('b', { min: [5, 5, 5], max: [6, 6, 6] });
     oc.performCulling();
     expect(oc.getVisibleCount() + oc.getCulledCount()).toBe(2);
   });
 
   it('testAABBOverlap returns true for overlapping boxes', () => {
     const oc = new OcclusionCulling();
-    const a = { min: { x: 0, y: 0, z: 0 }, max: { x: 2, y: 2, z: 2 } };
-    const b = { min: { x: 1, y: 1, z: 1 }, max: { x: 3, y: 3, z: 3 } };
+    const a = { min: [0, 0, 0], max: [2, 2, 2] };
+    const b = { min: [1, 1, 1], max: [3, 3, 3] };
     expect(oc.testAABBOverlap(a, b)).toBe(true);
   });
 
   it('testAABBOverlap returns false for non-overlapping boxes', () => {
     const oc = new OcclusionCulling();
-    const a = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } };
-    const b = { min: { x: 5, y: 5, z: 5 }, max: { x: 6, y: 6, z: 6 } };
+    const a = { min: [0, 0, 0], max: [1, 1, 1] };
+    const b = { min: [5, 5, 5], max: [6, 6, 6] };
     expect(oc.testAABBOverlap(a, b)).toBe(false);
   });
 });
@@ -460,15 +460,15 @@ describe('Feature 9: TileMap', () => {
   it('worldToTile converts correctly', () => {
     const tm = new TileMap(10, 10, 16);
     const tile = tm.worldToTile(32, 48);
-    expect(tile.x).toBe(2);
-    expect(tile.y).toBe(3);
+    expect(tile[0]).toBe(2);
+    expect(tile[1]).toBe(3);
   });
 
   it('tileToWorld converts correctly', () => {
     const tm = new TileMap(10, 10, 16);
     const world = tm.tileToWorld(2, 3);
-    expect(world.x).toBe(32);
-    expect(world.y).toBe(48);
+    expect(world[0]).toBe(32);
+    expect(world[1]).toBe(48);
   });
 
   it('getWidth and getHeight return dimensions', () => {

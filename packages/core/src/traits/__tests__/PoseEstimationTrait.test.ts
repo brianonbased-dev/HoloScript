@@ -75,13 +75,13 @@ describe('PoseEstimationTrait', () => {
       keypoints: makeKeypoints(0),
       confidence: 0.9,
     });
-    const first = (node as any).__poseEstimationState.detected_pose[0].x;
+    const first = (node as any).__poseEstimationState.detected_pose[0][0];
     sendEvent(poseEstimationHandler, node, cfg, ctx, {
       type: 'pose_detected',
       keypoints: makeKeypoints(0.1),
       confidence: 0.9,
     });
-    const second = (node as any).__poseEstimationState.detected_pose[0].x;
+    const second = (node as any).__poseEstimationState.detected_pose[0][0];
     // Smoothing factor 0.5 means blended with previous
     expect(second).not.toBe(0.6); // not raw
     expect(second).toBeGreaterThan(first);

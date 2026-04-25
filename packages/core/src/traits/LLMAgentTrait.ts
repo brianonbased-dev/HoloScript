@@ -24,6 +24,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import { readJson } from '../errors/safeJsonParse';
 
 // =============================================================================
 // TYPES
@@ -297,7 +298,7 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
             state.pendingToolCalls.push({
               id: tc.id,
               name: tc.function.name,
-              arguments: JSON.parse(tc.function.arguments),
+              arguments: readJson(tc.function.arguments) as Record<string, unknown>,
             });
           } catch {
             // Invalid JSON in arguments

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SCMCompiler, AffectiveState } from '../SCMCompiler';
 import type { HoloComposition } from '../../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -52,7 +53,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const compiler = new SCMCompiler({ affectiveContext: calmState });
 
     const resultJson = compiler.compile(mockComposition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     // Should include all nodes (Agent_Player, Distant_Decor, Enemy_Goblin, Pebble)
     expect(parsed.nodes).toHaveLength(4);
@@ -66,7 +67,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const compiler = new SCMCompiler({ affectiveContext: panicState });
 
     const resultJson = compiler.compile(mockComposition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     // Agent_Player (global), Distant_Decor (global), Enemy_Goblin (do_capable)
     // Pebble is not do_capable and not global, it should be filtered out natively.
@@ -84,7 +85,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const compiler = new SCMCompiler({ affectiveContext: engagedState });
 
     const resultJson = compiler.compile(mockComposition, 'test-token');
-    const parsed = JSON.parse(resultJson);
+    const parsed = readJson(resultJson);
 
     expect(parsed.edges).toHaveLength(2);
     // Baseline weight is 1.0, engaged simulation bumps to 1.5

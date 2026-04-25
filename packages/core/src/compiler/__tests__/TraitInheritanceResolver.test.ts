@@ -306,7 +306,7 @@ describe('TraitInheritanceResolver — cycle detection', () => {
     expect(result.errors[0]).toBeInstanceOf(CircularInheritanceError);
     // Non-circular trait C should still resolve
     expect(result.resolved.has('C')).toBe(true);
-    expect(result.resolved.get('C')!.properties.z).toBe(3);
+    expect(result.resolved.get('C')!.properties[2]).toBe(3);
   });
 });
 
@@ -743,7 +743,7 @@ describe('TraitComposer — with TraitInheritanceResolver', () => {
 
     const result = composer.compose('Simple', handlerMap, ['test']);
 
-    expect(result.handler.defaultConfig?.x).toBe(1);
+    expect(result.handler.defaultConfig[0]).toBe(1);
     expect(result.diamondWarnings).toBeUndefined();
   });
 });

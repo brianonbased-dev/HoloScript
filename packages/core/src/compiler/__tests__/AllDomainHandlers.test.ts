@@ -199,7 +199,7 @@ describe('DataViz Domain', () => {
     expect(ir.name).toBe('SalesChart');
     expect(ir.chartType).toBe('bar');
     expect(ir.dataSource).toBe('/api/sales');
-    expect(ir.axes).toEqual({ x: 'month', y: 'revenue', z: undefined });
+    expect(ir.axes).toEqual(['month', 'revenue', undefined]);
     expect(ir.aggregation).toBe('sum');
     expect(ir.refreshInterval).toBe(30000);
     expect(ir.dimensions).toEqual({ width: 800, height: 600 });
@@ -207,10 +207,10 @@ describe('DataViz Domain', () => {
 
   it('compileDataVizBlock extracts axes from nested object', () => {
     const block = makeBlock('dataviz', 'chart', 'Scatter3D', {
-      axes: { x: 'lat', y: 'lon', z: 'altitude' },
+      axes: ['lat', 'lon', 'altitude'],
     });
     const ir = compileDataVizBlock(block);
-    expect(ir.axes).toEqual({ x: 'lat', y: 'lon', z: 'altitude' });
+    expect(ir.axes).toEqual(['lat', 'lon', 'altitude']);
   });
 
   it('compileDataVizBlock defaults for empty block', () => {

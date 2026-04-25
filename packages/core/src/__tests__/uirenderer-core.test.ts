@@ -332,9 +332,9 @@ describe('Feature 6: CameraController', () => {
     const cc = new CameraController();
     cc.setTarget(5, 2, 8);
     const t = cc.getTarget();
-    expect(t.x).toBe(5);
-    expect(t.y).toBe(2);
-    expect(t.z).toBe(8);
+    expect(t[0]).toBe(5);
+    expect(t[1]).toBe(2);
+    expect(t[2]).toBe(8);
   });
 
   it('zoom changes the zoom level', () => {
@@ -466,9 +466,9 @@ describe('Feature 8: CameraShake', () => {
 // =============================================================================
 describe('Feature 9: HandTracker', () => {
   const joints = {
-    wrist: { x: 0, y: 0, z: 0 },
-    index_tip: { x: 0.05, y: 0.1, z: 0 },
-    thumb_tip: { x: -0.02, y: 0.08, z: 0 },
+    wrist: [0, 0, 0],
+    index_tip: [0.05, 0.1, 0],
+    thumb_tip: [-0.02, 0.08, 0],
   };
 
   it('isTracked returns false initially', () => {
@@ -493,7 +493,7 @@ describe('Feature 9: HandTracker', () => {
     ht.updateJoints('left', joints);
     const j = ht.getJoint('left', 'wrist');
     expect(j).toBeDefined();
-    expect(j?.x).toBe(0);
+    expect(j[0]).toBe(0);
   });
 
   it('getHand returns hand state', () => {
@@ -520,25 +520,25 @@ describe('Feature 10: VRLocomotion', () => {
     const vrl = new VRLocomotion();
     const pos = vrl.getPosition();
     expect(pos).toBeDefined();
-    expect(typeof pos.x).toBe('number');
+    expect(typeof pos[0]).toBe('number');
   });
 
   it('teleport moves to valid target', () => {
     const vrl = new VRLocomotion();
-    const result = vrl.teleport({ x: 5, y: 0, z: 3, valid: true, normal: { x: 0, y: 1, z: 0 } });
+    const result = vrl.teleport({ x: 5, y: 0, z: 3, valid: true, normal: [0, 1, 0] });
     expect(result).toBe(true);
   });
 
   it('teleport fails for invalid target', () => {
     const vrl = new VRLocomotion();
-    const result = vrl.teleport({ x: 5, y: 0, z: 3, valid: false, normal: { x: 0, y: 1, z: 0 } });
+    const result = vrl.teleport({ x: 5, y: 0, z: 3, valid: false, normal: [0, 1, 0] });
     expect(result).toBe(false);
   });
 
   it('teleport updates position', () => {
     const vrl = new VRLocomotion({ teleportRange: 20 });
-    vrl.teleport({ x: 5, y: 0, z: 0, valid: true, normal: { x: 0, y: 1, z: 0 } });
-    expect(vrl.getPosition().x).toBe(5);
+    vrl.teleport({ x: 5, y: 0, z: 0, valid: true, normal: [0, 1, 0] });
+    expect(vrl.getPosition()[0]).toBe(5);
   });
 
   it('move does not throw', () => {
@@ -559,7 +559,7 @@ describe('Feature 10: VRLocomotion', () => {
 
   it('getTeleportHistory records teleports', () => {
     const vrl = new VRLocomotion();
-    vrl.teleport({ x: 1, y: 0, z: 1, valid: true, normal: { x: 0, y: 1, z: 0 } });
+    vrl.teleport({ x: 1, y: 0, z: 1, valid: true, normal: [0, 1, 0] });
     expect(vrl.getTeleportHistory()).toHaveLength(1);
   });
 });

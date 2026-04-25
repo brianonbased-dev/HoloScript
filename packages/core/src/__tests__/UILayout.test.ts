@@ -63,8 +63,8 @@ describe('UILayoutEngine', () => {
     engine.addChild(root, c1);
     engine.addChild(root, c2);
     engine.compute(root, 800, 600);
-    expect(c1.result.y).toBe(0);
-    expect(c2.result.y).toBe(50);
+    expect(c1.result[1]).toBe(0);
+    expect(c2.result[1]).toBe(50);
   });
 
   it('row layout stacks children horizontally', () => {
@@ -74,8 +74,8 @@ describe('UILayoutEngine', () => {
     engine.addChild(root, c1);
     engine.addChild(root, c2);
     engine.compute(root, 800, 600);
-    expect(c1.result.x).toBe(0);
-    expect(c2.result.x).toBe(80);
+    expect(c1.result[0]).toBe(0);
+    expect(c2.result[0]).toBe(80);
   });
 
   it('gap adds spacing between children', () => {
@@ -85,7 +85,7 @@ describe('UILayoutEngine', () => {
     engine.addChild(root, c1);
     engine.addChild(root, c2);
     engine.compute(root, 800, 600);
-    expect(c2.result.y).toBe(40); // 30 + 10 gap
+    expect(c2.result[1]).toBe(40); // 30 + 10 gap
   });
 
   it('padding offsets children', () => {
@@ -98,8 +98,8 @@ describe('UILayoutEngine', () => {
     const c = engine.createNode({ width: 50, height: 30 });
     engine.addChild(root, c);
     engine.compute(root, 800, 600);
-    expect(c.result.x).toBe(20);
-    expect(c.result.y).toBe(15);
+    expect(c.result[0]).toBe(20);
+    expect(c.result[1]).toBe(15);
   });
 
   it('flexGrow distributes extra space', () => {
@@ -125,7 +125,7 @@ describe('UILayoutEngine', () => {
     engine.addChild(root, c);
     engine.compute(root, 800, 600);
     // Free space = 150, center → offset = 75
-    expect(c.result.x).toBe(75);
+    expect(c.result[0]).toBe(75);
   });
 
   it('alignItems center centers on cross axis', () => {
@@ -138,7 +138,7 @@ describe('UILayoutEngine', () => {
     const c = engine.createNode({ width: 50, height: 30 });
     engine.addChild(root, c);
     engine.compute(root, 800, 600);
-    expect(c.result.y).toBe(35); // (100 - 30) / 2
+    expect(c.result[1]).toBe(35); // (100 - 30) / 2
   });
 
   it('minWidth clamps node size', () => {

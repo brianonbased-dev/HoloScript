@@ -13,14 +13,14 @@ import type {
 function body(id: string, x = 0, y = 0, z = 0): IRigidBodyState {
   return {
     id,
-    position: { x, y, z },
+    position: [x, y, z],
     rotation: [0, 0, 0, 1 ],
-    linearVelocity: { x: 0, y: 0, z: 0 },
-    angularVelocity: { x: 0, y: 0, z: 0 },
+    linearVelocity: [0, 0, 0],
+    angularVelocity: [0, 0, 0],
     mass: 1,
     inverseMass: 1,
-    inertia: { x: 1, y: 1, z: 1 },
-    inverseInertia: { x: 1, y: 1, z: 1 },
+    inertia: [1, 1, 1],
+    inverseInertia: [1, 1, 1],
     friction: 0.5,
     restitution: 0.3,
     sleeping: false,
@@ -43,7 +43,7 @@ describe('ConstraintSolver', () => {
       type: 'distance',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 5,
       stiffness: 1,
     };
@@ -57,7 +57,7 @@ describe('ConstraintSolver', () => {
       id: 'c1',
       type: 'distance',
       bodyAId: 'a',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 5,
       stiffness: 1,
     };
@@ -76,7 +76,7 @@ describe('ConstraintSolver', () => {
       type: 'distance',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 2,
       stiffness: 1,
     };
@@ -93,7 +93,7 @@ describe('ConstraintSolver', () => {
       type: 'distance',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 5,
       stiffness: 1,
     };
@@ -102,8 +102,8 @@ describe('ConstraintSolver', () => {
     // A should get pushed toward B (+x) and B away (-x)
     const corrA = corrections.get('a');
     const corrB = corrections.get('b');
-    expect(corrA!.linearVelocity.x).toBeGreaterThan(0);
-    expect(corrB!.linearVelocity.x).toBeLessThan(0);
+    expect(corrA!.linearVelocity[0]).toBeGreaterThan(0);
+    expect(corrB!.linearVelocity[0]).toBeLessThan(0);
   });
 
   it('spring constraint produces forces', () => {
@@ -114,7 +114,7 @@ describe('ConstraintSolver', () => {
       type: 'spring',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       restLength: 1,
       stiffness: 100,
       damping: 5,
@@ -132,7 +132,7 @@ describe('ConstraintSolver', () => {
       type: 'distance',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 1,
       stiffness: 1,
       breakForce: 0.001, // very low threshold
@@ -151,7 +151,7 @@ describe('ConstraintSolver', () => {
       id: 'c1',
       type: 'distance',
       bodyAId: 'a',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 5,
       stiffness: 1,
     };
@@ -168,7 +168,7 @@ describe('ConstraintSolver', () => {
       type: 'distance',
       bodyAId: 'a',
       bodyBId: 'b',
-      pivotA: { x: 0, y: 0, z: 0 },
+      pivotA: [0, 0, 0],
       distance: 2,
       stiffness: 1,
     };

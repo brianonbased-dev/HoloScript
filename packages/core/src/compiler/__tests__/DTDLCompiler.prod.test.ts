@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DTDLCompiler } from '../DTDLCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+import { readJson } from '../../errors/safeJsonParse';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -85,34 +86,34 @@ describe('DTDLCompiler — Production', () => {
 
   it('output is valid JSON', () => {
     const out = compiler.compile(makeComp(), 'test-token');
-    expect(() => JSON.parse(out)).not.toThrow();
+    expect(() => readJson(out)).not.toThrow();
   });
 
   // ─── DTDL structure ───────────────────────────────────────────────────
   it('output is an array', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp(), 'test-token'));
     expect(Array.isArray(interfaces)).toBe(true);
   });
 
   it('first item has @context', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp(), 'test-token'));
     expect(interfaces[0]['@context']).toBeDefined();
   });
 
   it('first item has @type Interface', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp(), 'test-token'));
     expect(interfaces[0]['@type']).toBe('Interface');
   });
 
   it('first item has @id matching composition name', () => {
-    const interfaces = JSON.parse(
+    const interfaces = readJson(
       compiler.compile(makeComp({ name: 'SmartFactory' }), 'test-token')
     );
     expect(interfaces[0]['@id']).toContain('SmartFactory');
   });
 
   it('interface has contents array', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp(), 'test-token'));
     expect(Array.isArray(interfaces[0].contents)).toBe(true);
   });
 
@@ -122,14 +123,14 @@ describe('DTDLCompiler — Production', () => {
   it('compiles object with object-type property into DTDL output', () => {
     // Using an object value forces objectNeedsInterface() → true
     const obj = makeObj('Sensor1', [{ key: 'data', value: { x: 1, y: 2 } }]);
-    const interfaces = JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp({ objects: [obj] }), 'test-token'));
     const names = interfaces.map((i: any) => i['@id'] || '').join(' ');
     expect(names).toContain('Sensor1');
   });
 
   it('compiles multiple objects', () => {
     const objs = [makeObj('Pump1'), makeObj('Valve2'), makeObj('Motor3')];
-    const interfaces = JSON.parse(compiler.compile(makeComp({ objects: objs }), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp({ objects: objs }), 'test-token'));
     expect(interfaces.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -144,11 +145,11 @@ describe('DTDLCompiler — Production', () => {
       [{ name: 'sensor' }]
     );
     // Sensor trait triggers objectNeedsInterface() via hasTrait check
-    const interfaces = JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp({ objects: [obj] }), 'test-token'));
     // Should have more than one interface (main + Robot)
     expect(interfaces.length).toBeGreaterThanOrEqual(1);
     expect(() =>
-      JSON.parse(compiler.compile(makeComp({ objects: [obj] }), 'test-token'))
+      readJson(compiler.compile(makeComp({ objects: [obj] }), 'test-token'))
     ).not.toThrow();
   });
 
@@ -161,7 +162,7 @@ describe('DTDLCompiler — Production', () => {
       } as any),
       'test-token'
     );
-    const interfaces = JSON.parse(out);
+    const interfaces = readJson(out);
     // skybox is a handled key → generates a Property in contents
     expect(interfaces[0].contents.length).toBeGreaterThan(0);
     const skyboxProp = interfaces[0].contents.find((c: any) => c.name === 'skybox');
@@ -175,21 +176,21 @@ describe('DTDLCompiler — Production', () => {
       } as any),
       'test-token'
     );
-    const interfaces = JSON.parse(out);
+    const interfaces = readJson(out);
     expect(interfaces[0].contents.length).toBeGreaterThan(0);
   });
 
   // ─── Namespace ────────────────────────────────────────────────────────
   it('custom namespace appears in @id', () => {
     const c = new DTDLCompiler({ namespace: 'dtmi:mycompany:factory' });
-    const interfaces = JSON.parse(c.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(c.compile(makeComp(), 'test-token'));
     expect(interfaces[0]['@id']).toContain('dtmi:mycompany:factory');
   });
 
   // ─── Model version ────────────────────────────────────────────────────
   it('modelVersion appears in @id', () => {
     const c = new DTDLCompiler({ modelVersion: 2 });
-    const interfaces = JSON.parse(c.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(c.compile(makeComp(), 'test-token'));
     expect(typeof interfaces[0]['@id']).toBe('string');
   });
 
@@ -197,7 +198,7 @@ describe('DTDLCompiler — Production', () => {
   it('compile with includeDescriptions=true', () => {
     const c = new DTDLCompiler({ includeDescriptions: true });
     const out = c.compile(makeComp(), 'test-token');
-    expect(() => JSON.parse(out)).not.toThrow();
+    expect(() => readJson(out)).not.toThrow();
   });
 
   // ─── includeTraitComponents ───────────────────────────────────────────
@@ -212,7 +213,7 @@ describe('DTDLCompiler — Production', () => {
   // The context format uses ';2' and ';3', NOT 'v2'/'v3'.
   it('dtdlVersion 2 uses ;2 context identifier', () => {
     const c = new DTDLCompiler({ dtdlVersion: 2 });
-    const interfaces = JSON.parse(c.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(c.compile(makeComp(), 'test-token'));
     // Context is 'dtmi:dtdl:context;2' — check by version suffix
     expect(interfaces[0]['@context']).toContain(';2');
   });
@@ -220,14 +221,14 @@ describe('DTDLCompiler — Production', () => {
   // ─── DTDL v3 context ─────────────────────────────────────────────────
   it('dtdlVersion 3 uses ;3 context identifier', () => {
     const c = new DTDLCompiler({ dtdlVersion: 3 });
-    const interfaces = JSON.parse(c.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(c.compile(makeComp(), 'test-token'));
     // Context is 'dtmi:dtdl:context;3'
     expect(interfaces[0]['@context']).toContain(';3');
   });
 
   // ─── Default version is DTDL v3 ──────────────────────────────────────
   it('default dtdlVersion is 3', () => {
-    const interfaces = JSON.parse(compiler.compile(makeComp(), 'test-token'));
+    const interfaces = readJson(compiler.compile(makeComp(), 'test-token'));
     expect(interfaces[0]['@context']).toContain(';3');
   });
 });

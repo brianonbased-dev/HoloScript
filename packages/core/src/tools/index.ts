@@ -24,6 +24,9 @@ export {
 // Material Editor (Live Preview, Presets)
 export {
   MaterialEditor,
+  rgbaToHex,
+  hexToRGBA,
+  createDefaultMaterialDef,
   type MaterialEditorPreset,
   type MaterialEditorConfig,
   type MaterialPreset,

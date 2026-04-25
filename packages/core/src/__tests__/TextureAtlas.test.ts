@@ -64,8 +64,8 @@ describe('TextureAtlas', () => {
       powerOfTwo: false,
     });
     const entry = a.pack('padded', 32, 32)!;
-    expect(entry.rect.x).toBe(4); // padding offset
-    expect(entry.rect.y).toBe(4);
+    expect(entry.rect[0]).toBe(4); // padding offset
+    expect(entry.rect[1]).toBe(4);
     expect(entry.padding).toBe(4);
   });
 

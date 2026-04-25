@@ -37,23 +37,23 @@ describe('VolumetricLight', () => {
 
   it('march returns empty for disabled light', () => {
     vol.addLight({ id: 'sun', enabled: false });
-    const samples = vol.march('sun', { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
+    const samples = vol.march('sun', [0, 0, 0], [0, 0, 1]);
     expect(samples).toHaveLength(0);
   });
 
   it('march returns empty for unknown light', () => {
-    expect(vol.march('nope', { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 })).toHaveLength(0);
+    expect(vol.march('nope', [0, 0, 0], [0, 0, 1])).toHaveLength(0);
   });
 
   it('march returns correct number of samples', () => {
     vol.addLight({ id: 'sun', samples: 16 });
-    const samples = vol.march('sun', { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+    const samples = vol.march('sun', [0, 0, 0], [0, 1, 0]);
     expect(samples).toHaveLength(16);
   });
 
   it('march accumulated increases monotonically', () => {
     vol.addLight({ id: 'sun' });
-    const samples = vol.march('sun', { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+    const samples = vol.march('sun', [0, 0, 0], [0, 1, 0]);
     for (let i = 1; i < samples.length; i++) {
       expect(samples[i].accumulated).toBeGreaterThanOrEqual(samples[i - 1].accumulated);
     }
@@ -61,24 +61,24 @@ describe('VolumetricLight', () => {
 
   it('getScatteringAt returns 0 for disabled light', () => {
     vol.addLight({ id: 'sun', enabled: false });
-    expect(vol.getScatteringAt('sun', { x: 0, y: 0, z: 0 })).toBe(0);
+    expect(vol.getScatteringAt('sun', [0, 0, 0])).toBe(0);
   });
 
   it('getScatteringAt returns 0 beyond maxDistance', () => {
     vol.addLight({ id: 'sun', maxDistance: 10, position: [0, 0, 0] });
-    expect(vol.getScatteringAt('sun', { x: 100, y: 0, z: 0 })).toBe(0);
+    expect(vol.getScatteringAt('sun', [100, 0, 0])).toBe(0);
   });
 
   it('getScatteringAt positive at light position', () => {
     vol.addLight({ id: 'sun', position: [0, 50, 0] });
-    const s = vol.getScatteringAt('sun', { x: 0, y: 50, z: 0 });
+    const s = vol.getScatteringAt('sun', [0, 50, 0]);
     expect(s).toBeGreaterThan(0);
   });
 
   it('getScatteringAt decreases with distance', () => {
     vol.addLight({ id: 'sun', position: [0, 0, 0], maxDistance: 100 });
-    const near = vol.getScatteringAt('sun', { x: 10, y: 0, z: 0 });
-    const far = vol.getScatteringAt('sun', { x: 50, y: 0, z: 0 });
+    const near = vol.getScatteringAt('sun', [10, 0, 0]);
+    const far = vol.getScatteringAt('sun', [50, 0, 0]);
     expect(near).toBeGreaterThan(far);
   });
 });

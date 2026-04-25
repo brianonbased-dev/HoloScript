@@ -105,7 +105,7 @@ describe('Cross-Module Integration (Cycle 173)', () => {
       // Valid move
       const state = antiCheat.getPlayerState('p1')!;
       state.lastUpdateAt = Date.now() - 1000;
-      const result = antiCheat.validatePositionUpdate('p1', { x: 5, y: 0, z: 0 });
+      const result = antiCheat.validatePositionUpdate('p1', [5, 0, 0]);
       expect(result.valid).toBe(true);
     });
 
@@ -118,10 +118,10 @@ describe('Cross-Module Integration (Cycle 173)', () => {
       antiCheat.registerPlayer('cheater');
 
       // Generate violations
-      antiCheat.validatePositionUpdate('cheater', { x: 9999, y: 0, z: 0 });
+      antiCheat.validatePositionUpdate('cheater', [9999, 0, 0]);
       const state = antiCheat.getPlayerState('cheater')!;
       state.position = [0, 0, 0 ];
-      antiCheat.validatePositionUpdate('cheater', { x: 9999, y: 0, z: 0 });
+      antiCheat.validatePositionUpdate('cheater', [9999, 0, 0]);
 
       if (antiCheat.isBanned('cheater')) {
         lobby.leaveRoom('cheater');

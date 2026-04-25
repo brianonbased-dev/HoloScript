@@ -48,7 +48,7 @@ describe('Cycle 139: Foliage & Vegetation', () => {
     const patch = fs.scatter('p1', 'bush', { x: 0, z: 0, w: 5, h: 5 }, 10);
 
     // After advancing time, sway should be non-zero
-    fs.update(1.0, { x: 0, z: 0 });
+    fs.update(1.0, [0, 0, 0]);
     const offset = fs.getWindOffset(patch.instances[0]);
     expect(typeof offset[0]).toBe('number');
     expect(typeof offset[2]).toBe('number');
@@ -69,7 +69,7 @@ describe('Cycle 139: Foliage & Vegetation', () => {
     });
 
     fs.scatter('p1', 'flower', { x: 0, z: 0, w: 100, h: 100 }, 200);
-    fs.update(0.1, { x: 50, z: 50 }); // Camera in the center
+    fs.update(0.1, [50, 0, 50]); // Camera in the center
 
     const visible = fs.getVisibleCount();
     const total = fs.getTotalInstanceCount();
@@ -96,7 +96,7 @@ describe('Cycle 139: Foliage & Vegetation', () => {
     const gr = new GrassRenderer({ bladesPerUnit: 5, billboardDistance: 10, cullDistance: 30 });
     gr.generate({ x: 0, z: 0, w: 100, h: 1 }); // Long strip
 
-    gr.updateLOD({ x: 0, z: 0 });
+    gr.updateLOD([0, 0, 0]);
 
     const billboards = gr.getBillboardCount();
     const visible = gr.getVisibleBlades();

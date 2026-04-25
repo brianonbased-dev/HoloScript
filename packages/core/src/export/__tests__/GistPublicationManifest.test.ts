@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   buildGistPublicationManifest,
   computeProvenanceSemiringDigestV0,
@@ -219,7 +220,7 @@ describe('GistPublicationManifest', () => {
 
     // Serialize and deserialize
     const serialized = serializeGistPublicationManifest(manifest);
-    const parsed = JSON.parse(serialized);
+    const parsed = readJson(serialized);
     const commitment3 = computeXrMetricsCommitmentHash(parsed.xr_metrics);
     expect(commitment1).toBe(commitment3);
   });

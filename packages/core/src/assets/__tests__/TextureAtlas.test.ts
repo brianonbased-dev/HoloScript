@@ -40,7 +40,7 @@ describe('TextureAtlas', () => {
     const a = atlas.getEntry('a')!;
     const b = atlas.getEntry('b')!;
     // b should be to the right of a on the same row
-    expect(b.rect.x).toBeGreaterThanOrEqual(a.rect.x + a.rect.width);
+    expect(b.rect[0]).toBeGreaterThanOrEqual(a.rect[0] + a.rect.width);
   });
 
   it('pack wraps to new shelf row', () => {
@@ -48,7 +48,7 @@ describe('TextureAtlas', () => {
     atlas.pack('a', 150, 50);
     atlas.pack('b', 150, 50); // won't fit on first row
     const b = atlas.getEntry('b')!;
-    expect(b.rect.y).toBeGreaterThan(0);
+    expect(b.rect[1]).toBeGreaterThan(0);
   });
 
   it('pack returns null when atlas is full', () => {
@@ -104,7 +104,7 @@ describe('TextureAtlas', () => {
     atlas.pack('b', 32, 32);
     const a = atlas.getEntry('a')!;
     const b = atlas.getEntry('b')!;
-    const gap = b.rect.x - (a.rect.x + a.rect.width);
+    const gap = b.rect[0] - (a.rect[0] + a.rect.width);
     expect(gap).toBeGreaterThanOrEqual(4); // at least 2*padding between them
   });
 });

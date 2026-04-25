@@ -21,6 +21,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { readJson } from '../errors/safeJsonParse';
 // ---------------------------------------------------------------------------
 // WoT imports
 // ---------------------------------------------------------------------------
@@ -335,7 +336,7 @@ describe('Feature 4A: serializeThingDescription()', () => {
   });
 
   it('is valid JSON', () => {
-    expect(() => JSON.parse(serializeThingDescription(td))).not.toThrow();
+    expect(() => readJson(serializeThingDescription(td))).not.toThrow();
   });
 
   it('contains title', () => {
@@ -712,7 +713,7 @@ describe('Feature 7A: Built-in formatters', () => {
   });
 
   it('JsonFormatter output is valid JSON', () => {
-    expect(() => JSON.parse(JsonFormatter.format(entry))).not.toThrow();
+    expect(() => readJson(JsonFormatter.format(entry))).not.toThrow();
   });
 });
 

@@ -5,8 +5,8 @@ import { SplineFollower } from '../SplineFollower';
 function mockSpline(length = 100) {
   return {
     getLength: () => length,
-    evaluate: (t: number) => ({ x: t * length, y: 0, z: 0 }),
-    getTangent: (t: number) => ({ x: 1, y: 0, z: 0 }),
+    evaluate: (t: number) => ([t * length, 0, 0]),
+    getTangent: (t: number) => ([1, 0, 0]),
   } as any;
 }
 
@@ -82,7 +82,7 @@ describe('SplineFollower', () => {
   it('getPosition returns spline evaluation', () => {
     follower.setT(0.5);
     const pos = follower.getPosition();
-    expect(pos.x).toBeCloseTo(50, 0);
+    expect(pos[0]).toBeCloseTo(50, 0);
   });
 
   it('markers fire when t passes their position', () => {

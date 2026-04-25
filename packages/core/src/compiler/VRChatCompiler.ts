@@ -108,7 +108,7 @@ export class VRChatCompiler extends CompilerBase {
       indent: options.indent || '    ',
       sdkVersion: options.sdkVersion || '3.5',
       useUdonSharp: options.useUdonSharp ?? true,
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

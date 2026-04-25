@@ -76,8 +76,8 @@ describe('ScrollableTrait — onAttach / onDetach', () => {
     const { cfg, ctx } = attach(node);
     // If state was not registered, onEvent would be a no-op.
     // Fire a drag event — if state present, ctx.getNode will be called.
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.05 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.05, 0] });
     // getNode called means we got past the state guard
     expect(ctx.getNode).toHaveBeenCalled();
   });
@@ -103,10 +103,10 @@ describe('ScrollableTrait — onEvent: ui_press_start', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     // Give some velocity first by dragging
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     // Now start a new press — velocity should be zeroed
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0.5 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0.5, 0] });
     // After new press, a second press_start should reset velocity
     // Verify by running update: since isDragging=true, velocity not applied
     ctx.emit.mockClear();
@@ -131,8 +131,8 @@ describe('ScrollableTrait — onEvent: ui_press_end', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
     // Start drag then end — subsequent updates should apply inertia
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     // With isDragging=false, onUpdate applies inertia from velocity
     const y0 = ctx._contentNode.properties.position[1];
@@ -150,11 +150,11 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
   it('accumulates offset by dy when isDragging=true', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node);
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     // offset should be 0.1, content node y = 0.1
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.1);
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.15 } });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.15, 0] });
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.15);
     expect(ctx.emit).toHaveBeenCalledWith(
       'property_changed',
@@ -166,8 +166,8 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { contentHeight: 5.0, viewportHeight: 0.5 });
     // Drag downward (negative dy) so offset stays in valid scroll range
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -0.016 } }); // dy=-0.016, velocity=-1.0
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.016, 0] }); // dy=-0.016, velocity=-1.0
     // After press_end, one update step: offset += -1.0 * 0.016 = -0.016 more
     const y0 = ctx._contentNode.properties.position[1]; // -0.016
     fire(node, cfg, ctx, { type: 'ui_press_end' });
@@ -181,7 +181,7 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     const { cfg, ctx } = attach(node);
     // Don't set isDragging
     ctx.getNode.mockClear();
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.5 } });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.5, 0] });
     // getNode should not be called since isDragging=false
     expect(ctx.getNode).not.toHaveBeenCalled();
   });
@@ -195,8 +195,8 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     // Large contentHeight so bottom clamp doesn't interfere with inertia decay
     const { cfg, ctx } = attach(node, { friction: 0.9, contentHeight: 10.0, viewportHeight: 0.5 });
     // Drag downward so offset is negative (inside valid scroll range)
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -0.1 } }); // velocity ≈ -6.25
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.1, 0] }); // velocity ≈ -6.25
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     const y0 = ctx._contentNode.properties.position[1];
     update(node, cfg, ctx, 0.016); // offset moves downward, velocity *= 0.9
@@ -221,8 +221,8 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     } as any;
     scrollableHandler.onAttach!(node, cfg, ctx as any);
     // Drag upward way too far (positive offset = top overscroll)
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 5.0 } }); // offset = 5.0 (overscroll top)
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 5.0, 0] }); // offset = 5.0 (overscroll top)
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
     // Should be clamped to 0
@@ -240,8 +240,8 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     } as any;
     // maxScroll = 2.0 - 0.5 = 1.5
     scrollableHandler.onAttach!(node, cfg, ctx as any);
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: -5.0 } }); // offset = -5.0 (past bottom)
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -5.0, 0] }); // offset = -5.0 (past bottom)
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     update(node, cfg, ctx, 0.016);
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(-1.5); // -maxScroll
@@ -262,8 +262,8 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { contentHeight: 2.0, viewportHeight: 0.5 });
     // Give velocity and let update run
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: { y: 0 } });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: { y: 0.1 } });
+    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     fire(node, cfg, ctx, { type: 'ui_press_end' });
     ctx.emit.mockClear();
     update(node, cfg, ctx, 0.016);

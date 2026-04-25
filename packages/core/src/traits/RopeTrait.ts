@@ -164,7 +164,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     if (!state) return;
 
     if (event.type === 'rope_segment_update') {
-      const positions = event.positions as Array<{ x: number; y: number; z: number }>;
+      const positions = event.positions as Array<[number, number, number]>;
 
       for (let i = 0; i < positions.length && i < state.segments.length; i++) {
         state.segments[i].position = positions[i];
@@ -193,7 +193,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     } else if (event.type === 'rope_attach') {
       const endpoint = event.endpoint as 'start' | 'end';
       const targetNodeId = event.targetNodeId as string;
-      const offset = (event.offset as { x: number; y: number; z: number }) || [0, 0, 0 ];
+      const offset = (event.offset as [number, number, number]) || [0, 0, 0 ];
 
       context.emit?.('rope_create_attachment', {
         node,
@@ -216,7 +216,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
       });
     } else if (event.type === 'rope_apply_force') {
       const segmentIndex = (event.segmentIndex as number) || Math.floor(config.segments / 2);
-      const force = event.force as { x: number; y: number; z: number };
+      const force = event.force as [number, number, number];
 
       context.emit?.('rope_external_force', {
         node,

@@ -80,17 +80,17 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
       const rooms2 = dungeon2.getRooms();
 
       expect(rooms1.length).toBe(rooms2.length);
-      expect(rooms1[0].x).toBe(rooms2[0].x);
+      expect(rooms1[0][0]).toBe(rooms2[0][0]);
     });
 
     it('should place rooms within bounds', () => {
       const gen = new DungeonGenerator({ width: 32, height: 32, seed: 7 });
       gen.generate();
       for (const room of gen.getRooms()) {
-        expect(room.x).toBeGreaterThanOrEqual(0);
-        expect(room.y).toBeGreaterThanOrEqual(0);
-        expect(room.x + room.width).toBeLessThanOrEqual(32);
-        expect(room.y + room.height).toBeLessThanOrEqual(32);
+        expect(room[0]).toBeGreaterThanOrEqual(0);
+        expect(room[1]).toBeGreaterThanOrEqual(0);
+        expect(room[0] + room.width).toBeLessThanOrEqual(32);
+        expect(room[1] + room.height).toBeLessThanOrEqual(32);
       }
     });
   });

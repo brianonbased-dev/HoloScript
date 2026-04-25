@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 import {
   SemanticDiffEngine,
   semanticDiff,
@@ -105,7 +106,7 @@ describe('SemanticDiffEngine', () => {
     const newTree = makeNode('root', 'r', [makeNode('orb', 'A')]);
     const result = semanticDiff(oldTree, newTree);
     const json = diffToJSON(result);
-    expect(() => JSON.parse(json)).not.toThrow();
+    expect(() => readJson(json)).not.toThrow();
   });
 
   it('empty trees are equivalent', () => {

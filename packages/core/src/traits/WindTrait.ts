@@ -227,11 +227,7 @@ function _calculateWindForce(
   // Calculate final force
   const forceMag = state.currentStrength * falloff;
 
-  return {
-    x: dir[0] * forceMag,
-    y: dir[1] * forceMag,
-    z: dir[2] * forceMag,
-  };
+  return [dir[0] * forceMag, dir[1] * forceMag, dir[2] * forceMag];
 }
 
 export default windHandler;

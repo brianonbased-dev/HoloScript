@@ -29,7 +29,7 @@ describe('World', () => {
     const e = world.createEntity();
     world.addComponent(e, 'Position', { x: 1, y: 2 });
     expect(world.hasComponent(e, 'Position')).toBe(true);
-    expect(world.getComponent<{ x: number; y: number }>(e, 'Position')?.x).toBe(1);
+    expect(world.getComponent<{ x: number; y: number }>(e, 'Position')[0]).toBe(1);
   });
 
   it('removes a component', () => {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NodeServiceCompiler } from '../NodeServiceCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import { DialectRegistry } from '../DialectRegistry';
+import { readJson } from '../../errors/safeJsonParse';
 
 /** Route generation tests align with NodeServiceCompiler generated stub markers. */
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -120,14 +121,14 @@ describe('NodeServiceCompiler', () => {
 
     it('always includes package.json', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.name).toBeDefined();
       expect(pkg.version).toBe('0.1.0');
     });
 
     it('includes tsconfig.json when typescript enabled', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const tsconfig = JSON.parse(result['tsconfig.json']);
+      const tsconfig = readJson(result['tsconfig.json']);
       expect(tsconfig.compilerOptions.strict).toBe(true);
       expect(tsconfig.compilerOptions.target).toBe('ES2022');
     });
@@ -498,45 +499,45 @@ describe('NodeServiceCompiler', () => {
   describe('package.json', () => {
     it('generates valid JSON', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      expect(() => JSON.parse(result['package.json'])).not.toThrow();
+      expect(() => readJson(result['package.json'])).not.toThrow();
     });
 
     it('includes express dependency for express framework', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.dependencies.express).toBeDefined();
     });
 
     it('includes fastify dependency for fastify framework', () => {
       const c = new NodeServiceCompiler({ framework: 'fastify' });
       const result = c.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.dependencies.fastify).toBeDefined();
     });
 
     it('includes typescript devDependencies when typescript enabled', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.devDependencies.typescript).toBeDefined();
       expect(pkg.devDependencies.tsx).toBeDefined();
     });
 
     it('includes @types/express for express + typescript', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.devDependencies['@types/express']).toBeDefined();
     });
 
     it('kebab-cases project name', () => {
       const comp = makeComposition({ name: 'MyGreatService' });
       const result = compiler.compile(comp, 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.name).toBe('my-great-service');
     });
 
     it('includes build and start scripts', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
-      const pkg = JSON.parse(result['package.json']);
+      const pkg = readJson(result['package.json']);
       expect(pkg.scripts.build).toBe('tsc');
       expect(pkg.scripts.start).toBe('node dist/index.js');
       expect(pkg.scripts.dev).toBe('tsx watch index.ts');

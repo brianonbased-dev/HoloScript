@@ -11,7 +11,7 @@ import type { LODConfig } from '../LODSystem';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const CAMERA_ORIGIN = { x: 0, y: 0, z: 0 };
+const CAMERA_ORIGIN = [0, 0, 0];
 
 function makeConfig(entityId: string): LODConfig {
   return {
@@ -63,7 +63,7 @@ describe('LODSystem: production', () => {
 
     it('removes active result after unregister', () => {
       lod.register(makeConfig('e1'));
-      const positions = new Map([['e1', { x: 5, y: 0, z: 0 }]]);
+      const positions = new Map([['e1', [5, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       lod.unregister('e1');
       expect(lod.getActiveLevel('e1')).toBeUndefined();
@@ -78,28 +78,28 @@ describe('LODSystem: production', () => {
   describe('update / getActiveLevel', () => {
     it('selects high detail at close range', () => {
       lod.register(makeConfig('hero'));
-      const positions = new Map([['hero', { x: 5, y: 0, z: 0 }]]);
+      const positions = new Map([['hero', [5, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       expect(lod.getActiveLevel('hero')).toBe('high');
     });
 
     it('selects medium detail at medium range', () => {
       lod.register(makeConfig('hero'));
-      const positions = new Map([['hero', { x: 30, y: 0, z: 0 }]]);
+      const positions = new Map([['hero', [30, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       expect(lod.getActiveLevel('hero')).toBe('medium');
     });
 
     it('selects low detail at far range', () => {
       lod.register(makeConfig('hero'));
-      const positions = new Map([['hero', { x: 70, y: 0, z: 0 }]]);
+      const positions = new Map([['hero', [70, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       expect(lod.getActiveLevel('hero')).toBe('low');
     });
 
     it('selects billboard at very far range', () => {
       lod.register(makeConfig('hero'));
-      const positions = new Map([['hero', { x: 120, y: 0, z: 0 }]]);
+      const positions = new Map([['hero', [120, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       expect(lod.getActiveLevel('hero')).toBe('billboard');
     });
@@ -117,7 +117,7 @@ describe('LODSystem: production', () => {
     it('handles 3D diagonal distance correctly', () => {
       lod.register(makeConfig('obj'));
       // distance = sqrt(15^2 + 15^2) ≈ 21.21 → medium
-      const positions = new Map([['obj', { x: 15, y: 0, z: 15 }]]);
+      const positions = new Map([['obj', [15, 0, 15]]]);
       lod.update(CAMERA_ORIGIN, positions);
       expect(lod.getActiveLevel('obj')).toBe('medium');
     });
@@ -134,8 +134,8 @@ describe('LODSystem: production', () => {
       lod.register(makeConfig('e1'));
       lod.register(makeConfig('e2'));
       const positions = new Map([
-        ['e1', { x: 5, y: 0, z: 0 }],
-        ['e2', { x: 60, y: 0, z: 0 }],
+        ['e1', [5, 0, 0]],
+        ['e2', [60, 0, 0]],
       ]);
       lod.update(CAMERA_ORIGIN, positions);
       const results = lod.getAllResults();
@@ -144,7 +144,7 @@ describe('LODSystem: production', () => {
 
     it('result contains entityId, activeLevel, and distance', () => {
       lod.register(makeConfig('e1'));
-      const positions = new Map([['e1', { x: 10, y: 0, z: 0 }]]);
+      const positions = new Map([['e1', [10, 0, 0]]]);
       lod.update(CAMERA_ORIGIN, positions);
       const result = lod.getAllResults()[0];
       expect(result.entityId).toBe('e1');
@@ -163,7 +163,7 @@ describe('LODSystem: production', () => {
         { minDistance: 20, label: 'medium' },
       ],
     });
-    const positions = new Map([['unsorted', { x: 5, y: 0, z: 0 }]]);
+    const positions = new Map([['unsorted', [5, 0, 0]]]);
     lod.update(CAMERA_ORIGIN, positions);
     expect(lod.getActiveLevel('unsorted')).toBe('high');
   });

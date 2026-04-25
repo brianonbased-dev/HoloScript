@@ -18,15 +18,15 @@ export interface Vec3 {
 
 function vecComponent(v: Vec3 | [number, number, number], axis: 0 | 1 | 2): number {
   if (Array.isArray(v)) return v[axis] ?? 0;
-  if (axis === 0) return v.x ?? 0;
-  if (axis === 1) return v.y ?? 0;
-  return v.z ?? 0;
+  if (axis === 0) return v[0] ?? 0;
+  if (axis === 1) return v[1] ?? 0;
+  return v[2] ?? 0;
 }
 
 function syncVec(v: Vec3): Vec3 {
-  (v as unknown as number[])[0] = v.x;
-  (v as unknown as number[])[1] = v.y;
-  (v as unknown as number[])[2] = v.z;
+  (v as unknown as number[])[0] = v[0];
+  (v as unknown as number[])[1] = v[1];
+  (v as unknown as number[])[2] = v[2];
   return v;
 }
 
@@ -122,8 +122,8 @@ export class AdvancedClothSystem {
       width: config.width ?? 20,
       height: config.height ?? 15,
       size: config.size ?? { width: 2, height: 1.5 },
-      gravity: config.gravity ?? { x: 0, y: -9.81, z: 0 },
-      wind: config.wind ?? { x: 0, y: 0, z: 0 },
+      gravity: config.gravity ?? [0, -9.81, 0],
+      wind: config.wind ?? [0, 0, 0],
       structuralStiffness: config.structuralStiffness ?? 0.9,
       shearStiffness: config.shearStiffness ?? 0.5,
       bendingStiffness: config.bendingStiffness ?? 0.3,
@@ -161,10 +161,10 @@ export class AdvancedClothSystem {
         const pz = row * dy;
         this.particles.set(id, {
           id,
-          position: syncVec({ x: px, y: 0, z: pz }),
-          prevPosition: syncVec({ x: px, y: 0, z: pz }),
-          velocity: syncVec({ x: 0, y: 0, z: 0 }),
-          force: syncVec({ x: 0, y: 0, z: 0 }),
+          position: syncVec([px, 0, pz]),
+          prevPosition: syncVec([px, 0, pz]),
+          velocity: syncVec([0, 0, 0]),
+          force: syncVec([0, 0, 0]),
           mass: 1.0,
           inverseMass: isPinned ? 0 : 1.0,
           uv: { u: col / (width - 1), v: row / (height - 1) },
@@ -308,16 +308,16 @@ export class AdvancedClothSystem {
     for (const particle of this.particles.values()) {
       if (!particle.active || particle.inverseMass === 0) continue;
 
-      const dx = particle.position.x - vecComponent(position, 0);
-      const dy = particle.position.y - vecComponent(position, 1);
-      const dz = particle.position.z - vecComponent(position, 2);
+      const dx = particle.position[0] - vecComponent(position, 0);
+      const dy = particle.position[1] - vecComponent(position, 1);
+      const dz = particle.position[2] - vecComponent(position, 2);
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist < radius) {
         const falloff = 1 - dist / radius;
-        particle.velocity.x += vecComponent(force, 0) * falloff * particle.inverseMass;
-        particle.velocity.y += vecComponent(force, 1) * falloff * particle.inverseMass;
-        particle.velocity.z += vecComponent(force, 2) * falloff * particle.inverseMass;
+        particle.velocity[0] += vecComponent(force, 0) * falloff * particle.inverseMass;
+        particle.velocity[1] += vecComponent(force, 1) * falloff * particle.inverseMass;
+        particle.velocity[2] += vecComponent(force, 2) * falloff * particle.inverseMass;
         syncVec(particle.velocity);
       }
     }
@@ -353,11 +353,7 @@ export class AdvancedClothSystem {
    * Update wind force
    */
   setWind(wind: Vec3 | [number, number, number]): void {
-    this.config.wind = syncVec({
-      x: vecComponent(wind, 0),
-      y: vecComponent(wind, 1),
-      z: vecComponent(wind, 2),
-    });
+    this.config.wind = syncVec([vecComponent(wind, 0), vecComponent(wind, 1), vecComponent(wind, 2)]);
   }
 
   /**
@@ -378,18 +374,18 @@ export class AdvancedClothSystem {
       particle.prevPosition = syncVec({ ...particle.position });
 
       // Gravity + wind
-      particle.force.x = this.config.gravity.x + this.config.wind.x;
-      particle.force.y = this.config.gravity.y + this.config.wind.y;
-      particle.force.z = this.config.gravity.z + this.config.wind.z;
+      particle.force[0] = this.config.gravity[0] + this.config.wind[0];
+      particle.force[1] = this.config.gravity[1] + this.config.wind[1];
+      particle.force[2] = this.config.gravity[2] + this.config.wind[2];
 
       // Verlet integration
-      particle.velocity.x = particle.velocity.x * (1 - damping) + particle.force.x * dt;
-      particle.velocity.y = particle.velocity.y * (1 - damping) + particle.force.y * dt;
-      particle.velocity.z = particle.velocity.z * (1 - damping) + particle.force.z * dt;
+      particle.velocity[0] = particle.velocity[0] * (1 - damping) + particle.force[0] * dt;
+      particle.velocity[1] = particle.velocity[1] * (1 - damping) + particle.force[1] * dt;
+      particle.velocity[2] = particle.velocity[2] * (1 - damping) + particle.force[2] * dt;
 
-      particle.position.x += particle.velocity.x * dt;
-      particle.position.y += particle.velocity.y * dt;
-      particle.position.z += particle.velocity.z * dt;
+      particle.position[0] += particle.velocity[0] * dt;
+      particle.position[1] += particle.velocity[1] * dt;
+      particle.position[2] += particle.velocity[2] * dt;
       syncVec(particle.force);
       syncVec(particle.velocity);
       syncVec(particle.position);
@@ -402,9 +398,9 @@ export class AdvancedClothSystem {
         const pB = this.particles.get(constraint.particleB);
         if (!pA || !pB || !pA.active || !pB.active) continue;
 
-        const dx = pB.position.x - pA.position.x;
-        const dy = pB.position.y - pA.position.y;
-        const dz = pB.position.z - pA.position.z;
+        const dx = pB.position[0] - pA.position[0];
+        const dy = pB.position[1] - pA.position[1];
+        const dz = pB.position[2] - pA.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist < 0.0001) continue;
@@ -432,24 +428,24 @@ export class AdvancedClothSystem {
         const cz = dz * correction * w;
 
         if (pA.inverseMass > 0) {
-          pA.position.x += cx * (pA.inverseMass / totalInvMass);
-          pA.position.y += cy * (pA.inverseMass / totalInvMass);
-          pA.position.z += cz * (pA.inverseMass / totalInvMass);
+          pA.position[0] += cx * (pA.inverseMass / totalInvMass);
+          pA.position[1] += cy * (pA.inverseMass / totalInvMass);
+          pA.position[2] += cz * (pA.inverseMass / totalInvMass);
         }
 
         if (pB.inverseMass > 0) {
-          pB.position.x -= cx * (pB.inverseMass / totalInvMass);
-          pB.position.y -= cy * (pB.inverseMass / totalInvMass);
-          pB.position.z -= cz * (pB.inverseMass / totalInvMass);
+          pB.position[0] -= cx * (pB.inverseMass / totalInvMass);
+          pB.position[1] -= cy * (pB.inverseMass / totalInvMass);
+          pB.position[2] -= cz * (pB.inverseMass / totalInvMass);
         }
       }
 
       // Ground plane collision (y >= -10)
       for (const particle of this.particles.values()) {
         if (!particle.active || particle.inverseMass === 0) continue;
-        if (particle.position.y < -10) {
-          particle.position.y = -10;
-          particle.velocity.y *= -0.3;
+        if (particle.position[1] < -10) {
+          particle.position[1] = -10;
+          particle.velocity[1] *= -0.3;
         }
       }
     }
@@ -490,9 +486,9 @@ export class AdvancedClothSystem {
   // ─── Private helpers ──────────────────────────────────────────────────────
 
   private distance(a: Vec3, b: Vec3): number {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const dz = b.z - a.z;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const dz = b[2] - a[2];
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 

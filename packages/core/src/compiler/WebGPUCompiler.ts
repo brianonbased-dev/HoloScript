@@ -58,7 +58,7 @@ export class WebGPUCompiler extends CompilerBase {
       enableCompute: options.enableCompute ?? true,
       msaa: options.msaa || 4,
       indent: options.indent || '  ',
-      provenanceHash: options.provenanceHash,
+      provenanceHash: options.provenanceHash ?? '',
     };
   }
 

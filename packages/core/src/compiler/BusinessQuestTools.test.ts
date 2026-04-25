@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readJson } from '../errors/safeJsonParse';
 
 import {
   buildVRRCompositionFromDraft,
@@ -65,7 +66,7 @@ describe('BusinessQuestTools', () => {
     });
     expect(res.isError).toBe(false);
     const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
-    const json = JSON.parse(text) as {
+    const json = readJson(text) as {
       vrrTraitCounts: Record<string, number>;
       composition: { name: string };
     };

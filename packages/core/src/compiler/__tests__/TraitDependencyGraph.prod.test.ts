@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import { TraitDependencyGraph } from '../../compiler/TraitDependencyGraph';
 import type { ObjectTraitInfo } from '../../compiler/TraitDependencyGraph';
 
@@ -286,7 +287,7 @@ describe('TraitDependencyGraph — Production', () => {
       graph.registerImport('/scene.hs', '/shared.hs');
       graph.registerImport('/scene.hs', '/utils.hs');
       const json = graph.serialize();
-      const parsed = JSON.parse(json);
+      const parsed = readJson(json) as { version: number };
       expect(parsed.version).toBe(2);
       const restored = TraitDependencyGraph.deserialize(json);
       expect(restored.getImportedFiles('/scene.hs').has('/shared.hs')).toBe(true);

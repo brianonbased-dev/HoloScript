@@ -10,7 +10,7 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should create a rope and simulate gravity', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', { x: 0, y: 10, z: 0 }, { x: 10, y: 10, z: 0 }, { segmentCount: 5 });
+    rs.createRope('r1', [0, 10, 0], [10, 10, 0], { segmentCount: 5 });
     rs.pinNode('r1', 0); // Pin first node
 
     for (let i = 0; i < 20; i++) rs.update(0.016);
@@ -26,8 +26,8 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
     const rs = new RopeSystem();
     rs.createRope(
       'r2',
-      { x: 0, y: 0, z: 0 },
-      { x: 5, y: 0, z: 0 },
+      [0, 0, 0],
+      [5, 0, 0],
       { segmentCount: 5, segmentLength: 1 }
     );
     rs.pinNode('r2', 0);
@@ -49,17 +49,17 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
   it('should deform on impact and recover with shape matching', () => {
     const mesh = new DeformableMesh({ stiffness: 100, damping: 0.9, shapeMatchingStrength: 0.8 });
     mesh.setVertices([
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      { x: 0, y: 1, z: 0 },
-      { x: 1, y: 1, z: 0 },
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 1, 0],
+      [1, 1, 0],
     ]);
     mesh.autoConnectRadius(2);
 
     expect(mesh.getSpringCount()).toBeGreaterThan(0);
 
     // Apply impact
-    mesh.applyImpact({ x: 0.5, y: 0.5, z: 0 }, 2, 10);
+    mesh.applyImpact([0.5, 0.5, 0], 2, 10);
 
     mesh.update(0.016);
     const disp = mesh.getMaxDisplacement();
@@ -73,9 +73,9 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should clamp displacement to max', () => {
     const mesh = new DeformableMesh({ maxDisplacement: 1, stiffness: 0, shapeMatchingStrength: 0 });
-    mesh.setVertices([{ x: 0, y: 0, z: 0 }]);
+    mesh.setVertices([[0, 0, 0]]);
 
-    mesh.applyImpact({ x: -5, y: 0, z: 0 }, 10, 1000);
+    mesh.applyImpact([-5, 0, 0], 10, 1000);
     mesh.update(0.1);
 
     expect(mesh.getMaxDisplacement()).toBeLessThanOrEqual(1.01); // ≤ max + float tolerance
@@ -88,11 +88,11 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
   it('should simulate fluid particles under gravity', () => {
     const fluid = new FluidSim({
       smoothingRadius: 1.5,
-      boundaryMin: { x: -5, y: -5, z: -5 },
-      boundaryMax: { x: 5, y: 5, z: 5 },
+      boundaryMin: [-5, -5, -5],
+      boundaryMax: [5, 5, 5],
     });
 
-    fluid.addBlock({ x: -1, y: 2, z: -1 }, { x: 1, y: 3, z: 1 }, 0.8);
+    fluid.addBlock([-1, 2, -1], [1, 3, 1], 0.8);
     const count = fluid.getParticleCount();
     expect(count).toBeGreaterThan(0);
 
@@ -105,11 +105,11 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should enforce boundaries', () => {
     const fluid = new FluidSim({
-      boundaryMin: { x: 0, y: 0, z: 0 },
-      boundaryMax: { x: 10, y: 10, z: 10 },
+      boundaryMin: [0, 0, 0],
+      boundaryMax: [10, 10, 10],
     });
 
-    fluid.addParticle({ x: 5, y: 1, z: 5 });
+    fluid.addParticle([5, 1, 5]);
     for (let i = 0; i < 50; i++) fluid.update();
 
     const p = fluid.getParticles()[0];
@@ -118,7 +118,7 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should report density and kinetic energy', () => {
     const fluid = new FluidSim();
-    fluid.addParticle({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    fluid.addParticle([0, 0, 0], [1, 0, 0]);
     fluid.update();
 
     expect(fluid.getAverageDensity()).toBeGreaterThan(0);

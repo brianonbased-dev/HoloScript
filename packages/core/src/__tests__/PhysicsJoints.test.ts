@@ -85,10 +85,10 @@ describe('Cycle 128: Physics Joints & Constraints', () => {
     cloth.createGrid(3, 3, 1);
     cloth.pinTopRow();
 
-    const before = cloth.getParticle(6)!.y; // bottom middle
+    const before = cloth.getParticle(6)![1]; // bottom middle
     cloth.update(1 / 30);
     cloth.update(1 / 30);
-    const after = cloth.getParticle(6)!.y;
+    const after = cloth.getParticle(6)![1];
 
     expect(after).toBeLessThan(before); // Fell
     expect(cloth.getParticle(0)!.pinned).toBe(true); // Top row stays pinned
@@ -100,10 +100,10 @@ describe('Cycle 128: Physics Joints & Constraints', () => {
     cloth.pinTopRow();
     cloth.setWind(10, 0, 0);
 
-    const before = cloth.getParticle(6)!.x;
+    const before = cloth.getParticle(6)![0];
     cloth.update(1 / 30);
     cloth.update(1 / 30);
-    const after = cloth.getParticle(6)!.x;
+    const after = cloth.getParticle(6)![0];
 
     expect(after).toBeGreaterThan(before); // Wind pushed right
   });

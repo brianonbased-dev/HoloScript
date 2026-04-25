@@ -27,19 +27,19 @@ describe('Cycle 140: Replay System', () => {
     rec.start('compress_test');
 
     // Frame 1: full state
-    rec.captureFrame(0.02, {}, { x: 10, y: 20, z: 0 });
+    rec.captureFrame(0.02, {}, [10, 20, 0]);
     // Frame 2: only x changed
-    rec.captureFrame(0.02, {}, { x: 15, y: 20, z: 0 });
+    rec.captureFrame(0.02, {}, [15, 20, 0]);
     // Frame 3: nothing changed
-    rec.captureFrame(0.02, {}, { x: 15, y: 20, z: 0 });
+    rec.captureFrame(0.02, {}, [15, 20, 0]);
 
     const compressed = rec.compress();
     expect(compressed.frames.length).toBe(3);
 
     // Frame 2 should only have 'x' delta
     const f2state = compressed.frames[1].state;
-    expect(f2state.x).toBe(15);
-    expect(f2state.y).toBeUndefined(); // Not changed
+    expect(f2state[0]).toBe(15);
+    expect(f2state[1]).toBeUndefined(); // Not changed
 
     // Frame 3 should be empty (no changes)
     expect(Object.keys(compressed.frames[2].state).length).toBe(0);
@@ -108,7 +108,7 @@ describe('Cycle 140: Replay System', () => {
 
     ghost.startRecording();
     for (let i = 0; i < 100; i++) {
-      ghost.sample(0.1, { x: i, y: 0, z: 0 }, 0, 5);
+      ghost.sample(0.1, [i, 0, 0], 0, 5);
     }
     const run1 = ghost.finishRecording('run1');
     expect(run1.isPersonalBest).toBe(true);
@@ -117,7 +117,7 @@ describe('Cycle 140: Replay System', () => {
     // Faster run = new PB
     ghost.startRecording();
     for (let i = 0; i < 50; i++) {
-      ghost.sample(0.1, { x: i * 2, y: 0, z: 0 }, 0, 10);
+      ghost.sample(0.1, [i * 2, 0, 0], 0, 10);
     }
     const run2 = ghost.finishRecording('run2');
     expect(run2.isPersonalBest).toBe(true);
@@ -126,7 +126,7 @@ describe('Cycle 140: Replay System', () => {
     // Slower run = not PB
     ghost.startRecording();
     for (let i = 0; i < 200; i++) {
-      ghost.sample(0.1, { x: i * 0.5, y: 0, z: 0 }, 0, 2.5);
+      ghost.sample(0.1, [i * 0.5, 0, 0], 0, 2.5);
     }
     const run3 = ghost.finishRecording('run3');
     expect(run3.isPersonalBest).toBe(false);
@@ -137,7 +137,7 @@ describe('Cycle 140: Replay System', () => {
 
     ghost.startRecording();
     for (let i = 0; i < 50; i++) {
-      ghost.sample(0.1, { x: i, y: 0, z: 0 }, 0, 5);
+      ghost.sample(0.1, [i, 0, 0], 0, 5);
     }
     const run = ghost.finishRecording('ghost_run');
 
@@ -154,11 +154,11 @@ describe('Cycle 140: Replay System', () => {
     const ghost = new GhostRunner();
 
     ghost.startRecording();
-    for (let i = 0; i < 20; i++) ghost.sample(0.1, { x: i, y: 0, z: 0 }, 0, 5);
+    for (let i = 0; i < 20; i++) ghost.sample(0.1, [i, 0, 0], 0, 5);
     const runA = ghost.finishRecording('A');
 
     ghost.startRecording();
-    for (let i = 0; i < 20; i++) ghost.sample(0.1, { x: i * 2, y: 0, z: 0 }, 0, 10);
+    for (let i = 0; i < 20; i++) ghost.sample(0.1, [i * 2, 0, 0], 0, 10);
     const runB = ghost.finishRecording('B');
 
     const comp = ghost.compareAtTime(runA.id, runB.id, 1.0);

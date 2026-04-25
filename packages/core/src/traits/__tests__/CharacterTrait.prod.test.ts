@@ -102,8 +102,8 @@ describe('CharacterTrait — position / velocity', () => {
     const c = mkChar();
     const pos = [1, 0, 0 ];
     c.setPosition(pos);
-    pos.x = 999;
-    expect(c.getPosition().x).toBe(1);
+    pos[0] = 999;
+    expect(c.getPosition()[0]).toBe(1);
   });
 });
 
@@ -124,16 +124,16 @@ describe('CharacterTrait — move()', () => {
 
   it('position advances in z when forward > 0', () => {
     const c = mkChar({ walkSpeed: 10, groundAcceleration: 1000, groundFriction: 0 });
-    const before = c.getPosition().z;
+    const before = c.getPosition()[2];
     c.move({ forward: 1, strafe: 0 }, 0.1);
-    expect(c.getPosition().z).toBeGreaterThan(before);
+    expect(c.getPosition()[2]).toBeGreaterThan(before);
   });
 
   it('position advances in x when strafe > 0', () => {
     const c = mkChar({ walkSpeed: 10, groundAcceleration: 1000, groundFriction: 0 });
-    const before = c.getPosition().x;
+    const before = c.getPosition()[0];
     c.move({ forward: 0, strafe: 1 }, 0.1);
-    expect(c.getPosition().x).toBeGreaterThan(before);
+    expect(c.getPosition()[0]).toBeGreaterThan(before);
   });
 
   it('currentSpeed is non-negative after movement', () => {
@@ -160,14 +160,14 @@ describe('CharacterTrait — tryJump', () => {
     const c = mkChar({ jumpHeight: 1.2, gravity: -9.81 });
     c.tryJump();
     // v = sqrt(2 * 9.81 * 1.2) ≈ 4.85
-    expect(c.getVelocity().y).toBeGreaterThan(0);
+    expect(c.getVelocity()[1]).toBeGreaterThan(0);
   });
 
   it('jump velocity matches sqrt(2 * |gravity| * jumpHeight)', () => {
     const c = mkChar({ jumpHeight: 1.2, gravity: -9.81 });
     c.tryJump();
     const expected = Math.sqrt(2 * 9.81 * 1.2);
-    expect(c.getVelocity().y).toBeCloseTo(expected, 2);
+    expect(c.getVelocity()[1]).toBeCloseTo(expected, 2);
   });
 
   it('tryJump emits jump event', () => {
@@ -203,16 +203,16 @@ describe('CharacterTrait — tryJump', () => {
   it('cancelJump halves positive y velocity', () => {
     const c = mkChar();
     c.tryJump();
-    const velBefore = c.getVelocity().y;
+    const velBefore = c.getVelocity()[1];
     c.cancelJump();
-    expect(c.getVelocity().y).toBeCloseTo(velBefore * 0.5, 2);
+    expect(c.getVelocity()[1]).toBeCloseTo(velBefore * 0.5, 2);
   });
 
   it('cancelJump does nothing when y velocity <= 0', () => {
     const c = mkChar();
     c.setVelocity([0, 0, 0 ]);
     c.cancelJump();
-    expect(c.getVelocity().y).toBe(0);
+    expect(c.getVelocity()[1]).toBe(0);
   });
 });
 

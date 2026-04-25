@@ -175,12 +175,12 @@ describe('MovementPredictor — Vector3 input', () => {
 
   it('accepts object-form Vector3 {"x","y","z"} without error', () => {
     const mp = makeMP();
-    expect(() => mp.update({ x: 1, y: 2, z: 3 } as any, 0.016)).not.toThrow();
+    expect(() => mp.update([1, 2, 3] as any, 0.016)).not.toThrow();
   });
 
   it('ambient window uses the correct position after object-form update', () => {
     const mp = makeMP();
-    mp.update({ x: 7, y: 8, z: 9 } as any, 0.016);
+    mp.update([7, 8, 9] as any, 0.016);
     const windows = mp.getPredictiveWindows(1);
     expect(windows[0].center[0]).toBeCloseTo(7, 5);
   });

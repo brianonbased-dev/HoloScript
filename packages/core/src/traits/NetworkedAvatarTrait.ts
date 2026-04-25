@@ -48,17 +48,17 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'LeftArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         }, // Placeholder
         {
           id: 'LeftForeArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
-      target: { x: -0.5, y: 1.0, z: 0.3 },
+      target: [-0.5, 1.0, 0.3],
       weight: 1.0,
       iterations: 3,
     });
@@ -69,17 +69,17 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'RightArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
         {
           id: 'RightForeArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
-      target: { x: 0.5, y: 1.0, z: 0.3 },
+      target: [0.5, 1.0, 0.3],
       weight: 1.0,
       iterations: 3,
     });

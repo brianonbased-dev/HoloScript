@@ -46,7 +46,7 @@ describe('WindTrait', () => {
   it('turbulence varies offset over time', () => {
     updateTrait(windHandler, node, cfg, ctx, 1.0);
     const s = (node as any).__windState;
-    expect(s.turbulenceOffset.x).not.toBe(0);
+    expect(s.turbulenceOffset[0]).not.toBe(0);
   });
 
   it('pulse mode modulates strength', () => {

@@ -210,7 +210,7 @@ describe('TraitBinder.registerComposed', () => {
     binder.registerComposed('abc', ['ab', 'c']);
 
     const h = binder.resolve('abc')!;
-    expect(h.defaultConfig).toMatchObject({ x: 1, y: 2, z: 3 });
+    expect(h.defaultConfig).toMatchObject([1, 2, 3]);
   });
 
   it('does not affect existing handlers when composing', () => {

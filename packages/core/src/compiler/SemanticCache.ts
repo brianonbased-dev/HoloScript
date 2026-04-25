@@ -17,6 +17,7 @@
 
 import { createHash } from 'crypto';
 import type { HoloObjectDecl, HoloComposition } from '../parser/HoloCompositionTypes';
+import { readJson } from '../errors/safeJsonParse';
 
 // ============================================================================
 // Types & Interfaces
@@ -282,7 +283,7 @@ export class SemanticCache {
       if (this.redis && this.redisConnected) {
         const raw = await this.redis.get(key);
         if (raw) {
-          entry = JSON.parse(raw) as SemanticCacheEntry<T>;
+          entry = readJson(raw) as SemanticCacheEntry<T>;
         }
       } else {
         // Fallback to memory cache

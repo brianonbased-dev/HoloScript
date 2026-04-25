@@ -16,7 +16,7 @@ export type RigMode = 'dolly' | 'crane' | 'steadicam' | 'static' | 'handheld';
 export interface CameraRigConfig {
   mode: RigMode;
   position: [number, number, number];
-  target: { x: number; y: number; z: number };
+  target: [number, number, number];
   fov: number;
   nearClip: number;
   farClip: number;
@@ -34,9 +34,9 @@ export interface ShakePreset {
 
 export interface RigState {
   position: [number, number, number];
-  target: { x: number; y: number; z: number };
+  target: [number, number, number];
   fov: number;
-  shakeOffset: { x: number; y: number; z: number };
+  shakeOffset: [number, number, number];
 }
 
 // =============================================================================
@@ -48,7 +48,7 @@ export class CameraRig {
   private state: RigState;
   private shakePresets: Map<string, ShakePreset> = new Map();
   private activeShake: { preset: ShakePreset; elapsed: number } | null = null;
-  private dollyPath: Array<{ x: number; y: number; z: number }> = [];
+  private dollyPath: Array<[number, number, number]> = [];
   private dollyT = 0;
   private craneHeight = 0;
   private craneAngle = 0;
@@ -57,7 +57,7 @@ export class CameraRig {
     this.config = {
       mode: 'static',
       position: [0, 5, -10],
-      target: { x: 0, y: 0, z: 0 },
+      target: [0, 0, 0],
       fov: 60,
       nearClip: 0.1,
       farClip: 1000,
@@ -69,7 +69,7 @@ export class CameraRig {
       position: [...this.config.position],
       target: { ...this.config.target },
       fov: this.config.fov,
-      shakeOffset: { x: 0, y: 0, z: 0 },
+      shakeOffset: [0, 0, 0],
     };
 
     // Built-in shake presets
@@ -114,7 +114,7 @@ export class CameraRig {
     return this.config.mode;
   }
 
-  setDollyPath(path: Array<{ x: number; y: number; z: number }>): void {
+  setDollyPath(path: Array<[number, number, number]>): void {
     this.dollyPath = [...path];
     this.dollyT = 0;
   }
@@ -166,13 +166,13 @@ export class CameraRig {
       if (elapsed < preset.duration) {
         const decay = Math.exp(-preset.decay * elapsed);
         const t = elapsed * preset.frequency;
-        this.state.shakeOffset = {
-          x: Math.sin(t * 6.28) * preset.intensity * decay,
-          y: Math.cos(t * 4.17) * preset.intensity * decay * 0.7,
-          z: Math.sin(t * 3.14) * preset.intensity * decay * 0.3,
-        };
+        this.state.shakeOffset = [
+          Math.sin(t * 6.28) * preset.intensity * decay,
+          Math.cos(t * 4.17) * preset.intensity * decay * 0.7,
+          Math.sin(t * 3.14) * preset.intensity * decay * 0.3
+        ];
       } else {
-        this.state.shakeOffset = { x: 0, y: 0, z: 0 };
+        this.state.shakeOffset = [0, 0, 0];
         this.activeShake = null;
       }
     }
@@ -192,9 +192,9 @@ export class CameraRig {
     const b = this.dollyPath[Math.min(i + 1, this.dollyPath.length - 1)];
 
     this.state.position = [
-      a.x + (b.x - a.x) * frac,
-      a.y + (b.y - a.y) * frac,
-      a.z + (b.z - a.z) * frac,
+      a[0] + (b[0] - a[0]) * frac,
+      a[1] + (b[1] - a[1]) * frac,
+      a[2] + (b[2] - a[2]) * frac,
     ];
   }
 
@@ -205,11 +205,11 @@ export class CameraRig {
       this.config.position[1] + this.craneHeight,
       this.config.position[2]
     ];
-    this.state.target = {
-      x: this.config.target.x + Math.sin(rad) * this.craneHeight,
-      y: 0,
-      z: this.config.target.z + Math.cos(rad) * this.craneHeight,
-    };
+    this.state.target = [
+      this.config.target[0] + Math.sin(rad) * this.craneHeight,
+      0,
+      this.config.target[2] + Math.cos(rad) * this.craneHeight
+    ];
   }
 
   private updateSteadicam(dt: number): void {
@@ -237,9 +237,9 @@ export class CameraRig {
   getState(): RigState {
     return {
       position: [
-        this.state.position[0] + this.state.shakeOffset.x,
-        this.state.position[1] + this.state.shakeOffset.y,
-        this.state.position[2] + this.state.shakeOffset.z,
+        this.state.position[0] + this.state.shakeOffset[0],
+        this.state.position[1] + this.state.shakeOffset[1],
+        this.state.position[2] + this.state.shakeOffset[2],
       ],
       target: { ...this.state.target },
       fov: this.state.fov,

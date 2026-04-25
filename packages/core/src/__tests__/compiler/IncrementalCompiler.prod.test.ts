@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readJson } from '../../errors/safeJsonParse';
 import {
   IncrementalCompiler,
   createIncrementalCompiler,
@@ -344,7 +345,7 @@ describe('IncrementalCompiler — serialize / deserialize', () => {
     const c = new IncrementalCompiler();
     const json = c.serialize();
     expect(typeof json).toBe('string');
-    const parsed = JSON.parse(json);
+    const parsed = readJson(json);
     expect(parsed.version).toBe(1);
   });
 

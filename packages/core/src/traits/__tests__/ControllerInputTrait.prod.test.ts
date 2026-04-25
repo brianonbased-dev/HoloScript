@@ -265,7 +265,7 @@ describe('controllerInputHandler.onUpdate — thumbstick', () => {
     controllerInputHandler.onUpdate!(node, config, ctx, 0.016);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'controller_thumbstick');
     expect(call).toBeDefined();
-    expect(call?.[1].x).toBeGreaterThan(0);
+    expect(call?.[1][0]).toBeGreaterThan(0);
   });
   it('does NOT emit controller_thumbstick when inside deadzone', () => {
     const { node, config, ctx } = attach({ deadzone: 0.5, thumbstick_sensitivity: 1.0 });
@@ -286,7 +286,7 @@ describe('controllerInputHandler.onUpdate — thumbstick', () => {
     ctx.emit.mockClear();
     controllerInputHandler.onUpdate!(node, config, ctx, 0.016);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'controller_thumbstick');
-    expect(call?.[1].y).toBeLessThan(0);
+    expect(call?.[1][1]).toBeLessThan(0);
   });
 });
 

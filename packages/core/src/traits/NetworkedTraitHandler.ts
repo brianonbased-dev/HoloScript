@@ -60,7 +60,7 @@ function nodePosition(node: HSPlusNode): [number, number, number] {
   const p = node.properties?.position;
   if (!p) return [0, 0, 0];
   if (Array.isArray(p)) return [p[0] || 0, p[1] || 0, p[2] || 0];
-  const v = p as { x: number; y: number; z: number };
+  const v = p as [number, number, number];
   return [v[0] || 0, v[1] || 0, v[2] || 0];
 }
 
@@ -68,7 +68,7 @@ function nodeRotation(node: HSPlusNode): [number, number, number] {
   const r = node.properties?.rotation;
   if (!r) return [0, 0, 0];
   if (Array.isArray(r)) return [r[0] || 0, r[1] || 0, r[2] || 0];
-  const v = r as { x: number; y: number; z: number };
+  const v = r as [number, number, number];
   return [v[0] || 0, v[1] || 0, v[2] || 0];
 }
 

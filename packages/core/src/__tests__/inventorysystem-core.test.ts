@@ -441,7 +441,7 @@ describe('Feature 7: CombatManager', () => {
       id,
       ownerId,
       position: [0, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
       damage: 20,
       damageType: 'physical',
@@ -453,7 +453,7 @@ describe('Feature 7: CombatManager', () => {
       id,
       ownerId,
       position: [0, 0, 0],
-      size: { x: 1, y: 1, z: 1 },
+      size: [1, 1, 1],
       active: true,
     };
   }
@@ -547,8 +547,8 @@ describe('Feature 8: InputManager', () => {
     const im = new InputManager();
     im.setMousePosition(100, 200);
     const pos = im.getMousePosition();
-    expect(pos.x).toBe(100);
-    expect(pos.y).toBe(200);
+    expect(pos[0]).toBe(100);
+    expect(pos[1]).toBe(200);
   });
 
   it('isMouseButtonPressed returns false initially', () => {
@@ -560,7 +560,7 @@ describe('Feature 8: InputManager', () => {
 // FEATURE 9: navigation/NavMesh
 // =============================================================================
 describe('Feature 9: NavMesh', () => {
-  const v = (x: number, z: number) => ({ x, y: 0, z });
+  const v = (x: number, z: number) => ([x, 0, z]);
 
   it('getPolygonCount is 0 initially', () => {
     expect(new NavMesh().getPolygonCount()).toBe(0);

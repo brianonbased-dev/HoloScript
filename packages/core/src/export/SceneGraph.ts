@@ -115,8 +115,8 @@ export interface IRigidbodyComponent extends IComponent {
   useGravity: boolean;
   isKinematic: boolean;
   constraints: {
-    freezePosition: { x: boolean; y: boolean; z: boolean };
-    freezeRotation: { x: boolean; y: boolean; z: boolean };
+    freezePosition: [boolean, boolean, boolean];
+    freezeRotation: [boolean, boolean, boolean];
   };
 }
 

@@ -99,8 +99,8 @@ describe('AdvancedClothSystem', () => {
     cloth.step(0.016);
     cloth.step(0.016);
     const after = cloth.getAllParticles()[0].position;
-    expect(after.x).toBeCloseTo(before.x, 5);
-    expect(after.y).toBeCloseTo(before.y, 5);
+    expect(after[0]).toBeCloseTo(before[0], 5);
+    expect(after[1]).toBeCloseTo(before[1], 5);
   });
 
   // ── Impulse ────────────────────────────────────────────────────────────────
