@@ -7,11 +7,10 @@
 export type HandSide = 'left' | 'right';
 export type GestureType = 'none' | 'pinch' | 'grab' | 'point' | 'fist' | 'open' | 'thumbsUp';
 
-export interface JointPosition {
-  x: number;
-  y: number;
-  z: number;
-}
+// Tuple form — code accesses joints via [0]/[1]/[2] indices for vector math
+// in detectGesture (see line ~86). Object form was wrong here; the local-type
+// drift caused 6 TS7053 errors blocking studio strict tsc.
+export type JointPosition = [number, number, number];
 
 export interface HandState {
   side: HandSide;
