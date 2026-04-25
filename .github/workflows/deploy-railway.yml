@@ -144,9 +144,32 @@ jobs:
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
         run: cargo install wasm-pack --locked
 
-      - name: Full build — catch compilation errors before deploy
+      - name: Targeted build — catch compilation errors in deploy target's tree
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
-        run: pnpm build
+        # Lane-isolation: each service's deploy only requires its OWN
+        # dependency tree to compile. Peer's mid-flight migration in
+        # unrelated packages (framework, runtime, cli, etc.) cannot block
+        # an mcp-server or studio deploy if those services' trees are
+        # clean. For workflow_dispatch with service != "all", filter to
+        # that service's transitive deps. For push-triggered or "all",
+        # fall through to the full workspace build (the safe default).
+        # See task_1777100775495_6j7w + W.082 lane isolation.
+        run: |
+          SERVICE="${{ github.event.inputs.service || 'all' }}"
+          case "$SERVICE" in
+            all)
+              echo "[preflight] full workspace build (service=all or push-triggered)"
+              pnpm build
+              ;;
+            mcp-server|studio|marketplace-web|marketplace-api|export-api|llm-service|absorb-service)
+              echo "[preflight] targeted build of @holoscript/$SERVICE dependency tree"
+              pnpm -r --workspace-concurrency=1 --filter "@holoscript/$SERVICE..." build
+              ;;
+            *)
+              echo "[preflight] unknown service '$SERVICE'; falling back to full build"
+              pnpm build
+              ;;
+          esac
 
       - name: TypeScript type-check Studio
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
