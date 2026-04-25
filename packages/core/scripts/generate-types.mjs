@@ -713,9 +713,11 @@ export interface HoloTemplate {
   [key: string]: any;
 }
 export interface HSPlusForDirective {
-  iterable: string;
+  type: 'for';
   variable: string;
-  body?: any[];
+  range?: [number, number];
+  iterable?: string;
+  body: unknown[];
 }
 export interface RaycastHit {
   point: Vector3;
@@ -3197,17 +3199,124 @@ export interface HSPlusBuiltins {
   [key: string]: unknown;
 }
 
-/**
- * Parser-level directive node. Discriminated by \`type\` field; concrete
- * variants (HSPlusForDirective, HSPlusIfDirective, etc.) live in
- * \`types/AdvancedTypeSystem.ts\`. Engine consumers use the discriminator
- * for narrowing — full variant set isn't re-exported through the public d.ts
- * yet (separate task). This minimal shape is honest and unblocks the imports.
- */
-export interface HSPlusDirective {
-  type: string;
+/** Parser directive variants — discriminated by \`type\`. Mirrors
+ * \`packages/core/src/types/AdvancedTypeSystem.ts:396\`. Engine + studio
+ * consumers narrow via \`directive.type === 'lifecycle'\` etc. */
+
+export interface HSPlusBaseDirective {
+  type: 'directive' | 'fragment';
+  name: string;
+  args: string[];
+}
+
+export interface HSPlusTraitDirective {
+  type: 'trait';
+  name: string;
+  args?: unknown[];
+  config?: Record<string, unknown>;
+}
+
+export interface HSPlusLifecycleDirective {
+  type: 'lifecycle';
+  name?: string;
+  hook: string;
+  params?: string[];
+  body: string;
+}
+
+export interface HSPlusStateDirective {
+  type: 'state';
+  name?: string;
+  body?: Record<string, unknown>;
+  initial?: unknown;
+}
+
+export interface HSPlusForEachDirective {
+  type: 'forEach';
+  variable: string;
+  collection: string;
+  body: unknown[];
+}
+
+export interface HSPlusWhileDirective {
+  type: 'while';
+  condition: string;
+  body: unknown[];
+}
+
+export interface HSPlusIfDirective {
+  type: 'if';
+  condition: string;
+  body: unknown[];
+  else?: unknown[];
+}
+
+export interface HSPlusImportDirective {
+  type: 'import';
+  path: string;
+  alias: string;
+  namedImports?: string[];
+  isWildcard?: boolean;
+}
+
+export interface HSPlusVersionDirective {
+  type: 'version';
+  version: number;
+}
+
+export interface HSPlusMigrateDirective {
+  type: 'migrate';
+  fromVersion: number;
+  body: string;
+}
+
+export interface HSPlusBindingsDirective {
+  type: 'bindings';
+  bindings: unknown[];
+}
+
+export interface HSPlusExportDirective {
+  type: 'export';
+  exportKind: string;
+  exportName: string;
+}
+
+export interface HSPlusConfigDirective {
+  type:
+    | 'world_metadata'
+    | 'world_config'
+    | 'skybox'
+    | 'ambient_light'
+    | 'fog'
+    | 'artwork_metadata'
+    | 'npc_behavior';
   [key: string]: unknown;
 }
+
+export interface HSPlusNamedConfigDirective {
+  type: 'manifest' | 'semantic' | 'directional_light';
+  name: string;
+  [key: string]: unknown;
+}
+
+/** Discriminated union of every parser directive. \`HSPlusForDirective\` is
+ * declared earlier in this d.ts; the rest live above. */
+export type HSPlusDirective =
+  | HSPlusBaseDirective
+  | HSPlusTraitDirective
+  | HSPlusLifecycleDirective
+  | HSPlusStateDirective
+  | HSPlusForDirective
+  | HSPlusForEachDirective
+  | HSPlusWhileDirective
+  | HSPlusIfDirective
+  | HSPlusImportDirective
+  | HSPlusVersionDirective
+  | HSPlusMigrateDirective
+  | HSPlusBindingsDirective
+  | HSPlusExportDirective
+  | HSPlusConfigDirective
+  | HSPlusNamedConfigDirective;
 
 // ── State migration (packages/core/src/migration/SchemaDiff.ts) ─────────────
 
@@ -3243,7 +3352,8 @@ export interface SchemaDiffResult {
 
 export interface MigrationStep {
   fromVersion: number;
-  body: unknown;
+  /** Statement list (parsed nodes) OR raw code string. */
+  body: unknown[] | string;
 }
 
 export interface MigrationChain {

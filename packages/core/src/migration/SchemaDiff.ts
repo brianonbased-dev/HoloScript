@@ -60,7 +60,9 @@ export interface MigrationChain {
 
 export interface MigrationStep {
   fromVersion: number;
-  body: unknown; // Statement list or raw code string
+  /** Statement list (parsed nodes) OR raw code string. Engine consumers
+   * must narrow with `Array.isArray(step.body)` before iteration. */
+  body: unknown[] | string;
 }
 
 // =============================================================================
