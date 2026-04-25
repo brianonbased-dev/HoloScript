@@ -266,20 +266,64 @@ export interface TaskNormalizationWarning {
   keptLength: number;
 }
 
-/** Add tasks to a board with dedup against existing + done log. */
+/**
+ * Dedup strategy for `addTasksToBoard`.
+ *
+ * - `'normalized'` (default, legacy behaviour): titles are lowercased, stripped
+ *   of non-alphanumeric runs, and truncated to 60 chars before comparison. This
+ *   gives a forgiving "is this basically the same task" match, but two long
+ *   titles that share a 60-char alphanumeric prefix collide as duplicates.
+ * - `'exact'`: titles are lowercased + trimmed only — full length compared.
+ *   Use this when the caller is programmatically seeding tasks whose titles
+ *   intentionally share prefixes (e.g. `"[AUTONOMIZE] 12: Execute Research
+ *   Cycle 11 - Privacy-Preserving Causal Inference"` vs `"[AUTONOMIZE] 13:
+ *   Execute Research Cycle 12 - Causal Social Memory"` — the first 60 chars
+ *   normalize to the same string under `'normalized'`).
+ *
+ * Filed as task_1776981805111_4fg3 ([BOARD-BUG] Fuzzy prefix-match dedup
+ * poisons cache across failed POSTs). The reporter's "remembers rejected
+ * titles" claim is a misdiagnosis — `existingNorm` is rebuilt on every call
+ * from the live board + done log, so it can't carry state across requests.
+ * The real cause is the 60-char prefix collapse, which `'exact'` bypasses.
+ */
+export type TaskDedupMode = 'normalized' | 'exact';
+
+/**
+ * Compute the dedup key for a title under the given mode. Pure function —
+ * exposed for callers that want to pre-check whether a batch will collide
+ * before sending it (`/room derive`, paper-farming scripts, etc.).
+ */
+export function dedupKeyForTitle(title: string, mode: TaskDedupMode = 'normalized'): string {
+  if (mode === 'exact') {
+    return String(title || '').toLowerCase().trim();
+  }
+  return normalizeTitle(String(title || ''));
+}
+
+/**
+ * Add tasks to a board with dedup against existing + done log.
+ *
+ * `opts.dedupMode` controls the title-comparison strategy. Defaults to
+ * `'normalized'` to preserve legacy behaviour (lossy 60-char prefix match).
+ * Pass `'exact'` to compare full lowercased-trimmed titles — required for
+ * batches where intentional prefix-sharing would otherwise collide.
+ */
 export function addTasksToBoard(
   board: TeamTask[],
   doneLog: DoneLogEntry[],
-  tasks: Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>
+  tasks: Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>,
+  opts: { dedupMode?: TaskDedupMode } = {}
 ): {
   added: TeamTask[];
   skipped: SkippedTaskEntry[];
   warnings: TaskNormalizationWarning[];
   updatedBoard: TeamTask[];
 } {
+  const dedupMode: TaskDedupMode = opts.dedupMode === 'exact' ? 'exact' : 'normalized';
+  const keyOf = (s: string) => dedupKeyForTitle(s, dedupMode);
   const existingNorm = new Set([
-    ...board.map((t) => normalizeTitle(t.title)),
-    ...doneLog.map((d) => normalizeTitle(d.title)),
+    ...board.map((t) => keyOf(t.title)),
+    ...doneLog.map((d) => keyOf(d.title)),
   ]);
 
   const added: TeamTask[] = [];
@@ -291,7 +335,7 @@ export function addTasksToBoard(
       skipped.push({ title: '', reason: 'empty_title' });
       continue;
     }
-    if (existingNorm.has(normalizeTitle(title))) {
+    if (existingNorm.has(keyOf(title))) {
       skipped.push({ title, reason: 'duplicate' });
       continue;
     }
@@ -329,7 +373,7 @@ export function addTasksToBoard(
     if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
     if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);
-    existingNorm.add(normalizeTitle(title));
+    existingNorm.add(keyOf(title));
     added.push(task);
   }
 
