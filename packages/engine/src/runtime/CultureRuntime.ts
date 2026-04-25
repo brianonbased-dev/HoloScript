@@ -15,9 +15,21 @@
  * @version 1.0.0
  */
 
-import { CulturalMemory, EpisodicMemory, StigmergicTrace, SemanticSOP } from '@holoscript/core';
-import { NormEngine, NormViolation, NormProposal } from '@holoscript/core';
-import { CulturalNorm, NormEnforcement, BUILTIN_NORMS } from '@holoscript/core';
+// CulturalMemory + NormEngine are framework concerns — import directly from
+// `@holoscript/framework/agents` (already an engine dep). Importing them
+// through core's hand-crafted d.ts requires duplicating the full class
+// surfaces and was causing W.099 deploy-blocker drift.
+import {
+  CulturalMemory,
+  type EpisodicMemory,
+  type StigmergicTrace,
+  type SemanticSOP,
+  NormEngine,
+  type NormViolation,
+  type NormProposal,
+  BUILTIN_NORMS,
+} from '@holoscript/framework/agents';
+import type { CulturalNorm, NormEnforcement } from '@holoscript/core';
 import { VREffect } from '@holoscript/core';
 
 // =============================================================================

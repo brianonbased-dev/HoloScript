@@ -597,8 +597,10 @@ export function compileForIsaacSim(composition: HoloComposition, options?: Parti
 // ============================================================================
 
 export class ExpressionEvaluator {
+  constructor(context?: Record<string, unknown>, builtins?: Record<string, unknown>);
   evaluate(expression: string, context?: any): any;
   extractVariables(expression: string): string[];
+  updateContext(updates: Record<string, unknown>): void;
 }
 
 export class EventBus {
@@ -3156,6 +3158,173 @@ export interface ILeaderElection {
   getLeader(): string | null;
   getRole(): 'leader' | 'follower' | 'candidate';
   onLeaderChange(callback: (leaderId: string | null) => void): () => void;
+}
+
+// ============================================================================
+// SUPPLEMENTAL EXPORTS — fills the gap between the runtime barrel
+// (\`packages/core/src/barrel/index.ts\` + \`barrel/culture-agents.ts\` +
+// \`migration/SchemaDiff.ts\` + \`types/HoloScriptPlus.ts\` + \`traits/LipSyncTrait.ts\`)
+// and the hand-crafted public d.ts. Engine + studio consumers import these from
+// \`@holoscript/core\`; without these declarations the imports fail strict tsc
+// (TS2614 / TS2724) even though the runtime symbols ARE present (re-exported
+// via barrels). See W.099 deploy-blocker sweep.
+// ============================================================================
+
+// ── HSPlus runtime / parser surface ─────────────────────────────────────────
+
+/** Runtime-injected helper functions exposed to user scripts. */
+export interface HSPlusBuiltins {
+  log: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  setTimeout: (fn: () => void, ms: number) => number;
+  clearTimeout: (id: number) => void;
+  setInterval?: (fn: () => void, ms: number) => number;
+  clearInterval?: (id: number) => void;
+  fetch?: (url: string, options?: unknown) => Promise<unknown>;
+  emit?: (event: string, data?: unknown) => void;
+  on?: (event: string, handler: (data: unknown) => void) => void;
+  off?: (event: string, handler?: (data: unknown) => void) => void;
+  showSettings?: () => void;
+  openChat?: (config?: unknown) => void;
+  assistant_generate?: (prompt: string, context?: string) => void;
+  [key: string]: unknown;
+}
+
+/**
+ * Parser-level directive node. Discriminated by \`type\` field; concrete
+ * variants (HSPlusForDirective, HSPlusIfDirective, etc.) live in
+ * \`types/AdvancedTypeSystem.ts\`. Engine consumers use the discriminator
+ * for narrowing — full variant set isn't re-exported through the public d.ts
+ * yet (separate task). This minimal shape is honest and unblocks the imports.
+ */
+export interface HSPlusDirective {
+  type: string;
+  [key: string]: unknown;
+}
+
+// ── State migration (packages/core/src/migration/SchemaDiff.ts) ─────────────
+
+export type FieldChangeKind =
+  | 'added'
+  | 'removed'
+  | 'type-changed'
+  | 'default-changed'
+  | 'reactive-changed'
+  | 'unchanged';
+
+export interface FieldChange {
+  kind: FieldChangeKind;
+  name: string;
+  oldValue?: HoloValue;
+  newValue?: HoloValue;
+  oldType?: string;
+  newType?: string;
+  requiresMigration: boolean;
+}
+
+export interface SchemaDiffResult {
+  hasChanges: boolean;
+  changes: FieldChange[];
+  added: FieldChange[];
+  removed: FieldChange[];
+  typeChanged: FieldChange[];
+  defaultChanged: FieldChange[];
+  reactiveChanged: FieldChange[];
+  requiresMigration: boolean;
+  summary: string;
+}
+
+export interface MigrationStep {
+  fromVersion: number;
+  body: unknown;
+}
+
+export interface MigrationChain {
+  fromVersion: number;
+  toVersion: number;
+  steps: MigrationStep[];
+}
+
+export function diffState(
+  oldState: HoloState | undefined,
+  newState: HoloState | undefined
+): SchemaDiffResult;
+export function buildMigrationChain(
+  template: HoloTemplate,
+  oldVersion: number,
+  newVersion: number
+): MigrationChain | null;
+export function snapshotState(state: Map<string, HoloValue>): Map<string, HoloValue>;
+export function applyAutoMigration(
+  instanceState: Map<string, HoloValue>,
+  diff: SchemaDiffResult,
+  oldDefaults: Map<string, HoloValue>
+): void;
+
+// ── State machine AST node (packages/core/src/types.ts:735) ─────────────────
+
+export interface StateMachineNode extends ASTNode {
+  type: 'state-machine';
+  name: string;
+  initialState: string;
+  states: any[];
+  transitions: any[];
+}
+
+// ── Lip-sync (packages/core/src/traits/LipSyncTrait.ts) ─────────────────────
+
+export interface PhonemeTimestamp {
+  phoneme: string;
+  time: number;
+  duration: number;
+  weight?: number;
+}
+
+// ── Culture / norms / WebRTC: NOT re-exported here.
+//    These types live in \`@holoscript/framework/agents\` and \`@holoscript/mesh\`.
+//    Engine consumers should import them DIRECTLY from those packages — both
+//    are explicit dependencies of \`@holoscript/engine\`. Earlier attempts to
+//    surface them through core's hand-crafted d.ts caused cascading TS2571
+//    "Object is of type 'unknown'" errors because the minimal shapes here
+//    couldn't keep up with the full method surface of \`CulturalMemory\` /
+//    \`NormEngine\` classes. See engine/src/runtime/CultureRuntime.ts +
+//    voice/VoiceManager.ts for the corrected import paths. ─────────────────
+
+// ── Quaternion (packages/core/src/types/HoloScriptPlus.ts:26) ───────────────
+
+export type Quaternion = [number, number, number, number];
+
+// ── WebRTC transport (re-exported from @holoscript/mesh via
+//    packages/core/src/barrel/registry-deploy-events.ts). Engine's
+//    audio/VoiceManager.ts pulls a small subset; we mirror just that
+//    surface here so the public d.ts isn't the wrong-shape lie that
+//    blocked deploy pre-flight (W.099). Full surface lives in mesh. ─────────
+
+export interface WebRTCTransportConfig {
+  signalingUrl?: string;
+  iceServers?: unknown[];
+  [key: string]: unknown;
+}
+
+export class WebRTCTransport {
+  constructor(config?: WebRTCTransportConfig);
+  connect(): Promise<void>;
+  disconnect(): void;
+  setMicrophoneEnabled(enabled: boolean): void;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  off(event: string, handler?: (...args: unknown[]) => void): void;
+}
+
+// ── Host capabilities (packages/core/src/traits/TraitTypes.ts:134) ──────────
+
+export interface HostCapabilities {
+  fileSystem?: unknown;
+  process?: unknown;
+  network?: unknown;
+  media?: unknown;
+  depthInference?: unknown;
+  gpuCompute?: unknown;
 }
 `;
 

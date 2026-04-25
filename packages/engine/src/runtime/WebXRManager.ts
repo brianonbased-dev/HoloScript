@@ -8,7 +8,9 @@
  * - WebGPU Projection Layer creation
  * - Input source tracking
  */
-import type { IWebGPUContext } from '@holoscript/core';
+// IWebGPUContext lives in engine itself — importing from `@holoscript/core`
+// fails because core's hand-crafted d.ts doesn't re-export engine internals.
+import type { IWebGPUContext } from '../rendering/webgpu/WebGPUTypes';
 
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr
