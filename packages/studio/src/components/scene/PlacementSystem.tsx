@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import { useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
+import { useStudioBus } from '@/hooks/useStudioBus';
 
 /**
  * GhostPreview — semi-transparent shape that follows the mouse on the ground
@@ -55,6 +56,10 @@ export function PlacementPlane() {
   const addNode = useSceneGraphStore((s) => s.addNode);
   const getActiveShape = useBuilderStore((s) => s.getActiveShape);
   const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
+  // Paper 24 CAEL instrumentation: emit on the studio bus so
+  // useStudioCAELSession can route ui.* channels to the trace recorder.
+  // Inert when no session hook is mounted (bus has no subscribers).
+  const { emit } = useStudioBus();
 
   const handlePointerMove = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -87,8 +92,15 @@ export function PlacementPlane() {
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
       });
+      emit('ui.placement.click', {
+        nodeId,
+        shape: shape.geometry,
+        position: [x, 0.5, z],
+        snapped: gridSnap,
+        gridSize,
+      });
     },
-    [builderMode, gridSnap, gridSize, addNode, getActiveShape]
+    [builderMode, gridSnap, gridSize, addNode, getActiveShape, emit]
   );
 
   return (

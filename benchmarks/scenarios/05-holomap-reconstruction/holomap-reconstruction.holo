@@ -1,0 +1,51 @@
+// Scenario 5: HoloMap Reconstruction
+// Purpose: Gold-standard fixture for the Sprint-3 decorator->trait
+//          resolution pipeline. Proves the parser surface for
+//          @reconstruction_source / @acceptance_video / @drift_corrected
+//          decorators round-trips cleanly through the
+//          parseHolo -> getReconstructionTraitsFromDecorators ->
+//          generateHoloSource path.
+// Complexity: Single Node carrying the full decorator trio plus a
+//             secondary Node carrying only @drift_corrected, exercising
+//             both the multi-decorator union and the single-decorator
+//             passthrough.
+// Sprint:     3 (Foundations Phase 3) — closes board task ghw9.
+// Related:
+//   - packages/core/src/traits/constants/holomap-reconstruction.ts
+//   - packages/core/src/traits/constants/__tests__/holomap-reconstruction.test.ts (Sprint 3 _xn9o)
+//   - packages/core/src/reconstruction/RFC-HoloMap.md
+//
+// ACCEPTANCE: when all 3 decorators are applied to a single Node, the
+// resolved HoloMap trait set MUST equal the full HOLOMAP_RECONSTRUCTION_TRAITS
+// list (5 traits, deduplicated, first-seen order). Round-tripping the file
+// through generateHoloSource MUST preserve the decorator set on each Node.
+
+composition "HoloMapReconstructionFixture" {
+  metadata {
+    title: "HoloMap Reconstruction Fixture"
+    version: "1.0"
+    tags: ["holomap", "reconstruction", "sprint-3", "fixture"]
+  }
+  environment {
+    skybox: "neutral_studio"
+    ambient_light: 0.4
+  }
+  object "ReconstructionSession" {
+    @reconstruction_source
+    @acceptance_video
+    @drift_corrected
+    geometry: "box"
+    position: [0, 1, -2]
+    scale: [1.0, 1.0, 1.0]
+    color: "#88bbff"
+    material: "matte"
+  }
+  object "DriftOnlyNode" {
+    @drift_corrected
+    geometry: "sphere"
+    position: [2.0, 1, -2]
+    scale: [0.4, 0.4, 0.4]
+    color: "#bbbbbb"
+    material: "metal"
+  }
+}

@@ -63,14 +63,23 @@ export function generateHoloSource(ast: HoloComposition): string {
   }
 
   lines.push(`}`);
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 function emitObject(obj: HoloObjectDecl, lines: string[], indentLevel: number) {
   const ind = ' '.repeat(indentLevel);
-  const traitStr = obj.traits.map(emitTrait).join(' ');
-  lines.push(`${ind}object "${escapeString(obj.name)}" ${traitStr} {`);
-  
+  lines.push(`${ind}object "${escapeString(obj.name)}" {`);
+
+  // Emit traits INSIDE the body (one per line) — matches the canonical
+  // .holo source style used by the benchmark fixtures and avoids the
+  // header-form `@decorator {` ambiguity where the parser treats `{` as
+  // a block-trait-config and consumes the object body. See
+  // packages/core/src/parser/HoloCompositionParser.ts parseObject (around
+  // the `parseBlockTraitConfig()` branch) for the disambiguation rule.
+  for (const trait of obj.traits) {
+    lines.push(`${ind}  ${emitTrait(trait)}`);
+  }
+
   for (const prop of obj.properties) {
     lines.push(`${ind}  ${prop.key}: ${emitValue(prop.value)}`);
   }

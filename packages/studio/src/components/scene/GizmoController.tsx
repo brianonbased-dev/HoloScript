@@ -5,6 +5,7 @@ import { useThree } from '@react-three/fiber';
 import { TransformControls } from '@react-three/drei';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
+import { useStudioBus } from '@/hooks/useStudioBus';
 import * as THREE from 'three';
 
 /**
@@ -18,6 +19,10 @@ export function GizmoController() {
   const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
   const gridSnap = useBuilderStore((s) => s.gridSnap);
   const gridSize = useBuilderStore((s) => s.gridSize);
+  // Paper 24 CAEL instrumentation: emit on the studio bus on gizmo
+  // mouse-up so useStudioCAELSession captures the resulting transform.
+  // Inert when no session hook is mounted (bus has no subscribers).
+  const { emit } = useStudioBus();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
@@ -35,12 +40,19 @@ export function GizmoController() {
   const handleChange = useCallback(() => {
     if (!target || !selectedId) return;
     const t = target as THREE.Object3D;
-    updateNodeTransform(selectedId, {
-      position: [t.position.x, t.position.y, t.position.z],
-      rotation: [t.rotation.x, t.rotation.y, t.rotation.z],
-      scale: [t.scale.x, t.scale.y, t.scale.z],
+    const position: [number, number, number] = [t.position.x, t.position.y, t.position.z];
+    const rotation: [number, number, number] = [t.rotation.x, t.rotation.y, t.rotation.z];
+    const scale: [number, number, number] = [t.scale.x, t.scale.y, t.scale.z];
+    updateNodeTransform(selectedId, { position, rotation, scale });
+    emit('ui.gizmo.transform', {
+      nodeId: selectedId,
+      mode: gizmoMode,
+      position,
+      rotation,
+      scale,
+      snapped: gridSnap,
     });
-  }, [target, selectedId, updateNodeTransform]);
+  }, [target, selectedId, updateNodeTransform, emit, gizmoMode, gridSnap]);
 
   if (!target) return null;
   return (
