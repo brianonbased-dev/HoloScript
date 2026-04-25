@@ -156,6 +156,7 @@ def build_plan(
 def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
                team_id: str, anthropic_key: str | None,
                openai_key: str | None, gemini_key: str | None,
+               github_token: str | None = None,
                connect_timeout: int = 20) -> dict:
     """Deploy one instance: scp bootstrap.sh + per-instance env file +
     runner.sh, then ssh launches under nohup. Avoids bash quote-escaping
@@ -187,18 +188,35 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     ]
     remote = f"root@{plan['ssh_host']}"
 
+    # ----- Resolve local brain composition file (will be scp'd to /root/) -----
+    # ai-ecosystem repo isn't reachable from instances (PAT scoped to HoloScript only),
+    # so we ship the brain file inline. Bootstrap accepts absolute path and skips clone.
+    brain_local = Path.home() / ".ai-ecosystem" / plan["brain_path"]
+    brain_basename = Path(plan["brain_path"]).name
+    brain_remote = f"/root/{brain_basename}"
+    if not brain_local.exists():
+        log(f"FATAL: brain file not found locally: {brain_local}")
+        return {"handle": plan["handle"], "ok": False, "step": "brain-missing",
+                "log": str(log_file)}
+
     # ----- Build per-instance env file (plain key=value, NO bash quoting) -----
     env_lines = [
         f"HOLOSCRIPT_AGENT_HANDLE={plan['handle']}",
         f"HOLOSCRIPT_AGENT_PROVIDER={plan['provider']}",
         f"HOLOSCRIPT_AGENT_MODEL={plan['model']}",
-        f"HOLOSCRIPT_AGENT_BRAIN={plan['brain_path']}",
+        f"HOLOSCRIPT_AGENT_BRAIN={brain_remote}",
         f"HOLOSCRIPT_AGENT_WALLET={plan['wallet']}",
         f"HOLOSCRIPT_AGENT_X402_BEARER={plan['bearer']}",
         f"HOLOSCRIPT_AGENT_BUDGET_USD_DAY={plan['budget']}",
         f"HOLOSCRIPT_AGENT_SCOPE_TIER={plan['scope']}",
         f"HOLOMESH_TEAM_ID={team_id}",
     ]
+    if github_token:
+        # Embed PAT in HoloScript clone URL (PAT scoped to HoloScript only;
+        # ai-ecosystem brain file is shipped inline above instead of cloned).
+        env_lines.append(
+            f"HOLOSCRIPT_REPO_URL=https://x-access-token:{github_token}@github.com/brianonbased-dev/HoloScript.git"
+        )
     if plan["provider"] == "anthropic" and anthropic_key:
         env_lines.append(f"ANTHROPIC_API_KEY={anthropic_key}")
     elif plan["provider"] == "openai" and openai_key:
@@ -229,12 +247,13 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     env_file.write_text(env_text, encoding="utf-8", newline="\n")
     runner_file.write_text(runner_text, encoding="utf-8", newline="\n")
 
-    # ----- Step 1: scp three files in one command -----
-    log("scp bootstrap-agent.sh + agent.env + runner.sh ...")
+    # ----- Step 1: scp four files in one command (bootstrap, env, runner, brain) -----
+    log(f"scp bootstrap-agent.sh + agent.env + runner.sh + {brain_basename} ...")
     scp_cmd = scp_base + [
         str(bootstrap_script),
         str(env_file),
         str(runner_file),
+        str(brain_local),
         f"{remote}:/root/",
     ]
     cp = subprocess.run(scp_cmd, capture_output=True, text=True, timeout=connect_timeout * 3)
@@ -271,6 +290,8 @@ def main() -> int:
                    default=Path.home() / "Documents" / "GitHub" / "HoloScript" / ".env")
     p.add_argument("--instance-filter", default="",
                    help="regex; matches against '<id> <gpu_name>'")
+    p.add_argument("--instance-exclude", default="",
+                   help="regex; excludes instances where '<id> <gpu_name>' matches")
     p.add_argument("--max-parallel", type=int, default=5)
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
@@ -307,7 +328,12 @@ def main() -> int:
             i for i in instances
             if re.search(args.instance_filter, f'{i["id"]} {i.get("gpu_name", "")}')
         ]
-    print(f"  {len(instances)} instance(s) match filter")
+    if args.instance_exclude:
+        instances = [
+            i for i in instances
+            if not re.search(args.instance_exclude, f'{i["id"]} {i.get("gpu_name", "")}')
+        ]
+    print(f"  {len(instances)} instance(s) after filter/exclude")
 
     config = json.loads(args.config.read_text(encoding="utf-8"))
     agents = [a for a in config["agents"] if a.get("enabled", True)]
@@ -342,6 +368,9 @@ def main() -> int:
     anthropic_key = env.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     openai_key = env.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
     gemini_key = env.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    github_token = env.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not github_token:
+        print("WARN: GITHUB_TOKEN not in env — private-repo clone will fail in bootstrap")
     if not team_id:
         print("ERROR: HOLOMESH_TEAM_ID not in env", file=sys.stderr)
         return 1
@@ -352,7 +381,8 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=args.max_parallel) as pool:
         futures = {
             pool.submit(deploy_one, pl, str(args.ssh_key), args.bootstrap_script,
-                        args.log_dir, team_id, anthropic_key, openai_key, gemini_key): pl
+                        args.log_dir, team_id, anthropic_key, openai_key, gemini_key,
+                        github_token): pl
             for pl in plans
         }
         for future in as_completed(futures):

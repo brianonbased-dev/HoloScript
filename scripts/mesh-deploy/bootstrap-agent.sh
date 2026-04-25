@@ -128,8 +128,12 @@ echo "[bootstrap] installing @holoscript/holoscript-agent deps…"
 cd "$WORKSPACE"
 pnpm install --filter @holoscript/holoscript-agent... --frozen-lockfile=false
 
-echo "[bootstrap] building @holoscript/holoscript-agent…"
-pnpm --filter @holoscript/holoscript-agent build
+echo "[bootstrap] building @holoscript/holoscript-agent + all workspace deps (topo order)…"
+# `pkg...` filter = build the package AND all transitive workspace deps; pnpm
+# topologically sorts so deps build first, agent builds last. Required because
+# tsup's DTS step in the agent needs each dep's dist/*.d.ts to resolve type
+# imports like @holoscript/llm-provider in packages/holoscript-agent/src/identity.ts.
+pnpm --filter "@holoscript/holoscript-agent..." build
 
 # ---------------------------------------------------------------------------
 # Optional: spin up a local LLM server (vLLM) for provider=local-llm
