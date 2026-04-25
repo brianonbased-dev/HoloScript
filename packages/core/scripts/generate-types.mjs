@@ -4156,9 +4156,30 @@ export declare class SourceMapGenerator { generate(source: string): string; [key
 export declare class MaterialEditor { constructor(config?: unknown); [key: string]: unknown; }
 export declare class SceneInspector { constructor(config?: unknown); [key: string]: unknown; }
 export declare class VisualEditor { constructor(config?: unknown); [key: string]: unknown; }
-export type MaterialEditorPreset = unknown;
+export interface MaterialEditorPreset {
+  name: string;
+  category: string;
+  /** Partial PBR material override. Studio adapter consumes a known
+   * subset (albedo / emission / blend / roughness / metallic / etc.); the
+   * full MaterialDef surface lives in core's runtime. */
+  material: {
+    albedo?: { r: number; g: number; b: number; a?: number };
+    emission?: { r: number; g: number; b: number };
+    emissionStrength?: number;
+    blendMode?: string;
+    roughness?: number;
+    metallic?: number;
+    doubleSided?: boolean;
+    [key: string]: unknown;
+  };
+  previewColor: string;
+}
 export type MaterialEditorConfig = unknown;
 export type MaterialPreset = unknown;
+export declare function getMaterialEditorBuiltinPresets(): MaterialEditorPreset[];
+export declare function listMaterialEditorQuickPickPresetNames(): readonly string[];
+export declare function listMaterialEditorQuickPickPresetsByCategory(): Map<string, string[]>;
+export declare function rgbaToHex(color: { r: number; g: number; b: number; a?: number }): string;
 `;
 
 const constantsDTS = `// @holoscript/core/constants — trait name constants
