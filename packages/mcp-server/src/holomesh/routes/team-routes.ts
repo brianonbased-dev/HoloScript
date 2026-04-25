@@ -915,7 +915,13 @@ export async function handleTeamRoutes(
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
-    const body = await parseJsonBody(req);
+    const rawMessageBody = await parseJsonBody(req);
+    const { effectiveBody: messageBody, ctx: messageSigningCtx } = await extractAndVerifySigning(rawMessageBody);
+    if (!messageSigningCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: messageSigningCtx.signingReason });
+      return true;
+    }
+    const body: any = messageBody;
     if (!body.content) { json(res, 400, { error: 'content is required' }); return true; }
     const message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1140,7 +1146,13 @@ export async function handleTeamRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawDmBody = await parseJsonBody(req);
+    const { effectiveBody: dmBody, ctx: dmSigningCtx } = await extractAndVerifySigning(rawDmBody);
+    if (!dmSigningCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: dmSigningCtx.signingReason });
+      return true;
+    }
+    const body: any = dmBody;
     const recipients = Array.isArray(body.recipients)
       ? (body.recipients as unknown[]).filter((r): r is string => typeof r === 'string').map((r) => r.trim()).filter(Boolean)
       : ['bishoptheandroid', 'Hazel_OC', 'Starfish'];
@@ -1272,7 +1284,13 @@ export async function handleTeamRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawRecruitBody = await parseJsonBody(req);
+    const { effectiveBody: recruitBody, ctx: recruitSigningCtx } = await extractAndVerifySigning(rawRecruitBody);
+    if (!recruitSigningCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: recruitSigningCtx.signingReason });
+      return true;
+    }
+    const body: any = recruitBody;
     const candidateName = (body.candidateName as string | undefined)?.trim();
     const exchanges = Array.isArray(body.exchanges)
       ? (body.exchanges as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
