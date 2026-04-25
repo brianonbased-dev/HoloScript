@@ -152,8 +152,19 @@ if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = 
     exit 5
   fi
   echo "[bootstrap] starting vLLM server: $LLM_MODEL on port $LLM_PORT"
-  pip install --quiet vllm || true
-  nohup python -m vllm.entrypoints.openai.api_server \
+  # Vast.ai images ship `python3` and `pip3` only — no bare `python` symlink.
+  # Without this resolution every previous bootstrap silently aborted vLLM
+  # ("nohup: failed to run command 'python': No such file or directory" in
+  # vllm.log, observed 2026-04-25 across all local-llm workers).
+  PY_BIN=$(command -v python3 || command -v python || true)
+  PIP_BIN=$(command -v pip3 || command -v pip || true)
+  if [ -z "$PY_BIN" ] || [ -z "$PIP_BIN" ]; then
+    echo "[bootstrap] FATAL: no python/pip found on PATH" >&2
+    exit 7
+  fi
+  echo "[bootstrap] python=$PY_BIN  pip=$PIP_BIN"
+  $PIP_BIN install --quiet vllm || true
+  nohup "$PY_BIN" -m vllm.entrypoints.openai.api_server \
     --model "$LLM_MODEL" \
     --port "$LLM_PORT" \
     --max-model-len 4096 \

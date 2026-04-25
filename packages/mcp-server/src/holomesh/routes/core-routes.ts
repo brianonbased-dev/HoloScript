@@ -22,6 +22,9 @@ import {
   paidAccessStore,
   HOLOMESH_DATA_DIR,
   teamStore,
+  appendCaelAuditRecord,
+  queryCaelAuditRecords,
+  type CaelAuditRecord,
 } from '../state';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
@@ -388,6 +391,96 @@ export async function handleCoreRoutes(
       permissions: [...permSet],
     });
     return true;
+  }
+
+  // ── GET /api/holomesh/agent/:handle/audit ─────────────────────────────────
+  // Closes gap-build task_1777090894117_d2jx (CAEL audit GET endpoint).
+  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md +
+  //       ai-ecosystem/research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
+  // Phase 0: in-memory store, any authenticated caller can read; Phase 1
+  // hardening (team-scoping, persistence) tracked at task_1777093147560_pawd.
+  {
+    const auditMatch = pathname.match(/^\/api\/holomesh\/agent\/([^/]+)\/audit$/);
+    if (auditMatch && method === 'GET') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to read CAEL audit log.' });
+        return true;
+      }
+      const handle = decodeURIComponent(auditMatch[1]);
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const filter = {
+        since: url.searchParams.get('since') || undefined,
+        until: url.searchParams.get('until') || undefined,
+        operation: url.searchParams.get('operation') || undefined,
+        limit: url.searchParams.get('limit')
+          ? Number(url.searchParams.get('limit'))
+          : undefined,
+      };
+      const records = queryCaelAuditRecords(handle, filter);
+      json(res, 200, {
+        success: true,
+        handle,
+        count: records.length,
+        records,
+        filter,
+      });
+      return true;
+    }
+
+    if (auditMatch && method === 'POST') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to append CAEL audit records.' });
+        return true;
+      }
+      const handle = decodeURIComponent(auditMatch[1]);
+      // Phase 0: any authenticated caller can append for their own handle.
+      // Phase 1 hardening: bearer must match handle's wallet binding.
+      const body = (await parseJsonBody(req)) as {
+        records?: CaelAuditRecord[];
+        record?: CaelAuditRecord;
+      } | null;
+      if (!body) {
+        json(res, 400, { error: 'JSON body required (record or records[]).' });
+        return true;
+      }
+      const incoming: CaelAuditRecord[] = Array.isArray(body.records)
+        ? body.records
+        : body.record
+          ? [body.record]
+          : [];
+      if (incoming.length === 0) {
+        json(res, 400, {
+          error: 'Body must contain {record: CaelAuditRecord} or {records: CaelAuditRecord[]}.',
+        });
+        return true;
+      }
+      const now = new Date().toISOString();
+      let appended = 0;
+      for (const rec of incoming) {
+        if (
+          typeof rec.tick_iso !== 'string' ||
+          !Array.isArray(rec.layer_hashes) ||
+          rec.layer_hashes.length !== 7 ||
+          typeof rec.operation !== 'string' ||
+          typeof rec.fnv1a_chain !== 'string'
+        ) {
+          // Phase 0: skip malformed records rather than reject batch.
+          // W.090 invariant: 7-layer hash array required.
+          continue;
+        }
+        appendCaelAuditRecord(handle, { ...rec, received_at: now });
+        appended++;
+      }
+      json(res, 200, {
+        success: true,
+        handle,
+        appended,
+        rejected: incoming.length - appended,
+      });
+      return true;
+    }
   }
 
   // ── GET /api/holomesh/space ───────────────────────────────────────────────

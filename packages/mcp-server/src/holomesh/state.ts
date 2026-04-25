@@ -80,6 +80,78 @@ const MAX_TEAM_FEED_ITEMS = 200;
 export const holoDoorPolicyByTeam: Map<string, Record<string, unknown>> = new Map();
 export const holoDoorEventsByTeam: Map<string, Record<string, unknown>[]> = new Map();
 
+/**
+ * CAEL Audit Store — per-agent CAEL trace ring buffer (Phase 0 in-memory).
+ * Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md +
+ *       ai-ecosystem/research/2026-04-25_fleet-empirical-composability-w-gold-189.md.
+ * Closes gap-build task_1777090894117_d2jx (CAEL audit GET endpoint).
+ *
+ * Each entry is one CAEL record produced by an attacker-loop / target-brain /
+ * composability-test capture. Records have shape per spec §5.
+ *
+ * Phase 0 limitations (filed as follow-up at task_1777093147560_pawd):
+ * - In-memory only; lost on server restart. Persistence to JSONL on
+ *   HOLOMESH_DATA_DIR is the Phase 1 hardening pass.
+ * - Per-agent ring buffer caps at 10,000 records (drops oldest).
+ * - No pagination cursor; only since/until/limit windowing.
+ *
+ * Auth model: write requires the caller to BE the agent (bearer matches
+ * handle); read requires any authenticated agent in the same team.
+ */
+export interface CaelAuditRecord {
+  tick_iso: string;
+  layer_hashes: string[]; // 7 elements per W.GOLD.189 Layer 1+2 framing
+  operation: string;
+  prev_hash: string | null;
+  fnv1a_chain: string;
+  version_vector_fingerprint: string;
+  // Optional: attacker/composability-test specific metadata
+  attack_class?: string;
+  defense_state?: string;
+  trial?: number;
+  brain_class?: string;
+  // Server-stamped on append
+  received_at: string;
+}
+
+export const agentAuditStore: Map<string, CaelAuditRecord[]> = new Map(); // handle → records
+const MAX_CAEL_RECORDS_PER_AGENT = 10_000;
+
+export function appendCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
+  const existing = agentAuditStore.get(handle) ?? [];
+  existing.push(record);
+  if (existing.length > MAX_CAEL_RECORDS_PER_AGENT) {
+    existing.shift(); // ring buffer: drop oldest
+  }
+  agentAuditStore.set(handle, existing);
+}
+
+export function queryCaelAuditRecords(
+  handle: string,
+  filter: { since?: string; until?: string; limit?: number; operation?: string } = {}
+): CaelAuditRecord[] {
+  const records = agentAuditStore.get(handle) ?? [];
+  let out = records;
+  if (filter.since) {
+    const sinceMs = Date.parse(filter.since);
+    if (Number.isFinite(sinceMs)) {
+      out = out.filter((r) => Date.parse(r.tick_iso) >= sinceMs);
+    }
+  }
+  if (filter.until) {
+    const untilMs = Date.parse(filter.until);
+    if (Number.isFinite(untilMs)) {
+      out = out.filter((r) => Date.parse(r.tick_iso) <= untilMs);
+    }
+  }
+  if (filter.operation) {
+    out = out.filter((r) => r.operation === filter.operation);
+  }
+  const limit = filter.limit ?? 1000;
+  if (out.length > limit) out = out.slice(out.length - limit); // most recent
+  return out;
+}
+
 // Social & Discussion
 export const commentStore: Map<string, StoredComment[]> = new Map(); // entryId → comments
 export const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
