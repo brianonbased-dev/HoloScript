@@ -1,0 +1,73 @@
+{
+  "run_id": "2026-04-25-smoke",
+  "started_at": "2026-04-25T03:56:05.664Z",
+  "fleet_n": 31,
+  "tick_windows_planned": 2,
+  "window_size_ms": 60000,
+  "summary": {
+    "associativity_passes": 0,
+    "permutation_invariance_passes": 0,
+    "idempotency_passes": 2,
+    "total_windows": 2,
+    "tractability_pass": true,
+    "fleet_n": 31
+  },
+  "windows": [
+    {
+      "window": {
+        "window_index": 0,
+        "start": "2026-04-24T03:56:05.646Z",
+        "window_size_ms": 60000
+      },
+      "tests": {
+        "fwd": "bbad6f8d37a0cf18e90742b604c0f7604af96ec2d8278ffa0585a465eac3aa56",
+        "rev": "3d44d6a032b2ada8f404f644946b3bc938160e725362d8bb7544e499386d17dc",
+        "rand": "c75888db8245d01f7f6e48cc809651cd3a9de6d49000a2d8c2fff03884ffa213",
+        "associativity_pass": false,
+        "permutation_invariance_pass": false,
+        "idempotency_pass": true,
+        "n_agents": 31
+      },
+      "elapsed_ms": 5,
+      "captured_agents": 31,
+      "sample_intra": [
+        {
+          "agent_handle": "mesh-worker-01",
+          "intra_agent_compose": "6f5807859c38da716f10569ae7aeb86029d5d4315959619fc6f2c1d50cbff028"
+        },
+        {
+          "agent_handle": "mesh-worker-02",
+          "intra_agent_compose": "bcdd1a921542dbc22724fa7dc394bb4100cab83bc3a2664fc125ff535a2457e5"
+        }
+      ]
+    },
+    {
+      "window": {
+        "window_index": 1,
+        "start": "2026-04-24T15:56:05.646Z",
+        "window_size_ms": 60000
+      },
+      "tests": {
+        "fwd": "cf51520ea9bb30f9182aa6b1b968d8d6ec779ebcdaaacbf589d8d467267eb944",
+        "rev": "8c4eb73e681e2f904c5350fffd2998a62d16a8fca1d97ac448217187511cb3c6",
+        "rand": "9a9b213e263d87bed242877442d99208b8fca598c5be2a2b2ccadaef38221d29",
+        "associativity_pass": false,
+        "permutation_invariance_pass": false,
+        "idempotency_pass": true,
+        "n_agents": 31
+      },
+      "elapsed_ms": 7,
+      "captured_agents": 31,
+      "sample_intra": [
+        {
+          "agent_handle": "mesh-worker-01",
+          "intra_agent_compose": "e1d60d07aeffa20716c9ad08337d9d6e39d7315288711de9c592bb4afae8ccb0"
+        },
+        {
+          "agent_handle": "mesh-worker-02",
+          "intra_agent_compose": "01081daf801b0460b5a94b471945fccd133b1bd1879b89472c99d3b03651329e"
+        }
+      ]
+    }
+  ]
+}
