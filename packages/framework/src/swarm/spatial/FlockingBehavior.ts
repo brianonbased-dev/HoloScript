@@ -349,29 +349,32 @@ export class FlockingBehavior {
   private wrapPosition(boid: IBoid, min: Vector3, max: Vector3): void {
     const size = max.subtract(min);
 
-    if (boid.position[0] < min[0]) boid.position[0] += size[0];
-    if (boid.position[0] > max[0]) boid.position[0] -= size[0];
-    if (boid.position[1] < min[1]) boid.position[1] += size[1];
-    if (boid.position[1] > max[1]) boid.position[1] -= size[1];
-    if (boid.position[2] < min[2]) boid.position[2] += size[2];
-    if (boid.position[2] > max[2]) boid.position[2] -= size[2];
+    // Mutations go via .x/.y/.z (the canonical write path); reads can use
+    // index access (dual-access on the Vector3 class, peer f7c7131cf), but
+    // the readonly numeric indexers in the type contract block writes.
+    if (boid.position.x < min.x) boid.position.x += size.x;
+    if (boid.position.x > max.x) boid.position.x -= size.x;
+    if (boid.position.y < min.y) boid.position.y += size.y;
+    if (boid.position.y > max.y) boid.position.y -= size.y;
+    if (boid.position.z < min.z) boid.position.z += size.z;
+    if (boid.position.z > max.z) boid.position.z -= size.z;
   }
 
   /**
    * Bounce off boundaries
    */
   private bouncePosition(boid: IBoid, min: Vector3, max: Vector3): void {
-    if (boid.position[0] < min[0] || boid.position[0] > max[0]) {
-      boid.velocity[0] *= -1;
-      boid.position[0] = Math.max(min[0], Math.min(max[0], boid.position[0]));
+    if (boid.position.x < min.x || boid.position.x > max.x) {
+      boid.velocity.x *= -1;
+      boid.position.x = Math.max(min.x, Math.min(max.x, boid.position.x));
     }
-    if (boid.position[1] < min[1] || boid.position[1] > max[1]) {
-      boid.velocity[1] *= -1;
-      boid.position[1] = Math.max(min[1], Math.min(max[1], boid.position[1]));
+    if (boid.position.y < min.y || boid.position.y > max.y) {
+      boid.velocity.y *= -1;
+      boid.position.y = Math.max(min.y, Math.min(max.y, boid.position.y));
     }
-    if (boid.position[2] < min[2] || boid.position[2] > max[2]) {
-      boid.velocity[2] *= -1;
-      boid.position[2] = Math.max(min[2], Math.min(max[2], boid.position[2]));
+    if (boid.position.z < min.z || boid.position.z > max.z) {
+      boid.velocity.z *= -1;
+      boid.position.z = Math.max(min.z, Math.min(max.z, boid.position.z));
     }
   }
 
@@ -379,9 +382,9 @@ export class FlockingBehavior {
    * Contain within boundaries (clamp)
    */
   private containPosition(boid: IBoid, min: Vector3, max: Vector3): void {
-    boid.position[0] = Math.max(min[0], Math.min(max[0], boid.position[0]));
-    boid.position[1] = Math.max(min[1], Math.min(max[1], boid.position[1]));
-    boid.position[2] = Math.max(min[2], Math.min(max[2], boid.position[2]));
+    boid.position.x = Math.max(min.x, Math.min(max.x, boid.position.x));
+    boid.position.y = Math.max(min.y, Math.min(max.y, boid.position.y));
+    boid.position.z = Math.max(min.z, Math.min(max.z, boid.position.z));
   }
 
   /**

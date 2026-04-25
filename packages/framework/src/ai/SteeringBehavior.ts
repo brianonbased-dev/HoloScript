@@ -4,7 +4,12 @@
  * @version 1.0.0
  */
 
-import { Vector3 } from '../types/HoloScriptPlus';
+// Vec3 tuple [number, number, number] — inline type (Vec3 isn't part of
+// @holoscript/core's hand-crafted dist/index.d.ts, only an internal core
+// alias). SteeringBehavior treats Vec3 as a tuple: array literal
+// construction + numeric index access throughout. (Was importing from
+// non-existent ../types/HoloScriptPlus; fixed 2026-04-25.)
+type Vector3 = [number, number, number];
 
 export type SteeringType = 'seek' | 'flee' | 'arrive' | 'wander' | 'avoid' | 'pursue' | 'evade';
 

@@ -102,7 +102,7 @@ export class SteeringBehaviors {
       agent.position,
       SteeringBehaviors.scale(vel, circleDistance)
     );
-    const offset = [Math.cos(angle) * circleRadius, 0, Math.sin(angle) * circleRadius];
+    const offset: [number, number, number] = [Math.cos(angle) * circleRadius, 0, Math.sin(angle) * circleRadius];
     const target = SteeringBehaviors.add(circleCenter, offset);
     return { force: SteeringBehaviors.seek(agent, target), newAngle: angle };
   }

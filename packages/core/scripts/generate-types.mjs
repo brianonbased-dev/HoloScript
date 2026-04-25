@@ -3078,6 +3078,83 @@ export declare function emitPreviewHoloScriptFromNodeGraphExecution(
   execution: NodeGraphExecutionResult,
   graph: NodeGraph
 ): string;
+
+// ============================================================================
+// Agent Extension Types — mirrored from src/extensions/AgentExtensionTypes.ts.
+// Added 2026-04-25 to unblock packages/framework imports of these types.
+// Update both this block AND src/extensions/AgentExtensionTypes.ts if shape
+// changes; CLAUDE.md flags dist/index.d.ts as hand-crafted (not tsc).
+// ============================================================================
+
+export interface IHiveContribution {
+  id: string;
+  agentId: string;
+  timestamp: number;
+  type: 'idea' | 'critique' | 'consensus' | 'solution';
+  content: string;
+  confidence: number;
+}
+
+export interface IHiveSession {
+  id: string;
+  topic: string;
+  goal: string;
+  initiator: string;
+  status: 'active' | 'resolved' | 'closed';
+  participants: string[];
+  contributions: IHiveContribution[];
+  resolution?: unknown;
+}
+
+export interface ICollectiveIntelligenceService {
+  createSession(topic: string, goal: string, initiator: string): IHiveSession | Promise<string>;
+  join(sessionId: string, agentId: string): void | Promise<void>;
+  leave(sessionId: string, agentId: string): void | Promise<void>;
+  contribute(
+    sessionId: string,
+    contribution: Omit<IHiveContribution, 'id' | 'timestamp'>
+  ): IHiveContribution | Promise<void>;
+  vote(
+    sessionId: string,
+    contributionId: string,
+    voterId: string,
+    vote: 'support' | 'oppose'
+  ): void | Promise<void>;
+  synthesize(sessionId: string): unknown;
+  resolve(sessionId: string, resolution: string | unknown): void | Promise<void>;
+}
+
+export interface ISwarmConfig {
+  algorithm: 'pso' | 'aco' | 'bees' | 'hybrid';
+  populationSize: number;
+  maxIterations: number;
+  convergenceThreshold: number;
+  adaptiveSizing?: boolean;
+}
+
+export interface ISwarmResult {
+  bestSolution: number[];
+  bestFitness: number;
+  converged: boolean;
+  iterations: number;
+  improvementPercent: number;
+}
+
+export interface ISwarmCoordinator {
+  optimize(
+    agents: { id: string; capacity: number; load: number }[],
+    tasks: { id: string; complexity: number; priority: number }[],
+    config?: Partial<ISwarmConfig>
+  ): Promise<ISwarmResult>;
+  getRecommendedPopulation(problemSize: number): number;
+}
+
+export interface ILeaderElection {
+  startElection(): Promise<string>;
+  getLeader(): string | null;
+  getRole(): 'leader' | 'follower' | 'candidate';
+  onLeaderChange(callback: (leaderId: string | null) => void): () => void;
+}
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

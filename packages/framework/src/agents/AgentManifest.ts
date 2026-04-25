@@ -157,7 +157,15 @@ export interface AgentEndpoint {
 // ============================================================================
 
 /**
- * 3D Vector for spatial definitions
+ * 3D Vector for spatial definitions.
+ *
+ * Plain `{x, y, z}` shape; readers and writers access via .x/.y/.z.
+ * Numeric-index access (`v[0]/[1]/[2]`) is supported on the spatial
+ * Vector3 CLASS (packages/framework/src/swarm/spatial/Vector3.ts —
+ * dual-access via Object.defineProperty per peer f7c7131cf), but is NOT
+ * part of THIS interface contract. Code that needs both styles should
+ * import the spatial Vector3 class; code that only needs the data
+ * shape can use this interface and access via .x/.y/.z.
  */
 export interface Vector3 {
   x: number;
