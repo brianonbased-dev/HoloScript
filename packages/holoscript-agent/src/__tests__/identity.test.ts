@@ -40,8 +40,12 @@ describe('loadIdentity', () => {
     expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_WALLET: '0xshort' })).toThrowError();
   });
 
-  it('rejects non-positive daily budgets (founder ruling Q1: hard kill at ceiling)', () => {
-    expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: '0' })).toThrowError();
+  it('accepts budget=0 as unlimited (cap removed per founder directive 2026-04-25)', () => {
+    const id = loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: '0' });
+    expect(id.budgetUsdPerDay).toBe(0);
+  });
+
+  it('rejects negative or non-numeric daily budgets', () => {
     expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: '-5' })).toThrowError();
     expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: 'abc' })).toThrowError();
   });

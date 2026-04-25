@@ -25,8 +25,8 @@ export function loadIdentity(env: NodeJS.ProcessEnv = process.env): AgentIdentit
   }
   const budgetRaw = env.HOLOSCRIPT_AGENT_BUDGET_USD_DAY ?? '5';
   const budget = Number(budgetRaw);
-  if (!Number.isFinite(budget) || budget <= 0) {
-    throw new Error(`HOLOSCRIPT_AGENT_BUDGET_USD_DAY must be a positive number, got ${budgetRaw}`);
+  if (!Number.isFinite(budget) || budget < 0) {
+    throw new Error(`HOLOSCRIPT_AGENT_BUDGET_USD_DAY must be >= 0 (0 = unlimited), got ${budgetRaw}`);
   }
 
   return {

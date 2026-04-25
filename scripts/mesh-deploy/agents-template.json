@@ -3,7 +3,7 @@
 
   "_provisioning_status": "TEMPLATE — wallet + x402 bearer fields are placeholders. Founder must: (1) provision N x402 seats on the HoloMesh team-board, (2) generate N wallets, (3) substitute placeholders below. Per F.027/F.002: x402 seat creation is founder authority; agent must NOT auto-provision.",
 
-  "globalBudgetUsdPerDay": 50,
+  "globalBudgetUsdPerDay": 0,
   "defaultTickIntervalMs": 60000,
 
   "agents": [
@@ -15,7 +15,7 @@
       "model": "claude-opus-4-7",
       "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_H200",
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_H200",
-      "budgetUsdPerDay": 20,
+      "budgetUsdPerDay": 0,
       "scopeTier": "hot",
       "enabled": true,
       "tickIntervalMs": 30000,
@@ -29,7 +29,7 @@
       "model": "Qwen/Qwen2.5-0.5B-Instruct",
       "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_TI1",
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_TI1",
-      "budgetUsdPerDay": 1,
+      "budgetUsdPerDay": 0,
       "scopeTier": "warm",
       "enabled": true
     },
@@ -41,7 +41,7 @@
       "model": "Qwen/Qwen2.5-0.5B-Instruct",
       "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_SEC1",
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_SEC1",
-      "budgetUsdPerDay": 1,
+      "budgetUsdPerDay": 0,
       "scopeTier": "warm",
       "enabled": true
     },
@@ -53,7 +53,7 @@
       "model": "mock-1",
       "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_MOCK1",
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_MOCK1",
-      "budgetUsdPerDay": 1,
+      "budgetUsdPerDay": 0,
       "scopeTier": "cold",
       "enabled": true,
       "tickIntervalMs": 120000

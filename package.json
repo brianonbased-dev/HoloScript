@@ -9,7 +9,7 @@
     "services/*"
   ],
   "scripts": {
-    "build": "pnpm --filter @holoscript/core build && pnpm -r --workspace-concurrency=1 --filter '!@holoscript/core' build",
+    "build": "pnpm --filter @holoscript/core build && pnpm -r --workspace-concurrency=1 --filter '!@holoscript/core' --filter '!./packages/plugins/**' build",
     "build:parallel": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",

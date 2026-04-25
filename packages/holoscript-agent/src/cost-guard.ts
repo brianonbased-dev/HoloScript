@@ -50,11 +50,13 @@ export class CostGuard {
   }
 
   isOverBudget(): boolean {
+    if (this.dailyBudgetUsd === 0) return false;
     this.rolloverIfNewDay();
     return this.state.spentUsd >= this.dailyBudgetUsd;
   }
 
   getRemainingUsd(): number {
+    if (this.dailyBudgetUsd === 0) return Number.POSITIVE_INFINITY;
     this.rolloverIfNewDay();
     return Math.max(0, this.dailyBudgetUsd - this.state.spentUsd);
   }
