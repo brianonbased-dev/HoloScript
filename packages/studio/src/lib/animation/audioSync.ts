@@ -66,6 +66,54 @@ export interface AudioSyncConfig {
   autoBPM?: boolean;
 }
 
+// ─── URL Sanitizer (SSRF guard) ──────────────────────────────────────────────
+
+/**
+ * Allowlist of trusted audio CDN hosts. Same-origin and `blob:` URLs are
+ * always permitted; everything else must match this list (exactly or as a
+ * subdomain). Keep tight — this gates fetch() from a browser context, so a
+ * misconfigured value can be used to probe internal services on shared
+ * networks (cloud metadata endpoints, intranet services, etc.).
+ */
+export const TRUSTED_AUDIO_HOSTS = Object.freeze([
+  'cdn.jsdelivr.net',
+  'unpkg.com',
+  'storage.googleapis.com',
+  'd1mhxc6ydosa9d.cloudfront.net',
+  'cdn.holoscript.net',
+  'media.holoscript.net',
+]);
+
+/**
+ * Validate an audio URL before fetching. Throws on unsafe protocol or host.
+ * Returns the parsed URL on success. Exported so tests (and any caller that
+ * wants to validate without instantiating an AudioContext) can exercise it.
+ */
+export function validateAudioUrl(
+  url: string,
+  origin: { href: string; host: string } = { href: 'http://localhost/', host: 'localhost' }
+): URL {
+  const parsed = new URL(url, origin.href);
+  // Protocol allowlist — block file:, javascript:, ftp:, etc.
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:' && parsed.protocol !== 'blob:') {
+    throw new Error(`Unsafe URL protocol: ${parsed.protocol}`);
+  }
+  // Host allowlist — block SSRF to internal services / metadata endpoints.
+  // blob: URLs have no host and are same-origin by spec; same-origin URLs are
+  // always permitted. Cross-origin requires an explicit allowlist.
+  if (parsed.protocol !== 'blob:' && parsed.host !== origin.host) {
+    const hostAllowed = TRUSTED_AUDIO_HOSTS.some(
+      (h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`)
+    );
+    if (!hostAllowed) {
+      throw new Error(
+        `Audio URL host '${parsed.hostname}' is not in the trusted-host allowlist`
+      );
+    }
+  }
+  return parsed;
+}
+
 // ─── Audio Sync Manager ──────────────────────────────────────────────────────
 
 export class AudioSyncManager {
@@ -136,10 +184,7 @@ export class AudioSyncManager {
    * Load audio from URL
    */
   async loadAudioFromUrl(url: string): Promise<AudioAnalysis> {
-    const parsed = new URL(url, window.location.href);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:' && parsed.protocol !== 'blob:') {
-      throw new Error(`Unsafe URL protocol: ${parsed.protocol}`);
-    }
+    const parsed = validateAudioUrl(url, window.location);
     const response = await fetch(parsed.href);
     const arrayBuffer = await response.arrayBuffer();
     this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);

@@ -54,11 +54,28 @@ export interface SketchfabSearchParams {
 
 // ─── API Configuration ───────────────────────────────────────────────────────
 
+/**
+ * Assert a baseUrl is a relative same-origin path. Rejects protocol-relative
+ * URLs (e.g. `//attacker.example`) which `new URL(x, location).host` would
+ * resolve to an attacker host. Exported for tests.
+ */
+export function assertRelativeSameOriginPath(baseUrl: string, label: string): void {
+  if (!baseUrl.startsWith('/') || baseUrl.startsWith('//')) {
+    throw new Error(
+      `${label} baseUrl must be a relative same-origin path, got: ${baseUrl}`
+    );
+  }
+}
+
 function getSketchfabAPI() {
-  return {
+  const cfg = {
     baseUrl: '/api/proxy/sketchfab',
     apiKey: 'proxy_mode',
   };
+  // Guard: baseUrl must be a relative same-origin path to prevent SSRF /
+  // open-redirect via misconfigured env.
+  assertRelativeSameOriginPath(cfg.baseUrl, 'Sketchfab');
+  return cfg;
 }
 
 // ─── Search ──────────────────────────────────────────────────────────────────

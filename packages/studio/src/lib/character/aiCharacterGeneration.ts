@@ -47,13 +47,60 @@ function getAPIConfig() {
       apiKey: 'proxy_mode',
     },
   };
-  // Guard: base URLs must be relative paths to prevent open-redirect / SSRF
+  // Guard: base URLs must be relative paths to prevent open-redirect / SSRF.
+  // Same-origin proxy routes ensure fetch() can never be redirected to an
+  // attacker-controlled host even if env config is tampered with.
   for (const [provider, cfg] of Object.entries(config)) {
-    if (!cfg.baseUrl.startsWith('/')) {
+    if (!cfg.baseUrl.startsWith('/') || cfg.baseUrl.startsWith('//')) {
       throw new Error(`AI provider '${provider}' baseUrl must be a relative path, got: ${cfg.baseUrl}`);
     }
   }
   return config;
+}
+
+/**
+ * Allowlist of image hosts trusted enough to forward to a third-party
+ * generation API. Rodin/Meshy fetch the URL server-side, so an unsanitized
+ * URL would let a caller pivot the upstream service into an SSRF probe
+ * (e.g. `http://169.254.169.254/...` on cloud).
+ */
+export const TRUSTED_IMAGE_HOSTS = Object.freeze([
+  'cdn.holoscript.net',
+  'media.holoscript.net',
+  'storage.googleapis.com',
+  'cdn.jsdelivr.net',
+  'images.unsplash.com',
+  'imgur.com',
+  'i.imgur.com',
+  'github.com',
+  'raw.githubusercontent.com',
+  'user-images.githubusercontent.com',
+]);
+
+/**
+ * Validate that a user-supplied image URL is from a trusted host before
+ * forwarding it to a third-party generation API. Exported for tests.
+ */
+export function assertTrustedImageUrl(imageUrl: string | undefined): void {
+  if (!imageUrl) return;
+  let parsed: URL;
+  try {
+    parsed = new URL(imageUrl);
+  } catch {
+    throw new Error(`Invalid imageUrl: ${imageUrl}`);
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'data:') {
+    throw new Error(`Unsafe imageUrl protocol: ${parsed.protocol}`);
+  }
+  if (parsed.protocol === 'data:') return; // base64 inline image, no host
+  const hostAllowed = TRUSTED_IMAGE_HOSTS.some(
+    (h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`)
+  );
+  if (!hostAllowed) {
+    throw new Error(
+      `imageUrl host '${parsed.hostname}' is not in the trusted-host allowlist`
+    );
+  }
 }
 
 // ─── Mock Mode (Development) ─────────────────────────────────────────────────
@@ -98,6 +145,7 @@ async function _mockGeneration(_request: GenerationRequest): Promise<GenerationS
  * Docs: https://docs.meshy.ai/api-text-to-3d
  */
 async function generateWithMeshy(request: GenerationRequest): Promise<string> {
+  assertTrustedImageUrl(request.imageUrl);
   const response = await fetch(`${getAPIConfig().meshy.baseUrl}/text-to-3d`, {
     method: 'POST',
     headers: {
@@ -162,6 +210,7 @@ async function pollMeshyStatus(taskId: string): Promise<GenerationStatus> {
  * Docs: https://docs.rodin.ai/api-reference
  */
 async function generateWithRodin(request: GenerationRequest): Promise<string> {
+  assertTrustedImageUrl(request.imageUrl);
   const response = await fetch(`${getAPIConfig().rodin.baseUrl}/generate`, {
     method: 'POST',
     headers: {
