@@ -94,7 +94,14 @@ export function classifyTrustTier(manifest: ReconstructionManifest): HoloMapTrus
 
   if (hasOts && hasBase) return 'fully-anchored';
   if (hasOts) return 'ots-anchored';
-  if (hasAnchorHash) return 'self-attested';
+  // Bug-fix 2026-04-25: Base-calldata-only (no OTS, no anchorHash) was
+  // previously classified `untrusted`, which loses the Base anchor's
+  // evidentiary value. Per S.ANC dual-anchor pattern, a Base tx alone is
+  // weaker than OTS (no Bitcoin-rooted timestamp) but stronger than a
+  // bare runtime self-attestation marker — so it qualifies as
+  // `self-attested` tier alongside any non-empty anchorHash. OTS
+  // remains the gate for `ots-anchored`+ tiers.
+  if (hasAnchorHash || hasBase) return 'self-attested';
   return 'untrusted';
 }
 

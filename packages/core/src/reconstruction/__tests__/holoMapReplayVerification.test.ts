@@ -130,6 +130,28 @@ describe('classifyTrustTier — provenance-field-based tiering', () => {
     });
     expect(classifyTrustTier(m)).toBe('self-attested');
   });
+
+  // Regression: bug-fix 2026-04-25. Previously returned 'untrusted' here
+  // because the implementation only checked anchorHash and OTS for the
+  // self-attested tier. Base calldata alone IS evidentiary and should
+  // qualify as self-attested per S.ANC dual-anchor pattern.
+  it('returns "self-attested" when ONLY Base calldata is set (no OTS, no anchorHash)', () => {
+    const m = makeManifest({}, {
+      anchorHash: undefined,
+      opentimestampsProof: undefined,
+      baseCalldataTx: '0xdeadbeef',
+    });
+    expect(classifyTrustTier(m)).toBe('self-attested');
+  });
+
+  it('returns "self-attested" when ONLY Base calldata is set with empty anchorHash', () => {
+    const m = makeManifest({}, {
+      anchorHash: '',
+      opentimestampsProof: '',
+      baseCalldataTx: '0xdeadbeef',
+    });
+    expect(classifyTrustTier(m)).toBe('self-attested');
+  });
 });
 
 // ---------------------------------------------------------------------------
