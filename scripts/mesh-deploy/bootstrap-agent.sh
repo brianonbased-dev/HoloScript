@@ -283,26 +283,119 @@ fi
 # Start the agent daemon
 # ---------------------------------------------------------------------------
 AGENT_PID_FILE="$LOG_DIR/agent.pid"
-if [ -f "$AGENT_PID_FILE" ]; then
-  OLD_PID=$(cat "$AGENT_PID_FILE")
-  if kill -0 "$OLD_PID" 2>/dev/null; then
-    echo "[bootstrap] killing previous agent (pid $OLD_PID)…"
-    kill "$OLD_PID" || true
-    sleep 2
+SYSTEMD_UNIT="/etc/systemd/system/holoscript-agent.service"
+
+# 2026-04-25 lock-in: install as a systemd service so the agent survives
+# - the SSH session ending (the original `nohup` problem),
+# - the box rebooting,
+# - the agent process crashing (Restart=on-failure).
+# Falls back to legacy nohup path if systemd isn't available (e.g.
+# minimal-image instances without an init system).
+USE_SYSTEMD=0
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+  USE_SYSTEMD=1
+fi
+
+if [ "$USE_SYSTEMD" = "1" ]; then
+  echo "[bootstrap] installing systemd unit at $SYSTEMD_UNIT…"
+  WORKDIR="$WORKSPACE/packages/holoscript-agent"
+  NODE_BIN=$(command -v node || echo /usr/bin/node)
+  # Snapshot the env vars the agent runtime needs into the unit's
+  # Environment= directives. Sensitive values (API keys + bearers) are
+  # written to /root/.holoscript-agent.env (mode 600) and loaded via
+  # EnvironmentFile so they don't leak into systemctl status output.
+  ENV_FILE="/root/.holoscript-agent.env"
+  : > "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  for var in HOLOSCRIPT_AGENT_HANDLE HOLOSCRIPT_AGENT_PROVIDER HOLOSCRIPT_AGENT_MODEL \
+             HOLOSCRIPT_AGENT_BRAIN HOLOSCRIPT_AGENT_WALLET HOLOSCRIPT_AGENT_X402_BEARER \
+             HOLOSCRIPT_AGENT_BUDGET_USD_DAY HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL \
+             HOLOMESH_TEAM_ID ANTHROPIC_API_KEY OPENAI_API_KEY GEMINI_API_KEY; do
+    if [ -n "${!var:-}" ]; then
+      printf '%s=%s\n' "$var" "${!var}" >> "$ENV_FILE"
+    fi
+  done
+
+  cat > "$SYSTEMD_UNIT" <<UNIT
+[Unit]
+Description=HoloScript Headless Agent (handle=$HOLOSCRIPT_AGENT_HANDLE)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$WORKDIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$NODE_BIN dist/index.js run
+StandardOutput=append:$LOG_DIR/agent.log
+StandardError=append:$LOG_DIR/agent.log
+# Self-heal on crash. RestartSec=10s gives time for a vLLM bounce.
+Restart=on-failure
+RestartSec=10s
+# Cap restart loop. After 5 failures within 60s, stop trying — operator
+# must intervene (rather than burn budget on a deterministically-broken
+# config).
+StartLimitBurst=5
+StartLimitIntervalSec=60
+# Process management. Kill children too on stop.
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  systemctl daemon-reload
+  # Stop any prior nohup-launched agent before swapping to systemd
+  if [ -f "$AGENT_PID_FILE" ]; then
+    OLD_PID=$(cat "$AGENT_PID_FILE" 2>/dev/null || echo "")
+    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+      echo "[bootstrap] killing previous nohup-style agent (pid $OLD_PID) before systemd takeover…"
+      kill "$OLD_PID" || true
+      sleep 2
+    fi
+    rm -f "$AGENT_PID_FILE"
   fi
+
+  systemctl enable holoscript-agent.service >/dev/null 2>&1 || true
+  systemctl restart holoscript-agent.service
+
+  sleep 3
+  if systemctl is-active --quiet holoscript-agent.service; then
+    AGENT_PID=$(systemctl show -p MainPID --value holoscript-agent.service)
+    echo "$AGENT_PID" > "$AGENT_PID_FILE"
+    echo "[bootstrap] DONE — agent running under systemd as pid $AGENT_PID"
+    echo "[bootstrap] tail logs: journalctl -u holoscript-agent -f  OR  tail -f $LOG_DIR/agent.log"
+    echo "[bootstrap] restart:   systemctl restart holoscript-agent"
+    echo "[bootstrap] stop:      systemctl stop holoscript-agent"
+  else
+    echo "[bootstrap] FATAL: systemd unit failed to start — see $LOG_DIR/agent.log + journalctl -u holoscript-agent" >&2
+    journalctl -u holoscript-agent --no-pager -n 30 >&2 || true
+    tail -20 "$LOG_DIR/agent.log" >&2 || true
+    exit 4
+  fi
+else
+  # Fallback: legacy nohup path for environments without systemd.
+  if [ -f "$AGENT_PID_FILE" ]; then
+    OLD_PID=$(cat "$AGENT_PID_FILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+      echo "[bootstrap] killing previous agent (pid $OLD_PID)…"
+      kill "$OLD_PID" || true
+      sleep 2
+    fi
+  fi
+
+  echo "[bootstrap] systemd unavailable — falling back to nohup daemon (no auto-restart on crash)"
+  nohup node dist/index.js run > "$LOG_DIR/agent.log" 2>&1 &
+  AGENT_PID=$!
+  echo "$AGENT_PID" > "$AGENT_PID_FILE"
+
+  sleep 3
+  if ! kill -0 "$AGENT_PID" 2>/dev/null; then
+    echo "[bootstrap] FATAL: agent died within 3s — see $LOG_DIR/agent.log" >&2
+    tail -20 "$LOG_DIR/agent.log" >&2 || true
+    exit 4
+  fi
+
+  echo "[bootstrap] DONE — agent running as pid $AGENT_PID (nohup), logs at $LOG_DIR/agent.log"
 fi
-
-echo "[bootstrap] starting headless agent daemon…"
-nohup node dist/index.js run > "$LOG_DIR/agent.log" 2>&1 &
-AGENT_PID=$!
-echo "$AGENT_PID" > "$AGENT_PID_FILE"
-
-sleep 3
-if ! kill -0 "$AGENT_PID" 2>/dev/null; then
-  echo "[bootstrap] FATAL: agent died within 3s — see $LOG_DIR/agent.log" >&2
-  tail -20 "$LOG_DIR/agent.log" >&2 || true
-  exit 4
-fi
-
-echo "[bootstrap] DONE — agent running as pid $AGENT_PID, logs at $LOG_DIR/agent.log"
 echo "[bootstrap] $(date -u +%FT%TZ) bootstrap complete"

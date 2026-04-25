@@ -52,9 +52,35 @@ function sha(input: string): string {
   return createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
-function brainClassOf(brainPath: string): string {
-  const m = String(brainPath ?? '').match(/compositions[\\/]([\w-]+)-brain\.hsplus$/);
-  return m ? m[1] : 'unknown';
+/**
+ * Extract the brain class from a runtime brain config. Tries multiple sources
+ * because brainPath shape varies across deployment environments:
+ *   1. compositions/<class>-brain.hsplus (canonical layout — caught 2026-04-24)
+ *   2. <anything>/<class>-brain.hsplus (loose match — Vast.ai box layout)
+ *   3. <class>-brain.hsplus basename only
+ *   4. brain.domain (loaded from .hsplus identity block by loadBrain())
+ *   5. 'unknown' if all sources fail
+ *
+ * Live evidence (2026-04-25 mesh-worker-01 record): the strict regex returned
+ * 'unknown' against the production worker box's brainPath, leaving every CAEL
+ * fingerprint useless for fleet attribution. This loosened version recovers
+ * brain class even when path layout drifts from the compositions/-rooted form.
+ */
+function brainClassOf(brain: { brainPath?: string; domain?: string }): string {
+  const p = String(brain.brainPath ?? '');
+  // Tier 1: canonical compositions/-rooted layout.
+  let m = p.match(/compositions[\\/]([\w-]+)-brain\.hsplus$/);
+  if (m) return m[1];
+  // Tier 2: any path with `<class>-brain.hsplus` basename.
+  m = p.match(/([\w-]+)-brain\.hsplus$/);
+  if (m) return m[1];
+  // Tier 3: bare basename.
+  m = p.match(/([\w-]+)\.hsplus$/);
+  if (m) return m[1];
+  // Tier 4: domain field from the loaded brain composition's identity block.
+  const domain = String(brain.domain ?? '').trim();
+  if (domain && domain !== 'unknown') return domain;
+  return 'unknown';
 }
 
 export function buildCaelRecord(input: BuildCaelRecordInput): CaelAuditRecord {
@@ -76,7 +102,7 @@ export function buildCaelRecord(input: BuildCaelRecordInput): CaelAuditRecord {
     operation: `task-executed:${task.id}`,
     prev_hash: prevChain,
     fnv1a_chain,
-    version_vector_fingerprint: `agent@${runtimeVersion}|brain@${brainClassOf(brain.brainPath)}|provider@${identity.llmProvider}|model@${identity.llmModel}`,
-    brain_class: brainClassOf(brain.brainPath),
+    version_vector_fingerprint: `agent@${runtimeVersion}|brain@${brainClassOf(brain)}|provider@${identity.llmProvider}|model@${identity.llmModel}`,
+    brain_class: brainClassOf(brain),
   };
 }

@@ -22,7 +22,9 @@ import {
   paidAccessStore,
   HOLOMESH_DATA_DIR,
   teamStore,
+  teamPresenceStore,
   agentTeamIndex,
+  agentAuditStore,
   appendCaelAuditRecord,
   queryCaelAuditRecords,
   type CaelAuditRecord,
@@ -37,6 +39,7 @@ import {
   VALID_ATTACK_CLASSES,
   type DispatchEntry,
 } from '../state';
+import type { TeamPresenceEntry } from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
@@ -610,6 +613,129 @@ export async function handleCoreRoutes(
         handle,
         defense: config,
         active: config !== null,
+      });
+      return true;
+    }
+  }
+
+  // ── GET /api/holomesh/team/:teamId/fleet-status ───────────────────────────
+  // Operator-facing dashboard query: "is the fleet running?". Cross-references
+  // (a) presence (live heartbeats), (b) recent CAEL activity (audit POSTs in
+  // the last 60min window). Optional ?since=<iso> override for the CAEL window.
+  // Auth: any authenticated team member or founder.
+  //
+  // Response shape:
+  //   {
+  //     team_id, snapshot_iso,
+  //     online_count, online_handles[],
+  //     cael_active_count, cael_active_handles[],
+  //     by_handle: { <handle>: { online, last_heartbeat, cael_records, last_cael_iso } }
+  //   }
+  //
+  // Use case: 1-call diagnostic for "the fleet was dispatched but is anything
+  // actually doing work?" Caught 2026-04-25 mesh-worker-01 was the only
+  // CAEL-active worker out of 31 dispatched.
+  {
+    const fleetMatch = pathname.match(/^\/api\/holomesh\/team\/([^/]+)\/fleet-status$/);
+    if (fleetMatch && method === 'GET') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required for fleet-status.' });
+        return true;
+      }
+      const teamId = decodeURIComponent(fleetMatch[1]);
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: `Team "${teamId}" not found.` });
+        return true;
+      }
+      // Auth: founder or team member
+      const callerInTeam = team.members?.some((m) => m.agentId === caller.id);
+      if (!caller.isFounder && !callerInTeam) {
+        json(res, 403, { error: `Forbidden: caller "${caller.name}" not in team "${teamId}".` });
+        return true;
+      }
+
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const sinceParam = url.searchParams.get('since');
+      const sinceIso = sinceParam || new Date(Date.now() - 60 * 60_000).toISOString();
+      const sinceMs = Date.parse(sinceIso);
+
+      // Build per-handle map from presence + agentAuditStore.
+      // Note: this endpoint does NOT read agents.json (which lives on the
+      // operator's machine, not in the server). It reports on handles that
+      // have actually CAEL-touched this server. For the full roster cross-
+      // reference, the operator-side `deploy-workers.py --status` complements
+      // this by reading agents.json + checking each box.
+      const presence = teamPresenceStore.get(teamId);
+      const presenceByHandle = new Map<string, TeamPresenceEntry>();
+      if (presence) {
+        for (const entry of presence.values()) {
+          presenceByHandle.set(entry.agentName, entry);
+        }
+      }
+
+      // Aggregate CAEL activity per handle from agentAuditStore (in-memory
+      // ring buffer). Filtered to records since `sinceIso`.
+      const caelByHandle = new Map<string, { count: number; latestIso: string }>();
+      for (const [handle, records] of agentAuditStore.entries()) {
+        const recent = records.filter((r) => {
+          const t = Date.parse(r.tick_iso);
+          return Number.isFinite(t) && t >= sinceMs;
+        });
+        if (recent.length > 0) {
+          const latest = recent.reduce(
+            (acc, r) => (acc.tick_iso > r.tick_iso ? acc : r),
+            recent[0]
+          );
+          caelByHandle.set(handle, { count: recent.length, latestIso: latest.tick_iso });
+        }
+      }
+
+      // Union of handles seen in either presence or CAEL store
+      const allHandles = new Set<string>([
+        ...presenceByHandle.keys(),
+        ...caelByHandle.keys(),
+      ]);
+
+      const byHandle: Record<string, {
+        online: boolean;
+        last_heartbeat: string | null;
+        status: string | null;
+        cael_records_in_window: number;
+        last_cael_iso: string | null;
+      }> = {};
+      let onlineCount = 0;
+      let caelActiveCount = 0;
+      const onlineHandles: string[] = [];
+      const caelActiveHandles: string[] = [];
+      for (const handle of allHandles) {
+        const p = presenceByHandle.get(handle);
+        const c = caelByHandle.get(handle);
+        const isOnline = p?.status === 'active' || p?.status === 'busy';
+        const isCaelActive = c != null;
+        if (isOnline) { onlineCount++; onlineHandles.push(handle); }
+        if (isCaelActive) { caelActiveCount++; caelActiveHandles.push(handle); }
+        byHandle[handle] = {
+          online: isOnline,
+          last_heartbeat: p?.lastHeartbeat ?? null,
+          status: p?.status ?? null,
+          cael_records_in_window: c?.count ?? 0,
+          last_cael_iso: c?.latestIso ?? null,
+        };
+      }
+
+      json(res, 200, {
+        success: true,
+        team_id: teamId,
+        snapshot_iso: new Date().toISOString(),
+        window: { since: sinceIso, window_minutes: Math.round((Date.now() - sinceMs) / 60_000) },
+        online_count: onlineCount,
+        online_handles: onlineHandles.sort(),
+        cael_active_count: caelActiveCount,
+        cael_active_handles: caelActiveHandles.sort(),
+        total_handles_observed: allHandles.size,
+        by_handle: byHandle,
       });
       return true;
     }
