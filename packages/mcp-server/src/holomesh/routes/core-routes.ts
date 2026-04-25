@@ -22,6 +22,7 @@ import {
   paidAccessStore,
   HOLOMESH_DATA_DIR,
   teamStore,
+  agentTeamIndex,
   appendCaelAuditRecord,
   queryCaelAuditRecords,
   type CaelAuditRecord,
@@ -412,6 +413,36 @@ export async function handleCoreRoutes(
         return true;
       }
       const handle = decodeURIComponent(auditMatch[1]);
+      // Phase 1.5 auth (this commit): team-scoped reads. Caller must be in
+      // at least one team that the handle's owner agent is also in, OR
+      // be the handle owner themselves, OR be founder. Prevents an
+      // attacker from reading sensitive attack-trial CAEL data they
+      // shouldn't see (Paper 21 trial logs are not public).
+      if (!caller.isFounder && caller.name !== handle) {
+        // Look up the handle's owner agent by name.
+        let handleAgent: typeof caller.agent | null = null;
+        for (const a of agentKeyStore.values()) {
+          if (a.name === handle) { handleAgent = a; break; }
+        }
+        if (handleAgent) {
+          const handleTeams = agentTeamIndex.get(handleAgent.id) || [];
+          const callerTeams = agentTeamIndex.get(caller.id) || [];
+          const sharedTeam = handleTeams.some((t) => callerTeams.includes(t));
+          if (!sharedTeam) {
+            json(res, 403, {
+              error: `Forbidden: caller "${caller.name}" not in any team with handle "${handle}".`,
+            });
+            return true;
+          }
+        } else {
+          // Unknown handle: only founder can read (prevents a probe for
+          // existence of arbitrary handles).
+          json(res, 403, {
+            error: `Forbidden: handle "${handle}" not registered or caller not authorized to read.`,
+          });
+          return true;
+        }
+      }
       const url = new URL(req.url ?? '/', 'http://localhost');
       const filter = {
         since: url.searchParams.get('since') || undefined,
