@@ -182,6 +182,7 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
     endFrames.forEach((endFrame, i) => {
       const t = useEasing ? easeInOutCubic(i / blendFrames) : i / blendFrames;
 
+      if (!startFrame.rotation || !endFrame.rotation) return;
       const startQuat = new THREE.Quaternion(...startFrame.rotation);
       const endQuat = new THREE.Quaternion(...endFrame.rotation);
 

@@ -4,10 +4,12 @@ import { useEffect } from 'react';
 
 export function WebVitals() {
   useEffect(() => {
-    import('web-vitals').then(({ onCLS, onFID, onLCP, onTTFB, onINP }) => {
+    // web-vitals v5 dropped `onFID` in favour of `onINP` (Core Web Vitals
+    // promotion 2024-03). FID had been deprecated since v4. INP is now
+    // the canonical Interaction-to-Next-Paint metric.
+    import('web-vitals').then(({ onCLS, onLCP, onTTFB, onINP }) => {
       const { reportWebVitals } = require('@/app/web-vitals');
       onCLS(reportWebVitals);
-      onFID(reportWebVitals);
       onLCP(reportWebVitals);
       onTTFB(reportWebVitals);
       onINP(reportWebVitals);
