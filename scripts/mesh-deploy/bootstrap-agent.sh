@@ -128,6 +128,35 @@ echo "[bootstrap] installing @holoscript/holoscript-agent deps…"
 cd "$WORKSPACE"
 pnpm install --filter @holoscript/holoscript-agent... --frozen-lockfile=false
 
+# ---------------------------------------------------------------------------
+# Lean toolchain (only for anthropic-provider lean-theorist work).
+# Install elan + lake so the agent's bash tool can run `lake build` to
+# kernel-check Lean proofs it produces. Without this, lean-theorist agents
+# write Invariants.lean files but cannot verify them (observed 2026-04-25:
+# W01 H200 produced Paper 22 invariant 4 closed but flagged "I cannot run
+# lake build in this sandbox" per anti-pattern rule_2/rule_6 honest disclosure).
+# Only install on anthropic instances — local-llm workers don't write Lean.
+# Idempotent: skip if elan already present.
+# ---------------------------------------------------------------------------
+if [ "$HOLOSCRIPT_AGENT_PROVIDER" = "anthropic" ]; then
+  if ! command -v lake >/dev/null 2>&1; then
+    echo "[bootstrap] installing Lean toolchain (elan + lake) for anthropic agent…"
+    curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+      | sh -s -- -y --default-toolchain leanprover/lean4:v4.15.0 2>&1 | tail -3 || true
+    if ! grep -q "elan" /root/.bashrc 2>/dev/null; then
+      echo 'export PATH="$HOME/.elan/bin:$PATH"' >> /root/.bashrc
+    fi
+    export PATH="$HOME/.elan/bin:$PATH"
+    if command -v lake >/dev/null 2>&1; then
+      echo "[bootstrap] lean toolchain ready: $(lean --version 2>&1 | head -1)"
+    else
+      echo "[bootstrap] WARN: elan install completed but lake not on PATH"
+    fi
+  else
+    echo "[bootstrap] lean toolchain already installed, skipping"
+  fi
+fi
+
 echo "[bootstrap] building @holoscript/holoscript-agent + all workspace deps (topo order)…"
 # `pkg...` filter = build the package AND all transitive workspace deps; pnpm
 # topologically sorts so deps build first, agent builds last. Required because
@@ -139,7 +168,45 @@ pnpm --filter "@holoscript/holoscript-agent..." build
 # Optional: spin up a local LLM server (vLLM) for provider=local-llm
 # ---------------------------------------------------------------------------
 if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = "local-llm" ]; then
-  LLM_MODEL="${LOCAL_LLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
+  # GPU-tier model selection. nvidia-smi reports VRAM in MiB; convert to GB
+  # then pick the highest-tier model from gpu-tier-models.json whose min_gb
+  # threshold is <= reported VRAM. Override via HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL_OVERRIDE
+  # in agent.env (or LOCAL_LLM_MODEL) wins. Fallback: Qwen 0.5B for any GPU.
+  TIER_TABLE="$WORKSPACE/scripts/mesh-deploy/gpu-tier-models.json"
+  if [ -z "$LOCAL_LLM_MODEL" ] && [ -f "$TIER_TABLE" ] && command -v nvidia-smi >/dev/null 2>&1; then
+    VRAM_MIB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
+    if [ -n "$VRAM_MIB" ] && [ "$VRAM_MIB" -gt 0 ] 2>/dev/null; then
+      VRAM_GB=$(( VRAM_MIB / 1024 ))
+      echo "[bootstrap] GPU VRAM detected: ${VRAM_GB} GB (${VRAM_MIB} MiB)"
+      # Pick highest tier whose min_gb <= VRAM_GB
+      PICKED=$(VRAM_GB="$VRAM_GB" TIER_TABLE="$TIER_TABLE" python3 -c "
+import json, os
+v = int(os.environ['VRAM_GB'])
+table = json.load(open(os.environ['TIER_TABLE']))
+for tier in table['tiers']:
+    if v >= tier['min_gb']:
+        print(tier['model'])
+        break
+" 2>/dev/null)
+      if [ -n "$PICKED" ]; then
+        LLM_MODEL="$PICKED"
+        # Also extract vllm_args + expected_first_token_ms for log + bind-poll tuning
+        EXTRA_ARGS=$(VRAM_GB="$VRAM_GB" TIER_TABLE="$TIER_TABLE" python3 -c "
+import json, os
+v = int(os.environ['VRAM_GB'])
+table = json.load(open(os.environ['TIER_TABLE']))
+for tier in table['tiers']:
+    if v >= tier['min_gb']:
+        print(' '.join(tier.get('vllm_args', [])))
+        break
+" 2>/dev/null)
+        echo "[bootstrap] tier-selected model: $LLM_MODEL"
+        echo "[bootstrap] extra vllm args: $EXTRA_ARGS"
+      fi
+    fi
+  fi
+  LLM_MODEL="${LLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
+  EXTRA_ARGS="${EXTRA_ARGS:-}"
   # Default to 8081 — Vast.ai instances ship with Jupyter notebook bound to
   # 8080 (observed 2026-04-25: every mesh instance's port 8080 was held by
   # `jupyter-notebook ... --port=8080`, silently shadowing vLLM and leaving
@@ -164,28 +231,38 @@ if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = 
   fi
   echo "[bootstrap] python=$PY_BIN  pip=$PIP_BIN"
   $PIP_BIN install --quiet vllm || true
+  # AWQ models need autoawq for vLLM to recognize the quantization format.
+  # Cheap to install if model is non-AWQ; required if it is.
+  if echo "$LLM_MODEL" | grep -qi "awq"; then
+    $PIP_BIN install --quiet autoawq || true
+  fi
+  # EXTRA_ARGS comes from gpu-tier-models.json (e.g. --max-model-len 16384
+  # --gpu-memory-utilization 0.92 for 72B-class models). Word-split intentional;
+  # entries are pre-quoted in the JSON.
   nohup "$PY_BIN" -m vllm.entrypoints.openai.api_server \
     --model "$LLM_MODEL" \
     --port "$LLM_PORT" \
-    --max-model-len 4096 \
+    $EXTRA_ARGS \
     > "$LOG_DIR/vllm.log" 2>&1 &
   echo $! > "$LOG_DIR/vllm.pid"
   export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT/v1"
-  echo "[bootstrap] waiting up to 180s for vLLM to load model (poll every 10s)…"
-  # Cold model download + GPU init for Qwen2.5-0.5B was observed >30s on
-  # mesh-worker-13 (RTX 5070, 2026-04-25) — vLLM eventually bound at ~70s.
-  # Poll 18× rather than fail-fast at 30s. Total wait still bounded.
+  # Big-model grace: 0.5B = ~1GB download, 7B = ~5GB, 72B-AWQ = ~36GB.
+  # Vast HF download speed is typically 100-500 MB/s, so 72B can take 5-15 min
+  # cold. 60 polls × 15s = 900s = 15min ceiling.
+  GRACE_POLLS=60
+  POLL_S=15
+  echo "[bootstrap] waiting up to $((GRACE_POLLS * POLL_S))s for vLLM to load $LLM_MODEL (poll every ${POLL_S}s)…"
   vllm_up=0
-  for attempt in $(seq 1 18); do
-    sleep 10
+  for attempt in $(seq 1 $GRACE_POLLS); do
+    sleep $POLL_S
     if curl -sf "http://localhost:$LLM_PORT/v1/models" > /dev/null 2>&1; then
       vllm_up=1
-      echo "[bootstrap] vLLM responding on $LLM_PORT (attempt $attempt = ~${attempt}0s)"
+      echo "[bootstrap] vLLM responding on $LLM_PORT (attempt $attempt = ~$((attempt * POLL_S))s)"
       break
     fi
   done
   if [ "$vllm_up" = "0" ]; then
-    echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within 180s — see $LOG_DIR/vllm.log" >&2
+    echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within $((GRACE_POLLS * POLL_S))s — see $LOG_DIR/vllm.log" >&2
     tail -30 "$LOG_DIR/vllm.log" >&2 || true
     exit 6
   fi

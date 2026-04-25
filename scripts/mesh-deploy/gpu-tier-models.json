@@ -1,0 +1,55 @@
+{
+  "_README": [
+    "GPU VRAM tier -> vLLM model. Bootstrap reads this on each instance,",
+    "queries `nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits` (MiB),",
+    "converts to GB, picks the highest tier whose `min_gb` <= reported VRAM.",
+    "AWQ quantized models picked by default for VRAM efficiency — vLLM supports",
+    "natively, ~4-bit quantization preserves 90-95% of full-precision quality.",
+    "",
+    "Override with HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL_OVERRIDE in agent.env if needed.",
+    "",
+    "Inventory snapshot 2026-04-25 (29 running instances on Vast.ai):",
+    "  140 GB H200          x1 (anthropic — uses Claude API, ignore)",
+    "   93 GB H100 NVL      x1  -> 70b-tier",
+    "   15-16 GB RTX 5060Ti/5080 x6  -> 14b-tier",
+    "   10-12 GB RTX 4070*/5070/3080/3060/2080Ti/Titan V x18  -> 7b-tier",
+    "    7-8 GB RTX 5060/2060S/1080/P4000 x4  -> 3b-tier"
+  ],
+  "tiers": [
+    {
+      "min_gb": 70,
+      "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
+      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.92"],
+      "expected_first_token_ms": 800,
+      "notes": "AWQ q4 ~36GB. Production-grade reasoning + coding. Single instance class on current fleet (H100 NVL)."
+    },
+    {
+      "min_gb": 14,
+      "model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.90"],
+      "expected_first_token_ms": 600,
+      "notes": "AWQ q4 ~9GB + KV cache. Fits 16GB cards. Strong on coding + structured output."
+    },
+    {
+      "min_gb": 9,
+      "model": "Qwen/Qwen2.5-7B-Instruct-AWQ",
+      "vllm_args": ["--max-model-len", "8192", "--gpu-memory-utilization", "0.88"],
+      "expected_first_token_ms": 400,
+      "notes": "AWQ q4 ~5GB + KV cache. Fits 10-12GB cards. Decent for audits + tool-use."
+    },
+    {
+      "min_gb": 6,
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "vllm_args": ["--max-model-len", "4096", "--gpu-memory-utilization", "0.85"],
+      "expected_first_token_ms": 200,
+      "notes": "fp16 ~6GB. Fits 7-8GB cards. Cheap classification + grep-summary tasks only."
+    },
+    {
+      "min_gb": 0,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "vllm_args": ["--max-model-len", "2048", "--gpu-memory-utilization", "0.80"],
+      "expected_first_token_ms": 100,
+      "notes": "Fallback for any GPU. Capacity-only — output quality too low for paper deliverables."
+    }
+  ]
+}
