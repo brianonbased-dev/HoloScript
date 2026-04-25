@@ -8,6 +8,7 @@
  */
 
 import { IVector3 } from './PhysicsTypes';
+import type { Quaternion } from '@holoscript/core';
 
 type Vec3Like = IVector3 | { x: number; y: number; z: number };
 

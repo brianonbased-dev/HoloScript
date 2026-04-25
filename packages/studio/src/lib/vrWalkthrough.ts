@@ -208,11 +208,7 @@ function vec3Dist(a: Vec3Like, b: Vec3Like): number {
  * Determine hand reach distance from shoulder approximation.
  */
 export function handReachDistance(hand: HandPose, shoulderHeight: number = 1.4): number {
-  const shoulderPos: Vec3 = [
-    hand.handedness === 'left' ? -0.2 : 0.2,
-    shoulderHeight,
-    0,
-  ];
+  const shoulderPos: Vec3 = vec3(hand.handedness === 'left' ? -0.2 : 0.2, shoulderHeight, 0);
   return vec3Dist(shoulderPos, hand.wristPosition);
 }
 

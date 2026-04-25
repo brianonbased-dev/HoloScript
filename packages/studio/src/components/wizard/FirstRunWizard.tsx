@@ -14,8 +14,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
-import AnimatedStep from './AnimatedStep';
-import GitHubOAuthModal from '../integrations/GitHubOAuthModal';
+import { AnimatedStep } from './AnimatedStep';
+import { GitHubOAuthModal } from '../integrations/GitHubOAuthModal';
 
 interface Composition {
   id: string;

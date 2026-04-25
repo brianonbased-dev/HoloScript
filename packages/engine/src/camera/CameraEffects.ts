@@ -166,7 +166,7 @@ export class CameraEffects {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getShakeOffset(): { x: number; y: number } {
+  getShakeOffset(): [number, number] {
     return this.shakeOffset;
   }
   getZoomMultiplier(): number {

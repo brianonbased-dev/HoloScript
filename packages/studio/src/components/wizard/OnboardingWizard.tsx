@@ -19,7 +19,7 @@ import { ImportRepoWizard } from './ImportRepoWizard';
 import { StudioSetupWizard } from './StudioSetupWizard';
 import { BrittneyWizard } from './BrittneyWizard';
 
-import { FirstRunWizard } from './FirstRunWizard';
+import FirstRunWizard from './FirstRunWizard';
 
 type OnboardingPath = null | 'quickstart' | 'import' | 'create' | 'describe';
 

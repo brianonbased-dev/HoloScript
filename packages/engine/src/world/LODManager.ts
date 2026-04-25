@@ -75,12 +75,12 @@ export class LODManager {
     levels?: LODLevel[],
     bias = 1
   ): LODObject {
-    const pos = Array.isArray(position)
+    const pos: [number, number, number] = Array.isArray(position)
       ? [position[0], position[1], position[2]]
       : [position.x, position.y, position.z];
     const obj: LODObject = {
       id,
-      position: [...pos],
+      position: pos,
       currentLevel: 0,
       levels: levels ?? [...this.config.defaultLevels],
       bias,
@@ -100,7 +100,7 @@ export class LODManager {
   // ---------------------------------------------------------------------------
 
   setViewerPosition(x: number, y: number, z: number): void {
-    this.viewerPosition = { x, y, z };
+    this.viewerPosition = [x, y, z];
   }
 
   update(dt: number): void {

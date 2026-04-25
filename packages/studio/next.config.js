@@ -120,6 +120,23 @@ const nextConfig = {
       syncWebAssembly: true,
     };
 
+    // ESM .js-extension import resolution. Workspace packages use the
+    // NodeNext convention where TypeScript source files import siblings
+    // with a `.js` extension (e.g. `from './XrMetricsBinding.js'` resolving
+    // to `./XrMetricsBinding.ts` at compile time). Webpack's default doesn't
+    // handle this without `extensionAlias`. There are 131+ such imports
+    // across @holoscript/core src/ alone — fixing this at config level
+    // covers all of them in one line. Verified 2026-04-25 against Railway
+    // deployment 5e06c58f failing on `Module not found: Can't resolve
+    // './XrMetricsBinding.js'`.
+    config.resolve = config.resolve || {};
+    config.resolve.extensionAlias = {
+      ...(config.resolve.extensionAlias || {}),
+      '.js': ['.ts', '.tsx', '.js'],
+      '.mjs': ['.mts', '.mjs'],
+      '.cjs': ['.cts', '.cjs'],
+    };
+
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
       type: 'asset/resource',

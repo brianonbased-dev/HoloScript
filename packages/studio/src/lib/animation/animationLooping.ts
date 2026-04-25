@@ -91,6 +91,7 @@ export function analyzeLoop(clip: RecordedClip, options: LoopOptions = {}): Loop
     const startFrame = frames[0];
     const endFrame = frames[frames.length - 1];
 
+    if (!startFrame.rotation || !endFrame.rotation) return;
     const startQuat = new THREE.Quaternion(...startFrame.rotation);
     const endQuat = new THREE.Quaternion(...endFrame.rotation);
 
