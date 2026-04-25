@@ -146,16 +146,20 @@ the team's release-claims hook within 2 ticks (~5 min).
   `agent.pid` + `agent.log` per instance. There's no centralized
   dashboard pulling logs — that's a separate observability task.
   For now: tail logs via `vastai logs <id>` or SSH.
-- **Auto-restart on agent crash**: bootstrap doesn't supervise the
-  daemon (no systemd / pm2). A crash kills the agent until next
-  bootstrap re-run. Acceptable for short-lived rentals; add pm2 if
-  rental >24hr.
+- **Auto-restart on agent crash**: ✅ resolved 2026-04-25 — `bootstrap-agent.sh`
+  installs a systemd unit (`holoscript-agent.service`) with `Restart=on-failure`,
+  `RestartSec=10s`, `StartLimitBurst=5` (so a deterministically-broken config
+  stops burning budget after 5 failures in 60s), and `KillMode=mixed` so child
+  processes (vLLM, etc.) are also reaped on stop. On boxes without systemd the
+  bootstrap falls back to `nohup` (no auto-restart there — fine for short
+  ephemeral rentals; warning is logged).
 - **Brain-composition sync**: bootstrap clones `ai-ecosystem` repo to
   `/root/ai-ecosystem` if the brain isn't found in HoloScript. Brain
   changes require re-running deploy (which `git pull`s).
-- **Vast.ai instance restart**: if Vast.ai restarts an instance,
-  systemd-style daemon supervision is missing. Re-run deploy script
-  to restore.
+- **Vast.ai instance restart**: ✅ resolved 2026-04-25 — same systemd unit is
+  enabled (`systemctl enable holoscript-agent.service`) so the daemon comes
+  back up automatically after a reboot. On non-systemd images the daemon is
+  still nohup-style and dies with the SSH session.
 - **F.014 compliance**: bootstrap.sh + Deploy-MeshAgents.ps1 do NOT
   parse `.hs/.hsplus/.holo` source. The agent runtime itself uses
   `@holoscript/core` per F.014.
