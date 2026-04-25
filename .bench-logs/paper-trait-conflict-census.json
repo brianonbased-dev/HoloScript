@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-18T10:03:13.438Z",
+  "generatedAt": "2026-04-24T23:57:09.309Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-conflict-census.test.ts",
-  "traitUniverseCount": 2794,
+  "traitUniverseCount": 2801,
   "knownSchemaTraitCount": 37,
-  "unknownSchemaTraitCount": 2757,
-  "totalPairs": 3901821,
+  "unknownSchemaTraitCount": 2764,
+  "totalPairs": 3921400,
   "modeCounts": [
     {
       "mode": "strict_error_bidirectional",
@@ -16,11 +16,11 @@
     },
     {
       "mode": "domain_override",
-      "count": 11166
+      "count": 11194
     },
     {
       "mode": "authority_weighted",
-      "count": 3890655
+      "count": 3910206
     }
   ],
   "strictConflictPairs": 0,
