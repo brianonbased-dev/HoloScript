@@ -154,6 +154,31 @@ describe('AgentRunner.tick', () => {
     expect(mesh.claim).not.toHaveBeenCalled();
   });
 
+  it('writes a task-executed event to the audit log when supplied (Phase 3 producer wiring)', async () => {
+    const { AuditLog } = await import('../audit-log.js');
+    const dir = mkdtempSync(join(tmpdir(), 'audit-runner-'));
+    const auditLog = new AuditLog({ logPath: join(dir, 'audit.jsonl') });
+    const tasks: BoardTask[] = [
+      { id: 't-aud', title: 'audit-wired memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider: mockProvider({ promptTokens: 200, completionTokens: 100 }),
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+      auditLog,
+    });
+    await runner.tick();
+    const events = auditLog.query();
+    expect(events).toHaveLength(1);
+    expect(events[0].kind).toBe('task-executed');
+    expect(events[0].agent.handle).toBe('security-auditor');
+    expect(events[0].task?.id).toBe('t-aud');
+    expect(events[0].execution?.totalTokens).toBe(300);
+  });
+
   it('routes the response through onTaskExecuted when supplied (Phase 1.5 commit hook)', async () => {
     const tasks: BoardTask[] = [
       { id: 't-G10', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },

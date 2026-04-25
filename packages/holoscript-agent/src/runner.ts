@@ -2,6 +2,7 @@ import type { ILLMProvider } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
+import type { AuditLog } from './audit-log.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -18,6 +19,7 @@ export interface AgentRunnerOptions {
   mesh: HolomeshClient;
   logger?: (event: Record<string, unknown>) => void;
   onTaskExecuted?: (result: ExecutionResult, task: BoardTask) => Promise<void>;
+  auditLog?: AuditLog;
 }
 
 export class AgentRunner {
@@ -93,6 +95,18 @@ export class AgentRunner {
         target.id,
         `[${identity.handle}] response (${response.usage.totalTokens} tok, $${cost.costUsd.toFixed(4)}):\n\n${response.content}`
       );
+    }
+
+    if (this.opts.auditLog) {
+      try {
+        this.opts.auditLog.recordTaskExecuted({
+          identity,
+          task: target,
+          result: execResult,
+        });
+      } catch (err) {
+        log({ ev: 'audit-log-error', message: err instanceof Error ? err.message : String(err) });
+      }
     }
 
     return {

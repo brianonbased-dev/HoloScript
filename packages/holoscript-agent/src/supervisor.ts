@@ -6,6 +6,7 @@ import { CostGuard } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { loadBrain } from './brain.js';
 import { makeCommitHook } from './commit-hook.js';
+import { AuditLog } from './audit-log.js';
 import type { AgentSpec, SupervisorConfig } from './supervisor-config.js';
 import type { AgentIdentity, BoardTask, ExecutionResult, RuntimeBrainConfig } from './types.js';
 
@@ -36,6 +37,7 @@ export interface SupervisorOptions {
   meshApiBase?: string;
   teamId: string;
   stateDir?: string;
+  auditLogPath?: string;
   logger?: (event: Record<string, unknown>) => void;
   fetchImpl?: typeof fetch;
   now?: () => Date;
@@ -46,10 +48,12 @@ export class Supervisor {
   private readonly agents = new Map<string, ManagedAgent>();
   private stopped = false;
   private globalBudgetUsdPerDay?: number;
+  private readonly auditLog?: AuditLog;
 
   constructor(opts: SupervisorOptions) {
     this.opts = opts;
     this.globalBudgetUsdPerDay = opts.config.globalBudgetUsdPerDay;
+    this.auditLog = opts.auditLogPath ? new AuditLog({ logPath: opts.auditLogPath }) : undefined;
   }
 
   async start(): Promise<void> {
@@ -117,6 +121,7 @@ export class Supervisor {
       costGuard,
       mesh,
       onTaskExecuted,
+      auditLog: this.auditLog,
       logger: (ev) => this.log({ agent: spec.handle, ...ev }),
     });
     const status: SupervisorAgentStatus = {

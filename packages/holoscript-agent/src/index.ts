@@ -83,6 +83,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   });
 
   const commitHook = buildCommitHook(identity, mesh);
+  const auditLog = buildAuditLog();
 
   const runner = new AgentRunner({
     identity,
@@ -92,6 +93,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     mesh,
     logger: (ev) => console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev })),
     onTaskExecuted: commitHook,
+    auditLog,
   });
 
   console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'boot', identity: identityForLog(identity), brain: { domain: brain.domain, tags: brain.capabilityTags, tier: brain.scopeTier } }));
@@ -149,6 +151,7 @@ async function cmdSupervise(rest: string[]): Promise<void> {
     providerFactory: supervisorProviderFactory(),
     teamId,
     meshApiBase: process.env.HOLOMESH_API_BASE,
+    auditLogPath: auditLogPath(),
     logger: (ev) => console.log(JSON.stringify(ev)),
   });
 
@@ -389,6 +392,17 @@ function stateFilePath(identity: AgentIdentity): string {
   const dir = process.env.HOLOSCRIPT_AGENT_STATE_DIR
     ?? join(homedir(), '.holoscript-agent', 'cost-state');
   return join(dir, `${identity.handle}.json`);
+}
+
+function auditLogPath(): string {
+  return process.env.HOLOSCRIPT_AGENT_AUDIT_LOG
+    ?? join(homedir(), '.holoscript-agent', 'audit', 'audit.jsonl');
+}
+
+function buildAuditLog(): AuditLog | undefined {
+  const enabled = (process.env.HOLOSCRIPT_AGENT_AUDIT_ENABLED ?? '1').toLowerCase();
+  if (enabled === '0' || enabled === 'false') return undefined;
+  return new AuditLog({ logPath: auditLogPath() });
 }
 
 function printHelp(): void {

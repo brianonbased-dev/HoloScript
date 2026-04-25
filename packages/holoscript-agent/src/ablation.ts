@@ -6,6 +6,8 @@ import type {
   TokenUsage,
 } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
+import type { AuditLog } from './audit-log.js';
+import type { AgentIdentity } from './types.js';
 
 export interface AblationProviderSpec {
   label: string;
@@ -54,6 +56,9 @@ export interface RunAblationOptions {
   providers: AblationProviderSpec[];
   costGuard?: CostGuard;
   timeoutPerCellMs?: number;
+  auditLog?: AuditLog;
+  matrixId?: string;
+  identityFor?: (spec: AblationProviderSpec) => AgentIdentity;
 }
 
 export async function runAblation(opts: RunAblationOptions): Promise<AblationMatrix> {
@@ -72,6 +77,7 @@ export async function runAblation(opts: RunAblationOptions): Promise<AblationMat
 
   const cells: AblationCell[] = [];
   let budgetExhausted = false;
+  const matrixId = opts.matrixId ?? `mx_${promptHash}_${Date.now()}`;
 
   for (const spec of providers) {
     if (costGuard?.isOverBudget()) {
@@ -116,7 +122,17 @@ export async function runAblation(opts: RunAblationOptions): Promise<AblationMat
         durationMs,
         finishReason: response.finishReason,
       });
+      recordAblationCellIfWired(opts, spec, {
+        matrixId,
+        promptHash,
+        promptTokens: response.usage.promptTokens,
+        completionTokens: response.usage.completionTokens,
+        costUsd,
+        durationMs,
+        finishReason: response.finishReason,
+      });
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       cells.push({
         label: spec.label,
         provider: spec.provider,
@@ -126,7 +142,17 @@ export async function runAblation(opts: RunAblationOptions): Promise<AblationMat
         costUsd: 0,
         durationMs: Date.now() - t0,
         finishReason: 'error',
-        errorMessage: err instanceof Error ? err.message : String(err),
+        errorMessage,
+      });
+      recordAblationCellIfWired(opts, spec, {
+        matrixId,
+        promptHash,
+        promptTokens: 0,
+        completionTokens: 0,
+        costUsd: 0,
+        durationMs: Date.now() - t0,
+        finishReason: 'error',
+        errorMessage,
       });
     }
   }
@@ -169,6 +195,53 @@ export function renderAblationMarkdown(matrix: AblationMatrix): string {
   });
 
   return [...header, ...rows, ''].join('\n');
+}
+
+function recordAblationCellIfWired(
+  opts: RunAblationOptions,
+  spec: AblationProviderSpec,
+  cell: {
+    matrixId: string;
+    promptHash: string;
+    promptTokens: number;
+    completionTokens: number;
+    costUsd: number;
+    durationMs: number;
+    finishReason: string;
+    errorMessage?: string;
+  }
+): void {
+  if (!opts.auditLog) return;
+  const identity = opts.identityFor?.(spec) ?? {
+    handle: `ablation:${spec.label}`,
+    surface: `ablation:${spec.label}`,
+    wallet: '0x0000000000000000000000000000000000000000',
+    x402Bearer: '',
+    llmProvider: spec.provider,
+    llmModel: spec.model,
+    brainPath: opts.task.brainPath ?? '(none)',
+    budgetUsdPerDay: 0,
+    teamId: '(ablation)',
+    meshApiBase: '(ablation)',
+  };
+  try {
+    opts.auditLog.recordAblationCell({
+      identity,
+      matrixId: cell.matrixId,
+      label: spec.label,
+      taskId: opts.task.taskId,
+      taskTitle: opts.task.taskTitle,
+      promptHash: cell.promptHash,
+      promptTokens: cell.promptTokens,
+      completionTokens: cell.completionTokens,
+      costUsd: cell.costUsd,
+      durationMs: cell.durationMs,
+      finishReason: cell.finishReason,
+      errorMessage: cell.errorMessage,
+    });
+  } catch {
+    // Audit log write must never break the ablation matrix output.
+  }
 }
 
 function hashPrompt(system: string, user: string): string {
