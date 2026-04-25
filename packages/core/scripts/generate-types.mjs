@@ -3330,7 +3330,7 @@ export type FieldChangeKind =
 
 export interface FieldChange {
   kind: FieldChangeKind;
-  name: string;
+  key: string;
   oldValue?: HoloValue;
   newValue?: HoloValue;
   oldType?: string;

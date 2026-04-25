@@ -89,7 +89,7 @@ export class ParticleTurbulence {
 
   apply(particles: TurbParticle[], dt: number): void {
     for (const p of particles) {
-      const curl = this.sampleCurl(p[0], p[1], p[2]);
+      const curl = this.sampleCurl(p.x, p.y, p.z);
       p.vx += curl.fx * dt;
       p.vy += curl.fy * dt;
       p.vz += curl.fz * dt;

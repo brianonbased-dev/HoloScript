@@ -1,9 +1,5 @@
-import type { Vector3 } from '@holoscript/core';
-import {
-  HSPlusRuntime,
-  VRHand,
-  Vector3,
-} from '@holoscript/core';
+import type { VRHand, Vector3 } from '@holoscript/core';
+import type { HoloScriptPlusRuntimeImpl } from './HoloScriptPlusRuntime';
 
 type UIComponent = any;
 const createUIButton = (id: string, props: any) => ({id, type: 'button', properties: props});
@@ -20,7 +16,7 @@ export class HandMenuSystem {
   private transitions: TransitionSystem;
 
   constructor(
-    private runtime: HSPlusRuntime,
+    private runtime: HoloScriptPlusRuntimeImpl,
     engine?: AnimationEngine
   ) {
     this.transitions = new TransitionSystem(engine || new AnimationEngine());
