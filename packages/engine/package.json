@@ -787,6 +787,7 @@
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",
+    "test:bench": "vitest run --config vitest.bench.config.ts",
     "test:watch": "vitest"
   },
   "keywords": [

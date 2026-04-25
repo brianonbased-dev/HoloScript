@@ -24,8 +24,8 @@ const QUARANTINED_TESTS: string[] = [
   // ── CLASS C: Source regressions (keep quarantined, need source fixes) ─────
   // Physics — PBD solver + cloth + constraint integration fail real assertions
   // (not tuple-access test bugs). Fixes belong in source, not tests.
-  
-  
+
+
 
   // Simulation — StressRecovery is long-running (>17s), fails under coverage.
   // (CSVImporter p.x/p.y/p.z bug fixed; DataImport.test.ts now runs clean — 14/14 pass.)
@@ -48,14 +48,44 @@ const QUARANTINED_TESTS: string[] = [
   'src/traits/__tests__/IoTPipeline.integration.test.ts',
   'src/traits/__tests__/MultiplayerNPCScene.integration.test.ts',
 
-  // ── BENCHES_SKIP: Coverage-instrumentation-sensitive ─────────────────────
+  // ── BENCHES_SKIP moved out (2026-04-25, task_1776878960824_c8te) ─────────
+  // Previously listed here:
+  //   src/simulation/__tests__/fnv1a-vs-sha256.bench.test.ts
+  //   src/simulation/__tests__/NAFEMS-LE1.test.ts
+  //   src/simulation/__tests__/NavierStokesSolver.test.ts
+  //   src/simulation/__tests__/paper-0c-cael-overhead.test.ts
+  //
   // These pass without coverage instrumentation but fail wall-clock thresholds
-  // under v8 coverage. Move to vitest.bench.config.ts in follow-up.
+  // under v8 coverage. They are now re-enabled in the default `vitest run`
+  // (so `pnpm test` exercises them) and excluded only from the coverage path
+  // via the BENCH_TESTS constant referenced in test.coverage.exclude below.
+  // The bench-only runner lives in vitest.bench.config.ts and is invoked via
+  // `pnpm --filter @holoscript/engine test:bench`.
+];
+
+/**
+ * Coverage-instrumentation-sensitive tests — pass under `vitest run` but exceed
+ * wall-clock thresholds with v8 coverage enabled. Excluded from the coverage
+ * run only; the default test run still executes them. See vitest.bench.config.ts
+ * for the bench-only runner. Referenced by board task task_1776878960824_c8te.
+ */
+const BENCH_TESTS: string[] = [
   'src/simulation/__tests__/fnv1a-vs-sha256.bench.test.ts',
   'src/simulation/__tests__/NAFEMS-LE1.test.ts',
   'src/simulation/__tests__/NavierStokesSolver.test.ts',
   'src/simulation/__tests__/paper-0c-cael-overhead.test.ts',
 ];
+
+// Coverage mode is detected on config load. Two signals cover the realistic
+// invocation paths:
+//   - argv contains '--coverage' (npm script `test:coverage`, direct CLI use)
+//   - HOLOSCRIPT_ENGINE_COVERAGE=1 (escape hatch for CI / parent runners that
+//     pass coverage flags after config evaluation, e.g. `pnpm -r test:coverage`)
+// When true, BENCH_TESTS are added to the test exclude so coverage instrumentation
+// doesn't time them out. When false (default `vitest run`), they execute normally.
+const IS_COVERAGE_RUN =
+  process.argv.includes('--coverage') ||
+  process.env.HOLOSCRIPT_ENGINE_COVERAGE === '1';
 
 export default defineConfig({
   resolve: {
@@ -82,7 +112,17 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       ...QUARANTINED_TESTS,
+      // Coverage-only bench skip: see BENCH_TESTS comment above.
+      ...(IS_COVERAGE_RUN ? BENCH_TESTS : []),
     ],
+    // Bench-class tests (NavierStokesSolver convergence, NAFEMS LE1 mesh
+    // refinement, paper-0c CAEL overhead sweep, fnv1a-vs-sha256) legitimately
+    // run beyond the default 10s ceiling. Wall-clock under `vitest run` is
+    // ~30s p99 on dev hardware; 60s gives headroom without masking real hangs.
+    // Other tests are unaffected — vitest only enforces this when a test
+    // doesn't explicitly set its own timeout.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
     coverage: {
       provider: 'v8',
       // Coverage should reflect the source we ship from src/, not the
