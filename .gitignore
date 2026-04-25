@@ -1,3 +1,13 @@
+# Root-level scratch test files (one-off vitest dry-runs left
+# in the working tree across recent debugging sessions). Each is
+# a 5-50 line script invoking a specific failing test in
+# isolation; not part of the suite.
+/run_test.ts
+/run_test_loop.ts
+/run_test_targeted.ts
+/run_test[0-9].ts
+/test-wasm.ts
+
 # Dependencies
 node_modules/
 
