@@ -88,7 +88,14 @@ RUN test -f packages/studio/src/lib/empty-module.js || \
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
-RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache,target=/app/packages/studio/.next/cache cd packages/studio && pnpm next build
+# Use `pnpm run build` (not `pnpm next build`) so the `--webpack` flag from
+# package.json's "build" script is applied. Without it, Next.js 16 defaults
+# to Turbopack which can't read the webpack-config in next.config.js, and
+# the build dies with: "ERROR: This build is using Turbopack, with a
+# `webpack` config and no `turbopack` config. ... Build error occurred ...
+# Error: Call retries were exceeded ... type: 'WorkerError'". Verified
+# 2026-04-25 against Railway deployment b69f2efe (5 consecutive failures).
+RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache,target=/app/packages/studio/.next/cache cd packages/studio && pnpm run build
 
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
