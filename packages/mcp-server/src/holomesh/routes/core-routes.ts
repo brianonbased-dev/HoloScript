@@ -30,6 +30,12 @@ import {
   getAgentDefense,
   isValidDefenseState,
   VALID_DEFENSE_STATES,
+  enqueueDispatch,
+  consumeDispatches,
+  peekDispatches,
+  isValidAttackClass,
+  VALID_ATTACK_CLASSES,
+  type DispatchEntry,
 } from '../state';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
@@ -604,6 +610,114 @@ export async function handleCoreRoutes(
         handle,
         defense: config,
         active: config !== null,
+      });
+      return true;
+    }
+  }
+
+  // ── POST/GET /api/holomesh/agent/:handle/dispatch ─────────────────────────
+  // Closes the trigger-mechanism gap from task_..._pawd. Coordinator
+  // (run-harness.mjs) POSTs cell parameters; worker brain GETs (drains)
+  // pending dispatches and invokes its attacker loop.
+  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §2.
+  {
+    const dispatchMatch = pathname.match(/^\/api\/holomesh\/agent\/([^/]+)\/dispatch$/);
+
+    if (dispatchMatch && method === 'POST') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to dispatch attacks.' });
+        return true;
+      }
+      const handle = decodeURIComponent(dispatchMatch[1]);
+      // Auth: founder OR caller in HOLOMESH_SECURITY_AUDITOR_HANDLES.
+      // Same gate as PATCH defense — both are admin-class operations.
+      const auditorHandles = (process.env.HOLOMESH_SECURITY_AUDITOR_HANDLES || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const isAuthorizedAuditor = auditorHandles.includes(caller.name);
+      if (!caller.isFounder && !isAuthorizedAuditor) {
+        json(res, 403, {
+          error: `Forbidden: caller "${caller.name}" cannot dispatch attacks. Requires founder or HOLOMESH_SECURITY_AUDITOR_HANDLES membership.`,
+        });
+        return true;
+      }
+      const body = (await parseJsonBody(req)) as Partial<DispatchEntry> | null;
+      if (!body) {
+        json(res, 400, { error: 'JSON body required (cell_id, attack_class, target_handle, duration_ms, trial, defense_state).' });
+        return true;
+      }
+      if (typeof body.cell_id !== 'string' || !body.cell_id) {
+        json(res, 400, { error: 'cell_id (string) required.' });
+        return true;
+      }
+      if (!isValidAttackClass(body.attack_class)) {
+        json(res, 400, {
+          error: `Invalid attack_class "${String(body.attack_class)}".`,
+          valid_classes: VALID_ATTACK_CLASSES,
+        });
+        return true;
+      }
+      if (typeof body.target_handle !== 'string' || !body.target_handle) {
+        json(res, 400, { error: 'target_handle (string) required.' });
+        return true;
+      }
+      if (typeof body.duration_ms !== 'number' || body.duration_ms <= 0) {
+        json(res, 400, { error: 'duration_ms (positive number) required.' });
+        return true;
+      }
+      if (typeof body.trial !== 'number' || body.trial < 0) {
+        json(res, 400, { error: 'trial (non-negative number) required.' });
+        return true;
+      }
+      if (!isValidDefenseState(body.defense_state)) {
+        json(res, 400, {
+          error: `Invalid defense_state "${String(body.defense_state)}".`,
+          valid_states: VALID_DEFENSE_STATES,
+        });
+        return true;
+      }
+      const entry: DispatchEntry = {
+        cell_id: body.cell_id,
+        attack_class: body.attack_class,
+        target_handle: body.target_handle,
+        duration_ms: body.duration_ms,
+        trial: body.trial,
+        defense_state: body.defense_state,
+        dispatched_at: new Date().toISOString(),
+        dispatched_by: caller.id,
+      };
+      enqueueDispatch(handle, entry);
+      json(res, 200, { success: true, handle, dispatched: entry });
+      return true;
+    }
+
+    if (dispatchMatch && method === 'GET') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to consume dispatch queue.' });
+        return true;
+      }
+      const handle = decodeURIComponent(dispatchMatch[1]);
+      // Auth: GET is consume — only handle owner or founder.
+      // Phase 1.5 bearer-must-match-handle (same as POST CAEL pattern).
+      if (!caller.isFounder && caller.name !== handle) {
+        json(res, 403, {
+          error: `Forbidden: caller "${caller.name}" cannot consume dispatch queue for handle "${handle}". Only the handle owner may GET (drain semantics).`,
+        });
+        return true;
+      }
+      // ?peek=1 returns pending without draining (diagnostic).
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const peek = url.searchParams.get('peek') === '1';
+      const dispatches = peek ? peekDispatches(handle) : consumeDispatches(handle);
+      json(res, 200, {
+        success: true,
+        handle,
+        peeked: peek,
+        count: dispatches.length,
+        dispatches,
       });
       return true;
     }

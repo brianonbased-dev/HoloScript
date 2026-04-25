@@ -285,6 +285,113 @@ export function isValidDefenseState(value: unknown): value is DefenseState {
   return typeof value === 'string' && (VALID_DEFENSE_STATES as readonly string[]).includes(value);
 }
 
+/**
+ * Adversarial Dispatch Queue — pull-based trigger for headless attacker
+ * brains running on Vast.ai boxes. Closes the last gap at task_..._pawd:
+ * how does run-harness.mjs (the coordinator) trigger an attacker loop on
+ * a remote worker?
+ *
+ * Design (Phase 1):
+ *   - Coordinator POSTs to /api/holomesh/agent/:handle/dispatch with the
+ *     trial cell parameters (attack_class, target_handle, duration_ms,
+ *     defense_state, trial). Server enqueues to agentDispatchQueue.
+ *   - Worker brain polls GET /api/holomesh/agent/:handle/dispatch (auth:
+ *     handle owner only). Server returns pending dispatches AND drains
+ *     them from the queue (one-shot delivery).
+ *   - Worker invokes its attacker loop with the cell parameters.
+ *   - Worker writes CAEL records via existing POST /audit endpoint.
+ *
+ * Auth:
+ *   - POST: founder or HOLOMESH_SECURITY_AUDITOR_HANDLES (admin-class).
+ *   - GET: handle owner only (caller.name === pathHandle) or founder.
+ *
+ * Per-handle ring buffer: cap 1000 entries; drop oldest. Persists to
+ * <HOLOMESH_DATA_DIR>/dispatch/<handle>.jsonl.
+ */
+export const VALID_ATTACK_CLASSES = [
+  'whitewasher',
+  'sybil-cross-vouch',
+  'slow-poisoner',
+  'reputation-squatter',
+  'cross-brain-hijack',
+] as const;
+
+export type AttackClass = (typeof VALID_ATTACK_CLASSES)[number];
+
+export interface DispatchEntry {
+  cell_id: string; // run-harness assigned, e.g. "phase-2-A-23"
+  attack_class: AttackClass;
+  target_handle: string;
+  duration_ms: number;
+  trial: number;
+  defense_state: DefenseState;
+  dispatched_at: string;
+  dispatched_by: string; // caller agentId
+  // Server-stamped on consume
+  consumed_at?: string;
+}
+
+export const agentDispatchQueue: Map<string, DispatchEntry[]> = new Map(); // handle → pending entries
+const MAX_DISPATCH_QUEUE_PER_AGENT = 1000;
+const DISPATCH_DIR = path.join(HOLOMESH_DATA_DIR, 'dispatch');
+
+function dispatchPath(handle: string): string {
+  const safe = handle.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.join(DISPATCH_DIR, `${safe}.jsonl`);
+}
+
+function persistDispatch(handle: string, entry: DispatchEntry): void {
+  try {
+    if (!fs.existsSync(DISPATCH_DIR)) {
+      fs.mkdirSync(DISPATCH_DIR, { recursive: true });
+    }
+    fs.appendFileSync(dispatchPath(handle), `${JSON.stringify(entry)}\n`, 'utf8');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[state] persistDispatch failed for ${handle}: ${(err as Error).message}`);
+  }
+}
+
+export function isValidAttackClass(value: unknown): value is AttackClass {
+  return typeof value === 'string' && (VALID_ATTACK_CLASSES as readonly string[]).includes(value);
+}
+
+export function enqueueDispatch(handle: string, entry: DispatchEntry): DispatchEntry {
+  const existing = agentDispatchQueue.get(handle) ?? [];
+  existing.push(entry);
+  if (existing.length > MAX_DISPATCH_QUEUE_PER_AGENT) {
+    existing.shift();
+  }
+  agentDispatchQueue.set(handle, existing);
+  persistDispatch(handle, entry);
+  return entry;
+}
+
+/**
+ * Drain pending dispatches for a handle. Returns and removes all
+ * pending entries (one-shot delivery — the worker is responsible for
+ * executing or re-enqueueing if it can't process them now).
+ */
+export function consumeDispatches(handle: string): DispatchEntry[] {
+  const pending = agentDispatchQueue.get(handle) ?? [];
+  if (pending.length === 0) return [];
+  const consumedAt = new Date().toISOString();
+  const drained = pending.map((e) => ({ ...e, consumed_at: consumedAt }));
+  agentDispatchQueue.set(handle, []);
+  // Persist consumption events as a sidecar (audit trail).
+  for (const entry of drained) {
+    persistDispatch(handle, entry);
+  }
+  return drained;
+}
+
+/**
+ * Read pending dispatches without draining (for diagnostic / observability).
+ */
+export function peekDispatches(handle: string): DispatchEntry[] {
+  return [...(agentDispatchQueue.get(handle) ?? [])];
+}
+
 export function appendCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
   const existing = agentAuditStore.get(handle) ?? [];
   existing.push(record);

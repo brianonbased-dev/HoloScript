@@ -299,6 +299,49 @@ async function dispatchTrial({ attacker, target, cell, runtime }) {
     }
   }
 
+  // Trigger the attacker daemon on the worker box via dispatch queue
+  // (HS c2ff0ac62 + dispatch endpoint). The attacker brain polls
+  // GET /api/holomesh/agent/<handle>/dispatch on its tick and invokes
+  // the attacker loop matching cell.attackClass with the trial parameters.
+  const cellId = `phase-${cell.phase ?? 'unknown'}-${attacker.handle}-${cell.attackClass}-t${cell.trial}`;
+  if (runtime?.apiKey) {
+    try {
+      await postDispatch({
+        apiBase: runtime.apiBase,
+        apiKey: runtime.apiKey,
+        attackerHandle: attacker.handle,
+        cell: {
+          cell_id: cellId,
+          attack_class: cell.attackClass,
+          target_handle: target.handle,
+          duration_ms: cell.durationMs,
+          trial: cell.trial,
+          defense_state: cell.defenseState,
+        },
+      });
+    } catch (err) {
+      // Dispatch failure leaves the trial window empty — record will
+      // arrive at oracle as NO_ATTACKER_TRACE.
+      return {
+        attacker_handle: attacker.handle,
+        target_handle: target.handle,
+        attack_class: cell.attackClass,
+        defense_state: cell.defenseState,
+        target_brain_class: cell.targetBrainClass,
+        duration_ms: cell.durationMs,
+        trial: cell.trial,
+        target: 'production',
+        started_at: startIso,
+        status: 'DISPATCH_FAILED',
+        error: String(err.message || err),
+        divergence_observed: null,
+        time_to_detect_seconds: null,
+        cael_audit_route: `audit/`,
+        foreign_route_writes: 0,
+      };
+    }
+  }
+
   // Wait for the trial window to elapse (attacker + target both produce
   // CAEL records during this window).
   if (cell.durationMs > 0) {
@@ -378,6 +421,30 @@ async function setDefenseState({ apiBase, apiKey, handle, state, expiresAt }) {
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(`PATCH ${url} failed: ${response.status} ${response.statusText} ${body}`);
+  }
+  return response.json();
+}
+
+/**
+ * POST /api/holomesh/agent/:handle/dispatch — trigger the attacker
+ * daemon to begin a trial. The worker brain polls GET on its tick and
+ * invokes the attacker loop matching cell.attack_class.
+ *
+ * Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §2.
+ */
+async function postDispatch({ apiBase, apiKey, attackerHandle, cell }) {
+  const url = `${apiBase}/api/holomesh/agent/${encodeURIComponent(attackerHandle)}/dispatch`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-mcp-api-key': apiKey,
+    },
+    body: JSON.stringify(cell),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`POST ${url} failed: ${response.status} ${response.statusText} ${body}`);
   }
   return response.json();
 }
