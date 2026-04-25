@@ -74,10 +74,15 @@ export class ParticleAttractorSystem {
           nz = dz / dist;
 
         if (attractor.orbit) {
-          // Tangential: cross product with up (0,1,0) as fallback
-          const tx = ny * 0 - nz * 1 || nz;
-          const ty = nz * 0 - nx * 0 || -nx;
-          const tz = nx * 1 - ny * 0 || 0;
+          // Tangential: cross product of normal with world-up (0,1,0), normalized
+          let tx = -nz;
+          let ty = 0;
+          let tz = nx;
+          // Fall back to (1,0,0) cross if n is near vertical
+          if (Math.abs(ny) > 0.99) { tx = nz; ty = 0; tz = -nx; }
+          const tLen = Math.sqrt(tx * tx + tz * tz) || 1;
+          tx /= tLen;
+          tz /= tLen;
           p.vx += tx * force * dt;
           p.vy += ty * force * dt;
           p.vz += tz * force * dt;

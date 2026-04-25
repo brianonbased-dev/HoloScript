@@ -309,7 +309,9 @@ export class ParticleSystem {
     vy: number;
     vz: number;
   } {
-    const dir = this.config.direction || [0, 1, 0 ];
+    const rawDir = this.config.direction || [0, 1, 0];
+    const dirLen = Math.sqrt(rawDir[0] * rawDir[0] + rawDir[1] * rawDir[1] + rawDir[2] * rawDir[2]) || 1;
+    const dir: [number, number, number] = [rawDir[0] / dirLen, rawDir[1] / dirLen, rawDir[2] / dirLen];
 
     switch (this.config.shape) {
       case 'point':

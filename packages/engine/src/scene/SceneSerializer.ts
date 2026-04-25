@@ -135,8 +135,13 @@ export class SceneSerializer {
       if (!data) return;
 
       if (type === 'Transform') {
-        // Robust extraction: Handle { position } or { x, y, z }
-        const pos = data.position || [data[0] || 0, data[1] || 0, data[2] || 0 ];
+        // Robust extraction: { position }, numeric indices, or flat { x, y, z }
+        const d = data as Record<string, unknown>;
+        const pos = Array.isArray(data.position)
+          ? (data.position as number[])
+          : typeof d.x === 'number' || typeof d.y === 'number' || typeof d.z === 'number'
+            ? [Number(d.x ?? 0), Number(d.y ?? 0), Number(d.z ?? 0)]
+            : [data[0] || 0, data[1] || 0, data[2] || 0];
         const rot = data.rotation || {
           x: data.rx || 0,
           y: data.ry || 0,

@@ -17,9 +17,9 @@ export type TriggerCallback = (entityId: string, zoneId: string, event: TriggerE
 
 export interface TriggerShape {
   type: 'box' | 'sphere';
-  position: [number, number, number];
+  position: [number, number, number] | Vector3;
   // Box: halfExtents, Sphere: radius
-  halfExtents?: Vector3;
+  halfExtents?: [number, number, number] | Vector3;
   radius?: number;
 }
 
@@ -117,23 +117,36 @@ export class TriggerZoneSystem {
     pos: [number, number, number],
     entityRadius: number
   ): boolean {
+    const sx = this.getComponent(shape.position, 0);
+    const sy = this.getComponent(shape.position, 1);
+    const sz = this.getComponent(shape.position, 2);
+
     if (shape.type === 'sphere' && shape.radius !== undefined) {
-      const dx = pos[0] - shape.position[0],
-        dy = pos[1] - shape.position[1],
-        dz = pos[2] - shape.position[2];
+      const dx = pos[0] - sx,
+        dy = pos[1] - sy,
+        dz = pos[2] - sz;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= shape.radius + entityRadius;
     }
 
     if (shape.type === 'box' && shape.halfExtents) {
-      const he = shape.halfExtents;
-      const dx = Math.abs(pos[0] - shape.position[0]),
-        dy = Math.abs(pos[1] - shape.position[1]),
-        dz = Math.abs(pos[2] - shape.position[2]);
-      return dx <= he[0] + entityRadius && dy <= he[1] + entityRadius && dz <= he[2] + entityRadius;
+      const hx = this.getComponent(shape.halfExtents, 0);
+      const hy = this.getComponent(shape.halfExtents, 1);
+      const hz = this.getComponent(shape.halfExtents, 2);
+      const dx = Math.abs(pos[0] - sx),
+        dy = Math.abs(pos[1] - sy),
+        dz = Math.abs(pos[2] - sz);
+      return dx <= hx + entityRadius && dy <= hy + entityRadius && dz <= hz + entityRadius;
     }
 
     return false;
+  }
+
+  private getComponent(v: [number, number, number] | Vector3, i: 0 | 1 | 2): number {
+    if (Array.isArray(v)) return v[i];
+    if (i === 0) return (v as { x: number }).x;
+    if (i === 1) return (v as { y: number }).y;
+    return (v as { z: number }).z;
   }
 
   // ---------------------------------------------------------------------------

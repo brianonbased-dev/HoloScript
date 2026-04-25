@@ -73,30 +73,33 @@ export interface PostFXPipelineConfig {
 
 export const DEFAULT_BLOOM_CONFIG: BloomConfig = {
   enabled: false,
-  order: 0,
+  order: 1,
   params: {
-    intensity: 0.8,
-    threshold: 0.7,
-    radius: 0.5,
+    intensity: 0.5,
+    threshold: 0.8,
+    radius: 0.4,
     iterations: 8,
   },
 };
 
 export const DEFAULT_COLOR_GRADING_CONFIG: ColorGradingConfig = {
   enabled: false,
-  order: 1,
+  order: 2,
   params: {
     exposure: 1.0,
-    contrast: 1.0,
-    saturation: 1.0,
+    contrast: 0,
+    saturation: 0,
+    brightness: 0,
+    temperature: 0,
+    tint: 0,
   },
 };
 
 export const DEFAULT_VIGNETTE_CONFIG: VignetteConfig = {
   enabled: false,
-  order: 2,
+  order: 3,
   params: {
-    intensity: 0.5,
+    intensity: 0.3,
     smoothness: 0.5,
     roundness: 1.0,
   },
@@ -124,13 +127,23 @@ export function createPostFXPipeline(
   const name = options.name ?? 'default';
   const enabled = options.enabled !== undefined ? options.enabled : true;
 
-  const effects: PostFXEffects = {
-    bloom: { ...DEFAULT_BLOOM_CONFIG, ...options.effects?.bloom },
-    colorGrading: { ...DEFAULT_COLOR_GRADING_CONFIG, ...options.effects?.colorGrading },
-    vignette: { ...DEFAULT_VIGNETTE_CONFIG, ...options.effects?.vignette },
-  };
+  const effects = {
+    bloom: mergeEffectConfig(DEFAULT_BLOOM_CONFIG, options.effects?.bloom ?? {}),
+    colorGrading: mergeEffectConfig(DEFAULT_COLOR_GRADING_CONFIG, options.effects?.colorGrading ?? {}),
+    vignette: mergeEffectConfig(DEFAULT_VIGNETTE_CONFIG, options.effects?.vignette ?? {}),
+  } as PostFXEffects & Record<string, unknown>;
 
-  return { name, enabled, effects };
+  // Preserve custom effect blocks (e.g., ssao) beyond the built-ins.
+  if (options.effects) {
+    const source = options.effects as Record<string, unknown>;
+    for (const key of Object.keys(source)) {
+      if (!(key in effects)) {
+        effects[key] = source[key];
+      }
+    }
+  }
+
+  return { name, enabled, effects: effects as PostFXEffects };
 }
 
 // ---------------------------------------------------------------------------
