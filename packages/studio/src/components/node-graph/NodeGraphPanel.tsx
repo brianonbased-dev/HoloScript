@@ -55,7 +55,11 @@ function NodeCard({
   return (
     <div
       onMouseDown={handleMouseDown}
-      style={{ left: node.x, top: node.y, borderColor: selected ? '#fff' : node.color }}
+      style={{
+        left: node.position[0],
+        top: node.position[1],
+        borderColor: selected ? '#fff' : node.color,
+      }}
       className="absolute cursor-grab select-none rounded-xl border-2 bg-[#1a1a2e]/95 backdrop-blur-sm shadow-xl min-w-[140px]"
     >
       {/* Header */}
@@ -193,10 +197,10 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
     const from = nodes.find((n) => n.id === e.fromNodeId);
     const to = nodes.find((n) => n.id === e.toNodeId);
     if (!from || !to) return null;
-    const x1 = from.x + 140;
-    const y1 = from.y + 30;
-    const x2 = to.x;
-    const y2 = to.y + 30;
+    const x1 = from.position[0] + 140;
+    const y1 = from.position[1] + 30;
+    const x2 = to.position[0];
+    const y2 = to.position[1] + 30;
     const cx = (x1 + x2) / 2;
     return (
       <path

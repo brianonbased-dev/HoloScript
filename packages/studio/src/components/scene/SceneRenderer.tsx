@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useState, useEffect, useRef, useCallback, Component, type ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,

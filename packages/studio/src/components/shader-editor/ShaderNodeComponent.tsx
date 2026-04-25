@@ -80,7 +80,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   custom: '⚙️',
 };
 
-export const ShaderNodeComponent = memo(({ data, id, _selected }: NodeProps<NodeData>) => {
+export const ShaderNodeComponent = memo(({ data, id }: NodeProps<NodeData>) => {
   const [collapsed, setCollapsed] = useState(data.collapsed ?? false);
   const setNodeProperty = useShaderGraph((state) => state.setNodeProperty);
   const isSelected = useNodeSelection((state) => state.isSelected(id));

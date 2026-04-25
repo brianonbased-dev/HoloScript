@@ -46,12 +46,7 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
   const code = useSceneStore((s) => s.code) ?? '';
 
   // Spatial engine bridge for collision preview and terrain generation
-  const {
-    ready: engineReady,
-    isWasm,
-    _testSphereCollision,
-    generateTerrainSnippet,
-  } = useSpatialEngine();
+  const { ready: engineReady, isWasm, generateTerrainSnippet } = useSpatialEngine();
 
   useEffect(() => {
     setLoading(true);

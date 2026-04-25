@@ -31,7 +31,7 @@ export function tryBuildCoreGraphFromStudio(nodes: GraphNode[], edges: GraphEdge
   for (const n of nodes) {
     const coreType = typeMap[n.type.toLowerCase()];
     if (!coreType) return null;
-    const coreNode = graph.addNode(coreType, [n.position[0] / 120, n.position[1] / 120]);
+    const coreNode = graph.addNode(coreType, { x: n.position[0] / 120, y: n.position[1] / 120 });
     studioIdToCore.set(n.id, coreNode.id);
     const aIn = coreNode.inputs.find((p) => p.name === 'a');
     const bIn = coreNode.inputs.find((p) => p.name === 'b');

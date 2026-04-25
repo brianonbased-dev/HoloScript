@@ -225,8 +225,17 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
 
     try {
       // Dynamic import to avoid bundling engine in Studio unless needed
-      const { meshBox, findNodesOnFace } = await import('@holoscript/engine/simulation');
-      const { StructuralSolverTET10, tet4ToTet10 } = await import('@holoscript/engine/simulation');
+      const {
+        meshBox,
+        findNodesOnFace,
+        StructuralSolverTET10,
+        tet4ToTet10,
+        youngsModulus,
+        poissonRatio,
+        yieldStrength,
+        density,
+        force,
+      } = await import('@holoscript/engine/simulation');
 
       if (runId !== solveRunRef.current) return;
 
@@ -251,17 +260,17 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
         vertices: tet10.vertices,
         tetrahedra: tet10.tetrahedra,
         material: {
-          youngs_modulus: config.youngsModulus,
-          poisson_ratio: config.poissonRatio,
-          yield_strength: config.yieldStrength,
-          density: config.density,
+          youngs_modulus: youngsModulus(config.youngsModulus),
+          poisson_ratio: poissonRatio(config.poissonRatio),
+          yield_strength: yieldStrength(config.yieldStrength),
+          density: density(config.density),
         },
         constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
         loads: loadNodes.map((n, i) => ({
           id: `load_${i}`,
           type: 'point' as const,
           nodeIndex: n,
-          force: forcePerNode,
+          force: [force(forcePerNode[0]), force(forcePerNode[1]), force(forcePerNode[2])],
         })),
         maxIterations: 5000,
         tolerance: 1e-10,

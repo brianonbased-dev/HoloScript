@@ -95,11 +95,12 @@ export function SecurityPanel() {
                 {r.success ? '✓' : '✗'}
               </span>
               <span className="text-studio-muted">
-                {r.cpuTimeUsed.toFixed(1)}ms · {(r.memoryUsed / 1024).toFixed(1)}KB
+                {Number(r.cpuTimeUsed ?? 0).toFixed(1)}ms ·{' '}
+                {(Number(r.memoryUsed ?? 0) / 1024).toFixed(1)}KB
               </span>
             </div>
             <div className="font-mono text-studio-text truncate">
-              {r.success ? String(r.result) : r.error}
+              {r.success ? String(r.result ?? r.output ?? '') : String(r.error ?? '')}
             </div>
           </div>
         ))}
@@ -112,13 +113,15 @@ export function SecurityPanel() {
             <span className="text-studio-muted">Memory</span>
             <br />
             <span className="text-studio-text font-mono">
-              {(sandbox.memoryUsed / 1024).toFixed(1)}KB
+              {(Number(sandbox.memoryUsed ?? 0) / 1024).toFixed(1)}KB
             </span>
           </div>
           <div>
             <span className="text-studio-muted">CPU Time</span>
             <br />
-            <span className="text-studio-text font-mono">{sandbox.cpuTimeUsed.toFixed(1)}ms</span>
+            <span className="text-studio-text font-mono">
+              {Number(sandbox.cpuTimeUsed ?? 0).toFixed(1)}ms
+            </span>
           </div>
         </div>
       )}

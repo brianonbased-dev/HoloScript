@@ -23,7 +23,7 @@ import { Smile, Mic } from 'lucide-react';
 function ExpressionCard({
   preset,
   isActive,
-  _intensity,
+  intensity: _intensity,
   onSelect,
 }: {
   preset: ExpressionPreset;
@@ -31,6 +31,7 @@ function ExpressionCard({
   intensity: number;
   onSelect: (preset: ExpressionPreset) => void;
 }) {
+  void _intensity;
   return (
     <button
       onClick={() => onSelect(preset)}

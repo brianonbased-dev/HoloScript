@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     | null;
   const name = body?.name?.trim();
 
-  if (!name) {
+  if (!name || !body) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 });
   }
 

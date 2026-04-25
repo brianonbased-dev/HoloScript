@@ -63,14 +63,14 @@ export class HandMenuSystem {
       [
         createUIButton(`${menuId}_btn1`, {
           text: 'Home',
-          position: [0, 0.03, 0.01],
+          position: { x: 0, y: 0.03, z: 0.01 },
           width: 0.18,
           height: 0.04,
           data: { action: 'home' },
         }),
         createUIButton(`${menuId}_btn2`, {
           text: 'Settings',
-          position: [0, -0.03, 0.01],
+          position: { x: 0, y: -0.03, z: 0.01 },
           width: 0.18,
           height: 0.04,
           data: { action: 'settings' },
@@ -79,11 +79,12 @@ export class HandMenuSystem {
     );
 
     // Position near the hand
-    menu.properties!.position = [
-      hand.position[0],
-      hand.position[1] + 0.1,
-      hand.position[2],
-    ];
+    const hp = hand.position as unknown as [number, number, number];
+    menu.properties!.position = {
+      x: hp[0],
+      y: hp[1] + 0.1,
+      z: hp[2],
+    };
 
     // Start invisible for transition
     menu.properties!.opacity = 0;

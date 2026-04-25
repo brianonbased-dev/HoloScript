@@ -21,6 +21,13 @@ import { useBuilderStore } from '@/lib/stores/builderStore';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 
+function partitionR3FChildren(children: R3FNode[] | undefined) {
+  return partitionStudioChildren(children) as {
+    batchableDraftMeshes: R3FNode[];
+    rest: R3FNode[];
+  };
+}
+
 /** Thin wrapper: bridges Studio stores → shared MeshNode callback props */
 function StudioMeshNode({ node }: { node: R3FNode }) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
@@ -96,7 +103,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     case 'splat': {
       const src = resolveGaussianSplatSrc(node);
       if (!src) {
-        const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
+        const { batchableDraftMeshes, rest } = partitionR3FChildren(node.children);
         return (
           <group position={props.position} rotation={props.rotation} scale={props.scale}>
             {batchableDraftMeshes.length > 0 && (
@@ -206,7 +213,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     }
 
     case 'group': {
-      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
+      const { batchableDraftMeshes, rest } = partitionR3FChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
           {batchableDraftMeshes.length > 0 && (
@@ -329,7 +336,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     default: {
       // Unknown type — wrap in group and render children
-      const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
+      const { batchableDraftMeshes, rest } = partitionR3FChildren(node.children);
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>
           {batchableDraftMeshes.length > 0 && (

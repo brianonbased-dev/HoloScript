@@ -94,7 +94,7 @@ export class SimulationToolExecutor {
 
       switch (solverType) {
         case 'thermal': {
-          const ts = new eng.ThermalSolver(config as unknown as Parameters<typeof eng.ThermalSolver>[0]);
+          const ts = new eng.ThermalSolver(config as unknown as ConstructorParameters<typeof eng.ThermalSolver>[0]);
           solver = new eng.ThermalSolverAdapter(ts);
           break;
         }
@@ -136,22 +136,22 @@ export class SimulationToolExecutor {
             }
           }
 
-          const tet10 = new eng.StructuralSolverTET10(config as unknown as Parameters<typeof eng.StructuralSolverTET10>[0]);
+          const tet10 = new eng.StructuralSolverTET10(config as unknown as ConstructorParameters<typeof eng.StructuralSolverTET10>[0]);
           solver = new eng.TET10SolverAdapter(tet10);
           break;
         }
         case 'acoustic': {
-          const as_ = new eng.AcousticSolver(config as unknown as Parameters<typeof eng.AcousticSolver>[0]);
+          const as_ = new eng.AcousticSolver(config as unknown as ConstructorParameters<typeof eng.AcousticSolver>[0]);
           solver = new eng.AcousticSolverAdapter(as_);
           break;
         }
         case 'fdtd': {
-          const fdtd = new eng.FDTDSolver(config as unknown as Parameters<typeof eng.FDTDSolver>[0]);
+          const fdtd = new eng.FDTDSolver(config as unknown as ConstructorParameters<typeof eng.FDTDSolver>[0]);
           solver = new eng.FDTDSolverAdapter(fdtd);
           break;
         }
         case 'navier-stokes': {
-          const ns = new eng.NavierStokesSolver(config as unknown as Parameters<typeof eng.NavierStokesSolver>[0]);
+          const ns = new eng.NavierStokesSolver(config as unknown as ConstructorParameters<typeof eng.NavierStokesSolver>[0]);
           // NavierStokesSolver doesn't have an adapter yet — create inline
           solver = {
             mode: 'transient',

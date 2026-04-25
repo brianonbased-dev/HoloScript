@@ -34,7 +34,7 @@ export function createVirtualKeyboard(id: string, config: VirtualKeyboardConfig)
       if (key === 'Enter' || key === 'Shift' || key === 'Backspace') width = keySize * 1.5;
 
       const btn = createUIButton(`${id}_key_${rowIndex}_${colIndex}`, {
-        position: [startX + width / 2, startY, 0.02], // Inherit rotation from panel
+        position: { x: startX + width / 2, y: startY, z: 0.02 }, // Inherit rotation from panel
         width: width,
         height: keySize,
         depth: 0.02 * scale,

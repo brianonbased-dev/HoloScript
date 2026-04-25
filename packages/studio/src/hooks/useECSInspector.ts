@@ -3,7 +3,7 @@
  * useECSInspector — Hook for ECS world inspection and entity management
  */
 import { useState, useCallback, useRef } from 'react';
-import { World as ECSWorld } from '@holoscript/engine/ecs';
+import { InspectorDemoWorld } from '@/lib/ecs/InspectorDemoWorld';
 
 interface TransformComponent {
   x: number;
@@ -80,7 +80,7 @@ export interface EntityInfo {
 }
 
 export interface UseECSInspectorReturn {
-  world: InstanceType<typeof ECSWorld>;
+  world: InspectorDemoWorld;
   entities: EntityInfo[];
   stats: SystemStats;
   selectedEntity: EntityInfo | null;
@@ -105,7 +105,7 @@ const COMPONENT_NAMES: [number, string][] = [
 ];
 
 export function useECSInspector(): UseECSInspectorReturn {
-  const worldRef = useRef(new ECSWorld());
+  const worldRef = useRef(new InspectorDemoWorld());
   const [entities, setEntities] = useState<EntityInfo[]>([]);
   const [stats, setStats] = useState<SystemStats>({
     entityCount: 0,
@@ -222,7 +222,7 @@ export function useECSInspector(): UseECSInspectorReturn {
   );
 
   const reset = useCallback(() => {
-    worldRef.current = new ECSWorld();
+    worldRef.current = new InspectorDemoWorld();
     setEntities([]);
     setSelectedEntity(null);
     setStats({

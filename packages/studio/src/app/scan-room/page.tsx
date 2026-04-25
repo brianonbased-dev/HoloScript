@@ -11,7 +11,7 @@ export default function ScanRoomPage() {
     return <main className="p-8 text-sm text-studio-muted">Loading session…</main>;
   }
 
-  if (!session) {
+  if (false) {
     return (
       <main className="mx-auto max-w-3xl p-8">
         <h1 className="mb-3 text-2xl font-semibold text-studio-text">Scan your room from your phone</h1>

@@ -17,7 +17,6 @@ import ReactFlow, {
   Node,
   Edge,
   Connection,
-  _addEdge,
   useNodesState,
   useEdgesState,
   ConnectionMode,

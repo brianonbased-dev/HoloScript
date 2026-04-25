@@ -11,6 +11,7 @@ export type PanelTab =
   | 'platform'
   | 'traits'
   | 'physics'
+  | 'simulation'
   | 'ai'
   | 'dialogue'
   | 'ecs'

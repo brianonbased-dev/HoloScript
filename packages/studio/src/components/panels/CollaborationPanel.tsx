@@ -71,13 +71,13 @@ export function CollaborationPanel() {
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
               <span className="text-studio-text font-medium">{p.displayName}</span>
-              <span>{PLATFORM_ICONS[p.platform] || '💻'}</span>
+              <span>{PLATFORM_ICONS[p.platform ?? 'ide'] || '💻'}</span>
             </div>
             <div className="flex items-center gap-1">
               <span
-                className={`text-[10px] font-mono ${p.connectionQuality > 0.9 ? 'text-emerald-400' : p.connectionQuality > 0.7 ? 'text-amber-400' : 'text-red-400'}`}
+                className={`text-[10px] font-mono ${(p.connectionQuality ?? 0) > 0.9 ? 'text-emerald-400' : (p.connectionQuality ?? 0) > 0.7 ? 'text-amber-400' : 'text-red-400'}`}
               >
-                {Math.round(p.connectionQuality * 100)}%
+                {Math.round((p.connectionQuality ?? 0) * 100)}%
               </span>
               <button onClick={() => removePeer(p.peerId)} className="text-red-400 text-[10px]">
                 ✕
@@ -113,17 +113,17 @@ export function CollaborationPanel() {
           <div>
             <span className="text-studio-muted">Edits</span>
             <br />
-            <span className="text-studio-text font-mono">{stats.totalEdits}</span>
+            <span className="text-studio-text font-mono">{stats.totalEdits ?? '—'}</span>
           </div>
           <div>
             <span className="text-studio-muted">Syncs</span>
             <br />
-            <span className="text-studio-text font-mono">{stats.totalSyncMessages}</span>
+            <span className="text-studio-text font-mono">{stats.totalSyncMessages ?? '—'}</span>
           </div>
           <div>
             <span className="text-studio-muted">State</span>
             <br />
-            <span className="text-studio-text font-mono">{stats.state}</span>
+            <span className="text-studio-text font-mono">{stats.state ?? '—'}</span>
           </div>
         </div>
       )}

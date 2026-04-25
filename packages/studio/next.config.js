@@ -57,6 +57,33 @@ const nextConfig = {
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 
+  turbo: {
+    resolveAlias: {
+      'tls': false,
+      'net': false,
+      'worker_threads': false,
+      'node:worker_threads': false,
+      'ws': false,
+      'ioredis': false,
+      'puppeteer': false,
+      'playwright': false,
+      '@xenova/transformers': false,
+      'memfs': false,
+      'isomorphic-git': false,
+      '@holoscript/engine': false,
+      '@holoscript/engine/gpu': false,
+      '@holoscript/framework': false,
+      '@holoscript/platform': false,
+      '@holoscript/mesh': false,
+    },
+    rules: {
+      '*.wgsl': {
+        loaders: ['raw-loader'],
+        as: '*.js',
+      },
+    },
+  },
+
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx', 'holo'],
   serverExternalPackages: [

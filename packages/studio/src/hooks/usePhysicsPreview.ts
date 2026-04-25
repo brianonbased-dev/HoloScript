@@ -3,7 +3,7 @@
  * usePhysicsPreview — Hook for live physics simulation preview
  */
 import { useState, useCallback, useRef } from 'react';
-import { World as ECSWorld } from '@holoscript/engine/ecs';
+import { InspectorDemoWorld } from '@/lib/ecs/InspectorDemoWorld';
 
 interface TransformComponent {
   x: number;
@@ -55,7 +55,7 @@ export interface PhysicsEntity {
 }
 
 export interface UsePhysicsPreviewReturn {
-  world: InstanceType<typeof ECSWorld>;
+  world: InspectorDemoWorld;
   entities: PhysicsEntity[];
   stats: SystemStats;
   isRunning: boolean;
@@ -67,7 +67,7 @@ export interface UsePhysicsPreviewReturn {
 }
 
 export function usePhysicsPreview(): UsePhysicsPreviewReturn {
-  const worldRef = useRef(new ECSWorld());
+  const worldRef = useRef(new InspectorDemoWorld());
   const [entities, setEntities] = useState<PhysicsEntity[]>([]);
   const [stats, setStats] = useState<SystemStats>({
     entityCount: 0,
@@ -140,7 +140,7 @@ export function usePhysicsPreview(): UsePhysicsPreviewReturn {
 
   const reset = useCallback(() => {
     stop();
-    worldRef.current = new ECSWorld();
+    worldRef.current = new InspectorDemoWorld();
     syncEntities();
   }, [stop, syncEntities]);
 

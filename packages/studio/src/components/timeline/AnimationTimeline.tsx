@@ -95,7 +95,7 @@ function TrackRow({
   onSelectKf,
   onAddKeyframe,
   onDeleteTrack,
-  _onUpdateValue,
+  onUpdateValue: _onUpdateValue,
 }: TrackRowProps) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -187,7 +187,7 @@ interface AnimationTimelineProps {
   onClose: () => void;
 }
 
-export function AnimationTimeline({ _onClose }: AnimationTimelineProps) {
+export function AnimationTimeline({ onClose: _onClose }: AnimationTimelineProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const nodes = useSceneGraphStore((s) => s.nodes);
   const selectedNode = nodes.find((n) => n.id === selectedId);

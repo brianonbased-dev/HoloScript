@@ -830,7 +830,11 @@ function AIGenerationTab({
 /**
  * Mixamo Tab - Auto-rigging + character library
  */
-function MixamoTab({ _onCharacterCreated, _isLoading, _setIsLoading }: TabProps) {
+function MixamoTab({
+  onCharacterCreated: _onCharacterCreated,
+  isLoading: _isLoading,
+  setIsLoading: _setIsLoading,
+}: TabProps) {
   const [characters, setCharacters] = useState<any[]>([]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'human' | 'creature' | 'robot'>('all');
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
@@ -1707,7 +1711,11 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
 /**
  * Upload Tab - File drag & drop
  */
-function UploadTab({ onCharacterCreated, _isLoading, _setIsLoading }: TabProps) {
+function UploadTab({
+  onCharacterCreated,
+  isLoading: _isLoading,
+  setIsLoading: _setIsLoading,
+}: TabProps) {
   const [dragging, setDragging] = useState(false);
 
   const handleFile = (file: File) => {

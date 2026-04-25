@@ -90,7 +90,11 @@ export function generatePresetKeyframes(
           time: i * 0.75,
           camera: {
             ...base,
-            position: [Math.sin(angle) * radius, base.position.y, Math.cos(angle) * radius,],
+            position: {
+              x: Math.sin(angle) * radius,
+              y: base.position.y,
+              z: Math.cos(angle) * radius,
+            },
           },
           dof,
           interpolation: 'catmull-rom' as InterpolationMode,
@@ -103,7 +107,7 @@ export function generatePresetKeyframes(
         {
           id: generateId(),
           time: 0,
-          camera: { ...base, position: [-10, 3, 10], fov: 65 },
+          camera: { ...base, position: { x: -10, y: 3, z: 10 }, fov: 65 },
           dof,
           interpolation: 'bezier',
           easing: 'ease-in',
@@ -111,7 +115,7 @@ export function generatePresetKeyframes(
         {
           id: generateId(),
           time: 1.5,
-          camera: { ...base, position: [-3, 2, 3], fov: 55 },
+          camera: { ...base, position: { x: -3, y: 2, z: 3 }, fov: 55 },
           dof,
           interpolation: 'bezier',
           easing: 'linear',
@@ -119,7 +123,7 @@ export function generatePresetKeyframes(
         {
           id: generateId(),
           time: 3,
-          camera: { ...base, position: [0, 1.5, 0.5], fov: 40 },
+          camera: { ...base, position: { x: 0, y: 1.5, z: 0.5 }, fov: 40 },
           dof,
           interpolation: 'bezier',
           easing: 'linear',
@@ -127,7 +131,7 @@ export function generatePresetKeyframes(
         {
           id: generateId(),
           time: 4.5,
-          camera: { ...base, position: [5, 3, -5], fov: 50 },
+          camera: { ...base, position: { x: 5, y: 3, z: -5 }, fov: 50 },
           dof,
           interpolation: 'bezier',
           easing: 'ease-out',

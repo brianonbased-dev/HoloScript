@@ -51,7 +51,6 @@ export function DiscordReactionPanel({
   isListening,
   triggers,
   feedback,
-  _lastReaction,
   onStart,
   onStop,
   onAddTrigger,

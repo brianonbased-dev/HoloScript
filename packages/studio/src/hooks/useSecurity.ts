@@ -68,7 +68,7 @@ export function useSecurity(): UseSecurityReturn {
       if (!sandboxRef.current) return;
       setIsRunning(true);
       try {
-        const result = await executeSandbox(code, sandboxRef.current);
+        const result = (await executeSandbox(code, sandboxRef.current)) as SandboxExecutionResult;
         setResults((prev) => [...prev, result]);
         setSandbox({ ...sandboxRef.current });
       } catch {

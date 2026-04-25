@@ -79,10 +79,10 @@ export function MolecularViewerPanel() {
       name: 'Aspirin (Acetylsalicylic acid)',
       formula: 'C9H8O4',
       atoms: [
-        { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
-        { id: 'C2', element: 'C', position: { x: 1.2, y: 0.7, z: 0 }, charge: 0, radius: 1.7 },
-        { id: 'O1', element: 'O', position: { x: 2.4, y: 0, z: 0 }, charge: -0.3, radius: 1.52 },
-        { id: 'O2', element: 'O', position: { x: 0, y: 1.4, z: 0 }, charge: -0.3, radius: 1.52 },
+        { id: 'C1', element: 'C', position: [0, 0, 0], charge: 0, radius: 1.7 },
+        { id: 'C2', element: 'C', position: [1.2, 0.7, 0], charge: 0, radius: 1.7 },
+        { id: 'O1', element: 'O', position: [2.4, 0, 0], charge: -0.3, radius: 1.52 },
+        { id: 'O2', element: 'O', position: [0, 1.4, 0], charge: -0.3, radius: 1.52 },
       ],
       bonds: [
         { atomA: 'C1', atomB: 'C2', order: 1, rotatable: false },

@@ -21,14 +21,9 @@ const DevToolsInit = dynamic(
   () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),
   { ssr: false }
 );
-import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
 import { WebVitals } from '../components/WebVitals';
-
-const AgentationWired = dynamic(
-  () => import('../components/AgentationWired').then((m) => ({ default: m.AgentationWired })),
-  { ssr: false }
-);
+// AppShell and AgentationWired removed temporarily for scan-room demo
 
 // Old StudioSetupWizard removed — onboarding now handled by /start (Brittney-first)
 
@@ -196,12 +191,12 @@ export function Providers({ children }: { children: ReactNode }) {
             <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
               <ErrorBoundary showReloadButton>
                 <PluginHostProvider>
-                  <AppShell>{children}</AppShell>
+                  {children}
                 </PluginHostProvider>
               </ErrorBoundary>
               <DevToolsInit />
               <WebVitals />
-              {process.env.NODE_ENV === 'development' && <AgentationWired />}
+              {process.env.NODE_ENV === 'development' && !pathname?.startsWith('/scan-room') && <AgentationWired />}
             </ToastContext.Provider>
           </ThemeContext.Provider>
         </QueryClientProvider>

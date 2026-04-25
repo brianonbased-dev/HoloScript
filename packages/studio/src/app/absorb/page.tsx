@@ -792,7 +792,7 @@ function MoltbookAgentsTab() {
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
-                          aria-label={`Trigger agent ${agent.name || agent.id}`} onClick={() => handleTrigger(agent.id)}
+                          aria-label={`Trigger agent ${agent.agentName || agent.id}`} onClick={() => handleTrigger(agent.id)}
                           disabled={!!loading}
                           title="Trigger heartbeat now"
                           className="rounded bg-studio-accent/10 px-2.5 py-1.5 text-xs font-medium text-studio-accent hover:bg-studio-accent/20 disabled:opacity-50"
@@ -800,7 +800,7 @@ function MoltbookAgentsTab() {
                           {loading === 'trigger' ? 'Running...' : 'Trigger'}
                         </button>
                         <button
-                          aria-label={`${agent.heartbeatEnabled ? "Pause" : "Resume"} agent ${agent.name || agent.id}`} onClick={() => handleToggle(agent.id, agent.heartbeatEnabled)}
+                          aria-label={`${agent.heartbeatEnabled ? "Pause" : "Resume"} agent ${agent.agentName || agent.id}`} onClick={() => handleToggle(agent.id, agent.heartbeatEnabled)}
                           disabled={!!loading}
                           className={`rounded px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${
                             agent.heartbeatEnabled
@@ -811,7 +811,7 @@ function MoltbookAgentsTab() {
                           {loading === 'toggle' ? '...' : agent.heartbeatEnabled ? 'Stop' : 'Start'}
                         </button>
                         <button
-                          aria-label={`Delete agent ${agent.name || agent.id}`} onClick={() => handleDelete(agent)}
+                          aria-label={`Delete agent ${agent.agentName || agent.id}`} onClick={() => handleDelete(agent)}
                           disabled={!!loading}
                           className="rounded bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50"
                         >
@@ -1158,8 +1158,6 @@ function AuthenticatedDashboard() {
     extractKnowledge,
     publishKnowledge,
     purchaseCredits,
-    _setActiveProject,
-    _activeProjectId,
     setQualityTier,
     setError,
   } = useAbsorbService();

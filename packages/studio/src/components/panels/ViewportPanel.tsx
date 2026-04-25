@@ -278,8 +278,7 @@ function SceneLight({ light }: { light: ViewportLight }) {
 // ─── Main Viewport Panel ───────────────────────────────────────────────────────
 
 export function ViewportPanel() {
-  const { state, _selectEntity, setMode, toggleGrid, toggleAxes, addEntity, buildDemo, clear } =
-    useViewport();
+  const { state, setMode, toggleGrid, toggleAxes, addEntity, buildDemo, clear } = useViewport();
   const { diffModeHash } = useEditorStore();
 
   const modes = ['scene', 'wireframe', 'normals', 'flat-semantic'] as const;

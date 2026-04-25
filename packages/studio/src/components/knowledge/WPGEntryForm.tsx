@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AlertCircle, AlertTriangle, Send, Search } from 'lucide-react';
@@ -9,9 +9,7 @@ import clsx from 'clsx';
 import { useToast } from '../../app/providers';
 
 const wpgSchema = z.object({
-  type: z.enum(['wisdom', 'pattern', 'gotcha'], {
-    required_error: 'Type is required',
-  }),
+  type: z.enum(['wisdom', 'pattern', 'gotcha']),
   domain: z.string().min(3, 'Domain must be at least 3 characters'),
   content: z.string().min(10, 'Content must be at least 10 characters'),
   workspace_id: z.string().min(2, 'Workspace ID is required'),
@@ -33,6 +31,15 @@ export function WPGEntryForm() {
   const [queryDomain, setQueryDomain] = useState('');
   const [queryResults, setQueryResults] = useState<any[] | null>(null);
 
+  const formOpts: UseFormProps<WPGFormData> = {
+    resolver: zodResolver(wpgSchema as any) as any,
+    defaultValues: {
+      type: 'wisdom',
+      domain: '',
+      content: '',
+      workspace_id: 'ai-ecosystem',
+    },
+  };
   const {
     register,
     handleSubmit,
@@ -40,15 +47,7 @@ export function WPGEntryForm() {
     setValue,
     formState: { errors },
     reset,
-  } = useForm<WPGFormData>({
-    resolver: zodResolver(wpgSchema),
-    defaultValues: {
-      type: 'wisdom',
-      domain: '',
-      content: '',
-      workspace_id: 'ai-ecosystem',
-    },
-  });
+  } = useForm<WPGFormData>(formOpts);
 
   const formData = watch();
   const isHealthcare = formData.domain === 'healthcare_informatics';

@@ -10,7 +10,7 @@ import { useHotkeys, formatHotkeyDisplay, HOTKEYS } from '../../../hooks/useHotk
 
 export function HotkeyGuide() {
   const [isVisible, setIsVisible] = useState(false);
-  const { _getActiveHotkeys } = useHotkeys({ enabled: !isVisible });
+  useHotkeys({ enabled: !isVisible });
 
   // Toggle guide with '?' key
   useEffect(() => {

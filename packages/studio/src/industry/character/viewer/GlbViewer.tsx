@@ -143,10 +143,7 @@ export function GlbViewer({ url }: GlbViewerProps) {
       framesRef.current.push({
         time: elapsed,
         boneIndex: i,
-        qx: bone.quaternion.x,
-        qy: bone.quaternion.y,
-        qz: bone.quaternion.z,
-        qw: bone.quaternion.w,
+        rotation: [bone.quaternion.x, bone.quaternion.y, bone.quaternion.z, bone.quaternion.w],
       });
     });
   });

@@ -7,7 +7,7 @@
  * for the Studio panel.
  */
 import { useState, useCallback, useRef } from 'react';
-import { World as ECSWorld } from '@holoscript/engine/ecs';
+import { InspectorDemoWorld } from '@/lib/ecs/InspectorDemoWorld';
 
 interface TransformComponent {
   x: number;
@@ -54,7 +54,7 @@ export interface UseMultiplayerReturn {
 }
 
 export function useMultiplayer(): UseMultiplayerReturn {
-  const worldRef = useRef(new ECSWorld());
+  const worldRef = useRef(new InspectorDemoWorld());
   const [clients, setClients] = useState<ClientInfo[]>([]);
   const [entities, setEntities] = useState<NetworkedEntity[]>([]);
   const ownerMap = useRef(new Map<number, string>());
@@ -159,7 +159,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
   }, [sync]);
 
   const reset = useCallback(() => {
-    worldRef.current = new ECSWorld();
+    worldRef.current = new InspectorDemoWorld();
     ownerMap.current.clear();
     tickCountRef.current = 0;
     setClients([]);

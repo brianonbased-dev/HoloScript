@@ -50,7 +50,7 @@ export function NodePalette() {
   const createNode = useShaderGraph((state) => state.createNode);
 
   // Filter and group nodes
-  const { categorizedNodes, _filteredNodes } = useMemo(() => {
+  const { categorizedNodes } = useMemo(() => {
     const query = searchQuery.toLowerCase();
     const filtered = ALL_NODE_TEMPLATES.filter(
       (template) =>

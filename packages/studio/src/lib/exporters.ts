@@ -112,7 +112,7 @@ function generateFormatHeader(
             name: n.name,
             translation: [n.position[0], n.position[1], n.position[2]],
             rotation: [0, 0, 0, 1],
-            scale: [n.scale[0], n.scale[1], n.scale[2]],
+            scale: [n.scale.x, n.scale.y, n.scale.z],
           })),
         },
         null,
