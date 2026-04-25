@@ -163,13 +163,12 @@ jobs:
         run: |
           SERVICE="${{ github.event.inputs.service || 'all' }}"
 
-          # Always force fresh dist on every workspace package. pnpm's
-          # filter doesn't reliably re-run a package's build script if its
-          # dist exists from a prior layer, leaving consumers with stale
-          # d.ts (caught 2026-04-25 with @holoscript/engine subpath types
-          # missing on CI but present locally). Nuking dist forces every
-          # build script to run, restoring local↔CI parity.
-          find packages -name dist -type d -prune -exec rm -rf {} + 2>/dev/null || true
+          # Force fresh @holoscript/core dist so generate-types.mjs runs
+          # against latest source. Engine + other packages have d.ts files
+          # produced by separate (tsc-based) build steps that don't always
+          # re-run on every CI invocation; nuking their dist makes them
+          # type-less. Limit dist-nuke to core only.
+          rm -rf packages/core/dist
           pnpm --filter @holoscript/core build
 
           case "$SERVICE" in
