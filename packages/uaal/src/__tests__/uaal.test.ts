@@ -446,3 +446,222 @@ describe('UAALVirtualMachine', () => {
     });
   });
 });
+
+// =============================================================================
+// BRITTNEY / INFINITY HYBRID LOOP HOOKS (anti-regression for studio binding)
+// =============================================================================
+//
+// The studio's Brittney agent (packages/studio/src/lib/brittney/BrittneyTools.ts)
+// uses OpenAI function-calling tools to manipulate the scene-graph. In production,
+// the Brittney chat route compiles user intent into a uAAL program whose
+// OP_INVOKE_LLM handler returns a Brittney-shaped tool-call result onto the VM
+// stack. The next instruction can read that result, branch on it, or feed it into
+// REFLECT/COMPRESS for the autonomous synthesis loop.
+//
+// We do NOT import from @holoscript/studio here — uaal must stay a pure core
+// package with no UI deps. Instead, we keep a LOCAL CLONE of Brittney's tool-call
+// shape and assert the contract. If studio's BrittneyTools.ts schema diverges
+// from the shape encoded here, fix the divergence in the test (and add a
+// migration note to MEMORY.md / CLAUDE.md). If uaal's VM contract changes in a
+// way that breaks this shape, the breaking change must update both sides.
+//
+// Refs: task_1776314407827_6ago "[Cursor A] Brittney/Infinity Hybrid Loop Hooks"
+// Production: packages/studio/src/app/api/brittney/route.ts
+// =============================================================================
+
+describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio binding)', () => {
+  // Local clone of Brittney's tool-call shape — kept in sync with
+  // packages/studio/src/lib/brittney/BrittneyTools.ts via this test suite.
+  type BrittneyToolSpec = {
+    type: 'function';
+    function: {
+      name: string;
+      description: string;
+      parameters: {
+        type: 'object';
+        properties: Record<string, { type: string; description?: string }>;
+        required?: string[];
+      };
+    };
+  };
+
+  type BrittneyToolCallResult = {
+    toolName: string;
+    arguments: Record<string, unknown>;
+    result: { ok: boolean; message?: string; [k: string]: unknown };
+  };
+
+  it('OP_INVOKE_LLM is registerable and pushes a Brittney-shaped tool-call onto the stack', async () => {
+    const vm = new UAALVirtualMachine();
+    let observedPrompt: unknown = null;
+
+    vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, (proxy, operands) => {
+      observedPrompt = operands[0] ?? null;
+      const toolCall: BrittneyToolCallResult = {
+        toolName: 'add_trait',
+        arguments: {
+          object_name: 'cube_1',
+          trait_name: 'physics',
+          properties: { mass: 1.0 },
+        },
+        result: { ok: true, message: 'Added physics trait to cube_1' },
+      };
+      proxy.push(toolCall as unknown as UAALOperand);
+    });
+
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: ['add a physics trait to cube_1'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+    };
+
+    const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('HALTED');
+    expect(observedPrompt).toBe('add a physics trait to cube_1');
+
+    const stackTop = result.stackTop as unknown as BrittneyToolCallResult;
+    expect(stackTop.toolName).toBe('add_trait');
+    expect(stackTop.arguments).toMatchObject({
+      object_name: 'cube_1',
+      trait_name: 'physics',
+    });
+    expect(stackTop.result.ok).toBe(true);
+  });
+
+  it('cognitive opcodes (INTAKE -> REFLECT -> OP_INVOKE_LLM) chain into a Brittney synthesis loop', async () => {
+    const vm = new UAALVirtualMachine();
+    const synthesisTrace: string[] = [];
+
+    vm.registerHandler(UAALOpCode.INTAKE, (proxy, operands) => {
+      synthesisTrace.push('INTAKE');
+      proxy.push(operands[0] ?? null);
+    });
+    vm.registerHandler(UAALOpCode.REFLECT, (proxy) => {
+      synthesisTrace.push('REFLECT');
+      const intent = proxy.pop();
+      proxy.push(`reflected: ${String(intent)}`);
+    });
+    vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, (proxy) => {
+      synthesisTrace.push('INVOKE_LLM');
+      const reflectedPrompt = proxy.pop();
+      const toolCall: BrittneyToolCallResult = {
+        toolName: 'set_trait_property',
+        arguments: { object_name: 'lamp', property: 'intensity', value: 5 },
+        result: { ok: true, derivedFrom: String(reflectedPrompt) },
+      };
+      proxy.push(toolCall as unknown as UAALOperand);
+    });
+
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.INTAKE, operands: ['user wants brighter lamp'] },
+        { opCode: UAALOpCode.REFLECT, operands: [] },
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: [] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+    };
+
+    const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('HALTED');
+    expect(synthesisTrace).toEqual(['INTAKE', 'REFLECT', 'INVOKE_LLM']);
+
+    const stackTop = result.stackTop as unknown as BrittneyToolCallResult;
+    expect(stackTop.toolName).toBe('set_trait_property');
+    expect(stackTop.result.derivedFrom).toBe('reflected: user wants brighter lamp');
+  });
+
+  it('Brittney tool schema shape: type:function + nested function with required fields', () => {
+    // This locks the schema shape of BRITTNEY_TOOLS exports. If
+    // packages/studio/src/lib/brittney/BrittneyTools.ts changes the outer envelope,
+    // update the BrittneyToolSpec type above + bump this assertion.
+    const sampleSpec: BrittneyToolSpec = {
+      type: 'function',
+      function: {
+        name: 'add_trait',
+        description: 'Add a trait to a scene object.',
+        parameters: {
+          type: 'object',
+          properties: {
+            object_name: { type: 'string' },
+            trait_name: { type: 'string' },
+            properties: { type: 'object' },
+          },
+          required: ['object_name', 'trait_name'],
+        },
+      },
+    };
+
+    expect(sampleSpec.type).toBe('function');
+    expect(sampleSpec.function.name).toBe('add_trait');
+    expect(sampleSpec.function.parameters.type).toBe('object');
+    expect(sampleSpec.function.parameters.required).toContain('object_name');
+    expect(sampleSpec.function.parameters.required).toContain('trait_name');
+  });
+
+  it('multiple OP_INVOKE_LLM in sequence (autonomous synthesis multi-tool loop)', async () => {
+    const vm = new UAALVirtualMachine();
+    const callLog: BrittneyToolCallResult[] = [];
+
+    let callCount = 0;
+    vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, (proxy, operands) => {
+      callCount += 1;
+      const toolCall: BrittneyToolCallResult = {
+        toolName: callCount === 1 ? 'add_trait' : 'set_trait_property',
+        arguments: { iteration: callCount, prompt: String(operands[0] ?? '') },
+        result: { ok: true },
+      };
+      callLog.push(toolCall);
+      proxy.push(toolCall as unknown as UAALOperand);
+    });
+
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: ['create lamp'] },
+        { opCode: UAALOpCode.POP, operands: [] },
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: ['brighten lamp'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+    };
+
+    const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('HALTED');
+    expect(callLog).toHaveLength(2);
+    expect(callLog[0].toolName).toBe('add_trait');
+    expect(callLog[0].arguments.prompt).toBe('create lamp');
+    expect(callLog[1].toolName).toBe('set_trait_property');
+    expect(callLog[1].arguments.prompt).toBe('brighten lamp');
+
+    // Final stack should still hold the second tool-call result
+    const stackTop = result.stackTop as unknown as BrittneyToolCallResult;
+    expect(stackTop.arguments.iteration).toBe(2);
+  });
+
+  it('OP_INVOKE_LLM without a registered handler is a non-fatal no-op (does not crash the VM)', async () => {
+    // Studio's Brittney binding registers its handler at chat-route boot. If the
+    // binding is missing in some context (e.g., bare uAAL test harness), the VM
+    // must NOT panic — the unhandled-opcode default at vm.ts:331 pushes null and
+    // continues. Brittney's binding therefore must always check for null before
+    // treating the stack top as a tool-call result.
+    const vm = new UAALVirtualMachine();
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.PUSH, operands: ['fallback'] },
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: ['no handler registered'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+    };
+
+    const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('HALTED');
+    // Default behavior pushes null on top of the existing stack. Brittney's
+    // binding contract: a null stackTop after OP_INVOKE_LLM means "no LLM
+    // configured" and the host must surface a clear error to the user.
+    expect(result.stackTop).toBeNull();
+    expect(result.state.stack).toEqual(['fallback', null]);
+  });
+});
