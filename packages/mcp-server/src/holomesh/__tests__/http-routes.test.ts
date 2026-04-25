@@ -3559,6 +3559,124 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.communicationStyle).toBe('balanced');
     });
 
+    // ── PATCH /team/:id/config — runtime team config mutation ──
+
+    describe('PATCH /api/holomesh/team/:id/config', () => {
+      async function makeTeam(): Promise<string> {
+        const r = mockReq(
+          'POST',
+          '/api/holomesh/team',
+          { name: `cfg-test-team-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const s = mockRes();
+        await handleHoloMeshRoute(r, s, '/api/holomesh/team');
+        return s._body.team.id;
+      }
+
+      it('owner can raise max_slots', async () => {
+        const tid = await makeTeam();
+        const req = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/config`,
+          { max_slots: 80 },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/config`);
+        expect(res._status).toBe(200);
+        expect(res._body.success).toBe(true);
+        expect(res._body.team.maxSlots).toBe(80);
+        expect(res._body.changes.max_slots.from).toBe(20);
+        expect(res._body.changes.max_slots.to).toBe(80);
+      });
+
+      it('non-owner non-founder is 403', async () => {
+        const tid = await makeTeam();
+        const req = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/config`,
+          { max_slots: 80 },
+          { authorization: `Bearer ${memberApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/config`);
+        expect(res._status).toBe(403);
+      });
+
+      it('rejects max_slots below 2 or above 200', async () => {
+        const tid = await makeTeam();
+        for (const bad of [1, 0, -5, 201, 999, 2.5, NaN]) {
+          const req = mockReq(
+            'PATCH',
+            `/api/holomesh/team/${tid}/config`,
+            { max_slots: bad },
+            { authorization: `Bearer ${ownerApiKey}` }
+          );
+          const res = mockRes();
+          await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/config`);
+          expect(res._status).toBe(400);
+        }
+      });
+
+      it('rejects max_slots below current member count', async () => {
+        const tid = await makeTeam();
+        // Owner is the only member at this point (1 member). Try to shrink to 0 — but
+        // 0 < 2 also fails range check, so test is for max_slots == 1.
+        // Real test: bump to 5, add a member via direct teamStore, try to shrink to 1.
+        const { teamStore } = await import('../state');
+        const team = teamStore.get(tid)!;
+        team.members.push({
+          agentId: 'agent_extra',
+          agentName: 'extra-member',
+          role: 'member',
+          joinedAt: new Date().toISOString(),
+          walletAddress: '0xabc',
+          x402Verified: false,
+        });
+        // members.length is now 2; try to shrink max_slots to 2 (= ok), then to less — rejected.
+        const ok = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, { max_slots: 2 }, { authorization: `Bearer ${ownerApiKey}` });
+        const okRes = mockRes();
+        await handleHoloMeshRoute(ok, okRes, `/api/holomesh/team/${tid}/config`);
+        expect(okRes._status).toBe(200);
+
+        // Add a third member, then try to shrink back to 2.
+        team.members.push({
+          agentId: 'agent_extra2',
+          agentName: 'extra-member-2',
+          role: 'member',
+          joinedAt: new Date().toISOString(),
+          walletAddress: '0xdef',
+          x402Verified: false,
+        });
+        const bad = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, { max_slots: 2 }, { authorization: `Bearer ${ownerApiKey}` });
+        const badRes = mockRes();
+        await handleHoloMeshRoute(bad, badRes, `/api/holomesh/team/${tid}/config`);
+        expect(badRes._status).toBe(400);
+        expect(badRes._body.error).toMatch(/cannot be less than current member count/);
+      });
+
+      it('empty body 400', async () => {
+        const tid = await makeTeam();
+        const req = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, {}, { authorization: `Bearer ${ownerApiKey}` });
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/config`);
+        expect(res._status).toBe(400);
+      });
+
+      it('unknown team 404', async () => {
+        const req = mockReq(
+          'PATCH',
+          '/api/holomesh/team/team_does_not_exist/config',
+          { max_slots: 50 },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, '/api/holomesh/team/team_does_not_exist/config');
+        expect(res._status).toBe(404);
+      });
+    });
+
     // ── /space includes teams ──
 
     it('/space includes agent teams in your_agent', async () => {

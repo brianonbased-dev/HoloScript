@@ -1032,6 +1032,63 @@ export async function handleTeamRoutes(
     return true;
   }
 
+  // PATCH /api/holomesh/team/:id/config — mutable team config (currently
+  // max_slots; extensible). Owner-or-founder gated. The original team
+  // creation flow at line ~641 sets maxSlots once and provides no
+  // run-time way to grow it; the 31-Vast.ai mesh-worker fleet provisioned
+  // 2026-04-24 hit the cap and 30/30 workers spent 24h returning 403
+  // "Not a member" on every heartbeat (see ai-eco S.FLEET 2026-04-25).
+  // This endpoint is the gap-build per /founder ruling: production-only
+  // cap mutation, no parallel-team workaround.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/config$/) && method === 'PATCH') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/config', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    const isOwner = team.ownerId === caller.id;
+    if (!isOwner && !caller.isFounder) {
+      json(res, 403, { error: 'Forbidden: only the team owner or a founder may mutate team config.' });
+      return true;
+    }
+    const body = (await parseJsonBody(req)) as { max_slots?: unknown } | null;
+    if (!body) {
+      json(res, 400, { error: 'JSON body required' });
+      return true;
+    }
+    const changes: Record<string, unknown> = {};
+    if (body.max_slots !== undefined) {
+      const ms = body.max_slots;
+      if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 2 || ms > 200 || Math.floor(ms) !== ms) {
+        json(res, 400, { error: 'max_slots must be an integer in [2, 200]' });
+        return true;
+      }
+      if (ms < team.members.length) {
+        json(res, 400, {
+          error: `max_slots (${ms}) cannot be less than current member count (${team.members.length})`,
+        });
+        return true;
+      }
+      const previous = team.maxSlots;
+      team.maxSlots = ms;
+      changes.max_slots = { from: previous, to: ms };
+    }
+    if (Object.keys(changes).length === 0) {
+      json(res, 400, { error: 'No mutable fields provided. Supported: max_slots' });
+      return true;
+    }
+    persistTeamStore();
+    json(res, 200, {
+      success: true,
+      team: { id: team.id, name: team.name, maxSlots: team.maxSlots, memberCount: team.members.length },
+      changes,
+    });
+    return true;
+  }
+
   // PATCH /api/holomesh/team/:id/room — room preferences (communication style, optional objective)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room$/) && method === 'PATCH') {
     const caller = requireAuth(req, res);
