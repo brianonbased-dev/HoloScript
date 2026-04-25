@@ -1510,7 +1510,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private processGenerateDirectives(instance: NodeInstance): void {
     if (!instance.node.directives) return;
-    const generateDirectives = instance.node.directives.filter((d) => d.type === 'generate');
+    const generateDirectives = instance.node.directives.filter(
+      (d: { type: string; [key: string]: unknown }) => d.type === 'generate'
+    );
 
     for (const d of generateDirectives) {
       const directive = d as unknown as Record<string, unknown>;
@@ -1553,7 +1555,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private updateExternalApis(instance: NodeInstance, _delta: number): void {
     if (!instance.node.directives) return;
-    const apiDirectives = instance.node.directives.filter((d) => d.type === 'external_api');
+    const apiDirectives = instance.node.directives.filter(
+      (d: { type: string; [key: string]: unknown }) => d.type === 'external_api'
+    );
 
     for (const d of apiDirectives) {
       const directive = d as unknown as Record<string, unknown>;
@@ -2087,7 +2091,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         }
 
         case 'MethodCall': {
-          const args = (stmt.arguments || []).map((arg) => this.evaluator.evaluate(String(arg)));
+          const args = (stmt.arguments || []).map((arg: unknown) =>
+            this.evaluator.evaluate(String(arg))
+          );
           const method = (this.builtins as unknown as Record<string, unknown>)[
             stmt.method as string
           ];
