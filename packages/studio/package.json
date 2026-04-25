@@ -14,7 +14,7 @@
     "holo:build": "tsx scripts/compile-holo-pages.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
     "prebuild": "pnpm run holo:build",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start --port 3100",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
