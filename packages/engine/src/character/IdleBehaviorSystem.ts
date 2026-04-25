@@ -137,8 +137,8 @@ export class IdleBehaviorSystem {
 
     // Critically damped-ish settle toward target.
     const settle = clamp01(deltaSec * 18);
-    this.gaze[0] = lerp(this.gaze[0], this.saccadeTarget[0], settle);
-    this.gaze[1] = lerp(this.gaze[1], this.saccadeTarget[1], settle);
+    this.gaze.x = lerp(this.gaze.x, this.saccadeTarget.x, settle);
+    this.gaze.y = lerp(this.gaze.y, this.saccadeTarget.y, settle);
 
     return this.computeFrame();
   }
