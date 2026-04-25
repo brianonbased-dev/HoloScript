@@ -1,0 +1,14 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "packages/holoscript-agent/deploy/Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+healthcheckTimeout = 30
+numReplicas = 1
+startCommand = "node /app/dist/index.js supervise --config=/data/agents.json"
+
+[[volumes]]
+name = "agent-state"
+mountPath = "/data"

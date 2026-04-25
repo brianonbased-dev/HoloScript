@@ -1,0 +1,80 @@
+{
+  "_README": "Auto-generated 2026-04-24 by ai-ecosystem session after provisioning 31 x402 seats via scripts/provision-mesh-seats.mjs. Brain distribution per agents-template.json _brain_distribution_plan, with the H200 instance reserved for the anthropic-backed lean-theorist flagship (highest-value brain on the highest-throughput hardware).",
+
+  "_provisioning_provenance": {
+    "provisioned_at": "2026-04-24T23:50:35Z (approx)",
+    "seats_total": 31,
+    "registration_flow": "x402 challenge-verified (SEC-T-Zero, /api/holomesh/register)",
+    "wallets_stored": "~/.ai-ecosystem/seats/mesh-worker-NN-x402/wallet.enc (encrypted aes-256-gcm)",
+    "bearer_tokens_stored": "HoloScript/.env (SSOT, gitignored) + ai-ecosystem/.env (mirror)",
+    "founder_checkpoint": "~/.ai-ecosystem/research/founder-checkpoint.json (Trezor 0x0C57...660E3 verified)"
+  },
+
+  "globalBudgetUsdPerDay": 50,
+  "defaultTickIntervalMs": 60000,
+
+  "agents": [
+    {
+      "_role": "H200 FLAGSHIP — anthropic-backed Claude Opus running lean-theorist-brain. Use the H200's 141GB VRAM for hot-tier brain context. instanceMatch=H200 pins this to the H200 instance.",
+      "handle": "mesh-worker-01",
+      "instanceMatch": "H200",
+      "brainPath": "compositions/lean-theorist-brain.hsplus",
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "walletEnvKey": "HOLOMESH_WALLET_MESH_01_X402",
+      "bearerEnvKey": "HOLOMESH_API_KEY_MESH_01_X402",
+      "budgetUsdPerDay": 20,
+      "scopeTier": "hot",
+      "enabled": true,
+      "tickIntervalMs": 30000,
+      "enableCommitHook": true
+    },
+    {
+      "_role": "Trait-inference local-llm worker — Qwen 0.5B running on the GPU directly. Zero LLM API cost (compute already paid). Brain: trait-inference. Used for paper-19 dataset generation + trait-classification work.",
+      "handle": "mesh-worker-02",
+      "brainPath": "compositions/trait-inference-brain.hsplus",
+      "provider": "local-llm",
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "walletEnvKey": "HOLOMESH_WALLET_MESH_02_X402",
+      "bearerEnvKey": "HOLOMESH_API_KEY_MESH_02_X402",
+      "budgetUsdPerDay": 1,
+      "scopeTier": "warm",
+      "enabled": true
+    },
+    { "handle": "mesh-worker-03", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_03_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_03_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-04", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_04_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_04_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-05", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_05_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_05_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-06", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_06_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_06_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-07", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_07_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_07_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-08", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_08_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_08_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-09", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_09_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_09_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-10", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_10_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_10_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-11", "brainPath": "compositions/trait-inference-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_11_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_11_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "Security-auditor pool — 5 instances enumerating paper-21 attack vectors + threat-model expansion in parallel.", "handle": "mesh-worker-12", "brainPath": "compositions/security-auditor-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_12_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_12_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-13", "brainPath": "compositions/security-auditor-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_13_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_13_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-14", "brainPath": "compositions/security-auditor-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_14_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_14_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-15", "brainPath": "compositions/security-auditor-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_15_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_15_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-16", "brainPath": "compositions/security-auditor-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_16_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_16_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "SESL-training pool — 5 instances exploring self-play harness on local-llm. instanceMatch prefers 8x clusters when available for distributed inference.", "handle": "mesh-worker-17", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_17_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_17_X402", "budgetUsdPerDay": 2, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-18", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_18_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_18_X402", "budgetUsdPerDay": 2, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-19", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_19_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_19_X402", "budgetUsdPerDay": 2, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-20", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_20_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_20_X402", "budgetUsdPerDay": 2, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-21", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_21_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_21_X402", "budgetUsdPerDay": 2, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "Scene-composition pool — 3 instances working paper-20 layout enumeration.", "handle": "mesh-worker-22", "brainPath": "compositions/scene-composition-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_22_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_22_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-23", "brainPath": "compositions/scene-composition-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_23_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_23_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-24", "brainPath": "compositions/scene-composition-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_24_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_24_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "Motion-SESL pool — 3 instances working paper-18 motion-token format exploration.", "handle": "mesh-worker-25", "brainPath": "compositions/motion-sesl-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_25_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_25_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-26", "brainPath": "compositions/motion-sesl-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_26_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_26_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-27", "brainPath": "compositions/motion-sesl-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_27_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_27_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "Adaptive-UI pool — 3 instances working paper-24 personalization-clustering rehearsal (CAEL trace consumption pattern).", "handle": "mesh-worker-28", "brainPath": "compositions/adaptive-ui-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_28_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_28_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-29", "brainPath": "compositions/adaptive-ui-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_29_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_29_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+    { "handle": "mesh-worker-30", "brainPath": "compositions/adaptive-ui-brain.hsplus", "provider": "local-llm", "model": "Qwen/Qwen2.5-0.5B-Instruct", "walletEnvKey": "HOLOMESH_WALLET_MESH_30_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_30_X402", "budgetUsdPerDay": 1, "scopeTier": "warm", "enabled": true },
+
+    { "_role": "Mock validator — verifies the runtime + identity flow with $0 LLM cost. Uses cheapest instance (GTX 1080 if available). cold-tier brain.", "handle": "mesh-worker-31", "brainPath": "compositions/sesl-training-brain.hsplus", "provider": "mock", "model": "mock-1", "walletEnvKey": "HOLOMESH_WALLET_MESH_31_X402", "bearerEnvKey": "HOLOMESH_API_KEY_MESH_31_X402", "budgetUsdPerDay": 0.5, "scopeTier": "cold", "enabled": true, "tickIntervalMs": 120000 }
+  ]
+}

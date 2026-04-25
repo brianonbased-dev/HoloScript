@@ -1,0 +1,41 @@
+{
+  "agents": [
+    {
+      "handle": "security-auditor",
+      "brainPath": "/repo/compositions/security-auditor-brain.hsplus",
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_SECURITY_AUDITOR",
+      "bearerEnvKey": "HOLOMESH_API_KEY_SECURITY_AUDITOR_X402",
+      "budgetUsdPerDay": 5,
+      "scopeTier": "warm",
+      "enableCommitHook": true,
+      "outputDir": "/data/work/agent-out",
+      "workingDir": "/data/work"
+    },
+    {
+      "handle": "lean-theorist",
+      "brainPath": "/repo/compositions/lean-theorist-brain.hsplus",
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_LEAN_THEORIST",
+      "bearerEnvKey": "HOLOMESH_API_KEY_LEAN_THEORIST_X402",
+      "budgetUsdPerDay": 5,
+      "scopeTier": "warm",
+      "enabled": false
+    },
+    {
+      "handle": "trait-inference",
+      "brainPath": "/repo/compositions/trait-inference-brain.hsplus",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_TRAIT_INFERENCE",
+      "bearerEnvKey": "HOLOMESH_API_KEY_TRAIT_INFERENCE_X402",
+      "budgetUsdPerDay": 3,
+      "scopeTier": "warm",
+      "enabled": false
+    }
+  ],
+  "globalBudgetUsdPerDay": 20,
+  "defaultTickIntervalMs": 60000
+}

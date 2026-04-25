@@ -13,6 +13,7 @@ export default defineConfig({
     'src/supervisor.ts',
     'src/supervisor-config.ts',
     'src/provision.ts',
+    'src/audit-log.ts',
     'src/types.ts',
   ],
   format: ['esm'],

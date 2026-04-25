@@ -22,6 +22,7 @@ import type { ProviderFactory } from './supervisor.js';
 import { loadSupervisorConfig } from './supervisor-config.js';
 import type { AgentSpec } from './supervisor-config.js';
 import { provisionAgent } from './provision.js';
+import { AuditLog } from './audit-log.js';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
@@ -51,6 +52,9 @@ async function main(): Promise<void> {
       return;
     case 'provision':
       await cmdProvision(args.slice(1));
+      return;
+    case 'audit':
+      await cmdAudit(args.slice(1));
       return;
     case 'help':
     case '--help':
@@ -163,6 +167,30 @@ async function cmdSupervise(rest: string[]): Promise<void> {
     setInterval(() => {
       console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'supervisor-status', ...sup.status() }));
     }, reportEvery);
+  }
+}
+
+async function cmdAudit(rest: string[]): Promise<void> {
+  const logPath = rest.find((a) => a.startsWith('--log='))?.split('=')[1]
+    ?? process.env.HOLOSCRIPT_AGENT_AUDIT_LOG
+    ?? join(homedir(), '.holoscript-agent', 'audit', 'audit.jsonl');
+  const sub = rest.find((a) => !a.startsWith('--')) ?? 'rollup';
+  const filter: { agent?: string; provider?: string; task?: string; kind?: string; limit?: number } = {};
+  for (const arg of rest) {
+    if (arg.startsWith('--agent=')) filter.agent = arg.split('=')[1];
+    if (arg.startsWith('--provider=')) filter.provider = arg.split('=')[1];
+    if (arg.startsWith('--task=')) filter.task = arg.split('=')[1];
+    if (arg.startsWith('--kind=')) filter.kind = arg.split('=')[1];
+    if (arg.startsWith('--limit=')) filter.limit = Number(arg.split('=')[1]);
+  }
+  const log = new AuditLog({ logPath });
+  if (sub === 'rollup') {
+    console.log(JSON.stringify(log.rollup(filter as never), null, 2));
+  } else if (sub === 'tail' || sub === 'query') {
+    const events = log.query(filter as never);
+    for (const e of events) console.log(JSON.stringify(e));
+  } else {
+    throw new Error('Usage: holoscript-agent audit [rollup|query|tail] [--agent=<h>] [--provider=<p>] [--task=<id>] [--kind=<k>] [--limit=<n>] [--log=<path>]');
   }
 }
 
@@ -378,6 +406,13 @@ USAGE
   holoscript-agent provision --handle=<name>        provision a fresh x402 seat for a brain (dry-run by default)
                              [--execute]            actually generate wallet + register against production
                              [--force]              re-register a handle whose seat already exists (dangerous)
+  holoscript-agent audit [rollup|query|tail]        query the per-agent audit log (default sub: rollup)
+                         [--agent=<h>]              filter by agent handle
+                         [--provider=<p>]           filter by LLM provider
+                         [--task=<id>]              filter by task id
+                         [--kind=<k>]               filter by kind (task-executed | ablation-cell | ...)
+                         [--limit=<n>]              keep last N events
+                         [--log=<path>]             override log path (default ~/.holoscript-agent/audit/audit.jsonl)
   holoscript-agent help                             print this
 
 REQUIRED ENV

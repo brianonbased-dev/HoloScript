@@ -49,6 +49,10 @@
     "./provision": {
       "types": "./dist/provision.d.ts",
       "import": "./dist/provision.js"
+    },
+    "./audit-log": {
+      "types": "./dist/audit-log.d.ts",
+      "import": "./dist/audit-log.js"
     }
   },
   "files": ["dist"],
