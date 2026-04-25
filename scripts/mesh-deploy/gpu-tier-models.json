@@ -19,35 +19,35 @@
     {
       "min_gb": 70,
       "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
-      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.92"],
+      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.92", "--enforce-eager"],
       "expected_first_token_ms": 800,
       "notes": "AWQ q4 ~36GB. Production-grade reasoning + coding. Single instance class on current fleet (H100 NVL)."
     },
     {
       "min_gb": 14,
       "model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
-      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.90"],
+      "vllm_args": ["--max-model-len", "16384", "--gpu-memory-utilization", "0.90", "--enforce-eager"],
       "expected_first_token_ms": 600,
       "notes": "AWQ q4 ~9GB + KV cache. Fits 16GB cards. Strong on coding + structured output."
     },
     {
       "min_gb": 9,
       "model": "Qwen/Qwen2.5-7B-Instruct-AWQ",
-      "vllm_args": ["--max-model-len", "8192", "--gpu-memory-utilization", "0.88"],
+      "vllm_args": ["--max-model-len", "8192", "--gpu-memory-utilization", "0.88", "--enforce-eager"],
       "expected_first_token_ms": 400,
       "notes": "AWQ q4 ~5GB + KV cache. Fits 10-12GB cards. Decent for audits + tool-use."
     },
     {
       "min_gb": 6,
       "model": "Qwen/Qwen2.5-3B-Instruct",
-      "vllm_args": ["--max-model-len", "4096", "--gpu-memory-utilization", "0.85"],
+      "vllm_args": ["--max-model-len", "4096", "--gpu-memory-utilization", "0.85", "--enforce-eager"],
       "expected_first_token_ms": 200,
       "notes": "fp16 ~6GB. Fits 7-8GB cards. Cheap classification + grep-summary tasks only."
     },
     {
       "min_gb": 0,
       "model": "Qwen/Qwen2.5-0.5B-Instruct",
-      "vllm_args": ["--max-model-len", "2048", "--gpu-memory-utilization", "0.80"],
+      "vllm_args": ["--max-model-len", "2048", "--gpu-memory-utilization", "0.80", "--enforce-eager"],
       "expected_first_token_ms": 100,
       "notes": "Fallback for any GPU. Capacity-only — output quality too low for paper deliverables."
     }
