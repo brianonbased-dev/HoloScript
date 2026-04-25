@@ -154,8 +154,20 @@ jobs:
         # that service's transitive deps. For push-triggered or "all",
         # fall through to the full workspace build (the safe default).
         # See task_1777100775495_6j7w + W.082 lane isolation.
+        #
+        # IMPORTANT: explicitly build @holoscript/core FIRST before
+        # anything else. pnpm's --filter "X..." can silently skip core's
+        # build if its dist exists (no real cache invalidation), which
+        # leaves consumers with stale d.ts. Forcing core upfront +
+        # `rm -rf packages/core/dist` guarantees a fresh d.ts.
         run: |
           SERVICE="${{ github.event.inputs.service || 'all' }}"
+
+          # Always force a fresh @holoscript/core build (stale dist masks
+          # type changes from generate-types.mjs).
+          rm -rf packages/core/dist
+          pnpm --filter @holoscript/core build
+
           case "$SERVICE" in
             all)
               echo "[preflight] full workspace build (service=all or push-triggered)"
