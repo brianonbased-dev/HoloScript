@@ -47,8 +47,8 @@ export class NetworkPredictor<T extends Record<string, any>> {
 
     this.inputBuffer.push(networkInput);
 
-    // Apply to current predicted state
-    applyFn(this.predictedState, input);
+    // Apply to current predicted state (proxy allows numeric index writes to map to x/y/z)
+    applyFn(this.makeStateProxy(this.predictedState), input);
 
     // Store in state buffer for potential rollback
     this.stateBuffer.push({
@@ -79,7 +79,7 @@ export class NetworkPredictor<T extends Record<string, any>> {
     // 3. Re-play unacknowledged inputs on top of confirmed state
     const newState = JSON.parse(JSON.stringify(this.confirmedState));
     for (const input of this.inputBuffer) {
-      applyFn(newState, input.data);
+      applyFn(this.makeStateProxy(newState), input.data);
     }
 
     this.predictedState = newState;
@@ -103,5 +103,24 @@ export class NetworkPredictor<T extends Record<string, any>> {
 
   public getPredictedState(): T {
     return this.predictedState;
+  }
+  private makeStateProxy(state: T): T {
+    const fieldNames = Object.keys(state);
+    return new Proxy(state, {
+      get(target: any, key: string | symbol): unknown {
+        const i = typeof key === 'string' ? parseInt(key, 10) : NaN;
+        if (!isNaN(i) && i >= 0 && i < fieldNames.length) return target[fieldNames[i]];
+        return target[key as string];
+      },
+      set(target: any, key: string | symbol, value: unknown): boolean {
+        const i = typeof key === 'string' ? parseInt(key, 10) : NaN;
+        if (!isNaN(i) && i >= 0 && i < fieldNames.length) {
+          target[fieldNames[i]] = value;
+        } else {
+          target[key as string] = value;
+        }
+        return true;
+      },
+    }) as T;
   }
 }

@@ -66,7 +66,11 @@ function withVec3Accessors(vec: IVector3): IVector3 {
 }
 
 function c(v: Vec3Like, i: 0 | 1 | 2): number {
-  return Array.isArray(v) ? (v as IVector3)[i] : i === 0 ? v.x : i === 1 ? v.y : v.z;
+  if (Array.isArray(v)) return (v as IVector3)[i];
+  const named = i === 0 ? v.x : i === 1 ? v.y : v.z;
+  if (named !== undefined) return named;
+  // Handle numeric-keyed objects like {0:val, 1:val, 2:val} from array spread
+  return (v as unknown as Record<number, number>)[i] ?? 0;
 }
 
 // =============================================================================

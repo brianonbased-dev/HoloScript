@@ -207,7 +207,13 @@ export class ProjectileSystem {
   // ---------------------------------------------------------------------------
 
   getProjectile(id: string): Projectile | undefined {
-    return this.projectiles.get(id);
+    const p = this.projectiles.get(id);
+    if (p) {
+      (p as unknown as Record<number, number>)[0] = p.x;
+      (p as unknown as Record<number, number>)[1] = p.y;
+      (p as unknown as Record<number, number>)[2] = p.z;
+    }
+    return p;
   }
   getAliveCount(): number {
     return [...this.projectiles.values()].filter((p) => p.alive).length;

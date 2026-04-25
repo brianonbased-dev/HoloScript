@@ -94,7 +94,7 @@ export class WeatherSystem {
   }
 
   setWind(x: number, y: number, z: number, speed: number): void {
-    this.current.wind = { x, y, z, speed };
+    this.current.wind = Object.assign({ x, y, z, speed }, { 0: x, 1: y, 2: z });
   }
 
   setTemperature(temp: number): void {
