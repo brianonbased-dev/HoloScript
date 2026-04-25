@@ -112,6 +112,17 @@ const nextConfig = {
     'three',
     '@holoscript/std',
     '@holoscript/r3f-renderer',
+    // Added 2026-04-25 to fix Next.js webpack `Module not found:
+    // Can't resolve './XrMetricsBinding.js'` (and friends in
+    // marketplace-agentkit). Without these in transpilePackages,
+    // Next.js webpack resolves workspace-symlink imports against
+    // raw .ts source but won't apply the .js→.ts extensionAlias
+    // (set below in the webpack config). transpilePackages tells
+    // Next to run its full pipeline (TS→JS, extensionAlias, etc.)
+    // on these workspace packages, matching the local-monorepo
+    // dev experience to the deploy build.
+    '@holoscript/core',
+    '@holoscript/marketplace-agentkit',
   ],
   webpack: (config, { isServer, defaultLoaders }) => {
     config.experiments = {
