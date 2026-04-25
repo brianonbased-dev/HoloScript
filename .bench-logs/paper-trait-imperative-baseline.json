@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-04-25T05:40:33.333Z",
+  "traitUniverseCount": 2801,
+  "warmup": 50,
+  "iterations": 500,
+  "jsonSerializationUs": {
+    "median": 0.6,
+    "p99": 2.3,
+    "note": "single TraitApplication.config JSON.stringify, µs (probe-shape identical to paper-trait-semiring-overhead.json)"
+  },
+  "byBatchSize": [
+    {
+      "batchSize": 1,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 0.4,
+      "perCallP99Us": 2.1,
+      "perTraitMedianUs": 0.4,
+      "perTraitP99Us": 2.1
+    },
+    {
+      "batchSize": 2,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 0.5,
+      "perCallP99Us": 2.3,
+      "perTraitMedianUs": 0.25,
+      "perTraitP99Us": 1.15
+    },
+    {
+      "batchSize": 5,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 0.8,
+      "perCallP99Us": 4.8,
+      "perTraitMedianUs": 0.16,
+      "perTraitP99Us": 0.96
+    },
+    {
+      "batchSize": 10,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 0.5,
+      "perCallP99Us": 13.7,
+      "perTraitMedianUs": 0.05,
+      "perTraitP99Us": 1.37
+    },
+    {
+      "batchSize": 20,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 1.4,
+      "perCallP99Us": 5.9,
+      "perTraitMedianUs": 0.07,
+      "perTraitP99Us": 0.295
+    },
+    {
+      "batchSize": 50,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 4.4,
+      "perCallP99Us": 21.2,
+      "perTraitMedianUs": 0.088,
+      "perTraitP99Us": 0.424
+    },
+    {
+      "batchSize": 100,
+      "warmup": 50,
+      "iterations": 500,
+      "perCallMedianUs": 6.5,
+      "perCallP99Us": 20.4,
+      "perTraitMedianUs": 0.065,
+      "perTraitP99Us": 0.204
+    }
+  ],
+  "compositionShape": "imperative-direct-write-no-semiring-no-provenance-no-conflict-mode",
+  "orderIndependenceClaim": "NONE — last-write-wins by construction; reordering inputs may change output. See paper-trait-order-independence.test.ts for the contracted-side guarantee that this baseline lacks.",
+  "sinkChecksum": 107250
+}
