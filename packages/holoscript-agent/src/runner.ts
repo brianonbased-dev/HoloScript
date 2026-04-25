@@ -73,7 +73,11 @@ export class AgentRunner {
     let aggUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let finalText = '';
     let iters = 0;
-    const MAX_TOOL_ITERS = 12;
+    // 30-iter cap: lean-theorist on Paper 22 needed 13 iters to read MSC files
+    // + run lake build + iterate kernel checks. 12 was too tight (cap fired
+    // before write_file deliverable). 30 allows ~3x that depth — anything
+    // hitting 30 iters is almost certainly stuck and should bail.
+    const MAX_TOOL_ITERS = 30;
     let lastResponse;
     while (true) {
       iters++;
