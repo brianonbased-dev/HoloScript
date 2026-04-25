@@ -173,7 +173,8 @@ if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = 
   # threshold is <= reported VRAM. Override via HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL_OVERRIDE
   # in agent.env (or LOCAL_LLM_MODEL) wins. Fallback: Qwen 0.5B for any GPU.
   TIER_TABLE="$WORKSPACE/scripts/mesh-deploy/gpu-tier-models.json"
-  if [ -z "$LOCAL_LLM_MODEL" ] && [ -f "$TIER_TABLE" ] && command -v nvidia-smi >/dev/null 2>&1; then
+  # Allow LOCAL_LLM_MODEL to be unset (`set -u` mode); default to empty.
+  if [ -z "${LOCAL_LLM_MODEL:-}" ] && [ -f "$TIER_TABLE" ] && command -v nvidia-smi >/dev/null 2>&1; then
     VRAM_MIB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
     if [ -n "$VRAM_MIB" ] && [ "$VRAM_MIB" -gt 0 ] 2>/dev/null; then
       VRAM_GB=$(( VRAM_MIB / 1024 ))
