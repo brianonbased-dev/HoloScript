@@ -140,7 +140,17 @@ pnpm --filter "@holoscript/holoscript-agent..." build
 # ---------------------------------------------------------------------------
 if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = "local-llm" ]; then
   LLM_MODEL="${LOCAL_LLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
-  LLM_PORT="${LOCAL_LLM_PORT:-8080}"
+  # Default to 8081 — Vast.ai instances ship with Jupyter notebook bound to
+  # 8080 (observed 2026-04-25: every mesh instance's port 8080 was held by
+  # `jupyter-notebook ... --port=8080`, silently shadowing vLLM and leaving
+  # 16 local-llm workers unable to reach their LLM despite claiming tasks).
+  LLM_PORT="${LOCAL_LLM_PORT:-8081}"
+  # Verify nothing else owns the port; fail loud rather than silently shadow.
+  if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${LLM_PORT}$"; then
+    echo "[bootstrap] FATAL: port $LLM_PORT already in use — set LOCAL_LLM_PORT to a free port" >&2
+    ss -ltn 2>&1 | head -10 >&2
+    exit 5
+  fi
   echo "[bootstrap] starting vLLM server: $LLM_MODEL on port $LLM_PORT"
   pip install --quiet vllm || true
   nohup python -m vllm.entrypoints.openai.api_server \
@@ -152,6 +162,14 @@ if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = 
   export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT/v1"
   echo "[bootstrap] waiting 30s for vLLM to load model…"
   sleep 30
+  # Sanity: check vLLM bound the port. If not, exit early so daemon doesn't
+  # boot into a no-LLM hang state (the silent failure we just spent hours on).
+  if ! curl -sf "http://localhost:$LLM_PORT/v1/models" > /dev/null 2>&1; then
+    echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within 30s — see $LOG_DIR/vllm.log" >&2
+    tail -20 "$LOG_DIR/vllm.log" >&2 || true
+    exit 6
+  fi
+  echo "[bootstrap] vLLM responding on $LLM_PORT"
 fi
 
 # ---------------------------------------------------------------------------

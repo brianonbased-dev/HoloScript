@@ -19,17 +19,23 @@ function extractIdentity(brain: string): { domain: string; capabilityTags: strin
 }
 
 function sliceNamedBlock(src: string, name: string): string | undefined {
-  const header = `${name} {`;
-  const start = src.indexOf(header);
-  if (start < 0) return undefined;
-  let depth = 0;
-  let i = start + header.length - 1;
-  for (; i < src.length; i++) {
+  // Accept both `identity {` and `identity: {` — brain compositions in
+  // .ai-ecosystem use both forms (lean-theorist + antigravity-hot use the
+  // colon variant; security-auditor + others use the bare form). Without
+  // both-form tolerance the colon-form brains parse to empty
+  // capability_tags, breaking task scoring entirely (silent claim-blackhole
+  // observed 2026-04-25 on W01 H200 lean-theorist).
+  const re = new RegExp(`\\b${name}\\s*:?\\s*\\{`, 'g');
+  const match = re.exec(src);
+  if (!match) return undefined;
+  const headerEnd = match.index + match[0].length; // position just past the `{`
+  let depth = 1;
+  for (let i = headerEnd; i < src.length; i++) {
     const ch = src[i];
     if (ch === '{') depth++;
     else if (ch === '}') {
       depth--;
-      if (depth === 0) return src.slice(start + header.length, i);
+      if (depth === 0) return src.slice(headerEnd, i);
     }
   }
   return undefined;

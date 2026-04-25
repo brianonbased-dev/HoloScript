@@ -28,6 +28,23 @@ composition "Other" {
 }
 `;
 
+// Real .hsplus files in the wild use both `identity {` (security-auditor,
+// trait-inference, sesl-training, etc.) AND `identity: {` (lean-theorist,
+// antigravity-hot). Both must parse — the colon variant produced empty
+// capabilityTags before this test existed (silent claim-blackhole).
+const COLON_FORM_BRAIN = `
+composition "ColonForm" {
+  identity: {
+    name: "colon-form"
+    version: "0.1.0"
+    domain: "formal-methods"
+    capability_tags: ["lean4", "type-theory", "mechanized-proofs"]
+  }
+
+  decision_loop { priority_1: "be precise" }
+}
+`;
+
 describe('loadBrain', () => {
   let dir: string;
   beforeAll(() => {
@@ -59,6 +76,14 @@ describe('loadBrain', () => {
     const brain = await loadBrain(path);
     expect(brain.domain).toBe('unknown');
     expect(brain.capabilityTags).toEqual([]);
+  });
+
+  it('parses identity: { ... } (colon form) — fixes silent claim-blackhole on lean-theorist', async () => {
+    const path = join(dir, 'colon.hsplus');
+    writeFileSync(path, COLON_FORM_BRAIN, 'utf8');
+    const brain = await loadBrain(path);
+    expect(brain.domain).toBe('formal-methods');
+    expect(brain.capabilityTags).toEqual(['lean4', 'type-theory', 'mechanized-proofs']);
   });
 
   it('honors the requested scope tier', async () => {
