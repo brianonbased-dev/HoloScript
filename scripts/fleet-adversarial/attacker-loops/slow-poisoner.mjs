@@ -115,7 +115,8 @@ import process from 'node:process';
  * (founder ruling 2026-04-25 §7.2). HOLOMESH_API_BASE override allowed for
  * staging dry-runs only — never for live attacks.
  */
-const DEFAULT_API_BASE = process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
+// Bare base; URL builders append /api/holomesh/... See _base.mjs for canonical.
+const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, '');
 
 /**
  * The audit/ prefix is the ONLY route this loop is permitted to write to.

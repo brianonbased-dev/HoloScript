@@ -25,7 +25,15 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 
 export const AUDIT_PREFIX_LOCAL = 'audit/';
-export const DEFAULT_API_BASE = process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
+/**
+ * Bare HoloMesh server base — does NOT include /api/holomesh suffix.
+ * URL builders concatenate /api/holomesh/agent/<h>/<endpoint>.
+ * (Pre-existing bug: prior code had /api/holomesh hardcoded into base
+ * which doubled the prefix on every URL construction. Fixed here +
+ * mirrored in slow-poisoner + sybil + worker-dispatch-consumer +
+ * oracle/divergence-detector.)
+ */
+export const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, '');
 
 /**
  * Build a 7-layer CAEL record matching task _d2jx GET endpoint contract.
