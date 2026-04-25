@@ -965,8 +965,8 @@ export interface PhysicsContext {
   applyAngularVelocity(node: HSPlusNode, angularVelocity: Vector3): void;
   setKinematic(node: HSPlusNode, kinematic: boolean): void;
   raycast(origin: Vector3, direction: Vector3, maxDistance: number): RaycastHit | null;
-  getBodyPosition(nodeId: string): { x: number; y: number; z: number } | null;
-  getBodyVelocity(nodeId: string): { x: number; y: number; z: number } | null;
+  getBodyPosition(nodeId: string): Vector3 | null;
+  getBodyVelocity(nodeId: string): Vector3 | null;
 }
 
 export interface AudioContext {
