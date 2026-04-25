@@ -235,3 +235,46 @@ export const useTemporalStore = <T>(
   selector: (state: TemporalStore) => T,
   equality?: (a: T, b: T) => boolean
 ): T => useStore(useHistoryStore.temporal, selector as (state: TemporalStore) => T, equality);
+
+// ─── Paper 24 CAEL Phase 2: undo/redo bridge ─────────────────────────────────
+//
+// installHistoryCAELBridge subscribes to the zundo temporal store and emits
+// 'ui.undo' / 'ui.redo' on the cross-panel studio bus when the user invokes
+// either operation. Direction is inferred from past/future-stack length
+// deltas: a successful undo decreases pastStates.length and increases
+// futureStates.length by 1 each. Returns an unsubscribe.
+//
+// The bridge takes the bus emit function as a parameter rather than
+// importing useStudioBus directly, so historyStore stays free of React
+// hook coupling and remains testable in plain Vitest.
+export type HistoryBusEmit = (channel: string, data?: unknown) => void;
+
+export function installHistoryCAELBridge(emit: HistoryBusEmit): () => void {
+  const initial = useHistoryStore.temporal.getState();
+  let lastPastLen = initial.pastStates.length;
+  let lastFutureLen = initial.futureStates.length;
+  return useHistoryStore.temporal.subscribe((state) => {
+    const dPast = state.pastStates.length - lastPastLen;
+    const dFuture = state.futureStates.length - lastFutureLen;
+    lastPastLen = state.pastStates.length;
+    lastFutureLen = state.futureStates.length;
+    // Undo: past shrinks by 1, future grows by 1.
+    // Redo: future shrinks by 1, past grows by 1.
+    // New mutation: past grows, future clears (any size).
+    // We only want to fire CAEL events for undo/redo, NOT for new
+    // mutations (those are already covered by per-action bus emits).
+    if (dPast === -1 && dFuture === 1) {
+      emit('ui.undo', {
+        pastDepth: state.pastStates.length,
+        futureDepth: state.futureStates.length,
+        timestamp: Date.now(),
+      });
+    } else if (dPast === 1 && dFuture === -1) {
+      emit('ui.redo', {
+        pastDepth: state.pastStates.length,
+        futureDepth: state.futureStates.length,
+        timestamp: Date.now(),
+      });
+    }
+  });
+}

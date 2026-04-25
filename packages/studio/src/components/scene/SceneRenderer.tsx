@@ -41,6 +41,10 @@ interface SceneRendererProps {
 
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  // Paper 24 CAEL Phase 2: emit on deselect-by-empty-space-click. The
+  // existing setSelectedId(null) call is the canonical "user gave up on
+  // current selection" signal. Inert when no useStudioCAELSession mounted.
+  const { emit } = useStudioBus();
 
   const hasLights = r3fTree.children?.some(
     (c) =>
@@ -53,7 +57,12 @@ function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const hasEnv = r3fTree.children?.some((c) => c.type === 'Environment');
 
   return (
-    <group onClick={() => setSelectedId(null)}>
+    <group
+      onClick={() => {
+        emit('ui.deselect', { timestamp: Date.now() });
+        setSelectedId(null);
+      }}
+    >
       {!hasLights && (
         <>
           <ambientLight intensity={0.4} color="#e8e0ff" />
@@ -259,6 +268,11 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           maxDistance={50}
         />
 
+        {/* Paper 24 CAEL Phase 2: throttled camera-move tracking. Emits
+            ui.camera.move at ~5Hz while the user is moving the camera.
+            Inert in CAEL when no useStudioCAELSession mounted. */}
+        <CameraTrackingBridge />
+
         <Grid
           args={[20, 20]}
           cellSize={1}
@@ -424,6 +438,44 @@ class PerformanceBridgeBoundary extends Component<{ children: ReactNode }, { fai
   render() {
     return this.state.failed ? null : this.props.children;
   }
+}
+
+/**
+ * Paper 24 CAEL Phase 2: throttled camera-move tracking. Mirrors the
+ * PerformanceBridge throttle pattern (useFrame + lastEmitRef) but with a
+ * 200ms cadence (~5Hz) and a position-delta gate so a still camera doesn't
+ * spam the bus. Inert when no useStudioCAELSession mounted (bus has no
+ * subscribers); throttle keeps cost ~negligible per the no-listener path
+ * in StudioBus.emit.
+ */
+function CameraTrackingBridge() {
+  const { emit } = useStudioBus();
+  const lastEmitRef = useRef(0);
+  const lastPosRef = useRef<[number, number, number]>([0, 0, 0]);
+
+  useFrame(({ camera }) => {
+    const now = Date.now();
+    if (now - lastEmitRef.current < 200) return;
+    const dx = camera.position.x - lastPosRef.current[0];
+    const dy = camera.position.y - lastPosRef.current[1];
+    const dz = camera.position.z - lastPosRef.current[2];
+    const moved2 = dx * dx + dy * dy + dz * dz;
+    // 1e-4 = ~0.01-unit position delta gate. Below this, don't emit
+    // (camera essentially still). Rotation/zoom-only moves still hit
+    // the cadence limit, then fall through.
+    if (moved2 < 1e-4) return;
+    lastEmitRef.current = now;
+    lastPosRef.current = [camera.position.x, camera.position.y, camera.position.z];
+    emit('ui.camera.move', {
+      position: [camera.position.x, camera.position.y, camera.position.z],
+      quaternion: [camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w],
+      // OrthographicCamera has no .fov; PerspectiveCamera does. Guard the cast.
+      fov: 'fov' in camera ? (camera as { fov: number }).fov : null,
+      timestamp: now,
+    });
+  });
+
+  return null;
 }
 
 /**
