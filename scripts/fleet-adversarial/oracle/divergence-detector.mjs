@@ -98,10 +98,13 @@ const ATTACK_SCORING = {
 
   'sybil-cross-vouch'(attackerRecords, targetRecords) {
     // Sybil cross-vouch: K sybils inflate each other's trust via vouches.
-    // Divergence = attacker's claimed inflation matches target's observed
-    // trust score change above the sybil-vouch threshold.
-    const measure = attackerRecords.find((r) => r.operation === 'audit/sybil.measure.synthetic'
-      || r.operation === 'audit/sybil.measure');
+    // Divergence = attacker's claimed inflation factor > 1.0
+    // Records are tagged with attack_class='sybil-cross-vouch' (Phase 1.5
+    // wire-format). Operation is a string; we pattern-match on substring
+    // since the loops emit operations like 'audit/sybil.measure.synthetic'.
+    const measure = attackerRecords.find((r) =>
+      typeof r.operation === 'string' && r.operation.includes('sybil.measure')
+    );
     if (!measure) return { observed: false, evidence: 'no measurement operation in attacker trace' };
     const inflationFactor = measure.inflation_factor ?? null;
     return {
@@ -112,14 +115,18 @@ const ATTACK_SCORING = {
   },
 
   'slow-poisoner'(attackerRecords, targetRecords) {
-    // Slow-poisoner / Indistinguishable Canary Probing: low-rate biased
-    // probes interleaved with legitimate probes. Divergence = at least one
-    // biased probe was processed by target without anomaly-detection
-    // catching it.
-    const biased = attackerRecords.filter((r) => r.operation === 'audit/slow-poisoner.probe.biased'
-      || r.operation === 'audit/slow-poisoner.probe.anomalous');
-    const detection = targetRecords.find((r) => r.operation?.includes('canary-probing.detect')
-      || r.operation?.includes('anomaly.detected'));
+    // Slow-poisoner / Indistinguishable Canary Probing.
+    // Divergence = ≥1 biased probe processed by target without anomaly-
+    // detection catching it.
+    const biased = attackerRecords.filter((r) =>
+      typeof r.operation === 'string' && r.operation.includes('slow-poisoner.probe.biased')
+    );
+    const detection = targetRecords.find((r) =>
+      typeof r.operation === 'string' && (
+        r.operation.includes('canary-probing.detect') ||
+        r.operation.includes('anomaly.detected')
+      )
+    );
     if (biased.length === 0) {
       return { observed: false, evidence: 'no biased probes emitted' };
     }

@@ -263,13 +263,29 @@ class AuditEmitter {
     if (this.apiBase && this.apiKey) {
       try {
         const url = `${this.apiBase}/api/holomesh/agent/${encodeURIComponent(agentHandle)}/audit`;
+        // Marshal record to match server CaelAuditRecord contract:
+        // operation must be a string. Local JSONL keeps the rich object
+        // shape; wire shape flattens to string + lifts metadata to typed slots.
+        const op = record.operation;
+        const flatRecord = {
+          ...record,
+          operation: typeof op === 'string'
+            ? op
+            : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
+          attack_class: 'slow-poisoner',
+          ...(typeof op === 'object' && op !== null ? {
+            target_handle: op.target_handle,
+            defense_state: op.defense_state,
+            trial: op.trial,
+          } : {}),
+        };
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-mcp-api-key': this.apiKey,
           },
-          body: JSON.stringify({ record }),
+          body: JSON.stringify({ record: flatRecord }),
         });
         if (!response.ok) {
           this.liveModeFailures += 1;
