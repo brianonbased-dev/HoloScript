@@ -10,37 +10,37 @@ describe('Vector3', () => {
   describe('construction', () => {
     it('should create with default values', () => {
       const v = new Vector3();
-      expect(v.x).toBe(0);
-      expect(v.y).toBe(0);
-      expect(v.z).toBe(0);
+      expect(v[0]).toBe(0);
+      expect(v[1]).toBe(0);
+      expect(v[2]).toBe(0);
     });
 
     it('should create with specified values', () => {
       const v = new Vector3(1, 2, 3);
-      expect(v.x).toBe(1);
-      expect(v.y).toBe(2);
-      expect(v.z).toBe(3);
+      expect(v[0]).toBe(1);
+      expect(v[1]).toBe(2);
+      expect(v[2]).toBe(3);
     });
 
     it('should create from array', () => {
       const v = Vector3.fromArray([1, 2, 3]);
-      expect(v.x).toBe(1);
-      expect(v.y).toBe(2);
-      expect(v.z).toBe(3);
+      expect(v[0]).toBe(1);
+      expect(v[1]).toBe(2);
+      expect(v[2]).toBe(3);
     });
 
     it('should create zero vector', () => {
       const v = Vector3.zero();
-      expect(v.x).toBe(0);
-      expect(v.y).toBe(0);
-      expect(v.z).toBe(0);
+      expect(v[0]).toBe(0);
+      expect(v[1]).toBe(0);
+      expect(v[2]).toBe(0);
     });
 
     it('should create one vector', () => {
       const v = Vector3.one();
-      expect(v.x).toBe(1);
-      expect(v.y).toBe(1);
-      expect(v.z).toBe(1);
+      expect(v[0]).toBe(1);
+      expect(v[1]).toBe(1);
+      expect(v[2]).toBe(1);
     });
   });
 
@@ -49,42 +49,42 @@ describe('Vector3', () => {
       const a = new Vector3(1, 2, 3);
       const b = new Vector3(4, 5, 6);
       const result = a.add(b);
-      expect(result.x).toBe(5);
-      expect(result.y).toBe(7);
-      expect(result.z).toBe(9);
+      expect(result[0]).toBe(5);
+      expect(result[1]).toBe(7);
+      expect(result[2]).toBe(9);
     });
 
     it('should subtract vectors', () => {
       const a = new Vector3(4, 5, 6);
       const b = new Vector3(1, 2, 3);
       const result = a.subtract(b);
-      expect(result.x).toBe(3);
-      expect(result.y).toBe(3);
-      expect(result.z).toBe(3);
+      expect(result[0]).toBe(3);
+      expect(result[1]).toBe(3);
+      expect(result[2]).toBe(3);
     });
 
     it('should multiply by scalar', () => {
       const v = new Vector3(1, 2, 3);
       const result = v.multiply(2);
-      expect(result.x).toBe(2);
-      expect(result.y).toBe(4);
-      expect(result.z).toBe(6);
+      expect(result[0]).toBe(2);
+      expect(result[1]).toBe(4);
+      expect(result[2]).toBe(6);
     });
 
     it('should divide by scalar', () => {
       const v = new Vector3(2, 4, 6);
       const result = v.divide(2);
-      expect(result.x).toBe(1);
-      expect(result.y).toBe(2);
-      expect(result.z).toBe(3);
+      expect(result[0]).toBe(1);
+      expect(result[1]).toBe(2);
+      expect(result[2]).toBe(3);
     });
 
     it('should handle divide by zero', () => {
       const v = new Vector3(2, 4, 6);
       const result = v.divide(0);
-      expect(result.x).toBe(0);
-      expect(result.y).toBe(0);
-      expect(result.z).toBe(0);
+      expect(result[0]).toBe(0);
+      expect(result[1]).toBe(0);
+      expect(result[2]).toBe(0);
     });
   });
 
@@ -102,18 +102,18 @@ describe('Vector3', () => {
     it('should normalize vector', () => {
       const v = new Vector3(3, 4, 0);
       const normalized = v.normalize();
-      expect(normalized.x).toBeCloseTo(0.6);
-      expect(normalized.y).toBeCloseTo(0.8);
-      expect(normalized.z).toBe(0);
+      expect(normalized[0]).toBeCloseTo(0.6);
+      expect(normalized[1]).toBeCloseTo(0.8);
+      expect(normalized[2]).toBe(0);
       expect(normalized.magnitude()).toBeCloseTo(1);
     });
 
     it('should handle normalize of zero vector', () => {
       const v = Vector3.zero();
       const normalized = v.normalize();
-      expect(normalized.x).toBe(0);
-      expect(normalized.y).toBe(0);
-      expect(normalized.z).toBe(0);
+      expect(normalized[0]).toBe(0);
+      expect(normalized[1]).toBe(0);
+      expect(normalized[2]).toBe(0);
     });
   });
 
@@ -128,9 +128,9 @@ describe('Vector3', () => {
       const a = new Vector3(1, 0, 0);
       const b = new Vector3(0, 1, 0);
       const cross = a.cross(b);
-      expect(cross.x).toBe(0);
-      expect(cross.y).toBe(0);
-      expect(cross.z).toBe(1);
+      expect(cross[0]).toBe(0);
+      expect(cross[1]).toBe(0);
+      expect(cross[2]).toBe(1);
     });
   });
 
@@ -153,9 +153,9 @@ describe('Vector3', () => {
       const a = new Vector3(0, 0, 0);
       const b = new Vector3(10, 10, 10);
       const result = a.lerp(b, 0.5);
-      expect(result.x).toBe(5);
-      expect(result.y).toBe(5);
-      expect(result.z).toBe(5);
+      expect(result[0]).toBe(5);
+      expect(result[1]).toBe(5);
+      expect(result[2]).toBe(5);
     });
 
     it('should lerp at t=0', () => {
@@ -178,13 +178,13 @@ describe('Vector3', () => {
       const v = new Vector3(10, 0, 0);
       const clamped = v.clampMagnitude(5);
       expect(clamped.magnitude()).toBeCloseTo(5);
-      expect(clamped.x).toBe(5);
+      expect(clamped[0]).toBe(5);
     });
 
     it('should not clamp when within max', () => {
       const v = new Vector3(3, 0, 0);
       const clamped = v.clampMagnitude(5);
-      expect(clamped.x).toBe(3);
+      expect(clamped[0]).toBe(3);
     });
   });
 

@@ -62,7 +62,7 @@ describe('Blackboard', () => {
 
     it('stores objects', () => {
       bb.set('target', { x: 1, y: 2 });
-      expect(bb.get<{ x: number }>('target')?.x).toBe(1);
+      expect(bb.get<{ x: number }>('target').x).toBe(1);
     });
 
     it('delete() removes a key', () => {

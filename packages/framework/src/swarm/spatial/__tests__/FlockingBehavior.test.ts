@@ -24,12 +24,12 @@ describe('FlockingBehavior', () => {
     it('should add a boid', () => {
       const boid = flock.addBoid('boid-1', new Vector3(0, 0, 0));
       expect(boid.id).toBe('boid-1');
-      expect(boid.position.x).toBe(0);
+      expect(boid.position[0]).toBe(0);
     });
 
     it('should add boid with velocity', () => {
       const boid = flock.addBoid('boid-1', new Vector3(0, 0, 0), new Vector3(1, 0, 0));
-      expect(boid.velocity.x).toBe(1);
+      expect(boid.velocity[0]).toBe(1);
     });
 
     it('should generate random velocity if not provided', () => {
@@ -54,7 +54,7 @@ describe('FlockingBehavior', () => {
       flock.addBoid('boid-1', new Vector3(0, 0, 0));
       flock.setBoidPosition('boid-1', new Vector3(100, 100, 100));
       const boid = flock.getBoid('boid-1');
-      expect(boid?.position.x).toBe(100);
+      expect(boid?.position[0]).toBe(100);
     });
   });
 
@@ -65,7 +65,7 @@ describe('FlockingBehavior', () => {
 
       const steer = flock.separate(boid1, [boid2]);
       // Should steer away (negative x direction)
-      expect(steer.x).toBeLessThan(0);
+      expect(steer[0]).toBeLessThan(0);
     });
 
     it('should return zero if no neighbors in separation radius', () => {
@@ -85,7 +85,7 @@ describe('FlockingBehavior', () => {
 
       const steer = flock.align(boid1, [boid2, boid3]);
       // Should align with positive x direction
-      expect(steer.x).toBeGreaterThan(0);
+      expect(steer[0]).toBeGreaterThan(0);
     });
 
     it('should return zero if no neighbors in alignment radius', () => {
@@ -105,8 +105,8 @@ describe('FlockingBehavior', () => {
 
       const steer = flock.cohere(boid1, [boid2, boid3]);
       // Center is at (30, 15, 0), so should steer positive x and y
-      expect(steer.x).toBeGreaterThan(0);
-      expect(steer.y).toBeGreaterThan(0);
+      expect(steer[0]).toBeGreaterThan(0);
+      expect(steer[1]).toBeGreaterThan(0);
     });
 
     it('should return zero if no neighbors in cohesion radius', () => {
@@ -124,7 +124,7 @@ describe('FlockingBehavior', () => {
       const target = new Vector3(100, 0, 0);
 
       const steer = flock.seek(boid, target);
-      expect(steer.x).toBeGreaterThan(0);
+      expect(steer[0]).toBeGreaterThan(0);
     });
 
     it('should flee from target', () => {
@@ -132,7 +132,7 @@ describe('FlockingBehavior', () => {
       const target = new Vector3(100, 0, 0);
 
       const steer = flock.flee(boid, target);
-      expect(steer.x).toBeLessThan(0);
+      expect(steer[0]).toBeLessThan(0);
     });
 
     it('should arrive and slow down near target', () => {
@@ -197,7 +197,7 @@ describe('FlockingBehavior', () => {
       flock.applyForce('boid-1', new Vector3(1, 0, 0));
 
       const boid = flock.getBoid('boid-1')!;
-      expect(boid.acceleration.x).toBe(1);
+      expect(boid.acceleration[0]).toBe(1);
     });
 
     it('should apply force to all boids', () => {
@@ -205,8 +205,8 @@ describe('FlockingBehavior', () => {
       flock.addBoid('boid-2', new Vector3(10, 0, 0), new Vector3(0, 0, 0));
       flock.applyForceToAll(new Vector3(0, 1, 0));
 
-      expect(flock.getBoid('boid-1')!.acceleration.y).toBe(1);
-      expect(flock.getBoid('boid-2')!.acceleration.y).toBe(1);
+      expect(flock.getBoid('boid-1')!.acceleration[1]).toBe(1);
+      expect(flock.getBoid('boid-2')!.acceleration[1]).toBe(1);
     });
   });
 
@@ -217,8 +217,8 @@ describe('FlockingBehavior', () => {
       flock.addBoid('boid-3', new Vector3(20, 0, 0));
 
       const center = flock.getFlockCenter();
-      expect(center.x).toBe(10);
-      expect(center.y).toBe(0);
+      expect(center[0]).toBe(10);
+      expect(center[1]).toBe(0);
     });
 
     it('should return zero for empty flock center', () => {
@@ -231,8 +231,8 @@ describe('FlockingBehavior', () => {
       flock.addBoid('boid-2', new Vector3(10, 0, 0), new Vector3(1, 0, 0));
 
       const direction = flock.getFlockDirection();
-      expect(direction.x).toBeCloseTo(1);
-      expect(direction.y).toBeCloseTo(0);
+      expect(direction[0]).toBeCloseTo(1);
+      expect(direction[1]).toBeCloseTo(0);
     });
 
     it('should calculate flock spread', () => {
@@ -264,7 +264,7 @@ describe('FlockingBehavior', () => {
       boundedFlock.update();
 
       // Should wrap to low x values
-      expect(boid.position.x).toBeLessThan(100);
+      expect(boid.position[0]).toBeLessThan(100);
     });
 
     it('should bounce off boundaries', () => {
@@ -280,7 +280,7 @@ describe('FlockingBehavior', () => {
       boundedFlock.update();
 
       // Velocity should be reversed
-      expect(boid.velocity.x).toBeLessThan(0);
+      expect(boid.velocity[0]).toBeLessThan(0);
     });
   });
 

@@ -27,9 +27,9 @@ describe('FormationController', () => {
     it('should center line formation', () => {
       const slots = formation.generateSlots(3);
       // With spacing 2 and 3 agents: positions at -2, 0, 2
-      expect(slots[0].localPosition.x).toBe(-2);
-      expect(slots[1].localPosition.x).toBe(0);
-      expect(slots[2].localPosition.x).toBe(2);
+      expect(slots[0].localPosition[0]).toBe(-2);
+      expect(slots[1].localPosition[0]).toBe(0);
+      expect(slots[2].localPosition[0]).toBe(2);
     });
 
     it('should generate circle formation slots', () => {
@@ -39,8 +39,8 @@ describe('FormationController', () => {
 
       // Check positions are distributed around circle
       const positions = slots.map((s) => s.localPosition);
-      const firstAngle = Math.atan2(positions[0].z, positions[0].x);
-      const secondAngle = Math.atan2(positions[1].z, positions[1].x);
+      const firstAngle = Math.atan2(positions[0][2], positions[0][0]);
+      const secondAngle = Math.atan2(positions[1][2], positions[1][0]);
       const angleDiff = Math.abs(secondAngle - firstAngle);
       expect(angleDiff).toBeCloseTo(Math.PI / 2, 1);
     });
@@ -52,8 +52,8 @@ describe('FormationController', () => {
 
       // 4 agents in 2x2 grid
       const positions = slots.map((s) => s.localPosition);
-      const uniqueX = new Set(positions.map((p) => Math.round(p.x * 100)));
-      const uniqueZ = new Set(positions.map((p) => Math.round(p.z * 100)));
+      const uniqueX = new Set(positions.map((p) => Math.round(p[0] * 100)));
+      const uniqueZ = new Set(positions.map((p) => Math.round(p[2] * 100)));
       expect(uniqueX.size).toBe(2);
       expect(uniqueZ.size).toBe(2);
     });
@@ -64,8 +64,8 @@ describe('FormationController', () => {
       expect(slots).toHaveLength(5);
 
       // Leader at front (0,0,0)
-      expect(slots[0].localPosition.x).toBe(0);
-      expect(slots[0].localPosition.z).toBe(0);
+      expect(slots[0].localPosition[0]).toBe(0);
+      expect(slots[0].localPosition[2]).toBe(0);
     });
 
     it('should generate diamond formation slots', () => {
@@ -80,7 +80,7 @@ describe('FormationController', () => {
       expect(slots).toHaveLength(10);
 
       // Positions should be in 3D (varying y values)
-      const yValues = slots.map((s) => s.localPosition.y);
+      const yValues = slots.map((s) => s.localPosition[1]);
       const minY = Math.min(...yValues);
       const maxY = Math.max(...yValues);
       expect(maxY - minY).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe('FormationController', () => {
 
       const slots = formation.getAllSlots();
       expect(slots).toHaveLength(3);
-      expect(slots[1].localPosition.x).toBe(5);
+      expect(slots[1].localPosition[0]).toBe(5);
     });
   });
 
@@ -169,25 +169,25 @@ describe('FormationController', () => {
 
       const slots = formation.getAllSlots();
       // All world positions should be offset by 100 in x
-      expect(slots[1].worldPosition.x).toBe(100); // Center slot at x=0 + 100
+      expect(slots[1].worldPosition[0]).toBe(100); // Center slot at x=0 + 100
     });
 
     it('should apply rotation', () => {
       formation.generateSlots(2);
       // Line along x axis
-      const originalX = formation.getAllSlots()[0].worldPosition.x;
+      const originalX = formation.getAllSlots()[0].worldPosition[0];
 
       formation.setRotation(Math.PI / 2); // 90 degrees
 
       // After rotation, x offset should become z offset
       const rotatedSlots = formation.getAllSlots();
-      expect(Math.abs(rotatedSlots[0].worldPosition.z)).toBeGreaterThan(0.1);
+      expect(Math.abs(rotatedSlots[0].worldPosition[2])).toBeGreaterThan(0.1);
     });
 
     it('should get center', () => {
       formation.setCenter(new Vector3(50, 50, 50));
       const center = formation.getCenter();
-      expect(center.x).toBe(50);
+      expect(center[0]).toBe(50);
     });
   });
 
@@ -285,7 +285,7 @@ describe('FormationController', () => {
 
       const slots = formation.getAllSlots();
       // With spacing 5 and 3 agents: -5, 0, 5
-      expect(slots[2].localPosition.x - slots[0].localPosition.x).toBe(10);
+      expect(slots[2].localPosition[0] - slots[0].localPosition[0]).toBe(10);
     });
 
     it('should get current config', () => {

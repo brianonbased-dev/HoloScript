@@ -38,13 +38,13 @@ describe('FlockingBehavior — boid CRUD', () => {
     const flock = mkFlock();
     flock.addBoid('b3', v(5, 6, 7));
     const b = flock.getBoid('b3')!;
-    expect(b.position.x).toBe(5);
-    expect(b.position.y).toBe(6);
+    expect(b.position[0]).toBe(5);
+    expect(b.position[1]).toBe(6);
   });
   it('addBoid with explicit velocity uses it', () => {
     const flock = mkFlock();
     flock.addBoid('b4', v(0), v(1, 0, 0));
-    expect(flock.getBoid('b4')!.velocity.x).toBe(1);
+    expect(flock.getBoid('b4')!.velocity[0]).toBe(1);
   });
   it('removeBoid returns true', () => {
     const flock = mkFlock();
@@ -70,7 +70,7 @@ describe('FlockingBehavior — boid CRUD', () => {
     const flock = mkFlock();
     flock.addBoid('m', v(0));
     flock.setBoidPosition('m', v(99, 0, 0));
-    expect(flock.getBoid('m')!.position.x).toBe(99);
+    expect(flock.getBoid('m')!.position[0]).toBe(99);
   });
   it('setBoidPosition no-op for missing id', () => {
     expect(() => mkFlock().setBoidPosition('none', v(1))).not.toThrow();
@@ -105,14 +105,14 @@ describe('FlockingBehavior — seek / flee / arrive', () => {
     const flock = mkFlock();
     const boid = flock.addBoid('s', v(0), v(0));
     const force = flock.seek(boid, v(100, 0, 0));
-    expect(force.x).toBeGreaterThan(0);
+    expect(force[0]).toBeGreaterThan(0);
   });
   it('flee returns opposite direction from seek', () => {
     const flock = mkFlock();
     const boid = flock.addBoid('f', v(0), v(0));
     const seekF = flock.seek(boid, v(100, 0, 0));
     const fleeF = flock.flee(boid, v(100, 0, 0));
-    expect(Math.sign(fleeF.x)).toBe(-Math.sign(seekF.x));
+    expect(Math.sign(fleeF[0])).toBe(-Math.sign(seekF[0]));
   });
   it('arrive returns zero force when at target', () => {
     const flock = mkFlock({ maxForce: 1 });
@@ -145,7 +145,7 @@ describe('FlockingBehavior — separate / align / cohere', () => {
     const close = flock.addBoid('close', v(5), v(0));
     const force = flock.separate(boid, [boid, close]);
     // Should push left (away from +x)
-    expect(force.x).toBeLessThan(0);
+    expect(force[0]).toBeLessThan(0);
   });
   it('align returns zero when no in-radius neighbors', () => {
     const flock = mkFlock({ alignmentRadius: 5 });
@@ -162,7 +162,7 @@ describe('FlockingBehavior — separate / align / cohere', () => {
     const all = flock.getAllBoids();
     const force = flock.cohere(boid, all);
     // Center of other boids is at x=100, so cohere should push +x
-    expect(force.x).toBeGreaterThan(0);
+    expect(force[0]).toBeGreaterThan(0);
   });
 });
 
@@ -176,22 +176,22 @@ describe('FlockingBehavior — update', () => {
   it('update() moves boid positions', () => {
     const flock = mkFlock();
     flock.addBoid('m', v(0), v(1, 0, 0));
-    const before = flock.getBoid('m')!.position.x;
+    const before = flock.getBoid('m')!.position[0];
     flock.update();
-    expect(flock.getBoid('m')!.position.x).not.toBe(before);
+    expect(flock.getBoid('m')!.position[0]).not.toBe(before);
   });
   it('applyForce adds to acceleration', () => {
     const flock = mkFlock();
     flock.addBoid('af', v(0), v(0));
     flock.applyForce('af', v(5, 0, 0));
-    expect(flock.getBoid('af')!.acceleration.x).toBe(5);
+    expect(flock.getBoid('af')!.acceleration[0]).toBe(5);
   });
   it('applyForceToAll affects all boids', () => {
     const flock = mkFlock();
     flock.addBoid('x1', v(0), v(0));
     flock.addBoid('x2', v(5), v(0));
     flock.applyForceToAll(v(0, 0, 2));
-    flock.getAllBoids().forEach((b) => expect(b.acceleration.z).toBe(2));
+    flock.getAllBoids().forEach((b) => expect(b.acceleration[2]).toBe(2));
   });
 });
 
@@ -204,7 +204,7 @@ describe('FlockingBehavior — analytics', () => {
     const flock = mkFlock();
     flock.addBoid('a', v(0), v(0));
     flock.addBoid('b', v(10), v(0));
-    expect(flock.getFlockCenter().x).toBeCloseTo(5, 5);
+    expect(flock.getFlockCenter()[0]).toBeCloseTo(5, 5);
   });
   it('getFlockSpread = 0 for single boid', () => {
     const flock = mkFlock();

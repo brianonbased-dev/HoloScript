@@ -4,14 +4,43 @@
  */
 
 /**
- * 3D Vector class for spatial operations
+ * 3D Vector class for spatial operations.
+ *
+ * Supports both named-field access (`v.x`, `v.y`, `v.z`) and array-style
+ * indexing (`v[0]`, `v[1]`, `v[2]`). The numeric indexers are bound in the
+ * constructor via Object.defineProperty so test code that treats Vector3 as
+ * a tuple `[x,y,z]` and impl code that uses .x/.y/.z both work transparently.
  */
+export interface Vector3 {
+  readonly 0: number;
+  readonly 1: number;
+  readonly 2: number;
+}
 export class Vector3 {
   constructor(
     public x: number = 0,
     public y: number = 0,
     public z: number = 0
-  ) {}
+  ) {
+    // Bind numeric indexers to the named fields. Each index getter/setter
+    // forwards to its corresponding axis. Configurable=false so they can't
+    // be redefined, enumerable=false so JSON.stringify(v) only emits {x,y,z}.
+    Object.defineProperty(this, 0, {
+      get: () => this.x,
+      set: (v: number) => { this.x = v; },
+      enumerable: false,
+    });
+    Object.defineProperty(this, 1, {
+      get: () => this.y,
+      set: (v: number) => { this.y = v; },
+      enumerable: false,
+    });
+    Object.defineProperty(this, 2, {
+      get: () => this.z,
+      set: (v: number) => { this.z = v; },
+      enumerable: false,
+    });
+  }
 
   /**
    * Create from array
@@ -140,11 +169,8 @@ export class Vector3 {
    * Check equality within epsilon
    */
   equals(v: Vector3, epsilon = 0.0001): boolean {
-    return (
-      Math.abs(this.x - v.x) < epsilon &&
-      Math.abs(this.y - v.y) < epsilon &&
-      Math.abs(this.z - v.z) < epsilon
-    );
+    return (Math.abs(this.x - v.x) < epsilon &&
+    Math.abs(this.y - v.y) < epsilon && Math.abs(this.z - v.z) < epsilon);
   }
 
   /**

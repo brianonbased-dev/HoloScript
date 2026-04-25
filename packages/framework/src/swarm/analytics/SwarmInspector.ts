@@ -12,8 +12,8 @@ export interface IAgentSnapshot {
   id: string;
   swarmId?: string;
   state: string;
-  position?: { x: number; y: number; z: number };
-  velocity?: { x: number; y: number; z: number };
+  position?: [number, number, number];
+  velocity?: [number, number, number];
   health: number;
   load: number;
   lastActive: number;
@@ -30,10 +30,10 @@ export interface ISwarmSnapshot {
   leaderId?: string;
   state: string;
   formation?: string;
-  centroid?: { x: number; y: number; z: number };
+  centroid?: [number, number, number];
   boundingBox?: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: [number, number, number];
+    max: [number, number, number];
   };
   createdAt: number;
   properties: Record<string, unknown>;

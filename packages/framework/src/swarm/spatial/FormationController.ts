@@ -389,9 +389,9 @@ export class FormationController {
     if (this.config.rotationAngle !== 0) {
       const cos = Math.cos(this.config.rotationAngle);
       const sin = Math.sin(this.config.rotationAngle);
-      const newX = pos.x * cos - pos.z * sin;
-      const newZ = pos.x * sin + pos.z * cos;
-      pos = new Vector3(newX, pos.y, newZ);
+      const newX = pos[0] * cos - pos[2] * sin;
+      const newZ = pos[0] * sin + pos[2] * cos;
+      pos = new Vector3(newX, pos[1], newZ);
     }
 
     // Apply center offset and formation offset

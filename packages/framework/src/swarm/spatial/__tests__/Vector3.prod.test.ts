@@ -9,47 +9,47 @@ const v = (x: number, y = 0, z = 0) => new Vector3(x, y, z);
 describe('Vector3 — construction', () => {
   it('default zero', () => {
     const u = new Vector3();
-    expect(u.x).toBe(0);
-    expect(u.y).toBe(0);
-    expect(u.z).toBe(0);
+    expect(u[0]).toBe(0);
+    expect(u[1]).toBe(0);
+    expect(u[2]).toBe(0);
   });
   it('explicit values', () => {
     const u = v(1, 2, 3);
-    expect(u.x).toBe(1);
-    expect(u.y).toBe(2);
-    expect(u.z).toBe(3);
+    expect(u[0]).toBe(1);
+    expect(u[1]).toBe(2);
+    expect(u[2]).toBe(3);
   });
   it('static zero()', () => {
     const u = Vector3.zero();
-    expect(u.x).toBe(0);
-    expect(u.y).toBe(0);
-    expect(u.z).toBe(0);
+    expect(u[0]).toBe(0);
+    expect(u[1]).toBe(0);
+    expect(u[2]).toBe(0);
   });
   it('static one()', () => {
     const u = Vector3.one();
-    expect(u.x).toBe(1);
-    expect(u.y).toBe(1);
-    expect(u.z).toBe(1);
+    expect(u[0]).toBe(1);
+    expect(u[1]).toBe(1);
+    expect(u[2]).toBe(1);
   });
   it('fromArray 3 elements', () => {
     const u = Vector3.fromArray([3, 4, 5]);
-    expect(u.x).toBe(3);
-    expect(u.y).toBe(4);
-    expect(u.z).toBe(5);
+    expect(u[0]).toBe(3);
+    expect(u[1]).toBe(4);
+    expect(u[2]).toBe(5);
   });
   it('fromArray pads to 0', () => {
     const u = Vector3.fromArray([7]);
-    expect(u.y).toBe(0);
-    expect(u.z).toBe(0);
+    expect(u[1]).toBe(0);
+    expect(u[2]).toBe(0);
   });
 });
 
 describe('Vector3 — add / subtract', () => {
   it('add components', () => {
     const r = v(1, 2, 3).add(v(4, 5, 6));
-    expect(r.x).toBe(5);
-    expect(r.y).toBe(7);
-    expect(r.z).toBe(9);
+    expect(r[0]).toBe(5);
+    expect(r[1]).toBe(7);
+    expect(r[2]).toBe(9);
   });
   it('add returns new instance', () => {
     const a = v(1);
@@ -58,9 +58,9 @@ describe('Vector3 — add / subtract', () => {
   });
   it('subtract components', () => {
     const r = v(5, 7, 9).subtract(v(4, 5, 6));
-    expect(r.x).toBe(1);
-    expect(r.y).toBe(2);
-    expect(r.z).toBe(3);
+    expect(r[0]).toBe(1);
+    expect(r[1]).toBe(2);
+    expect(r[2]).toBe(3);
   });
   it('subtract returns new instance', () => {
     const a = v(3);
@@ -142,8 +142,8 @@ describe('Vector3 — normalize', () => {
   });
   it('normalized direction preserved', () => {
     const u = v(2, 0, 0).normalize();
-    expect(u.x).toBeCloseTo(1, 10);
-    expect(u.y).toBeCloseTo(0, 10);
+    expect(u[0]).toBeCloseTo(1, 10);
+    expect(u[1]).toBeCloseTo(0, 10);
   });
 });
 
@@ -222,9 +222,9 @@ describe('Vector3 — lerp', () => {
   });
   it('lerp component-wise', () => {
     const r = v(0, 0, 0).lerp(v(10, 20, 30), 0.1);
-    expect(r.x).toBeCloseTo(1, 10);
-    expect(r.y).toBeCloseTo(2, 10);
-    expect(r.z).toBeCloseTo(3, 10);
+    expect(r[0]).toBeCloseTo(1, 10);
+    expect(r[1]).toBeCloseTo(2, 10);
+    expect(r[2]).toBeCloseTo(3, 10);
   });
 });
 
@@ -239,7 +239,7 @@ describe('Vector3 — clampMagnitude', () => {
   it('above max → clamped to max', () => {
     const c = v(10, 0, 0).clampMagnitude(3);
     expect(c.magnitude()).toBeCloseTo(3, 10);
-    expect(c.x).toBeCloseTo(3, 10);
+    expect(c[0]).toBeCloseTo(3, 10);
   });
   it('zero vector clampMagnitude stays zero', () => {
     expect(Vector3.zero().clampMagnitude(5).magnitude()).toBe(0);

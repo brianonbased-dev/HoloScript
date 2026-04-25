@@ -28,12 +28,12 @@ describe('FormationController — line formation', () => {
   });
   it('positions centered at spacing=2', () => {
     const slots = make({ type: 'line', spacing: 2 }).generateSlots(3);
-    expect(slots[0].localPosition.x).toBeCloseTo(-2, 5);
-    expect(slots[1].localPosition.x).toBeCloseTo(0, 5);
-    expect(slots[2].localPosition.x).toBeCloseTo(2, 5);
+    expect(slots[0].localPosition[0]).toBeCloseTo(-2, 5);
+    expect(slots[1].localPosition[0]).toBeCloseTo(0, 5);
+    expect(slots[2].localPosition[0]).toBeCloseTo(2, 5);
   });
   it('single slot at origin', () => {
-    expect(make({ type: 'line', spacing: 2 }).generateSlots(1)[0].localPosition.x).toBe(0);
+    expect(make({ type: 'line', spacing: 2 }).generateSlots(1)[0].localPosition[0]).toBe(0);
   });
 });
 
@@ -47,7 +47,7 @@ describe('FormationController — circle formation', () => {
     for (const s of slots) expect(s.localPosition.magnitude()).toBeCloseTo(r, 3);
   });
   it('y=0 for all slots', () => {
-    for (const s of make({ type: 'circle' }).generateSlots(6)) expect(s.localPosition.y).toBe(0);
+    for (const s of make({ type: 'circle' }).generateSlots(6)) expect(s.localPosition[1]).toBe(0);
   });
 });
 
@@ -56,7 +56,7 @@ describe('FormationController — grid formation', () => {
     expect(make({ type: 'grid' }).generateSlots(9)).toHaveLength(9);
   });
   it('y=0 for all slots', () => {
-    for (const s of make({ type: 'grid' }).generateSlots(4)) expect(s.localPosition.y).toBe(0);
+    for (const s of make({ type: 'grid' }).generateSlots(4)) expect(s.localPosition[1]).toBe(0);
   });
 });
 
@@ -65,7 +65,7 @@ describe('FormationController — wedge formation', () => {
     expect(make({ type: 'wedge' }).generateSlots(5)).toHaveLength(5);
   });
   it('leader at z=0', () => {
-    expect(make({ type: 'wedge' }).generateSlots(5)[0].localPosition.z).toBe(0);
+    expect(make({ type: 'wedge' }).generateSlots(5)[0].localPosition[2]).toBe(0);
   });
 });
 
@@ -77,7 +77,7 @@ describe('FormationController — sphere formation', () => {
     const slots = make({ type: 'sphere' }).generateSlots(20);
     const keys = slots.map(
       (s) =>
-        `${s.localPosition.x.toFixed(2)},${s.localPosition.y.toFixed(2)},${s.localPosition.z.toFixed(2)}`
+        `${s.localPosition[0].toFixed(2)},${s.localPosition[1].toFixed(2)},${s.localPosition[2].toFixed(2)}`
     );
     expect(new Set(keys).size).toBe(20);
   });
@@ -179,20 +179,20 @@ describe('FormationController — setCenter/setRotation/tightness', () => {
     const f = make({ type: 'line', spacing: 2 });
     f.generateSlots(3);
     f.setCenter(v(100, 0, 0));
-    expect(f.getAllSlots()[1].worldPosition.x).toBeCloseTo(100, 5);
+    expect(f.getAllSlots()[1].worldPosition[0]).toBeCloseTo(100, 5);
   });
   it('setRotation changes world positions', () => {
     const f = make({ type: 'line', spacing: 2 });
     f.generateSlots(3);
-    const before = f.getAllSlots()[2].worldPosition.x;
+    const before = f.getAllSlots()[2].worldPosition[0];
     f.setRotation(Math.PI / 2);
-    expect(f.getAllSlots()[2].worldPosition.x).not.toBeCloseTo(before, 1);
+    expect(f.getAllSlots()[2].worldPosition[0]).not.toBeCloseTo(before, 1);
   });
   it('getCenter returns set value', () => {
     const f = make({ type: 'line' });
     f.generateSlots(1);
     f.setCenter(v(7, 0, 0));
-    expect(f.getCenter().x).toBe(7);
+    expect(f.getCenter()[0]).toBe(7);
   });
   it('tightness=1 when agents exactly on target', () => {
     const f = make({ type: 'line', spacing: 2 });
@@ -210,7 +210,7 @@ describe('FormationController — setCenter/setRotation/tightness', () => {
     f.generateSlots(2);
     f.assignAgent('a1', 0);
     const target = f.getAgentTarget('a1')!;
-    const pos = new Map<string, Vector3>([['a1', v(target.x + 5)]]);
+    const pos = new Map<string, Vector3>([['a1', v(target[0] + 5)]]);
     expect(f.getFormationTightness(pos)).toBeLessThan(1);
   });
 });
@@ -221,8 +221,8 @@ describe('FormationController — optimizeAssignments', () => {
     f.generateSlots(2);
     const slots = f.getAllSlots();
     const positions = new Map<string, Vector3>([
-      ['a1', v(slots[1].worldPosition.x)],
-      ['a2', v(slots[0].worldPosition.x)],
+      ['a1', v(slots[1].worldPosition[0])],
+      ['a2', v(slots[0].worldPosition[0])],
     ]);
     f.optimizeAssignments(positions);
     expect(f.getAssignedSlots()).toHaveLength(2);
