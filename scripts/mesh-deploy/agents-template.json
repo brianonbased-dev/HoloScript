@@ -1,0 +1,83 @@
+{
+  "_README": "Template for the 31-instance mesh deployment. Each entry maps one Vast.ai instance → one mesh agent identity. The deploy script (Deploy-MeshAgents.ps1) joins this with the live `vastai show instances` listing to produce per-instance env files. Order matters — entries assigned to instances in the order Vast.ai returns them. Provider mix: Anthropic-backed agents are richest but rate-limited + costly; local-llm agents run on the GPU itself for $0 LLM cost (just compute burn). Mock agents validate the runtime without LLM cost.",
+
+  "_provisioning_status": "TEMPLATE — wallet + x402 bearer fields are placeholders. Founder must: (1) provision N x402 seats on the HoloMesh team-board, (2) generate N wallets, (3) substitute placeholders below. Per F.027/F.002: x402 seat creation is founder authority; agent must NOT auto-provision.",
+
+  "globalBudgetUsdPerDay": 50,
+  "defaultTickIntervalMs": 60000,
+
+  "agents": [
+    {
+      "_role": "H200 powerhouse — runs Anthropic-backed Claude with hot-tier brain. Used for headline measurement work + supervisor-style coordination across the cheap fleet.",
+      "handle": "mesh-h200-flagship",
+      "brainPath": "compositions/lean-theorist-brain.hsplus",
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_H200",
+      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_H200",
+      "budgetUsdPerDay": 20,
+      "scopeTier": "hot",
+      "enabled": true,
+      "tickIntervalMs": 30000,
+      "enableCommitHook": true
+    },
+    {
+      "_role": "Local-LLM — Qwen 0.5B running directly on the GPU. Zero LLM API cost; pure compute burn. Brain: trait-inference. Best for the trait-inference work that's already speced.",
+      "handle": "mesh-trait-inferencer-1",
+      "brainPath": "compositions/trait-inference-brain.hsplus",
+      "provider": "local-llm",
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_TI1",
+      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_TI1",
+      "budgetUsdPerDay": 1,
+      "scopeTier": "warm",
+      "enabled": true
+    },
+    {
+      "_role": "Local-LLM — Qwen 0.5B for security-auditor work. The full mesh becomes a multi-domain agent fleet.",
+      "handle": "mesh-security-auditor-1",
+      "brainPath": "compositions/security-auditor-brain.hsplus",
+      "provider": "local-llm",
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_SEC1",
+      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_SEC1",
+      "budgetUsdPerDay": 1,
+      "scopeTier": "warm",
+      "enabled": true
+    },
+    {
+      "_role": "MOCK provider — validates the runtime + identity + commit-hook flow with $0 LLM cost. First N=5 of these on the cheapest instances let us catch wiring issues before paying for real LLM tokens.",
+      "handle": "mesh-mock-validator-1",
+      "brainPath": "compositions/sesl-training-brain.hsplus",
+      "provider": "mock",
+      "model": "mock-1",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_MOCK1",
+      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_MOCK1",
+      "budgetUsdPerDay": 1,
+      "scopeTier": "cold",
+      "enabled": true,
+      "tickIntervalMs": 120000
+    }
+  ],
+
+  "_brain_distribution_plan": {
+    "lean-theorist-brain.hsplus": "1 instance (H200 flagship — anthropic-backed for paper-22+23 proof work)",
+    "security-auditor-brain.hsplus": "5 instances (paper-21 attack surface enumeration + threat-model expansion)",
+    "trait-inference-brain.hsplus": "10 instances (paper-19 dataset generation — local-llm Brittney synth)",
+    "sesl-training-brain.hsplus": "5 instances (paper-17 self-play harness exploration; mock or local-llm)",
+    "scene-composition-brain.hsplus": "3 instances (paper-20 layout-pattern enumeration)",
+    "motion-sesl-brain.hsplus": "3 instances (paper-18 motion-token format exploration)",
+    "adaptive-ui-brain.hsplus": "3 instances (paper-24 interface-personalization clustering rehearsal)",
+    "_unassigned": "1 instance reserved for founder-on-call coordinator"
+  },
+
+  "_deployment_sequence": [
+    "1. Founder provisions 31 x402 seats on team_1775935947314_f0noxi via /admin POST /seats",
+    "2. Founder generates 31 wallet keypairs (locally; never commits private keys per F.001/F.002)",
+    "3. Founder fills in HOLOSCRIPT_AGENT_WALLET_<HANDLE> + HOLOSCRIPT_AGENT_X402_BEARER_<HANDLE> in .env (gitignored per F.001)",
+    "4. Founder runs Deploy-MeshAgents.ps1 -ConfigPath agents.json",
+    "5. Each instance: bootstrap.sh installs node + clones + builds + runs whoami pre-flight + starts daemon",
+    "6. Verify via /room: 31 new agents appear in /presence + start claiming tasks from /board",
+    "7. Monitor burn rate vs work-completed via team done-log; tear down underperformers"
+  ]
+}
