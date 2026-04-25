@@ -186,17 +186,17 @@ jobs:
               # (commits b2477e157, f1de5af9e, f93bf9a8f, 07f050ab8).
               for svc in mcp-server studio marketplace-web marketplace-api export-api llm-service absorb-service; do
                 echo "[preflight] building @holoscript/$svc dependency tree"
-                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." build || exit 1
+                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." --filter '!./packages/plugins/**' build || exit 1
               done
               ;;
             mcp-server|studio|marketplace-web|marketplace-api|export-api|llm-service|absorb-service)
-              echo "[preflight] targeted build of @holoscript/$SERVICE dependency tree"
-              pnpm -r --workspace-concurrency=1 --filter "@holoscript/$SERVICE..." build
+              echo "[preflight] targeted build of @holoscript/$SERVICE dependency tree (plugins excluded)"
+              pnpm -r --workspace-concurrency=1 --filter "@holoscript/$SERVICE..." --filter '!./packages/plugins/**' build
               ;;
             *)
               echo "[preflight] unknown service '$SERVICE'; iterating all deployable services"
               for svc in mcp-server studio marketplace-web marketplace-api export-api llm-service absorb-service; do
-                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." build || exit 1
+                pnpm -r --workspace-concurrency=1 --filter "@holoscript/$svc..." --filter '!./packages/plugins/**' build || exit 1
               done
               ;;
           esac
