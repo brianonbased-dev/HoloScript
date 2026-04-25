@@ -10,6 +10,7 @@
 
 import { BaseLLMAdapter } from '../base-adapter';
 import type { LLMCompletionRequest, LLMCompletionResponse, LLMProviderConfig } from '../types';
+import { messageContentAsString } from '../types';
 
 const MOCK_SCENES: Record<string, string> = {
   default: `cube {
@@ -125,13 +126,14 @@ export class MockAdapter extends BaseLLMAdapter {
       throw new Error('Mock forced failure');
     }
 
-    const lastUserMessage =
-      [...request.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const lastUserMessage = messageContentAsString(
+      [...request.messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+    );
 
     const code = this.generateMockCode(lastUserMessage);
 
     const promptTokens = Math.floor(
-      request.messages.reduce((acc, m) => acc + m.content.length / 4, 0)
+      request.messages.reduce((acc, m) => acc + messageContentAsString(m.content).length / 4, 0)
     );
     const completionTokens = Math.floor(code.length / 4);
 

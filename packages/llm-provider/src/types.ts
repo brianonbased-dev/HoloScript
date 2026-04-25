@@ -14,9 +14,26 @@
 
 export type MessageRole = 'system' | 'user' | 'assistant';
 
+/**
+ * Content for a user message that's feeding tool results back to the model.
+ * Caller emits one `tool_result` block per `tool_use` block in the prior
+ * assistant response. Anthropic adapter recognizes this shape and forwards.
+ */
+export interface ToolResultBlock {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: string;
+  /** Optional: mark the tool result as an error so the model retries / reroutes. */
+  is_error?: boolean;
+}
+
 export interface LLMMessage {
   role: MessageRole;
-  content: string;
+  /** Either plain text (most messages) OR a structured content array.
+   *  - Assistant messages mid-tool-loop carry the assistant's prior
+   *    text + tool_use blocks so the model has its own turn in context.
+   *  - User messages mid-tool-loop carry tool_result blocks. */
+  content: string | Array<TextBlock | ToolUseBlock | ToolResultBlock>;
 }
 
 export interface LLMSystemMessage {
@@ -56,10 +73,71 @@ export interface LLMCompletionRequest {
 
   /** Whether to stream the response */
   stream?: boolean;
+
+  /**
+   * Tools the model can call. When set, the response may contain `toolUses`
+   * blocks that the caller must execute and re-feed via a follow-up request
+   * containing assistantBlocks (the prior response) + tool_result messages.
+   * Anthropic adapter passes these straight through to messages.stream.
+   */
+  tools?: ToolSpec[];
+}
+
+/**
+ * Spec for a tool the model is allowed to call. Schema follows the Anthropic
+ * tool-use shape (which also matches OpenAI function-calling JSONSchema).
+ */
+export interface ToolSpec {
+  name: string;
+  description: string;
+  input_schema: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+/** A tool call the model wants the caller to execute. */
+export interface ToolUseBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+/** A text block from an assistant response (separate from tool_use blocks). */
+export interface TextBlock {
+  type: 'text';
+  text: string;
+}
+
+export type AssistantContentBlock = TextBlock | ToolUseBlock;
+
+/**
+ * Coerce LLMMessage content to a plain string for adapters that don't
+ * support tool-use (openai, gemini, local-llm, bitnet, mock). Non-text
+ * blocks are flattened to a JSON-ish summary so the message still carries
+ * SOME signal about what the model said. Adapters that DO support tool-use
+ * (currently only anthropic) should pass content through unchanged.
+ */
+export function messageContentAsString(content: LLMMessage['content']): string {
+  if (typeof content === 'string') return content;
+  return content
+    .map((block) => {
+      if (block.type === 'text') return block.text;
+      if (block.type === 'tool_use') {
+        return `[tool_use ${block.name} id=${block.id} input=${JSON.stringify(block.input)}]`;
+      }
+      if (block.type === 'tool_result') {
+        return `[tool_result for ${block.tool_use_id}${block.is_error ? ' (error)' : ''}]\n${block.content}`;
+      }
+      return '';
+    })
+    .join('\n');
 }
 
 export interface LLMCompletionResponse {
-  /** The generated text content */
+  /** The generated text content (concatenated text blocks only) */
   content: string;
 
   /** Token usage statistics */
@@ -71,8 +149,22 @@ export interface LLMCompletionResponse {
   /** The provider that handled this request */
   provider: LLMProviderName;
 
-  /** Finish reason */
-  finishReason: 'stop' | 'length' | 'content_filter' | 'error';
+  /** Finish reason — `tool_use` indicates toolUses must be executed and
+   *  re-fed via a follow-up request to continue the loop. */
+  finishReason: 'stop' | 'length' | 'content_filter' | 'error' | 'tool_use';
+
+  /**
+   * Tool-use blocks the model wants the caller to execute. Empty when the
+   * model didn't request tools. Caller should run each tool, then send a
+   * follow-up request containing this assistant turn's full content blocks
+   * (preserved in `assistantBlocks` for round-trip fidelity) plus a user
+   * message with `tool_result` blocks for each tool use.
+   */
+  toolUses?: ToolUseBlock[];
+
+  /** Full assistant content blocks (text + tool_use), in order, for the
+   *  follow-up tool_result message construction. */
+  assistantBlocks?: AssistantContentBlock[];
 
   /** Raw response from the provider (for debugging) */
   raw?: unknown;

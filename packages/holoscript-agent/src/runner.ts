@@ -1,8 +1,9 @@
-import type { ILLMProvider } from '@holoscript/llm-provider';
+import type { ILLMProvider, LLMMessage, TokenUsage } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
+import { MESH_TOOLS, runTool } from './tools.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -58,27 +59,77 @@ export class AgentRunner {
     await mesh.claim(target.id);
 
     const start = Date.now();
-    const response = await provider.complete(
-      {
-        messages: [
-          { role: 'system', content: brain.systemPrompt },
-          { role: 'user', content: buildTaskPrompt(target) },
-        ],
-        maxTokens: 4096,
-        temperature: 0.4,
-      },
-      identity.llmModel
-    );
+    // Tool-use loop. The model gets MESH_TOOLS (read_file, list_dir,
+    // write_file, bash) and can iterate read→reason→read→write until it
+    // emits a final text response. Without this loop the model could only
+    // reason from prompt+brain alone — no filesystem access, no kernel
+    // checks, no inspection of inputs scp'd to the instance. With it,
+    // lean-theorist can actually `cat MSC/Invariants.lean`, `lake build`,
+    // and `write_file /root/agent-output/Invariants.lean` per its brain rules.
+    const messages: LLMMessage[] = [
+      { role: 'system', content: brain.systemPrompt },
+      { role: 'user', content: buildTaskPrompt(target) },
+    ];
+    let aggUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    let finalText = '';
+    let iters = 0;
+    const MAX_TOOL_ITERS = 12;
+    let lastResponse;
+    while (true) {
+      iters++;
+      if (iters > MAX_TOOL_ITERS) {
+        log({ ev: 'tool-loop-cap', taskId: target.id, iters });
+        finalText = finalText || `[tool-loop hit ${MAX_TOOL_ITERS}-iter cap before final text]`;
+        break;
+      }
+      const resp = await provider.complete(
+        {
+          messages,
+          maxTokens: 4096,
+          temperature: 0.4,
+          tools: MESH_TOOLS,
+        },
+        identity.llmModel
+      );
+      lastResponse = resp;
+      aggUsage = {
+        promptTokens: aggUsage.promptTokens + resp.usage.promptTokens,
+        completionTokens: aggUsage.completionTokens + resp.usage.completionTokens,
+        totalTokens: aggUsage.totalTokens + resp.usage.totalTokens,
+      };
+      // If model called tools, execute them and feed results back.
+      if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
+        log({ ev: 'tool-call', taskId: target.id, iter: iters, tools: resp.toolUses.map((t) => t.name) });
+        // Append the assistant turn (text + tool_use blocks) so the model
+        // sees its own request when we send tool_result back.
+        messages.push({
+          role: 'assistant',
+          content: (resp.assistantBlocks ?? []) as never,
+        });
+        // Run each tool and collect results.
+        const toolResults = await Promise.all(resp.toolUses.map((u) => runTool(u)));
+        messages.push({
+          role: 'user',
+          content: toolResults as never,
+        });
+        continue;
+      }
+      // Final text response.
+      finalText = resp.content;
+      break;
+    }
     const durationMs = Date.now() - start;
 
-    const cost = costGuard.recordUsage(identity.llmModel, response.usage);
+    const cost = costGuard.recordUsage(identity.llmModel, aggUsage);
     log({
       ev: 'executed',
       taskId: target.id,
       costUsd: cost.costUsd.toFixed(4),
       spentUsd: cost.spentUsd.toFixed(4),
-      tokens: response.usage.totalTokens,
+      tokens: aggUsage.totalTokens,
+      tool_iters: iters,
     });
+    const response = { ...(lastResponse ?? { content: finalText, usage: aggUsage }), content: finalText, usage: aggUsage };
 
     const execResult: ExecutionResult = {
       taskId: target.id,

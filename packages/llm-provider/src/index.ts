@@ -42,6 +42,12 @@ export type {
   LocalLLMProviderConfig,
   LLMProviderRegistry,
   ProviderSelectionStrategy,
+  // Tool-use types — added 2026-04-25 for mesh-agent runner
+  ToolSpec,
+  ToolUseBlock,
+  ToolResultBlock,
+  TextBlock,
+  AssistantContentBlock,
 } from './types';
 
 export {
@@ -49,6 +55,7 @@ export {
   LLMRateLimitError,
   LLMAuthenticationError,
   LLMContextLengthError,
+  messageContentAsString,
 } from './types';
 
 // Base adapter

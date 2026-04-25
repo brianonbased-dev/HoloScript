@@ -129,7 +129,16 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       // mesh-worker: claim → 30s → tick-error, repeated. Direct curl + direct
       // SDK call (claude-opus-4-7, max_tokens=4096) returned in 3.5s when
       // size of output was small; bug only surfaces when generation > 30s.
-      const stream = client.messages.stream({
+      // Tools wiring: pass through to the API, accept tool_use blocks back.
+      // Messages may carry structured content arrays (tool_result blocks
+      // from a previous loop iteration); preserve them as-is. Plain string
+      // content gets passed through unchanged.
+      const apiMessages = messages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content as never, // SDK accepts string | content[]; we honor caller's shape
+      }));
+
+      const streamArgs: Record<string, unknown> = {
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
         // truncates commonly on modern models).
@@ -137,17 +146,33 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...samplingParams,
         stop_sequences: request.stop,
         system: system || undefined,
-        messages: messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-      });
+        messages: apiMessages,
+      };
+      if (request.tools && request.tools.length > 0) {
+        streamArgs.tools = request.tools;
+      }
+
+      const stream = client.messages.stream(streamArgs as never);
       const response = await stream.finalMessage();
 
-      const content = response.content
-        .filter((block) => block.type === 'text')
-        .map((block) => (block as { type: 'text'; text: string }).text)
-        .join('');
+      // Split response.content into text + tool_use blocks. Some Opus paths
+      // emit ONLY tool_use (no text) — content stays empty in that case;
+      // toolUses carries the work. Caller's tool-loop must check toolUses
+      // length and re-feed results before treating content as final.
+      const textParts: string[] = [];
+      const toolUses: Array<{ type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }> = [];
+      const assistantBlocks: Array<{ type: string;[k: string]: unknown }> = [];
+      for (const block of response.content) {
+        if (block.type === 'text') {
+          textParts.push((block as { type: 'text'; text: string }).text);
+          assistantBlocks.push({ type: 'text', text: (block as { type: 'text'; text: string }).text });
+        } else if (block.type === 'tool_use') {
+          const tu = block as { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
+          toolUses.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
+          assistantBlocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
+        }
+      }
+      const content = textParts.join('');
 
       const usage = response.usage;
 
@@ -160,7 +185,11 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         },
         model: response.model,
         provider: 'anthropic',
-        finishReason: this.mapStopReason(response.stop_reason),
+        finishReason: response.stop_reason === 'tool_use'
+          ? 'tool_use'
+          : this.mapStopReason(response.stop_reason),
+        toolUses: toolUses.length > 0 ? toolUses : undefined,
+        assistantBlocks: assistantBlocks as never,
         raw: response,
       };
     } catch (err: unknown) {

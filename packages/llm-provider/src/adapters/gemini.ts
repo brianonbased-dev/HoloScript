@@ -15,6 +15,7 @@ import {
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
+  messageContentAsString,
 } from '../types';
 
 // Available Google Gemini models
@@ -93,7 +94,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
     const conversationMessages = request.messages.filter((m) => m.role !== 'system');
 
     const contents: GeminiContent[] = conversationMessages.map((m) => ({
-      parts: [{ text: m.content }],
+      parts: [{ text: messageContentAsString(m.content) }],
       role: m.role === 'assistant' ? 'model' : 'user',
     }));
 

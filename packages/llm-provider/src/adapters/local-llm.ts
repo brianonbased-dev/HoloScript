@@ -17,7 +17,7 @@
 
 import { BaseLLMAdapter } from '../base-adapter';
 import type { LLMProviderConfig, LLMCompletionRequest, LLMCompletionResponse } from '../types';
-import { LLMProviderError } from '../types';
+import { LLMProviderError, messageContentAsString } from '../types';
 
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
   apiKey?: string;
@@ -96,7 +96,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
     const body = JSON.stringify({
       model,
-      messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
       max_tokens: request.maxTokens ?? 2048,
       temperature: request.temperature ?? 0.4,
       top_p: request.topP ?? 1,

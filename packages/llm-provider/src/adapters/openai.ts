@@ -14,6 +14,7 @@ import {
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
+  messageContentAsString,
 } from '../types';
 
 // Available OpenAI models for HoloScript generation
@@ -87,7 +88,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         model,
         messages: request.messages.map((m) => ({
           role: m.role,
-          content: m.content,
+          content: messageContentAsString(m.content),
         })),
         max_tokens: request.maxTokens,
         temperature: request.temperature,
