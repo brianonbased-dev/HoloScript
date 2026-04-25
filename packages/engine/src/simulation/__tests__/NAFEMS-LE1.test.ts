@@ -28,18 +28,27 @@
  *
  * sigma_yy at point D (x = 0, y = 2, on inner ellipse) = 92.7 MPa
  *
- * ## Solver Limitation
+ * ## Solver State (2026-04-24)
  *
- * The HoloScript structural solvers only support `fixed` constraints (all 3 DOFs).
- * Proper symmetry BCs require per-DOF rollers (e.g., fix x only on the x=0 plane).
- * Without per-DOF constraints, we approximate symmetry by:
- *   - Fixing only 1-2 nodes to prevent rigid body motion
- *   - Using a single z-layer with minimal z-constraints
- *   - Accepting that this introduces artificial stiffness near fixed nodes
+ * Per-DOF roller / symmetry BCs ARE supported in both StructuralSolver (TET4)
+ * and StructuralSolverTET10 via `StructuralConstraint.dofs: (0|1|2)[]`. The
+ * proper-symmetry-BC variant of this benchmark lives in `paper-nafems-le1.test.ts`
+ * and the distributed-traction variant in `paper-nafems-le1-traction.test.ts`;
+ * both run roller BCs (U_x=0 at x=0, U_y=0 at y=0, one node constrained in z
+ * for plane stress).
  *
- * The test validates solver correctness (convergence, non-degenerate stress field,
- * correct order of magnitude) and TET10 superiority over TET4, rather than exact
- * reproduction of the 92.7 MPa reference (which requires per-DOF symmetry BCs).
+ * THIS test deliberately uses the rigid-body-motion-prevention path with three
+ * fixed nodes — it is a regression-only sanity check that:
+ *   - both TET4 and TET10 solvers converge,
+ *   - stress fields are non-degenerate,
+ *   - TET10 strictly outperforms TET4 on the same mesh,
+ *   - the convergence-study pipeline runs end-to-end.
+ *
+ * It does NOT assert a match against the 92.7 MPa NAFEMS reference. Reference-
+ * tracking with proper symmetry BCs is the responsibility of the paper-* tests.
+ * The residual gap between the elem-avg σ_yy reproduced under roller BCs and
+ * the NAFEMS reference (currently ~52% at h=0.063, TET10) is open work — see
+ * `research/trust-by-construction-paper.tex` §6.1 (Boundary conditions).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -532,9 +541,10 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     }
     console.log('======================================================\n');
     
-    // 1. We cannot strictly assert monotonic convergence to 92.7 MPa yet because
-    // HoloScript lacks per-DOF constraints (symmetry planes), leading to artificial
-    // stiffness. We only assert that the convergence study pipeline ran successfully.
+    // 1. This variant uses rigid-body-motion-prevention (3 fixed nodes), NOT proper
+    // symmetry BCs, so we don't assert monotonic convergence to 92.7 MPa here. The
+    // proper-roller-BC variant is in paper-nafems-le1.test.ts. We only assert that
+    // the convergence study pipeline ran successfully on this RBM-prevention path.
     expect(convergenceResult.errorsLinf).toHaveLength(4);
     expect(typeof convergenceResult.observedOrderLinf).toBe('number');
     

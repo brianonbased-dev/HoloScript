@@ -301,12 +301,16 @@ describe('SPR Stress Recovery', () => {
     console.log(`  Closest node to D:    #${bestNode} at dist=${bestDist.toFixed(4)}`);
     console.log('='.repeat(60));
 
-    // NOTE: Both SPR and element-averaged produce low σ_yy (~0-3 MPa vs 92.7 MPa).
-    // This confirms the solver itself computes low stress at point D — the issue is
-    // in the load distribution (point loads at corner nodes on curved outer boundary)
-    // or mesh resolution, not in the stress recovery algorithm.
-    // SPR is validated by the axial bar test above (0.00% error).
-    // NAFEMS LE1 needs distributed traction on the outer curved boundary + finer mesh.
+    // NOTE (2026-04-24): With this point-load distribution, σ_yy at point D
+    // sits well below the 92.7 MPa NAFEMS reference. Switching to TET10
+    // distributed traction via surfaceFaces (see paper-nafems-le1-traction.test.ts)
+    // produces σ_yy ≈ 45 MPa elem-avg / NaN SPR at h=0.083 — i.e. swapping the
+    // load mechanism alone does not close the gap. SPR's correctness is
+    // validated by the uniform-stress axial-bar test in this file (0% error);
+    // closing NAFEMS LE1 to within 5% is open work tracked in
+    // research/trust-by-construction-paper.tex §6.1 (Boundary conditions and
+    // NAFEMS LE1 closure). This test asserts only finiteness and is a
+    // regression check, not a reference-match.
     expect(typeof sprSigmaYY).toBe('number');
     expect(Number.isFinite(sprSigmaYY)).toBe(true);
   }, 60000);
