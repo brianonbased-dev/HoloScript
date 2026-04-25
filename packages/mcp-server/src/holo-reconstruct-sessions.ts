@@ -13,6 +13,59 @@ import {
   type ReconstructionManifest,
   type ReconstructionStep,
 } from '@holoscript/core/reconstruction';
+// HoloMap reconstruction decorator → trait mapping. Source of truth is
+// packages/core/src/traits/constants/holomap-reconstruction.ts; inlined
+// here because @holoscript/core's tsup build does NOT currently emit a
+// runtime entry for the constants subpath (only a hand-crafted .d.ts).
+// Keep these in lockstep — the contract test below covers all 3 single
+// + 1 trio decorator combinations.
+type HolomapReconstructionTraitName =
+  | 'holomap_reconstruct'
+  | 'holomap_camera_trajectory'
+  | 'holomap_anchor_context'
+  | 'holomap_splat_output'
+  | 'holomap_drift_correction';
+
+const HOLOMAP_DECORATOR_TO_TRAITS: Readonly<
+  Record<string, readonly HolomapReconstructionTraitName[]>
+> = Object.freeze({
+  reconstruction_source: [
+    'holomap_reconstruct',
+    'holomap_camera_trajectory',
+    'holomap_anchor_context',
+  ],
+  acceptance_video: ['holomap_reconstruct', 'holomap_splat_output'],
+  drift_corrected: ['holomap_drift_correction'],
+});
+
+function stripDecoratorPrefix(name: string): string {
+  return name.startsWith('@') ? name.slice(1) : name;
+}
+
+function isReconstructionDecorator(name: string): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    HOLOMAP_DECORATOR_TO_TRAITS,
+    stripDecoratorPrefix(name)
+  );
+}
+
+function getReconstructionTraitsFromDecorators(
+  decoratorNames: readonly string[]
+): HolomapReconstructionTraitName[] {
+  const seen = new Set<HolomapReconstructionTraitName>();
+  const out: HolomapReconstructionTraitName[] = [];
+  for (const raw of decoratorNames) {
+    const stripped = stripDecoratorPrefix(raw);
+    const traits = HOLOMAP_DECORATOR_TO_TRAITS[stripped];
+    if (!traits) continue;
+    for (const t of traits) {
+      if (seen.has(t)) continue;
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
 import { compileManifestToTarget, holomapPayloadFromAggregatedPoints } from './holo-reconstruct-export';
 import {
   appendStepToAggregate,
@@ -91,6 +144,81 @@ function pickIngestOptions(configArg: unknown): { ingestVideo: boolean; maxInges
     }
   }
   return { ingestVideo, maxIngestFrames };
+}
+
+/**
+ * Sprint-3 Phase 2: trait → MCP dispatch.
+ *
+ * Given the decorator names declared on a `.holo` Node, decide which
+ * MCP session shape to spin up and what config tweaks the decorators
+ * imply. The 3 HoloMap reconstruction decorators map onto two
+ * orthogonal pieces of session config:
+ *
+ *   - `@reconstruction_source`  → full reconstruction pipeline
+ *                                  (camera trajectory + anchor context).
+ *   - `@acceptance_video`       → reconstruction + splat output (validated
+ *                                  reconstruction, not just trajectory).
+ *   - `@drift_corrected`        → pure post-processing flag; cannot drive
+ *                                  a session on its own.
+ *
+ * Acceptance criterion (task_p0gl): an integration test must cover all
+ * three single-decorator combos AND the trio. See
+ * packages/mcp-server/src/__tests__/holo-reconstruct-dispatch.test.ts.
+ */
+export type ReconstructionDispatch =
+  | {
+      kind: 'no-session';
+      reason: 'no-decorators' | 'drift-only-needs-source';
+      resolvedTraits: HolomapReconstructionTraitName[];
+    }
+  | {
+      kind: 'video-session';
+      sessionConstructor: 'mcpStartReconstructFromVideo';
+      sessionFlags: {
+        emitTrajectory: boolean;
+        emitSplatOutput: boolean;
+        applyDriftCorrection: boolean;
+      };
+      resolvedTraits: HolomapReconstructionTraitName[];
+    };
+
+export function dispatchReconstructionFromDecorators(
+  decoratorNames: readonly string[]
+): ReconstructionDispatch {
+  // Filter to only HoloMap reconstruction decorators; other families
+  // (motion, environment, etc.) are silently ignored, matching the
+  // contract of `getReconstructionTraitsFromDecorators`.
+  const ours = decoratorNames.filter((d) => isReconstructionDecorator(d));
+  if (ours.length === 0) {
+    return { kind: 'no-session', reason: 'no-decorators', resolvedTraits: [] };
+  }
+
+  const stripped = ours.map((d) => (d.startsWith('@') ? d.slice(1) : d));
+  const hasReconSource = stripped.includes('reconstruction_source');
+  const hasAcceptance = stripped.includes('acceptance_video');
+  const hasDrift = stripped.includes('drift_corrected');
+  const resolvedTraits = getReconstructionTraitsFromDecorators(decoratorNames);
+
+  // `@drift_corrected` alone is a post-processing marker — it cannot
+  // produce a session because it has no upstream pose source. Surface
+  // this as a structured no-session result rather than spinning up a
+  // half-configured runtime.
+  if (!hasReconSource && !hasAcceptance && hasDrift) {
+    return { kind: 'no-session', reason: 'drift-only-needs-source', resolvedTraits };
+  }
+
+  return {
+    kind: 'video-session',
+    sessionConstructor: 'mcpStartReconstructFromVideo',
+    sessionFlags: {
+      // Camera-trajectory output piggybacks on `@reconstruction_source`;
+      // `@acceptance_video` doesn't need it (it emits splats not poses).
+      emitTrajectory: hasReconSource,
+      emitSplatOutput: hasAcceptance,
+      applyDriftCorrection: hasDrift,
+    },
+    resolvedTraits,
+  };
 }
 
 export async function mcpStartReconstructFromVideo(
