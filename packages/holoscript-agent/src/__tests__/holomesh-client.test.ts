@@ -49,7 +49,12 @@ describe('HolomeshClient', () => {
 
     expect(calls).toHaveLength(1);
     const headers = calls[0].init.headers as Record<string, string>;
-    expect(headers['x-mcp-api-key']).toBe('fake-bearer');
+    // HoloMesh REST resolveRequestingAgent only accepts `Authorization: Bearer`.
+    // x-mcp-api-key is the orchestrator-side header convention and produces
+    // HTTP 401 against mcp.holoscript.net/api/holomesh/* — see W.087 vertex B
+    // audit (task_1777073751812_jqye, 2026-04-24).
+    expect(headers['Authorization']).toBe('Bearer fake-bearer');
+    expect(headers['x-mcp-api-key']).toBeUndefined();
     expect(calls[0].url).toContain('/team/team_test/board');
   });
 

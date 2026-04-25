@@ -53,15 +53,39 @@ export class HolomeshClient {
   }
 
   async whoAmI(): Promise<{ agentId: string; surface: string; wallet?: string }> {
-    return this.req<{ agentId: string; surface: string; wallet?: string }>('GET', '/me');
+    // GET /api/holomesh/me returns { agentId, name, wallet, isFounder, teamId, teams, permissions }
+    // (see packages/mcp-server/src/holomesh/routes/core-routes.ts §/me handler).
+    // It does NOT return a `surface` field — derive it from the seat name on the
+    // client side. Seat naming convention (set by the provisioning admin path):
+    //   claudecode-claude-x402  → claude-code
+    //   cursor-claude-x402      → claude-cursor
+    //   gemini-antigravity      → gemini-antigravity
+    //   copilot-vscode          → copilot-vscode
+    //   Founder                 → unknown (shared key, no surface attribution)
+    const raw = await this.req<{
+      agentId: string;
+      name?: string;
+      wallet?: string;
+    }>('GET', '/me');
+    return {
+      agentId: raw.agentId,
+      surface: deriveSurface(raw.name),
+      wallet: raw.wallet,
+    };
   }
 
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${this.apiBase}${path}`;
+    // HoloMesh REST auth resolver (packages/mcp-server/src/holomesh/auth-utils.ts
+    // resolveRequestingAgent) only inspects `Authorization: Bearer <token>`.
+    // It does NOT read `x-mcp-api-key` (that header is the orchestrator-side
+    // convention used by mcp-orchestrator-production-45f9.up.railway.app). Sending
+    // the bearer under x-mcp-api-key produces HTTP 401 even with a valid per-surface
+    // x402 seat key — see W.087 vertex B audit (task_1777073751812_jqye, 2026-04-24).
     const res = await this.fetchImpl(url, {
       method,
       headers: {
-        'x-mcp-api-key': this.bearer,
+        Authorization: `Bearer ${this.bearer}`,
         'content-type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -73,6 +97,25 @@ export class HolomeshClient {
     if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
   }
+}
+
+/**
+ * Derive a surface tag from a seat name returned by /me. Mirrors the surface
+ * detection in scripts/probe-surface-bearers.mjs and hooks/lib/holomesh-env.mjs
+ * so a single agent's surface attribution is consistent across read and write
+ * paths. Returns 'unknown' when the seat name doesn't encode a surface
+ * (e.g. shared-key resolution to "Founder").
+ */
+export function deriveSurface(seatName: string | undefined): string {
+  if (!seatName) return 'unknown';
+  const n = seatName.toLowerCase();
+  if (n.startsWith('claudecode')) return 'claude-code';
+  if (n.startsWith('cursor')) return 'claude-cursor';
+  if (n.startsWith('claudedesktop')) return 'claude-desktop';
+  if (n.startsWith('vscode-claude') || n.startsWith('claude-vscode')) return 'claude-vscode';
+  if (n.startsWith('gemini')) return 'gemini-antigravity';
+  if (n.startsWith('copilot')) return 'copilot-vscode';
+  return 'unknown';
 }
 
 export function pickClaimableTask(
