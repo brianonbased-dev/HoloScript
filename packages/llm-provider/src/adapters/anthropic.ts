@@ -118,11 +118,21 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     }
 
     try {
-      const response = await client.messages.create({
+      // Use streaming + finalMessage() to avoid undici's 30s headersTimeout.
+      // Without streaming, Anthropic returns response headers only AFTER the
+      // full body finishes generating — for max_tokens=4096 on Opus 4.7 that
+      // routinely takes 60-120s, but undici aborts after 30s waiting for
+      // headers and surfaces "Request timed out" via APIConnectionTimeoutError.
+      // Streaming starts emitting bytes within ~1s, so headersTimeout never
+      // fires. .finalMessage() awaits the full stream and returns the same
+      // shape as the non-streaming response. Observed 2026-04-25 on W01 H200
+      // mesh-worker: claim → 30s → tick-error, repeated. Direct curl + direct
+      // SDK call (claude-opus-4-7, max_tokens=4096) returned in 3.5s when
+      // size of output was small; bug only surfaces when generation > 30s.
+      const stream = client.messages.stream({
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
-        // truncates commonly on modern models). Streaming consumers should
-        // override upward for large outputs.
+        // truncates commonly on modern models).
         max_tokens: request.maxTokens ?? 16000,
         ...samplingParams,
         stop_sequences: request.stop,
@@ -132,6 +142,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
           content: m.content,
         })),
       });
+      const response = await stream.finalMessage();
 
       const content = response.content
         .filter((block) => block.type === 'text')
