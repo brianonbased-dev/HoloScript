@@ -2544,13 +2544,13 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@holoscript/engine':
         specifier: workspace:^
         version: link:../../engine
       '@holoscript/r3f-renderer':
         specifier: workspace:^
         version: link:../../r3f-renderer
+    devDependencies:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3

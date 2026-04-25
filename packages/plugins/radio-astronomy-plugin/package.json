@@ -19,14 +19,14 @@
   ],
   "author": "brianonbased-dev",
   "license": "MIT",
-  "peerDependencies": {
-    "@holoscript/core": "workspace:*",
+  "dependencies": {
     "@holoscript/engine": "workspace:^",
     "@holoscript/r3f-renderer": "workspace:^"
   },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
   "devDependencies": {
-    "@holoscript/engine": "workspace:^",
-    "@holoscript/r3f-renderer": "workspace:^",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   }
