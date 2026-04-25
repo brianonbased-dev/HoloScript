@@ -827,11 +827,11 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
    * Converts Euler angles to quaternion.
    */
   private buildPose(position: number[], eulerDegrees: number[]): XrPosef {
-    const pos: XrVector3f = {
-      x: position[0] || 0,
-      y: position[1] || 0,
-      z: position[2] || 0,
-    };
+    const pos: any = [
+      position[0] || 0,
+      position[1] || 0,
+      position[2] || 0,
+    ];
 
     const orientation = this.eulerToQuaternion(
       eulerDegrees[0] || 0,
@@ -854,12 +854,11 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
     const cz = Math.cos((zDeg * toRad) / 2);
     const sz = Math.sin((zDeg * toRad) / 2);
 
-    return {
-      x: sx * cy * cz - cx * sy * sz,
-      y: cx * sy * cz + sx * cy * sz,
-      z: cx * cy * sz - sx * sy * cz,
-      w: cx * cy * cz + sx * sy * sz,
-    };
+    const qx = sx * cy * cz - cx * sy * sz;
+    const qy = cx * sy * cz + sx * cy * sz;
+    const qz = cx * cy * sz - sx * sy * cz;
+    const qw = cx * cy * cz + sx * sy * sz;
+    return { 0: qx, 1: qy, 2: qz, w: qw } as any;
   }
 
   // ===========================================================================
