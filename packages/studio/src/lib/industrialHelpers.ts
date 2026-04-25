@@ -17,13 +17,22 @@ export interface Vec3 {
   [index: number]: number;
 }
 
+/** Any of the 3-vector input shapes industrial helpers accept. */
+export type Vec3Like = Vec3 | [number, number, number] | { x: number; y: number; z: number };
+
+/** Normalize any accepted input shape to a `[x, y, z]` tuple. */
+function toTuple(v: Vec3Like): [number, number, number] {
+  if (Array.isArray(v)) return [v[0], v[1], v[2]];
+  return [v.x, v.y, v.z];
+}
+
 /**
  * Factory helper to create Vec3 from tuple or object.
  * Supports both { x, y, z } and [x, y, z] access patterns.
  * Numeric indices are non-enumerable for clean toEqual() assertions.
  */
 export function vec3(x: number, y: number, z: number): Vec3 {
-  const v = { x, y, z } as any;
+  const v: { x: number; y: number; z: number } = { x, y, z };
   Object.defineProperty(v, '0', { value: x, enumerable: false });
   Object.defineProperty(v, '1', { value: y, enumerable: false });
   Object.defineProperty(v, '2', { value: z, enumerable: false });
@@ -71,10 +80,8 @@ export interface ThroughputSimParams {
  * @param position  Input world position (supports {x,y,z} or [0,1,2])
  * @param increment Grid cell size in meters (default 0.5m)
  */
-export function gridSnap(position: Vec3 | { x: number; y: number; z: number }, increment = 0.5): Vec3 {
-  const x = position.x ?? position[0];
-  const y = position.y ?? position[1];
-  const z = position.z ?? position[2];
+export function gridSnap(position: Vec3Like, increment = 0.5): Vec3 {
+  const [x, y, z] = toTuple(position);
   return vec3(
     Math.round(x / increment) * increment,
     Math.round(y / increment) * increment,
@@ -87,16 +94,9 @@ export function gridSnap(position: Vec3 | { x: number; y: number; z: number }, i
 /**
  * Measures the Euclidean distance between two node positions in meters.
  */
-export function measureDistance(
-  a: Vec3 | { x: number; y: number; z: number },
-  b: Vec3 | { x: number; y: number; z: number }
-): number {
-  const ax = a.x ?? a[0];
-  const ay = a.y ?? a[1];
-  const az = a.z ?? a[2];
-  const bx = b.x ?? b[0];
-  const by = b.y ?? b[1];
-  const bz = b.z ?? b[2];
+export function measureDistance(a: Vec3Like, b: Vec3Like): number {
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
   const dx = ax - bx;
   const dy = ay - by;
   const dz = az - bz;
@@ -107,14 +107,9 @@ export function measureDistance(
  * Measures the floor-plane (XZ) distance, ignoring Y (height).
  * Useful for footprint calculations on a factory floor.
  */
-export function measureFloorDistance(
-  a: Vec3 | { x: number; y: number; z: number },
-  b: Vec3 | { x: number; y: number; z: number }
-): number {
-  const ax = a.x ?? a[0];
-  const az = a.z ?? a[2];
-  const bx = b.x ?? b[0];
-  const bz = b.z ?? b[2];
+export function measureFloorDistance(a: Vec3Like, b: Vec3Like): number {
+  const [ax, , az] = toTuple(a);
+  const [bx, , bz] = toTuple(b);
   const dx = ax - bx;
   const dz = az - bz;
   return Math.sqrt(dx * dx + dz * dz);
@@ -127,15 +122,14 @@ export function measureFloorDistance(
  * Safety zones mark exclusion areas around industrial equipment.
  */
 export function safetyZone(
-  node: { id: string; position: Vec3 | { x: number; y: number; z: number } },
+  node: { id: string; position: Vec3Like },
   radius: number,
   type: SafetyZone['type'] = 'exclusion'
 ): SafetyZone {
-  const pos = node.position;
-  const center = vec3(pos.x ?? pos[0], pos.y ?? pos[1], pos.z ?? pos[2]);
+  const [x, y, z] = toTuple(node.position);
   return {
     nodeId: node.id,
-    center,
+    center: vec3(x, y, z),
     radius,
     type,
   };
@@ -144,10 +138,7 @@ export function safetyZone(
 /**
  * Returns true if a point is inside a safety zone.
  */
-export function isInsideSafetyZone(
-  point: Vec3 | { x: number; y: number; z: number },
-  zone: SafetyZone
-): boolean {
+export function isInsideSafetyZone(point: Vec3Like, zone: SafetyZone): boolean {
   return measureDistance(point, zone.center) < zone.radius;
 }
 

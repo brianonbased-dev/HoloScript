@@ -14,18 +14,17 @@ import type { EngineSystem } from '../SpatialEngine';
 // TYPES
 // =============================================================================
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+// Tuple form throughout this file — code accesses via [0]/[1]/[2] indices.
+// Object form is wrong here; conflict with the {x,y,z} shape in earlier
+// revisions caused 19 TS7053/TS2739 errors blocking studio strict tsc.
+export type Vec3 = [number, number, number];
 
 export interface XRInputState {
   position: Vec3;
   rotation: Vec3;
   trigger: number; // 0-1
   grip: number; // 0-1
-  thumbstick: { x: number; y: number };
+  thumbstick: [number, number];
   buttons: boolean[];
 }
 

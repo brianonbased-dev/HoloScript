@@ -33,8 +33,8 @@
  * ```
  */
 
-// Types
-export {
+// Types (re-exported with `export type` per isolatedModules)
+export type {
   PostProcessEffectType,
   ToneMapOperator,
   BlendMode,
@@ -63,6 +63,10 @@ export {
   IEffectRenderContext,
   IEffectConfig,
   IPostProcessPipelineConfig,
+} from './PostProcessTypes';
+
+// Values (constants + functions)
+export {
   DEFAULT_PARAMS,
   UNIFORM_SIZES,
   getDefaultParams,
