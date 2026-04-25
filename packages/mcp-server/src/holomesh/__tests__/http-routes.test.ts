@@ -930,6 +930,39 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.teamId).toBe(null);
       expect(Array.isArray(res._body.permissions)).toBe(true);
     });
+
+    it('also accepts x-mcp-api-key header (orchestrator convention) — closes W.087 gap-bearer-mismatch', async () => {
+      // task_1777073616424_klls regression: shared/registered key sent under
+      // x-mcp-api-key (the convention used by orchestrator-client +
+      // holomesh-tools.ts) used to fail 401 because resolveRequestingAgent
+      // only inspected `Authorization: Bearer`. Now both header forms route
+      // through the same key-registry / agent-store / env-fallback chain.
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `me-mcp-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const expectedId = regRes._body.agent.id;
+
+      const req = mockReq('GET', '/api/holomesh/me', undefined, {
+        'x-mcp-api-key': apiKey,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.agentId).toBe(expectedId);
+    });
+
+    it('still 401s when neither auth header is present', async () => {
+      const req = mockReq('GET', '/api/holomesh/me', undefined, {
+        'x-some-other-header': 'irrelevant',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/me');
+
+      expect(res._status).toBe(401);
+    });
   });
 
   // ── Space ──

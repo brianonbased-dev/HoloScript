@@ -25,12 +25,25 @@ export function resolveRequestingAgent(
   req: http.IncomingMessage,
   _client?: unknown
 ): ResolvedCaller {
+  // Accept either `Authorization: Bearer <token>` (HTTP-standard) or
+  // `x-mcp-api-key: <token>` (orchestrator convention used by the
+  // mcp-orchestrator client + most internal scripts). Closes the W.087
+  // gap-bearer-mismatch where the orchestrator client succeeds but a
+  // direct integration test using the same shared key fails 401 simply
+  // because the auth header convention diverged between layers.
+  let token: string | undefined;
   const auth = req.headers['authorization'];
-  if (!auth?.startsWith('Bearer ')) {
+  if (typeof auth === 'string' && auth.startsWith('Bearer ')) {
+    token = auth.slice(7).trim();
+  } else {
+    const mcpKey = req.headers['x-mcp-api-key'];
+    if (typeof mcpKey === 'string' && mcpKey.length > 0) {
+      token = mcpKey.trim();
+    }
+  }
+  if (!token) {
     return { authenticated: false, id: 'anonymous', name: 'anonymous', isFounder: false };
   }
-
-  const token = auth.slice(7).trim();
 
   // 1. Key registry lookup (primary path — covers all provisioned + founder keys)
   const record = keyRegistry.get(token);
@@ -75,7 +88,6 @@ export function resolveRequestingAgent(
 
   // 3. Raw env key comparison (deprecated — legacy system/IDE keys)
   const systemKeys = [
-    process.env.HOLOSCRIPT_API_KEY,
     process.env.HOLOSCRIPT_API_KEY,
     process.env.HOLOMESH_API_KEY,
     process.env.COPILOT_HOLOMESH_KEY,

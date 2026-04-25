@@ -99,12 +99,12 @@ export class HolomeshClient {
 
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${this.apiBase}${path}`;
-    // HoloMesh REST auth resolver (packages/mcp-server/src/holomesh/auth-utils.ts
-    // resolveRequestingAgent) only inspects `Authorization: Bearer <token>`.
-    // It does NOT read `x-mcp-api-key` (that header is the orchestrator-side
-    // convention used by mcp-orchestrator-production-45f9.up.railway.app). Sending
-    // the bearer under x-mcp-api-key produces HTTP 401 even with a valid per-surface
-    // x402 seat key — see W.087 vertex B audit (task_1777073751812_jqye, 2026-04-24).
+    // HoloMesh REST auth: server (packages/mcp-server/src/holomesh/auth-utils.ts
+    // resolveRequestingAgent) accepts EITHER `Authorization: Bearer <token>`
+    // (HTTP-standard, used here) OR `x-mcp-api-key: <token>` (orchestrator
+    // convention). Both resolve through the same key-registry / agent-store /
+    // env-fallback chain. Bearer is preferred for new code (W.087 vertex B,
+    // task_1777073616424_klls).
     const res = await this.fetchImpl(url, {
       method,
       headers: {
