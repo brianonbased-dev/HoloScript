@@ -21,6 +21,7 @@ import {
 } from '../utils';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
+import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
 import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
@@ -720,7 +721,20 @@ export async function handleTeamRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    // Phase 1.5 signing-middleware integration (task _wfrt). Dual-mode by
+    // default: legacy unsigned bodies pass through; signed envelopes are
+    // verified + registry-checked. HOLOMESH_SIGNING_MIGRATION_ACK=1 flips
+    // dual-mode → strict so unsigned bodies are rejected. Recipe documented
+    // in identity/signing-middleware.ts; same shape applies to other
+    // mutating routes (a follow-up task wires the remaining 4 broadcast
+    // sites — kept minimal here to ship the integration proof first).
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     if (body.invite_code !== undefined && body.invite_code !== team.inviteCode) {
       json(res, 403, { error: 'Invalid invite code' });
       return true;
@@ -748,11 +762,19 @@ export async function handleTeamRoutes(
     });
     persistTeamStore();
 
-    // Broadcast join to the team room
+    // Broadcast join to the team room. Signing attribution flows through:
+    // signer is the seat-wallet address when the request was signed, null
+    // for legacy unsigned (Phase 1 grace-period) joins.
     broadcastToRoom(teamId, {
       type: 'team:member_joined',
       agent: caller.name,
-      data: { agentId: caller.id, agentName: caller.name, totalMembers: team.members.length }
+      data: {
+        agentId: caller.id,
+        agentName: caller.name,
+        totalMembers: team.members.length,
+        signer: signingCtx.signer,
+        signedRequest: signingCtx.signedRequest,
+      }
     });
 
     json(res, 200, { success: true, role: 'member', members: team.members.length });
