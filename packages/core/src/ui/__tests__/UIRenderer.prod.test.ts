@@ -146,8 +146,8 @@ describe('UIRenderer — Production', () => {
       ui.addChild(panel, btn);
 
       const wr = ui.getWorldRect(btn);
-      expect(wr[0]).toBe(110); // 100 + 10
-      expect(wr[1]).toBe(220); // 200 + 20
+      expect(wr.x).toBe(110); // 100 + 10
+      expect(wr.y).toBe(220); // 200 + 20
     });
   });
 

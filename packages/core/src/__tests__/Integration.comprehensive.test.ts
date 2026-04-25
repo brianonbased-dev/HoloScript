@@ -119,7 +119,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
         array: { items: [1, 2, 3] },
       };
 
-      expect(types.simple[0]).toBe(1);
+      expect(types.simple.x).toBe(1);
       expect(types.nested.outer.inner).toBe('value');
       expect(types.array.items).toEqual([1, 2, 3]);
     });
@@ -167,7 +167,7 @@ describe('Integration Tests - End-to-End Pipeline', () => {
       };
 
       expect(rotations.euler[1]).toBe(90);
-      expect(rotations.quaternion[1]).toBeCloseTo(0.707, 2);
+      expect(rotations.quaternion.y).toBeCloseTo(0.707, 2);
     });
   });
 

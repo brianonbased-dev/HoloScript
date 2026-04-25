@@ -134,8 +134,8 @@ describe('TextureProcessor — packAtlas', () => {
   it('entries each have id, x, y, w, h', () => {
     const inputs = [makeInput({ id: 'a', width: 100, height: 50 })];
     const [e] = proc.packAtlas(inputs, 512).entries;
-    expect(typeof e[0]).toBe('number');
-    expect(typeof e[1]).toBe('number');
+    expect(typeof e.x).toBe('number');
+    expect(typeof e.y).toBe('number');
     expect(e.w).toBe(100);
     expect(e.h).toBe(50);
     expect(e.id).toBe('a');
@@ -160,8 +160,8 @@ describe('TextureProcessor — packAtlas', () => {
       makeInput({ id: 'b', width: 600, height: 64 }),
     ];
     const r = proc.packAtlas(inputs, 1024);
-    expect(r.entries[0][1]).toBe(0);
-    expect(r.entries[1][1]).toBeGreaterThan(0); // wrapped to next row
+    expect(r.entries[0].y).toBe(0);
+    expect(r.entries[1].y).toBeGreaterThan(0); // wrapped to next row
   });
 
   it('drops entries that exceed atlas height', () => {

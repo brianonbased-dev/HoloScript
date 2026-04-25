@@ -13,9 +13,9 @@ function buildSplatBuffer(splats: { x: number; y: number; z: number; sx: number;
   for (let i = 0; i < splats.length; i++) {
     const off = i * 32;
     const s = splats[i];
-    view.setFloat32(off + 0, s[0], true);
-    view.setFloat32(off + 4, s[1], true);
-    view.setFloat32(off + 8, s[2], true);
+    view.setFloat32(off + 0, s.x, true);
+    view.setFloat32(off + 4, s.y, true);
+    view.setFloat32(off + 8, s.z, true);
     view.setFloat32(off + 12, s.sx, true);
     view.setFloat32(off + 16, s.sy, true);
     view.setFloat32(off + 20, s.sz, true);
