@@ -439,8 +439,17 @@ export async function handleCoreRoutes(
         return true;
       }
       const handle = decodeURIComponent(auditMatch[1]);
-      // Phase 0: any authenticated caller can append for their own handle.
-      // Phase 1 hardening: bearer must match handle's wallet binding.
+      // Phase 1.5 auth (this commit): caller's bearer must resolve to the
+      // handle being written, OR caller must be founder. Prevents an
+      // attacker with a valid HoloMesh key from planting fake CAEL records
+      // on someone else's audit log.
+      const isHandleOwner = caller.name === handle;
+      if (!isHandleOwner && !caller.isFounder) {
+        json(res, 403, {
+          error: `Forbidden: caller "${caller.name}" cannot write to handle "${handle}". Only the handle owner or a founder may POST.`,
+        });
+        return true;
+      }
       const body = (await parseJsonBody(req)) as {
         records?: CaelAuditRecord[];
         record?: CaelAuditRecord;
@@ -502,6 +511,23 @@ export async function handleCoreRoutes(
         return true;
       }
       const handle = decodeURIComponent(defenseMatch[1]);
+      // Phase 1.5 auth (this commit): defense-state PATCH is admin-class.
+      // Allowed callers:
+      //   1. Founder
+      //   2. Caller in HOLOMESH_SECURITY_AUDITOR_HANDLES env list (CSV)
+      // Prevents an attacker from disabling defenses on a target. Phase 2
+      // promotes this to /me lookup + agents.json brain-class check.
+      const auditorHandles = (process.env.HOLOMESH_SECURITY_AUDITOR_HANDLES || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const isAuthorizedAuditor = auditorHandles.includes(caller.name);
+      if (!caller.isFounder && !isAuthorizedAuditor) {
+        json(res, 403, {
+          error: `Forbidden: caller "${caller.name}" cannot set defense state. Requires founder or HOLOMESH_SECURITY_AUDITOR_HANDLES membership.`,
+        });
+        return true;
+      }
       const body = (await parseJsonBody(req)) as {
         state?: unknown;
         expires_at?: string | null;
