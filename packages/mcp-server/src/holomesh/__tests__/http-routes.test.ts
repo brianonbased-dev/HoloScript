@@ -1751,6 +1751,64 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(409);
     });
 
+    // Regression test for task_1777112258989_6cxw: existing-member /join
+    // when the team is at cap must return 409 "Already a member of this
+    // team" — NOT 400 "Team is full". The membership check at line 719
+    // of team-routes.ts must run BEFORE the cap check at line 743, so an
+    // already-joined caller never sees the cap error. Originally diagnosed
+    // 2026-04-25 during the 31-worker fleet bootstrap when mw01 (already a
+    // member) returned "Team is full" alongside 30 actually-not-members,
+    // masking the real cap-too-low signal.
+    it('POST /api/holomesh/team/:id/join is idempotent for existing members at cap', async () => {
+      // Create team with min cap (2). Owner is auto-added → team is AT cap.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `at-cap-${Date.now()}`, max_slots: 2 },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      // Member joins — fills the second (and last) slot. Team is now at cap (2/2).
+      const memberJoinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const memberJoinRes = mockRes();
+      await handleHoloMeshRoute(memberJoinReq, memberJoinRes, `/api/holomesh/team/${tid}/join`);
+      expect(memberJoinRes._status).toBe(200);
+
+      // Owner re-calls /join while team is AT cap. Must return 409
+      // "Already a member" — the real reason — not 400 "Team is full".
+      const ownerRejoinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const ownerRejoinRes = mockRes();
+      await handleHoloMeshRoute(ownerRejoinReq, ownerRejoinRes, `/api/holomesh/team/${tid}/join`);
+      expect(ownerRejoinRes._status).toBe(409);
+      expect(ownerRejoinRes._body.error).toBe('Already a member of this team');
+
+      // Existing member also re-calls /join — same outcome.
+      const memberRejoinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const memberRejoinRes = mockRes();
+      await handleHoloMeshRoute(memberRejoinReq, memberRejoinRes, `/api/holomesh/team/${tid}/join`);
+      expect(memberRejoinRes._status).toBe(409);
+      expect(memberRejoinRes._body.error).toBe('Already a member of this team');
+    });
+
     // ── Team Dashboard ──
 
     it('GET /api/holomesh/team/:id returns team dashboard', async () => {
