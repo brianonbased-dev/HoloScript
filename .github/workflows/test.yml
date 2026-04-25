@@ -34,6 +34,12 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # Workspace packages publish from `./dist/...` exports — vitest can't
+      # resolve `@holoscript/mesh`, `@holoscript/platform`, etc. from inside
+      # core's tests until those packages are built. `pnpm build` builds
+      # core first then everything else (per package.json scripts.build).
+      - name: Build workspace packages
+        run: pnpm build
       - name: Run core tests (sharded, 16GB heap)
         run: node --max-old-space-size=16384 run-vitest.mjs
         working-directory: packages/core
@@ -51,6 +57,12 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # Studio tests import from `@holoscript/uaal`, `@holoscript/config`,
+      # `@holoscript/mesh`, `@holoscript/platform`, `@holoscript/snn-webgpu`,
+      # `@holoscript/config/endpoints` — all `./dist/...` exports. Build all
+      # workspace packages first.
+      - name: Build workspace packages
+        run: pnpm build
       - run: pnpm --filter @holoscript/studio test
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
@@ -66,4 +78,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # Build core first (snn-webgpu has @holoscript/core as a peerDep that
+      # the tests import from `./dist/...` exports).
+      - name: Build core
+        run: pnpm --filter @holoscript/core build
       - run: pnpm --filter @holoscript/snn-webgpu test

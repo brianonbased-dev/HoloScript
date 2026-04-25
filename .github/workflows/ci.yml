@@ -184,9 +184,17 @@ jobs:
           cargo check --manifest-path packages/spatial-engine/Cargo.toml
           echo "::endgroup::"
 
+      # GitHub disallows referencing `secrets.*` inside job-level/step-level `if:`
+      # expressions — a single such reference invalidates the ENTIRE workflow file
+      # and produces a check_suite that completes with conclusion=failure but zero
+      # jobs (which is exactly what we observed: 100+ consecutive ci.yml runs since
+      # 2026-04-11 with conclusion=failure but jobs:0). The fix is to gate the
+      # codecov action on the input itself: passing an empty token to
+      # codecov-action is a no-op, and `fail_ci_if_error: false` (already set
+      # below) means a missing token never fails the build.
       - name: Upload coverage reports
         uses: codecov/codecov-action@v6
-        if: ${{ always() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ always() }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info,./packages/*/coverage/lcov.info

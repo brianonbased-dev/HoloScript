@@ -29,12 +29,15 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      # Build core + engine FIRST — daemon-integration tests + the compile step
-      # both load via @holoscript/engine/dist/runtime/index.js, which doesn't
-      # exist until the package is built. Per repo CLAUDE.md: "Build order:
-      # @holoscript/core FIRST before any downstream package."
-      - run: pnpm --filter @holoscript/core build
-      - run: pnpm --filter @holoscript/engine build
+      # Build the full workspace — core + engine alone is insufficient because
+      # @holoscript/core/dist/index.js transitively loads @holoscript/core-types,
+      # @holoscript/uaal, @holoscript/crdt-spatial, etc. (all `./dist/...`
+      # exports). The compile step below previously failed with
+      # `Cannot find module '...core-types/dist/ans.js'` because core-types
+      # was never built. `pnpm build` builds core first then everything else
+      # in the correct order (per package.json scripts.build).
+      - name: Build workspace packages
+        run: pnpm build
       - run: |
           pnpm --filter @holoscript/core exec vitest run \
             src/cli/__tests__/holoscript-runner.daemon.test.ts \
@@ -58,7 +61,11 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @holoscript/core build
+      # Build the full workspace — daemon-runner transitively loads from
+      # @holoscript/core-types, @holoscript/uaal, etc. (all `./dist/...`
+      # exports). Building only @holoscript/core leaves those un-built.
+      - name: Build workspace packages
+        run: pnpm build
 
       - name: Decide whether daemon run is allowed
         id: gate

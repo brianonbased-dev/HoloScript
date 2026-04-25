@@ -42,6 +42,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # MCP server tests import from workspace packages whose entrypoints are
+      # `./dist/...` (per their package.json `exports`):
+      #   @holoscript/framework/{economy,agents}, @holoscript/llm-provider,
+      #   @holoscript/absorb-service/mcp, @holoscript/engine/hologram, etc.
+      # Without a build step, vitest fails with "Failed to resolve entry" /
+      # "Cannot find package" before any test runs. `pnpm build` builds core
+      # first then everything else.
+      - name: Build workspace packages
+        run: pnpm build
+
       - name: Validate MCP tools
         run: node scripts/validate-mcp-tools.mjs
 
