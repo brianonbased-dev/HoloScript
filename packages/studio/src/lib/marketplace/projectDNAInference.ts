@@ -1,110 +1,114 @@
 import type { DaemonProjectDNA } from '@/lib/daemon/types';
 
+type DaemonKind = DaemonProjectDNA['kind'];
+type DaemonProfile = DaemonProjectDNA['recommendedProfile'];
+
 /**
  * Infer project DNA from uploaded file
- * Detects file type, stack, and recommends daemon profile
+ * Detects file type, stack, and recommends daemon profile.
+ *
+ * The marketplace upload-wizard taxonomy ('scene', 'component', 'avatar',
+ * 'pipeline', 'dataset', 'script', 'archive', 'other') is collapsed onto
+ * the daemon-side `DaemonProjectKind` enum here ('spatial', 'data',
+ * 'frontend', 'unknown'). The fine-grained file-type information is
+ * preserved in `detectedStack` + `notes`; `kind` is the coarse routing
+ * decision the daemon makes on what pass set to schedule.
  */
 export function inferProjectDNA(file: File): DaemonProjectDNA {
   const name = file.name.toLowerCase();
   const type = file.type;
   const size = file.size;
 
-  let kind = 'unknown';
+  let kind: DaemonKind = 'unknown';
   const detectedStack: string[] = [];
   let confidence = 0;
-  let recommendedProfile: 'quick' | 'balanced' | 'thorough' = 'balanced';
-  let notes = '';
+  let recommendedProfile: DaemonProfile = 'balanced';
+  let note = '';
 
   // HoloScript files
   if (name.endsWith('.holo')) {
-    kind = 'scene';
+    kind = 'spatial';
     detectedStack.push('HoloScript');
     confidence = 0.95;
     recommendedProfile = 'balanced';
-    notes = 'HoloScript composition detected. Will validate syntax and check for optimization opportunities.';
+    note = 'HoloScript composition detected. Will validate syntax and check for optimization opportunities.';
   } else if (name.endsWith('.hsplus')) {
-    kind = 'component';
+    kind = 'spatial';
     detectedStack.push('HoloScript', 'Traits');
     confidence = 0.95;
-    recommendedProfile = 'thorough';
-    notes = 'HoloScript component with traits detected. Deep analysis recommended for trait optimization.';
+    recommendedProfile = 'deep';
+    note = 'HoloScript component with traits detected. Deep analysis recommended for trait optimization.';
   } else if (name.endsWith('.hs')) {
-    kind = 'pipeline';
+    kind = 'data';
     detectedStack.push('HoloScript', 'Data');
     confidence = 0.95;
     recommendedProfile = 'balanced';
-    notes = 'HoloScript data pipeline detected.';
+    note = 'HoloScript data pipeline detected.';
   }
   // 3D Models
   else if (name.endsWith('.glb') || name.endsWith('.gltf')) {
-    kind = 'model_3d';
+    kind = 'spatial';
     detectedStack.push('glTF');
     confidence = 0.9;
-    recommendedProfile = size > 50 * 1024 * 1024 ? 'thorough' : 'balanced';
-    notes = 'glTF 3D model detected. Will optimize geometry, materials, and compression.';
+    recommendedProfile = size > 50 * 1024 * 1024 ? 'deep' : 'balanced';
+    note = 'glTF 3D model detected. Will optimize geometry, materials, and compression.';
   } else if (name.endsWith('.vrm')) {
-    kind = 'avatar';
+    kind = 'spatial';
     detectedStack.push('VRM', '3D Model');
     confidence = 0.95;
-    recommendedProfile = 'thorough';
-    notes = 'VRM avatar detected. Comprehensive analysis recommended for rigging and materials.';
+    recommendedProfile = 'deep';
+    note = 'VRM avatar detected. Comprehensive analysis recommended for rigging and materials.';
   } else if (name.endsWith('.fbx')) {
-    kind = 'model_3d';
+    kind = 'spatial';
     detectedStack.push('FBX');
     confidence = 0.85;
-    recommendedProfile = 'thorough';
-    notes = 'FBX file detected. Will convert to glTF and optimize for web.';
+    recommendedProfile = 'deep';
+    note = 'FBX file detected. Will convert to glTF and optimize for web.';
   }
   // Archives
   else if (name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
-    kind = 'archive';
+    kind = 'unknown';
     detectedStack.push('Archive');
     confidence = 0.8;
     recommendedProfile = 'quick';
-    notes = 'Archive file detected. Will extract and analyze contents.';
+    note = 'Archive file detected. Will extract and analyze contents.';
   }
   // Data/Scientific
   else if (name.endsWith('.csv') || name.endsWith('.tsv')) {
-    kind = 'dataset';
+    kind = 'data';
     detectedStack.push('Tabular Data');
     confidence = 0.85;
     recommendedProfile = 'quick';
-    notes = 'Tabular data file detected. Will validate format and suggest visualizations.';
+    note = 'Tabular data file detected. Will validate format and suggest visualizations.';
   } else if (name.endsWith('.json') || name.endsWith('.jsonl')) {
-    kind = 'dataset';
+    kind = 'data';
     detectedStack.push('JSON', 'Data');
     confidence = 0.85;
     recommendedProfile = 'quick';
-    notes = 'JSON data file detected.';
+    note = 'JSON data file detected.';
   } else if (name.endsWith('.py') || name.endsWith('.ipynb')) {
-    kind = 'script';
+    kind = 'data';
     detectedStack.push('Python');
     confidence = 0.85;
-    recommendedProfile = 'thorough';
-    notes = name.endsWith('.ipynb') 
+    recommendedProfile = 'deep';
+    note = name.endsWith('.ipynb')
       ? 'Jupyter notebook detected. Will analyze code cells and outputs.'
       : 'Python script detected. Will analyze dependencies and code quality.';
   }
   // Frontend/Code
   else if (name.endsWith('.ts') || name.endsWith('.tsx') || name.endsWith('.js') || name.endsWith('.jsx')) {
-    kind = 'component';
+    kind = 'frontend';
     detectedStack.push('TypeScript/JavaScript', 'Frontend');
     confidence = 0.85;
     recommendedProfile = 'balanced';
-    notes = 'Frontend code detected. Will validate syntax and analyze dependencies.';
-  } else if (name.endsWith('.tsx')) {
-    kind = 'component';
-    detectedStack.push('React', 'TypeScript');
-    confidence = 0.9;
-    recommendedProfile = 'balanced';
-    notes = 'React component detected. Will analyze component structure and performance.';
+    note = 'Frontend code detected. Will validate syntax and analyze dependencies.';
   }
   // Fallback
   else {
-    kind = 'other';
+    kind = 'unknown';
     confidence = 0.5;
     recommendedProfile = 'quick';
-    notes = `Unknown file type: ${type || 'unspecified'}. Will attempt generic analysis.`;
+    note = `Unknown file type: ${type || 'unspecified'}. Will attempt generic analysis.`;
   }
 
   return {
@@ -112,6 +116,6 @@ export function inferProjectDNA(file: File): DaemonProjectDNA {
     confidence,
     detectedStack: detectedStack.length > 0 ? detectedStack : ['Unknown'],
     recommendedProfile,
-    notes,
+    notes: [note],
   };
 }

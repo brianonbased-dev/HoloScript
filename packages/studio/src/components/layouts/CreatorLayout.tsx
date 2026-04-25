@@ -1,5 +1,26 @@
 'use client';
 
+// Web Speech API ambient types — not in the default DOM lib. Studio uses
+// these in startListening() but TS lib `dom` ships without them.
+declare global {
+  interface SpeechRecognitionResult {
+    [index: number]: { transcript: string };
+    isFinal: boolean;
+  }
+  interface SpeechRecognitionEvent extends Event {
+    results: { length: number; [index: number]: SpeechRecognitionResult } & Iterable<SpeechRecognitionResult>;
+  }
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: ((ev: SpeechRecognitionEvent) => void) | null;
+    onend: (() => void) | null;
+    start(): void;
+    stop(): void;
+  }
+}
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSceneStore, useCharacterStore } from '@/lib/stores';
 import { SCENE_TEMPLATES, TEMPLATE_CATEGORIES } from '@/data/sceneTemplates';
