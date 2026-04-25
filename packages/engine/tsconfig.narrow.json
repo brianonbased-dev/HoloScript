@@ -1,0 +1,31 @@
+{
+  "_comment": "Narrow typecheck: engine src + path-mapped packages, core typings from ../core/dist (build core first). rootDir .. avoids TS6059 for siblings.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "rootDir": "..",
+    "outDir": "./.ts-narrow-out",
+    "paths": {
+      "@holoscript/core": ["../core/dist/index.js"],
+      "@holoscript/core/*": ["../core/dist/*"],
+      "@holoscript/framework": ["../framework/src"],
+      "@holoscript/framework/*": ["../framework/src/*"],
+      "@holoscript/crdt-spatial": ["../crdt-spatial/src"],
+      "@holoscript/snn-webgpu": ["../snn-webgpu/src"],
+      "@holoscript/uaal": ["../uaal/src"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.bench.ts",
+    "**/*.prod.test.ts",
+    "**/*.integration.test.ts"
+  ]
+}
