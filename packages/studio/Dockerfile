@@ -55,12 +55,28 @@ COPY packages/plugins/ packages/plugins/
 COPY packages/platform/ packages/platform/
 COPY packages/mesh/ packages/mesh/
 COPY packages/llm-provider/ packages/llm-provider/
+# marketplace-api is referenced by studio/src/marketplace/MarketplaceRegistry.ts
+# and MarketplaceSubmission.ts via relative ../../../marketplace-api/src/...
+# imports (cross-package source-path import, not @workspace dep). Without
+# COPYing the package source, webpack can't resolve those paths and dies
+# with: "Could not resolve ../../../marketplace-api/src/core-marketplace/
+# MarketplaceRegistry.js". Verified 2026-04-25 deployment 48b215cf.
+# TODO follow-up: convert these to proper @holoscript/marketplace-api
+# workspace imports + drop this COPY.
+COPY packages/marketplace-api/ packages/marketplace-api/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
 # Use tsup --no-dts directly — Studio only needs JS runtime, not type declarations.
 # tsc --emitDeclarationOnly often fails in Docker due to missing cross-package refs.
 RUN cd packages/crdt && npx tsup --no-dts
+# crdt-spatial must build BEFORE the plugin tsc check (line further down)
+# because plugins like film3d-volumetrics-plugin import @holoscript/crdt-spatial
+# and `tsc --noEmit false` needs its dist/ d.ts files. Verified 2026-04-25
+# deployment 48b215cf — without this build step, the plugin tsc dies with
+# "Cannot find module '@holoscript/crdt-spatial' or its corresponding type
+# declarations" even though the package source IS in the build context.
+RUN cd packages/crdt-spatial && npx tsup --no-dts || true
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
