@@ -3,6 +3,7 @@ import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
+import { buildCaelRecord } from './cael-builder.js';
 import { MESH_TOOLS, runTool } from './tools.js';
 import type {
   AgentIdentity,
@@ -11,6 +12,11 @@ import type {
   RuntimeBrainConfig,
   TickResult,
 } from './types.js';
+
+// Bumped when the CAEL record schema or layer-hash semantics change. Lives
+// in the version_vector_fingerprint of every emitted record so consumers
+// can partition the corpus by runtime version.
+const RUNTIME_VERSION = '1.0.0';
 
 export interface AgentRunnerOptions {
   identity: AgentIdentity;
@@ -25,6 +31,13 @@ export interface AgentRunnerOptions {
 
 export class AgentRunner {
   private stopped = false;
+  // CAEL audit hash chain — survives across ticks within a single runner
+  // process. On process restart it resets to null; the first post-restart
+  // record breaks the chain, which is honest (the runner has no memory of
+  // its prior chain state and shouldn't fake continuity). prev_hash=null
+  // is a valid value the audit-store accepts.
+  private prevCaelChain: string | null = null;
+
   constructor(private readonly opts: AgentRunnerOptions) {}
 
   async tick(): Promise<TickResult> {
@@ -153,6 +166,32 @@ export class AgentRunner {
       } catch (err) {
         log({ ev: 'audit-log-error', message: err instanceof Error ? err.message : String(err) });
       }
+    }
+
+    // Phase 1 CAEL audit: post to the HoloMesh audit store so the fleet
+    // corpus collector at ai-ecosystem/scripts/fleet-corpus-collector.mjs
+    // can read records via GET /api/holomesh/agent/{handle}/audit. Without
+    // this POST, the local AuditLog above is the only durable record and
+    // Paper 25's gate clock cannot start. See ai-ecosystem task
+    // task_1777106535952_atug for the empty-audit investigation.
+    try {
+      const caelRecord = buildCaelRecord({
+        identity,
+        brain,
+        task: target,
+        messages,
+        finalText,
+        usage: aggUsage,
+        costUsd: cost.costUsd,
+        spentUsd: cost.spentUsd,
+        prevChain: this.prevCaelChain,
+        runtimeVersion: RUNTIME_VERSION,
+      });
+      const posted = await mesh.postAuditRecords(identity.handle, [caelRecord]);
+      this.prevCaelChain = caelRecord.fnv1a_chain;
+      log({ ev: 'cael-posted', taskId: target.id, appended: posted.appended, rejected: posted.rejected });
+    } catch (err) {
+      log({ ev: 'cael-post-error', message: err instanceof Error ? err.message : String(err) });
     }
 
     if (this.opts.onTaskExecuted) {

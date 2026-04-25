@@ -1,4 +1,5 @@
 import type { BoardTask } from './types.js';
+import type { CaelAuditRecord } from './cael-builder.js';
 
 export interface HolomeshClientOptions {
   apiBase: string;
@@ -58,6 +59,20 @@ export class HolomeshClient {
       summary,
       commitHash,
     });
+  }
+
+  // POST CAEL audit records for this agent. Server validator at
+  // packages/mcp-server/src/holomesh/routes/core-routes.ts:472-533 requires
+  // bearer == handle owner OR founder; the per-surface x402 bearer is the
+  // handle owner so this resolves correctly. Records that fail shape
+  // validation (layer_hashes != 7 elements, missing tick_iso/operation/
+  // fnv1a_chain) are silently dropped server-side, not rejected as a batch.
+  async postAuditRecords(handle: string, records: CaelAuditRecord[]): Promise<{ appended: number; rejected: number }> {
+    return this.req<{ appended: number; rejected: number }>(
+      'POST',
+      `/agent/${encodeURIComponent(handle)}/audit`,
+      { records }
+    );
   }
 
   async whoAmI(): Promise<{ agentId: string; surface: string; wallet?: string }> {
