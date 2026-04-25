@@ -98,7 +98,7 @@ DIFF=$(git diff --cached -U0 2>/dev/null | grep "^+" | grep -v "^+++" || true)
 # Files exempt from the 0x<64-hex> "private key" scan because they
 # intentionally embed SHA-256 hashes (anchor receipts, Base-L2 tx
 # sidecars, OTS receipts). Mirrors ai-ecosystem/hooks/pre-commit-secrets-citations.sh.
-EXEMPT_HEX='\.(base-unsigned\.json|base\.json|ots)$|^scripts/broadcast_base(_[0-9]{4}-[0-9]{2}-[0-9]{2})?\.html$'
+EXEMPT_HEX='\.(base-unsigned\.json|base\.json|ots)$|^scripts/broadcast_base(_[0-9]{4}-[0-9]{2}-[0-9]{2}(_[A-Za-z0-9-]+)?)?\.html$'
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null || true)
 UNIVERSAL_FILES=$(echo "$STAGED_FILES" | grep -v -E "$EXEMPT_HEX" || true)
 if [ -n "$UNIVERSAL_FILES" ]; then

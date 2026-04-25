@@ -16,7 +16,7 @@
 
     Idempotent: re-running picks up the latest commit on each instance
     (bootstrap.sh git-pulls on existing checkout). Re-running does NOT
-    duplicate agents — bootstrap kills the previous daemon before starting.
+    duplicate agents - bootstrap kills the previous daemon before starting.
 
     Founder runs this script LOCALLY from a shell with:
       - vastai CLI authenticated
@@ -41,7 +41,7 @@
     in ~6 batches × ~3min/batch = ~18 min total).
 
 .EXAMPLE
-    # Dry run — see the plan, no execution
+    # Dry run - see the plan, no execution
     .\Deploy-MeshAgents.ps1 -ConfigPath agents.json -DryRun
 
     # Deploy to all 31, max 5 parallel
@@ -76,7 +76,7 @@ $ErrorActionPreference = 'Stop'
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
-Write-Host "=== Mesh Deploy — $(Get-Date -Format o) ===" -ForegroundColor Cyan
+Write-Host "=== Mesh Deploy - $(Get-Date -Format o) ===" -ForegroundColor Cyan
 Write-Host "  ConfigPath:     $ConfigPath"
 Write-Host "  InstanceFilter: $(if ($InstanceFilter) { $InstanceFilter } else { '<none>' })"
 Write-Host "  DryRun:         $DryRun"
@@ -108,13 +108,13 @@ if (Test-Path $EnvFile) {
         }
     }
 } else {
-    Write-Warning "EnvFile not found: $EnvFile — proceeding without (wallet/bearer lookups will fail loudly)"
+    Write-Warning "EnvFile not found: $EnvFile - proceeding without (wallet/bearer lookups will fail loudly)"
 }
 
 # ---------------------------------------------------------------------------
 # Load instance list + agent config
 # ---------------------------------------------------------------------------
-Write-Host "[vastai] fetching live instance list…" -ForegroundColor Cyan
+Write-Host "[vastai] fetching live instance list..." -ForegroundColor Cyan
 $instancesRaw = vastai show instances --raw | ConvertFrom-Json
 if ($instancesRaw -isnot [array]) { $instancesRaw = @($instancesRaw) }
 $instances = $instancesRaw | Where-Object { $_.actual_status -eq 'running' -and $_.ssh_host }
@@ -130,19 +130,51 @@ $agents = $config.agents | Where-Object { $_.enabled -ne $false }
 Write-Host "  $($agents.Count) agent(s) enabled in config"
 Write-Host ""
 
-if ($instances.Count -eq 0) { Write-Warning "No instances match — exiting"; exit 0 }
-if ($agents.Count -eq 0) { Write-Warning "No agents enabled — exiting"; exit 0 }
+if ($instances.Count -eq 0) { Write-Warning "No instances match - exiting"; exit 0 }
+if ($agents.Count -eq 0) { Write-Warning "No agents enabled - exiting"; exit 0 }
 
-# Match agents to instances. If config has FEWER agents than instances,
-# wrap-around (so e.g. 5 agent specs cover 31 instances by reusing
-# trait-inferencer N times). If MORE agents than instances, truncate.
+# Match agents to instances.
+# Phase 1: agents with `instanceMatch` regex consume their preferred
+#          instance first (e.g. mesh-worker-01 instanceMatch=H200).
+# Phase 2: remaining agents fill remaining instances by index order.
+# Wrap-around if more instances than agents; truncate if fewer.
 $pairs = @()
-for ($i = 0; $i -lt $instances.Count; $i++) {
-    $agent = $agents[$i % $agents.Count]
+$consumedInstanceIds = @{}
+$consumedAgentHandles = @{}
+
+# Phase 1: instanceMatch-pinned agents
+foreach ($agent in $agents) {
+    if (-not $agent.instanceMatch) { continue }
+    $match = $instances | Where-Object {
+        (-not $consumedInstanceIds.ContainsKey($_.id)) -and
+        ("$($_.id) $($_.gpu_name)" -match $agent.instanceMatch)
+    } | Select-Object -First 1
+    if ($match) {
+        $pairs += [PSCustomObject]@{
+            Instance = $match
+            Agent    = $agent
+            Index    = $pairs.Count
+            Pinned   = $true
+        }
+        $consumedInstanceIds[$match.id] = $true
+        $consumedAgentHandles[$agent.handle] = $true
+        Write-Host "  [pin] $($agent.handle) -> instance $($match.id) ($($match.gpu_name)) via instanceMatch=$($agent.instanceMatch)" -ForegroundColor Magenta
+    } else {
+        Write-Warning "  [pin] $($agent.handle) instanceMatch=$($agent.instanceMatch) had no available instance match; will fall through to index-order matching"
+    }
+}
+
+# Phase 2: index-order fill for remaining agents/instances
+$remainingInstances = $instances | Where-Object { -not $consumedInstanceIds.ContainsKey($_.id) }
+$remainingAgents = $agents | Where-Object { -not $consumedAgentHandles.ContainsKey($_.handle) }
+for ($i = 0; $i -lt $remainingInstances.Count; $i++) {
+    if ($remainingAgents.Count -eq 0) { break }
+    $agent = $remainingAgents[$i % $remainingAgents.Count]
     $pairs += [PSCustomObject]@{
-        Instance = $instances[$i]
+        Instance = $remainingInstances[$i]
         Agent    = $agent
-        Index    = $i
+        Index    = $pairs.Count
+        Pinned   = $false
     }
 }
 
@@ -191,7 +223,7 @@ function Plan-One {
     }
 }
 
-$plans = $pairs | ForEach-Object { Plan-One $_ }
+$plans = @($pairs | ForEach-Object { Plan-One $_ })
 
 # Show the plan
 Write-Host "=== PLAN ===" -ForegroundColor Cyan
@@ -199,7 +231,7 @@ $plans | Format-Table -Property Index, InstanceId, GpuName, Handle, Provider, Mo
 
 $blocked = $plans | Where-Object { -not $_.Ok }
 if ($blocked) {
-    Write-Host "BLOCKED — missing identity material for $($blocked.Count) agent(s):" -ForegroundColor Yellow
+    Write-Host "BLOCKED - missing identity material for $($blocked.Count) agent(s):" -ForegroundColor Yellow
     $blocked | ForEach-Object {
         Write-Host "  [$($_.Index)] $($_.Handle): $($_.Issues -join ', ')" -ForegroundColor Yellow
     }
@@ -211,7 +243,7 @@ if ($blocked) {
 }
 
 if ($DryRun) {
-    Write-Host "DryRun — no execution." -ForegroundColor Green
+    Write-Host "DryRun - no execution." -ForegroundColor Green
     exit 0
 }
 
@@ -286,29 +318,37 @@ $deployJob = {
 }
 
 Write-Host "=== EXECUTING ($($plans.Count) instances, MaxParallel=$MaxParallel) ===" -ForegroundColor Cyan
-$results = @()
+$results = New-Object System.Collections.ArrayList
 $queue = [System.Collections.Queue]::new()
-$plans | ForEach-Object { $queue.Enqueue($_) }
-$activeJobs = @()
+foreach ($p in $plans) { [void]$queue.Enqueue($p) }
+$activeJobs = New-Object System.Collections.ArrayList
 
 while ($queue.Count -gt 0 -or $activeJobs.Count -gt 0) {
     # Launch new jobs up to MaxParallel
     while ($activeJobs.Count -lt $MaxParallel -and $queue.Count -gt 0) {
         $plan = $queue.Dequeue()
-        Write-Host "  [+] launching deploy #$($plan.Index) → $($plan.Handle)" -ForegroundColor DarkGray
+        Write-Host "  [+] launching deploy #$($plan.Index) -> $($plan.Handle)" -ForegroundColor DarkGray
         $job = Start-Job -ScriptBlock $deployJob -ArgumentList $plan, $SshKey, $bootstrapScript, $LogDir
-        $activeJobs += [PSCustomObject]@{ Plan = $plan; Job = $job }
+        [void]$activeJobs.Add([PSCustomObject]@{ Plan = $plan; Job = $job })
     }
-    # Drain finished jobs
-    $finished = $activeJobs | Where-Object { $_.Job.State -ne 'Running' }
-    foreach ($f in $finished) {
-        $r = Receive-Job -Job $f.Job
-        Remove-Job -Job $f.Job
-        $results += $r
-        $status = if ($r.Ok) { 'OK ' } else { 'FAIL' }
-        Write-Host "  [$status] #$($f.Plan.Index) $($r.Handle) — log: $($r.Log)" -ForegroundColor $(if ($r.Ok) { 'Green' } else { 'Red' })
+    # Drain finished jobs (iterate by index because we mutate)
+    $stillRunning = New-Object System.Collections.ArrayList
+    foreach ($entry in $activeJobs) {
+        if ($entry.Job.State -eq 'Running') {
+            [void]$stillRunning.Add($entry)
+            continue
+        }
+        $r = Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue
+        $jobError = $entry.Job.ChildJobs[0].JobStateInfo.Reason
+        Remove-Job -Job $entry.Job -Force -ErrorAction SilentlyContinue
+        if ($null -eq $r) {
+            $r = @{ Handle = $entry.Plan.Handle; InstanceId = $entry.Plan.InstanceId; Ok = $false; Log = "(no output; jobError=$jobError)" }
+        }
+        [void]$results.Add($r)
+        $status = if ($r.Ok) { 'OK  ' } else { 'FAIL' }
+        Write-Host "  [$status] #$($entry.Plan.Index) $($r.Handle) - log: $($r.Log)" -ForegroundColor $(if ($r.Ok) { 'Green' } else { 'Red' })
     }
-    $activeJobs = $activeJobs | Where-Object { $_.Job.State -eq 'Running' }
+    $activeJobs = $stillRunning
     if ($activeJobs.Count -gt 0) { Start-Sleep -Seconds 2 }
 }
 
@@ -317,10 +357,10 @@ while ($queue.Count -gt 0 -or $activeJobs.Count -gt 0) {
 # ---------------------------------------------------------------------------
 Write-Host ""
 Write-Host "=== SUMMARY ===" -ForegroundColor Cyan
-$ok = ($results | Where-Object { $_.Ok }).Count
-$fail = ($results | Where-Object { -not $_.Ok }).Count
+$ok = @($results | Where-Object { $_.Ok }).Count
+$fail = @($results | Where-Object { -not $_.Ok }).Count
 Write-Host "  $ok / $($results.Count) deploys succeeded"
 if ($fail -gt 0) {
-    Write-Host "  $fail FAILED — inspect logs in $LogDir" -ForegroundColor Red
+    Write-Host "  $fail FAILED - inspect logs in $LogDir" -ForegroundColor Red
 }
 Write-Host "  Verify mesh state via: vastai show instances; or via /room (next /presence tick should show new agents)"

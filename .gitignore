@@ -8,6 +8,16 @@
 /run_test[0-9].ts
 /test-wasm.ts
 
+# Mesh-agent deployment logs and per-instance staging dirs.
+# Each .stage-<instanceId>/agent.env contains LIVE credentials
+# (HoloMesh API key, Anthropic API key, wallet bearer) for the
+# rented Vast.ai box. Pre-commit secret scanner correctly blocks
+# them; gitignore covers the directory so future runs don't
+# even queue them for staging.
+scripts/mesh-deploy/mesh-deploy-logs/
+scripts/mesh-deploy/**/agent.env
+scripts/mesh-deploy/**/*.env
+
 # Dependencies
 node_modules/
 
