@@ -78,6 +78,62 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Clock sync (chrony)
+# ---------------------------------------------------------------------------
+# Vast.ai images do NOT auto-sync clocks. Observed 2026-04-25: H200 mw01
+# emitted a CAEL record with tick_iso=2026-04-25T09:01:16 while the wall
+# clock was ~09:11 — a 10+ minute drift. tick_iso is then unreliable for
+# chronological ordering AND gate-clock counting (Paper 25 requires 7
+# fleet-days of CONTINUOUS records; clock skew can cause day-rollover
+# ambiguity that erases an entire fleet-day).
+#
+# Fix: install chrony (apt is idempotent — the install no-ops if the package
+# is already present) and force one immediate step-correction so we don't
+# have to wait for the daemon's slow-slew convergence on a fresh boot.
+# `chronyc -a makestep` requires the daemon to be reachable, so we ensure
+# it's running first. All steps are idempotent.
+if ! command -v chronyd >/dev/null 2>&1; then
+  echo "[bootstrap] installing chrony for NTP clock sync…"
+  apt-get install -y chrony
+else
+  echo "[bootstrap] chrony already installed"
+fi
+
+# Start the daemon. systemd path on most Vast.ai images; fall back to the
+# init script / direct binary on minimal images without systemd.
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+  systemctl enable chrony >/dev/null 2>&1 || systemctl enable chronyd >/dev/null 2>&1 || true
+  systemctl start chrony  >/dev/null 2>&1 || systemctl start chronyd  >/dev/null 2>&1 || true
+elif command -v service >/dev/null 2>&1; then
+  service chrony start >/dev/null 2>&1 || service chronyd start >/dev/null 2>&1 || true
+else
+  # No init system — spawn chronyd directly so chronyc has a daemon to talk to.
+  pgrep -x chronyd >/dev/null 2>&1 || (chronyd >/dev/null 2>&1 &) || true
+fi
+
+# Force one immediate step-correction. -a authorises via the local socket
+# (chrony.conf default `allow` for cmdmon on the loopback). If it fails we
+# log + continue: a 10-min drift is bad but it shouldn't BLOCK the bootstrap,
+# and the daemon will slew-correct over the following minutes.
+# Brief retry loop because the daemon socket isn't immediately available
+# after `systemctl start` on a freshly-installed package.
+PRE_DATE=$(date -u +%FT%TZ)
+makestep_ok=0
+for attempt in 1 2 3 4 5; do
+  if chronyc -a makestep >/dev/null 2>&1; then
+    makestep_ok=1
+    break
+  fi
+  sleep 1
+done
+if [ "$makestep_ok" = "1" ]; then
+  POST_DATE=$(date -u +%FT%TZ)
+  echo "[bootstrap] chronyc makestep ok: $PRE_DATE -> $POST_DATE (UTC)"
+else
+  echo "[bootstrap] WARN: chronyc -a makestep failed after 5 retries — daemon may not be ready; relying on slew correction" >&2
+fi
+
+# ---------------------------------------------------------------------------
 # Clone repo (idempotent)
 # ---------------------------------------------------------------------------
 if [ -d "$WORKSPACE/.git" ]; then
