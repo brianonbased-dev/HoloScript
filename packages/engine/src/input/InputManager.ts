@@ -163,7 +163,8 @@ export class InputManager {
   }
 
   getMousePosition(): { x: number; y: number } {
-    return { x: this.mouse.x, y: this.mouse.y };
+    const x = this.mouse.x, y = this.mouse.y;
+    return Object.assign({ x, y }, { 0: x, 1: y });
   }
 
   getMouseDelta(): { x: number; y: number } {

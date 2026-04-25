@@ -66,8 +66,11 @@ export class CRDTStateManager {
 
   public getSnapshot(): Record<string, any> {
     const snapshot: Record<string, any> = {};
+    let i = 0;
     this.registers.forEach((op, key) => {
       snapshot[key] = op.value;
+      snapshot[i] = op.value;
+      i++;
     });
     return snapshot;
   }
