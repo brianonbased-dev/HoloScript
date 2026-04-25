@@ -533,12 +533,15 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           id: `${handSide}_hand`,
           grip: 0,
           trigger: 0,
-          position: [position[0], position[1], position[2]],
+          // DOMPointReadOnly exposes .x/.y/.z/.w (not numeric indices).
+          // Numeric-indexed access was returning undefined at runtime; aligning
+          // with the WebXR XRRigidTransform contract.
+          position: [position.x, position.y, position.z],
           rotation: this.quaternionToEuler([
-            orientation[0],
-            orientation[1],
-            orientation[2],
-            orientation[3],
+            orientation.x,
+            orientation.y,
+            orientation.z,
+            orientation.w,
           ]),
           velocity: [0, 0, 0] as any, // Not provided by WebXR directly without previous frame diff
           pinchStrength: 0,

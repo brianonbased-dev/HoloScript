@@ -948,11 +948,17 @@ export class SemanticSearchService<T = any> {
 export type Vector3 = [number, number, number];
 
 export interface VRHand {
+  id: string;
   position: Vector3;
-  rotation: Vector3;
-  joints: Map<string, { position: Vector3; rotation: Vector3 }>;
-  pinchStrength: number;
-  gripStrength: number;
+  rotation: Quaternion;
+  velocity: Vector3;
+  joints?: Map<string, { position: Vector3; rotation: Vector3 }>;
+  pinch?: number;
+  pinchStrength?: number;
+  grip: number;
+  gripStrength?: number;
+  trigger: number;
+  pointing?: boolean;
 }
 
 export interface VRContext {
