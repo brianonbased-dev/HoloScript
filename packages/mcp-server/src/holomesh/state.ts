@@ -117,6 +117,58 @@ export interface CaelAuditRecord {
 export const agentAuditStore: Map<string, CaelAuditRecord[]> = new Map(); // handle → records
 const MAX_CAEL_RECORDS_PER_AGENT = 10_000;
 
+// Phase 1 persistence: append every record to JSONL on disk.
+// Path: <HOLOMESH_DATA_DIR>/audit/<handle>.jsonl
+// On startup, loadCaelAuditFromDisk() rehydrates the in-memory store.
+const CAEL_AUDIT_DIR = path.join(HOLOMESH_DATA_DIR, 'audit');
+
+function caelAuditPath(handle: string): string {
+  // Sanitize handle for filesystem (no ../, no path separators).
+  const safe = handle.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.join(CAEL_AUDIT_DIR, `${safe}.jsonl`);
+}
+
+function persistCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
+  try {
+    if (!fs.existsSync(CAEL_AUDIT_DIR)) {
+      fs.mkdirSync(CAEL_AUDIT_DIR, { recursive: true });
+    }
+    fs.appendFileSync(caelAuditPath(handle), `${JSON.stringify(record)}\n`, 'utf8');
+  } catch (err) {
+    // Persistence failure is logged but does not abort the append —
+    // in-memory store remains authoritative. The error path is observable
+    // via process stderr; production hardening could escalate to a metric.
+    // eslint-disable-next-line no-console
+    console.warn(`[state] persistCaelAuditRecord failed for ${handle}: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Rehydrate in-memory CAEL audit store from on-disk JSONL files.
+ * Called once at server startup. Idempotent — safe to call multiple times.
+ */
+export function loadCaelAuditFromDisk(): void {
+  if (!fs.existsSync(CAEL_AUDIT_DIR)) return;
+  const files = fs.readdirSync(CAEL_AUDIT_DIR).filter((f) => f.endsWith('.jsonl'));
+  for (const file of files) {
+    const handle = file.replace(/\.jsonl$/, '');
+    const lines = fs.readFileSync(path.join(CAEL_AUDIT_DIR, file), 'utf8').split('\n').filter((l) => l.length > 0);
+    const records: CaelAuditRecord[] = [];
+    for (const line of lines) {
+      try {
+        records.push(JSON.parse(line));
+      } catch {
+        // Corrupt line — skip. Honest: a half-flushed record is rare.
+      }
+    }
+    // Honor the in-memory ring buffer cap on rehydrate.
+    const trimmed = records.length > MAX_CAEL_RECORDS_PER_AGENT
+      ? records.slice(-MAX_CAEL_RECORDS_PER_AGENT)
+      : records;
+    agentAuditStore.set(handle, trimmed);
+  }
+}
+
 /**
  * Agent Defense State Store — per-agent fleet-adversarial defense configuration.
  * Closes gap-build task_1777090894117_8bav (defense-state PATCH endpoint).
@@ -128,9 +180,11 @@ const MAX_CAEL_RECORDS_PER_AGENT = 10_000;
  * Phase 2 (300/450 cell full eval) require this for the per-cell
  * defense_state matrix dimension.
  *
- * Phase 0 limitations (filed at task_1777093147560_pawd):
- * - In-memory only; lost on restart. Persistence is Phase 1 hardening.
- * - Auth is "any authenticated caller". Phase 1 will require caller's
+ * Phase 1 hardening landed (this commit): persistence to disk via
+ * <HOLOMESH_DATA_DIR>/defense/<handle>.json.
+ *
+ * Remaining limitations (Phase 1.5, filed at task_1777093147560_pawd):
+ * - Auth is "any authenticated caller". Phase 1.5 will require caller's
  *   brain class (via /me + agents.json lookup) to be security-auditor.
  * - Defense state is informational — doesn't actually toggle behavior on
  *   the target brain (target brains read this on next tick).
@@ -161,6 +215,44 @@ export interface AgentDefenseConfig {
 
 export const agentDefenseStore: Map<string, AgentDefenseConfig> = new Map(); // handle → config
 
+// Phase 1 persistence: write defense state to JSON on disk.
+const DEFENSE_DIR = path.join(HOLOMESH_DATA_DIR, 'defense');
+
+function defensePath(handle: string): string {
+  const safe = handle.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.join(DEFENSE_DIR, `${safe}.json`);
+}
+
+function persistAgentDefense(handle: string, config: AgentDefenseConfig): void {
+  try {
+    if (!fs.existsSync(DEFENSE_DIR)) {
+      fs.mkdirSync(DEFENSE_DIR, { recursive: true });
+    }
+    fs.writeFileSync(defensePath(handle), JSON.stringify(config, null, 2), 'utf8');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[state] persistAgentDefense failed for ${handle}: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Rehydrate in-memory defense store from on-disk JSON files.
+ * Called once at server startup. Idempotent.
+ */
+export function loadAgentDefenseFromDisk(): void {
+  if (!fs.existsSync(DEFENSE_DIR)) return;
+  const files = fs.readdirSync(DEFENSE_DIR).filter((f) => f.endsWith('.json'));
+  for (const file of files) {
+    const handle = file.replace(/\.json$/, '');
+    try {
+      const config = JSON.parse(fs.readFileSync(path.join(DEFENSE_DIR, file), 'utf8')) as AgentDefenseConfig;
+      agentDefenseStore.set(handle, config);
+    } catch {
+      // Corrupt file — skip.
+    }
+  }
+}
+
 export function setAgentDefense(
   handle: string,
   state: DefenseState,
@@ -174,6 +266,8 @@ export function setAgentDefense(
     setAt: new Date().toISOString(),
   };
   agentDefenseStore.set(handle, config);
+  // Phase 1 persistence: best-effort write to JSON.
+  persistAgentDefense(handle, config);
   return config;
 }
 
@@ -198,6 +292,8 @@ export function appendCaelAuditRecord(handle: string, record: CaelAuditRecord): 
     existing.shift(); // ring buffer: drop oldest
   }
   agentAuditStore.set(handle, existing);
+  // Phase 1 persistence: best-effort append to JSONL.
+  persistCaelAuditRecord(handle, record);
 }
 
 export function queryCaelAuditRecords(
