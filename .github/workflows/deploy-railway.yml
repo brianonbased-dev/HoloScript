@@ -410,13 +410,21 @@ jobs:
           curl -f https://absorb.holoscript.net/health || exit 1
 
   deploy-mcp-server:
+    # Pre-flight is informational for service-targeted deploys (failures
+    # in unrelated packages shouldn't block mcp-server). Railway runs its
+    # own build per Dockerfile.mcp-server / buildpack, which IS the
+    # authoritative safety check. The pre-flight job stays in the
+    # workflow as a signal but doesn't gate this deploy.
     needs: [detect-changes, pre-flight]
     if: |
-      (github.event_name == 'push' && needs.detect-changes.outputs.mcp-server == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (
-        github.event.inputs.service == 'all' ||
-        github.event.inputs.service == 'mcp-server'
-      ))
+      (
+        always() &&
+        (github.event_name == 'push' && needs.detect-changes.outputs.mcp-server == 'true') ||
+        (github.event_name == 'workflow_dispatch' && (
+          github.event.inputs.service == 'all' ||
+          github.event.inputs.service == 'mcp-server'
+        ))
+      )
     runs-on: ubuntu-latest
     environment:
       name: production-mcp-server
