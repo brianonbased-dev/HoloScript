@@ -25,6 +25,7 @@ import {
   getTeamMember,
 } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
+import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
@@ -267,7 +268,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const content = body.content as string;
     if (!content || content.length < 50) {
       json(res, 400, { error: 'Content too short (min 50 chars)' });
@@ -335,7 +342,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
     const target = (body.target as string | undefined)?.trim() || 'generic';
     if (!source) {
@@ -391,7 +404,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
     const target = (body.target as string | undefined)?.trim() || 'generic';
     const maxRisk = Math.max(0, Math.min(100, parseInt(String(body.maxRisk ?? 60), 10)));
@@ -435,7 +454,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const domain = (body.domain as string | undefined)?.trim() || 'general';
     const target = (body.target as string | undefined)?.trim() || 'generic';
     const prompt = (body.prompt as string | undefined)?.trim() || `${target} ${domain}`;
@@ -492,7 +517,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
     const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
     const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
@@ -522,7 +553,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
     const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
     const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
@@ -616,7 +653,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const worldId = (body.worldId as string | undefined)?.trim() || 'default-world';
     const sourceCluster = (body.sourceCluster as string | undefined)?.trim() || 'cluster_1';
     const agentCount = Math.max(1, parseInt(String(body.agentCount ?? 1), 10));
@@ -645,7 +688,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const lifePodId = (body.lifePodId as string | undefined)?.trim();
     const targetCluster = (body.targetCluster as string | undefined)?.trim() || 'cluster_2';
     if (!lifePodId) {
@@ -693,7 +742,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const requestedAgentId = (body.agentId as string | undefined)?.trim();
     const impersonated = Boolean(
       requestedAgentId && caller.isFounder && requestedAgentId !== caller.id,
@@ -732,7 +787,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const title = (body.title as string | undefined)?.trim();
     const opening = (body.opening as string | undefined)?.trim();
     if (!title || !opening) {
@@ -796,7 +857,13 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const chapterText = (body.chapterText as string | undefined)?.trim();
     const label = (body.label as string | undefined)?.trim() || 'Branch';
     const parentChapterId = (body.parentChapterId as string | undefined)?.trim();
@@ -852,7 +919,13 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const paid = Boolean(body.paid === true || body.x402Proof || body.paymentReference);
     if (!paid) {
       json(res, 402, {
@@ -912,7 +985,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const sourceFormat = (body.sourceFormat as string | undefined)?.trim() || 'json';
     const source = body.source;
     if (source === undefined || source === null) {
@@ -999,7 +1078,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const teamId = (body.teamId as string | undefined)?.trim();
     const entryId = (body.entryId as string | undefined)?.trim();
     const price = Number(body.price);
@@ -1063,7 +1148,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const teamId = (body.teamId as string | undefined)?.trim();
     const listingId = (body.listingId as string | undefined)?.trim();
     if (!teamId || !listingId) {
@@ -1283,7 +1374,13 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const content = (body.content as string)?.trim();
     if (!content) {
       json(res, 400, { error: 'Missing comment content' });
@@ -1315,7 +1412,13 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/plan', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const observations = Array.isArray(body.observations)
       ? (body.observations as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
       : [];
@@ -1347,7 +1450,13 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/redeploy', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const session = selfImprovingWorldStore.get(worldId);
     if (!session) {
       json(res, 404, { error: 'No self-improvement plan found for world' });
@@ -1397,7 +1506,13 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const entryId = (body.entry_id as string | undefined)?.trim();
     if (!entryId) {
       json(res, 400, { error: 'Missing required field: entry_id' });

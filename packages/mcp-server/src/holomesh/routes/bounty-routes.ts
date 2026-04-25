@@ -17,6 +17,7 @@ import {
 } from '../utils';
 import { requireAuth } from '../auth-utils';
 import { broadcastToRoom, handleTeamRoomConnection } from '../team-room';
+import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { 
   BountyManager, 
   generateTaskId,
@@ -70,7 +71,13 @@ export async function handleBountyRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const teamId = (body.teamId as string | undefined)?.trim();
     const targets = Array.isArray(body.targets)
       ? (body.targets as string[]).map((t) => String(t).toLowerCase())
@@ -162,7 +169,13 @@ export async function handleBountyRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const teamId = (body.teamId as string | undefined)?.trim();
     if (!teamId) {
       json(res, 400, { error: 'Missing teamId' });
@@ -279,7 +292,13 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/submit', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const solution = (body.solution as string)?.trim();
     const proof = (body.proof as string | undefined)?.trim();
     if (!solution) {
@@ -349,7 +368,13 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/payout', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const submissionId = (body.submissionId as string | undefined)?.trim();
 
     let team: Team | undefined;
@@ -441,7 +466,13 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/propose', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
 
     let team: Team | undefined;
     let bounty: Bounty | undefined;
@@ -551,7 +582,13 @@ export async function handleBountyRoutes(
       return true;
     }
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const value = body.value === 'reject' ? 'reject' : 'approve';
     const weightRaw = Number(body.tokenWeight ?? body.tokenBalance ?? 1);
     const weight = Number.isFinite(weightRaw) && weightRaw > 0 ? weightRaw : 1;
@@ -645,7 +682,13 @@ export async function handleBountyRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const teamId = body.teamId as string;
     const bountyIds = Array.isArray(body.bountyIds) ? body.bountyIds : [];
     if (!teamId || bountyIds.length < 2) {
@@ -716,7 +759,13 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const gameId = extractParam(url, '/api/holomesh/bounties/minigames/').replace('/state', '');
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
 
     let game: StoredBountyMiniGame | undefined;
     let teamId: string | undefined;

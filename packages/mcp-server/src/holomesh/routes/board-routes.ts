@@ -19,6 +19,7 @@ import {
 } from '../utils';
 import { requireAuth } from '../auth-utils';
 import { broadcastToTeam } from '../team-room';
+import { extractAndVerifySigning } from '../identity/signing-middleware';
 import {
   ROOM_PRESETS,
   claimTask,
@@ -157,7 +158,13 @@ export async function handleBoardRoutes(
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const tasksBody = body.tasks || body;
     if (!tasksBody || !Array.isArray(tasksBody) || tasksBody.length === 0) {
       json(res, 400, { error: 'Expected an array of tasks' });
@@ -213,7 +220,13 @@ export async function handleBoardRoutes(
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const todoContent = body.todo_content as string;
 
     if (!team.taskBoard) team.taskBoard = [];
@@ -301,7 +314,13 @@ export async function handleBoardRoutes(
 
     const parts = pathname.split('/');
     const taskId = parts[parts.length - 1];
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const rawAction = body.action as string;
     // Alias normalization: `remove` and `archive` map to `delete` so the
     // known-404 responses from `delete|remove|archive` in W.073 all resolve.
@@ -442,7 +461,13 @@ export async function handleBoardRoutes(
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     let presenceMap = teamPresenceStore.get(teamId);
     if (!presenceMap) {
       presenceMap = new Map();
@@ -559,7 +584,13 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { caller, teamId } = access;
 
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const content = body.content as string;
     if (!content) {
       json(res, 400, { error: 'Missing content' });
@@ -623,7 +654,13 @@ export async function handleBoardRoutes(
     const access = requireTeamAccess(req, res, url, 'messages:write');
     if (!access) return true;
     const { teamId, caller } = access;
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
     const kind = body.kind as string;
     if (kind !== 'hologram') {
       json(res, 400, { error: 'Only kind "hologram" is supported' });
