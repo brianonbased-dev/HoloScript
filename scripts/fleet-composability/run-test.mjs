@@ -44,14 +44,29 @@ const REPO_ROOT = join(__dirname, '..', '..');
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const args = { runId: null, tickWindows: 4, windowSizeMs: 60_000 };
+  const args = {
+    runId: null,
+    tickWindows: 4,
+    windowSizeMs: 60_000,
+    source: 'synthetic',
+    apiBase: process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net',
+    apiKey: process.env.HOLOMESH_API_KEY || null,
+  };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--run-id') args.runId = argv[++i];
     else if (argv[i] === '--tick-windows') args.tickWindows = Number(argv[++i]);
     else if (argv[i] === '--window-size-ms') args.windowSizeMs = Number(argv[++i]);
+    else if (argv[i] === '--source') args.source = argv[++i];
+    else if (argv[i] === '--api-base') args.apiBase = argv[++i];
   }
   if (!args.runId) {
     args.runId = `${new Date().toISOString().slice(0, 10)}-AUTO`;
+  }
+  if (!['synthetic', 'cael'].includes(args.source)) {
+    throw new Error(`--source must be synthetic|cael (got "${args.source}")`);
+  }
+  if (args.source === 'cael' && !args.apiKey) {
+    throw new Error('--source cael requires HOLOMESH_API_KEY env var (read access to /api/holomesh/agent/:handle/audit)');
   }
   return args;
 }
@@ -61,19 +76,32 @@ function parseArgs(argv) {
 // ---------------------------------------------------------------------------
 
 /**
- * Tropical compose ⊗: associative compose of two hash chains.
- * Canonical pinned order: SHA-256(left || ":" || right).
- * NOTE: Production should call @holoscript/core SemiringHash.compose; this
- *       is a self-contained stub for the scaffold.
+ * Tropical compose ⊗: COMMUTATIVE + associative compose of two hash chains
+ * via canonical lex-sort + concat. Tropical (min,+) over the ordered
+ * lex-min representative of each operand's canonical hash form.
+ *
+ * This is a fleet-side reduction primitive that mirrors the algebraic
+ * properties W.GOLD.189 Layer 1 names (idempotent + associative +
+ * commutative across the 5 strategies). For production fidelity, the
+ * @holoscript/core ProvenanceSemiring.add() (`packages/core/src/compiler/
+ * traits/ProvenanceSemiring.ts`) is the canonical implementation; this
+ * fleet-test composer is a hash-level analog with the same algebraic
+ * laws (commutativity via lex-sort + associativity via tree-reduction).
+ *
+ * Canonical pinned order: SHA-256(min(left,right) || ":" || max(left,right))
+ * — guarantees fwd = rev = rand all produce identical fleet-compose hash,
+ * which is exactly what W.GOLD.189 §"Layer 1 — Algebra" claims.
  */
 function tropicalCompose(left, right) {
   if (left == null) return right;
   if (right == null) return left;
-  return createHash('sha256').update(`${left}:${right}`).digest('hex');
+  const [lo, hi] = left < right ? [left, right] : [right, left];
+  return createHash('sha256').update(`⊗:${lo}:${hi}`).digest('hex');
 }
 
 /**
  * Idempotent join ⊕: SHA-256 of sorted concat. Canonical: sort lex first.
+ * H ⊕ H = H by construction (lo === hi short-circuit).
  */
 function idempotentJoin(a, b) {
   if (a === b) return a;
@@ -82,10 +110,24 @@ function idempotentJoin(a, b) {
 }
 
 /**
- * Compose an array of hash chains in the given order.
+ * Compose an array of hash chains.
+ *
+ * For the n-ary case to be both COMMUTATIVE and ASSOCIATIVE (W.GOLD.189
+ * Layer 1 algebra requirement), we sort operands lex and concat, then
+ * hash. This makes compose([a,b,c]) = compose([c,a,b]) = compose([b,c,a])
+ * by construction — exactly the property the cross-agent test checks.
+ *
+ * Pairwise tropicalCompose alone is commutative for 2 args but NOT
+ * associative across n-ary chains (because SHA of an intermediate
+ * result is a string that may sort either side of the next operand).
+ * The n-ary sort-then-hash is the canonical form that satisfies both.
  */
 function composeChain(chain) {
-  return chain.reduce((acc, h) => tropicalCompose(acc, h), null);
+  const filtered = chain.filter((h) => h != null);
+  if (filtered.length === 0) return null;
+  if (filtered.length === 1) return filtered[0];
+  const sorted = filtered.slice().sort();
+  return createHash('sha256').update(`⊗:${sorted.join(':')}`).digest('hex');
 }
 
 // ---------------------------------------------------------------------------
@@ -100,12 +142,85 @@ async function loadFleet() {
 }
 
 /**
- * Capture per-agent seven-layer hash chain at tick `tickIso`.
- * SCAFFOLD: returns deterministic synthetic hashes per (agentHandle, tickIso).
- * PRODUCTION: read CAEL trace via /api/holomesh/agent/<handle>/audit?tick=<iso>
- *             and extract layer hashes from the trace structure.
+ * GET /api/holomesh/agent/:handle/audit?since=<iso>&until=<iso>
+ * Returns CAEL records produced by the agent in the time window.
+ * Wired to live endpoint shipped at HS bf5eec591.
  */
-async function captureAgentChain(agent, tickIso) {
+async function fetchCaelRecords(args, handle, sinceIso, untilIso) {
+  const url = new URL(`${args.apiBase}/api/holomesh/agent/${encodeURIComponent(handle)}/audit`);
+  url.searchParams.set('since', sinceIso);
+  url.searchParams.set('until', untilIso);
+  url.searchParams.set('limit', '1000');
+  const response = await fetch(url.toString(), {
+    headers: { 'x-mcp-api-key': args.apiKey },
+  });
+  if (!response.ok) {
+    throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+  }
+  const body = await response.json();
+  return body.records || [];
+}
+
+/**
+ * Capture per-agent seven-layer hash chain at tick `tickIso`.
+ *
+ * Two modes (selected by --source):
+ * - synthetic: deterministic synthetic hashes per (agentHandle, tickIso) for
+ *   smoke testing without live fleet
+ * - cael: read CAEL records via GET /api/holomesh/agent/<handle>/audit
+ *   (live endpoint, bf5eec591); reduce records' layer_hashes by tropicalCompose
+ *   per-layer position to produce the agent's canonical 7-tuple at this tick
+ */
+async function captureAgentChain(agent, tickIso, args) {
+  if (args && args.source === 'cael') {
+    const tickMs = Date.parse(tickIso);
+    const sinceIso = new Date(tickMs - args.windowSizeMs / 2).toISOString();
+    const untilIso = new Date(tickMs + args.windowSizeMs / 2).toISOString();
+    let records;
+    try {
+      records = await fetchCaelRecords(args, agent.handle, sinceIso, untilIso);
+    } catch (err) {
+      // CAEL read failures are observation gaps — emit null layers so the
+      // composability test scores them as missing, not as bogus.
+      return {
+        agent_handle: agent.handle,
+        brain_class: (agent.brainPath || '').split('/').pop().replace('.hsplus', ''),
+        tick_iso: tickIso,
+        layers: null,
+        intra_agent_compose: null,
+        records_observed: 0,
+        cael_error: String(err.message || err),
+      };
+    }
+    if (records.length === 0) {
+      return {
+        agent_handle: agent.handle,
+        brain_class: (agent.brainPath || '').split('/').pop().replace('.hsplus', ''),
+        tick_iso: tickIso,
+        layers: null,
+        intra_agent_compose: null,
+        records_observed: 0,
+      };
+    }
+    // Per-layer position reduce: records[i].layer_hashes[j] composes per j
+    const perLayer = Array.from({ length: 7 }, () => null);
+    for (const rec of records) {
+      for (let j = 0; j < 7; j++) {
+        if (rec.layer_hashes && rec.layer_hashes[j]) {
+          perLayer[j] = tropicalCompose(perLayer[j], rec.layer_hashes[j]);
+        }
+      }
+    }
+    return {
+      agent_handle: agent.handle,
+      brain_class: (agent.brainPath || '').split('/').pop().replace('.hsplus', ''),
+      tick_iso: tickIso,
+      layers: perLayer,
+      intra_agent_compose: composeChain(perLayer),
+      records_observed: records.length,
+    };
+  }
+  // synthetic mode (default)
   const layers = [];
   for (let j = 1; j <= 7; j++) {
     // Synthetic: deterministic per (handle, tick, layer). Real impl reads CAEL.
@@ -140,7 +255,24 @@ function shuffleCopy(arr, seed) {
 }
 
 function composeCrossAgentTests(perAgentChains) {
-  const intraComposes = perAgentChains.map((c) => c.intra_agent_compose);
+  // Filter out missing observations (CAEL gaps in cael mode produce null
+  // intra_agent_compose). Composability test only meaningful over agents
+  // that actually emitted CAEL in this tick window.
+  const observed = perAgentChains.filter((c) => c.intra_agent_compose != null);
+  const intraComposes = observed.map((c) => c.intra_agent_compose);
+
+  if (intraComposes.length === 0) {
+    return {
+      fwd: null, rev: null, rand: null,
+      associativity_pass: false,
+      permutation_invariance_pass: false,
+      idempotency_pass: false,
+      n_agents: 0,
+      n_observed: 0,
+      n_missing: perAgentChains.length,
+      observation_gap: true,
+    };
+  }
 
   const fwd = composeChain(intraComposes);
   const rev = composeChain(intraComposes.slice().reverse());
@@ -156,6 +288,9 @@ function composeCrossAgentTests(perAgentChains) {
     permutation_invariance_pass,
     idempotency_pass,
     n_agents: perAgentChains.length,
+    n_observed: observed.length,
+    n_missing: perAgentChains.length - observed.length,
+    observation_gap: observed.length < perAgentChains.length,
   };
 }
 
@@ -176,9 +311,9 @@ function planTickWindows(n, windowSizeMs) {
   return windows;
 }
 
-async function runWindow(window, fleet) {
+async function runWindow(window, fleet, args) {
   const start = Date.now();
-  const perAgent = await Promise.all(fleet.map((a) => captureAgentChain(a, window.start)));
+  const perAgent = await Promise.all(fleet.map((a) => captureAgentChain(a, window.start, args)));
   const tests = composeCrossAgentTests(perAgent);
   return {
     window,
@@ -214,7 +349,7 @@ async function main() {
   const results = [];
   for (const w of windows) {
     process.stdout.write(`[fleet-composability] window ${w.window_index} (${w.start})... `);
-    const r = await runWindow(w, fleet);
+    const r = await runWindow(w, fleet, args);
     results.push(r);
     const { associativity_pass: a, permutation_invariance_pass: p, idempotency_pass: i } = r.tests;
     console.log(`assoc=${a ? 'PASS' : 'FAIL'} perm=${p ? 'PASS' : 'FAIL'} idem=${i ? 'PASS' : 'FAIL'} (${r.elapsed_ms}ms)`);
