@@ -21,6 +21,8 @@
 #
 # OPTIONAL ENV:
 #   HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL  if PROVIDER=local-llm; default http://localhost:8080
+#                                        (bare host:port — adapter appends /v1/chat/completions;
+#                                        trailing /v1 is stripped defensively, so either form works)
 #   START_LOCAL_LLM_SERVER               "1" to spawn vLLM server alongside agent (GPU instance only)
 #   LOCAL_LLM_MODEL                      HF model id for vLLM (e.g. Qwen/Qwen2.5-0.5B-Instruct)
 
@@ -302,7 +304,13 @@ for tier in table['tiers']:
     $EXTRA_ARGS \
     > "$LOG_DIR/vllm.log" 2>&1 &
   echo $! > "$LOG_DIR/vllm.pid"
-  export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT/v1"
+  # Adapter (@holoscript/llm-provider local-llm) appends `/v1/chat/completions`
+  # to base_url. Export the bare host:port — adding `/v1` here causes URL
+  # doubling (`/v1/v1/chat/completions` -> 404). Observed 2026-04-25 across
+  # mw02 H100 NVL + mw03 A100 (vllm.log: `POST /v1/v1/chat/completions 404`).
+  # Defense-in-depth: adapter constructor also strips trailing `/v1` (see
+  # packages/llm-provider/src/adapters/local-llm.ts) so either form works.
+  export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT"
   # Big-model grace: 0.5B = ~1GB download, 7B = ~5GB, 72B-AWQ = ~36GB.
   # Vast HF download speed is typically 100-500 MB/s, so 72B can take 5-15 min
   # cold. 60 polls × 15s = 900s = 15min ceiling.

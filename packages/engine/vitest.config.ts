@@ -31,8 +31,13 @@ const QUARANTINED_TESTS: string[] = [
   // (CSVImporter p.x/p.y/p.z bug fixed; DataImport.test.ts now runs clean — 14/14 pass.)
   'src/simulation/__tests__/StressRecovery.test.ts', // long-running (>15s), fails under coverage
 
-  // Spatial — OctreeLODSystem has 30/52 failing: shared setup regression.
-  'src/spatial/__tests__/OctreeLODSystem.prod.test.ts',
+  // ── UN-QUARANTINED 2026-04-25 (task_1776878960824_1571) ──────────────────
+  // OctreeLODSystem.prod.test.ts — was 30/52 failing with "Cannot read
+  // properties of undefined (reading '0')" in insertIntoNode at line 329.
+  // Root cause: commit 3e473d117 (2026-04-14) refactored GaussianAnchor
+  // from flat {x,y,z} props to {position: Vector3}, but the test's
+  // makeAnchor() helper kept the old shape. Single-line fix in the
+  // helper unlocked all 30 tests. 52/52 now pass.
 
   // NOTE: 2026-04-23 triage — `traitTestHelpers.ts` EXISTS and exports
   // createMockNode/createMockContext/attachTrait/updateTrait/sendEvent.

@@ -114,6 +114,32 @@ describe('LocalLLMAdapter — complete()', () => {
     expect(url).toBe('http://localhost:8080/v1/chat/completions');
   });
 
+  it('strips trailing /v1 from baseURL to prevent URL doubling', async () => {
+    // Regression: 2026-04-25, mw02 H100 NVL + mw03 A100. Bootstrap script
+    // exported BASE_URL=http://host:8081/v1 and the adapter appended
+    // /v1/chat/completions, producing /v1/v1/chat/completions -> 404.
+    // See task_1777144260378_51y2 + scripts/mesh-deploy/bootstrap-agent.sh.
+    const adapterV1 = new LocalLLMAdapter({ baseURL: 'http://localhost:8081/v1' });
+    fetchMock = mockFetch(makeOkResponse('cube {}'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await adapterV1.complete({ messages: [{ role: 'user', content: 'cube' }] });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe('http://localhost:8081/v1/chat/completions');
+  });
+
+  it('strips trailing /v1/ (slash + /v1) from baseURL', async () => {
+    const adapterV1Slash = new LocalLLMAdapter({ baseURL: 'http://localhost:8081/v1/' });
+    fetchMock = mockFetch(makeOkResponse('plane {}'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await adapterV1Slash.complete({ messages: [{ role: 'user', content: 'plane' }] });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe('http://localhost:8081/v1/chat/completions');
+  });
+
   it('forwards maxTokens and temperature', async () => {
     fetchMock = mockFetch(makeOkResponse('cube {}'));
     vi.stubGlobal('fetch', fetchMock);

@@ -76,7 +76,15 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     // BaseLLMAdapter requires apiKey — pass empty string for local servers
     super({ ...config, apiKey: config.apiKey ?? '', timeoutMs: config.timeoutMs ?? 120000 });
 
-    this.localBaseURL = (config.baseURL ?? 'http://localhost:8080').replace(/\/$/, '');
+    // Strip trailing slash + trailing /v1 to avoid URL doubling. The adapter
+    // builds `${baseURL}/v1/chat/completions` (line below); if a caller passes
+    // `http://host:8081/v1` (a common mistake — vLLM's own endpoint advertises
+    // /v1/models, so operators pattern-match), the result becomes
+    // /v1/v1/chat/completions and 404s. Observed 2026-04-25 on the local-llm
+    // fleet tier (16 workers, mw02 H100 NVL + mw03 A100). Both forms now work.
+    this.localBaseURL = (config.baseURL ?? 'http://localhost:8080')
+      .replace(/\/$/, '')
+      .replace(/\/v1$/, '');
     this.defaultHoloScriptModel = config.model ?? 'mistral-7b-instruct';
   }
 

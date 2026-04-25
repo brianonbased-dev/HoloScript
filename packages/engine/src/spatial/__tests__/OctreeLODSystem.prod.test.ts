@@ -32,7 +32,11 @@ function makeAnchor(
   gaussianCount = 1000,
   scale = 1.0
 ): GaussianAnchor {
-  return { id, x, y, z, scale, lodLevel, gaussianCount };
+  // GaussianAnchor uses position: Vector3 (tuple) since 3e473d117
+  // (refactor 2026-04-14). Test helper kept the old flat-prop API,
+  // which produced "Cannot read properties of undefined (reading '0')"
+  // in OctreeLODSystem.insertIntoNode. See task_1776878960824_1571.
+  return { id, position: [x, y, z], scale, lodLevel, gaussianCount };
 }
 
 function makeVRConfig(): Partial<OctreeLODConfig> {
