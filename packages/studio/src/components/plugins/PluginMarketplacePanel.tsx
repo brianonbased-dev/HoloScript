@@ -13,6 +13,7 @@ import { Puzzle, X, Search, Star, Download, CheckCircle2, RefreshCw, Shield } fr
 import { usePluginHost } from '@/hooks/usePluginHost';
 import type { HoloPlugin } from '@/app/api/plugins/route';
 import { logger } from '@/lib/logger';
+import type { SandboxPermission } from '@holoscript/core';
 
 interface PluginMarketplacePanelProps {
   onClose: () => void;
@@ -39,14 +40,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 /**
  * Maps marketplace plugin categories to default sandbox permissions.
  * Plugins from the marketplace get a conservative permission set based on their category.
+ *
+ * Sandbox-level permissions only — `SandboxPermission` from
+ * `@holoscript/core` (PluginSandboxRunner.ts:28) is the canonical union.
+ * UI-rendering capabilities (`ui:panel` / `ui:theme`) live in a separate
+ * `PluginCapability` union (PluginSandbox.ts:38) and are negotiated by
+ * the plugin host's panel registry, not the sandbox runner — they don't
+ * belong in the manifest.permissions field consumed here.
  */
-const CATEGORY_PERMISSIONS: Record<string, string[]> = {
-  rendering: ['scene:read', 'ui:panel', 'ui:theme'],
-  physics: ['scene:read', 'scene:write', 'ui:panel'],
-  audio: ['scene:read', 'ui:panel'],
-  ai: ['scene:read', 'scene:write', 'ui:panel', 'network:fetch'],
-  tools: ['scene:read', 'ui:panel', 'storage:local'],
-  export: ['scene:read', 'ui:panel', 'fs:export'],
+const CATEGORY_PERMISSIONS: Record<string, SandboxPermission[]> = {
+  rendering: ['scene:read'],
+  physics: ['scene:read', 'scene:write'],
+  audio: ['scene:read'],
+  ai: ['scene:read', 'scene:write', 'network:fetch'],
+  tools: ['scene:read', 'storage:local'],
+  export: ['scene:read', 'filesystem:write'],
 };
 
 export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps) {
@@ -105,7 +113,7 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
           // For now, we use a convention-based path that the Studio dev server can serve.
           pluginUrl: `/plugins/${plugin.id}/index.js`,
           manifest: {
-            permissions: permissions as string[],
+            permissions,
             trustLevel: 'sandboxed',
             memoryBudget: 64,
           },

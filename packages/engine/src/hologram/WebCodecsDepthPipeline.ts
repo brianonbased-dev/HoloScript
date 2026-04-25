@@ -102,8 +102,9 @@ export async function videoFrameToImageDataViaWebGPU(
   });
 
   queue.copyExternalImageToTexture(
-    // VideoFrame is valid per WebGPU spec; lib.dom may lag the union type.
-    { source: frame as unknown as CanvasImageSource },
+    // VideoFrame is valid per WebGPU spec; lib.dom's GPUCopyExternalImageSource
+    // union may not yet include VideoFrame, so cast through unknown.
+    { source: frame as unknown as GPUCopyExternalImageSource },
     { texture },
     { width, height, depthOrArrayLayers: 1 }
   );

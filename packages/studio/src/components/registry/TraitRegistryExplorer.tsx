@@ -13,7 +13,7 @@ export const TraitRegistryExplorer: React.FC = () => {
 
   useEffect(() => {
     // In a real implementation this would fetch from the API or import the JSON
-    import('@holoscript/core/src/traits/trait-registry.json')
+    import('@holoscript/core/traits/trait-registry.json')
       .then((registry: Record<string, TraitDefinition>) => {
         const traitsList = Object.values(registry) as TraitDefinition[];
         setTraits(traitsList);

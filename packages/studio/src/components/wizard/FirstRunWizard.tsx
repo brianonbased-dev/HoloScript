@@ -170,7 +170,7 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
       <div className="mx-auto max-w-2xl px-6 py-8">
         {/* Step 1: GitHub OAuth */}
         {step === 'github' && (
-          <AnimatedStep>
+          <AnimatedStep visible direction="right">
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-studio-text">Connect GitHub</h2>
@@ -178,14 +178,17 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
                   Authenticate with GitHub to enable deployment and version control
                 </p>
               </div>
-              <GitHubOAuthModal onSuccess={handleGitHubSuccess} />
+              <GitHubOAuthModal
+                onSuccess={handleGitHubSuccess}
+                onClose={() => setStep('composition')}
+              />
             </div>
           </AnimatedStep>
         )}
 
         {/* Step 2: Composition Selection */}
         {step === 'composition' && (
-          <AnimatedStep>
+          <AnimatedStep visible direction="right">
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-studio-text">Choose a Starter</h2>
@@ -250,7 +253,7 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
         {/* Step 3: Deploy to Railway */}
         {step === 'deploy' && (
-          <AnimatedStep>
+          <AnimatedStep visible direction="right">
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-studio-text">Deploy to Railway</h2>
@@ -306,7 +309,7 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
         {/* Step 4: Success */}
         {step === 'success' && (
-          <AnimatedStep>
+          <AnimatedStep visible direction="right">
             <div className="space-y-6">
               <div className="text-center">
                 <div className="mx-auto mb-4 inline-block rounded-full bg-green-500/10 p-3">

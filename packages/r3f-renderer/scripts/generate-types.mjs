@@ -224,7 +224,7 @@ export interface SimulationContextValue {
 }
 export declare function SimulationProvider(props: SimulationProviderProps): any;
 
-export type ColormapName = 'viridis' | 'inferno' | 'magma' | 'plasma' | 'warm' | 'cool' | 'rainbow' | 'jet';
+export type ColormapName = 'jet' | 'viridis' | 'turbo' | 'inferno' | 'coolwarm';
 
 export interface ScalarFieldOverlayProps {
   nodeId: string;

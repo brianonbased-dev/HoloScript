@@ -2677,6 +2677,114 @@ describe('HoloMesh HTTP Routes', () => {
       expect(fetched.tags).toEqual(inputTags);
     });
 
+    // task_1776981805111_4fg3 [BOARD-BUG] — closed by exposing addTasksToBoard's
+    // existing `dedupMode: 'exact'` opt-in via `?dedup=exact` query OR `body.dedup`.
+    // The legacy 'normalized' mode collapses titles to their first 60 chars and
+    // silently drops downstream entries that share a long prefix (e.g. four
+    // "[AUTONOMIZE] N: Execute Research Cycle K - <variant>" tasks were
+    // collapsing to one). This batch of three tests asserts the new contract:
+    // (1) default mode preserves legacy behaviour, (2) ?dedup=exact via query
+    // string passes through, (3) body.dedup field works the same.
+    describe('POST /api/holomesh/team/:id/board ?dedup=exact (task_1776981805111_4fg3)', () => {
+      const PREFIX_60 = 'A'.repeat(60); // shared 60-char prefix to force collision
+      const dedupCollisionBatch = [
+        { title: `${PREFIX_60} - first variant`, priority: 1 },
+        { title: `${PREFIX_60} - second variant`, priority: 1 },
+        { title: `${PREFIX_60} - third variant`, priority: 1 },
+      ];
+
+      async function freshTeam(name: string): Promise<string> {
+        const createReq = mockReq(
+          'POST',
+          '/api/holomesh/team',
+          { name: `${name}-${Date.now()}` },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const createRes = mockRes();
+        await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+        return createRes._body.team.id;
+      }
+
+      it('default normalized mode skips prefix-collision titles (legacy guard)', async () => {
+        const tid = await freshTeam('dedup-default');
+        const req = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board`,
+          { tasks: dedupCollisionBatch },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board`);
+
+        expect(res._status).toBe(201);
+        // Only the first survives; #2 and #3 collapse to the same 60-char prefix
+        expect(res._body.added).toBe(1);
+        expect(res._body.skipped.length).toBe(2);
+        expect(res._body.skipped.every((s: { reason: string }) => s.reason === 'duplicate')).toBe(true);
+        expect(res._body.dedupMode).toBe('normalized');
+      });
+
+      it('?dedup=exact query param lets all three prefix-sharing titles land', async () => {
+        const tid = await freshTeam('dedup-query');
+        const req = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board?dedup=exact`,
+          { tasks: dedupCollisionBatch },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        // 3rd arg is the routing URL — must include the query string so the
+        // route handler sees `?dedup=exact` (handleHoloMeshRoute treats this
+        // as the source of truth, not req.url).
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board?dedup=exact`);
+
+        expect(res._status).toBe(201);
+        expect(res._body.added).toBe(3);
+        expect(res._body.skipped).toEqual([]);
+        expect(res._body.dedupMode).toBe('exact');
+      });
+
+      it('body.dedup="exact" field works the same as the query param', async () => {
+        const tid = await freshTeam('dedup-body');
+        const req = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board`,
+          { tasks: dedupCollisionBatch, dedup: 'exact' },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board`);
+
+        expect(res._status).toBe(201);
+        expect(res._body.added).toBe(3);
+        expect(res._body.skipped).toEqual([]);
+        expect(res._body.dedupMode).toBe('exact');
+      });
+
+      it('exact mode still rejects identical-after-trim duplicates', async () => {
+        const tid = await freshTeam('dedup-exact-true-dup');
+        const req = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board?dedup=exact`,
+          {
+            tasks: [
+              { title: 'identical title', priority: 1 },
+              { title: '  identical title  ', priority: 1 }, // whitespace-trimmed match
+              { title: 'IDENTICAL TITLE', priority: 1 },     // case-insensitive match
+            ],
+          },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board?dedup=exact`);
+
+        expect(res._status).toBe(201);
+        expect(res._body.added).toBe(1);
+        expect(res._body.skipped.length).toBe(2);
+        expect(res._body.dedupMode).toBe('exact');
+      });
+    });
+
     it('POST /api/holomesh/team/:id/board/scout uses /room scout in empty-board auto-hint task', async () => {
       const createReq = mockReq(
         'POST',

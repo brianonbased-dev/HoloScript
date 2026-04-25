@@ -212,7 +212,7 @@ export function RightPanelSidebar({
   defaultOpen = false,
 }: RightPanelSidebarProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [activeTab, setActiveTab] = useState<PanelTab>(defaultTab);
+  const [activeTab, setActiveTab] = useState<PanelTab | null>(defaultTab);
   const {
     domain,
     domains,

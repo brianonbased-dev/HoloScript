@@ -1679,7 +1679,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
           if (hit) {
             const h = hit as IRaycastHit;
+            // RaycastHit contract requires `bodyId: string`; we also surface
+            // the synthesized node object as a convenience field — the
+            // interface's `[key: string]: any` index allows extras.
             return {
+              bodyId: h.bodyId,
               node: { id: h.bodyId } as HSPlusNode,
               point: [h.point[0], h.point[1], h.point[2]],
               normal: [h.normal[0], h.normal[1], h.normal[2]],

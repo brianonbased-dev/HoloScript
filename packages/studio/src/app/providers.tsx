@@ -24,7 +24,7 @@ const DevToolsInit = dynamic(
 import { PluginHostProvider } from '../hooks/usePluginHost';
 import { WebVitals } from '../components/WebVitals';
 import { StudioCAELMount } from '../components/instrumentation/StudioCAELMount';
-// AppShell and AgentationWired removed temporarily for scan-room demo
+import { AgentationWired } from '../components/AgentationWired';
 
 // Old StudioSetupWizard removed — onboarding now handled by /start (Brittney-first)
 

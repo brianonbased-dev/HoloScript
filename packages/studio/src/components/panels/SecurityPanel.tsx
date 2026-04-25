@@ -100,7 +100,7 @@ export function SecurityPanel() {
               </span>
             </div>
             <div className="font-mono text-studio-text truncate">
-              {r.success ? String(r.result ?? r.output ?? '') : String(r.error ?? '')}
+              {r.success ? String(r.result ?? '') : String(r.error ?? '')}
             </div>
           </div>
         ))}

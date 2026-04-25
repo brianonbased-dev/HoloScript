@@ -174,10 +174,22 @@ export async function handleBoardRoutes(
     if (!team.taskBoard) team.taskBoard = [];
     if (!team.doneLog) team.doneLog = [];
 
+    // Dedup mode: caller can opt into exact-string title matching to escape the
+    // legacy 60-char prefix collapse that silently drops semantically distinct
+    // tasks (e.g. "Execute Research Cycle 9 - Affective Causality" vs cycle 12).
+    // Accept from `?dedup=exact` query OR `body.dedup` field. Defaults to
+    // 'normalized' (legacy). Closes task_1776981805111_4fg3 [BOARD-BUG].
+    const dedupParam = (
+      new URL(url, 'http://localhost').searchParams.get('dedup') ??
+      body.dedup ??
+      ''
+    ).toString().toLowerCase();
+    const dedupMode: 'exact' | 'normalized' = dedupParam === 'exact' ? 'exact' : 'normalized';
+
     // Add tasks (framework signature: board, doneLog, tasks)
     // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
     // but only .title is used for dedup, which both have
-    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody);
+    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody, { dedupMode });
     const normalizationWarnings = Array.isArray((result as any).warnings)
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
@@ -203,12 +215,14 @@ export async function handleBoardRoutes(
     }
 
     // `skipped` explains rows that did not become tasks (e.g. duplicate title vs open/done).
+    // `dedupMode` echoed so callers know which mode was applied (helps debug silent Added:0).
     json(res, 201, {
       success: true,
       added: result.added.length,
       tasks: result.added,
       skipped: result.skipped,
       warnings: normalizationWarnings,
+      dedupMode,
     });
     return true;
   }
