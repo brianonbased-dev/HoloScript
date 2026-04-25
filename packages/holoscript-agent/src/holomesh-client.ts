@@ -33,20 +33,28 @@ export class HolomeshClient {
   }
 
   async claim(taskId: string): Promise<BoardTask> {
-    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}/claim`, {});
+    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, { action: 'claim' });
+  }
+
+  async joinTeam(): Promise<{ success: boolean; role?: string; members?: number }> {
+    return this.req<{ success: boolean; role?: string; members?: number }>(
+      'POST',
+      `/team/${this.teamId}/join`,
+      {}
+    );
   }
 
   async sendMessageOnTask(taskId: string, body: string): Promise<void> {
     await this.req('POST', `/team/${this.teamId}/message`, {
       to: 'team',
       subject: `task:${taskId}`,
-      body,
+      content: body,
     });
   }
 
   async markDone(taskId: string, summary: string, commitHash?: string): Promise<void> {
     await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
-      status: 'done',
+      action: 'done',
       summary,
       commitHash,
     });

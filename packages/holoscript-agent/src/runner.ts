@@ -88,15 +88,6 @@ export class AgentRunner {
       durationMs,
     };
 
-    if (this.opts.onTaskExecuted) {
-      await this.opts.onTaskExecuted(execResult, target);
-    } else {
-      await mesh.sendMessageOnTask(
-        target.id,
-        `[${identity.handle}] response (${response.usage.totalTokens} tok, $${cost.costUsd.toFixed(4)}):\n\n${response.content}`
-      );
-    }
-
     if (this.opts.auditLog) {
       try {
         this.opts.auditLog.recordTaskExecuted({
@@ -107,6 +98,15 @@ export class AgentRunner {
       } catch (err) {
         log({ ev: 'audit-log-error', message: err instanceof Error ? err.message : String(err) });
       }
+    }
+
+    if (this.opts.onTaskExecuted) {
+      await this.opts.onTaskExecuted(execResult, target);
+    } else {
+      await mesh.sendMessageOnTask(
+        target.id,
+        `[${identity.handle}] response (${response.usage.totalTokens} tok, $${cost.costUsd.toFixed(4)}):\n\n${response.content}`
+      );
     }
 
     return {

@@ -12,6 +12,7 @@ export interface ProvisionRequest {
   founderBearer: string;
   seatsRoot?: string;
   fetchImpl?: typeof fetch;
+  autoJoinTeamId?: string;
 }
 
 export interface ProvisionDryRun {
@@ -34,6 +35,7 @@ export interface ProvisionExecuted {
   bearer?: string;
   agentId?: string;
   envVarLines: string[];
+  joinedTeam?: { teamId: string; role: string; members: number } | { teamId: string; error: string };
 }
 
 export type ProvisionResult = ProvisionDryRun | ProvisionExecuted;
@@ -150,6 +152,28 @@ export async function provisionAgent(
     console.warn('[provision] WARN — server returned private_key despite x402 flow; ignoring (using local key).');
   }
 
+  let joinedTeam: ProvisionExecuted['joinedTeam'];
+  if (req.autoJoinTeamId) {
+    try {
+      const joinRes = await postJson<{ success?: boolean; role?: string; members?: number }>(
+        fetchImpl,
+        `${meshApiBase}/team/${req.autoJoinTeamId}/join`,
+        bearer,
+        {}
+      );
+      joinedTeam = {
+        teamId: req.autoJoinTeamId,
+        role: joinRes.role ?? 'member',
+        members: joinRes.members ?? 0,
+      };
+    } catch (err) {
+      joinedTeam = {
+        teamId: req.autoJoinTeamId,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   return {
     status: 'executed',
     handle: req.handle,
@@ -160,6 +184,7 @@ export async function provisionAgent(
     bearer,
     agentId,
     envVarLines: envVarLinesFor(req.handle, wallet.address, bearer),
+    joinedTeam,
   };
 }
 

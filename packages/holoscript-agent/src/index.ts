@@ -214,6 +214,7 @@ async function cmdProvision(rest: string[]): Promise<void> {
       founderBearer,
       meshApiBase: process.env.HOLOMESH_API_BASE,
       seatsRoot: process.env.HOLOSCRIPT_AGENT_SEATS_ROOT,
+      autoJoinTeamId: rest.includes('--no-join') ? undefined : process.env.HOLOMESH_TEAM_ID,
     },
     { execute, force }
   );
