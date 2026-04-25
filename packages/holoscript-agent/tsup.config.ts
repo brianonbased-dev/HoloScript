@@ -12,6 +12,7 @@ export default defineConfig({
     'src/ablation.ts',
     'src/supervisor.ts',
     'src/supervisor-config.ts',
+    'src/provision.ts',
     'src/types.ts',
   ],
   format: ['esm'],

@@ -21,6 +21,7 @@ import { Supervisor } from './supervisor.js';
 import type { ProviderFactory } from './supervisor.js';
 import { loadSupervisorConfig } from './supervisor-config.js';
 import type { AgentSpec } from './supervisor-config.js';
+import { provisionAgent } from './provision.js';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { AgentIdentity, BoardTask, ExecutionResult } from './types.js';
@@ -47,6 +48,9 @@ async function main(): Promise<void> {
       return;
     case 'status':
       await cmdStatus(args.slice(1));
+      return;
+    case 'provision':
+      await cmdProvision(args.slice(1));
       return;
     case 'help':
     case '--help':
@@ -159,6 +163,33 @@ async function cmdSupervise(rest: string[]): Promise<void> {
     setInterval(() => {
       console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'supervisor-status', ...sup.status() }));
     }, reportEvery);
+  }
+}
+
+async function cmdProvision(rest: string[]): Promise<void> {
+  const handle = rest.find((a) => a.startsWith('--handle='))?.split('=')[1];
+  if (!handle) {
+    throw new Error('Usage: holoscript-agent provision --handle=<name> [--execute] [--force]');
+  }
+  const execute = rest.includes('--execute');
+  const force = rest.includes('--force');
+  const founderBearer = process.env.HOLOMESH_API_KEY;
+  if (!founderBearer) {
+    throw new Error('HOLOMESH_API_KEY env var required for provisioning (founder-tier bearer for /register endpoints)');
+  }
+  const result = await provisionAgent(
+    {
+      handle,
+      founderBearer,
+      meshApiBase: process.env.HOLOMESH_API_BASE,
+      seatsRoot: process.env.HOLOSCRIPT_AGENT_SEATS_ROOT,
+    },
+    { execute, force }
+  );
+  console.log(JSON.stringify({ ts: new Date().toISOString(), ev: 'provision-result', ...result }, null, 2));
+  if (result.status === 'executed' || result.status === 'reused') {
+    console.log('\n# Add these lines to your .env to use this seat:');
+    for (const line of result.envVarLines) console.log(line);
   }
 }
 
@@ -344,6 +375,9 @@ USAGE
                           [--out-json=<path>]       optional: write structured JSON matrix
   holoscript-agent supervise --config=<path>        run N agents from agents.json (multi-agent daemon)
   holoscript-agent status --config=<path>           print parsed config summary (validates schema)
+  holoscript-agent provision --handle=<name>        provision a fresh x402 seat for a brain (dry-run by default)
+                             [--execute]            actually generate wallet + register against production
+                             [--force]              re-register a handle whose seat already exists (dangerous)
   holoscript-agent help                             print this
 
 REQUIRED ENV

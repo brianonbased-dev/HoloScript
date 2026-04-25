@@ -45,6 +45,10 @@
     "./supervisor-config": {
       "types": "./dist/supervisor-config.d.ts",
       "import": "./dist/supervisor-config.js"
+    },
+    "./provision": {
+      "types": "./dist/provision.d.ts",
+      "import": "./dist/provision.js"
     }
   },
   "files": ["dist"],
@@ -65,7 +69,8 @@
   },
   "engines": { "node": ">=18.0.0" },
   "dependencies": {
-    "@holoscript/llm-provider": "workspace:*"
+    "@holoscript/llm-provider": "workspace:*",
+    "ethers": "^6.16.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
