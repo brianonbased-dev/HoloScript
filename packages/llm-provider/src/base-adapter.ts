@@ -86,7 +86,14 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
     this.config = {
       apiKey: config.apiKey,
       baseURL: config.baseURL ?? '',
-      timeoutMs: config.timeoutMs ?? 30000,
+      // 5 min default — long-form generation (e.g. Claude Opus producing
+      // a Lean proof or a multi-page reasoning trace) commonly takes 1-3 min.
+      // Observed 2026-04-25: W01 H200 mesh-worker claimed Lean invariant-4
+      // task, then aborted with "Request timed out" after 30s default — the
+      // model hadn't even started streaming a substantive response. Adapters
+      // (bitnet 60s, local-llm 120s, mock 5s) override this default for their
+      // own latency profiles; 30s was an unreasonably tight base default.
+      timeoutMs: config.timeoutMs ?? 300000,
       maxRetries: config.maxRetries ?? 3,
       defaultModel: config.defaultModel ?? this.getDefaultModel(),
     };
