@@ -226,6 +226,12 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     elif plan["provider"] == "local-llm":
         env_lines.append("START_LOCAL_LLM_SERVER=1")
         env_lines.append(f"LOCAL_LLM_MODEL={plan['model']}")
+        # Wire the agent runtime to the vLLM URL bootstrap-agent.sh starts.
+        # Without this, the daemon defaults to localhost:8080 (which Vast.ai's
+        # Jupyter holds) and silently fails every LLM call. Observed 2026-04-25:
+        # daemon launched outside bootstrap (e.g. by a switch-team restart) had
+        # no LOCAL_LLM_BASE_URL exported and never reached vLLM on 8081.
+        env_lines.append("HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:8081/v1")
 
     env_text = "\n".join(env_lines) + "\n"
     runner_text = (

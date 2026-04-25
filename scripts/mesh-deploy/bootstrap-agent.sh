@@ -171,16 +171,24 @@ if [ "${START_LOCAL_LLM_SERVER:-0}" = "1" ] && [ "$HOLOSCRIPT_AGENT_PROVIDER" = 
     > "$LOG_DIR/vllm.log" 2>&1 &
   echo $! > "$LOG_DIR/vllm.pid"
   export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT/v1"
-  echo "[bootstrap] waiting 30s for vLLM to load model…"
-  sleep 30
-  # Sanity: check vLLM bound the port. If not, exit early so daemon doesn't
-  # boot into a no-LLM hang state (the silent failure we just spent hours on).
-  if ! curl -sf "http://localhost:$LLM_PORT/v1/models" > /dev/null 2>&1; then
-    echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within 30s — see $LOG_DIR/vllm.log" >&2
-    tail -20 "$LOG_DIR/vllm.log" >&2 || true
+  echo "[bootstrap] waiting up to 180s for vLLM to load model (poll every 10s)…"
+  # Cold model download + GPU init for Qwen2.5-0.5B was observed >30s on
+  # mesh-worker-13 (RTX 5070, 2026-04-25) — vLLM eventually bound at ~70s.
+  # Poll 18× rather than fail-fast at 30s. Total wait still bounded.
+  vllm_up=0
+  for attempt in $(seq 1 18); do
+    sleep 10
+    if curl -sf "http://localhost:$LLM_PORT/v1/models" > /dev/null 2>&1; then
+      vllm_up=1
+      echo "[bootstrap] vLLM responding on $LLM_PORT (attempt $attempt = ~${attempt}0s)"
+      break
+    fi
+  done
+  if [ "$vllm_up" = "0" ]; then
+    echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within 180s — see $LOG_DIR/vllm.log" >&2
+    tail -30 "$LOG_DIR/vllm.log" >&2 || true
     exit 6
   fi
-  echo "[bootstrap] vLLM responding on $LLM_PORT"
 fi
 
 # ---------------------------------------------------------------------------
