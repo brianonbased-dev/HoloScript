@@ -68,9 +68,9 @@ export class SceneQuery {
     const results: SceneNode[] = [];
     root.traverse((node) => {
       const wp = node.getWorldPosition();
-      const dx = wp[0] - center[0],
-        dy = wp[1] - center[1],
-        dz = wp[2] - center[2];
+      const dx = wp.x - center[0],
+        dy = wp.y - center[1],
+        dz = wp.z - center[2];
       if (Math.sqrt(dx * dx + dy * dy + dz * dz) <= radius) results.push(node);
     });
     return results;
@@ -90,9 +90,9 @@ export class SceneQuery {
       if (!node.visible) return;
 
       const wp = node.getWorldPosition();
-      const dx = wp[0] - frustum.position[0];
-      const dy = wp[1] - frustum.position[1];
-      const dz = wp[2] - frustum.position[2];
+      const dx = wp.x - frustum.position[0];
+      const dy = wp.y - frustum.position[1];
+      const dz = wp.z - frustum.position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist < frustum.near || dist > frustum.far) return;

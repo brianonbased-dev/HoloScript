@@ -1021,9 +1021,9 @@ export class WebGPURenderer {
         projectionMatrix: view.projectionMatrix,
         // Calculate camera position from inverse view matrix
         cameraPosition: [
-          view.transform.position[0],
-          view.transform.position[1],
-          view.transform.position[2],
+          view.transform.position.x,
+          view.transform.position.y,
+          view.transform.position.z,
         ],
         viewProjectionMatrix: this.multiplyMatrices(
           view.projectionMatrix,
@@ -1198,9 +1198,9 @@ export class WebGPURenderer {
         // Mock VP matrix for now (or compute it if we had a math lib)
         viewProjectionMatrix: view.projectionMatrix,
         cameraPosition: new Float32Array([
-          view.transform.position[0],
-          view.transform.position[1],
-          view.transform.position[2],
+          view.transform.position.x,
+          view.transform.position.y,
+          view.transform.position.z,
         ]),
       } as unknown as ICameraUniforms);
 

@@ -352,7 +352,7 @@ export class FieldSensorBridge implements CAELSensorBridge {
 
       const values = this.sampleField(field, this.points);
       const positions = new Float64Array(
-        this.points.flatMap((p) => [p[0], p[1] ?? 0, p[2] ?? 0])
+        this.points.flatMap((p) => [p.x, p.y ?? 0, p.z ?? 0])
       );
 
       readings.push({ fieldName, simTime, values, positions });
@@ -378,9 +378,9 @@ export class FieldSensorBridge implements CAELSensorBridge {
       const out = new Float32Array(points.length);
       for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const ix = Math.max(0, Math.min(field.nx - 1, Math.round((p[0] ?? 0) * (field.nx - 1))));
-        const iy = Math.max(0, Math.min(field.ny - 1, Math.round((p[1] ?? 0) * (field.ny - 1))));
-        const iz = Math.max(0, Math.min(field.nz - 1, Math.round((p[2] ?? 0) * (field.nz - 1))));
+        const ix = Math.max(0, Math.min(field.nx - 1, Math.round(p.x * (field.nx - 1))));
+        const iy = Math.max(0, Math.min(field.ny - 1, Math.round((p.y ?? 0) * (field.ny - 1))));
+        const iz = Math.max(0, Math.min(field.nz - 1, Math.round((p.z ?? 0) * (field.nz - 1))));
         out[i] = field.get(ix, iy, iz, 0);
       }
       return out;
