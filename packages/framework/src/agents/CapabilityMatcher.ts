@@ -134,28 +134,22 @@ function meetsMaxLatency(
 // ============================================================================
 
 function pointInBounds(point: Vector3, min: Vector3, max: Vector3): boolean {
-  return (
-    point.x >= min.x &&
-    point.x <= max.x &&
-    point.y >= min.y &&
-    point.y <= max.y &&
-    point.z >= min.z &&
-    point.z <= max.z
-  );
+  return (point[0] >= min[0] &&
+  point[0] <= max[0] &&
+  point[1] >= min[1] &&
+  point[1] <= max[1] &&
+  point[2] >= min[2] && point[2] <= max[2]);
 }
 
 function boundsOverlap(
   a: { min: Vector3; max: Vector3 },
   b: { min: Vector3; max: Vector3 }
 ): boolean {
-  return (
-    a.min.x <= b.max.x &&
-    a.max.x >= b.min.x &&
-    a.min.y <= b.max.y &&
-    a.max.y >= b.min.y &&
-    a.min.z <= b.max.z &&
-    a.max.z >= b.min.z
-  );
+  return (a.min[0] <= b.max[0] &&
+  a.max[0] >= b.min[0] &&
+  a.min[1] <= b.max[1] &&
+  a.max[1] >= b.min[1] &&
+  a.min[2] <= b.max[2] && a.max[2] >= b.min[2]);
 }
 
 function matchesSpatialQuery(scope: SpatialScope | undefined, query: SpatialQuery): boolean {
@@ -174,9 +168,9 @@ function matchesSpatialQuery(scope: SpatialScope | undefined, query: SpatialQuer
 
   // Check radius containment
   if (query.point && scope.radius) {
-    const dx = query.point.x - scope.radius.center.x;
-    const dy = query.point.y - scope.radius.center.y;
-    const dz = query.point.z - scope.radius.center.z;
+    const dx = query.point[0] - scope.radius.center[0];
+    const dy = query.point[1] - scope.radius.center[1];
+    const dz = query.point[2] - scope.radius.center[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (distance > scope.radius.distance) return false;
   }

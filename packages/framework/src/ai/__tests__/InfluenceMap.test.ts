@@ -121,8 +121,8 @@ describe('InfluenceMap', () => {
     map.setInfluence('test', 2, 3, 10);
     map.setInfluence('test', 7, 8, 90);
     const max = map.getMaxCell('test');
-    expect(max.x).toBe(7);
-    expect(max.y).toBe(8);
+    expect(max[0]).toBe(7);
+    expect(max[1]).toBe(8);
     expect(max.value).toBe(90);
   });
 

@@ -6,15 +6,15 @@
 
 export interface NavPolygon {
   id: number;
-  vertices: { x: number; z: number }[];
+  vertices: [number, number, number][];
   neighbors: number[];
-  center: { x: number; z: number };
+  center: [number, number, number];
   walkable: boolean;
   cost: number;
 }
 
 export interface NavPath {
-  waypoints: { x: number; z: number }[];
+  waypoints: [number, number, number][];
   totalCost: number;
   polygonIds: number[];
 }
@@ -27,18 +27,18 @@ export class NavMesh {
    * Add a navigation polygon
    */
   addPolygon(
-    vertices: { x: number; z: number }[],
+    vertices: [number, number, number][],
     walkable: boolean = true,
     cost: number = 1
   ): number {
     const id = this.nextId++;
-    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
-    const cz = vertices.reduce((s, v) => s + v.z, 0) / vertices.length;
+    const cx = vertices.reduce((s, v) => s + v[0], 0) / vertices.length;
+    const cz = vertices.reduce((s, v) => s + v[2], 0) / vertices.length;
     this.polygons.set(id, {
       id,
       vertices,
       neighbors: [],
-      center: { x: cx, z: cz },
+      center: [cx, 0, cz],
       walkable,
       cost,
     });
@@ -118,15 +118,15 @@ export class NavMesh {
   smoothPath(path: NavPath): NavPath {
     if (path.waypoints.length <= 2) return path;
 
-    const smoothed: { x: number; z: number }[] = [path.waypoints[0]];
+    const smoothed: [number, number, number][] = [path.waypoints[0]];
     let i = 0;
 
     while (i < path.waypoints.length - 1) {
       let farthest = i + 1;
       for (let j = i + 2; j < path.waypoints.length; j++) {
         // Simple line-of-sight check via distance
-        const dx = path.waypoints[j].x - path.waypoints[i].x;
-        const dz = path.waypoints[j].z - path.waypoints[i].z;
+        const dx = path.waypoints[j][0] - path.waypoints[i][0];
+        const dz = path.waypoints[j][2] - path.waypoints[i][2];
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 50) farthest = j; // Simplified — skip intermediate points within range
       }
@@ -151,8 +151,8 @@ export class NavMesh {
     return { waypoints, totalCost, polygonIds };
   }
 
-  private heuristic(a: { x: number; z: number }, b: { x: number; z: number }): number {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.z - b.z) ** 2);
+  private heuristic(a: [number, number, number], b: [number, number, number]): number {
+    return Math.sqrt((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2);
   }
 
   getPolygon(id: number): NavPolygon | undefined {

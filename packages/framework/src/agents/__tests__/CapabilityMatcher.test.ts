@@ -158,7 +158,7 @@ describe('CapabilityMatcher', () => {
     const agent = makeManifest('a1', { spatialScope: { global: true } });
     const result = matcher.matchAgent(agent, {
       type: 'render',
-      spatial: { point: { x: 100, y: 100, z: 100 } },
+      spatial: { point: [100, 100, 100] },
     });
     expect(result).not.toBeNull();
   });
@@ -166,12 +166,12 @@ describe('CapabilityMatcher', () => {
   it('rejects agent outside spatial bounds', () => {
     const agent = makeManifest('a1', {
       spatialScope: {
-        bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 10, y: 10, z: 10 } },
+        bounds: { min: [0, 0, 0], max: [10, 10, 10] },
       },
     });
     const result = matcher.matchAgent(agent, {
       type: 'render',
-      spatial: { point: { x: 100, y: 100, z: 100 } },
+      spatial: { point: [100, 100, 100] },
     });
     expect(result).toBeNull();
   });

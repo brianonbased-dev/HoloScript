@@ -169,7 +169,7 @@ describe('CulturalMemory', () => {
       const mem = new CulturalMemory({ consolidationThreshold: 2 });
       mem.record('agent1', 'Event A', { normId: 'test_norm', tags: ['a'] });
       mem.record('agent1', 'Event B', { normId: 'test_norm', tags: ['b'] });
-      mem.leaveTrace('agent1', 'zone_a', 'marker', { x: 1, y: 2, z: 3 });
+      mem.leaveTrace('agent1', 'zone_a', 'marker', [1, 2, 3]);
       mem.consolidate('agent1');
 
       const state = mem.exportState();
@@ -189,7 +189,7 @@ describe('CulturalMemory', () => {
       const mem = new CulturalMemory();
       mem.record('agent1', 'A');
       mem.record('agent2', 'B');
-      mem.leaveTrace('agent1', 'zone_a', 'x', { x: 0, y: 0, z: 0 });
+      mem.leaveTrace('agent1', 'zone_a', 'x', [0, 0, 0]);
       const s = mem.stats();
       expect(s.agents).toBe(2);
       expect(s.totalMemories).toBe(2);

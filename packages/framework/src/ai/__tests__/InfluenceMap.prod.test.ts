@@ -119,8 +119,8 @@ describe('InfluenceMap — Production', () => {
     map.setInfluence('threat', 3, 7, 90);
     map.setInfluence('threat', 1, 1, 10);
     const max = map.getMaxCell('threat');
-    expect(max.x).toBe(3);
-    expect(max.y).toBe(7);
+    expect(max[0]).toBe(3);
+    expect(max[1]).toBe(7);
     expect(max.value).toBe(90);
   });
 

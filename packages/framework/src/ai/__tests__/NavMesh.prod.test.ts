@@ -7,11 +7,11 @@
 import { describe, it, expect } from 'vitest';
 import { NavMesh } from '../NavMesh';
 
-function tri(x: number, z: number): { x: number; z: number }[] {
+function tri(x: number, z: number): [number, number, number][] {
   return [
-    { x, z },
-    { x: x + 2, z },
-    { x: x + 1, z: z + 2 },
+    [x, 0, z],
+    [x + 2, 0, z],
+    [x + 1, 0, z + 2],
   ];
 }
 
@@ -29,13 +29,13 @@ describe('NavMesh — Production', () => {
   it('polygon center is computed correctly', () => {
     const nav = new NavMesh();
     const id = nav.addPolygon([
-      { x: 0, z: 0 },
-      { x: 3, z: 0 },
-      { x: 0, z: 3 },
+      [0, 0, 0],
+      [3, 0, 0],
+      [0, 0, 3],
     ]);
     const poly = nav.getPolygon(id);
-    expect(poly!.center.x).toBe(1);
-    expect(poly!.center.z).toBe(1);
+    expect(poly!.center[0]).toBe(1);
+    expect(poly!.center[2]).toBe(1);
   });
 
   // ─── Connections ──────────────────────────────────────────────────

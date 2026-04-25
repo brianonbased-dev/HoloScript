@@ -637,7 +637,9 @@ export async function handleTeamRoutes(
       ownerId: caller.id,
       ownerName: caller.name,
       inviteCode,
-      maxSlots: 20,
+      maxSlots: typeof body.max_slots === 'number' && body.max_slots >= 2 && body.max_slots <= 200
+        ? Math.floor(body.max_slots)
+        : 20,
       members: [{
         agentId: caller.id,
         agentName: caller.name,

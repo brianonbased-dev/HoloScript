@@ -21,7 +21,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       intensity: 0.8,
       timestamp: 0,
     });
@@ -33,7 +33,7 @@ describe('PerceptionSystem', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'p',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -47,12 +47,12 @@ describe('PerceptionSystem', () => {
 
   it('perceives stimulus within range', () => {
     ps.registerEntity('guard', [sightSense]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       intensity: 0.9,
       timestamp: 0,
     });
@@ -62,12 +62,12 @@ describe('PerceptionSystem', () => {
 
   it('does not perceive stimulus out of range', () => {
     ps.registerEntity('guard', [sightSense]); // range: 50
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 200, y: 0, z: 0 },
+      position: [200, 0, 0],
       intensity: 0.9,
       timestamp: 0,
     });
@@ -81,12 +81,12 @@ describe('PerceptionSystem', () => {
 
   it('does not perceive stimulus behind entity (out of FOV)', () => {
     ps.registerEntity('guard', [sightSense]); // fov: 120
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }); // facing +X
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]); // facing +X
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: -10, y: 0, z: 0 },
+      position: [-10, 0, 0],
       intensity: 1,
       timestamp: 0,
     }); // behind
@@ -96,12 +96,12 @@ describe('PerceptionSystem', () => {
 
   it('omnidirectional sense (hearing 360) perceives behind', () => {
     ps.registerEntity('guard', [hearingSense]); // fov: 360
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'hearing',
       sourceId: 'player',
-      position: { x: -10, y: 0, z: 0 },
+      position: [-10, 0, 0],
       intensity: 0.8,
       timestamp: 0,
     });
@@ -115,12 +115,12 @@ describe('PerceptionSystem', () => {
 
   it('entity does not perceive own stimuli', () => {
     ps.registerEntity('guard', [sightSense]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'guard',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -134,12 +134,12 @@ describe('PerceptionSystem', () => {
 
   it('only matching sense types are perceived', () => {
     ps.registerEntity('guard', [sightSense]); // only sight
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'hearing',
       sourceId: 'player',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -153,12 +153,12 @@ describe('PerceptionSystem', () => {
 
   it('awareness increases with repeated exposure', () => {
     ps.registerEntity('guard', [sightSense]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       intensity: 0.5,
       timestamp: 0,
     });
@@ -175,12 +175,12 @@ describe('PerceptionSystem', () => {
 
   it('memories decay after memoryDuration', () => {
     ps.registerEntity('guard', [sightSense], 5); // 5s memory
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -197,12 +197,12 @@ describe('PerceptionSystem', () => {
 
   it('getPerceivedStimuli returns all perceived', () => {
     ps.registerEntity('guard', [sightSense]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 'a',
       type: 'sight',
       sourceId: 'p1',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       intensity: 0.5,
       timestamp: 0,
     });
@@ -210,7 +210,7 @@ describe('PerceptionSystem', () => {
       id: 'b',
       type: 'sight',
       sourceId: 'p2',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       intensity: 0.9,
       timestamp: 0,
     });
@@ -220,12 +220,12 @@ describe('PerceptionSystem', () => {
 
   it('getHighestPriority returns stimulus with highest awareness*intensity', () => {
     ps.registerEntity('guard', [sightSense]);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]);
     ps.addStimulus({
       id: 'weak',
       type: 'sight',
       sourceId: 'p1',
-      position: { x: 40, y: 0, z: 0 },
+      position: [40, 0, 0],
       intensity: 0.1,
       timestamp: 0,
     });
@@ -233,7 +233,7 @@ describe('PerceptionSystem', () => {
       id: 'strong',
       type: 'sight',
       sourceId: 'p2',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       intensity: 1,
       timestamp: 0,
     });

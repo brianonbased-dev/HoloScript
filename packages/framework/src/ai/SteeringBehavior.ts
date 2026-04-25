@@ -4,23 +4,20 @@
  * @version 1.0.0
  */
 
-export interface Vec2 {
-  x: number;
-  z: number;
-}
+import { Vector3 } from '../types/HoloScriptPlus';
 
 export type SteeringType = 'seek' | 'flee' | 'arrive' | 'wander' | 'avoid' | 'pursue' | 'evade';
 
 export interface SteeringAgent {
-  position: Vec2;
-  velocity: Vec2;
+  position: Vector3;
+  velocity: Vector3;
   maxSpeed: number;
   maxForce: number;
   mass: number;
 }
 
 export interface SteeringOutput {
-  force: Vec2;
+  force: Vector3;
   type: SteeringType;
   weight: number;
 }
@@ -29,45 +26,59 @@ export class SteeringBehavior {
   /**
    * Seek — steer toward a target
    */
-  static seek(agent: SteeringAgent, target: Vec2): Vec2 {
-    const desired = { x: target.x - agent.position.x, z: target.z - agent.position.z };
-    const mag = Math.sqrt(desired.x ** 2 + desired.z ** 2);
-    if (mag === 0) return { x: 0, z: 0 };
-    desired.x = (desired.x / mag) * agent.maxSpeed;
-    desired.z = (desired.z / mag) * agent.maxSpeed;
-    return {
-      x: desired.x - agent.velocity.x,
-      z: desired.z - agent.velocity.z,
-    };
+  static seek(agent: SteeringAgent, target: Vector3): Vector3 {
+    const desired: Vector3 = [
+      target[0] - agent.position[0],
+      target[1] - agent.position[1],
+      target[2] - agent.position[2]
+    ];
+    const mag = Math.sqrt(desired[0] ** 2 + desired[1] ** 2 + desired[2] ** 2);
+    if (mag === 0) return [0, 0, 0];
+    
+    desired[0] = (desired[0] / mag) * agent.maxSpeed;
+    desired[1] = (desired[1] / mag) * agent.maxSpeed;
+    desired[2] = (desired[2] / mag) * agent.maxSpeed;
+    
+    return [
+      desired[0] - agent.velocity[0],
+      desired[1] - agent.velocity[1],
+      desired[2] - agent.velocity[2]
+    ];
   }
 
   /**
    * Flee — steer away from a target
    */
-  static flee(agent: SteeringAgent, target: Vec2): Vec2 {
+  static flee(agent: SteeringAgent, target: Vector3): Vector3 {
     const force = this.seek(agent, target);
-    return { x: -force.x, z: -force.z };
+    return [-force[0], -force[1], -force[2]];
   }
 
   /**
    * Arrive — seek with deceleration near target
    */
-  static arrive(agent: SteeringAgent, target: Vec2, slowRadius: number = 5): Vec2 {
-    const toTarget = { x: target.x - agent.position.x, z: target.z - agent.position.z };
-    const dist = Math.sqrt(toTarget.x ** 2 + toTarget.z ** 2);
-    if (dist === 0) return { x: 0, z: 0 };
+  static arrive(agent: SteeringAgent, target: Vector3, slowRadius: number = 5): Vector3 {
+    const toTarget: Vector3 = [
+      target[0] - agent.position[0],
+      target[1] - agent.position[1],
+      target[2] - agent.position[2]
+    ];
+    const dist = Math.sqrt(toTarget[0] ** 2 + toTarget[1] ** 2 + toTarget[2] ** 2);
+    if (dist === 0) return [0, 0, 0];
 
     const speed = dist < slowRadius ? agent.maxSpeed * (dist / slowRadius) : agent.maxSpeed;
 
-    const desired = {
-      x: (toTarget.x / dist) * speed,
-      z: (toTarget.z / dist) * speed,
-    };
+    const desired: Vector3 = [
+      (toTarget[0] / dist) * speed,
+      (toTarget[1] / dist) * speed,
+      (toTarget[2] / dist) * speed
+    ];
 
-    return {
-      x: desired.x - agent.velocity.x,
-      z: desired.z - agent.velocity.z,
-    };
+    return [
+      desired[0] - agent.velocity[0],
+      desired[1] - agent.velocity[1],
+      desired[2] - agent.velocity[2]
+    ];
   }
 
   /**
@@ -78,31 +89,35 @@ export class SteeringBehavior {
     wanderRadius: number = 2,
     wanderDistance: number = 4,
     jitter: number = 0.5
-  ): Vec2 {
+  ): Vector3 {
     const angle = Math.random() * Math.PI * 2;
-    const wanderTarget = {
-      x: agent.position.x + Math.cos(angle) * wanderRadius * jitter,
-      z: agent.position.z + Math.sin(angle) * wanderRadius * jitter,
-    };
+    const wanderTarget: Vector3 = [
+      agent.position[0] + Math.cos(angle) * wanderRadius * jitter,
+      agent.position[1],
+      agent.position[2] + Math.sin(angle) * wanderRadius * jitter
+    ];
 
-    const velMag = Math.sqrt(agent.velocity.x ** 2 + agent.velocity.z ** 2);
-    const forward =
+    const velMag = Math.sqrt(agent.velocity[0] ** 2 + agent.velocity[1] ** 2 + agent.velocity[2] ** 2);
+    const forward: Vector3 =
       velMag > 0
-        ? {
-            x: (agent.velocity.x / velMag) * wanderDistance,
-            z: (agent.velocity.z / velMag) * wanderDistance,
-          }
-        : { x: wanderDistance, z: 0 };
+        ? [
+            (agent.velocity[0] / velMag) * wanderDistance,
+            (agent.velocity[1] / velMag) * wanderDistance,
+            (agent.velocity[2] / velMag) * wanderDistance
+          ]
+        : [wanderDistance, 0, 0];
 
-    const circleCenter = {
-      x: agent.position.x + forward.x,
-      z: agent.position.z + forward.z,
-    };
+    const circleCenter: Vector3 = [
+      agent.position[0] + forward[0],
+      agent.position[1] + forward[1],
+      agent.position[2] + forward[2]
+    ];
 
-    return this.seek(agent, {
-      x: circleCenter.x + wanderTarget.x - agent.position.x,
-      z: circleCenter.z + wanderTarget.z - agent.position.z,
-    });
+    return this.seek(agent, [
+      circleCenter[0] + wanderTarget[0] - agent.position[0],
+      circleCenter[1] + wanderTarget[1] - agent.position[1],
+      circleCenter[2] + wanderTarget[2] - agent.position[2]
+    ]);
   }
 
   /**
@@ -110,19 +125,24 @@ export class SteeringBehavior {
    */
   static avoid(
     agent: SteeringAgent,
-    obstacles: { position: Vec2; radius: number }[],
+    obstacles: { position: Vector3; radius: number }[],
     lookAhead: number = 5
-  ): Vec2 {
-    const force: Vec2 = { x: 0, z: 0 };
+  ): Vector3 {
+    const force: Vector3 = [0, 0, 0];
 
     for (const obs of obstacles) {
-      const toObs = { x: obs.position.x - agent.position.x, z: obs.position.z - agent.position.z };
-      const dist = Math.sqrt(toObs.x ** 2 + toObs.z ** 2);
+      const toObs: Vector3 = [
+        obs.position[0] - agent.position[0],
+        obs.position[1] - agent.position[1],
+        obs.position[2] - agent.position[2]
+      ];
+      const dist = Math.sqrt(toObs[0] ** 2 + toObs[1] ** 2 + toObs[2] ** 2);
 
       if (dist < lookAhead + obs.radius) {
         const pushStrength = (lookAhead + obs.radius - dist) / (lookAhead + obs.radius);
-        force.x -= (toObs.x / dist) * pushStrength * agent.maxForce;
-        force.z -= (toObs.z / dist) * pushStrength * agent.maxForce;
+        force[0] -= (toObs[0] / dist) * pushStrength * agent.maxForce;
+        force[1] -= (toObs[1] / dist) * pushStrength * agent.maxForce;
+        force[2] -= (toObs[2] / dist) * pushStrength * agent.maxForce;
       }
     }
 
@@ -132,17 +152,19 @@ export class SteeringBehavior {
   /**
    * Blend multiple steering outputs by weight
    */
-  static blend(outputs: SteeringOutput[], maxForce: number): Vec2 {
-    const result: Vec2 = { x: 0, z: 0 };
+  static blend(outputs: SteeringOutput[], maxForce: number): Vector3 {
+    const result: Vector3 = [0, 0, 0];
     for (const out of outputs) {
-      result.x += out.force.x * out.weight;
-      result.z += out.force.z * out.weight;
+      result[0] += out.force[0] * out.weight;
+      result[1] += out.force[1] * out.weight;
+      result[2] += out.force[2] * out.weight;
     }
 
-    const mag = Math.sqrt(result.x ** 2 + result.z ** 2);
+    const mag = Math.sqrt(result[0] ** 2 + result[1] ** 2 + result[2] ** 2);
     if (mag > maxForce) {
-      result.x = (result.x / mag) * maxForce;
-      result.z = (result.z / mag) * maxForce;
+      result[0] = (result[0] / mag) * maxForce;
+      result[1] = (result[1] / mag) * maxForce;
+      result[2] = (result[2] / mag) * maxForce;
     }
 
     return result;

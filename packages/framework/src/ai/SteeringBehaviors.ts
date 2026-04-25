@@ -12,8 +12,8 @@
 // =============================================================================
 
 export interface SteeringAgent {
-  position: { x: number; y: number; z: number } | [number, number, number];
-  velocity: { x: number; y: number; z: number } | [number, number, number];
+  position: [number, number, number] | [number, number, number];
+  velocity: [number, number, number] | [number, number, number];
   maxSpeed: number;
   maxForce: number;
   mass: number;
@@ -27,24 +27,24 @@ export interface FlockConfig {
 }
 
 export interface ObstacleCircle {
-  center: { x: number; y: number; z: number };
+  center: [number, number, number];
   radius: number;
 }
 
-type Vec3 = { x: number; y: number; z: number };
+type Vec3 = [number, number, number];
 
-function getX(v: Vec3 | [number, number, number]): number {
-  return Array.isArray(v) ? v[0] : v.x;
+function getX(v: Vec3): number {
+  return v[0];
 }
-function getY(v: Vec3 | [number, number, number]): number {
-  return Array.isArray(v) ? v[1] : v.y;
+function getY(v: Vec3): number {
+  return v[1];
 }
-function getZ(v: Vec3 | [number, number, number]): number {
-  return Array.isArray(v) ? v[2] : v.z;
+function getZ(v: Vec3): number {
+  return v[2];
 }
 
-function makeVec3(x: number, y: number, z: number): Vec3 & { 0: number; 1: number; 2: number } {
-  return { x, y, z, 0: x, 1: y, 2: z };
+function makeVec3(x: number, y: number, z: number): Vec3 {
+  return [x, y, z];
 }
 
 // =============================================================================
@@ -102,7 +102,7 @@ export class SteeringBehaviors {
       agent.position,
       SteeringBehaviors.scale(vel, circleDistance)
     );
-    const offset = { x: Math.cos(angle) * circleRadius, y: 0, z: Math.sin(angle) * circleRadius };
+    const offset = [Math.cos(angle) * circleRadius, 0, Math.sin(angle) * circleRadius];
     const target = SteeringBehaviors.add(circleCenter, offset);
     return { force: SteeringBehaviors.seek(agent, target), newAngle: angle };
   }
@@ -124,15 +124,15 @@ export class SteeringBehaviors {
     const coh = SteeringBehaviors.cohesion(agent, nearby);
 
     return makeVec3(
-      sep.x * config.separationWeight +
-        ali.x * config.alignmentWeight +
-        coh.x * config.cohesionWeight,
-      sep.y * config.separationWeight +
-        ali.y * config.alignmentWeight +
-        coh.y * config.cohesionWeight,
-      sep.z * config.separationWeight +
-        ali.z * config.alignmentWeight +
-        coh.z * config.cohesionWeight
+      sep[0] * config.separationWeight +
+        ali[0] * config.alignmentWeight +
+        coh[0] * config.cohesionWeight,
+      sep[1] * config.separationWeight +
+        ali[1] * config.alignmentWeight +
+        coh[1] * config.cohesionWeight,
+      sep[2] * config.separationWeight +
+        ali[2] * config.alignmentWeight +
+        coh[2] * config.cohesionWeight
     );
   }
 
@@ -143,9 +143,9 @@ export class SteeringBehaviors {
     for (const n of neighbors) {
       const d = SteeringBehaviors.sub(agent.position, n.position);
       const dist = SteeringBehaviors.vecLength(d) || 0.001;
-      fx += d.x / (dist * dist);
-      fy += d.y / (dist * dist);
-      fz += d.z / (dist * dist);
+      fx += d[0] / (dist * dist);
+      fy += d[1] / (dist * dist);
+      fz += d[2] / (dist * dist);
     }
     return SteeringBehaviors.normalize(makeVec3(fx, fy, fz));
   }
@@ -212,22 +212,22 @@ export class SteeringBehaviors {
   // ---------------------------------------------------------------------------
 
   static applyForce(agent: SteeringAgent, force: Vec3, dt: number): void {
-    const ax = force.x / agent.mass,
-      ay = force.y / agent.mass,
-      az = force.z / agent.mass;
+    const ax = force[0] / agent.mass,
+      ay = force[1] / agent.mass,
+      az = force[2] / agent.mass;
     const vel = Array.isArray(agent.velocity)
       ? makeVec3(agent.velocity[0], agent.velocity[1], agent.velocity[2])
-      : makeVec3(agent.velocity.x, agent.velocity.y, agent.velocity.z);
-    vel.x += ax * dt;
-    vel.y += ay * dt;
-    vel.z += az * dt;
+      : makeVec3(agent.velocity[0], agent.velocity[1], agent.velocity[2]);
+    vel[0] += ax * dt;
+    vel[1] += ay * dt;
+    vel[2] += az * dt;
     agent.velocity = SteeringBehaviors.truncate(vel, agent.maxSpeed);
     const pos = Array.isArray(agent.position)
       ? makeVec3(agent.position[0], agent.position[1], agent.position[2])
-      : makeVec3(agent.position.x, agent.position.y, agent.position.z);
-    pos.x += getX(agent.velocity) * dt;
-    pos.y += getY(agent.velocity) * dt;
-    pos.z += getZ(agent.velocity) * dt;
+      : makeVec3(agent.position[0], agent.position[1], agent.position[2]);
+    pos[0] += getX(agent.velocity) * dt;
+    pos[1] += getY(agent.velocity) * dt;
+    pos[2] += getZ(agent.velocity) * dt;
     agent.position = pos;
   }
 

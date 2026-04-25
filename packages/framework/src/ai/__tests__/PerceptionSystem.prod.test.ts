@@ -19,7 +19,7 @@ function stim(
   z = 0,
   intensity = 0.8
 ): Stimulus {
-  return { id, type, sourceId: `src-${id}`, position: { x, y, z }, intensity, timestamp: 0 };
+  return { id, type, sourceId: `src-${id}`, position: [x, y, z], intensity, timestamp: 0 };
 }
 
 describe('PerceptionSystem — Production', () => {
@@ -61,7 +61,7 @@ describe('PerceptionSystem — Production', () => {
   it('FOV-limited sense detects in front', () => {
     const ps = new PerceptionSystem();
     ps.registerEntity('guard', [sightSense(50, 90)], 10); // 90° FOV
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }); // facing +X
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]); // facing +X
     ps.addStimulus(stim('ahead', 'sight', 10, 0, 0)); // directly ahead
     ps.update(1);
     expect(ps.isAwareOf('guard', 'ahead')).toBe(true);
@@ -70,7 +70,7 @@ describe('PerceptionSystem — Production', () => {
   it('FOV-limited sense misses behind', () => {
     const ps = new PerceptionSystem();
     ps.registerEntity('guard', [sightSense(50, 90)], 10);
-    ps.setEntityTransform('guard', { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }); // facing +X
+    ps.setEntityTransform('guard', [0, 0, 0], [1, 0, 0]); // facing +X
     ps.addStimulus(stim('behind', 'sight', -10, 0, 0)); // behind
     ps.update(1);
     expect(ps.isAwareOf('guard', 'behind')).toBe(false);

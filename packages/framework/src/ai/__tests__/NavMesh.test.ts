@@ -8,11 +8,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NavMesh } from '../NavMesh';
 
-function tri(cx: number, cz: number): { x: number; z: number }[] {
+function tri(cx: number, cz: number): [number, number, number][] {
   return [
-    { x: cx - 1, z: cz - 1 },
-    { x: cx + 1, z: cz - 1 },
-    { x: cx, z: cz + 1 },
+    [cx - 1, 0, cz - 1],
+    [cx + 1, 0, cz - 1],
+    [cx, 0, cz + 1],
   ];
 }
 
@@ -34,13 +34,13 @@ describe('NavMesh', () => {
 
     it('should compute center from vertices', () => {
       const id = mesh.addPolygon([
-        { x: 0, z: 0 },
-        { x: 6, z: 0 },
-        { x: 3, z: 6 },
+        [0, 0, 0],
+        [6, 0, 0],
+        [3, 0, 6],
       ]);
       const poly = mesh.getPolygon(id)!;
-      expect(poly.center.x).toBeCloseTo(3);
-      expect(poly.center.z).toBeCloseTo(2);
+      expect(poly.center[0]).toBeCloseTo(3);
+      expect(poly.center[2]).toBeCloseTo(2);
     });
 
     it('should set walkability', () => {

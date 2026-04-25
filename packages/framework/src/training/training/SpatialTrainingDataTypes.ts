@@ -46,11 +46,11 @@ export interface SceneObject {
   /** 3D position */
   position: [number, number, number];
   /** 3D scale */
-  scale: { x: number; y: number; z: number };
+  scale: [number, number, number];
   /** Bounding box (for containment checks) */
   bounds?: {
-    min: { x: number; y: number; z: number };
-    max: { x: number; y: number; z: number };
+    min: [number, number, number];
+    max: [number, number, number];
   };
   /** Whether this object acts as an obstacle */
   isObstacle?: boolean;

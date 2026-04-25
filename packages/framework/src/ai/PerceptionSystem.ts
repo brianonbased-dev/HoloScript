@@ -17,7 +17,7 @@ export interface Stimulus {
   id: string;
   type: SenseType;
   sourceId: string;
-  position: { x: number; y: number; z: number } | [number, number, number];
+  position: [number, number, number] | [number, number, number];
   intensity: number; // 0-1
   timestamp: number;
   data?: unknown;
@@ -45,8 +45,8 @@ export class PerceptionSystem {
     string,
     {
       senses: SenseConfig[];
-      facing: { x: number; y: number; z: number };
-      position: { x: number; y: number; z: number };
+      facing: [number, number, number];
+      position: [number, number, number];
       memory: Map<string, PerceivedStimulus>;
       memoryDuration: number;
     }
@@ -59,20 +59,16 @@ export class PerceptionSystem {
   // Entity Registration
   // ---------------------------------------------------------------------------
 
-  private toVec3(v: { x: number; y: number; z: number } | [number, number, number]): {
-    x: number;
-    y: number;
-    z: number;
-  } {
-    if (Array.isArray(v)) return { x: v[0], y: v[1], z: v[2] };
+  private toVec3(v: [number, number, number] | [number, number, number]): [number, number, number] {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]];
     return v;
   }
 
   registerEntity(id: string, senses: SenseConfig[], memoryDuration = 10): void {
     this.entities.set(id, {
       senses,
-      facing: { x: 0, y: 0, z: 1 },
-      position: { x: 0, y: 0, z: 0 },
+      facing: [0, 0, 1],
+      position: [0, 0, 0],
       memory: new Map(),
       memoryDuration,
     });
@@ -80,8 +76,8 @@ export class PerceptionSystem {
 
   setEntityTransform(
     entityId: string,
-    position: { x: number; y: number; z: number },
-    facing: { x: number; y: number; z: number }
+    position: [number, number, number],
+    facing: [number, number, number]
   ): void {
     const e = this.entities.get(entityId);
     if (e) {
@@ -125,9 +121,9 @@ export class PerceptionSystem {
           if (sense.type !== stim.type) continue;
 
           const stimPos = this.toVec3(stim.position);
-          const dx = stimPos.x - entity.position.x;
-          const dy = stimPos.y - entity.position.y;
-          const dz = stimPos.z - entity.position.z;
+          const dx = stimPos[0] - entity.position[0];
+          const dy = stimPos[1] - entity.position[1];
+          const dz = stimPos[2] - entity.position[2];
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
           // Range check
@@ -136,9 +132,9 @@ export class PerceptionSystem {
           // FOV check (only for directional senses)
           if (sense.fov < 360 && dist > 0) {
             const fLen =
-              Math.sqrt(entity.facing.x ** 2 + entity.facing.y ** 2 + entity.facing.z ** 2) || 1;
+              Math.sqrt(entity.facing[0] ** 2 + entity.facing[1] ** 2 + entity.facing[2] ** 2) || 1;
             const dot =
-              (dx * entity.facing.x + dy * entity.facing.y + dz * entity.facing.z) / (dist * fLen);
+              (dx * entity.facing[0] + dy * entity.facing[1] + dz * entity.facing[2]) / (dist * fLen);
             const halfFovRad = (sense.fov / 2) * (Math.PI / 180);
             if (dot < Math.cos(halfFovRad)) continue;
           }
