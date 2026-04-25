@@ -28,8 +28,18 @@ dist/
 
 # TypeScript compiled outputs (exclude from Git, generated from .ts files)
 *.d.ts
+*.d.ts.map
 *.js
 *.js.map
+
+# Local benchmark outputs — regenerated on every `pnpm bench` run.
+# `git status` was showing 5 churning JSON files in this dir.
+/.bench-logs/
+
+# Mesh harvest destination — populated by scripts/mesh-deploy/harvest-deliverables.sh
+# pulling /root/agent-output/ from each running Vast.ai instance.
+# Founder cherry-picks from here into the canonical research/ tree.
+/research/mesh-deliverables/
 
 # Exception: Keep essential config files that should be committed
 !*.config.js
