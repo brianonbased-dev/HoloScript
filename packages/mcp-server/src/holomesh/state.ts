@@ -117,6 +117,80 @@ export interface CaelAuditRecord {
 export const agentAuditStore: Map<string, CaelAuditRecord[]> = new Map(); // handle → records
 const MAX_CAEL_RECORDS_PER_AGENT = 10_000;
 
+/**
+ * Agent Defense State Store — per-agent fleet-adversarial defense configuration.
+ * Closes gap-build task_1777090894117_8bav (defense-state PATCH endpoint).
+ * Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
+ *
+ * Allows the adversarial harness to toggle each target's defense state
+ * between {none, decay-on-anomaly, cross-vouching-detector, replay-audit,
+ * canary-probing, all-three}. Phase 1 of the harness (10-cell smoke) and
+ * Phase 2 (300/450 cell full eval) require this for the per-cell
+ * defense_state matrix dimension.
+ *
+ * Phase 0 limitations (filed at task_1777093147560_pawd):
+ * - In-memory only; lost on restart. Persistence is Phase 1 hardening.
+ * - Auth is "any authenticated caller". Phase 1 will require caller's
+ *   brain class (via /me + agents.json lookup) to be security-auditor.
+ * - Defense state is informational — doesn't actually toggle behavior on
+ *   the target brain (target brains read this on next tick).
+ */
+export type DefenseState =
+  | 'none'
+  | 'decay-on-anomaly'
+  | 'cross-vouching-detector'
+  | 'replay-audit'
+  | 'canary-probing'
+  | 'all-three';
+
+export const VALID_DEFENSE_STATES: readonly DefenseState[] = [
+  'none',
+  'decay-on-anomaly',
+  'cross-vouching-detector',
+  'replay-audit',
+  'canary-probing',
+  'all-three',
+];
+
+export interface AgentDefenseConfig {
+  state: DefenseState;
+  expiresAt: string | null; // ISO; null = no expiry
+  setBy: string; // agentId of caller who set this
+  setAt: string; // ISO server-stamp
+}
+
+export const agentDefenseStore: Map<string, AgentDefenseConfig> = new Map(); // handle → config
+
+export function setAgentDefense(
+  handle: string,
+  state: DefenseState,
+  expiresAt: string | null,
+  setBy: string
+): AgentDefenseConfig {
+  const config: AgentDefenseConfig = {
+    state,
+    expiresAt,
+    setBy,
+    setAt: new Date().toISOString(),
+  };
+  agentDefenseStore.set(handle, config);
+  return config;
+}
+
+export function getAgentDefense(handle: string): AgentDefenseConfig | null {
+  const config = agentDefenseStore.get(handle);
+  if (!config) return null;
+  // Honor expiry — if expired, return 'none' implicitly without touching store
+  if (config.expiresAt && Date.parse(config.expiresAt) < Date.now()) {
+    return null;
+  }
+  return config;
+}
+
+export function isValidDefenseState(value: unknown): value is DefenseState {
+  return typeof value === 'string' && (VALID_DEFENSE_STATES as readonly string[]).includes(value);
+}
+
 export function appendCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
   const existing = agentAuditStore.get(handle) ?? [];
   existing.push(record);

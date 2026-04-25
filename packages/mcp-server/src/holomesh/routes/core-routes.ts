@@ -25,6 +25,10 @@ import {
   appendCaelAuditRecord,
   queryCaelAuditRecords,
   type CaelAuditRecord,
+  setAgentDefense,
+  getAgentDefense,
+  isValidDefenseState,
+  VALID_DEFENSE_STATES,
 } from '../state';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
@@ -478,6 +482,71 @@ export async function handleCoreRoutes(
         handle,
         appended,
         rejected: incoming.length - appended,
+      });
+      return true;
+    }
+  }
+
+  // ── PATCH/GET /api/holomesh/agent/:handle/defense ─────────────────────────
+  // Closes gap-build task_1777090894117_8bav (defense-state PATCH endpoint).
+  // Spec: ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md §3.
+  // Unblocks adversarial harness Phase 1+2 (the per-cell defense-state matrix).
+  // Phase 0: any authenticated caller; Phase 1 will require security-auditor
+  // brain-class (tracked at task_1777093147560_pawd).
+  {
+    const defenseMatch = pathname.match(/^\/api\/holomesh\/agent\/([^/]+)\/defense$/);
+    if (defenseMatch && method === 'PATCH') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to set defense state.' });
+        return true;
+      }
+      const handle = decodeURIComponent(defenseMatch[1]);
+      const body = (await parseJsonBody(req)) as {
+        state?: unknown;
+        expires_at?: string | null;
+      } | null;
+      if (!body || body.state == null) {
+        json(res, 400, {
+          error: 'Body must include {state: enum, expires_at?: iso|null}.',
+          valid_states: VALID_DEFENSE_STATES,
+        });
+        return true;
+      }
+      if (!isValidDefenseState(body.state)) {
+        json(res, 400, {
+          error: `Invalid defense state "${String(body.state)}".`,
+          valid_states: VALID_DEFENSE_STATES,
+        });
+        return true;
+      }
+      const expiresAt = body.expires_at == null ? null : String(body.expires_at);
+      if (expiresAt !== null && !Number.isFinite(Date.parse(expiresAt))) {
+        json(res, 400, { error: `expires_at must be ISO timestamp or null, got "${expiresAt}".` });
+        return true;
+      }
+      const config = setAgentDefense(handle, body.state, expiresAt, caller.id);
+      json(res, 200, {
+        success: true,
+        handle,
+        defense: config,
+      });
+      return true;
+    }
+
+    if (defenseMatch && method === 'GET') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required to read defense state.' });
+        return true;
+      }
+      const handle = decodeURIComponent(defenseMatch[1]);
+      const config = getAgentDefense(handle);
+      json(res, 200, {
+        success: true,
+        handle,
+        defense: config,
+        active: config !== null,
       });
       return true;
     }
