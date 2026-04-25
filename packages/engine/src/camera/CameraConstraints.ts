@@ -111,7 +111,6 @@ export class CameraConstraints {
   // ---------------------------------------------------------------------------
   // Soft Limits
   // ---------------------------------------------------------------------------
-
   private applySoftLimit(): void {
     if (!this.softLimit || !this.bounds) return;
     const sl = this.softLimit;
