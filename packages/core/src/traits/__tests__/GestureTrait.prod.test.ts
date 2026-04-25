@@ -14,8 +14,11 @@ function mkNode(id = 'g-node') {
   return { id } as any;
 }
 
-function mkHand(pos: [number, number, number], pinch = 0) {
-  return { position: [pos[0], pos[1], pos[2] ?? 0], pinchStrength: pinch };
+function mkHand(pos: [number, number, number] | { x?: number; y?: number; z?: number }, pinch = 0) {
+  const x = Array.isArray(pos) ? pos[0] : ((pos as { x?: number }).x ?? 0);
+  const y = Array.isArray(pos) ? pos[1] : ((pos as { y?: number }).y ?? 0);
+  const z = Array.isArray(pos) ? (pos[2] ?? 0) : ((pos as { z?: number }).z ?? 0);
+  return { position: [x, y, z] as [number, number, number], pinchStrength: pinch };
 }
 
 function mkCtx(left: any = null, right: any = null) {
