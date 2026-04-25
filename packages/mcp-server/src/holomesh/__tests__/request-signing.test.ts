@@ -200,6 +200,73 @@ describe('verifyEnvelope', () => {
   });
 });
 
+// ── verifyEnvelope — registryCheck integration (task _hccm) ──────────
+
+describe('verifyEnvelope — registryCheck branch', () => {
+  const freshNow = Date.parse('2026-04-25T00:00:00.000Z');
+  const freshEnv = {
+    body: { op: 'claim' },
+    signature: VALID_SIG,
+    signer_address: VALID_ADDR,
+    nonce: 'n1',
+    timestamp: '2026-04-25T00:00:00.000Z',
+  };
+
+  it('passes valid signature through when registryCheck reports attested+not-retired', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registryCheck = vi.fn(async () => ({ attested: true, retired: false }));
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.valid).toBe(true);
+    expect(registryCheck).toHaveBeenCalledWith(VALID_ADDR);
+  });
+
+  it('rejects with reason=signer-retired when registry reports retired (even with valid sig)', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registryCheck = vi.fn(async () => ({ attested: false, retired: true, reason: 'signer-retired' }));
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.valid).toBe(false);
+    expect(r.reason).toBe('signer-retired');
+  });
+
+  it('rejects with reason=signer-not-attested when registry reports unknown signer', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registryCheck = vi.fn(async () => ({ attested: false, retired: false, reason: 'signer-not-attested' }));
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.valid).toBe(false);
+    expect(r.reason).toBe('signer-not-attested');
+  });
+
+  it('does not invoke registryCheck when signature is cryptographically invalid', async () => {
+    mockVerifyMessage.mockResolvedValue(false);
+    const registryCheck = vi.fn(async () => ({ attested: true, retired: false }));
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.valid).toBe(false);
+    expect(r.reason).toBe('signature-mismatch');
+    expect(registryCheck).not.toHaveBeenCalled();
+  });
+
+  it('returns reason=registry-check-threw when registryCheck rejects', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registryCheck = vi.fn(async () => { throw new Error('registry boom'); });
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.valid).toBe(false);
+    expect(r.reason).toBe('registry-check-threw');
+  });
+
+  it('grace-period mode (no registryCheck) preserves Phase 1 verifier behavior', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow });
+    expect(r.valid).toBe(true);
+  });
+
+  it('falls back to default reason when registryCheck omits the reason field', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registryCheck = vi.fn(async () => ({ attested: false, retired: false }));
+    const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
+    expect(r.reason).toBe('signer-not-attested');
+  });
+});
+
 // ── verifyRequestBody (extract + verify wrapper) ──────────────────────
 
 describe('verifyRequestBody', () => {

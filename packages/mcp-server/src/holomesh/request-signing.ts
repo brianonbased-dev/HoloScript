@@ -45,6 +45,21 @@ export interface VerifyResult {
   reason?: string;
 }
 
+/**
+ * Optional registry-side check. Returns whether the signer is currently
+ * attested + retired-or-not. Wire from
+ * `identity/attestation-registry.ts::toRegistryCheck()` for the production path.
+ *
+ * Decoupling rationale: verifier doesn't import the registry directly so the
+ * grace-period mode (Phase 1, registry not yet shipped) can run without an
+ * empty registry rejecting every signer.
+ */
+export type RegistryCheck = (publicKey: string) => Promise<{
+  attested: boolean;
+  retired: boolean;
+  reason?: string;
+}>;
+
 /** Acceptable timestamp drift — older signatures are rejected as stale. */
 export const TIMESTAMP_FRESHNESS_MS = 5 * 60 * 1000;
 
@@ -103,10 +118,15 @@ function addressesEqual(a: string, b: string): boolean {
 /**
  * Verify a signed envelope. Returns the verification result; the caller
  * decides whether to reject the request.
+ *
+ * When `registryCheck` is provided, signers that are retired or not yet
+ * attested are rejected even if the signature is cryptographically valid.
+ * When omitted (Phase 1 grace-period default), only the cryptographic
+ * checks fire — caller does Bearer-token attribution as today.
  */
 export async function verifyEnvelope(
   env: SignedEnvelope,
-  options: { nowMs?: number } = {}
+  options: { nowMs?: number; registryCheck?: RegistryCheck } = {}
 ): Promise<VerifyResult> {
   if (!isFreshTimestamp(env.timestamp, options.nowMs)) {
     return { valid: false, signer: env.signer_address, reason: 'timestamp-stale' };
@@ -131,6 +151,20 @@ export async function verifyEnvelope(
   if (!recovered) {
     return { valid: false, signer: env.signer_address, reason: 'signature-mismatch' };
   }
+  if (options.registryCheck) {
+    let registry: { attested: boolean; retired: boolean; reason?: string };
+    try {
+      registry = await options.registryCheck(env.signer_address);
+    } catch {
+      return { valid: false, signer: env.signer_address, reason: 'registry-check-threw' };
+    }
+    if (registry.retired) {
+      return { valid: false, signer: env.signer_address, reason: registry.reason ?? 'signer-retired' };
+    }
+    if (!registry.attested) {
+      return { valid: false, signer: env.signer_address, reason: registry.reason ?? 'signer-not-attested' };
+    }
+  }
   return { valid: true, signer: env.signer_address };
 }
 
@@ -142,7 +176,7 @@ export async function verifyEnvelope(
  */
 export async function verifyRequestBody(
   reqBody: unknown,
-  options: { nowMs?: number } = {}
+  options: { nowMs?: number; registryCheck?: RegistryCheck } = {}
 ): Promise<VerifyResult> {
   const env = extractEnvelope(reqBody);
   if (!env) return { valid: false, signer: null, reason: 'unsigned' };
