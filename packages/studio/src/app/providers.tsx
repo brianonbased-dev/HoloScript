@@ -23,6 +23,7 @@ const DevToolsInit = dynamic(
 );
 import { PluginHostProvider } from '../hooks/usePluginHost';
 import { WebVitals } from '../components/WebVitals';
+import { StudioCAELMount } from '../components/instrumentation/StudioCAELMount';
 // AppShell and AgentationWired removed temporarily for scan-room demo
 
 // Old StudioSetupWizard removed — onboarding now handled by /start (Brittney-first)
@@ -196,6 +197,9 @@ export function Providers({ children }: { children: ReactNode }) {
               </ErrorBoundary>
               <DevToolsInit />
               <WebVitals />
+              {/* Paper 24 — installs zundo-CAEL bridge always; activates
+                  full UI session recording when ?study=1 in URL. */}
+              <StudioCAELMount />
               {process.env.NODE_ENV === 'development' && !pathname?.startsWith('/scan-room') && <AgentationWired />}
             </ToastContext.Provider>
           </ThemeContext.Provider>
