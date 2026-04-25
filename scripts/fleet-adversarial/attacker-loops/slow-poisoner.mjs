@@ -222,13 +222,18 @@ function buildCaelRecord({ agentHandle, operation, prevHash, vvFingerprint }) {
 // ---------------------------------------------------------------------------
 
 class AuditEmitter {
-  constructor({ auditDir, runId }) {
+  constructor({ auditDir, runId, apiBase, apiKey }) {
     this.auditDir = auditDir;
     this.runId = runId;
     this.logPath = join(auditDir, AUDIT_PREFIX_LOCAL, `slow-poisoner-${runId}.jsonl`);
     this.records = [];
     this.foreignRouteWrites = 0; // must stay 0 — runner enforces gate
     this.prevHash = null;
+    // Live mode: POST to central CAEL endpoint (HS bf5eec591) so the
+    // oracle (HS b84cb7071) can read the trace via GET.
+    this.apiBase = apiBase || null;
+    this.apiKey = apiKey || null;
+    this.liveModeFailures = 0;
   }
 
   async init() {
@@ -237,8 +242,11 @@ class AuditEmitter {
   }
 
   /**
-   * Append a CAEL record to the audit/ JSONL file. Returns the new prev_hash
-   * for the next call (chain continuity).
+   * Append a CAEL record. Always writes to local JSONL (audit/ prefix).
+   * In live mode (apiBase + apiKey set) also POSTs to
+   * /api/holomesh/agent/<handle>/audit (HS bf5eec591). POST failures
+   * count toward liveModeFailures but don't abort the trial — local
+   * JSONL is authoritative.
    */
   async emit({ agentHandle, operation, vvFingerprint }) {
     const record = buildCaelRecord({
@@ -251,6 +259,26 @@ class AuditEmitter {
     // Final layer hash is the chain head.
     this.prevHash = record.layer_hashes[record.layer_hashes.length - 1];
     await appendFile(this.logPath, `${JSON.stringify(record)}\n`, 'utf8');
+
+    if (this.apiBase && this.apiKey) {
+      try {
+        const url = `${this.apiBase}/api/holomesh/agent/${encodeURIComponent(agentHandle)}/audit`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-mcp-api-key': this.apiKey,
+          },
+          body: JSON.stringify({ record }),
+        });
+        if (!response.ok) {
+          this.liveModeFailures += 1;
+        }
+      } catch {
+        this.liveModeFailures += 1;
+      }
+    }
+
     return this.prevHash;
   }
 
@@ -588,7 +616,15 @@ export async function runSlowPoisoner(opts) {
   // blockers are open.
   const effectiveDryRun = !liveAllowed; // dry_run when blockers open OR explicit
 
-  const audit = new AuditEmitter({ auditDir: audit_dir, runId: run_id });
+  // Live POST to central CAEL endpoint enabled when blockers ack'd
+  // (HS bf5eec591 GET + b84cb7071 oracle wired). attacker_bearer is the
+  // x402 seat key for the attacker handle.
+  const audit = new AuditEmitter({
+    auditDir: audit_dir,
+    runId: run_id,
+    apiBase: liveAllowed ? api_base : null,
+    apiKey: liveAllowed ? attacker_bearer : null,
+  });
   await audit.init();
 
   const trialStartIso = new Date().toISOString();
