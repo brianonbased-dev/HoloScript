@@ -29,6 +29,12 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # Build core + engine FIRST — daemon-integration tests + the compile step
+      # both load via @holoscript/engine/dist/runtime/index.js, which doesn't
+      # exist until the package is built. Per repo CLAUDE.md: "Build order:
+      # @holoscript/core FIRST before any downstream package."
+      - run: pnpm --filter @holoscript/core build
+      - run: pnpm --filter @holoscript/engine build
       - run: |
           pnpm --filter @holoscript/core exec vitest run \
             src/cli/__tests__/holoscript-runner.daemon.test.ts \
