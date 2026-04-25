@@ -166,7 +166,7 @@ describe('WorldModelBootstrap', () => {
       const physicsTrait = obj.traits?.find(t =>
         typeof t !== 'string' && t.name === 'physics'
       );
-      expect((physicsTrait as any)?.mass).toBe(0);
+      expect((physicsTrait as any)?.config?.mass).toBe(0);
     });
 
     it('should add trigger trait when requested', () => {
@@ -225,8 +225,8 @@ describe('WorldModelBootstrap', () => {
         t => typeof t !== 'string' && t.name === 'provenance'
       );
       expect(provenanceTrait).toBeDefined();
-      expect((provenanceTrait as any).source).toBe('world_labs_marble');
-      expect((provenanceTrait as any).world_id).toBe('dc2c65e4-68d3-4210-a01e-7a54cc9ded2a');
+      expect((provenanceTrait as any).config?.source).toBe('world_labs_marble');
+      expect((provenanceTrait as any).config?.world_id).toBe('dc2c65e4-68d3-4210-a01e-7a54cc9ded2a');
     });
 
     it('should include Gaussian splat references by default', () => {
@@ -238,7 +238,7 @@ describe('WorldModelBootstrap', () => {
         t => typeof t !== 'string' && t.name === 'gaussian_splat'
       );
       expect(splatTrait).toBeDefined();
-      expect((splatTrait as any).spz_100k).toContain('sample-forest-100k.spz');
+      expect((splatTrait as any).config?.spz_100k).toContain('sample-forest-100k.spz');
     });
 
     it('should allow disabling provenance and splat injection', () => {
