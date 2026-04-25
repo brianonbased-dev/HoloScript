@@ -197,7 +197,7 @@ export class CameraController {
     const dx = Math.abs(this.target[0] - this.state.position[0] + off[0]);
     const dy = Math.abs(this.target[1] - this.state.position[1] + off[1]);
     const dz = this.config.deadZone;
-    if (dx < dz[0] && dy < dz[1]) return;
+    if (dx < dz.x && dy < dz.y) return;
 
     const s = 1 - Math.pow(1 - this.config.smoothing, dt * 60);
     this.state.position[0] = this.lerp(this.state.position[0], desiredX, s);

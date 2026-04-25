@@ -5,7 +5,7 @@
 declare global {
   interface SpeechRecognitionResult {
     [index: number]: { transcript: string };
-    isFinal: boolean;
+    readonly isFinal: boolean;
   }
   interface SpeechRecognitionEvent extends Event {
     results: { length: number; [index: number]: SpeechRecognitionResult } & Iterable<SpeechRecognitionResult>;

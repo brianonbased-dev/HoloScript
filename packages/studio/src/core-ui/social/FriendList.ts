@@ -37,7 +37,7 @@ export class FriendList {
         text: `${friend.displayName} (${friend.status})`,
         width: 0.45,
         height: itemHeight,
-        position: { x: 0, y: currentY, z: 0.005 },
+        position: [0, currentY, 0.005],
         color: friend.status === 'online' ? '#2d3436' : '#2d3436', // darker for offline?
       });
 

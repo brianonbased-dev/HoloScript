@@ -229,7 +229,7 @@ export class ShaderGraph {
     const node: ShaderNode = {
       id: `sn_${_shaderNodeId++}`,
       type,
-      position: { x: position[0], y: position[1] },
+      position: { x: position.x, y: position.y },
       overrides: {},
       category: def ? 'builtin' : 'custom',
       inputs,

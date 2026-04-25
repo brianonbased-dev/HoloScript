@@ -137,7 +137,6 @@ export class HeadlessRuntime {
 
     // Initialize expression evaluator
     this.builtins = this.createBuiltins();
-    // @ts-expect-error - TS2554 structural type mismatch
     this.evaluator = new ExpressionEvaluator(this.state.getSnapshot(), this.builtins);
 
     // Initialize state from AST
@@ -417,7 +416,6 @@ export class HeadlessRuntime {
         });
       }
 
-      // @ts-expect-error - TS2339 structural type mismatch
       this.evaluator.updateContext({
         ...this.state.getSnapshot(),
         ...paramContext,

@@ -139,8 +139,8 @@ export class FoliageSystem {
         if (!type) continue;
 
         // LOD
-        const dx = inst.position[0] - cameraPos[0];
-        const dz = inst.position[2] - cameraPos[2];
+        const dx = inst.position[0] - cameraPos.x;
+        const dz = inst.position[2] - cameraPos.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
         inst.lodLevel = 0;
