@@ -87,7 +87,7 @@ jobs:
 
       - name: Post PR comment with preview links
         if: steps.changed-files.outputs.has_changes == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');

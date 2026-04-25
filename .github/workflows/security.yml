@@ -164,7 +164,7 @@ jobs:
           path: security-artifacts/
 
       - name: Analyze Scans and Comment Error Logs
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
