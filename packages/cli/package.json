@@ -42,12 +42,12 @@
     "directory": "packages/cli"
   },
   "dependencies": {
-    "@holoscript/absorb-service": "workspace:^",
-    "@holoscript/core": "workspace:^",
-    "@holoscript/engine": "workspace:^",
-    "@holoscript/core-types": "workspace:^",
-    "@holoscript/llm-provider": "workspace:^",
-    "@holoscript/sdk": "workspace:^",
+    "@holoscript/absorb-service": "workspace:*",
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/core-types": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*",
+    "@holoscript/sdk": "workspace:*",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",
     "chokidar": "^3.5.3",

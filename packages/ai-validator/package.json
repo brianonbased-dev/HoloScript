@@ -17,8 +17,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:^",
-    "zod": "^3.24.0"
+    "@holoscript/core": "workspace:*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

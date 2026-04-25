@@ -22,7 +22,7 @@
     "@holoscript/core": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
-    "reactflow": "^11.11.0",
+    "reactflow": "^11.11.4",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
@@ -32,7 +32,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1",
+    "vite": ">=7.3.2",
     "vitest": "^4.1.0"
   },
   "peerDependencies": {

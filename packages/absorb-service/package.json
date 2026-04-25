@@ -85,11 +85,11 @@
     "directory": "packages/absorb-service"
   },
   "dependencies": {
-    "@holoscript/config": "workspace:^",
-    "@holoscript/llm-provider": "workspace:^",
-    "drizzle-orm": "^0.45.1",
+    "@holoscript/config": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*",
+    "drizzle-orm": ">=0.45.2",
     "openai": "^6.32.0",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   },
   "optionalDependencies": {
     "@huggingface/transformers": "^3.8.1",

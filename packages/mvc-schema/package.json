@@ -70,10 +70,10 @@
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "cbor-x": "^1.6.4",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",

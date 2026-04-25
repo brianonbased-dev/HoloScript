@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@holoscript/connector-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^0.6.0"
+    "@modelcontextprotocol/sdk": "^1.27.1"
   },
   "devDependencies": {
     "vitest": "^1.6.0",

@@ -35,14 +35,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@holoscript/absorb-service": "workspace:^",
-    "@holoscript/config": "workspace:^",
-    "@holoscript/core": "workspace:^",
-    "@holoscript/engine": "workspace:^",
-    "@holoscript/framework": "workspace:^",
-    "@holoscript/holomap": "workspace:^",
-    "@holoscript/llm-provider": "workspace:^",
-    "@holoscript/mesh": "workspace:^",
+    "@holoscript/absorb-service": "workspace:*",
+    "@holoscript/config": "workspace:*",
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/framework": "workspace:*",
+    "@holoscript/holomap": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*",
+    "@holoscript/mesh": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.215.0",
@@ -55,16 +55,16 @@
     "loro-crdt": "^1.0.0",
     "pg": "^8.13.1",
     "playwright": "^1.58.2",
-    "viem": "^2.21.0",
+    "viem": "^2.47.1",
     "ws": "^8.20.0",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.11.6",
     "tsup": "^8.0.1",
-    "tsx": "^4.7.0",
+    "tsx": "^4.19.4",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"
   },

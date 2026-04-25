@@ -12,11 +12,11 @@
     "test": "npx vitest run --reporter verbose"
   },
   "dependencies": {
-    "ws": "^8.18.3"
+    "ws": "^8.20.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.13",
-    "esbuild": "^0.25.4",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.27.3",
     "tsx": "^4.19.4",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"

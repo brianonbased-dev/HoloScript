@@ -23,15 +23,15 @@
   ],
   "dependencies": {
     "@holoscript/connector-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "form-data": "^4.0.0",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^22.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^24.10.1",
     "typescript": "^5.5.0",
     "vitest": "^4.1.0"
   },

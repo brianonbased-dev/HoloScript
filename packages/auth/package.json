@@ -40,8 +40,8 @@
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^22.10.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^24.10.1",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"

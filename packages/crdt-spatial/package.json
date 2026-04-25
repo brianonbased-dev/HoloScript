@@ -52,8 +52,8 @@
     "loro-crdt": "^1.0.0"
   },
   "peerDependencies": {
-    "@react-three/fiber": ">=8.0.0",
-    "react": ">=18.0.0"
+    "@react-three/fiber": "^9.5.0",
+    "react": "^19.2.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -64,7 +64,7 @@
     }
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
+    "@types/react": "^19.2.7",
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",

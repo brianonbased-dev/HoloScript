@@ -11,12 +11,12 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@react-three/fiber": "^8.17.10"
+    "@react-three/fiber": "^9.5.0"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:*",
-    "react": "^18.0.0",
-    "three": "^0.170.0"
+    "react": "^19.2.0",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@holoscript/core": "workspace:*",

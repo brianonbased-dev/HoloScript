@@ -48,6 +48,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build studio's type dependencies (provides dist/*.d.ts for tsc to resolve subpath imports like @holoscript/engine/orbital, @holoscript/framework/learning, @holoscript/mesh)
+        run: |
+          pnpm --filter @holoscript/core build
+          pnpm --filter @holoscript/engine build
+          pnpm --filter @holoscript/framework build
+          pnpm --filter @holoscript/mesh build
+          pnpm --filter @holoscript/r3f-renderer build
+
       - name: Type check (core)
         run: pnpm --filter @holoscript/core exec tsc --noEmit
 

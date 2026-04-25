@@ -5,13 +5,21 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run"
   },
-  "keywords": ["holoscript", "moltbook", "agent", "social", "mcp"],
+  "keywords": [
+    "holoscript",
+    "moltbook",
+    "agent",
+    "social",
+    "mcp"
+  ],
   "author": "Brian X Base Team",
   "license": "MIT",
   "repository": {
@@ -21,7 +29,7 @@
   },
   "dependencies": {
     "@holoscript/connector-core": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.1"
+    "@modelcontextprotocol/sdk": "^1.27.1"
   },
   "devDependencies": {
     "tsup": "^8.0.1",

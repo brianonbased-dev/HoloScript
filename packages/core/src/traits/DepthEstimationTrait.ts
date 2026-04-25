@@ -134,9 +134,14 @@ async function loadTransformers(): Promise<{ pipeline: (task: string, model: str
     const mod = await import('@xenova/transformers' as any);
     return mod;
   } catch {
-    // Fallback: attempt global or CDN path used in some build setups
+    // Fallback: attempt global or CDN path used in some build setups.
+    // The /* webpackIgnore: true */ magic comment tells webpack to leave
+    // this dynamic import alone — without it webpack tries to RESOLVE the
+    // HTTPS URL at build time and dies with UnhandledSchemeError. Verified
+    // 2026-04-25 against Railway studio deployment aabc0e6d.
     try {
-      const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2/dist/transformers.min.js' as any);
+      const cdnUrl = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2/dist/transformers.min.js';
+      const mod = await import(/* webpackIgnore: true */ cdnUrl as any);
       return mod;
     } catch (e) {
       throw new Error(

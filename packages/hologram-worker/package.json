@@ -19,15 +19,15 @@
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@holoscript/engine": "workspace:^",
+    "@holoscript/engine": "workspace:*",
     "onnxruntime-node": "1.21.0",
-    "playwright": "^1.49.0",
-    "sharp": "^0.33.5"
+    "playwright": "^1.58.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.10.1",
     "tsup": "^8.3.5",
-    "tsx": "^4.19.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.7.2",
     "vitest": "^4.1.0"
   },

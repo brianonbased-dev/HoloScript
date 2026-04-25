@@ -17,12 +17,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:^",
-    "@holoscript/engine": "workspace:^",
-    "@holoscript/holo-vm": "workspace:^"
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/holo-vm": "workspace:*"
   },
   "devDependencies": {
-    "@holoscript/framework": "workspace:^",
+    "@holoscript/framework": "workspace:*",
     "@holoscript/holomap": "workspace:*",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.18",

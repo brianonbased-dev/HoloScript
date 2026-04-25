@@ -818,7 +818,7 @@
     "@holoscript/framework": "workspace:*",
     "@holoscript/crdt-spatial": "workspace:*",
     "@holoscript/snn-webgpu": "workspace:*",
-    "three": ">=0.160.0"
+    "three": "^0.182.0"
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:*"
@@ -830,8 +830,8 @@
   },
   "devDependencies": {
     "@holoscript/holomap": "workspace:*",
-    "@types/node": "^22.18.3",
-    "@webgpu/types": "^0.1.40",
+    "@types/node": "^24.10.1",
+    "@webgpu/types": ">=0.1.40",
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",

@@ -26,8 +26,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:^",
-    "@holoscript/openusd-plugin": "workspace:^",
+    "@holoscript/core": "workspace:*",
+    "@holoscript/openusd-plugin": "workspace:*",
     "tinybench": "^2.9.0"
   },
   "devDependencies": {

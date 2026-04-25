@@ -55,14 +55,26 @@
       "import": "./dist/audit-log.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
     "lint": "eslint src --ext .ts"
   },
-  "keywords": ["holoscript", "agent", "ai", "mcp", "holomesh", "team", "headless", "runtime", "multi-llm"],
+  "keywords": [
+    "holoscript",
+    "agent",
+    "ai",
+    "mcp",
+    "holomesh",
+    "team",
+    "headless",
+    "runtime",
+    "multi-llm"
+  ],
   "author": "Brian X Base Team",
   "license": "MIT",
   "homepage": "https://holoscript.net",
@@ -71,7 +83,9 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/holoscript-agent"
   },
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@holoscript/llm-provider": "workspace:*",
     "ethers": "^6.16.0"

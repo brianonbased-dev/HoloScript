@@ -32,9 +32,9 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0",
-    "three": ">=0.150.0"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4",
+    "three": "^0.182.0"
   },
   "peerDependenciesMeta": {
     "three": {
@@ -42,7 +42,7 @@
     }
   },
   "devDependencies": {
-    "@testing-library/react": "^14.1.0",
+    "@testing-library/react": "^14.2.0",
     "@testing-library/user-event": "^14.5.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -51,7 +51,7 @@
     "jsdom": "^28.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
-    "three": "^0.170.0",
+    "three": "^0.182.0",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"
