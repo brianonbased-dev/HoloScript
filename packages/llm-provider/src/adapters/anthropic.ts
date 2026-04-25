@@ -129,16 +129,12 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       // mesh-worker: claim → 30s → tick-error, repeated. Direct curl + direct
       // SDK call (claude-opus-4-7, max_tokens=4096) returned in 3.5s when
       // size of output was small; bug only surfaces when generation > 30s.
-      // Tools wiring: pass through to the API, accept tool_use blocks back.
-      // Messages may carry structured content arrays (tool_result blocks
-      // from a previous loop iteration); preserve them as-is. Plain string
-      // content gets passed through unchanged.
-      const apiMessages = messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content as never, // SDK accepts string | content[]; we honor caller's shape
-      }));
-
-      const streamArgs: Record<string, unknown> = {
+      // Restored pre-tool-use literal-object call shape — the dynamic
+      // streamArgs Record<string,unknown> variant tripped a 30s wall in the
+      // production code path that the same logic with literal-object-syntax
+      // returns from in 2.8s. SDK overload resolution / inferred shape
+      // matters; keep the call literal. Tools added conditionally below.
+      const stream = client.messages.stream({
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
         // truncates commonly on modern models).
@@ -146,13 +142,16 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...samplingParams,
         stop_sequences: request.stop,
         system: system || undefined,
-        messages: apiMessages,
-      };
-      if (request.tools && request.tools.length > 0) {
-        streamArgs.tools = request.tools;
-      }
-
-      const stream = client.messages.stream(streamArgs as never);
+        messages: messages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          // Pass content through whether it's a string or a structured
+          // content-block array (tool_result follow-ups). SDK accepts both.
+          content: m.content as never,
+        })),
+        // Only set tools when the caller passed any — keeps the request
+        // shape identical to the working pre-tool-use path when tools=[].
+        ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+      });
       const response = await stream.finalMessage();
 
       // Split response.content into text + tool_use blocks. Some Opus paths
