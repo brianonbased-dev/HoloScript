@@ -267,7 +267,7 @@ export class BuildingGenerator {
       if (!wall.isExterior) continue;
 
       const wallLen = Math.sqrt(
-        Math.pow(wall.end[0] - wall.start[0], 2) + Math.pow(wall.end[2] - wall.start[2], 2)
+        Math.pow(wall.end.x - wall.start.x, 2) + Math.pow(wall.end.z - wall.start.z, 2)
       );
 
       const windowCount = Math.floor(wallLen * style.windowDensity);

@@ -266,6 +266,31 @@ export declare function CoordinateOverlay(props: CoordinateOverlayProps): any;
 
 export declare function getSpatialToolkit(id: string): any;
 export declare function listToolkits(): string[];
+
+// ── Studio-facing components + utils (W.099 deploy-blocker sweep) ───────────
+
+export type DraftShape = 'box' | 'sphere' | 'cylinder' | 'cone' | 'capsule' | 'torus' | 'plane';
+
+export interface DraftMeshNodeProps {
+  nodes?: R3FNode[];
+  node?: R3FNode;
+  onSelect?: (id: string | null) => void;
+  isSelected?: boolean;
+  [key: string]: unknown;
+}
+export declare function DraftMeshNode(props: DraftMeshNodeProps): any;
+
+export interface BiologicalMeshNodeProps {
+  node: R3FNode;
+}
+export declare function BiologicalMeshNode(props: BiologicalMeshNodeProps): any;
+
+export declare function resolveGaussianSplatSrc(node: R3FNode): string | null;
+
+export declare function partitionStudioChildren(children: R3FNode[] | undefined): {
+  batchableDraftMeshes: R3FNode[];
+  rest: R3FNode[];
+};
 `;
 
 writeFileSync(join(distDir, 'index.d.ts'), dts, 'utf8');
