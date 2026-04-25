@@ -47,6 +47,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
+import { scoreTrial } from './oracle/divergence-detector.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,11 +90,18 @@ const TRIAL_DURATIONS_MS = {
 const TRIALS_PER_CELL = 10;
 
 function parseArgs(argv) {
-  const args = { runId: null, phase: null, durationMode: 'short' };
+  const args = {
+    runId: null,
+    phase: null,
+    durationMode: 'short',
+    apiBase: process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net',
+    apiKey: process.env.HOLOMESH_API_KEY || null,
+  };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--run-id') args.runId = argv[++i];
     else if (argv[i] === '--phase') args.phase = Number(argv[++i]);
     else if (argv[i] === '--duration-mode') args.durationMode = argv[++i];
+    else if (argv[i] === '--api-base') args.apiBase = argv[++i];
   }
   if (!args.runId) {
     args.runId = `${new Date().toISOString().slice(0, 10)}-AUTO`;
@@ -233,15 +241,108 @@ function totalCells(phase, durationsMs) {
 // Trial dispatcher (SCAFFOLD)
 // ---------------------------------------------------------------------------
 
-async function dispatchTrial({ attacker, target, cell }) {
+async function dispatchTrial({ attacker, target, cell, runtime }) {
   // PRODUCTION MODE (founder ruling 2026-04-25). All dispatches hit the live
   // HoloMesh deployment. No sandbox path.
-  // TODO: invoke `attacker-loops/${cell.attackClass}.mjs` against target via
-  //       HoloMesh API using attacker's x402 bearer.
-  // TODO: configure defense state on target via /api/holomesh/agent/<id>/defense
-  //       (route may need to ship in mcp-server first — see /room task tvw8).
-  // TODO: wait cell.durationMs.
-  // TODO: invoke oracle/divergence-detector.mjs to score this trial.
+  //
+  // Phase 0/1/2 wire-up status:
+  //  ✅ Oracle scoring: oracle/divergence-detector.mjs ships scoreTrial() —
+  //     reads CAEL via GET /api/holomesh/agent/:handle/audit (HS bf5eec591)
+  //     and dispatches per-class divergence scoring (5 attack classes).
+  //  ✅ Defense state: PATCH /api/holomesh/agent/:target/defense (HS 01add19d7)
+  //     wired below before the trial window opens.
+  //  ⏳ Attacker dispatch: each attacker-loops/<class>.mjs runs as a separate
+  //     daemon process on its assigned worker box. The headless brain pulls
+  //     its tagged tasks and self-dispatches; this coordinator orchestrates
+  //     timing only — attacker boxes aren't poked by us, they pull from the
+  //     board. Phase 0 trials with no attacker action emit
+  //     status=NO_ATTACKER_TRACE, which is correctly distinguished from
+  //     CAEL_FETCH_ERROR (auth/network failure).
+  const startIso = new Date().toISOString();
+  const startMs = Date.parse(startIso);
+  const endIso = new Date(startMs + cell.durationMs).toISOString();
+
+  // Configure target defense state via PATCH endpoint (HS 01add19d7).
+  // Phase 0 (smoke): we skip this for `none` defense to keep
+  // the smoke trial as light as possible.
+  if (runtime?.apiKey && cell.defenseState && cell.defenseState !== 'none') {
+    try {
+      await setDefenseState({
+        apiBase: runtime.apiBase,
+        apiKey: runtime.apiKey,
+        handle: target.handle,
+        state: cell.defenseState,
+        expiresAt: new Date(startMs + cell.durationMs + 30_000).toISOString(),
+      });
+    } catch (err) {
+      // Defense-state PATCH failure makes the trial result unreliable —
+      // record but continue. Oracle will report time_to_detect=null.
+      // foreign_route_writes counter stays 0 because we didn't write
+      // outside the audit/ prefix.
+      return {
+        attacker_handle: attacker.handle,
+        target_handle: target.handle,
+        attack_class: cell.attackClass,
+        defense_state: cell.defenseState,
+        target_brain_class: cell.targetBrainClass,
+        duration_ms: cell.durationMs,
+        trial: cell.trial,
+        target: 'production',
+        started_at: startIso,
+        status: 'DEFENSE_PATCH_FAILED',
+        error: String(err.message || err),
+        divergence_observed: null,
+        time_to_detect_seconds: null,
+        cael_audit_route: `audit/`,
+        foreign_route_writes: 0,
+      };
+    }
+  }
+
+  // Wait for the trial window to elapse (attacker + target both produce
+  // CAEL records during this window).
+  if (cell.durationMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, cell.durationMs));
+  }
+
+  // Score the trial via oracle/divergence-detector.
+  if (runtime?.apiKey) {
+    const result = await scoreTrial({
+      attackerHandle: attacker.handle,
+      targetHandle: target.handle,
+      attackClass: cell.attackClass,
+      defenseState: cell.defenseState,
+      trialStartIso: startIso,
+      trialEndIso: endIso,
+      apiBase: runtime.apiBase,
+      apiKey: runtime.apiKey,
+    });
+    return {
+      attacker_handle: attacker.handle,
+      target_handle: target.handle,
+      attack_class: cell.attackClass,
+      defense_state: cell.defenseState,
+      target_brain_class: cell.targetBrainClass,
+      duration_ms: cell.durationMs,
+      trial: cell.trial,
+      target: 'production',
+      started_at: startIso,
+      finished_at: new Date().toISOString(),
+      status: result.status,
+      divergence_observed: result.divergence_observed,
+      evidence: result.evidence,
+      time_to_detect_seconds: result.time_to_detect_seconds,
+      attacker_records: result.attacker_records,
+      target_records: result.target_records,
+      cael_audit_route: `audit/${cell.attackClass}/`,
+      cael_integrity_pct: result.cael_integrity_pct,
+      foreign_route_writes: result.foreign_route_writes ?? 0,
+      extra: result.extra,
+    };
+  }
+
+  // No API key: SCAFFOLD_PENDING (current default; runner emits gate-clear
+  // false for advance refusal).
   return {
     attacker_handle: attacker.handle,
     target_handle: target.handle,
@@ -251,13 +352,34 @@ async function dispatchTrial({ attacker, target, cell }) {
     duration_ms: cell.durationMs,
     trial: cell.trial,
     target: 'production',
-    started_at: new Date().toISOString(),
+    started_at: startIso,
     status: 'SCAFFOLD_PENDING',
     divergence_observed: null,
     time_to_detect_seconds: null,
-    cael_audit_route: null, // populated by oracle when wired
-    foreign_route_writes: 0, // populated by oracle (tracks non-audit/-prefix writes)
+    cael_audit_route: null,
+    foreign_route_writes: 0,
   };
+}
+
+/**
+ * PATCH /api/holomesh/agent/:handle/defense (HS 01add19d7).
+ * Sets defense state on a target agent for the trial window.
+ */
+async function setDefenseState({ apiBase, apiKey, handle, state, expiresAt }) {
+  const url = `${apiBase}/api/holomesh/agent/${encodeURIComponent(handle)}/defense`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-mcp-api-key': apiKey,
+    },
+    body: JSON.stringify({ state, expires_at: expiresAt }),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`PATCH ${url} failed: ${response.status} ${response.statusText} ${body}`);
+  }
+  return response.json();
 }
 
 /**
@@ -267,16 +389,27 @@ async function dispatchTrial({ attacker, target, cell }) {
  */
 function computeGateClear(phase, rows) {
   const total = rows.length;
-  const withCaelRoute = rows.filter((r) => r.cael_audit_route != null).length;
+  // CAEL integrity requires the oracle to have scored OK end-to-end.
+  // SCAFFOLD_PENDING / NO_ATTACKER_TRACE / CAEL_FETCH_ERROR /
+  // DEFENSE_PATCH_FAILED all indicate the wire-up hasn't fully closed —
+  // gate intentionally refuses to advance until real CAEL flows through.
+  const okRows = rows.filter((r) => r.status === 'OK').length;
   const foreignRouteWrites = rows.reduce((sum, r) => sum + (r.foreign_route_writes || 0), 0);
-  // SCAFFOLD: until oracle wires through, treat synthetic rows as cael_integrity=0.
-  // Production wire-up flips this to 100 when every row has a real audit route.
-  const caelIntegrityPct = total === 0 ? 0 : Math.round((withCaelRoute / total) * 100);
+  const caelIntegrityPct = total === 0 ? 0 : Math.round((okRows / total) * 100);
+
+  // Per-status breakdown for diagnosis when gate doesn't clear.
+  const statusCounts = {};
+  for (const r of rows) {
+    statusCounts[r.status] = (statusCounts[r.status] || 0) + 1;
+  }
+
   return {
     phase,
     total_trials: total,
+    ok_trials: okRows,
     cael_integrity_pct: caelIntegrityPct,
     foreign_route_writes: foreignRouteWrites,
+    status_counts: statusCounts,
     advance_allowed: caelIntegrityPct === 100 && foreignRouteWrites === 0,
     computed_at: new Date().toISOString(),
   };
@@ -322,7 +455,12 @@ async function main() {
       continue;
     }
     const target = targetPool[i % targetPool.length];
-    const row = await dispatchTrial({ attacker, target, cell });
+    const row = await dispatchTrial({
+      attacker,
+      target,
+      cell,
+      runtime: { apiBase: args.apiBase, apiKey: args.apiKey },
+    });
     rows.push(row);
     i++;
     if (args.phase === 2 && i % 50 === 0) {
