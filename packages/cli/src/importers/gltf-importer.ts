@@ -27,6 +27,35 @@ interface GltfNode {
   extensions?: Record<string, unknown>;
 }
 
+/**
+ * Narrow extension shapes for the glTF extensions this importer reads.
+ * The wider `extensions: Record<string, unknown>` field on GltfNode/GltfData
+ * keeps the door open for unknown extensions, but every consumer below
+ * narrows via `as XExt | undefined` so strict TS doesn't error on field
+ * access. Was previously masked by `as any` (removed in d5b42fa51,
+ * unmasking these as deploy-blockers in pre-flight).
+ */
+interface KhrRigidBodyExt {
+  isKinematic?: boolean;
+  mass?: number;
+  linearVelocity?: [number, number, number];
+  angularVelocity?: [number, number, number];
+  linearDamping?: number;
+  angularDamping?: number;
+}
+
+interface MsftPhysicsExt {
+  rigidBody?: KhrRigidBodyExt;
+}
+
+interface KhrLightsPunctualExt {
+  lights?: Array<{
+    type: string;
+    color?: [number, number, number];
+    intensity?: number;
+  }>;
+}
+
 interface GltfMaterial {
   name?: string;
   pbrMetallicRoughness?: {
@@ -354,30 +383,28 @@ function inferTraits(node: GltfNode, gltf: GltfData): string[] {
   const ext = node.extensions || {};
 
   // KHR_rigid_bodies or similar physics extensions
-  if (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) {
-    const rigidBody = ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies'];
-    if (rigidBody) {
-      if (rigidBody.isKinematic) {
-        traits.push('@kinematic');
-      } else {
-        traits.push('@physics');
-        traits.push('@rigid');
-      }
-      traits.push('@collidable');
+  const rigidBody = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as
+    | KhrRigidBodyExt
+    | undefined;
+  if (rigidBody) {
+    if (rigidBody.isKinematic) {
+      traits.push('@kinematic');
+    } else {
+      traits.push('@physics');
+      traits.push('@rigid');
     }
+    traits.push('@collidable');
   }
 
   // MSFT_physics (Microsoft physics extension)
-  if (ext['MSFT_physics']) {
-    const physics = ext['MSFT_physics'];
-    if (physics.rigidBody) {
-      if (physics.rigidBody.isKinematic) {
-        traits.push('@kinematic');
-      } else {
-        traits.push('@physics');
-      }
-      traits.push('@collidable');
+  const physics = ext['MSFT_physics'] as MsftPhysicsExt | undefined;
+  if (physics?.rigidBody) {
+    if (physics.rigidBody.isKinematic) {
+      traits.push('@kinematic');
+    } else {
+      traits.push('@physics');
     }
+    traits.push('@collidable');
   }
 
   // KHR_lights_punctual
@@ -532,7 +559,9 @@ function extractPhysicsParams(node: GltfNode): string[] {
   const ext = node.extensions || {};
 
   // KHR_rigid_bodies
-  const rigid = ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies'];
+  const rigid = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as
+    | KhrRigidBodyExt
+    | undefined;
   if (rigid) {
     if (rigid.mass !== undefined) {
       params.push(`mass: ${rigid.mass}`);
@@ -546,7 +575,7 @@ function extractPhysicsParams(node: GltfNode): string[] {
   }
 
   // MSFT_physics
-  const msft = ext['MSFT_physics'];
+  const msft = ext['MSFT_physics'] as MsftPhysicsExt | undefined;
   if (msft?.rigidBody) {
     const rb = msft.rigidBody;
     if (rb.mass !== undefined) {
@@ -740,9 +769,11 @@ function buildHoloComposition(gltf: GltfData, inputPath: string): string {
   lines.push('    ambient_light: 0.4');
 
   // Check for global lighting extensions
-  if (gltf.extensions?.['KHR_lights_punctual']?.lights) {
-    const lights = gltf.extensions['KHR_lights_punctual'].lights;
-    const directionalLight = lights.find((l: any) => l.type === 'directional');
+  const lightsExt = gltf.extensions?.['KHR_lights_punctual'] as
+    | KhrLightsPunctualExt
+    | undefined;
+  if (lightsExt?.lights) {
+    const directionalLight = lightsExt.lights.find((l) => l.type === 'directional');
     if (directionalLight) {
       const color = directionalLight.color || [1, 1, 1];
       const intensity = directionalLight.intensity ?? 1;
