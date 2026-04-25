@@ -45,7 +45,7 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({
             <div className="rounded-lg bg-studio-surface p-4 border border-studio-border">
               <div className="text-xs font-semibold text-studio-text-muted uppercase tracking-wide">Content File</div>
               <div className="mt-2 text-sm font-medium text-studio-text">{contentFile?.name}</div>
-              <div className="text-xs text-studio-text-muted">{(contentFile?.size || 0) / 1024 / 1024) | 0} MB</div>
+              <div className="text-xs text-studio-text-muted">{((contentFile?.size || 0) / 1024 / 1024) | 0} MB</div>
             </div>
 
             <div className="rounded-lg bg-studio-surface p-4 border border-studio-border">

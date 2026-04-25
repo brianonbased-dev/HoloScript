@@ -223,11 +223,11 @@ export class IKSolver {
 
     const bones = chain.bones;
     const target = chain.target;
-    const rootOrigin: Vector3 = {
-      x: bones[0].position.x,
-      y: bones[0].position.y,
-      z: bones[0].position.z,
-    };
+    const rootOrigin: Vector3 = [
+      bones[0].position[0],
+      bones[0].position[1],
+      bones[0].position[2],
+    ];
 
     const segmentLengths: number[] = [];
     let totalLength = 0;
@@ -237,25 +237,25 @@ export class IKSolver {
       totalLength += len;
     }
 
-    const targetDx = target.x - rootOrigin.x;
-    const targetDy = target.y - rootOrigin.y;
-    const targetDz = target.z - rootOrigin.z;
+    const targetDx = target[0] - rootOrigin[0];
+    const targetDy = target[1] - rootOrigin[1];
+    const targetDz = target[2] - rootOrigin[2];
     const rootToTarget = Math.sqrt(targetDx * targetDx + targetDy * targetDy + targetDz * targetDz);
 
     if (rootToTarget >= totalLength) {
       // Unreachable: stretch the chain along the root→target ray.
       for (let i = 0; i < bones.length - 1; i += 1) {
         const base = bones[i].position;
-        const dx = target.x - base.x;
-        const dy = target.y - base.y;
-        const dz = target.z - base.z;
+        const dx = target[0] - base[0];
+        const dy = target[1] - base[1];
+        const dz = target[2] - base[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
         const scale = segmentLengths[i] / dist;
-        bones[i + 1].position = {
-          x: base.x + dx * scale,
-          y: base.y + dy * scale,
-          z: base.z + dz * scale,
-        };
+        bones[i + 1].position = [
+          base[0] + dx * scale,
+          base[1] + dy * scale,
+          base[2] + dz * scale,
+        ];
       }
       return true;
     }
@@ -263,43 +263,43 @@ export class IKSolver {
     const toleranceSq = 1e-6;
     for (let iter = 0; iter < chain.iterations; iter += 1) {
       // Forward reaching: pin end effector to target and walk backward.
-      bones[bones.length - 1].position = { x: target.x, y: target.y, z: target.z };
+      bones[bones.length - 1].position = [target[0], target[1], target[2]];
       for (let i = bones.length - 2; i >= 0; i -= 1) {
         const child = bones[i + 1];
         const current = bones[i];
-        const dx = current.position.x - child.position.x;
-        const dy = current.position.y - child.position.y;
-        const dz = current.position.z - child.position.z;
+        const dx = current.position[0] - child.position[0];
+        const dy = current.position[1] - child.position[1];
+        const dz = current.position[2] - child.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
         const scale = segmentLengths[i] / dist;
-        current.position = {
-          x: child.position.x + dx * scale,
-          y: child.position.y + dy * scale,
-          z: child.position.z + dz * scale,
-        };
+        current.position = [
+          child.position[0] + dx * scale,
+          child.position[1] + dy * scale,
+          child.position[2] + dz * scale,
+        ];
       }
 
       // Backward reaching: re-pin root to origin and walk forward.
-      bones[0].position = { x: rootOrigin.x, y: rootOrigin.y, z: rootOrigin.z };
+      bones[0].position = [rootOrigin[0], rootOrigin[1], rootOrigin[2]];
       for (let i = 0; i < bones.length - 1; i += 1) {
         const parent = bones[i];
         const child = bones[i + 1];
-        const dx = child.position.x - parent.position.x;
-        const dy = child.position.y - parent.position.y;
-        const dz = child.position.z - parent.position.z;
+        const dx = child.position[0] - parent.position[0];
+        const dy = child.position[1] - parent.position[1];
+        const dz = child.position[2] - parent.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
         const scale = segmentLengths[i] / dist;
-        child.position = {
-          x: parent.position.x + dx * scale,
-          y: parent.position.y + dy * scale,
-          z: parent.position.z + dz * scale,
-        };
+        child.position = [
+          parent.position[0] + dx * scale,
+          parent.position[1] + dy * scale,
+          parent.position[2] + dz * scale,
+        ];
       }
 
       const end = bones[bones.length - 1].position;
-      const errX = end.x - target.x;
-      const errY = end.y - target.y;
-      const errZ = end.z - target.z;
+      const errX = end[0] - target[0];
+      const errY = end[1] - target[1];
+      const errZ = end[2] - target[2];
       if (errX * errX + errY * errY + errZ * errZ <= toleranceSq) {
         break;
       }
@@ -342,7 +342,7 @@ export class IKSolver {
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);
 
-    const result = [current[0], current[1] + (targetY - current[1]) * blend, current[2]];
+    const result: Vector3 = [current[0], current[1] + (targetY - current[1]) * blend, current[2]];
     this.footPositions.set(footId, result);
     return result;
   }

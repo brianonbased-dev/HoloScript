@@ -937,11 +937,13 @@ export class SemanticSearchService<T = any> {
 // VR TRAIT SYSTEM TYPES
 // ============================================================================
 
-export interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+// Vector3 is a tuple in source (packages/core/src/types/HoloScriptPlus.ts:10).
+// Emitting as {x,y,z} interface here in 2026-04-22..04-25 produced hundreds
+// of engine-package TS errors like "Type 'number[]' is missing properties
+// x,y,z from Vector3" because consumer code correctly uses tuple-form
+// (engine/src/animation/IKSolver.ts:139, etc). Restoring tuple form here
+// lets pre-flight pass; for {x,y,z} object shape use three.Vector3 directly.
+export type Vector3 = [number, number, number];
 
 export interface VRHand {
   position: Vector3;
