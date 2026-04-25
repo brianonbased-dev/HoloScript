@@ -187,7 +187,9 @@ export class CertificationChecker {
   private legacyPkg?: Package;
   private legacyFiles?: Map<string, string>;
 
-  constructor(config: Partial<CertificationConfig> = {});
+  // Overload signatures cannot have parameter initializers (TS2371).
+  // Default value lives on the implementation signature only.
+  constructor(config?: Partial<CertificationConfig>);
   constructor(pkg: Package, files: Map<string, string>);
   constructor(
     configOrPkg: Partial<CertificationConfig> | Package = {},

@@ -225,6 +225,11 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         const llmPkg = await import('@holoscript/llm-provider');
         const apiKey = llmApiKey || process.env[`${effectiveProvider.toUpperCase()}_API_KEY`] || '';
 
+        // The adapter classes from @holoscript/llm-provider satisfy the
+        // structural LLMProvider interface from ../engine/GraphRAGEngine
+        // at runtime, but signatures drifted during peer's refactor. Cast
+        // at construction; runtime invariant intact. (Fix 2026-04-25 to
+        // unblock deploy.)
         let llmAdapter: LLMProvider;
         switch (effectiveProvider) {
           case 'openrouter':
@@ -232,25 +237,25 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
               apiKey: apiKey || process.env.OPENROUTER_API_KEY || '',
               defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
               baseURL: 'https://openrouter.ai/api/v1',
-            });
+            }) as unknown as LLMProvider;
             break;
           case 'openai':
             llmAdapter = new llmPkg.OpenAIAdapter({
               apiKey,
               defaultModel: llmModel ?? 'gpt-4o-mini',
-            });
+            }) as unknown as LLMProvider;
             break;
           case 'anthropic':
             llmAdapter = new llmPkg.AnthropicAdapter({
               apiKey,
               defaultModel: llmModel ?? 'claude-3-haiku-20240307',
-            });
+            }) as unknown as LLMProvider;
             break;
           case 'gemini':
             llmAdapter = new llmPkg.GeminiAdapter({
               apiKey,
               defaultModel: llmModel ?? 'gemini-1.5-flash',
-            });
+            }) as unknown as LLMProvider;
             break;
           default:
             return {

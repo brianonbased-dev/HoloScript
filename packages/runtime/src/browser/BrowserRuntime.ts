@@ -158,7 +158,12 @@ interface ParsedTemplate {
 interface ParsedObject {
   id: string;
   type: string;
-  position: [number, number, number];
+  // Position is the {x,y,z} object shape (extractPosition() canonicalizes
+  // to this); read sites use position.x/.y/.z. Was `[number,number,number]`
+  // but every writer assigns the object form via extractPosition (see
+  // line ~350, 430, 538) and every reader accesses .x/.y/.z (see ~1439).
+  // Fixed 2026-04-25 to unblock deploy.
+  position: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   rotation?: { x: number; y: number; z: number };
   color?: string;
@@ -1506,8 +1511,8 @@ class BrowserRuntime implements HoloScriptRuntime {
         if (obj.color) {
           const targetColor = new THREE.Color(obj.color);
 
-          const _coloredCount = 0;
-          const _skippedCount = 0;
+          let coloredCount = 0;
+          let skippedCount = 0;
 
           model.traverse((child: THREE.Object3D) => {
             const mesh = child as THREE.Mesh;
