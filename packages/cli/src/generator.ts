@@ -310,7 +310,7 @@ export async function generateObject(
   // Try Brittney first if available
   const brittneyCode = await tryBrittneyGeneration(description, options);
   if (brittneyCode) {
-    const traits = suggestTraits(description).map((t) => t.name);
+    const traits = (await suggestTraits(description)).map((t) => t.name);
     return {
       code: brittneyCode,
       traits,

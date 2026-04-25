@@ -55,7 +55,9 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
   };
 });
 
-documents.onDidOpen((event) => {
+// Server methods returning Promises now — handlers must be async + await.
+// (Peer migration drift fix 2026-04-25 to unblock deploy build.)
+documents.onDidOpen(async (event) => {
   const uri = event.document.uri;
   const content = event.document.getText();
   const version = event.document.version;
@@ -63,12 +65,12 @@ documents.onDidOpen((event) => {
   server.upsertDocument(uri, content, version);
   connection.sendDiagnostics({
     uri,
-    diagnostics: server.getDiagnostics(uri),
+    diagnostics: await server.getDiagnostics(uri),
   });
 });
 
 // Document sync
-documents.onDidChangeContent((change) => {
+documents.onDidChangeContent(async (change) => {
   const uri = change.document.uri;
   const content = change.document.getText();
   const version = change.document.version;
@@ -77,7 +79,7 @@ documents.onDidChangeContent((change) => {
   server.upsertDocument(uri, content, version);
 
   // Get and send diagnostics
-  const diagnostics = server.getDiagnostics(uri);
+  const diagnostics = await server.getDiagnostics(uri);
   connection.sendDiagnostics({
     uri,
     diagnostics: diagnostics,
@@ -91,35 +93,35 @@ documents.onDidClose((event) => {
 });
 
 // Completions
-connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
-  return server.getCompletions(params.textDocument.uri, params.position);
+connection.onCompletion(async (params: TextDocumentPositionParams): Promise<CompletionItem[]> => {
+  return await server.getCompletions(params.textDocument.uri, params.position);
 });
 
 // Hover
-connection.onHover((params: TextDocumentPositionParams): Hover | null => {
-  return server.getHover(params.textDocument.uri, params.position);
+connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
+  return await server.getHover(params.textDocument.uri, params.position);
 });
 
 // Go to definition
-connection.onDefinition((params: TextDocumentPositionParams): Definition | null => {
-  return server.getDefinition(params.textDocument.uri, params.position);
+connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Definition | null> => {
+  return await server.getDefinition(params.textDocument.uri, params.position);
 });
 
 // Find references
-connection.onReferences((params): Location[] => {
-  return server.findReferences(params.textDocument.uri, params.position);
+connection.onReferences(async (params): Promise<Location[]> => {
+  return await server.findReferences(params.textDocument.uri, params.position);
 });
 
-connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
-  return server.getCodeActions(params.textDocument.uri, params.range, params.context.diagnostics);
+connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[]> => {
+  return await server.getCodeActions(params.textDocument.uri, params.range, params.context.diagnostics);
 });
 
-connection.onPrepareRename((params: PrepareRenameParams) => {
-  return server.prepareRename(params.textDocument.uri, params.position);
+connection.onPrepareRename(async (params: PrepareRenameParams) => {
+  return await server.prepareRename(params.textDocument.uri, params.position);
 });
 
-connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
-  return server.rename(params.textDocument.uri, params.position, params.newName);
+connection.onRenameRequest(async (params: RenameParams): Promise<WorkspaceEdit | null> => {
+  return await server.rename(params.textDocument.uri, params.position, params.newName);
 });
 
 // Make the text document manager listen on the connection

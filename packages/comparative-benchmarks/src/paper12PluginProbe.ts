@@ -10,7 +10,7 @@ import { Bench } from 'tinybench';
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { parseHolo } from '@holoscript/core';
-import { exportToUsda } from '@holoscript/openusd-plugin';
+import { exportToUsda, type UsdaExportInput } from '@holoscript/openusd-plugin';
 
 const HOLO_TEMPLATE = (uniqueId: number) => `
       probe_${uniqueId} {
@@ -139,18 +139,21 @@ export async function runPaper12PluginProbe(
 
   // Plugin-generated USDA — exercises the @holoscript/openusd-plugin stub
   // on the same conceptual scene (hero probe + transform group). The plugin
-  // owns the USDA shape so scene edits land in one place.
-  const pluginScene = {
+  // owns the USDA shape so scene edits land in one place. UsdaExportInput
+  // import + explicit annotation lets TS narrow attrs to Record<string,
+  // string|number|number[]> at call sites (vs inferring the literal shape
+  // and rejecting on assignability check). Fix 2026-04-25 to unblock deploy.
+  const pluginScene: UsdaExportInput = {
     name: 'paper12_probe',
-    stage: 'world' as const,
+    stage: 'world',
     primitives: [
       {
-        kind: 'mesh' as const,
+        kind: 'mesh',
         path: 'HeroProbe',
         attrs: { extent: [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5], doc: 'hero probe mesh' },
       },
       {
-        kind: 'xform' as const,
+        kind: 'xform',
         path: 'ProbeProps',
         attrs: { doc: 'probe props xform' },
       },
