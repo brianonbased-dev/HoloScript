@@ -1878,6 +1878,26 @@ const httpServer = http.createServer(async (req, res) => {
     if (handled) return;
   }
 
+  // Tier-2 self-custody export routes (task_1776990890662_ards). Spec mounts
+  // these under /api/identity (not /api/holomesh) per the v3 escape-hatch spec
+  // §"API contract". Implementation re-uses HoloMesh's bearer-auth + session
+  // store, but the public path tree is its own root so it can later move under
+  // a dedicated identity service without breaking clients.
+  if (url?.startsWith('/api/identity/')) {
+    const { handleIdentityExportRoutes } = await import(
+      './holomesh/routes/identity-export-routes'
+    );
+    const pathname = new URL(url, 'http://localhost').pathname;
+    const handled = await handleIdentityExportRoutes(
+      req,
+      res,
+      pathname,
+      req.method || 'GET',
+      url
+    );
+    if (handled) return;
+  }
+
   if (url?.startsWith('/api/absorb/')) {
     const { handleAbsorbRoute } = await import('./absorb/http-routes');
     const handled = await handleAbsorbRoute(req, res, url);
