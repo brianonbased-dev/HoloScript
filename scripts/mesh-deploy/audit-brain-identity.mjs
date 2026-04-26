@@ -69,10 +69,20 @@ function vastInstances() {
 }
 
 function sshProbe(host, port) {
-  // Resolve the running brain file checksum on the instance. Looks at common
-  // bootstrap paths: /root/<class>-brain.hsplus or /root/holoscript-mesh/compositions/<class>-brain.hsplus.
-  // Returns { class, sha256 } or null if unreachable / not found.
-  const cmd = `find /root -maxdepth 4 -name '*-brain.hsplus' 2>/dev/null | head -1 | xargs -I {} sh -c 'echo "FILE={}" && sha256sum {}'`;
+  // Resolve (running brain file checksum, claimed handle) on the instance.
+  // Vast.ai fleet is DYNAMIC since 2026-04-26 — instances rotate without
+  // notice (deleted at random + new ones rented). Order-based pairing of
+  // `vastai show instances` against agents-template.json is therefore broken
+  // because position N this hour may be a different handle than position N
+  // next hour. Truth lives ON the instance: /root/agent.env declares the
+  // handle that was assigned at provision time. We probe both the brain file
+  // AND the env-declared handle, then build a handle→instance map upstream.
+  // Returns { class, sha256, path, handle } or { error } on failure.
+  const cmd = [
+    `find /root -maxdepth 4 -name '*-brain.hsplus' 2>/dev/null | head -1 | xargs -I {} sh -c 'echo \\"FILE={}\\" && sha256sum {}'`,
+    `echo "---"`,
+    `grep '^HOLOSCRIPT_AGENT_HANDLE=' /root/agent.env 2>/dev/null | head -1`,
+  ].join('; ');
   try {
     const out = execSync(
       `ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=8 -p ${port} root@${host} "${cmd}"`,
@@ -80,10 +90,17 @@ function sshProbe(host, port) {
     );
     const fileLine = out.split('\n').find((l) => l.startsWith('FILE='));
     const shaLine = out.split('\n').find((l) => /^[0-9a-f]{64}\s/.test(l));
-    if (!fileLine) return null;
-    const path = fileLine.slice('FILE='.length).trim();
+    const handleLine = out.split('\n').find((l) => l.startsWith('HOLOSCRIPT_AGENT_HANDLE='));
+    if (!fileLine && !handleLine) return null;
+    const filePath = fileLine ? fileLine.slice('FILE='.length).trim() : null;
     const sha = shaLine ? shaLine.split(/\s+/)[0] : null;
-    return { class: brainClassFromPath(path), sha256: sha, path };
+    const handle = handleLine ? handleLine.slice('HOLOSCRIPT_AGENT_HANDLE='.length).trim() : null;
+    return {
+      class: filePath ? brainClassFromPath(filePath) : null,
+      sha256: sha,
+      path: filePath,
+      handle,
+    };
   } catch (err) {
     return { error: err.message };
   }
@@ -99,45 +116,102 @@ let absentCount = 0;
 let unreachableCount = 0;
 let okCount = 0;
 
-// Match instances to planned agents by ORDER (matches deploy.py's pairing).
-const pairs = instances.map((inst, i) => ({ inst, agent: planned[i] }));
-
-for (const { inst, agent } of pairs) {
-  const handle = agent?.handle ?? `(unassigned-${inst.id})`;
-  const expectedPath = agent ? join(REPO_ROOT, agent.brainPath) : null;
-  const expectedClass = expectedPath ? brainClassFromPath(expectedPath) : 'NO-PLAN';
-  const expectedSha = expectedPath ? sha256OfFile(expectedPath) : null;
-
+// Step 1: SSH-probe each running instance to harvest its self-declared handle
+// and running brain checksum. Order-based pairing was deprecated 2026-04-26
+// when the fleet went dynamic (W.111: handles are stable identity, instance
+// IDs are ephemeral substrate). The probe is the source of truth.
+const probes = instances.map((inst) => {
   const sshHost = inst.ssh_host ?? '';
   const sshPort = inst.ssh_port ?? '';
   const probe = sshHost && sshPort ? sshProbe(sshHost, sshPort) : { error: 'no ssh coords' };
+  return { inst, probe };
+});
+
+// Step 2: Build handle → planned-agent map from agents-template.json.
+const plannedByHandle = new Map(planned.map((a) => [a.handle, a]));
+// Step 3: Walk planned handles, find the live instance that claims that handle.
+// Multiple instances claiming the same handle = identity collision (W.087-class).
+// Planned handles with no live instance = `absent` (handle never came up).
+// Live instances with no planned handle entry = `unplanned` (drift).
+const liveByHandle = new Map();
+const collisions = [];
+const unplanned = [];
+for (const { inst, probe } of probes) {
+  if (!probe || probe.error) {
+    unplanned.push({ inst, probe, reason: 'unreachable' });
+    continue;
+  }
+  const claimed = probe.handle ?? null;
+  if (!claimed) {
+    unplanned.push({ inst, probe, reason: 'no-handle-in-env' });
+    continue;
+  }
+  if (liveByHandle.has(claimed)) {
+    collisions.push({ inst, probe, claimed });
+    continue;
+  }
+  if (!plannedByHandle.has(claimed)) {
+    unplanned.push({ inst, probe, reason: 'handle-not-in-template' });
+    continue;
+  }
+  liveByHandle.set(claimed, { inst, probe });
+}
+
+let collisionCount = collisions.length;
+let unplannedCount = unplanned.length;
+
+// Step 4: Per planned handle, compute drift.
+for (const agent of planned) {
+  const handle = agent.handle;
+  const expectedPath = join(REPO_ROOT, agent.brainPath);
+  const expectedClass = brainClassFromPath(expectedPath);
+  const expectedSha = sha256OfFile(expectedPath);
+  const live = liveByHandle.get(handle);
 
   let drift = 'ok';
   let runningClass = '?';
-  if (!probe || probe.error) {
-    drift = 'unreachable';
-    runningClass = `UNREACHABLE(${probe?.error ?? 'null'})`;
-    unreachableCount++;
-  } else if (!probe.class || probe.class === 'unknown') {
+  let instId = '-';
+
+  if (!live) {
     drift = 'absent';
-    runningClass = 'MISSING';
+    runningClass = 'NO-LIVE-INSTANCE';
     absentCount++;
-  } else if (expectedClass !== probe.class || (expectedSha && probe.sha256 && expectedSha !== probe.sha256)) {
-    drift = 'drift';
-    runningClass = `${probe.class}${expectedSha && probe.sha256 && expectedSha !== probe.sha256 ? '(sha-mismatch)' : ''}`;
-    driftCount++;
   } else {
-    runningClass = probe.class;
-    okCount++;
+    instId = String(live.inst.id);
+    const probe = live.probe;
+    if (!probe.class || probe.class === 'unknown') {
+      drift = 'absent';
+      runningClass = 'BRAIN-MISSING-ON-INSTANCE';
+      absentCount++;
+    } else if (expectedClass !== probe.class || (expectedSha && probe.sha256 && expectedSha !== probe.sha256)) {
+      drift = 'drift';
+      const shaSuffix = expectedSha && probe.sha256 && expectedSha !== probe.sha256 ? '(sha-mismatch)' : '';
+      runningClass = `${probe.class}${shaSuffix}`;
+      driftCount++;
+    } else {
+      runningClass = probe.class;
+      okCount++;
+    }
   }
 
-  console.log(`${handle.padEnd(28)} instance=${String(inst.id).padEnd(10)} expected=${expectedClass.padEnd(28)} running=${runningClass.padEnd(35)} drift=${drift}`);
+  console.log(`${handle.padEnd(28)} instance=${instId.padEnd(10)} expected=${expectedClass.padEnd(28)} running=${runningClass.padEnd(35)} drift=${drift}`);
+}
+
+// Step 5: Report identity collisions (multiple instances claiming same handle)
+// and unplanned instances (instance running but no template entry — usually
+// means agents-template.json drifted from the live fleet).
+for (const { inst, probe, claimed } of collisions) {
+  console.log(`COLLISION: instance=${inst.id} also claims handle=${claimed} (already taken by another live instance) — W.087-class identity collision`);
+}
+for (const { inst, probe, reason } of unplanned) {
+  const handle = probe?.handle ?? '(no-handle)';
+  console.log(`UNPLANNED: instance=${inst.id} handle=${handle} reason=${reason} — fleet has live instance with no template entry`);
 }
 
 console.log('');
-console.log(`[audit-brain] summary: ok=${okCount} drift=${driftCount} absent=${absentCount} unreachable=${unreachableCount}`);
+console.log(`[audit-brain] summary: ok=${okCount} drift=${driftCount} absent=${absentCount} unreachable=${unreachableCount} collisions=${collisionCount} unplanned=${unplannedCount}`);
 
-// Exit non-zero on any drift so this can be a CI gate.
-if (driftCount > 0 || absentCount > 0) {
+// Exit non-zero on any drift / collision / unplanned so this can be a CI gate.
+if (driftCount > 0 || absentCount > 0 || collisionCount > 0 || unplannedCount > 0) {
   process.exit(1);
 }
