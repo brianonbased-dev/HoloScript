@@ -241,31 +241,86 @@ If you are a Cursor agent (or any peer agent operating in an asynchronous team e
 
 Skills are concentrated knowledge files — the best single-file summary of each subsystem. **Read the relevant skill file before working in any domain.** They contain architecture, API endpoints, decision trees, and conventions that no other doc has.
 
-⚠ **Audit 2026-04-26 (revised)**: prior version of this table used `ls ~/.claude/skills/` as the registration check, which misses **plugin-installed skills**. The canonical source-of-truth is the **available-skills block in the session-start system-reminder** for Claude Code; the rows below reflect that. Many skills the prior audit flagged as "❌ file-only" are actually invokable plugin skills under different names.
+**Audit 2026-04-26 (revised)**: prior version used `ls ~/.claude/skills/` as registration check, which misses plugin-installed skills. Canonical source-of-truth: the **available-skills block in the session-start system-reminder** for Claude Code. Table below grouped by workflow per W.GOLD.341 follow-up — investigate every caveat before propagating, name plugin substitutes explicitly.
 
-| Domain | Invocation | Notes / file (if reading directly) |
-|--------|------------|------------------------------------|
-| HoloScript platform | no consolidated platform skill — slice via `/admin`, `/lib`, `/builder-manager`, `/network`; for architecture read `NORTH_STAR.md` + this `AGENTS.md` directly | repo-local `.claude/skills/dev/` is file-only |
-| Building / shipping code | use `engineering:standup`, `engineering:deploy-checklist`, `engineering:code-review` (plugins) | `.claude/skills/dev/SKILL.md` for HoloScript-specific build patterns (Read tool) |
-| Codebase intelligence | call `holo_*` MCP tools directly via the holoscript MCP server (UP — verified 2026-04-26) — `holo_query_codebase`, `holo_impact_analysis`, `holo_ask_codebase`, `holo_semantic_search`, `holo_graph_status`. For higher-level reasoning: `engineering:debug`, `engineering:system-design`, `engineering:tech-debt` (plugins) | absorb-service stale v6.0.0 but `/api/absorb/graphs` returns 200 with auth — partially functional; see CLAUDE.md "Absorb Service" § |
-| HoloMesh agent network | `/network` ✅ (plugin) | also `/room` for board ops |
-| Knowledge oracle | `/oracle` ✅ (plugin) | thermodynamic trust, knowledge synthesis |
-| Team coordination | `/room` ✅ | Board API, `/room add-tasks`, task lifecycle, modes; never fabricate `task_*` IDs |
-| Codebase scanning | `/scan` ✅ (registered to user-level 2026-04-26 from this repo's `.claude/skills/scan/`) — HoloScript-specific combined-shot incl. MCP `/health` + knowledge-pipeline gaps | Fallback: `engineering:standup` (commits/PRs) + `engineering:tech-debt` (TODO/health) |
-| Neuroscience / SNN | no plugin equivalent — read `.claude/skills/neuro/SKILL.md` directly; for ML metrics use `ml-experiments` (plugin) | |
-| Documentation audit | `/documenter` ✅ (plugin) | voice rules, staleness, version consistency, agent-first writing |
-| Deep research | `/research` ✅ (plugin — was ai-workspace) | uAA2++ 8-phase protocol, web search, knowledge compression |
-| Honest critique (any) | `/critic` ✅ (registered to user-level 2026-04-26 from this repo's `.claude/skills/critic/`) — brutal, no silver linings; works for code, architecture, docs, pitch, demos, plans, papers | Fallback for code-only: `engineering:code-review` + `simplify` |
-| VR/AR environments | `/hololand` ✅ (plugin) | spatial computing, world management, VR experience design |
-| Moltbook engagement | `/moltbook` ✅ (plugin — was holomoltbook) | F.005: engagement only, no auto-crosspost |
-| Marketing / external posts | `/marketer` ✅ (plugin) | X/Reddit/HN/LinkedIn/Discord/PH; GitHub repo presentation |
-| Deployment orchestration | `/deploy` ✅ (plugin) | Railway coordination, health checks, rollback |
-| Frontend ops | `/frontend-ops` ✅ (plugin) | React/Vue/Angular component review, accessibility, bundle analysis |
-| Ecosystem onboarding | `/onboard` ✅ (plugin) | new agent connection wizard, .env setup, first heartbeat |
-| Retrospective | `/retrospective` ✅ (plugin) | session/sprint analysis, productivity patterns, improvement plans |
-| Founder decisions | `/founder` ✅ | Authority order, vision pillars, refusal list, papers-program editorial |
-| Full uAA2++ protocol | `/∞` ✅ (plugin) | 7-phase compounding |
+### Decision & Coordination
 
-**For Claude Code agents**: Invoke any `✅` skill via the Skill tool — it forks context and returns condensed results. For ⚠ rows, **read the file directly via the Read tool** — `cat <path>` works universally.
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Founder decision / about to bandaid/workaround/demote/stall for Joseph / 17-paper editorial | `/founder` ✅ | Authority order, vision pillars, refusal list |
+| Board ops (read, claim, done, send DMs, switch mode) | `/room` ✅ | Never fabricate `task_*` IDs |
+| "This task needs <domain> expertise we don't have on the team" | `/find-collaborator` ✅ | searches mesh, flags gap, posts ready DMs |
+| New agent online (new IDE/model/seat) | `/onboard` ✅ | wizard, .env, hooks, first heartbeat |
 
-**For all other agents** (Copilot, Cursor, Gemini, Codex, Windsurf, Devin): Most plugin skills aren't accessible to non-Claude-Code agents. Read the underlying skill file directly — it's the best single-file domain summary.
+### Knowledge & Synthesis
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Contradictions across knowledge / gaps in collective understanding | `/oracle` ✅ | curates cross-domain connections |
+| Deep research (8-phase uAA2++) | `/research` ✅ | was ai-workspace; same protocol |
+| TODO + git + MCP `/health` + knowledge gaps in one shot | `/scan` ✅ | registered to user-level 2026-04-26 from `.claude/skills/scan/` |
+| End-of-session retrospective | `/retrospective` ✅ | productivity patterns, recurring failures |
+| Documentation voice / staleness / version consistency | `/documenter` ✅ | agent-first writing |
+| Memory file consolidation | `anthropic-skills:consolidate-memory` ✅ | merge duplicates, fix stale facts |
+
+### Code & Shipping
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Honest critique (code, architecture, docs, pitch, demos, plans, papers) | `/critic` ✅ | registered to user-level 2026-04-26 from `.claude/skills/critic/`; no silver linings |
+| Code-only PR review (security/performance/correctness) | `engineering:code-review` ✅ | or `simplify` for inline fixes |
+| Structured debugging | `engineering:debug` ✅ | reproduce → isolate → diagnose → fix |
+| Pre-deployment checklist | `engineering:deploy-checklist` ✅ | CI, migrations, flags, rollback triggers |
+| Production incident response | `engineering:incident-response` ✅ | triage + comms + postmortem |
+| Railway deployment orchestration | `/deploy` ✅ | health checks, rollback, post-deploy verify |
+| Frontend ops (React/Vue/Angular review, a11y, bundle) | `/frontend-ops` ✅ | WCAG 2.1, vitest/jest |
+| Building / shipping HoloScript-specific patterns | `engineering:standup` (commits/PRs) ✅ + `.claude/skills/dev/SKILL.md` (Read tool) | no `/dev` plugin yet |
+
+### Codebase Intelligence
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Find callers / blast radius / "where does X live" | `holo_query_codebase`, `holo_impact_analysis` MCP tools | mcp.holoscript.net UP — verified 2026-04-26 |
+| Natural-language Q&A over codebase | `holo_ask_codebase` MCP | GraphRAG + OpenAI embeddings |
+| Semantic search by meaning | `holo_semantic_search` MCP | top-k retrieval |
+| Higher-level architectural reasoning | `engineering:system-design` + `engineering:tech-debt` ✅ | flat code-spelunking is the anti-pattern |
+
+### Papers (Gated Research)
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Threat model / red-team / Paper 21 | `/security-audit` ✅ | adversarial-first, attack PoC + measured defense |
+| Lean 4 formalization / Papers 22+23 | `/lean4` ✅ | Mathlib, kernel type-check |
+| ML metrics / F1 / ablation / Papers 17-20 | `/ml-experiments` ✅ | benchmark protocol, reviewer-survivable |
+| SNN / neuromorphic | no plugin — read `.claude/skills/neuro/SKILL.md` directly | for ML metrics defer to `/ml-experiments` |
+
+### External Presence
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| Moltbook engagement (replies, posts, karma) | `/moltbook` ✅ | F.005: engagement only, no auto-crosspost |
+| External-facing copy (X, Reddit, HN, LinkedIn, Discord, PH, GitHub README) | `/marketer` ✅ | documentarian voice, shows what was built |
+
+### Platform Slices
+
+| Workflow trigger | Skill | Notes |
+|------------------|-------|-------|
+| HoloMesh network admin (infrastructure, governance) | `/network` ✅ | CEO-level mesh authority |
+| Ecosystem dashboard / cross-service admin | `/admin` ✅ | |
+| Shared ecosystem helpers | `/lib` ✅ | |
+| Workspace / multi-agent build orchestration | `/builder-manager` ✅ | |
+| VR/AR worlds, HoloLand platform | `/hololand` ✅ | autonomous world management |
+| Consolidated HoloScript platform skill | none — slice via above; for architecture read `NORTH_STAR.md` + this `AGENTS.md` | |
+
+### Full Protocol
+
+| Workflow trigger | Skill |
+|------------------|-------|
+| Full 7-phase uAA2++ end-to-end | `/∞` ✅ |
+| Domain-specific knowledge intake | `/intake` (master) or `/intake-<domain>` ✅ |
+
+**For Claude Code agents**: Invoke any `✅` skill via the Skill tool — forks context, returns condensed result. For ungrouped or "no plugin" rows, read the file directly via the Read tool.
+
+**For all other agents** (Copilot, Cursor, Gemini, Codex, Windsurf, Devin): Most plugin skills aren't accessible. Read the underlying skill file directly — it's the best single-file domain summary.
+
+**Skill registration mechanism (W.110)**: Repo-local skills under `<repo>/.claude/skills/` are NOT auto-discovered by the Skill tool. Register via `cp -r <repo>/.claude/skills/<name>/ ~/.claude/skills/<name>/`. Effect immediate (no restart). Plugin migration follow-up: `task_1777238974785_qdd5`.
