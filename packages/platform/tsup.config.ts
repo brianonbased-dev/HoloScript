@@ -2,7 +2,14 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: { 'index': 'src/index.ts' },
   format: ['cjs', 'esm'],
-  dts: true,
+  // dts disabled while platform shares the mid-flight Vec3 migration
+  // with engine — same source-level TS errors crash tsup's dts pass.
+  // Engine tolerates via build.mjs+tolerateFailure; platform uses bare
+  // tsup so we drop dts here until migration completes. Studio + other
+  // downstream consumers don't import platform's d.ts directly (it's
+  // aliased to false in studio next.config.js). Restore once
+  // task_1777164512763_x545 (engine Vec3 migration) lands.
+  dts: false,
   splitting: false,
   sourcemap: true,
   clean: true,

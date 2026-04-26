@@ -125,11 +125,11 @@ export const SceneSchema = z.object({
         position: z.tuple([z.number(), z.number(), z.number()]),
         rotation: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
         scale: z.number().positive().default(1),
-        properties: z.record(z.unknown()).optional(),
+        properties: z.record(z.string(), z.unknown()).optional(),
       })
     )
     .optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });
@@ -160,7 +160,7 @@ export type User = z.infer<typeof UserSchema>;
 export const APIRequestSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']),
   path: z.string().startsWith('/'),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.unknown().optional(),
   timestamp: z.number(),
   signature: z.string().optional(),
