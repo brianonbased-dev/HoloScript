@@ -19,7 +19,22 @@
       "scopeTier": "hot",
       "enabled": true,
       "tickIntervalMs": 30000,
-      "enableCommitHook": true
+      "enableCommitHook": true,
+      "_sidecar_note": "AMBER §7.2 example: Goedel-V2-7B Lean-specialist sidecar co-located on H200 (88GB total fits in 140GB HBM3e per §7.1). Schema is parsed + validated by deploy.py today (run `python deploy.py --validate-only --config <this>` to confirm). EXECUTION PATH (screen -dmS startup, health-check, runtime dispatch heuristic) is NOT YET WIRED in deploy_one — gated on live-fleet validation per F.031. Next agent flips wiring after task_1777238593020_7bvu step 2 lands a fresh H200.",
+      "sidecars": [
+        {
+          "name": "lean-prover",
+          "model": "Goedel-LM/Goedel-Prover-V2-7B",
+          "port": 8082,
+          "vram_estimate_gb": 14,
+          "max_model_len": 4096,
+          "vllm_args": [
+            "--enforce-eager",
+            "--gpu-memory-utilization=0.10"
+          ],
+          "consumed_by_env_var": "LEAN_SPECIALIST_URL"
+        }
+      ]
     },
     {
       "_role": "Local-LLM — Qwen 0.5B running directly on the GPU. Zero LLM API cost; pure compute burn. Brain: trait-inference. Best for the trait-inference work that's already speced.",

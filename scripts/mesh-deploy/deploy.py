@@ -62,6 +62,203 @@ def _direct_ssh(inst: dict) -> tuple[str, int] | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Sidecar (co-located vLLM) — schema parsing + script generator (W.110/W.111).
+#
+# Per the AMBER memo at research/2026-04-26_lean4-on-qwen72b-awq-validation.md
+# §7, each agent in agents-template.json may carry an OPTIONAL `sidecars[]`
+# array. Each sidecar is a second vLLM process co-located on the same instance
+# (different port, smaller VRAM share). The lean-theorist-brain → Goedel-V2-7B
+# is the canonical use case (72B-AWQ general + 7B Lean-specialist on H200).
+#
+# THIS MODULE: schema validation + plan propagation + script-text generator.
+# Execution path (SSH the sidecar startup, run health checks) is intentionally
+# NOT wired in this commit — that requires live-instance validation and
+# F.031 says we don't ship blind. Next agent flips the wiring once a fresh
+# H200 is provisioned per task_1777238593020_7bvu step 2.
+# ---------------------------------------------------------------------------
+
+_SIDECAR_REQUIRED_FIELDS = ("name", "model", "port", "consumed_by_env_var")
+_SIDECAR_OPTIONAL_DEFAULTS = {
+    "vram_estimate_gb": None,   # validation-only; not enforced at deploy
+    "vllm_args": [],
+    "max_model_len": None,      # convenience; merged into vllm_args if set
+}
+
+
+def _validate_sidecar_specs(agent: dict) -> list[dict]:
+    """Validate the optional `sidecars[]` array on an agent template entry.
+
+    Returns a normalized list (each entry with all required + optional
+    fields populated) or raises ValueError on bad shape. Returns [] when
+    the field is absent.
+
+    Required per AMBER §7.2: name (str), model (str), port (int 1024-65535),
+    consumed_by_env_var (str, identifier-shape).
+    Optional: vram_estimate_gb (int), vllm_args (list[str]), max_model_len (int).
+    """
+    raw = agent.get("sidecars")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"sidecars must be a list, got {type(raw).__name__}")
+    out: list[dict] = []
+    seen_ports: set[int] = set()
+    seen_names: set[str] = set()
+    for idx, spec in enumerate(raw):
+        if not isinstance(spec, dict):
+            raise ValueError(f"sidecars[{idx}] must be an object, got {type(spec).__name__}")
+        for field in _SIDECAR_REQUIRED_FIELDS:
+            if field not in spec or spec[field] in (None, ""):
+                raise ValueError(f"sidecars[{idx}] missing required field '{field}'")
+        if not isinstance(spec["name"], str) or not spec["name"]:
+            raise ValueError(f"sidecars[{idx}].name must be a non-empty string")
+        if not isinstance(spec["model"], str) or "/" not in spec["model"]:
+            raise ValueError(f"sidecars[{idx}].model must look like 'org/repo'")
+        if not isinstance(spec["port"], int) or not (1024 <= spec["port"] <= 65535):
+            raise ValueError(f"sidecars[{idx}].port must be an int in [1024, 65535]")
+        if not re.match(r"^[A-Z][A-Z0-9_]*$", spec["consumed_by_env_var"]):
+            raise ValueError(
+                f"sidecars[{idx}].consumed_by_env_var must be UPPER_SNAKE_CASE "
+                f"(got {spec['consumed_by_env_var']!r})"
+            )
+        if spec["port"] == 8081:
+            raise ValueError(
+                f"sidecars[{idx}].port=8081 collides with main vLLM (bootstrap-agent.sh:273)"
+            )
+        if spec["port"] in seen_ports:
+            raise ValueError(f"sidecars[{idx}].port={spec['port']} duplicated within agent")
+        if spec["name"] in seen_names:
+            raise ValueError(f"sidecars[{idx}].name={spec['name']!r} duplicated within agent")
+        seen_ports.add(spec["port"])
+        seen_names.add(spec["name"])
+        # Optional fields — fill defaults
+        normalized = {**_SIDECAR_OPTIONAL_DEFAULTS, **spec}
+        if not isinstance(normalized["vllm_args"], list):
+            raise ValueError(f"sidecars[{idx}].vllm_args must be a list of strings")
+        if normalized.get("vram_estimate_gb") is not None:
+            if not isinstance(normalized["vram_estimate_gb"], int) or normalized["vram_estimate_gb"] <= 0:
+                raise ValueError(f"sidecars[{idx}].vram_estimate_gb must be a positive int")
+        if normalized.get("max_model_len") is not None:
+            if not isinstance(normalized["max_model_len"], int) or normalized["max_model_len"] <= 0:
+                raise ValueError(f"sidecars[{idx}].max_model_len must be a positive int")
+        out.append(normalized)
+    return out
+
+
+def _build_sidecar_env_lines(sidecars: list[dict]) -> list[str]:
+    """Build KEY=VALUE lines for the agent.env so the runtime knows where
+    each sidecar listens. The runtime dispatches based on these env vars
+    (e.g. LEAN_SPECIALIST_URL) — see runner.ts dispatch heuristic in
+    AMBER memo §7.5.
+    """
+    lines: list[str] = []
+    for sc in sidecars:
+        url = f"http://localhost:{sc['port']}/v1"
+        lines.append(f"{sc['consumed_by_env_var']}={url}")
+    return lines
+
+
+def _build_sidecar_startup_script(sidecars: list[dict]) -> str:
+    """Generate the shell script that starts each sidecar in a screen
+    session per AMBER §7.3. Returns the full script text — does NOT
+    execute. Caller is responsible for SCP + (gated) SSH execution.
+
+    Uses screen-not-systemd because Vast.ai instances are W.111-ephemeral
+    substrate; per-machine systemd unit files leak when instances rotate.
+    """
+    if not sidecars:
+        return ""
+    lines = [
+        "#!/bin/bash",
+        "# Auto-generated by deploy.py:_build_sidecar_startup_script.",
+        "# Starts co-located vLLM sidecars per AMBER memo §7.3.",
+        "# Idempotent: skips a sidecar if its screen session already exists.",
+        "set -u",
+        "LOG_DIR=\"${LOG_DIR:-/var/log}\"",
+        "mkdir -p \"$LOG_DIR\"",
+        "PY_BIN=$(command -v python3 || command -v python)",
+        "if [ -z \"$PY_BIN\" ]; then echo 'FATAL: no python on PATH' >&2; exit 1; fi",
+        "",
+    ]
+    for sc in sidecars:
+        session = f"sidecar-{sc['name']}"
+        log = f"$LOG_DIR/{session}.log"
+        vllm_args = list(sc.get("vllm_args") or [])
+        if sc.get("max_model_len"):
+            vllm_args = ["--max-model-len", str(sc["max_model_len"])] + vllm_args
+        # Re-quote vllm_args defensively so ' or " in user-supplied args don't
+        # break the heredoc. Each arg is single-quoted; embedded single quotes
+        # become '\''.
+        quoted_args = " ".join(_shell_single_quote(a) for a in vllm_args)
+        lines.extend([
+            f"# --- sidecar: name={sc['name']} model={sc['model']} port={sc['port']} ---",
+            f"if screen -ls | grep -q '\\.{session}\\b'; then",
+            f"  echo '[sidecar] {session}: already running — skipping start'",
+            "else",
+            f"  echo '[sidecar] {session}: starting in screen session'",
+            f"  screen -dmS {session} bash -c \"export VLLM_USE_V1=0 VLLM_WORKER_MULTIPROC_METHOD=spawn && \\\"$PY_BIN\\\" -m vllm.entrypoints.openai.api_server --model {sc['model']} --port {sc['port']} {quoted_args} >> {log} 2>&1\"",
+            "fi",
+            "",
+        ])
+    lines.append("echo '[sidecar] all sidecars dispatched (screen sessions); next: health-check'")
+    return "\n".join(lines) + "\n"
+
+
+def _build_sidecar_health_check(sidecars: list[dict]) -> str:
+    """Generate the health-check shell script per AMBER §7.4.
+
+    Sidecar failure is degraded, not fatal — the agent runtime falls back
+    to the main vLLM if a sidecar 5xx/timeouts. This script reports per-
+    sidecar status as PASS/DEGRADED/MISSING and exits 0 always (caller
+    decides on degradation-tolerance policy).
+    """
+    if not sidecars:
+        return ""
+    lines = [
+        "#!/bin/bash",
+        "# Auto-generated by deploy.py:_build_sidecar_health_check.",
+        "# Reports per-sidecar status. Always exits 0 (degraded-mode tolerance).",
+        "set -u",
+        "OVERALL_OK=1",
+        "",
+    ]
+    for sc in sidecars:
+        name = sc["name"]
+        model = sc["model"]
+        port = sc["port"]
+        url = f"http://127.0.0.1:{port}/v1/models"
+        lines.extend([
+            f"# --- check: name={name} expected_model={model} ---",
+            f"if RESP=$(curl -sS -m 10 {url} 2>/dev/null); then",
+            f"  if echo \"$RESP\" | grep -q {_shell_single_quote(model)}; then",
+            f"    echo 'sidecar {name}: PASS'",
+            "  else",
+            f"    echo 'sidecar {name}: DEGRADED (responding but model mismatch)'",
+            "    OVERALL_OK=0",
+            "  fi",
+            "else",
+            f"  echo 'sidecar {name}: MISSING (no /v1/models response)'",
+            "  OVERALL_OK=0",
+            "fi",
+            "",
+        ])
+    lines.extend([
+        "if [ \"$OVERALL_OK\" = \"1\" ]; then",
+        "  echo 'sidecar-summary: all-PASS'",
+        "else",
+        "  echo 'sidecar-summary: degraded — agent will fall back to main vLLM for sidecar-routed tasks'",
+        "fi",
+        "exit 0",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def _shell_single_quote(s: str) -> str:
+    """POSIX single-quote escape: 'foo' -> 'foo'; foo'bar -> 'foo'\\''bar'."""
+    return "'" + s.replace("'", "'\\''") + "'"
+
+
 _LABEL_HANDLE_RE = re.compile(r"handle=([\w.-]+)")
 
 
@@ -218,6 +415,13 @@ def build_plan(
             issues.append(f"wallet env {agent['walletEnvKey']} missing")
         if not bearer:
             issues.append(f"bearer env {agent['bearerEnvKey']} missing")
+        # AMBER §7: validate optional sidecars[] up-front so bad shape
+        # surfaces in the plan, not at deploy time.
+        try:
+            sidecars = _validate_sidecar_specs(agent)
+        except ValueError as exc:
+            sidecars = []
+            issues.append(f"sidecars schema invalid: {exc}")
         plans.append({
             "index": idx,
             "instance_id": inst["id"],
@@ -234,6 +438,7 @@ def build_plan(
             "scope": agent.get("scopeTier", "warm"),
             "already_deployed": meta.get("already_deployed", False),
             "match_phase": meta.get("phase", "?"),
+            "sidecars": sidecars,
             "issues": issues,
             "ok": not issues,
         })
@@ -415,6 +620,128 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     return {"handle": plan["handle"], "ok": True, "step": "dispatched", "log": str(log_file)}
 
 
+def _self_test_sidecar_validation() -> None:
+    """Self-tests for _validate_sidecar_specs. Run via --validate-only."""
+    # Empty / absent → []
+    assert _validate_sidecar_specs({}) == []
+    assert _validate_sidecar_specs({"sidecars": None}) == []
+    assert _validate_sidecar_specs({"sidecars": []}) == []
+
+    # Valid minimal spec
+    valid = _validate_sidecar_specs({
+        "sidecars": [{
+            "name": "lean-prover",
+            "model": "Goedel-LM/Goedel-Prover-V2-7B",
+            "port": 8082,
+            "consumed_by_env_var": "LEAN_SPECIALIST_URL",
+        }]
+    })
+    assert len(valid) == 1
+    assert valid[0]["name"] == "lean-prover"
+    assert valid[0]["vllm_args"] == []  # default
+
+    # Bad type
+    try:
+        _validate_sidecar_specs({"sidecars": "not-a-list"})
+        raise AssertionError("expected ValueError on string sidecars")
+    except ValueError:
+        pass
+
+    # Missing required
+    for missing in ("name", "model", "port", "consumed_by_env_var"):
+        spec = {
+            "name": "x", "model": "a/b", "port": 8082,
+            "consumed_by_env_var": "FOO_URL",
+        }
+        del spec[missing]
+        try:
+            _validate_sidecar_specs({"sidecars": [spec]})
+            raise AssertionError(f"expected ValueError on missing {missing}")
+        except ValueError:
+            pass
+
+    # Port collision with main vLLM
+    try:
+        _validate_sidecar_specs({"sidecars": [{
+            "name": "x", "model": "a/b", "port": 8081,
+            "consumed_by_env_var": "FOO_URL",
+        }]})
+        raise AssertionError("expected ValueError on port=8081")
+    except ValueError:
+        pass
+
+    # Bad env var name (must be UPPER_SNAKE_CASE)
+    try:
+        _validate_sidecar_specs({"sidecars": [{
+            "name": "x", "model": "a/b", "port": 8082,
+            "consumed_by_env_var": "lower_case",
+        }]})
+        raise AssertionError("expected ValueError on lower-case env var")
+    except ValueError:
+        pass
+
+    # Duplicate ports within an agent
+    try:
+        _validate_sidecar_specs({"sidecars": [
+            {"name": "a", "model": "x/y", "port": 8082, "consumed_by_env_var": "A_URL"},
+            {"name": "b", "model": "x/y", "port": 8082, "consumed_by_env_var": "B_URL"},
+        ]})
+        raise AssertionError("expected ValueError on duplicate ports")
+    except ValueError:
+        pass
+
+    # vllm_args must be a list
+    try:
+        _validate_sidecar_specs({"sidecars": [{
+            "name": "x", "model": "a/b", "port": 8082,
+            "consumed_by_env_var": "FOO_URL", "vllm_args": "--enforce-eager",
+        }]})
+        raise AssertionError("expected ValueError on string vllm_args")
+    except ValueError:
+        pass
+
+
+def _self_test_sidecar_script_generation() -> None:
+    """Self-tests for the sidecar script + health-check generators."""
+    # Empty input → empty output
+    assert _build_sidecar_startup_script([]) == ""
+    assert _build_sidecar_health_check([]) == ""
+    assert _build_sidecar_env_lines([]) == []
+
+    sidecars = [{
+        "name": "lean-prover",
+        "model": "Goedel-LM/Goedel-Prover-V2-7B",
+        "port": 8082,
+        "consumed_by_env_var": "LEAN_SPECIALIST_URL",
+        "vllm_args": ["--enforce-eager", "--gpu-memory-utilization=0.10"],
+        "max_model_len": 4096,
+        "vram_estimate_gb": 14,
+    }]
+
+    env_lines = _build_sidecar_env_lines(sidecars)
+    assert env_lines == ["LEAN_SPECIALIST_URL=http://localhost:8082/v1"], env_lines
+
+    startup = _build_sidecar_startup_script(sidecars)
+    # Sanity checks — script must reference the model + port + screen session
+    assert "Goedel-LM/Goedel-Prover-V2-7B" in startup
+    assert "8082" in startup
+    assert "screen -dmS sidecar-lean-prover" in startup
+    assert "--enforce-eager" in startup
+    assert "--max-model-len" in startup and "4096" in startup
+    assert "VLLM_USE_V1=0" in startup  # W.102
+
+    health = _build_sidecar_health_check(sidecars)
+    assert "127.0.0.1:8082" in health
+    assert "Goedel-LM/Goedel-Prover-V2-7B" in health
+    assert "exit 0" in health  # degraded-mode tolerance
+
+    # Shell-quote escaping: arg with embedded single quote
+    quoted = _shell_single_quote("foo'bar")
+    assert quoted == "'foo'\\''bar'", quoted
+    quoted2 = _shell_single_quote("plain")
+    assert quoted2 == "'plain'", quoted2
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--config", type=Path, required=True, help="agents.json path")
@@ -433,7 +760,50 @@ def main() -> int:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--force-redeploy", action="store_true",
                    help="W.111: re-bootstrap even instances already labeled with their handle. Default: skip already-deployed handles (idempotent).")
+    p.add_argument("--validate-only", action="store_true",
+                   help="AMBER §7: parse the config, validate sidecars[] schema on every agent, run self-tests, and exit. No vastai or SSH calls.")
     args = p.parse_args()
+
+    # --validate-only: schema-test path, no vastai/SSH side effects.
+    # Used by CI / next agent to confirm sidecars[] schema parses before
+    # touching the live fleet. Self-contained — no test framework needed.
+    if args.validate_only:
+        print(f"=== deploy.py --validate-only @ {datetime.now(timezone.utc).isoformat()} ===")
+        print(f"  config: {args.config}")
+        if not args.config.exists():
+            print(f"ERROR: config not found: {args.config}", file=sys.stderr)
+            return 1
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        agents = config.get("agents") or []
+        rc = 0
+        total_sidecars = 0
+        for agent in agents:
+            handle = agent.get("handle", "?")
+            try:
+                sidecars = _validate_sidecar_specs(agent)
+            except ValueError as exc:
+                print(f"  [INVALID] {handle}: {exc}", file=sys.stderr)
+                rc = 1
+                continue
+            if sidecars:
+                names = ", ".join(f"{s['name']}@{s['port']}" for s in sidecars)
+                print(f"  [OK] {handle}: {len(sidecars)} sidecar(s) — {names}")
+                total_sidecars += len(sidecars)
+            else:
+                print(f"  [OK] {handle}: 0 sidecars")
+        # Self-tests — synthetic specs to lock the contract.
+        print()
+        print("=== self-tests ===")
+        try:
+            _self_test_sidecar_validation()
+            _self_test_sidecar_script_generation()
+            print("  all self-tests PASS")
+        except AssertionError as exc:
+            print(f"  SELF-TEST FAILED: {exc}", file=sys.stderr)
+            rc = 1
+        print()
+        print(f"summary: {len(agents)} agent(s), {total_sidecars} sidecar(s) across all enabled, exit={rc}")
+        return rc
 
     if not args.config.exists():
         print(f"ERROR: config not found: {args.config}", file=sys.stderr)
@@ -485,10 +855,16 @@ def main() -> int:
     plans = build_plan(instances, agents, env)
     print()
     print("=== PLAN ===")
-    print(f"{'idx':>3} {'instance':>10} {'gpu':<14} {'handle':<28} {'provider':<10} {'phase':<14} {'idempotent':<10} {'ok':<5}")
+    print(f"{'idx':>3} {'instance':>10} {'gpu':<14} {'handle':<28} {'provider':<10} {'phase':<14} {'idempotent':<10} {'sidecars':<10} {'ok':<5}")
+    total_sidecars = 0
     for pl in plans:
         idem = 'skip-bootstrap' if pl.get('already_deployed') else 'rebuild'
-        print(f"{pl['index']:>3} {pl['instance_id']:>10} {pl['gpu_name']:<14} {pl['handle']:<28} {pl['provider']:<10} {pl.get('match_phase', '?'):<14} {idem:<10} {pl['ok']!s:<5}")
+        sc_count = len(pl.get('sidecars') or [])
+        total_sidecars += sc_count
+        sc_label = f"{sc_count} (NOT YET WIRED)" if sc_count > 0 else "0"
+        print(f"{pl['index']:>3} {pl['instance_id']:>10} {pl['gpu_name']:<14} {pl['handle']:<28} {pl['provider']:<10} {pl.get('match_phase', '?'):<14} {idem:<10} {sc_label:<10} {pl['ok']!s:<5}")
+    if total_sidecars > 0:
+        print(f"  NOTE: {total_sidecars} sidecar(s) declared but execution path is NOT YET WIRED in deploy_one (AMBER §7.3-7.5 deferred to next agent + live fleet). Use --validate-only to test the schema in isolation.")
 
     blocked = [pl for pl in plans if not pl["ok"]]
     if blocked:
