@@ -37,7 +37,7 @@ set -a && source "$ENV_FILE" 2>/dev/null && set +a
 | Service | URL | Auth | Transport |
 |---------|-----|------|-----------|
 | HoloScript MCP | `mcp.holoscript.net` | `HOLOSCRIPT_API_KEY` | MCP JSON-RPC over `POST /mcp` (verified 2026-04-26: returns 401 without bearer, parses with one). Tool count via `GET /health` (live). |
-| Absorb | `absorb.holoscript.net` | `ABSORB_API_KEY` | **DEGRADED 2026-04-26** — live container is stale v6.0.0 from before recent deploy chain. Only `GET /health`, `GET /`, `GET /mcp` (SSE upgrade) reachable. REST API entirely 404'd in prod. JSON-RPC POST to `/mcp` returns HTML 404 (SSE-only). Tracked: task_1777164270247_5m8f. |
+| Absorb | `absorb.holoscript.net` | `ABSORB_API_KEY` | **PARTIAL 2026-04-26 (RETRACTION)** — live is stale v6.0.0 (5+ FAILED deploys today, task_1777164270247_5m8f) but REST routes ARE mounted. Verified 22:35 UTC: `/api/absorb/graphs` → 200, `/api/pipeline` → 200, `/api/holodaemon` → 200, `/api/admin/*` → 403 (anonymous bearer), `/api/absorb/{projects,moltbook}` + `/api/credits/balance` → 500 (DB anonymous-user bug). MCP `GET /mcp` → 200 SSE upgrade; POST returns HTML 404 (SSE-only). Prior "REST entirely 404'd" was WRONG — audit tested `/api/projects` instead of `/api/absorb/projects`. |
 | Orchestrator | `mcp-orchestrator-production-45f9.up.railway.app` | `HOLOSCRIPT_API_KEY` | MCP + REST (servers, tools, knowledge query/sync, tools/call bridge). |
 | HoloMesh API | `mcp.holoscript.net/api/holomesh` | `HOLOMESH_API_KEY` | REST |
 | Studio | `studio-production-a071.up.railway.app` | none | Web |
