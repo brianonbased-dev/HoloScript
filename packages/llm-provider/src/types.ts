@@ -253,6 +253,28 @@ export interface OpenAIProviderConfig extends LLMProviderConfig {
 export interface AnthropicProviderConfig extends LLMProviderConfig {
   /** Anthropic API version header. Default: '2023-06-01' */
   apiVersion?: string;
+
+  /**
+   * Opt in to prompt caching on the system prompt + tools.
+   *
+   * When `true`, the adapter sends `system` in array form with a
+   * `cache_control: {type: "ephemeral"}` breakpoint on the last system
+   * block. Render order is `tools → system → messages`, so the breakpoint
+   * caches BOTH tools AND system together — exactly the pattern an agent
+   * runner needs (stable brain composition + stable tool list across
+   * many ticks).
+   *
+   * Cost shape: cache writes cost ~1.25× input on the FIRST request with
+   * a given prefix; subsequent reads cost ~0.1× input. For a stable
+   * `system` ≥ the model's minimum cacheable prefix (Opus 4.7 / Opus 4.6
+   * / Haiku 4.5: 4096 tokens; Sonnet 4.6: 2048 tokens), break-even is
+   * 2 requests with 5-min TTL. Below the minimum the request is sent
+   * unchanged — no error, just no cache benefit.
+   *
+   * Default: `false` (preserves legacy code-gen path which sends a
+   * fresh prompt every call).
+   */
+  enablePromptCaching?: boolean;
 }
 
 export interface GeminiProviderConfig extends LLMProviderConfig {

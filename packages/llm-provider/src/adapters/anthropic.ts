@@ -70,6 +70,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   readonly defaultHoloScriptModel: string;
 
   private readonly apiVersion: string;
+  private readonly enablePromptCaching: boolean;
 
   constructor(config: AnthropicProviderConfig) {
     super(config);
@@ -77,6 +78,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // when they want cost/speed tradeoffs. NEVER silently downgrade.
     this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-7';
     this.apiVersion = config.apiVersion ?? '2023-06-01';
+    // Opt-in: agent runners flip this on for ~10× per-tick cost reduction
+    // when the brain composition is reused across ticks. Code-gen path
+    // (one-off generation prompts) leaves it off — every prompt is unique.
+    this.enablePromptCaching = config.enablePromptCaching ?? false;
   }
 
   protected getDefaultModel(): string {
@@ -134,6 +139,18 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       // production code path that the same logic with literal-object-syntax
       // returns from in 2.8s. SDK overload resolution / inferred shape
       // matters; keep the call literal. Tools added conditionally below.
+      // Prompt caching opt-in: when enabled AND we have a system prompt,
+      // send `system` as an array with cache_control on the last (only)
+      // block. Render order is `tools → system → messages`, so this single
+      // breakpoint caches BOTH tools AND system together — the exact prefix
+      // an agent runner reuses across ticks. The first request pays ~1.25×
+      // input on the cached prefix; subsequent ticks within TTL pay ~0.1×.
+      // Below the model's minimum cacheable prefix (~2-4K tokens) the
+      // request is processed unchanged — no error, no benefit.
+      const systemField = this.enablePromptCaching && system
+        ? [{ type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } }]
+        : (system || undefined);
+
       const stream = client.messages.stream({
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
@@ -141,7 +158,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         max_tokens: request.maxTokens ?? 16000,
         ...samplingParams,
         stop_sequences: request.stop,
-        system: system || undefined,
+        system: systemField as never,
         messages: messages.map((m) => ({
           role: m.role as 'user' | 'assistant',
           // Pass content through whether it's a string or a structured
