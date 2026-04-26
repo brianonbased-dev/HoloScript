@@ -1,0 +1,16 @@
+---
+description: HoloDoor security guardrails (replaces Corridor)
+globs:
+alwaysApply: true
+---
+
+**Corridor is deprecated for this workspace.** Do not use the Corridor MCP server, `call_mcp_tool` with server `corridor`, or any Corridor-specific tooling.
+
+Use **HoloDoor** instead:
+
+1. **Policy** – HoloDoor policy lives in the founder integration repo: `~/.ai-ecosystem/.holodoor/policy.json` (and optional user `~/.holodoor/policy.json`). Team policy may be served from HoloMesh `GET /api/holomesh/team/{teamId}/holodoor/policy` when the MCP server is deployed. HoloScript does not vendor its own policy file; it inherits.
+2. **Enforcement** – Hooks fire from the global Claude Code config: `~/.ai-ecosystem/hooks/posttooluse/holodoor.mjs` and `~/.ai-ecosystem/hooks/stop/holodoor-flush.mjs` via `~/.ai-ecosystem/hooks/run-hook.mjs`. See `~/.ai-ecosystem/hooks/holodoor/README.md` for wiring.
+3. **MCP allowlists** – From the ai-ecosystem repo: `npm run holodoor -- validate` checks MCP config against merged policy. There is no HoloScript-local equivalent.
+4. **Planning** – Before substantive code generation, produce a concise plan (goal, steps, files touched, security notes). No third-party "plan analysis" MCP is required.
+
+If any older instruction still references Corridor, treat it as superseded by HoloDoor.
