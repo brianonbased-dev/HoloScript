@@ -257,6 +257,15 @@ const nextConfig = {
       '@x402/fetch': false,
       '@holoscript/plugin-hardware-invention': false,
       '@holoscript/plugin-therapy': false,
+      // Plugin packages imported by @holoscript/core/dist/traits/index.js but
+      // excluded from pre-flight build (--filter '!./packages/plugins/**').
+      // Stub them so studio's webpack walk doesn't die on Module not found.
+      // See deploy-railway.yml targeted-build for the exclusion.
+      '@holoscript/plugin-film-vfx': false,
+      '@holoscript/alphafold-plugin': false,
+      '@holoscript/domain-plugin-template': false,
+      '@holoscript/plugin-emergency-response': false,
+      '@holoscript/plugin-forensics': false,
       'node:stream': false,
       'node:buffer': false,
       memfs: false,
