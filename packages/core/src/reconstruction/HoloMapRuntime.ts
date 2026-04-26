@@ -15,6 +15,7 @@ import {
   runHoloMapMicroEncoderCpu,
   tryCreateHoloMapEncoderDevice,
   type HoloMapMicroEncoder,
+  type HoloMapMicroFrame,
 } from './holoMapMicroEncoder';
 import { computeHoloMapReplayFingerprint } from './replayFingerprint';
 import { HOLOMAP_SIMULATION_CONTRACT_KIND } from './contractConstants';
@@ -286,6 +287,90 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     });
   }
 
+  /**
+   * Number of tiles per axis used to fan the encoder across the frame.
+   * Total points emitted = HOLOMAP_GRID_N * HOLOMAP_GRID_N (one per tile).
+   * Each tile runs the full 8-kernel transformer chain via the micro encoder
+   * (imagePatchEmbed → layerNorm → gemm Q/K/V → rope → fusedMHA →
+   * layerNorm → gelu → gemm xyz). pagedKV append/lookup remains available
+   * for future streaming kLen>1 paths.
+   */
+  private static readonly GRID_N = 4;
+
+  /**
+   * Carve `frame` into GRID_N×GRID_N tiles. Each tile carries its own
+   * (rgb, width, height, stride, index) and the mean RGB color over its
+   * pixels (used to color the corresponding output point).
+   *
+   * Tiles inherit `frame.index` shifted by tile id so micro-encoder
+   * per-frame seeds remain deterministic and distinct across tiles.
+   */
+  private static tileFrame(
+    frame: ReconstructionFrame,
+    gridN: number,
+  ): Array<{ tile: HoloMapMicroFrame; meanColor: [number, number, number] }> {
+    const out: Array<{ tile: HoloMapMicroFrame; meanColor: [number, number, number] }> = [];
+    const tileW = Math.max(1, Math.floor(frame.width / gridN));
+    const tileH = Math.max(1, Math.floor(frame.height / gridN));
+    const stride = frame.stride;
+
+    for (let ty = 0; ty < gridN; ty += 1) {
+      for (let tx = 0; tx < gridN; tx += 1) {
+        // Last column/row absorbs remainder so we cover the full image even
+        // when width/height aren't divisible by gridN.
+        const x0 = tx * tileW;
+        const y0 = ty * tileH;
+        const x1 = tx === gridN - 1 ? frame.width : x0 + tileW;
+        const y1 = ty === gridN - 1 ? frame.height : y0 + tileH;
+        const w = x1 - x0;
+        const h = y1 - y0;
+        const tileBytes = new Uint8Array(w * h * stride);
+        let rSum = 0;
+        let gSum = 0;
+        let bSum = 0;
+        let count = 0;
+        for (let y = 0; y < h; y += 1) {
+          const srcRow = (y0 + y) * frame.width * stride;
+          const dstRow = y * w * stride;
+          for (let x = 0; x < w; x += 1) {
+            const sIdx = srcRow + (x0 + x) * stride;
+            const dIdx = dstRow + x * stride;
+            const r = frame.rgb[sIdx] ?? 0;
+            const g = frame.rgb[sIdx + 1] ?? 0;
+            const b = frame.rgb[sIdx + 2] ?? 0;
+            tileBytes[dIdx] = r;
+            tileBytes[dIdx + 1] = g;
+            tileBytes[dIdx + 2] = b;
+            if (stride === 4) tileBytes[dIdx + 3] = frame.rgb[sIdx + 3] ?? 255;
+            rSum += r;
+            gSum += g;
+            bSum += b;
+            count += 1;
+          }
+        }
+        const denom = Math.max(1, count);
+        const tileId = ty * gridN + tx;
+        out.push({
+          tile: {
+            // Encode (frameIndex, tileId) into the per-tile micro index so
+            // each tile gets a distinct deterministic micro-encoder seed.
+            index: frame.index * gridN * gridN + tileId,
+            rgb: tileBytes,
+            width: w,
+            height: h,
+            stride,
+          },
+          meanColor: [
+            Math.round(rSum / denom),
+            Math.round(gSum / denom),
+            Math.round(bSum / denom),
+          ],
+        });
+      }
+    }
+    return out;
+  }
+
   async step(frame: ReconstructionFrame): Promise<ReconstructionStep> {
     if (!this.initialized) {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
@@ -299,25 +384,70 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     }
 
     const microCfg = { seed: this.config.seed, modelHash: this.config.modelHash };
-    const xyz = this.microEncoder
-      ? await this.microEncoder.run(frame, microCfg)
-      : await runHoloMapMicroEncoderCpu(frame, microCfg);
 
-    const p0 = xyz[0] ?? 0;
-    const p1 = xyz[1] ?? 0;
-    const p2 = xyz[2] ?? 0;
+    // Run the full 8-kernel transformer pass once per tile.
+    // Each tile call exercises:
+    //   imagePatchEmbed → layerNorm → gemm(Q/K/V) →
+    //   rope → fusedMHA → layerNorm → gelu → gemm(xyz)
+    // and emits a 3-vector that becomes one point in the output cloud.
+    //
+    // Cap grid by frame extent so tiny test fixtures (e.g. 2×2) still produce
+    // a non-degenerate cloud: gridN cannot exceed min(width, height).
+    const gridN = Math.max(1, Math.min(HoloMapRuntimeImpl.GRID_N, frame.width, frame.height));
+    const tiles = HoloMapRuntimeImpl.tileFrame(frame, gridN);
+    const numPoints = tiles.length;
+
+    const positions = new Float32Array(numPoints * 3);
+    const colors = new Uint8Array(numPoints * 3);
+    const confidence = new Float32Array(numPoints);
+
+    let centroidX = 0;
+    let centroidY = 0;
+    let centroidZ = 0;
+
+    for (let t = 0; t < numPoints; t += 1) {
+      const { tile, meanColor } = tiles[t]!;
+      const xyz = this.microEncoder
+        ? await this.microEncoder.run(tile, microCfg)
+        : await runHoloMapMicroEncoderCpu(tile, microCfg);
+
+      const px = xyz[0] ?? 0;
+      const py = xyz[1] ?? 0;
+      const pz = xyz[2] ?? 0;
+
+      positions[t * 3] = px;
+      positions[t * 3 + 1] = py;
+      positions[t * 3 + 2] = pz;
+      colors[t * 3] = meanColor[0];
+      colors[t * 3 + 1] = meanColor[1];
+      colors[t * 3 + 2] = meanColor[2];
+      // Per-tile confidence: bounded function of magnitude. The xyz vector
+      // is the output of a normalised transformer pass with small init scale,
+      // so |xyz| stays small. Map to (0.5, 1.0).
+      const mag = Math.sqrt(px * px + py * py + pz * pz);
+      confidence[t] = 0.5 + 0.5 / (1 + mag);
+
+      centroidX += px;
+      centroidY += py;
+      centroidZ += pz;
+    }
+
+    const inv = 1 / Math.max(1, numPoints);
+    const poseX = centroidX * inv;
+    const poseY = centroidY * inv;
+    const poseZ = centroidZ * inv;
 
     const step: ReconstructionStep = {
       frame,
       pose: {
-        position: [p0, p1, p2],
+        position: [poseX, poseY, poseZ],
         rotation: [0, 0, 0, 1],
         confidence: 0.8,
       },
       points: {
-        positions: new Float32Array([p0, p1, p2, p0 + 0.05, p1 + 0.02, p2 + 0.01]),
-        colors: new Uint8Array([120, 180, 220, 90, 160, 210]),
-        confidence: new Float32Array([0.82, 0.78]),
+        positions,
+        colors,
+        confidence,
       },
       trajectory: {
         keyframes: [],
