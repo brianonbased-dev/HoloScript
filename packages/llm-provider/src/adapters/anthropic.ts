@@ -12,6 +12,7 @@ import type {
   LLMCompletionRequest,
   LLMCompletionResponse,
   AnthropicProviderConfig,
+  AnthropicEffortLevel,
   LLMMessage,
 } from '../types';
 import {
@@ -47,6 +48,69 @@ const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
 
 function supportsSamplingParams(model: string): boolean {
   return !SAMPLING_PARAMS_UNSUPPORTED.has(model);
+}
+
+/** Opus 4.6/4.7 and Sonnet 4.5/4.6 — default adaptive + summarized unless caller disables. */
+const ADAPTIVE_THINKING_DEFAULT_MODELS: ReadonlySet<string> = new Set([
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-sonnet-4-6',
+  'claude-sonnet-4-5',
+]);
+
+function isOpusFamilyModel(model: string): boolean {
+  return model.startsWith('claude-opus');
+}
+
+/**
+ * Maps unified request fields to Anthropic `thinking` + `output_config.effort`.
+ * - Default `thinking: { type: 'adaptive', display: 'summarized' }` for supported
+ *   Opus/Sonnet 4.x models when the caller does not set `thinking: { type: 'disabled' }`.
+ * - Default effort: `xhigh` for `claude-opus-4-7`, `high` for other adaptive-default models.
+ * - `effort: 'max'` and `effort: 'xhigh'` are only passed through on models that
+ *   support them; otherwise we downgrade to avoid 400s.
+ */
+export function buildThinkingAndOutputForAnthropic(
+  model: string,
+  request: LLMCompletionRequest,
+): { thinking?: Record<string, unknown>; output_config?: { effort: AnthropicEffortLevel } } {
+  if (request.thinking?.type === 'disabled') {
+    return { thinking: { type: 'disabled' } };
+  }
+
+  let thinking: Record<string, unknown> | undefined;
+  if (request.thinking) {
+    thinking = { ...request.thinking } as Record<string, unknown>;
+    if (request.thinkingDisplay !== undefined) {
+      thinking.display = request.thinkingDisplay;
+    }
+  } else if (ADAPTIVE_THINKING_DEFAULT_MODELS.has(model)) {
+    thinking = {
+      type: 'adaptive',
+      display: request.thinkingDisplay ?? 'summarized',
+    };
+  }
+
+  let effort = request.effort;
+  if (effort === 'xhigh' && model !== 'claude-opus-4-7') {
+    effort = 'high';
+  }
+  if (effort === 'max' && !isOpusFamilyModel(model)) {
+    effort = 'high';
+  }
+  if (effort === undefined && request.thinking?.type !== 'disabled') {
+    if (model === 'claude-opus-4-7') {
+      effort = 'xhigh';
+    } else if (ADAPTIVE_THINKING_DEFAULT_MODELS.has(model)) {
+      effort = 'high';
+    }
+  }
+
+  const output_config = effort !== undefined ? { effort } : undefined;
+  const out: { thinking?: Record<string, unknown>; output_config?: { effort: AnthropicEffortLevel } } = {};
+  if (thinking) out.thinking = thinking;
+  if (output_config) out.output_config = output_config;
+  return out;
 }
 
 /**
@@ -155,6 +219,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ? [{ type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } }]
         : (system || undefined);
 
+      const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
+
       const stream = client.messages.stream({
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
@@ -172,6 +238,11 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // Only set tools when the caller passed any — keeps the request
         // shape identical to the working pre-tool-use path when tools=[].
         ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+        // Adaptive thinking + output_config.effort (see buildThinkingAndOutputForAnthropic).
+        ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
+        ...(thinkingOut.output_config
+          ? { output_config: thinkingOut.output_config as never }
+          : {}),
       });
       const response = await stream.finalMessage();
 

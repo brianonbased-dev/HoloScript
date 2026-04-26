@@ -44,6 +44,8 @@ export type {
   ProviderSelectionStrategy,
   // Tool-use types — added 2026-04-25 for mesh-agent runner
   ToolSpec,
+  AnthropicEffortLevel,
+  AnthropicThinkingParam,
   ToolUseBlock,
   ToolResultBlock,
   TextBlock,
@@ -65,7 +67,7 @@ export { BaseLLMAdapter } from './base-adapter';
 export { OpenAIAdapter, OPENAI_MODELS } from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';
 
-export { AnthropicAdapter, ANTHROPIC_MODELS } from './adapters/anthropic';
+export { AnthropicAdapter, ANTHROPIC_MODELS, buildThinkingAndOutputForAnthropic } from './adapters/anthropic';
 export type { AnthropicModel } from './adapters/anthropic';
 
 export { GeminiAdapter, GEMINI_MODELS } from './adapters/gemini';

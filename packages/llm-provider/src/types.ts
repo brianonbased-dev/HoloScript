@@ -55,6 +55,18 @@ export interface LLMAssistantMessage {
 // Request / Response Types
 // =============================================================================
 
+/** Anthropic Messages API — `output_config.effort` (adaptive thinking guidance). */
+export type AnthropicEffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+/**
+ * `thinking` on the Anthropic Messages API. `adaptive` is the supported mode
+ * on Opus 4.7; `enabled`+`budget_tokens` is for manual / legacy paths.
+ */
+export type AnthropicThinkingParam =
+  | { type: 'adaptive'; display?: 'summarized' | 'omitted' }
+  | { type: 'disabled' }
+  | { type: 'enabled'; budget_tokens: number; display?: 'summarized' | 'omitted' };
+
 export interface LLMCompletionRequest {
   /** The messages to send to the model */
   messages: LLMMessage[];
@@ -81,6 +93,26 @@ export interface LLMCompletionRequest {
    * Anthropic adapter passes these straight through to messages.stream.
    */
   tools?: ToolSpec[];
+
+  /**
+   * Anthropic: passed to `messages.stream({ thinking })`. If omitted, Opus 4.6/4.7
+   * and Sonnet 4.5/4.6 get `{ type: 'adaptive', display: 'summarized' }` by default
+   * unless you set `thinking: { type: 'disabled' }` to opt out of extended thinking.
+   */
+  thinking?: AnthropicThinkingParam;
+
+  /**
+   * Anthropic: optional shorthand for `thinking.display` (merged when `thinking`
+   * is present, or applied together with the adaptive default for supported models).
+   */
+  thinkingDisplay?: 'summarized' | 'omitted';
+
+  /**
+   * Anthropic: `output_config.effort` on the Messages API. `max` is only
+   * meaningful on Opus family models; on other models the adapter may downgrade
+   * to `high` to avoid 400s.
+   */
+  effort?: AnthropicEffortLevel;
 }
 
 /**
