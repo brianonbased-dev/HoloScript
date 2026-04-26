@@ -13,7 +13,7 @@ import { Puzzle, X, Search, Star, Download, CheckCircle2, RefreshCw, Shield } fr
 import { usePluginHost } from '@/hooks/usePluginHost';
 import type { HoloPlugin } from '@/app/api/plugins/route';
 import { logger } from '@/lib/logger';
-import type { SandboxPermission } from '@holoscript/core';
+import type { SandboxPermission } from '@holoscript/studio-plugin-sdk/sandbox';
 
 interface PluginMarketplacePanelProps {
   onClose: () => void;
@@ -39,22 +39,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 /**
  * Maps marketplace plugin categories to default sandbox permissions.
- * Plugins from the marketplace get a conservative permission set based on their category.
- *
- * Sandbox-level permissions only — `SandboxPermission` from
- * `@holoscript/core` (PluginSandboxRunner.ts:28) is the canonical union.
- * UI-rendering capabilities (`ui:panel` / `ui:theme`) live in a separate
- * `PluginCapability` union (PluginSandbox.ts:38) and are negotiated by
- * the plugin host's panel registry, not the sandbox runner — they don't
- * belong in the manifest.permissions field consumed here.
+ * Plugins from the marketplace get a conservative permission set based on
+ * their category. The studio-plugin-sdk's `SandboxPermission` union
+ * (packages/studio-plugin-sdk/src/sandbox/types.ts:26) is the canonical
+ * source — it's a SUPERSET of the engine-internal `SandboxPermission` in
+ * `@holoscript/core/plugins/PluginSandboxRunner.ts` because the studio
+ * sandbox host adds UI/editor capabilities (`ui:panel`, `editor:viewport`,
+ * `clipboard:*`, `fs:*`) on top of the engine's scene/network/storage set.
  */
 const CATEGORY_PERMISSIONS: Record<string, SandboxPermission[]> = {
-  rendering: ['scene:read'],
-  physics: ['scene:read', 'scene:write'],
-  audio: ['scene:read'],
-  ai: ['scene:read', 'scene:write', 'network:fetch'],
-  tools: ['scene:read', 'storage:local'],
-  export: ['scene:read', 'filesystem:write'],
+  rendering: ['scene:read', 'ui:panel', 'ui:theme'],
+  physics: ['scene:read', 'scene:write', 'ui:panel'],
+  audio: ['scene:read', 'ui:panel'],
+  ai: ['scene:read', 'scene:write', 'ui:panel', 'network:fetch'],
+  tools: ['scene:read', 'ui:panel', 'storage:local'],
+  export: ['scene:read', 'ui:panel', 'fs:export'],
 };
 
 export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps) {
@@ -105,7 +104,9 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
       setInstallError(null);
 
       try {
-        const permissions = CATEGORY_PERMISSIONS[plugin.category] ?? ['scene:read', 'ui:panel'];
+        const fallback: SandboxPermission[] = ['scene:read', 'ui:panel'];
+        const permissions: SandboxPermission[] =
+          CATEGORY_PERMISSIONS[plugin.category] ?? fallback;
 
         await loadPlugin({
           pluginId: plugin.id,

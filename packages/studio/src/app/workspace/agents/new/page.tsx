@@ -54,7 +54,6 @@ function AgentConfigurationForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { register, control, handleSubmit, formState: { errors } } = useForm<AgentManifestForm>({
-    // @ts-expect-error -- Typedef mismatch between RHF and Zod Resolver
     resolver: zodResolver(AgentManifestSchema),
     defaultValues: {
       id: 'agent-',

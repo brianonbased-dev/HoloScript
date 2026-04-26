@@ -29,7 +29,6 @@ function TraitConfigurationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<TraitManifestForm>({
-    // @ts-expect-error -- Typedef mismatch between RHF and Zod Resolver
     resolver: zodResolver(TraitManifestSchema),
     defaultValues: { id: '', name: '', category: 'behavior', description: '' },
   });

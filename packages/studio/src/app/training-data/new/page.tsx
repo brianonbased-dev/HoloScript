@@ -25,7 +25,6 @@ export default function NewTrainingDataPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<TrainingDataForm>({
-    // @ts-expect-error -- Typedef mismatch between RHF and Zod Resolver
     resolver: zodResolver(TrainingDataSchema),
     defaultValues: {
       datasetId: 'dataset-',

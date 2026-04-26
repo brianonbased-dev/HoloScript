@@ -31,7 +31,6 @@ function PluginConfigurationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<PluginManifestForm>({
-    // @ts-expect-error -- Typedef mismatch between RHF and Zod Resolver
     resolver: zodResolver(PluginManifestSchema),
     defaultValues: {
       id: 'plugin-',

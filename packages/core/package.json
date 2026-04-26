@@ -92,6 +92,7 @@
       "types": "./dist/traits/index.d.ts",
       "import": "./dist/traits/index.js"
     },
+    "./traits/trait-registry.json": "./src/traits/trait-registry.json",
     "./tools": {
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js"

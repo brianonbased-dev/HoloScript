@@ -14,7 +14,9 @@ export const TraitRegistryExplorer: React.FC = () => {
   useEffect(() => {
     // In a real implementation this would fetch from the API or import the JSON
     import('@holoscript/core/traits/trait-registry.json')
-      .then((registry: Record<string, TraitDefinition>) => {
+      .then((mod) => {
+        // Dynamic JSON imports return `{ default: <content> }`.
+        const registry = (mod as { default: Record<string, unknown> }).default;
         const traitsList = Object.values(registry) as TraitDefinition[];
         setTraits(traitsList);
       })
