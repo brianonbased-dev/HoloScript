@@ -21,6 +21,37 @@ export function defaultAnthropicPricer(model: string, usage: TokenUsage): number
   return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
 }
 
+/**
+ * Pricer for local-llm providers (vLLM-on-GPU). The compute cost is the
+ * Vast.ai (or other GPU) hourly rental, NOT per-token. From the agent's
+ * perspective each LLM call has $0 marginal cost — the budget guard for
+ * local-llm should track tick count or wall-clock time, not tokens.
+ *
+ * Returns 0 unconditionally. Token counts are still recorded in CostState
+ * so usage analytics work, but cost-guard never trips on token spend.
+ */
+export function defaultLocalLlmPricer(_model: string, _usage: TokenUsage): number {
+  return 0;
+}
+
+/**
+ * Provider-aware default pricer dispatch. Picks the right pricer by
+ * provider so the holoscript-agent runtime works for both Anthropic
+ * (per-token billing) and local-llm (compute already paid via GPU
+ * rental) without a custom pricer at every call site.
+ *
+ * Refs: 2026-04-26 mw02 boot loop — local-llm workers tick-erroring with
+ * "No pricing configured for model 'Qwen/Qwen2.5-0.5B-Instruct'" because
+ * defaultAnthropicPricer was wired in for ALL providers regardless of
+ * which LLM the agent uses.
+ */
+export function defaultPricerForProvider(
+  provider: 'anthropic' | 'local-llm' | 'openai' | string
+): ModelPricer {
+  if (provider === 'local-llm' || provider === 'mock') return defaultLocalLlmPricer;
+  return defaultAnthropicPricer;
+}
+
 export class CostGuard {
   private state: CostState;
   private readonly statePath: string;

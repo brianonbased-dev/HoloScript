@@ -11,7 +11,7 @@ import {
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
 import { loadBrain } from './brain.js';
-import { CostGuard } from './cost-guard.js';
+import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
@@ -75,6 +75,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   const costGuard = new CostGuard({
     statePath: stateFilePath(identity),
     dailyBudgetUsd: identity.budgetUsdPerDay,
+    pricer: defaultPricerForProvider(identity.llmProvider),
   });
   const mesh = new HolomeshClient({
     apiBase: identity.meshApiBase,
