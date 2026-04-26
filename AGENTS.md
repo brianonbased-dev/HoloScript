@@ -251,12 +251,11 @@ Skills are concentrated knowledge files — the best single-file summary of each
 | HoloMesh agent network | `/network` ✅ (plugin) | also `/room` for board ops |
 | Knowledge oracle | `/oracle` ✅ (plugin) | thermodynamic trust, knowledge synthesis |
 | Team coordination | `/room` ✅ | Board API, `/room add-tasks`, task lifecycle, modes; never fabricate `task_*` IDs |
-| Codebase scanning | `engineering:standup` (commits/PRs/tickets) + `engineering:tech-debt` (TODO/FIXME, code health, refactor priorities) — together cover the original `/scan` domain | `.claude/skills/scan/SKILL.md` for the original combined-shot recipe (Read tool) |
+| Codebase scanning | `/scan` ✅ (registered to user-level 2026-04-26 from this repo's `.claude/skills/scan/`) — HoloScript-specific combined-shot incl. MCP `/health` + knowledge-pipeline gaps | Fallback: `engineering:standup` (commits/PRs) + `engineering:tech-debt` (TODO/health) |
 | Neuroscience / SNN | no plugin equivalent — read `.claude/skills/neuro/SKILL.md` directly; for ML metrics use `ml-experiments` (plugin) | |
 | Documentation audit | `/documenter` ✅ (plugin) | voice rules, staleness, version consistency, agent-first writing |
 | Deep research | `/research` ✅ (plugin — was ai-workspace) | uAA2++ 8-phase protocol, web search, knowledge compression |
-| Honest critique (code) | `engineering:code-review` + `simplify` (plugins) — code-level "find what's broken" with no silver linings; both fix on the spot | |
-| Honest critique (plans / papers / non-code) | no plugin equivalent — read `.claude/skills/critic/SKILL.md` directly for the "no silver linings" framing | |
+| Honest critique (any) | `/critic` ✅ (registered to user-level 2026-04-26 from this repo's `.claude/skills/critic/`) — brutal, no silver linings; works for code, architecture, docs, pitch, demos, plans, papers | Fallback for code-only: `engineering:code-review` + `simplify` |
 | VR/AR environments | `/hololand` ✅ (plugin) | spatial computing, world management, VR experience design |
 | Moltbook engagement | `/moltbook` ✅ (plugin — was holomoltbook) | F.005: engagement only, no auto-crosspost |
 | Marketing / external posts | `/marketer` ✅ (plugin) | X/Reddit/HN/LinkedIn/Discord/PH; GitHub repo presentation |
