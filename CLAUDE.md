@@ -315,15 +315,16 @@ This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run 
 
 ## Skills
 
-⚠ **STALE 2026-04-26**: the `.claude/skills/holoscript-absorb/` and `.claude/skills/absorb/` skill paths referenced below **no longer exist** as registered skills (verified `ls ~/.claude/skills/`). The `holo_*` MCP tools they wrap (`holo_ask_codebase`, `holo_impact_analysis`, `holo_query_codebase`, `holo_semantic_search`) are also currently unreachable because absorb-service is on stale v6.0.0 (task_1777164270247_5m8f). Until the absorb deploy lands + the skill is re-registered, fall back to local `git grep`, `find`, and `Grep` tool. Architectural reasoning: read the relevant package's source directly via Read tool.
+**Verified state 2026-04-26 (revised per W.GOLD.341)**: prior note here claimed `holo_*` MCP tools were "unreachable" — that was wrong on the most important axis. The HoloScript MCP server at `mcp.holoscript.net` returns 200 on `/health` and the `holo_*` codebase intelligence tools ARE callable. Absorb-service IS still stale v6.0.0, but `/api/absorb/graphs` returns 200 with auth — partially functional, not entirely down. Use the canonical tools below; only fall back to grep when something specifically errors.
 
-| Task                                         | What to do until skill is restored                    |
-| -------------------------------------------- | ----------------------------------------------------- |
-| Understand architecture / "How does X work?" | Read the relevant `packages/*/src/index.ts` barrel + the named symbol's defining file via Read tool |
-| Blast radius / "What breaks if I change X?"  | `git grep -n "<symbol>" packages/*/src/` to enumerate consumers |
-| Trace bugs / "Why is X failing?"             | Read the failing test + Grep for the symbol; cross-check with `git log -p -- <file>` for recent changes |
-| Rename / extract / split / refactor          | `git grep -n "<symbol>"` for call sites, then Edit each |
-| Tools, resources, schema reference           | `curl https://mcp.holoscript.net/health` for live tool count + `cat .well-known/mcp` for tool list |
-| Index, status, clean CLI commands            | `pnpm --filter @holoscript/cli build` then `node packages/cli/dist/cli.js --help` |
+| Task                                         | First choice (try this) | Fallback if it errors |
+| -------------------------------------------- | ----------------------- | --------------------- |
+| Understand architecture / "How does X work?" | `holo_ask_codebase({ question: "..." })` via mcp.holoscript.net | Read `packages/*/src/index.ts` barrel + symbol's defining file via Read tool |
+| Blast radius / "What breaks if I change X?"  | `holo_impact_analysis({ symbol: "..." })` via mcp.holoscript.net | `git grep -n "<symbol>" packages/*/src/` to enumerate consumers |
+| Trace bugs / "Why is X failing?"             | `engineering:debug` plugin skill | Read the failing test + Grep for the symbol; cross-check `git log -p -- <file>` |
+| Rename / extract / split / refactor          | `holo_query_codebase({ query: "callers", symbol: "..." })` | `git grep -n "<symbol>"` for call sites, then Edit each |
+| Tools, resources, schema reference           | `curl https://mcp.holoscript.net/health` for tool count + `cat .well-known/mcp` for tool list | (no fallback — these endpoints are the canonical source) |
+| Index, status, clean CLI commands            | `pnpm --filter @holoscript/cli build` then `node packages/cli/dist/cli.js --help` | (no fallback — local CLI is the canonical) |
+| Architectural reasoning / "should this go in core or engine?" | `engineering:system-design` + `engineering:tech-debt` plugin skills | Read NORTH_STAR.md DT-1 + impact analysis above |
 
 <!-- holoscript-absorb:end -->

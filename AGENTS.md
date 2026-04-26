@@ -245,17 +245,18 @@ Skills are concentrated knowledge files — the best single-file summary of each
 
 | Domain | Invocation | Notes / file (if reading directly) |
 |--------|------------|------------------------------------|
-| HoloScript platform | ⚠ no platform skill registered — read this `AGENTS.md` + `CLAUDE.md` + `NORTH_STAR.md` directly | repo-local `.claude/skills/dev/` is file-only |
-| Building / shipping code | ⚠ no `/dev` skill registered | `.claude/skills/dev/SKILL.md` (Read tool only) |
-| Codebase intelligence | ⚠ no `/holoscript-absorb` skill registered — use `holo_*` MCP tools when absorb-service is reachable; otherwise `git grep` + `Read` | `.claude/skills/holoscript-absorb/SKILL.md` (Read tool only); absorb-service degraded — see CLAUDE.md "Absorb Service" § |
+| HoloScript platform | no consolidated platform skill — slice via `/admin`, `/lib`, `/builder-manager`, `/network`; for architecture read `NORTH_STAR.md` + this `AGENTS.md` directly | repo-local `.claude/skills/dev/` is file-only |
+| Building / shipping code | use `engineering:standup`, `engineering:deploy-checklist`, `engineering:code-review` (plugins) | `.claude/skills/dev/SKILL.md` for HoloScript-specific build patterns (Read tool) |
+| Codebase intelligence | call `holo_*` MCP tools directly via the holoscript MCP server (UP — verified 2026-04-26) — `holo_query_codebase`, `holo_impact_analysis`, `holo_ask_codebase`, `holo_semantic_search`, `holo_graph_status`. For higher-level reasoning: `engineering:debug`, `engineering:system-design`, `engineering:tech-debt` (plugins) | absorb-service stale v6.0.0 but `/api/absorb/graphs` returns 200 with auth — partially functional; see CLAUDE.md "Absorb Service" § |
 | HoloMesh agent network | `/network` ✅ (plugin) | also `/room` for board ops |
 | Knowledge oracle | `/oracle` ✅ (plugin) | thermodynamic trust, knowledge synthesis |
 | Team coordination | `/room` ✅ | Board API, `/room add-tasks`, task lifecycle, modes; never fabricate `task_*` IDs |
-| Codebase scanning | ⚠ no `/scan` skill registered — fall back to `grep -rn "TODO\|FIXME" packages/*/src \| head -50 && git status --short && curl -s https://mcp.holoscript.net/health` | `.claude/skills/scan/SKILL.md` (Read tool only) |
-| Neuroscience / SNN | ⚠ no `/neuro` skill registered — read `.claude/skills/neuro/SKILL.md` directly | |
+| Codebase scanning | `engineering:standup` (commits/PRs/tickets) + `engineering:tech-debt` (TODO/FIXME, code health, refactor priorities) — together cover the original `/scan` domain | `.claude/skills/scan/SKILL.md` for the original combined-shot recipe (Read tool) |
+| Neuroscience / SNN | no plugin equivalent — read `.claude/skills/neuro/SKILL.md` directly; for ML metrics use `ml-experiments` (plugin) | |
 | Documentation audit | `/documenter` ✅ (plugin) | voice rules, staleness, version consistency, agent-first writing |
 | Deep research | `/research` ✅ (plugin — was ai-workspace) | uAA2++ 8-phase protocol, web search, knowledge compression |
-| Honest critique | ⚠ no `/critic` or `/negative-nancy` skill registered — read `.claude/skills/critic/SKILL.md` directly | |
+| Honest critique (code) | `engineering:code-review` + `simplify` (plugins) — code-level "find what's broken" with no silver linings; both fix on the spot | |
+| Honest critique (plans / papers / non-code) | no plugin equivalent — read `.claude/skills/critic/SKILL.md` directly for the "no silver linings" framing | |
 | VR/AR environments | `/hololand` ✅ (plugin) | spatial computing, world management, VR experience design |
 | Moltbook engagement | `/moltbook` ✅ (plugin — was holomoltbook) | F.005: engagement only, no auto-crosspost |
 | Marketing / external posts | `/marketer` ✅ (plugin) | X/Reddit/HN/LinkedIn/Discord/PH; GitHub repo presentation |
