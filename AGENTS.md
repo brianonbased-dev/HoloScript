@@ -241,21 +241,24 @@ If you are a Cursor agent (or any peer agent operating in an asynchronous team e
 
 Skills are concentrated knowledge files — the best single-file summary of each subsystem. **Read the relevant skill file before working in any domain.** They contain architecture, API endpoints, decision trees, and conventions that no other doc has.
 
-| Domain | Skill File | What It Knows |
-|--------|-----------|---------------|
-| HoloScript platform | `.claude/skills/holoscript/SKILL.md` | Compiler architecture, trait system, all formats, MCP tools, roadmap |
-| Building / shipping code | `.claude/skills/holoscript-dev/SKILL.md` | Build workflow, test patterns, package deps, CI, how to ship |
-| Codebase intelligence | `.claude/skills/holoscript-absorb/SKILL.md` | Graph scanning, semantic search, GraphRAG, impact analysis |
-| HoloMesh agent network | `.claude/skills/holomesh/SKILL.md` | Agent registration, gossip, CRDT sync, trust, reputation tiers |
-| Knowledge oracle | `.claude/skills/holomesh-oracle/SKILL.md` | Oracle research findings, thermodynamic trust, neuroscience model |
-| Team coordination | `~/.ai-ecosystem/.claude/skills/room/SKILL.md` | Board API, **`/room add-tasks`** (`POST …/board`), task lifecycle, modes; never fabricate `task_*` IDs (phantom-ID pitfall) |
-| Codebase scanning | `.claude/skills/scan/SKILL.md` | TODO/FIXME, git health, code quality, coverage, knowledge gaps |
-| Neuroscience / SNN | `.claude/skills/neuroscience/SKILL.md` | SNN-WebGPU, cognitive architecture, memory consolidation |
-| Documentation audit | `.claude/skills/documenter/SKILL.md` | Voice rules, staleness, version consistency, agent-first writing |
-| Deep research | `.claude/skills/ai-workspace/SKILL.md` | uAA2++ 8-phase protocol, web search, knowledge compression |
-| Honest critique | `.claude/skills/negative-nancy/SKILL.md` | What "good" looks like, what's broken, no silver linings |
-| VR/AR environments | `.claude/skills/hololand/SKILL.md` | Spatial computing, world management, VR experience design |
+⚠ **Audit 2026-04-26**: half the rows below referenced names/paths that don't match disk reality. Skill **files** live in two places: `~/.claude/skills/` (Claude-tool-invokable) and `<repo>/.claude/skills/` (file-readable but NOT Skill-tool-invokable; verified — `Skill(skill="holoscript-absorb")` returns "Unknown skill"). Table below shows the verified file path + invocation reality. Tracked at `task_1777164270247_7ee8`.
 
-**For Claude Code agents**: Invoke skills with the Skill tool (e.g., `/holoscript`, `/scan`, `/room`). Skills fork context — they handle the full workflow and return condensed results, saving your main context window.
+| Domain | Verified file path (Read tool works) | Skill-tool invokable? | What It Knows |
+|--------|-------------------------------------|------------------------|---------------|
+| HoloScript platform | (no `holoscript/` skill exists; closest: `.claude/skills/dev/`, `tools/`) | ❌ | Compiler architecture, trait system, all formats, MCP tools, roadmap |
+| Building / shipping code | `.claude/skills/dev/SKILL.md` (was named `holoscript-dev`) | ❌ (file-only) | Build workflow, test patterns, package deps, CI, how to ship |
+| Codebase intelligence | `.claude/skills/holoscript-absorb/SKILL.md` (file exists; absorb-service degraded — see CLAUDE.md "Absorb Service" §) | ❌ | Graph scanning, semantic search, GraphRAG, impact analysis |
+| HoloMesh agent network | (no `holomesh/` skill; functionality in `~/.ai-ecosystem/.claude/skills/room/SKILL.md`) | ❌ | Agent registration, gossip, CRDT sync, trust, reputation tiers |
+| Knowledge oracle | `~/.ai-ecosystem/.claude/skills/oracle/SKILL.md` (was named `holomesh-oracle`) | ❌ (file-only) | Oracle research findings, thermodynamic trust, neuroscience model |
+| Team coordination | `~/.ai-ecosystem/.claude/skills/room/SKILL.md` AND `~/.claude/skills/room/SKILL.md` | ✅ `/room` | Board API, `/room add-tasks`, task lifecycle, modes; never fabricate `task_*` IDs |
+| Codebase scanning | `.claude/skills/scan/SKILL.md` (was meant to be `/scan` invokable) | ❌ (file-only) | TODO/FIXME, git health, code quality, coverage, knowledge gaps |
+| Neuroscience / SNN | `.claude/skills/neuro/SKILL.md` (was named `neuroscience`) | ❌ (file-only) | SNN-WebGPU, cognitive architecture, memory consolidation |
+| Documentation audit | `~/.ai-ecosystem/.claude/skills/documenter/SKILL.md` | ❌ (file-only) | Voice rules, staleness, version consistency, agent-first writing |
+| Deep research | (no `ai-workspace` skill anywhere; manual fallback: WebSearch + WebFetch + the COMPRESS→GROW→RE-INTAKE step list in NORTH_STAR.md §3.1) | ❌ | uAA2++ 8-phase protocol, web search, knowledge compression |
+| Honest critique | `.claude/skills/critic/SKILL.md` (was named `negative-nancy`) | ❌ (file-only) | What "good" looks like, what's broken, no silver linings |
+| VR/AR environments | `~/.ai-ecosystem/.claude/skills/hololand/SKILL.md` | ❌ (file-only) | Spatial computing, world management, VR experience design |
+| Founder decisions | `~/.claude/skills/founder/SKILL.md` | ✅ `/founder` | Authority order, vision pillars, refusal list, papers-program editorial |
 
-**For all other agents** (Copilot, Cursor, Gemini, Codex, Windsurf, Devin): Read the skill file directly — `cat .claude/skills/<name>/SKILL.md`. It's the fastest way to understand any domain before making changes.
+**For Claude Code agents**: Only `/room` and `/founder` are Skill-tool invokable today (verified `ls ~/.claude/skills/`: also `find-collaborator`, `founder-workspace`, `lean4`, `ml-experiments`, `security-audit`, `test-simple`). For everything else, **read the file directly via the Read tool** — `cat <verified-path-from-table>` works universally. The Skill tool returns "Unknown skill" for repo-local skills under `<repo>/.claude/skills/`.
+
+**For all other agents** (Copilot, Cursor, Gemini, Codex, Windsurf, Devin): Read the skill file directly — `cat <verified-path>`. It's the fastest + only universal way to access ecosystem skills until/unless the repo-local skills get registered globally.

@@ -315,13 +315,15 @@ This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run 
 
 ## Skills
 
-| Task                                         | Read this skill file                                  |
+⚠ **STALE 2026-04-26**: the `.claude/skills/holoscript-absorb/` and `.claude/skills/absorb/` skill paths referenced below **no longer exist** as registered skills (verified `ls ~/.claude/skills/`). The `holo_*` MCP tools they wrap (`holo_ask_codebase`, `holo_impact_analysis`, `holo_query_codebase`, `holo_semantic_search`) are also currently unreachable because absorb-service is on stale v6.0.0 (task_1777164270247_5m8f). Until the absorb deploy lands + the skill is re-registered, fall back to local `git grep`, `find`, and `Grep` tool. Architectural reasoning: read the relevant package's source directly via Read tool.
+
+| Task                                         | What to do until skill is restored                    |
 | -------------------------------------------- | ----------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_ask_codebase`) |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_impact_analysis`) |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_query_codebase` + `holo_semantic_search`) |
-| Rename / extract / split / refactor          | `.claude/skills/holoscript-absorb/SKILL.md` (use `holo_impact_analysis` then edit) |
-| Tools, resources, schema reference           | `.claude/skills/absorb/SKILL.md`                      |
-| Index, status, clean CLI commands            | `.claude/skills/absorb/SKILL.md` (CLI fallbacks under `packages/cli`) |
+| Understand architecture / "How does X work?" | Read the relevant `packages/*/src/index.ts` barrel + the named symbol's defining file via Read tool |
+| Blast radius / "What breaks if I change X?"  | `git grep -n "<symbol>" packages/*/src/` to enumerate consumers |
+| Trace bugs / "Why is X failing?"             | Read the failing test + Grep for the symbol; cross-check with `git log -p -- <file>` for recent changes |
+| Rename / extract / split / refactor          | `git grep -n "<symbol>"` for call sites, then Edit each |
+| Tools, resources, schema reference           | `curl https://mcp.holoscript.net/health` for live tool count + `cat .well-known/mcp` for tool list |
+| Index, status, clean CLI commands            | `pnpm --filter @holoscript/cli build` then `node packages/cli/dist/cli.js --help` |
 
 <!-- holoscript-absorb:end -->
