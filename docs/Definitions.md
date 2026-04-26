@@ -48,6 +48,8 @@
 2. **Execution** → **fleet** cells and scripts, configured as **prod replica** when the paper requires it.
 3. **Gap-finding** → periodic review of **underutilized** code and **shared** GPU / agent **configs** against active paper cells.
 
+**Paper → production-replica mapping (v1):** [prod-replica-paper-matrix.md](research-ops/prod-replica-paper-matrix.md).
+
 When you add a new overloaded term, update **`ai-ecosystem/DEFINITIONS.md`** first, then keep this file in sync for the **fleet / room** columns.
 
 ---
