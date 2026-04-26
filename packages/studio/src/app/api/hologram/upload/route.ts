@@ -133,7 +133,10 @@ export async function POST(request: NextRequest) {
     if (bundle.parallaxWebm?.length) scanChunks.push(Buffer.from(bundle.parallaxWebm));
     virusScanHookPoint('hologram/bundle', Buffer.concat(scanChunks));
     const { hash, written } = await store.put(bundle);
-    return NextResponse.json({ hash, written });
+    // Sprint 2 (A): canonical share URL — clients display this directly so
+    // they don't have to re-derive it from the hash. The path is /g/<hash>;
+    // the route itself lives in app/g/[hash]/page.tsx.
+    return NextResponse.json({ hash, written, url: `/g/${hash}` });
   } catch (err) {
     if (err instanceof HologramBundleError) {
       return jsonError(400, err.message, err.code);
