@@ -187,18 +187,34 @@ cd "$WORKSPACE"
 pnpm install --filter @holoscript/holoscript-agent... --frozen-lockfile=false
 
 # ---------------------------------------------------------------------------
-# Lean toolchain (only for anthropic-provider lean-theorist work).
-# Install elan + lake so the agent's bash tool can run `lake build` to
-# kernel-check Lean proofs it produces. Without this, lean-theorist agents
-# write Invariants.lean files but cannot verify them (observed 2026-04-25:
-# W01 H200 produced Paper 22 invariant 4 closed but flagged "I cannot run
-# lake build in this sandbox" per anti-pattern rule_2/rule_6 honest disclosure).
-# Only install on anthropic instances — local-llm workers don't write Lean.
+# Lean toolchain — installs when the AGENT BRAIN declares Lean capability
+# (filename pattern lean*brain*), regardless of LLM provider.
+#
+# Why brain-based, not provider-based: 2026-04-25 the gate was
+# `provider=anthropic` because at the time only mw01 (anthropic claude-opus-4-7)
+# ran the lean-theorist-brain. Founder ruling 2026-04-25 then flipped mw01 to
+# local-llm Qwen 72B-AWQ for cost reasons (commit 97efb061c on template +
+# f592086ae on agents.json). With provider-based gating, mw01 stops getting
+# elan installed even though it's still running lean-theorist-brain — exactly
+# the kind of cross-axis drift W.111 warned about (provider and capability are
+# orthogonal axes; binding tooling to one means flips on the other silently
+# break tooling).
+#
+# New contract: tooling binds to brain capability (the .hsplus the agent runs),
+# not to the LLM provider serving it. Pattern `lean*brain*` matches
+# `lean-theorist-brain.hsplus` today + any future `lean-prover-brain.hsplus`,
+# `lean-tactic-brain.hsplus`, etc.
+#
+# Without this install, lean-theorist agents write Invariants.lean files but
+# cannot verify them (observed 2026-04-25: W01 H200 produced Paper 22 invariant
+# 4 closed but flagged "I cannot run lake build in this sandbox" per
+# anti-pattern rule_2/rule_6 honest disclosure).
+#
 # Idempotent: skip if elan already present.
 # ---------------------------------------------------------------------------
-if [ "$HOLOSCRIPT_AGENT_PROVIDER" = "anthropic" ]; then
+if echo "${HOLOSCRIPT_AGENT_BRAIN:-}" | grep -qE 'lean[^/]*brain'; then
   if ! command -v lake >/dev/null 2>&1; then
-    echo "[bootstrap] installing Lean toolchain (elan + lake) for anthropic agent…"
+    echo "[bootstrap] installing Lean toolchain (elan + lake) for brain=$HOLOSCRIPT_AGENT_BRAIN…"
     curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
       | sh -s -- -y --default-toolchain leanprover/lean4:v4.15.0 2>&1 | tail -3 || true
     if ! grep -q "elan" /root/.bashrc 2>/dev/null; then
@@ -213,6 +229,8 @@ if [ "$HOLOSCRIPT_AGENT_PROVIDER" = "anthropic" ]; then
   else
     echo "[bootstrap] lean toolchain already installed, skipping"
   fi
+else
+  echo "[bootstrap] brain ($HOLOSCRIPT_AGENT_BRAIN) does not need Lean toolchain — skipping elan install"
 fi
 
 echo "[bootstrap] building @holoscript/holoscript-agent + all workspace deps (topo order)…"
