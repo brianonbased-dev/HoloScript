@@ -45,7 +45,14 @@ export interface BoardTask {
 }
 
 export interface TickResult {
-  action: 'heartbeat-only' | 'over-budget' | 'no-claimable-task' | 'claimed' | 'executed' | 'errored';
+  action:
+    | 'heartbeat-only'
+    | 'over-budget'
+    | 'no-claimable-task'
+    | 'claimed'
+    | 'executed'
+    | 'errored'
+    | 'no-artifact';
   taskId?: string;
   spentUsd: number;
   remainingUsd: number;

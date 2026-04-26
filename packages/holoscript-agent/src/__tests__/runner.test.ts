@@ -7,13 +7,63 @@ import { CostGuard } from '../cost-guard.js';
 import { AgentRunner } from '../runner.js';
 import type { AgentIdentity, BoardTask, ExecutionResult, RuntimeBrainConfig } from '../types.js';
 
-function mockProvider(opts: { promptTokens: number; completionTokens: number; content?: string }): ILLMProvider {
-  const usage = { ...opts, totalTokens: opts.promptTokens + opts.completionTokens };
+/**
+ * mockProvider — supports two shapes:
+ *   1) Tool-call-then-text sequence (DEFAULT) — first call returns tool_use
+ *      with one bash invocation, second call returns final text. This is the
+ *      happy-path shape that satisfies the W.107 artifact-grounding gate
+ *      (added 2026-04-26 after mesh-worker-02 audit found 27.5h of fabricated
+ *      "100 scenes validated" deliverables with zero side-effecting tool calls).
+ *      Pass `toolCallsBeforeText: ['bash', 'write_file', ...]` to customize.
+ *   2) Pure-text response (no tool call) — pass `toolCallsBeforeText: []` (or
+ *      a list with only read-only tools like `['read_file']`). Used to exercise
+ *      the W.107 gate's no-artifact path: the runner refuses to mark `executed`,
+ *      skips CAEL post, skips message-on-task, and returns `action: 'no-artifact'`.
+ */
+function mockProvider(opts: {
+  promptTokens: number;
+  completionTokens: number;
+  content?: string;
+  toolCallsBeforeText?: string[];
+}): ILLMProvider {
+  // Default: single bash call → satisfies W.107 gate. Tests that want the
+  // no-artifact path must explicitly pass `toolCallsBeforeText: []` or a
+  // read-only list like `['read_file']`. Concurrency-safe: detects first-
+  // call-per-tick via req.messages.length rather than callCount.
+  const toolCalls = opts.toolCallsBeforeText ?? ['bash'];
+  const usage = {
+    promptTokens: opts.promptTokens,
+    completionTokens: opts.completionTokens,
+    totalTokens: opts.promptTokens + opts.completionTokens,
+  };
   return {
     name: 'mock',
     models: ['mock-1'],
     defaultHoloScriptModel: 'mock-1',
-    async complete(_req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+    async complete(req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+      const isFirstCallOfTick = (req.messages?.length ?? 0) <= 2;
+      if (toolCalls.length > 0 && isFirstCallOfTick) {
+        // First call: emit tool-use blocks for each tool name requested.
+        return {
+          content: '',
+          usage,
+          model: 'mock-1',
+          provider: 'mock',
+          finishReason: 'tool_use',
+          toolUses: toolCalls.map((name, i) => ({
+            id: `mock-tu-${i}`,
+            name,
+            input: name === 'bash' ? { cmd: 'echo ok' } : { path: '/tmp/x', content: 'x' },
+          })),
+          assistantBlocks: toolCalls.map((name, i) => ({
+            type: 'tool_use' as const,
+            id: `mock-tu-${i}`,
+            name,
+            input: name === 'bash' ? { cmd: 'echo ok' } : { path: '/tmp/x', content: 'x' },
+          })),
+        } as unknown as LLMCompletionResponse;
+      }
+      // Subsequent call (or default path): final text response.
       return {
         content: opts.content ?? 'response from mock',
         usage,
@@ -95,7 +145,9 @@ describe('AgentRunner.tick', () => {
       { id: 't-G10', title: 'cross-paper threat-model memo', description: 'G10', priority: 'high', tags: ['security', 'paper-21'], status: 'open' },
     ];
     const mesh = mockMesh({ tasks });
-    const provider = mockProvider({ promptTokens: 100, completionTokens: 50 });
+    // W.107 gate: a happy path must call at least one side-effecting tool
+    // (bash or write_file). Pure-text responses now hit the no-artifact path.
+    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: ['bash'] });
     const runner = new AgentRunner({
       identity: IDENTITY,
       brain: BRAIN,
@@ -112,6 +164,58 @@ describe('AgentRunner.tick', () => {
     expect(mesh.sendMessageOnTask).toHaveBeenCalledTimes(1);
     expect(mesh.messages[0].taskId).toBe('t-G10');
     expect(mesh.messages[0].body).toContain('response from mock');
+  });
+
+  // W.107 artifact-grounding gate (added 2026-04-26 after the mesh-worker-02
+  // audit found 27.5h of fabricated "100 scenes validated" deliverables with
+  // zero side-effecting tool calls). The runner must refuse to mark a tick
+  // `executed` and must NOT post a CAEL record / NOT message-on-task when
+  // the LLM produced a pure-text response with no write_file / bash invocation.
+  it('returns no-artifact when the LLM responds with pure text and calls no side-effecting tool (W.107 gate)', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-hallucinated', title: 'paper-20 scene composition validate', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    // Empty toolCallsBeforeText → pure-text response ("100 scenes validated,
+    // 0 violations"-style hallucination, the exact pattern mw02 produced).
+    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: [], content: '100 scenes validated, 0 violations' });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider,
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('no-artifact');
+    expect(result.taskId).toBe('t-hallucinated');
+    expect(result.message).toMatch(/no side-effecting tool/);
+    // Critical: no CAEL post + no message on the board so the team can't be
+    // misled into trusting the hallucinated "validated" claim.
+    expect(mesh.postAuditRecords).not.toHaveBeenCalled();
+    expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
+  });
+
+  it('returns no-artifact when the LLM only calls read-only tools (read_file / list_dir)', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-readonly', title: 'audit code', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    // The model invokes read_file but never write_file or bash → no artifact produced.
+    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: ['read_file'] });
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider,
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('no-artifact');
+    expect(mesh.postAuditRecords).not.toHaveBeenCalled();
+    expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
   });
 
   it('returns over-budget WITHOUT calling the LLM when the cost guard is tripped', async () => {
@@ -178,7 +282,9 @@ describe('AgentRunner.tick', () => {
     expect(events[0].kind).toBe('task-executed');
     expect(events[0].agent.handle).toBe('security-auditor');
     expect(events[0].task?.id).toBe('t-aud');
-    expect(events[0].execution?.totalTokens).toBe(300);
+    // 2 LLM calls × 300 tokens (W.107 gate requires ≥1 tool-use round, so the
+    // mock fires once for tool_use + once for final-text). Pre-W.107 expected 300.
+    expect(events[0].execution?.totalTokens).toBe(600);
   });
 
   // task_1777112258989_eeyp: heartbeat-403 self-rejoin tests.

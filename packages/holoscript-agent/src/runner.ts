@@ -105,6 +105,13 @@ export class AgentRunner {
     // hitting 30 iters is almost certainly stuck and should bail.
     const MAX_TOOL_ITERS = 30;
     let lastResponse;
+    // Track which tool names were called during this run so the artifact-grounding
+    // gate below can refuse to mark "executed" on pure-text or read-only responses.
+    // Discovered 2026-04-26 mesh-worker-02 audit: workers were posting CAEL records
+    // with tool_iters:1 (zero tools called) declaring "100 scenes validated" with
+    // no commit / no /room done — fabricated deliverables polluting trust. The
+    // gate below short-circuits this class of hallucination at the runner edge.
+    const toolsCalled = new Set<string>();
     while (true) {
       iters++;
       if (iters > MAX_TOOL_ITERS) {
@@ -130,6 +137,8 @@ export class AgentRunner {
       // If model called tools, execute them and feed results back.
       if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
         log({ ev: 'tool-call', taskId: target.id, iter: iters, tools: resp.toolUses.map((t) => t.name) });
+        // Track tool names for the artifact-grounding gate.
+        for (const u of resp.toolUses) toolsCalled.add(u.name);
         // Append the assistant turn (text + tool_use blocks) so the model
         // sees its own request when we send tool_result back.
         messages.push({
@@ -149,6 +158,39 @@ export class AgentRunner {
       break;
     }
     const durationMs = Date.now() - start;
+
+    // Artifact-grounding gate (W.107 — fleet event-firing rate is not a productivity
+    // metric; only side-effecting tool calls produce real artifacts). MESH_TOOLS
+    // exposes 4 tools: read_file + list_dir (read-only inspection) and write_file +
+    // bash (state-mutating). A task whose execution did NOT call write_file or
+    // bash at least once produced no artifact and should NOT be marked executed.
+    // We log a 'no-artifact' tick-error instead, skip CAEL/message posts, and
+    // return so the task remains open for a real attempt.
+    const SIDE_EFFECTING_TOOLS: ReadonlySet<string> = new Set(['write_file', 'bash']);
+    const sideEffectingCalled = [...toolsCalled].some((t) => SIDE_EFFECTING_TOOLS.has(t));
+    if (!sideEffectingCalled) {
+      log({
+        ev: 'no-artifact',
+        taskId: target.id,
+        tool_iters: iters,
+        toolsCalled: [...toolsCalled],
+        message:
+          'task execution called no side-effecting tool (write_file/bash) — refusing to mark executed. ' +
+          'Likely a pure-text or read-only-inspection response. Task remains open for a grounded attempt.',
+      });
+      // Best-effort: leave the task in claimed state so the supervisor can either
+      // re-tick or release it via heartbeat-rejoin. We deliberately do NOT post
+      // a "fake-done" message on the board, do NOT post a CAEL record, and do NOT
+      // call the cost guard's recordUsage — the run produced no artifact and
+      // should not bill the budget for a hallucinated tick.
+      return {
+        action: 'no-artifact',
+        taskId: target.id,
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `no side-effecting tool called (toolsCalled=[${[...toolsCalled].join(',')}], iters=${iters})`,
+      };
+    }
 
     const cost = costGuard.recordUsage(identity.llmModel, aggUsage);
     log({

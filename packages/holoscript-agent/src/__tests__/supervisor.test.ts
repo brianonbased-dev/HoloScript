@@ -16,15 +16,40 @@ composition "Test" {
 }
 `;
 
+/**
+ * provider — first call returns a single bash tool_use, second call returns
+ * the final text. This satisfies the W.107 artifact-grounding gate (the
+ * runner refuses `executed` on a tick that called no side-effecting tool).
+ * Default usage: 100/50/150 tokens per call (sum to 300 across the 2 calls).
+ */
 function provider(content = 'mock response'): ILLMProvider {
+  // W.107 (artifact-grounding gate): runner now refuses `executed` unless a
+  // side-effecting tool (bash/write_file) was called. We detect first-call-
+  // per-tick by inspecting req.messages.length — the runner's initial call
+  // has just [system, user]; the follow-up after running the tool has
+  // [system, user, assistant(tool_use), user(tool_result)]. This pattern is
+  // concurrency-safe (handles spawnLoop + tickOnce racing on shared state).
   return {
     name: 'mock',
     models: ['mock-1'],
     defaultHoloScriptModel: 'mock-1',
-    async complete(_req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+    async complete(req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+      const usage = { promptTokens: 100, completionTokens: 50, totalTokens: 150 };
+      const isFirstCallOfTick = (req.messages?.length ?? 0) <= 2;
+      if (isFirstCallOfTick) {
+        return {
+          content: '',
+          usage,
+          model: 'mock-1',
+          provider: 'mock',
+          finishReason: 'tool_use',
+          toolUses: [{ id: 'sup-tu', name: 'bash', input: { cmd: 'echo ok' } }],
+          assistantBlocks: [{ type: 'tool_use' as const, id: 'sup-tu', name: 'bash', input: { cmd: 'echo ok' } }],
+        } as unknown as LLMCompletionResponse;
+      }
       return {
         content,
-        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        usage,
         model: 'mock-1',
         provider: 'mock',
         finishReason: 'stop',
