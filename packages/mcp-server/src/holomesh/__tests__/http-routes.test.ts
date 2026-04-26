@@ -112,6 +112,13 @@ const originalEnv = { ...process.env };
 // ── Import after mocks ──
 
 import { handleHoloMeshRoute } from '../http-routes';
+import {
+  teamStore,
+  teamPresenceStore,
+  agentAuditStore,
+  appendCaelAuditRecord,
+  type CaelAuditRecord,
+} from '../state';
 
 // ── Test Helpers ──
 
@@ -4705,6 +4712,277 @@ describe('HoloMesh HTTP Routes', () => {
       // care that no migration body was returned.
       expect(res._status).toBeGreaterThanOrEqual(401);
       expect(res._body?.migration).toBeUndefined();
+    });
+  });
+
+  // ── GET /api/holomesh/fleet/status ──
+  // Composite fleet meta-monitor — supersedes per-team /fleet-status (b39239e28)
+  // by joining presence + CAEL + claimed + done into one drift-detection diagnostic.
+  // Closes _xq6q meta-monitor gap (would have caught mw02 W.107 27.5h earlier).
+  describe('GET /api/holomesh/fleet/status', () => {
+    let ownerApiKey: string;
+    let teamId: string;
+
+    function makeCael(overrides: Partial<CaelAuditRecord> = {}): CaelAuditRecord {
+      return {
+        tick_iso: new Date().toISOString(),
+        layer_hashes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7'],
+        operation: 'audit/trial.tick',
+        prev_hash: null,
+        fnv1a_chain: 'fnv-stub',
+        version_vector_fingerprint: 'vv-stub',
+        received_at: '',
+        ...overrides,
+      };
+    }
+
+    beforeEach(async () => {
+      // Fresh state — presence + audit are in-memory ring buffers.
+      teamPresenceStore.clear();
+      agentAuditStore.clear();
+
+      // Register owner + create team
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `fleet-owner-${Math.random().toString(36).slice(2, 8)}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      ownerApiKey = regRes._body.agent.api_key;
+
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `fleet-team-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      teamId = createRes._body.team.id;
+    });
+
+    it('returns empty agents + zero totals when no presence/CAEL/claimed/done', async () => {
+      const req = mockReq(
+        'GET',
+        `/api/holomesh/fleet/status?team=${teamId}`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.team_id).toBe(teamId);
+      expect(res._body.asOf).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      // Owner is the only configured member (auto-added on team create)
+      expect(res._body.fleetTotals.agentsConfigured).toBeGreaterThanOrEqual(1);
+      expect(res._body.fleetTotals.claimedTasks).toBe(0);
+      expect(res._body.fleetTotals.caelRecords24h).toBe(0);
+      expect(res._body.fleetTotals.doneEntries24h).toBe(0);
+      expect(res._body.fleetTotals.drift_alerts).toEqual([]);
+      // Owner shows up as agentObserved (member-only, no CAEL/presence yet) with trust=ok
+      const owner = res._body.agents.find((a: any) => a.agentId !== null);
+      if (owner) {
+        expect(owner.trustScore).toBe('ok');
+        expect(owner.drift).toEqual([]);
+        expect(owner.caelRecords24h).toBe(0);
+      }
+    });
+
+    it('joins presence + CAEL + claimed + done into per-agent rows (happy path)', async () => {
+      // Seed CAEL records for two handles: one healthy (with a done entry),
+      // one without. The healthy one should have trust=ok.
+      const handleA = 'fleet-worker-A';
+      const handleB = 'fleet-worker-B';
+      const tickIso = new Date(Date.now() - 30 * 60_000).toISOString(); // 30min ago
+
+      appendCaelAuditRecord(handleA, makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' }));
+      appendCaelAuditRecord(handleA, makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' }));
+      appendCaelAuditRecord(handleB, makeCael({ tick_iso: tickIso, brain_class: 'lean-theorist' }));
+
+      // Seed presence for handleA
+      const presenceMap = new Map();
+      presenceMap.set('agent-a-id', {
+        agentId: 'agent-a-id',
+        agentName: handleA,
+        ideType: 'mesh-worker',
+        status: 'active',
+        lastHeartbeat: new Date().toISOString(),
+        walletAddress: '0xAAAA000000000000000000000000000000000000',
+        x402Verified: true,
+        surfaceTag: 'mesh-worker-a',
+      });
+      teamPresenceStore.set(teamId, presenceMap);
+
+      // Seed a done entry for handleA via direct team mutation
+      const team = teamStore.get(teamId)!;
+      team.doneLog = [
+        {
+          id: 'task-done-1',
+          title: 'closed work',
+          description: '',
+          status: 'done',
+          completedBy: handleA,
+          claimedByName: handleA,
+          completedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+          createdAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+          priority: 1,
+          commitHash: 'abc1234',
+        } as any,
+      ];
+
+      const req = mockReq(
+        'GET',
+        `/api/holomesh/fleet/status?team=${teamId}`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
+
+      expect(res._status).toBe(200);
+      const rowA = res._body.agents.find((a: any) => a.handle === handleA);
+      const rowB = res._body.agents.find((a: any) => a.handle === handleB);
+
+      // handleA: has CAEL + presence + 1 done with commit → trust=ok
+      expect(rowA).toBeDefined();
+      expect(rowA.online).toBe(true);
+      expect(rowA.caelRecords24h).toBe(2);
+      expect(rowA.doneEntries24h).toBe(1);
+      expect(rowA.doneEntriesWithCommit24h).toBe(1);
+      expect(rowA.observedBrains).toEqual(['security-auditor']);
+      expect(rowA.wallet).toBe('0xAAAA000000000000000000000000000000000000');
+      expect(rowA.trustScore).toBe('ok');
+      expect(rowA.drift).toEqual([]);
+      expect(rowA.commitsByWallet24h).toBeNull(); // server-side: not measured
+
+      // handleB: CAEL but no done → cael_no_artifacts drift → degraded
+      expect(rowB).toBeDefined();
+      expect(rowB.caelRecords24h).toBe(1);
+      expect(rowB.doneEntries24h).toBe(0);
+      expect(rowB.drift.some((d: string) => d.startsWith('cael_no_artifacts:'))).toBe(true);
+      expect(rowB.trustScore).toBe('degraded');
+
+      // Fleet totals
+      expect(res._body.fleetTotals.caelRecords24h).toBe(3);
+      expect(res._body.fleetTotals.doneEntries24h).toBe(1);
+      expect(res._body.fleetTotals.drift_alerts.length).toBeGreaterThan(0);
+      expect(res._body.fleetTotals.drift_alerts.some((s: string) => s.includes(handleB))).toBe(true);
+      expect(res._body.fleetTotals.trust_distribution.degraded).toBeGreaterThanOrEqual(1);
+    });
+
+    it('flags stale_claim + brain_drift + escalates to untrusted at 24h+ cael_no_artifacts (W.107)', async () => {
+      const handle = 'mesh-worker-mw02-sim';
+      // 27.5h-old claim (the actual mw02 pattern that triggered this endpoint)
+      const claimedAt = new Date(Date.now() - 27.5 * 3_600_000).toISOString();
+      // CAEL records under TWO distinct brain classes → brain_drift
+      const recentTick = new Date(Date.now() - 60 * 60_000).toISOString();
+      for (let i = 0; i < 8; i++) {
+        appendCaelAuditRecord(
+          handle,
+          makeCael({
+            tick_iso: recentTick,
+            brain_class: i % 2 === 0 ? 'trait-inference' : 'sesl-training',
+          })
+        );
+      }
+
+      const team = teamStore.get(teamId)!;
+      team.taskBoard = [
+        ...(team.taskBoard ?? []),
+        {
+          id: 'task-stale-1',
+          title: 'stale claim',
+          description: '',
+          status: 'claimed',
+          claimedBy: 'agent-mw02',
+          claimedByName: handle,
+          createdAt: claimedAt,
+          priority: 1,
+          metadata: { claimedAt },
+        } as any,
+      ];
+      // No doneLog → cael_no_artifacts active
+
+      const req = mockReq(
+        'GET',
+        `/api/holomesh/fleet/status?team=${teamId}`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
+
+      expect(res._status).toBe(200);
+      const row = res._body.agents.find((a: any) => a.handle === handle);
+      expect(row).toBeDefined();
+      expect(row.claimedTasks).toBe(1);
+      expect(row.claimedTaskAgeHours).toBeGreaterThan(24);
+      expect(row.observedBrains.sort()).toEqual(['sesl-training', 'trait-inference']);
+      // All four drift rules should have fired
+      expect(row.drift.some((d: string) => d.startsWith('cael_no_artifacts:'))).toBe(true);
+      expect(row.drift.some((d: string) => d.startsWith('stale_claim_age_hours:'))).toBe(true);
+      expect(row.drift.some((d: string) => d.startsWith('brain_drift:'))).toBe(true);
+      // 24h+ cael_no_artifacts hard-escalates to untrusted (per spec)
+      expect(row.trustScore).toBe('untrusted');
+      expect(res._body.fleetTotals.trust_distribution.untrusted).toBeGreaterThanOrEqual(1);
+      // Untrusted rows sort first
+      expect(res._body.agents[0].trustScore).toBe('untrusted');
+    });
+
+    it('rejects missing team param (400), unknown team (404), unauth (401), non-member (403)', async () => {
+      // 400: missing team
+      const r400 = mockRes();
+      await handleHoloMeshRoute(
+        mockReq('GET', '/api/holomesh/fleet/status', undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        }),
+        r400,
+        '/api/holomesh/fleet/status'
+      );
+      expect(r400._status).toBe(400);
+      expect(r400._body.error).toMatch(/team query param required/);
+
+      // 404: unknown team
+      const r404 = mockRes();
+      await handleHoloMeshRoute(
+        mockReq(
+          'GET',
+          '/api/holomesh/fleet/status?team=team_nonexistent',
+          undefined,
+          { authorization: `Bearer ${ownerApiKey}` }
+        ),
+        r404,
+        '/api/holomesh/fleet/status?team=team_nonexistent'
+      );
+      expect(r404._status).toBe(404);
+
+      // 401: no auth
+      const r401 = mockRes();
+      await handleHoloMeshRoute(
+        mockReq('GET', `/api/holomesh/fleet/status?team=${teamId}`),
+        r401,
+        `/api/holomesh/fleet/status?team=${teamId}`
+      );
+      expect(r401._status).toBe(401);
+
+      // 403: authenticated but not in team
+      const otherReg = mockReq('POST', '/api/holomesh/register', {
+        name: `fleet-outsider-${Math.random().toString(36).slice(2, 8)}`,
+      });
+      const otherRes = mockRes();
+      await handleHoloMeshRoute(otherReg, otherRes, '/api/holomesh/register');
+      const outsiderKey = otherRes._body.agent.api_key;
+
+      const r403 = mockRes();
+      await handleHoloMeshRoute(
+        mockReq('GET', `/api/holomesh/fleet/status?team=${teamId}`, undefined, {
+          authorization: `Bearer ${outsiderKey}`,
+        }),
+        r403,
+        `/api/holomesh/fleet/status?team=${teamId}`
+      );
+      expect(r403._status).toBe(403);
     });
   });
 

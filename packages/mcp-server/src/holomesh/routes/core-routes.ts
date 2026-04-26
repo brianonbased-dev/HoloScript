@@ -741,6 +741,339 @@ export async function handleCoreRoutes(
     }
   }
 
+  // ── GET /api/holomesh/fleet/status ────────────────────────────────────────
+  // Composite fleet meta-monitor (closes _xq6q + S.FLEET-DEEP gap). Supersedes
+  // the per-team /fleet-status endpoint by joining FOUR signals into one
+  // diagnostic + applying drift-detection rules + assigning a per-agent
+  // trust score.
+  //
+  // Signals joined per agent:
+  //   1. presence              → online + last_heartbeat (live)
+  //   2. agentAuditStore (CAEL) → caelRecords24h + last_cael_iso + observed brain
+  //   3. team.taskBoard        → claimedTasks + claimed_task_age_hours
+  //   4. team.doneLog          → doneEntries24h + last_done_iso + commitHash
+  //
+  // Drift rules (signals that would have caught the mw02 W.107 hallucination
+  // class 27.5h earlier):
+  //   D1 cael_no_artifacts   : caelRecords24h > 0 AND doneEntries24h === 0
+  //   D2 stale_claim         : claimed_task_age_hours > 6 AND doneEntries24h === 0
+  //   D3 cael_no_commits     : caelRecords24h > 5 AND no commitHash on done24h
+  //   D4 brain_drift         : multiple distinct brain_class observed for one handle
+  //
+  // Trust score:
+  //   ok        : 0 drift flags
+  //   degraded  : 1-2 drift flags
+  //   untrusted : 3+ drift flags OR cael_no_artifacts active for 24h
+  //
+  // Query params:
+  //   ?team=<teamId>   required — fleet status is always team-scoped
+  //   ?since=<iso>     optional — overrides the default 24h window
+  //
+  // Auth: founder OR any team member of the queried team.
+  //
+  // NOT included server-side:
+  //   - expectedBrain      (lives in compositions/<handle>-brain.hsplus on the
+  //                         operator box, not on the server). The endpoint
+  //                         reports observedBrains[] from CAEL records as the
+  //                         best in-server proxy; the operator-side fleet-
+  //                         monitor diff matches against agents.json.
+  //   - commitsByWallet24h (server has no git history access). Operator-side
+  //                         tooling joins this. Flagged as `null` in payload
+  //                         so consumers can detect "not measured" vs zero.
+  {
+    if (pathname === '/api/holomesh/fleet/status' && method === 'GET') {
+      const caller = resolveRequestingAgent(req);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required for fleet/status.' });
+        return true;
+      }
+
+      const reqUrl = new URL(req.url ?? '/', 'http://localhost');
+      const teamId = reqUrl.searchParams.get('team');
+      if (!teamId) {
+        json(res, 400, {
+          error: 'team query param required, e.g. /api/holomesh/fleet/status?team=team_…',
+        });
+        return true;
+      }
+
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: `Team "${teamId}" not found.` });
+        return true;
+      }
+
+      const callerInTeam = team.members?.some((m) => m.agentId === caller.id);
+      if (!caller.isFounder && !callerInTeam) {
+        json(res, 403, { error: `Forbidden: caller "${caller.name}" not in team "${teamId}".` });
+        return true;
+      }
+
+      // Default window: last 24h. Operator can override to 1h, 7d, etc.
+      const sinceParam = reqUrl.searchParams.get('since');
+      const windowMs = 24 * 60 * 60_000;
+      const sinceIso = sinceParam || new Date(Date.now() - windowMs).toISOString();
+      const sinceMs = Date.parse(sinceIso);
+      if (!Number.isFinite(sinceMs)) {
+        json(res, 400, { error: `Invalid ?since="${sinceParam}" — must be ISO 8601 timestamp.` });
+        return true;
+      }
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
+
+      // --- Index: member-by-handle (for wallet/surface tag annotation) ---
+      const memberByHandle = new Map<
+        string,
+        { agentId: string; wallet: string | null; surfaceTag: string | null }
+      >();
+      for (const m of team.members ?? []) {
+        memberByHandle.set(m.agentName, {
+          agentId: m.agentId,
+          wallet: m.walletAddress ?? null,
+          surfaceTag: m.surfaceTag ?? null,
+        });
+      }
+
+      // --- Index: presence-by-handle ---
+      const presence = teamPresenceStore.get(teamId);
+      const presenceByHandle = new Map<string, TeamPresenceEntry>();
+      if (presence) {
+        for (const entry of presence.values()) {
+          presenceByHandle.set(entry.agentName, entry);
+        }
+      }
+
+      // --- Index: claimed tasks by handle (open/claimed status) ---
+      const claimedByHandle = new Map<
+        string,
+        { count: number; oldestClaimedAt: string | null; taskIds: string[] }
+      >();
+      for (const t of team.taskBoard ?? []) {
+        if (t.status !== 'claimed' || !t.claimedByName) continue;
+        const cur = claimedByHandle.get(t.claimedByName) ?? {
+          count: 0,
+          oldestClaimedAt: null as string | null,
+          taskIds: [],
+        };
+        cur.count += 1;
+        cur.taskIds.push(t.id);
+        // metadata.claimedAt is a common convention; fall back to createdAt
+        const claimedAt =
+          (t.metadata?.claimedAt as string | undefined) || t.createdAt || null;
+        if (
+          claimedAt &&
+          (cur.oldestClaimedAt === null || claimedAt < cur.oldestClaimedAt)
+        ) {
+          cur.oldestClaimedAt = claimedAt;
+        }
+        claimedByHandle.set(t.claimedByName, cur);
+      }
+
+      // --- Index: done entries in window by handle ---
+      const doneByHandle = new Map<
+        string,
+        { count: number; lastIso: string | null; lastCommitHash: string | null; commitHashCount: number }
+      >();
+      for (const d of team.doneLog ?? []) {
+        const handle = d.completedBy || d.claimedByName;
+        if (!handle) continue;
+        const completedAt = d.completedAt || d.createdAt;
+        if (!completedAt) continue;
+        const t = Date.parse(completedAt);
+        if (!Number.isFinite(t) || t < sinceMs) continue;
+        const cur = doneByHandle.get(handle) ?? {
+          count: 0,
+          lastIso: null as string | null,
+          lastCommitHash: null as string | null,
+          commitHashCount: 0,
+        };
+        cur.count += 1;
+        if (d.commitHash) {
+          cur.commitHashCount += 1;
+          cur.lastCommitHash = d.commitHash;
+        }
+        if (cur.lastIso === null || completedAt > cur.lastIso) {
+          cur.lastIso = completedAt;
+        }
+        doneByHandle.set(handle, cur);
+      }
+
+      // --- Index: CAEL activity in window by handle ---
+      const caelByHandle = new Map<
+        string,
+        { count: number; lastIso: string; observedBrains: Set<string> }
+      >();
+      for (const [handle, records] of agentAuditStore.entries()) {
+        let count = 0;
+        let lastIso = '';
+        const observedBrains = new Set<string>();
+        for (const r of records) {
+          const t = Date.parse(r.tick_iso);
+          if (!Number.isFinite(t) || t < sinceMs) continue;
+          count += 1;
+          if (r.tick_iso > lastIso) lastIso = r.tick_iso;
+          if (r.brain_class && r.brain_class !== 'unknown') {
+            observedBrains.add(r.brain_class);
+          }
+        }
+        if (count > 0) {
+          caelByHandle.set(handle, { count, lastIso, observedBrains });
+        }
+      }
+
+      // --- Build per-agent rows + drift detection ---
+      const allHandles = new Set<string>([
+        ...memberByHandle.keys(),
+        ...presenceByHandle.keys(),
+        ...claimedByHandle.keys(),
+        ...doneByHandle.keys(),
+        ...caelByHandle.keys(),
+      ]);
+
+      type AgentRow = {
+        handle: string;
+        agentId: string | null;
+        wallet: string | null;
+        surfaceTag: string | null;
+        team: string;
+        observedBrains: string[];
+        online: boolean;
+        lastHeartbeat: string | null;
+        claimedTasks: number;
+        claimedTaskIds: string[];
+        claimedTaskAgeHours: number | null;
+        caelRecords24h: number;
+        lastCaelTs: string | null;
+        doneEntries24h: number;
+        lastDoneTs: string | null;
+        commitsByWallet24h: number | null; // null = not measured server-side
+        doneEntriesWithCommit24h: number;
+        drift: string[];
+        trustScore: 'ok' | 'degraded' | 'untrusted';
+      };
+
+      const agents: AgentRow[] = [];
+      let fleetClaimed = 0;
+      let fleetCael = 0;
+      let fleetDone = 0;
+      let fleetOnline = 0;
+      const fleetDriftAlerts: string[] = [];
+
+      for (const handle of allHandles) {
+        const member = memberByHandle.get(handle) ?? null;
+        const p = presenceByHandle.get(handle) ?? null;
+        const claim = claimedByHandle.get(handle) ?? null;
+        const done = doneByHandle.get(handle) ?? null;
+        const cael = caelByHandle.get(handle) ?? null;
+
+        const isOnline = p?.status === 'active' || p?.status === 'busy';
+        let claimedAgeH: number | null = null;
+        if (claim?.oldestClaimedAt) {
+          const claimedMs = Date.parse(claim.oldestClaimedAt);
+          if (Number.isFinite(claimedMs)) {
+            claimedAgeH = (nowMs - claimedMs) / 3_600_000;
+          }
+        }
+
+        const drift: string[] = [];
+
+        // D1 cael_no_artifacts: CAEL events but no done entries in window.
+        // This is the W.107 hallucination class signal — the worker is "active"
+        // (writing CAEL records) but produces zero verified work artifacts.
+        if ((cael?.count ?? 0) > 0 && (done?.count ?? 0) === 0) {
+          drift.push(`cael_no_artifacts: cael=${cael?.count} done=0`);
+        }
+        // D2 stale_claim: claimed task held >6h with no closure.
+        if (claimedAgeH !== null && claimedAgeH > 6 && (done?.count ?? 0) === 0) {
+          drift.push(`stale_claim_age_hours: ${claimedAgeH.toFixed(1)}`);
+        }
+        // D3 cael_noisy_no_commits: CAEL noise without git evidence.
+        // Server-side proxy: CAEL>5 with done entries that lack commitHash.
+        if (
+          (cael?.count ?? 0) > 5 &&
+          (done?.count ?? 0) > 0 &&
+          (done?.commitHashCount ?? 0) === 0
+        ) {
+          drift.push(`cael_noisy_no_commits: cael=${cael?.count} done_with_commit=0`);
+        }
+        // D4 brain_drift: same handle observed under multiple distinct brain classes.
+        if (cael && cael.observedBrains.size > 1) {
+          drift.push(`brain_drift: observed=[${[...cael.observedBrains].sort().join(',')}]`);
+        }
+
+        let trust: 'ok' | 'degraded' | 'untrusted' = 'ok';
+        if (drift.length >= 3) trust = 'untrusted';
+        else if (drift.some((d) => d.startsWith('cael_no_artifacts:')) && (claimedAgeH ?? 0) > 24) {
+          // 24h+ of CAEL noise without artifacts is the hard untrusted threshold.
+          trust = 'untrusted';
+        } else if (drift.length > 0) trust = 'degraded';
+
+        if (claim) fleetClaimed += claim.count;
+        if (cael) fleetCael += cael.count;
+        if (done) fleetDone += done.count;
+        if (isOnline) fleetOnline += 1;
+        for (const d of drift) {
+          fleetDriftAlerts.push(`${handle}: ${d}`);
+        }
+
+        agents.push({
+          handle,
+          agentId: member?.agentId ?? p?.agentId ?? null,
+          wallet: member?.wallet ?? p?.walletAddress ?? null,
+          surfaceTag: member?.surfaceTag ?? p?.surfaceTag ?? null,
+          team: teamId,
+          observedBrains: cael ? [...cael.observedBrains].sort() : [],
+          online: isOnline,
+          lastHeartbeat: p?.lastHeartbeat ?? null,
+          claimedTasks: claim?.count ?? 0,
+          claimedTaskIds: claim?.taskIds ?? [],
+          claimedTaskAgeHours: claimedAgeH,
+          caelRecords24h: cael?.count ?? 0,
+          lastCaelTs: cael?.lastIso || null,
+          doneEntries24h: done?.count ?? 0,
+          lastDoneTs: done?.lastIso || null,
+          commitsByWallet24h: null,
+          doneEntriesWithCommit24h: done?.commitHashCount ?? 0,
+          drift,
+          trustScore: trust,
+        });
+      }
+
+      // Stable ordering: untrusted first, then degraded, then ok; alpha within tier.
+      const tierRank = { untrusted: 0, degraded: 1, ok: 2 } as const;
+      agents.sort((a, b) => {
+        const t = tierRank[a.trustScore] - tierRank[b.trustScore];
+        return t !== 0 ? t : a.handle.localeCompare(b.handle);
+      });
+
+      json(res, 200, {
+        success: true,
+        asOf: nowIso,
+        team_id: teamId,
+        window: {
+          since: sinceIso,
+          window_hours: Math.round((nowMs - sinceMs) / 3_600_000),
+        },
+        agents,
+        fleetTotals: {
+          agentsConfigured: team.members?.length ?? 0,
+          agentsObserved: allHandles.size,
+          agentsHeartbeating: fleetOnline,
+          claimedTasks: fleetClaimed,
+          caelRecords24h: fleetCael,
+          doneEntries24h: fleetDone,
+          drift_alerts: fleetDriftAlerts,
+          trust_distribution: {
+            ok: agents.filter((a) => a.trustScore === 'ok').length,
+            degraded: agents.filter((a) => a.trustScore === 'degraded').length,
+            untrusted: agents.filter((a) => a.trustScore === 'untrusted').length,
+          },
+        },
+      });
+      return true;
+    }
+  }
+
   // ── POST/GET /api/holomesh/agent/:handle/dispatch ─────────────────────────
   // Closes the trigger-mechanism gap from task_..._pawd. Coordinator
   // (run-harness.mjs) POSTs cell parameters; worker brain GETs (drains)
