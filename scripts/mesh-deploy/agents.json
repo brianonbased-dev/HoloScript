@@ -15,19 +15,34 @@
 
   "agents": [
     {
-      "_role": "H200 FLAGSHIP — anthropic-backed Claude Opus running lean-theorist-brain. Use the H200's 141GB VRAM for hot-tier brain context. instanceMatch=H200 pins this to the H200 instance.",
+      "_role": "H200 FLAGSHIP — local-llm Qwen 72B-AWQ running lean-theorist-brain. Founder directive 2026-04-25 (commit 97efb061c) flipped this from anthropic claude-opus-4-7 → local-llm because Anthropic API spend ran $21+ in <2h with 0 CAEL records produced (mw01 wedged in over-budget loop). 2026-04-25 commit landed on agents-template.json but NOT agents.json (drift caught 2026-04-26 readiness audit); this edit closes that drift. Use the H200's 141GB VRAM for hot-tier brain context. instanceMatch=H200 pins this to the H200 instance. Sidecar: Goedel-V2-7B Lean-specialist co-located on the same H200 (88GB total fits in 140GB per AMBER memo §7.1).",
       "handle": "mesh-worker-01",
       "instanceMatch": "H200",
       "brainPath": "compositions/lean-theorist-brain.hsplus",
-      "provider": "anthropic",
-      "model": "claude-opus-4-7",
+      "provider": "local-llm",
+      "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
       "walletEnvKey": "HOLOMESH_WALLET_MESH_01_X402",
       "bearerEnvKey": "HOLOMESH_API_KEY_MESH_01_X402",
       "budgetUsdPerDay": 0,
       "scopeTier": "hot",
       "enabled": true,
       "tickIntervalMs": 30000,
-      "enableCommitHook": true
+      "enableCommitHook": true,
+      "_sidecar_note": "AMBER §7.2: Goedel-V2-7B Lean-specialist sidecar. Schema validates today (run `python scripts/mesh-deploy/deploy.py --config scripts/mesh-deploy/agents.json --validate-only`). EXECUTION PATH (screen -dmS startup, health-check, runtime dispatch heuristic) is NOT YET WIRED in deploy_one — gated on live-fleet validation per F.031. Next agent flips wiring after task_1777238593020_7bvu step 1 lands a fresh H200.",
+      "sidecars": [
+        {
+          "name": "lean-prover",
+          "model": "Goedel-LM/Goedel-Prover-V2-7B",
+          "port": 8082,
+          "vram_estimate_gb": 14,
+          "max_model_len": 4096,
+          "vllm_args": [
+            "--enforce-eager",
+            "--gpu-memory-utilization=0.10"
+          ],
+          "consumed_by_env_var": "LEAN_SPECIALIST_URL"
+        }
+      ]
     },
     {
       "_role": "Trait-inference local-llm worker — Qwen 0.5B running on the GPU directly. Zero LLM API cost (compute already paid). Brain: trait-inference. Used for paper-19 dataset generation + trait-classification work.",
