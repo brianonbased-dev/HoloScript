@@ -77,6 +77,108 @@ async function requestDeviceOrNull(): Promise<GPUDevice | null> {
   return adapter.requestDevice();
 }
 
+// ---------------------------------------------------------------------------
+// CPU-only tests (run on CI without WebGPU; lane W.068b CPU-ref companion)
+// ---------------------------------------------------------------------------
+describe('LayerNorm — CPU reference', () => {
+  it('with gamma=1, beta=0: each row has zero mean and unit variance', () => {
+    const rng = mulberry32(8001);
+    const rows = 4;
+    const dModel = 64;
+    const input = randomArray(rows * dModel, rng, -3, 3);
+    const gamma = new Float32Array(dModel);
+    gamma.fill(1);
+    const beta = new Float32Array(dModel); // zeros
+    const out = layerNormCpu(input, gamma, beta, rows, dModel);
+
+    for (let r = 0; r < rows; r += 1) {
+      let mean = 0;
+      for (let c = 0; c < dModel; c += 1) mean += out[r * dModel + c];
+      mean /= dModel;
+      expect(Math.abs(mean)).toBeLessThan(1e-5);
+
+      let variance = 0;
+      for (let c = 0; c < dModel; c += 1) {
+        const d = out[r * dModel + c] - mean;
+        variance += d * d;
+      }
+      variance /= dModel;
+      // variance is normalized to ~1 modulo eps in the CPU formula
+      expect(Math.abs(variance - 1)).toBeLessThan(1e-3);
+    }
+  });
+
+  it('gamma scales, beta shifts: gamma=2, beta=5 yields mean=5, var=4', () => {
+    const rng = mulberry32(8002);
+    const rows = 2;
+    const dModel = 128;
+    const input = randomArray(rows * dModel, rng, -1, 1);
+    const gamma = new Float32Array(dModel);
+    gamma.fill(2);
+    const beta = new Float32Array(dModel);
+    beta.fill(5);
+    const out = layerNormCpu(input, gamma, beta, rows, dModel);
+
+    for (let r = 0; r < rows; r += 1) {
+      let mean = 0;
+      for (let c = 0; c < dModel; c += 1) mean += out[r * dModel + c];
+      mean /= dModel;
+      expect(Math.abs(mean - 5)).toBeLessThan(1e-3);
+
+      let variance = 0;
+      for (let c = 0; c < dModel; c += 1) {
+        const d = out[r * dModel + c] - mean;
+        variance += d * d;
+      }
+      variance /= dModel;
+      expect(Math.abs(variance - 4)).toBeLessThan(1e-2);
+    }
+  });
+
+  it('constant input row: output equals beta exactly (variance=0 path with eps)', () => {
+    const dModel = 32;
+    const input = new Float32Array(dModel);
+    input.fill(7);
+    const gamma = new Float32Array(dModel);
+    gamma.fill(1);
+    const beta = new Float32Array(dModel);
+    beta.fill(3);
+    const out = layerNormCpu(input, gamma, beta, 1, dModel);
+    // input is constant → mean=7, variance=0 → normalized=0 → out = 0*gamma+beta = beta
+    for (let c = 0; c < dModel; c += 1) {
+      expect(Math.abs(out[c] - 3)).toBeLessThan(1e-5);
+    }
+  });
+
+  it('shift-invariance: layerNorm(x) == layerNorm(x + c) for any constant c (gamma=1, beta=0)', () => {
+    const rng = mulberry32(8003);
+    const dModel = 64;
+    const a = randomArray(dModel, rng, -1, 1);
+    const b = new Float32Array(dModel);
+    const shift = 9.25;
+    for (let i = 0; i < dModel; i += 1) b[i] = a[i] + shift;
+    const gamma = new Float32Array(dModel);
+    gamma.fill(1);
+    const beta = new Float32Array(dModel); // zeros
+    const outA = layerNormCpu(a, gamma, beta, 1, dModel);
+    const outB = layerNormCpu(b, gamma, beta, 1, dModel);
+    expect(maxAbsDiff(outA, outB)).toBeLessThan(1e-4);
+  });
+
+  it('eps prevents NaN on constant-row input', () => {
+    const dModel = 16;
+    const input = new Float32Array(dModel);
+    input.fill(0);
+    const gamma = new Float32Array(dModel);
+    gamma.fill(1);
+    const beta = new Float32Array(dModel); // zeros
+    const out = layerNormCpu(input, gamma, beta, 1, dModel);
+    for (let c = 0; c < dModel; c += 1) {
+      expect(Number.isFinite(out[c])).toBe(true);
+    }
+  });
+});
+
 const describeWebGpu = isWebGpuEnvironmentPresent() ? describe : describe.skip;
 
 describeWebGpu('LayerNorm kernel', () => {

@@ -73,6 +73,84 @@ async function requestDeviceOrNull(): Promise<GPUDevice | null> {
   return adapter.requestDevice();
 }
 
+// ---------------------------------------------------------------------------
+// CPU-only tests (run on CI without WebGPU; lane W.068b CPU-ref companion)
+// ---------------------------------------------------------------------------
+describe('Softmax — CPU reference', () => {
+  it('1x4 row sums to 1 within tight tolerance', () => {
+    const input = new Float32Array([1, 2, 3, 4]);
+    const out = softmaxCpu(input, 1, 4);
+    let sum = 0;
+    for (let i = 0; i < out.length; i += 1) sum += out[i];
+    expect(Math.abs(sum - 1)).toBeLessThan(1e-6);
+    // monotonic in input → monotonic in output
+    expect(out[0]).toBeLessThan(out[1]);
+    expect(out[1]).toBeLessThan(out[2]);
+    expect(out[2]).toBeLessThan(out[3]);
+  });
+
+  it('row-major: each row independently sums to 1', () => {
+    const rng = mulberry32(7011);
+    const rows = 8;
+    const cols = 32;
+    const input = randomArray(rows * cols, rng, -2, 2);
+    const out = softmaxCpu(input, rows, cols);
+    for (let r = 0; r < rows; r += 1) {
+      let s = 0;
+      for (let c = 0; c < cols; c += 1) s += out[r * cols + c];
+      expect(Math.abs(s - 1)).toBeLessThan(1e-6);
+    }
+    assertFiniteArray(out);
+  });
+
+  it('numerical stability: extreme range [-50, +50] yields finite, normalized output', () => {
+    const rng = mulberry32(7012);
+    const rows = 4;
+    const cols = 64;
+    const input = randomArray(rows * cols, rng, -50, 50);
+    const out = softmaxCpu(input, rows, cols);
+    assertFiniteArray(out);
+    for (let r = 0; r < rows; r += 1) {
+      let s = 0;
+      for (let c = 0; c < cols; c += 1) s += out[r * cols + c];
+      expect(Math.abs(s - 1)).toBeLessThan(1e-5);
+    }
+  });
+
+  it('cols=1 produces all-1s (single-element softmax is identity)', () => {
+    const rng = mulberry32(7013);
+    const rows = 9;
+    const input = randomArray(rows, rng, -50, 50);
+    const out = softmaxCpu(input, rows, 1);
+    for (let i = 0; i < out.length; i += 1) {
+      expect(Math.abs(out[i] - 1)).toBeLessThan(1e-6);
+    }
+  });
+
+  it('uniform-input row produces uniform 1/cols distribution', () => {
+    const cols = 16;
+    const input = new Float32Array(cols);
+    input.fill(2.5);
+    const out = softmaxCpu(input, 1, cols);
+    const expected = 1 / cols;
+    for (let i = 0; i < out.length; i += 1) {
+      expect(Math.abs(out[i] - expected)).toBeLessThan(1e-6);
+    }
+  });
+
+  it('shift-invariance: softmax(x) === softmax(x + c) for any constant c', () => {
+    const rng = mulberry32(7014);
+    const cols = 32;
+    const a = randomArray(cols, rng, -1, 1);
+    const b = new Float32Array(cols);
+    const shift = 17.5;
+    for (let i = 0; i < cols; i += 1) b[i] = a[i] + shift;
+    const outA = softmaxCpu(a, 1, cols);
+    const outB = softmaxCpu(b, 1, cols);
+    expect(maxAbsDiff(outA, outB)).toBeLessThan(1e-6);
+  });
+});
+
 const describeWebGpu = isWebGpuEnvironmentPresent() ? describe : describe.skip;
 
 describeWebGpu('Softmax kernel', () => {

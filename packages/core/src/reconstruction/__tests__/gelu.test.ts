@@ -54,11 +54,76 @@ async function requestDeviceOrNull(): Promise<GPUDevice | null> {
   return adapter.requestDevice();
 }
 
-describe('GELU CPU saturation sanity', () => {
-  it('matches expected saturation behavior', () => {
+// ---------------------------------------------------------------------------
+// CPU-only tests (run on CI without WebGPU; lane W.068b CPU-ref companion)
+// ---------------------------------------------------------------------------
+describe('GELU — CPU reference', () => {
+  it('saturation: gelu(0)≈0, gelu(+large)≈x, gelu(-large)≈0', () => {
     expect(Math.abs(geluCpuScalar(0))).toBeLessThan(1e-4);
     expect(Math.abs(geluCpuScalar(100) - 100)).toBeLessThan(1e-4);
     expect(Math.abs(geluCpuScalar(-100))).toBeLessThan(1e-4);
+  });
+
+  it('matches reference values at canonical points (tanh approximation, k0=√(2/π), k1=0.044715)', () => {
+    // Reference values from the tanh-approximation formula:
+    //   gelu(x) = 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))
+    // gelu(1)  ≈ 0.84119
+    // gelu(-1) ≈ -0.15881
+    // gelu(0.5) ≈ 0.345714
+    // gelu(2)   ≈ 1.95459
+    expect(geluCpuScalar(1)).toBeCloseTo(0.84119, 4);
+    expect(geluCpuScalar(-1)).toBeCloseTo(-0.15881, 4);
+    expect(geluCpuScalar(0.5)).toBeCloseTo(0.345714, 4);
+    expect(geluCpuScalar(2)).toBeCloseTo(1.95459, 4);
+  });
+
+  it('monotonic increasing on [0, 3] (positive arm); has known dip near x≈-0.75 on negative arm', () => {
+    // GELU is monotonic on the non-negative arm; on the negative arm it
+    // has a single minimum near x ≈ -0.751 where derivative is zero.
+    // Right of that minimum and left of zero the function recovers
+    // monotonically toward zero.
+    const positiveXs: number[] = [];
+    for (let i = 0; i <= 30; i += 1) positiveXs.push(i / 10);
+    const positiveYs = positiveXs.map(geluCpuScalar);
+    for (let i = 1; i < positiveYs.length; i += 1) {
+      expect(positiveYs[i]).toBeGreaterThanOrEqual(positiveYs[i - 1] - 1e-7);
+    }
+    // Document the known minimum on the negative arm (analytic property).
+    const minNeg = geluCpuScalar(-0.751);
+    expect(geluCpuScalar(-0.5)).toBeGreaterThan(minNeg);
+    expect(geluCpuScalar(-1.0)).toBeGreaterThan(minNeg);
+  });
+
+  it('vector gelu equals scalar gelu element-wise within float32 round-trip tolerance', () => {
+    // geluCpu writes to Float32Array storage, so output is f32-rounded;
+    // geluCpuScalar returns native f64. The diff is bounded by f32 ulp.
+    const rng = mulberry32(5001);
+    const len = 256;
+    const input = randomArray(len, rng, -3, 3);
+    const out = geluCpu(input);
+    for (let i = 0; i < len; i += 1) {
+      expect(Math.abs(out[i] - geluCpuScalar(input[i]))).toBeLessThan(1e-6);
+    }
+  });
+
+  it('output is finite across full reasonable range [-50, +50]', () => {
+    const rng = mulberry32(5002);
+    const input = randomArray(1024, rng, -50, 50);
+    const out = geluCpu(input);
+    for (let i = 0; i < out.length; i += 1) {
+      expect(Number.isFinite(out[i])).toBe(true);
+    }
+  });
+
+  it('shape-agnostic: 4x4x64 flattened produces same output as flat 1024', () => {
+    const rng1 = mulberry32(5003);
+    const rng2 = mulberry32(5003);
+    const flat = randomArray(1024, rng1, -3, 3);
+    const shaped = randomArray(4 * 4 * 64, rng2, -3, 3);
+    // same seed → same content; gelu is element-wise → output identical
+    const outFlat = geluCpu(flat);
+    const outShaped = geluCpu(shaped);
+    expect(maxAbsDiff(outFlat, outShaped)).toBeLessThan(1e-7);
   });
 });
 
