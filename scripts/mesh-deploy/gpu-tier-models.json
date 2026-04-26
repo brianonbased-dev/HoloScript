@@ -9,7 +9,7 @@
     "Override with HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL_OVERRIDE in agent.env if needed.",
     "",
     "Inventory snapshot 2026-04-25 (29 running instances on Vast.ai):",
-    "  140 GB H200          x1 (anthropic — uses Claude API, ignore)",
+    "  140 GB H200          x1  -> 70b-tier (local-llm, Qwen 72B AWQ — switched from anthropic 2026-04-26 per cost discipline)",
     "   93 GB H100 NVL      x1  -> 70b-tier",
     "   15-16 GB RTX 5060Ti/5080 x6  -> 14b-tier",
     "   10-12 GB RTX 4070*/5070/3080/3060/2080Ti/Titan V x18  -> 7b-tier",

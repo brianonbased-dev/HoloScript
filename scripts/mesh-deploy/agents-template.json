@@ -8,11 +8,11 @@
 
   "agents": [
     {
-      "_role": "H200 powerhouse — runs Anthropic-backed Claude with hot-tier brain. Used for headline measurement work + supervisor-style coordination across the cheap fleet.",
+      "_role": "H200 powerhouse — runs Qwen 72B-AWQ locally on 140GB HBM3e. Founder directive 2026-04-26: switched from Anthropic-backed Claude to local-llm because Anthropic API spend ran $21+ in <2h with 0 CAEL records produced (mw01 wedged in over-budget loop pre-cap-removal, then hit 'credit balance too low' post-restart). Local 72B at this tier produces production-grade reasoning + coding output (per gpu-tier-models.json) at $0 per-token cost — only the Vast hourly rental ($91/d). Supervisor-style coordination still works; just costs less.",
       "handle": "mesh-h200-flagship",
       "brainPath": "compositions/lean-theorist-brain.hsplus",
-      "provider": "anthropic",
-      "model": "claude-opus-4-7",
+      "provider": "local-llm",
+      "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
       "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_H200",
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_H200",
       "budgetUsdPerDay": 0,
