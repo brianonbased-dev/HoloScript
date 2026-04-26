@@ -13,9 +13,9 @@
       "type": "http",
       "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
       "headers": {
-        "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
+        "x-mcp-api-key": "${HOLOSCRIPT_API_KEY}"
       },
-      "description": "MCP Orchestrator — tool discovery and knowledge federation across registered servers (live entry count via GET .../health → knowledge_entries)"
+      "description": "MCP Orchestrator — tool discovery and knowledge federation across registered servers (live entry count via GET .../health → knowledge_entries). Header `x-mcp-api-key` per ai-ecosystem/CLAUDE.md F.013."
     },
     "holoscript-local": {
       "command": "node",
