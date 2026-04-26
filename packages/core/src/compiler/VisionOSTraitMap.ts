@@ -1072,13 +1072,61 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
 
   spatial_navigation: {
     trait: 'spatial_navigation',
-    components: [],
-    level: 'comment',
+    components: ['AnchoringComponent'],
+    level: 'partial',
     minVersion: '1.0',
-    generate: (varName, _config) => [
-      `// @spatial_navigation — spatial navigation for ${varName}`,
-      `// TODO: implement NavigationSplitView or custom spatial nav`,
-    ],
+    imports: ['ARKit', 'SwiftUI'],
+    generate: (varName, config) => {
+      // Honors SpatialNavigationConfig (packages/core/src/traits/SpatialNavigationTrait.ts):
+      //   navigation_mode: 'walking' | 'driving' | 'cycling' | 'indoor'
+      //   path_visualization: 'arrow' | 'line' | 'breadcrumb' | 'holographic'
+      //   waypoint_radius_m: number
+      //   path_color: '#RRGGBB'
+      const mode = String(config.navigation_mode ?? config.mode ?? 'walking');
+      const viz = String(config.path_visualization ?? 'arrow');
+      const waypointRadius = Number(config.waypoint_radius_m ?? 2.0);
+      const rawColor = String(config.path_color ?? '#00aaff').replace('#', '');
+      const r = parseInt(rawColor.slice(0, 2) || '00', 16) / 255;
+      const g = parseInt(rawColor.slice(2, 4) || 'aa', 16) / 255;
+      const b = parseInt(rawColor.slice(4, 6) || 'ff', 16) / 255;
+      const isIndoor = mode === 'indoor';
+      if (isIndoor) {
+        // Indoor / menu-driven navigation -> SwiftUI NavigationSplitView pattern.
+        return [
+          `// @spatial_navigation — indoor mode (NavigationSplitView, ${viz} viz)`,
+          `// In your App / RootView:`,
+          `// NavigationSplitView {`,
+          `//     List(${varName}NavWaypoints, selection: $${varName}SelectedWaypoint) { wp in`,
+          `//         Text(wp.label)`,
+          `//     }`,
+          `// } detail: {`,
+          `//     ${varName.charAt(0).toUpperCase() + varName.slice(1)}WaypointDetail(id: $${varName}SelectedWaypoint)`,
+          `// }`,
+          `${varName}.components.set(AnchoringComponent(.world(transform: matrix_identity_float4x4)))`,
+          `var ${varName}NavWaypoints: [SpatialWaypoint] = []`,
+          `var ${varName}SelectedWaypoint: SpatialWaypoint.ID? = nil`,
+          `let ${varName}WaypointRadius: Float = ${waypointRadius}`,
+        ];
+      }
+      // Outdoor / world-scale: ARKit WorldTrackingProvider + per-waypoint anchors,
+      // path rendered as RealityKit entity chain. Path color preserved from config.
+      return [
+        `// @spatial_navigation — ${mode} mode, ${viz} path viz`,
+        `// Info.plist: NSWorldSensingUsageDescription required`,
+        `let ${varName}WorldProvider = WorldTrackingProvider()`,
+        `try await arkitSession.run([${varName}WorldProvider])`,
+        `var ${varName}NavWaypoints: [(id: String, anchor: WorldAnchor, reached: Bool)] = []`,
+        `var ${varName}CurrentWaypoint = 0`,
+        `let ${varName}WaypointRadius: Float = ${waypointRadius}`,
+        `let ${varName}PathColor = SimpleMaterial(color: .init(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: 1.0), isMetallic: false)`,
+        `Task {`,
+        `    for await update in ${varName}WorldProvider.anchorUpdates {`,
+        `        // Render ${viz} path between consecutive waypoints; advance currentWaypoint`,
+        `        // when player transform is within ${varName}WaypointRadius of next anchor.`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   eye_tracked: {

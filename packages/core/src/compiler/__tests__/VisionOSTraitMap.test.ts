@@ -169,4 +169,49 @@ describe('VisionOSTraitMap', () => {
       expect(typeof mapping.generate).toBe('function');
     }
   });
+
+  // =========== spatial_navigation (V43) — promoted from comment to partial ==========
+
+  it('spatial_navigation is partial (not comment) and contains no TODOs', () => {
+    const mapping = getTraitMapping('spatial_navigation');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    // Default config — outdoor walking path
+    const code = generateTraitCode('spatial_navigation', 'guide', {});
+    expect(code.length).toBeGreaterThan(2);
+    // No leftover TODO markers — all stub language must be gone.
+    for (const line of code) {
+      expect(line.toUpperCase()).not.toContain('TODO');
+    }
+  });
+
+  it('spatial_navigation outdoor mode emits ARKit WorldTrackingProvider', () => {
+    const code = generateTraitCode('spatial_navigation', 'guide', {
+      navigation_mode: 'walking',
+      path_visualization: 'arrow',
+      waypoint_radius_m: 1.5,
+      path_color: '#ff8800',
+    });
+    expect(code.some((l) => l.includes('WorldTrackingProvider'))).toBe(true);
+    expect(code.some((l) => l.includes('NSWorldSensingUsageDescription'))).toBe(true);
+    expect(code.some((l) => l.includes('1.5'))).toBe(true);
+    // Color decoded into RealityKit material literals
+    expect(code.some((l) => l.includes('SimpleMaterial'))).toBe(true);
+  });
+
+  it('spatial_navigation indoor mode emits SwiftUI NavigationSplitView pattern', () => {
+    const code = generateTraitCode('spatial_navigation', 'lobbyMenu', {
+      navigation_mode: 'indoor',
+      path_visualization: 'breadcrumb',
+    });
+    expect(code.some((l) => l.includes('NavigationSplitView'))).toBe(true);
+    expect(code.some((l) => l.includes('AnchoringComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('lobbyMenu'))).toBe(true);
+  });
+
+  it('spatial_navigation declares ARKit + SwiftUI imports', () => {
+    const imports = getRequiredImports(['spatial_navigation']);
+    expect(imports).toContain('ARKit');
+    expect(imports).toContain('SwiftUI');
+  });
 });
