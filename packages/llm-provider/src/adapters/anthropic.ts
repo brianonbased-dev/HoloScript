@@ -78,10 +78,14 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // when they want cost/speed tradeoffs. NEVER silently downgrade.
     this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-7';
     this.apiVersion = config.apiVersion ?? '2023-06-01';
-    // Opt-in: agent runners flip this on for ~10× per-tick cost reduction
-    // when the brain composition is reused across ticks. Code-gen path
-    // (one-off generation prompts) leaves it off — every prompt is unique.
-    this.enablePromptCaching = config.enablePromptCaching ?? false;
+    // Default ON. The Anthropic API skill explicitly recommends prompt
+    // caching as the default for every call — below-minimum prefixes (under
+    // 2-4K tokens depending on model) skip caching entirely with no cost
+    // penalty, and above-minimum stable prefixes get ~10× per-tick savings
+    // once cached. The only pathological case is a hot path with above-
+    // minimum prefixes that never repeat (paying 1.25× writes with zero
+    // reads); that caller can opt out with `enablePromptCaching: false`.
+    this.enablePromptCaching = config.enablePromptCaching ?? true;
   }
 
   protected getDefaultModel(): string {

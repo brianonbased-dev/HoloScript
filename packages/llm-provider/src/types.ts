@@ -271,8 +271,13 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    * 2 requests with 5-min TTL. Below the minimum the request is sent
    * unchanged — no error, just no cache benefit.
    *
-   * Default: `false` (preserves legacy code-gen path which sends a
-   * fresh prompt every call).
+   * Default: `true`. Caching is the right default for almost every Claude
+   * API call: agent runners get the full ~10× per-tick reduction; code-gen
+   * paths with stable system prompts get the same; one-off calls below the
+   * minimum prefix get neither benefit nor extra cost. Set to `false` only
+   * when you have measured evidence that a particular caller's prompts are
+   * pathological for caching (e.g. a hot path with varied above-minimum
+   * prefixes that never repeat — paying 1.25× writes with zero reads).
    */
   enablePromptCaching?: boolean;
 }

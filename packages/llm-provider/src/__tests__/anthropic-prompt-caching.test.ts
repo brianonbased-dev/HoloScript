@@ -1,20 +1,24 @@
 /**
- * AnthropicAdapter — prompt caching opt-in
+ * AnthropicAdapter — prompt caching toggle
  *
  * Verifies that `enablePromptCaching` correctly toggles the system-prompt
  * shape sent to client.messages.stream():
- *   - false (default) → `system` is a plain string (legacy code-gen path).
- *   - true → `system` is `[{type:"text", text, cache_control:{type:"ephemeral"}}]`,
+ *   - true (DEFAULT) → `system` is `[{type:"text", text, cache_control:{type:"ephemeral"}}]`,
  *     which (per the API render order tools→system→messages) caches BOTH
  *     tools AND system as a single prefix the agent runner reuses every tick.
+ *   - false (explicit opt-out) → `system` is a plain string (no caching),
+ *     for callers with measured pathological prompt patterns.
  *
  * Honors GOLD entries:
- *  - G.GOLD.013: assert the false case explicitly. The "default off" path is
- *    the historical behavior; if we accidentally flipped the default we'd
- *    silently start charging cache-write premiums on every code-gen request.
+ *  - G.GOLD.013: assert the explicit-false case explicitly. After the
+ *    2026-04-26 default-flip, opt-out becomes the regression risk: if the
+ *    explicit-false path silently kept caching, callers who measured a
+ *    pathology and asked to opt out would still pay the cache-write
+ *    premium without their consent.
  *  - G.GOLD.015: this test exists to catch a regression that would have
- *    already shipped silently — i.e. the agent runner running with caching
- *    OFF (paying ~10× more per tick) and no error surfacing.
+ *    already shipped silently — both the agent runner running with caching
+ *    accidentally OFF (paying ~10× more per tick) AND the inverse, an
+ *    opt-out caller silently still being cached.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -55,7 +59,7 @@ describe('AnthropicAdapter prompt caching', () => {
     streamCalls.length = 0;
   });
 
-  it('default config: system field is a plain string (no cache_control)', async () => {
+  it('default config: system is array form with ephemeral cache_control on the last block (caching ON by default)', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
     await adapter.complete({
       messages: [
@@ -66,14 +70,17 @@ describe('AnthropicAdapter prompt caching', () => {
 
     expect(streamCalls).toHaveLength(1);
     const args = streamCalls[0];
-    // System is sent as a string — adapter's pre-caching shape.
-    expect(typeof args.system).toBe('string');
-    expect(args.system).toBe('You are a HoloScript code generator.');
-    // Negative assertion (G.GOLD.013): no cache_control anywhere on system
-    expect(JSON.stringify(args.system)).not.toContain('cache_control');
+    // After 2026-04-26 default flip, caching is ON by default — every
+    // call ships `system` in array form with cache_control. This pins
+    // the new default; if anyone reverts to false silently this fails.
+    expect(Array.isArray(args.system)).toBe(true);
+    const systemArr = args.system as Array<{ type: string; text: string; cache_control?: { type: string } }>;
+    expect(systemArr).toHaveLength(1);
+    expect(systemArr[0].text).toBe('You are a HoloScript code generator.');
+    expect(systemArr[0].cache_control).toEqual({ type: 'ephemeral' });
   });
 
-  it('enablePromptCaching=true: system is array form with ephemeral cache_control on the last block', async () => {
+  it('enablePromptCaching=true (explicit): same shape as default — system is array form with ephemeral cache_control', async () => {
     const adapter = new AnthropicAdapter({
       apiKey: 'test-key',
       enablePromptCaching: true,
@@ -92,7 +99,6 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(systemArr).toHaveLength(1);
     expect(systemArr[0].type).toBe('text');
     expect(systemArr[0].text).toBe('You are a security-auditor brain.');
-    // The point of this whole feature: cache_control on the last system block.
     expect(systemArr[0].cache_control).toEqual({ type: 'ephemeral' });
   });
 
@@ -113,10 +119,14 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(args.system).toBeUndefined();
   });
 
-  it('enablePromptCaching=false explicit: behaves identically to default', async () => {
-    // Defensive — if someone explicitly sets `enablePromptCaching: false`
-    // (e.g. wiring through env-driven config), the adapter must not silently
-    // upgrade them to caching.
+  it('enablePromptCaching=false explicit: opts OUT of new default — system is plain string with no cache_control', async () => {
+    // Critical inverse-regression assertion (G.GOLD.013 + G.GOLD.015).
+    // After the 2026-04-26 default flip, the explicit-false opt-out is the
+    // load-bearing path: it's how a caller with measured pathological
+    // prompt patterns (varied above-minimum prefixes that never repeat)
+    // escapes the cache-write premium. If the adapter silently kept
+    // caching when explicitly opted out, that caller would still pay the
+    // 1.25× write premium without their consent. This test guards that.
     const adapter = new AnthropicAdapter({
       apiKey: 'test-key',
       enablePromptCaching: false,
@@ -131,6 +141,9 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(streamCalls).toHaveLength(1);
     const args = streamCalls[0];
     expect(typeof args.system).toBe('string');
+    expect(args.system).toBe('You are a HoloScript generator.');
+    // The opt-out invariant: nothing remotely resembling cache_control is
+    // present anywhere in what gets sent to client.messages.stream().
     expect(JSON.stringify(args.system)).not.toContain('cache_control');
   });
 
