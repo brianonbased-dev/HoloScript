@@ -16,9 +16,11 @@
 import {
   type HashMode,
   HASH_MODE_DEFAULT,
-  hashStringForCAEL,
   hashShapeMatchesMode,
 } from './sha256';
+import { constructTypedArray, isTypedArrayEnvelope, toCanonical } from './cael-canon';
+import { hashCAELEntry } from './hashes';
+export { hashCAELEntry };
 
 export type CAELTraceEvent = 'init' | 'step' | 'interaction' | 'solve' | 'final';
 
@@ -36,62 +38,8 @@ export interface CAELTraceEntry {
 
 export type CAELTrace = CAELTraceEntry[];
 
-interface CAELTypedArrayEnvelope {
-  __cael_typed_array: string;
-  data: number[];
-}
-
-// Legacy FNV-1a string hash lives in sha256.ts as fnv1aStringLegacy.
-// CAELTrace uses it indirectly via hashStringForCAEL(input, mode).
-
-function toCanonical(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-  if (typeof value !== 'object') return value;
-
-  if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
-    const typed = value as unknown as { constructor: { name: string }; length: number; [index: number]: number };
-    const out: CAELTypedArrayEnvelope = {
-      __cael_typed_array: typed.constructor.name,
-      data: Array.from({ length: typed.length }, (_, i) => typed[i]),
-    };
-    return out;
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((v) => toCanonical(v));
-  }
-
-  const obj = value as Record<string, unknown>;
-  const sortedKeys = Object.keys(obj).sort();
-  const out: Record<string, unknown> = {};
-  for (const key of sortedKeys) {
-    out[key] = toCanonical(obj[key]);
-  }
-  return out;
-}
-
 export function encodeCAELValue(value: unknown): unknown {
   return toCanonical(value);
-}
-
-function isTypedArrayEnvelope(value: unknown): value is CAELTypedArrayEnvelope {
-  if (!value || typeof value !== 'object') return false;
-  const maybe = value as Partial<CAELTypedArrayEnvelope>;
-  return typeof maybe.__cael_typed_array === 'string' && Array.isArray(maybe.data);
-}
-
-function constructTypedArray(type: string, data: number[]): unknown {
-  switch (type) {
-    case 'Float32Array': return new Float32Array(data);
-    case 'Float64Array': return new Float64Array(data);
-    case 'Uint32Array': return new Uint32Array(data);
-    case 'Int32Array': return new Int32Array(data);
-    case 'Uint16Array': return new Uint16Array(data);
-    case 'Int16Array': return new Int16Array(data);
-    case 'Uint8Array': return new Uint8Array(data);
-    case 'Int8Array': return new Int8Array(data);
-    default: return data;
-  }
 }
 
 export function decodeCAELValue(value: unknown): unknown {
@@ -112,25 +60,6 @@ export function decodeCAELValue(value: unknown): unknown {
     out[k] = decodeCAELValue(v);
   }
   return out;
-}
-
-/**
- * Hash a CAEL trace entry under the given mode.
- *
- * Mode dispatch (Option C):
- *   mode='fnv1a'  → 'cael-<8hex>' (legacy format, UTF-16 charCodeAt)
- *   mode='sha256' → 'cael-sha-<64hex>' (UTF-8 bytes, SHA-256)
- *
- * Mode defaults to 'fnv1a' if omitted, preserving back-compat for
- * callers that haven't been updated yet. New code should pass the
- * mode explicitly, sourced from ContractConfig.useCryptographicHash.
- */
-export function hashCAELEntry(
-  entry: Omit<CAELTraceEntry, 'hash'>,
-  mode: HashMode = HASH_MODE_DEFAULT,
-): string {
-  const canonical = toCanonical(entry);
-  return hashStringForCAEL(JSON.stringify(canonical), mode);
 }
 
 export function toCAELJSONL(trace: CAELTrace): string {

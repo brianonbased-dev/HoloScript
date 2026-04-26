@@ -26,10 +26,16 @@
 
 import type { SimSolver, FieldData } from './SimSolver';
 import { isGpuBackedSolver } from './SimSolver';
-import { type HashMode, HASH_MODE_DEFAULT, hashBytes } from './sha256';
+import { type HashMode, HASH_MODE_DEFAULT } from './sha256';
+import { computeStateDigest, hashGeometry, hashGpuOutput } from './hashes';
 
-// Re-export so consumers can import HashMode from SimulationContract
-// without depending on the sha256 implementation module directly.
+export {
+  hashCAELEntry,
+  computeStateDigest,
+  hashGeometry,
+  hashGpuOutput,
+  quantumForField,
+} from './hashes';
 export type { HashMode } from './sha256';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -230,95 +236,8 @@ export async function computeAdapterFingerprint(info: AdapterInfo): Promise<stri
     .join('');
 }
 
-// ── Geometry Hashing ─────────────────────────────────────────────────────────
-
-/**
- * Compute a fingerprint of mesh geometry.
- *
- * Mode dispatch (Option C, 2026-04-20 SECURITY wiring):
- *   'fnv1a' (default) — FNV-1a streaming with length prefixes + SEC-02
- *                       vertex/connectivity domain separator.
- *                       Output: 'geo-<8hex>-<n>n-<e>e'. Fast, non-
- *                       cryptographic. Back-compat preserved bit-exactly
- *                       with pre-Option-C output.
- *   'sha256'          — SHA-256 over canonical byte buffer with same
- *                       length prefixes + separator.
- *                       Output: 'geo-sha-<64hex>-<n>n-<e>e'. Slower,
- *                       collision-resistant. Opt-in for adversarial-peer.
- *
- * Any change to nodes, index count, or connectivity alters the digest
- * in either mode.
- */
-export function hashGeometry(
-  vertices: Float64Array | Float32Array | undefined,
-  elements: Uint32Array | undefined,
-  mode: HashMode = HASH_MODE_DEFAULT,
-): string {
-  if (!vertices || !elements) return 'no-geometry';
-
-  const nCoord = vertices.length;
-  const nIdx = elements.length;
-
-  if (mode === 'sha256') {
-    // Canonical byte buffer: 4(nCoord prefix) + 4*nCoord (quantized vertices)
-    // + 4 (domain separator) + 4 (nIdx prefix) + 4*nIdx (elements).
-    const totalBytes = 4 + nCoord * 4 + 4 + 4 + nIdx * 4;
-    const buf = new Uint8Array(totalBytes);
-    const view = new DataView(buf.buffer);
-    let off = 0;
-    view.setUint32(off, nCoord >>> 0, true); off += 4;
-    for (let i = 0; i < nCoord; i++) {
-      view.setInt32(off, Math.round(vertices[i] * 1e6) | 0, true); off += 4;
-    }
-    view.setUint32(off, 0x9e3779b9, true); off += 4;       // SEC-02 separator
-    view.setUint32(off, nIdx >>> 0, true); off += 4;
-    for (let i = 0; i < nIdx; i++) {
-      view.setUint32(off, elements[i] >>> 0, true); off += 4;
-    }
-    return `geo-sha-${hashBytes(buf, 'sha256')}-${nCoord / 3}n-${nIdx}e`;
-  }
-
-  // Legacy FNV-1a streaming path (preserved bit-exactly for back-compat).
-  let h = 2166136261;
-
-  for (let k = 0; k < 4; k++) {
-    h ^= (nCoord >>> (8 * k)) & 0xff;
-    h = Math.imul(h, 16777619);
-  }
-  for (let i = 0; i < nCoord; i++) {
-    const v = Math.round(vertices[i] * 1e6);
-    h ^= v & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 8) & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 16) & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 24) & 0xff;
-    h = Math.imul(h, 16777619);
-  }
-
-  // Separate vertex field from connectivity so tails cannot collide across domains.
-  h ^= 0x9e3779b9;
-  h = Math.imul(h, 16777619);
-
-  for (let k = 0; k < 4; k++) {
-    h ^= (nIdx >>> (8 * k)) & 0xff;
-    h = Math.imul(h, 16777619);
-  }
-  for (let i = 0; i < nIdx; i++) {
-    const v = elements[i];
-    h ^= v & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 8) & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 16) & 0xff;
-    h = Math.imul(h, 16777619);
-    h ^= (v >> 24) & 0xff;
-    h = Math.imul(h, 16777619);
-  }
-
-  return `geo-${(h >>> 0).toString(16).padStart(8, '0')}-${nCoord / 3}n-${nIdx}e`;
-}
+// Geometry / GPU / state / CAEL hashes: packages/engine/src/simulation/hashes.ts
+// (re-exported above for backward compatibility).
 
 /**
  * Paper #4 — semantic sanity beyond hash: element indices must reference real nodes.
@@ -396,79 +315,6 @@ export function validateMeshSanity(
   }
 
   return out;
-}
-
-// ── GPU Output Hashing ───────────────────────────────────────────────────────
-
-/**
- * Compute a fingerprint of a GPU solver's output buffer.
- *
- * Called by `ContractedSimulation.asyncStep()` after each GPU step to record
- * a compact digest of the post-step state directly from the readback buffer.
- * This is the GPU-side analogue of `computeStateDigest()` for CPU solvers
- * (paper-4 §5.2 — closing the gap between CPU-side contract verification and
- * GPU-executed solvers).
- *
- * Mode dispatch (mirrors hashGeometry):
- *   'fnv1a' (default) — FNV-1a streaming over quantized int32 values.
- *                       Fast; non-cryptographic.
- *   'sha256'          — SHA-256 over the same canonical byte buffer.
- *                       Collision-resistant; opt-in for adversarial-peer.
- *
- * Quantization: values are rounded to the nearest integer multiple of
- * GPU_OUTPUT_QUANTUM (1e-6) before hashing, which resets float32
- * reduction-order drift across GPU vendors (same motivation as Route 2b
- * in computeStateDigest).
- *
- * Throws on non-finite values (fail-closed, matching CPU-side guard).
- */
-const GPU_OUTPUT_QUANTUM = 1e-6;
-
-export function hashGpuOutput(
-  data: Float32Array,
-  mode: HashMode = HASH_MODE_DEFAULT,
-): string {
-  if (data.length === 0) return mode === 'sha256' ? `gpu-sha-${'0'.repeat(64)}-0` : 'gpu-00000000-0';
-
-  const n = data.length;
-  const invQ = 1 / GPU_OUTPUT_QUANTUM;
-
-  if (mode === 'sha256') {
-    const buf = new Uint8Array(4 + n * 4);
-    const view = new DataView(buf.buffer);
-    view.setUint32(0, n >>> 0, true);
-    for (let i = 0; i < n; i++) {
-      const v = data[i];
-      if (!Number.isFinite(v)) {
-        throw new Error(
-          `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
-        );
-      }
-      view.setInt32(4 + i * 4, Math.round(v * invQ) | 0, true);
-    }
-    return `gpu-sha-${hashBytes(buf, 'sha256')}-${n}`;
-  }
-
-  // FNV-1a path
-  let h = 2166136261;
-  for (let k = 0; k < 4; k++) {
-    h ^= (n >>> (8 * k)) & 0xff;
-    h = Math.imul(h, 16777619);
-  }
-  for (let i = 0; i < n; i++) {
-    const v = data[i];
-    if (!Number.isFinite(v)) {
-      throw new Error(
-        `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
-      );
-    }
-    const q = Math.round(v * invQ) | 0;
-    h ^= q & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 8) & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 16) & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 24) & 0xff; h = Math.imul(h, 16777619);
-  }
-  return `gpu-${(h >>> 0).toString(16).padStart(8, '0')}-${n}`;
 }
 
 // ── Unit Validation ──────────────────────────────────────────────────────────
@@ -724,7 +570,7 @@ export class ContractedSimulation {
       // wall-clock delta granularity. This matters for replay — a replay
       // with a different wallDelta but the same inner-dt sequence must
       // produce the same digest sequence.
-      this.stateDigests.push(this.computeStateDigest());
+      this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
     });
     return subStepsTaken;
   }
@@ -762,7 +608,7 @@ export class ContractedSimulation {
       }
 
       // CPU-side Route 2b digest (unchanged from synchronous step)
-      this.stateDigests.push(this.computeStateDigest());
+      this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
     });
 
     return subStepsTaken;
@@ -774,210 +620,7 @@ export class ContractedSimulation {
     return this.gpuOutputDigests.slice();
   }
 
-  /**
-   * Compute the canonical state digest: quantize every field to
-   * int32 via round(value * 1e6), then FNV-1a over the concatenated
-   * little-endian bytes in deterministic field-name order.
-   *
-   * Deterministic across platforms because:
-   *   (1) field-name ordering is alphabetical (stable across engines)
-   *   (2) quantization resets float32 reduction-order drift
-   *   (3) FNV-1a is integer arithmetic (no floating-point at hash time)
-   *
-   * This is the primitive Route 2b relies on. If two adapters produce
-   * float32 state vectors that agree within 1/1e6 of each other, their
-   * state digests will be identical regardless of internal reduction
-   * order differences in compute shaders.
-   */
-  /**
-   * Per-field quantum registry (Route 2b, per-AUDIT 2026-04-20 proof outline).
-   *
-   * The earlier implementation used a single global quantum (round(v*1e6)),
-   * which is correct only for state normalized to O(1). Real physics state
-   * spans many orders of magnitude: stress ~10^5-10^9 Pa, displacement
-   * ~10^-4-10^-2 m, temperature ~10^2-10^3 K, velocity ~10^-1-10^1 m/s.
-   * A single global q gives either hash collisions (too coarse for small
-   * fields) or excessive boundary straddles (too tight for large fields).
-   *
-   * Per-AUDIT convention: q_f = characteristic_scale_f * 1e-3, i.e. three
-   * orders of magnitude tighter than the field's natural scale. Example:
-   * stress field with characteristic scale 10^6 Pa → q = 10^3 Pa.
-   *
-   * Field-name prefix matching lets solvers contribute fields with
-   * descriptive names (e.g., "stressField", "vonMisesStress",
-   * "principalStress1") that all map to the same stress scale.
-   *
-   * Fields not matched by any registry entry use the fallback quantum
-   * (1e-6, matching the pre-AUDIT behavior for backward compatibility
-   * with O(1)-normalized mock solvers used in existing tests).
-   */
-  private static readonly FIELD_QUANTUM_REGISTRY: ReadonlyArray<readonly [RegExp, number]> = [
-    // Stress-family fields: characteristic scale ~10^6 Pa → q = 1000 Pa
-    [/^(stress|vonMises|principal[A-Z]|deviatoric|cauchy|pk[12])/i, 1_000],
-    // Strain fields: dimensionless, characteristic scale ~10^-3 → q = 1e-6
-    [/^(strain|deformation)/i, 1e-6],
-    // Displacement/position: characteristic scale ~10^-2 m → q = 1e-5 m
-    [/^(displacement|position|offset|translation|coord)/i, 1e-5],
-    // Velocity: characteristic scale ~1 m/s → q = 1e-3 m/s
-    [/^(velocity|velo|speed)/i, 1e-3],
-    // Acceleration / force per mass: characteristic scale ~10 m/s² → q = 1e-2
-    [/^(acceleration|accel|force)/i, 1e-2],
-    // Temperature: characteristic scale ~10^2 K → q = 0.1 K
-    [/^(temperature|temp|thermal)/i, 0.1],
-    // Pressure: same family as stress; characteristic scale ~10^5 Pa → q = 100 Pa
-    [/^(pressure|press)/i, 100],
-    // Energy: characteristic scale ~10^1 J (per-element) → q = 1e-2 J
-    [/^(energy|strainEnergy|kineticEnergy|potentialEnergy)/i, 1e-2],
-  ];
-
-  private static readonly FALLBACK_QUANTUM = 1e-6;
-
-  /** Resolve the per-field quantum q_f for a given field name. Returns the
-   *  first registry match, or the fallback for unrecognized fields. */
-  private static quantumForField(name: string): number {
-    for (const [pattern, q] of ContractedSimulation.FIELD_QUANTUM_REGISTRY) {
-      if (pattern.test(name)) return q;
-    }
-    return ContractedSimulation.FALLBACK_QUANTUM;
-  }
-
-  /**
-   * Compute a canonical state digest under the contract's hash mode.
-   *
-   * Mode dispatch (Option C):
-   *   'fnv1a' (default) — FNV-1a streaming: field names + quantized
-   *     state folded byte-by-byte via the classic algorithm. Output:
-   *     8 hex chars. Preserved bit-exactly from pre-Option-C code.
-   *   'sha256' — builds the same canonical byte buffer and passes it
-   *     to sha256Bytes. Output: 64 hex chars. Opt-in for adversarial-
-   *     peer use; collision-resistant.
-   *
-   * Either mode shares the same NaN/±Infinity fail-closed guard
-   * (Wave-1.5): non-finite field values throw before any hashing
-   * happens, so downstream consumers inherit the integrity property
-   * in both modes.
-   */
-  private computeStateDigest(): string {
-    // Deterministic field order — common to both modes.
-    // W4-T1 fix (2026-04-22): guard against solvers that don't expose
-    // fieldNames. The doc comment at solve()/asyncStep() already states
-    // digest computation is conditional on fieldNames/getField being
-    // available, but this code-path was unconditionally spreading the
-    // value, which threw `is not iterable` for several legitimate solver
-    // shapes (e.g. paper-benchmark fixtures). Skip-with-empty-digest is
-    // the documented behavior; the upstream sites are guarded by their
-    // own `if (typeof solver.getField === 'function')` checks.
-    const rawFieldNames = (this.solver as { fieldNames?: Iterable<string> }).fieldNames;
-    if (!rawFieldNames || typeof (rawFieldNames as Iterable<string>)[Symbol.iterator] !== 'function') {
-      return '';
-    }
-    const fieldNames = [...rawFieldNames].sort();
-
-    if (this.hashMode === 'sha256') {
-      // Build canonical byte buffer: for each field, name bytes
-      // (charCodeAt & 0xff per char, matching the FNV path's byte
-      // view) + quantized int32 values (little-endian). Concatenated
-      // in sorted field order, then SHA-256 one-shot.
-      type FieldBlock = { nameBytes: Uint8Array; intBytes: Uint8Array };
-      const blocks: FieldBlock[] = [];
-      let totalBytes = 0;
-      for (const name of fieldNames) {
-        const field = this.solver.getField(name);
-        if (!field) continue;
-        let values: Float32Array | Float64Array;
-        if (field instanceof Float32Array) values = field;
-        else if (field instanceof Float64Array) values = field;
-        else {
-          const maybeData = (field as unknown as { data?: Float32Array | Float64Array }).data;
-          if (!maybeData) continue;
-          values = maybeData;
-        }
-        const qf = ContractedSimulation.quantumForField(name);
-        const invQf = 1 / qf;
-        // Pre-allocate name bytes (charCodeAt & 0xff per char, matching
-        // the FNV streaming path's byte view).
-        const nameBytes = new Uint8Array(name.length);
-        for (let i = 0; i < name.length; i++) nameBytes[i] = name.charCodeAt(i) & 0xff;
-        // Pre-allocate value bytes (4 per int32, little-endian).
-        const intBytes = new Uint8Array(values.length * 4);
-        const view = new DataView(intBytes.buffer);
-        for (let i = 0; i < values.length; i++) {
-          const v = values[i];
-          if (!Number.isFinite(v)) {
-            throw new Error(
-              `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
-              `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
-              `Investigate solver.step() for the stepping that produced this state.`,
-            );
-          }
-          view.setInt32(i * 4, Math.round(v * invQf) | 0, true);
-        }
-        blocks.push({ nameBytes, intBytes });
-        totalBytes += nameBytes.length + intBytes.length;
-      }
-      const buf = new Uint8Array(totalBytes);
-      let off = 0;
-      for (const blk of blocks) {
-        buf.set(blk.nameBytes, off); off += blk.nameBytes.length;
-        buf.set(blk.intBytes, off); off += blk.intBytes.length;
-      }
-      return hashBytes(buf, 'sha256');
-    }
-
-    // Legacy FNV-1a streaming path (preserved bit-exactly for back-compat).
-    const FNV_OFFSET = 0x811c9dc5;
-    const FNV_PRIME = 0x01000193;
-    let h = FNV_OFFSET >>> 0;
-
-    for (const name of fieldNames) {
-      const field = this.solver.getField(name);
-      if (!field) continue;
-      // Flatten whatever the field is into a typed-array view
-      let values: Float32Array | Float64Array;
-      if (field instanceof Float32Array) {
-        values = field;
-      } else if (field instanceof Float64Array) {
-        values = field;
-      } else {
-        // RegularGrid3D — assume it exposes `.data` per this codebase's convention
-        const maybeData = (field as unknown as { data?: Float32Array | Float64Array }).data;
-        if (!maybeData) continue;
-        values = maybeData;
-      }
-      // Resolve the field's quantum (per-AUDIT 2026-04-20 per-field q_f)
-      const qf = ContractedSimulation.quantumForField(name);
-      const invQf = 1 / qf;
-      // Hash the field-name first so two fields with identical values but
-      // different names produce different digests
-      for (let i = 0; i < name.length; i++) {
-        h ^= name.charCodeAt(i) & 0xff;
-        h = Math.imul(h, FNV_PRIME) >>> 0;
-      }
-      // Quantize by q_f (value / q_f, rounded to nearest integer-lattice point)
-      // + fold into the hash. NaN/±Infinity fail-closed guard (Wave-1.5).
-      for (let i = 0; i < values.length; i++) {
-        const v = values[i];
-        if (!Number.isFinite(v)) {
-          throw new Error(
-            `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
-            `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
-            `Investigate solver.step() for the stepping that produced this state.`,
-          );
-        }
-        const q = Math.round(v * invQf) | 0;
-        h ^= q & 0xff;
-        h = Math.imul(h, FNV_PRIME) >>> 0;
-        h ^= (q >>> 8) & 0xff;
-        h = Math.imul(h, FNV_PRIME) >>> 0;
-        h ^= (q >>> 16) & 0xff;
-        h = Math.imul(h, FNV_PRIME) >>> 0;
-        h ^= (q >>> 24) & 0xff;
-        h = Math.imul(h, FNV_PRIME) >>> 0;
-      }
-    }
-
-    return h.toString(16).padStart(8, '0');
-  }
+  // State digest: `computeStateDigest()` in `hashes.ts` (Route 2b, per-field q_f).
 
   /** Return the array of per-step state digests captured so far.
    *  Used by CAELReplayer + cross-adapter determinism verification. */
@@ -1010,7 +653,7 @@ export class ContractedSimulation {
     // Route 2d: single terminal canonicalization on the converged
     // state. Fail-closed on NaN/Infinity (inherits guard from
     // computeStateDigest).
-    this.stateDigests.push(this.computeStateDigest());
+    this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
   }
 
   /** Enforce Guarantee 1: halt if geometry has been corrupted.
