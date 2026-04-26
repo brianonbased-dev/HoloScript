@@ -30,7 +30,7 @@
 //      localStorage['cael-trace-<runId>'] as JSONL.
 //   5. Operator collects with a small script that reads localStorage.
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useStudioBus } from '@/hooks/useStudioBus';
 import { useStudioCAELSession } from '@/hooks/useStudioCAELSession';
@@ -92,23 +92,36 @@ function StudySessionMount({
   return null;
 }
 
-export function StudioCAELMount() {
+// useSearchParams triggers a Client-Side-Rendering bailout for the whole
+// subtree that contains it. Since this mount lives inside Providers (root
+// layout), an unwrapped call propagates the bailout to every page —
+// breaking static prerender of /auth/signin, /_not-found, etc. Suspense
+// boundary lets Next.js prerender the surrounding tree and CSR-fall-back
+// only this gate. Pattern: nextjs.org/docs/messages/missing-suspense-with-csr-bailout.
+function StudyModeGate() {
   const searchParams = useSearchParams();
   const studyMode = searchParams?.get('study') === '1';
   const participantHash = searchParams?.get('participant') ?? '';
   const taskId = searchParams?.get('task') ?? '';
   const studyVersion = searchParams?.get('study_version') ?? '2026-04-24-capstone-uist';
 
+  if (!studyMode || !participantHash || !taskId) return null;
+  return (
+    <StudySessionMount
+      participantHash={participantHash}
+      taskId={taskId}
+      studyVersion={studyVersion}
+    />
+  );
+}
+
+export function StudioCAELMount() {
   return (
     <>
       <HistoryBridgeMount />
-      {studyMode && participantHash && taskId && (
-        <StudySessionMount
-          participantHash={participantHash}
-          taskId={taskId}
-          studyVersion={studyVersion}
-        />
-      )}
+      <Suspense fallback={null}>
+        <StudyModeGate />
+      </Suspense>
     </>
   );
 }
