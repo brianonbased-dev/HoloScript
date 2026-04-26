@@ -43,9 +43,19 @@ const ALLOWED_WRITE_ROOTS = [
 // Command-prefix whitelist. Prefix-match is intentional — `lake build MSC`
 // matches `lake build`, `pnpm --filter @holoscript/core build` matches
 // `pnpm --filter`, etc. Refuses anything else (no sudo, rm, curl, ssh, eval).
-const BASH_WHITELIST = [
-  'lake build', 'lake env', 'lake clean',
-  'lean ',
+//
+// Two-tier classification (W.107 tightening 2026-04-26):
+//   READ_ONLY    — observation-only commands. Pass execution policy, but do
+//                  NOT count as artifact-producing for the W.107 gate.
+//   PRODUCTIVE   — commands that build, test, or otherwise produce a real
+//                  artifact (compile output, test result, etc.). DO count as
+//                  artifact-producing for the W.107 gate.
+//
+// Pre-tightening, the gate accepted ANY bash call as side-effecting — so
+// `bash echo done` would falsely pass the gate. Now `echo` is read-only and
+// the worker must call something productive (lake build / pnpm --filter
+// build / vitest run / lean compile / etc.) to claim `executed`.
+const BASH_READ_ONLY_PREFIXES = [
   'ls ', 'ls\n', 'ls$',
   'cat ',
   'grep ', 'rg ',
@@ -53,11 +63,30 @@ const BASH_WHITELIST = [
   'wc ',
   'head ', 'tail ',
   'git status', 'git log', 'git diff', 'git show',
-  'pnpm --filter',
-  'pnpm vitest', 'vitest run',
   'pwd',
   'echo ',
+  'lake env',
 ];
+
+const BASH_PRODUCTIVE_PREFIXES = [
+  'lake build', 'lake clean',
+  'lean ',
+  'pnpm --filter',
+  'pnpm vitest', 'vitest run',
+];
+
+const BASH_WHITELIST = [...BASH_READ_ONLY_PREFIXES, ...BASH_PRODUCTIVE_PREFIXES];
+
+/**
+ * Returns true iff `cmd` matches a productive prefix — i.e. would produce a
+ * real artifact (compile/test/build output) rather than just observing state.
+ * Used by the W.107 artifact-grounding gate in runner.ts.
+ */
+export function isProductiveBashCommand(cmd: string): boolean {
+  const trimmed = String(cmd ?? '').trim();
+  if (!trimmed) return false;
+  return BASH_PRODUCTIVE_PREFIXES.some((prefix) => trimmed.startsWith(prefix.trim()));
+}
 
 // ---------------------------------------------------------------------------
 // Tool specs surfaced to the LLM

@@ -4,7 +4,7 @@ import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
-import { MESH_TOOLS, runTool } from './tools.js';
+import { MESH_TOOLS, runTool, isProductiveBashCommand } from './tools.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -112,6 +112,15 @@ export class AgentRunner {
     // no commit / no /room done — fabricated deliverables polluting trust. The
     // gate below short-circuits this class of hallucination at the runner edge.
     const toolsCalled = new Set<string>();
+    // Tightened-gate counter (W.107.b 2026-04-26): track *productive* tool calls
+    // separately from any tool call. A productive call is one of:
+    //   - write_file with non-empty content
+    //   - bash matching a productive prefix (lake build / pnpm --filter / vitest
+    //     run / lean / pnpm vitest — see tools.ts BASH_PRODUCTIVE_PREFIXES)
+    // Read-only bash (cat/grep/ls/echo/git status/etc.) does NOT count even
+    // though it's whitelisted for execution. This catches the trivial-bash-bypass
+    // class (e.g. `bash echo done`) that the original W.107 gate accepted.
+    let productiveCallCount = 0;
     while (true) {
       iters++;
       if (iters > MAX_TOOL_ITERS) {
@@ -138,7 +147,17 @@ export class AgentRunner {
       if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
         log({ ev: 'tool-call', taskId: target.id, iter: iters, tools: resp.toolUses.map((t) => t.name) });
         // Track tool names for the artifact-grounding gate.
-        for (const u of resp.toolUses) toolsCalled.add(u.name);
+        for (const u of resp.toolUses) {
+          toolsCalled.add(u.name);
+          // Productive-call accounting (W.107.b tighter gate).
+          if (u.name === 'write_file') {
+            const content = String((u.input as Record<string, unknown>)?.content ?? '');
+            if (content.length > 0) productiveCallCount++;
+          } else if (u.name === 'bash') {
+            const cmd = String((u.input as Record<string, unknown>)?.cmd ?? '');
+            if (isProductiveBashCommand(cmd)) productiveCallCount++;
+          }
+        }
         // Append the assistant turn (text + tool_use blocks) so the model
         // sees its own request when we send tool_result back.
         messages.push({
@@ -160,23 +179,27 @@ export class AgentRunner {
     const durationMs = Date.now() - start;
 
     // Artifact-grounding gate (W.107 — fleet event-firing rate is not a productivity
-    // metric; only side-effecting tool calls produce real artifacts). MESH_TOOLS
-    // exposes 4 tools: read_file + list_dir (read-only inspection) and write_file +
-    // bash (state-mutating). A task whose execution did NOT call write_file or
-    // bash at least once produced no artifact and should NOT be marked executed.
-    // We log a 'no-artifact' tick-error instead, skip CAEL/message posts, and
-    // return so the task remains open for a real attempt.
-    const SIDE_EFFECTING_TOOLS: ReadonlySet<string> = new Set(['write_file', 'bash']);
-    const sideEffectingCalled = [...toolsCalled].some((t) => SIDE_EFFECTING_TOOLS.has(t));
-    if (!sideEffectingCalled) {
+    // metric; only side-effecting tool calls produce real artifacts; 2026-04-26
+    // tightened to W.107.b which also closes the trivial-bash bypass: `bash echo
+    // done` and `write_file /tmp/x ""` no longer pass the gate). The gate now
+    // requires AT LEAST ONE productive call:
+    //   - write_file with non-empty content, OR
+    //   - bash matching a productive prefix (lake build / pnpm --filter /
+    //     vitest run / lean / pnpm vitest)
+    // Read-only inspection tools (read_file, list_dir) and read-only bash
+    // (cat/grep/ls/echo/git status/git log/...) don't satisfy the gate.
+    if (productiveCallCount === 0) {
       log({
         ev: 'no-artifact',
         taskId: target.id,
         tool_iters: iters,
         toolsCalled: [...toolsCalled],
+        productiveCallCount,
         message:
-          'task execution called no side-effecting tool (write_file/bash) — refusing to mark executed. ' +
-          'Likely a pure-text or read-only-inspection response. Task remains open for a grounded attempt.',
+          'task execution did not produce a real artifact — refusing to mark executed. ' +
+          'Required: write_file with non-empty content OR bash with a productive prefix ' +
+          '(lake build / pnpm --filter / vitest run / lean / pnpm vitest). ' +
+          'Pure-text, read-only inspection, and trivial-bash-bypass (`echo`, `cat`, etc.) do not satisfy the gate.',
       });
       // Best-effort: leave the task in claimed state so the supervisor can either
       // re-tick or release it via heartbeat-rejoin. We deliberately do NOT post
@@ -188,7 +211,7 @@ export class AgentRunner {
         taskId: target.id,
         spentUsd: costGuard.getState().spentUsd,
         remainingUsd: costGuard.getRemainingUsd(),
-        message: `no side-effecting tool called (toolsCalled=[${[...toolsCalled].join(',')}], iters=${iters})`,
+        message: `no productive tool call observed (toolsCalled=[${[...toolsCalled].join(',')}], productiveCallCount=${productiveCallCount}, iters=${iters})`,
       };
     }
 

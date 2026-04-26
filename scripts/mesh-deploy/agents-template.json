@@ -31,7 +31,8 @@
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_TI1",
       "budgetUsdPerDay": 0,
       "scopeTier": "warm",
-      "enabled": true
+      "enabled": true,
+      "enableCommitHook": true
     },
     {
       "_role": "Local-LLM — Qwen 0.5B for security-auditor work. The full mesh becomes a multi-domain agent fleet.",
@@ -43,7 +44,8 @@
       "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_SEC1",
       "budgetUsdPerDay": 0,
       "scopeTier": "warm",
-      "enabled": true
+      "enabled": true,
+      "enableCommitHook": true
     },
     {
       "_role": "MOCK provider — validates the runtime + identity + commit-hook flow with $0 LLM cost. First N=5 of these on the cheapest instances let us catch wiring issues before paying for real LLM tokens.",

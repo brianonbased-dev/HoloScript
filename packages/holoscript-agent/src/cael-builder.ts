@@ -33,6 +33,19 @@ export interface CaelAuditRecord {
   trial?: number;
   attack_class?: string;
   defense_state?: string;
+  /**
+   * Trust-epoch tag for downstream consumers (Paper 25 gate clock,
+   * fleet-health drift detector, retroactive corpus filters). Set to
+   * `'post-w107'` for any record built after the 2026-04-26 W.107
+   * artifact-grounding gate landed (HoloScript commit 4aab897ad). Records
+   * without this field — i.e. anything in the audit store before the gate
+   * was deployed — are implicitly `'pre-w107-untrusted'`. The mesh-worker-02
+   * 27.5h hallucination class (fabricated "100 scenes validated" CAEL
+   * records with no actual artifact) all live in the implicit-untrusted
+   * cohort. Consumers should filter by `trust_epoch === 'post-w107'`
+   * before treating CAEL records as evidence of real work.
+   */
+  trust_epoch?: 'post-w107';
 }
 
 export interface BuildCaelRecordInput {
@@ -104,5 +117,6 @@ export function buildCaelRecord(input: BuildCaelRecordInput): CaelAuditRecord {
     fnv1a_chain,
     version_vector_fingerprint: `agent@${runtimeVersion}|brain@${brainClassOf(brain)}|provider@${identity.llmProvider}|model@${identity.llmModel}`,
     brain_class: brainClassOf(brain),
+    trust_epoch: 'post-w107',
   };
 }

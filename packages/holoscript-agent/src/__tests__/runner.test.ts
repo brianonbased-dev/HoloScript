@@ -53,13 +53,24 @@ function mockProvider(opts: {
           toolUses: toolCalls.map((name, i) => ({
             id: `mock-tu-${i}`,
             name,
-            input: name === 'bash' ? { cmd: 'echo ok' } : { path: '/tmp/x', content: 'x' },
+            // W.107.b: use a PRODUCTIVE bash command (vitest run) by default so
+            // the tightened gate passes. Read-only bash like `echo ok` no
+            // longer satisfies the gate. write_file uses non-empty content.
+            input: name === 'bash'
+              ? { cmd: 'vitest run --no-coverage' }
+              : name === 'write_file'
+                ? { path: '/root/agent-output/x', content: 'sample artifact content' }
+                : { path: '/tmp/x' },
           })),
           assistantBlocks: toolCalls.map((name, i) => ({
             type: 'tool_use' as const,
             id: `mock-tu-${i}`,
             name,
-            input: name === 'bash' ? { cmd: 'echo ok' } : { path: '/tmp/x', content: 'x' },
+            input: name === 'bash'
+              ? { cmd: 'vitest run --no-coverage' }
+              : name === 'write_file'
+                ? { path: '/root/agent-output/x', content: 'sample artifact content' }
+                : { path: '/tmp/x' },
           })),
         } as unknown as LLMCompletionResponse;
       }
@@ -190,11 +201,103 @@ describe('AgentRunner.tick', () => {
     const result = await runner.tick();
     expect(result.action).toBe('no-artifact');
     expect(result.taskId).toBe('t-hallucinated');
-    expect(result.message).toMatch(/no side-effecting tool/);
+    expect(result.message).toMatch(/no productive tool call/);
     // Critical: no CAEL post + no message on the board so the team can't be
     // misled into trusting the hallucinated "validated" claim.
     expect(mesh.postAuditRecords).not.toHaveBeenCalled();
     expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
+  });
+
+  // W.107.b tightened gate (added 2026-04-26): bash with read-only prefixes
+  // (echo, cat, ls, grep, etc.) no longer satisfies the gate. Only productive
+  // bash (lake build, pnpm --filter, vitest run, lean) counts as artifact.
+  it('returns no-artifact when bash is called with a read-only prefix only (W.107.b)', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-trivial-bash', title: 'paper-20 scene composition validate', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    // Custom mock: model calls bash with `echo done` (read-only) instead of
+    // a productive command. This is the trivial-bash-bypass pattern that the
+    // first W.107 gate accepted but the tightened gate now rejects.
+    let callCount = 0;
+    const provider: ILLMProvider = {
+      name: 'mock',
+      models: ['mock-1'],
+      defaultHoloScriptModel: 'mock-1',
+      async complete(_req): Promise<LLMCompletionResponse> {
+        callCount++;
+        const usage = { promptTokens: 100, completionTokens: 50, totalTokens: 150 };
+        if (callCount === 1) {
+          return {
+            content: '',
+            usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'tool_use',
+            toolUses: [{ id: 'tu-1', name: 'bash', input: { cmd: 'echo done' } }],
+            assistantBlocks: [{ type: 'tool_use' as const, id: 'tu-1', name: 'bash', input: { cmd: 'echo done' } }],
+          } as unknown as LLMCompletionResponse;
+        }
+        return { content: 'done', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+      },
+      async generateHoloScript() { throw new Error('not used'); },
+      async healthCheck() { return { ok: true, latencyMs: 1 }; },
+    };
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider,
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('no-artifact');
+    expect(mesh.postAuditRecords).not.toHaveBeenCalled();
+    expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
+  });
+
+  it('returns no-artifact when write_file is called with empty content (W.107.b)', async () => {
+    const tasks: BoardTask[] = [
+      { id: 't-empty-write', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    ];
+    const mesh = mockMesh({ tasks });
+    let callCount = 0;
+    const provider: ILLMProvider = {
+      name: 'mock',
+      models: ['mock-1'],
+      defaultHoloScriptModel: 'mock-1',
+      async complete(_req): Promise<LLMCompletionResponse> {
+        callCount++;
+        const usage = { promptTokens: 100, completionTokens: 50, totalTokens: 150 };
+        if (callCount === 1) {
+          return {
+            content: '',
+            usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'tool_use',
+            // empty content — should NOT count as productive
+            toolUses: [{ id: 'tu-2', name: 'write_file', input: { path: '/root/agent-output/x', content: '' } }],
+            assistantBlocks: [{ type: 'tool_use' as const, id: 'tu-2', name: 'write_file', input: { path: '/root/agent-output/x', content: '' } }],
+          } as unknown as LLMCompletionResponse;
+        }
+        return { content: 'done', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+      },
+      async generateHoloScript() { throw new Error('not used'); },
+      async healthCheck() { return { ok: true, latencyMs: 1 }; },
+    };
+    const runner = new AgentRunner({
+      identity: IDENTITY,
+      brain: BRAIN,
+      provider,
+      costGuard: freshGuard(),
+      mesh: mesh as never,
+    });
+
+    const result = await runner.tick();
+    expect(result.action).toBe('no-artifact');
+    expect(mesh.postAuditRecords).not.toHaveBeenCalled();
   });
 
   it('returns no-artifact when the LLM only calls read-only tools (read_file / list_dir)', async () => {

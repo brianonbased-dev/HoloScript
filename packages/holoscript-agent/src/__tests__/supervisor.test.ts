@@ -43,8 +43,8 @@ function provider(content = 'mock response'): ILLMProvider {
           model: 'mock-1',
           provider: 'mock',
           finishReason: 'tool_use',
-          toolUses: [{ id: 'sup-tu', name: 'bash', input: { cmd: 'echo ok' } }],
-          assistantBlocks: [{ type: 'tool_use' as const, id: 'sup-tu', name: 'bash', input: { cmd: 'echo ok' } }],
+          toolUses: [{ id: 'sup-tu', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
+          assistantBlocks: [{ type: 'tool_use' as const, id: 'sup-tu', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
         } as unknown as LLMCompletionResponse;
       }
       return {
