@@ -104,3 +104,25 @@ export type {
   HologramStore,
   HologramStorePutResult,
 } from './HologramStore';
+
+// ── Browser providers (Sprint 0a.2) ──────────────────────────────────────────
+//
+// WebGPU/WASM depth + Three.js quilt renderer for Studio drop-zone use.
+// Pure providers — no orchestration shift; the `createHologram` entry above
+// stays runtime-agnostic. `createBrowserProviders()` is the one-call factory.
+
+export {
+  BrowserDepthProvider,
+  BrowserQuiltRenderer,
+  createBrowserProviders,
+  defaultBrowserImageDecoder,
+  encodePngRgba,
+} from './browser';
+
+export type {
+  BrowserDepthProviderConfig,
+  BrowserQuiltRendererConfig,
+  CreateBrowserProvidersConfig,
+  DecodedImage,
+  ImageDecoder,
+} from './browser';
