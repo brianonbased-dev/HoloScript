@@ -1263,7 +1263,7 @@ async function dispatchActionAsync(
     case 'fix_from_compile_errors': {
       // Retry action: feed compile errors back to LLM for a second attempt.
       // This is the key "loosening" — instead of blind rollback, the LLM gets
-      // to see WHY its fix failed and try again, like a human developer.
+      // to see WHY its fix failed and try again, like a peer at a keyboard.
       const errors = blackboard.compile_errors ?? [];
       blackboard.retry_count = (blackboard.retry_count ?? 0) + 1;
       console.log(

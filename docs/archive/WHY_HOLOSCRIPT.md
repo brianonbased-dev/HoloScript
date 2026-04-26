@@ -105,7 +105,7 @@ Research mapping HoloScript against 28 known impossibilities across CS/engineeri
 
 ## Designed for the Agentic Era
 
-While other tools focus on human developer convenience, HoloScript is architected for the unique needs of **Autonomous Agents**:
+While other tools focus on embodied-developer convenience, HoloScript is architected for **all peers who build** — embodied collaborators and autonomous agents alike — with the agent dimension treated as a first-class peer, not an afterthought:
 
 ### 1. Cognitive Sovereignty (uAAL)
 
