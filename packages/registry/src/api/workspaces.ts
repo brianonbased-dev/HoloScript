@@ -42,7 +42,7 @@ const UpdateWorkspaceSchema = z.object({
         .optional(),
       linter: z
         .object({
-          rules: z.record(z.enum(['off', 'warn', 'error'])).optional(),
+          rules: z.record(z.string(), z.enum(['off', 'warn', 'error'])).optional(),
           extends: z.array(z.string()).optional(),
         })
         .optional(),
@@ -68,8 +68,11 @@ const SetSecretSchema = z.object({
 // Middleware
 // ============================================================================
 
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest extends Omit<Request, 'params'> {
   userId?: string;
+  // Express 5 widened params to Record<string, string|string[]> in @types/express v5;
+  // path params (`:id`, `:userId`, `:name`) are always strings at runtime, so narrow back.
+  params: Record<string, string>;
 }
 
 function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
