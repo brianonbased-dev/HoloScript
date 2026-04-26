@@ -280,6 +280,22 @@ const nextConfig = {
       )
     );
 
+    // Catch-all: every @holoscript/*-plugin and @holoscript/plugin-* gets
+    // imported by @holoscript/core/dist/traits/index.js at load time, but
+    // pre-flight build excludes packages/plugins/** for speed. Stub them
+    // all so studio's webpack walk never dies on a new plugin we haven't
+    // explicitly aliased yet. Plugins are data, not code (S.MCP arch
+    // rule) — they shouldn't be in core's runtime imports anyway. The
+    // bigger fix is removing those imports from core; until then, this
+    // regex makes the deploy resilient to plugin churn. See deploy-
+    // railway.yml targeted-build --filter '!./packages/plugins/**'.
+    config.plugins.push(
+      new (require('webpack').NormalModuleReplacementPlugin)(
+        /^@holoscript\/(plugin-[\w-]+|[\w-]+-plugin)$/,
+        require.resolve('./src/lib/empty-module.js')
+      )
+    );
+
     // Stub ws (WebSocket) — Node.js only, leaks via core barrel
     config.resolve.alias['ws'] = require.resolve('./src/lib/empty-module.js');
     config.resolve.alias['bufferutil'] = false;
