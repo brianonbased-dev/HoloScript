@@ -1,0 +1,164 @@
+# Self-healing CI — auto-diagnose + open a fix PR when Deploy to Railway fails.
+#
+# Why this workflow exists (W.099 + S.ABS):
+#   On 2026-04-25 we discovered HoloScript's Railway deploy pipeline had been
+#   silently failing for 3+ consecutive runs because nobody watches CI. Both
+#   the CAEL endpoint fix (eebc04b64) and the team-cap-bump endpoint
+#   (3b827c6e7) were undeployable until the pipeline got unstuck. The
+#   absorb-service `task_1777164270247_5m8f` had 5+ FAILED Railway deploys
+#   in 24h — workspace dep resolution issues that a Claude-run diagnose+fix
+#   loop is well-suited for.
+#
+# What it does:
+#   When `Deploy to Railway` finishes with conclusion=failure, this workflow
+#   fires automatically, fetches the failed run's logs via `gh run view`,
+#   and runs claude-code-action@v1 with a focused prompt: identify the root
+#   cause, propose a fix, and open a PR. No auto-merge — human review gate
+#   stays in place.
+#
+# Cost model (per founder ruling 2026-04-25 "API expensive" thread):
+#   - Sonnet 4.6 (not Opus) — diagnostic work, not deep reasoning
+#   - --max-turns 15 cap — bounded blast radius
+#   - workflow only fires on actual failures, never on success → zero idle cost
+#   - Estimate: ~$0.20-1.00 per fired run depending on log size + fix complexity
+#
+# Required secrets:
+#   - ANTHROPIC_API_KEY: Claude API auth (separate from RAILWAY_TOKEN)
+#   - GITHUB_TOKEN auto-provided by Actions runner (PR creation)
+#
+# Manual trigger: workflow_dispatch fallback for retroactive diagnosis of a
+# specific run_id, or for testing the prompt without waiting for a failure.
+
+name: Self-healing CI
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Railway"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Failed workflow run ID to diagnose (defaults to latest failed Deploy to Railway run)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  # Only one diagnose-and-fix attempt per failed run. Prevents duplicate PRs
+  # if multiple deploy jobs in the same run fail and trigger us repeatedly.
+  group: self-healing-${{ github.event.workflow_run.id || github.event.inputs.run_id || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose-and-fix:
+    # Only fire when the upstream Deploy to Railway run actually failed.
+    # workflow_run.conclusion is one of: success | failure | cancelled |
+    # skipped | timed_out | action_required | neutral. We want failure +
+    # timed_out (build-broke-and-died) but not cancelled (intentional stop).
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'failure' ||
+        github.event.workflow_run.conclusion == 'timed_out'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history so Claude can read recent commits + diff
+          # against main when proposing the fix.
+          fetch-depth: 50
+
+      - name: Resolve failed run ID
+        id: failed_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ github.event.inputs.run_id }}" ]; then
+            RUN_ID="${{ github.event.inputs.run_id }}"
+          elif [ -n "${{ github.event.workflow_run.id }}" ]; then
+            RUN_ID="${{ github.event.workflow_run.id }}"
+          else
+            RUN_ID=$(gh run list --workflow=deploy-railway.yml --status=failure --limit 1 --json databaseId --jq '.[0].databaseId')
+          fi
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No failed run id resolved; nothing to diagnose."
+            exit 78  # neutral: skip without marking the workflow itself as failing
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Diagnosing failed run: $RUN_ID"
+
+      - name: Fetch failed run metadata + logs
+        id: fetch_logs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ steps.failed_run.outputs.run_id }}
+        run: |
+          mkdir -p .self-healing
+          gh run view "$RUN_ID" --json conclusion,headBranch,headSha,displayTitle,event,createdAt,jobs > .self-healing/run.json
+          # Cap log size at 200KB — large pre-flight logs can run 10MB+.
+          # Tail the last 200KB which is where the actual failure surfaces.
+          gh run view "$RUN_ID" --log-failed > .self-healing/full.log 2>/dev/null || true
+          tail -c 200000 .self-healing/full.log > .self-healing/failed.log || true
+          echo "Captured run.json + failed.log"
+          ls -la .self-healing/
+
+      - name: Diagnose failure and open fix PR
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Sonnet 4.6 is sufficient for "read logs → identify root cause →
+          # write a small fix → open a PR". Opus 4.7 would be overkill and
+          # ~5x the cost. --max-turns 15 caps blast radius — typical
+          # successful runs fit in 6-10 turns.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 15
+            --allowedTools Read,Write,Edit,Bash,Grep,Glob
+          prompt: |
+            The "Deploy to Railway" workflow run ${{ steps.failed_run.outputs.run_id }} failed.
+            You are running in the HoloScript repo on branch ${{ github.event.workflow_run.head_branch || github.ref_name }}.
+
+            Failure context is on disk:
+            - .self-healing/run.json — workflow_run metadata (jobs, conclusion, head_sha, head_branch, displayTitle)
+            - .self-healing/failed.log — last 200KB of failed-step logs (use this to find the actual error)
+
+            Your job:
+            1. Read .self-healing/failed.log AND .self-healing/run.json. Identify the root cause.
+               Common patterns we have seen:
+                 - pnpm lockfile drift ("frozen-lockfile" violations)
+                 - workspace dep resolution (missing @holoscript/* dist files; cure is usually to add the package to the pre-flight build list in .github/workflows/deploy-railway.yml)
+                 - TypeScript errors in services/* or packages/* under deploy
+                 - missing secret (RAILWAY_TOKEN, HOLOSCRIPT_API_KEY)
+                 - Railway-side rejection (rare — surface to humans, do not "fix")
+               If the cause is on the Railway side (not in our code), open an ISSUE instead of a PR explaining why no code change applies.
+            2. If a code-side fix is clear and minimal: apply it. Stage explicitly with `git add <file>` (NEVER `git add -A` — see CLAUDE.md). Run `pnpm test` for any package you changed if it has tests; if tests fail, surface that in the PR description rather than forcing the change.
+            3. Open a PR with branch name `self-healing/run-${{ steps.failed_run.outputs.run_id }}` containing:
+                 - Title: `fix(ci): <one-line root cause summary>`
+                 - Body sections: ## Root cause / ## Fix / ## Verification / ## Risk
+                 - Footer: `Auto-opened by self-healing-ci. Failed run: <link>. Human review required before merge.`
+               Do NOT auto-merge. Do NOT add `--no-verify`. Do NOT push directly to main.
+            4. If you cannot determine a clear fix in <=15 turns, open an ISSUE with the diagnosis instead of a PR. The signal is more valuable than the silence.
+
+            Important constraints (HoloScript CLAUDE.md):
+            - NEVER stage with `git add -A` or `git add .`. Stage explicit paths.
+            - @holoscript/core builds first (`pnpm --filter @holoscript/core build`) if any package's d.ts is involved.
+            - No hardcoded ecosystem counts in any change you make.
+            - Focus the fix tightly on the failure. Do not refactor neighbours.
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Self-healing CI summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Failed run: [${{ steps.failed_run.outputs.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.failed_run.outputs.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "Trigger: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion || 'manual' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "PRs opened by this workflow are tagged with the run id in the branch name (`self-healing/run-<id>`)." >> "$GITHUB_STEP_SUMMARY"
