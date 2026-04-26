@@ -8,6 +8,7 @@ export {
   safeJsonParseSchema,
   jsonClone,
   readJson,
+  tryParseJson,
 } from '../errors/safeJsonParse';
 export type { JsonParseError, SafeJsonResult, JsonParseResult } from '../errors/safeJsonParse';
 

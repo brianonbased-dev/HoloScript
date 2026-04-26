@@ -54,6 +54,38 @@ export function jsonClone<T>(value: T): T {
   return readJson(JSON.stringify(value)) as T;
 }
 
+/**
+ * Non-throwing JSON parse with a typed fallback. Use for trust-untyped
+ * boundaries where you'd otherwise wrap `JSON.parse` in a `try { } catch { }`
+ * just to return a default — localStorage reads, WebSocket / EventSource
+ * messages, postMessage payloads, drag-drop data, file imports.
+ *
+ * Returns `fallback` on:
+ *   - `null` / `undefined` input
+ *   - `JSON.parse` throws (SyntaxError on malformed JSON)
+ *
+ * Does NOT validate shape — pass through `safeJsonParse(s, schema)` if you
+ * need structural guarantees. The caller is responsible for type-narrowing
+ * the return value (it's typed as `T` for callsite ergonomics, but the
+ * runtime value may be any valid JSON if `fallback`'s type was widened).
+ *
+ * Example:
+ * ```ts
+ * const favorites = tryParseJson<string[]>(localStorage.getItem(KEY), []);
+ * const evt = tryParseJson<RoomEvent | null>(message.data, null);
+ * ```
+ */
+export function tryParseJson<T>(s: string | null | undefined, fallback: T): T {
+  if (s === null || s === undefined) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Alias for `safeJsonParse` (barrel / legacy name). */
 export const safeJsonParseSchema = safeJsonParse;
 
