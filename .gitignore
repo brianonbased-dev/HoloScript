@@ -513,3 +513,7 @@ samples/
 
 # VitePress dev/build cache (regenerated locally)
 docs/.vitepress/cache/
+
+# Local GPU job queue + run log (scripts/gpu-job-queue.mjs)
+scripts/gpu-jobs.local.json
+gpu-job-log.jsonl

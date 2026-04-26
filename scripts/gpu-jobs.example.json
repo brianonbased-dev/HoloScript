@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "defaults": {
+    "timeBoxSec": 3600
+  },
+  "jobs": [
+    {
+      "id": "example-snn-smoke",
+      "label": "PAPER-00 example — replace ids/commands with your experiment",
+      "cwd": "packages/snn-webgpu",
+      "command": ["node", "test-webgpu.mjs"],
+      "timeBoxSec": 300,
+      "env": {
+        "PAPER": "00",
+        "PROFILE": "webgpu-smoke"
+      }
+    }
+  ]
+}

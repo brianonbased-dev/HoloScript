@@ -26,6 +26,20 @@
 | **Underutilized asset** | Packages or configs that **exist** in the repo but are **not** on the **hot path** of any current production-replica or paper-committed **fleet** job. The response is: thread into an experiment, **defer in writing**, or **remove** — not silent drift. |
 | **Shared GPU** | Pool-scheduled or fleet-labeled **WebGPU / SNN / bench** work so utilization and paper numbers are **attributable** to a job profile, not only a single developer machine. |
 
+### Shared GPU utilization (operating rule)
+
+**Goal:** keep pool GPUs *busy with experiments*, not sitting idle while someone finds the next command.
+
+| Habit | What to do |
+|--------|------------|
+| **Queue** | Maintain a **FIFO** of jobs (see `scripts/gpu-jobs.example.json` → copy to `scripts/gpu-jobs.local.json`, not committed). Run `node scripts/gpu-job-queue.mjs` so the next job starts when the last exits. |
+| **Time box** | Every job gets **`timeBoxSec`** so a stuck run is killed and the queue advances—GPUs are not held for hour-long hung processes. |
+| **Label** | Set **`label`** and env like **`PAPER`**, **`PROFILE`** on each job so log lines are attributable to a paper or harness. |
+| **Log** | Appends to **`gpu-job-log.jsonl`** (gitignored) by default, or set **`GPU_JOB_LOG`**. |
+| **Weekly** | On shared machines: each day should have either **GPU hours in the log** for new science, or an explicit **“blocked on X”** in the handoff—silence = wasted pool time. |
+
+**Run:** from repo root: **bash** `GPU_JOB_QUEUE=scripts/gpu-jobs.local.json node scripts/gpu-job-queue.mjs` — **PowerShell** `$env:GPU_JOB_QUEUE="scripts/gpu-jobs.local.json"; node scripts/gpu-job-queue.mjs`. Use `--dry-run` to print the plan without executing.
+
 ---
 
 ## How this ties together
