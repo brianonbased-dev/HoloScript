@@ -21,6 +21,7 @@ import type {
   ContentReview,
   ContentType,
 } from './types';
+import { safeParseJson } from '@/lib/safeJson';
 
 export interface MarketplaceClientConfig {
   baseUrl?: string;
@@ -227,9 +228,20 @@ export class MarketplaceClient {
       return URL.createObjectURL(blob);
     }
 
-    // For JSON content, parse and return
+    // For JSON content, parse and return.
+    // task_1776983047367_7vx1: a corrupt or empty content payload from the
+    // marketplace API used to throw raw SyntaxError up to the caller. Now the
+    // download surfaces a typed error instead of an opaque parse crash.
     const response = await this.get<{ content: string }>(`/content/${id}/download`);
-    return JSON.parse(response.content);
+    const result = safeParseJson<unknown>(response.content);
+    if (!result.ok) {
+      throw new Error(
+        `Marketplace download for ${id} returned ${result.error === 'empty' ? 'empty content' : 'malformed JSON'}${
+          result.message ? `: ${result.message}` : ''
+        }`
+      );
+    }
+    return result.value;
   }
 
   /**

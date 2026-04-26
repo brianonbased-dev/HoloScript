@@ -25,6 +25,7 @@ import {
   type ReactNode,
 } from 'react';
 import { logger } from '@/lib/logger';
+import { tryParseJson } from '@/lib/safeJson';
 import {
   SandboxedPluginHost,
   type SandboxedPluginHostOptions,
@@ -175,7 +176,9 @@ export function PluginHostProvider({
         const storageKey = `holoscript-plugin:${pluginId}:${scope}:${key}`;
         switch (operation) {
           case 'get':
-            return key ? JSON.parse(localStorage.getItem(storageKey) ?? 'null') : null;
+            // task_1776983047367_7vx1: corrupt plugin storage entries used to
+            // throw and crash the plugin's onStorage call. Now they yield null.
+            return key ? tryParseJson<unknown>(localStorage.getItem(storageKey), null) : null;
           case 'set':
             if (key) localStorage.setItem(storageKey, JSON.stringify(value));
             return undefined;

@@ -9,6 +9,7 @@
 import React, { useState, useMemo } from 'react';
 import { NODE_TEMPLATES } from '@/lib/shaderGraph';
 import type { INodeTemplate } from '@/lib/shaderGraph';
+import { tryParseJson } from '@/lib/safeJson';
 // Flatten NODE_TEMPLATES catalog to a flat array for search/filter
 const ALL_NODE_TEMPLATES = Object.values(NODE_TEMPLATES).flat();
 type NodeCategory = keyof typeof NODE_TEMPLATES;
@@ -39,12 +40,14 @@ export function NodePalette() {
     new Set(['input', 'output', 'math'])
   );
   const [favorites, setFavorites] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem(FAVORITES_KEY);
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    // task_1776983047367_7vx1: corrupt favorites entry used to throw during
+    // first render and crash the palette. Now empty Set on bad/missing data.
+    const parsed = tryParseJson<string[]>(localStorage.getItem(FAVORITES_KEY), []);
+    return new Set(Array.isArray(parsed) ? parsed : []);
   });
   const [recentNodes, setRecentNodes] = useState<string[]>(() => {
-    const saved = localStorage.getItem(RECENT_NODES_KEY);
-    return saved ? JSON.parse(saved) : [];
+    const parsed = tryParseJson<string[]>(localStorage.getItem(RECENT_NODES_KEY), []);
+    return Array.isArray(parsed) ? parsed : [];
   });
 
   const createNode = useShaderGraph((state) => state.createNode);

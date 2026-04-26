@@ -1079,7 +1079,19 @@ export class StudioBridge {
   }
 
   private deepClone<T>(value: T): T {
-    return JSON.parse(JSON.stringify(value));
+    // task_1776983047367_7vx1: JSON round-trip clone — guard against circular
+    // refs (stringify throws TypeError) and `undefined` (stringify returns
+    // `undefined`, which JSON.parse cannot handle). Returns the original
+    // reference on failure rather than crashing the bridge call.
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized === undefined) {
+        return value;
+      }
+      return JSON.parse(serialized) as T;
+    } catch {
+      return value;
+    }
   }
 }
 

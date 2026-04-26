@@ -15,6 +15,7 @@ import {
   type ShaderConnection,
   type CompiledShader,
 } from '@/lib/shader/shaderGraph';
+import { safeParseJson } from '@/lib/safeJson';
 
 // Re-export ShaderGraph for consumers
 export { ShaderGraph };
@@ -298,7 +299,21 @@ export const useShaderGraph = create<ShaderGraphState>((set, get) => {
     },
 
     loadGraph: (json: string) => {
-      const data = JSON.parse(json);
+      // task_1776983047367_7vx1: malformed JSON used to throw uncaught from a
+      // user-driven import path. Now it logs and no-ops cleanly.
+      const result = safeParseJson<{
+        name?: string;
+        nodes?: ShaderNode[];
+        connections?: ShaderConnection[];
+      }>(json);
+      if (!result.ok) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[useShaderGraph] loadGraph: failed to parse shader graph JSON (${result.error}${result.message ? ': ' + result.message : ''})`
+        );
+        return;
+      }
+      const data = result.value;
       const newGraph = new ShaderGraph(data.name ?? 'Untitled Shader');
       for (const node of data.nodes ?? []) {
         newGraph.addCustomNode(node);

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { tryParseJson } from '@/lib/safeJson';
 
 // ─── Scene Graph Store ───────────────────────────────────────────────────────
 
@@ -195,8 +196,11 @@ export const useSceneGraphStore = create<SceneGraphState>()(
         return JSON.stringify({ version: 1, nodes }, null, 2);
       },
       loadScene: (json: string) => {
-        const parsed = JSON.parse(json);
-        const nodes: SceneNode[] = Array.isArray(parsed?.nodes) ? parsed.nodes : [];
+        // task_1776983047367_7vx1: malformed scene JSON used to throw uncaught
+        // from a user-driven import path (drag-drop, paste). Now no-ops cleanly
+        // with an empty nodes list rather than crashing the store.
+        const parsed = tryParseJson<{ nodes?: SceneNode[] } | null>(json, null);
+        const nodes: SceneNode[] = Array.isArray(parsed?.nodes) ? parsed!.nodes : [];
         set({ nodes, nodeRefs: {} });
       },
     }),

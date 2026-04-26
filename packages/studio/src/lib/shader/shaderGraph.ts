@@ -402,7 +402,18 @@ export class ShaderGraph {
   }
 
   static deserialize(json: string): ShaderGraph {
-    return ShaderGraph.fromJSON(JSON.parse(json));
+    // task_1776983047367_7vx1: throwing on bad input is part of the contract
+    // (callers wrap this in try/catch — see useShaderGraph.loadGraph), but
+    // wrap SyntaxError into a typed Error so the caller gets context, not a
+    // raw "Unexpected token" message.
+    let data: ISerializedShaderGraph;
+    try {
+      data = JSON.parse(json) as ISerializedShaderGraph;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error(`ShaderGraph.deserialize: malformed JSON (${message})`);
+    }
+    return ShaderGraph.fromJSON(data);
   }
 }
 
