@@ -34,6 +34,11 @@ export interface NeuralShard {
   weight: number; // Influence strength (0.0 - 1.0)
 }
 
+/** Hard cap on experienceLog to prevent unbounded growth when external synthesis stalls (per /critic Critical #3). */
+export const MAX_EXPERIENCE_LOG_ENTRIES = 256;
+/** Default timeout for an in-flight external synthesis request before we give up + reset (per /critic Critical #3). */
+export const DEFAULT_EXTERNAL_TIMEOUT_MS = 30_000;
+
 export interface NeuralState {
   shards: NeuralShard[];
   weights: Record<string, number>; // Dynamic personality vectors
@@ -41,6 +46,8 @@ export interface NeuralState {
   lastSynthesis: number;
   /** Whether an external synthesis request is in-flight (waits for neural_absorb_shard). */
   pendingExternalSynthesis: boolean;
+  /** Timestamp the in-flight external request was emitted; null when no request pending. */
+  pendingSince: number | null;
 }
 
 interface NeuralConfig {
@@ -58,6 +65,15 @@ interface NeuralConfig {
    *     Use this when wired to a real LLM synthesizer.
    */
   synthesis_mode?: 'mock' | 'external';
+  /**
+   * External synthesis watchdog — if no neural_absorb_shard arrives within
+   * this many ms of pendingSince, the trait emits 'neural_synthesis_timeout',
+   * resets pendingExternalSynthesis, and (per fallback_to_mock_on_timeout)
+   * optionally falls through to mock-mode shard creation. Default 30s.
+   */
+  external_timeout_ms?: number;
+  /** When external timeout fires, fall through to mock synthesis (default true). */
+  fallback_to_mock_on_timeout?: boolean;
 }
 
 // =============================================================================
@@ -87,6 +103,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       experienceLog: [],
       lastSynthesis: Date.now(),
       pendingExternalSynthesis: false,
+      pendingSince: null,
     };
     node.__neuralState = state;
 
@@ -97,6 +114,50 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
     delete node.__neuralState;
   },
 
+  /**
+   * Watchdog tick — checks for stuck external synthesis requests and times
+   * them out (closes /critic Critical #3 silent zombie state). Empty
+   * pre-watchdog onUpdate was a smell once async state existed.
+   */
+  onUpdate(node, config, context, _delta) {
+    const state = node.__neuralState as NeuralState | undefined;
+    if (!state) return;
+    if (!state.pendingExternalSynthesis || state.pendingSince === null) return;
+
+    const timeoutMs = config.external_timeout_ms ?? DEFAULT_EXTERNAL_TIMEOUT_MS;
+    const elapsed = Date.now() - state.pendingSince;
+    if (elapsed < timeoutMs) return;
+
+    // External listener never responded — emit timeout, reset, optionally fall back.
+    context.emit?.('neural_synthesis_timeout', {
+      node,
+      pendingSince: state.pendingSince,
+      elapsedMs: elapsed,
+      experienceCount: state.experienceLog.length,
+    });
+    state.pendingExternalSynthesis = false;
+    state.pendingSince = null;
+
+    const fallback = config.fallback_to_mock_on_timeout ?? true;
+    if (fallback && state.experienceLog.length > 0) {
+      const shard: NeuralShard = {
+        id: `shard_timeout_${Date.now()}`,
+        sourceId: node.id || 'unknown',
+        timestamp: Date.now(),
+        type: 'memory',
+        data: {
+          summary: `Experienced ${state.experienceLog.length} interactions (external synthesis timed out after ${timeoutMs}ms).`,
+          fallback: true,
+        },
+        weight: 0.05, // half weight of normal mock shards — uncertain provenance
+      };
+      state.shards.push(shard);
+      state.experienceLog = [];
+      state.lastSynthesis = Date.now();
+      context.emit?.('neural_shard_created', { node, shard });
+    }
+  },
+
   onEvent(node, config, context, event) {
     const state = node.__neuralState as NeuralState;
     if (!state) return;
@@ -104,6 +165,12 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
     if (event.type === 'npc_ai_response') {
       const text = (event as Record<string, unknown>).text as string;
       state.experienceLog.push(text);
+
+      // /critic Critical #3 leak fix: bound the log so a stalled external
+      // listener can't cause unbounded memory growth. Drop oldest entries.
+      if (state.experienceLog.length > MAX_EXPERIENCE_LOG_ENTRIES) {
+        state.experienceLog.splice(0, state.experienceLog.length - MAX_EXPERIENCE_LOG_ENTRIES);
+      }
 
       // Auto-Synthesis Check
       if (config.auto_synthesize && state.experienceLog.length >= config.synthesis_threshold) {
@@ -113,6 +180,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
           // Skip if a request is already in-flight (avoid storming the synthesizer)
           if (state.pendingExternalSynthesis) return;
           state.pendingExternalSynthesis = true;
+          state.pendingSince = Date.now();
 
           // Emit request with experiences + current weights so a real LLM can
           // produce a shard. Caller is responsible for replying with
@@ -167,11 +235,12 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       }
 
       // External-mode bookkeeping: response received → clear log + timestamp +
-      // unblock next synthesis request.
+      // unblock next synthesis request + reset pendingSince watchdog.
       if (state.pendingExternalSynthesis) {
         state.experienceLog = [];
         state.lastSynthesis = Date.now();
         state.pendingExternalSynthesis = false;
+        state.pendingSince = null;
       }
 
       context.emit?.('neural_cognition_evolved', { node, currentWeights: state.weights });

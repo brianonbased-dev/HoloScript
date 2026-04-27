@@ -92,6 +92,46 @@ describe('OnnxRuntimeTrait — InferenceAdapter wiring', () => {
     expect(capturedUrl).toBe('https://models.holoscript.net/pfnn_v1.onnx');
   });
 
+  it('onnx:load falls back to modelId as URL when modelUrl omitted (/critic Annoying #12)', async () => {
+    let capturedUrl = '';
+    const cfg = {
+      execution_provider: 'cpu',
+      adapterFactory: (): InferenceAdapter => {
+        const adapter = createNoOpInferenceAdapter();
+        const origLoad = adapter.load.bind(adapter);
+        adapter.load = (url: string) => {
+          capturedUrl = url;
+          return origLoad(url);
+        };
+        return adapter;
+      },
+    };
+    const localNode = createMockNode('fb');
+    const localCtx = createMockContext();
+    attachTrait(onnxRuntimeHandler, localNode, cfg, localCtx);
+    sendEvent(onnxRuntimeHandler, localNode, cfg, localCtx, {
+      type: 'onnx:load',
+      modelId: 'pfnn',
+    });
+    await flushMicrotasks();
+    expect(capturedUrl).toBe('pfnn');
+  });
+
+  it('loadPromise is GC-ed from state after successful load (/critic Annoying #11)', async () => {
+    sendEvent(onnxRuntimeHandler, node, baseCfg, ctx, {
+      type: 'onnx:load',
+      modelId: 'gc_test',
+    });
+    const state = (node as any).__onnxState;
+    // Promise present pre-resolve
+    expect(state.loadPromises.has('gc_test')).toBe(true);
+    await flushMicrotasks();
+    // Promise GC-ed post-resolve
+    expect(state.loadPromises.has('gc_test')).toBe(false);
+    // But adapter still in models map
+    expect(state.models.has('gc_test')).toBe(true);
+  });
+
   it('onnx:load is idempotent — emits cached signal when same modelId loaded twice', async () => {
     sendEvent(onnxRuntimeHandler, node, baseCfg, ctx, { type: 'onnx:load', modelId: 'm1' });
     await (node as any).__onnxState.loadPromises.get('m1');

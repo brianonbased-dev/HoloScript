@@ -1,11 +1,30 @@
 import type { Vector3 } from '../types';
 ﻿/**
- * Cloth Trait
+ * Cloth Trait — DEPRECATED EVENT-EMIT STUB.
  *
- * Cloth simulation using position-based dynamics or Verlet integration.
- * Supports wind, gravity, collision, tearing, and pinning.
+ * /critic batch-6 (2026-04-27 review of commit 1c3487425) flagged this file
+ * as a third cloth implementation that contradicts RULING 2 ("engine math
+ * lives once"). The events emitted by this handler (`cloth_create`,
+ * `cloth_step`, `cloth_apply_force`, etc.) have ZERO listeners across
+ * runtime/, engine/, r3f-renderer/ — verified via grep 2026-04-26.
  *
- * @version 2.0.0
+ * **Canonical cloth implementation lives in two places:**
+ *   1. Engine math: `packages/core/src/traits/engines/cloth-verlet.ts`
+ *      — `buildClothConstraints` + `stepClothVerlet`
+ *   2. Runtime wrapper: `packages/runtime/src/traits/PhysicsTraits.ts`
+ *      `ClothTrait` — wires THREE.SkinnedMesh + PhysicsWorld to the engine
+ *
+ * **This file is retained ONLY because:**
+ *   - `packages/core/src/legacy-exports.ts:907` re-exports `clothHandler`
+ *   - `packages/core/src/traits/VRTraitSystem.ts:1543` registers it
+ *
+ * **Do NOT extend this handler.** Future cloth features go in
+ * `cloth-verlet.ts` (engine) and the runtime wrapper. Future agents
+ * reading this file as a model for new cloth-like traits should follow
+ * the runtime wrapper pattern instead.
+ *
+ * @deprecated since 2026-04-27 — use cloth-verlet engine + runtime ClothTrait
+ * @version 2.0.0 (frozen)
  */
 
 import type { TraitHandler } from './TraitTypes';

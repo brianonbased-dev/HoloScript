@@ -110,6 +110,11 @@ export const onnxRuntimeHandler: TraitHandler<OnnxRuntimeConfig> = {
         state.models.set(modelId, adapter);
         const loadPromise = adapter.load(modelUrl).then(
           () => {
+            // /critic Annoying #11 fix: GC the load promise once resolved.
+            // Concurrent run-before-load callers already captured the promise;
+            // future runs see the loaded adapter directly. No need to keep
+            // the promise indefinitely.
+            state.loadPromises.delete(modelId);
             context.emit?.('onnx:loaded', {
               modelId,
               provider: config.execution_provider,
