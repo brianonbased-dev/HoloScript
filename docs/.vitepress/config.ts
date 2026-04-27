@@ -740,6 +740,12 @@ export default defineConfig({
           items: [{ text: 'V8 Vision RFC', link: '/strategy/v8-vision-rfc' }],
         },
       ],
+      '/reviews/': [
+        {
+          text: 'Daily Code Reviews',
+          items: [{ text: '2026-04-27', link: '/reviews/2026-04-27' }],
+        },
+      ],
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/brianonbased-dev/HoloScript' }],
