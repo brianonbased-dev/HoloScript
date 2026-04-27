@@ -63,7 +63,8 @@ export type {
 export { SpatialQueryExecutor } from './SpatialQuery';
 
 // Context provider
-export { SpatialContextProvider, SpatialContextProviderEvents } from './SpatialContextProvider';
+export { SpatialContextProvider } from './SpatialContextProvider';
+export type { SpatialContextProviderEvents } from './SpatialContextProvider';
 
 // Spatial constraint types
 export type {
@@ -102,11 +103,9 @@ export { SpatialConstraintValidator } from './SpatialConstraintValidator';
 // Octree systems
 export { OctreeSystem } from './OctreeSystem';
 export type { OctreeEntry } from './OctreeSystem';
-export {
-  OctreeLODSystem,
-  GaussianAnchor,
-} from './OctreeLODSystem';
+export { OctreeLODSystem } from './OctreeLODSystem';
 export type {
+  GaussianAnchor,
   OctreeLODConfig,
   LODSelectionResult,
   LODLevelStats,

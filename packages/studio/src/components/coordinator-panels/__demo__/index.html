@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Coordinator panels demo</title>
+    <style>
+      body {
+        margin: 0;
+        background: #020617;
+        color: #e2e8f0;
+        font-family: system-ui, sans-serif;
+      }
+      header {
+        padding: 16px 20px;
+        background: #0f172a;
+        border-bottom: 1px solid #1e293b;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      header p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 12px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 16px 20px;
+      }
+      section {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      section > h2 {
+        margin: 0;
+        padding: 8px 12px;
+        background: #1e293b;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+      }
+      section > div {
+        padding: 0;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .controls button {
+        background: #38bdf8;
+        color: #0f172a;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .controls button:hover {
+        background: #0ea5e9;
+      }
+      .controls button.danger {
+        background: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
