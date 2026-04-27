@@ -2,7 +2,7 @@
 
 **Role**: Core platform. Language, compilers, traits, MCP server, Studio, renderer.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
-**GOLD Drive**: `GOLD_ROOT` or default vault root when mounted (Diamond > Platinum > GOLD > knowledge store) — intake per `~/.ai-ecosystem/CLAUDE.md`
+**GOLD Drive**: `GOLD_ROOT` or default vault root when mounted (Diamond > Platinum > GOLD > knowledge store) — intake per `~/.ai-ecosystem/CLAUDE.md`. **Live entry counts** are only authoritative in `$GOLD_ROOT/INDEX.md` (not this file).
 
 ## This project's rules
 
