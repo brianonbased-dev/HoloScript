@@ -1224,7 +1224,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   controlnet: {
     trait: 'controlnet',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML', 'Foundation'],
     generate: (_varName, config) => {
       const model = String(config.model || 'canny');
@@ -1269,7 +1269,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_texture_gen: {
     trait: 'ai_texture_gen',
     components: ['ModelComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML', 'RealityKit', 'Foundation'],
     generate: (varName, config) => {
       const style = String(config.style || 'photorealistic');
@@ -1305,7 +1305,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   diffusion_realtime: {
     trait: 'diffusion_realtime',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['Metal', 'MetalPerformanceShaders', 'CoreML'],
     generate: (varName, config) => {
       const backend = String(config.backend || 'metal');
