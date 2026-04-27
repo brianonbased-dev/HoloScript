@@ -120,6 +120,15 @@ async function build() {
     fs.cpSync('public', 'dist/client', { recursive: true });
   }
 
+  // Live evidence strip: prefer fresh manifest from docs/ (same build as VitePress)
+  const docManifest = _path.resolve(__dirname, '../../docs/public/live-evidence.json');
+  if (fs.existsSync(docManifest)) {
+    fs.copyFileSync(docManifest, _path.join('dist/client', 'live-evidence.json'));
+    console.log('[build] copied docs/public/live-evidence.json -> dist/client/live-evidence.json');
+  } else {
+    console.warn('[build] docs/public/live-evidence.json missing — run: node scripts/build-live-evidence-manifest.mjs');
+  }
+
   console.log('Build completed successfully.');
 }
 

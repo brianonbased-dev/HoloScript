@@ -1,5 +1,11 @@
 # @holoscript/net-service
 
+## 1.0.3
+
+### Patch Changes
+
+- **Live evidence strip** on the root landing page (`LiveEvidenceStrip`): three tiles (fleet 24h / last Base anchor / last commit) from `/live-evidence.json`, refreshed every 30s. Manifest copied from `docs/public` at build time when present (same source as VitePress strip).
+
 ## 1.0.2
 
 ### Patch Changes

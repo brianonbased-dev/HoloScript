@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "notes": "Placeholder until build: run `node scripts/build-live-evidence-manifest.mjs` from repo root, then `node services/holoscript-net/build-client.mjs` copies docs/public/live-evidence.json into dist.",
+  "tiles": {
+    "fleet": {
+      "agentsLast24h": 0,
+      "spendUsd24h": 0,
+      "commitsLast24h": 0,
+      "note": "manifest not built in this checkout"
+    },
+    "anchor": {
+      "note": "no anchor data in placeholder"
+    },
+    "commit": {
+      "note": "no commit data in placeholder"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import LiquidBlob from './components/LiquidBlob';
 import SpatialBackground from './components/SpatialBackground';
 import { MagicMomentWizard } from './components/MagicMomentWizard';
+import LiveEvidenceStrip from './components/LiveEvidenceStrip';
 
 // Icons
 const IconCheck = () => (
@@ -192,6 +193,8 @@ export function HoloScriptLandingComponent() {
             </div>
           </div>
         </nav>
+
+        <LiveEvidenceStrip />
 
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 w-full overflow-hidden flex flex-col gap-3 p-[12px] semantic-layout-priority">
