@@ -2544,7 +2544,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   controlnet: {
     trait: 'controlnet',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'org.tensorflow.lite.support.image.TensorImage',
@@ -2592,7 +2592,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_texture_gen: {
     trait: 'ai_texture_gen',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'android.graphics.Bitmap',
@@ -2657,7 +2657,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   diffusion_realtime: {
     trait: 'diffusion_realtime',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'android.opengl.GLES31',
@@ -2711,7 +2711,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_upscaling: {
     trait: 'ai_upscaling',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'android.graphics.Bitmap',
@@ -2745,7 +2745,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_inpainting: {
     trait: 'ai_inpainting',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'android.graphics.Bitmap',
@@ -2777,7 +2777,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   neural_link: {
     trait: 'neural_link',
     components: ['BluetoothGatt', 'UsbManager'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'android.bluetooth.BluetoothGatt',
       'android.bluetooth.BluetoothGattCallback',
@@ -2828,7 +2828,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   neural_forge: {
     trait: 'neural_forge',
     components: ['TFLiteInterpreter', 'NnApiDelegate'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'org.tensorflow.lite.nnapi.NnApiDelegate',
@@ -2875,7 +2875,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   embedding_search: {
     trait: 'embedding_search',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['android.database.sqlite.SQLiteOpenHelper', 'android.database.sqlite.SQLiteDatabase'],
     generate: (varName, config) => {
       const dimensions = Number(config.dimensions || 1536);
@@ -2952,7 +2952,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_npc_brain: {
     trait: 'ai_npc_brain',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.ai.generativelanguage.GenerativeModel'],
     generate: (varName, config) => {
       const model = String(config.model || 'gemini-nano');
@@ -2986,7 +2986,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   vector_db: {
     trait: 'vector_db',
     components: ['OkHttpClient'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'okhttp3.OkHttpClient',
       'okhttp3.Request',

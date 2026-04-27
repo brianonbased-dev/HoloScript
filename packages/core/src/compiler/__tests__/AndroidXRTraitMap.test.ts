@@ -411,7 +411,7 @@ describe('AndroidXRTraitMap', () => {
 
   it('generates upgraded ai_npc_brain code (not comment-only)', () => {
     const mapping = getTraitMapping('ai_npc_brain');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_npc_brain', 'npc', { model: 'gemini-nano' });
     expect(code.some((l) => l.includes('NPCBrain'))).toBe(true);
     expect(code.some((l) => l.includes('Think'))).toBe(true);
@@ -419,7 +419,7 @@ describe('AndroidXRTraitMap', () => {
 
   it('embedding_search emits SQLite FTS stub when feature flag enabled', () => {
     const mapping = getTraitMapping('embedding_search');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
 
     const code = generateTraitCode('embedding_search', 'searchNode', {
       dimensions: 384,
@@ -579,6 +579,17 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('spatial_navigation');
     expect(partial).not.toContain('eye_tracked');
     expect(partial).not.toContain('eye_hand_fusion');
+    // batch 15
+    expect(partial).not.toContain('controlnet');
+    expect(partial).not.toContain('ai_texture_gen');
+    expect(partial).not.toContain('diffusion_realtime');
+    expect(partial).not.toContain('ai_upscaling');
+    expect(partial).not.toContain('ai_inpainting');
+    expect(partial).not.toContain('neural_link');
+    expect(partial).not.toContain('neural_forge');
+    expect(partial).not.toContain('embedding_search');
+    expect(partial).not.toContain('ai_npc_brain');
+    expect(partial).not.toContain('vector_db');
     expect(partial).toContain('state_sync');
     expect(partial).toContain('voice_chat');
     expect(partial).toContain('pathfinding');
@@ -619,10 +630,10 @@ describe('AndroidXRTraitMap', () => {
     }
   });
 
-  it('ai_upscaling is partial and generates TFLite Interpreter for super resolution', () => {
+  it('ai_upscaling is full and generates TFLite Interpreter for super resolution', () => {
     const mapping = getTraitMapping('ai_upscaling');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_upscaling', 'upscaler', {});
     expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
     expect(code.some((l) => l.includes('upscaler'))).toBe(true);
@@ -634,10 +645,10 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('my_sr_model.tflite'))).toBe(true);
   });
 
-  it('ai_inpainting is partial and generates TFLite inpainting func', () => {
+  it('ai_inpainting is full and generates TFLite inpainting func', () => {
     const mapping = getTraitMapping('ai_inpainting');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_inpainting', 'restore', {});
     expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
     expect(code.some((l) => l.includes('restore'))).toBe(true);
@@ -1046,6 +1057,105 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m!.level).toBe('full');
       const code = generateTraitCode('eye_hand_fusion', 'obj', {});
       expect(code.some((l) => l.includes('Hand') || l.includes('HOVER') || l.includes('InteractableComponent') || l.includes('fusion'))).toBe(true);
+    });
+  });
+
+  describe('batch 15 -- AI generative + neural traits', () => {
+    it('controlnet is full and generates TFLite infer function', () => {
+      const mapping = getTraitMapping('controlnet');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('controlnet', 'cn', {});
+      expect(code.some((l) => l.includes('ControlNetInfer'))).toBe(true);
+      expect(code.some((l) => l.includes('TensorImage') || l.includes('tflite') || l.includes('Interpreter'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('controlnet with endpoint generates remote inference path', () => {
+      const code = generateTraitCode('controlnet', 'cn', { endpoint: 'http://ml.local' });
+      expect(code.some((l) => l.includes('http://ml.local'))).toBe(true);
+      expect(code.some((l) => l.includes('HttpURLConnection'))).toBe(true);
+    });
+
+    it('ai_texture_gen is full and generates texture function', () => {
+      const mapping = getTraitMapping('ai_texture_gen');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('ai_texture_gen', 'texNode', { style: 'photorealistic' });
+      expect(code.some((l) => l.includes('GenerateTexture'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('diffusion_realtime is full and generates TFLite diffusion loop', () => {
+      const mapping = getTraitMapping('diffusion_realtime');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('diffusion_realtime', 'diff', { steps: 4 });
+      expect(code.some((l) => l.includes('RunDiffusion'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('diffusion_realtime with vulkan backend emits Vulkan stub', () => {
+      const code = generateTraitCode('diffusion_realtime', 'diff', { backend: 'vulkan' });
+      expect(code.some((l) => l.includes('Vulkan') || l.includes('SPIR-V') || l.includes('vulkan'))).toBe(true);
+    });
+
+    it('ai_upscaling is full and generates Upscale function', () => {
+      const mapping = getTraitMapping('ai_upscaling');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('ai_upscaling', 'upscaler', { factor: 2 });
+      expect(code.some((l) => l.includes('Upscale'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('ai_inpainting is full and generates Inpaint function', () => {
+      const mapping = getTraitMapping('ai_inpainting');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('ai_inpainting', 'inpaint', {});
+      expect(code.some((l) => l.includes('Inpaint'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('neural_link is full and generates BCI callback', () => {
+      const mapping = getTraitMapping('neural_link');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('neural_link', 'bci', { channels: 8, sample_rate: 250 });
+      expect(code.some((l) => l.includes('BciCallback'))).toBe(true);
+      expect(code.some((l) => l.includes('BandPower'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('neural_forge is full and generates NNAPI train step', () => {
+      const mapping = getTraitMapping('neural_forge');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('neural_forge', 'nf', { epochs: 5 });
+      expect(code.some((l) => l.includes('TrainStep'))).toBe(true);
+      expect(code.some((l) => l.includes('NnApiDelegate'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('embedding_search is full and generates cosine similarity ANN search', () => {
+      const mapping = getTraitMapping('embedding_search');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('embedding_search', 'emb', { dimensions: 1536 });
+      expect(code.some((l) => l.includes('CosineSimilarity'))).toBe(true);
+      expect(code.some((l) => l.includes('AnnSearch'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('ai_npc_brain is full and generates Think function', () => {
+      const mapping = getTraitMapping('ai_npc_brain');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('ai_npc_brain', 'npc', { model: 'gemini-nano' });
+      expect(code.some((l) => l.includes('Think'))).toBe(true);
+      expect(code.some((l) => l.includes('gemini-nano') || l.includes('GeminiNano'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('vector_db is full and generates VDB upsert + query functions', () => {
+      const mapping = getTraitMapping('vector_db');
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('vector_db', 'vdb', { backend: 'chroma' });
+      expect(code.some((l) => l.includes('Upsert') || l.includes('upsert'))).toBe(true);
+      expect(code.some((l) => l.includes('Query') || l.includes('query'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
     });
   });
 });
