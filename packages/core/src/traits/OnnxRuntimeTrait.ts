@@ -37,6 +37,36 @@ export interface OnnxRuntimeConfig {
    * Caller injects ONNX Runtime Web / Node / PureJS for real inference.
    */
   adapterFactory?: () => InferenceAdapter;
+  /**
+   * **Backpressure / threading model** (per /critic batch-6 Serious #7
+   * documentation requirement, 2026-04-27):
+   *
+   * The trait dispatches every `onnx:run` event as a fresh promise chain
+   * `loadPromise.then(adapter.run).then(emit)`. There is no internal
+   * queue, debounce, batcher, or rate limit. With 1000 NPCs each emitting
+   * onnx:run at 60Hz against a single shared model, the adapter sees
+   * 60,000 calls/sec — single-threaded JS will serialize them, WebGPU
+   * may batch internally, CPU/WASM cannot.
+   *
+   * **Caller responsibilities** (the trait does NOT enforce these):
+   *   - For multi-NPC scenes sharing a model: aggregate inputs into a
+   *     single batched call rather than emitting onnx:run per NPC. The
+   *     `inputs` field already accepts named tensors of arbitrary shape;
+   *     stack the batch dimension and demux outputs caller-side.
+   *   - For long-running sessions: dispose unused models via 'onnx:dispose'
+   *     to free GPU/native resources; the trait does not auto-evict.
+   *   - For Web Worker adapters: ensure your adapter implementation is
+   *     thread-safe. The trait state (`state.inferences` counter) is
+   *     single-threaded JS — fine in main-thread adapters, but a worker
+   *     pool that mutates it would race.
+   *
+   * **Adapter contract**: load() and run() are async; the trait awaits
+   * load before run. Adapters MAY internally queue/batch — that's the
+   * implementation's choice. The trait makes no claim about ordering of
+   * concurrent run() calls; if order matters to your model, serialize at
+   * the call site.
+   */
+  adapterFactory_threading_caveat?: never;
 }
 
 interface OnnxRuntimeState {

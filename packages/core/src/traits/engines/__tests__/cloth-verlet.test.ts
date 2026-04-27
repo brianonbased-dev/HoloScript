@@ -193,4 +193,87 @@ describe('stepClothVerlet — wind', () => {
     expect(state.positions[0]).not.toBe(initialX);
     expect(state.positions[2]).not.toBe(initialZ);
   });
+
+  it('wind is purely a function of state.time — same time + state → identical positions (RNG seed determinism, /critic Annoying #9)', () => {
+    // Build two identical fresh states; pin time = 0.5; advance once with
+    // wind=1.0 + gravity=0. Both must produce IDENTICAL positions. If
+    // smoothNoise ever starts depending on Math.random / Date.now / a
+    // hidden global, this assertion fails immediately.
+    const stateA = makeState(3);
+    const stateB = makeState(3);
+    stateA.time = 0.5;
+    stateB.time = 0.5;
+    const config = { ...baseConfig, gravityScale: 0, windResponse: 1.0 };
+    stepClothVerlet(stateA, config, 0.05);
+    stepClothVerlet(stateB, config, 0.05);
+    for (let i = 0; i < stateA.positions.length; i++) {
+      expect(stateA.positions[i]).toBe(stateB.positions[i]);
+    }
+  });
+
+  it('resetting state.time produces identical wind contribution (no hidden state leakage)', () => {
+    // Step once with time=t1, capture positions, RESET to fresh state with
+    // time=t1, step again with same delta — must yield same positions.
+    // Catches the bug class where wind accidentally accumulates state in
+    // a closure or module-level cache instead of being purely (t, seed)-driven.
+    const stateA = makeState(3);
+    stateA.time = 0.5;
+    const config = { ...baseConfig, gravityScale: 0, windResponse: 1.0 };
+    stepClothVerlet(stateA, config, 0.05);
+    const positionsAfterFirstRun = new Float32Array(stateA.positions);
+
+    // Fresh state — same starting conditions, same time.
+    const stateB = makeState(3);
+    stateB.time = 0.5;
+    stepClothVerlet(stateB, config, 0.05);
+    for (let i = 0; i < stateB.positions.length; i++) {
+      expect(stateB.positions[i]).toBe(positionsAfterFirstRun[i]);
+    }
+  });
+});
+
+describe('stepClothVerlet — stiffness=0 edge', () => {
+  it('stiffness=0 produces 0 constraint iterations — vertex with stretched current+prev does NOT pull back (/critic Annoying #15)', () => {
+    // Math.ceil(0 * 5) = 0, so the constraint solve loop is skipped.
+    // INTENTIONAL: stiffness=0 means "no spring forces" — models loose
+    // particles, not cloth. Documented as the discontinuity at
+    // stiffness=0 → 0.001 (1 iteration) so it's not surprising.
+    //
+    // Test setup: center vertex stretched up to y=10 in BOTH positions
+    // and prevPositions. Velocity = current - prev = 0, so Verlet has
+    // nothing to integrate. With stiffness=0 no constraint pulls it
+    // toward rest length. With gravity=0 and wind=0 no external force.
+    // Result: vertex stays at y=10 (no movement at all).
+    const positions = buildFlatGrid(3);
+    positions[4 * 3 + 1] = 10;
+    const prevPositions = new Float32Array(positions); // prev = current, zero velocity
+    const constraints = buildClothConstraints(3, buildFlatGrid(3));
+    const state: ClothVerletState = {
+      positions,
+      prevPositions,
+      pinned: new Set([0, 1, 2, 3, 5, 6, 7, 8]),
+      constraints,
+      time: 0,
+    };
+    stepClothVerlet(state, { ...baseConfig, gravityScale: 0, stiffness: 0, windResponse: 0 }, 0.016);
+    // No constraint solve → vertex stays where it was (no spring force)
+    expect(state.positions[4 * 3 + 1]).toBe(10);
+  });
+
+  it('stiffness=0.001 (just above 0) runs 1 iteration — discontinuity is real', () => {
+    const positions = buildFlatGrid(3);
+    positions[4 * 3 + 1] = 10;
+    const prevPositions = new Float32Array(positions); // zero velocity
+    const constraints = buildClothConstraints(3, buildFlatGrid(3));
+    const state: ClothVerletState = {
+      positions,
+      prevPositions,
+      pinned: new Set([0, 1, 2, 3, 5, 6, 7, 8]),
+      constraints,
+      time: 0,
+    };
+    stepClothVerlet(state, { ...baseConfig, gravityScale: 0, stiffness: 0.001, windResponse: 0 }, 0.016);
+    // 1 iteration → some convergence happens, vertex pulls back toward rest
+    expect(state.positions[4 * 3 + 1]).toBeLessThan(10);
+  });
 });
