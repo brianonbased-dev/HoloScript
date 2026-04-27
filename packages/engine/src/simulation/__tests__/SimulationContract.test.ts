@@ -667,3 +667,234 @@ describe('computeAdapterFingerprint (security helper)', () => {
     expect(String(trace[0].payload.adapterFingerprint)).not.toContain('M2');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// Subgrid Attestation Integration (TODO-05 followup, paper-0c CAEL)
+//
+// Wires the engine-side ContractedSimulation to the
+// `@holoscript/core/paper-0c-spike` subgrid-attestation primitive:
+//   (a) attestation envelope is captured when ContractConfig.subgridParams
+//       is provided and surfaced via getSubgridAttestation() / provenance /
+//       cael.init.payload.subgridAttestation
+//   (b) BACKWARD COMPAT: when subgridParams is absent, Contract-ID
+//       (getContractId()) MUST be byte-identical to geometryHash —
+//       same "omitted means unchanged fingerprint" semantics as
+//       replayFingerprint.ts (weightCid, verticalProfile)
+//   (c) Two configs that differ ONLY in subgridParams produce different
+//       Contract-IDs (the attestation actually moves the needle)
+//   (d) The contract's hash mode (ContractConfig.useCryptographicHash)
+//       propagates into the attestation envelope's `hashMode` field
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('ContractedSimulation subgrid attestation (TODO-05)', () => {
+  // Cross-package verification: the engine builds the envelope synchronously
+  // using engine-side hash primitives; verifySubgridAttestation() lives in
+  // core. We import it here so we can prove cross-package round-trip works
+  // (engine-built envelope → core-side verify returns valid:true).
+  // Static import would create a runtime dep on core in this file; using
+  // dynamic import to keep failure surface small if the subpath is missing.
+  // (Sync FNV-1a path in verify is fine — these tests stay sync.)
+
+  const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  const e = new Uint32Array([0, 1, 2, 3]);
+
+  function makeConfig() {
+    // Fresh TypedArrays per call so structuredClone in the constructor
+    // doesn't share buffer state across contracts under test.
+    return {
+      vertices: v.slice(),
+      tetrahedra: e.slice(),
+    };
+  }
+
+  // ── (a) attestation recorded when subgridParams provided ─────────────────
+
+  it('(a) records subgrid attestation envelope when subgridParams provided', () => {
+    const subgridParams = {
+      feedback_efficiency: 0.5,
+      cooling_threshold: 1e4,
+      resolution_floor: 100,
+      use_metal_cooling: true,
+      cooling_table: 'wiersma2009',
+    };
+
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      solverType: 'mock-subgrid-a',
+      subgridParams,
+    });
+
+    const att = contracted.getSubgridAttestation();
+    expect(att).toBeDefined();
+    expect(att?.hashMode).toBe('fnv1a'); // default mode
+    // Envelope hash shape under FNV-1a: 16 hex chars (per
+    // paper-0c-spike/subgrid-attestation.ts FNV1A_HEX_SHAPE).
+    expect(att?.hash).toMatch(/^[0-9a-f]{16}$/);
+    // Canonical form is deterministic — sorted keys, pipe-delimited.
+    expect(att?.canonicalForm).toBe(
+      // alphabetical: cooling_table, cooling_threshold, feedback_efficiency,
+      // resolution_floor, use_metal_cooling
+      'cooling_table=`wiersma2009`|cooling_threshold=10000|feedback_efficiency=0.5|resolution_floor=100|use_metal_cooling=true',
+    );
+
+    // Provenance surfaces the envelope.
+    const prov = contracted.getProvenance();
+    expect(prov.subgridAttestation).toEqual(att);
+
+    // createReplay() surfaces the envelope.
+    const replay = contracted.createReplay();
+    expect(replay.subgridAttestation).toEqual(att);
+  });
+
+  it('(a-extra) CAELRecorder records subgridAttestation in init payload', () => {
+    // This test enforces the full integration path the task spec calls out:
+    // the envelope MUST land at cael.init.payload.subgridAttestation so the
+    // replayer can verify the run's subgrid identity downstream.
+    // Importing CAELRecorder dynamically to mirror the existing test style.
+    return import('../CAELRecorder').then(({ CAELRecorder }) => {
+      const recorder = new CAELRecorder(mockSolver(), makeConfig(), {
+        fixedDt: 0.001,
+        subgridParams: { sn_fb_eff: 1.5, agn_mode: 'thermal' },
+      });
+      recorder.finalize();
+      const trace = recorder.getTrace();
+      // First entry is always 'init'.
+      expect(trace[0].event).toBe('init');
+      const sa = trace[0].payload.subgridAttestation as
+        | { hash: string; hashMode: string; canonicalForm: string }
+        | null;
+      expect(sa).not.toBeNull();
+      expect(sa?.hashMode).toBe('fnv1a');
+      expect(sa?.hash).toMatch(/^[0-9a-f]{16}$/);
+      expect(sa?.canonicalForm).toBe('agn_mode=`thermal`|sn_fb_eff=1.5');
+      // contractId is also surfaced at top level for O(1) replay-side
+      // identity comparison.
+      expect(typeof trace[0].payload.contractId).toBe('string');
+    });
+  });
+
+  // ── (b) Contract-ID unchanged when subgridParams absent ──────────────────
+
+  it('(b) Contract-ID equals geometryHash byte-identically when subgridParams absent', () => {
+    // The load-bearing backward-compat invariant: pre-change contracts
+    // (no subgridParams, no adapterFingerprint) MUST produce a Contract-ID
+    // byte-identical to geometryHash. Same precedent as replayFingerprint.ts
+    // — omitted fields collapse to "unchanged fingerprint".
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      solverType: 'mock-subgrid-b',
+      // explicitly NO subgridParams, NO adapterFingerprint
+    });
+
+    expect(contracted.getContractId()).toBe(contracted.getProvenance().geometryHash);
+    expect(contracted.getSubgridAttestation()).toBeUndefined();
+    expect(contracted.getProvenance().subgridAttestation).toBeUndefined();
+    expect(contracted.createReplay().subgridAttestation).toBeUndefined();
+  });
+
+  it('(b-extra) two no-subgrid contracts on same geometry have identical contractId', () => {
+    // Stronger version of (b): not just "equals geometryHash" but
+    // "two independent contracts produce the same byte string", proving
+    // the absent-path is fully deterministic and free of run-id leakage.
+    const c1 = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+    });
+    const c2 = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+    });
+    expect(c1.getContractId()).toBe(c2.getContractId());
+  });
+
+  // ── (c) different subgridParams → different Contract-ID ──────────────────
+
+  it('(c) two configs differing ONLY in subgridParams yield different Contract-IDs', () => {
+    // The attestation actually moves the needle: same geometry, same
+    // adapter fingerprint (none), same hash mode — different subgrid
+    // physics → different Contract-ID. This is the labeling result that
+    // paper-0c §"Why this exists" calls out as the whole point of the
+    // primitive (EAGLE vs IllustrisTNG observationally indistinguishable
+    // become cryptographically distinguishable).
+    const c1 = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      subgridParams: { feedback_efficiency: 0.5, cooling_threshold: 1e4 },
+    });
+    const c2 = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      subgridParams: { feedback_efficiency: 1.5, cooling_threshold: 1e4 },
+      // ONLY feedback_efficiency differs (0.5 vs 1.5)
+    });
+
+    // Geometry hash IS identical (same mesh).
+    expect(c1.getProvenance().geometryHash).toBe(c2.getProvenance().geometryHash);
+    // Contract-ID is NOT (subgrid hash differs → composed Contract-ID differs).
+    expect(c1.getContractId()).not.toBe(c2.getContractId());
+    // And the underlying envelope hashes diverge too.
+    expect(c1.getSubgridAttestation()?.hash).not.toBe(c2.getSubgridAttestation()?.hash);
+  });
+
+  // ── (d) mode flag (useCryptographicHash) propagates to subgrid ───────────
+
+  it('(d) useCryptographicHash=false → subgrid attestation hashMode=fnv1a', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      useCryptographicHash: false,
+      subgridParams: { eff: 0.5 },
+    });
+    const att = contracted.getSubgridAttestation();
+    expect(att?.hashMode).toBe('fnv1a');
+    expect(att?.hash).toMatch(/^[0-9a-f]{16}$/); // FNV-1a 16-hex shape
+  });
+
+  it('(d) useCryptographicHash=true → subgrid attestation hashMode=sha256', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      useCryptographicHash: true,
+      subgridParams: { eff: 0.5 },
+    });
+    const att = contracted.getSubgridAttestation();
+    expect(att?.hashMode).toBe('sha256');
+    expect(att?.hash).toMatch(/^[0-9a-f]{64}$/); // SHA-256 64-hex shape
+    // And the same param vector under FNV-1a yields a different hash
+    // (sanity check that we're not silently downgrading mode).
+    const fnvContract = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      useCryptographicHash: false,
+      subgridParams: { eff: 0.5 },
+    });
+    expect(att?.hash).not.toBe(fnvContract.getSubgridAttestation()?.hash);
+  });
+
+  // ── Cross-package round-trip: engine-built envelope verifies under core
+  // The engine builds the envelope synchronously via engine hash primitives;
+  // core's verifySubgridAttestation() is the canonical replay-side check.
+  // If these diverge, replay verification breaks silently — so we lock the
+  // round-trip in a test.
+
+  it('cross-package: engine-built FNV-1a envelope verifies under core', async () => {
+    const { verifySubgridAttestation } = await import('@holoscript/core/paper-0c-spike');
+    const params = { eff: 0.5, mode: 'thermal' };
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      useCryptographicHash: false,
+      subgridParams: params,
+    });
+    const att = contracted.getSubgridAttestation();
+    expect(att).toBeDefined();
+    const result = verifySubgridAttestation(att!, params);
+    expect(result.valid).toBe(true);
+  });
+
+  it('cross-package: engine-built SHA-256 envelope verifies under core (async)', async () => {
+    const { verifySubgridAttestationAsync } = await import('@holoscript/core/paper-0c-spike');
+    const params = { eff: 0.5, mode: 'thermal' };
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      useCryptographicHash: true,
+      subgridParams: params,
+    });
+    const att = contracted.getSubgridAttestation();
+    expect(att).toBeDefined();
+    const result = await verifySubgridAttestationAsync(att!, params);
+    expect(result.valid).toBe(true);
+  });
+});

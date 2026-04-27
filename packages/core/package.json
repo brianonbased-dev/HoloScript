@@ -119,6 +119,11 @@
       "types": "./dist/reconstruction/index.d.ts",
       "import": "./dist/reconstruction/index.js",
       "require": "./dist/reconstruction/index.cjs"
+    },
+    "./paper-0c-spike": {
+      "types": "./dist/paper-0c-spike/index.d.ts",
+      "import": "./dist/paper-0c-spike/index.js",
+      "require": "./dist/paper-0c-spike/index.cjs"
     }
   },
   "bin": {

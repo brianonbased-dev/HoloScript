@@ -4288,6 +4288,37 @@ export declare function fnv1a32Hex(input: string): string;
 export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
 `;
 
+const paper0cSpikeDTS = `/** @holoscript/core/paper-0c-spike — CAEL paper-0c primitives (subgrid attestation) */
+export type HashMode = 'fnv1a' | 'sha256';
+export declare const DEFAULT_HASH_MODE: HashMode;
+export type SubgridParamValue = number | boolean | string;
+export type SubgridParams = Record<string, SubgridParamValue>;
+export interface SubgridAttestation {
+  readonly hash: string;
+  readonly hashMode: HashMode;
+  readonly canonicalForm: string;
+}
+export type VerifyResult =
+  | { readonly valid: true }
+  | {
+      readonly valid: false;
+      readonly reason: 'hashMode-mismatch' | 'hash-mismatch' | 'canonical-form-mismatch';
+      readonly expected: string;
+      readonly actual: string;
+    };
+export declare class MissingSubgridParamsError extends Error { constructor(); }
+export declare class InvalidSubgridParamValueError extends Error { constructor(key: string, value: unknown); }
+export declare function canonicalizeSubgridParams(params: SubgridParams): string;
+export declare function hashSubgridParams(params: SubgridParams, mode: 'fnv1a'): string;
+export declare function hashSubgridParams(params: SubgridParams, mode: 'sha256'): Promise<string>;
+export declare function hashSubgridParams(params: SubgridParams, mode?: HashMode): string | Promise<string>;
+export declare function attestSubgridParams(params: SubgridParams, mode: 'fnv1a'): SubgridAttestation;
+export declare function attestSubgridParams(params: SubgridParams, mode: 'sha256'): Promise<SubgridAttestation>;
+export declare function attestSubgridParams(params: SubgridParams, mode?: HashMode): SubgridAttestation | Promise<SubgridAttestation>;
+export declare function verifySubgridAttestation(attestation: SubgridAttestation, params: SubgridParams): VerifyResult;
+export declare function verifySubgridAttestationAsync(attestation: SubgridAttestation, params: SubgridParams): Promise<VerifyResult>;
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -4298,6 +4329,7 @@ const subdirDeclarations = [
   { dir: 'storage', content: storageDTS },
   { dir: 'tools', content: toolsDTS },
   { dir: 'reconstruction', content: reconstructionDTS },
+  { dir: 'paper-0c-spike', content: paper0cSpikeDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {

@@ -95,6 +95,9 @@ export default defineConfig({
     // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
     'reconstruction/index': 'src/reconstruction/index.ts',
 
+    // Paper-0c CAEL primitives (subgrid-attestation; consumed by @holoscript/engine)
+    'paper-0c-spike/index': 'src/paper-0c-spike/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

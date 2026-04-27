@@ -49,6 +49,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@holoscript/core/reconstruction': resolve(__dirname, '../core/src/reconstruction/index.ts'),
+      '@holoscript/core/paper-0c-spike': resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
       '@holoscript/core': resolve(__dirname, '../core/src/index.ts'),
       '@holoscript/holomap': resolve(__dirname, '../holomap/src/index.ts'),
       '@holoscript/framework/agents': resolve(__dirname, '../framework/src/agents/index.ts'),

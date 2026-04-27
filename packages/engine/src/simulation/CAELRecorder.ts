@@ -35,9 +35,16 @@ export class CAELRecorder {
     this.runId = `cael-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const replay = this.contracted.createReplay();
+    const subgridAttestation = this.contracted.getSubgridAttestation();
     this.append('init', 0, {
       solverType: replay.solverType,
       geometryHash: replay.geometryHash,
+      // Paper-0c TODO-05 followup: surface the composite Contract-ID
+      // (geometryHash + adapterFingerprint + subgridHash) at top level
+      // so replayers and dispute-dispatch logic can compare run identity
+      // in O(1). Backward-compat: equals geometryHash byte-identically
+      // when neither adapterFingerprint nor subgridParams was set.
+      contractId: replay.contractId,
       config: encodeCAELValue(config),
       contractConfig: encodeCAELValue(contractConfig),
       // Item 5b: surface adapterFingerprint as a top-level payload
@@ -45,6 +52,12 @@ export class CAELRecorder {
       // having to decode the entire contractConfig. Null when absent
       // (safe fallback: replayer treats null as cross-adapter).
       adapterFingerprint: contractConfig.adapterFingerprint ?? null,
+      // Paper-0c TODO-05 followup: full SubgridAttestation envelope
+      // (canonical form + hash + mode) for replay-side verification
+      // via verifySubgridAttestation() / verifySubgridAttestationAsync()
+      // from `@holoscript/core/paper-0c-spike`. Null when contract
+      // had no subgridParams — safe fallback (no attestation to verify).
+      subgridAttestation: subgridAttestation ?? null,
       // Option C (Prereq 3): self-identify the hash mode so the
       // replayer can verify every event's hash shape matches the
       // declared mode, catching mid-trace mode tampering.

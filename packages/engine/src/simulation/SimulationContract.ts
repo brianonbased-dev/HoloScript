@@ -26,8 +26,14 @@
 
 import type { SimSolver, FieldData } from './SimSolver';
 import { isGpuBackedSolver } from './SimSolver';
-import { type HashMode, HASH_MODE_DEFAULT } from './sha256';
+import { type HashMode, HASH_MODE_DEFAULT, sha256Bytes } from './sha256';
 import { computeStateDigest, hashGeometry, hashGpuOutput } from './hashes';
+import {
+  canonicalizeSubgridParams,
+  type SubgridAttestation,
+  type SubgridParams,
+} from '@holoscript/core/paper-0c-spike';
+import { fnv1a32Hex } from '@holoscript/core/reconstruction';
 
 export {
   hashCAELEntry,
@@ -37,6 +43,7 @@ export {
   quantumForField,
 } from './hashes';
 export type { HashMode } from './sha256';
+export type { SubgridAttestation, SubgridParams } from '@holoscript/core/paper-0c-spike';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,6 +65,18 @@ export interface SimulationProvenance {
   runId: string;
   /** Geometry hash (SHA-like fingerprint of vertex + connectivity data) */
   geometryHash: string;
+  /** Composite Contract-ID — `geometryHash` plus, when present, the
+   *  adapter fingerprint and the subgrid-parameter attestation hash
+   *  folded in deterministically. Backward-compat: when neither
+   *  `adapterFingerprint` nor `subgridParams` is set on the contract,
+   *  `contractId === geometryHash` byte-identically. */
+  contractId: string;
+  /** Subgrid-parameter attestation envelope (paper-0c CAEL). Present
+   *  iff `ContractConfig.subgridParams` was provided at construction.
+   *  The envelope's `hash` is folded into `contractId`; the full envelope
+   *  (canonical form + hash + mode) is recorded by CAELRecorder into
+   *  `cael.init.payload.subgridAttestation` for replay-side verification. */
+  subgridAttestation?: SubgridAttestation;
   /** Solver type identifier */
   solverType: string;
   /** Full solver config (frozen at creation time) */
@@ -169,6 +188,70 @@ export interface ContractConfig {
    *  If absent at record-time, the trace is treated as
    *  cross-adapter for all replays (safe fallback). */
   adapterFingerprint?: string;
+
+  /** Subgrid parameter vector for paper-0c CAEL attestation (TODO-05).
+   *
+   *  Set to declare the run's subgrid feedback / cooling / resolution-floor
+   *  controls — anything below the mesh resolution that distinguishes two
+   *  observationally-equivalent runs (EAGLE vs IllustrisTNG vs FIRE-3 etc.).
+   *  When present, ContractedSimulation calls
+   *  `canonicalizeSubgridParams()` (from `@holoscript/core/paper-0c-spike`),
+   *  hashes the canonical form under the contract's `useCryptographicHash`
+   *  mode, and folds the resulting hash into `getContractId()` alongside
+   *  `geometryHash` and `adapterFingerprint`. The full SubgridAttestation
+   *  envelope is exposed via `getSubgridAttestation()` and recorded in
+   *  `cael.init.payload.subgridAttestation` by CAELRecorder.
+   *
+   *  **Backward compat**: when this field is ABSENT, `getContractId()`
+   *  returns `geometryHash` byte-identically — no envelope is constructed,
+   *  no extra hash work is done, and pre-change traces remain bit-exact
+   *  reproducible. Same "omitted means unchanged fingerprint" semantics as
+   *  `replayFingerprint.ts` (`weightCid`, `verticalProfile`).
+   *
+   *  See: `packages/core/src/paper-0c-spike/subgrid-attestation.ts`
+   *  module header — "Why this exists" + "Integration hook". */
+  subgridParams?: SubgridParams;
+}
+
+// ── Subgrid attestation (sync engine-side helper) ────────────────────────────
+
+/**
+ * Build a SubgridAttestation envelope synchronously inside the engine,
+ * using the engine's sync hash primitives so it can be called from the
+ * sync ContractedSimulation constructor.
+ *
+ * Why this lives in the engine rather than calling
+ * `attestSubgridParams()` from `@holoscript/core/paper-0c-spike`: core's
+ * SHA-256 path is async (Web Crypto, engine-free) and the engine
+ * constructor is sync. We reuse core's `canonicalizeSubgridParams()` for
+ * the canonical form (single source of truth — this guarantees
+ * `verifySubgridAttestation()` from core round-trips against envelopes
+ * produced here), then hash the canonical string under the requested
+ * mode using engine's sync `fnv1a32Hex` / `sha256Bytes`.
+ *
+ * Resulting envelope is byte-compatible with core's `SubgridAttestation`
+ * shape — verifySubgridAttestation/Async will accept it without
+ * modification.
+ */
+function buildSubgridAttestationSync(
+  params: SubgridParams,
+  hashMode: HashMode,
+): SubgridAttestation {
+  const canonicalForm = canonicalizeSubgridParams(params);
+  if (hashMode === 'fnv1a') {
+    return Object.freeze({
+      hash: fnv1a32Hex(canonicalForm),
+      hashMode: 'fnv1a' as const,
+      canonicalForm,
+    });
+  }
+  // hashMode === 'sha256'
+  const bytes = new TextEncoder().encode(canonicalForm);
+  return Object.freeze({
+    hash: sha256Bytes(bytes),
+    hashMode: 'sha256' as const,
+    canonicalForm,
+  });
 }
 
 // ── Adapter fingerprint helper (Wave-2 SECURITY-mode 2026-04-20) ─────────────
@@ -504,6 +587,37 @@ export class ContractedSimulation {
     return this.hashMode;
   }
 
+  /**
+   * Subgrid-parameter attestation envelope, present iff
+   * ContractConfig.subgridParams was provided at construction. Frozen
+   * at construction time; null when no subgrid params were supplied.
+   *
+   * CAELRecorder reads this and surfaces the envelope into
+   * cael.init.payload.subgridAttestation for replay-side verification
+   * via verifySubgridAttestation() / verifySubgridAttestationAsync()
+   * from `@holoscript/core/paper-0c-spike`.
+   */
+  private subgridAttestation: SubgridAttestation | undefined = undefined;
+
+  /** Public accessor for the subgrid-parameter attestation envelope.
+   *  Returns `undefined` when the contract was constructed without
+   *  `subgridParams`. */
+  getSubgridAttestation(): SubgridAttestation | undefined {
+    return this.subgridAttestation;
+  }
+
+  /** Stable Contract-ID used to identify a contracted run. Composes
+   *  `geometryHash` plus, when present, the adapter fingerprint and
+   *  the subgrid attestation hash. Backward-compat invariant: when
+   *  neither `adapterFingerprint` nor `subgridParams` is set on the
+   *  contract, this returns `geometryHash` byte-identically (no
+   *  composition, no hashing) — so pre-change contracts produce the
+   *  same Contract-ID as before this field existed. */
+  private contractId: string = '';
+  getContractId(): string {
+    return this.contractId;
+  }
+
   constructor(
     solver: SimSolver,
     config: Record<string, unknown>,
@@ -532,6 +646,34 @@ export class ContractedSimulation {
     const meshElements = (config.tetrahedra ?? config.elements) as Uint32Array | undefined;
 
     this.geometryHash = hashGeometry(meshVertices, meshElements, this.hashMode);
+
+    // Paper-0c TODO-05 followup: build the subgrid-parameter attestation
+    // envelope synchronously when subgridParams is supplied. Mode flag
+    // (useCryptographicHash → 'sha256' / 'fnv1a') propagates here too —
+    // an adversarial peer who downgrades the contract's hash mode also
+    // downgrades the subgrid hash, and the mode is recorded in the
+    // envelope itself so replay can detect mode-substitution attacks.
+    //
+    // BACKWARD COMPAT: when subgridParams is absent, this branch is
+    // skipped entirely — no canonicalization, no hashing, no envelope.
+    // contractId below collapses to geometryHash, byte-identical to
+    // pre-change behavior.
+    if (contractConfig.subgridParams !== undefined) {
+      this.subgridAttestation = buildSubgridAttestationSync(
+        contractConfig.subgridParams,
+        this.hashMode,
+      );
+    }
+
+    // Compose Contract-ID. Order matters — we MUST keep the
+    // backward-compat path (geometryHash byte-identical) when no
+    // optional inputs are present. `replayFingerprint.ts` precedent:
+    // optional fields only append when explicitly set.
+    this.contractId = this.composeContractId(
+      this.geometryHash,
+      contractConfig.adapterFingerprint,
+      this.subgridAttestation,
+    );
 
     this.violations = [];
     if (contractConfig.enforceMeshSanity !== false) {
@@ -656,6 +798,50 @@ export class ContractedSimulation {
     this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
   }
 
+  /**
+   * Compose the Contract-ID from `geometryHash` and the optional
+   * adapter / subgrid identity inputs.
+   *
+   * **Backward-compat invariant** (the load-bearing constraint of this
+   * function): when both `adapterFingerprint` and `subgridAttestation`
+   * are absent, this returns `geometryHash` BYTE-IDENTICALLY. No
+   * hashing, no concatenation, no prefix. Pre-change contracts that
+   * stored Contract-ID as `geometryHash` directly remain valid.
+   *
+   * When at least one optional input is set, we hash the canonical
+   * pipe-joined tuple under the contract's hash mode. Same family as
+   * `replayFingerprint.ts`'s pipe-delimited canonicalization. Pipe is
+   * safe because hex hashes never contain `|`.
+   *
+   * Field order is fixed (`geometryHash | adapterFingerprint |
+   * subgridHash`) and missing fields collapse to empty string — same
+   * pattern as `computeAdapterFingerprint()` above.
+   *
+   * Hash mode: respects `this.hashMode` so a contract running under
+   * SHA-256 produces a SHA-256-strength Contract-ID; FNV-1a-mode
+   * contracts produce a 16-hex Contract-ID.
+   */
+  private composeContractId(
+    geometryHash: string,
+    adapterFingerprint: string | undefined,
+    subgridAttestation: SubgridAttestation | undefined,
+  ): string {
+    // Backward-compat fast path: no optional identity inputs → pass
+    // geometryHash through unchanged.
+    if (adapterFingerprint === undefined && subgridAttestation === undefined) {
+      return geometryHash;
+    }
+    const canonical = [
+      geometryHash,
+      adapterFingerprint ?? '',
+      subgridAttestation?.hash ?? '',
+    ].join('|');
+    if (this.hashMode === 'sha256') {
+      return `cid-sha-${sha256Bytes(new TextEncoder().encode(canonical))}`;
+    }
+    return `cid-${fnv1a32Hex(canonical)}`;
+  }
+
   /** Enforce Guarantee 1: halt if geometry has been corrupted.
    *  Re-hashes the mesh vertices and elements under the contract's
    *  hash mode and compares against the contracted hash from
@@ -714,6 +900,10 @@ export class ContractedSimulation {
     return {
       runId: `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       geometryHash: this.geometryHash,
+      contractId: this.contractId,
+      ...(this.subgridAttestation !== undefined
+        ? { subgridAttestation: this.subgridAttestation }
+        : {}),
       solverType: this.solverType,
       config: this.config,
       fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
@@ -737,6 +927,8 @@ export class ContractedSimulation {
     config: Record<string, unknown>;
     solverType: string;
     geometryHash: string;
+    contractId: string;
+    subgridAttestation?: SubgridAttestation;
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
@@ -745,6 +937,10 @@ export class ContractedSimulation {
       config: this.config,
       solverType: this.solverType,
       geometryHash: this.geometryHash,
+      contractId: this.contractId,
+      ...(this.subgridAttestation !== undefined
+        ? { subgridAttestation: this.subgridAttestation }
+        : {}),
       interactions: this.interactions,
       fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
       totalSteps: this.stepper.getStepCount(),
