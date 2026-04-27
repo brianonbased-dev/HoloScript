@@ -3777,6 +3777,70 @@ export class USDZPipeline { [key: string]: any; }
 export interface USDZPipelineOptions { [key: string]: any; }
 
 export class CompilerBridge { [key: string]: any; }
+
+// Social Causal Model (SCM) — Cycle 9/10/12
+export interface AffectiveState {
+  valence: number;
+  arousal: number;
+  dominantEmotion: 'calm' | 'excited' | 'frustrated' | 'engaged' | 'bored' | 'anxious';
+}
+
+export interface SCMCompilerOptions {
+  modelName?: string;
+  affectiveContext?: AffectiveState;
+  privacyMask?: boolean;
+}
+
+export interface SCMNode {
+  id: string;
+  type: string;
+  properties: Record<string, any>;
+  do_capable: boolean;
+}
+
+export interface SCMEdge {
+  source: string;
+  target: string;
+  relation: string;
+  weight: number;
+}
+
+export interface SCMDAG {
+  metadata: {
+    model_name: string;
+    generated_at: string;
+    affective_context?: AffectiveState;
+  };
+  nodes: SCMNode[];
+  edges: SCMEdge[];
+}
+
+export class SCMCompiler extends CompilerBase {
+  constructor(options?: SCMCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): string;
+}
+
+export interface SocialMergeOptions {
+  consensusThreshold?: number;
+  modelName?: string;
+}
+
+export interface SocialMergeReport {
+  agents: number;
+  threshold: number;
+  nodes: { kept: number; dropped: number };
+  edges: { kept: number; dropped: number; smoothed: number };
+}
+
+export interface SocialMergeResult {
+  dag: SCMDAG;
+  report: SocialMergeReport;
+}
+
+export function mergeSocialCausalModels(
+  agentDags: SCMDAG[],
+  options?: SocialMergeOptions,
+): SocialMergeResult;
 `;
 
 const selfImprovementDTS = `/**
