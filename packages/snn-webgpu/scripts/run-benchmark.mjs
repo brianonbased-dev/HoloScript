@@ -29,6 +29,16 @@ function resolveOptions() {
   const requireCompleted = boolEnv('BENCH_REQUIRE_COMPLETED', true);
   const commit = process.env.BENCH_COMMIT ?? process.env.GIT_COMMIT ?? 'auto';
   const driver = process.env.BENCH_DRIVER ?? 'auto';
+  // Vulkan backend Chromium passes to its WebGPU implementation:
+  //   "swiftshader" (default) — CPU emulator. Reproducible across CI; no
+  //                              GPU dependency. ~150-160 M neurons/s on
+  //                              modern CPUs.
+  //   "native"               — real GPU Vulkan. Requires vulkan-tools +
+  //                              mesa-vulkan-drivers + GPU-aware container
+  //                              (NOT in pytorch/pytorch:cuda image; use
+  //                              nvidia/cuda:* + apt install vulkan-tools).
+  //                              Real RTX/H100 numbers come from this path.
+  const vulkanBackend = process.env.BENCH_VULKAN_BACKEND ?? 'swiftshader';
   const outputPath =
     process.env.BENCH_OUTPUT_PATH ?? path.join(repoRoot, '.bench-logs', 'paper-2-lif-throughput-automated.json');
 
@@ -40,6 +50,7 @@ function resolveOptions() {
     requireCompleted,
     commit,
     driver,
+    vulkanBackend,
     outputPath,
   };
 }
@@ -49,12 +60,15 @@ async function main() {
   console.log('[SNN-WebGPU Benchmark] Starting automated browser harness...');
   console.log('[SNN-WebGPU Benchmark] Options:', options);
 
-  // Launch Chromium with WebGPU enabled via SwiftShader for headless environments
+  // Launch Chromium with WebGPU enabled. Vulkan backend selectable:
+  // - swiftshader (default): CPU emulator, no GPU required, reproducible CI.
+  // - native: real GPU via system Vulkan (set BENCH_VULKAN_BACKEND=native;
+  //   requires vulkan-tools + mesa-vulkan-drivers; container must expose GPU).
   const browser = await chromium.launch({
     headless: options.headless,
     args: [
       '--enable-unsafe-webgpu',
-      '--use-vulkan=swiftshader',
+      `--use-vulkan=${options.vulkanBackend}`,
       '--disable-vulkan-fallback-to-gl-for-testing',
       '--ignore-gpu-blocklist'
     ]
