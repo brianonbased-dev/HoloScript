@@ -13,6 +13,7 @@ import { getObjectTraits } from '../runtime-types';
 import {
   buildClothConstraints,
   stepClothVerlet,
+  smoothNoise,
   type ClothVerletState,
   type ClothVerletConfig,
 } from '@holoscript/core/traits/engines';
@@ -20,19 +21,8 @@ import {
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-/** Simple pseudo-noise for turbulence */
-function noise(x: number, seed: number): number {
-  const n = Math.sin(x * 12.9898 + seed * 78.233) * 43758.5453;
-  return (n - Math.floor(n)) * 2 - 1;
-}
-
-function smoothNoise(t: number, seed: number): number {
-  const floor = Math.floor(t);
-  const frac = t - floor;
-  const smooth = frac * frac * (3 - 2 * frac);
-  return noise(floor, seed) + smooth * (noise(floor + 1, seed) - noise(floor, seed));
-}
+// Noise functions live in @holoscript/core/traits/engines/noise.ts (extracted
+// 2026-04-27 per /critic batch-6 Annoying #8). Imported above; not redefined.
 
 // =============================================================================
 // CLOTH TRAIT - Verlet integration cloth simulation

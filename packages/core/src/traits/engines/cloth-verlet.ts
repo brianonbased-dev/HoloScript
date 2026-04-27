@@ -48,17 +48,7 @@ export interface ClothVerletConfig {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function noise(x: number, seed: number): number {
-  const n = Math.sin(x * 12.9898 + seed * 78.233) * 43758.5453;
-  return (n - Math.floor(n)) * 2 - 1;
-}
-
-function smoothNoise(t: number, seed: number): number {
-  const floor = Math.floor(t);
-  const frac = t - floor;
-  const smooth = frac * frac * (3 - 2 * frac);
-  return noise(floor, seed) + smooth * (noise(floor + 1, seed) - noise(floor, seed));
-}
+import { smoothNoise } from './noise';
 
 /**
  * Build the structural-spring constraint set for a square cloth grid.

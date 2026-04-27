@@ -14,3 +14,4 @@ export * from './synthetic-walk-cycle';
 export * from './onnx-adapter';
 export * from './motion-data-schema';
 export * from './cloth-verlet';
+export * from './noise';
