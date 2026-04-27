@@ -130,6 +130,12 @@ export * from './NetworkedAvatarTrait';
 export { NetworkedTrait } from './NetworkedTrait';
 export * from './NetworkedTraitHandler';
 export * from './NeuralAnimationTrait';
+// Motion-matching engine surface (idea-run-3 BUILD-1 scaffolding) — exported so
+// runtime + downstream consumers can import via @holoscript/core.
+export * from './engines/motion-matching';
+export * from './engines/synthetic-walk-cycle';
+export * from './engines/onnx-adapter';
+export * from './engines/motion-data-schema';
 export * from './NeuralForgeTrait';
 export * from './NeuralLinkTrait';
 export * from './NFTTrait';

@@ -69,6 +69,8 @@ export default defineConfig({
 
     // Traits barrel (re-exports all trait types for @holoscript/traits)
     'traits/index': 'src/traits/index.ts',
+    // Engines lightweight barrel (no plugin imports — for runtime + r3f consumption)
+    'traits/engines/index': 'src/traits/engines/index.ts',
 
     // Compiler barrel (re-exports all compilers for @holoscript/compiler)
     'compiler/index': 'src/compiler/index.ts',

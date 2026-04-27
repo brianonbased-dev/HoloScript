@@ -61,6 +61,7 @@ import {
   RigidbodyTrait,
   DestructionTrait,
 } from '../traits/PhysicsTraits';
+import { neuralAnimationHandler } from '../traits/NeuralAnimationHandler';
 import {
   RotatableTrait,
   StackableTrait,
@@ -993,6 +994,9 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(HapticTrait);
     this.traitSystem.register(PortalTrait);
     this.traitSystem.register(MirrorTrait);
+
+    // Motion-matching bridge (idea-run-3 RULING 2 — per-trait runtime wrapper)
+    this.traitSystem.register(neuralAnimationHandler);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
