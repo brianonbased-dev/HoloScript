@@ -267,6 +267,97 @@ console.log("Test 8: new scenario in current results is reported but does not fa
     rmSync(repo, { recursive: true, force: true });
   }
 
-  console.log("");
-  console.log(`Tests run: ${testsRun}, failed: ${testsFailed}`);
-  process.exit(testsFailed === 0 ? 0 : 1);
+    console.log("Test 11: mbPerSec within 8% threshold (higher-is-better) → exit 0");
+    {
+      const repo = fakeRepo();
+      makeBaseline(repo, {
+        "08-wasm-parser-throughput": {
+          platforms: {
+            "wasm-rust": { mbPerSec: 50.0, parseTimeMs: 20.0 },
+          },
+        },
+      }, {
+        mbPerSec: { regression_threshold_pct: 8, comparator: "higher-is-better" },
+        parseTimeMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+      });
+      // 5% slower (within 8% threshold for higher-is-better)
+      makeResultsFile(repo, ymd(), "08-wasm-parser-throughput", [
+        { platform: "wasm-rust", mbPerSec: 47.5, parseTimeMs: 20.0, success: true },
+      ]);
+      const r = runScript([], repo);
+      assertEq(r.exit, 0, "exit 0 when mbPerSec within 8% higher-is-better threshold");
+      rmSync(repo, { recursive: true, force: true });
+    }
+
+    console.log("Test 12: mbPerSec >8% regression (higher-is-better) → exit 1");
+    {
+      const repo = fakeRepo();
+      makeBaseline(repo, {
+        "08-wasm-parser-throughput": {
+          platforms: {
+            "wasm-rust": { mbPerSec: 50.0, parseTimeMs: 20.0 },
+          },
+        },
+      }, {
+        mbPerSec: { regression_threshold_pct: 8, comparator: "higher-is-better" },
+        parseTimeMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+      });
+      // 20% drop (over 8% threshold for higher-is-better) — regression
+      makeResultsFile(repo, ymd(), "08-wasm-parser-throughput", [
+        { platform: "wasm-rust", mbPerSec: 40.0, parseTimeMs: 20.0, success: true },
+      ]);
+      const r = runScript([], repo);
+      assertEq(r.exit, 1, "exit 1 when mbPerSec drops >8% (higher-is-better regression)");
+      assertContains(r.stdout, "REGRESSION", "prints REGRESSION for mbPerSec");
+      assertContains(r.stdout, "mbPerSec", "names the mbPerSec axis");
+      rmSync(repo, { recursive: true, force: true });
+    }
+
+    console.log("Test 13: rps improves (higher-is-better) → exit 0, no regression");
+    {
+      const repo = fakeRepo();
+      makeBaseline(repo, {
+        "09-mcp-throughput": {
+          platforms: {
+            "mcp-prod": { rps: 80.0, p95LatencyMs: 25.0 },
+          },
+        },
+      }, {
+        rps: { regression_threshold_pct: 8, comparator: "higher-is-better" },
+        p95LatencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+      });
+      // rps improved 10%, p95 same → no regression
+      makeResultsFile(repo, ymd(), "09-mcp-throughput", [
+        { platform: "mcp-prod", rps: 88.0, p95LatencyMs: 25.0, success: true },
+      ]);
+      const r = runScript([], repo);
+      assertEq(r.exit, 0, "exit 0 when rps improves (higher-is-better)");
+      rmSync(repo, { recursive: true, force: true });
+    }
+
+    console.log("Test 14: frameTimeMs >8% regression → exit 1");
+    {
+      const repo = fakeRepo();
+      makeBaseline(repo, {
+        "07-vr-frame-budget": {
+          platforms: {
+            "webxr-quest3-72hz": { frameTimeMs: 5.0, droppedFrames: 0 },
+          },
+        },
+      }, {
+        frameTimeMs: { regression_threshold_pct: 8, comparator: "lower-is-better" },
+      });
+      // 20% increase in frameTimeMs = regression
+      makeResultsFile(repo, ymd(), "07-vr-frame-budget", [
+        { platform: "webxr-quest3-72hz", frameTimeMs: 6.0, droppedFrames: 2, success: true },
+      ]);
+      const r = runScript([], repo);
+      assertEq(r.exit, 1, "exit 1 when frameTimeMs regresses >8%");
+      assertContains(r.stdout, "REGRESSION", "prints REGRESSION for frameTimeMs");
+      assertContains(r.stdout, "frameTimeMs", "names frameTimeMs axis");
+      rmSync(repo, { recursive: true, force: true });
+    }
+
+    console.log("");
+    console.log(`Tests run: ${testsRun}, failed: ${testsFailed}`);
+    process.exit(testsFailed === 0 ? 0 : 1);

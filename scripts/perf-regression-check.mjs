@@ -173,7 +173,11 @@ function main() {
       axes: {
         compileTimeMs: { regression_threshold_pct: 5, comparator: "lower-is-better" },
         outputSizeBytes: { regression_threshold_pct: 30, comparator: "lower-is-better" },
-          latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+        latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+        frameTimeMs: { regression_threshold_pct: 8, comparator: "lower-is-better" },
+        mbPerSec: { regression_threshold_pct: 8, comparator: "higher-is-better" },
+        rps: { regression_threshold_pct: 8, comparator: "higher-is-better" },
+        p95LatencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
       },
       scenarios,
     };
@@ -241,8 +245,13 @@ function main() {
           pct,
           threshold,
         };
-        if (pct > threshold) regressions.push(entry);
-        else if (pct < 0) improvements.push(entry);
+          const comparator = baseline.axes[axis].comparator ?? "lower-is-better";
+          const isRegression =
+            comparator === "higher-is-better" ? pct < -threshold : pct > threshold;
+          const isImprovement =
+            comparator === "higher-is-better" ? pct > 0 : pct < 0;
+          if (isRegression) regressions.push({ ...entry, comparator });
+          else if (isImprovement) improvements.push({ ...entry, comparator });
       }
     }
   }

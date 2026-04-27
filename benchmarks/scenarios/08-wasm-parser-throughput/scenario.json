@@ -1,0 +1,10 @@
+{
+  "id": "08-wasm-parser-throughput",
+  "name": "WASM Parser Throughput",
+  "description": "Measures HoloScript WASM compiler parsing throughput in MB/sec. Loads N=10 representative .holo source strings spanning 1KB–100KB and calls parse() on each, accumulating total bytes / total seconds.",
+  "wasm_binding": "packages/compiler-wasm/pkg-node/holoscript_wasm.js",
+  "platform": "wasm-rust",
+  "samples": 10,
+  "size_range": "1KB–100KB",
+  "note": "Higher is better. Regression threshold 8% (mbPerSec comparator: higher-is-better). Falls back to TS parser if WASM not initialised — records success:false."
+}

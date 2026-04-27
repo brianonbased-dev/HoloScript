@@ -1,0 +1,13 @@
+{
+  "id": "09-mcp-throughput",
+  "name": "MCP Server Throughput",
+  "description": "Measures MCP server requests-per-second (rps) and latency percentiles: 50 parallel fan-out calls + 200 sequential steady-state calls. Target default is mcp.holoscript.net/health.",
+  "platform": "mcp-prod",
+  "parallel_requests": 50,
+  "sequential_requests": 200,
+  "target_env": "HOLO_MCP_THROUGHPUT_TARGET",
+  "target_default": "https://mcp.holoscript.net",
+  "auth_env": "HOLOSCRIPT_API_KEY",
+  "timeout_ms": 30000,
+  "note": "rps comparator: higher-is-better (8% threshold). p95LatencyMs comparator: lower-is-better (10% threshold). Falls back to localhost:3001 if HOLO_MCP_THROUGHPUT_TARGET is unset and the default is unreachable."
+}

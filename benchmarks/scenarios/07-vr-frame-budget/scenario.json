@@ -1,0 +1,11 @@
+{
+  "id": "07-vr-frame-budget",
+  "name": "VR Frame Budget (Quest 3 72Hz)",
+  "description": "Measures per-frame computation budget on a 300-frame headless simulation. Loads basic-scene and multiplayer-vr scenarios via HoloScriptRuntime and measures wall-clock time per update tick. Target: Quest 3 @ 72Hz = 13.9ms budget per frame.",
+  "hz": 72,
+  "budget_ms": 13.888,
+  "frames": 300,
+  "scenarios": ["01-basic-scene", "04-multiplayer-vr"],
+  "platform": "webxr-quest3-72hz",
+  "note": "Runs headless (no GPU). Measures CPU-side update + scene-graph tick time only. GPU overhead is not captured here; use GPU profiling for render pipeline regressions."
+}
