@@ -186,7 +186,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   soft_body: {
     trait: 'soft_body',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.utils.Float3', 'android.opengl.GLES31'],
     generate: (varName, config) => {
       const compliance = config.compliance ?? 0.0001;
@@ -223,7 +223,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   fluid: {
     trait: 'fluid',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.opengl.GLES31', 'com.google.android.filament.utils.Float3'],
     generate: (varName, config) => {
       const particleCount = config.particle_count ?? 10000;
@@ -270,7 +270,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   pbd_constraint: {
     trait: 'pbd_constraint',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.opengl.GLES31'],
     generate: (varName, config) => {
       const constraintType = String(config.type || 'distance');
@@ -293,7 +293,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   xpbd_solver: {
     trait: 'xpbd_solver',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.opengl.GLES31'],
     generate: (varName, config) => {
       const substeps = config.substeps ?? 8;
@@ -325,7 +325,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   sph_pressure: {
     trait: 'sph_pressure',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.opengl.GLES31'],
     generate: (varName, config) => {
       const kernelRadius = config.kernel_radius ?? 0.05;

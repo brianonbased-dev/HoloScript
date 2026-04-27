@@ -539,9 +539,11 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('physics');
     expect(partial).not.toContain('static');
     expect(partial).not.toContain('kinematic');
-    expect(partial).toContain('soft_body');
-    expect(partial).toContain('fluid');
-    expect(partial).toContain('pbd_constraint');
+    expect(partial).not.toContain('soft_body');
+    expect(partial).not.toContain('fluid');
+    expect(partial).not.toContain('pbd_constraint');
+    expect(partial).not.toContain('xpbd_solver');
+    expect(partial).not.toContain('sph_pressure');
     expect(partial).not.toContain('reverb_zone');
     expect(partial).not.toContain('audio_occlusion');
     expect(partial).toContain('instancing');
@@ -728,5 +730,58 @@ describe('AndroidXRTraitMap — Upgraded Physics Traits (batch 5)', () => {
     const code = generateTraitCode('cloth', 'sheet', { width: 40, height: 50 });
     expect(code.some((l) => l.includes('40'))).toBe(true);
     expect(code.some((l) => l.includes('50'))).toBe(true);
+  });
+});
+
+
+describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () => {
+  it('soft_body is full and generates XPBDSoftBodySolver with GLES31 dispatch', () => {
+    const mapping = getTraitMapping('soft_body');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('soft_body', 'jelly', { substeps: 6, compliance: 0.0002 });
+    expect(code.some((l) => l.includes('XPBDSoftBodySolver'))).toBe(true);
+    expect(code.some((l) => l.includes('GLES31'))).toBe(true);
+    expect(code.some((l) => l.includes('6'))).toBe(true);
+  });
+
+  it('fluid is full and generates SPHFluidSimulation with 3-pass compute', () => {
+    const mapping = getTraitMapping('fluid');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('fluid', 'water', { particle_count: 8000, viscosity: 0.03 });
+    expect(code.some((l) => l.includes('SPHFluidSimulation'))).toBe(true);
+    expect(code.some((l) => l.includes('GLES31'))).toBe(true);
+    expect(code.some((l) => l.includes('8000'))).toBe(true);
+  });
+
+  it('pbd_constraint is full and generates PBDConstraint with projection formula', () => {
+    const mapping = getTraitMapping('pbd_constraint');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('pbd_constraint', 'rope', { type: 'distance', stiffness: 0.9, rest_length: 2.0 });
+    expect(code.some((l) => l.includes('PBDConstraint'))).toBe(true);
+    expect(code.some((l) => l.includes('distance') || l.includes('DISTANCE'))).toBe(true);
+    expect(code.some((l) => l.includes('0.9'))).toBe(true);
+  });
+
+  it('xpbd_solver is full and generates XPBDSolver with substep loop', () => {
+    const mapping = getTraitMapping('xpbd_solver');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('xpbd_solver', 'body', { substeps: 8, gravity: -9.81, max_particles: 50000 });
+    expect(code.some((l) => l.includes('XPBDSolver'))).toBe(true);
+    expect(code.some((l) => l.includes('8'))).toBe(true);
+    expect(code.some((l) => l.includes('step') || l.includes('bindEntity'))).toBe(true);
+  });
+
+  it('sph_pressure is full and generates SPHPressureKernel with poly6', () => {
+    const mapping = getTraitMapping('sph_pressure');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('sph_pressure', 'fluid', { kernel_radius: 0.05, gas_constant: 2000, rest_density: 1000 });
+    expect(code.some((l) => l.includes('SPHPressureKernel'))).toBe(true);
+    expect(code.some((l) => l.includes('2000'))).toBe(true);
+    expect(code.some((l) => l.includes('attachTo') || l.includes('Pressure'))).toBe(true);
   });
 });

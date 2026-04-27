@@ -172,10 +172,10 @@ describe('VisionOSTraitMap', () => {
 
   // =========== spatial_navigation (V43) — promoted from comment to partial ==========
 
-  it('spatial_navigation is partial (not comment) and contains no TODOs', () => {
+  it('spatial_navigation is full (not comment) and contains no TODOs', () => {
     const mapping = getTraitMapping('spatial_navigation');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     // Default config — outdoor walking path
     const code = generateTraitCode('spatial_navigation', 'guide', {});
     expect(code.length).toBeGreaterThan(2);
@@ -461,5 +461,71 @@ describe('Upgraded Traits — full level (batch 5)', () => {
   it('spatial_persona declares GroupActivities import', () => {
     const imports = getRequiredImports(['spatial_persona']);
     expect(imports).toContain('GroupActivities');
+  });
+});
+
+
+describe('VisionOSTraitMap — Upgraded Traits (batch 6)', () => {
+  it('shareplay is full and generates GroupActivity struct with messenger', () => {
+    const mapping = getTraitMapping('shareplay');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('shareplay', 'game', { activity_type: 'coopGame' });
+    expect(code.some((l) => l.includes('GroupActivity'))).toBe(true);
+    expect(code.some((l) => l.includes('GroupSessionMessenger'))).toBe(true);
+    expect(code.some((l) => l.includes('coopGame'))).toBe(true);
+  });
+
+  it('shareplay declares GroupActivities import', () => {
+    const imports = getRequiredImports(['shareplay']);
+    expect(imports).toContain('GroupActivities');
+  });
+
+  it('object_tracking is full and generates ObjectTrackingProvider with anchor updates', () => {
+    const mapping = getTraitMapping('object_tracking');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('object_tracking', 'target', { reference_object: 'BoxTarget' });
+    expect(code.some((l) => l.includes('ObjectTrackingProvider'))).toBe(true);
+    expect(code.some((l) => l.includes('BoxTarget'))).toBe(true);
+    expect(code.some((l) => l.includes('anchorUpdates'))).toBe(true);
+  });
+
+  it('object_tracking declares ARKit import', () => {
+    const imports = getRequiredImports(['object_tracking']);
+    expect(imports).toContain('ARKit');
+  });
+
+  it('scene_reconstruction is full and generates SceneReconstructionProvider', () => {
+    const mapping = getTraitMapping('scene_reconstruction');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('scene_reconstruction', 'env', { mode: 'mesh' });
+    expect(code.some((l) => l.includes('SceneReconstructionProvider'))).toBe(true);
+    expect(code.some((l) => l.includes('mesh'))).toBe(true);
+  });
+
+  it('scene_reconstruction declares ARKit import', () => {
+    const imports = getRequiredImports(['scene_reconstruction']);
+    expect(imports).toContain('ARKit');
+  });
+
+  it('spatial_navigation is full and generates WorldTrackingProvider for outdoor mode', () => {
+    const mapping = getTraitMapping('spatial_navigation');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('spatial_navigation', 'guide', { navigation_mode: 'walking', path_visualization: 'arrow' });
+    expect(code.some((l) => l.includes('WorldTrackingProvider'))).toBe(true);
+    expect(code.some((l) => l.includes('walking') || l.includes('arrow'))).toBe(true);
+  });
+
+  it('spatial_navigation indoor mode generates NavigationSplitView pattern', () => {
+    const code = generateTraitCode('spatial_navigation', 'indoor', { navigation_mode: 'indoor' });
+    expect(code.some((l) => l.includes('NavigationSplitView') || l.includes('indoor'))).toBe(true);
+  });
+
+  it('spatial_navigation declares ARKit import', () => {
+    const imports = getRequiredImports(['spatial_navigation']);
+    expect(imports).toContain('ARKit');
   });
 });

@@ -995,7 +995,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   shareplay: {
     trait: 'shareplay',
     components: [],
-    level: 'partial',
+    level: 'full',
     minVersion: '1.0',
     imports: ['GroupActivities'],
     generate: (varName, config) => {
@@ -1029,7 +1029,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   object_tracking: {
     trait: 'object_tracking',
     components: ['AnchoringComponent'],
-    level: 'partial',
+    level: 'full',
     minVersion: '2.0',
     imports: ['ARKit'],
     generate: (varName, config) => {
@@ -1061,7 +1061,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   scene_reconstruction: {
     trait: 'scene_reconstruction',
     components: [],
-    level: 'partial',
+    level: 'full',
     minVersion: '1.0',
     imports: ['ARKit'],
     generate: (varName, config) => {
@@ -1101,7 +1101,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   spatial_navigation: {
     trait: 'spatial_navigation',
     components: ['AnchoringComponent'],
-    level: 'partial',
+    level: 'full',
     minVersion: '1.0',
     imports: ['ARKit', 'SwiftUI'],
     generate: (varName, config) => {
