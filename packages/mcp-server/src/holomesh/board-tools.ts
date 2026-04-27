@@ -19,6 +19,7 @@ import {
   createSuggestion,
   voteSuggestion,
   type TeamTask,
+  type SuggestionCategory,
 } from '@holoscript/framework';
 import {
   teamStore,
@@ -632,15 +633,19 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
   try {
     const team = getTeam(teamId) as any;
     if (!team.suggestions) team.suggestions = [];
-    const suggestion = (createSuggestion as any)(
-      team.suggestions,
+    const result = createSuggestion(team.suggestions, {
       title,
-      'mcp-agent',
-      args.description as string | undefined,
-      args.category as string | undefined,
-    );
+      description: args.description as string | undefined,
+      category: args.category as SuggestionCategory | undefined,
+      evidence: args.evidence as string | undefined,
+      proposedBy: 'mcp-tool',
+      proposedByName: 'mcp-tool',
+    });
+    if (!result.success) {
+      return { error: result.error || 'suggestion create failed' };
+    }
     persistTeamStore();
-    return { success: true, suggestion };
+    return { success: true, suggestion: result.suggestion };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -658,13 +663,19 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   try {
     const team = getTeam(teamId) as any;
     if (!team.suggestions) team.suggestions = [];
-    const result = (voteSuggestion as any)(
+    const result = voteSuggestion(
       team.suggestions,
+      team.taskBoard!,
       sugId,
-      'mcp-agent',
+      'mcp-tool',
+      'mcp-tool',
       value as 1 | -1,
+      team.maxSlots ?? 20,
       args.reason as string | undefined,
     );
+    if (!result.success) {
+      return { error: result.error || 'vote failed' };
+    }
     persistTeamStore();
     return { ...result, success: true };
   } catch (err) {

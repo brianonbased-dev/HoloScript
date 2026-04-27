@@ -37,6 +37,7 @@ import {
   generateTaskId,
   addTasksToBoard,
   type TeamTask,
+  type TeamSuggestion,
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
@@ -150,6 +151,127 @@ export async function handleBoardRoutes(
       hasMore: endRank < total,
       entries,
     });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/suggestions — list improvement suggestions (MCP: holomesh_suggest_list)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'GET') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    if (!(team as Team & { suggestions?: TeamSuggestion[] }).suggestions) {
+      (team as Team & { suggestions?: TeamSuggestion[] }).suggestions = [];
+    }
+    const suggestions = (team as Team & { suggestions: TeamSuggestion[] }).suggestions;
+    const q = parseQuery(url);
+    const st = (q.get('status') || '').trim();
+    const statusOk = st === 'open' || st === 'promoted' || st === 'dismissed';
+    const filtered = statusOk ? suggestions.filter((s) => s.status === st) : suggestions;
+    json(res, 200, {
+      success: true,
+      teamId,
+      open: suggestions.filter((s) => s.status === 'open').length,
+      promoted: suggestions.filter((s) => s.status === 'promoted').length,
+      dismissed: suggestions.filter((s) => s.status === 'dismissed').length,
+      suggestions: filtered,
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/suggestions — propose (MCP: holomesh_suggest)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'POST') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const team = teamStore.get(teamId)!;
+    if (!(team as Team & { suggestions?: TeamSuggestion[] }).suggestions) {
+      (team as Team & { suggestions?: TeamSuggestion[] }).suggestions = [];
+    }
+    if (!team.taskBoard) team.taskBoard = [];
+    const sug = (team as Team & { suggestions: TeamSuggestion[] }).suggestions;
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: Record<string, unknown> = effectiveBody as Record<string, unknown>;
+    const title = typeof body.title === 'string' ? body.title : '';
+    const result = createSuggestion(sug, {
+      title,
+      description: typeof body.description === 'string' ? body.description : undefined,
+      category: body.category as SuggestionCategory | undefined,
+      evidence: typeof body.evidence === 'string' ? body.evidence : undefined,
+      proposedBy: caller.id,
+      proposedByName: caller.name,
+    });
+    if (!result.success) {
+      json(res, 400, { error: result.error || 'create failed' });
+      return true;
+    }
+    persistTeamStore();
+    json(res, 201, { success: true, suggestion: result.suggestion });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/suggestions/:suggestionId/vote (MCP: holomesh_suggest_vote)
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+\/vote$/) && method === 'POST') {
+    const access = requireTeamAccess(req, res, url);
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const m = pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/([^/]+)\/vote$/);
+    const suggestionId = m?.[1] || '';
+    if (!suggestionId) {
+      json(res, 400, { error: 'suggestionId required' });
+      return true;
+    }
+    const team = teamStore.get(teamId)!;
+    if (!(team as Team & { suggestions?: TeamSuggestion[] }).suggestions) {
+      (team as Team & { suggestions?: TeamSuggestion[] }).suggestions = [];
+    }
+    if (!team.taskBoard) team.taskBoard = [];
+    const suggestions = (team as Team & { suggestions: TeamSuggestion[] }).suggestions;
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: Record<string, unknown> = effectiveBody as Record<string, unknown>;
+    const value = body.value as number;
+    if (value !== 1 && value !== -1) {
+      json(res, 400, { error: '"value" must be 1 or -1' });
+      return true;
+    }
+    const reason = typeof body.reason === 'string' ? body.reason : undefined;
+    const result = voteSuggestion(
+      suggestions,
+      team.taskBoard,
+      suggestionId,
+      caller.id,
+      caller.name,
+      value as 1 | -1,
+      team.maxSlots,
+      reason,
+    );
+    if (!result.success) {
+      json(res, 400, { error: result.error || 'vote failed' });
+      return true;
+    }
+    if (result.promotedTask) {
+      broadcastToTeam(teamId, {
+        type: 'board:added' as any,
+        agent: caller.name,
+        data: {
+          taskId: result.promotedTask.id,
+          title: result.promotedTask.title,
+          agent: caller.name,
+        },
+      });
+    }
+    persistTeamStore();
+    json(res, 200, { success: true, suggestion: result.suggestion, promotedTask: result.promotedTask });
     return true;
   }
 

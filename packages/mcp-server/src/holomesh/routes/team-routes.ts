@@ -699,6 +699,8 @@ export async function handleTeamRoutes(
         presence: `POST /api/holomesh/team/${teamId}/presence`,
         message: `POST /api/holomesh/team/${teamId}/message`,
         knowledge: `POST /api/holomesh/team/${teamId}/knowledge`,
+        suggestions: `GET/POST /api/holomesh/team/${teamId}/suggestions`,
+        suggest_vote: `POST /api/holomesh/team/${teamId}/suggestions/{id}/vote`,
       },
     });
     return true;

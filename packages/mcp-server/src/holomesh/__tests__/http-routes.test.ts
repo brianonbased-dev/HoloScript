@@ -2191,6 +2191,77 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.messages.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('GET/POST /api/holomesh/team/:id/suggestions — list, create, vote (task_1777268741562_1euh)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `sug-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const list0 = mockReq('GET', `/api/holomesh/team/${tid}/suggestions`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const list0Res = mockRes();
+      await handleHoloMeshRoute(list0, list0Res, `/api/holomesh/team/${tid}/suggestions`);
+      expect(list0Res._status).toBe(200);
+      expect(list0Res._body.suggestions).toEqual([]);
+      expect(list0Res._body.open).toBe(0);
+
+      const postSug = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/suggestions`,
+        { title: 'Add nightly board digest', description: 'Email summary', category: 'process' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postSugRes = mockRes();
+      await handleHoloMeshRoute(postSug, postSugRes, `/api/holomesh/team/${tid}/suggestions`);
+      expect(postSugRes._status).toBe(201);
+      const sid = postSugRes._body.suggestion.id as string;
+      expect(postSugRes._body.suggestion.title).toContain('nightly');
+
+      const list1 = mockReq('GET', `/api/holomesh/team/${tid}/suggestions?status=open`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const list1Res = mockRes();
+      await handleHoloMeshRoute(list1, list1Res, `/api/holomesh/team/${tid}/suggestions?status=open`);
+      expect(list1Res._status).toBe(200);
+      expect(list1Res._body.suggestions).toHaveLength(1);
+
+      const voteReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/suggestions/${sid}/vote`,
+        { value: 1 },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const voteRes = mockRes();
+      await handleHoloMeshRoute(voteReq, voteRes, `/api/holomesh/team/${tid}/suggestions/${sid}/vote`);
+      expect(voteRes._status).toBe(200);
+      expect(voteRes._body.suggestion.score).toBe(1);
+    });
+
+    it('GET /api/holomesh/team/:id/suggestions 403s non-members', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `sug-403-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/suggestions`, undefined, {
+        authorization: `Bearer ${memberApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/suggestions`);
+      expect(res._status).toBe(403);
+    });
+
     it('POST /api/holomesh/team/:id/feed appends hologram item (poster from auth)', async () => {
       const createReq = mockReq(
         'POST',
@@ -3471,7 +3542,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(negRes._body.offset).toBe(0);
       expect(negRes._body.entries[0].summary).toBe('closed 64');
 
-      // Limit cap enforced (>200 clamps to 200)
+      // Limit cap enforced (board-routes clamps to max 1000 per page)
       const bigReq = mockReq(
         'GET',
         `/api/holomesh/team/${tid}/board/done?limit=1000`,
@@ -3481,8 +3552,8 @@ describe('HoloMesh HTTP Routes', () => {
       const bigRes = mockRes();
       await handleHoloMeshRoute(bigReq, bigRes, `/api/holomesh/team/${tid}/board/done?limit=1000`);
       expect(bigRes._status).toBe(200);
-      expect(bigRes._body.limit).toBe(200);
-      // 65 entries total, asked for 200 → returned all 65, hasMore=false
+      expect(bigRes._body.limit).toBe(1000);
+      // 65 entries total, asked for 1000 → returned all 65, hasMore=false
       expect(bigRes._body.returned).toBe(65);
       expect(bigRes._body.hasMore).toBe(false);
     }, 30000);
