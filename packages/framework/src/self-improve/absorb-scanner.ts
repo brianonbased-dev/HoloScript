@@ -178,7 +178,7 @@ export async function scanImprovementMarkers(codebasePath: string): Promise<Scan
     let grepOutput = '';
     try {
       grepOutput = execSync(
-        `grep -rn --include="*.ts" --include="*.tsx" -E "(TODO|FIXME|HACK):" "${absPath}"`,
+        `grep -rn --include="*.ts" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.pnpm --exclude-dir=vendor --exclude-dir=dist --exclude-dir=build -E "(TODO|FIXME|HACK):" "${absPath}"`,
         { encoding: 'utf-8', timeout: 10_000, maxBuffer: 1024 * 1024 }
       );
     } catch (grepErr: unknown) {
@@ -201,6 +201,9 @@ export async function scanImprovementMarkers(codebasePath: string): Promise<Scan
       const [, filePath, lineStr, content] = match;
       const lineNum = parseInt(lineStr, 10);
       const trimmed = content.trim();
+
+      // Skip vendored / generated paths that shouldn't produce actionable tasks
+      if (/[\\/](node_modules|\.pnpm|vendor|dist|build)[\\/]/.test(filePath)) continue;
 
       // Extract the marker type
       const isFixme = trimmed.includes('FIXME');
