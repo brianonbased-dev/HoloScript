@@ -56,6 +56,16 @@ Pre-commit hook (lint + secrets + deps) is the quality gate. Branches only for m
 
 **Vault reminder (D.021):** `.githooks/commit-msg` warns (never blocks) when `memory/`, `research/`, or active `docs/**/*.md` are staged but the message lacks a tier digit ref (`W.GOLD-12`, `P.GOLD 3`, etc.). Install with `cp .githooks/commit-msg .git/hooks/commit-msg` in Git Bash, or adopt `core.hooksPath` if your team uses the `.githooks/` set exclusively.
 
+## HoloMesh board / room — W.092 single-task scope lock
+
+When a user message **names exactly one** board id matching `task_\d+_[a-z0-9]+` and does **not** also ask to **marathon** the board (e.g. “room marathon”, “clear the board”, “until `open` is empty”), treat the session as **single-task mode**:
+
+1. **Claim only that `task_id`.** Do not claim or mark `done` on other tasks in the same pass without an explicit new user instruction listing those ids.
+2. **Do not expand scope** into batch sweeps (multi-paper refactors, repo-wide measuredFrom passes, N unrelated commits) unless the **task description** itself requires that breadth.
+3. **Before the first `git commit` on that task**, state a one-line scope check in the handoff or PR body: *Working only `task_…` as written; no batch sweep.*
+
+Full marathon / autonomous room behavior (claim → work → `done` → next open task) stays valid when the user asks for it explicitly. See `~/.cursor/skills/room-autonomous/SKILL.md` for the operator loop; this section is the **anti–over-execution** guard (text + process, task_1777252987113_ep4e).
+
 ## File Format Routing
 
 ```
