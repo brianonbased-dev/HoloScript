@@ -1,6 +1,12 @@
 // Components
 export { MeshNode } from './components/MeshNode';
 export type { MeshNodeProps } from './components/MeshNode';
+export {
+  TrajectoryVisualizer,
+  buildGradientColors,
+  buildPositionBuffer,
+} from './components/TrajectoryVisualizer';
+export type { TrajectoryVisualizerProps } from './components/TrajectoryVisualizer';
 export { ShaderMeshNode, hasShaderTrait } from './components/ShaderMeshNode';
 export type { ShaderMeshNodeProps } from './components/ShaderMeshNode';
 export { AnimatedMeshNode } from './components/AnimatedMeshNode';
