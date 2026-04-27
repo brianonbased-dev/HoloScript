@@ -75,6 +75,20 @@ export {
   type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
 } from './SimulationContract';
 
+// Wire equivalence (W.315) — compare two contract / replay records (twin vs device)
+export {
+  EQUIVALENCE_V1,
+  buildEquivalenceV1Record,
+  canonicalWireSnapshot,
+  stableStringify,
+  toEquivalenceWireInput,
+  wireFormatEquivalent,
+  wireKey,
+  type EquivalenceV1Record,
+  type EquivalenceV1SolverType,
+  type EquivalenceWireInput,
+} from './equivalenceRecord';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
