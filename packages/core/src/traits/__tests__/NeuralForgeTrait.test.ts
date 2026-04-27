@@ -84,3 +84,126 @@ describe('NeuralForgeTrait', () => {
     expect((node as any).__neuralState).toBeUndefined();
   });
 });
+
+describe('NeuralForgeTrait — external synthesis mode (v1.1.0)', () => {
+  let node: Record<string, unknown>;
+  let ctx: ReturnType<typeof createMockContext>;
+  const cfg = {
+    auto_synthesize: true,
+    synthesis_threshold: 3,
+    base_weights: { openness: 0.5, extroversion: 0.5 },
+    synthesis_mode: 'external' as const,
+  };
+
+  beforeEach(() => {
+    node = createMockNode('nfx');
+    ctx = createMockContext();
+    attachTrait(neuralForgeHandler, node, cfg, ctx);
+  });
+
+  it('threshold trigger in external mode emits request with experiences + weights, does NOT auto-create shard', () => {
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'a' });
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'b' });
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'c' });
+    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(1);
+    // External mode does NOT create the immediate mock shard
+    expect(getEventCount(ctx, 'neural_shard_created')).toBe(0);
+    const s = (node as any).__neuralState;
+    expect(s.shards.length).toBe(0);
+    // Log NOT cleared yet — waits for the response
+    expect(s.experienceLog.length).toBe(3);
+    expect(s.pendingExternalSynthesis).toBe(true);
+  });
+
+  it('external request payload includes experiences + currentWeights', () => {
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'A' });
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'B' });
+    sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'C' });
+    const lastReq = ctx.emittedEvents.filter((e) => e.event === 'neural_synthesis_request').pop();
+    const payload = lastReq?.data as { mode: string; experiences: string[]; currentWeights: Record<string, number> };
+    expect(payload.mode).toBe('external');
+    expect(payload.experiences).toEqual(['A', 'B', 'C']);
+    expect(payload.currentWeights.openness).toBe(0.5);
+  });
+
+  it('external mode does not storm — second threshold-cross while pending is ignored', () => {
+    // Trigger first synthesis (3 events at threshold=3)
+    for (const t of ['1', '2', '3']) {
+      sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: t });
+    }
+    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(1);
+    // Add more events while pending — should NOT re-emit request
+    for (const t of ['4', '5', '6']) {
+      sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: t });
+    }
+    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(1); // still 1, not stormed
+    const s = (node as any).__neuralState;
+    expect(s.experienceLog.length).toBe(6); // log keeps accumulating until response
+  });
+
+  it('neural_absorb_shard while pending clears log + timestamp + unblocks pending', () => {
+    // Trigger external synthesis
+    for (const t of ['x', 'y', 'z']) {
+      sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: t });
+    }
+    const beforeStamp = (node as any).__neuralState.lastSynthesis;
+    // External synthesizer responds with a real shard
+    sendEvent(neuralForgeHandler, node, cfg, ctx, {
+      type: 'neural_absorb_shard',
+      shard: {
+        id: 'real-shard-1',
+        sourceId: 'llm-synthesizer',
+        timestamp: Date.now() + 100,
+        type: 'memory',
+        data: { summary: 'Real LLM-generated summary of experiences x, y, z' },
+        weight: 0.3,
+      },
+    });
+    const s = (node as any).__neuralState;
+    expect(s.shards.length).toBe(1);
+    expect(s.shards[0].id).toBe('real-shard-1');
+    expect(s.experienceLog.length).toBe(0); // cleared
+    expect(s.lastSynthesis).toBeGreaterThanOrEqual(beforeStamp); // bumped
+    expect(s.pendingExternalSynthesis).toBe(false); // unblocked
+  });
+
+  it('after external response, next threshold trigger emits a fresh request', () => {
+    for (const t of ['1', '2', '3']) {
+      sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: t });
+    }
+    sendEvent(neuralForgeHandler, node, cfg, ctx, {
+      type: 'neural_absorb_shard',
+      shard: {
+        id: 's1',
+        sourceId: 'ext',
+        timestamp: 0,
+        type: 'memory',
+        data: {},
+        weight: 0.1,
+      },
+    });
+    // Now another round of 3 events
+    for (const t of ['4', '5', '6']) {
+      sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: t });
+    }
+    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(2); // two rounds
+  });
+
+  it('mock-mode default still produces dual-emit pattern (back-compat)', () => {
+    // Re-attach with explicit mock mode (matches v1.0.0 default behavior)
+    const mockNode = createMockNode('nfm');
+    const mockCtx = createMockContext();
+    const mockCfg = { ...cfg, synthesis_mode: 'mock' as const };
+    attachTrait(neuralForgeHandler, mockNode, mockCfg, mockCtx);
+    for (const t of ['1', '2', '3']) {
+      sendEvent(neuralForgeHandler, mockNode, mockCfg, mockCtx, {
+        type: 'npc_ai_response',
+        text: t,
+      });
+    }
+    expect(getEventCount(mockCtx, 'neural_synthesis_request')).toBe(1);
+    expect(getEventCount(mockCtx, 'neural_shard_created')).toBe(1); // mock self-creates
+    const s = (mockNode as any).__neuralState;
+    expect(s.experienceLog.length).toBe(0); // cleared by mock path
+  });
+});
