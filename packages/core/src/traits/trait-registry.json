@@ -2634,15 +2634,6 @@
         "composable": [],
         "conflicts": []
     },
-    "narupa-plugin": {
-        "id": "narupa-plugin",
-        "namespace": "@holoscript/narupa-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
     "therapy": {
         "id": "therapy",
         "namespace": "@holoscript/plugin-therapy",

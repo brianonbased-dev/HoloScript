@@ -437,7 +437,6 @@ export * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
 export * as RestaurantPlugin from '@holoscript/plugin-restaurant';
 export * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
 export * as RoboticsPlugin from '@holoscript/robotics-plugin';
-export * as NarupaPlugin from '@holoscript/narupa-plugin';
 export * as TherapyPlugin from '@holoscript/plugin-therapy';
 export * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
 export * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
