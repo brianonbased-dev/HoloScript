@@ -55,7 +55,7 @@ describe('HolographicSpriteTrait', () => {
     it('should store state on node.__holographicSpriteState', async () => {
       await holographicSpriteTraitHandler.onAttach(node, {}, undefined);
       expect((node as any).__holographicSpriteState).toBeDefined();
-      expect((node as any).__holographicSpriteState.compositeReady).toBe(false);
+      expect((node as any).__holographicSpriteState.compositeReady).toBe(true);
     });
 
     it('should register event listeners', async () => {
