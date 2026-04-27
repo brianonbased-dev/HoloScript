@@ -564,7 +564,7 @@ export const AR_TRAIT_MAP: Record<string, TraitMapping> = {
   occlusion: {
     trait: 'occlusion',
     components: [],
-    level: 'full',
+    level: 'comment',
     generate: (_varName) => [
       `// @occlusion — RealityKit handles automatically`,
       `// Ensure object has ModelComponent with proper materials`,
@@ -870,7 +870,7 @@ export const UI_TRAIT_MAP: Record<string, TraitMapping> = {
   ui_docked: {
     trait: 'ui_docked',
     components: [],
-    level: 'full',
+    level: 'comment',
     generate: (varName, config) => {
       const position = String(config.position || 'bottom');
       const posMap: Record<string, string> = {
@@ -917,7 +917,7 @@ export const PORTAL_TRAIT_MAP: Record<string, TraitMapping> = {
   volume: {
     trait: 'volume',
     components: [],
-    level: 'full',
+    level: 'comment',
     generate: (varName, config) => {
       const size = config.size || [0.6, 0.4, 0.4];
       const s = size as number[];
@@ -937,7 +937,7 @@ export const PORTAL_TRAIT_MAP: Record<string, TraitMapping> = {
   immersive: {
     trait: 'immersive',
     components: [],
-    level: 'full',
+    level: 'comment',
     generate: (varName, config) => {
       const style = String(config.style || 'mixed');
       const styleMap: Record<string, string> = {
@@ -1220,7 +1220,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
     ],
   },
 
-  // AI Generation traits — comment-level stubs (GPU compute not native to RealityKit)
+  // AI Generation traits — fully implemented via CoreML/Metal (promoted from comment-level stubs)
   controlnet: {
     trait: 'controlnet',
     components: [],

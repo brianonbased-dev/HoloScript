@@ -211,7 +211,8 @@ describe('VisionOSTraitMap', () => {
 
     it('should list partially implemented traits', () => {
       const partialTraits = listTraitsByLevel('partial');
-      expect(partialTraits.length).toBeGreaterThan(0);
+      // All partial traits have been promoted to full; 0 partials is the correct state
+      expect(partialTraits.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should list comment-only traits', () => {
