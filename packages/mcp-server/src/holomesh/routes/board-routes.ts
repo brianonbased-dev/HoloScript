@@ -40,7 +40,8 @@ import {
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage, TeamFeedItem, RegisteredAgent } from '../types';
+import type { Team, TeamPresenceEntry, TeamMessage, TeamHologramFeedItem, RegisteredAgent } from '../types';
+import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
 
@@ -98,6 +99,7 @@ export async function handleBoardRoutes(
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
+      ...getBoardModeFields(team),
     });
     return true;
   }
@@ -734,7 +736,7 @@ export async function handleBoardRoutes(
       json(res, 400, { error: err });
       return true;
     }
-    const item: TeamFeedItem = {
+    const item: TeamHologramFeedItem = {
       id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       teamId,
       kind: 'hologram',

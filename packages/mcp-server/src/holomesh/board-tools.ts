@@ -16,7 +16,6 @@ import {
   addTasksToBoard,
   claimTask,
   completeTask,
-  ROOM_PRESETS,
   createSuggestion,
   voteSuggestion,
   type TeamTask,
@@ -27,6 +26,7 @@ import {
   persistTeamStore,
 } from './state';
 import { broadcastToTeam } from './team-room';
+import { recordTeamModeChange } from './mode-provenance';
 
 // ── Helper: get team from in-memory store ──
 
@@ -547,19 +547,18 @@ async function handleModeSet(args: Record<string, unknown>): Promise<Record<stri
 
   try {
     const team = getTeam(teamId);
-    const preset = (ROOM_PRESETS as any)[mode];
-    team.mode = mode;
-    if (preset?.objective) {
-      if (!team.roomConfig) team.roomConfig = {} as any;
-      (team.roomConfig as any).objective = preset.objective;
-    }
-    persistTeamStore();
-    broadcastToTeam(teamId, {
-      type: 'mode:changed' as any,
-      agent: 'mcp-tool',
-      data: { mode, objective: preset?.objective || '' },
+    const { changed } = recordTeamModeChange({
+      teamId,
+      team,
+      newMode: mode,
+      source: 'mcp_tool',
+      actor: { id: 'mcp-tool', name: 'mcp-tool' },
     });
-    return { success: true, mode, objective: preset?.objective || '' };
+    const objective = (team.roomConfig as { objective?: string } | undefined)?.objective || '';
+    if (!changed) {
+      return { success: true, mode: team.mode || mode, objective, unchanged: true };
+    }
+    return { success: true, mode, objective };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

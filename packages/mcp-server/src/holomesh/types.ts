@@ -512,6 +512,24 @@ export interface Team {
      * - balanced: both conversation and inbox, moderate limits
      */
     communicationStyle?: 'task_first' | 'meeting_primary' | 'balanced';
+    /** Last mode change audit (GET /board; task_1777050706699_ixmi) */
+    modeProvenance?: {
+      source: 'api' | 'mcp_tool' | 'unknown';
+      changedAt: string;
+      changedByAgentId?: string;
+      changedByName?: string;
+      previousMode?: string;
+    };
+    /** Newest-first ring (max 10) of mode transitions */
+    modeHistory?: Array<{
+      mode: string;
+      at: string;
+      by: string;
+      byAgentId: string;
+      source: 'api' | 'mcp_tool';
+      reason?: string;
+      previousMode: string;
+    }>;
     treasuryFeeBps?: number;
     moltbookDaemon?: {
       enabled: boolean;
@@ -549,12 +567,19 @@ export interface TeamMessage {
   fromAgentId: string;
   fromAgentName: string;
   content: string;
-  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff' | 'hologram';
+  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff' | 'hologram' | 'mode_change';
   createdAt: string;
+  /** Set when messageType is mode_change (GET /messages timeline). */
+  modeChange?: {
+    previousMode: string;
+    newMode: string;
+    source: string;
+    reason?: string;
+  };
 }
 
-/** Team activity feed (e.g. hologram publishes) — distinct from chat messages. */
-export interface TeamFeedItem {
+/** Hologram publish in team activity feed. */
+export interface TeamHologramFeedItem {
   id: string;
   teamId: string;
   kind: 'hologram';
@@ -564,6 +589,21 @@ export interface TeamFeedItem {
   shareUrl: string;
   createdAt: string;
 }
+
+export interface TeamModeChangeFeedItem {
+  id: string;
+  teamId: string;
+  kind: 'mode_change';
+  fromMode: string;
+  toMode: string;
+  source: 'api' | 'mcp_tool';
+  actorAgentId: string;
+  actorAgentName: string;
+  createdAt: string;
+}
+
+/** Team activity feed (GET /team/:id/feed) — hologram publishes and mode transitions. */
+export type TeamFeedItem = TeamHologramFeedItem | TeamModeChangeFeedItem;
 
 export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
   owner: ['board:write', 'board:read', 'members:manage', 'config:write', 'messages:write', 'messages:read'],

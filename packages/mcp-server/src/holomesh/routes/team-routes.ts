@@ -25,7 +25,7 @@ import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
 import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
-import { ROOM_PRESETS } from '@holoscript/framework';
+import { recordTeamModeChange } from '../mode-provenance';
 
 const QUICKSTART_DOMAIN_DESCRIPTIONS: Record<string, string> = {
   agents: 'Agent design, orchestration, and collaborative autonomy patterns.',
@@ -1016,17 +1016,33 @@ export async function handleTeamRoutes(
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const body = await parseJsonBody(req);
     const mode = (body.mode as string) || 'build';
-    if (!team.roomConfig) team.roomConfig = {};
-    team.mode = mode;
-    const preset = (ROOM_PRESETS as Record<string, { objective?: string }>)[mode];
-    if (preset?.objective) {
-      (team.roomConfig as { objective?: string }).objective = preset.objective;
+    const reason = typeof (body as { reason?: unknown }).reason === 'string'
+      ? String((body as { reason?: string }).reason)
+      : undefined;
+    const { changed } = recordTeamModeChange({
+      teamId,
+      team,
+      newMode: mode,
+      source: 'api',
+      actor: { id: caller.id, name: caller.name },
+      reason,
+    });
+    if (!changed) {
+      const objective = (team.roomConfig as { objective?: string } | undefined)?.objective || '';
+      json(res, 200, {
+        success: true,
+        mode: team.mode || mode,
+        objective,
+        unchanged: true,
+        hint: `Mode already ${mode}.`,
+      });
+      return true;
     }
-    persistTeamStore();
+    const objective = (team.roomConfig as { objective?: string } | undefined)?.objective || '';
     json(res, 200, {
       success: true,
-      mode,
-      objective: preset?.objective || '',
+      mode: team.mode || mode,
+      objective,
       hint: `Switch to ${mode} mode. Use POST /team/${teamId}/board/scout with todo_content to harvest TODOs. Supported: /board/scout?todo_content=...`,
     });
     return true;
