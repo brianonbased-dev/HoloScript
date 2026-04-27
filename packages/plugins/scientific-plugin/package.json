@@ -1,0 +1,28 @@
+{
+  "name": "@holoscript/narupa-plugin",
+  "version": "1.2.0",
+  "description": "Multi-agent orchestration for VR-based drug discovery using Narupa integration with HoloScript",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "narupa",
+    "molecular-dynamics",
+    "drug-discovery",
+    "vr",
+    "multi-agent"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
