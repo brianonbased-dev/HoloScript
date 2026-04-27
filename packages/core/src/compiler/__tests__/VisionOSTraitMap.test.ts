@@ -253,10 +253,10 @@ describe('VisionOSTraitMap', () => {
     expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
   });
 
-  it('ai_upscaling is partial and generates CoreML/Lanczos fallback', () => {
+  it('ai_upscaling is full and generates CoreML/Lanczos fallback', () => {
     const mapping = getTraitMapping('ai_upscaling');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_upscaling', 'tex', { factor: 4 });
     expect(code.some((l) => l.includes('MLModel') || l.includes('lanczosScaleTransform') || l.includes('CIFilter'))).toBe(true);
     expect(code.some((l) => l.includes('tex'))).toBe(true);
@@ -269,20 +269,20 @@ describe('VisionOSTraitMap', () => {
     expect(imports).toContain('CoreImage');
   });
 
-  it('ai_inpainting is partial and generates inpainting func with blend fallback', () => {
+  it('ai_inpainting is full and generates inpainting func with blend fallback', () => {
     const mapping = getTraitMapping('ai_inpainting');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_inpainting', 'patch', {});
     expect(code.some((l) => l.includes('patch'))).toBe(true);
     expect(code.some((l) => l.includes('CIImage') || l.includes('Inpaint') || l.includes('blendWithMask') || l.includes('func'))).toBe(true);
     expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
   });
 
-  it('neural_link is partial and generates CBCentralManager setup', () => {
+  it('neural_link is full and generates CBCentralManager setup', () => {
     const mapping = getTraitMapping('neural_link');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('neural_link', 'brain', { interface_type: 'bci', channels: 16, sample_rate: 500 });
     expect(code.some((l) => l.includes('CBCentralManager'))).toBe(true);
     expect(code.some((l) => l.includes('brain'))).toBe(true);

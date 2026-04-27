@@ -1348,7 +1348,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_upscaling: {
     trait: 'ai_upscaling',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML', 'CoreImage'],
     generate: (varName, config) => {
       const factor = Number(config.factor || 2);
@@ -1378,7 +1378,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_inpainting: {
     trait: 'ai_inpainting',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML', 'CoreImage', 'Vision'],
     generate: (varName, config) => {
       const modelName = String(config.model || 'InpaintingModel');
@@ -1408,7 +1408,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   neural_link: {
     trait: 'neural_link',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreBluetooth', 'Combine'],
     generate: (varName, config) => {
       const interfaceType = String(config.interface_type || 'bci');
@@ -1534,7 +1534,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_npc_brain: {
     trait: 'ai_npc_brain',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['Foundation'],
     generate: (varName, config) => {
       const model = String(config.model || 'llm');
@@ -1596,7 +1596,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   vector_db: {
     trait: 'vector_db',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['Foundation'],
     generate: (varName, config) => {
       const backend = String(config.backend || 'pinecone');
