@@ -1,0 +1,124 @@
+name: Refresh manifests (provenance + papers-status + live-evidence)
+
+# Auto-refresh the holoscript.net manifests committed under docs/public/.
+# Closes ai-ecosystem board task: task_1777316737268_nxgx.
+#
+# Why: scripts/build-provenance-manifest.mjs derives drift status from the
+# CURRENT sha256 of every paper / memo on disk in the sibling ai-ecosystem
+# repo. Every \todo closure, every research/*.tex commit on ai-ecosystem
+# silently flips at least one row from BASE_CONFIRMED -> BASE_DRIFTED until
+# the manifest is rebuilt and committed here. Same for papers-status (F.030
+# / W.103) and live-evidence (last-anchor + last-commit + fleet aggregates).
+#
+# Manual refresh shipped 2026-04-26 caught 9 receipts that had drifted
+# overnight. This workflow makes that refresh structural:
+#
+#   1. cron every 6h          - floor; catches passive drift quickly
+#   2. workflow_dispatch      - manual on-demand
+#   3. repository_dispatch    - push-near-realtime when ai-ecosystem fires
+#                                the matching notify-holoscript.yml workflow
+#                                (event type: ai-ecosystem-research-changed)
+#
+# Honest scope of the cron: 6h is the floor. When the dispatch trigger is
+# wired (requires HOLOSCRIPT_DISPATCH_PAT secret on the ai-ecosystem repo),
+# refresh latency drops to ~push + 1 min. Without the dispatch, worst-case
+# staleness is the cron interval.
+
+on:
+  schedule:
+    # Every 6 hours. Catches drift without overcommitting CI minutes.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Manual trigger - fire after a known anchor round / paper-touching commit.
+  repository_dispatch:
+    # Push-based refresh from brianonbased-dev/ai-ecosystem.
+    # The ai-ecosystem-side workflow (.github/workflows/notify-holoscript.yml)
+    # POSTs this event type when research/paper-*.tex, research/**/*.base.json,
+    # or research/**/*.ots files change on main.
+    types: [ai-ecosystem-research-changed]
+
+permissions:
+  contents: write   # commit refreshed manifests back to main
+
+concurrency:
+  group: refresh-manifests
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh provenance + papers-status + live-evidence manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout HoloScript main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Clone sibling ai-ecosystem repo
+        run: |
+          # The manifest builders default to ../ai-ecosystem (sibling path)
+          # via AI_ECO_ROOT / --ai-eco=. Clone shallow to keep CI minutes down,
+          # but full enough that paper-audit-matrix-auto-rebuild.mjs can run
+          # `git log` per file (it tolerates shallow history - missing commits
+          # just degrade the matrix last-touched hint).
+          git clone --depth=50 https://github.com/brianonbased-dev/ai-ecosystem.git ../ai-ecosystem
+          echo "AI_ECO_ROOT=$GITHUB_WORKSPACE/../ai-ecosystem" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Build provenance manifest
+        run: node scripts/build-provenance-manifest.mjs
+
+      - name: Build papers-status manifest
+        run: node scripts/build-papers-status-manifest.mjs
+
+      - name: Build live-evidence manifest
+        run: |
+          # Shipped in HoloScript commit ed05f577d. Graceful skip if the file
+          # is removed in a future refactor.
+          if [ -f scripts/build-live-evidence-manifest.mjs ]; then
+            echo "[live-evidence] builder present - running"
+            node scripts/build-live-evidence-manifest.mjs
+          else
+            echo "[live-evidence] builder not present - skipping"
+          fi
+
+      - name: Commit refreshed manifests back to main (if changed)
+        run: |
+          set -e
+          # Stage the known manifest paths explicitly (per W.082 - never
+          # `git add -A` in CI). The third path is harmless if absent.
+          git add docs/public/provenance-manifest.json docs/public/papers-status.json 2>/dev/null || true
+          if [ -f docs/public/live-evidence.json ]; then
+            git add docs/public/live-evidence.json
+          fi
+
+          # Honest no-diff path - keeps history clean when manifests are
+          # already fresh (e.g. someone just ran the builders manually).
+          if git diff --cached --quiet; then
+            echo "[refresh-manifests] no diff in any manifest - already fresh, skipping commit"
+            exit 0
+          fi
+
+          git config user.name  "manifest-refresh-bot"
+          git config user.email "bot@holoscript.net"
+
+          # Build a short summary of what changed for the commit message.
+          CHANGED=$(git diff --cached --name-only | tr '\n' ' ')
+          TRIGGER="${GITHUB_EVENT_NAME}"
+          git commit -m "docs(manifests): auto-refresh - ${TRIGGER}
+
+Refreshed: ${CHANGED}
+Trigger: ${TRIGGER}
+Run: ${GH_RUN_URL:-n/a}
+
+Closes ai-ecosystem board task: task_1777316737268_nxgx.
+[skip ci]"
+          git push origin HEAD:main
+        env:
+          GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
