@@ -1,0 +1,1438 @@
+{
+  "schema": "paper-audit-matrix.v1",
+  "generatedAt": "2026-04-27T18:32:27.591Z",
+  "matrixSourcePath": "research/paper-audit-matrix.md",
+  "scriptCommit": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
+  "totals": {
+    "papers": 16,
+    "cellsByToken": {
+      "✅": 149,
+      "⚠️": 10,
+      "❌": 4,
+      "➖": 13
+    }
+  },
+  "pillars": [
+    "novelty",
+    "rtxBench",
+    "fullLoop",
+    "ablation",
+    "userStudy",
+    "threatModel",
+    "anchorOts",
+    "anchorBase",
+    "venueFit",
+    "citations",
+    "empClaims"
+  ],
+  "papers": [
+    {
+      "rowId": "0c",
+      "title": "CAEL (AAMAS 2026)",
+      "target": "AAMAS '26",
+      "basename": "paper-0c-cael-aamas.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-0c-cael-aamas.tex",
+      "loc": 1750,
+      "sha256Prefix": "addf0493",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-0c-cael-aamas.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "33 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "2bf4662d8dd7756f284a9cde1f6192ce14451841",
+        "isoDate": "2026-04-27T00:58:37-07:00",
+        "subject": "paper(0c): add ablation subsection skeleton — D.011 pillar"
+      },
+      "recentCommits": [
+        {
+          "hash": "2bf4662d8dd7756f284a9cde1f6192ce14451841",
+          "isoDate": "2026-04-27T00:58:37-07:00",
+          "subject": "paper(0c): add ablation subsection skeleton — D.011 pillar"
+        },
+        {
+          "hash": "d5f0cb4a6e466107b37fbbccfd38365763579a1d",
+          "isoDate": "2026-04-26T17:28:41-07:00",
+          "subject": "docs(paper-0c-cael): \\measuredFrom{} sweep — 5 of 6 tables annotated"
+        },
+        {
+          "hash": "1ca3663eaa4a09eec46da0e5f9711caf51c72422",
+          "isoDate": "2026-04-25T01:48:13-07:00",
+          "subject": "papers(camera-ready): paper-0c CAEL Wave-B-S2-P0c — cross-paper consistency + bib URL fixes"
+        },
+        {
+          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
+          "isoDate": "2026-04-25T00:23:03-07:00",
+          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
+        },
+        {
+          "hash": "48334bf247f600d187d431fec05235731c8cb2de",
+          "isoDate": "2026-04-24T19:34:48-07:00",
+          "subject": "feat(research): paper-0c CAEL D.011 four pillars — Novelty, GPU bench, full-loop demo, user study"
+        }
+      ]
+    },
+    {
+      "rowId": "1",
+      "title": "MCP Trust",
+      "target": "USENIX Sec '26",
+      "basename": "paper-1-mcp-trust-usenix.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
+      "loc": 1659,
+      "sha256Prefix": "6b55314f",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "✅",
+          "evidence": "3 threat-model references"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-1-mcp-trust-usenix.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "article+usenix2019_v3.sty (guarded load)"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "18 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "9a86050621669d0888a002bc08f1e757b7803ead",
+        "isoDate": "2026-04-27T10:42:35-07:00",
+        "subject": "paper(1): swap §Limitations \\todo{} for SHA-256 vs FNV-1a microbench cite — closes paper-1+2 farm task"
+      },
+      "recentCommits": [
+        {
+          "hash": "9a86050621669d0888a002bc08f1e757b7803ead",
+          "isoDate": "2026-04-27T10:42:35-07:00",
+          "subject": "paper(1): swap §Limitations \\todo{} for SHA-256 vs FNV-1a microbench cite — closes paper-1+2 farm task"
+        },
+        {
+          "hash": "d0527d0895b17359c7492d957d647c38e0038d7e",
+          "isoDate": "2026-04-27T00:59:45-07:00",
+          "subject": "paper(1): add ablation subsection skeleton — D.011 pillar"
+        },
+        {
+          "hash": "c6545cb6b3755f2f1d3e178c50b7e58886a3d767",
+          "isoDate": "2026-04-26T17:32:13-07:00",
+          "subject": "docs(paper-1-mcp-trust): \\measuredFrom{} sweep — 6 of 8 tables annotated"
+        },
+        {
+          "hash": "24d9f8ec000371d69ca32ce06c7d1731ba36ab14",
+          "isoDate": "2026-04-24T17:11:11-07:00",
+          "subject": "research(paper-1): MCP Trust USENIX Sec '26 revision + audit-matrix sync"
+        },
+        {
+          "hash": "09a420ee2f2f0f33b9ad41696bccd71fce831ec8",
+          "isoDate": "2026-04-24T16:15:06-07:00",
+          "subject": "papers(bib): migrate phase-1 sweep — 5 zero-missing-key papers + helper script"
+        }
+      ]
+    },
+    {
+      "rowId": "2",
+      "title": "SNN Acceleration",
+      "target": "NeurIPS",
+      "basename": "paper-2-snn-neurips.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-2-snn-neurips.tex",
+      "loc": 1613,
+      "sha256Prefix": "943390e9",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "⚠️",
+          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "⚠️",
+          "evidence": "partial: ablation in caption/label/prose, no heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-2-snn-neurips.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "article+neurips_2027.sty (guarded load)"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "22 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "e727fdb81df0886df4988f5bb29f9d9fb48b0bb0",
+        "isoDate": "2026-04-26T18:58:26-07:00",
+        "subject": "docs(paper-2-snn): close Future Work (1) — STDP navigation result LANDED"
+      },
+      "recentCommits": [
+        {
+          "hash": "e727fdb81df0886df4988f5bb29f9d9fb48b0bb0",
+          "isoDate": "2026-04-26T18:58:26-07:00",
+          "subject": "docs(paper-2-snn): close Future Work (1) — STDP navigation result LANDED"
+        },
+        {
+          "hash": "38571841a853d5149b4e4456fbc11a0eb496b5b6",
+          "isoDate": "2026-04-26T17:24:47-07:00",
+          "subject": "docs(paper-2-snn): \\measuredFrom{} sweep — 7 tables annotated"
+        },
+        {
+          "hash": "803f9ff1b308c596a226d2ef131c5fb8fe83b194",
+          "isoDate": "2026-04-25T00:58:58-07:00",
+          "subject": "fix(paper-2): EXIT=0 — added enumitem (closes 5th of 5+ residual bug)"
+        },
+        {
+          "hash": "7e3767da0c59e0d0bb8c9562e368dc98ab81b5bb",
+          "isoDate": "2026-04-25T00:29:00-07:00",
+          "subject": "fix(paper-2): partial compile-state restoration (4 of 5+ bugs resolved)"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        }
+      ]
+    },
+    {
+      "rowId": "3",
+      "title": "Spatial CRDT",
+      "target": "ECOOP '27",
+      "basename": "paper-3-crdt-ecoop.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-3-crdt-ecoop.tex",
+      "loc": 2207,
+      "sha256Prefix": "ec313b09",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-3-crdt-ecoop.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "lipics-v2021"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "31 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "270841b7f13cde3cc054918c78e10be57bae7e60",
+        "isoDate": "2026-04-27T01:01:12-07:00",
+        "subject": "paper(3): add ablation subsection skeleton — D.011 pillar"
+      },
+      "recentCommits": [
+        {
+          "hash": "270841b7f13cde3cc054918c78e10be57bae7e60",
+          "isoDate": "2026-04-27T01:01:12-07:00",
+          "subject": "paper(3): add ablation subsection skeleton — D.011 pillar"
+        },
+        {
+          "hash": "c5455d54e8fd5686f600d9227d427e82f5f28466",
+          "isoDate": "2026-04-26T17:35:16-07:00",
+          "subject": "docs(paper-3-crdt): \\measuredFrom{} sweep — 5 of 9 tables annotated"
+        },
+        {
+          "hash": "5b035947743433771e71d486977b5e84aca7dc56",
+          "isoDate": "2026-04-25T01:03:36-07:00",
+          "subject": "fix(paper-3): EXIT=0 — final 3 fixes complete the article-fallback path"
+        },
+        {
+          "hash": "d2ccccbf80ef6a5435af19b6b46a0298e927f8fc",
+          "isoDate": "2026-04-25T00:44:08-07:00",
+          "subject": "fix(paper-3): article-fallback preamble + lipics metadata stubs (partial)"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        }
+      ]
+    },
+    {
+      "rowId": "4",
+      "title": "Sandbox Contract",
+      "target": "USENIX Sec '27",
+      "basename": "paper-4-sandbox-usenix.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-4-sandbox-usenix.tex",
+      "loc": 2507,
+      "sha256Prefix": "5a25098f",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "❌",
+          "evidence": "no ablation signal found"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "✅",
+          "evidence": "8 threat-model references"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-4-sandbox-usenix.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "article+usenix2019_v3.sty (guarded load)"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "37 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "1ee3d04184c0852749d8f0d1a014517813f52e08",
+        "isoDate": "2026-04-26T19:13:10-07:00",
+        "subject": "docs(paper-4): SimContract WebGPU integration — framework closed, per-solver wiring scoped"
+      },
+      "recentCommits": [
+        {
+          "hash": "1ee3d04184c0852749d8f0d1a014517813f52e08",
+          "isoDate": "2026-04-26T19:13:10-07:00",
+          "subject": "docs(paper-4): SimContract WebGPU integration — framework closed, per-solver wiring scoped"
+        },
+        {
+          "hash": "ca90d84cd97f0c2f8f88528ed75e825dac386117",
+          "isoDate": "2026-04-26T17:47:23-07:00",
+          "subject": "docs(paper-4-sandbox): \\measuredFrom{} sweep — 5 of 8 tables annotated"
+        },
+        {
+          "hash": "1ca3663eaa4a09eec46da0e5f9711caf51c72422",
+          "isoDate": "2026-04-25T01:48:13-07:00",
+          "subject": "papers(camera-ready): paper-0c CAEL Wave-B-S2-P0c — cross-paper consistency + bib URL fixes"
+        },
+        {
+          "hash": "537eac0f4cb85c5ebc3204be26ef55de85390da0",
+          "isoDate": "2026-04-25T00:56:09-07:00",
+          "subject": "fix(papers): paper-4 + capstone-uist EXIT=0 — kernel \\sbox collision was the cause"
+        },
+        {
+          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
+          "isoDate": "2026-04-25T00:23:03-07:00",
+          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
+        }
+      ]
+    },
+    {
+      "rowId": "5",
+      "title": "GraphRAG",
+      "target": "ICSE '27",
+      "basename": "paper-5-graphrag-icse.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-5-graphrag-icse.tex",
+      "loc": 1890,
+      "sha256Prefix": "ecba62c6",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "⚠️",
+          "evidence": "partial: ablation in caption/label/prose, no heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "⚠️",
+          "evidence": "1 threat-model references"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-5-graphrag-icse.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "IEEEtran"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "30 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "a97454006f755adf910af0480529f2577bb25da6",
+        "isoDate": "2026-04-26T17:51:59-07:00",
+        "subject": "docs(paper-5-graphrag): \\measuredFrom{} sweep — 5 of 8 tables annotated"
+      },
+      "recentCommits": [
+        {
+          "hash": "a97454006f755adf910af0480529f2577bb25da6",
+          "isoDate": "2026-04-26T17:51:59-07:00",
+          "subject": "docs(paper-5-graphrag): \\measuredFrom{} sweep — 5 of 8 tables annotated"
+        },
+        {
+          "hash": "5189e95073ba68160396e009f8b217991605b0fa",
+          "isoDate": "2026-04-25T21:56:57-07:00",
+          "subject": "paper-5(zx57): camera-ready compile-clean — remove LangChain2024 dup + fix tab xref"
+        },
+        {
+          "hash": "1ca3663eaa4a09eec46da0e5f9711caf51c72422",
+          "isoDate": "2026-04-25T01:48:13-07:00",
+          "subject": "papers(camera-ready): paper-0c CAEL Wave-B-S2-P0c — cross-paper consistency + bib URL fixes"
+        },
+        {
+          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
+          "isoDate": "2026-04-24T23:33:08-07:00",
+          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
+        },
+        {
+          "hash": "f14777e98b9a83fd460886e75251fae9c562010f",
+          "isoDate": "2026-04-24T16:59:52-07:00",
+          "subject": "paper-5(d011): GraphRAG ICSE '27 — Novelty + GPU Benchmark + Full-Loop Demo land"
+        }
+      ]
+    },
+    {
+      "rowId": "6",
+      "title": "Verifiable Animation",
+      "target": "SCA '27",
+      "basename": "paper-6-animation-sca.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
+      "loc": 1516,
+      "sha256Prefix": "f6eef4cb",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-6-animation-sca.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "12 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "f7c186c73994d134b13dad061446414e2d07b6ca",
+        "isoDate": "2026-04-27T01:02:20-07:00",
+        "subject": "paper(6): add ablation subsection skeleton — D.011 pillar"
+      },
+      "recentCommits": [
+        {
+          "hash": "f7c186c73994d134b13dad061446414e2d07b6ca",
+          "isoDate": "2026-04-27T01:02:20-07:00",
+          "subject": "paper(6): add ablation subsection skeleton — D.011 pillar"
+        },
+        {
+          "hash": "46314ea5ca04fad501ffcc64a9ec0d1f2c1093c4",
+          "isoDate": "2026-04-26T17:53:50-07:00",
+          "subject": "docs(paper-6-animation): \\measuredFrom{} sweep — 0 of 3 tables annotated"
+        },
+        {
+          "hash": "90395fbdaedc379677b6802bda20b992aadbd221",
+          "isoDate": "2026-04-24T23:47:28-07:00",
+          "subject": "fix(papers): paper-6 compile-clean + capstone-uist 3-of-4 (task _tdo5)"
+        },
+        {
+          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
+          "isoDate": "2026-04-24T23:33:08-07:00",
+          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
+        },
+        {
+          "hash": "acd29a09e76bd59e177bc7c733822d77cbb21934",
+          "isoDate": "2026-04-24T17:07:05-07:00",
+          "subject": "paper-6(d011): Verifiable Animation SCA '27 — Novelty + GPU Benchmark + Full-Loop Demo land"
+        }
+      ]
+    },
+    {
+      "rowId": "7",
+      "title": "Verifiable IK",
+      "target": "SIGGRAPH/I3D '27",
+      "basename": "paper-7-ik-siggraph.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-7-ik-siggraph.tex",
+      "loc": 372,
+      "sha256Prefix": "7cd8d4d6",
+      "retired": true,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "❌",
+          "evidence": "no RTX/H100/A100 citation found"
+        },
+        "fullLoop": {
+          "token": "❌",
+          "evidence": "no demo heading found"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-7-ik-siggraph.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "⚠️",
+          "evidence": "9 distinct cite keys, inline thebibliography"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "e2b9bf3334919612ca0bbc65fa6c21aee1825a21",
+        "isoDate": "2026-04-26T17:22:03-07:00",
+        "subject": "docs(paper-7-ik): \\measuredFrom{} sweep — annotate tab:overhead"
+      },
+      "recentCommits": [
+        {
+          "hash": "e2b9bf3334919612ca0bbc65fa6c21aee1825a21",
+          "isoDate": "2026-04-26T17:22:03-07:00",
+          "subject": "docs(paper-7-ik): \\measuredFrom{} sweep — annotate tab:overhead"
+        },
+        {
+          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
+          "isoDate": "2026-04-25T00:23:03-07:00",
+          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
+        },
+        {
+          "hash": "cac60e40a1f17fae34215beab8a9ca6f5f5d5a4d",
+          "isoDate": "2026-04-23T11:17:36-07:00",
+          "subject": "paper-7: lock Table 2 to 2026-04-23 canonical-host artifact; promote E2→E1"
+        },
+        {
+          "hash": "e95d364af9a1bf49ccbed837788f8f15e354c09a",
+          "isoDate": "2026-04-21T00:47:11-07:00",
+          "subject": "docs(research): publish paper-7 IK latency results"
+        },
+        {
+          "hash": "cbce200f527f60417ab6c57bc3eae26c979b1916",
+          "isoDate": "2026-04-20T02:44:23-07:00",
+          "subject": "fix(paper): sweep residual Taxwise→Krzywoszyja on pre-existing state"
+        }
+      ]
+    },
+    {
+      "rowId": "8",
+      "title": "Unified Phys/Anim",
+      "target": "SIGGRAPH '27",
+      "basename": "paper-8-unified-siggraph.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-8-unified-siggraph.tex",
+      "loc": 1024,
+      "sha256Prefix": "bb82f18e",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "⚠️",
+          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-8-unified-siggraph.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "22 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "6641b8cc0d2062e794fbb68ca6ca08ef2e484ac9",
+        "isoDate": "2026-04-26T17:54:48-07:00",
+        "subject": "docs(paper-8-unified): \\measuredFrom{} sweep — 1 of 3 tables annotated"
+      },
+      "recentCommits": [
+        {
+          "hash": "6641b8cc0d2062e794fbb68ca6ca08ef2e484ac9",
+          "isoDate": "2026-04-26T17:54:48-07:00",
+          "subject": "docs(paper-8-unified): \\measuredFrom{} sweep — 1 of 3 tables annotated"
+        },
+        {
+          "hash": "f3e56f2fa2487ac82bb1e26e49cbf4b503ab2cba",
+          "isoDate": "2026-04-24T21:03:39-07:00",
+          "subject": "docs(paper-8): close 2 founder-polish todos + restore compile state"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        },
+        {
+          "hash": "09a420ee2f2f0f33b9ad41696bccd71fce831ec8",
+          "isoDate": "2026-04-24T16:15:06-07:00",
+          "subject": "papers(bib): migrate phase-1 sweep — 5 zero-missing-key papers + helper script"
+        },
+        {
+          "hash": "f7b4ac102f636f017ce32e715ee2e8e9c3683a28",
+          "isoDate": "2026-04-24T14:53:50-07:00",
+          "subject": "paper-8(fold): migrate paper-7 §4-§6 content verbatim into §7 [structural; voice hooks remain]"
+        }
+      ]
+    },
+    {
+      "rowId": "9",
+      "title": "Verifiable Motion",
+      "target": "SIG Asia '27",
+      "basename": "paper-9-verifiable-motion-siggraphasia.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-9-verifiable-motion-siggraphasia.tex",
+      "loc": 1177,
+      "sha256Prefix": "32762648",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "⚠️",
+          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-9-verifiable-motion-siggraphasia.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "14 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "28ceec13cce6433ee1ad68c3c309a9caec1182bb",
+        "isoDate": "2026-04-26T17:56:01-07:00",
+        "subject": "docs(paper-9-motion): \\measuredFrom{} sweep — 2 of 2 tables annotated"
+      },
+      "recentCommits": [
+        {
+          "hash": "28ceec13cce6433ee1ad68c3c309a9caec1182bb",
+          "isoDate": "2026-04-26T17:56:01-07:00",
+          "subject": "docs(paper-9-motion): \\measuredFrom{} sweep — 2 of 2 tables annotated"
+        },
+        {
+          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
+          "isoDate": "2026-04-25T00:23:03-07:00",
+          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        },
+        {
+          "hash": "eeedd064a5f3bb6e6c182642071c69f7efd43ac8",
+          "isoDate": "2026-04-21T01:18:49-07:00",
+          "subject": "docs(paper-9): fill tab:bench with measured plausibility pass rates"
+        },
+        {
+          "hash": "cbce200f527f60417ab6c57bc3eae26c979b1916",
+          "isoDate": "2026-04-20T02:44:23-07:00",
+          "subject": "fix(paper): sweep residual Taxwise→Krzywoszyja on pre-existing state"
+        }
+      ]
+    },
+    {
+      "rowId": "10",
+      "title": "HS Core",
+      "target": "PLDI '27 (Nov '26)",
+      "basename": "paper-10-hs-core-pldi.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-10-hs-core-pldi.tex",
+      "loc": 896,
+      "sha256Prefix": "d5ed7a7d",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "⚠️",
+          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-10-hs-core-pldi.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "14 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "7b9fc4787ba3f592db1b719cc3ad73bfc8c6e0ef",
+        "isoDate": "2026-04-27T02:23:30-07:00",
+        "subject": "paper(10): replace §3.3 \\todo with measured 50×k depth distribution + harness citations"
+      },
+      "recentCommits": [
+        {
+          "hash": "7b9fc4787ba3f592db1b719cc3ad73bfc8c6e0ef",
+          "isoDate": "2026-04-27T02:23:30-07:00",
+          "subject": "paper(10): replace §3.3 \\todo with measured 50×k depth distribution + harness citations"
+        },
+        {
+          "hash": "c5fc33bcd64cf79b353b3298cac21df66e5bb5fc",
+          "isoDate": "2026-04-26T19:06:11-07:00",
+          "subject": "docs(paper-10): mark BuildCache/IncrementalCompiler wiring as done"
+        },
+        {
+          "hash": "34a4ed2db6a7c15e4e0ad7ca43af47470b865d57",
+          "isoDate": "2026-04-26T17:57:13-07:00",
+          "subject": "docs(paper-10-core): \\measuredFrom{} sweep — 1 of 2 tables annotated"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        },
+        {
+          "hash": "d82acc72f9570acf02e7aaf3aba63394f5c0ead9",
+          "isoDate": "2026-04-20T16:22:46-07:00",
+          "subject": "docs(paper-10): new subsec \"Modal Decomposition as Universal IR\" + 2 bib (Polchinski vol 1, Bathe FEM)"
+        }
+      ]
+    },
+    {
+      "rowId": "11",
+      "title": "HSPlus",
+      "target": "ECOOP '27 (Feb '27)",
+      "basename": "paper-11-hsplus-ecoop.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-11-hsplus-ecoop.tex",
+      "loc": 944,
+      "sha256Prefix": "b3060201",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "❌",
+          "evidence": "no RTX/H100/A100 citation found"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-11-hsplus-ecoop.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "25 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "44c7eefaec73787b3cb746f59f52f535d32c9c5e",
+        "isoDate": "2026-04-27T01:04:13-07:00",
+        "subject": "paper(11): migrate inline bibliography to shared holoscript.bib"
+      },
+      "recentCommits": [
+        {
+          "hash": "44c7eefaec73787b3cb746f59f52f535d32c9c5e",
+          "isoDate": "2026-04-27T01:04:13-07:00",
+          "subject": "paper(11): migrate inline bibliography to shared holoscript.bib"
+        },
+        {
+          "hash": "10698df927a6c40c487356aadb87cae2dc710baf",
+          "isoDate": "2026-04-26T19:33:51-07:00",
+          "subject": "docs(paper-11): correct annotation-coverage claim to defensible intersection"
+        },
+        {
+          "hash": "c484841e6be3d281ba45c2e61cbb305bf2cd42b1",
+          "isoDate": "2026-04-26T17:58:33-07:00",
+          "subject": "docs(paper-11-hsplus): \\measuredFrom{} sweep — 2 of 3 tables annotated"
+        },
+        {
+          "hash": "81d2fb377a9084b4eba7a2892c29cb1bac41f7f2",
+          "isoDate": "2026-04-24T22:46:01-07:00",
+          "subject": "docs(paper-11): close imperative-baseline future-work + ablation update + OTS"
+        },
+        {
+          "hash": "26b94782a0941b9c22e9d2c90fe0857f6dfb4ab2",
+          "isoDate": "2026-04-24T20:27:49-07:00",
+          "subject": "docs(paper-11): close D.011 — add Ablation + Full-Loop Demo subsections"
+        }
+      ]
+    },
+    {
+      "rowId": "12",
+      "title": "HoloLand",
+      "target": "I3D '27 (Nov '26)",
+      "basename": "paper-12-holo-i3d.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-12-holo-i3d.tex",
+      "loc": 724,
+      "sha256Prefix": "34397c29",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "⚠️",
+          "evidence": "partial: RTX citation without GPU benchmark heading, or vice versa"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-12-holo-i3d.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "6 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
+        "isoDate": "2026-04-27T11:22:31-07:00",
+        "subject": "paper(12): replace §RemainingWork item-1 \\todo with measured scene-suite numbers + harness cite"
+      },
+      "recentCommits": [
+        {
+          "hash": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
+          "isoDate": "2026-04-27T11:22:31-07:00",
+          "subject": "paper(12): replace §RemainingWork item-1 \\todo with measured scene-suite numbers + harness cite"
+        },
+        {
+          "hash": "fd2b383913fd7550e384b294f10f6fdc6af67aee",
+          "isoDate": "2026-04-26T17:59:40-07:00",
+          "subject": "docs(paper-12-holo): \\measuredFrom{} sweep — 0 of 0 tables (macro-only)"
+        },
+        {
+          "hash": "31f7c28b9f8808cd719a0ca7525eecfd1a5d7a4e",
+          "isoDate": "2026-04-25T00:11:11-07:00",
+          "subject": "fix(papers): paper-12 compile-clean + paper-13 D.011 re-audit closure"
+        },
+        {
+          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
+          "isoDate": "2026-04-24T17:07:51-07:00",
+          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
+        },
+        {
+          "hash": "09a420ee2f2f0f33b9ad41696bccd71fce831ec8",
+          "isoDate": "2026-04-24T16:15:06-07:00",
+          "subject": "papers(bib): migrate phase-1 sweep — 5 zero-missing-key papers + helper script"
+        }
+      ]
+    },
+    {
+      "rowId": "13",
+      "title": "DumbGlass",
+      "target": "SIGGRAPH '28",
+      "basename": "paper-13-dumbglass-siggraph.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-13-dumbglass-siggraph.tex",
+      "loc": 951,
+      "sha256Prefix": "98613514",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-13-dumbglass-siggraph.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "24 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "1107c63e690a2922c2713f976ca6fadde8317811",
+        "isoDate": "2026-04-26T18:02:23-07:00",
+        "subject": "docs(paper-13-dumbglass): \\measuredFrom{} sweep — 2 of 2 tables annotated"
+      },
+      "recentCommits": [
+        {
+          "hash": "1107c63e690a2922c2713f976ca6fadde8317811",
+          "isoDate": "2026-04-26T18:02:23-07:00",
+          "subject": "docs(paper-13-dumbglass): \\measuredFrom{} sweep — 2 of 2 tables annotated"
+        },
+        {
+          "hash": "fab32b24b5c484a9f3776d70c48c158e657293aa",
+          "isoDate": "2026-04-24T17:34:11-07:00",
+          "subject": "mesh-deploy: provision 31 x402 seats for Vast.ai mesh-agent fleet (LIVE)"
+        },
+        {
+          "hash": "3cd5e20388697b43ed4290dbf255b5e0fdb593fd",
+          "isoDate": "2026-04-24T17:15:38-07:00",
+          "subject": "paper-13(d011): DumbGlass SIGGRAPH '28 — GPU Benchmark + Ablation land"
+        },
+        {
+          "hash": "69ffb1e7f0d0bd06ff9f8760f2c93b7fd27cdcbe",
+          "isoDate": "2026-04-24T14:21:04-07:00",
+          "subject": "paper-13(bib): pilot migration to \\bibliography{holoscript} + codify pattern"
+        },
+        {
+          "hash": "cbce200f527f60417ab6c57bc3eae26c979b1916",
+          "isoDate": "2026-04-20T02:44:23-07:00",
+          "subject": "fix(paper): sweep residual Taxwise→Krzywoszyja on pre-existing state"
+        }
+      ]
+    },
+    {
+      "rowId": "C2",
+      "title": "Capstone P2",
+      "target": "SIGGRAPH '27",
+      "basename": "paper-capstone-program2-siggraph.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-program2-siggraph.tex",
+      "loc": 1123,
+      "sha256Prefix": "843880b8",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "✅",
+          "evidence": "Ablation subsection or paragraph heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-capstone-program2-siggraph.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigconf"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "5 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "c38f92045d8051287890f32edf309b4c490d49e7",
+        "isoDate": "2026-04-26T18:07:45-07:00",
+        "subject": "docs(paper-capstone-program2): \\measuredFrom{} sweep — 0 of 5 tables annotated"
+      },
+      "recentCommits": [
+        {
+          "hash": "c38f92045d8051287890f32edf309b4c490d49e7",
+          "isoDate": "2026-04-26T18:07:45-07:00",
+          "subject": "docs(paper-capstone-program2): \\measuredFrom{} sweep — 0 of 5 tables annotated"
+        },
+        {
+          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
+          "isoDate": "2026-04-24T23:33:08-07:00",
+          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
+        },
+        {
+          "hash": "d80ff7b2e4468c069c887c73b6c72ec238e06816",
+          "isoDate": "2026-04-24T17:41:46-07:00",
+          "subject": "papers(d011): capstone-program2 — Novelty + GPU Bench + Full-Loop Demo land"
+        },
+        {
+          "hash": "32d01568fec09d4fb43ce764783121c0680e44b8",
+          "isoDate": "2026-04-24T16:23:26-07:00",
+          "subject": "papers(bib): add 8 missing cite-keys + migrate paper-capstone-program2"
+        },
+        {
+          "hash": "3d4b1c550fccf508958b68d6d50a48591df93320",
+          "isoDate": "2026-04-20T19:52:58-07:00",
+          "subject": "docs(papers): add Paper ID headers to 8 attribution-gap papers"
+        }
+      ]
+    },
+    {
+      "rowId": "UI",
+      "title": "Capstone UIST",
+      "target": "UIST '27",
+      "basename": "paper-capstone-uist.tex",
+      "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-uist.tex",
+      "loc": 2105,
+      "sha256Prefix": "c38ce412",
+      "retired": false,
+      "pillars": {
+        "novelty": {
+          "token": "✅",
+          "evidence": "novelty/contributions heading or first-claim phrase present"
+        },
+        "rtxBench": {
+          "token": "✅",
+          "evidence": "GPU benchmark heading + RTX hardware citation"
+        },
+        "fullLoop": {
+          "token": "✅",
+          "evidence": "Full-Loop / End-to-End demo heading present"
+        },
+        "ablation": {
+          "token": "⚠️",
+          "evidence": "partial: ablation in caption/label/prose, no heading"
+        },
+        "userStudy": {
+          "token": "✅",
+          "evidence": "user/developer study heading + N-count or preregistered claim"
+        },
+        "threatModel": {
+          "token": "➖",
+          "evidence": "non-security paper"
+        },
+        "anchorOts": {
+          "token": "✅",
+          "evidence": "paper-capstone-uist.tex.ots present"
+        },
+        "anchorBase": {
+          "token": "✅",
+          "evidence": ".tex.base.json signed (block + tx)"
+        },
+        "venueFit": {
+          "token": "✅",
+          "evidence": "acmart sigchi-a"
+        },
+        "citations": {
+          "token": "✅",
+          "evidence": "32 distinct cite keys, \\bibliography{holoscript} present"
+        },
+        "empClaims": {
+          "token": "✅",
+          "evidence": "no \\todo{measure:} markers"
+        }
+      },
+      "lastCommit": {
+        "hash": "c8c78a1eb303771a221760f5fb95df971accb504",
+        "isoDate": "2026-04-26T19:24:56-07:00",
+        "subject": "docs(paper-capstone): cite shipped ZK hash-commitment as lightweight ZK analogue"
+      },
+      "recentCommits": [
+        {
+          "hash": "c8c78a1eb303771a221760f5fb95df971accb504",
+          "isoDate": "2026-04-26T19:24:56-07:00",
+          "subject": "docs(paper-capstone): cite shipped ZK hash-commitment as lightweight ZK analogue"
+        },
+        {
+          "hash": "5c123ad9d977d5cb683c94eec6359d4c74bd6434",
+          "isoDate": "2026-04-26T18:11:03-07:00",
+          "subject": "docs(paper-capstone-uist): \\measuredFrom{} sweep — 4 of 9 tables annotated"
+        },
+        {
+          "hash": "537eac0f4cb85c5ebc3204be26ef55de85390da0",
+          "isoDate": "2026-04-25T00:56:09-07:00",
+          "subject": "fix(papers): paper-4 + capstone-uist EXIT=0 — kernel \\sbox collision was the cause"
+        },
+        {
+          "hash": "90395fbdaedc379677b6802bda20b992aadbd221",
+          "isoDate": "2026-04-24T23:47:28-07:00",
+          "subject": "fix(papers): paper-6 compile-clean + capstone-uist 3-of-4 (task _tdo5)"
+        },
+        {
+          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
+          "isoDate": "2026-04-24T23:33:08-07:00",
+          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
+        }
+      ]
+    }
+  ]
+}
