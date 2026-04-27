@@ -508,7 +508,7 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
   const proxyUrl =
     process.env.HOLOMESH_MOLTBOOK_CROSSPOST_URL || `${orchestratorUrl}/api/moltbook/crosspost`;
 
-  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
   if (process.env.HOLOSCRIPT_API_KEY) {
     authHeaders['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
   }
@@ -610,7 +610,7 @@ async function handlePublishAgentTemplate(args: Record<string, unknown>) {
   const publishUrl = process.env.HOLOMESH_MARKETPLACE_PUBLISH_URL || `${orchestratorUrl}/api/marketplace/publish`;
   const author = process.env.HOLOMESH_AGENT_NAME || 'holomesh-swarm';
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
   if (process.env.HOLOSCRIPT_API_KEY) {
     headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
   }

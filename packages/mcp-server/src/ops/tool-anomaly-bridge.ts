@@ -46,7 +46,7 @@ async function postSlackAlert(reason: string, detail: Record<string, unknown>): 
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {

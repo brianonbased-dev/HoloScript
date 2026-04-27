@@ -74,7 +74,7 @@ async function queryOpenRouterProvider(prompt: string, system: string, modelOver
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'https://mcp.holoscript.net',
       'X-Title': 'HoloScript MCP',
@@ -99,7 +99,7 @@ async function queryAnthropicProvider(prompt: string, system: string): Promise<s
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'x-api-key': ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01',
     },
@@ -121,7 +121,7 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
@@ -142,7 +142,7 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
 async function queryOllamaProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
   const res = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({
       model: modelOverride || OLLAMA_MODEL,
       prompt,

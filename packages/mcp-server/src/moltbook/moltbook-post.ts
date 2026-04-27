@@ -44,7 +44,7 @@ export async function createMoltbookPost(opts: {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${opts.apiKey}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
     },
     body: JSON.stringify({
       title: opts.title,
@@ -71,7 +71,7 @@ export async function createMoltbookPost(opts: {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${opts.apiKey}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
           },
           body: JSON.stringify({
             verification_code: verification.verification_code,

@@ -99,7 +99,7 @@ export async function handleOracleConsult(
       const t = setTimeout(() => ctrl.abort(), 5000);
       const res = await fetch(`${url}/knowledge/query`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey },
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'x-mcp-api-key': apiKey },
         body: JSON.stringify({
           search: `${question} ${context}`.trim(),
           limit: 5,

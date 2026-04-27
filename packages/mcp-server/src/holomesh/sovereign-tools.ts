@@ -89,7 +89,7 @@ export async function handleSovereignTool(
         const res = await fetch(`${baseUrl}/api/holomesh/sovereign/lifepod/snapshot`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(args),
@@ -101,7 +101,7 @@ export async function handleSovereignTool(
         const res = await fetch(`${baseUrl}/api/holomesh/sovereign/lifepod/restore`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(args),

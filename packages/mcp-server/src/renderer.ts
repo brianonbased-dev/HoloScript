@@ -281,7 +281,7 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
       const response = await fetch(`${RENDER_SERVICE_URL}/share`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           code,
@@ -341,7 +341,7 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
       const response = await fetch(`${RENDER_SERVICE_URL}/share`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({ code, title, description }),
       });

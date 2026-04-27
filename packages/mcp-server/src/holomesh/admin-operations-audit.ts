@@ -60,7 +60,7 @@ function flushToKv(entry: AdminOperationAuditEntry): void {
   if (!url) return;
 
   const token = process.env.ADMIN_AUDIT_KV_TOKEN?.trim();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   void fetch(url, {

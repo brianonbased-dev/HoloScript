@@ -43,7 +43,7 @@ export class HoloMeshOrchestratorClient {
     this.baseUrl = config.orchestratorUrl.replace(/\/$/, '');
     this.headers = {
       'x-mcp-api-key': config.apiKey,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
     };
   }
 

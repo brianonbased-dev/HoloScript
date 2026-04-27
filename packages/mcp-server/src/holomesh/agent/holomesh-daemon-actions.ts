@@ -839,7 +839,7 @@ export function createHoloMeshDaemonActions(
         method: 'POST',
         headers: {
           'x-agent-key': WORKSPACE_KEY,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           action: 'post_holomesh',
@@ -923,7 +923,7 @@ export function createHoloMeshDaemonActions(
         method: 'POST',
         headers: {
           'x-agent-key': WORKSPACE_KEY,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           action: 'post_moltbook',
@@ -944,7 +944,7 @@ export function createHoloMeshDaemonActions(
         method: 'POST',
         headers: {
           Authorization: `Bearer ${MOLTBOOK_KEY}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify({
           submolt: selected.domain || 'general',

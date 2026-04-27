@@ -127,7 +127,7 @@ export class HoloMeshDiscovery {
       const start = performance.now();
       const response = await fetch(`${peerUrl}/.well-known/pop-challenge`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ type: 'dot', inputs: [ax, ay, az, bx, by, bz] }),
       });
 
@@ -448,7 +448,7 @@ export class HoloMeshDiscovery {
 
       const response = await fetch(`${peer.mcpBaseUrl}/.well-known/crdt-gossip`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(request),
       });
 

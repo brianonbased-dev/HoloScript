@@ -39,7 +39,7 @@ export class RailwayReplicaScaler implements Scaler {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
     };
     if (this.projectToken) {
       headers['Project-Access-Token'] = this.projectToken;

@@ -136,7 +136,7 @@ async function slackAlert(text: string): Promise<void> {
   try {
     await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({ text: `[HoloScript MCP] ${text}` }),
     });
   } catch {

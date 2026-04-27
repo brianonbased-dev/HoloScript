@@ -44,7 +44,7 @@ async function proxyToAbsorb(
       ? incomingAuth
       : `Bearer ${ABSORB_KEY}`;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
     Authorization: authHeader,
   };
   const res = await fetch(`${ABSORB_URL}${path}`, {

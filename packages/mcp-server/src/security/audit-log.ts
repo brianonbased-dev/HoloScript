@@ -547,7 +547,7 @@ class AuditLogger {
     try {
       await fetch(this.config.webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(entry),
         signal: AbortSignal.timeout(5000),
       });

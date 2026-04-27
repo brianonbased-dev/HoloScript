@@ -200,7 +200,7 @@ async function handlePublish(args: Record<string, unknown>) {
     // Store metadata
     await fetch(`${serverUrl}/api/protocol/metadata`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         contentHash: provenance.hash,
         provenance: {
@@ -217,7 +217,7 @@ async function handlePublish(args: Record<string, unknown>) {
     // Register protocol record
     const res = await fetch(`${serverUrl}/api/protocol`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         contentHash: provenance.hash,
         author,
@@ -275,7 +275,7 @@ async function handleCollect(args: Record<string, unknown>) {
   try {
     const res = await fetch(`${serverUrl}/api/collect/${contentHash}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({ referrer, quantity }),
     });
 

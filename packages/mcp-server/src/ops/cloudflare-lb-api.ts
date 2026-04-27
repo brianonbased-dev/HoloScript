@@ -56,7 +56,7 @@ export async function cfPatchLoadBalancerPool(
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${apiToken}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
     },
     body: JSON.stringify(body),
   });

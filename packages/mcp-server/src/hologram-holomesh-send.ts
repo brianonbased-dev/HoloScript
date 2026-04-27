@@ -279,7 +279,7 @@ export async function publishHologramTeamFeed(input: PublishHologramFeedInput): 
     apiKey,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(payload),
     },
     normalizeRetry(retry),
@@ -322,7 +322,7 @@ export async function sendHologramTeamMessage(input: SendHologramMessageInput): 
     apiKey,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         content: JSON.stringify(payload),
         messageType: 'hologram',

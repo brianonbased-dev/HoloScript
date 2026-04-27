@@ -160,7 +160,7 @@ export async function fetchOrchestratorGraphContext(
     const res = await fetch(`${baseUrl}/knowledge/query`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'x-mcp-api-key': apiKey,
       },
       body: JSON.stringify({
