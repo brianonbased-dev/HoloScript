@@ -594,8 +594,13 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('spatial_awareness');
     expect(partial).not.toContain('neural_animation');
     expect(partial).not.toContain('ai_vision');
-    expect(partial).toContain('state_sync');
-    expect(partial).toContain('voice_chat');
+    expect(partial).not.toContain('state_sync');
+    expect(partial).not.toContain('voice_chat');
+    expect(partial).not.toContain('lobby');
+    expect(partial).not.toContain('networked_physics');
+    expect(partial).not.toContain('networked_transform');
+    expect(partial).not.toContain('spectator_mode');
+    expect(partial).not.toContain('shared_anchor');
     expect(partial).toContain('pathfinding');
     expect(partial).toContain('behavior_tree');
   });
@@ -1273,6 +1278,162 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     it('ai_vision has ML Kit imports', () => {
       const imports = getRequiredImports(['ai_vision']);
       expect(imports.some((i) => i.includes('mlkit') || i.includes('ObjectDetect'))).toBe(true);
+    });
+  });
+
+  describe('batch 17 -- networking + multiplayer traits', () => {
+    it('state_sync is promoted to full level', () => {
+      const m = getTraitMapping('state_sync');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('state_sync generates Nearby connections and sync loop', () => {
+      const code = generateTraitCode('state_sync', 'stateNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('startAdvertising'))).toBe(true);
+      expect(code.some((l) => l.includes('SyncJob'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('state_sync uses custom strategy config', () => {
+      const code = generateTraitCode('state_sync', 'n', { strategy: 'P2P_CLUSTER', sync_rate: 30 });
+      expect(code.some((l) => l.includes('P2P_CLUSTER'))).toBe(true);
+    });
+
+    it('state_sync has Nearby imports', () => {
+      const imports = getRequiredImports(['state_sync']);
+      expect(imports.some((i) => i.includes('Nearby'))).toBe(true);
+    });
+
+    it('voice_chat is promoted to full level', () => {
+      const m = getTraitMapping('voice_chat');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('voice_chat generates AudioRecord and capture job', () => {
+      const code = generateTraitCode('voice_chat', 'vcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('AudioRecord'))).toBe(true);
+      expect(code.some((l) => l.includes('CaptureJob'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('voice_chat adds spatial source when spatial=true', () => {
+      const code = generateTraitCode('voice_chat', 'vc', { spatial: true });
+      expect(code.some((l) => l.includes('PointSourceParams'))).toBe(true);
+    });
+
+    it('voice_chat has audio and spatial imports', () => {
+      const imports = getRequiredImports(['voice_chat']);
+      expect(imports.some((i) => i.includes('AudioRecord'))).toBe(true);
+    });
+
+    it('lobby is promoted to full level', () => {
+      const m = getTraitMapping('lobby');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('lobby generates player list and host function', () => {
+      const code = generateTraitCode('lobby', 'lobbyNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('mutableListOf'))).toBe(true);
+      expect(code.some((l) => l.includes('HostLobby'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('lobby generates auto-start logic when auto_start=true', () => {
+      const code = generateTraitCode('lobby', 'lb', { auto_start: true });
+      expect(code.some((l) => l.includes('CheckReady'))).toBe(true);
+    });
+
+    it('networked_physics is promoted to full level', () => {
+      const m = getTraitMapping('networked_physics');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('networked_physics generates PhysicsState and broadcast', () => {
+      const code = generateTraitCode('networked_physics', 'npNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('PhysicsState'))).toBe(true);
+      expect(code.some((l) => l.includes('SendPhysicsState'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('networked_physics generates interpolation when enabled', () => {
+      const code = generateTraitCode('networked_physics', 'np', { interpolation: true });
+      expect(code.some((l) => l.includes('InterpolateState'))).toBe(true);
+    });
+
+    it('networked_transform is promoted to full level', () => {
+      const m = getTraitMapping('networked_transform');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('networked_transform generates sync job with deadzone', () => {
+      const code = generateTraitCode('networked_transform', 'ntNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('TransformSyncJob'))).toBe(true);
+      expect(code.some((l) => l.includes('posDelta'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('spectator_mode is promoted to full level', () => {
+      const m = getTraitMapping('spectator_mode');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('spectator_mode generates enter/exit spectator functions', () => {
+      const code = generateTraitCode('spectator_mode', 'specNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('EnterSpectatorMode'))).toBe(true);
+      expect(code.some((l) => l.includes('ExitSpectatorMode'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('spectator_mode adds free camera lines when free_camera=true', () => {
+      const code = generateTraitCode('spectator_mode', 'spec', { free_camera: true });
+      expect(code.some((l) => l.includes('Free camera'))).toBe(true);
+    });
+
+    it('shared_anchor is promoted to full level', () => {
+      const m = getTraitMapping('shared_anchor');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('shared_anchor generates AnchorEntity and peer broadcast', () => {
+      const code = generateTraitCode('shared_anchor', 'anchorNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('AnchorEntity'))).toBe(true);
+      expect(code.some((l) => l.includes('broadcastPayload'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('shared_anchor persists UUID when persistent=true', () => {
+      const code = generateTraitCode('shared_anchor', 'anc', { persistent: true });
+      expect(code.some((l) => l.includes('persist()'))).toBe(true);
+    });
+
+    it('shared_anchor has AnchorEntity and ARCore imports', () => {
+      const imports = getRequiredImports(['shared_anchor']);
+      expect(imports.some((i) => i.includes('AnchorEntity'))).toBe(true);
+    });
+
+    it('batch 17 traits are not in partial list', () => {
+      const partial = listTraitsByLevel('partial');
+      expect(partial).not.toContain('state_sync');
+      expect(partial).not.toContain('voice_chat');
+      expect(partial).not.toContain('lobby');
+      expect(partial).not.toContain('networked_physics');
+      expect(partial).not.toContain('networked_transform');
+      expect(partial).not.toContain('spectator_mode');
+      expect(partial).not.toContain('shared_anchor');
     });
   });
 });

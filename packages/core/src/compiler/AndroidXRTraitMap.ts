@@ -3457,7 +3457,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   state_sync: {
     trait: 'state_sync',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.android.gms.nearby.Nearby',
       'com.google.android.gms.nearby.connection.ConnectionsClient',
@@ -3497,7 +3497,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   voice_chat: {
     trait: 'voice_chat',
     components: ['SpatialSoundPool', 'PointSourceParams'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'android.media.AudioRecord',
       'android.media.AudioFormat',
@@ -3550,7 +3550,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   lobby: {
     trait: 'lobby',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.android.gms.nearby.Nearby',
       'com.google.android.gms.nearby.connection.Strategy',
@@ -3603,7 +3603,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   networked_physics: {
     trait: 'networked_physics',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.gms.nearby.connection.Payload'],
     generate: (varName, config) => {
       const authoritative = String(config.authority || 'host');
@@ -3649,7 +3649,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   networked_transform: {
     trait: 'networked_transform',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.gms.nearby.connection.Payload'],
     generate: (varName, config) => {
       const syncRate = config.sync_rate ?? 15;
@@ -3677,7 +3677,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   spectator_mode: {
     trait: 'spectator_mode',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const freeCam = config.free_camera ?? true;
       return [
@@ -3706,7 +3706,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   shared_anchor: {
     trait: 'shared_anchor',
     components: ['AnchorEntity'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'androidx.xr.scenecore.AnchorEntity',
       'com.google.ar.core.Anchor',
