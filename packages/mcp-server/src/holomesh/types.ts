@@ -491,6 +491,9 @@ export interface Team {
   // Board data
   taskBoard?: TeamTask[];
   doneLog?: TeamTask[];
+
+  /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
+  knowledge?: MeshKnowledgeEntry[];
   
   // Bounty data (V7 Expansion)
   bounties?: BountyManager;

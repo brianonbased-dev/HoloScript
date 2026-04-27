@@ -2408,6 +2408,93 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.entries).toBeInstanceOf(Array);
     });
 
+    it('POST /api/holomesh/team/:id/knowledge mirrors on team; GET merges when orchestrator returns empty', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `mirror-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
+        {
+          entries: [
+            { type: 'wisdom', content: 'Mirror test A', domain: 'general' },
+            { type: 'pattern', content: 'Mirror test B', domain: 'compiler' },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/knowledge`);
+      expect(postRes._status).toBe(201);
+      const ids = postRes._body.entries.map((e: { id: string }) => e.id);
+      const stored = teamStore.get(tid);
+      expect(stored?.knowledge?.length).toBe(2);
+      expect(stored?.knowledge?.map((e) => e.id).sort()).toEqual([...ids].sort());
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/knowledge`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/knowledge`);
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.count).toBe(2);
+      expect(getRes._body.entries.map((e: { id: string }) => e.id).sort()).toEqual([...ids].sort());
+    });
+
+    it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `entry-mirror-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const entryId = 'W.team.mirror.entry.test';
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
+        {
+          entries: [
+            {
+              id: entryId,
+              type: 'wisdom',
+              content: 'Only on team mirror',
+              domain: 'general',
+              provenanceHash: 'abc',
+              authorId: ownerAgentId,
+              authorName: 'owner',
+              price: 0,
+              queryCount: 0,
+              reuseCount: 0,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/knowledge`);
+      expect(postRes._status).toBe(201);
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      const getReq = mockReq('GET', `/api/holomesh/entry/${entryId}`);
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/entry/${entryId}`);
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.entry.id).toBe(entryId);
+      expect(getRes._body.entry.content).toBe('Only on team mirror');
+    });
+
     // ── Team Absorb ──
 
     it('POST /api/holomesh/team/:id/absorb triggers absorb pipeline', async () => {

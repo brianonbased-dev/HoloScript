@@ -23,6 +23,7 @@ import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
+import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
 import { recordTeamModeChange } from '../mode-provenance';
@@ -987,6 +988,8 @@ export async function handleTeamRoutes(
       createdAt: e.createdAt || new Date().toISOString(),
     }));
     const synced = await getClient().contributeKnowledge(prepared);
+    appendTeamKnowledgeMirror(team, prepared);
+    persistTeamStore();
     json(res, 201, { success: true, synced, entries: prepared, workspace_id: workspaceId });
     return true;
   }
@@ -1000,10 +1003,13 @@ export async function handleTeamRoutes(
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const workspaceId = `team:${teamId}`;
-    let entries: MeshKnowledgeEntry[] = [];
+    let fromOrch: MeshKnowledgeEntry[] = [];
     try {
-      entries = await getClient().queryKnowledge('', { workspaceId, limit: 200 });
-    } catch {}
+      fromOrch = await getClient().queryKnowledge('', { workspaceId, limit: 200 });
+    } catch {
+      fromOrch = [];
+    }
+    const entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
     json(res, 200, { success: true, workspace_id: workspaceId, entries, count: entries.length });
     return true;
   }

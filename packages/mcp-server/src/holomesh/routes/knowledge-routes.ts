@@ -1207,8 +1207,7 @@ export async function handleKnowledgeRoutes(
   if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+$/) && method === 'GET') {
     const entryId = extractParam(url, '/api/holomesh/entry/');
     const caller = resolveRequestingAgent(req);
-    const results = await c.queryKnowledge(entryId, { limit: 1 });
-    const entry = results.find(e => e.id === entryId);
+    const entry = await findKnowledgeEntryById(c, entryId);
 
     if (!entry) {
       json(res, 404, { error: 'Entry not found' });
@@ -1246,8 +1245,7 @@ export async function handleKnowledgeRoutes(
   // GET /api/holomesh/entry/:id/audit — verify Ed25519 publish signature
   if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+\/audit$/) && method === 'GET') {
     const entryId = extractParam(url, '/api/holomesh/entry/').replace('/audit', '');
-    const results = await c.queryKnowledge(entryId, { limit: 1 });
-    const entry = results.find((e) => e.id === entryId);
+    const entry = await findKnowledgeEntryById(c, entryId);
     if (!entry) {
       json(res, 404, { error: 'Entry not found' });
       return true;
@@ -1291,8 +1289,7 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const entryId = extractParam(url, '/api/holomesh/entry/').replace('/buy', '');
-    const results = await c.queryKnowledge(entryId, { limit: 1 });
-    const entry = results.find((e) => e.id === entryId);
+    const entry = await findKnowledgeEntryById(c, entryId);
     if (!entry) {
       json(res, 404, { error: 'Entry not found' });
       return true;
