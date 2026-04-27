@@ -1,10 +1,10 @@
 {
   "version": "v1",
-  "generated_at": "2026-04-27T07:18:47.775Z",
-  "git_head": "308591a52c779bafed71e55ec03259dcae9edce2",
+  "generated_at": "2026-04-27T07:35:56.009Z",
+  "git_head": "c091a2ff188cfaaaefef02cccad3fc9cd7df19fc",
   "constants_dir": "packages/core/src/traits/constants",
-  "family_count": 115,
-  "distinct_trait_count": 2455,
+  "family_count": 144,
+  "distinct_trait_count": 2564,
   "parsed_files": 119,
   "unparseable_files": [],
   "trait_to_families": {
@@ -1617,10 +1617,12 @@
       "universal-service"
     ],
     "lesson": [
-      "education-learning"
+      "education-learning",
+      "plugin/education-lms-plugin"
     ],
     "quiz": [
-      "education-learning"
+      "education-learning",
+      "plugin/education-lms-plugin"
     ],
     "flashcard": [
       "education-learning"
@@ -1680,7 +1682,8 @@
       "education-learning"
     ],
     "progress_tracker": [
-      "education-learning"
+      "education-learning",
+      "plugin/fitness-wellness-plugin"
     ],
     "skill_tree": [
       "education-learning"
@@ -1850,7 +1853,8 @@
       "universal-service"
     ],
     "audit_trail": [
-      "enterprise-multitenancy"
+      "enterprise-multitenancy",
+      "plugin/legal-document-plugin"
     ],
     "plane_detection": [
       "environment-input"
@@ -2713,7 +2717,8 @@
       "geospatial-web3"
     ],
     "poi": [
-      "geospatial-web3"
+      "geospatial-web3",
+      "plugin/geolocation-gis-plugin"
     ],
     "nft": [
       "geospatial-web3"
@@ -5981,6 +5986,7 @@
       "sports-fitness"
     ],
     "rep_counter": [
+      "plugin/fitness-wellness-plugin",
       "sports-fitness"
     ],
     "form_checker": [
@@ -6323,6 +6329,7 @@
       "universal-service"
     ],
     "route": [
+      "plugin/geolocation-gis-plugin",
       "universal-service"
     ],
     "handler": [
@@ -6518,6 +6525,7 @@
       "universal-service"
     ],
     "transaction": [
+      "plugin/banking-finance-plugin",
       "universal-service"
     ],
     "saga": [
@@ -6981,6 +6989,7 @@
       "xr-platform"
     ],
     "scene_reconstruction": [
+      "plugin/forensics-plugin",
       "v43-ai-xr",
       "xr-platform"
     ],
@@ -7157,9 +7166,11 @@
       "visual-effects"
     ],
     "gaussian_splat": [
+      "plugin/film3d-volumetrics-plugin",
       "volumetric-webgpu"
     ],
     "nerf": [
+      "plugin/film3d-volumetrics-plugin",
       "volumetric-webgpu"
     ],
     "volumetric_video": [
@@ -7452,6 +7463,333 @@
     ],
     "room_mesh": [
       "xr-platform"
+    ],
+    "account": [
+      "plugin/banking-finance-plugin"
+    ],
+    "kyc": [
+      "plugin/banking-finance-plugin"
+    ],
+    "portfolio": [
+      "plugin/banking-finance-plugin"
+    ],
+    "risk_model": [
+      "plugin/banking-finance-plugin"
+    ],
+    "structural_analysis": [
+      "plugin/civil-engineering-plugin"
+    ],
+    "load_bearing": [
+      "plugin/civil-engineering-plugin"
+    ],
+    "material_fatigue": [
+      "plugin/civil-engineering-plugin"
+    ],
+    "culture": [
+      "plugin/culture-keyword-plugin"
+    ],
+    "marketplace_listing": [
+      "plugin/economic-primitives-plugin"
+    ],
+    "royalty_stream": [
+      "plugin/economic-primitives-plugin"
+    ],
+    "agent_owned_entity": [
+      "plugin/economic-primitives-plugin"
+    ],
+    "foundation_dao": [
+      "plugin/economic-primitives-plugin"
+    ],
+    "course": [
+      "plugin/education-lms-plugin"
+    ],
+    "grade": [
+      "plugin/education-lms-plugin"
+    ],
+    "enrollment": [
+      "plugin/education-lms-plugin"
+    ],
+    "evacuation_zone": [
+      "plugin/emergency-response"
+    ],
+    "capacity": [
+      "plugin/emergency-response"
+    ],
+    "status": [
+      "plugin/emergency-response"
+    ],
+    "routes": [
+      "plugin/emergency-response"
+    ],
+    "center": [
+      "plugin/emergency-response"
+    ],
+    "incident_command": [
+      "plugin/emergency-response"
+    ],
+    "sectors": [
+      "plugin/emergency-response"
+    ],
+    "channels": [
+      "plugin/emergency-response"
+    ],
+    "severity": [
+      "plugin/emergency-response"
+    ],
+    "resource_dispatch": [
+      "plugin/emergency-response"
+    ],
+    "position": [
+      "plugin/emergency-response"
+    ],
+    "destination": [
+      "plugin/emergency-response"
+    ],
+    "triage": [
+      "plugin/emergency-response"
+    ],
+    "priority": [
+      "plugin/emergency-response"
+    ],
+    "garment": [
+      "plugin/fashion-plugin"
+    ],
+    "fabric_simulation": [
+      "plugin/fashion-plugin"
+    ],
+    "runway_choreography": [
+      "plugin/fashion-plugin"
+    ],
+    "shot_list": [
+      "plugin/film-vfx-plugin"
+    ],
+    "color_grade": [
+      "plugin/film-vfx-plugin"
+    ],
+    "dmx_lighting": [
+      "plugin/film-vfx-plugin"
+    ],
+    "director_ai": [
+      "plugin/film-vfx-plugin"
+    ],
+    "virtual_production": [
+      "plugin/film-vfx-plugin"
+    ],
+    "text_to_universe": [
+      "plugin/film-vfx-plugin"
+    ],
+    "volumetric": [
+      "plugin/film3d-volumetrics-plugin"
+    ],
+    "cinematic_camera": [
+      "plugin/film3d-volumetrics-plugin"
+    ],
+    "gcode_slicer": [
+      "plugin/film3d-volumetrics-plugin"
+    ],
+    "workout": [
+      "plugin/fitness-wellness-plugin"
+    ],
+    "exercise_library": [
+      "plugin/fitness-wellness-plugin"
+    ],
+    "chain_of_custody": [
+      "plugin/forensics-plugin"
+    ],
+    "evidence_chain": [
+      "plugin/forensics-plugin"
+    ],
+    "map_view": [
+      "plugin/geolocation-gis-plugin"
+    ],
+    "geocode": [
+      "plugin/geolocation-gis-plugin"
+    ],
+    "geofence": [
+      "plugin/geolocation-gis-plugin"
+    ],
+    "permit": [
+      "plugin/government-civic-plugin"
+    ],
+    "public_meeting": [
+      "plugin/government-civic-plugin"
+    ],
+    "service_request": [
+      "plugin/government-civic-plugin"
+    ],
+    "voting_record": [
+      "plugin/government-civic-plugin"
+    ],
+    "civic_compliance": [
+      "plugin/government-civic-plugin"
+    ],
+    "pcb_layout": [
+      "plugin/hardware-invention-plugin"
+    ],
+    "component_library": [
+      "plugin/hardware-invention-plugin"
+    ],
+    "firmware_flash": [
+      "plugin/hardware-invention-plugin"
+    ],
+    "employee": [
+      "plugin/hr-workforce-plugin"
+    ],
+    "payroll": [
+      "plugin/hr-workforce-plugin"
+    ],
+    "onboarding": [
+      "plugin/hr-workforce-plugin"
+    ],
+    "performance_review": [
+      "plugin/hr-workforce-plugin"
+    ],
+    "policy": [
+      "plugin/insurance-plugin"
+    ],
+    "claim": [
+      "plugin/insurance-plugin"
+    ],
+    "risk_assessment": [
+      "plugin/insurance-plugin"
+    ],
+    "underwriting": [
+      "plugin/insurance-plugin"
+    ],
+    "contract_draft": [
+      "plugin/legal-document-plugin"
+    ],
+    "e_signature": [
+      "plugin/legal-document-plugin"
+    ],
+    "case_management": [
+      "plugin/legal-document-plugin"
+    ],
+    "programmable_law": [
+      "plugin/legal-document-plugin"
+    ],
+    "signature_block": [
+      "plugin/legal-document-plugin"
+    ],
+    "production_line": [
+      "plugin/manufacturing-qc-plugin"
+    ],
+    "quality_gate": [
+      "plugin/manufacturing-qc-plugin"
+    ],
+    "defect_tracking": [
+      "plugin/manufacturing-qc-plugin"
+    ],
+    "bom": [
+      "plugin/manufacturing-qc-plugin"
+    ],
+    "brain_region": [
+      "plugin/neuroscience-plugin"
+    ],
+    "connectome": [
+      "plugin/neuroscience-plugin"
+    ],
+    "eeg_stream": [
+      "plugin/neuroscience-plugin"
+    ],
+    "radio_emitter": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "synchrotron": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "interferometer": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "em_wave": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "pulsar_timing": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "spectral_line": [
+      "plugin/radio-astronomy-plugin"
+    ],
+    "menu": [
+      "plugin/restaurant-plugin"
+    ],
+    "order": [
+      "plugin/restaurant-plugin"
+    ],
+    "kitchen_display": [
+      "plugin/restaurant-plugin"
+    ],
+    "table_management": [
+      "plugin/restaurant-plugin"
+    ],
+    "cart": [
+      "plugin/retail-ecommerce-plugin"
+    ],
+    "checkout": [
+      "plugin/retail-ecommerce-plugin"
+    ],
+    "product_catalog": [
+      "plugin/retail-ecommerce-plugin"
+    ],
+    "shipping_rate": [
+      "plugin/retail-ecommerce-plugin"
+    ],
+    "return": [
+      "plugin/retail-ecommerce-plugin"
+    ],
+    "ros2_hardware_loop": [
+      "plugin/robotics-plugin"
+    ],
+    "attack_graph": [
+      "plugin/threat-intelligence-plugin"
+    ],
+    "ioc_matching": [
+      "plugin/threat-intelligence-plugin"
+    ],
+    "siem_integration": [
+      "plugin/threat-intelligence-plugin"
+    ],
+    "threat_feed": [
+      "plugin/threat-intelligence-plugin"
+    ],
+    "interoperability_badge": [
+      "plugin/trait-audit-plugin"
+    ],
+    "reservation": [
+      "plugin/travel-hospitality-plugin"
+    ],
+    "itinerary": [
+      "plugin/travel-hospitality-plugin"
+    ],
+    "rate_management": [
+      "plugin/travel-hospitality-plugin"
+    ],
+    "zoning": [
+      "plugin/urban-planning-plugin"
+    ],
+    "traffic_flow": [
+      "plugin/urban-planning-plugin"
+    ],
+    "population_density": [
+      "plugin/urban-planning-plugin"
+    ],
+    "geospatial_climate": [
+      "plugin/urban-planning-plugin"
+    ],
+    "tasting_profile": [
+      "plugin/wine-food-beverage-plugin"
+    ],
+    "pairing_engine": [
+      "plugin/wine-food-beverage-plugin"
+    ],
+    "inventory_aging": [
+      "plugin/wine-food-beverage-plugin"
+    ],
+    "wisdom": [
+      "plugin/wisdom-gotcha-plugin"
+    ],
+    "gotcha": [
+      "plugin/wisdom-gotcha-plugin"
     ]
   },
   "family_to_traits": {
@@ -9199,6 +9537,184 @@
       "soft_body",
       "stretchable",
       "wind"
+    ],
+    "plugin/banking-finance-plugin": [
+      "account",
+      "kyc",
+      "portfolio",
+      "risk_model",
+      "transaction"
+    ],
+    "plugin/civil-engineering-plugin": [
+      "load_bearing",
+      "material_fatigue",
+      "structural_analysis"
+    ],
+    "plugin/culture-keyword-plugin": [
+      "culture"
+    ],
+    "plugin/economic-primitives-plugin": [
+      "agent_owned_entity",
+      "foundation_dao",
+      "marketplace_listing",
+      "royalty_stream"
+    ],
+    "plugin/education-lms-plugin": [
+      "course",
+      "enrollment",
+      "grade",
+      "lesson",
+      "quiz"
+    ],
+    "plugin/emergency-response": [
+      "capacity",
+      "center",
+      "channels",
+      "destination",
+      "evacuation_zone",
+      "incident_command",
+      "position",
+      "priority",
+      "resource_dispatch",
+      "routes",
+      "sectors",
+      "severity",
+      "status",
+      "triage"
+    ],
+    "plugin/fashion-plugin": [
+      "fabric_simulation",
+      "garment",
+      "runway_choreography"
+    ],
+    "plugin/film-vfx-plugin": [
+      "color_grade",
+      "director_ai",
+      "dmx_lighting",
+      "shot_list",
+      "text_to_universe",
+      "virtual_production"
+    ],
+    "plugin/film3d-volumetrics-plugin": [
+      "cinematic_camera",
+      "gaussian_splat",
+      "gcode_slicer",
+      "nerf",
+      "volumetric"
+    ],
+    "plugin/fitness-wellness-plugin": [
+      "exercise_library",
+      "progress_tracker",
+      "rep_counter",
+      "workout"
+    ],
+    "plugin/forensics-plugin": [
+      "chain_of_custody",
+      "evidence_chain",
+      "scene_reconstruction"
+    ],
+    "plugin/geolocation-gis-plugin": [
+      "geocode",
+      "geofence",
+      "map_view",
+      "poi",
+      "route"
+    ],
+    "plugin/government-civic-plugin": [
+      "civic_compliance",
+      "permit",
+      "public_meeting",
+      "service_request",
+      "voting_record"
+    ],
+    "plugin/hardware-invention-plugin": [
+      "component_library",
+      "firmware_flash",
+      "pcb_layout"
+    ],
+    "plugin/hr-workforce-plugin": [
+      "employee",
+      "onboarding",
+      "payroll",
+      "performance_review"
+    ],
+    "plugin/insurance-plugin": [
+      "claim",
+      "policy",
+      "risk_assessment",
+      "underwriting"
+    ],
+    "plugin/legal-document-plugin": [
+      "audit_trail",
+      "case_management",
+      "contract_draft",
+      "e_signature",
+      "programmable_law",
+      "signature_block"
+    ],
+    "plugin/manufacturing-qc-plugin": [
+      "bom",
+      "defect_tracking",
+      "production_line",
+      "quality_gate"
+    ],
+    "plugin/neuroscience-plugin": [
+      "brain_region",
+      "connectome",
+      "eeg_stream"
+    ],
+    "plugin/radio-astronomy-plugin": [
+      "em_wave",
+      "interferometer",
+      "pulsar_timing",
+      "radio_emitter",
+      "spectral_line",
+      "synchrotron"
+    ],
+    "plugin/restaurant-plugin": [
+      "kitchen_display",
+      "menu",
+      "order",
+      "table_management"
+    ],
+    "plugin/retail-ecommerce-plugin": [
+      "cart",
+      "checkout",
+      "product_catalog",
+      "return",
+      "shipping_rate"
+    ],
+    "plugin/robotics-plugin": [
+      "ros2_hardware_loop"
+    ],
+    "plugin/threat-intelligence-plugin": [
+      "attack_graph",
+      "ioc_matching",
+      "siem_integration",
+      "threat_feed"
+    ],
+    "plugin/trait-audit-plugin": [
+      "interoperability_badge"
+    ],
+    "plugin/travel-hospitality-plugin": [
+      "itinerary",
+      "rate_management",
+      "reservation"
+    ],
+    "plugin/urban-planning-plugin": [
+      "geospatial_climate",
+      "population_density",
+      "traffic_flow",
+      "zoning"
+    ],
+    "plugin/wine-food-beverage-plugin": [
+      "inventory_aging",
+      "pairing_engine",
+      "tasting_profile"
+    ],
+    "plugin/wisdom-gotcha-plugin": [
+      "gotcha",
+      "wisdom"
     ],
     "post-processing": [
       "bloom",
