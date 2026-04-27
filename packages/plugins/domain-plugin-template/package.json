@@ -20,6 +20,6 @@
   "author": "brianonbased-dev",
   "license": "MIT",
   "peerDependencies": {
-    "@holoscript/core": "^6.0.0"
+    "@holoscript/core": "workspace:*"
   }
 }

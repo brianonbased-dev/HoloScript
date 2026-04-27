@@ -38,7 +38,7 @@
     "directory": "packages/plugins/emergency-response"
   },
   "peerDependencies": {
-    "@holoscript/core": "^6.0.0"
+    "@holoscript/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
