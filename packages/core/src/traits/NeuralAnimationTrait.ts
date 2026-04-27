@@ -68,7 +68,11 @@ export interface LocomotionState {
   stability: number;
   contact: ContactFeatures;
   currentGait: Gait;
-  energyCost: number;
+  /**
+   * Renamed from `energyCost` per /critic Serious #4. NOT physical
+   * cost-of-transport — see MotionInferenceResult.kineticEnergyProxy.
+   */
+  kineticEnergyProxy: number;
 }
 
 interface NeuralAnimationState {
@@ -184,7 +188,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
         stability: result.stability,
         contact: result.contactFeatures,
         currentGait: result.gait,
-        energyCost: result.energyCost,
+        kineticEnergyProxy: result.kineticEnergyProxy,
       };
       state.current_pose = result.pose;
 

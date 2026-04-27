@@ -180,7 +180,7 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
         stability: 0.1,
         contactFeatures: { leftFoot: true, rightFoot: false },
         gait: 'walk',
-        energyCost: 0,
+        kineticEnergyProxy: 0,
       }),
     };
     sendEvent(neuralAnimationHandler, node, baseCfg, ctx, {

@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import {
+  buildSyntheticBipedPose,
   createSyntheticWalkCycleEngine,
   SYNTHETIC_WALK_JOINTS,
   type MotionMatchingEngine,
@@ -83,19 +84,100 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
     expect(data.engine).toBe(customEngine);
   });
 
-  it('onUpdate writes engine pose quaternions to the actual bones', () => {
-    neuralAnimationHandler.onApply!(ctx);
-    setNeuralAnimationTargetVelocity(ctx, { x: 1.5, y: 0, z: 0 });
-    neuralAnimationHandler.onUpdate!(ctx, 0.016);
+  it('onUpdate writes engine pose to bones — ground-truth quaternion AND position match', () => {
+    // Serious #5 from /critic: assert against the actual computed pose, not
+    // just "not identity". Reproduce the engine's math here so a buggy refactor
+    // (axis swap, sign flip, missing speedScale) gets caught.
+    const v = { x: 1.5, y: 0, z: 0 };
+    const speed = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    const delta = 0.1;
+    // SyntheticWalkCycleEngine.infer phase advance: max(speed,0.1)*0.5*delta
+    const expectedPhase = (Math.max(speed, 0.1) * 0.5) * delta;
+    const expectedPose = buildSyntheticBipedPose(expectedPhase, speed);
 
-    const hipBone = object.children.find((c) => c.name === 'hip') as THREE.Bone;
-    // Quaternion should NOT be identity after walking inference
-    const isIdentity = hipBone.quaternion.x === 0 && hipBone.quaternion.y === 0 && hipBone.quaternion.z === 0 && hipBone.quaternion.w === 1;
-    // Hip quat may be identity at phase 0 with low yaw; check left_thigh which definitely rotates
+    neuralAnimationHandler.onApply!(ctx);
+    setNeuralAnimationTargetVelocity(ctx, v);
+    neuralAnimationHandler.onUpdate!(ctx, delta);
+
     const leftThighBone = object.children.find((c) => c.name === 'left_thigh') as THREE.Bone;
-    expect(leftThighBone.quaternion.w).not.toBe(1); // rotated, not identity
-    // hipBone reference still works (quaternion was set)
-    expect(typeof isIdentity).toBe('boolean');
+    const expectedThigh = expectedPose.left_thigh;
+    // Critical #1 fix: BOTH position AND rotation are now applied.
+    expect(leftThighBone.position.x).toBeCloseTo(expectedThigh.position[0], 5);
+    expect(leftThighBone.position.y).toBeCloseTo(expectedThigh.position[1], 5);
+    expect(leftThighBone.position.z).toBeCloseTo(expectedThigh.position[2], 5);
+    expect(leftThighBone.quaternion.x).toBeCloseTo(expectedThigh.rotation[0], 5);
+    expect(leftThighBone.quaternion.y).toBeCloseTo(expectedThigh.rotation[1], 5);
+    expect(leftThighBone.quaternion.z).toBeCloseTo(expectedThigh.rotation[2], 5);
+    expect(leftThighBone.quaternion.w).toBeCloseTo(expectedThigh.rotation[3], 5);
+  });
+
+  it('Critical #3: onUpdate is no-op when engine is not yet loaded (load race)', () => {
+    // Custom engine with manually-controlled load() — caller resolves it later.
+    let resolveLoad: () => void;
+    const loadPromise = new Promise<void>((resolve) => { resolveLoad = resolve; });
+    let inferCallCount = 0;
+    const slowLoadingEngine: MotionMatchingEngine = {
+      modelId: 'slow_load',
+      loaded: false,
+      load: () => loadPromise,
+      dispose: () => {},
+      infer: () => {
+        inferCallCount++;
+        return {
+          pose: { joints: {}, timestamp: 0 },
+          phase: 0,
+          trajectory: [],
+          stability: 1,
+          contactFeatures: { leftFoot: false, rightFoot: false },
+          gait: 'idle',
+          kineticEnergyProxy: 0,
+        };
+      },
+    };
+    const slowCtx = makeContext(object, { engine: slowLoadingEngine });
+    neuralAnimationHandler.onApply!(slowCtx);
+
+    // First update before load resolves: must NOT call infer
+    neuralAnimationHandler.onUpdate!(slowCtx, 0.016);
+    expect(inferCallCount).toBe(0);
+
+    // Now flip loaded and update — infer should be called
+    (slowLoadingEngine as { loaded: boolean }).loaded = true;
+    resolveLoad!();
+    neuralAnimationHandler.onUpdate!(slowCtx, 0.016);
+    expect(inferCallCount).toBe(1);
+  });
+
+  it('Critical #2: buildBoneMap scopes to SkinnedMesh, not parent subtree', () => {
+    // Build a scene with TWO skeletons under a common root.
+    // Naive traverse() would collect bones from both characters and overwrite
+    // by name. Scoped resolution should only see one skeleton's bones.
+    const root = new THREE.Object3D();
+    root.name = 'scene_root';
+
+    const charA = new THREE.SkinnedMesh();
+    charA.name = 'character_A';
+    const boneA = new THREE.Bone();
+    boneA.name = 'hip';
+    boneA.position.set(1, 0, 0); // distinguishable
+    charA.skeleton = new THREE.Skeleton([boneA]);
+    root.add(charA);
+
+    const charB = new THREE.Object3D();
+    charB.name = 'character_B';
+    const boneB = new THREE.Bone();
+    boneB.name = 'hip';
+    boneB.position.set(2, 0, 0); // distinguishable
+    charB.add(boneB);
+    root.add(charB);
+
+    // Apply trait to character A (the SkinnedMesh) — must only see boneA
+    const ctxA = makeContext(charA);
+    neuralAnimationHandler.onApply!(ctxA);
+    const boneMap = (ctxA.data as Record<string, unknown>).boneMap as Map<string, THREE.Bone>;
+    expect(boneMap.size).toBe(1);
+    expect(boneMap.get('hip')).toBe(boneA);
+    expect(boneMap.get('hip')).not.toBe(boneB);
   });
 
   it('onUpdate accumulates phase across calls', () => {
@@ -176,7 +258,7 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
         stability: 0.1,
         contactFeatures: { leftFoot: true, rightFoot: false },
         gait: 'walk',
-        energyCost: 0,
+        kineticEnergyProxy: 0,
       }),
     };
     const stumbleCtx = makeContext(object, { engine: stumblyEngine });

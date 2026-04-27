@@ -16,21 +16,20 @@
  * scaffolding, not a stubbed-real-thing.
  */
 
-import type {
-  MotionMatchingEngine,
-  MotionInferenceInput,
-  MotionInferenceResult,
-  SkeletonPose,
-  ContactFeatures,
-  Gait,
+import {
+  classifyGait,
+  magnitude,
+  projectLinearTrajectory,
+  type ContactFeatures,
+  type MotionInferenceInput,
+  type MotionInferenceResult,
+  type MotionMatchingEngine,
+  type SkeletonPose,
 } from './motion-matching';
 
-const TRAJECTORY_HORIZON_FRAMES = 12;
-const TRAJECTORY_FRAME_DT = 1 / 30;
 const STRIDE_AMPLITUDE_RAD = 0.6;
 const KNEE_FLEXION_AMPLITUDE_RAD = 0.5;
 const HIP_BOB_AMPLITUDE = 0.04;
-const STRIDE_SCALE = 1.0;
 
 /** Joint names this engine drives — matches a generic biped rig. */
 export const SYNTHETIC_WALK_JOINTS = [
@@ -42,18 +41,6 @@ export const SYNTHETIC_WALK_JOINTS = [
   'left_foot',
   'right_foot',
 ] as const;
-
-function magnitude(v: { x: number; y: number; z: number }): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-
-function classifyGait(speed: number, energyEfficiency: number): Gait {
-  const adjusted = speed * (energyEfficiency > 1.0 ? 0.85 : 1.0);
-  if (adjusted < 0.05) return 'idle';
-  if (adjusted < 1.4) return 'walk';
-  if (adjusted < 3.0) return 'trot';
-  return 'run';
-}
 
 /**
  * Build a biped pose at a given phase + speed. Pure function — same inputs
@@ -73,8 +60,8 @@ export function buildSyntheticBipedPose(phase: number, speed: number): Record<st
   const hipQuat: [number, number, number, number] = [0, Math.sin(hipYawRad / 2), 0, Math.cos(hipYawRad / 2)];
 
   // Thighs swing fore/aft (rotation around X axis = pitch)
-  const leftThighPitchRad = leftSwing * STRIDE_AMPLITUDE_RAD * speedScale * STRIDE_SCALE;
-  const rightThighPitchRad = rightSwing * STRIDE_AMPLITUDE_RAD * speedScale * STRIDE_SCALE;
+  const leftThighPitchRad = leftSwing * STRIDE_AMPLITUDE_RAD * speedScale;
+  const rightThighPitchRad = rightSwing * STRIDE_AMPLITUDE_RAD * speedScale;
   const leftThighQuat: [number, number, number, number] = [Math.sin(leftThighPitchRad / 2), 0, 0, Math.cos(leftThighPitchRad / 2)];
   const rightThighQuat: [number, number, number, number] = [Math.sin(rightThighPitchRad / 2), 0, 0, Math.cos(rightThighPitchRad / 2)];
 
@@ -126,18 +113,6 @@ export class SyntheticWalkCycleEngine implements MotionMatchingEngine {
     const joints = buildSyntheticBipedPose(phase, speed);
     const pose: SkeletonPose = { joints, timestamp: Date.now() };
 
-    // Trajectory = linear projection of velocity (same as NoOp — real
-    // engines would produce curved trajectories anticipating direction change)
-    const trajectory: Array<[number, number, number]> = [];
-    for (let i = 1; i <= TRAJECTORY_HORIZON_FRAMES; i++) {
-      const t = i * TRAJECTORY_FRAME_DT;
-      trajectory.push([
-        input.targetVelocity.x * t,
-        input.targetVelocity.y * t,
-        input.targetVelocity.z * t,
-      ]);
-    }
-
     // Foot contact: left planted in [0, 0.5), right in [0.5, 1.0). Idle =
     // both planted.
     const leftFoot = speed < 0.05 || phase < 0.5;
@@ -147,11 +122,11 @@ export class SyntheticWalkCycleEngine implements MotionMatchingEngine {
     return {
       pose,
       phase,
-      trajectory,
+      trajectory: projectLinearTrajectory(input.targetVelocity),
       stability: speed > 5.0 ? Math.max(0.1, 1.0 - (speed - 5.0) * 0.2) : 1.0,
       contactFeatures,
       gait: classifyGait(speed, energyEfficiency),
-      energyCost: speed * speed * energyEfficiency,
+      kineticEnergyProxy: speed * speed * energyEfficiency,
     };
   }
 

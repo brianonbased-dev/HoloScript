@@ -48,7 +48,18 @@ export interface MotionInferenceResult {
   stability: number;
   contactFeatures: ContactFeatures;
   gait: Gait;
-  energyCost: number;
+  /**
+   * Kinetic-energy proxy in arbitrary units (NOT metabolic cost).
+   * Renamed from `energyCost` per /critic Serious #4: the previous name
+   * implied physical cost-of-transport which it was not.
+   *
+   * For the synthetic + null engines this is `speed^2 * efficiency` —
+   * dimensionally kinetic-shaped, useful as a sortable proxy. Real
+   * metabolic cost (Margaria 1976, Kram & Taylor 1990) is roughly
+   * linear in speed for walking and U-shaped around preferred speed —
+   * future engines may report that under a different field.
+   */
+  kineticEnergyProxy: number;
 }
 
 export interface MotionMatchingEngine {
@@ -61,21 +72,46 @@ export interface MotionMatchingEngine {
 
 export type MotionMatchingEngineFactory = (modelId: string) => MotionMatchingEngine;
 
-const TRAJECTORY_HORIZON_FRAMES = 12;
-const TRAJECTORY_FRAME_DT = 1 / 30;
+// Shared constants — exported so engines + visualizers all use the same
+// trajectory shape (per /critic Nitpick #16: don't paste-not-import).
+export const TRAJECTORY_HORIZON_FRAMES = 12;
+export const TRAJECTORY_FRAME_DT = 1 / 30;
 
-function magnitude(v: Vec3): number {
+/** Vector magnitude — exported so engines share one impl (Nitpick #15). */
+export function magnitude(v: Vec3): number {
   return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-function classifyGait(speed: number, energyEfficiency: number): Gait {
+/**
+ * Single canonical gait classifier shared across engines (Nitpick #9).
+ * Lower energyEfficiency → wider speed bands at each gait (lazy walk
+ * stays "walk" longer); higher efficiency → bumps into next gait sooner
+ * because more output per joule budget.
+ *
+ * `crouch` is reserved in the `Gait` union for engines that detect
+ * stealth/duck postures from joint configuration — not produced by speed
+ * alone.
+ */
+export function classifyGait(speed: number, energyEfficiency: number): Gait {
   const efficiencyPenalty = energyEfficiency > 1.0 ? 0.85 : 1.0;
   const adjusted = speed * efficiencyPenalty;
   if (adjusted < 0.05) return 'idle';
   if (adjusted < 1.4) return 'walk';
   if (adjusted < 3.0) return 'trot';
-  if (adjusted < 6.0) return 'run';
   return 'run';
+}
+
+/**
+ * Compute trajectory by linear projection from velocity. Exported so the
+ * synthetic engine and any procedural/test engines share one implementation.
+ */
+export function projectLinearTrajectory(velocity: Vec3): Array<[number, number, number]> {
+  const trajectory: Array<[number, number, number]> = [];
+  for (let i = 1; i <= TRAJECTORY_HORIZON_FRAMES; i++) {
+    const t = i * TRAJECTORY_FRAME_DT;
+    trajectory.push([velocity.x * t, velocity.y * t, velocity.z * t]);
+  }
+  return trajectory;
 }
 
 /**
@@ -104,27 +140,17 @@ export class NullMotionMatchingEngine implements MotionMatchingEngine {
     const phaseAdvance = (speed * 0.3 + 0.5) * input.delta;
     const phase = (input.currentPhase + phaseAdvance) % 1.0;
 
-    const trajectory: Array<[number, number, number]> = [];
-    for (let i = 1; i <= TRAJECTORY_HORIZON_FRAMES; i++) {
-      const t = i * TRAJECTORY_FRAME_DT;
-      trajectory.push([
-        input.targetVelocity.x * t,
-        input.targetVelocity.y * t,
-        input.targetVelocity.z * t,
-      ]);
-    }
-
     const leftFootContact = phase < 0.5;
     const rightFootContact = phase >= 0.5;
 
     return {
       pose: { joints: {}, timestamp: Date.now() },
       phase,
-      trajectory,
+      trajectory: projectLinearTrajectory(input.targetVelocity),
       stability: 1.0,
       contactFeatures: { leftFoot: leftFootContact, rightFoot: rightFootContact },
       gait: classifyGait(speed, energyEfficiency),
-      energyCost: speed * speed * energyEfficiency,
+      kineticEnergyProxy: speed * speed * energyEfficiency,
     };
   }
 

@@ -82,11 +82,22 @@ For each stub candidate, count references in compiler files:
 
 ```bash
 for trait in <candidate-list>; do
-  trait_name=$(basename "$trait" .ts | sed 's/Trait$//' | sed -E 's/([A-Z])/_\L\1/g' | sed 's/^_//')
+  # Name derivation that handles PascalCase initialisms correctly.
+  # AINPCBrainTrait → ai_npc_brain (NOT a_i_n_p_c_brain)
+  # NeuralAnimationTrait → neural_animation
+  # CRDTRoomTrait → crdt_room
+  # Two-pass split: (1) cap-run → Cap+lower; (2) lower → Cap.
+  trait_name=$(basename "$trait" .ts | sed 's/Trait$//' \
+    | sed -E 's/([A-Z]+)([A-Z][a-z])/\1_\2/g' \
+    | sed -E 's/([a-z0-9])([A-Z])/\1_\2/g' \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed 's/^_//')
   ref_count=$(grep -rn "'$trait_name'" packages/core/src/compiler/ packages/core/src/HoloScript*Compiler.ts 2>/dev/null | wc -l)
   echo "$trait_name|$ref_count"
 done
 ```
+
+**Verified name derivation** (regression-tested 2026-04-26 against real codebase): `AINPCBrain → ai_npc_brain` (16 refs), `NeuralAnimation → neural_animation`, `CRDTRoom → crdt_room`, `ABTest → ab_test`. The naive single-pass `sed s/([A-Z])/_\L\1/g` produces `a_i_n_p_c_brain` and finds zero refs — false-negative on every initialism trait. The two-pass approach fixes it.
 
 A trait is a **CONFIRMED stub-pattern violation** when:
 - Effective onUpdate LOC < 30
