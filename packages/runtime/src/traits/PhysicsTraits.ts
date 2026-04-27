@@ -10,6 +10,12 @@
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
 import { getObjectTraits } from '../runtime-types';
+import {
+  buildClothConstraints,
+  stepClothVerlet,
+  type ClothVerletState,
+  type ClothVerletConfig,
+} from '@holoscript/core/traits/engines';
 
 // =============================================================================
 // HELPERS
@@ -73,29 +79,9 @@ export const ClothTrait: TraitHandler = {
       pinnedVerts.add(resolution - 1);
     }
 
-    // Build constraints (structural springs)
-    const constraints: Array<[number, number, number]> = []; // [a, b, restLength]
-    for (let i = 0; i < resolution; i++) {
-      for (let j = 0; j < resolution; j++) {
-        const idx = i * resolution + j;
-        // Right neighbor
-        if (j < resolution - 1) {
-          const right = idx + 1;
-          const dx = posAttr.getX(idx) - posAttr.getX(right);
-          const dy = posAttr.getY(idx) - posAttr.getY(right);
-          const dz = posAttr.getZ(idx) - posAttr.getZ(right);
-          constraints.push([idx, right, Math.sqrt(dx * dx + dy * dy + dz * dz)]);
-        }
-        // Bottom neighbor
-        if (i < resolution - 1) {
-          const below = idx + resolution;
-          const dx = posAttr.getX(idx) - posAttr.getX(below);
-          const dy = posAttr.getY(idx) - posAttr.getY(below);
-          const dz = posAttr.getZ(idx) - posAttr.getZ(below);
-          constraints.push([idx, below, Math.sqrt(dx * dx + dy * dy + dz * dz)]);
-        }
-      }
-    }
+    // Build constraints via the shared cloth-verlet engine (idea-run-3 RULING 2
+    // pilot pattern — engine math lives once in @holoscript/core/traits/engines).
+    const constraints = buildClothConstraints(resolution, posAttr.array as Float32Array);
 
     // Replace mesh geometry
     if (mesh.geometry) mesh.geometry.dispose();
@@ -123,91 +109,25 @@ export const ClothTrait: TraitHandler = {
     const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
     if (!posAttr) return;
 
-    const prev = context.data.prevPositions as Float32Array;
-    const pinned = context.data.pinnedVerts as Set<number>;
-    const constraints = context.data.constraints as Array<[number, number, number]>;
-    const stiffness = context.data.stiffness as number;
-    const dampingFactor = 1.0 - (context.data.damping as number);
-    const gravityScale = context.data.gravityScale as number;
-    const windResponse = context.data.windResponse as number;
-    // @ts-expect-error - TS18046 structural type mismatch
-    context.data.time += delta;
+    // Build the engine state view over the THREE buffers — no copy, the
+    // engine modifies posAttr.array + prevPositions in place. Idea-run-3
+    // RULING 2: engine math is one impl, runtime + future core delegate.
+    context.data.time = (context.data.time as number) + delta;
+    const state: ClothVerletState = {
+      positions: posAttr.array as Float32Array,
+      prevPositions: context.data.prevPositions as Float32Array,
+      pinned: context.data.pinnedVerts as Set<number>,
+      constraints: context.data.constraints as Array<[number, number, number]>,
+      time: context.data.time as number,
+    };
+    const config: ClothVerletConfig = {
+      stiffness: context.data.stiffness as number,
+      damping: context.data.damping as number,
+      gravityScale: context.data.gravityScale as number,
+      windResponse: context.data.windResponse as number,
+    };
 
-    const count = posAttr.count;
-    const gravity = -9.81 * gravityScale * delta * delta;
-
-    // Wind turbulence
-    const t = context.data.time as number;
-    const windX = smoothNoise(t * 0.5, 0) * windResponse * delta;
-    const windZ = smoothNoise(t * 0.7, 1) * windResponse * delta;
-
-    // Verlet integration step
-    for (let i = 0; i < count; i++) {
-      if (pinned.has(i)) continue;
-
-      const ix = i * 3,
-        iy = i * 3 + 1,
-        iz = i * 3 + 2;
-      const cx = posAttr.array[ix];
-      const cy = posAttr.array[iy];
-      const cz = posAttr.array[iz];
-
-      const vx = (cx - prev[ix]) * dampingFactor;
-      const vy = (cy - prev[iy]) * dampingFactor;
-      const vz = (cz - prev[iz]) * dampingFactor;
-
-      prev[ix] = cx;
-      prev[iy] = cy;
-      prev[iz] = cz;
-
-      (posAttr.array as Float32Array)[ix] = cx + vx + windX;
-      (posAttr.array as Float32Array)[iy] = cy + vy + gravity;
-      (posAttr.array as Float32Array)[iz] = cz + vz + windZ;
-    }
-
-    // Satisfy constraints (multiple iterations for stiffness)
-    const iterations = Math.ceil(stiffness * 5);
-    for (let iter = 0; iter < iterations; iter++) {
-      for (const [a, b, restLen] of constraints) {
-        const ax = posAttr.array[a * 3],
-          ay = posAttr.array[a * 3 + 1],
-          az = posAttr.array[a * 3 + 2];
-        const bx = posAttr.array[b * 3],
-          by = posAttr.array[b * 3 + 1],
-          bz = posAttr.array[b * 3 + 2];
-
-        const dx = bx - ax,
-          dy = by - ay,
-          dz = bz - az;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 0.0001) continue;
-
-        const diff = ((dist - restLen) / dist) * 0.5;
-        const ox = dx * diff,
-          oy = dy * diff,
-          oz = dz * diff;
-
-        const aPin = pinned.has(a);
-        const bPin = pinned.has(b);
-
-        if (!aPin && !bPin) {
-          (posAttr.array as Float32Array)[a * 3] += ox;
-          (posAttr.array as Float32Array)[a * 3 + 1] += oy;
-          (posAttr.array as Float32Array)[a * 3 + 2] += oz;
-          (posAttr.array as Float32Array)[b * 3] -= ox;
-          (posAttr.array as Float32Array)[b * 3 + 1] -= oy;
-          (posAttr.array as Float32Array)[b * 3 + 2] -= oz;
-        } else if (!aPin) {
-          (posAttr.array as Float32Array)[a * 3] += ox * 2;
-          (posAttr.array as Float32Array)[a * 3 + 1] += oy * 2;
-          (posAttr.array as Float32Array)[a * 3 + 2] += oz * 2;
-        } else if (!bPin) {
-          (posAttr.array as Float32Array)[b * 3] -= ox * 2;
-          (posAttr.array as Float32Array)[b * 3 + 1] -= oy * 2;
-          (posAttr.array as Float32Array)[b * 3 + 2] -= oz * 2;
-        }
-      }
-    }
+    stepClothVerlet(state, config, delta);
 
     posAttr.needsUpdate = true;
     geometry.computeVertexNormals();
