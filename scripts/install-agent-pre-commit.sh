@@ -190,6 +190,40 @@ if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
     fi
 fi
 
+# --- Gate 3.8: Multi-scope BLOCK (W.082 structural fix, retrospective 2026-04-27) ---
+# Blocks commits spanning >=4 top-level scopes — the canonical signature of
+# `git add -A` + bare `git commit` sweeping peer's staged files into our
+# commit. Both W.082 incidents this session (b700c42b0 + 6e9f7843b) crossed
+# 4 scopes; the existing ai-ecosystem warn-only version did not block.
+#
+# Bypass: MULTI_SCOPE_BLOCK_OFF=1 git commit ... (emergency only).
+# Resolution: bash scripts/safe-commit.sh -m 'msg' <explicit paths>
+if [ "${MULTI_SCOPE_BLOCK_OFF:-0}" != "1" ]; then
+    STAGED_FOR_SCOPE=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null || true)
+    if [ -n "$STAGED_FOR_SCOPE" ]; then
+        SCOPES=$(echo "$STAGED_FOR_SCOPE" | awk -F/ '{print $1}' | sort -u)
+        SCOPE_COUNT=$(echo "$SCOPES" | grep -c .)
+        SCOPES_INLINE=$(echo "$SCOPES" | tr '\n' ' ' | sed 's/ $//')
+        echo -e "${YELLOW}Scopes (${SCOPE_COUNT}):${NC} ${SCOPES_INLINE}"
+        if [ "$SCOPE_COUNT" -ge 4 ]; then
+            echo ""
+            echo -e "${RED}MULTI-SCOPE BLOCK (W.082 structural fix)${NC}"
+            echo "  This commit spans ${SCOPE_COUNT} top-level scopes — likely a 'git add -A'"
+            echo "  + bare 'git commit' that swept another agent's staged files into yours."
+            echo "  This pattern caused W.082 twice this session (b700c42b0 + 6e9f7843b)."
+            echo ""
+            echo -e "  ${YELLOW}FIX: use the atomic commit wrapper${NC}"
+            echo "    bash scripts/safe-commit.sh -m 'msg' <explicit paths>"
+            echo "    (uses 'git commit -o <paths>' to bypass index trust — peer mutations"
+            echo "     mid-window cannot bleed into your commit even if they win the race.)"
+            echo ""
+            echo "  Bypass (NOT RECOMMENDED — only when scopes are intentionally cross-cutting):"
+            echo "    MULTI_SCOPE_BLOCK_OFF=1 git commit ..."
+            FAILED=1
+        fi
+    fi
+fi
+
 # --- Gate 4: Commit size warning (non-blocking) ---
 STAGED_ALL=$(git diff --cached --name-only)
 STAGED_COUNT=$(echo "$STAGED_ALL" | grep -c . 2>/dev/null || echo 0)
