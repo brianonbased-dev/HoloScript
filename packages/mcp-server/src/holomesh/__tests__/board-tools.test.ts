@@ -327,4 +327,77 @@ describe('handleBoardTool with in-memory store', () => {
     expect(result.online_count).toBe(1);
     expect(teamPresenceStore.get('team-abc')?.size).toBe(1);
   });
+
+  // ── holomesh_scout regression tests (self-derivation guard) ──
+
+  it('holomesh_scout parses valid grep output into tasks', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_scout', {
+      team_id: 'team-abc',
+      todo_content: [
+        'src/auth.ts:42: // TODO: add rate limiting',
+        'src/db.ts:100: // FIXME: connection pool leak',
+      ].join('\n'),
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.tasks_added).toBe(2);
+    const tasks = result.tasks as Array<Record<string, unknown>>;
+    expect(tasks[0].title).toContain('TODO:');
+    expect(tasks[1].title).toContain('FIXME:');
+    expect(tasks[1].priority).toBe(2); // FIXME = priority 2
+  });
+
+  it('holomesh_scout produces 0 tasks from board-tools.ts grep output (self-derivation guard)', async () => {
+    seedTeam('team-abc');
+    // Simulate grep output lines that come from the scanner's own implementation file.
+    // These must never become board tasks.
+    const boardToolsLines = [
+      "packages/mcp-server/src/holomesh/board-tools.ts:210:    description: 'Pass grep TODO/FIXME output as todo_content',",
+      "packages/mcp-server/src/holomesh/board-tools.ts:576:      .filter(l => l.includes('TODO:') || l.includes('FIXME:'))",
+      "packages/mcp-server/src/holomesh/board-tools.ts:578:        title: l.includes('TODO:') ? 'TODO:' : 'FIXME:'",
+    ].join('\n');
+
+    const result = (await handleBoardTool('holomesh_scout', {
+      team_id: 'team-abc',
+      todo_content: boardToolsLines,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.tasks_added).toBe(0);
+  });
+
+  it('holomesh_scout produces 0 tasks from *.test.ts grep output (fixture guard)', async () => {
+    seedTeam('team-abc');
+    // Test fixture lines must never become board tasks.
+    const testLines = [
+      "packages/mcp-server/src/holomesh/__tests__/code-health-tools.test.ts:134:      const line = '// TODO: fix this';",
+      "packages/framework/src/__tests__/framework.test.ts:171:      'src/foo.ts:1: // TODO: dummy',",
+    ].join('\n');
+
+    const result = (await handleBoardTool('holomesh_scout', {
+      team_id: 'team-abc',
+      todo_content: testLines,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.tasks_added).toBe(0);
+  });
+
+  it('holomesh_scout ignores TODO inside string literals (unanchored false-positive guard)', async () => {
+    seedTeam('team-abc');
+    // A line where TODO appears inside a string/code, not as a comment — must not become a task.
+    const codeLines = [
+      "src/api.ts:55:    if (l.includes('TODO:')) { /* in a string */ }",
+      "src/types.ts:12:  // format-doc: TODO: message format",
+    ].join('\n');
+
+    const result = (await handleBoardTool('holomesh_scout', {
+      team_id: 'team-abc',
+      todo_content: codeLines,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.tasks_added).toBe(0);
+  });
 });

@@ -573,14 +573,24 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
   try {
     const team = getTeam(teamId);
     const todoContent = args.todo_content as string;
+    // Require comment-anchored grep format: file:linenum: [// | # | *] (TODO|FIXME|HACK|XXX): message
+    // Prevents self-derivation from string literals and non-comment occurrences.
+    const SCOUT_TODO_RE = /^.+?:\d+:\s*(?:\/\/\s*|#\s*|\*\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i;
+    // Skip the scanner's own implementation file and test/spec files to prevent self-derivation.
+    const SCOUT_SKIP_RE = /\bboard-tools\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
     const tasksBody = todoContent.split('\n')
-      .filter(l => l.includes('TODO:') || l.includes('FIXME:'))
-      .map(l => ({
-        title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
-        description: `Generated from source grep:\n\n${l}`,
-        source: 'scout:todo-scan',
-        priority: l.includes('FIXME:') ? 2 : 1,
-      }));
+      .flatMap(l => {
+        if (SCOUT_SKIP_RE.test(l)) return [];
+        const m = SCOUT_TODO_RE.exec(l);
+        if (!m) return [];
+        const [, kind, detail] = m;
+        return [{
+          title: `${kind.toUpperCase()}: ${detail.trim().slice(0, 180)}`,
+          description: `Generated from source grep:\n\n${l}`,
+          source: 'scout:todo-scan',
+          priority: /^FIXME$/i.test(kind) ? 2 : 1,
+        }];
+      });
 
     const maxTasks = (args.max_tasks as number) || 50;
     const scopedTasks = tasksBody.slice(0, maxTasks) as any;
