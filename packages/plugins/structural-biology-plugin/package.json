@@ -1,0 +1,15 @@
+{
+  "name": "@holoscript/structural-biology-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Structural-biology domain plugin: protein/ligand/chain object types + foldable/helix/sheet annotation traits + residue-level provenance hooks. Authored for paper-12 §RemainingWork item 2 (USD schema-plugin comparison).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "keywords": ["holoscript", "plugin", "structural-biology", "protein", "alphafold", "paper-12"],
+  "author": "brianonbased-dev",
+  "license": "MIT"
+}

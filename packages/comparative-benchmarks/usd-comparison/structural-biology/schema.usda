@@ -1,0 +1,153 @@
+#usda 1.0
+(
+    """ OpenUSD schema-plugin authoring for the structural-biology
+        comparison companion to @holoscript/structural-biology-plugin.
+
+        Pinned upstream tag: PixarAnimationStudios/OpenUSD v25.11
+        (commit 363a7c8da8d1937072a5f0989e91faf72eb1fa76).
+
+        This file is the input to `usdGenSchema schema.usda .` which produces
+        the C++ schema classes, Python bindings, generatedSchema.usda, and
+        plugInfo.json fragments USD requires at registration time. The three
+        IsA schema classes here mirror the three object types contributed by
+        the HoloScript-side plugin (protein, ligand, chain); the four API
+        schema classes mirror the four annotation traits (foldable, helix,
+        sheet, residueAnchor). LOC of this file is what the comparison
+        harness counts on the USD side. """
+    subLayers = [
+        @usd/schema.usda@,
+        @usdGeom/schema.usda@
+    ]
+)
+
+over "GLOBAL" (
+    customData = {
+        string libraryName       = "usdStructBio"
+        string libraryPath       = "."
+        string libraryPrefix     = "UsdStructBio"
+        string tokensPrefix      = "UsdStructBio"
+        dictionary libraryTokens = {
+            dictionary helix       = { string doc = "Alpha-helix annotation token." }
+            dictionary sheet       = { string doc = "Beta-sheet annotation token." }
+            dictionary loop        = { string doc = "Coil/loop annotation token." }
+        }
+    }
+)
+{
+}
+
+class "Protein" (
+    inherits   = </Typed>
+    doc        = "A protein structure with chain residues and AlphaFold metadata."
+    customData = {
+        string className   = "Protein"
+        string extraIncludes = "#include \"pxr/base/gf/vec3f.h\""
+    }
+)
+{
+    string structBio:uniprotAccession = "" (
+        doc = "UniProt accession; matches the HoloScript-side ProteinObject.uniprot field."
+    )
+    int    structBio:residueCount = 0 (
+        doc = "Number of residues in this protein. Mirrors residues.length on the HoloScript side."
+    )
+    token[] structBio:residueSecondary = [] (
+        doc = "Per-residue secondary structure tokens; allowed values: helix, sheet, loop."
+        allowedTokens = ["helix", "sheet", "loop"]
+    )
+}
+
+class "Ligand" (
+    inherits   = </Typed>
+    doc        = "A small-molecule ligand with optional SMILES annotation."
+    customData = {
+        string className = "Ligand"
+    }
+)
+{
+    string structBio:smiles = "" (
+        doc = "Canonical SMILES string for the ligand."
+    )
+}
+
+class "Chain" (
+    inherits   = </Typed>
+    doc        = "A polypeptide chain belonging to a parent protein."
+    customData = {
+        string className = "Chain"
+    }
+)
+{
+    rel    structBio:parentProtein (
+        doc = "Relationship to the owning Protein prim."
+    )
+    int    structBio:residueCount = 0 (
+        doc = "Number of residues in this chain."
+    )
+}
+
+class "FoldableAPI" (
+    inherits     = </APISchemaBase>
+    doc          = "API schema marking a Protein as foldable (folding-state-trackable)."
+    customData   = {
+        token   apiSchemaType = "singleApply"
+        string  className     = "FoldableAPI"
+    }
+)
+{
+    bool   structBio:foldable:enabled = true (
+        doc = "Whether folding-state tracking is enabled for this prim."
+    )
+}
+
+class "HelixAPI" (
+    inherits     = </APISchemaBase>
+    doc          = "API schema annotating a Chain region as alpha-helix."
+    customData   = {
+        token   apiSchemaType = "singleApply"
+        string  className     = "HelixAPI"
+    }
+)
+{
+    int    structBio:helix:startResidue = 0 (
+        doc = "1-based residue index where the helix begins."
+    )
+    int    structBio:helix:endResidue = 0 (
+        doc = "1-based residue index where the helix ends, inclusive."
+    )
+}
+
+class "SheetAPI" (
+    inherits     = </APISchemaBase>
+    doc          = "API schema annotating a Chain region as beta-sheet."
+    customData   = {
+        token   apiSchemaType = "singleApply"
+        string  className     = "SheetAPI"
+    }
+)
+{
+    int    structBio:sheet:startResidue = 0 (
+        doc = "1-based residue index where the sheet begins."
+    )
+    int    structBio:sheet:endResidue = 0 (
+        doc = "1-based residue index where the sheet ends, inclusive."
+    )
+}
+
+class "ResidueAnchorAPI" (
+    inherits     = </APISchemaBase>
+    doc          = "API schema attaching a per-residue provenance anchor token to a Chain prim."
+    customData   = {
+        token   apiSchemaType = "multipleApply"
+        string  propertyNamespacePrefix = "structBio:residueAnchor"
+        string  className     = "ResidueAnchorAPI"
+    }
+)
+{
+    int    structBio:residueAnchor:residueIndex = 0 (
+        doc = "1-based residue index this anchor refers to."
+    )
+    string structBio:residueAnchor:anchorHex = "" (
+        doc = "Hex-encoded anchor hash. NOTE: USD has no native semiring chaining — this string is opaque to USD's composition engine, unlike the HoloScript-side anchor which is fused into the provenance hash chain at compile time."
+    )
+}

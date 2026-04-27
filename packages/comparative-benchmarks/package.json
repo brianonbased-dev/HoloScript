@@ -28,6 +28,7 @@
   "dependencies": {
     "@holoscript/core": "workspace:*",
     "@holoscript/openusd-plugin": "workspace:*",
+    "@holoscript/structural-biology-plugin": "workspace:*",
     "tinybench": "^2.9.0"
   },
   "devDependencies": {
