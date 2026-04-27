@@ -48,6 +48,9 @@ onMounted(() => {
       </div>
     </nav>
 
+    <!-- LIVE EVIDENCE STRIP (above hero) -->
+    <LiveEvidenceStrip />
+
     <!-- HERO -->
     <section id="hero">
       <div class="hero-grid-bg"></div>

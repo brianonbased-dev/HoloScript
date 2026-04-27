@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-27T19:31:58.418Z",
+  "notes": "Refresh via scripts/build-live-evidence-manifest.mjs. Auto-refreshes via GHA cron (task_1777316737268_nxgx) every 6h + repository_dispatch on research changes.",
+  "sourceRepos": {
+    "aiEcosystem": "C:/Users/josep/.ai-ecosystem",
+    "holoScript": "C:\\Users\\josep\\HoloScript"
+  },
+  "tiles": {
+    "fleet": {
+      "agentsLast24h": 5,
+      "spendUsd24h": 1.514,
+      "commitsLast24h": 207,
+      "commitsByRepo": {
+        "aiEcosystem": 100,
+        "holoScript": 107
+      },
+      "note": null
+    },
+    "anchor": {
+      "file": "research/trust-by-construction-paper.tex",
+      "fileName": "trust-by-construction-paper.tex",
+      "fileSha256": "be738eab83a01c52e073097e45e3ced0159ad60c5391400d3750e46c51250b37",
+      "fileSha256Short": "be738eab83a0",
+      "txHash": "0xbc040667777d8547603e2a920530cba13a1e9f394ec8c2c00f2371c3709d2fe4",
+      "txHashShort": "0xbc04066777",
+      "blockNumber": 45241476,
+      "basescanUrl": "https://basescan.org/tx/0xbc040667777d8547603e2a920530cba13a1e9f394ec8c2c00f2371c3709d2fe4",
+      "anchoredAtMs": 1777273166000,
+      "anchoredAtIso": "2026-04-27T06:59:26.000Z",
+      "relativeTime": "12 h ago"
+    },
+    "commit": {
+      "repo": "HoloScript",
+      "hash": "68031d4707a15818626129f0a32455e29c082c83",
+      "hashShort": "68031d4",
+      "subject": "fix(plugins): drop unused holoscript-web-preview workspace dep from core/platform/mesh",
+      "author": "brianonbased-dev",
+      "iso": "2026-04-27T12:30:19-07:00",
+      "relativeTime": "1 min ago",
+      "githubUrl": "https://github.com/brianonbased-dev/HoloScript/commit/68031d4707a15818626129f0a32455e29c082c83"
+    }
+  }
+}
