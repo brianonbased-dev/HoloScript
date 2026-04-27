@@ -110,8 +110,32 @@ export interface CaelAuditRecord {
   defense_state?: string;
   trial?: number;
   brain_class?: string;
+  // W.110 trust epoch — set by post-W.107.b runners (HS commit 435928977).
+  // Records lacking this field are pre-gate (mw02 hallucination cohort) and
+  // are implicitly untrusted. Production counts (Paper 17/19/21/25 corpus,
+  // fleet-status drift detector) MUST filter via isCaelRecordTrusted().
+  // Canonical source: ai-ecosystem/scripts/lib/trust-epoch.mjs.
+  trust_epoch?: 'post-w107';
   // Server-stamped on append
   received_at: string;
+}
+
+/** Trust-epoch tag set by post-W.107.b runners. Pre-gate records lack this. */
+export const CAEL_TRUST_EPOCH_POSTGATE = 'post-w107' as const;
+
+/**
+ * Strict trust-epoch check — mirrors `isTrusted()` in
+ * `ai-ecosystem/scripts/lib/trust-epoch.mjs`. Returns true iff the record
+ * carries the explicit post-W.107.b tag. Required filter for any caller
+ * that draws scientific or operational conclusions from CAEL records.
+ *
+ * The two fleet-status counter loops in `routes/core-routes.ts` (the team
+ * fleet-status endpoint at ~line 681 and the composite /fleet/status at
+ * ~line 901) MUST gate on this — otherwise pre-W.107 hallucinations
+ * contaminate metrics and trigger drift-detection false positives.
+ */
+export function isCaelRecordTrusted(record: CaelAuditRecord): boolean {
+  return record.trust_epoch === CAEL_TRUST_EPOCH_POSTGATE;
 }
 
 export const agentAuditStore: Map<string, CaelAuditRecord[]> = new Map(); // handle → records
@@ -405,10 +429,23 @@ export function appendCaelAuditRecord(handle: string, record: CaelAuditRecord): 
 
 export function queryCaelAuditRecords(
   handle: string,
-  filter: { since?: string; until?: string; limit?: number; operation?: string } = {}
+  filter: {
+    since?: string;
+    until?: string;
+    limit?: number;
+    operation?: string;
+    /** W.110: when true, drop records lacking `trust_epoch === 'post-w107'`.
+     *  Default `false` preserves the historical full-record behavior so the
+     *  forensic audit endpoint keeps returning everything. Production count
+     *  callers (fleet-status, paper-corpus consumers) should pass `true`. */
+    trustedOnly?: boolean;
+  } = {}
 ): CaelAuditRecord[] {
   const records = agentAuditStore.get(handle) ?? [];
   let out = records;
+  if (filter.trustedOnly) {
+    out = out.filter(isCaelRecordTrusted);
+  }
   if (filter.since) {
     const sinceMs = Date.parse(filter.since);
     if (Number.isFinite(sinceMs)) {

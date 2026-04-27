@@ -27,6 +27,7 @@ import {
   agentAuditStore,
   appendCaelAuditRecord,
   queryCaelAuditRecords,
+  isCaelRecordTrusted,
   type CaelAuditRecord,
   setAgentDefense,
   getAgentDefense,
@@ -676,10 +677,14 @@ export async function handleCoreRoutes(
       }
 
       // Aggregate CAEL activity per handle from agentAuditStore (in-memory
-      // ring buffer). Filtered to records since `sinceIso`.
+      // ring buffer). Filtered to records since `sinceIso` AND filtered to
+      // post-W.107 trust epoch — pre-gate hallucinations (mw02 cohort) must
+      // not contaminate operational metrics. See state.ts isCaelRecordTrusted
+      // + ai-ecosystem/scripts/lib/trust-epoch.mjs (W.110).
       const caelByHandle = new Map<string, { count: number; latestIso: string }>();
       for (const [handle, records] of agentAuditStore.entries()) {
         const recent = records.filter((r) => {
+          if (!isCaelRecordTrusted(r)) return false;
           const t = Date.parse(r.tick_iso);
           return Number.isFinite(t) && t >= sinceMs;
         });
@@ -898,7 +903,11 @@ export async function handleCoreRoutes(
         doneByHandle.set(handle, cur);
       }
 
-      // --- Index: CAEL activity in window by handle ---
+      // --- Index: CAEL activity in window by handle (trust-gated) ---
+      // Filter through isCaelRecordTrusted so the composite fleet-status drift
+      // detector (cael_no_artifacts, cael_noisy_no_commits) only sees post-
+      // W.107 records. Pre-gate hallucinations would otherwise trigger false
+      // positives. W.110 / ai-ecosystem/scripts/lib/trust-epoch.mjs.
       const caelByHandle = new Map<
         string,
         { count: number; lastIso: string; observedBrains: Set<string> }
@@ -908,6 +917,7 @@ export async function handleCoreRoutes(
         let lastIso = '';
         const observedBrains = new Set<string>();
         for (const r of records) {
+          if (!isCaelRecordTrusted(r)) continue;
           const t = Date.parse(r.tick_iso);
           if (!Number.isFinite(t) || t < sinceMs) continue;
           count += 1;
