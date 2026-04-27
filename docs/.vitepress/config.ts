@@ -213,6 +213,7 @@ export default defineConfig({
         ],
       },
       { text: 'Examples', link: '/examples/' },
+      { text: 'Provenance', link: '/provenance' },
       {
         text: 'Studio',
         link: 'https://studio.holoscript.net',
