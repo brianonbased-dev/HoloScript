@@ -25,6 +25,7 @@ import {
   AssetLoadCoordinator,
   SecurityEventBus,
   GenerativeJobMonitor,
+  SessionPresenceCoordinator,
 } from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
@@ -94,6 +95,17 @@ export class TraitRuntimeIntegration {
    */
   readonly generativeJobMonitor: GenerativeJobMonitor;
 
+  /**
+   * Session presence consumer-bus — fourth and final of the 4 buses.
+   * Subscribes to the multiplayer-presence trait cluster: SharePlay +
+   * SpatialVoice + WorldHeartbeat + Messaging (26 events). Tracks
+   * sessions, voice peers + mute state, messaging connections, and
+   * heartbeat liveness. Downstream consumers (lobby UI, peer roster,
+   * presence indicators, uptime dashboards, network-quality meters)
+   * call `traitRuntime.sessionPresenceCoordinator.subscribe(listener)`.
+   */
+  readonly sessionPresenceCoordinator: SessionPresenceCoordinator;
+
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
     this.contextFactory = contextFactory;
@@ -108,6 +120,10 @@ export class TraitRuntimeIntegration {
     // Wire the generative-job monitor — 23 lifecycle events across the
     // 4-trait Ai* cluster.
     this.generativeJobMonitor = new GenerativeJobMonitor(contextFactory);
+    // Wire the session-presence coordinator — 26 events across the
+    // 4-trait multiplayer-presence cluster (SharePlay/SpatialVoice/
+    // WorldHeartbeat/Messaging). Closes Pattern E end-to-end (4/4 buses).
+    this.sessionPresenceCoordinator = new SessionPresenceCoordinator(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------
