@@ -21,6 +21,7 @@
 import { VRTraitRegistry } from '@holoscript/core';
 import type { HSPlusNode, VRTraitName } from '@holoscript/core';
 import type { TraitContext, TraitEvent } from '@holoscript/core';
+import { AssetLoadCoordinator } from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
 
@@ -55,10 +56,25 @@ export class TraitRuntimeIntegration {
   private lastUpdateMs: number = 0;
   private paused: boolean = false;
 
+  /**
+   * Asset load consumer-bus — Pattern E remediation per /stub-audit
+   * Phase 3.5 + task_1777281302813_eezs (commit 7ae7971cc). Subscribes
+   * to the engine's TraitContextFactory event stream and tracks
+   * GLTF/USD/FBX asset loading state across the runtime. Downstream
+   * consumers (loading screens, asset caches, scene-progress overlays)
+   * call `traitRuntime.assetLoadCoordinator.subscribe(listener)` to
+   * observe state changes.
+   */
+  readonly assetLoadCoordinator: AssetLoadCoordinator;
+
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
     this.contextFactory = contextFactory;
     this.context = contextFactory.createContext();
+    // Wire the asset-load consumer-bus to the factory's event stream.
+    // Constructor subscribes to all 15 asset-load events; coordinator
+    // is then publicly readable so callers can subscribe to state.
+    this.assetLoadCoordinator = new AssetLoadCoordinator(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------

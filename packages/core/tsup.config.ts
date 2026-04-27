@@ -71,6 +71,8 @@ export default defineConfig({
     'traits/index': 'src/traits/index.ts',
     // Engines lightweight barrel (no plugin imports — for runtime + r3f consumption)
     'traits/engines/index': 'src/traits/engines/index.ts',
+    // Consumer-bus coordinators (Pattern E remediation per /stub-audit Phase 3.5)
+    'coordinators/index': 'src/coordinators/index.ts',
 
     // Compiler barrel (re-exports all compilers for @holoscript/compiler)
     'compiler/index': 'src/compiler/index.ts',
