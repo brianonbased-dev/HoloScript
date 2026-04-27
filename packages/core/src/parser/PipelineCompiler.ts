@@ -208,6 +208,38 @@ function genSource(source: PipelineSource): string {
     // @ts-expect-error
   } else if (source.type === 'stdout') {
     lines.push(`// stdout source — no-op (for testing)`);
+  } else if (source.type === 'stream') {
+    // SSE / NDJSON / chunked-JSON streaming endpoint
+    const method = source.method || 'GET';
+    const streamHeaders: Record<string, string> = {
+      Accept: 'text/event-stream, application/x-ndjson, application/json',
+    };
+    if (source.auth) {
+      if (source.auth.type === 'bearer') {
+        streamHeaders['Authorization'] = `Bearer \${interpolate('${source.auth.token || ''}')}`;
+      } else if (source.auth.type === 'api_key') {
+        streamHeaders[source.auth.header || 'x-api-key'] = `\${interpolate('${source.auth.key || source.auth.token || ''}')}`;
+      }
+    }
+    lines.push(`const ${source.name}_resp = await fetch(interpolate(\`${source.endpoint || ''}\`), {`);
+    lines.push(`  method: '${method}',`);
+    lines.push(`  headers: ${JSON.stringify(streamHeaders)},`);
+    lines.push(`});`);
+    lines.push(`if (!${source.name}_resp.ok) throw new Error(\`Stream source ${source.name} failed: \${${source.name}_resp.status} \${${source.name}_resp.statusText}\`);`);
+    lines.push(`const ${source.name}_text = await ${source.name}_resp.text();`);
+    lines.push(`// Parse SSE (data: ...) or NDJSON or JSON array`);
+    lines.push(`if (${source.name}_text.trim().startsWith('[')) {`);
+    lines.push(`  try { const arr = JSON.parse(${source.name}_text); if (Array.isArray(arr)) records.push(...arr); } catch { /* fall through to line parsing */ }`);
+    lines.push(`}`);
+    lines.push(`if (records.length === 0) {`);
+    lines.push(`  for (const line of ${source.name}_text.split('\\n')) {`);
+    lines.push(`    const l = line.trim();`);
+    lines.push(`    if (!l || l.startsWith(':')) continue;`);
+    lines.push(`    const data = l.startsWith('data: ') ? l.slice(6) : l;`);
+    lines.push(`    if (data === '[DONE]') break;`);
+    lines.push(`    try { records.push(JSON.parse(data)); } catch { /* skip unparseable line */ }`);
+    lines.push(`  }`);
+    lines.push(`}`);
   } else {
     lines.push(`// TODO: ${source.type} source not yet compiled`);
   }
@@ -272,6 +304,60 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`if (Array.isArray(${transform.name}_content)) records = ${transform.name}_content;`);
     lines.push(`else if (Array.isArray(${transform.name}_json?.result)) records = ${transform.name}_json.result;`);
     lines.push(`else if (${transform.name}_content != null) records = [${transform.name}_content];`);
+  } else if (transform.type === 'llm') {
+    // Call an OpenAI-compatible LLM on each record
+    const model = transform.model || '${env.LLM_MODEL:-gpt-4o-mini}';
+    const prompt = transform.prompt || 'Summarize: {{input}}';
+    const inputField = transform.input || '_text';
+    const outputField = typeof transform.output === 'string' ? transform.output : '_llm_result';
+
+    lines.push(`const ${transform.name}_model = interpolate(\`${model}\`) || process.env.LLM_MODEL || 'gpt-4o-mini';`);
+    lines.push(`const ${transform.name}_apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || '';`);
+    lines.push(`const ${transform.name}_base = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\\/$/, '');`);
+    lines.push(`const ${transform.name}_results = [];`);
+    lines.push(`for (const r of records) {`);
+    lines.push(`  const ${transform.name}_input = String(r[${JSON.stringify(inputField)}] ?? JSON.stringify(r));`);
+    lines.push(`  const ${transform.name}_prompt = ${JSON.stringify(prompt)}.replace('{{input}}', ${transform.name}_input);`);
+    lines.push(`  const ${transform.name}_resp = await fetch(${transform.name}_base + '/chat/completions', {`);
+    lines.push(`    method: 'POST',`);
+    lines.push(`    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ${transform.name}_apiKey },`);
+    lines.push(`    body: JSON.stringify({ model: ${transform.name}_model, messages: [{ role: 'user', content: ${transform.name}_prompt }] }),`);
+    lines.push(`  });`);
+    lines.push(`  if (!${transform.name}_resp.ok) {`);
+    lines.push(`    console.warn(\`LLM transform ${transform.name} failed: \${${transform.name}_resp.status}\`);`);
+    lines.push(`    ${transform.name}_results.push(r);`);
+    lines.push(`  } else {`);
+    lines.push(`    const ${transform.name}_json = await ${transform.name}_resp.json();`);
+    lines.push(`    const ${transform.name}_text = ${transform.name}_json?.choices?.[0]?.message?.content ?? '';`);
+    lines.push(`    ${transform.name}_results.push({ ...r, [${JSON.stringify(outputField)}]: ${transform.name}_text });`);
+    lines.push(`  }`);
+    lines.push(`}`);
+    lines.push(`records = ${transform.name}_results;`);
+  } else if (transform.type === 'http') {
+    // Make an HTTP call per record and merge the response
+    const url = transform.url || '';
+    const method = transform.method || 'POST';
+
+    lines.push(`const ${transform.name}_results = [];`);
+    lines.push(`for (const r of records) {`);
+    lines.push(`  const ${transform.name}_resp = await fetch(interpolate(\`${url}\`), {`);
+    lines.push(`    method: '${method}',`);
+    lines.push(`    headers: { 'Content-Type': 'application/json' },`);
+    lines.push(`    body: '${method}' === 'GET' ? undefined : JSON.stringify(r),`);
+    lines.push(`  });`);
+    lines.push(`  if (!${transform.name}_resp.ok) {`);
+    lines.push(`    console.warn(\`HTTP transform ${transform.name} failed for record: \${${transform.name}_resp.status}\`);`);
+    lines.push(`    ${transform.name}_results.push(r);`);
+    lines.push(`  } else {`);
+    lines.push(`    const ${transform.name}_data = await ${transform.name}_resp.json();`);
+    lines.push(`    if (Array.isArray(${transform.name}_data)) {`);
+    lines.push(`      ${transform.name}_results.push(...${transform.name}_data);`);
+    lines.push(`    } else {`);
+    lines.push(`      ${transform.name}_results.push({ ...r, ...${transform.name}_data });`);
+    lines.push(`    }`);
+    lines.push(`  }`);
+    lines.push(`}`);
+    lines.push(`records = ${transform.name}_results;`);
   } else {
     lines.push(`// TODO: ${transform.type || 'unknown'} transform not yet compiled`);
   }

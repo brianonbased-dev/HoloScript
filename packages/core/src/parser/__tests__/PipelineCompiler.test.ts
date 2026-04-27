@@ -136,4 +136,80 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('const Enrich_content = Enrich_json?.result?.content;');
     expect(result.code).not.toContain("// TODO: mcp transform not yet compiled");
   });
+
+  it('compiles stream source — SSE/NDJSON endpoint', () => {
+    const source = `
+      pipeline "StreamIngest" {
+        source Events {
+          type: "stream"
+          endpoint: "4{env.EVENTS_URL:-https://api.example.com/events}"
+        }
+        sink Out { type: "stdout" }
+      }
+    `.replace(/\u00024/g, '$');
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const Events_resp = await fetch(interpolate(");
+    expect(result.code).toContain("EVENTS_URL:-https://api.example.com/events");
+    expect(result.code).toContain("const Events_text = await Events_resp.text();");
+    expect(result.code).toContain("data: '");
+    expect(result.code).not.toContain("// TODO: stream source not yet compiled");
+  });
+
+  it('compiles llm transform — OpenAI-compatible call per record', () => {
+    const source = `
+      pipeline "LLMEnrich" {
+        source Input {
+          type: "list"
+          items: [{ title: "Hello World" }]
+        }
+        transform Summarise {
+          type: "llm"
+          model: "gpt-4o-mini"
+          prompt: "Summarize: {{input}}"
+          input: "title"
+          output: "summary"
+        }
+        sink Out { type: "stdout" }
+      }
+    `;
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const Summarise_model = interpolate(`gpt-4o-mini`)");
+    expect(result.code).toContain("const Summarise_apiKey = process.env.OPENAI_API_KEY");
+    expect(result.code).toContain("/chat/completions");
+    expect(result.code).toContain('"Summarize: {{input}}"');
+    expect(result.code).toContain('"title"');
+    expect(result.code).toContain('"summary"');
+    expect(result.code).toContain("records = Summarise_results;");
+    expect(result.code).not.toContain("// TODO: llm transform not yet compiled");
+  });
+
+  it('compiles http transform — HTTP call per record with response merge', () => {
+    const source = `
+      pipeline "HttpEnrich" {
+        source Input {
+          type: "list"
+          items: [{ id: 42 }]
+        }
+        transform Enrich {
+          type: "http"
+          url: "4{env.ENRICH_API:-https://api.example.com/enrich}"
+          method: "POST"
+        }
+        sink Out { type: "stdout" }
+      }
+    `.replace(/\u00024/g, '$');
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("const Enrich_results = [];");
+    expect(result.code).toContain("for (const r of records)");
+    expect(result.code).toContain("ENRICH_API:-https://api.example.com/enrich");
+    expect(result.code).toContain("method: 'POST'");
+    expect(result.code).toContain("records = Enrich_results;");
+    expect(result.code).not.toContain("// TODO: http transform not yet compiled");
+  });
 });
