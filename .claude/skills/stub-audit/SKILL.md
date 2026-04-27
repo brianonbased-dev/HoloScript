@@ -107,6 +107,74 @@ Flag as **POTENTIAL** when:
 - Effective onUpdate LOC < 30 AND compiler ref count == 1
 - OR effective onUpdate LOC == 0 (event-only) AND compiler ref count >= 2
 
+## Phase 3.5 — Pattern E detection (emit-without-listener)
+
+**Pattern B** (covered above) flags traits whose `onUpdate` body is a stub.
+**Pattern E** flags traits whose body emits events that NO downstream
+consumer reads — the failure mode discovered 2026-04-27 in /critic batch-6
+review of commits 527d1236e + 62185dd56: a trait can be FULLY WIRED at
+the body level and still be a tombstone if its emit-targets have no
+listener anywhere outside `__tests__/` and the trait file itself.
+
+**Algorithm**: for each event the trait emits, count listeners outside
+`packages/core/src/traits/` (the emitter's home). If zero — flag as Pattern E.
+
+```bash
+# Verified-working regex (regression-tested 2026-04-27 against
+# OnnxRuntimeTrait + NeuralForgeTrait + NeuralAnimationTrait):
+for trait in <all-trait-files>; do
+  # Extract emitted event names from `context.emit?.('event')` patterns.
+  # The two-step grep simplification: first match the emit prefix + first
+  # quote + event name, then re-extract just the quoted name.
+  emits=$(grep -oE "context\.emit\?[^']*'[a-z_:]+'" "$trait" \
+    | grep -oE "'[a-z_:]+'" \
+    | tr -d "'" \
+    | sort -u)
+  [ -z "$emits" ] && continue
+
+  for evt in $emits; do
+    # Search consumer-side packages — runtime, studio, r3f-renderer, engine.
+    # Exclude the emitter's own home (core/traits) so we don't count self-references.
+    listener_count=$(grep -rn "['\"]${evt}['\"]" \
+      packages/runtime/src/ \
+      packages/studio/src/ \
+      packages/r3f-renderer/src/ \
+      packages/engine/src/ \
+      2>/dev/null | wc -l)
+    if [ "$listener_count" -eq 0 ]; then
+      echo "PATTERN_E|$(basename "$trait")|$evt|0_listeners"
+    else
+      echo "WIRED|$(basename "$trait")|$evt|${listener_count}_listeners"
+    fi
+  done
+done
+```
+
+**To support `ctx.emit?` callers as well**, swap the first regex to
+`(context|ctx)\\.emit\\?[^']*'[a-z_:]+'`. The current single-pattern version
+covers all 4 wired traits this session; expand if a future trait uses `ctx.`.
+
+**A trait is a PATTERN E violation when**:
+- It emits 1+ events that have ZERO listeners across consumer packages.
+- Severity scales with: (a) compiler reference count (high = more callers
+  expecting the events to fire), (b) number of distinct events with no
+  listeners (more = bigger void). A trait emitting 12 events with all-zero
+  listeners is the canonical extreme (ComputeTrait at /critic batch-6).
+
+**Pattern E + Pattern B can co-exist**: a trait can be a stub AND emit
+into the void. Wiring the stub body without wiring the consumer just
+moves the failure mode from "no work" to "work that nobody reads".
+
+**Verified Pattern E examples on real codebase 2026-04-27**:
+- `OnnxRuntimeTrait` (post-commit 527d1236e WIRE): emits `onnx:loaded`,
+  `onnx:output`, `onnx:error`, `onnx:disposed` — all 0 listeners outside
+  `__tests__/`. Pattern B closed, Pattern E opened — exactly the
+  failure mode /critic Critical #1 named.
+- `NeuralForgeTrait` (post-commit 62185dd56 WIRE): same shape — events
+  emit, no listener anywhere.
+
+**Pattern E REPORT integrates with the main report** in Phase 4 below.
+
 ## Phase 4 — Produce report
 
 Output to stdout (do NOT write to disk unless user says so):
@@ -126,6 +194,18 @@ Output to stdout (do NOT write to disk unless user says so):
 |-------|------------------------|---------------|-------|
 | ...   | ...                    | ...           | ...   |
 
+## Pattern E violations — emit-without-listener (the void trap)
+
+Traits whose body is wired but whose emitted events have ZERO listeners
+across consumer packages (runtime/, studio/, r3f-renderer/, engine/).
+This is the "WIRE'd Pattern B is now Pattern E" failure mode caught
+post-2026-04-27. WIRE-ing the body without a consumer just relocates
+the failure from "no work" to "work nobody reads".
+
+| Trait | Events into the void | Compiler refs | Suggested action |
+|-------|----------------------|---------------|------------------|
+| ...   | <count> / <names>    | <number>      | WIRE-CONSUMER recommendation |
+
 ## Event-only traits (no onUpdate by design — verify intentional)
 
 | Trait | onAttach LOC | Compiler refs |
@@ -134,9 +214,13 @@ Output to stdout (do NOT write to disk unless user says so):
 ## Summary
 
 - Total traits scanned: N
-- CONFIRMED stubs: N
+- CONFIRMED Pattern B stubs: N
 - POTENTIAL stubs: N
-- Recommended next /idea synthesis: target the top-3 CONFIRMED entries
+- PATTERN E violations: N (events into the void)
+- Recommended next /idea synthesis: target the top-3 CONFIRMED Pattern B
+  entries OR the top-1 Pattern E (whichever has highest compiler ref count
+  — consumer-side WIRE for Pattern E unblocks N traits at once via shared
+  consumer infrastructure).
 ```
 
 For each CONFIRMED entry, suggest a concrete WIRE+BUILD framing:
