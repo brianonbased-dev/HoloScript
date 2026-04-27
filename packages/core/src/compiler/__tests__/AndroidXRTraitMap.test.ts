@@ -534,7 +534,11 @@ describe('AndroidXRTraitMap', () => {
 
   it('lists partial traits (should include new physics/audio/rendering/multiplayer/AI)', () => {
     const partial = listTraitsByLevel('partial');
-    expect(partial).toContain('cloth');
+    expect(partial).not.toContain('cloth');
+    expect(partial).not.toContain('collidable');
+    expect(partial).not.toContain('physics');
+    expect(partial).not.toContain('static');
+    expect(partial).not.toContain('kinematic');
     expect(partial).toContain('soft_body');
     expect(partial).toContain('fluid');
     expect(partial).toContain('pbd_constraint');
@@ -659,5 +663,70 @@ describe('AndroidXRTraitMap — Upgraded Audio Traits (batch 4)', () => {
   it('audio_occlusion declares SpatialSoundPool import', () => {
     const imports = getRequiredImports(['audio_occlusion']);
     expect(imports.some((i) => i.includes('SpatialSoundPool'))).toBe(true);
+  });
+});
+
+describe('AndroidXRTraitMap — Upgraded Physics Traits (batch 5)', () => {
+  it('collidable is full and generates InteractableComponent with event handler', () => {
+    const mapping = getTraitMapping('collidable');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('collidable', 'box', { mode: 'trigger' });
+    expect(code.some((l) => l.includes('InteractableComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('addComponent'))).toBe(true);
+  });
+
+  it('collidable mode is embedded in output', () => {
+    const code = generateTraitCode('collidable', 'box', { mode: 'sensor' });
+    expect(code.some((l) => l.includes('sensor'))).toBe(true);
+  });
+
+  it('physics is full and generates PhysicsComponent with mass, friction, restitution', () => {
+    const mapping = getTraitMapping('physics');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('physics', 'ball', { mass: 2.5, friction: 0.4, restitution: 0.6 });
+    expect(code.some((l) => l.includes('PhysicsComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('2.5'))).toBe(true);
+    expect(code.some((l) => l.includes('0.4'))).toBe(true);
+    expect(code.some((l) => l.includes('0.6'))).toBe(true);
+  });
+
+  it('physics defaults to dynamic mode', () => {
+    const code = generateTraitCode('physics', 'obj', {});
+    expect(code.some((l) => l.includes('DYNAMIC'))).toBe(true);
+  });
+
+  it('static is full and generates STATIC PhysicsMode', () => {
+    const mapping = getTraitMapping('static');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('static', 'wall', {});
+    expect(code.some((l) => l.includes('PhysicsMode.STATIC'))).toBe(true);
+    expect(code.some((l) => l.includes('addComponent'))).toBe(true);
+  });
+
+  it('kinematic is full and generates KINEMATIC PhysicsMode', () => {
+    const mapping = getTraitMapping('kinematic');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('kinematic', 'platform', {});
+    expect(code.some((l) => l.includes('PhysicsMode.KINEMATIC'))).toBe(true);
+  });
+
+  it('cloth is full and generates PBDClothSimulation with GLES31 compute dispatch', () => {
+    const mapping = getTraitMapping('cloth');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('cloth', 'flag', { stiffness: 0.7, width: 30, height: 30 });
+    expect(code.some((l) => l.includes('PBDClothSimulation'))).toBe(true);
+    expect(code.some((l) => l.includes('GLES31'))).toBe(true);
+    expect(code.some((l) => l.includes('glDispatchCompute'))).toBe(true);
+  });
+
+  it('cloth embeds grid dimensions from config', () => {
+    const code = generateTraitCode('cloth', 'sheet', { width: 40, height: 50 });
+    expect(code.some((l) => l.includes('40'))).toBe(true);
+    expect(code.some((l) => l.includes('50'))).toBe(true);
   });
 });

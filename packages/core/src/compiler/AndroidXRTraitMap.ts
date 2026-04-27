@@ -81,7 +81,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   collidable: {
     trait: 'collidable',
     components: ['CollisionComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.Entity', 'com.google.android.filament.utils.Float3'],
     generate: (varName, config) => {
       const mode = config.mode || 'default';
@@ -99,7 +99,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   physics: {
     trait: 'physics',
     components: ['CollisionComponent', 'PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.Entity', 'com.google.android.filament.utils.Float3'],
     generate: (varName, config) => {
       const mass = config.mass ?? 1.0;
@@ -122,7 +122,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   static: {
     trait: 'static',
     components: ['CollisionComponent', 'PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName) => [
       `// @static -- static physics body (no movement, collisions only)`,
       `val ${varName}Physics = PhysicsComponent.create(session)`,
@@ -134,7 +134,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   kinematic: {
     trait: 'kinematic',
     components: ['CollisionComponent', 'PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName) => [
       `// @kinematic -- kinematic physics body (script-driven movement)`,
       `val ${varName}Physics = PhysicsComponent.create(session)`,
@@ -146,7 +146,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   cloth: {
     trait: 'cloth',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.utils.Float3', 'android.opengl.GLES31'],
     generate: (varName, config) => {
       const stiffness = config.stiffness ?? 0.8;

@@ -113,7 +113,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, TraitMapping> = {
   cloth: {
     trait: 'cloth',
     components: ['CollisionComponent', 'PhysicsBodyComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['RealityKit', 'Metal'],
     generate: (varName, config) => {
       const stiffness = config.stiffness ?? 0.8;
@@ -143,7 +143,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, TraitMapping> = {
   soft_body: {
     trait: 'soft_body',
     components: ['CollisionComponent', 'PhysicsBodyComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['RealityKit', 'Metal'],
     generate: (varName, config) => {
       const compliance = config.compliance ?? 0.0001;
@@ -172,7 +172,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, TraitMapping> = {
   fluid: {
     trait: 'fluid',
     components: ['CollisionComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['RealityKit', 'Metal'],
     generate: (varName, config) => {
       const particleCount = config.particle_count ?? 10000;
@@ -690,7 +690,7 @@ export const VISUAL_TRAIT_MAP: Record<string, TraitMapping> = {
   lod: {
     trait: 'lod',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const distances = config.distances || [5, 15];
       const d = distances as number[];
@@ -701,8 +701,8 @@ export const VISUAL_TRAIT_MAP: Record<string, TraitMapping> = {
         `    var thresholds: [Float] = [${d[0] ?? 5}, ${d[1] ?? 15}]`,
         `    var currentLevel: Int = 0`,
         `}`,
-        `// Register: ${varName}LODComponent.registerComponent()`,
-        `// In LODSystem.update(): query camera distance, swap ModelComponent.mesh`,
+        `${varName}LODComponent.registerComponent()`,
+        `// LODSystem.update(): query camera distance, swap ModelComponent.mesh via level thresholds`,
         `${varName}.components.set(${varName}LODComponent())`,
       ];
     },
@@ -967,7 +967,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   spatial_persona: {
     trait: 'spatial_persona',
     components: [],
-    level: 'partial',
+    level: 'full',
     minVersion: '2.0',
     imports: ['GroupActivities'],
     generate: (varName, config) => {
@@ -975,8 +975,19 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
       return [
         `// @spatial_persona — visionOS 2.0 Spatial Persona (GroupActivities)`,
         `// Requires SharePlay session; persona renders at ${varName} position`,
-        `// PersonaStyle: ${style}`,
-        `// TODO: configure SystemCoordinator and spatial template`,
+        `let ${varName}PersonaStyle: SpatialPersonaStyle = .${style}`,
+        `let ${varName}SpatialTemplate = SpatialTemplate(settings: SpatialTemplateSettings())`,
+        `let ${varName}Coordinator = SystemCoordinator()`,
+        `Task {`,
+        `    for await session in GroupStateObserver().isSpatialSharePlayActive.values {`,
+        `        guard session else { continue }`,
+        `        await SystemCoordinator.requestForegroundPresentation(`,
+        `            .spatialPersona(style: ${varName}PersonaStyle),`,
+        `            template: ${varName}SpatialTemplate`,
+        `        )`,
+        `    }`,
+        `}`,
+        `${varName}.components.set(OpacityComponent(opacity: 1.0))`,
       ];
     },
   },

@@ -381,3 +381,85 @@ describe('VisionOSTraitMap', () => {
       });
     });
   });
+
+  // =========== Upgraded Traits — full level (batch 5) ===========
+
+describe('Upgraded Traits — full level (batch 5)', () => {
+  it('cloth is full and generates ClothSimulationComponent with Metal dispatch', () => {
+    const mapping = getTraitMapping('cloth');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('cloth', 'fabric', { stiffness: 0.9, damping: 0.01 });
+    expect(code.some((l) => l.includes('ClothSimulationComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('ClothSimulationSystem'))).toBe(true);
+    expect(code.some((l) => l.includes('MTLCreateSystemDefaultDevice'))).toBe(true);
+  });
+
+  it('cloth declares RealityKit + Metal imports', () => {
+    const imports = getRequiredImports(['cloth']);
+    expect(imports).toContain('RealityKit');
+    expect(imports).toContain('Metal');
+  });
+
+  it('soft_body is full and generates SoftBodyComponent with XPBD solve', () => {
+    const mapping = getTraitMapping('soft_body');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('soft_body', 'blob', { compliance: 0.0002 });
+    expect(code.some((l) => l.includes('SoftBodyComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('SoftBodySimulationSystem'))).toBe(true);
+    expect(code.some((l) => l.includes('MTLCreateSystemDefaultDevice'))).toBe(true);
+  });
+
+  it('soft_body declares RealityKit + Metal imports', () => {
+    const imports = getRequiredImports(['soft_body']);
+    expect(imports).toContain('RealityKit');
+    expect(imports).toContain('Metal');
+  });
+
+  it('fluid is full and generates FluidSimulationComponent with SPH config', () => {
+    const mapping = getTraitMapping('fluid');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('fluid', 'water', { particle_count: 5000, viscosity: 0.02 });
+    expect(code.some((l) => l.includes('FluidSimulationComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('FluidSimulationSystem'))).toBe(true);
+    expect(code.some((l) => l.includes('5000'))).toBe(true);
+  });
+
+  it('fluid declares RealityKit + Metal imports', () => {
+    const imports = getRequiredImports(['fluid']);
+    expect(imports).toContain('RealityKit');
+    expect(imports).toContain('Metal');
+  });
+
+  it('lod is full and registers LODComponent via registerComponent()', () => {
+    const mapping = getTraitMapping('lod');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('lod', 'mesh', { distances: [3, 10] });
+    expect(code.some((l) => l.includes('LODComponent'))).toBe(true);
+    expect(code.some((l) => l.includes('registerComponent()'))).toBe(true);
+    expect(code.some((l) => !l.trimStart().startsWith('//')  && l.includes('registerComponent()'))).toBe(true);
+  });
+
+  it('lod embeds distance thresholds from config', () => {
+    const code = generateTraitCode('lod', 'obj', { distances: [8, 20] });
+    expect(code.some((l) => l.includes('8') && l.includes('20'))).toBe(true);
+  });
+
+  it('spatial_persona is full and generates SystemCoordinator request', () => {
+    const mapping = getTraitMapping('spatial_persona');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('spatial_persona', 'user', { style: 'realistic' });
+    expect(code.some((l) => l.includes('SystemCoordinator'))).toBe(true);
+    expect(code.some((l) => l.includes('spatialPersona'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('spatial_persona declares GroupActivities import', () => {
+    const imports = getRequiredImports(['spatial_persona']);
+    expect(imports).toContain('GroupActivities');
+  });
+});
