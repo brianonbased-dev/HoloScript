@@ -66,7 +66,7 @@ export class ThreeJSCompiler extends CompilerBase {
   protected readonly compilerName = 'ThreeJSCompiler';
 
   protected override getRequiredCapability(): ANSCapabilityPathValue {
-    return ANSCapabilityPath.THREEJS;
+    return ANSCapabilityPath.R3F;
   }
 
   private options: Required<ThreeJSCompilerOptions>;

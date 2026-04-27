@@ -1284,7 +1284,9 @@ export class HoloScriptRuntime {
 
             // Handle time control commands
             if (data.type === 'time_control') {
-              this.handleTimeControl(data.command, data.value);
+              if (typeof data.command === 'string') {
+                this.handleTimeControl(data.command, data.value);
+              }
             }
           } catch (e) {
             logger.error('[Visualizer] Failed to parse message', { error: String(e) });

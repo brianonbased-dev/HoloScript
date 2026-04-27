@@ -205,7 +205,7 @@ export class BuildCache {
       try {
         const indexData = readFileSync(this.indexPath, 'utf-8');
         const parsed = readJson(indexData) as {
-          version: number;
+          version: string;
           entries: Array<{ key: string; meta: CacheEntryMeta }>;
         };
 

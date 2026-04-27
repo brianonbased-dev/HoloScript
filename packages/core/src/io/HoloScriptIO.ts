@@ -226,7 +226,7 @@ export function expressionToValue(expr: CoreExpression): unknown {
         y: CoreExpression;
         z: CoreExpression;
       };
-      return [expressionToValue(v3[0]), expressionToValue(v3[1]), expressionToValue(v3[2])];
+      return [expressionToValue(v3.x), expressionToValue(v3.y), expressionToValue(v3.z)];
     }
 
     case 'ColorLiteral':
