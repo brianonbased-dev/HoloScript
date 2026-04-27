@@ -142,12 +142,13 @@ def check_cap_before_rent(estimated_cost: float, cap: float) -> tuple[bool, dict
 def rent_instance(offer_id: int, ssh_key_path: Path) -> dict | None:
     """vastai create instance <offer_id> with the bootstrap image. Returns
     {success, new_contract, ...} or None on failure."""
-    # `vastai create instance` requires --image; we use the same Vast PyTorch
-    # image we've used for prior rentals. Bootstrap script will be SCP'd
-    # afterward by deploy.py-style logic.
+    # `vastai create instance` requires --image; use a known-public
+    # Docker Hub tag. Verified 2026-04-26: `vastai/pytorch:2.4.0-cuda-12.4.1`
+    # returns "manifest unknown" on Docker pull. PyTorch official tag works.
+    # Lake/elan don't need PyTorch but we get CUDA + cuDNN + Python ready.
     cmd = [
         "vastai", "create", "instance", str(offer_id),
-        "--image", "vastai/pytorch:2.4.0-cuda-12.4.1",
+        "--image", "pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel",
         "--disk", "80",
         "--raw",
     ]
