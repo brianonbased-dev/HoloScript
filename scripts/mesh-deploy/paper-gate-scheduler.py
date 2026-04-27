@@ -227,6 +227,11 @@ def estimate_cost_usd(req: dict | None, hours: float) -> float | None:
     schedule.blocked_by_missing_scaffold). Conservative: uses the max
     dph the brain accepts as the upper-bound cost; picker may rent
     cheaper, but we plan against the worst-case acceptable price.
+
+    Note: this returns the TOTAL cost over the full run. The cap-fit
+    check uses `daily_burn_rate` (max_dph × 24) instead, since the
+    cap is a daily rate, not a total-spend ceiling. See
+    `daily_burn_rate_usd` below.
     """
     if not req:
         return None
@@ -234,6 +239,41 @@ def estimate_cost_usd(req: dict | None, hours: float) -> float | None:
     if max_dph is None:
         return None
     return float(max_dph) * hours
+
+
+def daily_burn_rate_usd(req: dict | None) -> float | None:
+    """Steady-state $/day cost if this brain runs continuously: max_dph × 24.
+    Long-running corpus collection at $0.30/hr → $7.20/day, fits within
+    $50/day cap even if its total estimate exceeds $50.
+    """
+    if not req:
+        return None
+    max_dph = req.get("max_dph_total_usd")
+    if max_dph is None:
+        return None
+    return float(max_dph) * 24.0
+
+
+def cap_fit_cost_usd(req: dict | None, hours: float) -> float | None:
+    """Returns the spend that would be incurred in the NEXT 24 hours if
+    this rental started now: `min(hours, 24) × max_dph`. This is what
+    the cap-fit check should compare against the daily headroom.
+
+    - For a 2h sweep at $3.50/hr: min(2, 24) × 3.50 = $7 (entire run
+      finishes within today's window, so total cost = today's impact).
+    - For a 168h corpus at $0.30/hr: min(168, 24) × 0.30 = $7.20
+      (only the first 24h count toward today's cap; tomorrow's cap
+      gets its own check via daily ledger pollin).
+
+    This makes burst-rentals AND continuous-rentals comparable to the
+    same cap rail without disadvantaging either.
+    """
+    if not req:
+        return None
+    max_dph = req.get("max_dph_total_usd")
+    if max_dph is None:
+        return None
+    return float(max_dph) * min(float(hours), 24.0)
 
 
 def fetch_ledger_state(ledger_script: Path, cap: float) -> dict:
@@ -372,17 +412,21 @@ def build_schedule(
         brain_path = brains_dir / f"{gate['brain']}.hsplus"
         req = parse_runtime_requirements(brain_path)
         cost = estimate_cost_usd(req, gate["estimated_hours"])
+        burn_rate = daily_burn_rate_usd(req)
+        cap_fit = cap_fit_cost_usd(req, gate["estimated_hours"])
         annotated = {
             **gate,
             "runtime_requirements": req,
             "estimated_cost_usd": cost,
+            "daily_burn_rate_usd": burn_rate,
+            "cap_fit_cost_usd": cap_fit,
             "board_signals": board_per_gate.get(gate["gate_id"], []),
         }
         if gate["paper"] == "17":
             annotated["corpus_progress"] = p17_state
 
         # Block reason 1: brain has no @runtime_requirements yet
-        if req is None or cost is None:
+        if req is None or cost is None or burn_rate is None:
             annotated["blocked_reason"] = (
                 f"brain {gate['brain']}.hsplus has no @runtime_requirements "
                 f"(needed for cost estimate). Tracked under task_1777247600051_nfpi."
@@ -390,12 +434,17 @@ def build_schedule(
             blocked_by_missing_scaffold.append(annotated)
             continue
 
-        # Block reason 2: cost exceeds headroom
-        annotated["fits_under_cap"] = cost <= headroom
+        # Block reason 2: NEXT-24h spend exceeds daily headroom. Uses
+        # `min(hours, 24) × max_dph` — burst rentals (2h × $3.50 = $7)
+        # and continuous rentals (24h × $0.30 = $7.20) compare to the
+        # same daily rail. Long runs spill over multiple days; each day
+        # the ledger re-checks against that day's headroom.
+        annotated["fits_under_cap"] = cap_fit <= headroom
         if not annotated["fits_under_cap"]:
             annotated["blocked_reason"] = (
-                f"estimated_cost ${cost:.2f} > headroom ${headroom:.2f} "
-                f"(cap ${cap_usd:.2f})"
+                f"next-24h spend ${cap_fit:.2f} > headroom ${headroom:.2f}/day "
+                f"(cap ${cap_usd:.2f}/day; daily burn rate ${burn_rate:.2f}/day; "
+                f"total estimated run cost: ${cost:.2f})."
             )
             blocked_by_cap.append(annotated)
             continue
@@ -563,9 +612,9 @@ def self_test() -> int:
         assert ledger_state["headroom_burn_rate_usd"] == 50.0
         assert "_fallback_reason" in ledger_state
 
-        # Test 10: cost-fit boundary — gate exactly at headroom is schedulable;
-        # above is blocked. Construct a brain that costs exactly $50 for 2h
-        # at $25/hr, then a gate that uses it.
+        # Test 10: cost-fit boundary using the cap_fit_cost (next-24h spend)
+        # semantic. For a 2h sweep at $25/hr: cap_fit = min(2, 24) × 25 = $50.
+        # Should fit at cap=50, fail at cap=49.
         boundary_brain = empty_brains / "boundary-brain.hsplus"
         boundary_brain.write_text(
             'composition "X" { @runtime_requirements {\n'
