@@ -124,7 +124,7 @@ export async function handleBoardRoutes(
     const q = parseQuery(url);
 
     const rawLimit = parseInt(String(q.get('limit') || '30'), 10);
-    const limit = Number.isFinite(rawLimit) ? Math.min(200, Math.max(1, rawLimit)) : 30;
+    const limit = Number.isFinite(rawLimit) ? Math.min(1000, Math.max(1, rawLimit)) : 30;
 
     const rawOffset = parseInt(String(q.get('offset') || '0'), 10);
     const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
