@@ -1,13 +1,13 @@
-# Release Versioning Guide
+﻿# Release Versioning Guide
 
 ## Rule
 
 **PyPI major tracks npm platform major unless explicitly declared independent.**
 
-When we release `v6.1.0` as a git tag:
+When we release a new version (e.g. `v7.0.0`) as a git tag:
 
-- npm packages in the platform-synced lane publish at `6.1.0`
-- PyPI `holoscript` publishes at `6.1.0`
+- npm packages in the platform-synced lane publish at that version
+- PyPI `holoscript` publishes at that version
 - Both use the same tag as source of truth
 
 ## Independent packages
@@ -20,12 +20,12 @@ These follow their own semver:
 
 ## How it works
 
-1. Create a git tag: `git tag v6.1.0`
-2. Push: `git push origin v6.1.0`
+1. Create a git tag: `git tag v7.0.0` (example)
+2. Push: `git push origin v7.0.0`
 3. GitHub Actions triggers:
-   - `publish-pypi.yml` → extracts `6.1.0` from tag → builds Python package → publishes to PyPI
+   - `publish-pypi.yml` → extracts version from tag → builds Python package → publishes to PyPI
    - `release-multi-platform.yml` → runs `pnpm release:publish` → publishes npm packages via changesets
-4. Both registries end up at `6.1.0`
+4. Both registries end up at the same version
 
 ## Validation
 
@@ -34,10 +34,10 @@ If they diverge, the workflow fails with a clear error message.
 
 ## Current state (verified from repository)
 
-- npm root `holoscript`: `6.0.4` (from `/package.json`)
-- npm `@holoscript/core`: `6.0.4` (from `packages/core/package.json`)
-- npm `@holoscript/engine`: `6.0.4` (from `packages/engine/package.json`)
-- npm `@holoscript/mcp-server`: `6.0.4` (from `packages/mcp-server/package.json`)
+- npm root `holoscript`: `7.0.0` (from `/package.json`)
+- npm `@holoscript/core`: `7.0.0` (from `packages/core/package.json`)
+- npm `@holoscript/engine`: `7.0.0` (from `packages/engine/package.json`)
+- npm `@holoscript/mcp-server`: `7.0.0` (from `packages/mcp-server/package.json`)
 
 For PyPI package state, verify directly at release time (do not hardcode here):
 

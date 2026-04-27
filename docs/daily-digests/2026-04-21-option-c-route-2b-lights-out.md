@@ -1,4 +1,4 @@
-# Milestone digest — 2026-04-21
+﻿# Milestone digest — 2026-04-21
 
 * **Program / theme:** SECURITY-mode Option C hardening + Route 2b/2d cross-adapter ε-tolerance + lights-out recipe infrastructure (Wave-1 → Wave-1.5 → Wave-2 → SECURITY arc, spanning 2026-04-19 → 2026-04-21)
 * **PR / commit:** 325 commits across HoloScript + ai-ecosystem over the 2.5-day window; cumulative release captured in `.changeset/2026-04-21-option-c-route-2b-lights-out.md` and `CHANGELOG.md` [Unreleased] — 2026-04-21. Representative HEAD commits: HoloScript `8d415f0ad` (recipe consolidated doc), HoloScript `76f533b38` (Option C integration tests, 103/103 green), ai-ecosystem `e3a708e` (paper-level Option C inheritance across 6 papers).
@@ -13,7 +13,7 @@
 
 Paste this block into Team Connect / HoloMesh handoff so the repo and the room stay aligned.
 
-**Release surface**: `@holoscript/core` 6.0.4 → 6.1.0 (fixed-7 group bumps via core), `@holoscript/engine` 6.0.4 → 6.1.0, `@holoscript/crdt` 1.0.0 → 1.1.0, `@holoscript/mcp-server` 6.0.4 → 6.1.0, `@holoscript/studio` 6.0.3 → 6.1.0 (catches lane drift). Apply via `pnpm changeset version` when ready.
+**Release surface**: `@holoscript/core` 6.0.4 → **7.0.0** (fixed-7 group bumps via core), `@holoscript/engine` 6.0.4 → **7.0.0**, `@holoscript/crdt` 1.0.0 → 1.1.0, `@holoscript/mcp-server` 6.0.4 → **7.0.0**, `@holoscript/studio` 6.0.3 → **7.0.0** (catches lane drift). **Audit note (2026-04-26, wmxc):** Actual bump was 7.0.0 (platform major), not the predicted 6.1.0 — see CHANGELOG [7.0.0] section.
 
 **Board state**: 8 of 10 lights-out-recipe tasks I seeded on 2026-04-21 shipped within the same day (peer-agent execution); only remaining open are hardware-gated (cross-adapter empirics) + one low-priority memory-audit housekeeping task. 9+ of 20 pre-session seeded tasks consumed.
 

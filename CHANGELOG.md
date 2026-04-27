@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to HoloScript are documented here.
 
@@ -12,7 +12,15 @@ These rules keep empirical results and narrative out of “lost history” and s
 
 ---
 
-## [Unreleased] — 2026-04-21
+## [Unreleased]
+
+Post-7.0.0: benchmark axis expansion (scenarios 06-09: tool-latency, VR frame-budget, WASM-parser-throughput, MCP-throughput), higher-is-better comparator support in `perf-regression-check.mjs`, stub-audit Phase 3.5 emit-without-listener detection, board-tools scout regex fix. See commits `22fe5d3d9`-`34ee0352a`.
+
+---
+
+## [7.0.0] — 2026-04-21 (Platform v7 — Option C + Route 2b/2d)
+
+> **Version audit note (2026-04-26):** Packages bumped 6.0.4 → **7.0.0** via commit `ec0eabef3` (changeset `create-holoscript-go-mode.md`). The changeset was typed `minor` but the release was promoted to a platform major intentionally to signal the v7 era (Go-mode CLI, Option C security, Route 2b/2d cross-adapter). The pre-bump narrative in this section and in `docs/daily-digests/2026-04-21-option-c-route-2b-lights-out.md` projected 6.1.0; corrected by audit wmxc (2026-04-26).
 
 Option C security hardening, Route 2b/2d cross-adapter ε-tolerance for `ContractedSimulation`, paper-program deliverables across paper-2 / paper-3 / paper-7 / paper-8 / paper-9 / paper-10 / paper-11, and the first lights-out recipe infrastructure (precedent-query-first / peer-drift detection / action-reversibility registry). 325 commits across HoloScript + ai-ecosystem over the 2026-04-19 → 2026-04-21 window; 1 revert (name-normalization mis-sweep); zero chaos events.
 
@@ -20,7 +28,7 @@ Cumulative paper-program state: paper-3 Property 4 conviction ≈ 95–98% pendi
 
 **See:** `.changeset/2026-04-21-option-c-route-2b-lights-out.md` for the consumed-by-changesets version-bump entry; `docs/daily-digests/2026-04-21-option-c-route-2b-lights-out.md` for the milestone-digest narrative (three-bullet format); and `D:/GOLD/wisdom/w_gold_191.md|192|193.md` for the graduated wisdom from the session arc (audit-as-calibration / Route 2b pattern / threat-model-driven defaults).
 
-**Lane drift noted** (not resolved by this release): `scripts/version-policy.json` platform-v6 lane marks these packages as `sync: true` (core, cli, agent-protocol, auth, config, connectors, core-types, engine, framework, holo-vm, mcp-server, r3f-renderer, runtime, sdk, semantic-2d, snn-webgpu, studio, uaal, vm-bridge, absorb-service, absorb-service-host — 21 packages). Observed pre-release drift: `core` / `cli` / `engine` / `mcp-server` at 6.0.4 but `snn-webgpu` / `holo-vm` / `agent-protocol` at 6.0.3 and `studio` at 6.0.3. The fixed-together `.changeset/config.json` group (7 packages: core, cli, agent-protocol, holo-vm, snn-webgpu, uaal, vm-bridge) will sync on `pnpm changeset version` → 6.1.0; the other platform-v6 members bump via their own changeset entries. Post-release audit recommended to confirm all 21 platform-v6 members actually landed at 6.1.0 and any miss is captured as a lane-integrity issue.
+**Lane drift noted** (not resolved by this release): `scripts/version-policy.json` platform-v6 lane marks these packages as `sync: true` (core, cli, agent-protocol, auth, config, connectors, core-types, engine, framework, holo-vm, mcp-server, r3f-renderer, runtime, sdk, semantic-2d, snn-webgpu, studio, uaal, vm-bridge, absorb-service, absorb-service-host — 21 packages). Observed pre-release drift: `core` / `cli` / `engine` / `mcp-server` at 6.0.4 but `snn-webgpu` / `holo-vm` / `agent-protocol` at 6.0.3 and `studio` at 6.0.3. The fixed-together `.changeset/config.json` group (7 packages: core, cli, agent-protocol, holo-vm, snn-webgpu, uaal, vm-bridge) actually synced to 7.0.0 (platform major bump, not the predicted 6.1.0 minor — see version audit note above). Lane drift from 6.0.3/6.0.4 pre-bump is resolved at 7.0.0.
 
 ### Added
 
