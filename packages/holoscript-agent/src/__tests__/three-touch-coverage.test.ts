@@ -67,12 +67,6 @@ const CRITICAL_RUNTIME_ROUTES: ReadonlyArray<string> = [
  */
 const OPT_OUT_NOT_RUNTIME = new Set<string>([
   'whoAmI',   // called from provision.ts + identity flows, not runner tick loop
-  'markDone', // FIXME(real-gap): runner.ts currently posts a response message
-              //   via sendMessageOnTask but never marks the task done, leaving
-              //   tasks stuck in `claimed` forever. Surfaced 2026-04-25 by this
-              //   test on first run. Fixing requires a behavior decision: should
-              //   the runner auto-close on successful tool-loop exit, or wait
-              //   for human review of the response? Track via follow-up board task.
 ]);
 
 // ─── Parsers ─────────────────────────────────────────────────────────────

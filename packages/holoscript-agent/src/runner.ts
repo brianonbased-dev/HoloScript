@@ -121,6 +121,9 @@ export class AgentRunner {
     // though it's whitelisted for execution. This catches the trivial-bash-bypass
     // class (e.g. `bash echo done`) that the original W.107 gate accepted.
     let productiveCallCount = 0;
+    // Last git commit SHA emitted during the tool-loop; forwarded to markDone
+    // so the board task records a verifiable commit reference.
+    let lastCommitHash: string | undefined;
     while (true) {
       iters++;
       if (iters > MAX_TOOL_ITERS) {
@@ -166,6 +169,21 @@ export class AgentRunner {
         });
         // Run each tool and collect results.
         const toolResults = await Promise.all(resp.toolUses.map((u) => runTool(u)));
+        // Extract the latest git commit SHA from bash stdout so markDone can
+        // record a verifiable reference on the board task. Pattern matches both
+        // `git commit -m` output ('[branch abc1234]') and `git rev-parse HEAD`.
+        for (let ti = 0; ti < resp.toolUses.length; ti++) {
+          const tu = resp.toolUses[ti];
+          if (tu.name === 'bash') {
+            const tr = toolResults[ti];
+            if (tr && !tr.isError) {
+              const out = typeof tr.content === 'string' ? tr.content
+                : Array.isArray(tr.content) ? tr.content.map((c: { text?: string }) => c.text ?? '').join('') : '';
+              const shaMatch = out.match(/\b([0-9a-f]{7,40})\b/);
+              if (shaMatch) lastCommitHash = shaMatch[1];
+            }
+          }
+        }
         messages.push({
           role: 'user',
           content: toolResults as never,
@@ -279,6 +297,17 @@ export class AgentRunner {
         target.id,
         `[${identity.handle}] response (${response.usage.totalTokens} tok, $${cost.costUsd.toFixed(4)}):\n\n${response.content}`
       );
+    }
+
+    // Mark the task done so it doesn't linger in 'claimed' forever.
+    // Wrapped in try/catch: a markDone failure (e.g. task already closed by
+    // a supervisor, or transient network error) must not prevent the tick
+    // return value from reaching the caller.
+    try {
+      await mesh.markDone(target.id, finalText.slice(0, 500), lastCommitHash);
+      log({ ev: 'mark-done', taskId: target.id, commitHash: lastCommitHash });
+    } catch (err) {
+      log({ ev: 'mark-done-error', taskId: target.id, message: err instanceof Error ? err.message : String(err) });
     }
 
     return {
