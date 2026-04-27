@@ -12,7 +12,29 @@ restartPolicyMaxRetries = 10
 [env]
 NODE_ENV = "production"
 PORT = "3000"
+# W.101 / task_1777114501690_h56d — point HOLOMESH_DATA_DIR at the persistent
+# volume mounted at /data/holomesh (see [[volumes]] block below). Without the
+# volume + this env, the CAEL audit JSONL store at <HOLOMESH_DATA_DIR>/audit/
+# (state.ts:121-144) wipes on every Railway redeploy and Paper 25 gate-clock
+# resets to 0. The state.ts loadCaelAuditFromDisk() rehydrate path (line 150)
+# is already correct — only the persistent mount was missing.
+HOLOMESH_DATA_DIR = "/data/holomesh"
 # Lane B (SSE): shorten heartbeats if proxies drop idle streams (ms, 5000–55000).
 # HOLOMESH_SSE_HEARTBEAT_MS = "15000"
 # Classic MCP SSE on Railway needs one replica or sticky routing; default is streamable HTTP.
 # MCP_ENABLE_SSE = "true"
+
+# W.101 — persistent volume for HOLOMESH_DATA_DIR (CAEL audit + defense state).
+# Declarative volumes are honored by Railway's deployment pipeline when the
+# project's plan supports them. If the volume does not auto-provision on first
+# deploy after this change lands, the founder must create it manually in the
+# Railway dashboard:
+#   Project: HoloScript (45da3535-e14d-4022-a57e-1e5a96ee48d0) per W.GOLD.034
+#   Service: mcp-server (098119b1-7832-4788-9ab2-3ced6c1cd2ab)
+#   Mount path: /data/holomesh
+#   Size: 1 GB is plenty for now (CAEL JSONL grows ~few KB per CAEL record;
+#         10K records/agent ring buffer cap at state.ts:118 caps total per
+#         handle; with ~36 agents the long-term ceiling is well under 100 MB).
+[[volumes]]
+name = "holomesh-data"
+mountPath = "/data/holomesh"
