@@ -1,0 +1,10224 @@
+{
+  "version": "v1",
+  "generated_at": "2026-04-27T07:18:47.775Z",
+  "git_head": "308591a52c779bafed71e55ec03259dcae9edce2",
+  "constants_dir": "packages/core/src/traits/constants",
+  "family_count": 115,
+  "distinct_trait_count": 2455,
+  "parsed_files": 119,
+  "unparseable_files": [],
+  "trait_to_families": {
+    "cognitive_assist": [
+      "accessibility-extended"
+    ],
+    "sensory_substitution": [
+      "accessibility-extended"
+    ],
+    "one_handed": [
+      "accessibility-extended"
+    ],
+    "seated_mode": [
+      "accessibility-extended"
+    ],
+    "standing_mode": [
+      "accessibility-extended"
+    ],
+    "voice_only": [
+      "accessibility-extended"
+    ],
+    "gaze_only": [
+      "accessibility-extended"
+    ],
+    "switch_access": [
+      "accessibility-extended"
+    ],
+    "large_text": [
+      "accessibility-extended"
+    ],
+    "dyslexia_friendly": [
+      "accessibility-extended"
+    ],
+    "color_blind_safe": [
+      "accessibility-extended"
+    ],
+    "photosensitive_safe": [
+      "accessibility-extended"
+    ],
+    "reduced_complexity": [
+      "accessibility-extended"
+    ],
+    "guided_mode": [
+      "accessibility-extended"
+    ],
+    "auto_narrate": [
+      "accessibility-extended"
+    ],
+    "sign_language": [
+      "accessibility-extended"
+    ],
+    "braille_output": [
+      "accessibility-extended"
+    ],
+    "audio_description": [
+      "accessibility-extended"
+    ],
+    "closed_caption": [
+      "accessibility-extended"
+    ],
+    "adjustable_speed": [
+      "accessibility-extended"
+    ],
+    "adjustable_difficulty": [
+      "accessibility-extended"
+    ],
+    "comfort_mode": [
+      "accessibility-extended"
+    ],
+    "teleport_only": [
+      "accessibility-extended"
+    ],
+    "snap_turning": [
+      "accessibility-extended"
+    ],
+    "continuous_turning": [
+      "accessibility-extended"
+    ],
+    "vignette": [
+      "accessibility-extended",
+      "post-processing",
+      "rendering"
+    ],
+    "stable_horizon": [
+      "accessibility-extended"
+    ],
+    "accessible": [
+      "accessibility"
+    ],
+    "alt_text": [
+      "accessibility"
+    ],
+    "spatial_audio_cue": [
+      "accessibility"
+    ],
+    "sonification": [
+      "accessibility"
+    ],
+    "haptic_cue": [
+      "accessibility"
+    ],
+    "magnifiable": [
+      "accessibility"
+    ],
+    "high_contrast": [
+      "accessibility"
+    ],
+    "motion_reduced": [
+      "accessibility"
+    ],
+    "subtitle": [
+      "accessibility"
+    ],
+    "screen_reader": [
+      "accessibility"
+    ],
+    "pristine": [
+      "age-condition"
+    ],
+    "worn": [
+      "age-condition"
+    ],
+    "rusted": [
+      "age-condition"
+    ],
+    "weathered": [
+      "age-condition"
+    ],
+    "decayed": [
+      "age-condition"
+    ],
+    "fossilized": [
+      "age-condition"
+    ],
+    "tarnished": [
+      "age-condition"
+    ],
+    "polished": [
+      "age-condition"
+    ],
+    "crumbling": [
+      "age-condition"
+    ],
+    "corroded": [
+      "age-condition"
+    ],
+    "faded": [
+      "age-condition"
+    ],
+    "stained": [
+      "age-condition"
+    ],
+    "scratched": [
+      "age-condition"
+    ],
+    "dented": [
+      "age-condition"
+    ],
+    "chipped": [
+      "age-condition"
+    ],
+    "cracked": [
+      "age-condition"
+    ],
+    "shattered": [
+      "age-condition"
+    ],
+    "patched": [
+      "age-condition"
+    ],
+    "restored": [
+      "age-condition"
+    ],
+    "antique": [
+      "age-condition"
+    ],
+    "brand_new": [
+      "age-condition"
+    ],
+    "battle_scarred": [
+      "age-condition"
+    ],
+    "moss_covered": [
+      "age-condition"
+    ],
+    "vine_covered": [
+      "age-condition"
+    ],
+    "dust_covered": [
+      "age-condition"
+    ],
+    "blood_stained": [
+      "age-condition"
+    ],
+    "sun_bleached": [
+      "age-condition"
+    ],
+    "charred": [
+      "age-condition"
+    ],
+    "petrified": [
+      "age-condition"
+    ],
+    "calcified": [
+      "age-condition"
+    ],
+    "analytics": [
+      "analytics-observability"
+    ],
+    "perf_monitor": [
+      "analytics-observability"
+    ],
+    "frame_profiler": [
+      "analytics-observability"
+    ],
+    "abtest": [
+      "analytics-observability",
+      "feature-flags",
+      "media-analytics"
+    ],
+    "ab_variant": [
+      "analytics-observability"
+    ],
+    "experiment": [
+      "analytics-observability"
+    ],
+    "engagement_tracker": [
+      "analytics-observability"
+    ],
+    "session_monitor": [
+      "analytics-observability"
+    ],
+    "interaction_heatmap": [
+      "analytics-observability"
+    ],
+    "scene_completion": [
+      "analytics-observability"
+    ],
+    "otel_trace": [
+      "analytics-observability"
+    ],
+    "otel_span": [
+      "analytics-observability"
+    ],
+    "otel_metric": [
+      "analytics-observability"
+    ],
+    "metrics_dashboard": [
+      "analytics-observability"
+    ],
+    "metrics_sink": [
+      "analytics-observability"
+    ],
+    "metrics_aggregator": [
+      "analytics-observability"
+    ],
+    "cat": [
+      "animals"
+    ],
+    "dog": [
+      "animals"
+    ],
+    "wolf": [
+      "animals"
+    ],
+    "bear": [
+      "animals"
+    ],
+    "horse": [
+      "animals"
+    ],
+    "deer": [
+      "animals"
+    ],
+    "rabbit": [
+      "animals"
+    ],
+    "fox": [
+      "animals"
+    ],
+    "eagle": [
+      "animals"
+    ],
+    "hawk": [
+      "animals"
+    ],
+    "owl": [
+      "animals"
+    ],
+    "crow": [
+      "animals"
+    ],
+    "parrot": [
+      "animals"
+    ],
+    "penguin": [
+      "animals"
+    ],
+    "shark": [
+      "animals"
+    ],
+    "whale": [
+      "animals"
+    ],
+    "dolphin": [
+      "animals"
+    ],
+    "octopus": [
+      "animals"
+    ],
+    "jellyfish": [
+      "animals"
+    ],
+    "crab": [
+      "animals"
+    ],
+    "turtle": [
+      "animals"
+    ],
+    "snake": [
+      "animals"
+    ],
+    "lizard": [
+      "animals"
+    ],
+    "frog": [
+      "animals"
+    ],
+    "butterfly": [
+      "animals"
+    ],
+    "bee": [
+      "animals"
+    ],
+    "spider": [
+      "animals"
+    ],
+    "ant": [
+      "animals"
+    ],
+    "bat_animal": [
+      "animals"
+    ],
+    "rat": [
+      "animals"
+    ],
+    "mouse": [
+      "animals"
+    ],
+    "pig": [
+      "animals"
+    ],
+    "cow": [
+      "animals"
+    ],
+    "sheep": [
+      "animals"
+    ],
+    "goat": [
+      "animals"
+    ],
+    "chicken": [
+      "animals"
+    ],
+    "duck": [
+      "animals"
+    ],
+    "fish": [
+      "animals"
+    ],
+    "elephant": [
+      "animals"
+    ],
+    "lion": [
+      "animals"
+    ],
+    "tiger": [
+      "animals"
+    ],
+    "monkey": [
+      "animals"
+    ],
+    "gorilla": [
+      "animals"
+    ],
+    "dinosaur": [
+      "animals"
+    ],
+    "insect": [
+      "animals"
+    ],
+    "bird": [
+      "animals"
+    ],
+    "reptile": [
+      "animals"
+    ],
+    "mammal": [
+      "animals"
+    ],
+    "graphql": [
+      "api-gateway",
+      "universal-service"
+    ],
+    "rest_endpoint": [
+      "api-gateway"
+    ],
+    "rpc": [
+      "api-gateway"
+    ],
+    "floor_plan": [
+      "architecture-realestate"
+    ],
+    "room_layout": [
+      "architecture-realestate"
+    ],
+    "furniture_placement": [
+      "architecture-realestate"
+    ],
+    "interior_design": [
+      "architecture-realestate"
+    ],
+    "exterior_design": [
+      "architecture-realestate"
+    ],
+    "landscape": [
+      "architecture-realestate"
+    ],
+    "garden": [
+      "architecture-realestate"
+    ],
+    "pool": [
+      "architecture-realestate"
+    ],
+    "driveway": [
+      "architecture-realestate"
+    ],
+    "garage": [
+      "architecture-realestate"
+    ],
+    "balcony": [
+      "architecture-realestate"
+    ],
+    "terrace": [
+      "architecture-realestate"
+    ],
+    "courtyard": [
+      "architecture-realestate"
+    ],
+    "atrium": [
+      "architecture-realestate"
+    ],
+    "lobby": [
+      "architecture-realestate"
+    ],
+    "hallway": [
+      "architecture-realestate"
+    ],
+    "basement": [
+      "architecture-realestate"
+    ],
+    "attic": [
+      "architecture-realestate"
+    ],
+    "closet": [
+      "architecture-realestate"
+    ],
+    "pantry": [
+      "architecture-realestate"
+    ],
+    "laundry": [
+      "architecture-realestate"
+    ],
+    "utility_room": [
+      "architecture-realestate"
+    ],
+    "home_office": [
+      "architecture-realestate"
+    ],
+    "gym_room": [
+      "architecture-realestate"
+    ],
+    "theater_room": [
+      "architecture-realestate"
+    ],
+    "wine_cellar": [
+      "architecture-realestate"
+    ],
+    "rooftop_deck": [
+      "architecture-realestate"
+    ],
+    "smart_home": [
+      "architecture-realestate"
+    ],
+    "hvac": [
+      "architecture-realestate"
+    ],
+    "plumbing": [
+      "architecture-realestate"
+    ],
+    "electrical": [
+      "architecture-realestate"
+    ],
+    "solar_panel": [
+      "architecture-realestate"
+    ],
+    "security_camera": [
+      "architecture-realestate"
+    ],
+    "smart_lock": [
+      "architecture-realestate",
+      "iot-autonomous-agents"
+    ],
+    "doorbell": [
+      "architecture-realestate"
+    ],
+    "thermostat": [
+      "architecture-realestate"
+    ],
+    "sprinkler": [
+      "architecture-realestate"
+    ],
+    "atmosphere_bruneton": [
+      "atmosphere-sky"
+    ],
+    "atmosphere_gradient": [
+      "atmosphere-sky"
+    ],
+    "atmosphere_hdri": [
+      "atmosphere-sky"
+    ],
+    "sky_dome": [
+      "atmosphere-sky"
+    ],
+    "sun_disc": [
+      "atmosphere-sky"
+    ],
+    "moon_disc": [
+      "atmosphere-sky"
+    ],
+    "starfield": [
+      "atmosphere-sky"
+    ],
+    "aurora": [
+      "atmosphere-sky",
+      "weather-phenomena"
+    ],
+    "volumetric_clouds": [
+      "atmosphere-sky",
+      "gaps-physics"
+    ],
+    "cirrus_clouds": [
+      "atmosphere-sky"
+    ],
+    "cumulus_clouds": [
+      "atmosphere-sky"
+    ],
+    "stratus_clouds": [
+      "atmosphere-sky"
+    ],
+    "cloud_shadow": [
+      "atmosphere-sky"
+    ],
+    "day_night_cycle": [
+      "atmosphere-sky"
+    ],
+    "twilight": [
+      "atmosphere-sky"
+    ],
+    "rainbow_arc": [
+      "atmosphere-sky"
+    ],
+    "lightning_flash": [
+      "atmosphere-sky"
+    ],
+    "meteor_shower": [
+      "atmosphere-sky",
+      "weather-phenomena"
+    ],
+    "spatial_audio": [
+      "audio"
+    ],
+    "voice": [
+      "audio"
+    ],
+    "reactive_audio": [
+      "audio"
+    ],
+    "ambisonics": [
+      "audio"
+    ],
+    "hrtf": [
+      "audio"
+    ],
+    "reverb_zone": [
+      "audio"
+    ],
+    "audio_occlusion": [
+      "audio"
+    ],
+    "audio_portal": [
+      "audio"
+    ],
+    "audio_material": [
+      "audio"
+    ],
+    "head_tracked_audio": [
+      "audio"
+    ],
+    "change_tracking": [
+      "audit-trail"
+    ],
+    "data_lineage": [
+      "audit-trail"
+    ],
+    "jwt": [
+      "auth-identity"
+    ],
+    "oauth": [
+      "auth-identity"
+    ],
+    "api_key": [
+      "auth-identity"
+    ],
+    "session": [
+      "auth-identity"
+    ],
+    "permission": [
+      "auth-identity"
+    ],
+    "mfa": [
+      "auth-identity"
+    ],
+    "skin_subsurface": [
+      "character-materials"
+    ],
+    "skin_scatter_distance": [
+      "character-materials"
+    ],
+    "skin_scatter_color": [
+      "character-materials"
+    ],
+    "skin_pore_detail": [
+      "character-materials"
+    ],
+    "skin_wrinkle_normal": [
+      "character-materials"
+    ],
+    "skin_blood_flow": [
+      "character-materials"
+    ],
+    "skin_oiliness": [
+      "character-materials"
+    ],
+    "skin_melanin": [
+      "character-materials"
+    ],
+    "eye_refractive": [
+      "character-materials"
+    ],
+    "eye_cornea": [
+      "character-materials"
+    ],
+    "eye_iris": [
+      "character-materials"
+    ],
+    "eye_pupil_dilation": [
+      "character-materials"
+    ],
+    "eye_sclera": [
+      "character-materials"
+    ],
+    "eye_wet_layer": [
+      "character-materials"
+    ],
+    "eye_micro_saccade": [
+      "character-materials"
+    ],
+    "eye_parallax": [
+      "character-materials"
+    ],
+    "hair_marschner": [
+      "character-materials"
+    ],
+    "hair_primary_specular": [
+      "character-materials"
+    ],
+    "hair_secondary_specular": [
+      "character-materials"
+    ],
+    "hair_melanin": [
+      "character-materials"
+    ],
+    "hair_melanin_redness": [
+      "character-materials"
+    ],
+    "hair_scatter": [
+      "character-materials"
+    ],
+    "hair_root_darkening": [
+      "character-materials"
+    ],
+    "hair_tip_lightening": [
+      "character-materials"
+    ],
+    "hair_anisotropy": [
+      "character-materials"
+    ],
+    "cloth_material_silk": [
+      "character-materials"
+    ],
+    "cloth_material_cotton": [
+      "character-materials"
+    ],
+    "cloth_material_denim": [
+      "character-materials"
+    ],
+    "cloth_material_leather": [
+      "character-materials"
+    ],
+    "cloth_material_velvet": [
+      "character-materials"
+    ],
+    "cloth_material_chainmail": [
+      "character-materials"
+    ],
+    "cloth_material_fur": [
+      "character-materials"
+    ],
+    "tooth_enamel": [
+      "character-materials"
+    ],
+    "nail_keratin": [
+      "character-materials"
+    ],
+    "character_sculpt": [
+      "character-pipeline"
+    ],
+    "sculpt_region": [
+      "character-pipeline"
+    ],
+    "sculpt_fill_volumetric": [
+      "character-pipeline"
+    ],
+    "sculpt_fill_shell": [
+      "character-pipeline"
+    ],
+    "sculpt_fill_tube": [
+      "character-pipeline"
+    ],
+    "sculpt_blend_smooth_union": [
+      "character-pipeline"
+    ],
+    "sculpt_color_map": [
+      "character-pipeline"
+    ],
+    "compiled_mesh": [
+      "character-pipeline"
+    ],
+    "mesh_marching_cubes": [
+      "character-pipeline"
+    ],
+    "mesh_dual_contouring": [
+      "character-pipeline"
+    ],
+    "mesh_poisson_reconstruction": [
+      "character-pipeline"
+    ],
+    "mesh_ball_pivoting": [
+      "character-pipeline"
+    ],
+    "optimized_character": [
+      "character-pipeline"
+    ],
+    "character_hollow": [
+      "character-pipeline"
+    ],
+    "character_lod": [
+      "character-pipeline"
+    ],
+    "character_lod_dithered": [
+      "character-pipeline"
+    ],
+    "character_lod_crossfade": [
+      "character-pipeline"
+    ],
+    "rigged_character": [
+      "character-pipeline"
+    ],
+    "skeleton_humanoid_65": [
+      "character-pipeline"
+    ],
+    "skeleton_custom_bone": [
+      "character-pipeline"
+    ],
+    "skinning_heat_diffusion": [
+      "character-pipeline"
+    ],
+    "skinning_geodesic_voxel": [
+      "character-pipeline"
+    ],
+    "skinning_neural": [
+      "character-pipeline"
+    ],
+    "skin_max_influences": [
+      "character-pipeline"
+    ],
+    "face_facs_52": [
+      "character-pipeline"
+    ],
+    "face_action_unit": [
+      "character-pipeline"
+    ],
+    "face_expression_preset": [
+      "character-pipeline"
+    ],
+    "face_viseme": [
+      "character-pipeline"
+    ],
+    "face_reactive": [
+      "character-pipeline"
+    ],
+    "face_idle_blink": [
+      "character-pipeline"
+    ],
+    "material_subsurface": [
+      "character-pipeline"
+    ],
+    "material_refractive_eye": [
+      "character-pipeline"
+    ],
+    "material_hair_marschner": [
+      "character-pipeline"
+    ],
+    "clothing_baked": [
+      "character-pipeline"
+    ],
+    "clothing_layered_shell": [
+      "character-pipeline"
+    ],
+    "clothing_cloth_sim": [
+      "character-pipeline"
+    ],
+    "clothing_shrinkwrap": [
+      "character-pipeline"
+    ],
+    "clothing_wrinkle_map": [
+      "character-pipeline"
+    ],
+    "hair_cards": [
+      "character-pipeline"
+    ],
+    "hair_strands": [
+      "character-pipeline"
+    ],
+    "hair_guide_curves": [
+      "character-pipeline"
+    ],
+    "speech_viseme_15": [
+      "character-pipeline"
+    ],
+    "speech_emotion_overlay": [
+      "character-pipeline"
+    ],
+    "speech_audio_analysis": [
+      "character-pipeline"
+    ],
+    "deploy_web_gltf": [
+      "character-pipeline"
+    ],
+    "deploy_vrchat_vrm": [
+      "character-pipeline"
+    ],
+    "deploy_unreal_usd": [
+      "character-pipeline"
+    ],
+    "deploy_unity_fbx": [
+      "character-pipeline"
+    ],
+    "deploy_apple_usdz": [
+      "character-pipeline"
+    ],
+    "deploy_rpm_glb": [
+      "character-pipeline"
+    ],
+    "deploy_cloud_native": [
+      "character-pipeline"
+    ],
+    "email": [
+      "communication"
+    ],
+    "sms": [
+      "communication"
+    ],
+    "push_notification": [
+      "communication"
+    ],
+    "slack": [
+      "communication"
+    ],
+    "discord": [
+      "communication"
+    ],
+    "mqtt_pub": [
+      "communication"
+    ],
+    "sse": [
+      "communication"
+    ],
+    "gdpr": [
+      "compliance-governance"
+    ],
+    "data_retention": [
+      "compliance-governance"
+    ],
+    "consent_management": [
+      "compliance-governance"
+    ],
+    "actor": [
+      "concurrency"
+    ],
+    "csp_channel": [
+      "concurrency"
+    ],
+    "temporal_guard": [
+      "concurrency"
+    ],
+    "deadlock_free": [
+      "concurrency"
+    ],
+    "connector": [
+      "connector-integration"
+    ],
+    "env": [
+      "connector-integration"
+    ],
+    "deploy": [
+      "connector-integration",
+      "devops-ci"
+    ],
+    "mcp-server": [
+      "connector-integration"
+    ],
+    "on_connector_event": [
+      "connector-integration"
+    ],
+    "buildable": [
+      "construction-building"
+    ],
+    "placeable": [
+      "construction-building"
+    ],
+    "alignable": [
+      "construction-building"
+    ],
+    "resizable": [
+      "construction-building"
+    ],
+    "paintable_surface": [
+      "construction-building"
+    ],
+    "terrain_modifiable": [
+      "construction-building"
+    ],
+    "blueprint": [
+      "construction-building"
+    ],
+    "foundation": [
+      "construction-building"
+    ],
+    "wall": [
+      "construction-building"
+    ],
+    "roof": [
+      "construction-building"
+    ],
+    "door": [
+      "construction-building"
+    ],
+    "window": [
+      "construction-building"
+    ],
+    "staircase": [
+      "construction-building"
+    ],
+    "ladder": [
+      "construction-building"
+    ],
+    "bridge": [
+      "construction-building"
+    ],
+    "elevator": [
+      "construction-building"
+    ],
+    "conveyor": [
+      "construction-building"
+    ],
+    "pipe": [
+      "construction-building"
+    ],
+    "wire": [
+      "construction-building"
+    ],
+    "switch": [
+      "construction-building"
+    ],
+    "lever": [
+      "construction-building"
+    ],
+    "button": [
+      "construction-building"
+    ],
+    "pressure_plate": [
+      "construction-building"
+    ],
+    "tripwire": [
+      "construction-building"
+    ],
+    "alarm": [
+      "construction-building"
+    ],
+    "container": [
+      "containers-storage",
+      "universal-service"
+    ],
+    "drawer": [
+      "containers-storage"
+    ],
+    "shelf": [
+      "containers-storage"
+    ],
+    "cabinet": [
+      "containers-storage"
+    ],
+    "chest_container": [
+      "containers-storage"
+    ],
+    "crate": [
+      "containers-storage"
+    ],
+    "barrel_container": [
+      "containers-storage"
+    ],
+    "basket": [
+      "containers-storage"
+    ],
+    "backpack": [
+      "containers-storage"
+    ],
+    "vault": [
+      "containers-storage"
+    ],
+    "locker": [
+      "containers-storage"
+    ],
+    "safe": [
+      "containers-storage"
+    ],
+    "bin": [
+      "containers-storage"
+    ],
+    "hopper": [
+      "containers-storage"
+    ],
+    "silo": [
+      "containers-storage"
+    ],
+    "tank": [
+      "containers-storage"
+    ],
+    "aquarium": [
+      "containers-storage"
+    ],
+    "terrarium": [
+      "containers-storage"
+    ],
+    "display_case": [
+      "containers-storage"
+    ],
+    "trophy_case": [
+      "containers-storage"
+    ],
+    "mailbox": [
+      "containers-storage"
+    ],
+    "inventory": [
+      "containers-storage"
+    ],
+    "slot": [
+      "containers-storage"
+    ],
+    "pocket": [
+      "containers-storage"
+    ],
+    "compartment": [
+      "containers-storage"
+    ],
+    "cargo": [
+      "containers-storage"
+    ],
+    "quiver": [
+      "containers-storage"
+    ],
+    "holster": [
+      "containers-storage"
+    ],
+    "sheath": [
+      "containers-storage"
+    ],
+    "pouch": [
+      "containers-storage"
+    ],
+    "ingredient": [
+      "cooking-food"
+    ],
+    "recipe": [
+      "cooking-food"
+    ],
+    "chopping_board": [
+      "cooking-food"
+    ],
+    "knife": [
+      "cooking-food"
+    ],
+    "pan": [
+      "cooking-food"
+    ],
+    "pot": [
+      "cooking-food"
+    ],
+    "oven": [
+      "cooking-food"
+    ],
+    "stove": [
+      "cooking-food"
+    ],
+    "grill": [
+      "cooking-food"
+    ],
+    "smoker": [
+      "cooking-food"
+    ],
+    "deep_fryer": [
+      "cooking-food"
+    ],
+    "blender": [
+      "cooking-food"
+    ],
+    "mixer_kitchen": [
+      "cooking-food"
+    ],
+    "whisk": [
+      "cooking-food"
+    ],
+    "spatula": [
+      "cooking-food"
+    ],
+    "ladle": [
+      "cooking-food"
+    ],
+    "tongs": [
+      "cooking-food"
+    ],
+    "rolling_pin": [
+      "cooking-food"
+    ],
+    "measuring_cup": [
+      "cooking-food"
+    ],
+    "timer_kitchen": [
+      "cooking-food"
+    ],
+    "thermometer_food": [
+      "cooking-food"
+    ],
+    "plate": [
+      "cooking-food"
+    ],
+    "bowl": [
+      "cooking-food"
+    ],
+    "cup": [
+      "cooking-food"
+    ],
+    "glass_container": [
+      "cooking-food"
+    ],
+    "bottle": [
+      "cooking-food"
+    ],
+    "jar": [
+      "cooking-food"
+    ],
+    "edible": [
+      "cooking-food"
+    ],
+    "drinkable": [
+      "cooking-food"
+    ],
+    "bakeable": [
+      "cooking-food"
+    ],
+    "grillable": [
+      "cooking-food"
+    ],
+    "fermentable": [
+      "cooking-food"
+    ],
+    "garnish": [
+      "cooking-food"
+    ],
+    "seasoning": [
+      "cooking-food"
+    ],
+    "marinade": [
+      "cooking-food"
+    ],
+    "sauce": [
+      "cooking-food"
+    ],
+    "dough": [
+      "cooking-food"
+    ],
+    "batter": [
+      "cooking-food"
+    ],
+    "frosting": [
+      "cooking-food"
+    ],
+    "grabbable": [
+      "core-vr-interaction"
+    ],
+    "throwable": [
+      "core-vr-interaction"
+    ],
+    "pointable": [
+      "core-vr-interaction"
+    ],
+    "hoverable": [
+      "core-vr-interaction"
+    ],
+    "scalable": [
+      "core-vr-interaction"
+    ],
+    "rotatable": [
+      "core-vr-interaction"
+    ],
+    "stackable": [
+      "core-vr-interaction"
+    ],
+    "snappable": [
+      "core-vr-interaction"
+    ],
+    "breakable": [
+      "core-vr-interaction"
+    ],
+    "stretchable": [
+      "core-vr-interaction",
+      "physics-expansion"
+    ],
+    "moldable": [
+      "core-vr-interaction"
+    ],
+    "timeline": [
+      "core-vr-interaction"
+    ],
+    "choreography": [
+      "core-vr-interaction",
+      "universal-service"
+    ],
+    "dragon": [
+      "creatures-mythical"
+    ],
+    "phoenix": [
+      "creatures-mythical"
+    ],
+    "unicorn": [
+      "creatures-mythical"
+    ],
+    "griffin": [
+      "creatures-mythical"
+    ],
+    "hydra": [
+      "creatures-mythical"
+    ],
+    "kraken": [
+      "creatures-mythical"
+    ],
+    "golem": [
+      "creatures-mythical"
+    ],
+    "wraith": [
+      "creatures-mythical"
+    ],
+    "lich": [
+      "creatures-mythical"
+    ],
+    "vampire": [
+      "creatures-mythical"
+    ],
+    "werewolf": [
+      "creatures-mythical"
+    ],
+    "zombie": [
+      "creatures-mythical"
+    ],
+    "skeleton_creature": [
+      "creatures-mythical"
+    ],
+    "ghost": [
+      "creatures-mythical"
+    ],
+    "demon": [
+      "creatures-mythical"
+    ],
+    "angel": [
+      "creatures-mythical"
+    ],
+    "fairy": [
+      "creatures-mythical"
+    ],
+    "sprite": [
+      "creatures-mythical"
+    ],
+    "pixie": [
+      "creatures-mythical"
+    ],
+    "troll": [
+      "creatures-mythical"
+    ],
+    "ogre": [
+      "creatures-mythical"
+    ],
+    "giant_creature": [
+      "creatures-mythical"
+    ],
+    "dwarf_creature": [
+      "creatures-mythical"
+    ],
+    "elf": [
+      "creatures-mythical"
+    ],
+    "orc": [
+      "creatures-mythical"
+    ],
+    "goblin": [
+      "creatures-mythical"
+    ],
+    "imp": [
+      "creatures-mythical"
+    ],
+    "minotaur": [
+      "creatures-mythical"
+    ],
+    "centaur": [
+      "creatures-mythical"
+    ],
+    "mermaid": [
+      "creatures-mythical"
+    ],
+    "siren": [
+      "creatures-mythical"
+    ],
+    "basilisk": [
+      "creatures-mythical"
+    ],
+    "chimera": [
+      "creatures-mythical"
+    ],
+    "wyvern": [
+      "creatures-mythical"
+    ],
+    "pegasus": [
+      "creatures-mythical"
+    ],
+    "cerberus": [
+      "creatures-mythical"
+    ],
+    "sphinx": [
+      "creatures-mythical"
+    ],
+    "djinn": [
+      "creatures-mythical"
+    ],
+    "elemental_creature": [
+      "creatures-mythical"
+    ],
+    "treant": [
+      "creatures-mythical"
+    ],
+    "slime": [
+      "creatures-mythical"
+    ],
+    "mimic": [
+      "creatures-mythical"
+    ],
+    "etl": [
+      "data-pipeline"
+    ],
+    "batch_job": [
+      "data-pipeline",
+      "universal-service"
+    ],
+    "data_transform": [
+      "data-pipeline"
+    ],
+    "schema_migrate": [
+      "data-pipeline"
+    ],
+    "data_quality": [
+      "data-pipeline"
+    ],
+    "database": [
+      "data-storage"
+    ],
+    "snapshot": [
+      "data-storage"
+    ],
+    "migrate": [
+      "data-storage"
+    ],
+    "cache": [
+      "data-storage",
+      "universal-service"
+    ],
+    "stream": [
+      "data-storage",
+      "universal-service"
+    ],
+    "query": [
+      "data-storage",
+      "universal-service"
+    ],
+    "index": [
+      "data-storage"
+    ],
+    "chart": [
+      "data-visualization"
+    ],
+    "graph": [
+      "data-visualization"
+    ],
+    "dashboard": [
+      "data-visualization"
+    ],
+    "annotation": [
+      "data-visualization"
+    ],
+    "measurement_tool": [
+      "data-visualization"
+    ],
+    "overlay": [
+      "data-visualization"
+    ],
+    "x_ray_view": [
+      "data-visualization"
+    ],
+    "exploded_view": [
+      "data-visualization"
+    ],
+    "cutaway": [
+      "data-visualization"
+    ],
+    "training_mode": [
+      "data-visualization"
+    ],
+    "simulation_mode": [
+      "data-visualization"
+    ],
+    "presentation_mode": [
+      "data-visualization"
+    ],
+    "whiteboard": [
+      "data-visualization"
+    ],
+    "sticky_note": [
+      "data-visualization"
+    ],
+    "kanban": [
+      "data-visualization"
+    ],
+    "timeline_view": [
+      "data-visualization"
+    ],
+    "gantt": [
+      "data-visualization"
+    ],
+    "org_chart": [
+      "data-visualization"
+    ],
+    "mind_map": [
+      "data-visualization"
+    ],
+    "flowchart": [
+      "data-visualization"
+    ],
+    "schematic": [
+      "data-visualization"
+    ],
+    "wireframe_view": [
+      "data-visualization"
+    ],
+    "heatmap_view": [
+      "data-visualization"
+    ],
+    "scatter_plot": [
+      "data-visualization"
+    ],
+    "bar_chart": [
+      "data-visualization"
+    ],
+    "pie_chart": [
+      "data-visualization"
+    ],
+    "line_graph": [
+      "data-visualization"
+    ],
+    "tree_map": [
+      "data-visualization"
+    ],
+    "network_graph": [
+      "data-visualization"
+    ],
+    "sankey": [
+      "data-visualization"
+    ],
+    "histogram": [
+      "data-visualization"
+    ],
+    "gauge": [
+      "data-visualization"
+    ],
+    "speedometer": [
+      "data-visualization"
+    ],
+    "progress_bar": [
+      "data-visualization"
+    ],
+    "status_indicator": [
+      "data-visualization"
+    ],
+    "data_table": [
+      "data-visualization"
+    ],
+    "spreadsheet": [
+      "data-visualization"
+    ],
+    "code_editor": [
+      "data-visualization"
+    ],
+    "terminal": [
+      "data-visualization"
+    ],
+    "file_browser": [
+      "data-visualization"
+    ],
+    "media_player": [
+      "data-visualization"
+    ],
+    "image_viewer": [
+      "data-visualization"
+    ],
+    "model_viewer": [
+      "data-visualization"
+    ],
+    "pdf_viewer": [
+      "data-visualization"
+    ],
+    "web_view": [
+      "data-visualization"
+    ],
+    "sql_query": [
+      "database-persistence"
+    ],
+    "orm_entity": [
+      "database-persistence"
+    ],
+    "offline_sync": [
+      "database-persistence"
+    ],
+    "reactive_store": [
+      "database-persistence"
+    ],
+    "time_travel_debug": [
+      "debug-cinematic"
+    ],
+    "spatial_profiler": [
+      "debug-cinematic"
+    ],
+    "cinematic_seq": [
+      "debug-cinematic"
+    ],
+    "ai_camera": [
+      "debug-cinematic"
+    ],
+    "rollback": [
+      "devops-ci"
+    ],
+    "canary": [
+      "devops-ci"
+    ],
+    "feature_flag": [
+      "devops-ci"
+    ],
+    "env_config": [
+      "devops-ci"
+    ],
+    "secret": [
+      "devops-ci",
+      "universal-service"
+    ],
+    "lesson": [
+      "education-learning"
+    ],
+    "quiz": [
+      "education-learning"
+    ],
+    "flashcard": [
+      "education-learning"
+    ],
+    "tutorial": [
+      "education-learning"
+    ],
+    "demonstration": [
+      "education-learning"
+    ],
+    "lab_experiment": [
+      "education-learning"
+    ],
+    "dissectable": [
+      "education-learning"
+    ],
+    "microscopic": [
+      "education-learning"
+    ],
+    "telescopic": [
+      "education-learning"
+    ],
+    "zoomable": [
+      "education-learning"
+    ],
+    "layered": [
+      "education-learning"
+    ],
+    "cross_section": [
+      "education-learning"
+    ],
+    "time_lapse": [
+      "education-learning"
+    ],
+    "slow_motion": [
+      "education-learning"
+    ],
+    "replayable": [
+      "education-learning"
+    ],
+    "gradeable": [
+      "education-learning"
+    ],
+    "hint_system": [
+      "education-learning"
+    ],
+    "achievement": [
+      "education-learning"
+    ],
+    "badge": [
+      "education-learning"
+    ],
+    "certificate": [
+      "education-learning"
+    ],
+    "leaderboard": [
+      "education-learning"
+    ],
+    "progress_tracker": [
+      "education-learning"
+    ],
+    "skill_tree": [
+      "education-learning"
+    ],
+    "knowledge_check": [
+      "education-learning"
+    ],
+    "vocabulary": [
+      "education-learning"
+    ],
+    "pronunciation": [
+      "education-learning"
+    ],
+    "translation": [
+      "education-learning",
+      "i18n-localization"
+    ],
+    "historical": [
+      "education-learning"
+    ],
+    "scientific": [
+      "education-learning"
+    ],
+    "mathematical": [
+      "education-learning"
+    ],
+    "geographic": [
+      "education-learning"
+    ],
+    "anatomical": [
+      "education-learning"
+    ],
+    "astronomical": [
+      "education-learning"
+    ],
+    "chemical": [
+      "education-learning"
+    ],
+    "biological": [
+      "education-learning"
+    ],
+    "geological": [
+      "education-learning"
+    ],
+    "archaeological_artifact": [
+      "education-learning"
+    ],
+    "museum_exhibit": [
+      "education-learning"
+    ],
+    "gallery_piece": [
+      "education-learning"
+    ],
+    "happy": [
+      "emotion-mood"
+    ],
+    "sad": [
+      "emotion-mood"
+    ],
+    "angry": [
+      "emotion-mood"
+    ],
+    "scared": [
+      "emotion-mood"
+    ],
+    "surprised": [
+      "emotion-mood"
+    ],
+    "disgusted": [
+      "emotion-mood"
+    ],
+    "calm": [
+      "emotion-mood"
+    ],
+    "excited": [
+      "emotion-mood"
+    ],
+    "bored": [
+      "emotion-mood"
+    ],
+    "nostalgic": [
+      "emotion-mood"
+    ],
+    "eerie": [
+      "emotion-mood"
+    ],
+    "serene": [
+      "emotion-mood"
+    ],
+    "chaotic": [
+      "emotion-mood"
+    ],
+    "melancholic": [
+      "emotion-mood"
+    ],
+    "triumphant": [
+      "emotion-mood"
+    ],
+    "ominous": [
+      "emotion-mood"
+    ],
+    "whimsical": [
+      "emotion-mood"
+    ],
+    "cozy": [
+      "emotion-mood"
+    ],
+    "desolate": [
+      "emotion-mood"
+    ],
+    "majestic": [
+      "emotion-mood"
+    ],
+    "tenant": [
+      "enterprise-multitenancy"
+    ],
+    "tenant_boundary": [
+      "enterprise-multitenancy"
+    ],
+    "tenant_registry": [
+      "enterprise-multitenancy"
+    ],
+    "tenant_config": [
+      "enterprise-multitenancy"
+    ],
+    "tenant_isolation": [
+      "enterprise-multitenancy"
+    ],
+    "rbac": [
+      "enterprise-multitenancy"
+    ],
+    "rbac_role": [
+      "enterprise-multitenancy"
+    ],
+    "rbac_permission": [
+      "enterprise-multitenancy"
+    ],
+    "rbac_policy": [
+      "enterprise-multitenancy"
+    ],
+    "quota": [
+      "enterprise-multitenancy"
+    ],
+    "quota_scene": [
+      "enterprise-multitenancy"
+    ],
+    "quota_gaussian": [
+      "enterprise-multitenancy"
+    ],
+    "quota_render_credits": [
+      "enterprise-multitenancy"
+    ],
+    "quota_storage": [
+      "enterprise-multitenancy"
+    ],
+    "sso_saml": [
+      "enterprise-multitenancy"
+    ],
+    "sso_oidc": [
+      "enterprise-multitenancy"
+    ],
+    "sso_session": [
+      "enterprise-multitenancy"
+    ],
+    "audit_log": [
+      "enterprise-multitenancy",
+      "universal-service"
+    ],
+    "audit_trail": [
+      "enterprise-multitenancy"
+    ],
+    "plane_detection": [
+      "environment-input"
+    ],
+    "mesh_detection": [
+      "environment-input"
+    ],
+    "anchor": [
+      "environment-input"
+    ],
+    "persistent_anchor": [
+      "environment-input"
+    ],
+    "shared_anchor": [
+      "environment-input"
+    ],
+    "geospatial": [
+      "environment-input"
+    ],
+    "occlusion": [
+      "environment-input"
+    ],
+    "light_estimation": [
+      "environment-input"
+    ],
+    "eye_tracking": [
+      "environment-input"
+    ],
+    "hand_tracking": [
+      "environment-input",
+      "humanoid-avatar"
+    ],
+    "controller": [
+      "environment-input"
+    ],
+    "spatial_accessory": [
+      "environment-input"
+    ],
+    "body_tracking": [
+      "environment-input"
+    ],
+    "face_tracking": [
+      "environment-input"
+    ],
+    "haptic": [
+      "environment-input"
+    ],
+    "weather_source": [
+      "environmental-biome"
+    ],
+    "day_night": [
+      "environmental-biome"
+    ],
+    "seasonal": [
+      "environmental-biome"
+    ],
+    "underwater": [
+      "environmental-biome"
+    ],
+    "zero_gravity": [
+      "environmental-biome"
+    ],
+    "low_gravity": [
+      "environmental-biome"
+    ],
+    "high_gravity": [
+      "environmental-biome"
+    ],
+    "foggy": [
+      "environmental-biome"
+    ],
+    "icy": [
+      "environmental-biome"
+    ],
+    "volcanic": [
+      "environmental-biome"
+    ],
+    "overgrown": [
+      "environmental-biome"
+    ],
+    "enchanted": [
+      "environmental-biome"
+    ],
+    "corrupted": [
+      "environmental-biome"
+    ],
+    "sacred": [
+      "environmental-biome"
+    ],
+    "haunted": [
+      "environmental-biome"
+    ],
+    "toxic": [
+      "environmental-biome"
+    ],
+    "subterranean": [
+      "environmental-biome"
+    ],
+    "celestial": [
+      "environmental-biome"
+    ],
+    "abyssal": [
+      "environmental-biome"
+    ],
+    "crystalline_biome": [
+      "environmental-biome"
+    ],
+    "desert": [
+      "environmental-biome"
+    ],
+    "tundra": [
+      "environmental-biome"
+    ],
+    "swamp": [
+      "environmental-biome"
+    ],
+    "forest": [
+      "environmental-biome"
+    ],
+    "urban": [
+      "environmental-biome"
+    ],
+    "ruins": [
+      "environmental-biome"
+    ],
+    "futuristic": [
+      "environmental-biome"
+    ],
+    "steampunk": [
+      "environmental-biome"
+    ],
+    "cyberpunk": [
+      "environmental-biome"
+    ],
+    "medieval": [
+      "environmental-biome"
+    ],
+    "alien": [
+      "environmental-biome"
+    ],
+    "dream": [
+      "environmental-biome"
+    ],
+    "void": [
+      "environmental-biome"
+    ],
+    "curtain": [
+      "fabric-cloth"
+    ],
+    "banner": [
+      "fabric-cloth"
+    ],
+    "flag": [
+      "fabric-cloth"
+    ],
+    "tapestry": [
+      "fabric-cloth"
+    ],
+    "blanket": [
+      "fabric-cloth"
+    ],
+    "tent": [
+      "fabric-cloth"
+    ],
+    "canopy": [
+      "fabric-cloth"
+    ],
+    "sail": [
+      "fabric-cloth"
+    ],
+    "cloak": [
+      "fabric-cloth"
+    ],
+    "ribbon": [
+      "fabric-cloth"
+    ],
+    "carpet": [
+      "fabric-cloth"
+    ],
+    "rug": [
+      "fabric-cloth"
+    ],
+    "drape": [
+      "fabric-cloth"
+    ],
+    "awning": [
+      "fabric-cloth"
+    ],
+    "hammock": [
+      "fabric-cloth"
+    ],
+    "net_fabric": [
+      "fabric-cloth"
+    ],
+    "parachute": [
+      "fabric-cloth"
+    ],
+    "tarp": [
+      "fabric-cloth"
+    ],
+    "towel": [
+      "fabric-cloth"
+    ],
+    "tablecloth": [
+      "fabric-cloth"
+    ],
+    "bedsheet": [
+      "fabric-cloth"
+    ],
+    "pillow": [
+      "fabric-cloth"
+    ],
+    "cushion": [
+      "fabric-cloth"
+    ],
+    "upholstered": [
+      "fabric-cloth"
+    ],
+    "quilted": [
+      "fabric-cloth"
+    ],
+    "pleated": [
+      "fabric-cloth"
+    ],
+    "ruffled": [
+      "fabric-cloth"
+    ],
+    "tattered": [
+      "fabric-cloth"
+    ],
+    "flowing": [
+      "fabric-cloth"
+    ],
+    "billowing": [
+      "fabric-cloth"
+    ],
+    "sculpt_volume": [
+      "fabrication-devices"
+    ],
+    "printable": [
+      "fabrication-devices"
+    ],
+    "fdm_target": [
+      "fabrication-devices"
+    ],
+    "resin_target": [
+      "fabrication-devices"
+    ],
+    "laser_cuttable": [
+      "fabrication-devices"
+    ],
+    "cnc_millable": [
+      "fabrication-devices"
+    ],
+    "embroiderable": [
+      "fabrication-devices"
+    ],
+    "vinyl_cuttable": [
+      "fabrication-devices"
+    ],
+    "printability_feedback": [
+      "fabrication-devices"
+    ],
+    "fabrication_ready": [
+      "fabrication-devices"
+    ],
+    "facs_au01_inner_brow_raise": [
+      "facial-expression"
+    ],
+    "facs_au02_outer_brow_raise": [
+      "facial-expression"
+    ],
+    "facs_au04_brow_lowerer": [
+      "facial-expression"
+    ],
+    "facs_au05_upper_lid_raise": [
+      "facial-expression"
+    ],
+    "facs_au06_cheek_raise": [
+      "facial-expression"
+    ],
+    "facs_au07_lid_tightener": [
+      "facial-expression"
+    ],
+    "facs_au43_eyes_closed": [
+      "facial-expression"
+    ],
+    "facs_au45_blink": [
+      "facial-expression"
+    ],
+    "facs_au46_wink": [
+      "facial-expression"
+    ],
+    "facs_au09_nose_wrinkler": [
+      "facial-expression"
+    ],
+    "facs_au10_upper_lip_raise": [
+      "facial-expression"
+    ],
+    "facs_au11_nasolabial_deepen": [
+      "facial-expression"
+    ],
+    "facs_au12_lip_corner_pull": [
+      "facial-expression"
+    ],
+    "facs_au13_sharp_lip_pull": [
+      "facial-expression"
+    ],
+    "facs_au14_dimpler": [
+      "facial-expression"
+    ],
+    "facs_au15_lip_corner_depress": [
+      "facial-expression"
+    ],
+    "facs_au16_lower_lip_depress": [
+      "facial-expression"
+    ],
+    "facs_au17_chin_raise": [
+      "facial-expression"
+    ],
+    "facs_au18_lip_pucker": [
+      "facial-expression"
+    ],
+    "facs_au20_lip_stretch": [
+      "facial-expression"
+    ],
+    "facs_au22_lip_funnel": [
+      "facial-expression"
+    ],
+    "facs_au23_lip_tighten": [
+      "facial-expression"
+    ],
+    "facs_au24_lip_press": [
+      "facial-expression"
+    ],
+    "facs_au25_lips_part": [
+      "facial-expression"
+    ],
+    "facs_au26_jaw_drop": [
+      "facial-expression"
+    ],
+    "facs_au27_mouth_stretch": [
+      "facial-expression"
+    ],
+    "facs_au28_lip_suck": [
+      "facial-expression"
+    ],
+    "facs_au19_tongue_show": [
+      "facial-expression"
+    ],
+    "facs_au21_neck_tighten": [
+      "facial-expression"
+    ],
+    "facs_au29_jaw_thrust": [
+      "facial-expression"
+    ],
+    "facs_au30_jaw_sideways": [
+      "facial-expression"
+    ],
+    "facs_au31_jaw_clench": [
+      "facial-expression"
+    ],
+    "facs_au32_lip_bite": [
+      "facial-expression"
+    ],
+    "facs_au33_cheek_blow": [
+      "facial-expression"
+    ],
+    "facs_au34_cheek_puff": [
+      "facial-expression"
+    ],
+    "facs_au35_cheek_suck": [
+      "facial-expression"
+    ],
+    "facs_au36_tongue_bulge": [
+      "facial-expression"
+    ],
+    "facs_au37_lip_wipe": [
+      "facial-expression"
+    ],
+    "facs_au38_nostril_dilate": [
+      "facial-expression"
+    ],
+    "facs_au39_nostril_compress": [
+      "facial-expression"
+    ],
+    "facs_au51_head_turn_left": [
+      "facial-expression"
+    ],
+    "facs_au52_head_turn_right": [
+      "facial-expression"
+    ],
+    "facs_au53_head_up": [
+      "facial-expression"
+    ],
+    "facs_au54_head_down": [
+      "facial-expression"
+    ],
+    "facs_au55_head_tilt_left": [
+      "facial-expression"
+    ],
+    "facs_au56_head_tilt_right": [
+      "facial-expression"
+    ],
+    "facs_au57_head_forward": [
+      "facial-expression"
+    ],
+    "facs_au58_head_back": [
+      "facial-expression"
+    ],
+    "facs_au61_eyes_turn_left": [
+      "facial-expression"
+    ],
+    "facs_au62_eyes_turn_right": [
+      "facial-expression"
+    ],
+    "facs_au63_eyes_up": [
+      "facial-expression"
+    ],
+    "facs_au64_eyes_down": [
+      "facial-expression"
+    ],
+    "expression_happy": [
+      "facial-expression"
+    ],
+    "expression_sad": [
+      "facial-expression"
+    ],
+    "expression_angry": [
+      "facial-expression"
+    ],
+    "expression_surprised": [
+      "facial-expression"
+    ],
+    "expression_disgusted": [
+      "facial-expression"
+    ],
+    "expression_fearful": [
+      "facial-expression"
+    ],
+    "expression_neutral": [
+      "facial-expression"
+    ],
+    "expression_thinking": [
+      "facial-expression"
+    ],
+    "viseme_sil": [
+      "facial-expression"
+    ],
+    "viseme_aa": [
+      "facial-expression"
+    ],
+    "viseme_ee": [
+      "facial-expression"
+    ],
+    "viseme_ih": [
+      "facial-expression"
+    ],
+    "viseme_oh": [
+      "facial-expression"
+    ],
+    "viseme_oo": [
+      "facial-expression"
+    ],
+    "viseme_pp": [
+      "facial-expression"
+    ],
+    "viseme_ff": [
+      "facial-expression"
+    ],
+    "viseme_th": [
+      "facial-expression"
+    ],
+    "viseme_dd": [
+      "facial-expression"
+    ],
+    "viseme_kk": [
+      "facial-expression"
+    ],
+    "viseme_ch": [
+      "facial-expression"
+    ],
+    "viseme_ss": [
+      "facial-expression"
+    ],
+    "viseme_nn": [
+      "facial-expression"
+    ],
+    "viseme_rr": [
+      "facial-expression"
+    ],
+    "rollout": [
+      "feature-flags"
+    ],
+    "ffi": [
+      "ffi-os"
+    ],
+    "native_call": [
+      "ffi-os"
+    ],
+    "wasm_bridge": [
+      "ffi-os"
+    ],
+    "sys_io": [
+      "ffi-os"
+    ],
+    "s3_upload": [
+      "file-storage"
+    ],
+    "file_system": [
+      "file-storage"
+    ],
+    "blob_store": [
+      "file-storage"
+    ],
+    "chair": [
+      "furniture-decor"
+    ],
+    "table": [
+      "furniture-decor"
+    ],
+    "desk": [
+      "furniture-decor"
+    ],
+    "bench": [
+      "furniture-decor"
+    ],
+    "stool": [
+      "furniture-decor"
+    ],
+    "sofa": [
+      "furniture-decor"
+    ],
+    "bed_furniture": [
+      "furniture-decor"
+    ],
+    "bookshelf": [
+      "furniture-decor"
+    ],
+    "wardrobe": [
+      "furniture-decor"
+    ],
+    "dresser": [
+      "furniture-decor"
+    ],
+    "nightstand": [
+      "furniture-decor"
+    ],
+    "coffee_table": [
+      "furniture-decor"
+    ],
+    "dining_table": [
+      "furniture-decor"
+    ],
+    "counter": [
+      "furniture-decor"
+    ],
+    "throne": [
+      "furniture-decor"
+    ],
+    "pedestal": [
+      "furniture-decor"
+    ],
+    "mannequin": [
+      "furniture-decor"
+    ],
+    "statue": [
+      "furniture-decor"
+    ],
+    "bust": [
+      "furniture-decor"
+    ],
+    "vase_decor": [
+      "furniture-decor"
+    ],
+    "painting": [
+      "furniture-decor"
+    ],
+    "sculpture": [
+      "furniture-decor"
+    ],
+    "mirror_decor": [
+      "furniture-decor"
+    ],
+    "clock": [
+      "furniture-decor"
+    ],
+    "candelabra": [
+      "furniture-decor"
+    ],
+    "trophy": [
+      "furniture-decor"
+    ],
+    "globe": [
+      "furniture-decor"
+    ],
+    "aquarium_decor": [
+      "furniture-decor"
+    ],
+    "terrarium_decor": [
+      "furniture-decor"
+    ],
+    "plant_pot": [
+      "furniture-decor"
+    ],
+    "fountain": [
+      "furniture-decor"
+    ],
+    "birdcage": [
+      "furniture-decor"
+    ],
+    "picture_frame": [
+      "furniture-decor"
+    ],
+    "rug_decor": [
+      "furniture-decor"
+    ],
+    "chandelier_decor": [
+      "furniture-decor"
+    ],
+    "fireplace": [
+      "furniture-decor"
+    ],
+    "collectible": [
+      "game-mechanics"
+    ],
+    "spawnable": [
+      "game-mechanics"
+    ],
+    "destructible": [
+      "game-mechanics"
+    ],
+    "healable": [
+      "game-mechanics"
+    ],
+    "damageable": [
+      "game-mechanics"
+    ],
+    "explosive": [
+      "game-mechanics"
+    ],
+    "flammable": [
+      "game-mechanics"
+    ],
+    "freezable": [
+      "game-mechanics"
+    ],
+    "electrifiable": [
+      "game-mechanics"
+    ],
+    "magnetic": [
+      "game-mechanics"
+    ],
+    "poisonous": [
+      "game-mechanics"
+    ],
+    "radioactive": [
+      "game-mechanics"
+    ],
+    "fragile": [
+      "game-mechanics"
+    ],
+    "repairable": [
+      "game-mechanics"
+    ],
+    "upgradeable": [
+      "game-mechanics"
+    ],
+    "lootable": [
+      "game-mechanics"
+    ],
+    "quest_item": [
+      "game-mechanics"
+    ],
+    "currency": [
+      "game-mechanics"
+    ],
+    "ammunition": [
+      "game-mechanics"
+    ],
+    "fuel": [
+      "game-mechanics"
+    ],
+    "key_item": [
+      "game-mechanics"
+    ],
+    "power_up": [
+      "game-mechanics"
+    ],
+    "debuff": [
+      "game-mechanics"
+    ],
+    "shield": [
+      "game-mechanics"
+    ],
+    "weapon": [
+      "game-mechanics"
+    ],
+    "armor": [
+      "game-mechanics"
+    ],
+    "tool": [
+      "game-mechanics"
+    ],
+    "vehicle": [
+      "game-mechanics"
+    ],
+    "projectile": [
+      "game-mechanics"
+    ],
+    "trap": [
+      "game-mechanics"
+    ],
+    "puzzle_piece": [
+      "game-mechanics"
+    ],
+    "fluid": [
+      "gaps-physics",
+      "physics-expansion"
+    ],
+    "soft_body_pro": [
+      "gaps-physics"
+    ],
+    "crowd_sim": [
+      "gaps-physics"
+    ],
+    "deformable_terrain": [
+      "gaps-physics"
+    ],
+    "god_rays": [
+      "gaps-physics",
+      "lighting"
+    ],
+    "weather": [
+      "gaps-physics"
+    ],
+    "world_state": [
+      "gaps-physics"
+    ],
+    "spatial_voice": [
+      "gaps-physics"
+    ],
+    "lip_sync": [
+      "gaps-physics",
+      "interop-copresence"
+    ],
+    "ai_companion": [
+      "gaps-physics"
+    ],
+    "token_gated": [
+      "gaps-physics",
+      "geospatial-web3"
+    ],
+    "moderation": [
+      "gaps-physics"
+    ],
+    "anti_grief": [
+      "gaps-physics"
+    ],
+    "diamond_gem": [
+      "gems-minerals"
+    ],
+    "ruby_gem": [
+      "gems-minerals"
+    ],
+    "emerald_gem": [
+      "gems-minerals"
+    ],
+    "sapphire_gem": [
+      "gems-minerals"
+    ],
+    "amethyst": [
+      "gems-minerals"
+    ],
+    "topaz": [
+      "gems-minerals"
+    ],
+    "opal": [
+      "gems-minerals"
+    ],
+    "pearl": [
+      "gems-minerals"
+    ],
+    "obsidian": [
+      "gems-minerals"
+    ],
+    "jade": [
+      "gems-minerals"
+    ],
+    "amber": [
+      "gems-minerals"
+    ],
+    "quartz": [
+      "gems-minerals"
+    ],
+    "crystal_gem": [
+      "gems-minerals"
+    ],
+    "gold_material": [
+      "gems-minerals"
+    ],
+    "silver_material": [
+      "gems-minerals"
+    ],
+    "bronze_material": [
+      "gems-minerals"
+    ],
+    "copper_material": [
+      "gems-minerals"
+    ],
+    "iron_material": [
+      "gems-minerals"
+    ],
+    "steel_material": [
+      "gems-minerals"
+    ],
+    "titanium_material": [
+      "gems-minerals"
+    ],
+    "mithril": [
+      "gems-minerals"
+    ],
+    "adamantine": [
+      "gems-minerals"
+    ],
+    "orichalcum": [
+      "gems-minerals"
+    ],
+    "moonstone": [
+      "gems-minerals"
+    ],
+    "sunstone": [
+      "gems-minerals"
+    ],
+    "bloodstone": [
+      "gems-minerals"
+    ],
+    "lapis_lazuli": [
+      "gems-minerals"
+    ],
+    "turquoise_gem": [
+      "gems-minerals"
+    ],
+    "onyx": [
+      "gems-minerals"
+    ],
+    "garnet": [
+      "gems-minerals"
+    ],
+    "geospatial_anchor": [
+      "geospatial-web3"
+    ],
+    "terrain_anchor": [
+      "geospatial-web3"
+    ],
+    "rooftop_anchor": [
+      "geospatial-web3"
+    ],
+    "vps": [
+      "geospatial-web3"
+    ],
+    "poi": [
+      "geospatial-web3"
+    ],
+    "nft": [
+      "geospatial-web3"
+    ],
+    "wallet": [
+      "geospatial-web3",
+      "payment"
+    ],
+    "marketplace": [
+      "geospatial-web3"
+    ],
+    "portable": [
+      "geospatial-web3"
+    ],
+    "ssgi": [
+      "global-illumination",
+      "rendering"
+    ],
+    "radiance_cascades": [
+      "global-illumination"
+    ],
+    "light_probes": [
+      "global-illumination"
+    ],
+    "irradiance_volume": [
+      "global-illumination"
+    ],
+    "voxel_cone_trace": [
+      "global-illumination"
+    ],
+    "lightmap_baked": [
+      "global-illumination"
+    ],
+    "lightmap_dynamic": [
+      "global-illumination"
+    ],
+    "reflection_probe": [
+      "global-illumination"
+    ],
+    "planar_reflection": [
+      "global-illumination"
+    ],
+    "screen_space_reflection": [
+      "global-illumination"
+    ],
+    "ambient_occlusion_baked": [
+      "global-illumination"
+    ],
+    "ambient_occlusion_realtime": [
+      "global-illumination"
+    ],
+    "emissive_gi": [
+      "global-illumination"
+    ],
+    "bounce_light": [
+      "global-illumination"
+    ],
+    "light_propagation_volume": [
+      "global-illumination"
+    ],
+    "compute_shader": [
+      "gpu-compute"
+    ],
+    "render_pipeline": [
+      "gpu-compute"
+    ],
+    "post_process": [
+      "gpu-compute"
+    ],
+    "ray_trace": [
+      "gpu-compute"
+    ],
+    "patient": [
+      "healthcare-medical"
+    ],
+    "vital_signs": [
+      "healthcare-medical"
+    ],
+    "x_ray_scan": [
+      "healthcare-medical"
+    ],
+    "mri_scan": [
+      "healthcare-medical"
+    ],
+    "ct_scan": [
+      "healthcare-medical"
+    ],
+    "ultrasound": [
+      "healthcare-medical"
+    ],
+    "ecg": [
+      "healthcare-medical"
+    ],
+    "surgical_tool": [
+      "healthcare-medical"
+    ],
+    "scalpel": [
+      "healthcare-medical"
+    ],
+    "forceps": [
+      "healthcare-medical"
+    ],
+    "syringe": [
+      "healthcare-medical"
+    ],
+    "iv_drip": [
+      "healthcare-medical"
+    ],
+    "defibrillator": [
+      "healthcare-medical"
+    ],
+    "stethoscope": [
+      "healthcare-medical"
+    ],
+    "bandage": [
+      "healthcare-medical"
+    ],
+    "splint": [
+      "healthcare-medical"
+    ],
+    "wheelchair": [
+      "healthcare-medical"
+    ],
+    "prosthetic": [
+      "healthcare-medical"
+    ],
+    "therapeutic": [
+      "healthcare-medical"
+    ],
+    "meditation": [
+      "healthcare-medical"
+    ],
+    "breathing_exercise": [
+      "healthcare-medical"
+    ],
+    "biofeedback": [
+      "healthcare-medical"
+    ],
+    "exposure_therapy": [
+      "healthcare-medical"
+    ],
+    "pain_management": [
+      "healthcare-medical"
+    ],
+    "rehabilitation": [
+      "healthcare-medical"
+    ],
+    "cognitive_therapy": [
+      "healthcare-medical"
+    ],
+    "phobia_treatment": [
+      "healthcare-medical"
+    ],
+    "ptsd_therapy": [
+      "healthcare-medical"
+    ],
+    "mindfulness": [
+      "healthcare-medical"
+    ],
+    "body_scan": [
+      "healthcare-medical"
+    ],
+    "guided_relaxation": [
+      "healthcare-medical"
+    ],
+    "depth_estimation": [
+      "hologram-media",
+      "ml-inference"
+    ],
+    "displacement": [
+      "hologram-media"
+    ],
+    "segment": [
+      "hologram-media"
+    ],
+    "animated_texture": [
+      "hologram-media"
+    ],
+    "holographic_sprite": [
+      "hologram-media"
+    ],
+    "quilt": [
+      "hologram-media"
+    ],
+    "gaussian_splatting": [
+      "hologram-media"
+    ],
+    "spatial_video": [
+      "hologram-media"
+    ],
+    "image": [
+      "hologram-media"
+    ],
+    "depth_sequence": [
+      "hologram-media"
+    ],
+    "temporal_smoothing": [
+      "hologram-media"
+    ],
+    "billboard": [
+      "hologram-media",
+      "simple-modifiers"
+    ],
+    "depth_to_normal": [
+      "hologram-media"
+    ],
+    "holomap_reconstruct": [
+      "holomap-reconstruction"
+    ],
+    "holomap_camera_trajectory": [
+      "holomap-reconstruction"
+    ],
+    "holomap_anchor_context": [
+      "holomap-reconstruction"
+    ],
+    "holomap_drift_correction": [
+      "holomap-reconstruction"
+    ],
+    "holomap_splat_output": [
+      "holomap-reconstruction"
+    ],
+    "agent_profile": [
+      "holomesh-social"
+    ],
+    "profile_theme": [
+      "holomesh-social"
+    ],
+    "status_mood": [
+      "holomesh-social"
+    ],
+    "agent_badge": [
+      "holomesh-social"
+    ],
+    "visitor_counter": [
+      "holomesh-social"
+    ],
+    "top8_friends": [
+      "holomesh-social"
+    ],
+    "guestbook": [
+      "holomesh-social"
+    ],
+    "agent_wall": [
+      "holomesh-social"
+    ],
+    "agent_room": [
+      "holomesh-social"
+    ],
+    "background_music": [
+      "holomesh-social"
+    ],
+    "spatial_comment": [
+      "holomesh-social"
+    ],
+    "room_portal": [
+      "holomesh-social"
+    ],
+    "trait_showcase": [
+      "holomesh-social"
+    ],
+    "skeleton": [
+      "humanoid-avatar"
+    ],
+    "body": [
+      "humanoid-avatar"
+    ],
+    "face": [
+      "humanoid-avatar"
+    ],
+    "expressive": [
+      "humanoid-avatar"
+    ],
+    "hair": [
+      "humanoid-avatar"
+    ],
+    "clothing": [
+      "humanoid-avatar"
+    ],
+    "hands": [
+      "humanoid-avatar"
+    ],
+    "character_voice": [
+      "humanoid-avatar"
+    ],
+    "locomotion": [
+      "humanoid-avatar"
+    ],
+    "poseable": [
+      "humanoid-avatar"
+    ],
+    "morph": [
+      "humanoid-avatar"
+    ],
+    "eye_tracked": [
+      "humanoid-avatar",
+      "v43-ai-xr"
+    ],
+    "pose_estimation": [
+      "humanoid-avatar"
+    ],
+    "hand_mesh_ai": [
+      "humanoid-avatar"
+    ],
+    "neural_animation": [
+      "humanoid-avatar",
+      "v43-ai-xr"
+    ],
+    "locale": [
+      "i18n-localization"
+    ],
+    "rtl": [
+      "i18n-localization"
+    ],
+    "timezone": [
+      "i18n-localization"
+    ],
+    "shape_pool": [
+      "instancing-geometry"
+    ],
+    "shape_pool_box": [
+      "instancing-geometry"
+    ],
+    "shape_pool_sphere": [
+      "instancing-geometry"
+    ],
+    "shape_pool_cylinder": [
+      "instancing-geometry"
+    ],
+    "shape_pool_cone": [
+      "instancing-geometry"
+    ],
+    "shape_pool_torus": [
+      "instancing-geometry"
+    ],
+    "shape_pool_capsule": [
+      "instancing-geometry"
+    ],
+    "instanced": [
+      "instancing-geometry"
+    ],
+    "instanced_array": [
+      "instancing-geometry"
+    ],
+    "instanced_color": [
+      "instancing-geometry"
+    ],
+    "instanced_transform": [
+      "instancing-geometry"
+    ],
+    "sdf_primitive": [
+      "instancing-geometry"
+    ],
+    "sdf_union": [
+      "instancing-geometry"
+    ],
+    "sdf_intersect": [
+      "instancing-geometry"
+    ],
+    "sdf_difference": [
+      "instancing-geometry"
+    ],
+    "sdf_smooth_union": [
+      "instancing-geometry"
+    ],
+    "sdf_smooth_intersect": [
+      "instancing-geometry"
+    ],
+    "sdf_smooth_difference": [
+      "instancing-geometry"
+    ],
+    "sdf_repeat": [
+      "instancing-geometry"
+    ],
+    "sdf_twist": [
+      "instancing-geometry"
+    ],
+    "sdf_bend": [
+      "instancing-geometry"
+    ],
+    "compute_rasterize": [
+      "instancing-geometry"
+    ],
+    "compute_rasterize_points": [
+      "instancing-geometry"
+    ],
+    "compute_rasterize_splats": [
+      "instancing-geometry"
+    ],
+    "batched_mesh": [
+      "instancing-geometry"
+    ],
+    "batched_draw_indirect": [
+      "instancing-geometry"
+    ],
+    "multi_draw_indirect": [
+      "instancing-geometry"
+    ],
+    "render_strategy": [
+      "instancing-geometry"
+    ],
+    "render_strategy_auto": [
+      "instancing-geometry"
+    ],
+    "render_strategy_instanced": [
+      "instancing-geometry"
+    ],
+    "render_strategy_sdf": [
+      "instancing-geometry"
+    ],
+    "render_strategy_compute": [
+      "instancing-geometry"
+    ],
+    "render_strategy_batched": [
+      "instancing-geometry"
+    ],
+    "morton_sort": [
+      "instancing-geometry"
+    ],
+    "morton_octree": [
+      "instancing-geometry"
+    ],
+    "autonomous": [
+      "intelligence-behavior"
+    ],
+    "scripted": [
+      "intelligence-behavior"
+    ],
+    "adaptive": [
+      "intelligence-behavior"
+    ],
+    "pathfinding": [
+      "intelligence-behavior"
+    ],
+    "flocking": [
+      "intelligence-behavior"
+    ],
+    "swarming": [
+      "intelligence-behavior"
+    ],
+    "conversational": [
+      "intelligence-behavior"
+    ],
+    "teachable": [
+      "intelligence-behavior"
+    ],
+    "tameable": [
+      "intelligence-behavior"
+    ],
+    "friendly": [
+      "intelligence-behavior"
+    ],
+    "hostile": [
+      "intelligence-behavior"
+    ],
+    "neutral": [
+      "intelligence-behavior"
+    ],
+    "territorial": [
+      "intelligence-behavior"
+    ],
+    "nocturnal": [
+      "intelligence-behavior"
+    ],
+    "migratory": [
+      "intelligence-behavior"
+    ],
+    "predator": [
+      "intelligence-behavior"
+    ],
+    "prey": [
+      "intelligence-behavior"
+    ],
+    "pack_animal": [
+      "intelligence-behavior"
+    ],
+    "solitary": [
+      "intelligence-behavior"
+    ],
+    "curious": [
+      "intelligence-behavior"
+    ],
+    "fearful": [
+      "intelligence-behavior"
+    ],
+    "aggressive": [
+      "intelligence-behavior"
+    ],
+    "passive": [
+      "intelligence-behavior"
+    ],
+    "protective": [
+      "intelligence-behavior"
+    ],
+    "playful": [
+      "intelligence-behavior"
+    ],
+    "mischievous": [
+      "intelligence-behavior"
+    ],
+    "wise": [
+      "intelligence-behavior"
+    ],
+    "ancient": [
+      "intelligence-behavior"
+    ],
+    "baby": [
+      "intelligence-behavior"
+    ],
+    "elder": [
+      "intelligence-behavior"
+    ],
+    "legendary": [
+      "intelligence-behavior"
+    ],
+    "mythical": [
+      "intelligence-behavior"
+    ],
+    "mechanical": [
+      "intelligence-behavior"
+    ],
+    "organic": [
+      "intelligence-behavior"
+    ],
+    "hybrid": [
+      "intelligence-behavior"
+    ],
+    "shapeshifter": [
+      "intelligence-behavior"
+    ],
+    "invisible_agent": [
+      "intelligence-behavior"
+    ],
+    "omniscient": [
+      "intelligence-behavior"
+    ],
+    "behavior_tree": [
+      "intelligence-behavior",
+      "iot-autonomous-agents"
+    ],
+    "goal_oriented": [
+      "intelligence-behavior",
+      "iot-autonomous-agents"
+    ],
+    "reward_shaping": [
+      "intelligence-behavior"
+    ],
+    "usd": [
+      "interop-copresence"
+    ],
+    "gltf": [
+      "interop-copresence"
+    ],
+    "fbx": [
+      "interop-copresence"
+    ],
+    "material_x": [
+      "interop-copresence"
+    ],
+    "scene_graph": [
+      "interop-copresence"
+    ],
+    "co_located": [
+      "interop-copresence"
+    ],
+    "remote_presence": [
+      "interop-copresence"
+    ],
+    "shared_world": [
+      "interop-copresence",
+      "xr-platform"
+    ],
+    "voice_proximity": [
+      "interop-copresence"
+    ],
+    "avatar_embodiment": [
+      "interop-copresence"
+    ],
+    "emotion_directive": [
+      "interop-copresence"
+    ],
+    "stt": [
+      "interop-copresence"
+    ],
+    "tts": [
+      "interop-copresence"
+    ],
+    "spectator": [
+      "interop-copresence"
+    ],
+    "role": [
+      "interop-copresence"
+    ],
+    "sensor": [
+      "iot-autonomous-agents"
+    ],
+    "digital_twin": [
+      "iot-autonomous-agents"
+    ],
+    "twin_sync": [
+      "iot-autonomous-agents"
+    ],
+    "twin_actuator": [
+      "iot-autonomous-agents"
+    ],
+    "data_binding": [
+      "iot-autonomous-agents"
+    ],
+    "alert": [
+      "iot-autonomous-agents",
+      "observability"
+    ],
+    "heatmap_3d": [
+      "iot-autonomous-agents"
+    ],
+    "llm_agent": [
+      "iot-autonomous-agents",
+      "networking-ai"
+    ],
+    "memory": [
+      "iot-autonomous-agents",
+      "networking-ai"
+    ],
+    "perception": [
+      "iot-autonomous-agents"
+    ],
+    "emotion": [
+      "iot-autonomous-agents"
+    ],
+    "dialogue": [
+      "iot-autonomous-agents"
+    ],
+    "faction": [
+      "iot-autonomous-agents"
+    ],
+    "patrol": [
+      "iot-autonomous-agents"
+    ],
+    "mitosis": [
+      "iot-autonomous-agents"
+    ],
+    "agent_spawner": [
+      "iot-autonomous-agents"
+    ],
+    "delegation": [
+      "iot-autonomous-agents"
+    ],
+    "command": [
+      "iot-autonomous-agents"
+    ],
+    "dtdl_interface": [
+      "iot-autonomous-agents"
+    ],
+    "telemetry": [
+      "iot-autonomous-agents"
+    ],
+    "iot_bridge": [
+      "iot-autonomous-agents"
+    ],
+    "matter_device": [
+      "iot-autonomous-agents"
+    ],
+    "bluetooth_device": [
+      "iot-autonomous-agents"
+    ],
+    "usb_device": [
+      "iot-autonomous-agents"
+    ],
+    "octoprint_device": [
+      "iot-autonomous-agents"
+    ],
+    "home_assistant": [
+      "iot-autonomous-agents"
+    ],
+    "device_registry": [
+      "iot-autonomous-agents"
+    ],
+    "smart_light": [
+      "iot-autonomous-agents"
+    ],
+    "smart_plug": [
+      "iot-autonomous-agents"
+    ],
+    "smart_speaker": [
+      "iot-autonomous-agents"
+    ],
+    "smart_display": [
+      "iot-autonomous-agents"
+    ],
+    "climate_control": [
+      "iot-autonomous-agents"
+    ],
+    "shadow_caster": [
+      "lighting"
+    ],
+    "light_source": [
+      "lighting"
+    ],
+    "spotlight": [
+      "lighting"
+    ],
+    "point_light": [
+      "lighting"
+    ],
+    "area_light": [
+      "lighting"
+    ],
+    "backlit": [
+      "lighting"
+    ],
+    "candlelight": [
+      "lighting"
+    ],
+    "torchlight": [
+      "lighting"
+    ],
+    "lantern": [
+      "lighting"
+    ],
+    "neon_sign": [
+      "lighting"
+    ],
+    "fluorescent": [
+      "lighting"
+    ],
+    "incandescent": [
+      "lighting"
+    ],
+    "led": [
+      "lighting"
+    ],
+    "strobe": [
+      "lighting"
+    ],
+    "blacklight": [
+      "lighting"
+    ],
+    "floodlight": [
+      "lighting"
+    ],
+    "chandelier": [
+      "lighting"
+    ],
+    "lamp": [
+      "lighting"
+    ],
+    "sconce": [
+      "lighting"
+    ],
+    "light_strip": [
+      "lighting"
+    ],
+    "projection": [
+      "lighting",
+      "universal-service"
+    ],
+    "volumetric_light": [
+      "lighting"
+    ],
+    "caustics": [
+      "lighting"
+    ],
+    "ambient_glow": [
+      "lighting"
+    ],
+    "flickering": [
+      "lighting"
+    ],
+    "dimmable": [
+      "lighting"
+    ],
+    "color_temperature": [
+      "lighting"
+    ],
+    "rideable": [
+      "locomotion-movement"
+    ],
+    "driveable": [
+      "locomotion-movement"
+    ],
+    "mountable": [
+      "locomotion-movement"
+    ],
+    "climbable": [
+      "locomotion-movement"
+    ],
+    "swimmable": [
+      "locomotion-movement"
+    ],
+    "flyable": [
+      "locomotion-movement"
+    ],
+    "teleportable": [
+      "locomotion-movement"
+    ],
+    "walkable": [
+      "locomotion-movement"
+    ],
+    "jumpable": [
+      "locomotion-movement"
+    ],
+    "sittable": [
+      "locomotion-movement"
+    ],
+    "crawlable": [
+      "locomotion-movement"
+    ],
+    "slidable": [
+      "locomotion-movement"
+    ],
+    "grindable": [
+      "locomotion-movement"
+    ],
+    "surfable": [
+      "locomotion-movement"
+    ],
+    "enchantable": [
+      "magic-fantasy"
+    ],
+    "cursed": [
+      "magic-fantasy"
+    ],
+    "blessed": [
+      "magic-fantasy"
+    ],
+    "soul_bound": [
+      "magic-fantasy"
+    ],
+    "elemental_fire": [
+      "magic-fantasy"
+    ],
+    "elemental_water": [
+      "magic-fantasy"
+    ],
+    "elemental_earth": [
+      "magic-fantasy"
+    ],
+    "elemental_air": [
+      "magic-fantasy"
+    ],
+    "elemental_lightning": [
+      "magic-fantasy"
+    ],
+    "elemental_ice": [
+      "magic-fantasy"
+    ],
+    "elemental_shadow": [
+      "magic-fantasy"
+    ],
+    "elemental_light": [
+      "magic-fantasy"
+    ],
+    "summoning": [
+      "magic-fantasy"
+    ],
+    "banishing": [
+      "magic-fantasy"
+    ],
+    "telekinetic": [
+      "magic-fantasy"
+    ],
+    "telepathic": [
+      "magic-fantasy"
+    ],
+    "healing_aura": [
+      "magic-fantasy"
+    ],
+    "damage_aura": [
+      "magic-fantasy"
+    ],
+    "shield_aura": [
+      "magic-fantasy"
+    ],
+    "speed_aura": [
+      "magic-fantasy"
+    ],
+    "invisibility": [
+      "magic-fantasy"
+    ],
+    "time_slow": [
+      "magic-fantasy"
+    ],
+    "time_stop": [
+      "magic-fantasy"
+    ],
+    "time_rewind": [
+      "magic-fantasy"
+    ],
+    "portal_link": [
+      "magic-fantasy"
+    ],
+    "dimensional": [
+      "magic-fantasy"
+    ],
+    "gravity_well": [
+      "magic-fantasy"
+    ],
+    "antigravity": [
+      "magic-fantasy"
+    ],
+    "force_field": [
+      "magic-fantasy",
+      "scientific-computing"
+    ],
+    "mana_source": [
+      "magic-fantasy"
+    ],
+    "rune": [
+      "magic-fantasy"
+    ],
+    "glyph": [
+      "magic-fantasy"
+    ],
+    "sigil": [
+      "magic-fantasy"
+    ],
+    "totem": [
+      "magic-fantasy"
+    ],
+    "artifact": [
+      "magic-fantasy"
+    ],
+    "relic": [
+      "magic-fantasy"
+    ],
+    "phylactery": [
+      "magic-fantasy"
+    ],
+    "ship": [
+      "maritime-naval"
+    ],
+    "boat": [
+      "maritime-naval"
+    ],
+    "submarine": [
+      "maritime-naval"
+    ],
+    "anchor_ship": [
+      "maritime-naval"
+    ],
+    "lighthouse": [
+      "maritime-naval"
+    ],
+    "dock_structure": [
+      "maritime-naval"
+    ],
+    "harbor": [
+      "maritime-naval"
+    ],
+    "pier": [
+      "maritime-naval"
+    ],
+    "buoy": [
+      "maritime-naval"
+    ],
+    "raft": [
+      "maritime-naval"
+    ],
+    "canoe": [
+      "maritime-naval"
+    ],
+    "kayak": [
+      "maritime-naval"
+    ],
+    "yacht": [
+      "maritime-naval"
+    ],
+    "cargo_ship": [
+      "maritime-naval"
+    ],
+    "warship": [
+      "maritime-naval"
+    ],
+    "fishing_boat": [
+      "maritime-naval"
+    ],
+    "rowboat": [
+      "maritime-naval"
+    ],
+    "hovercraft": [
+      "maritime-naval"
+    ],
+    "lifeboat": [
+      "maritime-naval"
+    ],
+    "ferry": [
+      "maritime-naval"
+    ],
+    "mast": [
+      "maritime-naval"
+    ],
+    "rudder": [
+      "maritime-naval"
+    ],
+    "helm": [
+      "maritime-naval"
+    ],
+    "porthole": [
+      "maritime-naval"
+    ],
+    "gangplank": [
+      "maritime-naval"
+    ],
+    "crow_nest": [
+      "maritime-naval"
+    ],
+    "figurehead": [
+      "maritime-naval"
+    ],
+    "hull": [
+      "maritime-naval"
+    ],
+    "keel": [
+      "maritime-naval"
+    ],
+    "propeller": [
+      "maritime-naval"
+    ],
+    "wooden": [
+      "material-properties"
+    ],
+    "stone_material": [
+      "material-properties"
+    ],
+    "brick": [
+      "material-properties"
+    ],
+    "concrete": [
+      "material-properties"
+    ],
+    "marble_material": [
+      "material-properties"
+    ],
+    "granite": [
+      "material-properties"
+    ],
+    "sandstone": [
+      "material-properties"
+    ],
+    "slate": [
+      "material-properties"
+    ],
+    "clay": [
+      "material-properties"
+    ],
+    "terracotta": [
+      "material-properties"
+    ],
+    "glass_material": [
+      "material-properties"
+    ],
+    "stained_glass": [
+      "material-properties"
+    ],
+    "crystal_material": [
+      "material-properties"
+    ],
+    "ice_material": [
+      "material-properties"
+    ],
+    "bone": [
+      "material-properties"
+    ],
+    "ivory": [
+      "material-properties"
+    ],
+    "shell": [
+      "material-properties",
+      "scripting-automation"
+    ],
+    "coral": [
+      "material-properties"
+    ],
+    "bamboo": [
+      "material-properties"
+    ],
+    "paper": [
+      "material-properties"
+    ],
+    "cardboard": [
+      "material-properties"
+    ],
+    "plastic": [
+      "material-properties"
+    ],
+    "resin": [
+      "material-properties"
+    ],
+    "wax": [
+      "material-properties"
+    ],
+    "foam": [
+      "material-properties"
+    ],
+    "composite": [
+      "material-properties"
+    ],
+    "carbon_fiber": [
+      "material-properties"
+    ],
+    "kevlar": [
+      "material-properties"
+    ],
+    "fiberglass": [
+      "material-properties"
+    ],
+    "plaster": [
+      "material-properties"
+    ],
+    "concrete_reinforced": [
+      "material-properties"
+    ],
+    "thatch": [
+      "material-properties"
+    ],
+    "adobe": [
+      "material-properties"
+    ],
+    "measurable": [
+      "measurement-sensing"
+    ],
+    "weighable": [
+      "measurement-sensing"
+    ],
+    "thermometer": [
+      "measurement-sensing"
+    ],
+    "compass": [
+      "measurement-sensing"
+    ],
+    "radar": [
+      "measurement-sensing"
+    ],
+    "sonar": [
+      "measurement-sensing"
+    ],
+    "scanner": [
+      "measurement-sensing"
+    ],
+    "detector": [
+      "measurement-sensing"
+    ],
+    "beacon": [
+      "measurement-sensing"
+    ],
+    "signal": [
+      "measurement-sensing"
+    ],
+    "humidity_sensor": [
+      "measurement-sensing"
+    ],
+    "air_quality": [
+      "measurement-sensing"
+    ],
+    "vibration_sensor": [
+      "measurement-sensing"
+    ],
+    "power_monitor": [
+      "measurement-sensing"
+    ],
+    "camera_feed": [
+      "measurement-sensing"
+    ],
+    "noise_level": [
+      "measurement-sensing"
+    ],
+    "filament_sensor": [
+      "measurement-sensing"
+    ],
+    "recordable": [
+      "media-analytics"
+    ],
+    "streamable": [
+      "media-analytics"
+    ],
+    "camera": [
+      "media-analytics"
+    ],
+    "video": [
+      "media-analytics"
+    ],
+    "trackable": [
+      "media-analytics"
+    ],
+    "survey": [
+      "media-analytics"
+    ],
+    "heatmap": [
+      "media-analytics"
+    ],
+    "image_resize": [
+      "media-content"
+    ],
+    "video_transcode": [
+      "media-content"
+    ],
+    "pdf_generate": [
+      "media-content"
+    ],
+    "markdown_render": [
+      "media-content"
+    ],
+    "model_load": [
+      "ml-inference"
+    ],
+    "fine_tune": [
+      "ml-inference"
+    ],
+    "inference": [
+      "ml-inference"
+    ],
+    "embedding": [
+      "ml-inference"
+    ],
+    "vector_search": [
+      "ml-inference"
+    ],
+    "prompt_template": [
+      "ml-inference"
+    ],
+    "tensor_op": [
+      "ml-tensor"
+    ],
+    "onnx_runtime": [
+      "ml-tensor"
+    ],
+    "training_loop": [
+      "ml-tensor"
+    ],
+    "scented": [
+      "multisensory-haptic"
+    ],
+    "tasteable": [
+      "multisensory-haptic"
+    ],
+    "temperature": [
+      "multisensory-haptic"
+    ],
+    "pressure_sensitive": [
+      "multisensory-haptic"
+    ],
+    "wind_effect": [
+      "multisensory-haptic"
+    ],
+    "wet": [
+      "multisensory-haptic"
+    ],
+    "dry": [
+      "multisensory-haptic"
+    ],
+    "rough": [
+      "multisensory-haptic"
+    ],
+    "smooth": [
+      "multisensory-haptic"
+    ],
+    "sticky": [
+      "multisensory-haptic"
+    ],
+    "slippery": [
+      "multisensory-haptic"
+    ],
+    "vibrating": [
+      "multisensory-haptic"
+    ],
+    "warm": [
+      "multisensory-haptic"
+    ],
+    "cold": [
+      "multisensory-haptic"
+    ],
+    "electric_sensation": [
+      "multisensory-haptic"
+    ],
+    "tingling": [
+      "multisensory-haptic"
+    ],
+    "piano": [
+      "music-performance"
+    ],
+    "guitar": [
+      "music-performance"
+    ],
+    "drums": [
+      "music-performance"
+    ],
+    "violin": [
+      "music-performance"
+    ],
+    "flute": [
+      "music-performance"
+    ],
+    "trumpet": [
+      "music-performance"
+    ],
+    "saxophone": [
+      "music-performance"
+    ],
+    "bass": [
+      "music-performance"
+    ],
+    "harp": [
+      "music-performance"
+    ],
+    "organ": [
+      "music-performance"
+    ],
+    "turntable": [
+      "music-performance"
+    ],
+    "mixer": [
+      "music-performance"
+    ],
+    "microphone": [
+      "music-performance"
+    ],
+    "amplifier": [
+      "music-performance"
+    ],
+    "speaker": [
+      "music-performance"
+    ],
+    "headphones": [
+      "music-performance"
+    ],
+    "equalizer": [
+      "music-performance"
+    ],
+    "loop_station": [
+      "music-performance"
+    ],
+    "sequencer": [
+      "music-performance"
+    ],
+    "sampler": [
+      "music-performance"
+    ],
+    "midi_controller": [
+      "music-performance"
+    ],
+    "light_show": [
+      "music-performance"
+    ],
+    "stage": [
+      "music-performance"
+    ],
+    "audience": [
+      "music-performance"
+    ],
+    "dance_floor": [
+      "music-performance"
+    ],
+    "dj_booth": [
+      "music-performance"
+    ],
+    "recording_studio": [
+      "music-performance"
+    ],
+    "concert_hall": [
+      "music-performance"
+    ],
+    "amphitheater": [
+      "music-performance"
+    ],
+    "karaoke": [
+      "music-performance"
+    ],
+    "lyrics_display": [
+      "music-performance"
+    ],
+    "music_visualizer": [
+      "music-performance"
+    ],
+    "beat_detector": [
+      "music-performance"
+    ],
+    "tempo": [
+      "music-performance"
+    ],
+    "key_signature": [
+      "music-performance"
+    ],
+    "chord_progression": [
+      "music-performance"
+    ],
+    "musical": [
+      "musical-sound"
+    ],
+    "ambient_sound": [
+      "musical-sound"
+    ],
+    "voice_activated": [
+      "musical-sound"
+    ],
+    "sound_emitter": [
+      "musical-sound"
+    ],
+    "sound_absorber": [
+      "musical-sound"
+    ],
+    "rhythm": [
+      "musical-sound"
+    ],
+    "melody": [
+      "musical-sound"
+    ],
+    "harmony": [
+      "musical-sound"
+    ],
+    "percussion": [
+      "musical-sound"
+    ],
+    "synthesizer": [
+      "musical-sound"
+    ],
+    "narrator_trigger": [
+      "narrative-storytelling"
+    ],
+    "cutscene": [
+      "narrative-storytelling"
+    ],
+    "flashback": [
+      "narrative-storytelling"
+    ],
+    "foreshadow": [
+      "narrative-storytelling"
+    ],
+    "journal_entry": [
+      "narrative-storytelling"
+    ],
+    "lore": [
+      "narrative-storytelling"
+    ],
+    "clue": [
+      "narrative-storytelling"
+    ],
+    "evidence": [
+      "narrative-storytelling"
+    ],
+    "witness": [
+      "narrative-storytelling"
+    ],
+    "suspect": [
+      "narrative-storytelling"
+    ],
+    "alibi": [
+      "narrative-storytelling"
+    ],
+    "testimony": [
+      "narrative-storytelling"
+    ],
+    "growable": [
+      "nature-life"
+    ],
+    "witherable": [
+      "nature-life"
+    ],
+    "bloomable": [
+      "nature-life"
+    ],
+    "pollinating": [
+      "nature-life"
+    ],
+    "photosynthetic": [
+      "nature-life"
+    ],
+    "bioluminescent": [
+      "nature-life"
+    ],
+    "venomous": [
+      "nature-life"
+    ],
+    "symbiotic": [
+      "nature-life"
+    ],
+    "parasitic": [
+      "nature-life"
+    ],
+    "carnivorous_plant": [
+      "nature-life"
+    ],
+    "aquatic": [
+      "nature-life"
+    ],
+    "amphibious": [
+      "nature-life"
+    ],
+    "aerial": [
+      "nature-life"
+    ],
+    "burrowing": [
+      "nature-life"
+    ],
+    "nesting": [
+      "nature-life"
+    ],
+    "egg": [
+      "nature-life"
+    ],
+    "larva": [
+      "nature-life"
+    ],
+    "cocoon": [
+      "nature-life"
+    ],
+    "metamorphic": [
+      "nature-life"
+    ],
+    "networked": [
+      "networking-ai"
+    ],
+    "http": [
+      "networking-ai",
+      "universal-service"
+    ],
+    "proactive": [
+      "networking-ai"
+    ],
+    "ai_driven": [
+      "networking-ai"
+    ],
+    "agent_protocol": [
+      "networking-ai"
+    ],
+    "narrator": [
+      "networking-ai"
+    ],
+    "responsive": [
+      "networking-ai"
+    ],
+    "procedural": [
+      "networking-ai"
+    ],
+    "captioned": [
+      "networking-ai"
+    ],
+    "collaborative_sculpt": [
+      "networking-ai"
+    ],
+    "fabrication_queue": [
+      "networking-ai"
+    ],
+    "print_vote": [
+      "networking-ai"
+    ],
+    "design_fork": [
+      "networking-ai"
+    ],
+    "neural_link": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "neural_forge": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "vision": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "stable_diffusion": [
+      "networking-ai"
+    ],
+    "controlnet": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "ai_texture_gen": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "diffusion_realtime": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "ai_inpainting": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "ai_upscaling": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "vector_db": [
+      "networking-ai",
+      "universal-service",
+      "v43-ai-xr"
+    ],
+    "rag_knowledge": [
+      "networking-ai"
+    ],
+    "embedding_search": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "ai_npc_brain": [
+      "networking-ai",
+      "v43-ai-xr"
+    ],
+    "webhook_out": [
+      "notification-alerting"
+    ],
+    "pagerduty": [
+      "notification-alerting"
+    ],
+    "slack_alert": [
+      "notification-alerting"
+    ],
+    "relationship": [
+      "npc-roles"
+    ],
+    "reputation": [
+      "npc-roles"
+    ],
+    "schedule": [
+      "npc-roles"
+    ],
+    "routine": [
+      "npc-roles"
+    ],
+    "barter": [
+      "npc-roles"
+    ],
+    "negotiate": [
+      "npc-roles"
+    ],
+    "betray": [
+      "npc-roles"
+    ],
+    "ally": [
+      "npc-roles"
+    ],
+    "rival": [
+      "npc-roles"
+    ],
+    "mentor": [
+      "npc-roles"
+    ],
+    "apprentice": [
+      "npc-roles"
+    ],
+    "follower": [
+      "npc-roles"
+    ],
+    "leader": [
+      "npc-roles"
+    ],
+    "merchant": [
+      "npc-roles"
+    ],
+    "quest_giver": [
+      "npc-roles"
+    ],
+    "guard": [
+      "npc-roles"
+    ],
+    "healer_npc": [
+      "npc-roles"
+    ],
+    "blacksmith": [
+      "npc-roles"
+    ],
+    "innkeeper": [
+      "npc-roles"
+    ],
+    "scholar": [
+      "npc-roles"
+    ],
+    "thief": [
+      "npc-roles"
+    ],
+    "spy": [
+      "npc-roles"
+    ],
+    "diplomat": [
+      "npc-roles"
+    ],
+    "general": [
+      "npc-roles"
+    ],
+    "prophet": [
+      "npc-roles"
+    ],
+    "hermit": [
+      "npc-roles"
+    ],
+    "bard": [
+      "npc-roles"
+    ],
+    "jester": [
+      "npc-roles"
+    ],
+    "assassin": [
+      "npc-roles"
+    ],
+    "monk": [
+      "npc-roles"
+    ],
+    "pirate": [
+      "npc-roles"
+    ],
+    "ranger": [
+      "npc-roles"
+    ],
+    "necromancer": [
+      "npc-roles"
+    ],
+    "alchemist": [
+      "npc-roles"
+    ],
+    "enchanter": [
+      "npc-roles"
+    ],
+    "artificer": [
+      "npc-roles"
+    ],
+    "summoner_npc": [
+      "npc-roles"
+    ],
+    "warden": [
+      "npc-roles"
+    ],
+    "oracle": [
+      "npc-roles"
+    ],
+    "ferryman": [
+      "npc-roles"
+    ],
+    "shopkeeper": [
+      "npc-roles"
+    ],
+    "bartender": [
+      "npc-roles"
+    ],
+    "librarian": [
+      "npc-roles"
+    ],
+    "archaeologist": [
+      "npc-roles"
+    ],
+    "pilot": [
+      "npc-roles"
+    ],
+    "engineer": [
+      "npc-roles"
+    ],
+    "scientist": [
+      "npc-roles"
+    ],
+    "doctor": [
+      "npc-roles"
+    ],
+    "farmer": [
+      "npc-roles"
+    ],
+    "miner_npc": [
+      "npc-roles"
+    ],
+    "fisher_npc": [
+      "npc-roles"
+    ],
+    "hunter": [
+      "npc-roles"
+    ],
+    "gatherer": [
+      "npc-roles"
+    ],
+    "nomad": [
+      "npc-roles"
+    ],
+    "refugee": [
+      "npc-roles"
+    ],
+    "prisoner": [
+      "npc-roles"
+    ],
+    "royalty": [
+      "npc-roles"
+    ],
+    "peasant": [
+      "npc-roles"
+    ],
+    "noble": [
+      "npc-roles"
+    ],
+    "outlaw": [
+      "npc-roles"
+    ],
+    "vigilante": [
+      "npc-roles"
+    ],
+    "companion": [
+      "npc-roles"
+    ],
+    "openable": [
+      "object-interaction"
+    ],
+    "closable": [
+      "object-interaction"
+    ],
+    "lockable": [
+      "object-interaction"
+    ],
+    "unlockable": [
+      "object-interaction"
+    ],
+    "pushable": [
+      "object-interaction"
+    ],
+    "pullable": [
+      "object-interaction"
+    ],
+    "liftable": [
+      "object-interaction"
+    ],
+    "carryable": [
+      "object-interaction"
+    ],
+    "wearable": [
+      "object-interaction"
+    ],
+    "equippable": [
+      "object-interaction"
+    ],
+    "consumable": [
+      "object-interaction"
+    ],
+    "craftable": [
+      "object-interaction"
+    ],
+    "combinable": [
+      "object-interaction"
+    ],
+    "splittable": [
+      "object-interaction"
+    ],
+    "foldable": [
+      "object-interaction"
+    ],
+    "fillable": [
+      "object-interaction"
+    ],
+    "pourable": [
+      "object-interaction"
+    ],
+    "readable": [
+      "object-interaction"
+    ],
+    "writable": [
+      "object-interaction"
+    ],
+    "paintable": [
+      "object-interaction"
+    ],
+    "cuttable": [
+      "object-interaction"
+    ],
+    "toggleable": [
+      "object-interaction"
+    ],
+    "tunable": [
+      "object-interaction"
+    ],
+    "insertable": [
+      "object-interaction"
+    ],
+    "removable": [
+      "object-interaction"
+    ],
+    "incident": [
+      "observability"
+    ],
+    "healthcheck": [
+      "observability"
+    ],
+    "profiler": [
+      "observability",
+      "universal-service"
+    ],
+    "slo_monitor": [
+      "observability"
+    ],
+    "log_aggregator": [
+      "observability",
+      "universal-service"
+    ],
+    "physics": [
+      "parser-core-ui"
+    ],
+    "draggable": [
+      "parser-core-ui"
+    ],
+    "static": [
+      "parser-core-ui"
+    ],
+    "kinematic": [
+      "parser-core-ui"
+    ],
+    "local_only": [
+      "parser-core-ui"
+    ],
+    "visible": [
+      "parser-core-ui"
+    ],
+    "invisible": [
+      "parser-core-ui"
+    ],
+    "audio": [
+      "parser-core-ui"
+    ],
+    "portal": [
+      "parser-core-ui"
+    ],
+    "vr_only": [
+      "parser-core-ui"
+    ],
+    "ar_only": [
+      "parser-core-ui"
+    ],
+    "desktop_only": [
+      "parser-core-ui"
+    ],
+    "ui_floating": [
+      "parser-core-ui"
+    ],
+    "ui_anchored": [
+      "parser-core-ui"
+    ],
+    "ui_hand_menu": [
+      "parser-core-ui"
+    ],
+    "ui_billboard": [
+      "parser-core-ui"
+    ],
+    "ui_curved": [
+      "parser-core-ui"
+    ],
+    "ui_docked": [
+      "parser-core-ui"
+    ],
+    "stripe": [
+      "payment"
+    ],
+    "invoice": [
+      "payment"
+    ],
+    "subscription": [
+      "payment",
+      "universal-service"
+    ],
+    "refund": [
+      "payment"
+    ],
+    "credit": [
+      "payment"
+    ],
+    "x402_settlement": [
+      "payment"
+    ],
+    "micro_payment": [
+      "payment"
+    ],
+    "knob": [
+      "physical-affordances"
+    ],
+    "dial": [
+      "physical-affordances"
+    ],
+    "crank": [
+      "physical-affordances"
+    ],
+    "handle": [
+      "physical-affordances"
+    ],
+    "valve": [
+      "physical-affordances"
+    ],
+    "joystick": [
+      "physical-affordances"
+    ],
+    "steering_wheel": [
+      "physical-affordances"
+    ],
+    "pedal": [
+      "physical-affordances"
+    ],
+    "throttle": [
+      "physical-affordances"
+    ],
+    "slider_control": [
+      "physical-affordances"
+    ],
+    "wheel": [
+      "physical-affordances"
+    ],
+    "pulley": [
+      "physical-affordances"
+    ],
+    "hinge": [
+      "physical-affordances"
+    ],
+    "latch": [
+      "physical-affordances"
+    ],
+    "spring_loaded": [
+      "physical-affordances"
+    ],
+    "ratchet": [
+      "physical-affordances"
+    ],
+    "gear_mechanism": [
+      "physical-affordances"
+    ],
+    "pendulum": [
+      "physical-affordances"
+    ],
+    "balance": [
+      "physical-affordances"
+    ],
+    "fulcrum": [
+      "physical-affordances"
+    ],
+    "piston": [
+      "physical-affordances"
+    ],
+    "bellows": [
+      "physical-affordances"
+    ],
+    "cloth": [
+      "physics-expansion"
+    ],
+    "soft_body": [
+      "physics-expansion"
+    ],
+    "rope": [
+      "physics-expansion"
+    ],
+    "chain": [
+      "physics-expansion"
+    ],
+    "wind": [
+      "physics-expansion"
+    ],
+    "buoyancy": [
+      "physics-expansion"
+    ],
+    "destruction": [
+      "physics-expansion"
+    ],
+    "bloom": [
+      "post-processing"
+    ],
+    "depth_of_field": [
+      "post-processing",
+      "rendering"
+    ],
+    "motion_blur": [
+      "post-processing",
+      "rendering"
+    ],
+    "ssao": [
+      "post-processing",
+      "rendering"
+    ],
+    "ssr": [
+      "post-processing",
+      "rendering"
+    ],
+    "fxaa": [
+      "post-processing"
+    ],
+    "taa": [
+      "post-processing",
+      "rendering"
+    ],
+    "tone_mapping": [
+      "post-processing"
+    ],
+    "color_grading": [
+      "post-processing"
+    ],
+    "chromatic_aberration": [
+      "post-processing",
+      "rendering"
+    ],
+    "film_grain": [
+      "post-processing",
+      "rendering"
+    ],
+    "lens_flare": [
+      "post-processing",
+      "rendering"
+    ],
+    "fog": [
+      "post-processing"
+    ],
+    "volumetric_fog": [
+      "post-processing"
+    ],
+    "outline_effect": [
+      "post-processing"
+    ],
+    "pixelate_effect": [
+      "post-processing"
+    ],
+    "glitch_effect": [
+      "post-processing"
+    ],
+    "sharpen": [
+      "post-processing"
+    ],
+    "lut_color": [
+      "post-processing"
+    ],
+    "draft": [
+      "procedural-generation"
+    ],
+    "procedural_terrain": [
+      "procedural-generation"
+    ],
+    "procedural_city": [
+      "procedural-generation"
+    ],
+    "procedural_dungeon": [
+      "procedural-generation"
+    ],
+    "procedural_biome": [
+      "procedural-generation"
+    ],
+    "procedural_npc": [
+      "procedural-generation"
+    ],
+    "procedural_loot": [
+      "procedural-generation"
+    ],
+    "procedural_quest": [
+      "procedural-generation"
+    ],
+    "procedural_music": [
+      "procedural-generation"
+    ],
+    "procedural_texture": [
+      "procedural-generation"
+    ],
+    "procedural_vegetation": [
+      "procedural-generation"
+    ],
+    "procedural_weather": [
+      "procedural-generation"
+    ],
+    "procedural_dialogue": [
+      "procedural-generation"
+    ],
+    "noise_generator": [
+      "procedural-generation"
+    ],
+    "wave_function_collapse": [
+      "procedural-generation"
+    ],
+    "l_system": [
+      "procedural-generation"
+    ],
+    "voronoi": [
+      "procedural-generation"
+    ],
+    "fractal": [
+      "procedural-generation"
+    ],
+    "cellular_automata": [
+      "procedural-generation"
+    ],
+    "marching_cubes": [
+      "procedural-generation"
+    ],
+    "heightmap": [
+      "procedural-generation"
+    ],
+    "erosion": [
+      "procedural-generation"
+    ],
+    "river_generator": [
+      "procedural-generation"
+    ],
+    "road_generator": [
+      "procedural-generation"
+    ],
+    "cave_generator": [
+      "procedural-generation"
+    ],
+    "maze_generator": [
+      "procedural-generation"
+    ],
+    "advanced_pbr": [
+      "rendering"
+    ],
+    "clearcoat": [
+      "rendering"
+    ],
+    "anisotropy": [
+      "rendering"
+    ],
+    "sheen": [
+      "rendering"
+    ],
+    "subsurface_scattering": [
+      "rendering"
+    ],
+    "subsurface_veins": [
+      "rendering"
+    ],
+    "sss_burley": [
+      "rendering"
+    ],
+    "sss_christensen": [
+      "rendering"
+    ],
+    "sss_random_walk": [
+      "rendering"
+    ],
+    "iridescence": [
+      "rendering"
+    ],
+    "transmission": [
+      "rendering"
+    ],
+    "dispersion": [
+      "rendering"
+    ],
+    "screen_space_effects": [
+      "rendering"
+    ],
+    "ssdo": [
+      "rendering"
+    ],
+    "dof_bokeh": [
+      "rendering"
+    ],
+    "post_processing_stack": [
+      "rendering"
+    ],
+    "plantable": [
+      "resource-gathering"
+    ],
+    "harvestable": [
+      "resource-gathering"
+    ],
+    "mineable": [
+      "resource-gathering"
+    ],
+    "fishable": [
+      "resource-gathering"
+    ],
+    "cookable": [
+      "resource-gathering"
+    ],
+    "forgeable": [
+      "resource-gathering"
+    ],
+    "distillable": [
+      "resource-gathering"
+    ],
+    "recyclable": [
+      "resource-gathering"
+    ],
+    "safe_zone": [
+      "safety-boundaries"
+    ],
+    "hazard": [
+      "safety-boundaries"
+    ],
+    "boundary": [
+      "safety-boundaries"
+    ],
+    "trigger": [
+      "safety-boundaries"
+    ],
+    "checkpoint": [
+      "safety-boundaries"
+    ],
+    "respawn": [
+      "safety-boundaries"
+    ],
+    "no_build": [
+      "safety-boundaries"
+    ],
+    "no_fly": [
+      "safety-boundaries"
+    ],
+    "pvp_zone": [
+      "safety-boundaries"
+    ],
+    "pve_zone": [
+      "safety-boundaries"
+    ],
+    "spectator_zone": [
+      "safety-boundaries"
+    ],
+    "tutorial_zone": [
+      "safety-boundaries"
+    ],
+    "boss_arena": [
+      "safety-boundaries"
+    ],
+    "spawn_point": [
+      "safety-boundaries"
+    ],
+    "narupa_integration": [
+      "scientific-computing"
+    ],
+    "molecular_dynamics": [
+      "scientific-computing"
+    ],
+    "energy_minimization": [
+      "scientific-computing"
+    ],
+    "auto_dock": [
+      "scientific-computing"
+    ],
+    "protein_visualization": [
+      "scientific-computing"
+    ],
+    "ligand_visualization": [
+      "scientific-computing"
+    ],
+    "chemical_bond": [
+      "scientific-computing"
+    ],
+    "hydrogen_bonds": [
+      "scientific-computing"
+    ],
+    "hydrophobic_surface": [
+      "scientific-computing"
+    ],
+    "electrostatic_surface": [
+      "scientific-computing"
+    ],
+    "pdb_loader": [
+      "scientific-computing"
+    ],
+    "mol_loader": [
+      "scientific-computing"
+    ],
+    "database_query": [
+      "scientific-computing"
+    ],
+    "trajectory_analysis": [
+      "scientific-computing"
+    ],
+    "trajectory_playback": [
+      "scientific-computing"
+    ],
+    "binding_affinity": [
+      "scientific-computing"
+    ],
+    "interactive_forces": [
+      "scientific-computing"
+    ],
+    "atom_selection": [
+      "scientific-computing"
+    ],
+    "atom_labels": [
+      "scientific-computing"
+    ],
+    "residue_labels": [
+      "scientific-computing"
+    ],
+    "alphafold_predict": [
+      "scientific-computing"
+    ],
+    "structure_confidence": [
+      "scientific-computing"
+    ],
+    "multimer_predict": [
+      "scientific-computing"
+    ],
+    "pae_visualization": [
+      "scientific-computing"
+    ],
+    "protein_structure": [
+      "scientific-computing"
+    ],
+    "simulation_control": [
+      "scientific-computing"
+    ],
+    "collaborative_science": [
+      "scientific-computing"
+    ],
+    "hologram": [
+      "scifi-technology"
+    ],
+    "force_field_tech": [
+      "scifi-technology"
+    ],
+    "cloaking": [
+      "scifi-technology"
+    ],
+    "energy_weapon": [
+      "scifi-technology"
+    ],
+    "plasma": [
+      "scifi-technology"
+    ],
+    "laser": [
+      "scifi-technology"
+    ],
+    "emp": [
+      "scifi-technology"
+    ],
+    "nanite": [
+      "scifi-technology"
+    ],
+    "cybernetic": [
+      "scifi-technology"
+    ],
+    "biotech": [
+      "scifi-technology"
+    ],
+    "quantum_locked": [
+      "scifi-technology"
+    ],
+    "warp_drive": [
+      "scifi-technology"
+    ],
+    "hyperspace": [
+      "scifi-technology"
+    ],
+    "cryo": [
+      "scifi-technology"
+    ],
+    "stasis": [
+      "scifi-technology"
+    ],
+    "terraforming": [
+      "scifi-technology"
+    ],
+    "atmospheric": [
+      "scifi-technology"
+    ],
+    "orbital": [
+      "scifi-technology"
+    ],
+    "asteroid": [
+      "scifi-technology"
+    ],
+    "nebula": [
+      "scifi-technology"
+    ],
+    "black_hole": [
+      "scifi-technology"
+    ],
+    "wormhole": [
+      "scifi-technology"
+    ],
+    "dyson_sphere": [
+      "scifi-technology"
+    ],
+    "ringworld": [
+      "scifi-technology"
+    ],
+    "cron": [
+      "scripting-automation"
+    ],
+    "scheduler": [
+      "scripting-automation",
+      "universal-service"
+    ],
+    "pipeline": [
+      "scripting-automation",
+      "universal-service"
+    ],
+    "task_queue": [
+      "scripting-automation"
+    ],
+    "watcher": [
+      "scripting-automation"
+    ],
+    "webhook": [
+      "scripting-automation"
+    ],
+    "retry": [
+      "scripting-automation",
+      "universal-service"
+    ],
+    "circuit_breaker": [
+      "scripting-automation",
+      "universal-service"
+    ],
+    "rate_limiter": [
+      "scripting-automation",
+      "universal-service"
+    ],
+    "timeout_guard": [
+      "scripting-automation"
+    ],
+    "transform": [
+      "scripting-automation"
+    ],
+    "buffer": [
+      "scripting-automation"
+    ],
+    "structured_logger": [
+      "scripting-automation"
+    ],
+    "full_text_search": [
+      "search",
+      "universal-service"
+    ],
+    "faceted_search": [
+      "search"
+    ],
+    "autocomplete": [
+      "search"
+    ],
+    "encryption": [
+      "security-crypto"
+    ],
+    "tls_1_3": [
+      "security-crypto"
+    ],
+    "tls_1_2": [
+      "security-crypto"
+    ],
+    "dtls": [
+      "security-crypto"
+    ],
+    "quic": [
+      "security-crypto"
+    ],
+    "end_to_end_encryption": [
+      "security-crypto"
+    ],
+    "aes_256": [
+      "security-crypto"
+    ],
+    "aes_128": [
+      "security-crypto"
+    ],
+    "chacha20_poly1305": [
+      "security-crypto"
+    ],
+    "perfect_forward_secrecy": [
+      "security-crypto"
+    ],
+    "certificate_pinning": [
+      "security-crypto"
+    ],
+    "ocsp_stapling": [
+      "security-crypto"
+    ],
+    "session_resumption": [
+      "security-crypto"
+    ],
+    "rsa_encryption": [
+      "security-crypto"
+    ],
+    "rsa_2048": [
+      "security-crypto"
+    ],
+    "rsa_3072": [
+      "security-crypto"
+    ],
+    "rsa_4096": [
+      "security-crypto"
+    ],
+    "oaep_padding": [
+      "security-crypto"
+    ],
+    "pkcs1_padding": [
+      "security-crypto"
+    ],
+    "pss_padding": [
+      "security-crypto"
+    ],
+    "hybrid_encryption": [
+      "security-crypto"
+    ],
+    "key_derivation": [
+      "security-crypto"
+    ],
+    "package_signing": [
+      "security-crypto"
+    ],
+    "ed25519_signing": [
+      "security-crypto"
+    ],
+    "ecdsa_signing": [
+      "security-crypto"
+    ],
+    "ecdsa_p256": [
+      "security-crypto"
+    ],
+    "ecdsa_secp256k1": [
+      "security-crypto"
+    ],
+    "signature_verification": [
+      "security-crypto"
+    ],
+    "timestamp_authority": [
+      "security-crypto"
+    ],
+    "chain_of_trust": [
+      "security-crypto"
+    ],
+    "detached_signature": [
+      "security-crypto"
+    ],
+    "embedded_signature": [
+      "security-crypto"
+    ],
+    "zero_knowledge_proof": [
+      "security-crypto"
+    ],
+    "zk_snark": [
+      "security-crypto"
+    ],
+    "zk_stark": [
+      "security-crypto"
+    ],
+    "groth16": [
+      "security-crypto"
+    ],
+    "plonk": [
+      "security-crypto"
+    ],
+    "bulletproofs": [
+      "security-crypto"
+    ],
+    "bn254_curve": [
+      "security-crypto"
+    ],
+    "bls12_381_curve": [
+      "security-crypto"
+    ],
+    "recursive_proof": [
+      "security-crypto"
+    ],
+    "batch_verification": [
+      "security-crypto"
+    ],
+    "pedersen_commitment": [
+      "security-crypto"
+    ],
+    "poseidon_hash": [
+      "security-crypto"
+    ],
+    "hsm_integration": [
+      "security-crypto"
+    ],
+    "aws_cloudhsm": [
+      "security-crypto"
+    ],
+    "azure_key_vault": [
+      "security-crypto"
+    ],
+    "google_cloud_hsm": [
+      "security-crypto"
+    ],
+    "tpm_module": [
+      "security-crypto"
+    ],
+    "secure_enclave": [
+      "security-crypto"
+    ],
+    "fips_140_2": [
+      "security-crypto"
+    ],
+    "fips_140_3": [
+      "security-crypto"
+    ],
+    "common_criteria": [
+      "security-crypto"
+    ],
+    "key_rotation": [
+      "security-crypto"
+    ],
+    "multi_region_key": [
+      "security-crypto"
+    ],
+    "sandbox_execution": [
+      "security-crypto"
+    ],
+    "vm_sandbox": [
+      "security-crypto"
+    ],
+    "wasm_sandbox": [
+      "security-crypto"
+    ],
+    "iframe_sandbox": [
+      "security-crypto"
+    ],
+    "worker_sandbox": [
+      "security-crypto"
+    ],
+    "container_sandbox": [
+      "security-crypto"
+    ],
+    "isolate_sandbox": [
+      "security-crypto"
+    ],
+    "resource_limits": [
+      "security-crypto"
+    ],
+    "permission_system": [
+      "security-crypto"
+    ],
+    "api_restriction": [
+      "security-crypto"
+    ],
+    "vulnerability_scanner": [
+      "security-crypto"
+    ],
+    "static_analysis": [
+      "security-crypto"
+    ],
+    "dynamic_analysis": [
+      "security-crypto"
+    ],
+    "dependency_check": [
+      "security-crypto",
+      "universal-service"
+    ],
+    "composition_validation": [
+      "security-crypto"
+    ],
+    "penetration_test": [
+      "security-crypto"
+    ],
+    "code_injection_detection": [
+      "security-crypto"
+    ],
+    "xss_detection": [
+      "security-crypto"
+    ],
+    "secret_detection": [
+      "security-crypto"
+    ],
+    "owasp_top_10": [
+      "security-crypto"
+    ],
+    "cwe_mapping": [
+      "security-crypto"
+    ],
+    "cvss_scoring": [
+      "security-crypto"
+    ],
+    "sarif_output": [
+      "security-crypto"
+    ],
+    "round": [
+      "shape-form"
+    ],
+    "square": [
+      "shape-form"
+    ],
+    "triangular": [
+      "shape-form"
+    ],
+    "hexagonal": [
+      "shape-form"
+    ],
+    "octagonal": [
+      "shape-form"
+    ],
+    "spiral": [
+      "shape-form"
+    ],
+    "twisted": [
+      "shape-form"
+    ],
+    "hollow": [
+      "shape-form"
+    ],
+    "solid": [
+      "shape-form"
+    ],
+    "perforated": [
+      "shape-form"
+    ],
+    "lattice": [
+      "shape-form"
+    ],
+    "branching": [
+      "shape-form"
+    ],
+    "tapered": [
+      "shape-form"
+    ],
+    "flared": [
+      "shape-form"
+    ],
+    "curved": [
+      "shape-form"
+    ],
+    "angular": [
+      "shape-form"
+    ],
+    "symmetrical": [
+      "shape-form"
+    ],
+    "asymmetrical": [
+      "shape-form"
+    ],
+    "organic_form": [
+      "shape-form"
+    ],
+    "geometric": [
+      "shape-form"
+    ],
+    "fractal_shape": [
+      "shape-form"
+    ],
+    "amorphous": [
+      "shape-form"
+    ],
+    "segmented": [
+      "shape-form"
+    ],
+    "layered_form": [
+      "shape-form"
+    ],
+    "nested": [
+      "shape-form"
+    ],
+    "interlocking": [
+      "shape-form"
+    ],
+    "modular_shape": [
+      "shape-form"
+    ],
+    "tessellated": [
+      "shape-form"
+    ],
+    "ribbed": [
+      "shape-form"
+    ],
+    "corrugated": [
+      "shape-form"
+    ],
+    "faceted": [
+      "shape-form"
+    ],
+    "smooth_form": [
+      "shape-form"
+    ],
+    "sign": [
+      "signs-communication"
+    ],
+    "label": [
+      "signs-communication"
+    ],
+    "plaque": [
+      "signs-communication"
+    ],
+    "billboard_sign": [
+      "signs-communication"
+    ],
+    "map": [
+      "signs-communication"
+    ],
+    "waypoint": [
+      "signs-communication"
+    ],
+    "information_kiosk": [
+      "signs-communication"
+    ],
+    "direction_arrow": [
+      "signs-communication"
+    ],
+    "warning_sign": [
+      "signs-communication"
+    ],
+    "exit_sign": [
+      "signs-communication"
+    ],
+    "name_tag": [
+      "signs-communication"
+    ],
+    "speech_bubble": [
+      "signs-communication"
+    ],
+    "thought_bubble": [
+      "signs-communication"
+    ],
+    "exclamation_mark": [
+      "signs-communication"
+    ],
+    "question_mark": [
+      "signs-communication"
+    ],
+    "icon": [
+      "signs-communication"
+    ],
+    "symbol": [
+      "signs-communication"
+    ],
+    "logo": [
+      "signs-communication"
+    ],
+    "graffiti": [
+      "signs-communication"
+    ],
+    "inscription": [
+      "signs-communication"
+    ],
+    "scroll": [
+      "signs-communication"
+    ],
+    "book": [
+      "signs-communication"
+    ],
+    "newspaper": [
+      "signs-communication"
+    ],
+    "letter": [
+      "signs-communication"
+    ],
+    "postcard": [
+      "signs-communication"
+    ],
+    "telegram": [
+      "signs-communication"
+    ],
+    "holographic_display": [
+      "signs-communication"
+    ],
+    "heads_up_display": [
+      "signs-communication"
+    ],
+    "animated": [
+      "simple-modifiers"
+    ],
+    "rotating": [
+      "simple-modifiers"
+    ],
+    "collidable": [
+      "simple-modifiers"
+    ],
+    "clickable": [
+      "simple-modifiers"
+    ],
+    "glowing": [
+      "simple-modifiers"
+    ],
+    "interactive": [
+      "simple-modifiers"
+    ],
+    "lod": [
+      "simple-modifiers"
+    ],
+    "thermal_simulation": [
+      "simulation-domains"
+    ],
+    "thermal_conduction": [
+      "simulation-domains"
+    ],
+    "thermal_convection": [
+      "simulation-domains"
+    ],
+    "thermal_radiation": [
+      "simulation-domains"
+    ],
+    "thermal_source": [
+      "simulation-domains"
+    ],
+    "thermal_boundary": [
+      "simulation-domains"
+    ],
+    "structural_fem": [
+      "simulation-domains"
+    ],
+    "structural_static": [
+      "simulation-domains"
+    ],
+    "structural_dynamic": [
+      "simulation-domains"
+    ],
+    "structural_constraint": [
+      "simulation-domains"
+    ],
+    "structural_load": [
+      "simulation-domains"
+    ],
+    "structural_material": [
+      "simulation-domains"
+    ],
+    "hydraulic_pipe": [
+      "simulation-domains"
+    ],
+    "hydraulic_junction": [
+      "simulation-domains"
+    ],
+    "hydraulic_reservoir": [
+      "simulation-domains"
+    ],
+    "hydraulic_valve": [
+      "simulation-domains"
+    ],
+    "hydraulic_pump": [
+      "simulation-domains"
+    ],
+    "scalar_field_overlay": [
+      "simulation-domains"
+    ],
+    "colormap_jet": [
+      "simulation-domains"
+    ],
+    "colormap_viridis": [
+      "simulation-domains"
+    ],
+    "colormap_turbo": [
+      "simulation-domains"
+    ],
+    "colormap_inferno": [
+      "simulation-domains"
+    ],
+    "colormap_coolwarm": [
+      "simulation-domains"
+    ],
+    "saturation_thermal": [
+      "simulation-domains"
+    ],
+    "saturation_moisture": [
+      "simulation-domains"
+    ],
+    "saturation_pressure": [
+      "simulation-domains"
+    ],
+    "saturation_electrical": [
+      "simulation-domains"
+    ],
+    "saturation_chemical": [
+      "simulation-domains"
+    ],
+    "saturation_structural": [
+      "simulation-domains"
+    ],
+    "phase_transition": [
+      "simulation-domains"
+    ],
+    "threshold_warning": [
+      "simulation-domains"
+    ],
+    "threshold_critical": [
+      "simulation-domains"
+    ],
+    "threshold_recovery": [
+      "simulation-domains"
+    ],
+    "tiny": [
+      "size-scale"
+    ],
+    "small": [
+      "size-scale"
+    ],
+    "medium": [
+      "size-scale"
+    ],
+    "large": [
+      "size-scale"
+    ],
+    "huge": [
+      "size-scale"
+    ],
+    "giant": [
+      "size-scale"
+    ],
+    "colossal": [
+      "size-scale"
+    ],
+    "miniature": [
+      "size-scale"
+    ],
+    "towering": [
+      "size-scale"
+    ],
+    "microscale": [
+      "size-scale"
+    ],
+    "human_scale": [
+      "size-scale"
+    ],
+    "building_scale": [
+      "size-scale"
+    ],
+    "city_scale": [
+      "size-scale"
+    ],
+    "planetary_scale": [
+      "size-scale"
+    ],
+    "pocket_sized": [
+      "size-scale"
+    ],
+    "oversized": [
+      "size-scale"
+    ],
+    "shrinkable": [
+      "size-scale"
+    ],
+    "expandable": [
+      "size-scale"
+    ],
+    "tradeable": [
+      "social-commerce"
+    ],
+    "giftable": [
+      "social-commerce"
+    ],
+    "rentable": [
+      "social-commerce"
+    ],
+    "auctionable": [
+      "social-commerce"
+    ],
+    "voteable": [
+      "social-commerce"
+    ],
+    "subscribable": [
+      "social-commerce"
+    ],
+    "tippable": [
+      "social-commerce"
+    ],
+    "reviewable": [
+      "social-commerce"
+    ],
+    "curated": [
+      "social-commerce"
+    ],
+    "featured": [
+      "social-commerce"
+    ],
+    "limited_edition": [
+      "social-commerce"
+    ],
+    "seasonal_item": [
+      "social-commerce"
+    ],
+    "shareable": [
+      "social-effects"
+    ],
+    "embeddable": [
+      "social-effects"
+    ],
+    "qr": [
+      "social-effects"
+    ],
+    "collaborative": [
+      "social-effects"
+    ],
+    "particle": [
+      "social-effects"
+    ],
+    "transition": [
+      "social-effects"
+    ],
+    "filter": [
+      "social-effects"
+    ],
+    "trail": [
+      "social-effects"
+    ],
+    "astar": [
+      "spatial-algorithms"
+    ],
+    "navmesh_solver": [
+      "spatial-algorithms"
+    ],
+    "optimization": [
+      "spatial-algorithms"
+    ],
+    "throwable_ball": [
+      "sports-fitness"
+    ],
+    "kickable": [
+      "sports-fitness"
+    ],
+    "hittable": [
+      "sports-fitness"
+    ],
+    "racket": [
+      "sports-fitness"
+    ],
+    "bat": [
+      "sports-fitness"
+    ],
+    "club": [
+      "sports-fitness"
+    ],
+    "bow": [
+      "sports-fitness"
+    ],
+    "fishing_rod": [
+      "sports-fitness"
+    ],
+    "net": [
+      "sports-fitness"
+    ],
+    "goal": [
+      "sports-fitness"
+    ],
+    "hoop": [
+      "sports-fitness"
+    ],
+    "target": [
+      "sports-fitness"
+    ],
+    "bullseye": [
+      "sports-fitness"
+    ],
+    "scoreboard": [
+      "sports-fitness"
+    ],
+    "timer_display": [
+      "sports-fitness"
+    ],
+    "lap_counter": [
+      "sports-fitness"
+    ],
+    "finish_line": [
+      "sports-fitness"
+    ],
+    "starting_block": [
+      "sports-fitness"
+    ],
+    "hurdle": [
+      "sports-fitness"
+    ],
+    "treadmill": [
+      "sports-fitness"
+    ],
+    "stationary_bike": [
+      "sports-fitness"
+    ],
+    "rowing_machine": [
+      "sports-fitness"
+    ],
+    "punching_bag": [
+      "sports-fitness"
+    ],
+    "yoga_mat": [
+      "sports-fitness"
+    ],
+    "balance_board": [
+      "sports-fitness"
+    ],
+    "jump_rope": [
+      "sports-fitness"
+    ],
+    "weight": [
+      "sports-fitness"
+    ],
+    "dumbbell": [
+      "sports-fitness"
+    ],
+    "kettlebell": [
+      "sports-fitness"
+    ],
+    "resistance_band": [
+      "sports-fitness"
+    ],
+    "heart_rate_monitor": [
+      "sports-fitness"
+    ],
+    "calorie_tracker": [
+      "sports-fitness"
+    ],
+    "rep_counter": [
+      "sports-fitness"
+    ],
+    "form_checker": [
+      "sports-fitness"
+    ],
+    "coach": [
+      "sports-fitness"
+    ],
+    "opponent": [
+      "sports-fitness"
+    ],
+    "teammate": [
+      "sports-fitness"
+    ],
+    "saveable": [
+      "state-persistence"
+    ],
+    "restorable": [
+      "state-persistence"
+    ],
+    "timer": [
+      "state-persistence"
+    ],
+    "triggered": [
+      "state-persistence"
+    ],
+    "ephemeral": [
+      "state-persistence"
+    ],
+    "synced": [
+      "state-persistence"
+    ],
+    "versioned": [
+      "state-persistence"
+    ],
+    "undo_redo": [
+      "state-persistence"
+    ],
+    "conditional": [
+      "state-persistence"
+    ],
+    "staged": [
+      "state-persistence"
+    ],
+    "phased": [
+      "state-persistence"
+    ],
+    "dormant": [
+      "state-persistence"
+    ],
+    "active": [
+      "state-persistence"
+    ],
+    "cooldown": [
+      "state-persistence"
+    ],
+    "charged": [
+      "state-persistence"
+    ],
+    "depleted": [
+      "state-persistence"
+    ],
+    "overloaded": [
+      "state-persistence"
+    ],
+    "furry": [
+      "surface-texture"
+    ],
+    "feathered": [
+      "surface-texture"
+    ],
+    "scaled": [
+      "surface-texture"
+    ],
+    "leathery": [
+      "surface-texture"
+    ],
+    "silky": [
+      "surface-texture"
+    ],
+    "velvety": [
+      "surface-texture"
+    ],
+    "woolly": [
+      "surface-texture"
+    ],
+    "rubber": [
+      "surface-texture"
+    ],
+    "ceramic": [
+      "surface-texture"
+    ],
+    "porcelain": [
+      "surface-texture"
+    ],
+    "woven": [
+      "surface-texture"
+    ],
+    "knitted": [
+      "surface-texture"
+    ],
+    "braided": [
+      "surface-texture"
+    ],
+    "embossed": [
+      "surface-texture"
+    ],
+    "engraved": [
+      "surface-texture"
+    ],
+    "etched": [
+      "surface-texture"
+    ],
+    "brushed": [
+      "surface-texture"
+    ],
+    "hammered": [
+      "surface-texture"
+    ],
+    "pitted": [
+      "surface-texture"
+    ],
+    "granular": [
+      "surface-texture"
+    ],
+    "sandy": [
+      "surface-texture"
+    ],
+    "gravelly": [
+      "surface-texture"
+    ],
+    "mossy": [
+      "surface-texture"
+    ],
+    "slimy": [
+      "surface-texture"
+    ],
+    "crystallized": [
+      "surface-texture"
+    ],
+    "frosted_surface": [
+      "surface-texture"
+    ],
+    "glossy": [
+      "surface-texture"
+    ],
+    "matte_surface": [
+      "surface-texture"
+    ],
+    "satin": [
+      "surface-texture"
+    ],
+    "pearlescent": [
+      "surface-texture"
+    ],
+    "terrain_heightmap": [
+      "terrain-ocean"
+    ],
+    "terrain_fbm_noise": [
+      "terrain-ocean"
+    ],
+    "terrain_hydraulic_erosion": [
+      "terrain-ocean"
+    ],
+    "terrain_thermal_erosion": [
+      "terrain-ocean"
+    ],
+    "terrain_biome_splatmap": [
+      "terrain-ocean"
+    ],
+    "terrain_lod_geomorphing": [
+      "terrain-ocean"
+    ],
+    "terrain_triplanar_texture": [
+      "terrain-ocean"
+    ],
+    "terrain_grass_scatter": [
+      "terrain-ocean"
+    ],
+    "terrain_tree_scatter": [
+      "terrain-ocean"
+    ],
+    "terrain_rock_scatter": [
+      "terrain-ocean"
+    ],
+    "ocean_fft": [
+      "terrain-ocean"
+    ],
+    "ocean_gerstner": [
+      "terrain-ocean"
+    ],
+    "ocean_calm_lake": [
+      "terrain-ocean"
+    ],
+    "ocean_flowing_river": [
+      "terrain-ocean"
+    ],
+    "ocean_foam": [
+      "terrain-ocean"
+    ],
+    "ocean_caustics": [
+      "terrain-ocean"
+    ],
+    "ocean_underwater_fog": [
+      "terrain-ocean"
+    ],
+    "ocean_buoyancy": [
+      "terrain-ocean"
+    ],
+    "ocean_shoreline": [
+      "terrain-ocean"
+    ],
+    "ocean_wake": [
+      "terrain-ocean"
+    ],
+    "mock": [
+      "testing-qa"
+    ],
+    "fixture": [
+      "testing-qa"
+    ],
+    "snapshot_test": [
+      "testing-qa"
+    ],
+    "load_test": [
+      "testing-qa"
+    ],
+    "chaos_test": [
+      "testing-qa"
+    ],
+    "prehistoric": [
+      "time-period"
+    ],
+    "ancient_era": [
+      "time-period"
+    ],
+    "classical": [
+      "time-period"
+    ],
+    "bronze_age": [
+      "time-period"
+    ],
+    "iron_age": [
+      "time-period"
+    ],
+    "viking": [
+      "time-period"
+    ],
+    "feudal": [
+      "time-period"
+    ],
+    "renaissance": [
+      "time-period"
+    ],
+    "colonial": [
+      "time-period"
+    ],
+    "industrial": [
+      "time-period"
+    ],
+    "victorian": [
+      "time-period"
+    ],
+    "art_deco": [
+      "time-period"
+    ],
+    "art_nouveau": [
+      "time-period"
+    ],
+    "modern": [
+      "time-period"
+    ],
+    "contemporary": [
+      "time-period"
+    ],
+    "retro": [
+      "time-period"
+    ],
+    "vintage": [
+      "time-period"
+    ],
+    "post_apocalyptic": [
+      "time-period"
+    ],
+    "dystopian": [
+      "time-period"
+    ],
+    "utopian": [
+      "time-period"
+    ],
+    "far_future": [
+      "time-period"
+    ],
+    "timeless": [
+      "time-period"
+    ],
+    "anachronistic": [
+      "time-period"
+    ],
+    "dockable": [
+      "transportation-vehicles"
+    ],
+    "launchable": [
+      "transportation-vehicles"
+    ],
+    "landable": [
+      "transportation-vehicles"
+    ],
+    "towable": [
+      "transportation-vehicles"
+    ],
+    "attachable": [
+      "transportation-vehicles"
+    ],
+    "detachable": [
+      "transportation-vehicles"
+    ],
+    "fuelable": [
+      "transportation-vehicles"
+    ],
+    "autopilot": [
+      "transportation-vehicles"
+    ],
+    "turret": [
+      "transportation-vehicles"
+    ],
+    "cockpit": [
+      "transportation-vehicles"
+    ],
+    "passenger_seat": [
+      "transportation-vehicles"
+    ],
+    "cargo_hold": [
+      "transportation-vehicles"
+    ],
+    "service": [
+      "universal-service"
+    ],
+    "endpoint": [
+      "universal-service"
+    ],
+    "route": [
+      "universal-service"
+    ],
+    "handler": [
+      "universal-service"
+    ],
+    "middleware": [
+      "universal-service"
+    ],
+    "api_gateway": [
+      "universal-service"
+    ],
+    "reverse_proxy": [
+      "universal-service"
+    ],
+    "load_balancer": [
+      "universal-service"
+    ],
+    "service_discovery": [
+      "universal-service"
+    ],
+    "service_mesh": [
+      "universal-service"
+    ],
+    "sidecar": [
+      "universal-service"
+    ],
+    "ingress": [
+      "universal-service"
+    ],
+    "egress": [
+      "universal-service"
+    ],
+    "cors_policy": [
+      "universal-service"
+    ],
+    "request_validator": [
+      "universal-service"
+    ],
+    "response_transformer": [
+      "universal-service"
+    ],
+    "api_version": [
+      "universal-service"
+    ],
+    "webhook_sender": [
+      "universal-service"
+    ],
+    "webhook_receiver": [
+      "universal-service"
+    ],
+    "sse_endpoint": [
+      "universal-service"
+    ],
+    "batch_endpoint": [
+      "universal-service"
+    ],
+    "file_upload": [
+      "universal-service"
+    ],
+    "multipart_handler": [
+      "universal-service"
+    ],
+    "graphql_resolver": [
+      "universal-service"
+    ],
+    "rest_resource": [
+      "universal-service"
+    ],
+    "rpc_method": [
+      "universal-service"
+    ],
+    "health_endpoint": [
+      "universal-service"
+    ],
+    "contract": [
+      "universal-service"
+    ],
+    "schema": [
+      "universal-service"
+    ],
+    "validator": [
+      "universal-service"
+    ],
+    "serializer": [
+      "universal-service"
+    ],
+    "json_schema": [
+      "universal-service"
+    ],
+    "avro_schema": [
+      "universal-service"
+    ],
+    "protobuf_message": [
+      "universal-service"
+    ],
+    "graphql_type": [
+      "universal-service"
+    ],
+    "graphql_input": [
+      "universal-service"
+    ],
+    "graphql_enum": [
+      "universal-service"
+    ],
+    "graphql_union": [
+      "universal-service"
+    ],
+    "graphql_directive": [
+      "universal-service"
+    ],
+    "openapi_path": [
+      "universal-service"
+    ],
+    "openapi_response": [
+      "universal-service"
+    ],
+    "openapi_security": [
+      "universal-service"
+    ],
+    "asyncapi_channel": [
+      "universal-service"
+    ],
+    "asyncapi_message": [
+      "universal-service"
+    ],
+    "contract_test": [
+      "universal-service"
+    ],
+    "consumer_contract": [
+      "universal-service"
+    ],
+    "schema_evolution": [
+      "universal-service"
+    ],
+    "backward_compatible": [
+      "universal-service"
+    ],
+    "forward_compatible": [
+      "universal-service"
+    ],
+    "input_sanitizer": [
+      "universal-service"
+    ],
+    "output_filter": [
+      "universal-service"
+    ],
+    "data_transformer": [
+      "universal-service"
+    ],
+    "dto": [
+      "universal-service"
+    ],
+    "db": [
+      "universal-service"
+    ],
+    "model": [
+      "universal-service"
+    ],
+    "migration": [
+      "universal-service"
+    ],
+    "relational_db": [
+      "universal-service"
+    ],
+    "document_db": [
+      "universal-service"
+    ],
+    "key_value_store": [
+      "universal-service"
+    ],
+    "graph_db": [
+      "universal-service"
+    ],
+    "time_series_db": [
+      "universal-service"
+    ],
+    "search_index": [
+      "universal-service"
+    ],
+    "data_warehouse": [
+      "universal-service"
+    ],
+    "data_lake": [
+      "universal-service"
+    ],
+    "materialized_view": [
+      "universal-service"
+    ],
+    "read_replica": [
+      "universal-service"
+    ],
+    "connection_pool": [
+      "universal-service"
+    ],
+    "transaction": [
+      "universal-service"
+    ],
+    "saga": [
+      "universal-service"
+    ],
+    "cqrs_command": [
+      "universal-service"
+    ],
+    "cqrs_query": [
+      "universal-service"
+    ],
+    "event_store": [
+      "universal-service"
+    ],
+    "aggregate_root": [
+      "universal-service"
+    ],
+    "repository": [
+      "universal-service"
+    ],
+    "unit_of_work": [
+      "universal-service"
+    ],
+    "data_mapper": [
+      "universal-service"
+    ],
+    "identity_map": [
+      "universal-service"
+    ],
+    "lazy_load": [
+      "universal-service"
+    ],
+    "eager_load": [
+      "universal-service"
+    ],
+    "cursor_pagination": [
+      "universal-service"
+    ],
+    "offset_pagination": [
+      "universal-service"
+    ],
+    "soft_delete": [
+      "universal-service"
+    ],
+    "audit_column": [
+      "universal-service"
+    ],
+    "version_column": [
+      "universal-service"
+    ],
+    "tenant_column": [
+      "universal-service"
+    ],
+    "sharding_key": [
+      "universal-service"
+    ],
+    "websocket": [
+      "universal-service"
+    ],
+    "grpc": [
+      "universal-service"
+    ],
+    "tcp_server": [
+      "universal-service"
+    ],
+    "tcp_client": [
+      "universal-service"
+    ],
+    "udp_server": [
+      "universal-service"
+    ],
+    "udp_client": [
+      "universal-service"
+    ],
+    "http2_server": [
+      "universal-service"
+    ],
+    "http3_server": [
+      "universal-service"
+    ],
+    "quic_transport": [
+      "universal-service"
+    ],
+    "tls_config": [
+      "universal-service"
+    ],
+    "mtls_config": [
+      "universal-service"
+    ],
+    "dns_resolver": [
+      "universal-service"
+    ],
+    "cdn_config": [
+      "universal-service"
+    ],
+    "cors_config": [
+      "universal-service"
+    ],
+    "csp_config": [
+      "universal-service"
+    ],
+    "hsts_config": [
+      "universal-service"
+    ],
+    "session_config": [
+      "universal-service"
+    ],
+    "oauth2_config": [
+      "universal-service"
+    ],
+    "oidc_provider": [
+      "universal-service"
+    ],
+    "api_key_auth": [
+      "universal-service"
+    ],
+    "bearer_auth": [
+      "universal-service"
+    ],
+    "jwt_config": [
+      "universal-service"
+    ],
+    "jwt_issuer": [
+      "universal-service"
+    ],
+    "jwt_verifier": [
+      "universal-service"
+    ],
+    "rate_limit_config": [
+      "universal-service"
+    ],
+    "throttle_config": [
+      "universal-service"
+    ],
+    "backpressure": [
+      "universal-service"
+    ],
+    "connection_drain": [
+      "universal-service"
+    ],
+    "queue": [
+      "universal-service"
+    ],
+    "worker": [
+      "universal-service"
+    ],
+    "etl_pipeline": [
+      "universal-service"
+    ],
+    "data_flow": [
+      "universal-service"
+    ],
+    "dag": [
+      "universal-service"
+    ],
+    "micro_batch": [
+      "universal-service"
+    ],
+    "real_time_stream": [
+      "universal-service"
+    ],
+    "change_data_capture": [
+      "universal-service"
+    ],
+    "event_sourcing": [
+      "universal-service"
+    ],
+    "message_broker": [
+      "universal-service"
+    ],
+    "topic": [
+      "universal-service"
+    ],
+    "dlq_handler": [
+      "universal-service"
+    ],
+    "priority_queue": [
+      "universal-service"
+    ],
+    "delay_queue": [
+      "universal-service"
+    ],
+    "fanout": [
+      "universal-service"
+    ],
+    "content_router": [
+      "universal-service"
+    ],
+    "message_filter": [
+      "universal-service"
+    ],
+    "message_aggregator": [
+      "universal-service"
+    ],
+    "message_splitter": [
+      "universal-service"
+    ],
+    "message_enricher": [
+      "universal-service"
+    ],
+    "idempotent_consumer": [
+      "universal-service"
+    ],
+    "competing_consumer": [
+      "universal-service"
+    ],
+    "workflow_engine": [
+      "universal-service"
+    ],
+    "state_machine": [
+      "universal-service",
+      "workflow-bpm"
+    ],
+    "saga_orchestrator": [
+      "universal-service"
+    ],
+    "compensating_transaction": [
+      "universal-service"
+    ],
+    "metric": [
+      "universal-service"
+    ],
+    "trace": [
+      "universal-service"
+    ],
+    "log": [
+      "universal-service"
+    ],
+    "health_check": [
+      "universal-service"
+    ],
+    "prometheus_exporter": [
+      "universal-service"
+    ],
+    "grafana_dashboard": [
+      "universal-service"
+    ],
+    "alert_rule": [
+      "universal-service"
+    ],
+    "alert_channel": [
+      "universal-service"
+    ],
+    "slo": [
+      "universal-service"
+    ],
+    "sli": [
+      "universal-service"
+    ],
+    "error_budget": [
+      "universal-service"
+    ],
+    "latency_percentile": [
+      "universal-service"
+    ],
+    "throughput_counter": [
+      "universal-service"
+    ],
+    "request_rate": [
+      "universal-service"
+    ],
+    "error_rate": [
+      "universal-service"
+    ],
+    "availability_monitor": [
+      "universal-service"
+    ],
+    "uptime_monitor": [
+      "universal-service"
+    ],
+    "synthetic_monitor": [
+      "universal-service"
+    ],
+    "real_user_monitoring": [
+      "universal-service"
+    ],
+    "apm_agent": [
+      "universal-service"
+    ],
+    "memory_profiler": [
+      "universal-service"
+    ],
+    "cpu_profiler": [
+      "universal-service"
+    ],
+    "span": [
+      "universal-service"
+    ],
+    "trace_context": [
+      "universal-service"
+    ],
+    "sampling_strategy": [
+      "universal-service"
+    ],
+    "structured_log": [
+      "universal-service"
+    ],
+    "access_log": [
+      "universal-service"
+    ],
+    "deployment": [
+      "universal-service"
+    ],
+    "scaling": [
+      "universal-service"
+    ],
+    "dockerfile": [
+      "universal-service"
+    ],
+    "docker_compose": [
+      "universal-service"
+    ],
+    "kubernetes_pod": [
+      "universal-service"
+    ],
+    "kubernetes_service": [
+      "universal-service"
+    ],
+    "kubernetes_deployment": [
+      "universal-service"
+    ],
+    "kubernetes_statefulset": [
+      "universal-service"
+    ],
+    "kubernetes_job": [
+      "universal-service"
+    ],
+    "kubernetes_cronjob": [
+      "universal-service"
+    ],
+    "kubernetes_configmap": [
+      "universal-service"
+    ],
+    "kubernetes_ingress": [
+      "universal-service"
+    ],
+    "kubernetes_hpa": [
+      "universal-service"
+    ],
+    "kubernetes_pdb": [
+      "universal-service"
+    ],
+    "kubernetes_network_policy": [
+      "universal-service"
+    ],
+    "kubernetes_service_account": [
+      "universal-service"
+    ],
+    "helm_chart": [
+      "universal-service"
+    ],
+    "helm_values": [
+      "universal-service"
+    ],
+    "terraform_resource": [
+      "universal-service"
+    ],
+    "terraform_module": [
+      "universal-service"
+    ],
+    "pulumi_resource": [
+      "universal-service"
+    ],
+    "persistent_volume": [
+      "universal-service"
+    ],
+    "storage_class": [
+      "universal-service"
+    ],
+    "resource_quota": [
+      "universal-service"
+    ],
+    "node_affinity": [
+      "universal-service"
+    ],
+    "pod_affinity": [
+      "universal-service"
+    ],
+    "toleration": [
+      "universal-service"
+    ],
+    "init_container": [
+      "universal-service"
+    ],
+    "timeout": [
+      "universal-service"
+    ],
+    "fallback": [
+      "universal-service"
+    ],
+    "bulkhead": [
+      "universal-service"
+    ],
+    "token_bucket": [
+      "universal-service"
+    ],
+    "leaky_bucket": [
+      "universal-service"
+    ],
+    "sliding_window": [
+      "universal-service"
+    ],
+    "adaptive_concurrency": [
+      "universal-service"
+    ],
+    "load_shedding": [
+      "universal-service"
+    ],
+    "graceful_degradation": [
+      "universal-service"
+    ],
+    "canary_release": [
+      "universal-service"
+    ],
+    "blue_green_deploy": [
+      "universal-service"
+    ],
+    "rolling_update": [
+      "universal-service"
+    ],
+    "chaos_experiment": [
+      "universal-service"
+    ],
+    "fault_injection": [
+      "universal-service"
+    ],
+    "latency_injection": [
+      "universal-service"
+    ],
+    "exponential_backoff": [
+      "universal-service"
+    ],
+    "jitter_backoff": [
+      "universal-service"
+    ],
+    "deadline_propagation": [
+      "universal-service"
+    ],
+    "request_hedging": [
+      "universal-service"
+    ],
+    "speculative_retry": [
+      "universal-service"
+    ],
+    "idempotency_key": [
+      "universal-service"
+    ],
+    "health_aggregator": [
+      "universal-service"
+    ],
+    "spatial_persona": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "shareplay": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "object_tracking": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "scene_reconstruction": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "volumetric_window": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "spatial_navigation": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "realitykit_mesh": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "eye_hand_fusion": [
+      "v43-ai-xr"
+    ],
+    "spatial_awareness": [
+      "v43-ai-xr",
+      "xr-platform"
+    ],
+    "ai_vision": [
+      "v43-ai-xr"
+    ],
+    "vfx_particle_fire": [
+      "vfx-audio"
+    ],
+    "vfx_particle_smoke": [
+      "vfx-audio"
+    ],
+    "vfx_particle_sparks": [
+      "vfx-audio"
+    ],
+    "vfx_particle_dust": [
+      "vfx-audio"
+    ],
+    "vfx_particle_rain": [
+      "vfx-audio"
+    ],
+    "vfx_particle_snow": [
+      "vfx-audio"
+    ],
+    "vfx_particle_fog": [
+      "vfx-audio"
+    ],
+    "vfx_particle_emitter": [
+      "vfx-audio"
+    ],
+    "vfx_trail": [
+      "vfx-audio"
+    ],
+    "vfx_sprite_sheet": [
+      "vfx-audio"
+    ],
+    "vfx_beam": [
+      "vfx-audio"
+    ],
+    "vfx_ribbon": [
+      "vfx-audio"
+    ],
+    "spatial_audio_source": [
+      "vfx-audio"
+    ],
+    "spatial_audio_listener": [
+      "vfx-audio"
+    ],
+    "spatial_audio_reverb_zone": [
+      "vfx-audio"
+    ],
+    "spatial_audio_occlusion": [
+      "vfx-audio"
+    ],
+    "spatial_audio_hrtf": [
+      "vfx-audio"
+    ],
+    "spatial_audio_ambient": [
+      "vfx-audio"
+    ],
+    "spatial_audio_music": [
+      "vfx-audio"
+    ],
+    "spatial_audio_surface_absorption": [
+      "vfx-audio"
+    ],
+    "transparent": [
+      "visual-effects"
+    ],
+    "reflective": [
+      "visual-effects"
+    ],
+    "emissive": [
+      "visual-effects"
+    ],
+    "spinning": [
+      "visual-effects"
+    ],
+    "floating": [
+      "visual-effects"
+    ],
+    "pulsing": [
+      "visual-effects"
+    ],
+    "blinking": [
+      "visual-effects"
+    ],
+    "fading": [
+      "visual-effects"
+    ],
+    "color_shifting": [
+      "visual-effects"
+    ],
+    "holographic": [
+      "visual-effects"
+    ],
+    "outlined": [
+      "visual-effects"
+    ],
+    "x_ray": [
+      "visual-effects"
+    ],
+    "neon_glow": [
+      "visual-effects"
+    ],
+    "iridescent": [
+      "visual-effects"
+    ],
+    "frosted": [
+      "visual-effects"
+    ],
+    "luminous": [
+      "visual-effects"
+    ],
+    "camouflaged": [
+      "visual-effects"
+    ],
+    "mirrored": [
+      "visual-effects"
+    ],
+    "pixelated": [
+      "visual-effects"
+    ],
+    "dissolving": [
+      "visual-effects"
+    ],
+    "crystalline": [
+      "visual-effects"
+    ],
+    "ethereal": [
+      "visual-effects"
+    ],
+    "smoky": [
+      "visual-effects"
+    ],
+    "fiery": [
+      "visual-effects"
+    ],
+    "electric_arc": [
+      "visual-effects"
+    ],
+    "ghostly": [
+      "visual-effects"
+    ],
+    "rainbow": [
+      "visual-effects"
+    ],
+    "metallic_sheen": [
+      "visual-effects"
+    ],
+    "ink_wash": [
+      "visual-effects"
+    ],
+    "cel_shaded": [
+      "visual-effects"
+    ],
+    "gaussian_splat": [
+      "volumetric-webgpu"
+    ],
+    "nerf": [
+      "volumetric-webgpu"
+    ],
+    "volumetric_video": [
+      "volumetric-webgpu"
+    ],
+    "point_cloud": [
+      "volumetric-webgpu"
+    ],
+    "photogrammetry": [
+      "volumetric-webgpu"
+    ],
+    "compute": [
+      "volumetric-webgpu"
+    ],
+    "gpu_particle": [
+      "volumetric-webgpu"
+    ],
+    "gpu_physics": [
+      "volumetric-webgpu"
+    ],
+    "gpu_buffer": [
+      "volumetric-webgpu"
+    ],
+    "photogrammetry_scan": [
+      "volumetric-webgpu"
+    ],
+    "lidar_scan": [
+      "volumetric-webgpu"
+    ],
+    "print_twin": [
+      "volumetric-webgpu"
+    ],
+    "scan_to_sculpt": [
+      "volumetric-webgpu"
+    ],
+    "submersible": [
+      "water-fluid"
+    ],
+    "waterproof": [
+      "water-fluid"
+    ],
+    "sinkable": [
+      "water-fluid"
+    ],
+    "absorbent": [
+      "water-fluid"
+    ],
+    "drainable": [
+      "water-fluid"
+    ],
+    "permeable": [
+      "water-fluid"
+    ],
+    "watertight": [
+      "water-fluid"
+    ],
+    "floatable": [
+      "water-fluid"
+    ],
+    "hydrophobic": [
+      "water-fluid"
+    ],
+    "hydrophilic": [
+      "water-fluid"
+    ],
+    "pressurized": [
+      "water-fluid"
+    ],
+    "leaking": [
+      "water-fluid"
+    ],
+    "overflowing": [
+      "water-fluid"
+    ],
+    "evaporating": [
+      "water-fluid"
+    ],
+    "condensing": [
+      "water-fluid"
+    ],
+    "frozen_liquid": [
+      "water-fluid"
+    ],
+    "boiling": [
+      "water-fluid"
+    ],
+    "viscous": [
+      "water-fluid"
+    ],
+    "corrosive": [
+      "water-fluid"
+    ],
+    "rain_emitter": [
+      "weather-particles"
+    ],
+    "snow_emitter": [
+      "weather-particles"
+    ],
+    "fog_emitter": [
+      "weather-particles"
+    ],
+    "dust_emitter": [
+      "weather-particles"
+    ],
+    "spark_emitter": [
+      "weather-particles"
+    ],
+    "bubble_emitter": [
+      "weather-particles"
+    ],
+    "smoke_emitter": [
+      "weather-particles"
+    ],
+    "fire_emitter": [
+      "weather-particles"
+    ],
+    "magic_emitter": [
+      "weather-particles"
+    ],
+    "confetti_emitter": [
+      "weather-particles"
+    ],
+    "pollen_emitter": [
+      "weather-particles"
+    ],
+    "firefly_emitter": [
+      "weather-particles"
+    ],
+    "lightning_bolt": [
+      "weather-phenomena"
+    ],
+    "tornado": [
+      "weather-phenomena"
+    ],
+    "earthquake": [
+      "weather-phenomena"
+    ],
+    "tsunami": [
+      "weather-phenomena"
+    ],
+    "eclipse": [
+      "weather-phenomena"
+    ],
+    "rainbow_weather": [
+      "weather-phenomena"
+    ],
+    "blizzard": [
+      "weather-phenomena"
+    ],
+    "sandstorm": [
+      "weather-phenomena"
+    ],
+    "hailstorm": [
+      "weather-phenomena"
+    ],
+    "thunderstorm": [
+      "weather-phenomena"
+    ],
+    "hurricane": [
+      "weather-phenomena"
+    ],
+    "typhoon": [
+      "weather-phenomena"
+    ],
+    "flood": [
+      "weather-phenomena"
+    ],
+    "drought": [
+      "weather-phenomena"
+    ],
+    "avalanche": [
+      "weather-phenomena"
+    ],
+    "landslide": [
+      "weather-phenomena"
+    ],
+    "geyser": [
+      "weather-phenomena"
+    ],
+    "whirlpool": [
+      "weather-phenomena"
+    ],
+    "waterspout": [
+      "weather-phenomena"
+    ],
+    "volcanic_eruption": [
+      "weather-phenomena"
+    ],
+    "sinkhole": [
+      "weather-phenomena"
+    ],
+    "wildfire": [
+      "weather-phenomena"
+    ],
+    "heatwave": [
+      "weather-phenomena"
+    ],
+    "cold_snap": [
+      "weather-phenomena"
+    ],
+    "monsoon": [
+      "weather-phenomena"
+    ],
+    "solar_flare": [
+      "weather-phenomena"
+    ],
+    "workflow": [
+      "workflow-bpm"
+    ],
+    "approval": [
+      "workflow-bpm"
+    ],
+    "form_builder": [
+      "workflow-bpm"
+    ],
+    "passthrough": [
+      "xr-platform"
+    ],
+    "room_scale": [
+      "xr-platform"
+    ],
+    "world_scale": [
+      "xr-platform"
+    ],
+    "tabletop_scale": [
+      "xr-platform"
+    ],
+    "shared_space": [
+      "xr-platform"
+    ],
+    "persistent_world": [
+      "xr-platform"
+    ],
+    "cross_platform": [
+      "xr-platform"
+    ],
+    "webxr": [
+      "xr-platform"
+    ],
+    "openxr": [
+      "xr-platform"
+    ],
+    "arkit": [
+      "xr-platform"
+    ],
+    "arcore": [
+      "xr-platform"
+    ],
+    "visionos": [
+      "xr-platform"
+    ],
+    "quest_native": [
+      "xr-platform"
+    ],
+    "pcvr": [
+      "xr-platform"
+    ],
+    "mobile_ar": [
+      "xr-platform"
+    ],
+    "headset_only": [
+      "xr-platform"
+    ],
+    "controller_required": [
+      "xr-platform"
+    ],
+    "hands_only": [
+      "xr-platform"
+    ],
+    "seated_experience": [
+      "xr-platform"
+    ],
+    "standing_experience": [
+      "xr-platform"
+    ],
+    "room_boundary": [
+      "xr-platform"
+    ],
+    "guardian_system": [
+      "xr-platform"
+    ],
+    "mixed_reality": [
+      "xr-platform"
+    ],
+    "diminished_reality": [
+      "xr-platform"
+    ],
+    "augmented_virtuality": [
+      "xr-platform"
+    ],
+    "room_mesh": [
+      "xr-platform"
+    ]
+  },
+  "family_to_traits": {
+    "accessibility": [
+      "accessible",
+      "alt_text",
+      "haptic_cue",
+      "high_contrast",
+      "magnifiable",
+      "motion_reduced",
+      "screen_reader",
+      "sonification",
+      "spatial_audio_cue",
+      "subtitle"
+    ],
+    "accessibility-extended": [
+      "adjustable_difficulty",
+      "adjustable_speed",
+      "audio_description",
+      "auto_narrate",
+      "braille_output",
+      "closed_caption",
+      "cognitive_assist",
+      "color_blind_safe",
+      "comfort_mode",
+      "continuous_turning",
+      "dyslexia_friendly",
+      "gaze_only",
+      "guided_mode",
+      "large_text",
+      "one_handed",
+      "photosensitive_safe",
+      "reduced_complexity",
+      "seated_mode",
+      "sensory_substitution",
+      "sign_language",
+      "snap_turning",
+      "stable_horizon",
+      "standing_mode",
+      "switch_access",
+      "teleport_only",
+      "vignette",
+      "voice_only"
+    ],
+    "age-condition": [
+      "antique",
+      "battle_scarred",
+      "blood_stained",
+      "brand_new",
+      "calcified",
+      "charred",
+      "chipped",
+      "corroded",
+      "cracked",
+      "crumbling",
+      "decayed",
+      "dented",
+      "dust_covered",
+      "faded",
+      "fossilized",
+      "moss_covered",
+      "patched",
+      "petrified",
+      "polished",
+      "pristine",
+      "restored",
+      "rusted",
+      "scratched",
+      "shattered",
+      "stained",
+      "sun_bleached",
+      "tarnished",
+      "vine_covered",
+      "weathered",
+      "worn"
+    ],
+    "analytics-observability": [
+      "ab_variant",
+      "abtest",
+      "analytics",
+      "engagement_tracker",
+      "experiment",
+      "frame_profiler",
+      "interaction_heatmap",
+      "metrics_aggregator",
+      "metrics_dashboard",
+      "metrics_sink",
+      "otel_metric",
+      "otel_span",
+      "otel_trace",
+      "perf_monitor",
+      "scene_completion",
+      "session_monitor"
+    ],
+    "animals": [
+      "ant",
+      "bat_animal",
+      "bear",
+      "bee",
+      "bird",
+      "butterfly",
+      "cat",
+      "chicken",
+      "cow",
+      "crab",
+      "crow",
+      "deer",
+      "dinosaur",
+      "dog",
+      "dolphin",
+      "duck",
+      "eagle",
+      "elephant",
+      "fish",
+      "fox",
+      "frog",
+      "goat",
+      "gorilla",
+      "hawk",
+      "horse",
+      "insect",
+      "jellyfish",
+      "lion",
+      "lizard",
+      "mammal",
+      "monkey",
+      "mouse",
+      "octopus",
+      "owl",
+      "parrot",
+      "penguin",
+      "pig",
+      "rabbit",
+      "rat",
+      "reptile",
+      "shark",
+      "sheep",
+      "snake",
+      "spider",
+      "tiger",
+      "turtle",
+      "whale",
+      "wolf"
+    ],
+    "api-gateway": [
+      "graphql",
+      "rest_endpoint",
+      "rpc"
+    ],
+    "architecture-realestate": [
+      "atrium",
+      "attic",
+      "balcony",
+      "basement",
+      "closet",
+      "courtyard",
+      "doorbell",
+      "driveway",
+      "electrical",
+      "exterior_design",
+      "floor_plan",
+      "furniture_placement",
+      "garage",
+      "garden",
+      "gym_room",
+      "hallway",
+      "home_office",
+      "hvac",
+      "interior_design",
+      "landscape",
+      "laundry",
+      "lobby",
+      "pantry",
+      "plumbing",
+      "pool",
+      "rooftop_deck",
+      "room_layout",
+      "security_camera",
+      "smart_home",
+      "smart_lock",
+      "solar_panel",
+      "sprinkler",
+      "terrace",
+      "theater_room",
+      "thermostat",
+      "utility_room",
+      "wine_cellar"
+    ],
+    "atmosphere-sky": [
+      "atmosphere_bruneton",
+      "atmosphere_gradient",
+      "atmosphere_hdri",
+      "aurora",
+      "cirrus_clouds",
+      "cloud_shadow",
+      "cumulus_clouds",
+      "day_night_cycle",
+      "lightning_flash",
+      "meteor_shower",
+      "moon_disc",
+      "rainbow_arc",
+      "sky_dome",
+      "starfield",
+      "stratus_clouds",
+      "sun_disc",
+      "twilight",
+      "volumetric_clouds"
+    ],
+    "audio": [
+      "ambisonics",
+      "audio_material",
+      "audio_occlusion",
+      "audio_portal",
+      "head_tracked_audio",
+      "hrtf",
+      "reactive_audio",
+      "reverb_zone",
+      "spatial_audio",
+      "voice"
+    ],
+    "audit-trail": [
+      "change_tracking",
+      "data_lineage"
+    ],
+    "auth-identity": [
+      "api_key",
+      "jwt",
+      "mfa",
+      "oauth",
+      "permission",
+      "session"
+    ],
+    "character-materials": [
+      "cloth_material_chainmail",
+      "cloth_material_cotton",
+      "cloth_material_denim",
+      "cloth_material_fur",
+      "cloth_material_leather",
+      "cloth_material_silk",
+      "cloth_material_velvet",
+      "eye_cornea",
+      "eye_iris",
+      "eye_micro_saccade",
+      "eye_parallax",
+      "eye_pupil_dilation",
+      "eye_refractive",
+      "eye_sclera",
+      "eye_wet_layer",
+      "hair_anisotropy",
+      "hair_marschner",
+      "hair_melanin",
+      "hair_melanin_redness",
+      "hair_primary_specular",
+      "hair_root_darkening",
+      "hair_scatter",
+      "hair_secondary_specular",
+      "hair_tip_lightening",
+      "nail_keratin",
+      "skin_blood_flow",
+      "skin_melanin",
+      "skin_oiliness",
+      "skin_pore_detail",
+      "skin_scatter_color",
+      "skin_scatter_distance",
+      "skin_subsurface",
+      "skin_wrinkle_normal",
+      "tooth_enamel"
+    ],
+    "character-pipeline": [
+      "character_hollow",
+      "character_lod",
+      "character_lod_crossfade",
+      "character_lod_dithered",
+      "character_sculpt",
+      "clothing_baked",
+      "clothing_cloth_sim",
+      "clothing_layered_shell",
+      "clothing_shrinkwrap",
+      "clothing_wrinkle_map",
+      "compiled_mesh",
+      "deploy_apple_usdz",
+      "deploy_cloud_native",
+      "deploy_rpm_glb",
+      "deploy_unity_fbx",
+      "deploy_unreal_usd",
+      "deploy_vrchat_vrm",
+      "deploy_web_gltf",
+      "face_action_unit",
+      "face_expression_preset",
+      "face_facs_52",
+      "face_idle_blink",
+      "face_reactive",
+      "face_viseme",
+      "hair_cards",
+      "hair_guide_curves",
+      "hair_strands",
+      "material_hair_marschner",
+      "material_refractive_eye",
+      "material_subsurface",
+      "mesh_ball_pivoting",
+      "mesh_dual_contouring",
+      "mesh_marching_cubes",
+      "mesh_poisson_reconstruction",
+      "optimized_character",
+      "rigged_character",
+      "sculpt_blend_smooth_union",
+      "sculpt_color_map",
+      "sculpt_fill_shell",
+      "sculpt_fill_tube",
+      "sculpt_fill_volumetric",
+      "sculpt_region",
+      "skeleton_custom_bone",
+      "skeleton_humanoid_65",
+      "skin_max_influences",
+      "skinning_geodesic_voxel",
+      "skinning_heat_diffusion",
+      "skinning_neural",
+      "speech_audio_analysis",
+      "speech_emotion_overlay",
+      "speech_viseme_15"
+    ],
+    "communication": [
+      "discord",
+      "email",
+      "mqtt_pub",
+      "push_notification",
+      "slack",
+      "sms",
+      "sse"
+    ],
+    "compliance-governance": [
+      "consent_management",
+      "data_retention",
+      "gdpr"
+    ],
+    "concurrency": [
+      "actor",
+      "csp_channel",
+      "deadlock_free",
+      "temporal_guard"
+    ],
+    "connector-integration": [
+      "connector",
+      "deploy",
+      "env",
+      "mcp-server",
+      "on_connector_event"
+    ],
+    "construction-building": [
+      "alarm",
+      "alignable",
+      "blueprint",
+      "bridge",
+      "buildable",
+      "button",
+      "conveyor",
+      "door",
+      "elevator",
+      "foundation",
+      "ladder",
+      "lever",
+      "paintable_surface",
+      "pipe",
+      "placeable",
+      "pressure_plate",
+      "resizable",
+      "roof",
+      "staircase",
+      "switch",
+      "terrain_modifiable",
+      "tripwire",
+      "wall",
+      "window",
+      "wire"
+    ],
+    "containers-storage": [
+      "aquarium",
+      "backpack",
+      "barrel_container",
+      "basket",
+      "bin",
+      "cabinet",
+      "cargo",
+      "chest_container",
+      "compartment",
+      "container",
+      "crate",
+      "display_case",
+      "drawer",
+      "holster",
+      "hopper",
+      "inventory",
+      "locker",
+      "mailbox",
+      "pocket",
+      "pouch",
+      "quiver",
+      "safe",
+      "sheath",
+      "shelf",
+      "silo",
+      "slot",
+      "tank",
+      "terrarium",
+      "trophy_case",
+      "vault"
+    ],
+    "cooking-food": [
+      "bakeable",
+      "batter",
+      "blender",
+      "bottle",
+      "bowl",
+      "chopping_board",
+      "cup",
+      "deep_fryer",
+      "dough",
+      "drinkable",
+      "edible",
+      "fermentable",
+      "frosting",
+      "garnish",
+      "glass_container",
+      "grill",
+      "grillable",
+      "ingredient",
+      "jar",
+      "knife",
+      "ladle",
+      "marinade",
+      "measuring_cup",
+      "mixer_kitchen",
+      "oven",
+      "pan",
+      "plate",
+      "pot",
+      "recipe",
+      "rolling_pin",
+      "sauce",
+      "seasoning",
+      "smoker",
+      "spatula",
+      "stove",
+      "thermometer_food",
+      "timer_kitchen",
+      "tongs",
+      "whisk"
+    ],
+    "core-vr-interaction": [
+      "breakable",
+      "choreography",
+      "grabbable",
+      "hoverable",
+      "moldable",
+      "pointable",
+      "rotatable",
+      "scalable",
+      "snappable",
+      "stackable",
+      "stretchable",
+      "throwable",
+      "timeline"
+    ],
+    "creatures-mythical": [
+      "angel",
+      "basilisk",
+      "centaur",
+      "cerberus",
+      "chimera",
+      "demon",
+      "djinn",
+      "dragon",
+      "dwarf_creature",
+      "elemental_creature",
+      "elf",
+      "fairy",
+      "ghost",
+      "giant_creature",
+      "goblin",
+      "golem",
+      "griffin",
+      "hydra",
+      "imp",
+      "kraken",
+      "lich",
+      "mermaid",
+      "mimic",
+      "minotaur",
+      "ogre",
+      "orc",
+      "pegasus",
+      "phoenix",
+      "pixie",
+      "siren",
+      "skeleton_creature",
+      "slime",
+      "sphinx",
+      "sprite",
+      "treant",
+      "troll",
+      "unicorn",
+      "vampire",
+      "werewolf",
+      "wraith",
+      "wyvern",
+      "zombie"
+    ],
+    "data-pipeline": [
+      "batch_job",
+      "data_quality",
+      "data_transform",
+      "etl",
+      "schema_migrate"
+    ],
+    "data-storage": [
+      "cache",
+      "database",
+      "index",
+      "migrate",
+      "query",
+      "snapshot",
+      "stream"
+    ],
+    "data-visualization": [
+      "annotation",
+      "bar_chart",
+      "chart",
+      "code_editor",
+      "cutaway",
+      "dashboard",
+      "data_table",
+      "exploded_view",
+      "file_browser",
+      "flowchart",
+      "gantt",
+      "gauge",
+      "graph",
+      "heatmap_view",
+      "histogram",
+      "image_viewer",
+      "kanban",
+      "line_graph",
+      "measurement_tool",
+      "media_player",
+      "mind_map",
+      "model_viewer",
+      "network_graph",
+      "org_chart",
+      "overlay",
+      "pdf_viewer",
+      "pie_chart",
+      "presentation_mode",
+      "progress_bar",
+      "sankey",
+      "scatter_plot",
+      "schematic",
+      "simulation_mode",
+      "speedometer",
+      "spreadsheet",
+      "status_indicator",
+      "sticky_note",
+      "terminal",
+      "timeline_view",
+      "training_mode",
+      "tree_map",
+      "web_view",
+      "whiteboard",
+      "wireframe_view",
+      "x_ray_view"
+    ],
+    "database-persistence": [
+      "offline_sync",
+      "orm_entity",
+      "reactive_store",
+      "sql_query"
+    ],
+    "debug-cinematic": [
+      "ai_camera",
+      "cinematic_seq",
+      "spatial_profiler",
+      "time_travel_debug"
+    ],
+    "devops-ci": [
+      "canary",
+      "deploy",
+      "env_config",
+      "feature_flag",
+      "rollback",
+      "secret"
+    ],
+    "education-learning": [
+      "achievement",
+      "anatomical",
+      "archaeological_artifact",
+      "astronomical",
+      "badge",
+      "biological",
+      "certificate",
+      "chemical",
+      "cross_section",
+      "demonstration",
+      "dissectable",
+      "flashcard",
+      "gallery_piece",
+      "geographic",
+      "geological",
+      "gradeable",
+      "hint_system",
+      "historical",
+      "knowledge_check",
+      "lab_experiment",
+      "layered",
+      "leaderboard",
+      "lesson",
+      "mathematical",
+      "microscopic",
+      "museum_exhibit",
+      "progress_tracker",
+      "pronunciation",
+      "quiz",
+      "replayable",
+      "scientific",
+      "skill_tree",
+      "slow_motion",
+      "telescopic",
+      "time_lapse",
+      "translation",
+      "tutorial",
+      "vocabulary",
+      "zoomable"
+    ],
+    "emotion-mood": [
+      "angry",
+      "bored",
+      "calm",
+      "chaotic",
+      "cozy",
+      "desolate",
+      "disgusted",
+      "eerie",
+      "excited",
+      "happy",
+      "majestic",
+      "melancholic",
+      "nostalgic",
+      "ominous",
+      "sad",
+      "scared",
+      "serene",
+      "surprised",
+      "triumphant",
+      "whimsical"
+    ],
+    "enterprise-multitenancy": [
+      "audit_log",
+      "audit_trail",
+      "quota",
+      "quota_gaussian",
+      "quota_render_credits",
+      "quota_scene",
+      "quota_storage",
+      "rbac",
+      "rbac_permission",
+      "rbac_policy",
+      "rbac_role",
+      "sso_oidc",
+      "sso_saml",
+      "sso_session",
+      "tenant",
+      "tenant_boundary",
+      "tenant_config",
+      "tenant_isolation",
+      "tenant_registry"
+    ],
+    "environment-input": [
+      "anchor",
+      "body_tracking",
+      "controller",
+      "eye_tracking",
+      "face_tracking",
+      "geospatial",
+      "hand_tracking",
+      "haptic",
+      "light_estimation",
+      "mesh_detection",
+      "occlusion",
+      "persistent_anchor",
+      "plane_detection",
+      "shared_anchor",
+      "spatial_accessory"
+    ],
+    "environmental-biome": [
+      "abyssal",
+      "alien",
+      "celestial",
+      "corrupted",
+      "crystalline_biome",
+      "cyberpunk",
+      "day_night",
+      "desert",
+      "dream",
+      "enchanted",
+      "foggy",
+      "forest",
+      "futuristic",
+      "haunted",
+      "high_gravity",
+      "icy",
+      "low_gravity",
+      "medieval",
+      "overgrown",
+      "ruins",
+      "sacred",
+      "seasonal",
+      "steampunk",
+      "subterranean",
+      "swamp",
+      "toxic",
+      "tundra",
+      "underwater",
+      "urban",
+      "void",
+      "volcanic",
+      "weather_source",
+      "zero_gravity"
+    ],
+    "fabric-cloth": [
+      "awning",
+      "banner",
+      "bedsheet",
+      "billowing",
+      "blanket",
+      "canopy",
+      "carpet",
+      "cloak",
+      "curtain",
+      "cushion",
+      "drape",
+      "flag",
+      "flowing",
+      "hammock",
+      "net_fabric",
+      "parachute",
+      "pillow",
+      "pleated",
+      "quilted",
+      "ribbon",
+      "ruffled",
+      "rug",
+      "sail",
+      "tablecloth",
+      "tapestry",
+      "tarp",
+      "tattered",
+      "tent",
+      "towel",
+      "upholstered"
+    ],
+    "fabrication-devices": [
+      "cnc_millable",
+      "embroiderable",
+      "fabrication_ready",
+      "fdm_target",
+      "laser_cuttable",
+      "printability_feedback",
+      "printable",
+      "resin_target",
+      "sculpt_volume",
+      "vinyl_cuttable"
+    ],
+    "facial-expression": [
+      "expression_angry",
+      "expression_disgusted",
+      "expression_fearful",
+      "expression_happy",
+      "expression_neutral",
+      "expression_sad",
+      "expression_surprised",
+      "expression_thinking",
+      "facs_au01_inner_brow_raise",
+      "facs_au02_outer_brow_raise",
+      "facs_au04_brow_lowerer",
+      "facs_au05_upper_lid_raise",
+      "facs_au06_cheek_raise",
+      "facs_au07_lid_tightener",
+      "facs_au09_nose_wrinkler",
+      "facs_au10_upper_lip_raise",
+      "facs_au11_nasolabial_deepen",
+      "facs_au12_lip_corner_pull",
+      "facs_au13_sharp_lip_pull",
+      "facs_au14_dimpler",
+      "facs_au15_lip_corner_depress",
+      "facs_au16_lower_lip_depress",
+      "facs_au17_chin_raise",
+      "facs_au18_lip_pucker",
+      "facs_au19_tongue_show",
+      "facs_au20_lip_stretch",
+      "facs_au21_neck_tighten",
+      "facs_au22_lip_funnel",
+      "facs_au23_lip_tighten",
+      "facs_au24_lip_press",
+      "facs_au25_lips_part",
+      "facs_au26_jaw_drop",
+      "facs_au27_mouth_stretch",
+      "facs_au28_lip_suck",
+      "facs_au29_jaw_thrust",
+      "facs_au30_jaw_sideways",
+      "facs_au31_jaw_clench",
+      "facs_au32_lip_bite",
+      "facs_au33_cheek_blow",
+      "facs_au34_cheek_puff",
+      "facs_au35_cheek_suck",
+      "facs_au36_tongue_bulge",
+      "facs_au37_lip_wipe",
+      "facs_au38_nostril_dilate",
+      "facs_au39_nostril_compress",
+      "facs_au43_eyes_closed",
+      "facs_au45_blink",
+      "facs_au46_wink",
+      "facs_au51_head_turn_left",
+      "facs_au52_head_turn_right",
+      "facs_au53_head_up",
+      "facs_au54_head_down",
+      "facs_au55_head_tilt_left",
+      "facs_au56_head_tilt_right",
+      "facs_au57_head_forward",
+      "facs_au58_head_back",
+      "facs_au61_eyes_turn_left",
+      "facs_au62_eyes_turn_right",
+      "facs_au63_eyes_up",
+      "facs_au64_eyes_down",
+      "viseme_aa",
+      "viseme_ch",
+      "viseme_dd",
+      "viseme_ee",
+      "viseme_ff",
+      "viseme_ih",
+      "viseme_kk",
+      "viseme_nn",
+      "viseme_oh",
+      "viseme_oo",
+      "viseme_pp",
+      "viseme_rr",
+      "viseme_sil",
+      "viseme_ss",
+      "viseme_th"
+    ],
+    "feature-flags": [
+      "abtest",
+      "rollout"
+    ],
+    "ffi-os": [
+      "ffi",
+      "native_call",
+      "sys_io",
+      "wasm_bridge"
+    ],
+    "file-storage": [
+      "blob_store",
+      "file_system",
+      "s3_upload"
+    ],
+    "furniture-decor": [
+      "aquarium_decor",
+      "bed_furniture",
+      "bench",
+      "birdcage",
+      "bookshelf",
+      "bust",
+      "candelabra",
+      "chair",
+      "chandelier_decor",
+      "clock",
+      "coffee_table",
+      "counter",
+      "desk",
+      "dining_table",
+      "dresser",
+      "fireplace",
+      "fountain",
+      "globe",
+      "mannequin",
+      "mirror_decor",
+      "nightstand",
+      "painting",
+      "pedestal",
+      "picture_frame",
+      "plant_pot",
+      "rug_decor",
+      "sculpture",
+      "sofa",
+      "statue",
+      "stool",
+      "table",
+      "terrarium_decor",
+      "throne",
+      "trophy",
+      "vase_decor",
+      "wardrobe"
+    ],
+    "game-mechanics": [
+      "ammunition",
+      "armor",
+      "collectible",
+      "currency",
+      "damageable",
+      "debuff",
+      "destructible",
+      "electrifiable",
+      "explosive",
+      "flammable",
+      "fragile",
+      "freezable",
+      "fuel",
+      "healable",
+      "key_item",
+      "lootable",
+      "magnetic",
+      "poisonous",
+      "power_up",
+      "projectile",
+      "puzzle_piece",
+      "quest_item",
+      "radioactive",
+      "repairable",
+      "shield",
+      "spawnable",
+      "tool",
+      "trap",
+      "upgradeable",
+      "vehicle",
+      "weapon"
+    ],
+    "gaps-physics": [
+      "ai_companion",
+      "anti_grief",
+      "crowd_sim",
+      "deformable_terrain",
+      "fluid",
+      "god_rays",
+      "lip_sync",
+      "moderation",
+      "soft_body_pro",
+      "spatial_voice",
+      "token_gated",
+      "volumetric_clouds",
+      "weather",
+      "world_state"
+    ],
+    "gems-minerals": [
+      "adamantine",
+      "amber",
+      "amethyst",
+      "bloodstone",
+      "bronze_material",
+      "copper_material",
+      "crystal_gem",
+      "diamond_gem",
+      "emerald_gem",
+      "garnet",
+      "gold_material",
+      "iron_material",
+      "jade",
+      "lapis_lazuli",
+      "mithril",
+      "moonstone",
+      "obsidian",
+      "onyx",
+      "opal",
+      "orichalcum",
+      "pearl",
+      "quartz",
+      "ruby_gem",
+      "sapphire_gem",
+      "silver_material",
+      "steel_material",
+      "sunstone",
+      "titanium_material",
+      "topaz",
+      "turquoise_gem"
+    ],
+    "geospatial-web3": [
+      "geospatial_anchor",
+      "marketplace",
+      "nft",
+      "poi",
+      "portable",
+      "rooftop_anchor",
+      "terrain_anchor",
+      "token_gated",
+      "vps",
+      "wallet"
+    ],
+    "global-illumination": [
+      "ambient_occlusion_baked",
+      "ambient_occlusion_realtime",
+      "bounce_light",
+      "emissive_gi",
+      "irradiance_volume",
+      "light_probes",
+      "light_propagation_volume",
+      "lightmap_baked",
+      "lightmap_dynamic",
+      "planar_reflection",
+      "radiance_cascades",
+      "reflection_probe",
+      "screen_space_reflection",
+      "ssgi",
+      "voxel_cone_trace"
+    ],
+    "gpu-compute": [
+      "compute_shader",
+      "post_process",
+      "ray_trace",
+      "render_pipeline"
+    ],
+    "healthcare-medical": [
+      "bandage",
+      "biofeedback",
+      "body_scan",
+      "breathing_exercise",
+      "cognitive_therapy",
+      "ct_scan",
+      "defibrillator",
+      "ecg",
+      "exposure_therapy",
+      "forceps",
+      "guided_relaxation",
+      "iv_drip",
+      "meditation",
+      "mindfulness",
+      "mri_scan",
+      "pain_management",
+      "patient",
+      "phobia_treatment",
+      "prosthetic",
+      "ptsd_therapy",
+      "rehabilitation",
+      "scalpel",
+      "splint",
+      "stethoscope",
+      "surgical_tool",
+      "syringe",
+      "therapeutic",
+      "ultrasound",
+      "vital_signs",
+      "wheelchair",
+      "x_ray_scan"
+    ],
+    "hologram-media": [
+      "animated_texture",
+      "billboard",
+      "depth_estimation",
+      "depth_sequence",
+      "depth_to_normal",
+      "displacement",
+      "gaussian_splatting",
+      "holographic_sprite",
+      "image",
+      "quilt",
+      "segment",
+      "spatial_video",
+      "temporal_smoothing"
+    ],
+    "holomap-reconstruction": [
+      "holomap_anchor_context",
+      "holomap_camera_trajectory",
+      "holomap_drift_correction",
+      "holomap_reconstruct",
+      "holomap_splat_output"
+    ],
+    "holomesh-social": [
+      "agent_badge",
+      "agent_profile",
+      "agent_room",
+      "agent_wall",
+      "background_music",
+      "guestbook",
+      "profile_theme",
+      "room_portal",
+      "spatial_comment",
+      "status_mood",
+      "top8_friends",
+      "trait_showcase",
+      "visitor_counter"
+    ],
+    "humanoid-avatar": [
+      "body",
+      "character_voice",
+      "clothing",
+      "expressive",
+      "eye_tracked",
+      "face",
+      "hair",
+      "hand_mesh_ai",
+      "hand_tracking",
+      "hands",
+      "locomotion",
+      "morph",
+      "neural_animation",
+      "pose_estimation",
+      "poseable",
+      "skeleton"
+    ],
+    "i18n-localization": [
+      "locale",
+      "rtl",
+      "timezone",
+      "translation"
+    ],
+    "instancing-geometry": [
+      "batched_draw_indirect",
+      "batched_mesh",
+      "compute_rasterize",
+      "compute_rasterize_points",
+      "compute_rasterize_splats",
+      "instanced",
+      "instanced_array",
+      "instanced_color",
+      "instanced_transform",
+      "morton_octree",
+      "morton_sort",
+      "multi_draw_indirect",
+      "render_strategy",
+      "render_strategy_auto",
+      "render_strategy_batched",
+      "render_strategy_compute",
+      "render_strategy_instanced",
+      "render_strategy_sdf",
+      "sdf_bend",
+      "sdf_difference",
+      "sdf_intersect",
+      "sdf_primitive",
+      "sdf_repeat",
+      "sdf_smooth_difference",
+      "sdf_smooth_intersect",
+      "sdf_smooth_union",
+      "sdf_twist",
+      "sdf_union",
+      "shape_pool",
+      "shape_pool_box",
+      "shape_pool_capsule",
+      "shape_pool_cone",
+      "shape_pool_cylinder",
+      "shape_pool_sphere",
+      "shape_pool_torus"
+    ],
+    "intelligence-behavior": [
+      "adaptive",
+      "aggressive",
+      "ancient",
+      "autonomous",
+      "baby",
+      "behavior_tree",
+      "conversational",
+      "curious",
+      "elder",
+      "fearful",
+      "flocking",
+      "friendly",
+      "goal_oriented",
+      "hostile",
+      "hybrid",
+      "invisible_agent",
+      "legendary",
+      "mechanical",
+      "migratory",
+      "mischievous",
+      "mythical",
+      "neutral",
+      "nocturnal",
+      "omniscient",
+      "organic",
+      "pack_animal",
+      "passive",
+      "pathfinding",
+      "playful",
+      "predator",
+      "prey",
+      "protective",
+      "reward_shaping",
+      "scripted",
+      "shapeshifter",
+      "solitary",
+      "swarming",
+      "tameable",
+      "teachable",
+      "territorial",
+      "wise"
+    ],
+    "interop-copresence": [
+      "avatar_embodiment",
+      "co_located",
+      "emotion_directive",
+      "fbx",
+      "gltf",
+      "lip_sync",
+      "material_x",
+      "remote_presence",
+      "role",
+      "scene_graph",
+      "shared_world",
+      "spectator",
+      "stt",
+      "tts",
+      "usd",
+      "voice_proximity"
+    ],
+    "iot-autonomous-agents": [
+      "agent_spawner",
+      "alert",
+      "behavior_tree",
+      "bluetooth_device",
+      "climate_control",
+      "command",
+      "data_binding",
+      "delegation",
+      "device_registry",
+      "dialogue",
+      "digital_twin",
+      "dtdl_interface",
+      "emotion",
+      "faction",
+      "goal_oriented",
+      "heatmap_3d",
+      "home_assistant",
+      "iot_bridge",
+      "llm_agent",
+      "matter_device",
+      "memory",
+      "mitosis",
+      "octoprint_device",
+      "patrol",
+      "perception",
+      "sensor",
+      "smart_display",
+      "smart_light",
+      "smart_lock",
+      "smart_plug",
+      "smart_speaker",
+      "telemetry",
+      "twin_actuator",
+      "twin_sync",
+      "usb_device"
+    ],
+    "lighting": [
+      "ambient_glow",
+      "area_light",
+      "backlit",
+      "blacklight",
+      "candlelight",
+      "caustics",
+      "chandelier",
+      "color_temperature",
+      "dimmable",
+      "flickering",
+      "floodlight",
+      "fluorescent",
+      "god_rays",
+      "incandescent",
+      "lamp",
+      "lantern",
+      "led",
+      "light_source",
+      "light_strip",
+      "neon_sign",
+      "point_light",
+      "projection",
+      "sconce",
+      "shadow_caster",
+      "spotlight",
+      "strobe",
+      "torchlight",
+      "volumetric_light"
+    ],
+    "locomotion-movement": [
+      "climbable",
+      "crawlable",
+      "driveable",
+      "flyable",
+      "grindable",
+      "jumpable",
+      "mountable",
+      "rideable",
+      "sittable",
+      "slidable",
+      "surfable",
+      "swimmable",
+      "teleportable",
+      "walkable"
+    ],
+    "magic-fantasy": [
+      "antigravity",
+      "artifact",
+      "banishing",
+      "blessed",
+      "cursed",
+      "damage_aura",
+      "dimensional",
+      "elemental_air",
+      "elemental_earth",
+      "elemental_fire",
+      "elemental_ice",
+      "elemental_light",
+      "elemental_lightning",
+      "elemental_shadow",
+      "elemental_water",
+      "enchantable",
+      "force_field",
+      "glyph",
+      "gravity_well",
+      "healing_aura",
+      "invisibility",
+      "mana_source",
+      "phylactery",
+      "portal_link",
+      "relic",
+      "rune",
+      "shield_aura",
+      "sigil",
+      "soul_bound",
+      "speed_aura",
+      "summoning",
+      "telekinetic",
+      "telepathic",
+      "time_rewind",
+      "time_slow",
+      "time_stop",
+      "totem"
+    ],
+    "maritime-naval": [
+      "anchor_ship",
+      "boat",
+      "buoy",
+      "canoe",
+      "cargo_ship",
+      "crow_nest",
+      "dock_structure",
+      "ferry",
+      "figurehead",
+      "fishing_boat",
+      "gangplank",
+      "harbor",
+      "helm",
+      "hovercraft",
+      "hull",
+      "kayak",
+      "keel",
+      "lifeboat",
+      "lighthouse",
+      "mast",
+      "pier",
+      "porthole",
+      "propeller",
+      "raft",
+      "rowboat",
+      "rudder",
+      "ship",
+      "submarine",
+      "warship",
+      "yacht"
+    ],
+    "material-properties": [
+      "adobe",
+      "bamboo",
+      "bone",
+      "brick",
+      "carbon_fiber",
+      "cardboard",
+      "clay",
+      "composite",
+      "concrete",
+      "concrete_reinforced",
+      "coral",
+      "crystal_material",
+      "fiberglass",
+      "foam",
+      "glass_material",
+      "granite",
+      "ice_material",
+      "ivory",
+      "kevlar",
+      "marble_material",
+      "paper",
+      "plaster",
+      "plastic",
+      "resin",
+      "sandstone",
+      "shell",
+      "slate",
+      "stained_glass",
+      "stone_material",
+      "terracotta",
+      "thatch",
+      "wax",
+      "wooden"
+    ],
+    "measurement-sensing": [
+      "air_quality",
+      "beacon",
+      "camera_feed",
+      "compass",
+      "detector",
+      "filament_sensor",
+      "humidity_sensor",
+      "measurable",
+      "noise_level",
+      "power_monitor",
+      "radar",
+      "scanner",
+      "signal",
+      "sonar",
+      "thermometer",
+      "vibration_sensor",
+      "weighable"
+    ],
+    "media-analytics": [
+      "abtest",
+      "camera",
+      "heatmap",
+      "recordable",
+      "streamable",
+      "survey",
+      "trackable",
+      "video"
+    ],
+    "media-content": [
+      "image_resize",
+      "markdown_render",
+      "pdf_generate",
+      "video_transcode"
+    ],
+    "ml-inference": [
+      "depth_estimation",
+      "embedding",
+      "fine_tune",
+      "inference",
+      "model_load",
+      "prompt_template",
+      "vector_search"
+    ],
+    "ml-tensor": [
+      "onnx_runtime",
+      "tensor_op",
+      "training_loop"
+    ],
+    "multisensory-haptic": [
+      "cold",
+      "dry",
+      "electric_sensation",
+      "pressure_sensitive",
+      "rough",
+      "scented",
+      "slippery",
+      "smooth",
+      "sticky",
+      "tasteable",
+      "temperature",
+      "tingling",
+      "vibrating",
+      "warm",
+      "wet",
+      "wind_effect"
+    ],
+    "music-performance": [
+      "amphitheater",
+      "amplifier",
+      "audience",
+      "bass",
+      "beat_detector",
+      "chord_progression",
+      "concert_hall",
+      "dance_floor",
+      "dj_booth",
+      "drums",
+      "equalizer",
+      "flute",
+      "guitar",
+      "harp",
+      "headphones",
+      "karaoke",
+      "key_signature",
+      "light_show",
+      "loop_station",
+      "lyrics_display",
+      "microphone",
+      "midi_controller",
+      "mixer",
+      "music_visualizer",
+      "organ",
+      "piano",
+      "recording_studio",
+      "sampler",
+      "saxophone",
+      "sequencer",
+      "speaker",
+      "stage",
+      "tempo",
+      "trumpet",
+      "turntable",
+      "violin"
+    ],
+    "musical-sound": [
+      "ambient_sound",
+      "harmony",
+      "melody",
+      "musical",
+      "percussion",
+      "rhythm",
+      "sound_absorber",
+      "sound_emitter",
+      "synthesizer",
+      "voice_activated"
+    ],
+    "narrative-storytelling": [
+      "alibi",
+      "clue",
+      "cutscene",
+      "evidence",
+      "flashback",
+      "foreshadow",
+      "journal_entry",
+      "lore",
+      "narrator_trigger",
+      "suspect",
+      "testimony",
+      "witness"
+    ],
+    "nature-life": [
+      "aerial",
+      "amphibious",
+      "aquatic",
+      "bioluminescent",
+      "bloomable",
+      "burrowing",
+      "carnivorous_plant",
+      "cocoon",
+      "egg",
+      "growable",
+      "larva",
+      "metamorphic",
+      "nesting",
+      "parasitic",
+      "photosynthetic",
+      "pollinating",
+      "symbiotic",
+      "venomous",
+      "witherable"
+    ],
+    "networking-ai": [
+      "agent_protocol",
+      "ai_driven",
+      "ai_inpainting",
+      "ai_npc_brain",
+      "ai_texture_gen",
+      "ai_upscaling",
+      "captioned",
+      "collaborative_sculpt",
+      "controlnet",
+      "design_fork",
+      "diffusion_realtime",
+      "embedding_search",
+      "fabrication_queue",
+      "http",
+      "llm_agent",
+      "memory",
+      "narrator",
+      "networked",
+      "neural_forge",
+      "neural_link",
+      "print_vote",
+      "proactive",
+      "procedural",
+      "rag_knowledge",
+      "responsive",
+      "stable_diffusion",
+      "vector_db",
+      "vision"
+    ],
+    "notification-alerting": [
+      "pagerduty",
+      "slack_alert",
+      "webhook_out"
+    ],
+    "npc-roles": [
+      "alchemist",
+      "ally",
+      "apprentice",
+      "archaeologist",
+      "artificer",
+      "assassin",
+      "bard",
+      "bartender",
+      "barter",
+      "betray",
+      "blacksmith",
+      "companion",
+      "diplomat",
+      "doctor",
+      "enchanter",
+      "engineer",
+      "farmer",
+      "ferryman",
+      "fisher_npc",
+      "follower",
+      "gatherer",
+      "general",
+      "guard",
+      "healer_npc",
+      "hermit",
+      "hunter",
+      "innkeeper",
+      "jester",
+      "leader",
+      "librarian",
+      "mentor",
+      "merchant",
+      "miner_npc",
+      "monk",
+      "necromancer",
+      "negotiate",
+      "noble",
+      "nomad",
+      "oracle",
+      "outlaw",
+      "peasant",
+      "pilot",
+      "pirate",
+      "prisoner",
+      "prophet",
+      "quest_giver",
+      "ranger",
+      "refugee",
+      "relationship",
+      "reputation",
+      "rival",
+      "routine",
+      "royalty",
+      "schedule",
+      "scholar",
+      "scientist",
+      "shopkeeper",
+      "spy",
+      "summoner_npc",
+      "thief",
+      "vigilante",
+      "warden"
+    ],
+    "object-interaction": [
+      "carryable",
+      "closable",
+      "combinable",
+      "consumable",
+      "craftable",
+      "cuttable",
+      "equippable",
+      "fillable",
+      "foldable",
+      "insertable",
+      "liftable",
+      "lockable",
+      "openable",
+      "paintable",
+      "pourable",
+      "pullable",
+      "pushable",
+      "readable",
+      "removable",
+      "splittable",
+      "toggleable",
+      "tunable",
+      "unlockable",
+      "wearable",
+      "writable"
+    ],
+    "observability": [
+      "alert",
+      "healthcheck",
+      "incident",
+      "log_aggregator",
+      "profiler",
+      "slo_monitor"
+    ],
+    "parser-core-ui": [
+      "ar_only",
+      "audio",
+      "desktop_only",
+      "draggable",
+      "invisible",
+      "kinematic",
+      "local_only",
+      "physics",
+      "portal",
+      "static",
+      "ui_anchored",
+      "ui_billboard",
+      "ui_curved",
+      "ui_docked",
+      "ui_floating",
+      "ui_hand_menu",
+      "visible",
+      "vr_only"
+    ],
+    "payment": [
+      "credit",
+      "invoice",
+      "micro_payment",
+      "refund",
+      "stripe",
+      "subscription",
+      "wallet",
+      "x402_settlement"
+    ],
+    "physical-affordances": [
+      "balance",
+      "bellows",
+      "crank",
+      "dial",
+      "fulcrum",
+      "gear_mechanism",
+      "handle",
+      "hinge",
+      "joystick",
+      "knob",
+      "latch",
+      "pedal",
+      "pendulum",
+      "piston",
+      "pulley",
+      "ratchet",
+      "slider_control",
+      "spring_loaded",
+      "steering_wheel",
+      "throttle",
+      "valve",
+      "wheel"
+    ],
+    "physics-expansion": [
+      "buoyancy",
+      "chain",
+      "cloth",
+      "destruction",
+      "fluid",
+      "rope",
+      "soft_body",
+      "stretchable",
+      "wind"
+    ],
+    "post-processing": [
+      "bloom",
+      "chromatic_aberration",
+      "color_grading",
+      "depth_of_field",
+      "film_grain",
+      "fog",
+      "fxaa",
+      "glitch_effect",
+      "lens_flare",
+      "lut_color",
+      "motion_blur",
+      "outline_effect",
+      "pixelate_effect",
+      "sharpen",
+      "ssao",
+      "ssr",
+      "taa",
+      "tone_mapping",
+      "vignette",
+      "volumetric_fog"
+    ],
+    "procedural-generation": [
+      "cave_generator",
+      "cellular_automata",
+      "draft",
+      "erosion",
+      "fractal",
+      "heightmap",
+      "l_system",
+      "marching_cubes",
+      "maze_generator",
+      "noise_generator",
+      "procedural_biome",
+      "procedural_city",
+      "procedural_dialogue",
+      "procedural_dungeon",
+      "procedural_loot",
+      "procedural_music",
+      "procedural_npc",
+      "procedural_quest",
+      "procedural_terrain",
+      "procedural_texture",
+      "procedural_vegetation",
+      "procedural_weather",
+      "river_generator",
+      "road_generator",
+      "voronoi",
+      "wave_function_collapse"
+    ],
+    "rendering": [
+      "advanced_pbr",
+      "anisotropy",
+      "chromatic_aberration",
+      "clearcoat",
+      "depth_of_field",
+      "dispersion",
+      "dof_bokeh",
+      "film_grain",
+      "iridescence",
+      "lens_flare",
+      "motion_blur",
+      "post_processing_stack",
+      "screen_space_effects",
+      "sheen",
+      "ssao",
+      "ssdo",
+      "ssgi",
+      "ssr",
+      "sss_burley",
+      "sss_christensen",
+      "sss_random_walk",
+      "subsurface_scattering",
+      "subsurface_veins",
+      "taa",
+      "transmission",
+      "vignette"
+    ],
+    "resource-gathering": [
+      "cookable",
+      "distillable",
+      "fishable",
+      "forgeable",
+      "harvestable",
+      "mineable",
+      "plantable",
+      "recyclable"
+    ],
+    "safety-boundaries": [
+      "boss_arena",
+      "boundary",
+      "checkpoint",
+      "hazard",
+      "no_build",
+      "no_fly",
+      "pve_zone",
+      "pvp_zone",
+      "respawn",
+      "safe_zone",
+      "spawn_point",
+      "spectator_zone",
+      "trigger",
+      "tutorial_zone"
+    ],
+    "scientific-computing": [
+      "alphafold_predict",
+      "atom_labels",
+      "atom_selection",
+      "auto_dock",
+      "binding_affinity",
+      "chemical_bond",
+      "collaborative_science",
+      "database_query",
+      "electrostatic_surface",
+      "energy_minimization",
+      "force_field",
+      "hydrogen_bonds",
+      "hydrophobic_surface",
+      "interactive_forces",
+      "ligand_visualization",
+      "mol_loader",
+      "molecular_dynamics",
+      "multimer_predict",
+      "narupa_integration",
+      "pae_visualization",
+      "pdb_loader",
+      "protein_structure",
+      "protein_visualization",
+      "residue_labels",
+      "simulation_control",
+      "structure_confidence",
+      "trajectory_analysis",
+      "trajectory_playback"
+    ],
+    "scifi-technology": [
+      "asteroid",
+      "atmospheric",
+      "biotech",
+      "black_hole",
+      "cloaking",
+      "cryo",
+      "cybernetic",
+      "dyson_sphere",
+      "emp",
+      "energy_weapon",
+      "force_field_tech",
+      "hologram",
+      "hyperspace",
+      "laser",
+      "nanite",
+      "nebula",
+      "orbital",
+      "plasma",
+      "quantum_locked",
+      "ringworld",
+      "stasis",
+      "terraforming",
+      "warp_drive",
+      "wormhole"
+    ],
+    "scripting-automation": [
+      "buffer",
+      "circuit_breaker",
+      "cron",
+      "pipeline",
+      "rate_limiter",
+      "retry",
+      "scheduler",
+      "shell",
+      "structured_logger",
+      "task_queue",
+      "timeout_guard",
+      "transform",
+      "watcher",
+      "webhook"
+    ],
+    "search": [
+      "autocomplete",
+      "faceted_search",
+      "full_text_search"
+    ],
+    "security-crypto": [
+      "aes_128",
+      "aes_256",
+      "api_restriction",
+      "aws_cloudhsm",
+      "azure_key_vault",
+      "batch_verification",
+      "bls12_381_curve",
+      "bn254_curve",
+      "bulletproofs",
+      "certificate_pinning",
+      "chacha20_poly1305",
+      "chain_of_trust",
+      "code_injection_detection",
+      "common_criteria",
+      "composition_validation",
+      "container_sandbox",
+      "cvss_scoring",
+      "cwe_mapping",
+      "dependency_check",
+      "detached_signature",
+      "dtls",
+      "dynamic_analysis",
+      "ecdsa_p256",
+      "ecdsa_secp256k1",
+      "ecdsa_signing",
+      "ed25519_signing",
+      "embedded_signature",
+      "encryption",
+      "end_to_end_encryption",
+      "fips_140_2",
+      "fips_140_3",
+      "google_cloud_hsm",
+      "groth16",
+      "hsm_integration",
+      "hybrid_encryption",
+      "iframe_sandbox",
+      "isolate_sandbox",
+      "key_derivation",
+      "key_rotation",
+      "multi_region_key",
+      "oaep_padding",
+      "ocsp_stapling",
+      "owasp_top_10",
+      "package_signing",
+      "pedersen_commitment",
+      "penetration_test",
+      "perfect_forward_secrecy",
+      "permission_system",
+      "pkcs1_padding",
+      "plonk",
+      "poseidon_hash",
+      "pss_padding",
+      "quic",
+      "recursive_proof",
+      "resource_limits",
+      "rsa_2048",
+      "rsa_3072",
+      "rsa_4096",
+      "rsa_encryption",
+      "sandbox_execution",
+      "sarif_output",
+      "secret_detection",
+      "secure_enclave",
+      "session_resumption",
+      "signature_verification",
+      "static_analysis",
+      "timestamp_authority",
+      "tls_1_2",
+      "tls_1_3",
+      "tpm_module",
+      "vm_sandbox",
+      "vulnerability_scanner",
+      "wasm_sandbox",
+      "worker_sandbox",
+      "xss_detection",
+      "zero_knowledge_proof",
+      "zk_snark",
+      "zk_stark"
+    ],
+    "shape-form": [
+      "amorphous",
+      "angular",
+      "asymmetrical",
+      "branching",
+      "corrugated",
+      "curved",
+      "faceted",
+      "flared",
+      "fractal_shape",
+      "geometric",
+      "hexagonal",
+      "hollow",
+      "interlocking",
+      "lattice",
+      "layered_form",
+      "modular_shape",
+      "nested",
+      "octagonal",
+      "organic_form",
+      "perforated",
+      "ribbed",
+      "round",
+      "segmented",
+      "smooth_form",
+      "solid",
+      "spiral",
+      "square",
+      "symmetrical",
+      "tapered",
+      "tessellated",
+      "triangular",
+      "twisted"
+    ],
+    "signs-communication": [
+      "billboard_sign",
+      "book",
+      "direction_arrow",
+      "exclamation_mark",
+      "exit_sign",
+      "graffiti",
+      "heads_up_display",
+      "holographic_display",
+      "icon",
+      "information_kiosk",
+      "inscription",
+      "label",
+      "letter",
+      "logo",
+      "map",
+      "name_tag",
+      "newspaper",
+      "plaque",
+      "postcard",
+      "question_mark",
+      "scroll",
+      "sign",
+      "speech_bubble",
+      "symbol",
+      "telegram",
+      "thought_bubble",
+      "warning_sign",
+      "waypoint"
+    ],
+    "simple-modifiers": [
+      "animated",
+      "billboard",
+      "clickable",
+      "collidable",
+      "glowing",
+      "interactive",
+      "lod",
+      "rotating"
+    ],
+    "simulation-domains": [
+      "colormap_coolwarm",
+      "colormap_inferno",
+      "colormap_jet",
+      "colormap_turbo",
+      "colormap_viridis",
+      "hydraulic_junction",
+      "hydraulic_pipe",
+      "hydraulic_pump",
+      "hydraulic_reservoir",
+      "hydraulic_valve",
+      "phase_transition",
+      "saturation_chemical",
+      "saturation_electrical",
+      "saturation_moisture",
+      "saturation_pressure",
+      "saturation_structural",
+      "saturation_thermal",
+      "scalar_field_overlay",
+      "structural_constraint",
+      "structural_dynamic",
+      "structural_fem",
+      "structural_load",
+      "structural_material",
+      "structural_static",
+      "thermal_boundary",
+      "thermal_conduction",
+      "thermal_convection",
+      "thermal_radiation",
+      "thermal_simulation",
+      "thermal_source",
+      "threshold_critical",
+      "threshold_recovery",
+      "threshold_warning"
+    ],
+    "size-scale": [
+      "building_scale",
+      "city_scale",
+      "colossal",
+      "expandable",
+      "giant",
+      "huge",
+      "human_scale",
+      "large",
+      "medium",
+      "microscale",
+      "miniature",
+      "oversized",
+      "planetary_scale",
+      "pocket_sized",
+      "shrinkable",
+      "small",
+      "tiny",
+      "towering"
+    ],
+    "social-commerce": [
+      "auctionable",
+      "curated",
+      "featured",
+      "giftable",
+      "limited_edition",
+      "rentable",
+      "reviewable",
+      "seasonal_item",
+      "subscribable",
+      "tippable",
+      "tradeable",
+      "voteable"
+    ],
+    "social-effects": [
+      "collaborative",
+      "embeddable",
+      "filter",
+      "particle",
+      "qr",
+      "shareable",
+      "trail",
+      "transition"
+    ],
+    "spatial-algorithms": [
+      "astar",
+      "navmesh_solver",
+      "optimization"
+    ],
+    "sports-fitness": [
+      "balance_board",
+      "bat",
+      "bow",
+      "bullseye",
+      "calorie_tracker",
+      "club",
+      "coach",
+      "dumbbell",
+      "finish_line",
+      "fishing_rod",
+      "form_checker",
+      "goal",
+      "heart_rate_monitor",
+      "hittable",
+      "hoop",
+      "hurdle",
+      "jump_rope",
+      "kettlebell",
+      "kickable",
+      "lap_counter",
+      "net",
+      "opponent",
+      "punching_bag",
+      "racket",
+      "rep_counter",
+      "resistance_band",
+      "rowing_machine",
+      "scoreboard",
+      "starting_block",
+      "stationary_bike",
+      "target",
+      "teammate",
+      "throwable_ball",
+      "timer_display",
+      "treadmill",
+      "weight",
+      "yoga_mat"
+    ],
+    "state-persistence": [
+      "active",
+      "charged",
+      "conditional",
+      "cooldown",
+      "depleted",
+      "dormant",
+      "ephemeral",
+      "overloaded",
+      "phased",
+      "restorable",
+      "saveable",
+      "staged",
+      "synced",
+      "timer",
+      "triggered",
+      "undo_redo",
+      "versioned"
+    ],
+    "surface-texture": [
+      "braided",
+      "brushed",
+      "ceramic",
+      "crystallized",
+      "embossed",
+      "engraved",
+      "etched",
+      "feathered",
+      "frosted_surface",
+      "furry",
+      "glossy",
+      "granular",
+      "gravelly",
+      "hammered",
+      "knitted",
+      "leathery",
+      "matte_surface",
+      "mossy",
+      "pearlescent",
+      "pitted",
+      "porcelain",
+      "rubber",
+      "sandy",
+      "satin",
+      "scaled",
+      "silky",
+      "slimy",
+      "velvety",
+      "woolly",
+      "woven"
+    ],
+    "terrain-ocean": [
+      "ocean_buoyancy",
+      "ocean_calm_lake",
+      "ocean_caustics",
+      "ocean_fft",
+      "ocean_flowing_river",
+      "ocean_foam",
+      "ocean_gerstner",
+      "ocean_shoreline",
+      "ocean_underwater_fog",
+      "ocean_wake",
+      "terrain_biome_splatmap",
+      "terrain_fbm_noise",
+      "terrain_grass_scatter",
+      "terrain_heightmap",
+      "terrain_hydraulic_erosion",
+      "terrain_lod_geomorphing",
+      "terrain_rock_scatter",
+      "terrain_thermal_erosion",
+      "terrain_tree_scatter",
+      "terrain_triplanar_texture"
+    ],
+    "testing-qa": [
+      "chaos_test",
+      "fixture",
+      "load_test",
+      "mock",
+      "snapshot_test"
+    ],
+    "time-period": [
+      "anachronistic",
+      "ancient_era",
+      "art_deco",
+      "art_nouveau",
+      "bronze_age",
+      "classical",
+      "colonial",
+      "contemporary",
+      "dystopian",
+      "far_future",
+      "feudal",
+      "industrial",
+      "iron_age",
+      "modern",
+      "post_apocalyptic",
+      "prehistoric",
+      "renaissance",
+      "retro",
+      "timeless",
+      "utopian",
+      "victorian",
+      "viking",
+      "vintage"
+    ],
+    "transportation-vehicles": [
+      "attachable",
+      "autopilot",
+      "cargo_hold",
+      "cockpit",
+      "detachable",
+      "dockable",
+      "fuelable",
+      "landable",
+      "launchable",
+      "passenger_seat",
+      "towable",
+      "turret"
+    ],
+    "universal-service": [
+      "access_log",
+      "adaptive_concurrency",
+      "aggregate_root",
+      "alert_channel",
+      "alert_rule",
+      "api_gateway",
+      "api_key_auth",
+      "api_version",
+      "apm_agent",
+      "asyncapi_channel",
+      "asyncapi_message",
+      "audit_column",
+      "audit_log",
+      "availability_monitor",
+      "avro_schema",
+      "backpressure",
+      "backward_compatible",
+      "batch_endpoint",
+      "batch_job",
+      "bearer_auth",
+      "blue_green_deploy",
+      "bulkhead",
+      "cache",
+      "canary_release",
+      "cdn_config",
+      "change_data_capture",
+      "chaos_experiment",
+      "choreography",
+      "circuit_breaker",
+      "compensating_transaction",
+      "competing_consumer",
+      "connection_drain",
+      "connection_pool",
+      "consumer_contract",
+      "container",
+      "content_router",
+      "contract",
+      "contract_test",
+      "cors_config",
+      "cors_policy",
+      "cpu_profiler",
+      "cqrs_command",
+      "cqrs_query",
+      "csp_config",
+      "cursor_pagination",
+      "dag",
+      "data_flow",
+      "data_lake",
+      "data_mapper",
+      "data_transformer",
+      "data_warehouse",
+      "db",
+      "deadline_propagation",
+      "delay_queue",
+      "dependency_check",
+      "deployment",
+      "dlq_handler",
+      "dns_resolver",
+      "docker_compose",
+      "dockerfile",
+      "document_db",
+      "dto",
+      "eager_load",
+      "egress",
+      "endpoint",
+      "error_budget",
+      "error_rate",
+      "etl_pipeline",
+      "event_sourcing",
+      "event_store",
+      "exponential_backoff",
+      "fallback",
+      "fanout",
+      "fault_injection",
+      "file_upload",
+      "forward_compatible",
+      "full_text_search",
+      "graceful_degradation",
+      "grafana_dashboard",
+      "graph_db",
+      "graphql",
+      "graphql_directive",
+      "graphql_enum",
+      "graphql_input",
+      "graphql_resolver",
+      "graphql_type",
+      "graphql_union",
+      "grpc",
+      "handler",
+      "health_aggregator",
+      "health_check",
+      "health_endpoint",
+      "helm_chart",
+      "helm_values",
+      "hsts_config",
+      "http",
+      "http2_server",
+      "http3_server",
+      "idempotency_key",
+      "idempotent_consumer",
+      "identity_map",
+      "ingress",
+      "init_container",
+      "input_sanitizer",
+      "jitter_backoff",
+      "json_schema",
+      "jwt_config",
+      "jwt_issuer",
+      "jwt_verifier",
+      "key_value_store",
+      "kubernetes_configmap",
+      "kubernetes_cronjob",
+      "kubernetes_deployment",
+      "kubernetes_hpa",
+      "kubernetes_ingress",
+      "kubernetes_job",
+      "kubernetes_network_policy",
+      "kubernetes_pdb",
+      "kubernetes_pod",
+      "kubernetes_service",
+      "kubernetes_service_account",
+      "kubernetes_statefulset",
+      "latency_injection",
+      "latency_percentile",
+      "lazy_load",
+      "leaky_bucket",
+      "load_balancer",
+      "load_shedding",
+      "log",
+      "log_aggregator",
+      "materialized_view",
+      "memory_profiler",
+      "message_aggregator",
+      "message_broker",
+      "message_enricher",
+      "message_filter",
+      "message_splitter",
+      "metric",
+      "micro_batch",
+      "middleware",
+      "migration",
+      "model",
+      "mtls_config",
+      "multipart_handler",
+      "node_affinity",
+      "oauth2_config",
+      "offset_pagination",
+      "oidc_provider",
+      "openapi_path",
+      "openapi_response",
+      "openapi_security",
+      "output_filter",
+      "persistent_volume",
+      "pipeline",
+      "pod_affinity",
+      "priority_queue",
+      "profiler",
+      "projection",
+      "prometheus_exporter",
+      "protobuf_message",
+      "pulumi_resource",
+      "query",
+      "queue",
+      "quic_transport",
+      "rate_limit_config",
+      "rate_limiter",
+      "read_replica",
+      "real_time_stream",
+      "real_user_monitoring",
+      "relational_db",
+      "repository",
+      "request_hedging",
+      "request_rate",
+      "request_validator",
+      "resource_quota",
+      "response_transformer",
+      "rest_resource",
+      "retry",
+      "reverse_proxy",
+      "rolling_update",
+      "route",
+      "rpc_method",
+      "saga",
+      "saga_orchestrator",
+      "sampling_strategy",
+      "scaling",
+      "scheduler",
+      "schema",
+      "schema_evolution",
+      "search_index",
+      "secret",
+      "serializer",
+      "service",
+      "service_discovery",
+      "service_mesh",
+      "session_config",
+      "sharding_key",
+      "sidecar",
+      "sli",
+      "sliding_window",
+      "slo",
+      "soft_delete",
+      "span",
+      "speculative_retry",
+      "sse_endpoint",
+      "state_machine",
+      "storage_class",
+      "stream",
+      "structured_log",
+      "subscription",
+      "synthetic_monitor",
+      "tcp_client",
+      "tcp_server",
+      "tenant_column",
+      "terraform_module",
+      "terraform_resource",
+      "throttle_config",
+      "throughput_counter",
+      "time_series_db",
+      "timeout",
+      "tls_config",
+      "token_bucket",
+      "toleration",
+      "topic",
+      "trace",
+      "trace_context",
+      "transaction",
+      "udp_client",
+      "udp_server",
+      "unit_of_work",
+      "uptime_monitor",
+      "validator",
+      "vector_db",
+      "version_column",
+      "webhook_receiver",
+      "webhook_sender",
+      "websocket",
+      "worker",
+      "workflow_engine"
+    ],
+    "v43-ai-xr": [
+      "ai_inpainting",
+      "ai_npc_brain",
+      "ai_texture_gen",
+      "ai_upscaling",
+      "ai_vision",
+      "controlnet",
+      "diffusion_realtime",
+      "embedding_search",
+      "eye_hand_fusion",
+      "eye_tracked",
+      "neural_animation",
+      "neural_forge",
+      "neural_link",
+      "object_tracking",
+      "realitykit_mesh",
+      "scene_reconstruction",
+      "shareplay",
+      "spatial_awareness",
+      "spatial_navigation",
+      "spatial_persona",
+      "vector_db",
+      "vision",
+      "volumetric_window"
+    ],
+    "vfx-audio": [
+      "spatial_audio_ambient",
+      "spatial_audio_hrtf",
+      "spatial_audio_listener",
+      "spatial_audio_music",
+      "spatial_audio_occlusion",
+      "spatial_audio_reverb_zone",
+      "spatial_audio_source",
+      "spatial_audio_surface_absorption",
+      "vfx_beam",
+      "vfx_particle_dust",
+      "vfx_particle_emitter",
+      "vfx_particle_fire",
+      "vfx_particle_fog",
+      "vfx_particle_rain",
+      "vfx_particle_smoke",
+      "vfx_particle_snow",
+      "vfx_particle_sparks",
+      "vfx_ribbon",
+      "vfx_sprite_sheet",
+      "vfx_trail"
+    ],
+    "visual-effects": [
+      "blinking",
+      "camouflaged",
+      "cel_shaded",
+      "color_shifting",
+      "crystalline",
+      "dissolving",
+      "electric_arc",
+      "emissive",
+      "ethereal",
+      "fading",
+      "fiery",
+      "floating",
+      "frosted",
+      "ghostly",
+      "holographic",
+      "ink_wash",
+      "iridescent",
+      "luminous",
+      "metallic_sheen",
+      "mirrored",
+      "neon_glow",
+      "outlined",
+      "pixelated",
+      "pulsing",
+      "rainbow",
+      "reflective",
+      "smoky",
+      "spinning",
+      "transparent",
+      "x_ray"
+    ],
+    "volumetric-webgpu": [
+      "compute",
+      "gaussian_splat",
+      "gpu_buffer",
+      "gpu_particle",
+      "gpu_physics",
+      "lidar_scan",
+      "nerf",
+      "photogrammetry",
+      "photogrammetry_scan",
+      "point_cloud",
+      "print_twin",
+      "scan_to_sculpt",
+      "volumetric_video"
+    ],
+    "water-fluid": [
+      "absorbent",
+      "boiling",
+      "condensing",
+      "corrosive",
+      "drainable",
+      "evaporating",
+      "floatable",
+      "frozen_liquid",
+      "hydrophilic",
+      "hydrophobic",
+      "leaking",
+      "overflowing",
+      "permeable",
+      "pressurized",
+      "sinkable",
+      "submersible",
+      "viscous",
+      "waterproof",
+      "watertight"
+    ],
+    "weather-particles": [
+      "bubble_emitter",
+      "confetti_emitter",
+      "dust_emitter",
+      "fire_emitter",
+      "firefly_emitter",
+      "fog_emitter",
+      "magic_emitter",
+      "pollen_emitter",
+      "rain_emitter",
+      "smoke_emitter",
+      "snow_emitter",
+      "spark_emitter"
+    ],
+    "weather-phenomena": [
+      "aurora",
+      "avalanche",
+      "blizzard",
+      "cold_snap",
+      "drought",
+      "earthquake",
+      "eclipse",
+      "flood",
+      "geyser",
+      "hailstorm",
+      "heatwave",
+      "hurricane",
+      "landslide",
+      "lightning_bolt",
+      "meteor_shower",
+      "monsoon",
+      "rainbow_weather",
+      "sandstorm",
+      "sinkhole",
+      "solar_flare",
+      "thunderstorm",
+      "tornado",
+      "tsunami",
+      "typhoon",
+      "volcanic_eruption",
+      "waterspout",
+      "whirlpool",
+      "wildfire"
+    ],
+    "workflow-bpm": [
+      "approval",
+      "form_builder",
+      "state_machine",
+      "workflow"
+    ],
+    "xr-platform": [
+      "arcore",
+      "arkit",
+      "augmented_virtuality",
+      "controller_required",
+      "cross_platform",
+      "diminished_reality",
+      "guardian_system",
+      "hands_only",
+      "headset_only",
+      "mixed_reality",
+      "mobile_ar",
+      "object_tracking",
+      "openxr",
+      "passthrough",
+      "pcvr",
+      "persistent_world",
+      "quest_native",
+      "realitykit_mesh",
+      "room_boundary",
+      "room_mesh",
+      "room_scale",
+      "scene_reconstruction",
+      "seated_experience",
+      "shared_space",
+      "shared_world",
+      "shareplay",
+      "spatial_awareness",
+      "spatial_navigation",
+      "spatial_persona",
+      "standing_experience",
+      "tabletop_scale",
+      "visionos",
+      "volumetric_window",
+      "webxr",
+      "world_scale"
+    ]
+  }
+}
