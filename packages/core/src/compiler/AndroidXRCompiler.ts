@@ -824,6 +824,11 @@ ${
     if (composition.camera) this.emitCamera(composition.camera);
     for (const l of composition.lights ?? []) this.emitLight(l);
 
+    // Soundstage grounding: activitySpace anchor for environment_probe trait
+    if (composition.objects?.some((o) => o.traits?.some((t) => t.name === 'environment_probe'))) {
+      this.emit('val sceneRoot = xrSession.scene.activitySpace');
+    }
+
     // DP3: Emit objects — head-following objects use UserSubspace,
     // 3D model objects use SceneCoreEntity composable, others use direct entity creation
     for (const o of composition.objects ?? []) {
@@ -983,6 +988,22 @@ ${
       // DP3: DRM-protected video via SurfaceEntity
       else if (t.name === 'drm_video' || t.name === 'protected_video') {
         this.emitDrmVideo(v, t.config ?? {});
+      }
+      // Soundstage grounding: depth occlusion guard (Quest 3 / Android XR)
+      else if (t.name === 'occlusion_mesh') {
+        this.emit(`// Activate strictly if depth API is physically supported on-device`);
+        this.emit(`if (xrSession.isDepthSupported) {`);
+        this.indent();
+        this.emit(`xrSession.scene.configure { config -> config.depthMode = Config.DepthMode.AUTOMATIC }`);
+        this.emit(`${v}.enableDepthOcclusion(true)`);
+        this.dedent();
+        this.emit(`}`);
+      }
+      // Soundstage grounding: HDR environment probe anchored to scene root
+      else if (t.name === 'environment_probe') {
+        this.emit(`// Attach HDR environmental projection to scene root`);
+        this.emit(`val ${v}Probe = xrSession.scene.perceptionSpace.createEnvironmentProbe()`);
+        this.emit(`sceneRoot.addComponent(${v}Probe)`);
       }
     }
 

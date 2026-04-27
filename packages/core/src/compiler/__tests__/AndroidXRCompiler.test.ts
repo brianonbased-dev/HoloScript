@@ -575,6 +575,71 @@ describe('AndroidXRCompiler', () => {
     });
   });
 
+  // ─── Film3D: Soundstage grounding (Quest 3 — occlusion_mesh + environment_probe) ─────
+
+  describe('Soundstage grounding — Quest 3 validation', () => {
+    it('combined occlusion_mesh + environment_probe emits camera.ar manifest feature', () => {
+      const comp = minimalComposition({
+        objects: [
+          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
+          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+      expect(result.manifestFile).toContain('android.hardware.camera.ar');
+    });
+
+    it('occlusion_mesh emits depth guard code (isDepthSupported + DepthMode.AUTOMATIC) in activity', () => {
+      const comp = minimalComposition({
+        objects: [
+          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+      expect(result.activityFile).toContain('isDepthSupported');
+      expect(result.activityFile).toContain('Config.DepthMode.AUTOMATIC');
+      expect(result.activityFile).toContain('enableDepthOcclusion');
+    });
+
+    it('environment_probe emits createEnvironmentProbe + addComponent in activity', () => {
+      const comp = minimalComposition({
+        objects: [
+          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+      expect(result.activityFile).toContain('createEnvironmentProbe');
+      expect(result.activityFile).toContain('sceneRoot.addComponent');
+    });
+
+    it('FILM3D_XR triple (occlusion_mesh + environment_probe + gaze_interactable) emits all grounding code', () => {
+      const comp = minimalComposition({
+        objects: [
+          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
+          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+          { name: 'director_hud', properties: [], traits: [{ name: 'gaze_interactable', config: {} }], children: [] },
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+      expect(result.manifestFile).toContain('android.hardware.camera.ar');
+      expect(result.activityFile).toContain('isDepthSupported');
+      expect(result.activityFile).toContain('Config.DepthMode.AUTOMATIC');
+      expect(result.activityFile).toContain('createEnvironmentProbe');
+    });
+
+    it('combined traits add camera.ar manifest entry only once (deduplication)', () => {
+      const comp = minimalComposition({
+        objects: [
+          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
+          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+      const occurrences = (result.manifestFile.match(/android\.hardware\.camera\.ar/g) ?? []).length;
+      expect(occurrences).toBe(1);
+    });
+  });
+
   // ─── Convenience export ───────────────────────────────────────────
 
   it('exports compileToAndroidXR convenience function', async () => {

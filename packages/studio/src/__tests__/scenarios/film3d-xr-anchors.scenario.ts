@@ -66,6 +66,28 @@ export function applyDepthGuard(session: { isDepthSupported: boolean }, out: str
   }
 }
 
+/**
+ * Validates that a compiled Android XR activity file contains the code required for soundstage
+ * grounding on Quest 3: depth occlusion guard (`occlusion_mesh`) AND HDR environment probe
+ * (`environment_probe`). Both must be present for the composition to be considered "grounded."
+ */
+export function validateSoundstageGrounding(compiledActivity: string): {
+  hasDepthGuard: boolean;
+  hasEnvironmentProbe: boolean;
+  grounded: boolean;
+} {
+  const hasDepthGuard =
+    compiledActivity.includes('isDepthSupported') &&
+    compiledActivity.includes('DepthMode.AUTOMATIC') &&
+    compiledActivity.includes('enableDepthOcclusion');
+
+  const hasEnvironmentProbe =
+    compiledActivity.includes('createEnvironmentProbe') &&
+    compiledActivity.includes('sceneRoot.addComponent');
+
+  return { hasDepthGuard, hasEnvironmentProbe, grounded: hasDepthGuard && hasEnvironmentProbe };
+}
+
 describe('Film3D XR anchor scenarios', () => {
   test('depth-disabled path does not configure depth (no silent crash contract)', () => {
     const lines: string[] = [];
@@ -108,5 +130,47 @@ describe('Film3D XR anchor scenarios', () => {
     ]);
     expect(hologramCulledByDepth).toBe(false);
     expect(painterOrder).toContain('holo');
+  });
+});
+
+describe('Soundstage grounding — validateSoundstageGrounding', () => {
+  const DEPTH_CODE = [
+    'if (xrSession.isDepthSupported) {',
+    '    xrSession.scene.configure { config -> config.depthMode = Config.DepthMode.AUTOMATIC }',
+    '    soundstageOcclusionNode.enableDepthOcclusion(true)',
+    '}',
+  ].join('\n');
+
+  const PROBE_CODE = [
+    'val hdrEnvironmentProbe = xrSession.scene.perceptionSpace.createEnvironmentProbe()',
+    'sceneRoot.addComponent(hdrEnvironmentProbe)',
+  ].join('\n');
+
+  test('fully grounded activity returns grounded=true with both flags set', () => {
+    const result = validateSoundstageGrounding(`${DEPTH_CODE}\n${PROBE_CODE}`);
+    expect(result.hasDepthGuard).toBe(true);
+    expect(result.hasEnvironmentProbe).toBe(true);
+    expect(result.grounded).toBe(true);
+  });
+
+  test('activity with only depth guard is not grounded (missing probe)', () => {
+    const result = validateSoundstageGrounding(DEPTH_CODE);
+    expect(result.hasDepthGuard).toBe(true);
+    expect(result.hasEnvironmentProbe).toBe(false);
+    expect(result.grounded).toBe(false);
+  });
+
+  test('activity with only environment probe is not grounded (missing depth guard)', () => {
+    const result = validateSoundstageGrounding(PROBE_CODE);
+    expect(result.hasDepthGuard).toBe(false);
+    expect(result.hasEnvironmentProbe).toBe(true);
+    expect(result.grounded).toBe(false);
+  });
+
+  test('empty activity is not grounded', () => {
+    const result = validateSoundstageGrounding('');
+    expect(result.hasDepthGuard).toBe(false);
+    expect(result.hasEnvironmentProbe).toBe(false);
+    expect(result.grounded).toBe(false);
   });
 });
