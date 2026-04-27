@@ -611,6 +611,7 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('text_to_speech');
     expect(partial).not.toContain('npc_steering');
     expect(partial).not.toContain('emotion_system');
+    expect(partial).toHaveLength(0);
   });
 
   // =========== Every trait generates non-empty code ===========
