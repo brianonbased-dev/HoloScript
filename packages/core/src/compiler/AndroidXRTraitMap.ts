@@ -1808,7 +1808,7 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ui_hand_menu: {
     trait: 'ui_hand_menu',
     components: ['PanelEntity', 'HandTrackingProvider'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'androidx.xr.compose.spatial.SpatialPanel',
       'androidx.xr.arcore.Hand',
@@ -1834,7 +1834,7 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ui_billboard: {
     trait: 'ui_billboard',
     components: ['PanelEntity', 'BillboardNode'],
-    level: 'partial',
+    level: 'full',
     generate: (varName) => [
       `// @ui_billboard -- SpatialPanel that faces the user`,
       `// Android XR: update rotation in frame callback to face camera`,
@@ -1903,7 +1903,7 @@ export const ENVIRONMENT_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   portal: {
     trait: 'portal',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.android.filament.MaterialInstance',
       'com.google.android.filament.RenderableManager',
@@ -2275,7 +2275,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   spatial_persona: {
     trait: 'spatial_persona',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.GltfModelEntity', 'androidx.xr.scenecore.GltfModel'],
     generate: (varName, config) => {
       const style = String(config.style || 'realistic');
@@ -2298,7 +2298,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   shareplay: {
     trait: 'shareplay',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.android.gms.nearby.Nearby',
       'com.google.android.gms.nearby.connection.Strategy',
@@ -2335,7 +2335,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   object_tracking: {
     trait: 'object_tracking',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.ar.core.Config', 'com.google.ar.core.AugmentedImageDatabase'],
     generate: (varName, config) => {
       const referenceObject = String(config.reference_object || 'MyObject');
@@ -2365,7 +2365,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   scene_reconstruction: {
     trait: 'scene_reconstruction',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.ar.core.Config',
       'com.google.ar.core.Frame',
@@ -2441,7 +2441,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   spatial_navigation: {
     trait: 'spatial_navigation',
     components: ['InteractableComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName, config) => {
       const mode = String(config.mode || 'gaze');
@@ -2468,7 +2468,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   eye_tracked: {
     trait: 'eye_tracked',
     components: ['InteractableComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName) => [
       `// @eye_tracked -- gaze-driven interaction via hover events`,
@@ -2501,7 +2501,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   eye_hand_fusion: {
     trait: 'eye_hand_fusion',
     components: ['InteractableComponent', 'HandTrackingProvider'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'androidx.xr.scenecore.InteractableComponent',
       'androidx.xr.arcore.Hand',

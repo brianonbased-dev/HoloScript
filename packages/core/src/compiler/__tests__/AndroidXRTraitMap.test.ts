@@ -444,16 +444,16 @@ describe('AndroidXRTraitMap', () => {
 
   // =========== Upgraded traits ===========
 
-  it('portal upgraded from comment to partial', () => {
+  it('portal upgraded to full', () => {
     const mapping = getTraitMapping('portal');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('portal', 'gateway', { target_world: 'dungeon' });
     expect(code.some((l) => l.includes('stencil'))).toBe(true);
   });
 
-  it('spatial_persona upgraded from comment to partial', () => {
+  it('spatial_persona upgraded to full', () => {
     const mapping = getTraitMapping('spatial_persona');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
   });
 
   it('vision is partial and generates ML Kit code for classification', () => {
@@ -495,19 +495,19 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('aiCam'))).toBe(true);
   });
 
-  it('shareplay upgraded from comment to partial', () => {
+  it('shareplay upgraded to full', () => {
     const mapping = getTraitMapping('shareplay');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
   });
 
-  it('object_tracking upgraded from comment to partial', () => {
+  it('object_tracking upgraded to full', () => {
     const mapping = getTraitMapping('object_tracking');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
   });
 
-  it('spatial_navigation upgraded from comment to partial', () => {
+  it('spatial_navigation upgraded to full', () => {
     const mapping = getTraitMapping('spatial_navigation');
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
   });
 
   // =========== getRequiredImports ===========
@@ -568,6 +568,17 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('chromatic_aberration');
     expect(partial).not.toContain('depth_of_field');
     expect(partial).not.toContain('color_grading');
+    // batch 14 promoted
+    expect(partial).not.toContain('ui_hand_menu');
+    expect(partial).not.toContain('ui_billboard');
+    expect(partial).not.toContain('portal');
+    expect(partial).not.toContain('spatial_persona');
+    expect(partial).not.toContain('shareplay');
+    expect(partial).not.toContain('object_tracking');
+    expect(partial).not.toContain('scene_reconstruction');
+    expect(partial).not.toContain('spatial_navigation');
+    expect(partial).not.toContain('eye_tracked');
+    expect(partial).not.toContain('eye_hand_fusion');
     expect(partial).toContain('state_sync');
     expect(partial).toContain('voice_chat');
     expect(partial).toContain('pathfinding');
@@ -962,6 +973,79 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m!.level).toBe('full');
       const code = generateTraitCode('color_grading', 'view', { exposure: 0.5, contrast: 1.2 });
       expect(code.some((l) => l.includes('ColorGrading') || l.includes('colorGrading') || l.includes('toneMapping'))).toBe(true);
+    });
+  });
+
+  describe('AndroidXR batch 14 -- UI + AR tracking traits', () => {
+    it('ui_hand_menu is full and generates hand-attached panel code', () => {
+      const m = getTraitMapping('ui_hand_menu');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('ui_hand_menu', 'menu', { hand: 'right' });
+      expect(code.some((l) => l.includes('Hand') || l.includes('palm') || l.includes('handState'))).toBe(true);
+    });
+    it('ui_billboard is full and generates billboard panel code', () => {
+      const m = getTraitMapping('ui_billboard');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('ui_billboard', 'hud', {});
+      expect(code.some((l) => l.includes('BillboardComponent') || l.includes('SpatialPanel') || l.includes('billboard'))).toBe(true);
+    });
+    it('portal is full and generates stencil portal code', () => {
+      const m = getTraitMapping('portal');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('portal', 'gate', { target_world: 'cavern', radius: 1.5 });
+      expect(code.some((l) => l.includes('portal') || l.includes('stencil') || l.includes('GltfModel'))).toBe(true);
+    });
+    it('spatial_persona is full and generates avatar tracking code', () => {
+      const m = getTraitMapping('spatial_persona');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('spatial_persona', 'avatar', { style: 'cartoon', model: 'hero.glb' });
+      expect(code.some((l) => l.includes('GltfModel') || l.includes('avatar') || l.includes('headPose'))).toBe(true);
+    });
+    it('shareplay is full and generates Nearby Connections code', () => {
+      const m = getTraitMapping('shareplay');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('shareplay', 'session', { activity_type: 'chess', max_participants: 2 });
+      expect(code.some((l) => l.includes('Nearby') || l.includes('Connection') || l.includes('Payload'))).toBe(true);
+    });
+    it('object_tracking is full and generates ARCore AugmentedImage code', () => {
+      const m = getTraitMapping('object_tracking');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('object_tracking', 'marker', { reference_object: 'Logo', mode: 'image' });
+      expect(code.some((l) => l.includes('AugmentedImage') || l.includes('ImageDb') || l.includes('trackingState'))).toBe(true);
+    });
+    it('scene_reconstruction is full and generates depth-based point cloud code', () => {
+      const m = getTraitMapping('scene_reconstruction');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('scene_reconstruction', 'scan', { mode: 'mesh', max_points: 3000 });
+      expect(code.some((l) => l.includes('depthImage') || l.includes('PointCloud') || l.includes('depth'))).toBe(true);
+    });
+    it('spatial_navigation is full and generates InteractableComponent nav code', () => {
+      const m = getTraitMapping('spatial_navigation');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('spatial_navigation', 'nav', { mode: 'gaze' });
+      expect(code.some((l) => l.includes('NavTarget') || l.includes('InteractableComponent') || l.includes('HOVER'))).toBe(true);
+    });
+    it('eye_tracked is full and generates hover-based gaze code', () => {
+      const m = getTraitMapping('eye_tracked');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('eye_tracked', 'target', {});
+      expect(code.some((l) => l.includes('HOVER') || l.includes('gaze') || l.includes('InteractableComponent'))).toBe(true);
+    });
+    it('eye_hand_fusion is full and generates combined gaze+hand interaction code', () => {
+      const m = getTraitMapping('eye_hand_fusion');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('eye_hand_fusion', 'obj', {});
+      expect(code.some((l) => l.includes('Hand') || l.includes('HOVER') || l.includes('InteractableComponent') || l.includes('fusion'))).toBe(true);
     });
   });
 });
