@@ -4,6 +4,13 @@ on:
   schedule:
     # Run weekly on Sundays at 00:00 UTC
     - cron: '0 0 * * 0'
+  pull_request:
+    paths:
+      - 'packages/core/src/parser/**'
+      - 'packages/core/src/compiler/**'
+      - 'benchmarks/**'
+      - 'scripts/perf-regression-check.mjs'
+      - '.github/workflows/benchmarks.yml'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -60,11 +67,16 @@ jobs:
             echo "Check workflow logs for details." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Compare to baseline
+      - name: Compare to baseline (regression gate)
         if: github.event_name == 'pull_request'
         run: |
-          echo "Baseline comparison not yet implemented — skipping regression check."
-          echo "When implemented: compare compile times (>20% slower = alert) and output sizes (>30% larger = alert)."
+          if [ ! -f benchmarks/baseline.json ]; then
+            echo "::warning::benchmarks/baseline.json not yet seeded — regression gate is informational on this PR."
+            echo "  To seed: a maintainer with stable hardware runs \`pnpm bench:perf-regression-update\` and commits the result."
+            node scripts/perf-regression-check.mjs || true
+            exit 0
+          fi
+          node scripts/perf-regression-check.mjs
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
