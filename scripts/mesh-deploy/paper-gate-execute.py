@@ -442,7 +442,8 @@ def main() -> int:
     p.add_argument("--gate-id", help="gate id from paper-gate-scheduler GATES")
     p.add_argument("--instance-id", type=int, help="for check/teardown")
     p.add_argument("--handle", help="for check (default: derived from gate-id)")
-    p.add_argument("--cap", type=float, default=50.0)
+    p.add_argument("--cap", type=float, default=100.0,
+                   help="$/day cap, fleet-wide aggregate (founder ruling 2026-04-26: $50 → $100)")
     p.add_argument("--override-min-vram", type=int, default=None,
                    help="override brain composition min_vram_gb (e.g. 80 for non-sidecar work)")
     p.add_argument("--reason", default="", help="for teardown logging")

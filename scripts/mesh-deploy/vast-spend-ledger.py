@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """vast-spend-ledger.py — fleet-wide $/day spend ledger + cap enforcer.
 
-Founder ruling 2026-04-26 (founder skill, Architecture-beats-alignment +
-Paper 25 row): the daily Vast.ai spend cap is FLEET-WIDE AGGREGATE, not
-per-instance. Default cap $50/day. Per-instance scope was rejected
-because 5 concurrent rentals × $50/day = $250/day = 5× the target.
+Founder rulings on the daily cap:
+  - 2026-04-26 (founder skill, Architecture-beats-alignment + Paper 25
+    row): the daily Vast.ai spend cap is FLEET-WIDE AGGREGATE, not
+    per-instance. Initial default $50/day. Per-instance scope rejected
+    because 5 concurrent rentals × $50/day = $250/day = 5× the target.
+  - 2026-04-26 (later in same day, founder direct directive "lets raise
+    the cap to $100 per day"): default raised from $50 to $100/day.
+    Same fleet-wide aggregate semantic. Per-paper burn-rates documented
+    in compositions/*.hsplus @runtime_requirements blocks unchanged
+    (lean-theorist max_dph $3.50; burst-worker brains max_dph $0.30).
 
 The cap must be a structural rail, not operator vigilance — caller
 checks via `--check-cap 50` before any new rental, and gets non-zero
@@ -49,7 +55,7 @@ from pathlib import Path
 
 
 DEFAULT_LEDGER = Path.home() / ".ai-ecosystem" / "vast-spend-ledger.ndjson"
-DEFAULT_CAP_USD = 50.0
+DEFAULT_CAP_USD = 100.0  # raised from $50 to $100/day per founder directive 2026-04-26
 
 
 def _now() -> datetime:

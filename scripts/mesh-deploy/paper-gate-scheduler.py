@@ -667,8 +667,8 @@ def main() -> int:
     p.add_argument("--brains-dir", type=Path, default=BRAINS_DIR_DEFAULT)
     p.add_argument("--ledger-script", type=Path,
                    default=Path(__file__).parent / "vast-spend-ledger.py")
-    p.add_argument("--cap", type=float, default=50.0,
-                   help="$/day cap, fleet-wide aggregate (founder ruling 2026-04-26)")
+    p.add_argument("--cap", type=float, default=100.0,
+                   help="$/day cap, fleet-wide aggregate (founder ruling 2026-04-26: $50 → $100)")
     p.add_argument("--api-base", default="https://mcp.holoscript.net")
     p.add_argument("--team-id", default=os.environ.get("HOLOMESH_TEAM_ID", ""))
     p.add_argument("--api-key", default=os.environ.get("HOLOMESH_API_KEY", ""))
