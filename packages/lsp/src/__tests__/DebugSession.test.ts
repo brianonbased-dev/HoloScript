@@ -11,6 +11,40 @@ import {
   type AttachBreakpointDescriptor,
 } from '../dap/DAPHotReloadAdapter';
 
+vi.mock('@holoscript/core', () => ({
+  HoloScriptDebugger: class MockHoloScriptDebugger {
+    private _listeners: Record<string, Array<(...args: unknown[]) => void>> = {};
+
+    on(event: string, listener: (...args: unknown[]) => void) {
+      (this._listeners[event] = this._listeners[event] || []).push(listener);
+      return this;
+    }
+    off(event: string, listener: (...args: unknown[]) => void) {
+      this._listeners[event] = (this._listeners[event] || []).filter((l) => l !== listener);
+      return this;
+    }
+    emit(event: string, ...args: unknown[]) {
+      (this._listeners[event] || []).forEach((l) => l(...args));
+      return true;
+    }
+    load() { return { success: true }; }
+    start() { return Promise.resolve(); }
+    stop() {}
+    pause() {}
+    continue() { return Promise.resolve(); }
+    stepOver() { return Promise.resolve(); }
+    stepInto() { return Promise.resolve(); }
+    stepOut() { return Promise.resolve(); }
+    setBreakpoint(line: number) { return { id: `bp-${line}`, line }; }
+    clearBreakpoints() {}
+    evaluate() { return Promise.resolve({ value: 'undefined' }); }
+    getCallStack() { return []; }
+    getVariables() { return new Map(); }
+    getState() { return { status: 'idle', currentLine: 0, currentColumn: 0 }; }
+    getRuntime() { return { getContext: () => ({ variables: new Map() }) }; }
+  },
+}));
+
 /**
  * Comprehensive DAP Debug Session Tests
  *
