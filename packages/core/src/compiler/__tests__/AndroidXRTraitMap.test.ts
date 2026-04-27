@@ -456,10 +456,10 @@ describe('AndroidXRTraitMap', () => {
     expect(mapping!.level).toBe('full');
   });
 
-  it('vision is partial and generates ML Kit code for classification', () => {
+  it('vision upgraded to full -- generates ML Kit code for classification', () => {
     const mapping = getTraitMapping('vision');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('vision', 'camNode', { task: 'classification' });
     expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
     expect(code.some((l) => l.includes('camNode'))).toBe(true);
@@ -478,10 +478,10 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('faceNode'))).toBe(true);
   });
 
-  it('ai_vision is partial and generates ObjectDetector when no model specified', () => {
+  it('ai_vision upgraded to full -- generates ObjectDetector when no model specified', () => {
     const mapping = getTraitMapping('ai_vision');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_vision', 'detector', {});
     expect(code.some((l) => l.includes('ObjectDetection'))).toBe(true);
     expect(code.some((l) => l.includes('detector'))).toBe(true);
@@ -590,6 +590,10 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('embedding_search');
     expect(partial).not.toContain('ai_npc_brain');
     expect(partial).not.toContain('vector_db');
+    expect(partial).not.toContain('vision');
+    expect(partial).not.toContain('spatial_awareness');
+    expect(partial).not.toContain('neural_animation');
+    expect(partial).not.toContain('ai_vision');
     expect(partial).toContain('state_sync');
     expect(partial).toContain('voice_chat');
     expect(partial).toContain('pathfinding');
@@ -1156,6 +1160,119 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(code.some((l) => l.includes('Upsert') || l.includes('upsert'))).toBe(true);
       expect(code.some((l) => l.includes('Query') || l.includes('query'))).toBe(true);
       expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+  });
+
+  // ===========================================================================
+  // batch 16 -- vision + spatial AI traits
+  // ===========================================================================
+  describe('batch 16 -- vision + spatial AI traits', () => {
+    it('vision is full and generates ML Kit classification pipeline', () => {
+      const m = getTraitMapping('vision');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('vision', 'vis', { task: 'classification' });
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('ImageLabeling') || l.includes('Labeler'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('vision generates text_recognition pipeline', () => {
+      const code = generateTraitCode('vision', 'vis', { task: 'text_recognition' });
+      expect(code.some((l) => l.includes('TextRecognition') || l.includes('Recognizer'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('vision generates face_detection pipeline', () => {
+      const code = generateTraitCode('vision', 'vis', { task: 'face_detection' });
+      expect(code.some((l) => l.includes('FaceDetection') || l.includes('Detector'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('vision generates barcode pipeline', () => {
+      const code = generateTraitCode('vision', 'vis', { task: 'barcode' });
+      expect(code.some((l) => l.includes('BarcodeScanning') || l.includes('Scanner'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('vision has required imports', () => {
+      const imports = getRequiredImports(['vision']);
+      expect(imports.some((i) => i.includes('mlkit'))).toBe(true);
+    });
+
+    it('spatial_awareness is full and generates ARCore configuration', () => {
+      const m = getTraitMapping('spatial_awareness');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('spatial_awareness', 'sa', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('planeFindingMode') || l.includes('depthMode'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('spatial_awareness generates plane detection callback', () => {
+      const code = generateTraitCode('spatial_awareness', 'sa', {});
+      expect(code.some((l) => l.includes('OnFrame') || l.includes('Trackable') || l.includes('Plane'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('spatial_awareness respects depth_mode config', () => {
+      const code = generateTraitCode('spatial_awareness', 'sa', { depth_mode: 'DISABLED' });
+      expect(code.some((l) => l.includes('DISABLED'))).toBe(true);
+    });
+
+    it('spatial_awareness has ARCore imports', () => {
+      const imports = getRequiredImports(['spatial_awareness']);
+      expect(imports.some((i) => i.includes('arcore') || i.includes('ar.core'))).toBe(true);
+    });
+
+    it('neural_animation is full and generates TFLite inference', () => {
+      const m = getTraitMapping('neural_animation');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('neural_animation', 'na', { style: 'motion_matching' });
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('Interpreter') || l.includes('tflite'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('neural_animation generates pose application function', () => {
+      const code = generateTraitCode('neural_animation', 'na', {});
+      expect(code.some((l) => l.includes('ApplyPose') || l.includes('GltfModelEntity'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('neural_animation uses custom style in model asset name', () => {
+      const code = generateTraitCode('neural_animation', 'na', { style: 'locomotion' });
+      expect(code.some((l) => l.includes('locomotion'))).toBe(true);
+    });
+
+    it('neural_animation has TFLite and GltfModelEntity imports', () => {
+      const imports = getRequiredImports(['neural_animation']);
+      expect(imports.some((i) => i.includes('tflite') || i.includes('tensorflow'))).toBe(true);
+      expect(imports.some((i) => i.includes('GltfModelEntity'))).toBe(true);
+    });
+
+    it('ai_vision is full and generates ML Kit ObjectDetector', () => {
+      const m = getTraitMapping('ai_vision');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('ai_vision', 'aiv', { task: 'detection' });
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('ObjectDetect') || l.includes('ObjectDetector'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('ai_vision generates custom TFLite model path when model provided', () => {
+      const code = generateTraitCode('ai_vision', 'aiv', { model: 'my_model.tflite' });
+      expect(code.some((l) => l.includes('my_model.tflite'))).toBe(true);
+      expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('ai_vision has ML Kit imports', () => {
+      const imports = getRequiredImports(['ai_vision']);
+      expect(imports.some((i) => i.includes('mlkit') || i.includes('ObjectDetect'))).toBe(true);
     });
   });
 });

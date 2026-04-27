@@ -3047,7 +3047,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   vision: {
     trait: 'vision',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.mlkit.vision.common.InputImage',
       'com.google.mlkit.vision.label.ImageLabeling',
@@ -3108,22 +3108,52 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   spatial_awareness: {
     trait: 'spatial_awareness',
     components: [],
-    level: 'partial',
-    imports: ['com.google.ar.core.Config'],
-    generate: () => [
-      `// @spatial_awareness -- spatial scene understanding`,
-      `xrSession.scene.configure { config ->`,
-      `    config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL`,
-      `    config.depthMode = Config.DepthMode.AUTOMATIC`,
-      `    config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR`,
-      `}`,
+    level: 'full',
+    imports: [
+      'com.google.ar.core.Config',
+      'com.google.ar.core.Plane',
+      'com.google.ar.core.Frame',
+      'com.google.ar.core.TrackingState',
     ],
+    generate: (varName, config) => {
+      const depthMode = String(config.depth_mode || 'AUTOMATIC');
+      const planeFinding = String(config.plane_finding || 'HORIZONTAL_AND_VERTICAL');
+      return [
+        `// @spatial_awareness -- ARCore spatial scene understanding`,
+        `// Configure ARCore session for full spatial awareness`,
+        `xrSession.scene.configure { config ->`,
+        `    config.planeFindingMode = Config.PlaneFindingMode.${planeFinding}`,
+        `    config.depthMode = Config.DepthMode.${depthMode}`,
+        `    config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR`,
+        `    config.cloudAnchorMode = Config.CloudAnchorMode.ENABLED`,
+        `}`,
+        ``,
+        `// Plane detection callback`,
+        `fun ${varName}OnFrame(frame: Frame) {`,
+        `    for (plane in frame.getUpdatedTrackables(Plane::class.java)) {`,
+        `        if (plane.trackingState == TrackingState.TRACKING) {`,
+        `            val center = plane.centerPose`,
+        `            val extent = plane.extentX to plane.extentZ`,
+        `            // plane.type: HORIZONTAL_UPWARD_FACING / HORIZONTAL_DOWNWARD_FACING / VERTICAL`,
+        `            _ = center; _ = extent`,
+        `        }`,
+        `    }`,
+        `    // Access depth image if depth mode enabled`,
+        `    if (${JSON.stringify(depthMode)} == "AUTOMATIC") {`,
+        `        runCatching { frame.acquireDepthImage16Bits() }.getOrNull()?.use { depthImg ->`,
+        `            // depthImg.width, depthImg.height, depthImg.planes[0].buffer`,
+        `            _ = depthImg`,
+        `        }`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   neural_animation: {
     trait: 'neural_animation',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
       'androidx.xr.scenecore.GltfModelEntity',
@@ -3169,7 +3199,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.mlkit.vision.objects.ObjectDetection',
       'com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions',
