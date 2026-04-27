@@ -264,6 +264,19 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       return;
     }
 
+    // WIRE-2: LLM agent perceptual query (idea-run-3).
+    // Responds with current locomotion state so @llm_agent can introspect
+    // gait/stability/trajectory without direct state access.
+    if (event.type === 'neural_animation_query_locomotion') {
+      context.emit?.('locomotion_features', {
+        node,
+        locomotion: state.locomotion,
+        targetVelocity: state.target_velocity,
+        engineLoaded: state.engine !== null,
+      });
+      return;
+    }
+
     if (event.type === 'neural_animation_synthesize') {
       const targetPose = event.target_pose as SkeletonPose;
       state.target_pose = targetPose;

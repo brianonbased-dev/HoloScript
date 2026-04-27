@@ -128,6 +128,44 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
     expect(getEventCount(ctx, 'on_locomotion_fallback')).toBe(1);
   });
 
+  it('query_locomotion with no engine emits locomotion_features w/ null state', () => {
+    sendEvent(neuralAnimationHandler, node, baseCfg, ctx, {
+      type: 'neural_animation_query_locomotion',
+    });
+    expect(getEventCount(ctx, 'locomotion_features')).toBe(1);
+    const reply = getLastEvent(ctx, 'locomotion_features') as {
+      locomotion: unknown;
+      engineLoaded: boolean;
+    };
+    expect(reply.locomotion).toBeNull();
+    expect(reply.engineLoaded).toBe(false);
+  });
+
+  it('query_locomotion after engine + tick exposes populated state', () => {
+    sendEvent(neuralAnimationHandler, node, baseCfg, ctx, {
+      type: 'neural_animation_set_engine',
+      engine: createNullMotionMatchingEngine('biped_humanoid_v2'),
+    });
+    sendEvent(neuralAnimationHandler, node, baseCfg, ctx, {
+      type: 'neural_animation_set_target_velocity',
+      velocity: { x: 2, y: 0, z: 0 },
+    });
+    updateTrait(neuralAnimationHandler, node, baseCfg, ctx, 0.016);
+    sendEvent(neuralAnimationHandler, node, baseCfg, ctx, {
+      type: 'neural_animation_query_locomotion',
+    });
+    const reply = getLastEvent(ctx, 'locomotion_features') as {
+      locomotion: { phase: number; currentGait: string };
+      targetVelocity: { x: number; y: number; z: number };
+      engineLoaded: boolean;
+    };
+    expect(reply.locomotion).not.toBeNull();
+    expect(reply.locomotion.phase).toBeGreaterThan(0);
+    expect(reply.locomotion.currentGait).toBe('trot');
+    expect(reply.targetVelocity).toEqual({ x: 2, y: 0, z: 0 });
+    expect(reply.engineLoaded).toBe(true);
+  });
+
   it('low stability triggers on_stumble_detected', () => {
     // Custom engine returning low stability — exercises the stumble hook
     const stumblyEngine: MotionMatchingEngine = {

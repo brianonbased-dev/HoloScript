@@ -186,6 +186,20 @@ export class IKTrait {
   private chain: IKChain | null = null;
   private lastResult: IKSolveResult | null = null;
   private enabled: boolean = true;
+  // Foot-lock state — driven by NeuralAnimationTrait on_foot_contact events
+  // (idea-run-3 WIRE-1 seam). Runtime IK solver reads getFootLockState() to
+  // pin foot effectors when locked=true.
+  private footLockState: { left: boolean; right: boolean } = { left: false, right: false };
+
+  /** Set foot-lock state for one side. Called from on_foot_contact handler. */
+  public setFootLock(side: 'left' | 'right', locked: boolean): void {
+    this.footLockState[side] = locked;
+  }
+
+  /** Read current foot-lock state. Runtime IK solver consults this each tick. */
+  public getFootLockState(): { left: boolean; right: boolean } {
+    return { ...this.footLockState };
+  }
 
   constructor(config: IKConfig) {
     this.config = {
@@ -611,6 +625,21 @@ export const iKHandler = {
     if (event.type === 'i_k_configure' && event.payload) {
       Object.assign(instance, event.payload);
       ctx.emit('i_k_configured', { node });
+    }
+    // WIRE-1: NeuralAnimationTrait foot-contact bridge (idea-run-3)
+    // When neural locomotion reports a foot contact transition, mirror it
+    // into IKTrait's foot-lock state so the runtime solver can pin/release
+    // the effector on the correct side.
+    if (event.type === 'on_foot_contact') {
+      const ikInstance = instance as TraitInstanceDelegate & {
+        setFootLock?: (side: 'left' | 'right', locked: boolean) => void;
+      };
+      const side = event.side as 'left' | 'right' | undefined;
+      const locked = event.state as boolean | undefined;
+      if (typeof ikInstance.setFootLock === 'function' && (side === 'left' || side === 'right') && typeof locked === 'boolean') {
+        ikInstance.setFootLock(side, locked);
+        ctx.emit('i_k_foot_lock_changed', { node, side, locked });
+      }
     }
   },
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
