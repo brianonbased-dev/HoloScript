@@ -35,11 +35,14 @@ describe('NeuralForgeTrait', () => {
     expect(s.experienceLog).toContain('Hello');
   });
 
-  it('auto synthesis triggers at threshold', () => {
+  it('auto synthesis (mock mode) creates shard locally without emitting fake request', () => {
+    // /critic Annoying #10 fix: mock mode no longer emits a 'neural_synthesis_request'
+    // it never actually sends to anyone. It just creates the shard locally and emits
+    // 'neural_shard_created'. Callers that want real synthesis use synthesis_mode='external'.
     sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'One' });
     sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'Two' });
     sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'Three' });
-    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(1);
+    expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(0); // mock mode is silent
     expect(getEventCount(ctx, 'neural_shard_created')).toBe(1);
     const s = (node as any).__neuralState;
     expect(s.shards.length).toBe(1);
@@ -189,8 +192,11 @@ describe('NeuralForgeTrait — external synthesis mode (v1.1.0)', () => {
     expect(getEventCount(ctx, 'neural_synthesis_request')).toBe(2); // two rounds
   });
 
-  it('mock-mode default still produces dual-emit pattern (back-compat)', () => {
-    // Re-attach with explicit mock mode (matches v1.0.0 default behavior)
+  it('mock-mode does NOT emit neural_synthesis_request (the dual-emit trap is closed)', () => {
+    // /critic Annoying #10 fix: previously mock mode emitted a fake
+    // neural_synthesis_request alongside its self-fulfilling shard creation.
+    // Any future listener wiring would have seen a duplicate shard. Now mock
+    // mode is silent on the request channel — only neural_shard_created fires.
     const mockNode = createMockNode('nfm');
     const mockCtx = createMockContext();
     const mockCfg = { ...cfg, synthesis_mode: 'mock' as const };
@@ -201,7 +207,7 @@ describe('NeuralForgeTrait — external synthesis mode (v1.1.0)', () => {
         text: t,
       });
     }
-    expect(getEventCount(mockCtx, 'neural_synthesis_request')).toBe(1);
+    expect(getEventCount(mockCtx, 'neural_synthesis_request')).toBe(0); // closed
     expect(getEventCount(mockCtx, 'neural_shard_created')).toBe(1); // mock self-creates
     const s = (mockNode as any).__neuralState;
     expect(s.experienceLog.length).toBe(0); // cleared by mock path

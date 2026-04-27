@@ -193,15 +193,20 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
             currentWeights: { ...state.weights },
           });
         } else {
-          // 'mock' mode (default, back-compat with v1.0.0)
-          context.emit?.('neural_synthesis_request', {
-            node,
-            mode: 'mock',
-            experiences: [...state.experienceLog],
-            currentWeights: { ...state.weights },
-          });
-
-          // Mock Synthesis (Real would call LLM)
+          // 'mock' mode (default, back-compat with v1.0.0).
+          //
+          // /critic Annoying #10 fix (2026-04-27): previously emitted
+          // 'neural_synthesis_request' AND created a hardcoded shard
+          // locally — the dual-emit trap. Any future listener for
+          // neural_synthesis_request would receive a request that the
+          // trait already self-fulfilled, and replying with
+          // neural_absorb_shard would create a DUPLICATE shard.
+          //
+          // Now: mock mode just creates the shard locally and emits
+          // neural_shard_created. No fake request emit. If a caller
+          // wants real synthesis, set synthesis_mode: 'external' which
+          // routes through the request/absorb pair without the
+          // self-fulfilled mock fallback.
           const shard: NeuralShard = {
             id: `shard_${Date.now()}`,
             sourceId: node.id || 'unknown',

@@ -167,8 +167,21 @@ describe('neuralForgeHandler.onEvent — npc_ai_response auto-synthesis', () => 
     return { node, ctx, config };
   }
 
-  it('emits neural_synthesis_request at threshold', () => {
+  it('mock mode does NOT emit neural_synthesis_request at threshold (Annoying #10 fix)', () => {
+    // /critic Annoying #10 fix 2026-04-27: mock mode no longer emits a fake
+    // request that nobody fulfills. To test the request emit, the trait must
+    // be configured for synthesis_mode: 'external' explicitly.
     const { node, ctx, config } = setupAtThreshold(3);
+    neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'npc_ai_response',
+      text: 'trigger',
+    });
+    expect(ctx.emit).not.toHaveBeenCalledWith('neural_synthesis_request', expect.any(Object));
+  });
+
+  it('external mode emits neural_synthesis_request at threshold', () => {
+    const { node, ctx, config } = setupAtThreshold(3);
+    config.synthesis_mode = 'external';
     neuralForgeHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_response',
       text: 'trigger',
