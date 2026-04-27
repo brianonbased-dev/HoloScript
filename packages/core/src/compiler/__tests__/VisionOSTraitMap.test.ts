@@ -233,20 +233,20 @@ describe('VisionOSTraitMap', () => {
     expect(code.some((l) => l.includes('faceNode'))).toBe(true);
   });
 
-  it('spatial_awareness is partial and emits ARKitSession + PlaneDetectionProvider', () => {
+  it('spatial_awareness is full and emits ARKitSession + PlaneDetectionProvider', () => {
     const mapping = getTraitMapping('spatial_awareness');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('spatial_awareness', 'scene', {});
     expect(code.some((l) => l.includes('ARKitSession'))).toBe(true);
     expect(code.some((l) => l.includes('PlaneDetectionProvider'))).toBe(true);
     expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
   });
 
-  it('ai_vision is partial and generates VNCoreMLRequest or VNDetectRectanglesRequest', () => {
+  it('ai_vision is full and generates VNCoreMLRequest or VNDetectRectanglesRequest', () => {
     const mapping = getTraitMapping('ai_vision');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('ai_vision', 'detector', {});
     expect(code.some((l) => l.includes('VNCoreMLRequest') || l.includes('VNDetectRectanglesRequest'))).toBe(true);
     expect(code.some((l) => l.includes('detector'))).toBe(true);
@@ -294,7 +294,6 @@ describe('VisionOSTraitMap', () => {
     expect(imports).toContain('CoreBluetooth');
     expect(imports).toContain('Combine');
   });
-});
 
   it('embedding_search is full and generates CoreData vector search helpers', () => {
     const mapping = getTraitMapping('embedding_search');
@@ -305,10 +304,80 @@ describe('VisionOSTraitMap', () => {
     expect(code.some((l) => l.includes('storeSearch'))).toBe(true);
     expect(code.some((l) => l.includes('CosineSimilarity'))).toBe(true);
     expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+
   });
 
   it('embedding_search declares CoreData + Foundation imports', () => {
     const imports = getRequiredImports(['embedding_search']);
     expect(imports).toContain('CoreData');
     expect(imports).toContain('Foundation');
+
+  });
+
+  // =========== Upgraded traits (neural_forge / spatial_awareness / neural_animation / ai_vision) ===========
+
+    describe('Upgraded Traits — full level (batch 4)', () => {
+      it('neural_forge is full and generates MLUpdateTask training function', () => {
+        const mapping = getTraitMapping('neural_forge');
+        expect(mapping).toBeDefined();
+        expect(mapping!.level).toBe('full');
+        const code = generateTraitCode('neural_forge', 'model', { model_path: 'MyModel', epochs: 10 });
+        expect(code.some((l) => l.includes('MLUpdateTask'))).toBe(true);
+        expect(code.some((l) => l.includes('modelTrain'))).toBe(true);
+        expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      });
+
+      it('neural_forge declares CoreML import', () => {
+        const imports = getRequiredImports(['neural_forge']);
+        expect(imports).toContain('CoreML');
+      });
+
+      it('spatial_awareness is full and generates ARKitSession with plane detection', () => {
+        const mapping = getTraitMapping('spatial_awareness');
+        expect(mapping).toBeDefined();
+        expect(mapping!.level).toBe('full');
+        const code = generateTraitCode('spatial_awareness', 'scene', {});
+        expect(code.some((l) => l.includes('ARKitSession'))).toBe(true);
+        expect(code.some((l) => l.includes('PlaneDetectionProvider'))).toBe(true);
+        expect(code.some((l) => l.includes('scene'))).toBe(true);
+        expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      });
+
+      it('spatial_awareness declares ARKit import', () => {
+        const imports = getRequiredImports(['spatial_awareness']);
+        expect(imports).toContain('ARKit');
+      });
+
+      it('neural_animation is full and generates CoreML pose prediction function', () => {
+        const mapping = getTraitMapping('neural_animation');
+        expect(mapping).toBeDefined();
+        expect(mapping!.level).toBe('full');
+        const code = generateTraitCode('neural_animation', 'avatar', { style: 'motion_matching' });
+        expect(code.some((l) => l.includes('MLModel'))).toBe(true);
+        expect(code.some((l) => l.includes('avatarPredictPose'))).toBe(true);
+        expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      });
+
+      it('neural_animation declares CoreML + RealityKit imports', () => {
+        const imports = getRequiredImports(['neural_animation']);
+        expect(imports).toContain('CoreML');
+        expect(imports).toContain('RealityKit');
+      });
+
+      it('ai_vision is full and generates VNCoreMLRequest with fallback', () => {
+        const mapping = getTraitMapping('ai_vision');
+        expect(mapping).toBeDefined();
+        expect(mapping!.level).toBe('full');
+        const code = generateTraitCode('ai_vision', 'detector', { task: 'detection', model: 'YOLOv8' });
+        expect(code.some((l) => l.includes('VNCoreMLRequest'))).toBe(true);
+        expect(code.some((l) => l.includes('detectorAnalyze') || l.includes('detectorBuildRequest'))).toBe(true);
+        expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      });
+
+      it('ai_vision declares Vision + CoreML imports', () => {
+        const imports = getRequiredImports(['ai_vision']);
+        expect(imports).toContain('Vision');
+        expect(imports).toContain('CoreML');
+      });
+    });
   });

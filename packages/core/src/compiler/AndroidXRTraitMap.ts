@@ -759,7 +759,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   audio_reverb: {
     trait: 'audio_reverb',
     components: ['SpatialSoundPool'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.media.audiofx.EnvironmentalReverb'],
     generate: (varName, config) => {
       const wetMix = config.wet_mix ?? 0.3;
@@ -779,7 +779,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   reverb_zone: {
     trait: 'reverb_zone',
     components: ['SpatialSoundPool'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.media.audiofx.EnvironmentalReverb', 'android.media.audiofx.PresetReverb'],
     generate: (varName, config) => {
       const preset = String(config.preset || 'largeRoom');
@@ -814,7 +814,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   audio_occlusion: {
     trait: 'audio_occlusion',
     components: ['SpatialSoundPool', 'PointSourceParams'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.SpatialSoundPool', 'androidx.xr.scenecore.PointSourceParams'],
     generate: (varName, config) => {
       const attenuationFactor = config.attenuation ?? 0.3;

@@ -538,8 +538,8 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).toContain('soft_body');
     expect(partial).toContain('fluid');
     expect(partial).toContain('pbd_constraint');
-    expect(partial).toContain('reverb_zone');
-    expect(partial).toContain('audio_occlusion');
+    expect(partial).not.toContain('reverb_zone');
+    expect(partial).not.toContain('audio_occlusion');
     expect(partial).toContain('instancing');
     expect(partial).toContain('bloom');
     expect(partial).toContain('state_sync');
@@ -610,5 +610,54 @@ describe('AndroidXRTraitMap', () => {
   it('ai_inpainting uses custom model asset when provided', () => {
     const code = generateTraitCode('ai_inpainting', 'fixer', { model: 'custom_inpaint.tflite' });
     expect(code.some((l) => l.includes('custom_inpaint.tflite'))).toBe(true);
+  });
+});
+
+describe('AndroidXRTraitMap — Upgraded Audio Traits (batch 4)', () => {
+  it('audio_reverb is full and generates EnvironmentalReverb setup', () => {
+    const mapping = getTraitMapping('audio_reverb');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('audio_reverb', 'room', { wet_mix: 0.5, room_size: 0.8 });
+    expect(code.some((l) => l.includes('EnvironmentalReverb'))).toBe(true);
+    expect(code.some((l) => l.includes('roomReverb'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('audio_reverb declares EnvironmentalReverb import', () => {
+    const imports = getRequiredImports(['audio_reverb']);
+    expect(imports).toContain('android.media.audiofx.EnvironmentalReverb');
+  });
+
+  it('reverb_zone is full and generates both EnvironmentalReverb and PresetReverb', () => {
+    const mapping = getTraitMapping('reverb_zone');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('reverb_zone', 'hall', { preset: 'largeHall', decay_time: 2000 });
+    expect(code.some((l) => l.includes('EnvironmentalReverb'))).toBe(true);
+    expect(code.some((l) => l.includes('PresetReverb'))).toBe(true);
+    expect(code.some((l) => l.includes('hallReverb'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('reverb_zone uses correct preset constant for largeHall', () => {
+    const code = generateTraitCode('reverb_zone', 'hall', { preset: 'largeHall' });
+    expect(code.some((l) => l.includes('PRESET_LARGEHALL'))).toBe(true);
+  });
+
+  it('audio_occlusion is full and generates AudioOcclusionProcessor with raycast', () => {
+    const mapping = getTraitMapping('audio_occlusion');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('audio_occlusion', 'src', { attenuation: 0.2, low_pass_cutoff: 600 });
+    expect(code.some((l) => l.includes('AudioOcclusionProcessor'))).toBe(true);
+    expect(code.some((l) => l.includes('raycastOcclusion'))).toBe(true);
+    expect(code.some((l) => l.includes('srcSoundPool') || l.includes('setVolume'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('audio_occlusion declares SpatialSoundPool import', () => {
+    const imports = getRequiredImports(['audio_occlusion']);
+    expect(imports.some((i) => i.includes('SpatialSoundPool'))).toBe(true);
   });
 });

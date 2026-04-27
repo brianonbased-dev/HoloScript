@@ -1444,7 +1444,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   neural_forge: {
     trait: 'neural_forge',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML'],
     generate: (varName, config) => {
       const modelPath = String(config.model_path || 'TrainableModel');
@@ -1697,7 +1697,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   spatial_awareness: {
     trait: 'spatial_awareness',
     components: [],
-    level: 'partial',
+    level: 'full',
     minVersion: '1.0',
     imports: ['ARKit'],
     generate: (varName, _config) => [
@@ -1723,7 +1723,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   neural_animation: {
     trait: 'neural_animation',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreML', 'RealityKit'],
     generate: (varName, config) => {
       const style = String(config.style || 'motion_matching');
@@ -1763,7 +1763,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['Vision', 'CoreML'],
     generate: (varName, config) => {
       const task = String(config.task || 'detection');
