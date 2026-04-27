@@ -35,6 +35,18 @@ WORKDIR /app
 COPY --from=deps /app/ ./
 COPY packages/crdt/ packages/crdt/
 COPY packages/crdt-spatial/ packages/crdt-spatial/
+# core-types must be copied AND built before core: @holoscript/core's compiled
+# chunks (dist/chunk-*.js) reference '@holoscript/core-types/ans' as an
+# external import. Webpack resolves these via the workspace symlink at build
+# time, so packages/core-types/dist/ans.js must exist on disk when
+# `pnpm run build` runs in studio. Without this COPY + build step the studio
+# build fails with: "Module not found: Can't resolve '@holoscript/core-types/ans'"
+# from ../core/dist/chunk-*.js. Verified 2026-04-27 — Railway studio service
+# was 500 on every /api/* route since the workspace gained the /ans subpath
+# entry; the running container is a stale image, all subsequent build deploys
+# regressed silently. Pattern parallels the crdt-spatial+marketplace-api
+# precedents on this same file.
+COPY packages/core-types/ packages/core-types/
 COPY packages/core/ packages/core/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
@@ -78,6 +90,9 @@ RUN cd packages/crdt && npx tsup --no-dts
 # declarations" even though the package source IS in the build context.
 RUN cd packages/crdt-spatial && npx tsup --no-dts || true
 RUN cd packages/agent-protocol && npx tsup --no-dts
+# core-types must build before core so that ../core-types/dist/ans.js exists
+# when webpack walks core's compiled chunks during studio's `pnpm run build`.
+RUN cd packages/core-types && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
 RUN cd packages/framework && npx tsup --no-dts
