@@ -16,6 +16,20 @@ import { randomUUID } from 'crypto';
 
 // ── Types ──
 
+/**
+ * Sender's chain-time cursor at the moment the message was sent.
+ * The receiving agent can read this to know "where the sender was looking from"
+ * and adjudicate disagreements as cursor-position differences rather than
+ * wallclock-timeline conflicts. See research/2026-04-27_time-premise-
+ * holoscript-architecture.md §4 (agent identity is (handle, chain, depth)).
+ */
+export interface MessageCursor {
+  /** Stable identifier of the CAEL chain the sender was reading. */
+  chain: string;
+  /** Non-negative integer chain-depth (0-indexed) at the cursor. */
+  depth: number;
+}
+
 export interface Message {
   id: string;
   fromAgent: string;
@@ -25,6 +39,39 @@ export interface Message {
   threadId?: string;
   createdAt: string;
   read: boolean;
+  /**
+   * Optional sender chain-time cursor. Backward compatible: senders that
+   * don't supply this leave it absent on the stored Message. Per W.114 +
+   * W.115, the cursor is part of the sender's full identity (handle, chain,
+   * depth) — the handle alone tells you who, the cursor tells you when.
+   */
+  cursorAt?: MessageCursor;
+}
+
+/**
+ * Validate and narrow an unknown to {@link MessageCursor}. Returns the
+ * narrowed value, or a descriptive error string if the input is malformed.
+ *
+ * Accepts: `{ chain: string (non-empty), depth: number (non-negative integer) }`.
+ * Returns the value unchanged when valid.
+ */
+export function validateCursor(raw: unknown): MessageCursor | { error: string } {
+  if (raw === undefined || raw === null) {
+    return { error: 'cursor must be an object with { chain, depth }' };
+  }
+  if (typeof raw !== 'object') {
+    return { error: 'cursor must be an object, got ' + typeof raw };
+  }
+  const o = raw as Record<string, unknown>;
+  const chain = o.chain;
+  const depth = o.depth;
+  if (typeof chain !== 'string' || chain.length === 0) {
+    return { error: 'cursor.chain must be a non-empty string' };
+  }
+  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 0) {
+    return { error: 'cursor.depth must be a non-negative integer' };
+  }
+  return { chain, depth };
 }
 
 /** Callback to resolve an agent ID + name from an API key */
@@ -74,13 +121,18 @@ function ensureCapacity(): void {
 
 /**
  * Send a message to another agent. Returns the created message.
+ *
+ * `cursorAt` is the sender's chain-time cursor at send time — receiving
+ * agents read it to know where the sender was looking from. Backward
+ * compatible: omitting it leaves `cursorAt` absent on the stored Message.
  */
 export function sendMessage(
   fromId: string,
   fromName: string,
   toAgent: string,
   content: string,
-  threadId?: string
+  threadId?: string,
+  cursorAt?: MessageCursor
 ): Message {
   ensureCapacity();
 
@@ -93,6 +145,7 @@ export function sendMessage(
     threadId,
     createdAt: new Date().toISOString(),
     read: false,
+    ...(cursorAt !== undefined ? { cursorAt } : {}),
   };
 
   messageStore.set(msg.id, msg);
@@ -197,7 +250,7 @@ export const messagingTools: Tool[] = [
   {
     name: 'holomesh_send_message',
     description:
-      'Send a direct message to another agent on HoloMesh by name. Optionally include a thread_id to continue a conversation.',
+      'Send a direct message to another agent on HoloMesh by name. Optionally include a thread_id to continue a conversation, and a cursor_at object to surface the sender\'s chain-time position.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -212,6 +265,22 @@ export const messagingTools: Tool[] = [
         thread_id: {
           type: 'string',
           description: 'Optional thread ID to group messages into a conversation',
+        },
+        cursor_at: {
+          type: 'object',
+          description:
+            'Optional sender chain-time cursor at send time. Lets receiving agents adjudicate disagreements as cursor-position differences (handle + chain + depth = full agent identity).',
+          properties: {
+            chain: {
+              type: 'string',
+              description: 'Stable identifier of the CAEL chain the sender was reading',
+            },
+            depth: {
+              type: 'number',
+              description: 'Non-negative integer chain-depth (0-indexed)',
+            },
+          },
+          required: ['chain', 'depth'],
         },
       },
       required: ['to', 'content'],
@@ -286,12 +355,22 @@ export async function handleMessagingTool(
       const to = args.to as string;
       const content = args.content as string;
       const threadId = args.thread_id as string | undefined;
+      const rawCursor = args.cursor_at;
 
       if (!to || !content) {
         return { error: 'Both "to" and "content" are required.' };
       }
 
-      const msg = sendMessage(agentId, agentName, to, content, threadId);
+      let cursorAt: MessageCursor | undefined;
+      if (rawCursor !== undefined && rawCursor !== null) {
+        const parsed = validateCursor(rawCursor);
+        if ('error' in parsed) {
+          return { error: parsed.error };
+        }
+        cursorAt = parsed;
+      }
+
+      const msg = sendMessage(agentId, agentName, to, content, threadId, cursorAt);
       return {
         success: true,
         message: msg,
@@ -387,6 +466,9 @@ export async function handleMessagingRoute(
     const to = body?.to as string;
     const content = body?.content as string;
     const threadId = body?.thread_id as string | undefined;
+    // Accept either snake_case `cursor_at` (REST/MCP convention) or
+    // camelCase `cursorAt` (already shipped on Message; some clients echo).
+    const rawCursor = body?.cursor_at ?? body?.cursorAt;
 
     if (!to || !content) {
       return {
@@ -395,7 +477,19 @@ export async function handleMessagingRoute(
       };
     }
 
-    const msg = sendMessage(agent.id, agent.name, to, content, threadId);
+    let cursorAt: MessageCursor | undefined;
+    if (rawCursor !== undefined && rawCursor !== null) {
+      const parsed = validateCursor(rawCursor);
+      if ('error' in parsed) {
+        return {
+          status: 400,
+          body: { error: parsed.error },
+        };
+      }
+      cursorAt = parsed;
+    }
+
+    const msg = sendMessage(agent.id, agent.name, to, content, threadId, cursorAt);
     return {
       status: 201,
       body: {
