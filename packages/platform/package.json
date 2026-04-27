@@ -100,7 +100,6 @@
     "@holoscript/plugin-trait-audit": "workspace:*",
     "@holoscript/plugin-travel-hospitality": "workspace:*",
     "@holoscript/plugin-urban-planning": "workspace:*",
-    "holoscript-web-preview": "workspace:*",
     "@holoscript/plugin-wine-food-beverage": "workspace:*",
     "@holoscript/plugin-wisdom-gotcha": "workspace:*"
   },
