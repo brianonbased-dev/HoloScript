@@ -967,13 +967,60 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   vision: {
     trait: 'vision',
     components: ['CameraProvider'],
-    level: 'comment',
-    imports: ['com.google.mlkit.vision'],
+    level: 'partial',
+    imports: [
+      'com.google.mlkit.vision.common.InputImage',
+      'com.google.mlkit.vision.label.ImageLabeling',
+      'com.google.mlkit.vision.label.defaults.ImageLabelerOptions',
+      'com.google.mlkit.vision.text.TextRecognition',
+      'com.google.mlkit.vision.text.latin.TextRecognizerOptions',
+      'com.google.mlkit.vision.face.FaceDetection',
+      'com.google.mlkit.vision.face.FaceDetectorOptions',
+      'com.google.mlkit.vision.barcode.BarcodeScanning',
+    ],
     generate: (varName, config) => {
       const task = String(config.task || 'classification');
+      const taskLines: Record<string, string[]> = {
+        classification: [
+          `val ${varName}Labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_INSTANCE)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Labeler.process(image)`,
+          `        .addOnSuccessListener { labels -> labels.forEach { /* label.text, label.confidence */ } }`,
+          `        .addOnFailureListener { e -> e.printStackTrace() }`,
+          `}`,
+        ],
+        text_recognition: [
+          `val ${varName}Recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Recognizer.process(image)`,
+          `        .addOnSuccessListener { visionText -> /* visionText.text */ }`,
+          `        .addOnFailureListener { e -> e.printStackTrace() }`,
+          `}`,
+        ],
+        face_detection: [
+          `val ${varName}FaceOptions = FaceDetectorOptions.Builder()`,
+          `    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)`,
+          `    .build()`,
+          `val ${varName}Detector = FaceDetection.getClient(${varName}FaceOptions)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Detector.process(image)`,
+          `        .addOnSuccessListener { faces -> /* faces.size */ }`,
+          `        .addOnFailureListener { e -> e.printStackTrace() }`,
+          `}`,
+        ],
+        barcode: [
+          `val ${varName}Scanner = BarcodeScanning.getClient()`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Scanner.process(image)`,
+          `        .addOnSuccessListener { barcodes -> barcodes.forEach { /* it.rawValue */ } }`,
+          `        .addOnFailureListener { e -> e.printStackTrace() }`,
+          `}`,
+        ],
+      };
+      const lines = taskLines[task] ?? taskLines['classification'];
       return [
         `// @vision -- ML Kit Vision via glasses camera (task: ${task})`,
-        `// Use projected_camera to capture, ML Kit to analyze for ${varName}`,
+        ...lines,
       ];
     },
   },

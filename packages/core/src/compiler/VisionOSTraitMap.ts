@@ -1337,31 +1337,108 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_upscaling: {
     trait: 'ai_upscaling',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @ai_upscaling — AI upscaling (factor: ${String(config.factor || 2)}x)`,
-      `// TODO: apply CoreML super-resolution model to texture`,
-    ],
+    level: 'partial',
+    imports: ['CoreML', 'CoreImage'],
+    generate: (varName, config) => {
+      const factor = Number(config.factor || 2);
+      const modelName = String(config.model || 'SuperResolutionModel');
+      return [
+        `// @ai_upscaling — CoreML super-resolution (factor: ${factor}x)`,
+        `func ${varName}Upscale(ciImage: CIImage) -> CIImage? {`,
+        `    guard let modelURL = Bundle.main.url(forResource: "${modelName}", withExtension: "mlmodelc"),`,
+        `          let mlModel = try? MLModel(contentsOf: modelURL),`,
+        `          let coreMLFilter = try? CIFilter(name: "CICoreMLModelFilter", parameters: [`,
+        `              "inputImage": ciImage,`,
+        `              "inputModel": mlModel`,
+        `          ]) else {`,
+        `        // Fallback: Lanczos upscaling`,
+        `        let scaleFilter = CIFilter.lanczosScaleTransform()`,
+        `        scaleFilter.inputImage = ciImage`,
+        `        scaleFilter.scale = Float(${factor})`,
+        `        scaleFilter.aspectRatio = 1.0`,
+        `        return scaleFilter.outputImage`,
+        `    }`,
+        `    return coreMLFilter.outputImage`,
+        `}`,
+      ];
+    },
   },
 
   ai_inpainting: {
     trait: 'ai_inpainting',
     components: [],
-    level: 'comment',
-    generate: (_varName, _config) => [
-      `// @ai_inpainting — AI inpainting`,
-      `// TODO: apply mask-based inpainting via CoreML`,
-    ],
+    level: 'partial',
+    imports: ['CoreML', 'CoreImage', 'Vision'],
+    generate: (varName, config) => {
+      const modelName = String(config.model || 'InpaintingModel');
+      return [
+        `// @ai_inpainting — CoreML mask-based inpainting`,
+        `func ${varName}Inpaint(image: CIImage, mask: CIImage) -> CIImage? {`,
+        `    // Step 1: try CoreML inpainting model`,
+        `    if let modelURL = Bundle.main.url(forResource: "${modelName}", withExtension: "mlmodelc"),`,
+        `       let mlModel = try? MLModel(contentsOf: modelURL),`,
+        `       let filter = try? CIFilter(name: "CICoreMLModelFilter", parameters: [`,
+        `           "inputImage": image, "inputModel": mlModel`,
+        `       ]) {`,
+        `        return filter.outputImage`,
+        `    }`,
+        `    // Fallback: blend with blurred source behind mask`,
+        `    let blurred = image.applyingGaussianBlur(sigma: 8)`,
+        `    let blendFilter = CIFilter.blendWithMask()`,
+        `    blendFilter.inputImage = blurred`,
+        `    blendFilter.backgroundImage = image`,
+        `    blendFilter.maskImage = mask`,
+        `    return blendFilter.outputImage`,
+        `}`,
+      ];
+    },
   },
 
   neural_link: {
     trait: 'neural_link',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @neural_link — neural interface link (interface: ${String(config.interface_type || 'bci')})`,
-      `// TODO: implement BCI signal processing pipeline`,
-    ],
+    level: 'partial',
+    imports: ['CoreBluetooth', 'Combine'],
+    generate: (varName, config) => {
+      const interfaceType = String(config.interface_type || 'bci');
+      const sampleRate = Number(config.sample_rate || 250);
+      const channels = Number(config.channels || 8);
+      return [
+        `// @neural_link — BCI/neural interface via CoreBluetooth (interface: ${interfaceType})`,
+        `// Sample rate: ${sampleRate}Hz, Channels: ${channels}`,
+        `class ${varName}NeuralLinkManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {`,
+        `    private var centralManager: CBCentralManager!`,
+        `    private var neuralPeripheral: CBPeripheral?`,
+        `    private let dataPublisher = PassthroughSubject<[Float], Never>()`,
+        `    private let sampleRate = ${sampleRate}`,
+        `    private let channelCount = ${channels}`,
+        ``,
+        `    override init() {`,
+        `        super.init()`,
+        `        centralManager = CBCentralManager(delegate: self, queue: .main)`,
+        `    }`,
+        ``,
+        `    func centralManagerDidUpdateState(_ central: CBCentralManager) {`,
+        `        if central.state == .poweredOn {`,
+        `            central.scanForPeripherals(withServices: nil) // filter by service UUID in production`,
+        `        }`,
+        `    }`,
+        ``,
+        `    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,`,
+        `                        advertisementData: [String: Any], rssi RSSI: NSNumber) {`,
+        `        neuralPeripheral = peripheral`,
+        `        centralManager.stopScan()`,
+        `        centralManager.connect(peripheral)`,
+        `    }`,
+        ``,
+        `    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {`,
+        `        guard let data = characteristic.value else { return }`,
+        `        let samples = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }`,
+        `        dataPublisher.send(samples)`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   neural_forge: {

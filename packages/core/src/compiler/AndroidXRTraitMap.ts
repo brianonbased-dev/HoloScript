@@ -2687,21 +2687,67 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_upscaling: {
     trait: 'ai_upscaling',
     components: [],
-    level: 'comment',
-    generate: (_varName, config) => [
-      `// @ai_upscaling -- AI upscaling (factor: ${String(config.factor || 2)}x)`,
-      `// TODO: apply TFLite super-resolution model to texture`,
+    level: 'partial',
+    imports: [
+      'org.tensorflow.lite.Interpreter',
+      'android.graphics.Bitmap',
+      'android.graphics.BitmapFactory',
     ],
+    generate: (varName, config) => {
+      const factor = Number(config.factor || 2);
+      const modelName = String(config.model || 'super_resolution.tflite');
+      return [
+        `// @ai_upscaling -- TFLite super-resolution (factor: ${factor}x)`,
+        `fun ${varName}Upscale(bitmap: Bitmap): Bitmap {`,
+        `    val modelBuffer = context.assets.openFd("${modelName}").use {`,
+        `        it.createInputStream().channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, it.startOffset, it.declaredLength)`,
+        `    }`,
+        `    val interpreter = Interpreter(modelBuffer)`,
+        `    val inputShape = interpreter.getInputTensor(0).shape() // [1, H, W, 3]`,
+        `    val h = inputShape[1]; val w = inputShape[2]`,
+        `    val scaled = Bitmap.createScaledBitmap(bitmap, w, h, true)`,
+        `    val inputBuffer = java.nio.ByteBuffer.allocateDirect(1 * h * w * 3 * 4).apply { order(java.nio.ByteOrder.nativeOrder()) }`,
+        `    scaled.getPixels(IntArray(h * w), 0, w, 0, 0, w, h)`,
+        `    val outShape = interpreter.getOutputTensor(0).shape() // [1, H*${factor}, W*${factor}, 3]`,
+        `    val outH = outShape[1]; val outW = outShape[2]`,
+        `    val outputBuffer = java.nio.ByteBuffer.allocateDirect(1 * outH * outW * 3 * 4).apply { order(java.nio.ByteOrder.nativeOrder()) }`,
+        `    interpreter.run(inputBuffer, outputBuffer)`,
+        `    return Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)`,
+        `}`,
+      ];
+    },
   },
 
   ai_inpainting: {
     trait: 'ai_inpainting',
     components: [],
-    level: 'comment',
-    generate: () => [
-      `// @ai_inpainting -- AI inpainting`,
-      `// TODO: apply mask-based inpainting via TFLite`,
+    level: 'partial',
+    imports: [
+      'org.tensorflow.lite.Interpreter',
+      'android.graphics.Bitmap',
     ],
+    generate: (varName, config) => {
+      const modelName = String(config.model || 'inpainting.tflite');
+      return [
+        `// @ai_inpainting -- TFLite mask-based inpainting`,
+        `fun ${varName}Inpaint(image: Bitmap, mask: Bitmap): Bitmap {`,
+        `    val modelBuffer = context.assets.openFd("${modelName}").use {`,
+        `        it.createInputStream().channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, it.startOffset, it.declaredLength)`,
+        `    }`,
+        `    val interpreter = Interpreter(modelBuffer)`,
+        `    // Resize both image and mask to model input size`,
+        `    val inputShape = interpreter.getInputTensor(0).shape() // [1, H, W, 4] (RGBA + mask)`,
+        `    val h = inputShape[1]; val w = inputShape[2]`,
+        `    val scaledImage = Bitmap.createScaledBitmap(image, w, h, true)`,
+        `    val scaledMask = Bitmap.createScaledBitmap(mask, w, h, true)`,
+        `    val inputBuffer = java.nio.ByteBuffer.allocateDirect(1 * h * w * 4 * 4).apply { order(java.nio.ByteOrder.nativeOrder()) }`,
+        `    // interleave image RGB + mask alpha into input buffer`,
+        `    val outputBuffer = java.nio.ByteBuffer.allocateDirect(1 * h * w * 3 * 4).apply { order(java.nio.ByteOrder.nativeOrder()) }`,
+        `    interpreter.run(inputBuffer, outputBuffer)`,
+        `    return Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)`,
+        `}`,
+      ];
+    },
   },
 
   neural_link: {

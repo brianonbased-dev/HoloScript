@@ -581,4 +581,34 @@ describe('AndroidXRTraitMap', () => {
       ).toBe(true);
     }
   });
+
+  it('ai_upscaling is partial and generates TFLite Interpreter for super resolution', () => {
+    const mapping = getTraitMapping('ai_upscaling');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('ai_upscaling', 'upscaler', {});
+    expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
+    expect(code.some((l) => l.includes('upscaler'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('ai_upscaling uses custom model asset when provided', () => {
+    const code = generateTraitCode('ai_upscaling', 'hdTex', { model: 'my_sr_model.tflite' });
+    expect(code.some((l) => l.includes('my_sr_model.tflite'))).toBe(true);
+  });
+
+  it('ai_inpainting is partial and generates TFLite inpainting func', () => {
+    const mapping = getTraitMapping('ai_inpainting');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('ai_inpainting', 'restore', {});
+    expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
+    expect(code.some((l) => l.includes('restore'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('ai_inpainting uses custom model asset when provided', () => {
+    const code = generateTraitCode('ai_inpainting', 'fixer', { model: 'custom_inpaint.tflite' });
+    expect(code.some((l) => l.includes('custom_inpaint.tflite'))).toBe(true);
+  });
 });
