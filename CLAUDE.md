@@ -315,7 +315,7 @@ This project is scanned by **HoloScript Absorb** (`absorb.holoscript.net`). Run 
 
 ## Skills
 
-**Verified state 2026-04-26 (revised per W.GOLD.341)**: prior note here claimed `holo_*` MCP tools were "unreachable" — that was wrong on the most important axis. The HoloScript MCP server at `mcp.holoscript.net` returns 200 on `/health` and the `holo_*` codebase intelligence tools ARE callable. Absorb-service IS still stale v6.0.0, but `/api/absorb/graphs` returns 200 with auth — partially functional, not entirely down. Use the canonical tools below; only fall back to grep when something specifically errors.
+**Verified state 2026-04-27 (absorb-service)**: the HoloScript MCP server at `mcp.holoscript.net` returns 200 on `/health` and the `holo_*` codebase intelligence tools ARE callable. **Absorb** (`absorb.holoscript.net`) routes are defined in-repo (`services/absorb-service/src/server.ts`); Liveness: `GET /health` and `GET /mcp` (SSE) are the reliable production probes. **REST** under `/api/...` has been blocked or inconsistent in live deploys (authenticated probes returning 404 — board task_1777164270247_7ee8, deploy stack). **Do not assume** `curl https://absorb.holoscript.net/api/...` works in production until a probe returns 2xx. Prefer **`holo_*` tools on `mcp.holoscript.net`**, local `packages/cli` absorb, or `Read`+`Grep` over betting on live absorb REST. Client middleware fix (2026-04-27): `auth` anonymous `POST` scan now matches mount-relative `req.path` for `/api/absorb/scan` so that route is reachable when the app actually serves it.
 
 | Task                                         | First choice (try this) | Fallback if it errors |
 | -------------------------------------------- | ----------------------- | --------------------- |

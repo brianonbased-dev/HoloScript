@@ -50,6 +50,23 @@ function getClientIp(req: Request): string {
   return req.socket.remoteAddress || 'unknown';
 }
 
+/**
+ * POST /api/absorb/scan (anonymous rate-limited tier).
+ * When `authMiddleware` is mounted with `app.use('/api', ...)`, Express may
+ * set `req.path` to `/absorb/scan` (mount-relative) instead of `/api/absorb/scan`.
+ * Without this, anonymous scans always fell through to 401 in production.
+ */
+function isAnonymousAbsorbScanPost(req: Request): boolean {
+  if (req.method !== 'POST') return false;
+  const orig = req.originalUrl?.split('?')[0] || '';
+  if (orig === '/api/absorb/scan' || orig.endsWith('/api/absorb/scan')) return true;
+  const p = req.path || '';
+  if (p === '/api/absorb/scan' || p === '/scan' || p === '/absorb/scan') return true;
+  const base = (req as Request & { baseUrl?: string }).baseUrl;
+  if (base === '/api' && p === '/absorb/scan') return true;
+  return false;
+}
+
 function checkRateLimit(
   map: Map<string, { count: number; windowStart: number }>,
   key: string,
@@ -185,7 +202,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   }
 
   // Anonymous: allow scan endpoint with IP-based rate limiting
-  if ((req.path === '/scan' || req.path === '/api/absorb/scan') && req.method === 'POST') {
+  if (isAnonymousAbsorbScanPost(req)) {
     const ip = getClientIp(req);
     const { limited, remaining } = checkRateLimit(rateLimitMap, ip, ANON_SCAN_LIMIT);
     if (limited) {

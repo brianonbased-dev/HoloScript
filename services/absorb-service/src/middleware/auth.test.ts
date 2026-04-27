@@ -111,6 +111,22 @@ describe('authMiddleware', () => {
     expect(req.freeTier).toBe(true);
   });
 
+  it('allows anonymous scan when path is /absorb/scan under app.use("/api", auth) (mount-relative)', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    const req = createMockReq({
+      path: '/absorb/scan',
+      method: 'POST',
+      baseUrl: '/api',
+      originalUrl: '/api/absorb/scan',
+      socket: { remoteAddress: '192.168.1.200' },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.authenticated).toBe(false);
+    expect(req.freeTier).toBe(true);
+  });
+
   it('rate limits free tier after 3 scans', async () => {
     process.env.ABSORB_API_KEY = 'test-key-123';
     const ip = '10.0.0.42';
