@@ -1,0 +1,5071 @@
+{
+  "dataset_version": "phase-3-trait-inference-2000row-v2",
+  "dataset_sha256": "85aa5983a228029d478bfc6c6722681bc7de6b4e792b267b95865257f0dffc10",
+  "family_map_sha256": "dfaadbcce24789bc8a9ec64988da80c2c73a5938a76859c975c0eb5d19a7f8df",
+  "family_map_trait_count": 2564,
+  "family_map_family_count": 144,
+  "eval_split_role": "novel-combination-test",
+  "eval_rows": 300,
+  "macro_f1_row": 0.554082,
+  "precision_macro": 0.57498,
+  "recall_macro": 0.573206,
+  "macro_f1_label": 0.421678,
+  "precision_macro_label": 0.412733,
+  "recall_macro_label": 0.442391,
+  "micro_f1": 0.656657,
+  "micro_precision": 0.740406,
+  "micro_recall": 0.589928,
+  "distinct_trait_labels": 208,
+  "distinct_trait_predictions": 125,
+  "out_of_family_gold_rows": 160,
+  "out_of_family_gold_tokens": 226,
+  "classifier_must_clear": {
+    "target_macro_f1_row": 0.704082,
+    "margin_pp": 15,
+    "pre_registration_floor": 0.8,
+    "effective_floor": 0.8
+  },
+  "hit_per_label_top10": [
+    {
+      "label": "@networked",
+      "tp": 12,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@llm_agent",
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@collidable",
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@anchor",
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@animated",
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@throwable",
+      "tp": 7,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@spawn_point",
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@stackable",
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@gpu_particle",
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "label": "@draggable",
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    }
+  ],
+  "miss_per_label_top10": [
+    {
+      "label": "@state",
+      "gold_support": 7,
+      "tp": 0,
+      "fn": 7,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@experience",
+      "gold_support": 6,
+      "tp": 0,
+      "fn": 6,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@health",
+      "gold_support": 6,
+      "tp": 0,
+      "fn": 6,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@mana",
+      "gold_support": 6,
+      "tp": 0,
+      "fn": 6,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@stamina",
+      "gold_support": 6,
+      "tp": 0,
+      "fn": 6,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@level",
+      "gold_support": 5,
+      "tp": 0,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@cultural_memory",
+      "gold_support": 5,
+      "tp": 0,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@holdable",
+      "gold_support": 5,
+      "tp": 0,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@npc",
+      "gold_support": 4,
+      "tp": 0,
+      "fn": 4,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "label": "@carriable",
+      "gold_support": 4,
+      "tp": 0,
+      "fn": 4,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    }
+  ],
+  "locked_at": "2026-04-27T07:59:05.587Z",
+  "generator_script": "scripts/paper-19/run-keyword-baseline.mjs",
+  "predictions_per_row": [
+    {
+      "id": "row-00115",
+      "gold": [
+        "@drift_corrected"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00142",
+      "gold": [
+        "@voice_input"
+      ],
+      "predicted": [
+        "@accessible"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00198",
+      "gold": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "predicted": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00254",
+      "gold": [
+        "@light_estimation"
+      ],
+      "predicted": [
+        "@light_estimation"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00258",
+      "gold": [
+        "@terrain_anchor"
+      ],
+      "predicted": [
+        "@terrain_anchor"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00259",
+      "gold": [
+        "@plane_detection",
+        "@world_locked"
+      ],
+      "predicted": [
+        "@plane_detection"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-00260",
+      "gold": [
+        "@vps"
+      ],
+      "predicted": [
+        "@vps"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00308",
+      "gold": [
+        "@agent_portal"
+      ],
+      "predicted": [
+        "@state_machine"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00324",
+      "gold": [
+        "@economy_primitives"
+      ],
+      "predicted": [
+        "@state_machine"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00361",
+      "gold": [
+        "@vrc_station"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00428",
+      "gold": [
+        "@interactable",
+        "@quiz_element"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00478",
+      "gold": [
+        "@measurement"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00495",
+      "gold": [
+        "@scatter_plot"
+      ],
+      "predicted": [
+        "@scatter_plot"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00513",
+      "gold": [
+        "@heatmap"
+      ],
+      "predicted": [
+        "@data_binding",
+        "@heatmap"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-00579",
+      "gold": [
+        "@actuator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00640",
+      "gold": [
+        "@vegetation"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00727",
+      "gold": [
+        "@landscape"
+      ],
+      "predicted": [
+        "@landscape"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-00729",
+      "gold": [
+        "@actor_cpp"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-00738",
+      "gold": [
+        "@usd_prim"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-01099",
+      "gold": [
+        "@animated",
+        "@hologram"
+      ],
+      "predicted": [
+        "@animated",
+        "@glowing",
+        "@hologram"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.666667,
+      "recall": 1,
+      "f1": 0.8
+    },
+    {
+      "id": "row-01615",
+      "gold": [
+        "@llm_agent",
+        "@perception",
+        "@post_quantum_audit",
+        "@state_machine"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.75,
+      "f1": 0.857143
+    },
+    {
+      "id": "row-01742",
+      "gold": [
+        "@llm_agent",
+        "@norm_compliant",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "row-01975",
+      "gold": [
+        "@spawn_point"
+      ],
+      "predicted": [
+        "@spawn_point"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-01998",
+      "gold": [
+        "@avatar_pedestal"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02095",
+      "gold": [
+        "@custom_shader"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02096",
+      "gold": [
+        "@compute_shader"
+      ],
+      "predicted": [
+        "@compute_shader"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-02097",
+      "gold": [
+        "@instanced_rendering"
+      ],
+      "predicted": [
+        "@lod",
+        "@shadow_caster"
+      ],
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02098",
+      "gold": [
+        "@billboard_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02099",
+      "gold": [
+        "@line_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02102",
+      "gold": [
+        "@outline"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02107",
+      "gold": [
+        "@area_light"
+      ],
+      "predicted": [
+        "@area_light",
+        "@color_temperature"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02110",
+      "gold": [
+        "@point_light"
+      ],
+      "predicted": [
+        "@point_light",
+        "@shadow_caster"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02113",
+      "gold": [
+        "@volumetric_light"
+      ],
+      "predicted": [
+        "@god_rays",
+        "@volumetric_light"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02114",
+      "gold": [
+        "@rim_light"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02270",
+      "gold": [
+        "@dialogue"
+      ],
+      "predicted": [
+        "@dialogue",
+        "@narrator"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02274",
+      "gold": [
+        "@encrypted"
+      ],
+      "predicted": [
+        "@certificate"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02275",
+      "gold": [
+        "@merchant"
+      ],
+      "predicted": [
+        "@marketplace",
+        "@merchant",
+        "@tradeable"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.333333,
+      "recall": 1,
+      "f1": 0.5
+    },
+    {
+      "id": "row-02277",
+      "gold": [
+        "@healer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02278",
+      "gold": [
+        "@blacksmith"
+      ],
+      "predicted": [
+        "@blacksmith",
+        "@recipe"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02336",
+      "gold": [
+        "@haptic_feedback"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02339",
+      "gold": [
+        "@experience",
+        "@health",
+        "@level",
+        "@mana",
+        "@skill_tree",
+        "@stamina"
+      ],
+      "predicted": [
+        "@cooldown",
+        "@inventory",
+        "@skill_tree"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 5,
+      "precision": 0.333333,
+      "recall": 0.166667,
+      "f1": 0.222222
+    },
+    {
+      "id": "row-02341",
+      "gold": [
+        "@checkpoint_game",
+        "@glowing",
+        "@respawn",
+        "@spawn_point",
+        "@trigger_zone"
+      ],
+      "predicted": [
+        "@glowing",
+        "@respawn",
+        "@spawn_point"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.6,
+      "f1": 0.75
+    },
+    {
+      "id": "row-02343",
+      "gold": [
+        "@projectile"
+      ],
+      "predicted": [
+        "@projectile"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-02382",
+      "gold": [
+        "@volumetric_clouds"
+      ],
+      "predicted": [
+        "@volumetric_clouds"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-02420",
+      "gold": [
+        "@emotion"
+      ],
+      "predicted": [
+        "@calm",
+        "@emotion"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02422",
+      "gold": [
+        "@snow"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02425",
+      "gold": [
+        "@time_of_day"
+      ],
+      "predicted": [
+        "@temperature"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02427",
+      "gold": [
+        "@city_generator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02794",
+      "gold": [
+        "@voice_activated"
+      ],
+      "predicted": [
+        "@voice_activated"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "row-02799",
+      "gold": [
+        "@healthcheck"
+      ],
+      "predicted": [
+        "@glowing",
+        "@healthcheck",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.333333,
+      "recall": 1,
+      "f1": 0.5
+    },
+    {
+      "id": "row-02813",
+      "gold": [
+        "@circuit_breaker"
+      ],
+      "predicted": [
+        "@circuit_breaker",
+        "@glowing"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02828",
+      "gold": [
+        "@draggable"
+      ],
+      "predicted": [
+        "@draggable",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02869",
+      "gold": [
+        "@state"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02929",
+      "gold": [
+        "@transparent"
+      ],
+      "predicted": [
+        "@reflective",
+        "@transparent"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02932",
+      "gold": [
+        "@economy_primitive"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02934",
+      "gold": [
+        "@nft_asset"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@hoverable"
+      ],
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "row-02939",
+      "gold": [
+        "@credit"
+      ],
+      "predicted": [
+        "@credit",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02965",
+      "gold": [
+        "@nerf"
+      ],
+      "predicted": [
+        "@nerf",
+        "@rotatable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-02968",
+      "gold": [
+        "@volumetric_video"
+      ],
+      "predicted": [
+        "@spatial_audio",
+        "@volumetric_video"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "row-03004",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@state",
+        "@wisdom"
+      ],
+      "predicted": [
+        "@collidable",
+        "@grabbable",
+        "@wisdom"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.75,
+      "f1": 0.857143
+    },
+    {
+      "id": "row-03005",
+      "gold": [
+        "@credit",
+        "@dao_proposal",
+        "@escrow",
+        "@rate_limit"
+      ],
+      "predicted": [
+        "@credit",
+        "@gotcha",
+        "@wisdom"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 3,
+      "precision": 0.333333,
+      "recall": 0.25,
+      "f1": 0.285714
+    },
+    {
+      "id": "row-03024",
+      "gold": [
+        "@teleport"
+      ],
+      "predicted": [
+        "@room_scale",
+        "@seated_experience",
+        "@standing_experience"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@teleport"
+      ],
+      "predicted": [
+        "@room_scale",
+        "@seated_experience",
+        "@standing_experience"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@wallet_connect"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@nft_asset"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@hoverable"
+      ],
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@avatar_pedestal"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@heatmap"
+      ],
+      "predicted": [
+        "@heatmap"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@breakable",
+        "@grabbable",
+        "@physics",
+        "@stackable"
+      ],
+      "predicted": [
+        "@breakable",
+        "@grabbable",
+        "@physics",
+        "@stackable"
+      ],
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@transparent"
+      ],
+      "predicted": [
+        "@reflective",
+        "@transparent"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@actor_cpp"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@city_generator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@credit"
+      ],
+      "predicted": [
+        "@credit"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@animated",
+        "@hologram"
+      ],
+      "predicted": [
+        "@animated",
+        "@glowing",
+        "@hologram"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.666667,
+      "recall": 1,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@vps"
+      ],
+      "predicted": [
+        "@vps"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@interactable",
+        "@quiz_element"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@fbx"
+      ],
+      "predicted": [
+        "@fbx"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@healer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@animated",
+        "@npc"
+      ],
+      "predicted": [
+        "@animated",
+        "@behavior_tree",
+        "@dialogue",
+        "@emotion",
+        "@faction",
+        "@goal_oriented",
+        "@memory",
+        "@perception"
+      ],
+      "tp": 1,
+      "fp": 7,
+      "fn": 1,
+      "precision": 0.125,
+      "recall": 0.5,
+      "f1": 0.2
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@auctionable",
+        "@currency",
+        "@giftable",
+        "@price_dynamic",
+        "@purchasable",
+        "@ratable",
+        "@reviewable",
+        "@shareable",
+        "@tradeable",
+        "@wishlisted"
+      ],
+      "predicted": [
+        "@auctionable",
+        "@currency",
+        "@giftable",
+        "@reviewable",
+        "@shareable",
+        "@tradeable"
+      ],
+      "tp": 6,
+      "fp": 0,
+      "fn": 4,
+      "precision": 1,
+      "recall": 0.6,
+      "f1": 0.75
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@llm_agent",
+        "@norm_compliant",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@merchant"
+      ],
+      "predicted": [
+        "@merchant"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@breakable",
+        "@breakable",
+        "@breakable",
+        "@physics"
+      ],
+      "predicted": [
+        "@breakable",
+        "@physics"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@vegetation"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@marketplace",
+        "@pointable"
+      ],
+      "predicted": [
+        "@marketplace",
+        "@pointable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@draggable"
+      ],
+      "predicted": [
+        "@draggable",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@custom_shader"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@voice_input"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@audio_material"
+      ],
+      "predicted": [
+        "@audio_material"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@compute_shader"
+      ],
+      "predicted": [
+        "@compute_shader"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@audio_material",
+        "@audio_occlusion",
+        "@audio_occlusion"
+      ],
+      "predicted": [
+        "@audio_material",
+        "@audio_occlusion"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@economy_primitives"
+      ],
+      "predicted": [
+        "@state_machine"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchored",
+        "@billboard"
+      ],
+      "predicted": [
+        "@billboard"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@acceptance_video",
+        "@reconstruction_source"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "predicted": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@blacksmith"
+      ],
+      "predicted": [
+        "@blacksmith",
+        "@recipe"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@networked",
+        "@voice_enabled"
+      ],
+      "predicted": [
+        "@networked"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@agent_portal"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@rigid_body_3d"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@actuator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@hoverable",
+        "@metadata_display"
+      ],
+      "predicted": [
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@cultural_memory",
+        "@cultural_profile",
+        "@llm_agent",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.666667,
+      "recall": 0.5,
+      "f1": 0.571429
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@nav_mesh"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@credit",
+        "@dao_proposal",
+        "@escrow",
+        "@rate_limit"
+      ],
+      "predicted": [
+        "@credit",
+        "@gotcha",
+        "@wisdom"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 3,
+      "precision": 0.333333,
+      "recall": 0.25,
+      "f1": 0.285714
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@llm_agent",
+        "@perception",
+        "@post_quantum_audit",
+        "@state_machine"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@breakable_lock",
+        "@closeable",
+        "@lockable",
+        "@openable",
+        "@pushable"
+      ],
+      "predicted": [
+        "@lockable",
+        "@openable",
+        "@pushable"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.6,
+      "f1": 0.75
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@billboard",
+        "@interactive"
+      ],
+      "predicted": [
+        "@anchor",
+        "@billboard",
+        "@interactive"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@eye_tracking",
+        "@hoverable",
+        "@metadata_display"
+      ],
+      "predicted": [
+        "@eye_tracking",
+        "@hoverable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@scene_graph",
+        "@usd",
+        "@usd",
+        "@usd"
+      ],
+      "predicted": [
+        "@scene_graph",
+        "@usd"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@billboard",
+        "@tutorial_step"
+      ],
+      "predicted": [
+        "@billboard"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@digital_twin",
+        "@twin_sync"
+      ],
+      "predicted": [
+        "@digital_twin",
+        "@twin_sync"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@emotion"
+      ],
+      "predicted": [
+        "@calm",
+        "@emotion"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@animated",
+        "@glowing",
+        "@particle"
+      ],
+      "predicted": [
+        "@animated",
+        "@glowing",
+        "@particle"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@climbable",
+        "@extendable",
+        "@swingable"
+      ],
+      "predicted": [
+        "@climbable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.333333,
+      "f1": 0.5
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@plane_detection",
+        "@world_locked"
+      ],
+      "predicted": [
+        "@plane_detection"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "predicted": [
+        "@anchor",
+        "@gpu_particle"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ornament"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@networked",
+        "@networked",
+        "@networked"
+      ],
+      "predicted": [
+        "@networked"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@vps"
+      ],
+      "predicted": [
+        "@vps"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@spawn_point"
+      ],
+      "predicted": [
+        "@spawn_point"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gaze_dwell_select",
+        "@phone_sleeve"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@networked",
+        "@skeleton"
+      ],
+      "predicted": [
+        "@networked",
+        "@skeleton"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@healthcheck"
+      ],
+      "predicted": [
+        "@glowing",
+        "@healthcheck",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.333333,
+      "recall": 1,
+      "f1": 0.5
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@scatter_plot"
+      ],
+      "predicted": [
+        "@scatter_plot"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@usd"
+      ],
+      "predicted": [
+        "@usd"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@circuit_breaker"
+      ],
+      "predicted": [
+        "@circuit_breaker"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@drift_corrected"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@city_generator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@dialogue"
+      ],
+      "predicted": [
+        "@dialogue"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@line_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@clickable",
+        "@physics"
+      ],
+      "predicted": [
+        "@clickable",
+        "@physics"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@compute",
+        "@compute",
+        "@compute",
+        "@gpu_physics",
+        "@gpu_physics"
+      ],
+      "predicted": [
+        "@compute",
+        "@gpu_physics"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@receive_shadows"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@rollable",
+        "@slideable"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@haptic_feedback"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@area_of_effect",
+        "@debuff",
+        "@status_effect"
+      ],
+      "predicted": [
+        "@debuff"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.333333,
+      "f1": 0.5
+    },
+    {
+      "id": "undefined-perm2",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@state"
+      ],
+      "predicted": [
+        "@collidable",
+        "@grabbable",
+        "@wisdom"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@grabbable",
+        "@networked",
+        "@throwable"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@networked",
+        "@throwable"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@grabbable",
+        "@shared_anchor"
+      ],
+      "predicted": [
+        "@anchor",
+        "@grabbable",
+        "@shared_anchor"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@holdable",
+        "@physics",
+        "@snappable",
+        "@snappable",
+        "@stackable",
+        "@stackable"
+      ],
+      "predicted": [
+        "@physics",
+        "@snappable",
+        "@stackable"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.75,
+      "f1": 0.857143
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@audio_material",
+        "@audio_material",
+        "@audio_occlusion"
+      ],
+      "predicted": [
+        "@audio_material",
+        "@audio_occlusion"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gltf_model"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchored",
+        "@billboard",
+        "@occludable"
+      ],
+      "predicted": [
+        "@billboard"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.333333,
+      "f1": 0.5
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@spawn_point"
+      ],
+      "predicted": [
+        "@spawn_point"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@billboard_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@holdable",
+        "@physics",
+        "@throwable",
+        "@throwable"
+      ],
+      "predicted": [
+        "@physics",
+        "@throwable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@intent_driven"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@area_light"
+      ],
+      "predicted": [
+        "@area_light",
+        "@color_temperature"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@time_of_day"
+      ],
+      "predicted": [
+        "@temperature"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@actuator"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@line_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@audio_portal",
+        "@audio_portal",
+        "@audio_portal"
+      ],
+      "predicted": [
+        "@audio_portal"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm3",
+      "gold": [
+        "@cultural_memory",
+        "@cultural_profile",
+        "@llm_agent",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.666667,
+      "recall": 0.5,
+      "f1": 0.571429
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@terrain_anchor"
+      ],
+      "predicted": [
+        "@terrain_anchor"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@voice_input"
+      ],
+      "predicted": [
+        "@accessible"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@grabbable",
+        "@rotatable",
+        "@scalable"
+      ],
+      "predicted": [
+        "@anchor",
+        "@grabbable",
+        "@rotatable",
+        "@scalable"
+      ],
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@mesh_detection"
+      ],
+      "predicted": [
+        "@mesh_detection"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@networked",
+        "@networked"
+      ],
+      "predicted": [
+        "@networked"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@hand_tracked",
+        "@volumetric"
+      ],
+      "predicted": [
+        "@volumetric"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@terrain_anchor"
+      ],
+      "predicted": [
+        "@terrain_anchor"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@light_estimation"
+      ],
+      "predicted": [
+        "@light_estimation"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@point_light"
+      ],
+      "predicted": [
+        "@point_light"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@billboard_renderer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm2",
+      "gold": [
+        "@cultural_memory",
+        "@cultural_profile",
+        "@llm_agent",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.666667,
+      "recall": 0.5,
+      "f1": 0.571429
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ornament"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm2",
+      "gold": [
+        "@attachable",
+        "@carriable",
+        "@detachable",
+        "@liftable",
+        "@nestable",
+        "@pushable",
+        "@stackable"
+      ],
+      "predicted": [
+        "@attachable",
+        "@detachable",
+        "@grabbable",
+        "@liftable",
+        "@physics",
+        "@pushable",
+        "@stackable"
+      ],
+      "tp": 5,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.714286,
+      "recall": 0.714286,
+      "f1": 0.714286
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@audio_material",
+        "@audio_material",
+        "@audio_occlusion"
+      ],
+      "predicted": [
+        "@audio_material",
+        "@audio_occlusion"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@locomotion",
+        "@networked",
+        "@skeleton"
+      ],
+      "predicted": [
+        "@locomotion",
+        "@networked",
+        "@skeleton"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gltf",
+        "@material_x"
+      ],
+      "predicted": [
+        "@gltf",
+        "@material_x"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@transparent"
+      ],
+      "predicted": [
+        "@transparent"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm3",
+      "gold": [
+        "@cultural_memory",
+        "@llm_agent",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@experience",
+        "@health",
+        "@mana",
+        "@stamina"
+      ],
+      "predicted": [
+        "@cooldown",
+        "@inventory",
+        "@skill_tree"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 4,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@time_of_day"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@plane_detection",
+        "@world_locked"
+      ],
+      "predicted": [
+        "@plane_detection"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@rim_light"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@reactive_audio"
+      ],
+      "predicted": [
+        "@reactive_audio"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@agent_portal"
+      ],
+      "predicted": [
+        "@state_machine"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@draggable",
+        "@scalable"
+      ],
+      "predicted": [
+        "@anchor",
+        "@draggable",
+        "@scalable"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@climbable"
+      ],
+      "predicted": [
+        "@climbable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@projectile"
+      ],
+      "predicted": [
+        "@projectile"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@interactable",
+        "@quiz_element"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@grabbable",
+        "@hand_tracked"
+      ],
+      "predicted": [
+        "@grabbable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@path_follower"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@outline"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@resizable",
+        "@window"
+      ],
+      "predicted": [
+        "@resizable",
+        "@window"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@interactive",
+        "@tracked"
+      ],
+      "predicted": [
+        "@interactive"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@clickable",
+        "@grabbable",
+        "@hoverable",
+        "@pointable",
+        "@throwable"
+      ],
+      "predicted": [
+        "@clickable",
+        "@grabbable",
+        "@hoverable",
+        "@pointable",
+        "@throwable"
+      ],
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@blacksmith"
+      ],
+      "predicted": [
+        "@blacksmith"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@achievement",
+        "@comment",
+        "@follow",
+        "@group",
+        "@leaderboard",
+        "@like",
+        "@social_reaction"
+      ],
+      "predicted": [
+        "@achievement",
+        "@leaderboard"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 5,
+      "precision": 1,
+      "recall": 0.285714,
+      "f1": 0.444444
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@interactive",
+        "@networked"
+      ],
+      "predicted": [
+        "@interactive",
+        "@networked"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@checkpoint_game",
+        "@glowing",
+        "@respawn",
+        "@spawn_point",
+        "@trigger_zone"
+      ],
+      "predicted": [
+        "@respawn",
+        "@spawn_point"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 3,
+      "precision": 1,
+      "recall": 0.4,
+      "f1": 0.571429
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@volumetric_light"
+      ],
+      "predicted": [
+        "@volumetric_light"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@state",
+        "@wisdom"
+      ],
+      "predicted": [
+        "@collidable",
+        "@grabbable",
+        "@wisdom"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.75,
+      "f1": 0.857143
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@credit"
+      ],
+      "predicted": [
+        "@credit",
+        "@hoverable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-perm3",
+      "gold": [
+        "@experience",
+        "@health",
+        "@level",
+        "@mana",
+        "@stamina"
+      ],
+      "predicted": [
+        "@cooldown",
+        "@inventory",
+        "@skill_tree"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@spawnable"
+      ],
+      "predicted": [
+        "@spawnable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@fbx",
+        "@gltf",
+        "@material_x",
+        "@scene_graph",
+        "@usd"
+      ],
+      "predicted": [
+        "@fbx",
+        "@gltf",
+        "@material_x",
+        "@scene_graph",
+        "@usd"
+      ],
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@area_light"
+      ],
+      "predicted": [
+        "@area_light"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@circuit_breaker"
+      ],
+      "predicted": [
+        "@circuit_breaker",
+        "@glowing"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@state"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@spawnable"
+      ],
+      "predicted": [
+        "@spawnable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@point_light"
+      ],
+      "predicted": [
+        "@point_light",
+        "@shadow_caster"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@teleport"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@physics",
+        "@rotate"
+      ],
+      "predicted": [
+        "@physics"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@compute",
+        "@compute",
+        "@gpu_physics",
+        "@gpu_physics"
+      ],
+      "predicted": [
+        "@compute",
+        "@gpu_physics"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@semantic_entity",
+        "@spatial_text_layout"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@haptic_feedback"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@clickable",
+        "@networked"
+      ],
+      "predicted": [
+        "@clickable",
+        "@networked"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@collidable",
+        "@interactive"
+      ],
+      "predicted": [
+        "@collidable",
+        "@interactive"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@custom_shader"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@animated",
+        "@spatial_audio",
+        "@tracked"
+      ],
+      "predicted": [
+        "@animated",
+        "@spatial_audio"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@pointable",
+        "@token_gated"
+      ],
+      "predicted": [
+        "@pointable",
+        "@token_gated"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@hoverable",
+        "@pointable"
+      ],
+      "predicted": [
+        "@hoverable",
+        "@pointable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@checkpoint_game",
+        "@respawn",
+        "@spawn_point"
+      ],
+      "predicted": [
+        "@glowing",
+        "@respawn",
+        "@spawn_point"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@avatar_pedestal"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@rim_light"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@volumetric_light"
+      ],
+      "predicted": [
+        "@god_rays",
+        "@volumetric_light"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ash",
+        "@bubbles",
+        "@dust",
+        "@fireflies",
+        "@hail",
+        "@mist",
+        "@pollen",
+        "@sleet",
+        "@sparks"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 9,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@hand_tracked",
+        "@volumetric"
+      ],
+      "predicted": [
+        "@volumetric"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@draggable"
+      ],
+      "predicted": [
+        "@draggable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm3",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@state"
+      ],
+      "predicted": [
+        "@collidable",
+        "@grabbable",
+        "@wisdom"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@semantic_entity"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@attachable",
+        "@carriable",
+        "@detachable",
+        "@liftable",
+        "@nestable",
+        "@pushable",
+        "@stackable"
+      ],
+      "predicted": [
+        "@attachable",
+        "@detachable",
+        "@grabbable",
+        "@liftable",
+        "@physics",
+        "@pushable",
+        "@stackable"
+      ],
+      "tp": 5,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.714286,
+      "recall": 0.714286,
+      "f1": 0.714286
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@draggable",
+        "@grabbable",
+        "@rotatable",
+        "@scalable"
+      ],
+      "predicted": [
+        "@anchor",
+        "@draggable",
+        "@grabbable",
+        "@rotatable",
+        "@scalable"
+      ],
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@clickable",
+        "@sensor",
+        "@telemetry_stream"
+      ],
+      "predicted": [
+        "@clickable",
+        "@sensor"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@vrc_station"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@dialogue"
+      ],
+      "predicted": [
+        "@dialogue",
+        "@narrator"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-perm2",
+      "gold": [
+        "@cultural_memory",
+        "@llm_agent",
+        "@perception"
+      ],
+      "predicted": [
+        "@llm_agent",
+        "@perception",
+        "@state_machine"
+      ],
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-perm3",
+      "gold": [
+        "@attachable",
+        "@carriable",
+        "@detachable",
+        "@liftable",
+        "@nestable",
+        "@pushable",
+        "@stackable"
+      ],
+      "predicted": [
+        "@attachable",
+        "@detachable",
+        "@grabbable",
+        "@liftable",
+        "@physics",
+        "@pushable",
+        "@stackable"
+      ],
+      "tp": 5,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.714286,
+      "recall": 0.714286,
+      "f1": 0.714286
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@landscape"
+      ],
+      "predicted": [
+        "@landscape"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@volumetric_clouds"
+      ],
+      "predicted": [
+        "@volumetric_clouds"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@heatmap"
+      ],
+      "predicted": [
+        "@data_binding",
+        "@heatmap"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@volumetric_clouds"
+      ],
+      "predicted": [
+        "@volumetric_clouds"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@economy_primitive"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@volumetric_video"
+      ],
+      "predicted": [
+        "@spatial_audio",
+        "@volumetric_video"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ui_element"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@breakable",
+        "@breakable",
+        "@breakable",
+        "@holdable",
+        "@physics",
+        "@throwable"
+      ],
+      "predicted": [
+        "@breakable",
+        "@physics",
+        "@throwable"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.75,
+      "f1": 0.857143
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@usd_prim"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@nft_asset"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ai_agent",
+        "@collidable"
+      ],
+      "predicted": [
+        "@collidable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@light_estimation"
+      ],
+      "predicted": [
+        "@light_estimation"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@healer"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@resizable",
+        "@window"
+      ],
+      "predicted": [
+        "@resizable",
+        "@window"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm2",
+      "gold": [
+        "@experience",
+        "@health",
+        "@level",
+        "@mana",
+        "@stamina"
+      ],
+      "predicted": [
+        "@cooldown",
+        "@inventory",
+        "@skill_tree"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gltf",
+        "@gltf",
+        "@gltf",
+        "@scene_graph"
+      ],
+      "predicted": [
+        "@gltf",
+        "@scene_graph"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@grabbable",
+        "@physics",
+        "@soft_body_pro",
+        "@soft_body_pro"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@physics",
+        "@soft_body_pro"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@encrypted"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@animated",
+        "@npc"
+      ],
+      "predicted": [
+        "@animated",
+        "@dialogue",
+        "@emotion",
+        "@faction",
+        "@memory",
+        "@perception"
+      ],
+      "tp": 1,
+      "fp": 5,
+      "fn": 1,
+      "precision": 0.166667,
+      "recall": 0.5,
+      "f1": 0.25
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@geospatial"
+      ],
+      "predicted": [
+        "@geospatial"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@collidable",
+        "@glowing",
+        "@grabbable",
+        "@physics",
+        "@throwable"
+      ],
+      "predicted": [
+        "@collidable",
+        "@glowing",
+        "@grabbable",
+        "@physics",
+        "@throwable"
+      ],
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@snow"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@grabbable",
+        "@networked",
+        "@networked",
+        "@owned"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@networked"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@usd_prim"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@mountable",
+        "@sittable"
+      ],
+      "predicted": [
+        "@mountable",
+        "@sittable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@snow"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@actor_cpp"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@digital_twin",
+        "@twin_sync"
+      ],
+      "predicted": [
+        "@digital_twin",
+        "@twin_sync"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@carriable",
+        "@detachable",
+        "@liftable",
+        "@nestable",
+        "@pushable",
+        "@stackable"
+      ],
+      "predicted": [
+        "@detachable",
+        "@grabbable",
+        "@liftable",
+        "@physics",
+        "@pushable",
+        "@stackable"
+      ],
+      "tp": 4,
+      "fp": 2,
+      "fn": 2,
+      "precision": 0.666667,
+      "recall": 0.666667,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@voice_activated"
+      ],
+      "predicted": [
+        "@voice_activated"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@marketplace"
+      ],
+      "predicted": [
+        "@marketplace"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@instanced_rendering"
+      ],
+      "predicted": [
+        "@lod",
+        "@shadow_caster"
+      ],
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@measurement_enabled",
+        "@walkable"
+      ],
+      "predicted": [
+        "@walkable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@projectile"
+      ],
+      "predicted": [
+        "@projectile"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@character_body_3d"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@experience",
+        "@health",
+        "@level",
+        "@mana",
+        "@skill_tree",
+        "@stamina"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@compute",
+        "@compute",
+        "@gpu_particle",
+        "@gpu_particle",
+        "@gpu_particle",
+        "@gpu_physics"
+      ],
+      "predicted": [
+        "@compute",
+        "@gpu_particle",
+        "@gpu_physics"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@window"
+      ],
+      "predicted": [
+        "@window"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@economy_primitive"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@nerf"
+      ],
+      "predicted": [
+        "@nerf",
+        "@rotatable"
+      ],
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@merchant"
+      ],
+      "predicted": [
+        "@marketplace",
+        "@merchant",
+        "@tradeable"
+      ],
+      "tp": 1,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.333333,
+      "recall": 1,
+      "f1": 0.5
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gpu_physics"
+      ],
+      "predicted": [
+        "@gpu_physics"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@animated",
+        "@npc"
+      ],
+      "predicted": [
+        "@animated",
+        "@dialogue",
+        "@emotion",
+        "@faction",
+        "@goal_oriented",
+        "@memory",
+        "@perception"
+      ],
+      "tp": 1,
+      "fp": 6,
+      "fn": 1,
+      "precision": 0.142857,
+      "recall": 0.5,
+      "f1": 0.222222
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@billboard",
+        "@geospatial_anchor"
+      ],
+      "predicted": [
+        "@billboard",
+        "@geospatial_anchor"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@measurement"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@knowledge",
+        "@llm_agent",
+        "@npc",
+        "@protocol"
+      ],
+      "predicted": [
+        "@circuit_breaker",
+        "@gotcha",
+        "@llm_agent",
+        "@wisdom"
+      ],
+      "tp": 1,
+      "fp": 3,
+      "fn": 3,
+      "precision": 0.25,
+      "recall": 0.25,
+      "f1": 0.25
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@scatter_plot"
+      ],
+      "predicted": [
+        "@scatter_plot"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@voice_activated"
+      ],
+      "predicted": [
+        "@voice_activated"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@dynamic_mesh"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@landscape"
+      ],
+      "predicted": [
+        "@landscape"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@fbx",
+        "@fbx",
+        "@fbx",
+        "@fbx",
+        "@scene_graph"
+      ],
+      "predicted": [
+        "@fbx",
+        "@scene_graph"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@healthcheck"
+      ],
+      "predicted": [
+        "@healthcheck"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@persistent_anchor"
+      ],
+      "predicted": [
+        "@persistent_anchor"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-perm1",
+      "gold": [
+        "@experience",
+        "@health",
+        "@level",
+        "@mana",
+        "@stamina"
+      ],
+      "predicted": [
+        "@cooldown",
+        "@inventory",
+        "@skill_tree"
+      ],
+      "tp": 0,
+      "fp": 3,
+      "fn": 5,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@emotion"
+      ],
+      "predicted": [
+        "@emotion"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@collidable",
+        "@holdable",
+        "@networked",
+        "@networked",
+        "@owned",
+        "@owned",
+        "@physics",
+        "@throwable"
+      ],
+      "predicted": [
+        "@collidable",
+        "@networked",
+        "@physics",
+        "@throwable"
+      ],
+      "tp": 4,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@encrypted"
+      ],
+      "predicted": [
+        "@certificate"
+      ],
+      "tp": 0,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@anchor",
+        "@persistent_anchor"
+      ],
+      "predicted": [
+        "@anchor",
+        "@persistent_anchor"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@spawnable"
+      ],
+      "predicted": [
+        "@spawnable"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@holdable",
+        "@physics",
+        "@throwable",
+        "@throwable"
+      ],
+      "predicted": [
+        "@physics",
+        "@throwable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@collidable",
+        "@networked"
+      ],
+      "predicted": [
+        "@collidable",
+        "@networked"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@semantic_entity"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@drift_corrected"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@volumetric_video"
+      ],
+      "predicted": [
+        "@volumetric_video"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@clickable",
+        "@hoverable",
+        "@outlined"
+      ],
+      "predicted": [
+        "@clickable",
+        "@hoverable",
+        "@outlined"
+      ],
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@ai_agent",
+        "@animated"
+      ],
+      "predicted": [
+        "@animated"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "undefined-strip",
+      "gold": [
+        "@nerf"
+      ],
+      "predicted": [
+        "@nerf"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@collidable",
+        "@hoverable"
+      ],
+      "predicted": [
+        "@collidable",
+        "@hoverable"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@compute",
+        "@gpu_particle",
+        "@gpu_particle",
+        "@gpu_particle"
+      ],
+      "predicted": [
+        "@compute",
+        "@gpu_particle"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@gltf"
+      ],
+      "predicted": [
+        "@gltf"
+      ],
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    {
+      "id": "undefined-xdom",
+      "gold": [
+        "@state"
+      ],
+      "predicted": [],
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    {
+      "id": "undefined-rem",
+      "gold": [
+        "@grabbable",
+        "@networked",
+        "@networked",
+        "@owned"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@networked"
+      ],
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    }
+  ]
+}
