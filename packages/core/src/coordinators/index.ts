@@ -8,8 +8,8 @@
  * one closing Pattern E for 3-6 traits at once via shared event vocabulary.
  *
  * **Buses planned** (per task_1777281302813_eezs):
- *   - AssetLoadCoordinator       — GLTF + USD + FBX (35 void events / 69 refs)
- *   - SecurityEventBus           — RBAC + SSO + Quota + Tenant + AuditLog + ForgetPolicy (75 / 19) [TODO]
+ *   - AssetLoadCoordinator       — GLTF + USD + FBX (35 void events / 69 refs) ✅ shipped
+ *   - SecurityEventBus           — RBAC + SSO + Quota + Tenant + AuditLog + ForgetPolicy (~75 / 19) ✅ shipped
  *   - GenerativeJobMonitor       — AiInpainting + AiTextureGen + ControlNet + DiffusionRealtime [TODO]
  *   - SessionPresenceCoordinator — SharePlay + SpatialVoice + WorldHeartbeat + Messaging [TODO]
  *
@@ -33,3 +33,4 @@
  */
 
 export * from './AssetLoadCoordinator';
+export * from './SecurityEventBus';

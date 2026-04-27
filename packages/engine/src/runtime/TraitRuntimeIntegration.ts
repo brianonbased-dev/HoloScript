@@ -21,7 +21,7 @@
 import { VRTraitRegistry } from '@holoscript/core';
 import type { HSPlusNode, VRTraitName } from '@holoscript/core';
 import type { TraitContext, TraitEvent } from '@holoscript/core';
-import { AssetLoadCoordinator } from '@holoscript/core/coordinators';
+import { AssetLoadCoordinator, SecurityEventBus } from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
 
@@ -67,6 +67,17 @@ export class TraitRuntimeIntegration {
    */
   readonly assetLoadCoordinator: AssetLoadCoordinator;
 
+  /**
+   * Security event consumer-bus — second of the 4 buses identified by
+   * /stub-audit Phase 3.5. Subscribes to the engine's event stream and
+   * tracks state across the security trait cluster: RBAC + SSO + Quota
+   * + Tenant + AuditLog + ForgetPolicy (~75 void events). Downstream
+   * consumers (SIEM bridges, admin dashboards, compliance reports)
+   * call `traitRuntime.securityEventBus.subscribe(listener)` to observe
+   * domain-tagged envelopes (auth/authz/quota/tenant/audit/forget).
+   */
+  readonly securityEventBus: SecurityEventBus;
+
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
     this.contextFactory = contextFactory;
@@ -75,6 +86,9 @@ export class TraitRuntimeIntegration {
     // Constructor subscribes to all 15 asset-load events; coordinator
     // is then publicly readable so callers can subscribe to state.
     this.assetLoadCoordinator = new AssetLoadCoordinator(contextFactory);
+    // Wire the security event-bus to the same event stream — subscribes
+    // to the full ~73-event security vocabulary on construction.
+    this.securityEventBus = new SecurityEventBus(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------
