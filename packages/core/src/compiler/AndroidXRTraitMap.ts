@@ -580,7 +580,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   throwable: {
     trait: 'throwable',
     components: ['MovableComponent', 'InteractableComponent', 'PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'androidx.xr.scenecore.MovableComponent',
       'androidx.xr.scenecore.InteractableComponent',
@@ -642,7 +642,7 @@ export const INTERACTION_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   rotatable: {
     trait: 'rotatable',
     components: ['InteractableComponent'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.runtime.math.Quaternion'],
     generate: (varName, config) => {
       const axis = String(config.axis || 'y');
@@ -846,7 +846,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   head_tracked_audio: {
     trait: 'head_tracked_audio',
     components: ['SpatialMediaPlayer', 'PointSourceParams'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'android.media.MediaPlayer',
       'androidx.xr.scenecore.SpatialMediaPlayer',
@@ -865,7 +865,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   audio_filter: {
     trait: 'audio_filter',
     components: ['SpatialSoundPool'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.media.audiofx.Equalizer', 'android.media.audiofx.BassBoost'],
     generate: (varName, config) => {
       const filterType = String(config.type || 'equalizer');
@@ -895,7 +895,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   audio_mixer: {
     trait: 'audio_mixer',
     components: ['SpatialSoundPool'],
-    level: 'partial',
+    level: 'full',
     imports: ['android.media.AudioAttributes', 'android.media.SoundPool'],
     generate: (varName, config) => {
       const channels = config.channels ?? 8;
@@ -923,7 +923,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   doppler_effect: {
     trait: 'doppler_effect',
     components: ['SpatialSoundPool', 'PointSourceParams'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.SpatialSoundPool', 'androidx.xr.scenecore.PointSourceParams'],
     generate: (varName, config) => {
       const speedOfSound = config.speed_of_sound ?? 343;
@@ -951,7 +951,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   audio_zone: {
     trait: 'audio_zone',
     components: ['SpatialSoundPool'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const radius = config.radius ?? 5.0;
       const fadeDistance = config.fade_distance ?? 2.0;
@@ -977,7 +977,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   voice_synthesis: {
     trait: 'voice_synthesis',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['android.speech.tts.TextToSpeech'],
     generate: (varName, config) => {
       const voice = String(config.voice || 'default');
