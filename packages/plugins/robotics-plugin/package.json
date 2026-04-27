@@ -1,0 +1,30 @@
+{
+  "name": "@holoscript/robotics-plugin",
+  "version": "1.0.0",
+  "description": "HoloScript plugin for robotics: compile-time USD/URDF codegen + runtime ROS2/Gazebo integration. VR robot programming and digital twins.",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "robotics",
+    "ros2",
+    "gazebo",
+    "urdf",
+    "usd",
+    "vr",
+    "digital-twin"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
