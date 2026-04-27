@@ -1433,7 +1433,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   gpu_culling: {
     trait: 'gpu_culling',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const frustumCulling = config.frustum ?? true;
@@ -1463,7 +1463,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   screen_space_reflections: {
     trait: 'screen_space_reflections',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const quality = String(config.quality || 'medium');
@@ -1486,7 +1486,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   volumetric_fog: {
     trait: 'volumetric_fog',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const density = config.density ?? 0.02;
@@ -1512,7 +1512,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   decal_projector: {
     trait: 'decal_projector',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.android.filament.MaterialInstance',
       'com.google.android.filament.Texture',
@@ -1539,7 +1539,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   wireframe: {
     trait: 'wireframe',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.RenderableManager'],
     generate: (varName) => [
       `// @wireframe -- wireframe rendering mode`,
@@ -1555,7 +1555,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   outline: {
     trait: 'outline',
     components: ['GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.RenderableManager'],
     generate: (varName, config) => {
       const color = config.color || '#00ff00';
@@ -1577,7 +1577,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   bloom: {
     trait: 'bloom',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const intensity = config.intensity ?? 0.5;
@@ -1601,7 +1601,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   chromatic_aberration: {
     trait: 'chromatic_aberration',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const intensity = config.intensity ?? 0.5;
@@ -1622,7 +1622,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   depth_of_field: {
     trait: 'depth_of_field',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View'],
     generate: (varName, config) => {
       const focusDistance = config.focus_distance ?? 2.0;
@@ -1646,7 +1646,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   color_grading: {
     trait: 'color_grading',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['com.google.android.filament.View', 'com.google.android.filament.ColorGrading'],
     generate: (varName, config) => {
       const exposure = config.exposure ?? 0.0;

@@ -557,7 +557,17 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('shadow_caster');
     expect(partial).not.toContain('shadow_receiver');
     expect(partial).not.toContain('instancing');
-    expect(partial).toContain('bloom');
+    // batch 13 promoted
+    expect(partial).not.toContain('gpu_culling');
+    expect(partial).not.toContain('screen_space_reflections');
+    expect(partial).not.toContain('volumetric_fog');
+    expect(partial).not.toContain('decal_projector');
+    expect(partial).not.toContain('wireframe');
+    expect(partial).not.toContain('outline');
+    expect(partial).not.toContain('bloom');
+    expect(partial).not.toContain('chromatic_aberration');
+    expect(partial).not.toContain('depth_of_field');
+    expect(partial).not.toContain('color_grading');
     expect(partial).toContain('state_sync');
     expect(partial).toContain('voice_chat');
     expect(partial).toContain('pathfinding');
@@ -879,6 +889,79 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       const code = generateTraitCode('instancing', 'tree', { count: 500 });
       expect(code.some((l) => l.includes('VertexBuffer') || l.includes('InstanceCount') || l.includes('instanc'))).toBe(true);
       expect(code.some((l) => l.includes('500'))).toBe(true);
+    });
+  });
+
+  describe('AndroidXR batch 13 -- post-processing + rendering traits', () => {
+    it('gpu_culling is full and generates Filament view culling', () => {
+      const m = getTraitMapping('gpu_culling');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('gpu_culling', 'scene', { frustum: true, occlusion: false });
+      expect(code.some((l) => l.includes('View') || l.includes('culling') || l.includes('Culling') || l.includes('setEnabled'))).toBe(true);
+    });
+    it('screen_space_reflections is full and generates Filament SSR options', () => {
+      const m = getTraitMapping('screen_space_reflections');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('screen_space_reflections', 'view', { quality: 'high' });
+      expect(code.some((l) => l.includes('ScreenSpaceReflections') || l.includes('ssrOptions') || l.includes('reflection'))).toBe(true);
+    });
+    it('volumetric_fog is full and generates Filament FogOptions', () => {
+      const m = getTraitMapping('volumetric_fog');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('volumetric_fog', 'scene', { density: 0.05 });
+      expect(code.some((l) => l.includes('FogOptions') || l.includes('fog') || l.includes('density'))).toBe(true);
+    });
+    it('decal_projector is full and generates decal texture projection', () => {
+      const m = getTraitMapping('decal_projector');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('decal_projector', 'wall', { texture: 'cracks.png' });
+      expect(code.some((l) => l.includes('decal') || l.includes('Decal') || l.includes('Material') || l.includes('texture'))).toBe(true);
+    });
+    it('wireframe is full and generates wireframe material', () => {
+      const m = getTraitMapping('wireframe');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('wireframe', 'mesh', {});
+      expect(code.some((l) => l.includes('wireframe') || l.includes('Wireframe') || l.includes('Material'))).toBe(true);
+    });
+    it('outline is full and generates back-face outline pass', () => {
+      const m = getTraitMapping('outline');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('outline', 'obj', { color: '#ff0000', width: 2 });
+      expect(code.some((l) => l.includes('outline') || l.includes('Outline') || l.includes('backFace') || l.includes('Material'))).toBe(true);
+    });
+    it('bloom is full and generates Filament BloomOptions', () => {
+      const m = getTraitMapping('bloom');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('bloom', 'view', { strength: 0.5, threshold: 0.8 });
+      expect(code.some((l) => l.includes('BloomOptions') || l.includes('bloom') || l.includes('strength'))).toBe(true);
+    });
+    it('chromatic_aberration is full and generates CA post-process material', () => {
+      const m = getTraitMapping('chromatic_aberration');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('chromatic_aberration', 'camera', { offset: 0.005 });
+      expect(code.some((l) => l.includes('chromatic') || l.includes('Chromatic') || l.includes('Material') || l.includes('offset'))).toBe(true);
+    });
+    it('depth_of_field is full and generates Filament DepthOfFieldOptions', () => {
+      const m = getTraitMapping('depth_of_field');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('depth_of_field', 'cam', { focus_distance: 3.0, aperture: 2.8 });
+      expect(code.some((l) => l.includes('DepthOfField') || l.includes('depthOfField') || l.includes('focusDistance'))).toBe(true);
+    });
+    it('color_grading is full and generates Filament ColorGrading', () => {
+      const m = getTraitMapping('color_grading');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+      const code = generateTraitCode('color_grading', 'view', { exposure: 0.5, contrast: 1.2 });
+      expect(code.some((l) => l.includes('ColorGrading') || l.includes('colorGrading') || l.includes('toneMapping'))).toBe(true);
     });
   });
 });
