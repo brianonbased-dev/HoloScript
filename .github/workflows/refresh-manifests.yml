@@ -111,14 +111,14 @@ jobs:
           # Build a short summary of what changed for the commit message.
           CHANGED=$(git diff --cached --name-only | tr '\n' ' ')
           TRIGGER="${GITHUB_EVENT_NAME}"
-          git commit -m "docs(manifests): auto-refresh - ${TRIGGER}
-
-Refreshed: ${CHANGED}
-Trigger: ${TRIGGER}
-Run: ${GH_RUN_URL:-n/a}
-
-Closes ai-ecosystem board task: task_1777316737268_nxgx.
-[skip ci]"
+          MSG=$(printf '%s\n\n%s\n%s\n%s\n\n%s\n%s' \
+            "docs(manifests): auto-refresh - ${TRIGGER}" \
+            "Refreshed: ${CHANGED}" \
+            "Trigger: ${TRIGGER}" \
+            "Run: ${GH_RUN_URL:-n/a}" \
+            "Closes ai-ecosystem board task: task_1777316737268_nxgx." \
+            "[skip ci]")
+          git commit -m "$MSG"
           git push origin HEAD:main
         env:
           GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
