@@ -350,7 +350,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   rigid_body_chain: {
     trait: 'rigid_body_chain',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const linkCount = config.link_count ?? 10;
       const linkMass = config.link_mass ?? 0.5;
@@ -378,7 +378,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ragdoll: {
     trait: 'ragdoll',
     components: ['PhysicsComponent', 'GltfModelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.scenecore.GltfModelEntity'],
     generate: (varName, config) => {
       const boneCount = config.bone_count ?? 15;
@@ -404,7 +404,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   buoyancy: {
     trait: 'buoyancy',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const waterLevel = config.water_level ?? 0.0;
       const fluidDensity = config.fluid_density ?? 1000;
@@ -433,7 +433,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   wind_force: {
     trait: 'wind_force',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const direction = config.direction || [1, 0, 0];
       const d = direction as number[];
@@ -463,7 +463,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   gravity_zone: {
     trait: 'gravity_zone',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const gravity = config.gravity || [0, -9.81, 0];
       const g = gravity as number[];
