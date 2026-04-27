@@ -57,13 +57,25 @@ jobs:
           fetch-depth: 0
 
       - name: Clone sibling ai-ecosystem repo
+        env:
+          # ai-ecosystem is private — clone needs a PAT with read access.
+          # Same physical PAT as HOLOSCRIPT_DISPATCH_PAT on the ai-eco side
+          # (admin on both repos) but stored under a HoloScript-side name.
+          AI_ECOSYSTEM_READ_PAT: ${{ secrets.AI_ECOSYSTEM_READ_PAT }}
         run: |
           # The manifest builders default to ../ai-ecosystem (sibling path)
           # via AI_ECO_ROOT / --ai-eco=. Clone shallow to keep CI minutes down,
           # but full enough that paper-audit-matrix-auto-rebuild.mjs can run
           # `git log` per file (it tolerates shallow history - missing commits
           # just degrade the matrix last-touched hint).
-          git clone --depth=50 https://github.com/brianonbased-dev/ai-ecosystem.git ../ai-ecosystem
+          if [ -z "$AI_ECOSYSTEM_READ_PAT" ]; then
+            echo "::error::AI_ECOSYSTEM_READ_PAT secret not set; cannot clone private ai-ecosystem repo."
+            echo "Founder action: gh secret set AI_ECOSYSTEM_READ_PAT --repo brianonbased-dev/HoloScript"
+            exit 1
+          fi
+          git clone --depth=50 \
+            "https://x-access-token:${AI_ECOSYSTEM_READ_PAT}@github.com/brianonbased-dev/ai-ecosystem.git" \
+            ../ai-ecosystem
           echo "AI_ECO_ROOT=$GITHUB_WORKSPACE/../ai-ecosystem" >> $GITHUB_ENV
 
       - name: Setup Node.js
