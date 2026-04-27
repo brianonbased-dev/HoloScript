@@ -8,6 +8,13 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type {
+  MotionMatchingEngine,
+  MotionInferenceResult,
+  Vec3,
+  Gait,
+  ContactFeatures,
+} from './engines/motion-matching';
 
 // =============================================================================
 // TYPES
@@ -23,12 +30,45 @@ export interface SkeletonPose {
   timestamp: number;
 }
 
+/**
+ * Locomotion knobs from the @neural_locomotion spec (idea-run-3 2026-04-26).
+ * Nested + optional so existing flat config remains back-compatible.
+ * Active only when animation_model === 'motion_matching' and an engine
+ * has been registered via the 'neural_animation_set_engine' event.
+ */
+export interface NeuralLocomotionConfig {
+  max_speed?: number;
+  min_speed?: number;
+  acceleration?: number;
+  deceleration?: number;
+  turn_rate?: number;
+  stride_scale?: number;
+  terrain_adaptation?: boolean;
+  foot_ik_enabled?: boolean;
+  energy_efficiency?: number;
+  performance_mode?: 'high' | 'balanced' | 'low' | 'auto';
+  fallback_mode?: 'physics' | 'clip' | 'disabled';
+  lod_distance?: number;
+  blend_with_physics?: number;
+  trajectory_visual?: boolean;
+}
+
 export interface NeuralAnimationConfig {
   animation_model: AnimationModel;
   smoothing: number; // 0.0 - 1.0
   retargeting: boolean;
   blend_weight: number; // 0.0 - 1.0 for blending with existing animation
   target_skeleton?: string; // Skeleton to retarget to
+  locomotion?: NeuralLocomotionConfig;
+}
+
+export interface LocomotionState {
+  phase: number;
+  trajectory: Array<[number, number, number]>;
+  stability: number;
+  contact: ContactFeatures;
+  currentGait: Gait;
+  energyCost: number;
 }
 
 interface NeuralAnimationState {
@@ -37,6 +77,12 @@ interface NeuralAnimationState {
   is_generating: boolean;
   target_pose: SkeletonPose | null;
   blend_accumulator: number;
+  // Motion-matching seam — populated only when an engine is set + animation_model === 'motion_matching'
+  engine: MotionMatchingEngine | null;
+  target_velocity: Vec3;
+  locomotion: LocomotionState | null;
+  prev_left_contact: boolean;
+  prev_right_contact: boolean;
 }
 
 // =============================================================================
@@ -98,6 +144,11 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       is_generating: false,
       target_pose: null,
       blend_accumulator: 0,
+      engine: null,
+      target_velocity: { x: 0, y: 0, z: 0 },
+      locomotion: null,
+      prev_left_contact: false,
+      prev_right_contact: false,
     };
     node.__neuralAnimationState = state;
 
@@ -114,7 +165,50 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = node.__neuralAnimationState as NeuralAnimationState;
-    if (!state || !state.target_pose) return;
+    if (!state) return;
+
+    // Motion-matching path — engine present + correct model selected.
+    // Falls through to legacy interpolator path when engine missing
+    // (per fallback_mode: 'clip' default — see locomotion config).
+    if (config.animation_model === 'motion_matching' && state.engine) {
+      const result: MotionInferenceResult = state.engine.infer({
+        targetVelocity: state.target_velocity,
+        currentPhase: state.locomotion?.phase ?? 0,
+        delta,
+        energyEfficiency: config.locomotion?.energy_efficiency,
+      });
+
+      state.locomotion = {
+        phase: result.phase,
+        trajectory: result.trajectory,
+        stability: result.stability,
+        contact: result.contactFeatures,
+        currentGait: result.gait,
+        energyCost: result.energyCost,
+      };
+      state.current_pose = result.pose;
+
+      // Foot-contact transition events — drive @ik bridge (WIRE-1)
+      if (result.contactFeatures.leftFoot !== state.prev_left_contact) {
+        context.emit?.('on_foot_contact', { node, side: 'left', state: result.contactFeatures.leftFoot });
+        state.prev_left_contact = result.contactFeatures.leftFoot;
+      }
+      if (result.contactFeatures.rightFoot !== state.prev_right_contact) {
+        context.emit?.('on_foot_contact', { node, side: 'right', state: result.contactFeatures.rightFoot });
+        state.prev_right_contact = result.contactFeatures.rightFoot;
+      }
+
+      // Stumble detection — drives recovery hook (spec §5)
+      if (result.stability < 0.3) {
+        context.emit?.('on_stumble_detected', { node, stability: result.stability });
+      }
+
+      context.emit?.('neural_animation_frame', { node, pose: state.current_pose });
+      return;
+    }
+
+    // Legacy pose-blender path — preserved unchanged for back-compat.
+    if (!state.target_pose) return;
 
     // Smooth interpolation to target pose
     if (state.current_pose) {
@@ -144,6 +238,31 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
   onEvent(node, config, context, event) {
     const state = node.__neuralAnimationState as NeuralAnimationState;
     if (!state) return;
+
+    // Motion-matching seam events
+    if (event.type === 'neural_animation_set_engine') {
+      state.engine = event.engine as MotionMatchingEngine;
+      context.emit?.('on_locomotion_initialized', {
+        node,
+        modelId: state.engine?.modelId,
+      });
+      return;
+    }
+    if (event.type === 'neural_animation_clear_engine') {
+      state.engine?.dispose();
+      state.engine = null;
+      state.locomotion = null;
+      context.emit?.('on_locomotion_fallback', {
+        node,
+        mode: config.locomotion?.fallback_mode ?? 'clip',
+      });
+      return;
+    }
+    if (event.type === 'neural_animation_set_target_velocity') {
+      const v = (event.velocity ?? { x: 0, y: 0, z: 0 }) as Partial<Vec3>;
+      state.target_velocity = { x: v.x ?? 0, y: v.y ?? 0, z: v.z ?? 0 };
+      return;
+    }
 
     if (event.type === 'neural_animation_synthesize') {
       const targetPose = event.target_pose as SkeletonPose;
