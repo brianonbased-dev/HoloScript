@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
+import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 
 interface ScanSessionResponse {
   token: string;
@@ -142,11 +143,14 @@ export function ReconstructionPanel() {
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2 py-1 text-green-300">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Ready to reconstruct in Studio
                 </div>
-                {(state.replayFingerprint || state.manifest?.simulationContract.replayFingerprint) && (
-                  <p className="font-mono text-[10px] leading-relaxed text-studio-muted break-all">
-                    Replay fingerprint:{' '}
-                    {state.replayFingerprint ?? state.manifest?.simulationContract.replayFingerprint}
-                  </p>
+                {state.manifest && (
+                  <AcceptanceVideoInspector
+                    manifest={state.manifest}
+                    videoHash={state.videoHash}
+                    frameCount={state.frameCount}
+                    videoBytes={state.videoBytes}
+                    replayFingerprint={state.replayFingerprint}
+                  />
                 )}
               </div>
             )}
