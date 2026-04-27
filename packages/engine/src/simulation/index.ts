@@ -89,6 +89,23 @@ export {
   type EquivalenceWireInput,
 } from './equivalenceRecord';
 
+// Agent dialog wire (`agent.dialog.v1`) — third instance of the time-binding
+// solverType family (W.107 ui.session.v1, W.315 equivalence.v1, this).
+// Chain-typed dialog turns; replay-deterministic across agent restarts and
+// fleet-instance churn (W.111). See research/2026-04-27_time-premise-
+// holoscript-architecture.md for the architectural rationale.
+export {
+  AGENT_DIALOG_V1,
+  buildAgentDialogV1Record,
+  canonicalDialogSnapshot,
+  dialogWireKey,
+  wireFormatEquivalentDialog,
+  type AgentDialogV1Record,
+  type AgentDialogV1SolverType,
+  type AgentDialogWireInput,
+  type DialogTurn,
+} from './agentDialogRecord';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
