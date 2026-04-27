@@ -511,6 +511,11 @@ datasets/
 scratch/
 samples/
 
+# Per-paper dataset exemptions — load-bearing corpora shipped with the paper
+# must be version-controlled. Add a line per paper as it ships its dataset.
+!research/paper-19/datasets/
+!research/paper-19/datasets/**
+
 # VitePress dev/build cache (regenerated locally)
 docs/.vitepress/cache/
 
