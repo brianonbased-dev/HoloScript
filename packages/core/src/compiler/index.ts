@@ -145,6 +145,12 @@ export { Native2DCompiler } from './Native2DCompiler';
 export type { Native2DCompilerOptions } from './Native2DCompiler';
 export { SCMCompiler } from './SCMCompiler';
 export type { SCMCompilerOptions, AffectiveState, SCMDAG } from './SCMCompiler';
+export { mergeSocialCausalModels } from './social-causality';
+export type {
+  SocialMergeOptions,
+  SocialMergeReport,
+  SocialMergeResult,
+} from './social-causality';
 
 // v6 Service compilers (v5.2 experimental)
 export { NodeServiceCompiler } from './NodeServiceCompiler';
