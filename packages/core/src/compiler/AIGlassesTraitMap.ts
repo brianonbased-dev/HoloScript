@@ -390,7 +390,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   hoverable: {
     trait: 'hoverable',
     components: ['TouchpadGesture', 'GlimmerSurface'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.glimmer.surface'],
     generate: (varName) => [
       `// @hoverable -- AI Glasses: touchpad focus replaces hover`,
@@ -402,7 +402,7 @@ export const INPUT_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   draggable: {
     trait: 'draggable',
     components: ['TouchpadGesture'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.glimmer.surface'],
     generate: (varName, config) => {
       const direction = String(config.direction || 'horizontal');
@@ -1094,7 +1094,7 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   ai_npc_brain: {
     trait: 'ai_npc_brain',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.ai.edge.aicore.GenerativeModel',
       'com.google.ai.edge.aicore.GenerationConfig',

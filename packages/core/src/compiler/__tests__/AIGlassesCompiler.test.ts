@@ -958,4 +958,67 @@ describe('AIGlassesTraitMap', () => {
       expect(sdk).toBeGreaterThanOrEqual(30);
     });
   });
+
+  describe('Upgraded Traits — full level', () => {
+    it('hoverable is full and generates Modifier.surface(focusable = true)', () => {
+      const mapping = traitMap.getTraitMapping('hoverable');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = traitMap.generateTraitCode('hoverable', 'infoCard', {});
+      expect(code.some((l) => l.includes('focusable = true'))).toBe(true);
+      expect(code.some((l) => l.includes('infoCard'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('hoverable declares Glimmer surface imports', () => {
+      const imports = traitMap.getRequiredImports(['hoverable']);
+      expect(imports.some((i) => i.includes('glimmer'))).toBe(true);
+    });
+
+    it('draggable is full and generates touchpad swipe modifier', () => {
+      const mapping = traitMap.getTraitMapping('draggable');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = traitMap.generateTraitCode('draggable', 'scrollList', { direction: 'vertical' });
+      expect(code.some((l) => l.includes('focusable = true') || l.includes('swipe'))).toBe(true);
+      expect(code.some((l) => l.includes('scrollList'))).toBe(true);
+      expect(code.some((l) => l.includes('vertical'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('draggable horizontal direction is emitted in code', () => {
+      const code = traitMap.generateTraitCode('draggable', 'nav', { direction: 'horizontal' });
+      expect(code.some((l) => l.includes('horizontal'))).toBe(true);
+    });
+
+    it('ai_npc_brain is full and generates Gemini Nano GenerativeModel', () => {
+      const mapping = traitMap.getTraitMapping('ai_npc_brain');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = traitMap.generateTraitCode('ai_npc_brain', 'assistant', {
+        model: 'gemini-nano',
+        max_tokens: 128,
+        temperature: 0.5,
+      });
+      expect(code.some((l) => l.includes('GenerativeModel'))).toBe(true);
+      expect(code.some((l) => l.includes('gemini-nano'))).toBe(true);
+      expect(code.some((l) => l.includes('assistant'))).toBe(true);
+      expect(code.some((l) => l.includes('generateResponse'))).toBe(true);
+      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    });
+
+    it('ai_npc_brain uses custom max_tokens and temperature', () => {
+      const code = traitMap.generateTraitCode('ai_npc_brain', 'bot', {
+        max_tokens: 512,
+        temperature: 0.9,
+      });
+      expect(code.some((l) => l.includes('512'))).toBe(true);
+      expect(code.some((l) => l.includes('0.9'))).toBe(true);
+    });
+
+    it('ai_npc_brain declares AICore imports', () => {
+      const imports = traitMap.getRequiredImports(['ai_npc_brain']);
+      expect(imports.some((i) => i.includes('aicore') || i.includes('GenerativeModel'))).toBe(true);
+    });
+  });
 });

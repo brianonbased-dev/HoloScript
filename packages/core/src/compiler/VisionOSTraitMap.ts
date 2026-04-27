@@ -1476,7 +1476,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   embedding_search: {
     trait: 'embedding_search',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['CoreData', 'Foundation'],
     generate: (varName, config) => {
       const dimensions = Number(config.dimensions || 1536);
@@ -1667,7 +1667,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   vision: {
     trait: 'vision',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['Vision', 'CoreImage'],
     generate: (varName, config) => {
       const task = String(config.task || 'classification');
@@ -1685,7 +1685,6 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
       return [
         `// @vision — Vision framework (task: ${task})`,
         `let ${varName}Request = ${req}()`,
-        `let ${varName}Handler = VNImageRequestHandler(ciImage: CIImage() /* supply real image */, options: [:])`,
         `func ${varName}Analyze(pixelBuffer: CVPixelBuffer) -> [VNObservation] {`,
         `    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])`,
         `    try? handler.perform([${varName}Request])`,

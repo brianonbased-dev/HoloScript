@@ -217,10 +217,10 @@ describe('VisionOSTraitMap', () => {
 
   // =========== Upgraded traits (vision / spatial_awareness / ai_vision) ===========
 
-  it('vision is partial and generates VNRequest dispatch for text_recognition', () => {
+  it('vision is full and generates VNRequest dispatch for text_recognition', () => {
     const mapping = getTraitMapping('vision');
     expect(mapping).toBeDefined();
-    expect(mapping!.level).toBe('partial');
+    expect(mapping!.level).toBe('full');
     const code = generateTraitCode('vision', 'cam', { task: 'text_recognition' });
     expect(code.some((l) => l.includes('VNRecognizeTextRequest'))).toBe(true);
     expect(code.some((l) => l.includes('cam'))).toBe(true);
@@ -295,3 +295,20 @@ describe('VisionOSTraitMap', () => {
     expect(imports).toContain('Combine');
   });
 });
+
+  it('embedding_search is full and generates CoreData vector search helpers', () => {
+    const mapping = getTraitMapping('embedding_search');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = generateTraitCode('embedding_search', 'store', { dimensions: 512 });
+    expect(code.some((l) => l.includes('NSPersistentContainer'))).toBe(true);
+    expect(code.some((l) => l.includes('storeSearch'))).toBe(true);
+    expect(code.some((l) => l.includes('CosineSimilarity'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('embedding_search declares CoreData + Foundation imports', () => {
+    const imports = getRequiredImports(['embedding_search']);
+    expect(imports).toContain('CoreData');
+    expect(imports).toContain('Foundation');
+  });
