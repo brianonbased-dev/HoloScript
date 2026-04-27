@@ -134,6 +134,29 @@ describe('RigidBody — Production', () => {
     });
   });
 
+  describe('applyForceAtPoint', () => {
+    it('adds both linear force and torque from offset', () => {
+      body.position = [0, 0, 0 ];
+      body.applyForceAtPoint([0, 10, 0 ], [1, 0, 0 ]);
+      expect(body.getForce()[1]).toBe(10);
+      expect(Math.abs(body.getTorque()[2])).toBeGreaterThan(0);
+    });
+  });
+
+  describe('applyImpulseAtPoint / torque impulse', () => {
+    it('changes angular velocity from off-center impulse', () => {
+      body.position = [0, 0, 0 ];
+      body.applyImpulseAtPoint([0, 10, 0 ], [1, 0, 0 ]);
+      expect(Math.abs(body.angularVelocity[2])).toBeGreaterThan(0);
+    });
+
+    it('applyTorqueImpulse no-ops on static body', () => {
+      const s = makeStatic();
+      s.applyTorqueImpulse([0, 100, 0 ]);
+      expect(s.angularVelocity).toEqual(zeroVector());
+    });
+  });
+
   describe('clearForces', () => {
     it('clears accumulated forces', () => {
       body.applyForce([100, 0, 0 ]);
@@ -162,6 +185,20 @@ describe('RigidBody — Production', () => {
       body.integrateVelocities(1.0);
       expect(body.position[0]).toBeCloseTo(10, 1);
     });
+
+    it('normalizes rotation after angular integration', () => {
+      body.angularVelocity = [0, 10, 0 ];
+      body.integrateVelocities(0.5);
+      const q = body.rotation;
+      const len = Math.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2);
+      expect(len).toBeCloseTo(1, 5);
+    });
+
+    it('skips static body during velocity integration', () => {
+      const s = makeStatic();
+      s.integrateVelocities(1.0);
+      expect(s.position).toEqual([0, 5, 0 ]);
+    });
   });
 
   describe('sleep', () => {
@@ -174,6 +211,15 @@ describe('RigidBody — Production', () => {
       expect(sleepy.isSleeping).toBe(true);
       sleepy.wakeUp();
       expect(sleepy.isSleeping).toBe(false);
+    });
+
+    it('updateSleep eventually sleeps low-velocity dynamic bodies', () => {
+      const sleepy = makeDynamic();
+      for (let i = 0; i < 300; i++) {
+        sleepy.updateSleep(1 / 60);
+      }
+      expect(sleepy.isSleeping).toBe(true);
+      expect(sleepy.linearVelocity).toEqual(zeroVector());
     });
   });
 
@@ -195,6 +241,19 @@ describe('RigidBody — Production', () => {
       body.setTransform(t);
       const result = body.getTransform();
       expect(result.position).toEqual([5, 10, 15 ]);
+    });
+  });
+
+  describe('material / filter getters and setters', () => {
+    it('round-trips material changes', () => {
+      body.material = { friction: 0.2, restitution: 0.9 };
+      expect(body.material).toEqual({ friction: 0.2, restitution: 0.9 });
+    });
+
+    it('round-trips collision filter changes', () => {
+      body.filter = { group: COLLISION_GROUPS.DEFAULT, mask: 0 };
+      expect(body.filter.mask).toBe(0);
+      expect(body.filter.group).toBe(COLLISION_GROUPS.DEFAULT);
     });
   });
 

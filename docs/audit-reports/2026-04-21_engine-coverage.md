@@ -84,25 +84,25 @@ These rows are the **W4-T2 starting backlog** — bold throughout because correc
 | **`src/simulation/SimulationSerializer.ts`** | 0.0% | 0.0% | 0.0% | 25 |
 | **`src/simulation/TetGenWasmMesher.ts`** | 0.0% | 0.0% | 0.0% | 9 |
 | **`src/simulation/register.ts`** | 0.0% | 0.0% | 0.0% | 41 |
-| **`src/simulation/import/CSVImporter.ts`** | 0.0% | 0.0% | 0.0% | 46 |
-| **`src/simulation/import/OBJParser.ts`** | 0.0% | 0.0% | 0.0% | 16 |
-| **`src/simulation/import/STLParser.ts`** | 0.0% | 0.0% | 0.0% | 68 |
-| **`src/simulation/import/VTKImporter.ts`** | 0.0% | 0.0% | 0.0% | 104 |
+| **`src/simulation/import/CSVImporter.ts`** | 100.0% | 97.01% | 92.3% | 46 |
+| **`src/simulation/import/OBJParser.ts`** | 100.0% | 100.0% | 100.0% | 16 |
+| **`src/simulation/import/STLParser.ts`** | 82.35% | 77.33% | 80.0% | 68 |
+| **`src/simulation/import/VTKImporter.ts`** | 100.0% | 100.0% | 100.0% | 104 |
 | **`src/simulation/verification/StressRecovery.ts`** | 0.0% | 0.0% | 0.0% | 92 |
 | **`src/tilemap/TilePhysics.ts`** | 0.0% | 0.0% | 0.0% | 44 |
 | **`src/traits/GPUPhysicsTrait.ts`** | 0.0% | 0.0% | 0.0% | 43 |
-| **`src/simulation/import/GmshParser.ts`** | 1.0% | 0.8% | 0.0% | 104 |
+| **`src/simulation/import/GmshParser.ts`** | 87.5% | 83.73% | 100.0% | 104 |
 | **`src/physics/PIDController.ts`** | 1.0% | 1.0% | 0.0% | 193 |
 | **`src/simulation/wasm/TetGenWasmMesher.ts`** | 4.8% | 4.3% | 0.0% | 21 |
 | **`src/physics/PhysicsActivation.ts`** | 6.4% | 7.0% | 6.5% | 283 |
 | **`src/physics/PBDSolver.ts`** | 19.4% | 19.4% | 13.2% | 981 |
 | **`src/simulation/verification/ReportGenerator.ts`** | 25.4% | 26.3% | 57.1% | 110 |
-| **`src/simulation/units/PhysicalQuantity.ts`** | 30.0% | 30.0% | 30.0% | 50 |
+| **`src/simulation/units/PhysicalQuantity.ts`** | 80.0% | 80.0% | 80.0% | 50 |
 | **`src/simulation/CouplingManagerV2.ts`** | 49.1% | 45.0% | 50.0% | 55 |
-| **`src/physics/ConstraintSolver.ts`** | 49.7% | 50.0% | 67.5% | 187 |
+| **`src/physics/ConstraintSolver.ts`** | 91.57% | 90.64% | 82.5% | 187 |
 | **`src/physics/PhysicsTypes.ts`** | 51.5% | 52.9% | 75.0% | 33 |
 | **`src/physics/PhysicsWorldImpl.ts`** | 57.7% | 54.4% | 58.0% | 575 |
-| **`src/physics/PhysicsBody.ts`** | 59.2% | 58.0% | 47.9% | 184 |
+| **`src/physics/PhysicsBody.ts`** | 88.04% | 85.0% | 93.75% | 184 |
 
 **Reading the table.** Many of the 0% rows are not "untested code" — they are "code whose only tests are currently quarantined" (e.g. `PhysicsActivation`, `ClothSim`, `NavierStokesSolver`, `StressRecovery`, `VRPhysicsBridge`, `GPUPhysicsTrait`). Re-stabilising the corresponding quarantined suite immediately recovers a chunk of priority coverage — that's the W4-T1-followup work, and it's why the followup task should be sequenced **before** writing brand-new tests in W4-T2.
 
