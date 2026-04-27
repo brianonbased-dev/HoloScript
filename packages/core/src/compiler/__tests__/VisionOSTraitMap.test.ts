@@ -138,9 +138,9 @@ describe('VisionOSTraitMap', () => {
     }
   });
 
-  it('lists partial traits', () => {
+  it('lists partial traits (all promoted to full)', () => {
     const partialTraits = listTraitsByLevel('partial');
-    expect(partialTraits.length).toBeGreaterThan(0);
+    expect(partialTraits.length).toBe(0);
   });
 
   // =========== Individual trait categories ===========
@@ -526,6 +526,24 @@ describe('VisionOSTraitMap — Upgraded Traits (batch 6)', () => {
 
   it('spatial_navigation declares ARKit import', () => {
     const imports = getRequiredImports(['spatial_navigation']);
+    expect(imports).toContain('ARKit');
+  });
+});
+
+describe('VisionOS batch 9 — eye_hand_fusion', () => {
+  it('eye_hand_fusion is full', () => {
+    const mapping = getTraitMapping('eye_hand_fusion');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+  });
+  it('eye_hand_fusion generates HandTrackingProvider', () => {
+    const code = generateTraitCode('eye_hand_fusion', 'fusion', {});
+    expect(code.some((l) => l.includes('HandTrackingProvider'))).toBe(true);
+    expect(code.some((l) => l.includes('fusion'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+  it('eye_hand_fusion declares ARKit import', () => {
+    const imports = getRequiredImports(['eye_hand_fusion']);
     expect(imports).toContain('ARKit');
   });
 });

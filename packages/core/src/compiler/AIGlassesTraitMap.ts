@@ -686,7 +686,7 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   plane_detection: {
     trait: 'plane_detection',
     components: ['CameraProvider'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.ar.core.Session',
       'com.google.ar.core.Config',
@@ -772,7 +772,7 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   geospatial: {
     trait: 'geospatial',
     components: ['ProjectedDeviceController'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'android.location.LocationManager',
       'android.location.LocationListener',
@@ -850,7 +850,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   animated: {
     trait: 'animated',
     components: ['GlimmerSurface'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'androidx.compose.animation.AnimatedVisibility',
       'androidx.compose.animation.fadeIn',
@@ -967,7 +967,7 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   vision: {
     trait: 'vision',
     components: ['CameraProvider'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.mlkit.vision.common.InputImage',
       'com.google.mlkit.vision.label.ImageLabeling',
@@ -1028,7 +1028,7 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: ['CameraProvider'],
-    level: 'partial',
+    level: 'full',
     imports: [
       'com.google.mlkit.vision.common.InputImage',
       'com.google.mlkit.vision.objects.ObjectDetection',

@@ -810,10 +810,10 @@ describe('AIGlassesTraitMap', () => {
     });
 
   describe('AI_TRAIT_MAP vision', () => {
-    it('vision is partial and generates ImageLabeling for default classification task', () => {
+    it('vision is full and generates ImageLabeling for default classification task', () => {
       const mapping = traitMap.getTraitMapping('vision');
       expect(mapping).toBeDefined();
-      expect(mapping!.level).toBe('partial');
+      expect(mapping!.level).toBe('full');
       const code = traitMap.generateTraitCode('vision', 'cam', {});
       expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
       expect(code.some((l) => l.includes('cam'))).toBe(true);
@@ -1020,5 +1020,67 @@ describe('AIGlassesTraitMap', () => {
       const imports = traitMap.getRequiredImports(['ai_npc_brain']);
       expect(imports.some((i) => i.includes('aicore') || i.includes('GenerativeModel'))).toBe(true);
     });
+  });
+});
+
+describe('AIGlasses batch 4 — promoted partials', () => {
+  let traitMap: typeof import('../AIGlassesTraitMap');
+  beforeEach(async () => {
+    traitMap = await import('../AIGlassesTraitMap');
+  });
+
+  it('plane_detection is full and generates ARCore session', () => {
+    const mapping = traitMap.getTraitMapping('plane_detection');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = traitMap.generateTraitCode('plane_detection', 'planeNode', {});
+    expect(code.some((l) => l.includes('Session'))).toBe(true);
+    expect(code.some((l) => l.includes('planeNode'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('plane_detection with vertical plane type', () => {
+    const code = traitMap.generateTraitCode('plane_detection', 'wall', { plane_type: 'vertical' });
+    expect(code.some((l) => l.includes('HORIZONTAL_AND_VERTICAL'))).toBe(true);
+  });
+
+  it('geospatial is full and generates LocationManager code', () => {
+    const mapping = traitMap.getTraitMapping('geospatial');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = traitMap.generateTraitCode('geospatial', 'geoNode', {});
+    expect(code.some((l) => l.includes('LocationManager'))).toBe(true);
+    expect(code.some((l) => l.includes('geoNode'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('geospatial with coarse accuracy', () => {
+    const code = traitMap.generateTraitCode('geospatial', 'gps', { accuracy: 'coarse' });
+    expect(code.some((l) => l.includes('ACCURACY_COARSE'))).toBe(true);
+  });
+
+  it('animated is full and generates AnimatedVisibility', () => {
+    const mapping = traitMap.getTraitMapping('animated');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = traitMap.generateTraitCode('animated', 'panel', {});
+    expect(code.some((l) => l.includes('AnimatedVisibility'))).toBe(true);
+    expect(code.some((l) => l.includes('panel'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('animated uses custom duration', () => {
+    const code = traitMap.generateTraitCode('animated', 'elem', { duration: 500 });
+    expect(code.some((l) => l.includes('500'))).toBe(true);
+  });
+
+  it('ai_vision is full and generates object detection code', () => {
+    const mapping = traitMap.getTraitMapping('ai_vision');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('full');
+    const code = traitMap.generateTraitCode('ai_vision', 'detector', {});
+    expect(code.some((l) => l.includes('ObjectDetection') || l.includes('detection'))).toBe(true);
+    expect(code.some((l) => l.includes('detector'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
   });
 });

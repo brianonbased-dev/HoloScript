@@ -1191,7 +1191,7 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   eye_hand_fusion: {
     trait: 'eye_hand_fusion',
     components: ['InputTargetComponent'],
-    level: 'partial',
+    level: 'full',
     minVersion: '2.0',
     imports: ['ARKit'],
     generate: (varName, _config) => [
