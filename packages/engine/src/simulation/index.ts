@@ -124,6 +124,32 @@ export {
   type NetworkEventWireInput,
 } from './networkEventRecord';
 
+// Impossibility evidence (`impossibility.v1`) — counterweight to the
+// consensus-side wire-format family. Types evidence shipped against one of
+// the 28 named impossibilities (see research/2026-03-09_holoscript-three-
+// format-impossibility-map.md and research/2026-03-09_holoscript-14-
+// impossibilities-outside-the-box.md). Uses the existing SOLVES/PARTIALLY/
+// REFRAMES/DOESN'T_HELP rating scale. EXPECTS plural ratings for the same
+// impossibility from different agents (debate is first-class) and supports
+// the documented historical UPGRADE pattern (W.056 Cross-Platform
+// Determinism: DOESN'T_HELP → PARTIALLY after behavioral reframing).
+export {
+  IMPOSSIBILITY_V1,
+  aggregateEvidence,
+  buildImpossibilityV1Record,
+  direction,
+  evidenceWireKey,
+  rank,
+  validateEvidence,
+  type EvidenceCohort,
+  type FormatTag,
+  type ImpossibilityEvidence,
+  type ImpossibilityRating,
+  type ImpossibilityV1Record,
+  type ImpossibilityV1SolverType,
+  type RatingDirection,
+} from './impossibilityEvidence';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
