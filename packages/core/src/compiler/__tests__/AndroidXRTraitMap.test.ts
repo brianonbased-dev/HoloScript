@@ -546,7 +546,17 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('sph_pressure');
     expect(partial).not.toContain('reverb_zone');
     expect(partial).not.toContain('audio_occlusion');
-    expect(partial).toContain('instancing');
+    // batch 12 promoted
+    expect(partial).not.toContain('mesh_detection');
+    expect(partial).not.toContain('eye_tracking');
+    expect(partial).not.toContain('occlusion');
+    expect(partial).not.toContain('geospatial');
+    expect(partial).not.toContain('billboard');
+    expect(partial).not.toContain('particle_emitter');
+    expect(partial).not.toContain('lod');
+    expect(partial).not.toContain('shadow_caster');
+    expect(partial).not.toContain('shadow_receiver');
+    expect(partial).not.toContain('instancing');
     expect(partial).toContain('bloom');
     expect(partial).toContain('state_sync');
     expect(partial).toContain('voice_chat');
@@ -783,5 +793,92 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     expect(code.some((l) => l.includes('SPHPressureKernel'))).toBe(true);
     expect(code.some((l) => l.includes('2000'))).toBe(true);
     expect(code.some((l) => l.includes('attachTo') || l.includes('Pressure'))).toBe(true);
+  });
+
+  describe('AndroidXR batch 12 \u2014 AR perception + rendering traits', () => {
+    it('mesh_detection is full and generates ARCore mesh reconstruction', () => {
+      const mapping = getTraitMapping('mesh_detection');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('mesh_detection', 'scene', {});
+      expect(code.some((l) => l.includes('createMeshReconstruction') || l.includes('mesh'))).toBe(true);
+    });
+
+    it('eye_tracking is full and generates InteractableComponent hover events', () => {
+      const mapping = getTraitMapping('eye_tracking');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('eye_tracking', 'btn', {});
+      expect(code.some((l) => l.includes('InteractableComponent'))).toBe(true);
+      expect(code.some((l) => l.includes('HOVER_ENTER') || l.includes('HOVER_EXIT'))).toBe(true);
+    });
+
+    it('occlusion is full and generates ARCore depth occlusion', () => {
+      const mapping = getTraitMapping('occlusion');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('occlusion', 'wall', {});
+      expect(code.some((l) => l.includes('depthMode') || l.includes('DepthMode'))).toBe(true);
+    });
+
+    it('geospatial is full and generates Earth geospatial anchor', () => {
+      const mapping = getTraitMapping('geospatial');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('geospatial', 'marker', { latitude: 37.7749, longitude: -122.4194, altitude: 10 });
+      expect(code.some((l) => l.includes('createAnchor') || l.includes('Earth') || l.includes('earth'))).toBe(true);
+      expect(code.some((l) => l.includes('37.7749'))).toBe(true);
+    });
+
+    it('billboard is full and generates look-at rotation callback', () => {
+      const mapping = getTraitMapping('billboard');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('billboard', 'label', {});
+      expect(code.some((l) => l.includes('lookRotation') || l.includes('setPose') || l.includes('addOnUpdateListener'))).toBe(true);
+    });
+
+    it('particle_emitter is full and generates GPU compute particle system', () => {
+      const mapping = getTraitMapping('particle_emitter');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('particle_emitter', 'sparks', { rate: 200, max_particles: 2000 });
+      expect(code.some((l) => l.includes('GLES31') || l.includes('GL_SHADER_STORAGE_BUFFER'))).toBe(true);
+      expect(code.some((l) => l.includes('2000'))).toBe(true);
+    });
+
+    it('lod is full and generates distance-based LOD callback', () => {
+      const mapping = getTraitMapping('lod');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('lod', 'tree', { distances: [3, 20] });
+      expect(code.some((l) => l.includes('distance') || l.includes('dist'))).toBe(true);
+      expect(code.some((l) => l.includes('3') || l.includes('20'))).toBe(true);
+    });
+
+    it('shadow_caster is full and generates Filament setCastShadows', () => {
+      const mapping = getTraitMapping('shadow_caster');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('shadow_caster', 'obj', {});
+      expect(code.some((l) => l.includes('setCastShadows'))).toBe(true);
+    });
+
+    it('shadow_receiver is full and generates Filament setReceiveShadows', () => {
+      const mapping = getTraitMapping('shadow_receiver');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('shadow_receiver', 'floor', {});
+      expect(code.some((l) => l.includes('setReceiveShadows'))).toBe(true);
+    });
+
+    it('instancing is full and generates GPU instancing with VertexBuffer', () => {
+      const mapping = getTraitMapping('instancing');
+      expect(mapping).toBeDefined();
+      expect(mapping!.level).toBe('full');
+      const code = generateTraitCode('instancing', 'tree', { count: 500 });
+      expect(code.some((l) => l.includes('VertexBuffer') || l.includes('InstanceCount') || l.includes('instanc'))).toBe(true);
+      expect(code.some((l) => l.includes('500'))).toBe(true);
+    });
   });
 });
