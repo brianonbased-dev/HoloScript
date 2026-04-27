@@ -46,6 +46,18 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 FAILED=0
 
+# --- Gate 0: peer-parallel index-race detection (W.082b) ---
+# Snapshot the index tree-hash at hook start. We re-snapshot just before
+# the commit object is built and refuse the commit if the staged tree
+# changed between snapshots — that means a peer git op mutated our index
+# mid-gate (the W.082 escalation race that landed peer files into our
+# commit on b3b277189). Skip when explicit SKIP/agent env is set; those
+# paths bypass the whole hook anyway.
+PRE_GATE_TREE=$(git write-tree 2>/dev/null) || PRE_GATE_TREE=""
+if [ -n "$PRE_GATE_TREE" ]; then
+    echo -e "${GREEN}Index snapshot${NC} ${PRE_GATE_TREE:0:12} (peer-race detection armed)"
+fi
+
 run_with_timeout() {
     local timeout_secs=$1; shift
     if command -v timeout &> /dev/null; then
@@ -193,6 +205,40 @@ if [ "$STAGED_COUNT" -gt 50 ]; then
     echo ""
 elif [ "$STAGED_COUNT" -gt 20 ]; then
     echo -e "${YELLOW}Large commit: $STAGED_COUNT files staged.${NC} Consider splitting if they span multiple features."
+fi
+
+# --- Gate 5: peer-parallel index-race re-snapshot (W.082b) ---
+# Compare the current index tree-hash against the snapshot taken at hook
+# start. If it changed, a peer git op mutated our staged index mid-gate
+# (e.g. peer in another window ran `git add` / `git reset` / `git commit`
+# between our `git diff --cached --stat` verify and this point). Block
+# the commit so the agent can re-verify and use scripts/safe-commit.sh
+# (which uses `git commit -o <paths>` to atomically re-stage at commit
+# time, bypassing index trust).
+if [ -n "$PRE_GATE_TREE" ]; then
+    POST_GATE_TREE=$(git write-tree 2>/dev/null) || POST_GATE_TREE=""
+    if [ -n "$POST_GATE_TREE" ] && [ "$PRE_GATE_TREE" != "$POST_GATE_TREE" ]; then
+        echo ""
+        echo -e "${RED}PEER-PARALLEL INDEX RACE DETECTED (W.082b)${NC}"
+        echo "  Index tree-hash at hook start: ${PRE_GATE_TREE:0:12}"
+        echo "  Index tree-hash now:           ${POST_GATE_TREE:0:12}"
+        echo "  A concurrent git op mutated the staged set during the pre-commit hook."
+        echo "  This is the same race that landed peer files into commit b3b277189."
+        echo ""
+        echo -e "  ${YELLOW}FIX:${NC}"
+        echo "    1. Re-verify the staged set: git diff --cached --stat"
+        echo "    2. Re-commit via the atomic wrapper:"
+        echo "         bash scripts/safe-commit.sh -m 'msg' <path1> <path2> ..."
+        echo "    safe-commit.sh uses 'git commit -o <paths>' to re-stage at commit"
+        echo "    time, bypassing index trust. That closes the race even if a peer"
+        echo "    op mutates the index again between now and the next attempt."
+        echo ""
+        echo "  Bypass (NOT RECOMMENDED — may bleed peer files into your commit):"
+        echo "    SKIP_HOOKS=1 git commit ..."
+        FAILED=1
+    elif [ -n "$POST_GATE_TREE" ]; then
+        echo -e "${GREEN}Index unchanged${NC} ${POST_GATE_TREE:0:12} (no peer race)"
+    fi
 fi
 
 # --- Result ---
