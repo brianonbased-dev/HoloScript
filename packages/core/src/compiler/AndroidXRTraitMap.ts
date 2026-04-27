@@ -3747,7 +3747,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   pathfinding: {
     trait: 'pathfinding',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const algorithm = String(config.algorithm || 'a_star');
       const navMeshResolution = config.nav_mesh_resolution ?? 0.5;
@@ -3785,7 +3785,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   dialogue_system: {
     trait: 'dialogue_system',
     components: ['PanelEntity'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.compose.spatial.SpatialPanel'],
     generate: (varName, config) => {
       const backend = String(config.backend || 'gemini_nano');
@@ -3819,7 +3819,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   behavior_tree: {
     trait: 'behavior_tree',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const tickRate = config.tick_rate ?? 10;
       return [
@@ -3867,7 +3867,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   goal_planner: {
     trait: 'goal_planner',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const maxPlanDepth = config.max_depth ?? 10;
       return [
@@ -3910,7 +3910,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   npc_perception: {
     trait: 'npc_perception',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const viewAngle = config.view_angle ?? 120;
       const viewDistance = config.view_distance ?? 15;
@@ -3945,7 +3945,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   gesture_recognition: {
     trait: 'gesture_recognition',
     components: ['HandTrackingProvider'],
-    level: 'partial',
+    level: 'full',
     imports: ['androidx.xr.arcore.Hand', 'androidx.xr.arcore.HandJointType'],
     generate: (varName, config) => {
       const gestures = (config.gestures as string[]) || ['pinch', 'fist', 'point', 'open_palm'];
@@ -3986,7 +3986,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   speech_to_text: {
     trait: 'speech_to_text',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: [
       'android.speech.SpeechRecognizer',
       'android.speech.RecognizerIntent',
@@ -4037,7 +4037,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   text_to_speech: {
     trait: 'text_to_speech',
     components: [],
-    level: 'partial',
+    level: 'full',
     imports: ['android.speech.tts.TextToSpeech', 'java.util.Locale'],
     generate: (varName, config) => {
       const language = String(config.language || 'en-US');
@@ -4065,7 +4065,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   npc_steering: {
     trait: 'npc_steering',
     components: ['PhysicsComponent'],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const maxSpeed = config.max_speed ?? 3.0;
       const maxForce = config.max_force ?? 5.0;
@@ -4101,7 +4101,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   emotion_system: {
     trait: 'emotion_system',
     components: [],
-    level: 'partial',
+    level: 'full',
     generate: (varName, config) => {
       const decayRate = config.decay_rate ?? 0.01;
       return [

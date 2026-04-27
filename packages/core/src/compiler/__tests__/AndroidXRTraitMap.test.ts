@@ -601,8 +601,16 @@ describe('AndroidXRTraitMap', () => {
     expect(partial).not.toContain('networked_transform');
     expect(partial).not.toContain('spectator_mode');
     expect(partial).not.toContain('shared_anchor');
-    expect(partial).toContain('pathfinding');
-    expect(partial).toContain('behavior_tree');
+    expect(partial).not.toContain('pathfinding');
+    expect(partial).not.toContain('dialogue_system');
+    expect(partial).not.toContain('behavior_tree');
+    expect(partial).not.toContain('goal_planner');
+    expect(partial).not.toContain('npc_perception');
+    expect(partial).not.toContain('gesture_recognition');
+    expect(partial).not.toContain('speech_to_text');
+    expect(partial).not.toContain('text_to_speech');
+    expect(partial).not.toContain('npc_steering');
+    expect(partial).not.toContain('emotion_system');
   });
 
   // =========== Every trait generates non-empty code ===========
@@ -1434,6 +1442,186 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(partial).not.toContain('networked_transform');
       expect(partial).not.toContain('spectator_mode');
       expect(partial).not.toContain('shared_anchor');
+    });
+  });
+
+  describe('batch 18 -- AI/NPC behavior traits', () => {
+    it('pathfinding is promoted to full level', () => {
+      const m = getTraitMapping('pathfinding');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('pathfinding generates NavMesh and findPath function', () => {
+      const code = generateTraitCode('pathfinding', 'npcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('NavigationMesh'))).toBe(true);
+      expect(code.some((l) => l.includes('findPath'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('pathfinding uses custom algorithm config', () => {
+      const code = generateTraitCode('pathfinding', 'n', { algorithm: 'dijkstra' });
+      expect(code.some((l) => l.includes('dijkstra'))).toBe(true);
+    });
+
+    it('dialogue_system is promoted to full level', () => {
+      const m = getTraitMapping('dialogue_system');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('dialogue_system generates dialogue history and response function', () => {
+      const code = generateTraitCode('dialogue_system', 'npcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('DialogueHistory'))).toBe(true);
+      expect(code.some((l) => l.includes('GenerateResponse'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('behavior_tree is promoted to full level', () => {
+      const m = getTraitMapping('behavior_tree');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('behavior_tree generates sealed class and sequence/selector nodes', () => {
+      const code = generateTraitCode('behavior_tree', 'npcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('sealed class'))).toBe(true);
+      expect(code.some((l) => l.includes('Sequence'))).toBe(true);
+      expect(code.some((l) => l.includes('BTJob'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('goal_planner is promoted to full level', () => {
+      const m = getTraitMapping('goal_planner');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('goal_planner generates WorldState, Action, Goal and plan function', () => {
+      const code = generateTraitCode('goal_planner', 'npcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('WorldState'))).toBe(true);
+      expect(code.some((l) => l.includes('fun') && l.includes('Plan'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('npc_perception is promoted to full level', () => {
+      const m = getTraitMapping('npc_perception');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('npc_perception generates perception update with view cone and hearing', () => {
+      const code = generateTraitCode('npc_perception', 'npcNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('PerceivedEntity'))).toBe(true);
+      expect(code.some((l) => l.includes('UpdatePerception'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('gesture_recognition is promoted to full level', () => {
+      const m = getTraitMapping('gesture_recognition');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('gesture_recognition generates gesture enum and classifier', () => {
+      const code = generateTraitCode('gesture_recognition', 'gestureNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('Gesture'))).toBe(true);
+      expect(code.some((l) => l.includes('ClassifyGesture'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('gesture_recognition uses custom gestures config', () => {
+      const code = generateTraitCode('gesture_recognition', 'g', { gestures: ['wave', 'thumbs_up'] });
+      expect(code.some((l) => l.includes('WAVE'))).toBe(true);
+      expect(code.some((l) => l.includes('THUMBS_UP'))).toBe(true);
+    });
+
+    it('speech_to_text is promoted to full level', () => {
+      const m = getTraitMapping('speech_to_text');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('speech_to_text generates SpeechRecognizer setup', () => {
+      const code = generateTraitCode('speech_to_text', 'sttNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('SpeechRecognizer'))).toBe(true);
+      expect(code.some((l) => l.includes('startListening'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('speech_to_text uses custom language config', () => {
+      const code = generateTraitCode('speech_to_text', 's', { language: 'es-ES' });
+      expect(code.some((l) => l.includes('es-ES'))).toBe(true);
+    });
+
+    it('text_to_speech is promoted to full level', () => {
+      const m = getTraitMapping('text_to_speech');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('text_to_speech generates TextToSpeech engine and speak function', () => {
+      const code = generateTraitCode('text_to_speech', 'ttsNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('TextToSpeech'))).toBe(true);
+      expect(code.some((l) => l.includes('fun') && l.includes('Speak'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('npc_steering is promoted to full level', () => {
+      const m = getTraitMapping('npc_steering');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('npc_steering generates seek, flee, arrive and wander functions', () => {
+      const code = generateTraitCode('npc_steering', 'steerNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('Seek'))).toBe(true);
+      expect(code.some((l) => l.includes('Arrive'))).toBe(true);
+      expect(code.some((l) => l.includes('Wander'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('emotion_system is promoted to full level', () => {
+      const m = getTraitMapping('emotion_system');
+      expect(m).toBeDefined();
+      expect(m!.level).toBe('full');
+    });
+
+    it('emotion_system generates EmotionState and update/dominant functions', () => {
+      const code = generateTraitCode('emotion_system', 'emoNode', {});
+      expect(code.length).toBeGreaterThan(0);
+      expect(code.some((l) => l.includes('EmotionState'))).toBe(true);
+      expect(code.some((l) => l.includes('UpdateEmotions'))).toBe(true);
+      expect(code.some((l) => l.includes('GetDominantEmotion'))).toBe(true);
+      expect(code.every((l) => !l.includes('TODO'))).toBe(true);
+    });
+
+    it('emotion_system uses custom decay rate', () => {
+      const code = generateTraitCode('emotion_system', 'e', { decay_rate: 0.05 });
+      expect(code.some((l) => l.includes('0.05'))).toBe(true);
+    });
+
+    it('batch 18 traits are not in partial list', () => {
+      const partial = listTraitsByLevel('partial');
+      expect(partial).not.toContain('pathfinding');
+      expect(partial).not.toContain('dialogue_system');
+      expect(partial).not.toContain('behavior_tree');
+      expect(partial).not.toContain('goal_planner');
+      expect(partial).not.toContain('npc_perception');
+      expect(partial).not.toContain('gesture_recognition');
+      expect(partial).not.toContain('speech_to_text');
+      expect(partial).not.toContain('text_to_speech');
+      expect(partial).not.toContain('npc_steering');
+      expect(partial).not.toContain('emotion_system');
     });
   });
 });
