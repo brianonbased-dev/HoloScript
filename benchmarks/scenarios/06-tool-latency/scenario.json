@@ -1,0 +1,18 @@
+{
+  "id": "06-tool-latency",
+  "name": "MCP Tool Latency",
+  "description": "Measures end-to-end round-trip latency for representative holo_* MCP tool calls. Used to detect regressions in the HoloScript MCP server response times.",
+  "tools": [
+    "holo_query_codebase",
+    "holo_impact_analysis",
+    "holo_ask_codebase",
+    "holo_semantic_search"
+  ],
+  "target": {
+    "default": "https://mcp.holoscript.net",
+    "env_override": "HOLO_TOOL_LATENCY_TARGET"
+  },
+  "samples_per_tool": 3,
+  "timeout_ms": 30000,
+  "note": "Each tool is called 3 times; latencyMs is the median. success:false is recorded when the target is unreachable or returns a non-2xx status (CI stubs may produce these; the perf gate is informational in that case)."
+}

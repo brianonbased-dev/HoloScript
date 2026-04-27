@@ -1,0 +1,21 @@
+{
+  "version": "v1",
+  "frozen_at": null,
+  "frozen_by_commit": null,
+  "note": "frozen_at and frozen_by_commit are null until a maintainer runs `pnpm bench:perf-regression-update` on stable hardware. The axes table and threshold metadata are committed here; numeric baselines are seeded post-merge.",
+  "axes": {
+    "compileTimeMs": {
+      "regression_threshold_pct": 5,
+      "comparator": "lower-is-better"
+    },
+    "outputSizeBytes": {
+      "regression_threshold_pct": 30,
+      "comparator": "lower-is-better"
+    },
+    "latencyMs": {
+      "regression_threshold_pct": 10,
+      "comparator": "lower-is-better"
+    }
+  },
+  "scenarios": {}
+}

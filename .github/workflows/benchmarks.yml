@@ -11,6 +11,7 @@ on:
       - 'benchmarks/**'
       - 'scripts/perf-regression-check.mjs'
       - '.github/workflows/benchmarks.yml'
+      - 'packages/mcp-server/src/**'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

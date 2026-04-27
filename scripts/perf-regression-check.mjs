@@ -156,10 +156,13 @@ function main() {
       const platforms = {};
       for (const r of data.results ?? []) {
         if (r.success === false) continue;
-        platforms[r.platform] = {
-          compileTimeMs: r.compileTimeMs,
-          outputSizeBytes: r.outputSizeBytes,
-        };
+          const captured = {};
+          for (const [k, v] of Object.entries(r)) {
+            if (k !== "platform" && k !== "success" && typeof v === "number") {
+              captured[k] = v;
+            }
+          }
+          platforms[r.platform] = captured;
       }
       scenarios[scen] = { platforms };
     }
@@ -170,6 +173,7 @@ function main() {
       axes: {
         compileTimeMs: { regression_threshold_pct: 5, comparator: "lower-is-better" },
         outputSizeBytes: { regression_threshold_pct: 30, comparator: "lower-is-better" },
+          latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
       },
       scenarios,
     };

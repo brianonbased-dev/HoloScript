@@ -221,6 +221,52 @@ console.log("Test 8: new scenario in current results is reported but does not fa
   rmSync(repo, { recursive: true, force: true });
 }
 
-console.log("");
-console.log(`Tests run: ${testsRun}, failed: ${testsFailed}`);
-process.exit(testsFailed === 0 ? 0 : 1);
+  console.log("Test 9: latencyMs within 10% threshold → exit 0");
+  {
+    const repo = fakeRepo();
+    makeBaseline(repo, {
+      "06-tool-latency": {
+        platforms: {
+          holo_query_codebase: { latencyMs: 300, outputSizeBytes: 2048 },
+        },
+      },
+    }, {
+      latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+      outputSizeBytes: { regression_threshold_pct: 30, comparator: "lower-is-better" },
+    });
+    // 8% slower — under 10% latencyMs threshold
+    makeResultsFile(repo, ymd(), "06-tool-latency", [
+      { platform: "holo_query_codebase", latencyMs: 324, outputSizeBytes: 2048, success: true },
+    ]);
+    const r = runScript([], repo);
+    assertEq(r.exit, 0, "exit 0 when latencyMs within 10% threshold");
+    rmSync(repo, { recursive: true, force: true });
+  }
+
+  console.log("Test 10: latencyMs >10% regression → exit 1");
+  {
+    const repo = fakeRepo();
+    makeBaseline(repo, {
+      "06-tool-latency": {
+        platforms: {
+          holo_query_codebase: { latencyMs: 300, outputSizeBytes: 2048 },
+        },
+      },
+    }, {
+      latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+      outputSizeBytes: { regression_threshold_pct: 30, comparator: "lower-is-better" },
+    });
+    // 20% slower — over 10% latencyMs threshold
+    makeResultsFile(repo, ymd(), "06-tool-latency", [
+      { platform: "holo_query_codebase", latencyMs: 360, outputSizeBytes: 2048, success: true },
+    ]);
+    const r = runScript([], repo);
+    assertEq(r.exit, 1, "exit 1 on latencyMs >10% regression");
+    assertContains(r.stdout, "REGRESSION", "prints REGRESSION for latencyMs");
+    assertContains(r.stdout, "latencyMs", "names the latencyMs axis");
+    rmSync(repo, { recursive: true, force: true });
+  }
+
+  console.log("");
+  console.log(`Tests run: ${testsRun}, failed: ${testsFailed}`);
+  process.exit(testsFailed === 0 ? 0 : 1);
