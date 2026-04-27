@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-04-27T02:29:57.074Z",
+  "source": "scripts/audit-paper-11-coverage.mjs",
+  "censusArtifact": ".bench-logs/paper-trait-conflict-census.json",
+  "censusGeneratedAt": "2026-04-27T02:29:14.613Z",
+  "validatorPath": "packages/core/src/compiler/identity/ConfabulationValidator.ts",
+  "schemaNamesInValidator": 63,
+  "vrTraitUniverse": 2801,
+  "schemaNamesInVrTraits": 37,
+  "schemaNamesOrphaned": 26,
+  "defensibleCoverage": {
+    "numerator": 37,
+    "denominator": 2801,
+    "percent": 1.32,
+    "description": "BUILT_IN_TRAIT_SCHEMAS ∩ VR_TRAITS / |VR_TRAITS|"
+  },
+  "rawSchemaCountCoverage": {
+    "numerator": 63,
+    "denominator": 2801,
+    "percent": 2.25,
+    "description": "|BUILT_IN_TRAIT_SCHEMAS| / |VR_TRAITS| — overcounts; includes orphans"
+  },
+  "paperClaim": {
+    "text": "63 of 2,800 traits ... carry formal property-write-set annotations (2.3%)",
+    "file": "research/paper-11-hsplus-ecoop.tex",
+    "line": 718,
+    "matches": "rawSchemaCountCoverage (overcounts — includes orphans)",
+    "defensibleReplacement": "37 of 2,801 traits ... 1.32\\%"
+  }
+}
