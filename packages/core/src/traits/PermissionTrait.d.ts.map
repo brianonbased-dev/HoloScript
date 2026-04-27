@@ -1,1 +1,0 @@
-{"version":3,"file":"PermissionTrait.d.ts","sourceRoot":"","sources":["PermissionTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,gBAAgB;IAC/B,YAAY,EAAE,MAAM,CAAC;CACtB;AAED,eAAO,MAAM,iBAAiB,EAAE,YAAY,CAAC,gBAAgB,CAkD5D,CAAC;AAEF,eAAe,iBAAiB,CAAC"}

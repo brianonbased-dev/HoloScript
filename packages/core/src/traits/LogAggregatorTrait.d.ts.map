@@ -1,1 +1,0 @@
-{"version":3,"file":"LogAggregatorTrait.d.ts","sourceRoot":"","sources":["LogAggregatorTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;GAYG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,mBAAmB;IAClC,WAAW,EAAE,MAAM,CAAC;IACpB,SAAS,EAAE,OAAO,GAAG,MAAM,GAAG,MAAM,GAAG,OAAO,CAAC;CAChD;AAYD,eAAO,MAAM,oBAAoB,EAAE,YAAY,CAAC,mBAAmB,CA0DlE,CAAC;AAEF,eAAe,oBAAoB,CAAC"}

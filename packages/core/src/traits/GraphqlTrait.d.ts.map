@@ -1,1 +1,0 @@
-{"version":3,"file":"GraphqlTrait.d.ts","sourceRoot":"","sources":["GraphqlTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,aAAa;IAC5B,WAAW,EAAE,MAAM,CAAC;CACrB;AACD,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAgCtD,CAAC;AACF,eAAe,cAAc,CAAC"}

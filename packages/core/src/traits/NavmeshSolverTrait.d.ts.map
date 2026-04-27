@@ -1,1 +1,0 @@
-{"version":3,"file":"NavmeshSolverTrait.d.ts","sourceRoot":"","sources":["NavmeshSolverTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,mBAAmB;IAClC,SAAS,EAAE,MAAM,CAAC;CACnB;AACD,eAAO,MAAM,oBAAoB,EAAE,YAAY,CAAC,mBAAmB,CA8BlE,CAAC;AACF,eAAe,oBAAoB,CAAC"}

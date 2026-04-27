@@ -1,1 +1,0 @@
-{"version":3,"file":"SessionTrait.d.ts","sourceRoot":"","sources":["SessionTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,aAAa;IAC5B,MAAM,EAAE,MAAM,CAAC;IACf,YAAY,EAAE,MAAM,CAAC;CACtB;AAED,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAqCtD,CAAC;AAEF,eAAe,cAAc,CAAC"}

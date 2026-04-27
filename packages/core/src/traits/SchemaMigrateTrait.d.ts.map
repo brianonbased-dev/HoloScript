@@ -1,1 +1,0 @@
-{"version":3,"file":"SchemaMigrateTrait.d.ts","sourceRoot":"","sources":["SchemaMigrateTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,mBAAmB;IAClC,aAAa,EAAE,OAAO,CAAC;CACxB;AACD,eAAO,MAAM,oBAAoB,EAAE,YAAY,CAAC,mBAAmB,CAiClE,CAAC;AACF,eAAe,oBAAoB,CAAC"}

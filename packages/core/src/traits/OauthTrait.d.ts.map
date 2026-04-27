@@ -1,1 +1,0 @@
-{"version":3,"file":"OauthTrait.d.ts","sourceRoot":"","sources":["OauthTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;GAUG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,WAAW;IAC1B,SAAS,EAAE,MAAM,EAAE,CAAC;CACrB;AAED,eAAO,MAAM,YAAY,EAAE,YAAY,CAAC,WAAW,CAwClD,CAAC;AAEF,eAAe,YAAY,CAAC"}

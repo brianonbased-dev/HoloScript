@@ -1,1 +1,0 @@
-{"version":3,"file":"FixtureTrait.d.ts","sourceRoot":"","sources":["FixtureTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,aAAa;IAC5B,aAAa,EAAE,OAAO,CAAC;CACxB;AAED,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CA8BtD,CAAC;AACF,eAAe,cAAc,CAAC"}

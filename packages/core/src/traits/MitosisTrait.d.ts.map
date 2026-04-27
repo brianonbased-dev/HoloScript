@@ -1,1 +1,0 @@
-{"version":3,"file":"MitosisTrait.d.ts","sourceRoot":"","sources":["MitosisTrait.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAEH,OAAO,EAAE,YAAY,EAAE,MAAM,cAAc,CAAC;AAW5C,UAAU,aAAa;IACrB,QAAQ,EAAE,eAAe,GAAG,YAAY,GAAG,OAAO,CAAC;IACnD,YAAY,EAAE,MAAM,CAAC;IACrB,YAAY,EAAE,OAAO,CAAC;CACvB;AAMD,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAkFtD,CAAC;AAEF,eAAe,cAAc,CAAC"}

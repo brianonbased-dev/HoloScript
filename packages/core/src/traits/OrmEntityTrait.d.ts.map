@@ -1,1 +1,0 @@
-{"version":3,"file":"OrmEntityTrait.d.ts","sourceRoot":"","sources":["OrmEntityTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,eAAe;IAC9B,YAAY,EAAE,MAAM,CAAC;CACtB;AACD,eAAO,MAAM,gBAAgB,EAAE,YAAY,CAAC,eAAe,CA6C1D,CAAC;AACF,eAAe,gBAAgB,CAAC"}

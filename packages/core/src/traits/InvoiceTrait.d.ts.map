@@ -1,1 +1,0 @@
-{"version":3,"file":"InvoiceTrait.d.ts","sourceRoot":"","sources":["InvoiceTrait.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,aAAa;IAC5B,WAAW,EAAE,OAAO,CAAC;CACtB;AAED,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAkDtD,CAAC;AAEF,eAAe,cAAc,CAAC"}

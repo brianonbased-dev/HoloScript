@@ -1,1 +1,0 @@
-{"version":3,"file":"ReactiveStoreTrait.d.ts","sourceRoot":"","sources":["ReactiveStoreTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,mBAAmB;IAClC,QAAQ,EAAE,MAAM,CAAC;CAClB;AACD,eAAO,MAAM,oBAAoB,EAAE,YAAY,CAAC,mBAAmB,CAmDlE,CAAC;AACF,eAAe,oBAAoB,CAAC"}

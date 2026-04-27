@@ -1,1 +1,0 @@
-{"version":3,"file":"DiscordTrait.d.ts","sourceRoot":"","sources":["DiscordTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,aAAa;IAC5B,WAAW,EAAE,MAAM,CAAC;IACpB,QAAQ,EAAE,MAAM,CAAC;CAClB;AAED,eAAO,MAAM,cAAc,EAAE,YAAY,CAAC,aAAa,CAwBtD,CAAC;AAEF,eAAe,cAAc,CAAC"}

@@ -1,1 +1,0 @@
-{"version":3,"file":"RollbackTrait.d.ts","sourceRoot":"","sources":["RollbackTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,cAAc;IAC7B,WAAW,EAAE,MAAM,CAAC;CACrB;AAED,eAAO,MAAM,eAAe,EAAE,YAAY,CAAC,cAAc,CAyCxD,CAAC;AAEF,eAAe,eAAe,CAAC"}

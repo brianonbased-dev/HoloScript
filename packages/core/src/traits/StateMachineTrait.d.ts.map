@@ -1,1 +1,0 @@
-{"version":3,"file":"StateMachineTrait.d.ts","sourceRoot":"","sources":["StateMachineTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,kBAAkB;IACjC,aAAa,EAAE,MAAM,CAAC;CACvB;AAED,eAAO,MAAM,mBAAmB,EAAE,YAAY,CAAC,kBAAkB,CAgDhE,CAAC;AACF,eAAe,mBAAmB,CAAC"}

@@ -1,1 +1,0 @@
-{"version":3,"file":"RoadmapTrait.d.ts","sourceRoot":"","sources":["RoadmapTrait.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAEH,OAAO,EAAE,YAAY,EAAE,MAAM,cAAc,CAAC;AAG5C,UAAU,aAAa;IACrB,YAAY,EAAE,MAAM,CAAC;IACrB,aAAa,EAAE,OAAO,CAAC;IACvB,WAAW,EAAE,OAAO,CAAC;CACtB;AAED,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,aAAa,CA8C1D,CAAC;AAiBF,eAAe,kBAAkB,CAAC"}

@@ -1,1 +1,0 @@
-{"version":3,"file":"BatchJobTrait.d.ts","sourceRoot":"","sources":["BatchJobTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AACvF,MAAM,WAAW,cAAc;IAC7B,cAAc,EAAE,MAAM,CAAC;CACxB;AACD,eAAO,MAAM,eAAe,EAAE,YAAY,CAAC,cAAc,CAyCxD,CAAC;AACF,eAAe,eAAe,CAAC"}

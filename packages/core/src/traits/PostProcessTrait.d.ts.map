@@ -1,1 +1,0 @@
-{"version":3,"file":"PostProcessTrait.d.ts","sourceRoot":"","sources":["PostProcessTrait.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,OAAO,KAAK,EAAE,YAAY,EAA4B,MAAM,cAAc,CAAC;AAE3E,MAAM,WAAW,iBAAiB;IAChC,WAAW,EAAE,MAAM,CAAC;CACrB;AACD,eAAO,MAAM,kBAAkB,EAAE,YAAY,CAAC,iBAAiB,CAqC9D,CAAC;AACF,eAAe,kBAAkB,CAAC"}

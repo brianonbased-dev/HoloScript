@@ -1,1 +1,0 @@
-{"version":3,"file":"VectorSearchTrait.d.ts","sourceRoot":"","sources":["VectorSearchTrait.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAwC,MAAM,cAAc,CAAC;AAEvF,MAAM,WAAW,kBAAkB;IACjC,aAAa,EAAE,MAAM,CAAC;IACtB,eAAe,EAAE,MAAM,CAAC;CACzB;AAOD,eAAO,MAAM,mBAAmB,EAAE,YAAY,CAAC,kBAAkB,CA6ChE,CAAC;AAEF,eAAe,mBAAmB,CAAC"}
