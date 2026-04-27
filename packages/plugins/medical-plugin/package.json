@@ -1,0 +1,28 @@
+{
+  "name": "@holoscript/medical-plugin",
+  "version": "1.0.0",
+  "description": "DICOM medical imaging and surgical simulation for HoloScript - VR medical training",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "medical",
+    "dicom",
+    "surgical",
+    "vr",
+    "healthcare"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
