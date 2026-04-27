@@ -133,7 +133,10 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
         if (typeof window !== 'undefined' && 'showOpenFilePicker' in window) {
           throw new Error('File access requires user interaction in browser');
         }
-        const { readFile } = await import('fs/promises');
+        // Indirect-import so bundler static analysis can't trace
+        // 'fs/promises' into a client bundle (this skill is Node-only).
+        const fsModule = 'fs/promises';
+        const { readFile } = await import(/* webpackIgnore: true */ /* @vite-ignore */ fsModule);
         const content = await readFile(path, 'utf-8');
         return { content, path };
       },
@@ -152,7 +155,8 @@ function createBuiltinSkills(config: SkillRegistryConfig): Skill[] {
       ],
       outputs: [{ name: 'bytes', type: 'number', description: 'Bytes written' }],
       async execute(inputs) {
-        const { writeFile } = await import('fs/promises');
+        const fsModule = 'fs/promises';
+        const { writeFile } = await import(/* webpackIgnore: true */ /* @vite-ignore */ fsModule);
         const content = inputs['content'] as string;
         await writeFile(inputs['path'] as string, content, 'utf-8');
         return { bytes: content.length, path: inputs['path'] };

@@ -435,11 +435,17 @@ export class ImportResolver {
     }
 
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      // Indirect-import the Node-only deps so bundler static analysis
+      // (Turbopack/webpack/vite) can't trace them into a client bundle.
+      // This code path only executes server-side; the indirection
+      // keeps the import unresolvable at build time.
+      const fsModule = 'fs/promises';
+      const pathModule = 'path';
+      const fs = await import(/* webpackIgnore: true */ /* @vite-ignore */ fsModule);
+      const path = await import(/* webpackIgnore: true */ /* @vite-ignore */ pathModule);
       // @ts-ignore - optional dependency
       const pkgName = '@loro/loro';
-      const { LoroDoc } = await import(/* @vite-ignore */ pkgName);
+      const { LoroDoc } = await import(/* webpackIgnore: true */ /* @vite-ignore */ pkgName);
 
       // The HoloMesh Agent uses .holomesh/worldstate.crdt
       const crdtPath = path.resolve(process.cwd(), '.holomesh/worldstate.crdt');
@@ -550,8 +556,12 @@ export class ImportResolver {
   private _defaultReader(): (path: string) => Promise<string> {
     return async (filePath: string) => {
       try {
-        // Dynamic import to avoid bundler issues
-        const fs = await import('fs/promises');
+        // Indirect-import so bundler static analysis can't trace
+        // 'fs/promises' into a client bundle. This reader is only
+        // ever invoked on Node servers / CLI; browser callers get the
+        // catch-branch error below.
+        const fsModule = 'fs/promises';
+        const fs = await import(/* webpackIgnore: true */ /* @vite-ignore */ fsModule);
         return await fs.readFile(filePath, 'utf-8');
       } catch {
         throw new Error(

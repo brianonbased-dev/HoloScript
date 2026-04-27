@@ -57,25 +57,36 @@ const nextConfig = {
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 
-  turbo: {
-    resolveAlias: {
-      'tls': false,
-      'net': false,
-      'worker_threads': false,
-      'node:worker_threads': false,
-      'ws': false,
-      'ioredis': false,
-      'puppeteer': false,
-      'playwright': false,
-      '@xenova/transformers': false,
-      'memfs': false,
-      'isomorphic-git': false,
-      '@holoscript/engine': false,
-      '@holoscript/engine/gpu': false,
-      '@holoscript/framework': false,
-      '@holoscript/platform': false,
-      '@holoscript/mesh': false,
-    },
+  // Renamed from `turbo` to `turbopack` in Next.js 16 (config-key migration).
+  // The old `turbo` key is silently ignored, causing the .wgsl loader rule
+  // and resolveAlias map to be dropped — which broke Studio dev with
+  // "Unknown module type" errors on .wgsl imports from @holoscript/engine.
+  turbopack: {
+    // Next.js 16's turbopack.resolveAlias rejects `false` (the webpack
+    // convention to disable a module). Use empty-module-stub.js as the
+    // alias target — semantically equivalent: any import resolves to {}
+    // and tree-shakes cleanly. Keeps Node-only deps out of client bundles.
+    resolveAlias: (() => {
+      const stub = './empty-module-stub.cjs';
+      return {
+        tls: stub,
+        net: stub,
+        worker_threads: stub,
+        'node:worker_threads': stub,
+        ws: stub,
+        ioredis: stub,
+        puppeteer: stub,
+        playwright: stub,
+        '@xenova/transformers': stub,
+        memfs: stub,
+        'isomorphic-git': stub,
+        '@holoscript/engine': stub,
+        '@holoscript/engine/gpu': stub,
+        '@holoscript/framework': stub,
+        '@holoscript/platform': stub,
+        '@holoscript/mesh': stub,
+      };
+    })(),
     rules: {
       '*.wgsl': {
         loaders: ['raw-loader'],

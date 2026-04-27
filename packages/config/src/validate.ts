@@ -29,18 +29,25 @@ export function validateConfig(required: string[], optional: string[] = []): Val
 }
 
 /**
- * Validate and exit if required vars are missing.
+ * Validate and throw if required vars are missing.
  * Use at service startup for fail-fast behavior.
+ *
+ * Throws (instead of process.exit) so this module is safe to import
+ * from Edge-runtime contexts (Next.js instrumentation, edge middleware).
+ * Edge runtime rejects modules that reference process.exit even if
+ * the call site is unreachable. The caller decides whether to exit:
+ * the typical Node entry point wraps this in try/catch and exits with
+ * code 1 on failure.
  */
 export function requireConfig(required: string[], serviceName?: string): void {
   const result = validateConfig(required);
   if (!result.valid) {
     const name = serviceName || 'service';
-    console.error(
+    const message =
       `[${name}] Missing required environment variables: ${result.missing.join(', ')}\n` +
-        `Set these in your .env file and restart.`
-    );
-    process.exit(1);
+      `Set these in your .env file and restart.`;
+    console.error(message);
+    throw new Error(message);
   }
 }
 
