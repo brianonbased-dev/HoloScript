@@ -1,0 +1,26 @@
+{
+  "name": "@holoscript/alphafold-plugin",
+  "version": "1.1.0",
+  "description": "AlphaFold protein structure prediction for HoloScript - Generate novel proteins in VR",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "alphafold",
+    "protein-prediction",
+    "bioinformatics"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
