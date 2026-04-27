@@ -368,10 +368,16 @@ export class HoloScriptRuntime {
       50
     );
 
-    // Register Edge Intelligence Providers
-    engineRuntime.registerVoiceSynthesizer();
-    engineRuntime.registerEmotionDetector();
-    engineRuntime.registerSpeechRecognizer();
+    // Register Edge Intelligence Providers (default implementations under
+    // the 'default' key — extensions can override by re-registering the same
+    // key with their own instance). Restored from commit 16bbd9135 which
+    // stripped the args under the (incorrect) assumption that the runtime
+    // barrel resolves to the zero-arg stubs in `engine/src/stubs/engine-stubs.ts`.
+    // The barrel re-exports the REAL `(name, instance)` exports, so the
+    // zero-arg call form was a permanent type error against the real signature.
+    engineRuntime.registerVoiceSynthesizer('default', new engineRuntime.BaseVoiceSynthesizer());
+    engineRuntime.registerEmotionDetector('default', new engineRuntime.LocalEmotionDetector());
+    engineRuntime.registerSpeechRecognizer('default', new engineRuntime.MockSpeechRecognizer());
 
     for (const [name, fn] of this.builtinFunctions) {
       // Wrap builtins so they work when called via spread args from evaluateHoloExpression.
@@ -518,7 +524,16 @@ export class HoloScriptRuntime {
     const startTime = Date.now();
     try {
       this.context.executionStack.push(node);
-      const result = await dispatchNode(node, this);
+      // Cast: HSR satisfies RuntimeDispatcher structurally, but its
+      // build*Context / execute* methods are `private`, which TS treats as
+      // nominally distinct from the dispatcher's public-only interface.
+      // Slice 34's design note explicitly chose duck-typing — this cast is
+      // the duck. Keeping methods private preserves encapsulation; tests
+      // exercise them via dispatchNode().
+      const result = await dispatchNode(
+        node,
+        this as unknown as import('./runtime/node-type-registry').RuntimeDispatcher,
+      );
       result.executionTime = Date.now() - startTime;
       this.executionHistory.push(result);
       this.context.executionStack.pop();
@@ -1004,7 +1019,13 @@ export class HoloScriptRuntime {
       traitHandlers: this.traitHandlers,
       uiElements: this.uiElements,
       getCurrentScale: () => this.context.currentScale,
-      globalBusEmit: (event, data) => getSharedEventBus().emit(event, data),
+      // EventBus.emit is sync (returns void) but the EventSystemContext
+      // contract requires Promise<void> so trait-side emits can `await`
+      // through a unified interface. Wrap with Promise.resolve.
+      globalBusEmit: (event, data) => {
+        getSharedEventBus().emit(event, data);
+        return Promise.resolve();
+      },
       sendStateMachineEvent: (id, event) =>
         engineRuntime.stateMachineInterpreter.sendEvent(id, event),
     };

@@ -36,10 +36,20 @@
 import type { HoloStatement } from '../parser/HoloCompositionTypes';
 import type { HoloScriptValue, ExecutionResult } from '../types';
 
-/** Structural mirror of HoloScriptRuntime's `Scope`; see holo-expression.ts. */
+/**
+ * Structural mirror of HoloScriptRuntime's `Scope`; see holo-expression.ts.
+ *
+ * Note: `parent` is `Scope | undefined` (via the optional `?`), NOT
+ * `Scope | null | undefined`. HSR's `Scope` interface narrows to
+ * `parent?: Scope` (no `null`), and the executors here never construct a
+ * `null` parent — they only ever read it. Keeping `| null` here previously
+ * caused TS2345 at HoloScriptRuntime.ts:1385/1387/1393 because the runtime's
+ * `Scope | undefined` was not assignable to the executor's `Scope | undefined`
+ * (the inner `parent` field was incompatible).
+ */
 export interface Scope {
   variables: Map<string, HoloScriptValue>;
-  parent?: Scope | null;
+  parent?: Scope;
 }
 
 /** Telemetry seam — pure module delegates timing to the runtime's harness. */

@@ -14,9 +14,10 @@
       "policy": "sameRange"
     },
     {
-      "label": "Vitest must be consistent across all packages",
+      "label": "Vitest must be consistent across all packages — pinned at ^4.1.0 (closes task_1777188537447_kbs6)",
       "dependencies": ["vitest", "@vitest/*"],
-      "policy": "sameRange"
+      "policy": "sameRange",
+      "pinVersion": "^4.1.0"
     },
     {
       "label": "tsup must be consistent",

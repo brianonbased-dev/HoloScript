@@ -31,7 +31,7 @@
     "@testing-library/user-event": "^14.5.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.0",
     "jsdom": "^28.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
