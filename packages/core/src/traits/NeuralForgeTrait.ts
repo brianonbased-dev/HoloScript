@@ -155,6 +155,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       state.experienceLog = [];
       state.lastSynthesis = Date.now();
       context.emit?.('neural_shard_created', { node, shard });
+      context.emit?.('neural_cognition_evolved', { node, currentWeights: state.weights });
     }
   },
 
