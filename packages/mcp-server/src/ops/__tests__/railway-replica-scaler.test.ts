@@ -28,7 +28,8 @@ describe('RailwayReplicaScaler', () => {
     expect(url).toContain('backboard.railway.com');
     expect(init?.headers).toMatchObject({
       Authorization: 'Bearer test-token',
-      'Content-Type': 'application/json',
+      // Matches railway-replica-scaler.ts (explicit UTF-8 for GraphQL JSON body)
+      'Content-Type': 'application/json; charset=utf-8',
     });
     const body = JSON.parse((init?.body as string) || '{}');
     expect(body.variables.input.multiRegionConfig['us-west1'].numReplicas).toBe(3);
