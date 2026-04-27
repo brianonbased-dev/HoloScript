@@ -277,6 +277,7 @@ export * from './constants/game-mechanics';
 export * from './constants/gems-minerals';
 export * from './constants/geospatial-web3';
 export * from './constants/healthcare-medical';
+export * from './constants/holomap-reconstruction';
 export * from './constants/holomesh-social';
 export * from './constants/humanoid-avatar';
 export * from './constants/intelligence-behavior';

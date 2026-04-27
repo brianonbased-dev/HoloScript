@@ -177,6 +177,20 @@ export { HoloScriptRuntime } from './HoloScriptRuntime';
 
 export { flowFieldHandler, type FlowFieldConfig } from './traits/FlowFieldTrait';
 
+// HoloMap reconstruction decorators (Sprint 3) — composition-level decorator
+// names that resolve to underlying HoloMap traits at parse time. Surfaced at
+// package root so Studio's TraitPalette can drive its UI catalog from the
+// canonical core list.
+export {
+  HOLOMAP_RECONSTRUCTION_TRAITS,
+  HOLOMAP_RECONSTRUCTION_DECORATORS,
+  HOLOMAP_RECONSTRUCTION_DECORATOR_NAMES,
+  isReconstructionDecorator,
+  getReconstructionTraitsFromDecorators,
+  type HolomapReconstructionTraitName,
+  type HolomapReconstructionDecoratorName,
+} from './traits/constants/holomap-reconstruction';
+
 // RBAC Trait (Enterprise Multi-Tenant Capability-Based Access Control)
 export {
   rbacHandler,

@@ -8,7 +8,7 @@ import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 // A representative sample of HoloScript traits organized by category.
 // In production this should be imported from @holoscript/core trait constants.
 
-const TRAIT_CATALOG: Array<{
+export const TRAIT_CATALOG: Array<{
   category: string;
   color: string;
   traits: Array<{ name: string; description: string; defaultProps: Record<string, unknown> }>;
@@ -293,6 +293,36 @@ const TRAIT_CATALOG: Array<{
           liquidDemocracy: false,
           tokenAddress: '',
         },
+      },
+    ],
+  },
+  // Sprint-3 (2026-04-25) HoloMap reconstruction decorators. These are
+  // composition-level syntax sugar that resolves to underlying traits at parse
+  // time via getReconstructionTraitsFromDecorators in
+  // packages/core/src/traits/constants/holomap-reconstruction.ts. Picking one
+  // here adds the bare `@<decorator>` to the node; the parser/serializer
+  // expands to the underlying trait set.
+  {
+    category: 'HoloMap Reconstruction',
+    color: 'text-fuchsia-400',
+    traits: [
+      {
+        name: 'reconstruction_source',
+        description:
+          'Full reconstruction-pipeline input (video → frames → runtime). Resolves to reconstruct + camera_trajectory + anchor_context.',
+        defaultProps: {},
+      },
+      {
+        name: 'acceptance_video',
+        description:
+          'Acceptance-validated reconstruction (video + splat output linked for replay/CI). Resolves to reconstruct + splat_output.',
+        defaultProps: {},
+      },
+      {
+        name: 'drift_corrected',
+        description:
+          'Drift correction applied to the trajectory. Resolves to drift_correction (composes with other HoloMap decorators).',
+        defaultProps: {},
       },
     ],
   },
