@@ -98,7 +98,14 @@ export function buildThinkingAndOutputForAnthropic(
   if (effort === 'max' && !isOpusFamilyModel(model)) {
     effort = 'high';
   }
-  if (effort === undefined && request.thinking?.type !== 'disabled') {
+  // Note: by this point request.thinking?.type is narrowed to
+  // 'adaptive' | 'enabled' | undefined — the 'disabled' early-return on
+  // line 77 has already exited. So the previous redundant
+  // `request.thinking?.type !== 'disabled'` check that lived here was
+  // statically always-true and TypeScript flagged it as dead code (TS2367),
+  // breaking pre-flight build and blocking ALL Railway production deploys
+  // (verified 2026-04-27 — task_1777332064755_xlc0 deploy 25025460074).
+  if (effort === undefined) {
     if (model === 'claude-opus-4-7') {
       effort = 'xhigh';
     } else if (ADAPTIVE_THINKING_DEFAULT_MODELS.has(model)) {
