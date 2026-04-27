@@ -106,6 +106,24 @@ export {
   type DialogTurn,
 } from './agentDialogRecord';
 
+// Network event wire (`network.event.v1`) — fifth instance of the time-binding
+// solverType family. Chain-typed HoloMesh team-feed events (presence joins,
+// board claims, knowledge syncs, mode switches, suggestion votes); replay-
+// deterministic across observer restarts and instance churn (W.111). The
+// "live" team-feed framing is a UX choice, not an architectural fact —
+// underneath, this is rapid cursor-advance over a shared block universe.
+export {
+  NETWORK_EVENT_V1,
+  buildNetworkEventV1Record,
+  canonicalNetworkEventSnapshot,
+  networkEventWireKey,
+  wireFormatEquivalentNetworkEvent,
+  type NetworkEvent,
+  type NetworkEventV1Record,
+  type NetworkEventV1SolverType,
+  type NetworkEventWireInput,
+} from './networkEventRecord';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
