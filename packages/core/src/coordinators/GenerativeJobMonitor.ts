@@ -150,6 +150,18 @@ export class GenerativeJobMonitor {
 
     if (phase === 'ready') {
       this.readyKinds.add(kind);
+      // Notify listeners so downstream UI consumers refresh `isReady(kind)`.
+      // The synthetic state has jobId=`__ready:${kind}` and is NOT persisted
+      // to the jobs map — listeners that just refetch via getStats() (the
+      // canonical Studio panel pattern) handle this transparently. Listeners
+      // that filter on `state.status` see 'completed' and skip it.
+      this.notifyListeners({
+        jobId: `__ready:${kind}`,
+        kind,
+        status: 'completed',
+        startedAt: observedAt,
+        updatedAt: observedAt,
+      });
       return;
     }
     // Config events (mask_set, map_requested, prompt_updated) don't mutate

@@ -72,7 +72,12 @@ export default defineConfig({
       // Route @aztec/bb.js → stub (WASM bindings fail in Node/jsdom test env)
       '@aztec/bb.js': path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts'),
       // Cross-package resolution (A.011 extraction)
+      '@holoscript/core/coordinators': path.resolve(__dirname, '../core/src/coordinators/index.ts'),
       '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
+      '@holoscript/engine/runtime/TraitRuntimeIntegration': path.resolve(
+        __dirname,
+        '../engine/src/runtime/TraitRuntimeIntegration.ts'
+      ),
       '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
       '@holoscript/framework/ai': path.resolve(__dirname, '../framework/src/ai'),
       '@holoscript/framework/economy': path.resolve(__dirname, '../framework/src/economy'),
