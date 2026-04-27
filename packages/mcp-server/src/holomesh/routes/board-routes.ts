@@ -429,8 +429,50 @@ export async function handleBoardRoutes(
         eventType = 'board:deleted';
         break;
       }
+      case 'update': {
+        // Permission gate: owner only (config:write). Task creator would be
+        // preferable but createdBy is not persisted on BoardTask; owner gate is
+        // the safe fallback until a createdBy field is added.
+        if (!hasTeamPermission(team, caller.id, 'config:write')) {
+          json(res, 403, { error: 'Permission denied: only team owners can update tasks (config:write required)' });
+          return true;
+        }
+        const taskIndex = (team.taskBoard as any[]).findIndex((t: any) => t.id === taskId);
+        if (taskIndex === -1) {
+          json(res, 404, { error: 'Task not found' });
+          return true;
+        }
+        const task: any = team.taskBoard[taskIndex];
+        const updates: Record<string, unknown> = {};
+        if (typeof body.title === 'string') {
+          updates.title = body.title.slice(0, 500);
+        }
+        if (typeof body.description === 'string') {
+          // Preserve previous description for audit before overwriting.
+          if (task.description !== body.description) {
+            updates._prevDescription = String(task.description ?? '').slice(0, 500) + (String(task.description ?? '').length > 500 ? '…' : '');
+          }
+          updates.description = body.description.slice(0, 2000);
+        }
+        if (body.priority !== undefined) {
+          updates.priority = body.priority;
+        }
+        if (Array.isArray(body.tags)) {
+          updates.tags = (body.tags as unknown[]).slice(0, 50).map((t) => String(t).slice(0, 100));
+        }
+        if (Object.keys(updates).filter((k) => k !== '_prevDescription').length === 0) {
+          json(res, 400, { error: 'No updatable fields provided: supply title, description, priority, and/or tags' });
+          return true;
+        }
+        updates.updatedAt = new Date().toISOString();
+        updates.updatedBy = caller.name;
+        Object.assign(task, updates);
+        result = { success: true, task };
+        eventType = 'board:updated';
+        break;
+      }
       default:
-        json(res, 400, { error: 'Unknown action — supported: claim|done|block|reopen|delegate|delete (aliases: remove, archive → delete)' });
+        json(res, 400, { error: 'Unknown action — supported: claim|done|block|reopen|delegate|delete|update (aliases: remove, archive → delete)' });
         return true;
     }
 
