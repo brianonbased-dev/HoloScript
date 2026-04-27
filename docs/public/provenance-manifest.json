@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T17:51:04.506Z",
+  "generatedAt": "2026-04-27T19:22:01.406Z",
   "sourceRepo": "brianonbased-dev/ai-ecosystem",
   "sourceCommit": null,
   "counts": {
@@ -8,9 +8,9 @@
     "baseReceipts": 55,
     "buckets": {
       "bitcoin_base": 18,
-      "base_only_pending_btc": 29,
+      "base_only_pending_btc": 28,
       "base_only": 0,
-      "drifted": 8
+      "drifted": 9
     },
     "groups": {
       "papers": 27,
@@ -190,7 +190,7 @@
     {
       "sourcePath": "paper-6-animation-sca.tex",
       "sourceExists": true,
-      "currentSha256": "f6eef4cb881d22ae35f6c01c0ab2426410499eb554d44c78b41e19d00632b5a3",
+      "currentSha256": "2bbc831af4937aebcfaef1ef98376b1390af38acf6563c0bde5f1ed79755e2d5",
       "anchoredAt": 1777273146,
       "anchoredAtIso": "2026-04-27T06:59:06.000Z",
       "txHash": "0x0bde074b831568e6d998fd3e0369948d5491ff27c336c9a1d083e2556938dd91",
@@ -328,7 +328,7 @@
     {
       "sourcePath": "paper-12-holo-i3d.tex",
       "sourceExists": true,
-      "currentSha256": "f154e8ea2aea5bce824ea05ca121f586e05a994ceaab9bfb2d05525937f06f68",
+      "currentSha256": "88a19ef39477f16e1a118a3ff70f5332142623345399618d82bdd98726fd0e96",
       "anchoredAt": 1777273124,
       "anchoredAtIso": "2026-04-27T06:58:44.000Z",
       "txHash": "0xec7ae604333b26d3c6873304571658af8fe799970185a5cfd3c4ff2f0b09a1f8",
@@ -340,11 +340,11 @@
       "wallet": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
       "basescanUrl": "https://basescan.org/tx/0xec7ae604333b26d3c6873304571658af8fe799970185a5cfd3c4ff2f0b09a1f8",
       "receiptFileSha256": "f154e8ea2aea5bce824ea05ca121f586e05a994ceaab9bfb2d05525937f06f68",
-      "drift": false,
-      "baseStatus": "BASE_CONFIRMED",
+      "drift": true,
+      "baseStatus": "BASE_DRIFTED",
       "otsExists": true,
       "otsStatus": "OTS_PENDING_LIKELY",
-      "bucket": "base_only_pending_btc",
+      "bucket": "drifted",
       "group": "papers",
       "tag": "paper-12-holo"
     },

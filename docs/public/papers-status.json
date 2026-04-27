@@ -1,8 +1,8 @@
 {
   "schema": "paper-audit-matrix.v1",
-  "generatedAt": "2026-04-27T18:32:27.591Z",
+  "generatedAt": "2026-04-27T19:22:09.853Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
+  "scriptCommit": "4fb12578f496136770b9ecbb99ccfac3332b4262",
   "totals": {
     "papers": 16,
     "cellsByToken": {
@@ -560,8 +560,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1516,
-      "sha256Prefix": "f6eef4cb",
+      "loc": 1550,
+      "sha256Prefix": "2bbc831a",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -610,11 +610,16 @@
         }
       },
       "lastCommit": {
-        "hash": "f7c186c73994d134b13dad061446414e2d07b6ca",
-        "isoDate": "2026-04-27T01:02:20-07:00",
-        "subject": "paper(6): add ablation subsection skeleton — D.011 pillar"
+        "hash": "bdfe2dbe9f12373e98a244f76bf755c2b6651cac",
+        "isoDate": "2026-04-27T12:03:45-07:00",
+        "subject": "paper-6: close \\todo{} divergence harness -- cite shipped (E1) probe"
       },
       "recentCommits": [
+        {
+          "hash": "bdfe2dbe9f12373e98a244f76bf755c2b6651cac",
+          "isoDate": "2026-04-27T12:03:45-07:00",
+          "subject": "paper-6: close \\todo{} divergence harness -- cite shipped (E1) probe"
+        },
         {
           "hash": "f7c186c73994d134b13dad061446414e2d07b6ca",
           "isoDate": "2026-04-27T01:02:20-07:00",
@@ -634,11 +639,6 @@
           "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
           "isoDate": "2026-04-24T23:33:08-07:00",
           "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
-        },
-        {
-          "hash": "acd29a09e76bd59e177bc7c733822d77cbb21934",
-          "isoDate": "2026-04-24T17:07:05-07:00",
-          "subject": "paper-6(d011): Verifiable Animation SCA '27 — Novelty + GPU Benchmark + Full-Loop Demo land"
         }
       ]
     },
@@ -1088,8 +1088,8 @@
       "target": "I3D '27 (Nov '26)",
       "basename": "paper-12-holo-i3d.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-12-holo-i3d.tex",
-      "loc": 724,
-      "sha256Prefix": "34397c29",
+      "loc": 752,
+      "sha256Prefix": "88a19ef3",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1138,11 +1138,16 @@
         }
       },
       "lastCommit": {
-        "hash": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
-        "isoDate": "2026-04-27T11:22:31-07:00",
-        "subject": "paper(12): replace §RemainingWork item-1 \\todo with measured scene-suite numbers + harness cite"
+        "hash": "f240e30418c3e5886539d6c4f7f8a195b82ba498",
+        "isoDate": "2026-04-27T12:05:10-07:00",
+        "subject": "paper(12): replace §RemainingWork item-2 \\todo with measured structural-biology USD comparison"
       },
       "recentCommits": [
+        {
+          "hash": "f240e30418c3e5886539d6c4f7f8a195b82ba498",
+          "isoDate": "2026-04-27T12:05:10-07:00",
+          "subject": "paper(12): replace §RemainingWork item-2 \\todo with measured structural-biology USD comparison"
+        },
         {
           "hash": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
           "isoDate": "2026-04-27T11:22:31-07:00",
@@ -1162,11 +1167,6 @@
           "hash": "7355437ad03d2cce59333808070a83000a5b284d",
           "isoDate": "2026-04-24T17:07:51-07:00",
           "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
-        },
-        {
-          "hash": "09a420ee2f2f0f33b9ad41696bccd71fce831ec8",
-          "isoDate": "2026-04-24T16:15:06-07:00",
-          "subject": "papers(bib): migrate phase-1 sweep — 5 zero-missing-key papers + helper script"
         }
       ]
     },
