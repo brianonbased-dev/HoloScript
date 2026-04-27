@@ -10,7 +10,7 @@
  * **Buses planned** (per task_1777281302813_eezs):
  *   - AssetLoadCoordinator       — GLTF + USD + FBX (35 void events / 69 refs) ✅ shipped
  *   - SecurityEventBus           — RBAC + SSO + Quota + Tenant + AuditLog + ForgetPolicy (~75 / 19) ✅ shipped
- *   - GenerativeJobMonitor       — AiInpainting + AiTextureGen + ControlNet + DiffusionRealtime [TODO]
+ *   - GenerativeJobMonitor       — AiInpainting + AiTextureGen + ControlNet + DiffusionRealtime (23 events) ✅ shipped
  *   - SessionPresenceCoordinator — SharePlay + SpatialVoice + WorldHeartbeat + Messaging [TODO]
  *
  * **Why core, not runtime**: this module is consumed by engine (which
@@ -34,3 +34,4 @@
 
 export * from './AssetLoadCoordinator';
 export * from './SecurityEventBus';
+export * from './GenerativeJobMonitor';

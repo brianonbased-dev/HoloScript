@@ -21,7 +21,11 @@
 import { VRTraitRegistry } from '@holoscript/core';
 import type { HSPlusNode, VRTraitName } from '@holoscript/core';
 import type { TraitContext, TraitEvent } from '@holoscript/core';
-import { AssetLoadCoordinator, SecurityEventBus } from '@holoscript/core/coordinators';
+import {
+  AssetLoadCoordinator,
+  SecurityEventBus,
+  GenerativeJobMonitor,
+} from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
 
@@ -78,6 +82,18 @@ export class TraitRuntimeIntegration {
    */
   readonly securityEventBus: SecurityEventBus;
 
+  /**
+   * Generative-job consumer-bus — third of the 4 buses. Subscribes to
+   * the lifecycle vocabulary of the generative-AI trait cluster:
+   * AiInpainting + AiTextureGen + ControlNet + DiffusionRealtime (23
+   * events). Tracks per-job state (queued/running/completed/cancelled/
+   * errored) and per-kind throughput stats. Downstream consumers
+   * (Studio progress overlays, GPU budget enforcement, latency
+   * dashboards, realtime-diffusion FPS displays) call
+   * `traitRuntime.generativeJobMonitor.subscribe(listener)`.
+   */
+  readonly generativeJobMonitor: GenerativeJobMonitor;
+
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
     this.contextFactory = contextFactory;
@@ -89,6 +105,9 @@ export class TraitRuntimeIntegration {
     // Wire the security event-bus to the same event stream — subscribes
     // to the full ~73-event security vocabulary on construction.
     this.securityEventBus = new SecurityEventBus(contextFactory);
+    // Wire the generative-job monitor — 23 lifecycle events across the
+    // 4-trait Ai* cluster.
+    this.generativeJobMonitor = new GenerativeJobMonitor(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------
