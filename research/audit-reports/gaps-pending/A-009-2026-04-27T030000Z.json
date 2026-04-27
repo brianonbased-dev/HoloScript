@@ -1,0 +1,14 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-04-27T03:00:00Z",
+  "gaps": [
+    {
+      "title": "Compiler: trait combo voronoi_fracture+granular_material+global_illumination+fluid_simulation triggers HSP001 (A-009 stress-test)",
+      "description": "Stress-test scene examples/stress-tests/crystal-cavern-collapse-2026-04-27.holo composed @voronoi_fracture + @granular_material + @global_illumination + @fluid_simulation. Parser emits HSP001: Unknown directive for all four despite each having a *Trait.ts handler — and voronoi_fracture/granular_material are even in trait-registry.json. Root cause: parser maintains a third internal whitelist disjoint from both registry and handler files. Minimal repro: any .holo using @voronoi_fracture. Bug doc: docs/bugs/2026-04-27-stress-test-voronoi-granular-gi-fluid.md",
+      "priority": "medium",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "voronoi_fracture", "granular_material", "global_illumination", "fluid_simulation", "HSP001"],
+      "dedup_key": "a009-stress-fluidsimvoronoifractureglobalilluminationgranularmaterial"
+    }
+  ]
+}

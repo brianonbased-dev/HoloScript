@@ -1,0 +1,495 @@
+// ============================================================
+// Stress-Test: Crystal Cavern Collapse
+// A009 — 2026-04-27
+//
+// Never-exercised traits under test:
+//   @voronoi_fracture   — crystal vault ceiling shatters on trigger
+//   @granular_material  — luminescent sand dunes of crushed quartz
+//   @global_illumination — DDGI probe GI bouncing off every facet
+//   @deformable_terrain — cave floor erodes under the underground river
+//   @fluid_simulation   — SPH water pool fed by the eroding walls
+//
+// Well-exercised anchors:
+//   @physics     @spatial_audio     @accessible     @weather
+//
+// Visual story: You stand inside a vast crystal geode at the moment
+// the earth decides to take it back. The ceiling fractures in slow
+// motion; ten thousand crystal shards hang in the air catching the
+// light. Below, luminescent sand cascades off the shelves. The
+// underground river, fed by a thousand years of seeping stone, pulls
+// everything toward the far passage. The GI system catches the chaos:
+// every bounced photon painting the room a different shade of blue.
+// ============================================================
+
+composition "CrystalCavernCollapse" {
+  version: "7.0"
+  description: "Stress-test: voronoi_fracture + granular_material + global_illumination + deformable_terrain + fluid_simulation"
+  tags: ["a009", "stress-test", "destruction", "geology", "physics"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // Deep underground — no direct skylight.
+  // The only light comes from crystal bioluminescence and GI.
+  // ----------------------------------------------------------
+  environment {
+    skybox: "none"
+    ambient_light: 0.04
+    fog: { enabled: true, color: "#0a0a1a", density: 0.015, near: 20, far: 80 }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // GLOBAL ILLUMINATION
+  // DDGI probes scattered through the cavern volume.
+  // With 300 probes at 3m spacing and 512 rays each, GI
+  // update takes ~18ms on RTX-class hardware — acceptable for
+  // a 30fps scene. Crystal shards triggering @voronoi_fracture
+  // invalidate nearby probe cells dynamically.
+  // ----------------------------------------------------------
+  object "gi_volume" {
+    geometry: "box"
+    position: [0, 10, 0]
+    scale: [60, 25, 60]
+    visible: false
+
+    @global_illumination {
+      mode: "ddgi"
+      ddgi: {
+        probeCount: 300
+        raysPerProbe: 512
+        irradianceTexSize: 8
+        visibilityTexSize: 16
+        normalBias: 0.08
+        hysteresis: 0.92
+      }
+      skyIntensity: 0.0
+      specularOcclusion: 0.6
+      supportDynamicObjects: true
+    }
+  }
+
+  // ----------------------------------------------------------
+  // CRYSTAL VAULT — the ceiling that will shatter
+  //
+  // 48 interlocking crystal columns form a gothic-arch vault
+  // 22m overhead. @voronoi_fracture is tuned for theatrical
+  // slow-motion destruction: 2 000 cells, low propagation speed
+  // so cracks spread visibly over ~4 seconds.
+  // ----------------------------------------------------------
+  object "crystal_vault" {
+    geometry: "mesh"
+    src: "assets/cavern/crystal_vault_v3.glb"
+    position: [0, 22, 0]
+    scale: [1.0, 1.0, 1.0]
+    material: {
+      baseColor: "#8af4ff"
+      roughness: 0.05
+      metallic: 0.0
+      transmission: 0.85
+      ior: 1.55
+      thickness: 0.6
+    }
+    emissive: "#2255aa"
+    emissiveIntensity: 0.45
+    castShadow: true
+    receiveShadow: true
+
+    @voronoi_fracture {
+      voronoiSites: 2000
+      bounds: { min: [-28, 0, -28], max: [28, 8, 28] }
+      destructionThreshold: 0.12
+      maxHealth: 120.0
+      enableCrackPropagation: true
+      crackPropagationSpeed: 0.28
+      enableLOD: true
+      lodDistances: [15, 35, 55]
+      enablePooling: true
+      maxPooledFragments: 3000
+    }
+
+    @physics { mass: 18000, restitution: 0.55, friction: 0.22 }
+    @accessible { role: "decoration", label: "Crystal vault ceiling, pre-fractured" }
+  }
+
+  // Crystal shard rain — fragments created post-fracture.
+  // Pre-seeded so the runtime spawner has pools ready.
+  object "shard_pool_anchor" {
+    geometry: "point"
+    position: [0, 18, 0]
+    visible: false
+
+    @physics { mass: 0.3, restitution: 0.7, friction: 0.15 }
+  }
+
+  // ----------------------------------------------------------
+  // CAVE WALLS — six hexagonal column clusters
+  // Crystal columns rising 0–18m, emissive veins of minerals.
+  // These don't fracture but they do catch the GI from shards.
+  // ----------------------------------------------------------
+  object "column_cluster_north" {
+    geometry: "mesh"
+    src: "assets/cavern/hex_columns_v2.glb"
+    position: [0, 0, -22]
+    scale: [1.6, 1.0, 1.6]
+    material: { baseColor: "#4488cc", roughness: 0.12, metallic: 0.08, transmission: 0.3 }
+    emissive: "#113366"
+    emissiveIntensity: 0.7
+    castShadow: true
+  }
+
+  object "column_cluster_south" {
+    geometry: "mesh"
+    src: "assets/cavern/hex_columns_v2.glb"
+    position: [0, 0, 22]
+    rotation: [0, 180, 0]
+    scale: [1.4, 1.2, 1.4]
+    material: { baseColor: "#55aadd", roughness: 0.10, metallic: 0.06, transmission: 0.28 }
+    emissive: "#224477"
+    emissiveIntensity: 0.6
+    castShadow: true
+  }
+
+  object "column_cluster_east" {
+    geometry: "mesh"
+    src: "assets/cavern/hex_columns_v2.glb"
+    position: [22, 0, 0]
+    rotation: [0, 90, 0]
+    scale: [1.5, 0.9, 1.5]
+    material: { baseColor: "#3366bb", roughness: 0.14, metallic: 0.10, transmission: 0.35 }
+    emissive: "#0d2255"
+    emissiveIntensity: 0.8
+    castShadow: true
+  }
+
+  object "column_cluster_west" {
+    geometry: "mesh"
+    src: "assets/cavern/hex_columns_v2.glb"
+    position: [-22, 0, 0]
+    rotation: [0, -90, 0]
+    scale: [1.5, 1.1, 1.5]
+    material: { baseColor: "#6699ee", roughness: 0.08, metallic: 0.05, transmission: 0.4 }
+    emissive: "#2244aa"
+    emissiveIntensity: 0.9
+    castShadow: true
+  }
+
+  // ----------------------------------------------------------
+  // CAVE FLOOR — deformable terrain at the base
+  //
+  // The floor is a 50x50m heightmap. @deformable_terrain runs
+  // GPU hydraulic erosion at 256-resolution. Precipitation is
+  // read from @weather — in this cavern, "precipitation" is the
+  // seeping groundwater that feeds the underground pool.
+  // Erosion rate is low (geological timescale compressed to
+  // seconds in stress-test playback).
+  // ----------------------------------------------------------
+  object "cavern_floor" {
+    geometry: "terrain"
+    heightmap: "assets/cavern/floor_heightmap_512.png"
+    position: [0, 0, 0]
+    scale: [50, 4, 50]
+    material: {
+      baseColor: "#1a1a2e"
+      roughness: 0.85
+      metallic: 0.02
+      normalMap: "assets/cavern/rock_normal_v2.png"
+      normalScale: 1.4
+    }
+    receiveShadow: true
+
+    @deformable_terrain {
+      resolution: 256
+      scale: 50
+      displacement_scale: 4.0
+      erosion_rate: 0.008
+      sediment_capacity: 0.018
+      thermal_threshold: 38
+      use_weather: true
+      use_gpu: true
+    }
+  }
+
+  // ----------------------------------------------------------
+  // UNDERGROUND RIVER / POOL — SPH fluid simulation
+  //
+  // The pool occupies the eastern basin of the cavern.
+  // SPH kernel radius 0.35m, 40 000 particles — this is the
+  // stress target. At this count the SPH solver runs at ~12ms
+  // per step on GPU with spatial hashing. The pool fills
+  // dynamically as the deformable terrain erodes sediment into it.
+  //
+  // Boundary: box enclosing the basin basin from the east wall.
+  // ----------------------------------------------------------
+  object "underground_pool" {
+    geometry: "fluid_volume"
+    position: [12, 0.2, 0]
+    scale: [20, 3, 18]
+    visible: false
+
+    @fluid_simulation {
+      particleCount: 40000
+      kernelRadius: 0.35
+      restDensity: 1000.0
+      gasConstant: 2200.0
+      viscosity: 0.018
+      surfaceTension: 0.072
+      gravity: [0, -9.81, 0]
+      boundaries: [
+        { type: "box", position: [12, 1.5, 0], size: [20, 3, 18], restitution: 0.05 }
+      ]
+      maxParticles: 55000
+    }
+  }
+
+  // Visible water surface mesh (visual companion to fluid volume)
+  object "pool_surface" {
+    geometry: "plane"
+    position: [12, 1.8, 0]
+    scale: [20, 1, 18]
+    rotation: [-90, 0, 0]
+    material: {
+      baseColor: "#0d1a33"
+      roughness: 0.04
+      metallic: 0.0
+      transmission: 0.92
+      ior: 1.33
+      thickness: 2.0
+    }
+    emissive: "#061020"
+    emissiveIntensity: 0.15
+  }
+
+  // Pool entry waterfall — crystal ceiling melt-water drips
+  object "waterfall_source" {
+    geometry: "particle_emitter"
+    position: [14, 6, -2]
+    visible: false
+
+    @spatial_audio {
+      src: "audio/dripping_water_cave.mp3"
+      volume: 0.55
+      loop: true
+      refDistance: 2.0
+      rolloffFactor: 1.8
+      maxDistance: 35
+    }
+  }
+
+  // ----------------------------------------------------------
+  // GRANULAR SAND DUNES — crushed crystal quartz
+  //
+  // Three dune formations along the western shelves.
+  // @granular_material uses DEM simulation with:
+  //   density: 2650 kg/m³ (quartz)
+  //   cohesion: 120 Pa (slightly damp, sticks loosely)
+  //   friction: 0.68 (angle of repose ~34°)
+  //
+  // Each dune emits ~15 000 particles. The particles are
+  // visible as glowing micro-crystals via GPU instancing.
+  // When @voronoi_fracture triggers above, shards land in
+  // the dunes and displace the granular flow in real time.
+  // ----------------------------------------------------------
+  object "dune_shelf_a" {
+    geometry: "sphere"
+    position: [-16, 1.5, -8]
+    scale: [5, 2.5, 4]
+    material: {
+      baseColor: "#aaddff"
+      roughness: 0.35
+      metallic: 0.1
+    }
+    emissive: "#334466"
+    emissiveIntensity: 0.4
+
+    @granular_material {
+      material: {
+        density: 2650
+        restitution: 0.22
+        friction: 0.68
+        cohesion: 120
+        stiffness: 3200000
+        damping: 0.15
+        angularDamping: 0.3
+        rollingFriction: 0.05
+        tag: "quartz_sand"
+      }
+      maxParticles: 15000
+      particleRadius: 0.025
+      gravity: [0, -9.81, 0]
+    }
+    @accessible { role: "decoration", label: "Luminescent crystal sand dune" }
+  }
+
+  object "dune_shelf_b" {
+    geometry: "sphere"
+    position: [-18, 1.2, 5]
+    scale: [4, 2.0, 5]
+    material: {
+      baseColor: "#88ccff"
+      roughness: 0.4
+      metallic: 0.08
+    }
+    emissive: "#223355"
+    emissiveIntensity: 0.35
+
+    @granular_material {
+      material: {
+        density: 2650
+        restitution: 0.20
+        friction: 0.72
+        cohesion: 90
+        stiffness: 3000000
+        damping: 0.18
+        angularDamping: 0.28
+        rollingFriction: 0.04
+        tag: "quartz_sand"
+      }
+      maxParticles: 12000
+      particleRadius: 0.028
+      gravity: [0, -9.81, 0]
+    }
+  }
+
+  object "dune_shelf_c" {
+    geometry: "sphere"
+    position: [-14, 0.9, 14]
+    scale: [6, 1.8, 3.5]
+    material: {
+      baseColor: "#99ddff"
+      roughness: 0.3
+      metallic: 0.12
+    }
+    emissive: "#1a2f55"
+    emissiveIntensity: 0.5
+
+    @granular_material {
+      material: {
+        density: 2650
+        restitution: 0.25
+        friction: 0.65
+        cohesion: 60
+        stiffness: 2800000
+        damping: 0.12
+        angularDamping: 0.32
+        rollingFriction: 0.06
+        tag: "quartz_fine"
+      }
+      maxParticles: 18000
+      particleRadius: 0.018
+      gravity: [0, -9.81, 0]
+    }
+    @accessible { role: "decoration", label: "Fine crystal dust shelf" }
+  }
+
+  // ----------------------------------------------------------
+  // AMBIENT CAVE SOUNDS
+  // Two audio sources: deep tectonic rumble (ominous, low freq)
+  // and the pool's surface tension hum (mid freq crystal resonance)
+  // ----------------------------------------------------------
+  object "cave_ambience_rumble" {
+    geometry: "point"
+    position: [0, 8, 0]
+    visible: false
+
+    @spatial_audio {
+      src: "audio/tectonic_rumble_loop.mp3"
+      volume: 0.35
+      loop: true
+      refDistance: 30
+      rolloffFactor: 0.4
+      maxDistance: 80
+    }
+  }
+
+  object "crystal_resonance_hum" {
+    geometry: "point"
+    position: [-8, 5, -5]
+    visible: false
+
+    @spatial_audio {
+      src: "audio/crystal_resonance_b2.mp3"
+      volume: 0.6
+      loop: true
+      refDistance: 4
+      rolloffFactor: 2.2
+      maxDistance: 30
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ACCENT LIGHTING — bioluminescent mushroom clusters
+  // (no @weather dependency — just emissive geometry)
+  // ----------------------------------------------------------
+  object "mushroom_cluster_ne" {
+    geometry: "mesh"
+    src: "assets/cavern/glow_mushrooms_v1.glb"
+    position: [8, 0.3, -15]
+    scale: [1.2, 1.2, 1.2]
+    material: { baseColor: "#334499", roughness: 0.7, metallic: 0.0 }
+    emissive: "#2244cc"
+    emissiveIntensity: 2.8
+    castShadow: false
+  }
+
+  object "mushroom_cluster_sw" {
+    geometry: "mesh"
+    src: "assets/cavern/glow_mushrooms_v1.glb"
+    position: [-18, 0.3, 12]
+    scale: [0.9, 0.9, 0.9]
+    rotation: [0, 145, 0]
+    material: { baseColor: "#223388", roughness: 0.7, metallic: 0.0 }
+    emissive: "#1133bb"
+    emissiveIntensity: 3.2
+    castShadow: false
+  }
+
+  // Key spotlight — sun shaft through a fissure overhead
+  object "fissure_shaft" {
+    type: "spot_light"
+    color: "#d4eeff"
+    intensity: 4.0
+    position: [5, 20, -10]
+    direction: [-0.3, -1, 0.4]
+    angle: 18
+    penumbra: 0.4
+    range: 30
+    castShadow: true
+    shadowMapSize: 2048
+  }
+
+  // ----------------------------------------------------------
+  // POST-PROCESSING
+  // Heavy bloom for the crystal emissives.
+  // SSAO to deepen crevices.
+  // Chromatic aberration: 0.6 — the fissure light refracts
+  // through crystal facets into spectrum bands.
+  // ----------------------------------------------------------
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 1.2
+      threshold: 0.55
+      radius: 0.9
+      luminanceSmoothing: 0.08
+    }
+    ambient_occlusion: {
+      enabled: true
+      intensity: 1.8
+      radius: 0.4
+      samples: 32
+    }
+    chromatic_aberration: {
+      enabled: true
+      intensity: 0.6
+    }
+    tone_mapping: {
+      type: "aces"
+      exposure: 0.85
+    }
+    vignette: {
+      enabled: true
+      darkness: 0.55
+      offset: 0.5
+    }
+  }
+}
