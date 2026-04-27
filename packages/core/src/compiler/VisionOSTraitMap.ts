@@ -990,10 +990,27 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
     generate: (varName, config) => {
       const activity = String(config.activity_type || 'custom');
       return [
-        `// @shareplay — SharePlay GroupActivity`,
-        `// Activity type: ${activity}`,
-        `// TODO: conform to GroupActivity protocol and activate session`,
-        `// struct HoloActivity: GroupActivity { var metadata = GroupActivityMetadata() }`,
+        `// @shareplay — SharePlay GroupActivity (activity: ${activity})`,
+        `struct ${varName}Activity: GroupActivity {`,
+        `    var metadata = GroupActivityMetadata()`,
+        `    init() {`,
+        `        metadata.title = "${activity}"`,
+        `        metadata.type = .generic`,
+        `    }`,
+        `}`,
+        ``,
+        `// Activate session and set up GroupSessionMessenger`,
+        `func ${varName}ActivateSharePlay() {`,
+        `    Task {`,
+        `        for await session in ${varName}Activity.sessions() {`,
+        `            await session.join(activationConditions: [.always])`,
+        `            let messenger = GroupSessionMessenger(session: session)`,
+        `            // Send: try? await messenger.send("event", to: .all)`,
+        `            // Receive: for await (msg, _) in messenger.messages(of: String.self) { handle(msg) }`,
+        `            _ = messenger`,
+        `        }`,
+        `    }`,
+        `}`,
       ];
     },
   },
@@ -1573,23 +1590,57 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   vision: {
     trait: 'vision',
     components: [],
-    level: 'comment',
-    imports: ['Vision'],
-    generate: (_varName, config) => [
-      `// @vision — Vision framework (task: ${String(config.task || 'classification')})`,
-      `// TODO: configure VNRequest pipeline for ${String(config.task || 'classification')}`,
-    ],
+    level: 'partial',
+    imports: ['Vision', 'CoreImage'],
+    generate: (varName, config) => {
+      const task = String(config.task || 'classification');
+      const requestType: Record<string, string> = {
+        text_recognition: 'VNRecognizeTextRequest',
+        classification: 'VNClassifyImageRequest',
+        face_detection: 'VNDetectFaceRectanglesRequest',
+        body_pose: 'VNDetectHumanBodyPoseRequest',
+        barcode: 'VNDetectBarcodesRequest',
+        animal_recognition: 'VNRecognizeAnimalsRequest',
+        hand_pose: 'VNDetectHumanHandPoseRequest',
+        object_detection: 'VNDetectRectanglesRequest',
+      };
+      const req = requestType[task] ?? 'VNClassifyImageRequest';
+      return [
+        `// @vision — Vision framework (task: ${task})`,
+        `let ${varName}Request = ${req}()`,
+        `let ${varName}Handler = VNImageRequestHandler(ciImage: CIImage() /* supply real image */, options: [:])`,
+        `func ${varName}Analyze(pixelBuffer: CVPixelBuffer) -> [VNObservation] {`,
+        `    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])`,
+        `    try? handler.perform([${varName}Request])`,
+        `    return ${varName}Request.results ?? []`,
+        `}`,
+      ];
+    },
   },
 
   spatial_awareness: {
     trait: 'spatial_awareness',
     components: [],
-    level: 'comment',
+    level: 'partial',
     minVersion: '1.0',
     imports: ['ARKit'],
-    generate: (_varName, _config) => [
-      `// @spatial_awareness — spatial scene understanding`,
-      `// TODO: combine PlaneDetectionProvider + SceneReconstructionProvider`,
+    generate: (varName, _config) => [
+      `// @spatial_awareness — ARKit spatial scene understanding`,
+      `let ${varName}PlaneDetection = PlaneDetectionProvider(alignments: [.horizontal, .vertical])`,
+      `let ${varName}SceneReconstruction = SceneReconstructionProvider()`,
+      `let ${varName}ArSession = ARKitSession()`,
+      ``,
+      `func ${varName}StartSpatialAwareness() {`,
+      `    Task {`,
+      `        try await ${varName}ArSession.run([${varName}PlaneDetection, ${varName}SceneReconstruction])`,
+      `        for await update in ${varName}PlaneDetection.anchorUpdates {`,
+      `            let plane = update.anchor`,
+      `            // plane.classification: .floor, .wall, .ceiling, .table, .seat, .window, .door`,
+      `            // plane.geometry: PlaneGeometry with extent and vertices`,
+      `            _ = plane`,
+      `        }`,
+      `    }`,
+      `}`,
     ],
   },
 
@@ -1636,12 +1687,33 @@ export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: [],
-    level: 'comment',
-    imports: ['Vision'],
-    generate: (_varName, config) => [
-      `// @ai_vision — AI vision processing (task: ${String(config.task || 'detection')})`,
-      `// TODO: configure VNDetectRectanglesRequest or custom CoreML model`,
-    ],
+    level: 'partial',
+    imports: ['Vision', 'CoreML'],
+    generate: (varName, config) => {
+      const task = String(config.task || 'detection');
+      const modelName = String(config.model || 'CustomVisionModel');
+      return [
+        `// @ai_vision — AI vision processing (task: ${task}, model: ${modelName})`,
+        `func ${varName}BuildRequest() -> VNRequest {`,
+        `    if let modelURL = Bundle.main.url(forResource: "${modelName}", withExtension: "mlmodelc"),`,
+        `       let mlModel = try? MLModel(contentsOf: modelURL),`,
+        `       let vnModel = try? VNCoreMLModel(for: mlModel) {`,
+        `        return VNCoreMLRequest(model: vnModel) { req, _ in`,
+        `            let obs = req.results as? [VNRecognizedObjectObservation] ?? []`,
+        `            // obs[i].labels[0].identifier, obs[i].boundingBox`,
+        `            _ = obs`,
+        `        }`,
+        `    }`,
+        `    return VNDetectRectanglesRequest()`,
+        `}`,
+        `let ${varName}Request = ${varName}BuildRequest()`,
+        `func ${varName}Analyze(pixelBuffer: CVPixelBuffer) -> [VNObservation] {`,
+        `    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])`,
+        `    try? handler.perform([${varName}Request])`,
+        `    return ${varName}Request.results ?? []`,
+        `}`,
+      ];
+    },
   },
 };
 

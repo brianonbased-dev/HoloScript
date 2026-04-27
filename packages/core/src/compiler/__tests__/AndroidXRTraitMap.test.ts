@@ -456,6 +456,45 @@ describe('AndroidXRTraitMap', () => {
     expect(mapping!.level).toBe('partial');
   });
 
+  it('vision is partial and generates ML Kit code for classification', () => {
+    const mapping = getTraitMapping('vision');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('vision', 'camNode', { task: 'classification' });
+    expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
+    expect(code.some((l) => l.includes('camNode'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('vision generates ML Kit text recognition for text_recognition task', () => {
+    const code = generateTraitCode('vision', 'docScanner', { task: 'text_recognition' });
+    expect(code.some((l) => l.includes('TextRecognition'))).toBe(true);
+    expect(code.some((l) => l.includes('docScanner'))).toBe(true);
+  });
+
+  it('vision generates ML Kit face detection for face_detection task', () => {
+    const code = generateTraitCode('vision', 'faceNode', { task: 'face_detection' });
+    expect(code.some((l) => l.includes('FaceDetection'))).toBe(true);
+    expect(code.some((l) => l.includes('faceNode'))).toBe(true);
+  });
+
+  it('ai_vision is partial and generates ObjectDetector when no model specified', () => {
+    const mapping = getTraitMapping('ai_vision');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('ai_vision', 'detector', {});
+    expect(code.some((l) => l.includes('ObjectDetection'))).toBe(true);
+    expect(code.some((l) => l.includes('detector'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('ai_vision generates TFLite Interpreter when model asset provided', () => {
+    const code = generateTraitCode('ai_vision', 'aiCam', { model: 'my_model.tflite' });
+    expect(code.some((l) => l.includes('Interpreter'))).toBe(true);
+    expect(code.some((l) => l.includes('my_model.tflite'))).toBe(true);
+    expect(code.some((l) => l.includes('aiCam'))).toBe(true);
+  });
+
   it('shareplay upgraded from comment to partial', () => {
     const mapping = getTraitMapping('shareplay');
     expect(mapping!.level).toBe('partial');

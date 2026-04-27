@@ -214,4 +214,42 @@ describe('VisionOSTraitMap', () => {
     expect(imports).toContain('ARKit');
     expect(imports).toContain('SwiftUI');
   });
+
+  // =========== Upgraded traits (vision / spatial_awareness / ai_vision) ===========
+
+  it('vision is partial and generates VNRequest dispatch for text_recognition', () => {
+    const mapping = getTraitMapping('vision');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('vision', 'cam', { task: 'text_recognition' });
+    expect(code.some((l) => l.includes('VNRecognizeTextRequest'))).toBe(true);
+    expect(code.some((l) => l.includes('cam'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('vision generates face detection request for face_detection task', () => {
+    const code = generateTraitCode('vision', 'faceNode', { task: 'face_detection' });
+    expect(code.some((l) => l.includes('VNDetectFaceRectanglesRequest'))).toBe(true);
+    expect(code.some((l) => l.includes('faceNode'))).toBe(true);
+  });
+
+  it('spatial_awareness is partial and emits ARKitSession + PlaneDetectionProvider', () => {
+    const mapping = getTraitMapping('spatial_awareness');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('spatial_awareness', 'scene', {});
+    expect(code.some((l) => l.includes('ARKitSession'))).toBe(true);
+    expect(code.some((l) => l.includes('PlaneDetectionProvider'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
+
+  it('ai_vision is partial and generates VNCoreMLRequest or VNDetectRectanglesRequest', () => {
+    const mapping = getTraitMapping('ai_vision');
+    expect(mapping).toBeDefined();
+    expect(mapping!.level).toBe('partial');
+    const code = generateTraitCode('ai_vision', 'detector', {});
+    expect(code.some((l) => l.includes('VNCoreMLRequest') || l.includes('VNDetectRectanglesRequest'))).toBe(true);
+    expect(code.some((l) => l.includes('detector'))).toBe(true);
+    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+  });
 });

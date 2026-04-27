@@ -2977,12 +2977,62 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   vision: {
     trait: 'vision',
     components: [],
-    level: 'comment',
-    imports: ['com.google.mlkit.vision'],
-    generate: (_varName, config) => [
-      `// @vision -- ML Kit Vision (task: ${String(config.task || 'classification')})`,
-      `// TODO: configure ML Kit pipeline for ${String(config.task || 'classification')}`,
+    level: 'partial',
+    imports: [
+      'com.google.mlkit.vision.common.InputImage',
+      'com.google.mlkit.vision.label.ImageLabeling',
+      'com.google.mlkit.vision.label.defaults.ImageLabelerOptions',
+      'com.google.mlkit.vision.text.TextRecognition',
+      'com.google.mlkit.vision.text.latin.TextRecognizerOptions',
+      'com.google.mlkit.vision.face.FaceDetection',
+      'com.google.mlkit.vision.face.FaceDetectorOptions',
+      'com.google.mlkit.vision.barcode.BarcodeScanning',
     ],
+    generate: (varName, config) => {
+      const task = String(config.task || 'classification');
+      const mlkitSetup: Record<string, string[]> = {
+        classification: [
+          `val ${varName}Labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_INSTANCE)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Labeler.process(image).addOnSuccessListener { labels ->`,
+          `        labels.forEach { label -> /* label.text, label.confidence */ }`,
+          `    }`,
+          `}`,
+        ],
+        text_recognition: [
+          `val ${varName}Recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Recognizer.process(image).addOnSuccessListener { visionText ->`,
+          `        visionText.textBlocks.forEach { block -> /* block.text, block.boundingBox */ }`,
+          `    }`,
+          `}`,
+        ],
+        face_detection: [
+          `val ${varName}FaceOpts = FaceDetectorOptions.Builder()`,
+          `    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)`,
+          `    .enableTracking().build()`,
+          `val ${varName}Detector = FaceDetection.getClient(${varName}FaceOpts)`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Detector.process(image).addOnSuccessListener { faces ->`,
+          `        faces.forEach { face -> /* face.trackingId, face.boundingBox, face.headEulerAngleY */ }`,
+          `    }`,
+          `}`,
+        ],
+        barcode: [
+          `val ${varName}Scanner = BarcodeScanning.getClient()`,
+          `fun ${varName}Analyze(image: InputImage) {`,
+          `    ${varName}Scanner.process(image).addOnSuccessListener { barcodes ->`,
+          `        barcodes.forEach { bc -> /* bc.rawValue, bc.format, bc.boundingBox */ }`,
+          `    }`,
+          `}`,
+        ],
+      };
+      const lines = mlkitSetup[task] ?? mlkitSetup['classification']!;
+      return [
+        `// @vision -- ML Kit Vision (task: ${task})`,
+        ...lines,
+      ];
+    },
   },
 
   spatial_awareness: {
@@ -3049,12 +3099,50 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: [],
-    level: 'comment',
-    imports: ['com.google.mlkit.vision'],
-    generate: (_varName, config) => [
-      `// @ai_vision -- AI vision processing (task: ${String(config.task || 'detection')})`,
-      `// TODO: configure ML Kit object detection or custom TFLite model`,
+    level: 'partial',
+    imports: [
+      'com.google.mlkit.vision.objects.ObjectDetection',
+      'com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions',
+      'com.google.mlkit.vision.common.InputImage',
+      'org.tensorflow.lite.Interpreter',
     ],
+    generate: (varName, config) => {
+      const task = String(config.task || 'detection');
+      const modelAsset = String(config.model || '');
+      if (modelAsset) {
+        return [
+          `// @ai_vision -- custom TFLite model (task: ${task}, model: ${modelAsset})`,
+          `fun ${varName}LoadModel(context: Context): Interpreter {`,
+          `    val fd = context.assets.openFd("${modelAsset}")`,
+          `    val mapped = java.io.FileInputStream(fd.fileDescriptor).channel`,
+          `        .map(java.nio.channels.FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)`,
+          `    return Interpreter(mapped, Interpreter.Options().apply { setNumThreads(2) })`,
+          `}`,
+          `val ${varName}Model = ${varName}LoadModel(context)`,
+          `fun ${varName}Analyze(input: FloatArray): FloatArray {`,
+          `    val output = FloatArray(${varName}Model.getOutputTensor(0).numElements())`,
+          `    ${varName}Model.run(input, output)`,
+          `    return output`,
+          `}`,
+        ];
+      }
+      return [
+        `// @ai_vision -- ML Kit ObjectDetector (task: ${task})`,
+        `val ${varName}DetectorOpts = ObjectDetectorOptions.Builder()`,
+        `    .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)`,
+        `    .enableMultipleObjects()`,
+        `    .enableClassification().build()`,
+        `val ${varName}ObjectDetector = ObjectDetection.getClient(${varName}DetectorOpts)`,
+        `fun ${varName}Analyze(image: InputImage) {`,
+        `    ${varName}ObjectDetector.process(image).addOnSuccessListener { objects ->`,
+        `        objects.forEach { obj ->`,
+        `            // obj.trackingId, obj.boundingBox, obj.labels[0].text, obj.labels[0].confidence`,
+        `            _ = obj`,
+        `        }`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 };
 
