@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -44,6 +45,27 @@ console.log('-----------------------');
 
 // Serve Native V2 Landing Page at the Root /
 app.use(express.static(NATIVE_ENGINE_DIST));
+
+// Live evidence manifest: explicit route so a missing file does not fall through to the SPA
+// index.html (which would break JSON fetch on the landing strip).
+app.get('/live-evidence.json', (_req, res) => {
+  const candidates = [
+    path.join(NATIVE_ENGINE_DIST, 'live-evidence.json'),
+    path.join(DOCS_DIST, 'live-evidence.json'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.sendFile(p);
+      return;
+    }
+  }
+  res
+    .status(404)
+    .type('application/json')
+    .send(JSON.stringify({ error: 'live-evidence manifest not built', hint: 'run scripts/build-live-evidence-manifest.mjs and holoscript-net build' }));
+});
 
 // Serve VitePress Documentation at /docs
 app.use('/docs', express.static(DOCS_DIST));

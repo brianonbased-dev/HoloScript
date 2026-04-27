@@ -1,5 +1,11 @@
 # @holoscript/net-service
 
+## 1.0.4
+
+### Patch Changes
+
+- **Routing:** explicit `GET /live-evidence.json` so a missing build artifact returns JSON 404 instead of the SPA `index.html` (which broke `fetch()` on the evidence strip). Tries `dist/client` then VitePress `docs/.vitepress/dist`; short cache headers.
+
 ## 1.0.3
 
 ### Patch Changes
