@@ -51,11 +51,11 @@ function median(values: number[]): number {
 function cloneChain(chain: IKChain): IKChain {
   return {
     ...chain,
-    target: { ...chain.target },
-    poleTarget: chain.poleTarget ? { ...chain.poleTarget } : undefined,
+    target: [...chain.target],
+    poleTarget: chain.poleTarget ? [...chain.poleTarget] : undefined,
     bones: chain.bones.map((b) => ({
       ...b,
-      position: { ...b.position },
+      position: [...b.position],
       rotation: { ...b.rotation },
     })),
   };
@@ -66,7 +66,7 @@ function buildCanonicalChain(chainLength: 2 | 3 | 5 | 10): IKChain {
   for (let i = 0; i < chainLength; i += 1) {
     bones.push({
       id: `b${i + 1}`,
-      position: { x: 0, y: i, z: 0 },
+      position: [0, i, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       length: 1,
       minAngle: -Math.PI,
@@ -77,7 +77,7 @@ function buildCanonicalChain(chainLength: 2 | 3 | 5 | 10): IKChain {
   return {
     id: `chain-${chainLength}`,
     bones,
-    target: { x: 0, y: chainLength - 1, z: 0 },
+    target: [0, chainLength - 1, 0],
     weight: 1,
     iterations: 12,
   };
@@ -87,20 +87,20 @@ function buildTargetSequence(
   chainLength: 2 | 3 | 5 | 10,
   taskCount: number,
   seed: number,
-): Array<{ x: number; y: number; z: number }> {
+): Array<[number, number, number]> {
   const rand = mulberry32(seed);
   const reach = Math.max(1, chainLength - 0.25);
-  const result: Array<{ x: number; y: number; z: number }> = [];
+  const result: Array<[number, number, number]> = [];
 
   for (let i = 0; i < taskCount; i += 1) {
     const theta = rand() * Math.PI * 2;
     const radius = rand() * reach * 0.85;
     const vertical = (rand() * 2 - 1) * reach * 0.5;
-    result.push({
-      x: Math.cos(theta) * radius,
-      y: vertical + reach * 0.4,
-      z: Math.sin(theta) * radius * 0.35,
-    });
+    result.push([
+      Math.cos(theta) * radius,
+      vertical + reach * 0.4,
+      Math.sin(theta) * radius * 0.35,
+    ]);
   }
 
   return result;
@@ -116,16 +116,16 @@ export function runIKLatencyProbe(spec: IKLatencyCellSpec): Uint8Array {
   let out = 0;
 
   for (const target of targets) {
-    solver.setTarget(chain.id, target.x, target.y, target.z);
+    solver.setTarget(chain.id, target[0], target[1], target[2]);
     solver.solveChain(chain.id, spec.mode);
     const solved = solver.getChain(chain.id);
     if (!solved) {
       throw new Error(`IKLatencyProbe: chain ${chain.id} disappeared during solve`);
     }
     const endEffector = solved.bones[solved.bones.length - 1]!.position;
-    output[out++] = endEffector.x;
-    output[out++] = endEffector.y;
-    output[out++] = endEffector.z;
+    output[out++] = endEffector[0];
+    output[out++] = endEffector[1];
+    output[out++] = endEffector[2];
   }
 
   return new Uint8Array(output.buffer, output.byteOffset, output.byteLength);

@@ -52,15 +52,15 @@ interface PatrolConfig {
 // =============================================================================
 
 function distance3D(
-  a: Vector3,
-  b: Vector3
+  a: readonly [number, number, number],
+  b: readonly [number, number, number]
 ): number {
   return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 }
 
 function moveToward(
-  current: Vector3,
-  target: Vector3,
+  current: readonly [number, number, number],
+  target: readonly [number, number, number],
   speed: number,
   delta: number
 ): [number, number, number, boolean] {
@@ -169,7 +169,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     if (!state || state.isPaused || state.completed) return;
     if (config.waypoints.length === 0) return;
 
-    const position = node.position || [0, 0, 0 ];
+    const position = (node.position || [0, 0, 0]) as [number, number, number];
 
     // Handle alert state
     if (state.isAlerted) {
@@ -222,7 +222,8 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     const target = config.waypoints[state.currentIndex];
     if (!target) return;
 
-    const result = moveToward(position, target, config.speed, delta);
+    const targetVec: [number, number, number] = [target[0], target[1], target[2]];
+    const result = moveToward(position, targetVec, config.speed, delta);
 
     // Update position
     context.emit?.('set_position', {

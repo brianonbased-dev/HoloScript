@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * Runtime Type Definitions
  *
@@ -8,7 +7,7 @@ import type { Vector3 } from '@holoscript/core';
  * @version 1.0.0
  */
 import type { HoloScriptValue } from '@holoscript/core';
-import type { HSPlusNode, Vector3, VRHand } from '@holoscript/core';
+import type { Vector3, VRHand } from '@holoscript/core';
 import type { SpatialPosition, HologramProperties, HologramShape } from '@holoscript/core';
 
 // =============================================================================

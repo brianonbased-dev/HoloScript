@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 /**
  * Spatial Awareness Trait
  * Sprint 4 Priority 4 - Spatial Context Awareness

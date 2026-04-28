@@ -10,11 +10,11 @@ export function runIKDeterminismProbe(spec: IKProbeSpec): Uint8Array {
   for (const chain of spec.chains) {
     const clonedChain: IKChain = {
       ...chain,
-      target: { ...chain.target },
-      poleTarget: chain.poleTarget ? { ...chain.poleTarget } : undefined,
+      target: [...chain.target],
+      poleTarget: chain.poleTarget ? [...chain.poleTarget] : undefined,
       bones: chain.bones.map((b) => ({
         ...b,
-        position: { ...b.position },
+        position: [...b.position],
         rotation: { ...b.rotation },
       })),
     };
@@ -36,9 +36,9 @@ export function runIKDeterminismProbe(spec: IKProbeSpec): Uint8Array {
       const solverChain = solver.getChain(chain.id);
       if (solverChain) {
         const endEffector = solverChain.bones[solverChain.bones.length - 1];
-        buffer[idx++] = endEffector.position.x;
-        buffer[idx++] = endEffector.position.y;
-        buffer[idx++] = endEffector.position.z;
+        buffer[idx++] = endEffector.position[0];
+        buffer[idx++] = endEffector.position[1];
+        buffer[idx++] = endEffector.position[2];
       }
     }
   }
@@ -50,13 +50,13 @@ export const PAPER_P2_IK_CANONICAL_SPEC: Readonly<IKProbeSpec> = Object.freeze({
   chains: [
     {
       id: 'chain-1',
-      target: { x: 0, y: 0, z: 0 },
+      target: [0, 0, 0] as [number, number, number],
       weight: 1.0,
       iterations: 10,
       bones: [
-        { id: 'b1', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
-        { id: 'b2', position: { x: 0, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
-        { id: 'b3', position: { x: 0, y: 2, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
+        { id: 'b1', position: [0, 0, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
+        { id: 'b2', position: [0, 1, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
+        { id: 'b3', position: [0, 2, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
       ],
     },
   ],

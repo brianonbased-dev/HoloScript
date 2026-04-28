@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Constraint Types for HoloScript Type System
  *

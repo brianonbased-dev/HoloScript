@@ -1,7 +1,6 @@
-import type { Vector3 } from '@holoscript/core';
 import { describe, it, expect } from 'vitest';
 import { SpatialQueryExecutor, SpatialQuery } from './SpatialQuery';
-import { SpatialEntity, Region, Vector3 } from './SpatialTypes';
+import { SpatialEntity, Region } from './SpatialTypes';
 
 describe('SpatialQueryExecutor - Supplementary Tests', () => {
   const executor = new SpatialQueryExecutor();

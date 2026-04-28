@@ -76,7 +76,7 @@ function mulberry32(seed: number): () => number {
 function buildChain(chainLength: number, mode: IKSolveMode): IKChain {
   const bones = Array.from({ length: chainLength }, (_, i) => ({
     id: `b${i + 1}`,
-    position: { x: 0, y: i, z: 0 },
+    position: [0, i, 0] as [number, number, number],
     rotation: { x: 0, y: 0, z: 0, w: 1 },
     length: 1,
     minAngle: -Math.PI,
@@ -85,7 +85,7 @@ function buildChain(chainLength: number, mode: IKSolveMode): IKChain {
   return {
     id: `chain-${chainLength}-${mode}`,
     bones,
-    target: { x: 0, y: chainLength - 1, z: 0 },
+    target: [0, chainLength - 1, 0],
     weight: 1,
     iterations: 12,
   };
@@ -95,14 +95,14 @@ function buildTargetCorpus(
   chainLength: number,
   taskCount: number,
   seed: number,
-): Array<{ x: number; y: number; z: number }> {
+): Array<[number, number, number]> {
   const rand = mulberry32(seed);
   const reach = Math.max(1, chainLength - 0.25);
   return Array.from({ length: taskCount }, () => {
     const theta = rand() * Math.PI * 2;
     const r = rand() * reach * 0.85;
     const vy = (rand() * 2 - 1) * reach * 0.5;
-    return { x: Math.cos(theta) * r, y: vy + reach * 0.4, z: Math.sin(theta) * r * 0.35 };
+    return [Math.cos(theta) * r, vy + reach * 0.4, Math.sin(theta) * r * 0.35];
   });
 }
 
@@ -169,14 +169,14 @@ function runSingleCell(
   let idx = 0;
 
   for (const target of corpus) {
-    solver.setTarget(chain.id, target.x, target.y, target.z);
+    solver.setTarget(chain.id, target[0], target[1], target[2]);
     solver.solveChain(chain.id, mode);
     const solved = solver.getChain(chain.id);
     if (solved) {
       const tip = solved.bones[solved.bones.length - 1]!;
-      output[idx++] = tip.position.x;
-      output[idx++] = tip.position.y;
-      output[idx++] = tip.position.z;
+      output[idx++] = tip.position[0];
+      output[idx++] = tip.position[1];
+      output[idx++] = tip.position[2];
     } else {
       output[idx++] = 0; output[idx++] = 0; output[idx++] = 0;
     }

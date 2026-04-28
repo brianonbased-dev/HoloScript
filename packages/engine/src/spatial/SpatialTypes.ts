@@ -1,3 +1,4 @@
+import type { Vector3, Vector2, Quaternion } from '@holoscript/core';
 export type { Vector3, Vector2, Quaternion } from '@holoscript/core';
 
 /**

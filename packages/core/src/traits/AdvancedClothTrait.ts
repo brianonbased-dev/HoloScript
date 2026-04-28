@@ -10,24 +10,14 @@
  * @module traits/AdvancedClothTrait
  */
 
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vec3 = [number, number, number];
 
 function vecComponent(v: Vec3 | [number, number, number], axis: 0 | 1 | 2): number {
-  if (Array.isArray(v)) return v[axis] ?? 0;
-  if (axis === 0) return v[0] ?? 0;
-  if (axis === 1) return v[1] ?? 0;
-  return v[2] ?? 0;
+  return v[axis] ?? 0;
 }
 
 function syncVec(v: Vec3): Vec3 {
-  (v as unknown as number[])[0] = v[0];
-  (v as unknown as number[])[1] = v[1];
-  (v as unknown as number[])[2] = v[2];
-  return v;
+  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
 }
 
 export interface ClothParticle {
@@ -337,7 +327,7 @@ export class AdvancedClothSystem {
 
     this.tearHistory.push({
       particleId,
-      position: { ...particle.position },
+      position: [...particle.position],
       timestamp: Date.now(),
     });
   }
@@ -371,7 +361,7 @@ export class AdvancedClothSystem {
       if (!particle.active || particle.inverseMass === 0) continue;
 
       // Store previous position
-      particle.prevPosition = syncVec({ ...particle.position });
+      particle.prevPosition = syncVec([...particle.position]);
 
       // Gravity + wind
       particle.force[0] = this.config.gravity[0] + this.config.wind[0];
