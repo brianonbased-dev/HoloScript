@@ -443,6 +443,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # No Rust/WASM build needed — these are pure TypeScript compiler tests
+      - name: Build @holoscript/core-types (required by UnityCompiler.ts ANS import)
+        run: pnpm --filter @holoscript/core-types build
+
       - name: Run compiler golden-output regression tests
         working-directory: packages/core
         env:
