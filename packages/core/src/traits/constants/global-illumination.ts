@@ -2,6 +2,7 @@
  * Global Illumination & Advanced Lighting Traits
  */
 export const GLOBAL_ILLUMINATION_TRAITS = [
+  'global_illumination', // Parent directive (DDGI/SH probes; GlobalIlluminationTrait.ts handler)
   'ssgi',
   'radiance_cascades',
   'light_probes',

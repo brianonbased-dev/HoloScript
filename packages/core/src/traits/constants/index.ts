@@ -111,6 +111,7 @@ import { FFI_OS_TRAITS } from './ffi-os';
 import { CONCURRENCY_TRAITS } from './concurrency';
 import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
+import { GLOBAL_ILLUMINATION_TRAITS } from './global-illumination';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
 import { CONNECTOR_INTEGRATION_TRAITS } from './connector-integration';
@@ -376,6 +377,9 @@ export const VR_TRAITS = [
 
   // GAPS Feature Roadmap — Phase 1 (14 traits)
   ...GAPS_PHYSICS_TRAITS,
+
+  // Global Illumination & Advanced Lighting
+  ...GLOBAL_ILLUMINATION_TRAITS,
 
   // v6 Universal Semantic Platform (35 traits)
   ...UNIVERSAL_V6_TRAITS,
@@ -696,6 +700,9 @@ export { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 
 // GAPS Feature Roadmap — Phase 1
 export { GAPS_PHYSICS_TRAITS } from './gaps-physics';
+
+// Global Illumination & Advanced Lighting
+export { GLOBAL_ILLUMINATION_TRAITS } from './global-illumination';
 
 // GPU Geometry & Instancing (Phase R4)
 export {

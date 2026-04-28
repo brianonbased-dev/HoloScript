@@ -7,9 +7,12 @@
 export const GAPS_PHYSICS_TRAITS = [
   // Pillar A: Unified Physics
   'fluid', // MLS-MPM GPU fluid (v3.0, replaces SPH default)
+  'fluid_simulation', // SPH fluid simulation (FluidSimulationTrait.ts handler)
   'soft_body_pro', // PBD deformation with parametric tearing
   'crowd_sim', // GPU spatial hash + bitonic sort, 10K+ agents
   'deformable_terrain', // GPU hydraulic erosion, @weather-driven
+  'voronoi_fracture', // Voronoi cell fracture/destruction (VoronoiFractureTrait.ts; in trait-registry.json)
+  'granular_material', // DEM granular physics (GranularMaterialTrait.ts; in trait-registry.json)
   'volumetric_clouds', // Raymarching + Beer-Lambert, reads @weather
   'god_rays', // Screen-space volumetric light scattering
 
