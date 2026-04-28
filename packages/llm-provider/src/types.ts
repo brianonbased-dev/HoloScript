@@ -391,13 +391,19 @@ export interface ILLMProvider {
   readonly defaultHoloScriptModel: string;
 
   /**
-   * Send a completion request to the provider.
+   * Send a completion request to the provider. Adapters wrap the underlying
+   * SDK/fetch call in `withRetry` (BaseLLMAdapter) so transient errors
+   * (429, 5xx, network) retry with exponential backoff and Retry-After
+   * honor before throwing.
    */
   complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
 
   /**
-   * Generate HoloScript code from a natural language description.
-   * Includes automatic validation and retry logic.
+   * Generate HoloScript code from a natural language description. Validates
+   * the model output's structure (balanced braces, recognized object types)
+   * and returns the validation result on the response. Transient-error retry
+   * is handled inside `complete()` — this method calls it once and surfaces
+   * any final error.
    */
   generateHoloScript(request: HoloScriptGenerationRequest): Promise<HoloScriptGenerationResponse>;
 
