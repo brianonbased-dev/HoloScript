@@ -347,7 +347,7 @@ export const segmentTraitHandler: TraitHandler<SegmentationConfig> = {
   onDetach(node: HSPlusNode, _config: SegmentationConfig, _context: unknown) {
     const state = (node as any).__segmentState as SegmentationState | undefined;
     if (state?.intervalHandle !== null) {
-      clearInterval(state.intervalHandle!);
+      clearInterval(state!.intervalHandle!);
     }
     delete (node as any).__segmentState;
     (node as any).emit?.('segment:ready', false);

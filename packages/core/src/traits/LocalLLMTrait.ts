@@ -350,8 +350,8 @@ export const localLLMHandler = {
         if (config.backend === 'ollama') {
           try {
             const d = readJson(line) as Record<string, unknown>;
-            isDone = d.done;
-            token = d.message?.content ?? '';
+            isDone = !!d.done;
+            token = (d.message as Record<string, unknown>)?.content as string ?? '';
           } catch {
             continue;
           }

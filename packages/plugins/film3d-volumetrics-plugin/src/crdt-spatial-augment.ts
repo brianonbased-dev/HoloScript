@@ -5,6 +5,7 @@
 import type { LoroDoc, LoroMap } from 'loro-crdt';
 
 declare module '@holoscript/crdt-spatial' {
+  // @ts-ignore -- augmenting an already-exported const from the runtime module
   export const FILM3D_VOLUMETRICS_ROOT: 'film3d_volumetrics';
   export function ensureFilm3dVolumetricsRoot(doc: LoroDoc): LoroMap<Record<string, unknown>>;
   export function registerVolumetricNode(doc: LoroDoc, nodeId: string, meta: { format: string }): void;

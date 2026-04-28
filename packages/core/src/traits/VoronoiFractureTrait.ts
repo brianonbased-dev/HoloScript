@@ -323,7 +323,7 @@ export class VoronoiFractureSystem {
       2, // Right
     ];
 
-    const bounds = computeBoundingBox(vertices);
+    const bounds = computeBoundingBox(vertices as Array<[number, number, number]>);
     const volume = computeVolume(bounds);
 
     return {
@@ -331,7 +331,7 @@ export class VoronoiFractureSystem {
       position: [sx, sy, sz] as unknown as Vector3,
       boundsMin: bounds.min,
       boundsMax: bounds.max,
-      vertices,
+      vertices: vertices as Array<[number, number, number]>,
       indices,
       health: this.config.maxHealth,
       damage: 0,

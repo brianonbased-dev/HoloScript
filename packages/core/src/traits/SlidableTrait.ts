@@ -47,7 +47,7 @@ export class SlidableTrait implements Trait {
     if (!this.initialPos) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialPos = node.properties.position
-        ? [...(node.properties.position as number[])] as [number, number, number]
+        ? [...(node.properties!.position as number[])] as [number, number, number]
         : [0, 0, 0];
     }
 

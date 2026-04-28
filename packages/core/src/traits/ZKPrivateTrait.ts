@@ -1,5 +1,4 @@
 import type {
-  Trait,
   HSPlusNode,
   TraitContext,
   TraitEvent,

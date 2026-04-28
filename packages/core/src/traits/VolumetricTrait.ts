@@ -110,7 +110,6 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
           state.isLoading = false;
 
           // Initial sort from origin
-          // @ts-expect-error
           state.indices = state.service.sortSplat(data, [0, 0, 0]);
 
           context.emit?.('on_volumetric_ready', {

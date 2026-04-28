@@ -339,7 +339,7 @@ export const depthEstimationTraitHandler: TraitHandler<DepthEstimationConfig> = 
   onDetach(node: HSPlusNode, _config: DepthEstimationConfig, _context: unknown) {
     const state = (node as any).__depthEstimationState as DepthEstimationState | undefined;
     if (state?.intervalHandle !== null) {
-      clearInterval(state.intervalHandle!);
+      clearInterval(state!.intervalHandle!);
     }
     delete (node as any).__depthEstimationState;
     (node as any).emit?.('depth:ready', false);

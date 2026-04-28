@@ -6,7 +6,7 @@ import type { Vector3 } from '../types';
  * emotional states like frustration and confusion.
  */
 
-import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitContext, HSPlusNode } from './TraitTypes';
 import {
   getEmotionDetector,
   type EmotionInference,

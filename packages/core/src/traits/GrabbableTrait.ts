@@ -59,7 +59,7 @@ export class GrabbableTrait implements Trait {
     if (!hand) return;
     const pos = node.properties?.position;
     if (!pos) return;
-    const dist = this.getDistance(pos, hand.position);
+    const dist = this.getDistance(pos as [number, number, number], hand.position);
 
     if (dist < 0.1) {
       if ((hand.pinchStrength ?? 0) > 0.9) {

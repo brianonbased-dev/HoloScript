@@ -283,7 +283,7 @@ async function compositeFrames(
 
     // Build a minimal 1-frame GIF for browser decoding
     const frameGifData = buildSingleFrameGif(originalData, i, header, rawFrames);
-    const blob = new Blob([frameGifData], { type: 'image/gif' });
+    const blob = new Blob([frameGifData as unknown as BlobPart], { type: 'image/gif' });
     const url = URL.createObjectURL(blob);
 
     try {

@@ -506,7 +506,6 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
       const slen = Math.sqrt(sdx * sdx + sdy * sdy + sdz * sdz);
       if (slen > 0) {
         const dirNorm = [sdx / slen, sdy / slen, sdz / slen] as Vector3;
-        // @ts-expect-error
         const hit = context.physics.raycast(nodePos, dirNorm, slen);
         if (hit && hit.distance < slen - 0.01) {
           reachable = false;
@@ -795,7 +794,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     let anyViolation = false;
 
     for (let i = 0; i < trajectory.length; i++) {
-      const dev = distanceToPath(trajectory[i], refPath);
+      const dev = distanceToPath(trajectory[i], refPath as unknown as Vector3[]);
       if (dev > maxDev) {
         anyViolation = true;
         state.violatingIndices.push(i);
@@ -818,7 +817,7 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
     for (let w = 0; w < waypoints.length; w++) {
       const wp = waypoints[w];
       for (const pt of trajectory) {
-        const dist = computeDistance3D(pt, wp.position);
+        const dist = computeDistance3D(pt, wp.position as unknown as Vector3);
         if (dist <= wp.radius) {
           state.waypointsReached[w] = true;
           break;

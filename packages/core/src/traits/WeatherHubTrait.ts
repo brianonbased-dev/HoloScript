@@ -234,7 +234,7 @@ function writeBlackboard(state: WeatherHubState, config: WeatherHubConfig): void
   const scale = config.wind_physics_scale;
 
   updateWeatherBlackboard({
-    wind_vector: [ws.wind[0] * scale, ws.wind[1] * scale, ws.wind[2] * scale],
+    wind_vector: [ws.wind.x * scale, ws.wind.y * scale, ws.wind.z * scale],
     precipitation: ws.precipitation,
     precipitation_type: toPrecipitationType(ws.type),
     temperature: ws.temperature,

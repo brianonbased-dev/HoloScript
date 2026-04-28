@@ -211,13 +211,13 @@ export class UILayoutEngine {
       }
 
       if (isRow) {
-        child.result[0] = pad.left + cursor + m.left;
-        child.result[1] = pad.top + crossOffset + m.top;
+        child.result.x = pad.left + cursor + m.left;
+        child.result.y = pad.top + crossOffset + m.top;
         child.result.width = sz.main;
         child.result.height = actualCross;
       } else {
-        child.result[0] = pad.left + crossOffset + m.left;
-        child.result[1] = pad.top + cursor + m.top;
+        child.result.x = pad.left + crossOffset + m.left;
+        child.result.y = pad.top + cursor + m.top;
         child.result.width = actualCross;
         child.result.height = sz.main;
       }

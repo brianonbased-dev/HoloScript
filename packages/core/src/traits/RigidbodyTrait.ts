@@ -264,7 +264,7 @@ export class RigidbodyTrait {
 
     this.state = {
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
       velocity: config.velocity ?? [0, 0, 0],
       angularVelocity: config.angularVelocity ?? [0, 0, 0],
       isSleeping: false,

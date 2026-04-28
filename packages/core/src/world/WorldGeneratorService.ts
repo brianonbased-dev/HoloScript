@@ -203,7 +203,7 @@ export class WorldGeneratorService {
         nodeId,
         assetUrl: result.assetUrl,
         generationId: result.generationId,
-        metadata: result.metadata as Record<string, unknown>,
+        metadata: result.metadata as unknown as Record<string, unknown>,
         ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
         ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
       };

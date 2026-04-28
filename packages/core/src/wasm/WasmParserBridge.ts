@@ -188,7 +188,7 @@ export class WasmParserBridge {
       if (parsed.errors) {
         return {
           success: false,
-          errors: parsed.errors,
+          errors: parsed.errors as ParseResult['errors'],
           parseTimeMs: parseTime,
           usedWasm: true,
         };

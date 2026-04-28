@@ -186,7 +186,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
         pose: {
           head: {
             position: [0, 1.6, 0],
-            rotation: [0, 0, 0, 1 ],
+            rotation: { x: 0, y: 0, z: 0, w: 1 },
           },
         },
       });

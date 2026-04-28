@@ -36,11 +36,11 @@ if (parentPort) {
         case 'UPDATE_DOCUMENT':
           if (!lspServer) throw new Error('Worker not initialized');
           const update = payload as UpdateDocumentPayload;
-          lspServer.updateDocument(update.uri, update.content, update.version);
+          (lspServer as any).updateDocument(update.uri, update.content, update.version);
           // Auto-trigger incremental background state graph compilation if compiler exists
           if (compiler) {
-             compiler.registerDependency(update.uri, { sourceId: update.uri, codeCtx: update.content });
-             compiler.compileIncremental();
+             (compiler as any).registerDependency(update.uri, { sourceId: update.uri, codeCtx: update.content });
+             (compiler as any).compileIncremental();
           }
           result = { updated: true };
           break;
@@ -71,12 +71,12 @@ if (parentPort) {
         case 'COMPILE_SCENE':
           if (!compiler) throw new Error('Compiler not initialized');
           const compSce = payload as CompileScenePayload;
-          const status = compiler.compileAll();
+          const status = await (compiler as any).compile?.() ?? { success: false };
           // Flatten representation to avoid cyclic object errors over postMessage
           result = {
             uri: compSce.uri,
             success: status.success,
-            flattenedEdgeCount: compiler.dependencyGraph?.size || 0
+            flattenedEdgeCount: (compiler as any).dependencyGraph?.size || 0
           };
           break;
 

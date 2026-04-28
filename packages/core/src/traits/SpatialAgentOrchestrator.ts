@@ -346,14 +346,13 @@ export const spatialAgentHandler = {
     ctx.emit('scene_generation_started', { node, requestId, prompt: payload.prompt });
     ctx.emit('scene_generation_progress', { node, requestId, step: 'blueprint', pct: 5 });
 
-    // @ts-expect-error During migration
     this._runGeneration(
       state,
       node,
-      config as SpatialAgentConfig as string,
+      config,
       ctx,
       requestId,
-      payload.prompt
+      payload.prompt as string
     ).catch((err: Error) => {
       state.activeGenerations.delete(requestId);
       ctx.emit('scene_generation_failed', {

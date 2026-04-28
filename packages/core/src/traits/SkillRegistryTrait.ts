@@ -1,4 +1,3 @@
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 import type {
   HSPlusNode,
   TraitContext,

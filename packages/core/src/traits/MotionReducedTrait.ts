@@ -111,10 +111,6 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
           vel[0] = vx * scale;
           vel[1] = vy * scale;
           vel[2] = vz * scale;
-        } else {
-          vel[0] = vx * scale;
-          vel[1] = vy * scale;
-          vel[2] = vz * scale;
         }
 
         context.emit?.('on_motion_clamped', {

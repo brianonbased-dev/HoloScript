@@ -294,12 +294,8 @@ export class NetworkedTrait {
     if (transport === 'auto' && serverUrl) {
       // Try WebRTC first (lowest latency for P2P)
       try {
-        this.rtcTransport = new WebRTCTransport({
-          signalingServerUrl: serverUrl,
-          roomId,
-          iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }],
-        });
-        await this.rtcTransport.initialize();
+        this.rtcTransport = new WebRTCTransport(serverUrl);
+        await this.rtcTransport.connect();
         this.rtcTransport.onMessage((msg: unknown) => {
           const networkMsg = msg as NetworkMessage & { fromPeer?: string };
           this.handleNetworkMessage(networkMsg as unknown as Record<string, unknown>);
@@ -316,16 +312,9 @@ export class NetworkedTrait {
 
       // Try WebSocket next
       try {
-        this.wsTransport = new WebSocketTransport({
-          serverUrl,
-          roomId,
-          maxReconnectAttempts: 10,
-          initialBackoffMs: 1000,
-          maxBackoffMs: 30000,
-          heartbeatIntervalMs: 30000,
-        });
+        this.wsTransport = new WebSocketTransport(serverUrl);
         await this.wsTransport.connect();
-        this.wsTransport.onMessage('state-sync', (msg: NetworkMessage) => {
+        this.wsTransport.onMessage((msg: unknown) => {
           this.handleNetworkMessage(msg as unknown as Record<string, unknown>);
         });
         this.activeTransport = 'websocket';
@@ -344,18 +333,11 @@ export class NetworkedTrait {
     // Try WebSocket if explicitly requested
     if (serverUrl && transport === 'websocket') {
       try {
-        this.wsTransport = new WebSocketTransport({
-          serverUrl,
-          roomId,
-          maxReconnectAttempts: 10,
-          initialBackoffMs: 1000,
-          maxBackoffMs: 30000,
-          heartbeatIntervalMs: 30000,
-        });
+        this.wsTransport = new WebSocketTransport(serverUrl);
 
         await this.wsTransport.connect();
 
-        this.wsTransport.onMessage('state-sync', (msg: NetworkMessage) => {
+        this.wsTransport.onMessage((msg: unknown) => {
           this.handleNetworkMessage(msg as unknown as Record<string, unknown>);
         });
 
@@ -373,13 +355,9 @@ export class NetworkedTrait {
     // Try WebRTC if explicitly requested
     if (serverUrl && transport === 'webrtc') {
       try {
-        this.rtcTransport = new WebRTCTransport({
-          signalingServerUrl: serverUrl,
-          roomId,
-          iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }],
-        });
+        this.rtcTransport = new WebRTCTransport(serverUrl);
 
-        await this.rtcTransport.initialize();
+        await this.rtcTransport.connect();
 
         this.rtcTransport.onMessage((msg: unknown) => {
           const networkMsg = msg as NetworkMessage & { fromPeer?: string };
@@ -545,7 +523,8 @@ export class NetworkedTrait {
       const updates = this.flushUpdates();
       if (Object.keys(updates).length > 0) {
         const message: Omit<NetworkMessage, 'roomId' | 'id' | 'peerId' | 'timestamp'> = {
-          type: 'state-sync',
+          type: 'state_sync',
+          senderId: this.entityId,
           payload: {
             entityId: this.entityId,
             data: updates,
@@ -553,9 +532,9 @@ export class NetworkedTrait {
         };
 
         if (this.activeTransport === 'websocket' && this.wsTransport) {
-          this.wsTransport.sendMessage(message as NetworkMessage);
+          this.wsTransport.send(message as NetworkMessage as import("@holoscript/mesh").SyncMessage);
         } else if (this.activeTransport === 'webrtc' && this.rtcTransport) {
-          this.rtcTransport.sendMessage(null, message as NetworkMessage);
+          this.rtcTransport.send(message as NetworkMessage as import("@holoscript/mesh").SyncMessage);
         } else if (this.syncProtocol) {
           this.syncProtocol.syncState(this.entityId, updates);
         }
@@ -1099,3 +1078,5 @@ export const networkedHandler = {
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },
 } as const satisfies TraitHandler;
+
+
