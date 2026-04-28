@@ -114,66 +114,71 @@ export class BitNetAdapter extends BaseLLMAdapter {
       stream: false,
     });
 
-    let raw: unknown;
+    return await this.withRetry(async () => {
+      let raw: unknown;
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: controller.signal,
-      });
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          signal: controller.signal,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new LLMProviderError(
-          `BitNet server returned ${response.status}: ${text}`,
-          'bitnet',
-          response.status,
-          response.status === 429
-        );
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          const isRetryable =
+            response.status === 429 || (response.status >= 500 && response.status < 600);
+          throw new LLMProviderError(
+            `BitNet server returned ${response.status}: ${text}`,
+            'bitnet',
+            response.status,
+            isRetryable
+          );
+        }
+
+        raw = await response.json();
+      } catch (err) {
+        if (err instanceof LLMProviderError) throw err;
+
+        const msg = err instanceof Error ? err.message : String(err);
+        const isTimeout = msg.includes('aborted') || msg.includes('timeout');
+        const hint = isTimeout
+          ? `bitnet.cpp request timed out at ${this.localBaseURL}. Is the server running? python run_inference.py --serve --port 8080`
+          : `Cannot reach bitnet.cpp server at ${this.localBaseURL}. Setup: https://github.com/microsoft/BitNet`;
+
+        // Local-server unreachable is a config issue — see local-llm.ts for rationale.
+        throw new LLMProviderError(hint, 'bitnet', undefined, false);
       }
 
-      raw = await response.json();
-    } catch (err) {
-      if (err instanceof LLMProviderError) throw err;
+      // Parse OpenAI-compatible response shape
+      const data = raw as {
+        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+        model?: string;
+      };
 
-      const msg = err instanceof Error ? err.message : String(err);
-      const isTimeout = msg.includes('aborted') || msg.includes('timeout');
-      const hint = isTimeout
-        ? `bitnet.cpp request timed out at ${this.localBaseURL}. Is the server running? python run_inference.py --serve --port 8080`
-        : `Cannot reach bitnet.cpp server at ${this.localBaseURL}. Setup: https://github.com/microsoft/BitNet`;
+      const choice = data.choices?.[0];
+      const content = choice?.message?.content ?? '';
 
-      throw new LLMProviderError(hint, 'bitnet', undefined, false);
-    }
-
-    // Parse OpenAI-compatible response shape
-    const data = raw as {
-      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-      model?: string;
-    };
-
-    const choice = data.choices?.[0];
-    const content = choice?.message?.content ?? '';
-
-    return {
-      content,
-      model: data.model ?? model,
-      provider: 'bitnet',
-      finishReason: (choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop',
-      usage: {
-        promptTokens: data.usage?.prompt_tokens ?? 0,
-        completionTokens: data.usage?.completion_tokens ?? 0,
-        totalTokens: data.usage?.total_tokens ?? 0,
-      },
-      raw,
-    };
+      return {
+        content,
+        model: data.model ?? model,
+        provider: 'bitnet' as const,
+        finishReason: (choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop',
+        usage: {
+          promptTokens: data.usage?.prompt_tokens ?? 0,
+          completionTokens: data.usage?.completion_tokens ?? 0,
+          totalTokens: data.usage?.total_tokens ?? 0,
+        },
+        raw,
+      };
+    });
   }
 
   /**

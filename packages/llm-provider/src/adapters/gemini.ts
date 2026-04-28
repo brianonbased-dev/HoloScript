@@ -115,58 +115,64 @@ export class GeminiAdapter extends BaseLLMAdapter {
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    return await this.withRetry(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      const data: GeminiResponse = (await response.json()) as GeminiResponse;
+        const data: GeminiResponse = (await response.json()) as GeminiResponse;
 
-      if (!response.ok || data.error) {
-        throw this.mapGeminiError(response.status, data.error?.message ?? 'Unknown error');
+        if (!response.ok || data.error) {
+          throw this.mapGeminiError(
+            response.status,
+            data.error?.message ?? 'Unknown error',
+            response.headers.get('retry-after')
+          );
+        }
+
+        const candidate = data.candidates?.[0];
+        const content = candidate?.content?.parts?.map((p) => p.text).join('') ?? '';
+        const usage = data.usageMetadata;
+
+        return {
+          content,
+          usage: {
+            promptTokens: usage?.promptTokenCount ?? 0,
+            completionTokens: usage?.candidatesTokenCount ?? 0,
+            totalTokens: usage?.totalTokenCount ?? 0,
+          },
+          model,
+          provider: 'gemini' as const,
+          finishReason: this.mapFinishReason(candidate?.finishReason),
+          raw: data,
+        };
+      } catch (err: unknown) {
+        clearTimeout(timeoutId);
+        if (
+          err instanceof LLMProviderError ||
+          err instanceof LLMAuthenticationError ||
+          err instanceof LLMRateLimitError ||
+          err instanceof LLMContextLengthError
+        ) {
+          throw err;
+        }
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new LLMProviderError(`Request timeout after ${this.config.timeoutMs}ms`, 'gemini');
+        }
+        throw new LLMProviderError(err instanceof Error ? err.message : String(err), 'gemini');
       }
-
-      const candidate = data.candidates?.[0];
-      const content = candidate?.content?.parts?.map((p) => p.text).join('') ?? '';
-      const usage = data.usageMetadata;
-
-      return {
-        content,
-        usage: {
-          promptTokens: usage?.promptTokenCount ?? 0,
-          completionTokens: usage?.candidatesTokenCount ?? 0,
-          totalTokens: usage?.totalTokenCount ?? 0,
-        },
-        model,
-        provider: 'gemini',
-        finishReason: this.mapFinishReason(candidate?.finishReason),
-        raw: data,
-      };
-    } catch (err: unknown) {
-      clearTimeout(timeoutId);
-      if (
-        err instanceof LLMProviderError ||
-        err instanceof LLMAuthenticationError ||
-        err instanceof LLMRateLimitError ||
-        err instanceof LLMContextLengthError
-      ) {
-        throw err;
-      }
-      if (err instanceof Error && err.name === 'AbortError') {
-        throw new LLMProviderError(`Request timeout after ${this.config.timeoutMs}ms`, 'gemini');
-      }
-      throw new LLMProviderError(err instanceof Error ? err.message : String(err), 'gemini');
-    }
+    });
   }
 
   private mapFinishReason(reason: string | undefined): LLMCompletionResponse['finishReason'] {
@@ -182,7 +188,11 @@ export class GeminiAdapter extends BaseLLMAdapter {
     }
   }
 
-  private mapGeminiError(status: number, message: string): LLMProviderError {
+  private mapGeminiError(
+    status: number,
+    message: string,
+    retryAfterHeader?: string | null
+  ): LLMProviderError {
     if (status === 400 && message.includes('API key')) {
       return new LLMAuthenticationError('gemini');
     }
@@ -190,11 +200,15 @@ export class GeminiAdapter extends BaseLLMAdapter {
       return new LLMAuthenticationError('gemini');
     }
     if (status === 429) {
-      return new LLMRateLimitError('gemini');
+      const retryAfterMs =
+        retryAfterHeader && /^\d+$/.test(retryAfterHeader)
+          ? parseInt(retryAfterHeader) * 1000
+          : undefined;
+      return new LLMRateLimitError('gemini', retryAfterMs);
     }
     if (status === 400 && message.toLowerCase().includes('token')) {
       return new LLMContextLengthError('gemini', 0);
     }
-    return new LLMProviderError(message, 'gemini', status, status >= 500);
+    return new LLMProviderError(message, 'gemini', status, status >= 500 && status < 600);
   }
 }

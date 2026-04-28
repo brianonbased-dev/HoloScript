@@ -111,7 +111,12 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
 
   /**
    * Generate HoloScript code from a natural language description.
-   * Includes retry logic and validation.
+   *
+   * Transient-error retry lives inside `complete()` (each adapter wraps its
+   * call in `withRetry`). The outer retry loop that previously lived here
+   * was multiplicative with the inner one (4 outer × 4 inner = 16 worst-case
+   * calls on persistent rate-limits) without adding behavior the inner loop
+   * doesn't already cover.
    */
   async generateHoloScript(
     request: HoloScriptGenerationRequest
@@ -130,45 +135,20 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
       temperature: request.temperature ?? 0.7,
     };
 
-    let lastError: Error | undefined;
-    for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
-      try {
-        const response = await this.complete(completionRequest, this.defaultHoloScriptModel);
+    const response = await this.complete(completionRequest, this.defaultHoloScriptModel);
 
-        const code = this.extractHoloScriptCode(response.content);
-        const validation = this.validateHoloScriptOutput(code);
-        const detectedTraits = extractTraits(code);
+    const code = this.extractHoloScriptCode(response.content);
+    const validation = this.validateHoloScriptOutput(code);
+    const detectedTraits = extractTraits(code);
 
-        return {
-          code,
-          valid: validation.valid,
-          errors: validation.errors,
-          provider: this.name,
-          usage: response.usage,
-          detectedTraits,
-        };
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-
-        // Don't retry authentication errors or context length errors
-        if (err instanceof Error && err.name === 'LLMAuthenticationError') {
-          throw err;
-        }
-        if (err instanceof Error && err.name === 'LLMContextLengthError') {
-          throw err;
-        }
-
-        if (attempt < this.config.maxRetries - 1) {
-          const delayMs = Math.min(1000 * Math.pow(2, attempt), 8000);
-          await this.sleep(delayMs);
-        }
-      }
-    }
-
-    throw (
-      lastError ??
-      new Error(`Failed to generate HoloScript after ${this.config.maxRetries} attempts`)
-    );
+    return {
+      code,
+      valid: validation.valid,
+      errors: validation.errors,
+      provider: this.name,
+      usage: response.usage,
+      detectedTraits,
+    };
   }
 
   /**
