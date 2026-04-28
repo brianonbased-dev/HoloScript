@@ -72,6 +72,37 @@ the explicit go-ahead — otherwise it refuses with exit code 3.
 - Cherry-picked prompts — task corpus is meant to be representative, fairness
   reviewed by founder before full runs
 
+## Framing decisions
+
+**Vanilla-baseline = unaided-LLM floor, not a context-isolation ablation.**
+`vanilla-baseline` runs `claude-opus-4-7` on the user prompt alone (no tools,
+no synthetic scene context). It represents the "what does an LLM produce
+from prompt alone" floor. The reviewer concern "didn't you give vanilla
+scene-context too, otherwise the lift is from context-injection not
+toolset-orchestration" is a valid ablation question — but per the scoping
+memo (research/2026-04-27_brittney-paper-scoping.md §"Out of scope"),
+this benchmark is single-axis (one Brittney config vs three baselines),
+and ablations are gate-4+ work. Adding a vanilla-with-context cell would
+make this two-axis and double the cell count without decided value.
+
+**Full run is blocked on gates 1+2.** Per the scoping memo, gate 1
+(SimulationContract grounding in route.ts) and gate 2 (CAEL audit trail)
+are pre-requisites for Paper 26. Running the 360-cell benchmark before
+they land produces `sim_contract_pass_rate=0` across every config
+(brittney-prod included), which dark-fields the architectural-grounding
+differentiator that defines the paper's strongest framing. Run gate 3
+ONCE, after gates 1+2 land — not now-then-rerun-later.
+
+**Live `--quick` smoke is deferred until gates 1+2 land OR until founder
+requests a pre-gate datapoint.** The 18 unit tests with a faked Anthropic
+client cover the harness's structural correctness (cost math, corpus
+integrity, judge consistency on golden cases, config-failure isolation,
+budget halt, JSON+MD emission). A live `--quick` run would produce one
+throwaway pre-gate results.json/md; not worth $1-2 spend for a snapshot
+that will be obsoleted by gates 1+2. To force a live smoke now:
+`HARNESS_FOUNDER_GO=1` is NOT required for `--quick` — just set
+ANTHROPIC_API_KEY and run.
+
 ## Layout
 
 ```
