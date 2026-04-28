@@ -1,0 +1,339 @@
+// ============================================================================
+// The Lotus Flower — Living Visualization of the 16-Paper Research Program
+// ============================================================================
+// Brittney's garden. Each petal is a paper; each petal's bloom-state is
+// derived from real evidence (commit hashes, anchor receipts, benchmark
+// presence, audit-matrix rows).
+//
+// Brittney CANNOT lie about a petal's bloom — the state is a pure function
+// of repo evidence (see `packages/studio/src/lib/brittney/lotus/derive-bloom-state.ts`).
+// She tends the garden by reading evidence and proposing what's needed for
+// the next bloom; she cannot bloom a petal that the evidence doesn't justify.
+//
+// Why a lotus: per `docs/strategy/lotus-architecture.md`, the program is one
+// architecture (provenance semiring) demonstrated through 16 papers. Roots =
+// substrate, stalk = formats (.hs/.hsplus/.holo/.hs.md), petals = papers,
+// center = Dumb Glass (rendering as contracted synthesis).
+//
+// Bloom-state lifecycle:
+//   sealed   → paper exists as skeleton; no real content yet
+//   budding  → draft content present, has \stub{} markers
+//   blooming → no stubs; has \todo{benchmark pending}; substantive draft
+//   full     → zero stubs, zero benchmark-pending todos, dual-anchored
+//   wilted   → regressed (anchor mismatch, removed evidence, retracted)
+//
+// When all 16 petals are `full` → Lotus Genesis Trigger fires (I.007).
+//
+// Compile: holoscript compile garden.holo --target studio
+// ============================================================================
+
+composition "The Lotus Flower" {
+
+  metadata {
+    title: "The Lotus Flower — 16-Paper Research Program"
+    description: "Brittney's living garden. Petals bloom as papers mature toward the Lotus Genesis Trigger."
+    version: "0.1"
+    author: "HoloScript"
+    tags: ["lotus", "research-program", "brittney-garden", "provenance", "paper-26-seed"]
+  }
+
+  environment {
+    skybox: "hdri/dawn_pond.hdr"
+    ambient_light: 0.4
+    gravity: [0, -9.81, 0]
+    shadows: true
+  }
+
+  // ── ROOTS (underwater substrate) ──────────────────────────────────────────
+  // The three foundational primitives. These already shipped in 2025; they
+  // are the substrate every petal grows from. Roots never bloom — they
+  // either function or they don't.
+
+  object "Root: Parser" {
+    type: "mesh"
+    position: [-1.5, -2.0, 0]
+    @lotus_root {
+      substrate: "parser"
+      ships_in: "@holoscript/core"
+    }
+  }
+
+  object "Root: Multi-target Compiler" {
+    type: "mesh"
+    position: [0, -2.0, 0]
+    @lotus_root {
+      substrate: "compiler"
+      ships_in: "@holoscript/core"
+    }
+  }
+
+  object "Root: Provenance Semiring" {
+    type: "mesh"
+    position: [1.5, -2.0, 0]
+    @lotus_root {
+      substrate: "provenance-semiring"
+      ships_in: "@holoscript/engine"
+    }
+  }
+
+  // ── STALK (formats) ───────────────────────────────────────────────────────
+  // Four declarative languages, each carrying provenance as a first-class
+  // semantic feature. Stalk segments are positioned vertically.
+
+  object "Stalk: .hs (Core IR)" {
+    type: "mesh"
+    position: [0, 0, 0]
+    @lotus_stalk {
+      format: "hs"
+      role: "core IR"
+    }
+  }
+
+  object "Stalk: .hsplus (Reactive Traits)" {
+    type: "mesh"
+    position: [0, 1, 0]
+    @lotus_stalk {
+      format: "hsplus"
+      role: "reactive state + interaction traits"
+    }
+  }
+
+  object "Stalk: .holo (Scene Composition)" {
+    type: "mesh"
+    position: [0, 2, 0]
+    @lotus_stalk {
+      format: "holo"
+      role: "scene composition"
+    }
+  }
+
+  object "Stalk: .hs.md (Documentation)" {
+    type: "mesh"
+    position: [0, 3, 0]
+    @lotus_stalk {
+      format: "hs-md"
+      role: "knowledge documentation"
+    }
+  }
+
+  // ── CENTER (Dumb Glass — Rendering as Contracted Synthesis) ───────────────
+  // Where every petal converges. Itself a paper (P3-CENTER, SIGGRAPH 2028)
+  // — uniquely tracked because it's both center and petal.
+
+  object "Center: Dumb Glass" {
+    type: "mesh"
+    position: [0, 5, 0]
+    @lotus_center {
+      paper_id: "p3-center"
+      venue: "SIGGRAPH 2028"
+      bloom_state: "sealed"
+      role: "rendering as contracted synthesis"
+    }
+  }
+
+  // ── PROGRAM 1 PETALS (8 papers, in flight) ────────────────────────────────
+  // Petals arranged in a ring at y=5, radius=2.5. Angles spread evenly.
+  // Initial bloom_state is illustrative — actual state derived at runtime
+  // by `derivePetalBloomState()` from paper-audit-matrix evidence.
+
+  object "Petal: Trust by Construction (TVCG)" {
+    type: "mesh"
+    position: [2.5, 5, 0]
+    @lotus_petal {
+      paper_id: "trust-by-construction"
+      venue: "IEEE TVCG 2026"
+      program: 1
+      bloom_state: "blooming"  // Submitted; HELD per I.009
+    }
+  }
+
+  object "Petal: CAEL (AAMAS)" {
+    type: "mesh"
+    position: [2.31, 5, 0.96]
+    @lotus_petal {
+      paper_id: "cael"
+      venue: "AAMAS 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: Trust by Replay (USENIX Sec)" {
+    type: "mesh"
+    position: [1.77, 5, 1.77]
+    @lotus_petal {
+      paper_id: "trust-by-replay"
+      venue: "USENIX Security 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: Browser-Native SNN (NeurIPS)" {
+    type: "mesh"
+    position: [0.96, 5, 2.31]
+    @lotus_petal {
+      paper_id: "snn"
+      venue: "NeurIPS 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: Conflict-Free Spatial State CRDT (ECOOP)" {
+    type: "mesh"
+    position: [0, 5, 2.5]
+    @lotus_petal {
+      paper_id: "crdt"
+      venue: "ECOOP 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: Sandboxed Embodied Sim (USENIX Sec)" {
+    type: "mesh"
+    position: [-0.96, 5, 2.31]
+    @lotus_petal {
+      paper_id: "sandboxed-sim"
+      venue: "USENIX Security 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: GraphRAG Codebase Intel (ICSE)" {
+    type: "mesh"
+    position: [-1.77, 5, 1.77]
+    @lotus_petal {
+      paper_id: "graphrag"
+      venue: "ICSE 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  object "Petal: From Notation to Cognition (UIST capstone)" {
+    type: "mesh"
+    position: [-2.31, 5, 0.96]
+    @lotus_petal {
+      paper_id: "capstone-notation-cognition"
+      venue: "UIST 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+  }
+
+  // ── PROGRAM 2 PETALS (4 papers, animation) ────────────────────────────────
+
+  object "Petal: Contracted Animation (SCA)" {
+    type: "mesh"
+    position: [-2.5, 5, 0]
+    @lotus_petal {
+      paper_id: "p2-0-contracted-animation"
+      venue: "SCA 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+  }
+
+  object "Petal: IK Under Contract (SIGGRAPH short)" {
+    type: "mesh"
+    position: [-2.31, 5, -0.96]
+    @lotus_petal {
+      paper_id: "p2-1-ik"
+      venue: "SIGGRAPH 2027 short / I3D 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+  }
+
+  object "Petal: Unified Sim+Anim (SIGGRAPH thesis)" {
+    type: "mesh"
+    position: [-1.77, 5, -1.77]
+    @lotus_petal {
+      paper_id: "p2-2-unified-sim-anim"
+      venue: "SIGGRAPH 2027"
+      program: 2
+      bloom_state: "budding"  // skeleton + intro + §2 drafted per appendix
+    }
+  }
+
+  object "Petal: Verifiable Motion (SIGGRAPH Asia)" {
+    type: "mesh"
+    position: [-0.96, 5, -2.31]
+    @lotus_petal {
+      paper_id: "p2-3-verifiable-motion"
+      venue: "SIGGRAPH Asia 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+  }
+
+  // ── PROGRAM 3 PETALS (3 stalk papers; P3-CENTER is the center, above) ────
+
+  object "Petal: .hs Core IR (PLDI)" {
+    type: "mesh"
+    position: [0, 5, -2.5]
+    @lotus_petal {
+      paper_id: "p3-s1-hs-core-ir"
+      venue: "PLDI 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+  }
+
+  object "Petal: .hsplus Traits (ECOOP)" {
+    type: "mesh"
+    position: [0.96, 5, -2.31]
+    @lotus_petal {
+      paper_id: "p3-s2-hsplus-traits"
+      venue: "ECOOP 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+  }
+
+  object "Petal: .holo Composition (I3D)" {
+    type: "mesh"
+    position: [1.77, 5, -1.77]
+    @lotus_petal {
+      paper_id: "p3-s3-holo-composition"
+      venue: "I3D 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+  }
+
+  // ── BRITTNEY (the gardener) ───────────────────────────────────────────────
+  // Brittney is represented as an avatar at the lotus's edge. Her position
+  // updates as she tends petals (her camera orbits to whichever petal she's
+  // currently inspecting). Her tools mutate petal bloom_state, but only when
+  // derive-bloom-state's output agrees.
+
+  object "Brittney" {
+    type: "mesh"
+    position: [4, 5, 0]
+    @lotus_gardener {
+      role: "tender of the lotus"
+      tools: ["bloom_petal", "wilt_petal", "read_garden_state", "tend_garden", "propose_evidence"]
+      cannot_lie: true  // all mutations gated by derivePetalBloomState agreement
+    }
+  }
+
+  // ── LOTUS GENESIS TRIGGER ─────────────────────────────────────────────────
+  // Hidden node. Becomes active when all 16 petals are `full`.
+  // When triggered: fires `scripts/plant-seed.mjs` (Trezor-confirmed).
+  // See `~/.claude/projects/.../memory/project_lotus-genesis-trigger.md` (I.007).
+
+  object "Lotus Genesis Trigger" {
+    type: "mesh"
+    position: [0, 7, 0]
+    @lotus_genesis_trigger {
+      condition: "all 16 petals === full"
+      wallet: "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3"
+      anchor_strategy: "ots+base"
+      armed: false  // explicit: only the founder fires this
+    }
+  }
+}
