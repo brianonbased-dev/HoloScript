@@ -182,8 +182,22 @@ export interface LLMCompletionResponse {
   provider: LLMProviderName;
 
   /** Finish reason — `tool_use` indicates toolUses must be executed and
-   *  re-fed via a follow-up request to continue the loop. */
-  finishReason: 'stop' | 'length' | 'content_filter' | 'error' | 'tool_use';
+   *  re-fed via a follow-up request to continue the loop.
+   *  - `refusal` — model declined for safety reasons (Claude 4+ stop_reason
+   *    `refusal`); response body may not match the requested format. Caller
+   *    must NOT retry the same prompt verbatim.
+   *  - `context_window_exceeded` — model hit the CONTEXT WINDOW limit, not
+   *    the requested max_tokens (Claude 4.5+ stop_reason
+   *    `model_context_window_exceeded`). Caller should compact / split the
+   *    conversation, not just bump max_tokens. */
+  finishReason:
+    | 'stop'
+    | 'length'
+    | 'content_filter'
+    | 'error'
+    | 'tool_use'
+    | 'refusal'
+    | 'context_window_exceeded';
 
   /**
    * Tool-use blocks the model wants the caller to execute. Empty when the

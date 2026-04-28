@@ -309,13 +309,24 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   }
 
   private mapStopReason(reason: string | null): LLMCompletionResponse['finishReason'] {
+    // Surface refusal + context-window-exceeded explicitly. The pre-2026-04-27
+    // default-bucket treated both as 'stop' which silently blurred two
+    // distinct caller-actionable signals: a refusal needs prompt re-shaping
+    // (NOT a retry of the same bytes), and a context-window stop needs
+    // history compaction (NOT a max_tokens bump). Bucketing both as 'stop'
+    // also lost the policy-trigger signal Opus 4.7 emits more often than
+    // Opus 4.6. See API skill `shared/model-migration.md` checklist items
+    // for `refusal` and `model_context_window_exceeded`.
     switch (reason) {
       case 'end_turn':
+      case 'stop_sequence':
         return 'stop';
       case 'max_tokens':
         return 'length';
-      case 'stop_sequence':
-        return 'stop';
+      case 'refusal':
+        return 'refusal';
+      case 'model_context_window_exceeded':
+        return 'context_window_exceeded';
       default:
         return 'stop';
     }
