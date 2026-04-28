@@ -15,7 +15,7 @@ Set environment variables (add to `.env` at repo root):
 ```bash
 # Required: choose one provider
 HOLODAEMON_PROVIDER=openai        # or anthropic / xai / ollama
-HOLODAEMON_MODEL=gpt-4.1         # or claude-sonnet-4-20250514 / grok-3
+HOLODAEMON_MODEL=gpt-4.1         # or claude-sonnet-4-6 / grok-3
 
 # Provider API keys
 OPENAI_API_KEY=sk-...
