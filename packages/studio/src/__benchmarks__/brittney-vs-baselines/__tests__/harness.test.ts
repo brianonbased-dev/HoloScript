@@ -12,6 +12,7 @@ import { aggregateByConfig, paretoFrontier, renderParetoMarkdown } from '../pare
 import { runBenchmark } from '../runner';
 import { loadAllTasks, loadQuickSubset } from '../tasks';
 import { renderResultsMarkdown, writeResults } from '../reporter';
+import { makeBrittneyProd, estimateTokens } from '../configs/brittney-prod';
 
 const FAKE_USAGE = { input_tokens: 1000, output_tokens: 500 };
 
@@ -309,6 +310,97 @@ describe('reporter', () => {
       budget_usd_used: 0,
     });
     expect(md).toContain('Total cells**: 0');
+  });
+});
+
+describe('brittney-prod SSE parsing + token-usage fallback', () => {
+  function makeMockSseFetch(events: Array<{ type: string; payload: unknown }>) {
+    return async (_url: string, _init?: RequestInit): Promise<Response> => {
+      const encoder = new TextEncoder();
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const ev of events) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(ev)}\n\n`));
+          }
+          controller.close();
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    };
+  }
+
+  it('estimates tokens from char counts when SSE has no usage event', async () => {
+    const fetchImpl = makeMockSseFetch([
+      { type: 'text', payload: 'I created a red cube at origin.' },
+      { type: 'tool_call', payload: { name: 'create_object', arguments: { type: 'cube' } } },
+      { type: 'tool_result', payload: { name: 'create_object', success: true } },
+      { type: 'done', payload: null },
+    ]);
+    const cfg = makeBrittneyProd({
+      endpoint: 'https://example.test/api/brittney',
+      fetchImpl: fetchImpl as never,
+    });
+    const task: Task = {
+      id: 'TX',
+      tier: 'trivial-scene',
+      prompt: 'Create a red cube at origin.',
+      evaluation_rubric: [{ id: 'x', description: 'x', required: true }],
+      expected_artifacts: [],
+    };
+    const result = await cfg.run(task, new AbortController().signal);
+    expect(result.usage.input_tokens).toBeGreaterThan(0);
+    expect(result.usage.output_tokens).toBeGreaterThan(0);
+    expect(result.scene_mutations).toHaveLength(1);
+    expect(result.scene_mutations[0].tool_name).toBe('create_object');
+    expect(result.tool_rounds).toBe(1);
+  });
+
+  it('uses reported usage when SSE emits usage event', async () => {
+    const fetchImpl = makeMockSseFetch([
+      { type: 'text', payload: 'short' },
+      { type: 'usage', payload: { input_tokens: 12345, output_tokens: 6789 } },
+      { type: 'done', payload: null },
+    ]);
+    const cfg = makeBrittneyProd({
+      endpoint: 'https://example.test/api/brittney',
+      fetchImpl: fetchImpl as never,
+    });
+    const task: Task = {
+      id: 'TX',
+      tier: 'trivial-scene',
+      prompt: 'short',
+      evaluation_rubric: [{ id: 'x', description: 'x', required: true }],
+      expected_artifacts: [],
+    };
+    const result = await cfg.run(task, new AbortController().signal);
+    expect(result.usage.input_tokens).toBe(12345);
+    expect(result.usage.output_tokens).toBe(6789);
+  });
+
+  it('reports http error without throwing', async () => {
+    const fetchImpl = async (): Promise<Response> =>
+      new Response('boom', { status: 500 });
+    const cfg = makeBrittneyProd({
+      endpoint: 'https://example.test/api/brittney',
+      fetchImpl: fetchImpl as never,
+    });
+    const task: Task = {
+      id: 'TX',
+      tier: 'trivial-scene',
+      prompt: 'p',
+      evaluation_rubric: [{ id: 'x', description: 'x', required: true }],
+      expected_artifacts: [],
+    };
+    const result = await cfg.run(task, new AbortController().signal);
+    expect(result.error).toContain('brittney http 500');
+  });
+
+  it('estimateTokens floors at 0 and rounds up', () => {
+    expect(estimateTokens(0)).toBe(0);
+    expect(estimateTokens(-5)).toBe(0);
+    expect(estimateTokens(1)).toBe(1);
+    expect(estimateTokens(7)).toBe(2);
+    expect(estimateTokens(400)).toBe(100);
   });
 });
 

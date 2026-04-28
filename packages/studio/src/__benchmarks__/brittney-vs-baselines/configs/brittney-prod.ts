@@ -71,9 +71,12 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       let outputText = '';
       const mutations: SceneMutation[] = [];
       const usage: TokenUsage = { input_tokens: 0, output_tokens: 0 };
+      let usageReported = false;
       let toolRounds = 0;
       let lastError: string | undefined;
       let lastWasToolUse = false;
+      let assistantOutputChars = 0;
+      const inputChars = task.prompt.length;
 
       const response = await fetchImpl(opts.endpoint, {
         method: 'POST',
@@ -96,7 +99,10 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
         switch (ev.type) {
           case 'text': {
             const t = ev.payload;
-            if (typeof t === 'string') outputText += t;
+            if (typeof t === 'string') {
+              outputText += t;
+              assistantOutputChars += t.length;
+            }
             break;
           }
           case 'tool_call': {
@@ -108,6 +114,7 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
                 sim_contract_passed: null,
               });
             }
+            assistantOutputChars += JSON.stringify(p ?? {}).length;
             lastWasToolUse = true;
             break;
           }
@@ -133,6 +140,7 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
             const p = ev.payload as Partial<TokenUsage>;
             if (typeof p?.input_tokens === 'number') usage.input_tokens += p.input_tokens;
             if (typeof p?.output_tokens === 'number') usage.output_tokens += p.output_tokens;
+            usageReported = true;
             break;
           }
           case 'error': {
@@ -145,6 +153,11 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
         }
       });
 
+      if (!usageReported) {
+        usage.input_tokens = estimateTokens(inputChars + SYSTEM_PROMPT_BUDGET_CHARS);
+        usage.output_tokens = estimateTokens(assistantOutputChars);
+      }
+
       return {
         output_text: outputText,
         tool_rounds: toolRounds,
@@ -155,4 +168,10 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       };
     },
   };
+}
+
+const SYSTEM_PROMPT_BUDGET_CHARS = 1400 * 4;
+
+export function estimateTokens(chars: number): number {
+  return Math.max(0, Math.ceil(chars / 4));
 }

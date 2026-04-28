@@ -10,6 +10,7 @@ import type { ConfigName, ConfigRunner } from './types';
 
 interface CliArgs {
   quick: boolean;
+  dryRun: boolean;
   configs?: ConfigName[];
   trials?: number;
   budgetUsdMax?: number;
@@ -20,12 +21,15 @@ interface CliArgs {
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const out: CliArgs = { quick: false };
+  const out: CliArgs = { quick: false, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
       case '--quick':
         out.quick = true;
+        break;
+      case '--dry-run':
+        out.dryRun = true;
         break;
       case '--configs':
         out.configs = (argv[++i] ?? '').split(',').filter(Boolean) as ConfigName[];
@@ -63,6 +67,7 @@ function printHelpAndExit(code: number): never {
       'Usage: tsx run.ts [options]',
       '',
       '  --quick                          run smoke test (3 tasks, 1 trial)',
+      '  --dry-run                        plan-only: load tasks + configs, no LLM calls',
       '  --configs <a,b,...>              subset of configs (default: all 4)',
       '  --trials <N>                     trials per cell (default: 3 full / 1 quick)',
       '  --budget <USD>                   hard budget cap (default: 50 full / 2 quick)',
@@ -80,8 +85,8 @@ function printHelpAndExit(code: number): never {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY is required');
+  if (!apiKey && !args.dryRun) {
+    console.error('ANTHROPIC_API_KEY is required (or use --dry-run)');
     process.exit(2);
   }
 
@@ -106,7 +111,7 @@ async function main(): Promise<void> {
     'http://localhost:3100/api/brittney';
 
   let allConfigs = buildAllConfigs({
-    anthropicApiKey: apiKey,
+    anthropicApiKey: apiKey ?? '',
     brittneyEndpoint: endpoint,
     brittneyAuthHeader: args.brittneyAuthHeader,
     brittneyCookie: args.brittneyCookie,
@@ -124,6 +129,20 @@ async function main(): Promise<void> {
     `[harness] tasks=${tasks.length} configs=${allConfigs.length} trials=${trialsPerCell} budget=$${budgetUsdMax}`
   );
   console.log(`[harness] cells = ${tasks.length * allConfigs.length * trialsPerCell}`);
+
+  if (args.dryRun) {
+    console.log('[harness] --dry-run: plan only, no LLM calls. Plan:');
+    for (const t of tasks) {
+      console.log(`  task ${t.id} (${t.tier})`);
+      for (const c of allConfigs) {
+        for (let trial = 1; trial <= trialsPerCell; trial++) {
+          console.log(`    config=${c.name} trial=${trial}`);
+        }
+      }
+    }
+    return;
+  }
+
   if (!args.quick) {
     if (process.env.HARNESS_FOUNDER_GO !== '1') {
       console.error(
@@ -133,7 +152,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const judgeClient = new Anthropic({ apiKey });
+  const judgeClient = new Anthropic({ apiKey: apiKey! });
 
   const run = await runBenchmark({
     configs: allConfigs,
