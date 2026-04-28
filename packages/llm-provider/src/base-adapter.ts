@@ -17,6 +17,12 @@ import type {
   LLMProviderConfig,
   TokenUsage,
 } from './types';
+import {
+  LLMProviderError,
+  LLMRateLimitError,
+  LLMAuthenticationError,
+  LLMContextLengthError,
+} from './types';
 
 // =============================================================================
 // HoloScript Generation System Prompt
@@ -252,6 +258,69 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
 
   protected sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Run an async operation with retry on transient errors.
+   *
+   * Retries `LLMProviderError` instances where `retryable=true` (e.g.
+   * `LLMRateLimitError`, 5xx via `mapXError`) up to `this.config.maxRetries`
+   * times. `LLMAuthenticationError`, `LLMContextLengthError`, and any
+   * `LLMProviderError` with `retryable=false` (4xx other than 429) throw
+   * immediately. Non-`LLMProviderError` exceptions (network errors, SDK
+   * shapes the adapter didn't classify) get one retry then re-throw — they
+   * could be transient or programmer errors, one retry covers the common
+   * "first connection from cold worker" case without masking real bugs.
+   *
+   * Backoff is `2^attempt * 100ms + jitter`, capped at 8000ms. When the
+   * caught error is `LLMRateLimitError` with `retryAfterMs`, that value is
+   * used instead of the exponential backoff.
+   *
+   * Adapters call this around their SDK invocation: previously the SDK's
+   * own retry was disabled (`maxRetries: 0` with the comment "We handle
+   * retries ourselves") but no handler existed; this is that handler.
+   */
+  protected async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    const maxRetries = this.config.maxRetries;
+    let lastError: unknown;
+    let unknownErrorRetried = false;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (err) {
+        lastError = err;
+
+        if (err instanceof LLMAuthenticationError || err instanceof LLMContextLengthError) {
+          throw err;
+        }
+
+        let isRetryable: boolean;
+        let retryAfterMs: number | undefined;
+
+        if (err instanceof LLMProviderError) {
+          isRetryable = err.retryable;
+          if (err instanceof LLMRateLimitError) {
+            retryAfterMs = err.retryAfterMs;
+          }
+        } else {
+          // Non-LLMProviderError: retry once, then surface to caller.
+          if (unknownErrorRetried) throw err;
+          unknownErrorRetried = true;
+          isRetryable = true;
+        }
+
+        if (!isRetryable) throw err;
+        if (attempt >= maxRetries) break;
+
+        const backoffMs = Math.min(Math.pow(2, attempt) * 100, 8000);
+        const jitter = Math.random() * 100;
+        const delayMs = retryAfterMs ?? backoffMs + jitter;
+        await this.sleep(delayMs);
+      }
+    }
+
+    throw lastError;
   }
 
   /**

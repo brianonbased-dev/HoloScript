@@ -197,6 +197,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       if (request.topP !== undefined) samplingParams.top_p = request.topP;
     }
 
+    return await this.withRetry(async () => {
     try {
       // Use streaming + finalMessage() to avoid undici's 30s headersTimeout.
       // Without streaming, Anthropic returns response headers only AFTER the
@@ -293,6 +294,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     } catch (err: unknown) {
       throw this.mapAnthropicError(err);
     }
+    });
   }
 
   private separateSystemMessages(messages: LLMMessage[]): {
@@ -339,12 +341,20 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         return new LLMAuthenticationError('anthropic');
       }
       if (status === 429) {
-        return new LLMRateLimitError('anthropic');
+        const retryAfter = (err as { headers?: { 'retry-after'?: string } }).headers?.[
+          'retry-after'
+        ];
+        return new LLMRateLimitError(
+          'anthropic',
+          retryAfter ? parseInt(retryAfter) * 1000 : undefined
+        );
       }
       if (status === 400 && err.message.includes('context')) {
         return new LLMContextLengthError('anthropic', 0);
       }
-      return new LLMProviderError(err.message, 'anthropic', status, status === 500);
+      const isRetryableStatus =
+        typeof status === 'number' && status >= 500 && status < 600;
+      return new LLMProviderError(err.message, 'anthropic', status, isRetryableStatus);
     }
     return new LLMProviderError(String(err), 'anthropic');
   }

@@ -83,39 +83,41 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       maxRetries: 0, // We handle retries ourselves
     });
 
-    try {
-      const response = await client.chat.completions.create({
-        model,
-        messages: request.messages.map((m) => ({
-          role: m.role,
-          content: messageContentAsString(m.content),
-        })),
-        max_tokens: request.maxTokens,
-        temperature: request.temperature,
-        top_p: request.topP,
-        stop: request.stop,
-        stream: false,
-      });
+    return await this.withRetry(async () => {
+      try {
+        const response = await client.chat.completions.create({
+          model,
+          messages: request.messages.map((m) => ({
+            role: m.role,
+            content: messageContentAsString(m.content),
+          })),
+          max_tokens: request.maxTokens,
+          temperature: request.temperature,
+          top_p: request.topP,
+          stop: request.stop,
+          stream: false,
+        });
 
-      const choice = response.choices[0];
-      const content = choice?.message?.content ?? '';
-      const usage = response.usage;
+        const choice = response.choices[0];
+        const content = choice?.message?.content ?? '';
+        const usage = response.usage;
 
-      return {
-        content,
-        usage: {
-          promptTokens: usage?.prompt_tokens ?? 0,
-          completionTokens: usage?.completion_tokens ?? 0,
-          totalTokens: usage?.total_tokens ?? 0,
-        },
-        model: response.model,
-        provider: 'openai',
-        finishReason: this.mapFinishReason(choice?.finish_reason),
-        raw: response,
-      };
-    } catch (err: unknown) {
-      throw this.mapOpenAIError(err);
-    }
+        return {
+          content,
+          usage: {
+            promptTokens: usage?.prompt_tokens ?? 0,
+            completionTokens: usage?.completion_tokens ?? 0,
+            totalTokens: usage?.total_tokens ?? 0,
+          },
+          model: response.model,
+          provider: 'openai',
+          finishReason: this.mapFinishReason(choice?.finish_reason),
+          raw: response,
+        };
+      } catch (err: unknown) {
+        throw this.mapOpenAIError(err);
+      }
+    });
   }
 
   private mapFinishReason(
@@ -151,7 +153,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       if (status === 400 && err.message.includes('context_length')) {
         return new LLMContextLengthError('openai', 0);
       }
-      return new LLMProviderError(err.message, 'openai', status, status === 500);
+      const isRetryableStatus =
+        typeof status === 'number' && status >= 500 && status < 600;
+      return new LLMProviderError(err.message, 'openai', status, isRetryableStatus);
     }
     return new LLMProviderError(String(err), 'openai');
   }
