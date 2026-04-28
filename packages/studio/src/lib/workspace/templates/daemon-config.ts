@@ -100,7 +100,7 @@ function deriveFocusAreas(dna: ScaffoldDNA): DaemonFocus[] {
 
 function defaultProviders(): DaemonProvider[] {
   return [
-    { name: 'claude', model: 'claude-sonnet-4-20250514', weight: 0.5 },
+    { name: 'claude', model: 'claude-sonnet-4-6', weight: 0.5 },
     { name: 'openai', model: 'gpt-4o', weight: 0.3 },
     { name: 'grok', model: 'grok-3', weight: 0.2 },
   ];

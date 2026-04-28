@@ -55,7 +55,7 @@ function makeAgentComposition(): HoloComposition {
             name: 'model',
             config: {
               provider: 'anthropic',
-              name: 'claude-sonnet-4-20250514',
+              name: 'claude-sonnet-4-6',
               temperature: 0.5,
               max_tokens: 2048,
             },
@@ -166,7 +166,7 @@ function makeMultiAgentComposition(): HoloComposition {
           {
             type: 'ObjectTrait',
             name: 'model',
-            config: { provider: 'anthropic', name: 'claude-sonnet-4-20250514' },
+            config: { provider: 'anthropic', name: 'claude-sonnet-4-6' },
           },
           {
             type: 'ObjectTrait',
@@ -243,7 +243,7 @@ describe('compile() — TypeScript output', () => {
 
   it('agent.ts contains model configuration', () => {
     const result = compiler.compile(makeAgentComposition(), '');
-    expect(result['agent.ts']).toContain('claude-sonnet-4-20250514');
+    expect(result['agent.ts']).toContain('claude-sonnet-4-6');
     expect(result['agent.ts']).toContain('0.5');
     expect(result['agent.ts']).toContain('2048');
   });

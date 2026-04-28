@@ -17,7 +17,7 @@
  * composition "SupportBot" {
  *   object "Agent" {
  *     @agent { role: "customer_support" }
- *     @model { provider: "anthropic", name: "claude-sonnet-4-20250514", temperature: 0.7 }
+ *     @model { provider: "anthropic", name: "claude-sonnet-4-6", temperature: 0.7 }
  *     @system_prompt { text: "You are a helpful support agent." }
  *     @tool { name: "lookup_order", description: "Look up an order by ID" }
  *     @tool { name: "refund", description: "Process a refund" }
@@ -197,7 +197,7 @@ export class AgentInferenceCompiler extends CompilerBase {
     this.options = {
       language: options.language ?? 'typescript',
       defaultProvider: options.defaultProvider ?? 'anthropic',
-      defaultModel: options.defaultModel ?? 'claude-sonnet-4-20250514',
+      defaultModel: options.defaultModel ?? 'claude-sonnet-4-6',
       defaultTemperature: options.defaultTemperature ?? 0.7,
       defaultMaxTokens: options.defaultMaxTokens ?? 4096,
       includeTypes: options.includeTypes ?? true,

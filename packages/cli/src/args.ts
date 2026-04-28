@@ -92,7 +92,7 @@ export interface CLIOptions {
   providerRotation?: boolean;
   /** LLM provider for daemon: anthropic, openai, xai, ollama */
   daemonProvider?: string;
-  /** Model ID for daemon (e.g., claude-sonnet-4-20250514, grok-3) */
+  /** Model ID for daemon (e.g., claude-sonnet-4-6, grok-3) */
   daemonModel?: string;
   /** Always-on daemon mode (runs until interrupted) */
   alwaysOn?: boolean;

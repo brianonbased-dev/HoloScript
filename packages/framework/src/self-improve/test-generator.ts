@@ -62,7 +62,7 @@ const JEST_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
  *
  * Usage:
  * ```ts
- * const gen = new TestGenerator({ model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' } });
+ * const gen = new TestGenerator({ model: { provider: 'anthropic', model: 'claude-sonnet-4-6' } });
  * const result = await gen.generateTests('src/self-improve/absorb-scanner.ts');
  * ```
  */

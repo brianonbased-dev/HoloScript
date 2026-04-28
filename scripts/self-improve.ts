@@ -88,7 +88,7 @@ const DAEMON_STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOCK_FILE = path.join(STATE_DIR, 'bridge.lock');
 const COMPOSITION_FILE = path.join(REPO_ROOT, 'compositions', 'self-improve-daemon.hsplus');
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 
 // W.090 Safeguard: Heartbeat interval and staleness threshold
 const HEARTBEAT_INTERVAL_MS = 30_000; // Refresh lock file every 30s

@@ -48,7 +48,7 @@ export async function generateWithClaude(request: SceneRequest): Promise<Generat
   }[request.interactivity || 'medium'];
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     system: HOLOSCRIPT_SYSTEM,
     messages: [
@@ -96,7 +96,7 @@ Respond with:
  */
 export async function refineScene(currentCode: string, feedback: string): Promise<GeneratedScene> {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     system: HOLOSCRIPT_SYSTEM,
     messages: [
@@ -151,7 +151,7 @@ export class ClaudeSceneBuilder {
 
   private async sendAndParse(): Promise<GeneratedScene> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: HOLOSCRIPT_SYSTEM,
       messages: this.messages,

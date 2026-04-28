@@ -126,7 +126,7 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
       return 'brittney-qwen-v23:latest';
     case 'anthropic':
     default:
-      return 'claude-sonnet-4-20250514';
+      return 'claude-sonnet-4-6';
   }
 }
 

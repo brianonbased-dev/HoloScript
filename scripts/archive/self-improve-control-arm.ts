@@ -109,7 +109,7 @@ const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
 const STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOG_FILE = path.join(STATE_DIR, 'daemon.log');
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 const MAX_TOOL_CALLS = 50;
 const LOCK_FILE = path.join(STATE_DIR, 'control.lock');
 

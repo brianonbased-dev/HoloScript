@@ -438,7 +438,7 @@ export function frameworkToProtocolCycleResult(
  * const agent = defineProtocolAgent({
  *   name: 'researcher',
  *   role: 'researcher',
- *   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
+ *   model: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
  *   capabilities: ['search', 'summarize'],
  *   claimFilter: { roles: ['researcher'], maxPriority: 10 },
  * });

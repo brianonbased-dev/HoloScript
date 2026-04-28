@@ -70,7 +70,7 @@ const JUDGE_SYSTEM = `You are a prompt quality evaluator. Score the following re
  * Usage:
  * ```ts
  * const optimizer = new PromptOptimizer({
- *   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' }
+ *   model: { provider: 'anthropic', model: 'claude-sonnet-4-6' }
  * });
  * const result = await optimizer.abTest(
  *   'Explain HoloScript in one paragraph.',

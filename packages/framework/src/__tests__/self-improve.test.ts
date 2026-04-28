@@ -150,7 +150,7 @@ describe('FrameworkAbsorber', () => {
 // ── TestGenerator ──
 
 describe('TestGenerator', () => {
-  const modelConfig = { provider: 'anthropic' as const, model: 'claude-sonnet-4-20250514' };
+  const modelConfig = { provider: 'anthropic' as const, model: 'claude-sonnet-4-6' };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -178,7 +178,7 @@ describe('add', () => {
 
     mockedCallLLM.mockResolvedValueOnce({
       content: testOutput,
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       provider: 'anthropic',
       tokensUsed: 500,
     });
@@ -247,7 +247,7 @@ describe('add', () => {
 // ── PromptOptimizer ──
 
 describe('PromptOptimizer', () => {
-  const modelConfig = { provider: 'anthropic' as const, model: 'claude-sonnet-4-20250514' };
+  const modelConfig = { provider: 'anthropic' as const, model: 'claude-sonnet-4-6' };
 
   beforeEach(() => {
     vi.clearAllMocks();
