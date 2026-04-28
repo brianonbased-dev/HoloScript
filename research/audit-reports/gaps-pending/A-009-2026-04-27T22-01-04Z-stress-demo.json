@@ -1,0 +1,45 @@
+{
+  "routine_id": "trig_a009_20260427_stress_demo",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-04-27T22:01:04Z",
+  "gaps": [
+    {
+      "title": "Compiler: trait combo cloth+water+softbody fails",
+      "description": "Stress-test combo errored during compilation phase. Error trace: type mismatch in cloth constraint solver initialization when combined with water physics. This blocks the 'flowing-fabric' demo from stress-test run abc123.",
+      "priority": "high",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "compiler-bug",
+        "physics"
+      ],
+      "dedup_key": "a009-20260427-stress-demo-cloth-water-softbody"
+    },
+    {
+      "title": "Artist requested @holographic_mesh trait (not in compiler)",
+      "description": "Reiterate studio run requested this trait for a procedural fashion demo. Artist wants to author holographic_mesh { density: 0.8, refraction: true } on a mannequin object. Trait does not exist in current trait system.",
+      "priority": "medium",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "trait-request",
+        "studio",
+        "visual"
+      ],
+      "dedup_key": "a009-20260427-stress-demo-holographic-mesh-request"
+    },
+    {
+      "title": "Runtime: networked @collidable object state divergence",
+      "description": "Stress-test run detected state divergence for networked colliders in multi-peer scenario. Object position synced but collision bounds not updated, causing hits to fail for 1.2 seconds post-sync on client B.",
+      "priority": "medium",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "runtime-bug",
+        "networking",
+        "physics"
+      ],
+      "dedup_key": "a009-20260427-stress-demo-networked-collider-divergence"
+    }
+  ]
+}
