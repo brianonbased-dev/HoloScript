@@ -150,6 +150,34 @@ describe('HoloScriptPlusParser - Environment & Lighting', () => {
     const result = parser.parse(source);
     expect(result.success).toBe(true);
   });
+
+  it('does not warn for stress-test physics/lighting directives', () => {
+    const source = `composition "StressScene" {
+      @voronoi_fracture
+      @granular_material
+      @global_illumination
+      @fluid_simulation
+      object "Probe" { geometry: "cube" }
+    }`;
+
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const unknownWarnings = (result.warnings || []).filter((w: any) =>
+      String(w.message || '').includes('Unknown directive')
+    );
+
+    expect(unknownWarnings).toHaveLength(0);
+
+    const directiveNames = (result.ast.root.children?.[0]?.directives || [])
+      .filter((d: any) => d?.type === 'trait')
+      .map((d: any) => d.name);
+
+    expect(directiveNames).toContain('voronoi_fracture');
+    expect(directiveNames).toContain('granular_material');
+    expect(directiveNames).toContain('global_illumination');
+    expect(directiveNames).toContain('fluid_simulation');
+  });
 });
 
 describe('HoloScriptPlusParser - Expression Parsing', () => {

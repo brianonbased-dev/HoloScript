@@ -2,6 +2,8 @@
  * Lighting & Illumination Traits
  */
 export const LIGHTING_TRAITS = [
+  // Canonical GI trait name used by scene directives
+  'global_illumination',
   'shadow_caster',
   'light_source',
   'spotlight',
