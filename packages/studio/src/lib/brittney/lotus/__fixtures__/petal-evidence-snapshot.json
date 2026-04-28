@@ -1,0 +1,174 @@
+{
+  "_metadata": {
+    "snapshot_at": "2026-04-27",
+    "source": "Synthesized from research/2026-04-27_brittney-paper-scoping.md + ~/.ai-ecosystem/research/paper-audit-matrix.md (last verified 2026-04-26 Round 7 anchors).",
+    "purpose": "v1 fixture for Brittney lotus tools. v2 will live-read from ai-ecosystem repo at runtime.",
+    "petal_ids_match": "examples/lotus-flower/garden.holo @lotus_petal `paper_id` fields"
+  },
+  "petals": {
+    "trust-by-construction": {
+      "paperId": "trust-by-construction",
+      "venue": "IEEE TVCG 2026",
+      "hasDraft": true,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false,
+      "_note": "TVCG submitted; HELD per I.009 (Revision-1 bundle, editor contact gated by founder). Bloom is blooming (anchor gap intentional)."
+    },
+    "cael": {
+      "paperId": "cael",
+      "venue": "AAMAS 2026",
+      "hasDraft": true,
+      "stubCount": 2,
+      "benchmarkTodoCount": 1,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "trust-by-replay": {
+      "paperId": "trust-by-replay",
+      "venue": "USENIX Security 2026",
+      "hasDraft": true,
+      "stubCount": 3,
+      "benchmarkTodoCount": 2,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "snn": {
+      "paperId": "snn",
+      "venue": "NeurIPS 2026",
+      "hasDraft": true,
+      "stubCount": 1,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false,
+      "_note": "Real benchmark landed 2026-04-24 (Paper 2 SNN RTX 6000 Ada, 20.7 Mspikes/s). Still has 1 stub."
+    },
+    "crdt": {
+      "paperId": "crdt",
+      "venue": "ECOOP 2027",
+      "hasDraft": true,
+      "stubCount": 1,
+      "benchmarkTodoCount": 1,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "sandboxed-sim": {
+      "paperId": "sandboxed-sim",
+      "venue": "USENIX Security 2026",
+      "hasDraft": true,
+      "stubCount": 2,
+      "benchmarkTodoCount": 1,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "graphrag": {
+      "paperId": "graphrag",
+      "venue": "ICSE 2027",
+      "hasDraft": true,
+      "stubCount": 2,
+      "benchmarkTodoCount": 2,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "capstone-notation-cognition": {
+      "paperId": "capstone-notation-cognition",
+      "venue": "UIST 2027",
+      "hasDraft": true,
+      "stubCount": 1,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": true,
+      "baseAnchored": true,
+      "anchorMismatch": false
+    },
+    "p2-0-contracted-animation": {
+      "paperId": "p2-0-contracted-animation",
+      "venue": "SCA 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p2-1-ik": {
+      "paperId": "p2-1-ik",
+      "venue": "SIGGRAPH 2027 short / I3D 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p2-2-unified-sim-anim": {
+      "paperId": "p2-2-unified-sim-anim",
+      "venue": "SIGGRAPH 2027",
+      "hasDraft": true,
+      "stubCount": 4,
+      "benchmarkTodoCount": 3,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false,
+      "_note": "Skeleton + intro + §2 drafted per lotus-architecture.md appendix."
+    },
+    "p2-3-verifiable-motion": {
+      "paperId": "p2-3-verifiable-motion",
+      "venue": "SIGGRAPH Asia 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p3-s1-hs-core-ir": {
+      "paperId": "p3-s1-hs-core-ir",
+      "venue": "PLDI 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p3-s2-hsplus-traits": {
+      "paperId": "p3-s2-hsplus-traits",
+      "venue": "ECOOP 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p3-s3-holo-composition": {
+      "paperId": "p3-s3-holo-composition",
+      "venue": "I3D 2027",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false
+    },
+    "p3-center": {
+      "paperId": "p3-center",
+      "venue": "SIGGRAPH 2028",
+      "hasDraft": false,
+      "stubCount": 0,
+      "benchmarkTodoCount": 0,
+      "otsAnchored": false,
+      "baseAnchored": false,
+      "anchorMismatch": false,
+      "_note": "Dumb Glass center paper; SIGGRAPH 2028 (submit Jan 2028). Skeleton only per appendix."
+    }
+  }
+}

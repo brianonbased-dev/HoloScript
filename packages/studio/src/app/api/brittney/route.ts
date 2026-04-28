@@ -23,6 +23,12 @@ import {
   verifySceneMutation,
   type SimContractCheckResult,
 } from '@/lib/brittney/SimContractGate';
+import {
+  LOTUS_TOOLS,
+  LOTUS_TOOL_NAMES,
+  executeLotusTool,
+  type LotusToolResult,
+} from '@/lib/brittney/lotus/LotusTools';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
@@ -63,7 +69,16 @@ function convertToolsToClaudeFormat(): Anthropic.Tool[] {
     description: t.function.description,
     input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
   }));
-  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools];
+  // LOTUS_TOOLS: Brittney's Paper 26 garden-tending toolset. Mutations
+  // (bloom_petal/wilt_petal) gate against derivePetalBloomState — the
+  // architectural-trust hook. Read-only tools (read_garden_state, tend_garden,
+  // propose_evidence) always succeed.
+  const lotusTools = LOTUS_TOOLS.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+  }));
+  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools, ...lotusTools];
 }
 
 /**
@@ -322,9 +337,14 @@ export async function POST(request: NextRequest) {
 
                   if (
                     STUDIO_API_TOOL_NAMES.has(currentToolName) ||
-                    MCP_TOOL_NAMES.has(currentToolName)
+                    MCP_TOOL_NAMES.has(currentToolName) ||
+                    LOTUS_TOOL_NAMES.has(currentToolName)
                   ) {
-                    // Studio API or MCP tool — execute server-side and collect for tool_result
+                    // Studio API, MCP, or Lotus tool — execute server-side and
+                    // collect for tool_result. Lotus tools route through
+                    // executeLotusTool which gates `bloom_petal`/`wilt_petal`
+                    // mutations against derivePetalBloomState (Paper 26 Gate 2 —
+                    // architectural-trust enforcement).
                     pendingToolCalls.push({
                       id: currentToolId,
                       name: currentToolName,
@@ -400,14 +420,41 @@ export async function POST(request: NextRequest) {
             stopReason === 'tool_use' &&
             (pendingToolCalls.length > 0 || rejectedMutations.length > 0)
           ) {
-            // Execute server-side tools in parallel — route to correct executor
+            // Execute server-side tools in parallel — route to correct executor.
+            // Lotus tools (sync) are wrapped in Promise.resolve so they share
+            // the same Promise.all path; their gateRejected results propagate
+            // back to the model as is_error tool_results just like MCP/Studio
+            // failures. Per-call we ALSO emit a `lotusGardenEvent` so the
+            // client UI sees garden mutations distinctly from generic tool_call
+            // events (the lotus visualization can react in real time).
             const results =
               pendingToolCalls.length > 0
                 ? await Promise.all(
                     pendingToolCalls.map(async (tc) => {
-                      const result = MCP_TOOL_NAMES.has(tc.name)
-                        ? await executeMCPTool(tc.name, tc.input)
-                        : await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
+                      let result: { success: boolean; data?: unknown; error?: string };
+                      if (LOTUS_TOOL_NAMES.has(tc.name)) {
+                        const lotus: LotusToolResult = executeLotusTool(tc.name, tc.input);
+                        result = {
+                          success: lotus.success,
+                          data: lotus.data,
+                          error: lotus.error,
+                        };
+                        send({
+                          type: 'lotusGardenEvent',
+                          payload: {
+                            tool: tc.name,
+                            paperId: lotus.paperId,
+                            newState: lotus.newState,
+                            accepted: lotus.success,
+                            gateRejected: lotus.gateRejected ?? false,
+                            reason: lotus.error,
+                          },
+                        });
+                      } else if (MCP_TOOL_NAMES.has(tc.name)) {
+                        result = await executeMCPTool(tc.name, tc.input);
+                      } else {
+                        result = await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
+                      }
                       send({
                         type: 'tool_result',
                         payload: {
