@@ -7,7 +7,7 @@
  * @module camera
  */
 
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 
 // =============================================================================
 // TYPES
@@ -17,7 +17,7 @@ export type CameraMode = 'follow' | 'orbit' | 'free' | 'topDown' | 'fixed';
 
 export interface CameraState {
   position: [number, number, number];
-  rotation: Vector3;
+  rotation: Vec3;
   zoom: number;
   fov: number;
 }
@@ -25,7 +25,7 @@ export interface CameraState {
 export interface CameraConfig {
   mode: CameraMode;
   smoothing: number; // 0-1, lerp factor
-  followOffset: Vector3;
+  followOffset: Vec3;
   orbitDistance: number;
   orbitMinDistance: number;
   orbitMaxDistance: number;
@@ -35,8 +35,8 @@ export interface CameraConfig {
   maxZoom: number;
   deadZone: { x: number; y: number };
   bounds: {
-    min: Vector3;
-    max: Vector3;
+    min: Vec3;
+    max: Vec3;
   } | null;
   fov: number;
   freeSpeed: number;
@@ -99,7 +99,7 @@ const DEFAULT_CAMERA: CameraConfig = {
 export class CameraController {
   private config: CameraConfig;
   private state: CameraState;
-  private target: Vector3 = [0, 0, 0 ];
+  private target: Vec3 = [0, 0, 0];
   private orbitAngle = 0;
   private orbitPitch = 0.3;
 
@@ -262,7 +262,7 @@ export class CameraController {
    *
    * @returns Copy of the current target coordinates
    */
-  getTarget(): Vector3 {
+  getTarget(): Vec3 {
     return [this.target[0], this.target[1], this.target[2]];
   }
 
@@ -372,8 +372,8 @@ export class CameraController {
    */
   getState(): CameraState {
     return {
-      position: [...this.state.position] as Vector3,
-      rotation: [...this.state.rotation ] as Vector3,
+      position: [...this.state.position] as Vec3,
+      rotation: [...this.state.rotation] as Vec3,
       zoom: this.state.zoom,
       fov: this.state.fov,
     };

@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * CinematicTrack.ts
  *
@@ -16,8 +16,8 @@ export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'smooth
 
 export interface CinematicKeyframe {
   time: number; // seconds
-  position?: Vector3;
-  rotation?: Vector3;
+  position?: Vec3;
+  rotation?: Vec3;
   fov?: number;
   zoom?: number;
   easing: EasingType;
@@ -32,7 +32,7 @@ export interface CinematicCue {
 
 export interface CinematicState {
   position: [number, number, number];
-  rotation: Vector3;
+  rotation: Vec3;
   fov: number;
   zoom: number;
 }
@@ -158,7 +158,7 @@ export class CinematicTrack {
     if (this.keyframes.length === 1) {
       const k = this.keyframes[0];
       if (k.position) state.position = [...k.position  ] as any;
-      if (k.rotation) state.rotation = [...k.rotation  ] as Vector3;
+      if (k.rotation) state.rotation = [...k.rotation  ] as Vec3;
       if (k.fov !== undefined) state.fov = k.fov;
       if (k.zoom !== undefined) state.zoom = k.zoom;
       return state;

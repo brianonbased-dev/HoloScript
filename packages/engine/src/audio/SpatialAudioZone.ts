@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * SpatialAudioZone.ts
  *
@@ -25,7 +25,7 @@ export interface AudioZoneConfig {
   id: string;
   shape: 'box' | 'sphere';
   position: [number, number, number];
-  size: Vector3; // half-extents for box, radius in x for sphere
+  size: Vec3; // half-extents for box, radius in x for sphere
   reverb: ReverbPreset;
   ambientClipId?: string;
   ambientVolume?: number;
@@ -36,7 +36,7 @@ export interface AudioZoneConfig {
 export interface AudioPortal {
   id: string;
   position: [number, number, number];
-  normal: Vector3;
+  normal: Vec3;
   width: number;
   height: number;
   fromZoneId: string;
@@ -113,7 +113,7 @@ export class SpatialAudioZoneSystem {
   private zones: Map<string, AudioZoneConfig> = new Map();
   private portals: Map<string, AudioPortal> = new Map();
   private activeZones: Map<string, ZoneState> = new Map();
-  private listenerPos: Vector3 = [0, 0, 0 ];
+  private listenerPos: Vec3 = [0, 0, 0];
 
   // ---------------------------------------------------------------------------
   // Zone Management
@@ -152,7 +152,7 @@ export class SpatialAudioZoneSystem {
   // Update
   // ---------------------------------------------------------------------------
 
-  updateListenerPosition(pos: Vector3): void {
+  updateListenerPosition(pos: Vec3): void {
     this.listenerPos = [...pos ];
     this.recalculate();
   }

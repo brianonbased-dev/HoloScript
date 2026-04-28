@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * SpatialAudioSource.ts
  *
@@ -21,8 +21,8 @@ export interface AudioCone {
 }
 
 export interface SpatialAudioConfig {
-  position: Vector3;
-  velocity: Vector3;
+  position: Vec3;
+  velocity: Vec3;
   rolloff: RolloffModel;
   minDistance: number;
   maxDistance: number;
@@ -98,7 +98,7 @@ export class SpatialAudioSource {
   setPosition(x: number, y: number, z: number): void {
     this.config.position = [x, y, z ];
   }
-  getPosition(): Vector3 {
+  getPosition(): Vec3 {
     return [...this.config.position ];
   }
   setVelocity(x: number, y: number, z: number): void {
@@ -136,7 +136,7 @@ export class SpatialAudioSource {
   // Update
   // ---------------------------------------------------------------------------
 
-  update(dt: number, listenerPos: Vector3): void {
+  update(dt: number, listenerPos: Vec3): void {
     if (!this.playing || this.paused) return;
 
     this.time += dt * this.config.pitch;
@@ -197,7 +197,7 @@ export class SpatialAudioSource {
     }
   }
 
-  private computeConeGain(listenerPos: Vector3): number {
+  private computeConeGain(listenerPos: Vec3): number {
     if (!this.config.cone) return 1;
     const dx = listenerPos[0] - this.config.position[0];
     const dz = listenerPos[2] - this.config.position[2];

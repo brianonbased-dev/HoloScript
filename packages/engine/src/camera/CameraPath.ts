@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * CameraPath.ts
  *
@@ -13,8 +13,8 @@ import type { Vector3 } from '@holoscript/core';
 // =============================================================================
 
 export interface PathPoint {
-  position: Vector3;
-  lookAt?: Vector3;
+  position: Vec3;
+  lookAt?: Vec3;
   speedMultiplier?: number; // 1 = default speed
 }
 
@@ -71,8 +71,8 @@ export class CameraPath {
   }
 
   update(dt: number): {
-    position: Vector3;
-    lookAt: Vector3 | null;
+    position: Vec3;
+    lookAt: Vec3 | null;
   } | null {
     if (!this.playing || this.points.length < 2) return null;
 
@@ -104,8 +104,8 @@ export class CameraPath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): {
-    position: Vector3;
-    lookAt: Vector3 | null;
+    position: Vec3;
+    lookAt: Vec3 | null;
   } {
     const n = this.points.length;
     if (n === 0) return { position: [0, 0, 0], lookAt: null };
@@ -121,14 +121,14 @@ export class CameraPath {
     const p2 = this.points[Math.min(n - 1, i + 1)];
     const p3 = this.points[Math.min(n - 1, i + 2)];
 
-    const position: Vector3 = [
+    const position: Vec3 = [
       this.catmullRom(p0.position[0], p1.position[0], p2.position[0], p3.position[0], frac),
       this.catmullRom(p0.position[1], p1.position[1], p2.position[1], p3.position[1], frac),
       this.catmullRom(p0.position[2], p1.position[2], p2.position[2], p3.position[2], frac),
     ];
 
     // Look-at interpolation
-    let lookAt: Vector3 | null = null;
+    let lookAt: Vec3 | null = null;
     if (p1.lookAt && p2.lookAt) {
       lookAt = [
         p1.lookAt[0] + (p2.lookAt[0] - p1.lookAt[0]) * frac,

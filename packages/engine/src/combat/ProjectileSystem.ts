@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * ProjectileSystem.ts
  *
@@ -30,8 +30,8 @@ export interface Projectile {
   vx: number;
   vy: number;
   vz: number;
-  position: Vector3;
-  velocity: Vector3;
+  position: Vec3;
+  velocity: Vec3;
   config: ProjectileConfig;
   age: number;
   hitCount: number;
@@ -43,7 +43,7 @@ export type ImpactCallback = (projectile: Projectile, targetId: string) => void;
 
 export interface ProjectileTarget {
   id: string;
-  position?: Vector3;
+  position?: Vec3;
   x?: number;
   y?: number;
   z?: number;
@@ -182,8 +182,8 @@ export class ProjectileSystem {
   private findNearest(
     proj: Projectile,
     targets: ProjectileTarget[]
-  ): Vector3 | null {
-    let best: Vector3 | null = null;
+  ): Vec3 | null {
+    let best: Vec3 | null = null;
     let bestDist = Infinity;
     for (const t of targets) {
       const tx = t.position ? t.position[0] : (t.x ?? 0);
@@ -196,7 +196,7 @@ export class ProjectileSystem {
       );
       if (d < bestDist) {
         bestDist = d;
-        best = [tx, ty, tz] as Vector3;
+        best = [tx, ty, tz] as Vec3;
       }
     }
     return best;

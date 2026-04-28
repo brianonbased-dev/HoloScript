@@ -1,4 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
+type Vec3 = [number, number, number];
 /**
  * NavMesh.ts
  *
@@ -12,7 +12,7 @@ import type { Vector3 } from '@holoscript/core';
 // TYPES
 // =============================================================================
 
-export type NavPoint = Vector3;
+export type NavPoint = Vec3;
 
 export interface NavPolygon {
   id: string;
