@@ -178,9 +178,9 @@ async function webGpuFusedAttention(input: FusedAttentionInput): Promise<Float32
   u32[3] = vCols;
   f32[0] = 1 / Math.sqrt(Math.max(dModel, 1));
 
-  device.queue.writeBuffer(qBuf, 0, q);
-  device.queue.writeBuffer(kBuf, 0, k);
-  device.queue.writeBuffer(vBuf, 0, v);
+  device.queue.writeBuffer(qBuf, 0, q.buffer as ArrayBuffer, q.byteOffset, q.byteLength);
+  device.queue.writeBuffer(kBuf, 0, k.buffer as ArrayBuffer, k.byteOffset, k.byteLength);
+  device.queue.writeBuffer(vBuf, 0, v.buffer as ArrayBuffer, v.byteOffset, v.byteLength);
   device.queue.writeBuffer(uniBuf, 0, uniformData);
 
   const module = device.createShaderModule({ code: FUSED_ATTENTION_WGSL });

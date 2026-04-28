@@ -190,7 +190,7 @@ export function integrateODE(
   const dt = 1.0 / nSteps;
   let z = new Float64Array(z0);
   for (let step = 0; step < nSteps; step++) {
-    z = neuralODEStep(z, dt, kernelWeights);
+    z = neuralODEStep(z, dt, kernelWeights) as Float64Array<ArrayBuffer>;
   }
   return z;
 }

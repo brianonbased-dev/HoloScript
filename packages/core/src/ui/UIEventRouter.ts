@@ -57,6 +57,8 @@ export class UIEventRouter {
       propagationStopped: false,
       timestamp: Date.now(),
     };
+      if (x !== undefined) (event as unknown as Record<number, unknown>)[0] = x;
+      if (y !== undefined) (event as unknown as Record<number, unknown>)[1] = y;
 
     const typeMap = this.handlers.get(targetId);
     if (typeMap) {

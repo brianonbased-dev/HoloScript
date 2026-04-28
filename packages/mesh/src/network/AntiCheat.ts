@@ -105,9 +105,10 @@ export class AntiCheat {
     const now = Date.now();
     const dt = (now - player.lastUpdateAt) / 1000; // seconds
 
-    const dx = next.x - player.position.x;
-    const dy = next.y - player.position.y;
-    const dz = next.z - player.position.z;
+      const curr = this.toVec3(player.position as { x: number; y: number; z: number } | [number, number, number]);
+      const dx = next.x - curr.x;
+      const dy = next.y - curr.y;
+      const dz = next.z - curr.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Teleport detection

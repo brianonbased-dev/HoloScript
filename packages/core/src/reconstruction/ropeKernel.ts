@@ -71,7 +71,7 @@ function createStorageBuffer(device: GPUDevice, data: Float32Array): GPUBuffer {
     size: data.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(buf, 0, data);
+  device.queue.writeBuffer(buf, 0, data.buffer as ArrayBuffer, data.byteOffset, data.byteLength);
   return buf;
 }
 
@@ -167,3 +167,4 @@ export function createRopeKernel(device: GPUDevice): RopeKernel {
     },
   };
 }
+

@@ -31,7 +31,7 @@
  *         LOC 509-713, ~205-LOC switch)
  */
 
-import type { ASTNode } from '../parser/types';
+import type { ASTNode } from '../types';
 import type { ExecutionResult, HoloScriptValue } from '../types';
 import type {
   OrbNode,

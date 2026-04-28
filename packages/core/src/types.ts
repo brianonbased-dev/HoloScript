@@ -1394,5 +1394,39 @@ export interface EnhancedOrbNode extends OrbNode {
   graphics?: Record<string, unknown>;
   traits?: Map<string, Record<string, unknown>>;
   eventHandlers?: Map<string, string>;
+
   isCompanion?: boolean;
 }
+
+// ============================================================================
+// Runtime executor types — missing from barrel, added to unblock TS errors
+// ============================================================================
+
+/** Event handler callback — matches HoloScriptRuntime internal EventHandler */
+export type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
+
+/** AgentRuntime — interface compatible with HoloScriptAgentRuntime */
+export interface AgentRuntime {
+  reset(agentNode: OrbNode, parentRuntime: unknown): void;
+  getState(): HoloScriptValue;
+  executeAction(actionName: string, args?: HoloScriptValue[]): Promise<ExecutionResult>;
+}
+
+/** IParentRuntime — minimal parent runtime interface; HoloScriptRuntime satisfies this */
+export interface IParentRuntime {}
+
+/** MigrationBlock is a runtime alias for MigrationNode */
+export type MigrationBlock = MigrationNode;
+
+/** UIElementState — matches HoloScriptRuntime internal UIElementState */
+export interface UIElementState {
+  type: string;
+  name: string;
+  properties: Record<string, HoloScriptValue>;
+  value?: HoloScriptValue;
+  visible: boolean;
+  enabled: boolean;
+}
+
+export type { TraitContext, TraitHandler } from './traits/TraitTypes';
+export type { HoloObjectDecl, HoloTemplate, HoloValue, HoloComposition } from './parser/HoloCompositionTypes';

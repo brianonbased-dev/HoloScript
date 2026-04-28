@@ -59,10 +59,7 @@ export class ReactiveState implements IReactiveState {
   }
 
   getSnapshot(): Record<string, HoloScriptValue> {
-    const copy = { ...this.state } as Record<string | number, HoloScriptValue>;
-    const values = Object.values(this.state);
-    values.forEach((v, i) => { copy[i] = v; });
-    return copy as Record<string, HoloScriptValue>;
+    return { ...this.state };
   }
 
   getProxy(): Record<string, HoloScriptValue> {

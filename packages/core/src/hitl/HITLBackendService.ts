@@ -481,7 +481,9 @@ export class HITLBackendService {
             const message = readJson(
               typeof event.data === 'string' ? event.data : String(event.data)
             ) as Record<string, unknown>;
-            this.handleMessage(message);
+            if (typeof message.type === 'string' && 'payload' in message) {
+              this.handleMessage({ type: message.type, payload: message.payload });
+            }
           } catch (err) {
             logger.error('[HITLBackend] Failed to parse message', { error: String(err) });
           }

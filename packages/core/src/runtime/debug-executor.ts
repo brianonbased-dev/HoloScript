@@ -20,8 +20,7 @@
  *         LOC 1035-1064, ~30 LOC)
  */
 
-import type { ASTNode } from '../parser/types';
-import type { ExecutionResult, HologramProperties, HoloScriptValue } from '../types';
+import type { ASTNode, ExecutionResult, HologramProperties, HoloScriptValue } from '../types';
 
 /**
  * Readonly accessors + one write sink. The runtime threads live-map

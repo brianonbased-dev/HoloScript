@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
@@ -71,3 +70,4 @@ export function createVirtualKeyboard(id: string, config: VirtualKeyboardConfig)
 
   return keyboard;
 }
+

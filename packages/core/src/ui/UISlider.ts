@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UISliderConfig {
@@ -73,3 +72,4 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
     ],
   };
 }
+

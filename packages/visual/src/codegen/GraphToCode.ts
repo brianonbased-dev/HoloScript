@@ -510,19 +510,22 @@ export class GraphToCode {
       case 'interpolate':
         return `lerp(${this.resolveInputValue(ctx, 'from')}, ${this.resolveInputValue(ctx, 'to')}, ${this.resolveInputValue(ctx, 't')})`;
 
-      case 'vector3':
-        const x = props.x ?? 0;
-        const y = props.y ?? 0;
-        const z = props.z ?? 0;
-        return `[${x}, ${y}, ${z}]`;
+      case 'vector3': {
+        const arr = Array.isArray(props) ? props : null;
+        const vx = arr ? arr[0] : (props.x ?? 0);
+        const vy = arr ? arr[1] : (props.y ?? 0);
+        const vz = arr ? arr[2] : (props.z ?? 0);
+        return `[${vx}, ${vy}, ${vz}]`;
+      }
 
-      case 'math':
+      case 'math': {
         const a = this.resolveInputValue(ctx, 'a');
         const b = this.resolveInputValue(ctx, 'b');
         const op = props.operator || '+';
         return `(${a} ${op} ${b})`;
+      }
 
-      case 'compare':
+            case 'compare':
         const left = this.resolveInputValue(ctx, 'a');
         const right = this.resolveInputValue(ctx, 'b');
         const cmpOp = props.operator || '==';

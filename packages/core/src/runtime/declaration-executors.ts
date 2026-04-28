@@ -25,8 +25,7 @@
  *         LOC 1940-1948 + 2044-2070, ~36 LOC total)
  */
 
-import type { ASTNode } from '../parser/types';
-import type { ExecutionResult, HoloScriptValue } from '../types';
+import type { ASTNode, ExecutionResult, HoloScriptValue } from '../types';
 
 /** Narrow view of the HSPlusDirective shape the state executor cares about. */
 interface DirectiveLike {
@@ -58,7 +57,7 @@ export async function executeStateDeclaration(
   node: StateDeclarationNode,
   ctx: DeclarationContext,
 ): Promise<ExecutionResult> {
-  const stateDirective = node.directives?.find((d) => d.type === 'state');
+  const stateDirective = node.directives?.find((d: DirectiveLike) => d.type === 'state');
   if (stateDirective) {
     ctx.updateState(stateDirective.body as Record<string, HoloScriptValue>);
   }

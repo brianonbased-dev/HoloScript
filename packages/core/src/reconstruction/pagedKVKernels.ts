@@ -89,7 +89,7 @@ function storageBuffer(device: GPUDevice, data: Float32Array | Uint32Array): GPU
     size: data.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(buf, 0, data);
+  device.queue.writeBuffer(buf, 0, data.buffer as ArrayBuffer, data.byteOffset, data.byteLength);
   return buf;
 }
 
@@ -199,7 +199,7 @@ export function createPagedKVAppendKernel(device: GPUDevice): PagedKVAppendKerne
         size: kvPagesData.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
       });
-      device.queue.writeBuffer(kvBuf, 0, kvPagesData);
+      device.queue.writeBuffer(kvBuf, 0, kvPagesData.buffer as ArrayBuffer, kvPagesData.byteOffset, kvPagesData.byteLength);
 
       const newVecsBuf = storageBuffer(device, newVectors);
       const pageTableBuf = storageBuffer(device, pageTableData);
@@ -309,3 +309,4 @@ export function createPagedKVLookupKernel(device: GPUDevice): PagedKVLookupKerne
     },
   };
 }
+

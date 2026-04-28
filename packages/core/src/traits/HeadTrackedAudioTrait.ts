@@ -141,10 +141,11 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
       ];
 
       // Update audio source position
-      context.emit?.('audio_set_position', {
-        node,
-        position: state.stabilizedPosition,
-      });
+          const sp = state.stabilizedPosition;
+          context.emit?.('audio_set_position', {
+            node,
+            position: Object.assign(sp, { x: sp[0], y: sp[1], z: sp[2] }),
+          });
     } else if (config.anchor_mode === 'head') {
       // Audio follows head - relative position stays constant
       context.emit?.('audio_set_position', {
@@ -174,7 +175,10 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
     if (!state) return;
 
     if (event.type === 'head_rotation_update') {
-      state.headRotation = event.rotation as typeof state.headRotation;
+      const r = event.rotation as { x?: number; y?: number; z?: number; w?: number } | [number, number, number, number];
+      state.headRotation = Array.isArray(r)
+        ? (r as [number, number, number, number])
+        : [r.x ?? 0, r.y ?? 0, r.z ?? 0, r.w ?? 1];
     } else if (event.type === 'audio_source_loaded') {
       state.audioSourceId = event.sourceId as string;
       if (config.autoplay) {

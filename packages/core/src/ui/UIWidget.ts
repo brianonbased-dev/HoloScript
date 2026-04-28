@@ -55,8 +55,8 @@ export class UIWidget {
     const widget: UIWidgetDef = {
       id,
       type,
-      x: opts[0] ?? 0,
-      y: opts[1] ?? 0,
+        x: opts.x ?? 0,
+        y: opts.y ?? 0,
       width: opts.width ?? 100,
       height: opts.height ?? 40,
       anchor: opts.anchor ?? 'top-left',
@@ -131,7 +131,7 @@ export class UIWidget {
     const sorted = this.getRenderOrder().reverse();
     for (const w of sorted) {
       if (!w.interactive) continue;
-      if (px >= w[0] && px <= w[0] + w.width && py >= w[1] && py <= w[1] + w.height) return w;
+      if (px >= w.x && px <= w.x + w.width && py >= w.y && py <= w.y + w.height) return w;
     }
     return null;
   }

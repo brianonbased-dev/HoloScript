@@ -35,17 +35,24 @@
  */
 
 import { logger } from '../logger';
-import type {
-  AgentRuntime,
-  EventHandler,
-  HoloScriptValue,
-  HSPlusNode,
-  TraitContext,
-  TraitEvent,
-  TraitHandler,
-  UIElementState,
-  VRTraitName,
-} from '../types';
+import type { HoloScriptValue, VRTraitName } from '../types';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
+import type { TraitContext, TraitEvent, TraitHandler } from '../traits/TraitTypes';
+
+type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
+
+interface AgentRuntime {
+  onEvent(event: string, data?: unknown): Promise<void>;
+}
+
+interface UIElementState {
+  type: string;
+  name: string;
+  properties: Record<string, HoloScriptValue>;
+  value?: HoloScriptValue;
+  visible: boolean;
+  enabled: boolean;
+}
 
 /**
  * Context threaded into every event-system function. 8 fields:
@@ -61,7 +68,7 @@ export interface EventSystemContext {
   /** Variable registry (emit dotted orb lookup + broadcast scan). */
   variables: Map<string, HoloScriptValue>;
   /** Trait-handler registry (forwardToTraits dispatch). */
-  traitHandlers: Map<VRTraitName, TraitHandler<Record<string, unknown>>>;
+  traitHandlers: Map<VRTraitName, TraitHandler<unknown>>;
   /** UI element registry (triggerUIEvent lookup + value update). */
   uiElements: Map<string, UIElementState>;
   /** Current-scale accessor — threaded into TraitContext builders. */

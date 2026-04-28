@@ -231,7 +231,7 @@ export class CustomAIProvider extends BaseAIProvider {
           id: `quest_${Date.now()}`,
           ...parsed,
           theme,
-        };
+        } as AIGeneratedQuest;
       }
     } catch {
       // If JSON parsing fails, create quest from text

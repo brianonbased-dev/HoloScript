@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIPanelConfig {
@@ -33,3 +32,4 @@ export function createUIPanel(
     children: children,
   };
 }
+

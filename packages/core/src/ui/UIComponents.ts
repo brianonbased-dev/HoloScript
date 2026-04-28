@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 /**
  * UIComponents.ts
  *
@@ -271,3 +270,4 @@ export const createScrollView = (config: ScrollViewConfig): HSPlusNode => {
     children: config.children || [],
   } as unknown as HSPlusNode;
 };
+

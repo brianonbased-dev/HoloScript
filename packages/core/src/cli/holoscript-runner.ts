@@ -1813,7 +1813,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     try {
       const existing = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
       const staleMs = 120_000;
-      if (Date.now() - existing.heartbeat < staleMs) {
+      if (Date.now() - (existing.heartbeat as number) < staleMs) {
         console.error(
           `[daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
         );
@@ -2025,7 +2025,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   let daemonState: DaemonPersistedState = { ...daemonStateDefaults };
   if (fs.existsSync(stateFile)) {
     try {
-      daemonState = { ...daemonState, ...readJson(fs.readFileSync(stateFile, 'utf-8')) };
+      daemonState = { ...daemonState, ...(readJson(fs.readFileSync(stateFile, 'utf-8')) as Record<string, unknown>) };
     } catch {
       /* use defaults */
     }
@@ -2082,7 +2082,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       let wisdomEntries: Array<{ focus?: string; delta?: number }> = [];
       try {
         if (fs.existsSync(wisdomFile)) {
-          wisdomEntries = readJson(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[];
+          wisdomEntries = readJson(fs.readFileSync(wisdomFile, 'utf-8')) as Array<{ focus?: string; delta?: number }>;
         }
       } catch {
         /* ignore */
@@ -2548,7 +2548,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   if (fs.existsSync(lockFile)) {
     try {
       const existing = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
-      if (Date.now() - existing.heartbeat < 120_000) {
+      if (Date.now() - (existing.heartbeat as number) < 120_000) {
         console.error(
           `[holomesh-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
         );
@@ -2745,8 +2745,8 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   if (fs.existsSync(lockFile)) {
     try {
       const lock = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
-      lockPid = lock.pid;
-      lastHeartbeat = lock.heartbeat;
+      lockPid = lock.pid as number;
+      lastHeartbeat = lock.heartbeat as number;
       isRunning = Date.now() - lastHeartbeat < 120_000;
     } catch {
       /* corrupt lock */

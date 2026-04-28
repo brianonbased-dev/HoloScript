@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIButtonConfig {
@@ -82,3 +81,4 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
     ],
   };
 }
+

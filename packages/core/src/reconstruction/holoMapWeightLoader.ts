@@ -21,7 +21,7 @@ export interface LoadHoloMapWeightsOptions {
 async function sha256Digest(bytes: Uint8Array): Promise<string> {
   const c = globalThis.crypto;
   if (c?.subtle) {
-    const buf = await c.subtle.digest('SHA-256', bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const buf = await c.subtle.digest('SHA-256', (bytes.buffer as ArrayBuffer).slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
     return bufferToHex(new Uint8Array(buf));
   }
   const { createHash } = await import('node:crypto');

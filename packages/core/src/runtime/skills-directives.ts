@@ -29,7 +29,7 @@ import type {
   HologramShape,
   HoloScriptValue,
   HSPlusNode,
-  HSPlusTraitDirective,
+  HSPlusDirective,
   OrbNode,
   ProceduralSkill,
   ReactiveState,
@@ -89,7 +89,7 @@ const AGENT_TRAIT_NAMES = new Set(['llm_agent', 'agent', 'companion']);
  */
 export function isAgent(node: OrbNode): boolean {
   return !!node.directives?.some(
-    (d) => d.type === 'trait' && AGENT_TRAIT_NAMES.has((d as HSPlusTraitDirective).name),
+    (d) => d.type === 'trait' && AGENT_TRAIT_NAMES.has((d as { name: string }).name),
   );
 }
 

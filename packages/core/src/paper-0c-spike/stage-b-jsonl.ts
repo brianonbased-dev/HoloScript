@@ -127,7 +127,7 @@ export function runStageB(jsonl: string): StageBResult {
     );
 
     total_spikes += batch.spikes.length;
-    chain = extendChain(chain, batch.digest);
+    chain = extendChain(chain, batch.digest) as Uint8Array<ArrayBuffer>;
     steps_encoded++;
   }
 

@@ -35,15 +35,26 @@ import type {
   Animation,
   ExecutionResult,
   HoloScriptValue,
-  HoloTemplate,
-  HoloValue,
   HologramProperties,
   OrbNode,
   SpatialPosition,
   TemplateNode,
-  UIElementState,
 } from '../types';
-import type { AgentRuntime } from '../types';
+import type { HoloTemplate, HoloValue } from '../parser/HoloCompositionTypes';
+
+interface UIElementState {
+  type: string;
+  name: string;
+  properties: Record<string, HoloScriptValue>;
+  value?: HoloScriptValue;
+  visible: boolean;
+  enabled: boolean;
+}
+
+interface AgentRuntime {
+  onEvent(event: string, data?: unknown): Promise<void>;
+  think(prompt?: string): Promise<string>;
+}
 import { resolveHoloValue } from './holo-value';
 import {
   handleShop,

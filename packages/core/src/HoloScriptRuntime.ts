@@ -1544,7 +1544,7 @@ export class HoloScriptRuntime {
       isAgent: (node) => this.isAgent(node),
       getAgentRuntime: (name) => this.agentRuntimes.get(name),
       setAgentRuntime: (name, runtime) => {
-        this.agentRuntimes.set(name, runtime);
+        this.agentRuntimes.set(name, runtime as HoloScriptAgentRuntime);
       },
       acquireAgentRuntime: () => this.agentPool.acquire(),
       parentRuntime: this,
@@ -1897,7 +1897,7 @@ export class HoloScriptRuntime {
    */
   private applyDirectives(node: ASTNode): void {
     applyDirectivesPure(node, {
-      traitHandlers: this.traitHandlers,
+      traitHandlers: this.traitHandlers as Map<VRTraitName, TraitHandler<Record<string, unknown>>>,
       emit: (event, payload) => {
         void this.emit(event, payload);
       },
@@ -1967,7 +1967,7 @@ export class HoloScriptRuntime {
   private updateTraits(julianDate: number): void {
     updateTraitsPure(julianDate, {
       variables: this.context.variables,
-      traitHandlers: this.traitHandlers,
+      traitHandlers: this.traitHandlers as Map<VRTraitName, TraitHandler<Record<string, unknown>>>,
       emit: (event, payload) => this.emit(event, payload),
       getCurrentScale: () => this.context.currentScale,
       setOrbPosition: (name, position) => this.setOrbPosition(name, position),

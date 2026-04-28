@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 /**
  * VR Trait System — Runtime trait handler registry.
  *
@@ -14,7 +13,6 @@ import type { Vector3 } from '../types';
 import type {
   VRTraitName,
   VRHand,
-  Vector3,
   Vector3,
   GrabbableTrait,
   ThrowableTrait,

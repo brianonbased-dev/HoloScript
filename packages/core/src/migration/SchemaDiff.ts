@@ -241,7 +241,7 @@ export function buildMigrationChain(
     }
     steps.push({
       fromVersion: migration.fromVersion,
-      body: migration.body,
+      body: migration.body as string | unknown[],
     });
     currentVersion = migration.fromVersion + 1;
   }
