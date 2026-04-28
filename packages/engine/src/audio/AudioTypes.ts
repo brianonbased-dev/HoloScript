@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * AudioTypes.ts
  *
@@ -14,9 +13,9 @@ import type { Vector3 } from '@holoscript/core';
 // ============================================================================
 
 /**
- * 3D vector for audio positioning
+ * 3D vector for audio positioning — tuple form avoids coupling to @holoscript/core object-style Vector3.
  */
-export type IVector3 = Vector3;
+export type IVector3 = [number, number, number];
 
 /**
  * Orientation for audio listener (forward and up vectors)

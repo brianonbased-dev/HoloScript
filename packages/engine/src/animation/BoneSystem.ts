@@ -11,7 +11,8 @@
 // TYPES
 // =============================================================================
 
-import type { Vector3 } from '@holoscript/core';
+/** Local tuple for bone world positions — keeps BoneSystem independent of @holoscript/core object-style Vector3. */
+type Vec3 = [number, number, number];
 
 export interface BoneTransform {
   tx: number;
@@ -188,7 +189,7 @@ export class BoneSystem {
   // Queries
   // ---------------------------------------------------------------------------
 
-  getWorldPosition(id: string): Vector3 | null {
+  getWorldPosition(id: string): Vec3 | null {
     const bone = this.bones.get(id);
     if (!bone) return null;
     this.updateWorldTransforms();

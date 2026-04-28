@@ -1,4 +1,5 @@
-import type { Vector3 } from '@holoscript/core';
+/** Local tuple type for audio spatial positions — avoids coupling to @holoscript/core object-style Vec3. */
+type Vec3 = [number, number, number];
 /**
  * AudioEngine.ts
  *
@@ -19,7 +20,7 @@ export type DistanceModel = 'linear' | 'inverse' | 'exponential';
 
 export interface AudioSourceConfig {
   id: string;
-  position: Vector3;
+  position: Vec3;
   volume: number; // 0-1
   pitch: number; // Playback rate multiplier
   loop: boolean;
@@ -41,9 +42,9 @@ export interface AudioSource {
 }
 
 export interface ListenerState {
-  position: Vector3;
-  forward: Vector3;
-  up: Vector3;
+  position: Vec3;
+  forward: Vec3;
+  up: Vec3;
 }
 
 // =============================================================================
@@ -74,8 +75,8 @@ function computeAttenuation(
 }
 
 function vec3Dist(
-  a: Vector3,
-  b: Vector3
+  a: Vec3,
+  b: Vec3
 ): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
@@ -85,7 +86,7 @@ function vec3Dist(
 
 function computePan(
   listener: ListenerState,
-  sourcePos: Vector3
+  sourcePos: Vec3
 ): number {
   // Project source position onto listener's left-right axis
   // Right = cross(forward, up)
@@ -123,13 +124,13 @@ export class AudioEngine {
   /**
    * Update the listener position (typically from VR headset).
    */
-  setListenerPosition(pos: Vector3): void {
+  setListenerPosition(pos: Vec3): void {
     this.listener.position = [...pos ];
   }
 
   setListenerOrientation(
-    forward: Vector3,
-    up: Vector3
+    forward: Vec3,
+    up: Vec3
   ): void {
     this.listener.forward = [...forward ];
     this.listener.up = [...up ];
@@ -191,7 +192,7 @@ export class AudioEngine {
   /**
    * Update a source's position.
    */
-  setSourcePosition(sourceId: string, pos: Vector3): void {
+  setSourcePosition(sourceId: string, pos: Vec3): void {
     const source = this.sources.get(sourceId);
     if (source) source.config.position = [...pos ];
   }

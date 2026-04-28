@@ -1,4 +1,5 @@
-import type { Vector3 } from '@holoscript/core';
+/** Local tuple type for diffraction spatial positions — avoids coupling to @holoscript/core object-style Vec3. */
+type Vec3 = [number, number, number];
 /**
  * AudioDiffraction.ts
  *
@@ -17,14 +18,14 @@ import type { Vector3 } from '@holoscript/core';
 
 export interface DiffractionEdge {
   id: string;
-  point1: Vector3;
-  point2: Vector3;
+  point1: Vec3;
+  point2: Vec3;
   obstacleId?: string; // Optional reference to obstacle
 }
 
 export interface DiffractionPath {
   edgeId: string;
-  diffractionPoint: Vector3;
+  diffractionPoint: Vec3;
   totalDistance: number; // Source -> edge -> listener
   directDistance: number; // Direct source -> listener
   pathDifference: number; // Extra distance via edge
@@ -57,8 +58,8 @@ export interface DiffractionConfig {
  * Implementations should return edges that could cause diffraction.
  */
 export type EdgeDetectionProvider = (
-  sourcePos: Vector3,
-  listenerPos: Vector3
+  sourcePos: Vec3,
+  listenerPos: Vec3
 ) => DiffractionEdge[];
 
 /**
@@ -66,8 +67,8 @@ export type EdgeDetectionProvider = (
  * Returns true if the path is clear, false if obstructed.
  */
 export type LineOfSightProvider = (
-  point1: Vector3,
-  point2: Vector3
+  point1: Vec3,
+  point2: Vec3
 ) => boolean;
 
 // =============================================================================
@@ -116,8 +117,8 @@ export class AudioDiffractionSystem {
    * Returns all valid diffraction paths sorted by coefficient (strongest first).
    */
   computeDiffraction(
-    sourcePos: Vector3,
-    listenerPos: Vector3,
+    sourcePos: Vec3,
+    listenerPos: Vec3,
     sourceId: string
   ): DiffractionResult {
     if (!this.config.enabled || !this.edgeProvider || !this.losProvider) {
@@ -185,8 +186,8 @@ export class AudioDiffractionSystem {
    */
   private computeEdgeDiffraction(
     edge: DiffractionEdge,
-    sourcePos: Vector3,
-    listenerPos: Vector3
+    sourcePos: Vec3,
+    listenerPos: Vec3
   ): DiffractionPath | null {
     if (!this.losProvider) return null;
 
@@ -231,11 +232,11 @@ export class AudioDiffractionSystem {
    */
   private findDiffractionPoint(
     edge: DiffractionEdge,
-    sourcePos: Vector3,
-    listenerPos: Vector3
-  ): Vector3 {
+    sourcePos: Vec3,
+    listenerPos: Vec3
+  ): Vec3 {
     // Simplified: use midpoint of source and listener projected onto edge
-    const midpoint: Vector3 = [
+    const midpoint: Vec3 = [
       (sourcePos[0] + listenerPos[0]) / 2,
       (sourcePos[1] + listenerPos[1]) / 2,
       (sourcePos[2] + listenerPos[2]) / 2,
@@ -249,9 +250,9 @@ export class AudioDiffractionSystem {
    * This is the angle between source->edge and edge->listener vectors.
    */
   private calculateDiffractionAngle(
-    sourcePos: Vector3,
-    edgePoint: Vector3,
-    listenerPos: Vector3
+    sourcePos: Vec3,
+    edgePoint: Vec3,
+    listenerPos: Vec3
   ): number {
     // Vector from edge to source
     const v1 = [sourcePos[0] - edgePoint[0], sourcePos[1] - edgePoint[1], sourcePos[2] - edgePoint[2],
@@ -340,8 +341,8 @@ export class AudioDiffractionSystem {
   // ---------------------------------------------------------------------------
 
   private distance3D(
-    p1: Vector3,
-    p2: Vector3
+    p1: Vec3,
+    p2: Vec3
   ): number {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
@@ -353,10 +354,10 @@ export class AudioDiffractionSystem {
    * Find closest point on line segment AB to point P.
    */
   private closestPointOnSegment(
-    a: Vector3,
-    b: Vector3,
-    p: Vector3
-  ): Vector3 {
+    a: Vec3,
+    b: Vec3,
+    p: Vec3
+  ): Vec3 {
     const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2] ];
     const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2] ];
 

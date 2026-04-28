@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * AudioContextImpl.ts
  *

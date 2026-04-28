@@ -1,4 +1,5 @@
-import type { Vector3 } from '@holoscript/core';
+/** Local tuple type for IK positions — avoids coupling to @holoscript/core object-style Vector3. */
+type Vec3 = [number, number, number];
 /**
  * IKSolver.ts
  *
@@ -14,7 +15,7 @@ import type { Vector3 } from '@holoscript/core';
 
 export interface IKBone {
   id: string;
-  position: Vector3;
+  position: Vec3;
   rotation: { x: number; y: number; z: number; w: number };
   length: number;
   minAngle?: number; // radians
@@ -24,8 +25,8 @@ export interface IKBone {
 export interface IKChain {
   id: string;
   bones: IKBone[];
-  target: Vector3;
-  poleTarget?: Vector3;
+  target: Vec3;
+  poleTarget?: Vec3;
   weight: number; // 0-1 blend with original pose
   iterations: number;
 }
@@ -53,7 +54,7 @@ export class IKSolver {
     blendSpeed: 10,
     enabled: false,
   };
-  private footPositions: Map<string, Vector3> = new Map();
+  private footPositions: Map<string, Vec3> = new Map();
 
   // ---------------------------------------------------------------------------
   // Chain Management
@@ -136,7 +137,7 @@ export class IKSolver {
 
     // Position end bone (if exists)
     if (end) {
-      const blendedTarget: Vector3 = [
+      const blendedTarget: Vec3 = [
         end.position[0] + (target[0] - end.position[0]) * chain.weight,
         end.position[1] + (target[1] - end.position[1]) * chain.weight,
         end.position[2] + (target[2] - end.position[2]) * chain.weight
@@ -223,7 +224,7 @@ export class IKSolver {
 
     const bones = chain.bones;
     const target = chain.target;
-    const rootOrigin: Vector3 = [
+    const rootOrigin: Vec3 = [
       bones[0].position[0],
       bones[0].position[1],
       bones[0].position[2],
@@ -337,12 +338,12 @@ export class IKSolver {
     footId: string,
     groundHeight: number,
     dt: number
-  ): Vector3 {
+  ): Vec3 {
     const current = this.footPositions.get(footId) ?? [0, 0, 0];
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);
 
-    const result: Vector3 = [current[0], current[1] + (targetY - current[1]) * blend, current[2]];
+    const result: Vec3 = [current[0], current[1] + (targetY - current[1]) * blend, current[2]];
     this.footPositions.set(footId, result);
     return result;
   }

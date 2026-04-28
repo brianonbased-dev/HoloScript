@@ -13,7 +13,7 @@ export type IVector3 = [number, number, number];
 export interface BonePose {
   boneId: string;
   position: IVector3;
-  rotation: [number, number, number, number] & { x: number; y: number; z: number; w: number };
+  rotation: [number, number, number, number];
 }
 
 export interface TransitionConfig {

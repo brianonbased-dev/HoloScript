@@ -50,15 +50,15 @@ export const PAPER_P2_MOTION_CANONICAL_SPEC: Readonly<MotionProbeSpec> = Object.
   duration: 1.0,
   dt: 0.1,
   sourcePose: [
-    { boneId: 'root', position: [0, 0, 0], rotation: [0, 0, 0, 1] },
-    { boneId: 'arm', position: [1, 0, 0], rotation: [0, 0, 0, 1] },
+    { boneId: 'root', position: [0, 0, 0] as [number,number,number], rotation: [0, 0, 0, 1] as [number,number,number,number] },
+    { boneId: 'arm', position: [1, 0, 0] as [number,number,number], rotation: [0, 0, 0, 1] as [number,number,number,number] },
   ],
   targetRagdollPose: [
-    { boneId: 'root', position: [0, -1, 0], rotation: [0.707, 0, 0, 0.707] },
-    { boneId: 'arm', position: [1, -1, 0], rotation: [0.707, 0, 0, 0.707] },
+    { boneId: 'root', position: [0, -1, 0] as [number,number,number], rotation: [0.707, 0, 0, 0.707] as [number,number,number,number] },
+    { boneId: 'arm', position: [1, -1, 0] as [number,number,number], rotation: [0.707, 0, 0, 0.707] as [number,number,number,number] },
   ],
   targetAnimPose: [
-    { boneId: 'root', position: [0, 1, 0], rotation: [0, 0.707, 0, 0.707] },
-    { boneId: 'arm', position: [1, 1, 0], rotation: [0, 0.707, 0, 0.707] },
+    { boneId: 'root', position: [0, 1, 0] as [number,number,number], rotation: [0, 0.707, 0, 0.707] as [number,number,number,number] },
+    { boneId: 'arm', position: [1, 1, 0] as [number,number,number], rotation: [0, 0.707, 0, 0.707] as [number,number,number,number] },
   ],
 });
