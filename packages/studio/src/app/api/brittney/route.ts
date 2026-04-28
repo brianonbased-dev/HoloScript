@@ -18,9 +18,23 @@ import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
+import {
+  isSceneMutationTool,
+  verifySceneMutation,
+  type SimContractCheckResult,
+} from '@/lib/brittney/SimContractGate';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
+import {
+  attachChain,
+  buildBrittneyCaelRecord,
+  closeChain,
+  commitRound,
+  deriveSessionId,
+  extractEvidencePaths,
+  type SimContractCheck,
+} from '@/lib/brittney/cael';
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
@@ -90,6 +104,9 @@ export async function POST(request: NextRequest) {
   const parsed = await readJsonBody<{
     messages?: Array<{ role: string; content: string }>;
     sceneContext?: string;
+    sessionId?: string;
+    closeSession?: boolean;
+    simContractCheck?: SimContractCheck | null;
   }>(request, { maxBytes: 32_000 });
   if (!parsed.ok) {
     const msg =
@@ -101,7 +118,11 @@ export async function POST(request: NextRequest) {
   }
   const body = parsed.body;
 
-  const { messages, sceneContext } = body;
+  const { messages, sceneContext, sessionId: bodySessionId, closeSession, simContractCheck } = body;
+  const sessionId =
+    typeof bodySessionId === 'string' && bodySessionId.length > 0
+      ? bodySessionId
+      : deriveSessionId(messages ?? []);
 
   // SEC-T03: reject oversize messages before constructing the LLM request.
   const oversize = (messages ?? []).find(
@@ -125,6 +146,16 @@ export async function POST(request: NextRequest) {
   }));
 
   if (claudeMessages.length === 0) {
+    if (closeSession) {
+      const result = closeChain(sessionId, { stopReason: 'client-close' });
+      return sseResponse([
+        {
+          type: 'caelChain',
+          payload: { chainId: sessionId, fnv1a: result.finalChain, closed: true },
+        },
+        { type: 'done', payload: null },
+      ]);
+    }
     return sseResponse([
       { type: 'error', payload: 'No messages provided' },
       { type: 'done', payload: null },
@@ -154,6 +185,24 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       }
 
+      // CAEL: attach chain for this session. prevChain may carry over from a
+      // prior request on the same process; first request in a fresh process
+      // starts with prev=null. Honest semantics — never claim more continuity
+      // than we can prove.
+      const attached = attachChain(sessionId);
+      let prevChain: string | null = attached.prevChain;
+      send({
+        type: 'caelChain',
+        payload: {
+          chainId: attached.chainId,
+          fnv1a: attached.prevChain,
+          isNew: attached.isNew,
+        },
+      });
+
+      const model = process.env.BRITTNEY_MODEL || 'claude-opus-4-7';
+      const simContractCheckSafe: SimContractCheck | null = simContractCheck ?? null;
+
       try {
         const MAX_TOOL_ROUNDS = 5;
         let roundMessages = [...claudeMessages];
@@ -169,6 +218,55 @@ export async function POST(request: NextRequest) {
             name: string;
             input: Record<string, unknown>;
           }> = [];
+          // BRITTNEY mutation tools that fail SimulationContract grounding are
+          // not emitted to the client; instead the rejection is fed back to
+          // Claude as a tool_result with is_error so it can recover or reroute.
+          const rejectedMutations: Array<{
+            id: string;
+            name: string;
+            input: Record<string, unknown>;
+            check: SimContractCheckResult;
+          }> = [];
+          // CAEL per-round accumulators. Track EVERY tool call Claude attempts
+          // (server, client, sim, rejected) so tool_iters reflects real model
+          // behavior, not just the server-execution subset.
+          let roundText = '';
+          const roundToolCalls: Array<{ name: string; input: unknown; result?: unknown }> = [];
+          // Snapshot the message thread at round-start. The assistant turn for
+          // this round isn't appended until after Claude completes (and only
+          // when continuing for tool results), so this is the deterministic
+          // L2 input that survives replay.
+          const messagesAtRoundStart = roundMessages.map((m) => ({ ...m }));
+
+          /**
+           * Commit a CAEL record for this round and emit a caelChain SSE event.
+           * Called once per round from both exit paths (continue / break) so the
+           * chain extends per-round, not just per-request.
+           */
+          const commitCaelForRound = (): void => {
+            const record = buildBrittneyCaelRecord({
+              sessionId,
+              round,
+              model,
+              messages: messagesAtRoundStart,
+              finalText: roundText,
+              toolCalls: roundToolCalls,
+              evidencePaths: extractEvidencePaths(roundToolCalls),
+              simContractCheck: simContractCheckSafe,
+              prevChain,
+            });
+            commitRound(sessionId, record);
+            send({
+              type: 'caelChain',
+              payload: {
+                chainId: sessionId,
+                fnv1a: record.fnv1a_chain,
+                round,
+                tool_iters: record.tool_iters,
+              },
+            });
+            prevChain = record.fnv1a_chain;
+          };
 
           if (!debited) {
             debited = true;
@@ -178,7 +276,7 @@ export async function POST(request: NextRequest) {
           const response = await client.messages.create({
             // Opus 4.7 default — most capable. Override via BRITTNEY_MODEL env
             // (e.g. 'claude-sonnet-4-6' for cost, 'claude-haiku-4-5' for speed).
-            model: process.env.BRITTNEY_MODEL || 'claude-opus-4-7',
+            model,
             // 16K covers streaming tool use with scene manipulation (easily
             // exceeds 2K per turn). Safe ONLY because stream:true (below) keeps
             // the HTTP socket alive past undici's ~30s headersTimeout — a buffered
@@ -205,6 +303,7 @@ export async function POST(request: NextRequest) {
 
               case 'content_block_delta':
                 if ('text' in event.delta && event.delta.text) {
+                  roundText += event.delta.text;
                   send({ type: 'text', payload: event.delta.text });
                 }
                 if ('partial_json' in event.delta && event.delta.partial_json) {
@@ -217,6 +316,9 @@ export async function POST(request: NextRequest) {
                   const parsedArgs: Record<string, unknown> = currentToolInput
                     ? (JSON.parse(currentToolInput) as Record<string, unknown>)
                     : {};
+                  // CAEL: record the call attempt regardless of branch (server,
+                  // client, sim, rejected). Result attached later when known.
+                  roundToolCalls.push({ name: currentToolName, input: parsedArgs });
 
                   if (
                     STUDIO_API_TOOL_NAMES.has(currentToolName) ||
@@ -237,8 +339,42 @@ export async function POST(request: NextRequest) {
                         serverExecuted: true,
                       },
                     });
+                  } else if (isSceneMutationTool(currentToolName)) {
+                    // BRITTNEY scene mutation — pre-validate against the
+                    // SimulationContract declared by the scene before applying
+                    // (Paper 26 gate 1 / Algebraic Trust application layer).
+                    const check = verifySceneMutation(sceneContext, {
+                      tool: currentToolName,
+                      input: parsedArgs,
+                    });
+                    send({
+                      type: 'simContractCheck',
+                      payload: {
+                        passed: check.passed,
+                        contractId: check.contractId,
+                        mutation: check.mutation,
+                        ...(check.reason ? { reason: check.reason } : {}),
+                      },
+                    });
+                    if (check.passed) {
+                      send({
+                        type: 'tool_call',
+                        payload: { name: currentToolName, arguments: parsedArgs },
+                      });
+                    } else {
+                      // Hold mutation back from the client; feed rejection to
+                      // Claude as a tool_result(is_error:true) on the next round.
+                      rejectedMutations.push({
+                        id: currentToolId,
+                        name: currentToolName,
+                        input: parsedArgs,
+                        check,
+                      });
+                    }
                   } else {
-                    // Scene manipulation tool — send to client for execution
+                    // BRITTNEY read-only tool (list_objects/get_object) or
+                    // SIMULATION_TOOLS — pass through unchecked. Out-of-scope
+                    // for the gate-1 contract (different verification path).
                     send({
                       type: 'tool_call',
                       payload: { name: currentToolName, arguments: parsedArgs },
@@ -258,53 +394,93 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // If Claude stopped for tool_use AND there are server-side tools to execute,
-          // run them and feed results back for another round
-          if (stopReason === 'tool_use' && pendingToolCalls.length > 0) {
-            // Execute all pending tool calls in parallel — route to correct executor
-            const results = await Promise.all(
-              pendingToolCalls.map(async (tc) => {
-                const result = MCP_TOOL_NAMES.has(tc.name)
-                  ? await executeMCPTool(tc.name, tc.input)
-                  : await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
-                send({
-                  type: 'tool_result',
-                  payload: {
-                    name: tc.name,
-                    success: result.success,
-                    data: result.data,
-                    error: result.error,
-                  },
-                });
-                return { id: tc.id, result };
-              })
-            );
+          // If Claude stopped for tool_use AND there is server-side work to feed
+          // back (executed tools OR contract-rejected mutations), run another round.
+          if (
+            stopReason === 'tool_use' &&
+            (pendingToolCalls.length > 0 || rejectedMutations.length > 0)
+          ) {
+            // Execute server-side tools in parallel — route to correct executor
+            const results =
+              pendingToolCalls.length > 0
+                ? await Promise.all(
+                    pendingToolCalls.map(async (tc) => {
+                      const result = MCP_TOOL_NAMES.has(tc.name)
+                        ? await executeMCPTool(tc.name, tc.input)
+                        : await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
+                      send({
+                        type: 'tool_result',
+                        payload: {
+                          name: tc.name,
+                          success: result.success,
+                          data: result.data,
+                          error: result.error,
+                        },
+                      });
+                      return { id: tc.id, result };
+                    })
+                  )
+                : [];
 
-            // Build the assistant message with tool_use blocks + tool results
-            const assistantContent: Anthropic.ContentBlockParam[] = pendingToolCalls.map((tc) => ({
-              type: 'tool_use' as const,
-              id: tc.id,
-              name: tc.name,
-              input: tc.input as Record<string, unknown>,
-            }));
+            // Build the assistant message with tool_use blocks + tool results.
+            // Both executed and rejected tool_uses must round-trip so the
+            // assistant→user pairing stays valid for the next Claude turn.
+            const assistantContent: Anthropic.ContentBlockParam[] = [
+              ...pendingToolCalls.map((tc) => ({
+                type: 'tool_use' as const,
+                id: tc.id,
+                name: tc.name,
+                input: tc.input as Record<string, unknown>,
+              })),
+              ...rejectedMutations.map((rm) => ({
+                type: 'tool_use' as const,
+                id: rm.id,
+                name: rm.name,
+                input: rm.input,
+              })),
+            ];
 
-            const toolResultContent: Anthropic.ToolResultBlockParam[] = results.map((r) => ({
-              type: 'tool_result' as const,
-              tool_use_id: r.id,
-              content: JSON.stringify(r.result.success ? r.result.data : { error: r.result.error }),
-            }));
+            const toolResultContent: Anthropic.ToolResultBlockParam[] = [
+              ...results.map((r) => ({
+                type: 'tool_result' as const,
+                tool_use_id: r.id,
+                content: JSON.stringify(
+                  r.result.success ? r.result.data : { error: r.result.error }
+                ),
+              })),
+              ...rejectedMutations.map((rm) => ({
+                type: 'tool_result' as const,
+                tool_use_id: rm.id,
+                content: `SimulationContract grounding rejected this mutation: ${rm.check.reason ?? 'contract violation'} (contractId: ${rm.check.contractId})`,
+                is_error: true,
+              })),
+            ];
 
             roundMessages = [
               ...roundMessages,
               { role: 'assistant' as const, content: assistantContent },
               { role: 'user' as const, content: toolResultContent },
             ];
+            // CAEL: commit the round's record before continuing — chain extends
+            // per-round, not just per-request.
+            commitCaelForRound();
             // Continue to next round — Claude will process the tool results
             continue;
           }
 
+          // CAEL: text-only or client-side-tool round terminating the request.
+          commitCaelForRound();
           // No more tool calls or all remaining are client-side — done
           break;
+        }
+
+        // CAEL: explicit client-signaled session close after a round completes.
+        if (closeSession) {
+          const closed = closeChain(sessionId, { stopReason: 'client-close' });
+          send({
+            type: 'caelChain',
+            payload: { chainId: sessionId, fnv1a: closed.finalChain, closed: true },
+          });
         }
 
         send({ type: 'done', payload: null });
