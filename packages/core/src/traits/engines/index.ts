@@ -10,6 +10,7 @@
  */
 
 export * from './motion-matching';
+export * from './onnx-motion-matching';
 export * from './synthetic-walk-cycle';
 export * from './onnx-adapter';
 export * from './motion-data-schema';
