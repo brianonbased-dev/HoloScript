@@ -1,0 +1,26 @@
+[
+  {
+    "id": "GOLD-T01-pass",
+    "task_id": "T01",
+    "candidate_output": "Scene contains exactly one object: a cube. Position: (0, 0, 0). Material: solid red, RGB (1, 0, 0). No other objects.",
+    "expected_completion": true
+  },
+  {
+    "id": "GOLD-T01-fail-missing-color",
+    "task_id": "T01",
+    "candidate_output": "I created a cube at the origin. The size is 1 meter on each side.",
+    "expected_completion": false
+  },
+  {
+    "id": "GOLD-M03-pass",
+    "task_id": "M03",
+    "candidate_output": "Created 5 white spheres along the X axis: sphere at (0,0,0), sphere at (1,0,0), sphere at (2,0,0), sphere at (3,0,0), sphere at (4,0,0). All white.",
+    "expected_completion": true
+  },
+  {
+    "id": "GOLD-M03-fail-wrong-count",
+    "task_id": "M03",
+    "candidate_output": "Created 4 white spheres along the X axis at positions 0, 1, 2, 3.",
+    "expected_completion": false
+  }
+]

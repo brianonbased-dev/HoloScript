@@ -1,0 +1,119 @@
+[
+  {
+    "id": "T01",
+    "tier": "trivial-scene",
+    "prompt": "Create a single red cube at the world origin.",
+    "evaluation_rubric": [
+      { "id": "single_object", "description": "Output describes or creates exactly one object", "required": true },
+      { "id": "object_is_cube", "description": "The object's primitive/geometry is a cube (or box)", "required": true },
+      { "id": "color_red", "description": "The object's color is red (or specifies a red material/RGB tuple roughly (1,0,0))", "required": true },
+      { "id": "position_origin", "description": "The object is placed at world origin (0,0,0) or has no explicit translation", "required": true }
+    ],
+    "expected_artifacts": ["scene with one red cube at origin"]
+  },
+  {
+    "id": "T02",
+    "tier": "trivial-scene",
+    "prompt": "Add a blue sphere of radius 0.5 at position (1, 0, 0).",
+    "evaluation_rubric": [
+      { "id": "single_sphere", "description": "Exactly one sphere is created", "required": true },
+      { "id": "color_blue", "description": "Sphere is blue", "required": true },
+      { "id": "radius_half", "description": "Sphere radius is 0.5 (within 5%)", "required": true },
+      { "id": "position_correct", "description": "Sphere is at (1, 0, 0) within 0.01 tolerance", "required": true }
+    ],
+    "expected_artifacts": ["scene with one blue sphere at (1,0,0)"]
+  },
+  {
+    "id": "T03",
+    "tier": "trivial-scene",
+    "prompt": "Place a green cylinder of height 2 standing on the ground plane (y=0 is the ground).",
+    "evaluation_rubric": [
+      { "id": "single_cylinder", "description": "Exactly one cylinder is created", "required": true },
+      { "id": "color_green", "description": "Cylinder is green", "required": true },
+      { "id": "height_two", "description": "Cylinder height is 2 (within 5%)", "required": true },
+      { "id": "on_ground", "description": "Cylinder bottom is at or near y=0; bottom-of-cylinder rests on the plane", "required": true }
+    ],
+    "expected_artifacts": ["scene with one green cylinder standing on y=0"]
+  },
+  {
+    "id": "T04",
+    "tier": "trivial-scene",
+    "prompt": "Create a directional light pointing downward.",
+    "evaluation_rubric": [
+      { "id": "is_light", "description": "Output creates a light source", "required": true },
+      { "id": "directional", "description": "Light type is directional (not point or spot)", "required": true },
+      { "id": "direction_down", "description": "Light direction is downward, e.g. (0,-1,0) or equivalent", "required": true }
+    ],
+    "expected_artifacts": ["scene with one directional light shining down"]
+  },
+  {
+    "id": "T05",
+    "tier": "trivial-scene",
+    "prompt": "Add a flat ground plane 10 meters by 10 meters, gray.",
+    "evaluation_rubric": [
+      { "id": "is_plane", "description": "Output creates a plane (or thin box) acting as ground", "required": true },
+      { "id": "size_10x10", "description": "Dimensions are 10x10 (within 10%)", "required": true },
+      { "id": "color_gray", "description": "Color is gray (RGB roughly equal channels around 0.5)", "required": true },
+      { "id": "horizontal", "description": "Plane is horizontal (normal is +Y or -Y)", "required": true }
+    ],
+    "expected_artifacts": ["scene with one gray 10x10 ground plane"]
+  },
+  {
+    "id": "T06",
+    "tier": "trivial-scene",
+    "prompt": "Create a yellow cube and rotate it 45 degrees around the Y axis.",
+    "evaluation_rubric": [
+      { "id": "single_cube", "description": "Exactly one cube is created", "required": true },
+      { "id": "color_yellow", "description": "Cube is yellow", "required": true },
+      { "id": "rotation_y_45", "description": "Cube has Y-axis rotation of 45 degrees (or equivalent quaternion within 1 deg)", "required": true }
+    ],
+    "expected_artifacts": ["scene with one yellow cube rotated 45 degrees on Y"]
+  },
+  {
+    "id": "T07",
+    "tier": "trivial-scene",
+    "prompt": "Place a perspective camera at (5, 5, 5) looking at the origin.",
+    "evaluation_rubric": [
+      { "id": "is_camera", "description": "Output creates a camera", "required": true },
+      { "id": "perspective", "description": "Camera projection is perspective (not orthographic)", "required": true },
+      { "id": "position_correct", "description": "Camera position is (5,5,5) within 0.01", "required": true },
+      { "id": "looks_at_origin", "description": "Camera target/look-at is the origin (0,0,0)", "required": true }
+    ],
+    "expected_artifacts": ["scene with one perspective camera looking at origin"]
+  },
+  {
+    "id": "T08",
+    "tier": "trivial-scene",
+    "prompt": "Add a torus with major radius 1 and minor radius 0.25 at (0, 1, 0).",
+    "evaluation_rubric": [
+      { "id": "is_torus", "description": "Output creates exactly one torus", "required": true },
+      { "id": "major_radius", "description": "Major radius is 1 (within 5%)", "required": true },
+      { "id": "minor_radius", "description": "Minor radius is 0.25 (within 5%)", "required": true },
+      { "id": "position_correct", "description": "Position is (0,1,0) within 0.01", "required": true }
+    ],
+    "expected_artifacts": ["scene with one torus at (0,1,0)"]
+  },
+  {
+    "id": "T09",
+    "tier": "trivial-scene",
+    "prompt": "Make a small pink cone with its tip pointing up, at the origin.",
+    "evaluation_rubric": [
+      { "id": "is_cone", "description": "Output creates exactly one cone", "required": true },
+      { "id": "color_pink", "description": "Cone is pink (rough RGB ~ (1, 0.7, 0.8))", "required": true },
+      { "id": "tip_up", "description": "Cone tip points upward (+Y)", "required": true },
+      { "id": "position_correct", "description": "Position is at origin within 0.01", "required": true }
+    ],
+    "expected_artifacts": ["scene with one pink cone at origin, tip up"]
+  },
+  {
+    "id": "T10",
+    "tier": "trivial-scene",
+    "prompt": "Create a scene with a single point light of color white at position (2, 4, 2).",
+    "evaluation_rubric": [
+      { "id": "is_point_light", "description": "Output creates a point light (not directional or spot)", "required": true },
+      { "id": "color_white", "description": "Light color is white (RGB ~ 1,1,1)", "required": true },
+      { "id": "position_correct", "description": "Light position is (2,4,2) within 0.01", "required": true }
+    ],
+    "expected_artifacts": ["scene with one white point light at (2,4,2)"]
+  }
+]

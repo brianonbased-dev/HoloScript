@@ -1,0 +1,129 @@
+[
+  {
+    "id": "A01",
+    "tier": "agentic-multi-step",
+    "prompt": "Build a 3-floor office tower: each floor is a 10x10 box, 3m tall, stacked with 0m gap. Add 4 small cube windows on each face of each floor.",
+    "evaluation_rubric": [
+      { "id": "three_floors", "description": "Exactly three floor boxes of size 10x10x3 are created and stacked", "required": true },
+      { "id": "stacked_no_gap", "description": "Floors are stacked with no Y gap (centers at y=1.5, 4.5, 7.5)", "required": true },
+      { "id": "windows_per_face", "description": "Each floor has at least 4 small cube windows on each of its 4 vertical faces", "required": true },
+      { "id": "windows_in_face_plane", "description": "Window cubes are coplanar with (or slightly inset/outset from) their parent floor face", "required": true }
+    ],
+    "expected_artifacts": ["scene with 3-floor tower and faceted windows"]
+  },
+  {
+    "id": "A02",
+    "tier": "agentic-multi-step",
+    "prompt": "Create a robot arm with 3 segments: base cylinder (radius 0.3, height 0.3), upper arm (box 0.15x0.15x1.0), forearm (box 0.12x0.12x0.8), and a small gripper sphere at the end. Connect them via revolute joints (you may model joints as separate small cylinders) so the arm can swing in the XZ plane.",
+    "evaluation_rubric": [
+      { "id": "base_present", "description": "Base cylinder of size 0.3 radius x 0.3 height", "required": true },
+      { "id": "upper_arm", "description": "Upper-arm box ~0.15x0.15x1.0 attached above the base", "required": true },
+      { "id": "forearm", "description": "Forearm box ~0.12x0.12x0.8 attached above the upper arm", "required": true },
+      { "id": "gripper", "description": "A small sphere acts as gripper at the forearm tip", "required": true },
+      { "id": "joints_or_grouping", "description": "Output explicitly identifies pivot/joint locations or hierarchy between segments", "required": true }
+    ],
+    "expected_artifacts": ["scene with a 3-segment robot arm with explicit joints"]
+  },
+  {
+    "id": "A03",
+    "tier": "agentic-multi-step",
+    "prompt": "Build a particle fountain: a base cone, a cluster of 20 small spheres above it arranged in a roughly conical spread, and a point light from the base. Spheres should be tinted blue with slight color variance.",
+    "evaluation_rubric": [
+      { "id": "base_cone", "description": "A cone is present at the base", "required": true },
+      { "id": "twenty_spheres", "description": "Exactly 20 small spheres are present", "required": true },
+      { "id": "conical_spread", "description": "Sphere positions form a roughly conical region above the base (radius grows with height)", "required": true },
+      { "id": "color_variance", "description": "Sphere colors vary across slight blue tints (not all identical)", "required": true },
+      { "id": "point_light", "description": "A point light is co-located with the base", "required": true }
+    ],
+    "expected_artifacts": ["scene with fountain base + 20 particles + light"]
+  },
+  {
+    "id": "A04",
+    "tier": "agentic-multi-step",
+    "prompt": "Create a simple maze: a 5x5 grid of cells, each 2m x 2m. Place a wall (0.1m thick, 1.5m tall) on a chosen subset of cell edges so there is exactly one connected path from cell (0,0) to cell (4,4).",
+    "evaluation_rubric": [
+      { "id": "grid_dimensions", "description": "Grid is 5x5 cells, each 2x2", "required": true },
+      { "id": "walls_present", "description": "Multiple wall boxes (0.1 thick, 1.5 tall) exist along cell edges", "required": true },
+      { "id": "wall_thickness_height", "description": "Walls are exactly 0.1m thick and 1.5m tall (within 5%)", "required": true },
+      { "id": "connected_path", "description": "Output explicitly verifies or claims a unique connected path exists from (0,0) to (4,4)", "required": true }
+    ],
+    "expected_artifacts": ["scene with a 5x5 maze having a unique solution path"]
+  },
+  {
+    "id": "A05",
+    "tier": "agentic-multi-step",
+    "prompt": "Build a small village: 5 simple houses in a row 5m apart. Each house is a 2m x 2m base box plus a triangular prism roof (color brown for roof, white for walls). Add a sun (yellow sphere) high in the sky.",
+    "evaluation_rubric": [
+      { "id": "five_houses", "description": "Exactly 5 houses are present", "required": true },
+      { "id": "each_house_complete", "description": "Each house has both a wall box and a roof prism (or pyramid)", "required": true },
+      { "id": "spacing_5m", "description": "Houses are spaced 5m apart along one axis", "required": true },
+      { "id": "color_correctness", "description": "Walls white, roofs brown across all houses", "required": true },
+      { "id": "sun_present", "description": "A yellow sphere acts as the sun above the scene", "required": true }
+    ],
+    "expected_artifacts": ["scene with 5 houses in a row + sun"]
+  },
+  {
+    "id": "A06",
+    "tier": "agentic-multi-step",
+    "prompt": "Create a clock: a flat white disk (radius 1, height 0.05) lying on the wall (XY plane at z=0). Place 12 small cubes around the rim at hour positions. Add two thin boxes for hour and minute hands, with the hour hand at 3 o'clock and minute hand at 12.",
+    "evaluation_rubric": [
+      { "id": "clock_face", "description": "A flat white disk of radius 1 exists in the XY plane", "required": true },
+      { "id": "twelve_hour_marks", "description": "Exactly 12 small cubes are placed around the rim at the 12 hour positions (every 30 degrees)", "required": true },
+      { "id": "two_hands", "description": "Two thin boxes act as hour and minute hands (different lengths)", "required": true },
+      { "id": "hour_at_3", "description": "Hour hand points toward the 3 o'clock position (+X)", "required": true },
+      { "id": "minute_at_12", "description": "Minute hand points toward the 12 o'clock position (+Y)", "required": true }
+    ],
+    "expected_artifacts": ["scene with clock face, hour marks, and two hands"]
+  },
+  {
+    "id": "A07",
+    "tier": "agentic-multi-step",
+    "prompt": "Build a row of 4 traffic cones (orange) along a curve in the XZ plane following the parabola z = 0.5 * x^2 from x=0 to x=3 (sample uniformly along arc length).",
+    "evaluation_rubric": [
+      { "id": "four_cones", "description": "Exactly 4 cones are created", "required": true },
+      { "id": "all_orange", "description": "All cones are orange", "required": true },
+      { "id": "follow_parabola", "description": "Cone positions lie on z = 0.5 * x^2 within 0.1 tolerance", "required": true },
+      { "id": "uniform_arc", "description": "Cones are spaced approximately uniformly along arc length (not by raw x)", "required": true }
+    ],
+    "expected_artifacts": ["scene with 4 cones along a parabolic curve"]
+  },
+  {
+    "id": "A08",
+    "tier": "agentic-multi-step",
+    "prompt": "Create a parking lot scene: 8x4 grid of parking spaces (each 2.5x5m), painted lines as thin white boxes between spaces, 3 cars (different colored boxes ~1.7x4x1.5) parked in 3 random spaces.",
+    "evaluation_rubric": [
+      { "id": "grid_dimensions", "description": "8x4 grid of parking spaces (each 2.5x5)", "required": true },
+      { "id": "lane_lines", "description": "Thin white boxes act as lane dividers between adjacent spaces", "required": true },
+      { "id": "three_cars", "description": "Exactly 3 car boxes ~1.7x4x1.5 exist", "required": true },
+      { "id": "cars_in_spaces", "description": "Each car is positioned within an existing parking space (not overlapping lines, not outside lot)", "required": true },
+      { "id": "car_color_variety", "description": "All 3 cars have distinct colors", "required": true }
+    ],
+    "expected_artifacts": ["scene with parking lot grid + 3 parked cars"]
+  },
+  {
+    "id": "A09",
+    "tier": "agentic-multi-step",
+    "prompt": "Compose a small chess set: an 8x8 board (alternating black/white squares, each 1x1) plus a row of 8 white pawns (small white cylinders, radius 0.3, height 0.5) at row 1, and 8 black pawns at row 6.",
+    "evaluation_rubric": [
+      { "id": "chessboard", "description": "8x8 chessboard with alternating colors exists", "required": true },
+      { "id": "white_pawns", "description": "8 white cylinders at row index 1 (one per file)", "required": true },
+      { "id": "black_pawns", "description": "8 black cylinders at row index 6 (one per file)", "required": true },
+      { "id": "pawns_centered", "description": "Each pawn is centered in its tile (XZ center within 0.1)", "required": true },
+      { "id": "pawn_dimensions", "description": "Pawns are radius ~0.3, height ~0.5", "required": true }
+    ],
+    "expected_artifacts": ["scene with chessboard + 16 pawns in starting positions"]
+  },
+  {
+    "id": "A10",
+    "tier": "agentic-multi-step",
+    "prompt": "Build a gear assembly: a large gear (cylinder radius 1.0, height 0.2) at origin and a small gear (cylinder radius 0.4, height 0.2) tangent to the large one at angle 0 (positive X side). Add 8 small cube teeth around the rim of each gear (do not need to interlock geometrically — visual only). Add a thin metal-gray axle (cylinder) through each gear's center.",
+    "evaluation_rubric": [
+      { "id": "two_gears", "description": "Two cylinders of radii 1.0 and 0.4 act as gears", "required": true },
+      { "id": "tangency", "description": "Small gear center is at distance (1.0+0.4)=1.4 from large gear center, on +X axis (within 0.05)", "required": true },
+      { "id": "teeth_per_gear", "description": "Each gear has 8 small cube 'teeth' around its rim", "required": true },
+      { "id": "axles", "description": "Each gear has a thin axle cylinder through its center", "required": true },
+      { "id": "axle_color", "description": "Axles are metal gray", "required": true }
+    ],
+    "expected_artifacts": ["scene with two gears + teeth + axles"]
+  }
+]

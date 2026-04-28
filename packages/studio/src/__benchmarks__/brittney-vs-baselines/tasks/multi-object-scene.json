@@ -1,0 +1,126 @@
+[
+  {
+    "id": "M01",
+    "tier": "multi-object-scene",
+    "prompt": "Build a simple solar system: a yellow sphere (sun) at origin, a blue sphere (Earth) at (3,0,0), and a smaller gray sphere (Moon) near Earth at (3.5, 0, 0).",
+    "evaluation_rubric": [
+      { "id": "three_spheres", "description": "Exactly three spheres are created", "required": true },
+      { "id": "sun_at_origin", "description": "A yellow sphere is at origin", "required": true },
+      { "id": "earth_position", "description": "A blue sphere is at (3,0,0)", "required": true },
+      { "id": "moon_position", "description": "A gray sphere is at (3.5,0,0) and is smaller than Earth", "required": true },
+      { "id": "size_hierarchy", "description": "Sun > Earth > Moon by visible radius", "required": true }
+    ],
+    "expected_artifacts": ["scene with sun, earth, moon arranged correctly"]
+  },
+  {
+    "id": "M02",
+    "tier": "multi-object-scene",
+    "prompt": "Create a stack of three cubes (red on bottom, green in middle, blue on top), each 1m on a side, stacked vertically at the origin.",
+    "evaluation_rubric": [
+      { "id": "three_cubes", "description": "Exactly three cubes are created", "required": true },
+      { "id": "color_order", "description": "Bottom is red, middle is green, top is blue", "required": true },
+      { "id": "stacked_vertically", "description": "Y positions form a stack with no gaps and no overlap (e.g. y=0.5, 1.5, 2.5 if cubes are size 1)", "required": true },
+      { "id": "uniform_size", "description": "All cubes are 1x1x1", "required": true }
+    ],
+    "expected_artifacts": ["scene with vertical RGB cube stack"]
+  },
+  {
+    "id": "M03",
+    "tier": "multi-object-scene",
+    "prompt": "Make a row of 5 white spheres along the X axis spaced 1m apart starting at x=0.",
+    "evaluation_rubric": [
+      { "id": "five_spheres", "description": "Exactly five spheres are created", "required": true },
+      { "id": "all_white", "description": "All spheres are white", "required": true },
+      { "id": "x_spacing", "description": "X positions are 0,1,2,3,4 (within 0.05)", "required": true },
+      { "id": "y_z_zero", "description": "Y and Z are 0 for each sphere", "required": true }
+    ],
+    "expected_artifacts": ["scene with row of 5 white spheres"]
+  },
+  {
+    "id": "M04",
+    "tier": "multi-object-scene",
+    "prompt": "Build a basic table: a flat brown box (top) supported by 4 brown cylinder legs at the corners. Top should be roughly 1m x 1m, 0.05m thick, raised 0.7m off the ground.",
+    "evaluation_rubric": [
+      { "id": "table_top", "description": "There is one box (table top) of size 1x1x0.05 within 10% tolerance", "required": true },
+      { "id": "four_legs", "description": "There are exactly 4 cylinders (legs)", "required": true },
+      { "id": "leg_corners", "description": "Legs are positioned at the four corners under the top", "required": true },
+      { "id": "top_height", "description": "Top center is roughly at y=0.7", "required": true },
+      { "id": "all_brown", "description": "All five parts are brown", "required": true }
+    ],
+    "expected_artifacts": ["scene with table consisting of top + 4 legs"]
+  },
+  {
+    "id": "M05",
+    "tier": "multi-object-scene",
+    "prompt": "Create a simple traffic light: a vertical black post (cylinder) and three colored spheres on it (red on top, yellow in middle, green on bottom).",
+    "evaluation_rubric": [
+      { "id": "post_cylinder", "description": "There is exactly one cylinder acting as a post", "required": true },
+      { "id": "three_lights", "description": "Three spheres are present", "required": true },
+      { "id": "color_order_traffic", "description": "Top sphere is red, middle yellow, bottom green", "required": true },
+      { "id": "spheres_on_post", "description": "Sphere positions form a vertical stack along the post height", "required": true }
+    ],
+    "expected_artifacts": ["scene with a traffic light post + 3 colored spheres"]
+  },
+  {
+    "id": "M06",
+    "tier": "multi-object-scene",
+    "prompt": "Lay out a chess board: an 8x8 grid of flat squares alternating black and white, each square 1x1, with the bottom-left square at (0,0,0) and the grid lying on the XZ plane.",
+    "evaluation_rubric": [
+      { "id": "sixtyfour_squares", "description": "There are 64 flat tiles", "required": true },
+      { "id": "alternating_colors", "description": "Tiles alternate black/white in checkerboard pattern", "required": true },
+      { "id": "grid_origin", "description": "Bottom-left tile is at (0,0,0) within 0.05", "required": true },
+      { "id": "in_xz_plane", "description": "All tiles lie on the XZ plane (y is small/0 for all)", "required": true }
+    ],
+    "expected_artifacts": ["scene with 8x8 chessboard pattern"]
+  },
+  {
+    "id": "M07",
+    "tier": "multi-object-scene",
+    "prompt": "Create a desk lamp: a wide gray cylinder base (radius 0.2, height 0.05), a thin vertical pole (cylinder, height 0.5), and a small spherical bulb on top emitting light.",
+    "evaluation_rubric": [
+      { "id": "base_present", "description": "Wide flat cylinder base exists", "required": true },
+      { "id": "pole_present", "description": "Thin vertical cylinder pole exists", "required": true },
+      { "id": "bulb_present", "description": "A small sphere acts as the bulb on top", "required": true },
+      { "id": "stacked_correctly", "description": "Base at bottom, pole on base, bulb on pole", "required": true },
+      { "id": "light_source", "description": "A point light is co-located with the bulb", "required": true }
+    ],
+    "expected_artifacts": ["scene with a 3-part desk lamp emitting light"]
+  },
+  {
+    "id": "M08",
+    "tier": "multi-object-scene",
+    "prompt": "Place 10 small cubes in a circular ring of radius 2 around the origin in the XZ plane, each cube 0.2m on a side.",
+    "evaluation_rubric": [
+      { "id": "ten_cubes", "description": "Exactly 10 cubes", "required": true },
+      { "id": "uniform_size", "description": "All cubes are 0.2x0.2x0.2", "required": true },
+      { "id": "on_ring", "description": "Each cube center sits at radius 2 from origin in the XZ plane within 0.05", "required": true },
+      { "id": "even_angular_spacing", "description": "Angular spacing is uniform (every 36 degrees) within 5 degrees", "required": true }
+    ],
+    "expected_artifacts": ["scene with 10 cubes in a ring"]
+  },
+  {
+    "id": "M09",
+    "tier": "multi-object-scene",
+    "prompt": "Build a simple snowman: 3 white spheres stacked vertically, sizes 1.0, 0.7, 0.5 from bottom to top, each centered on Y axis. Add 2 black sphere eyes (radius 0.05) on the smallest sphere.",
+    "evaluation_rubric": [
+      { "id": "five_spheres", "description": "There are exactly 5 spheres", "required": true },
+      { "id": "body_sizes", "description": "Three white spheres of radii ~1.0, 0.7, 0.5 stacked bottom to top", "required": true },
+      { "id": "stacked_correctly", "description": "Body spheres are stacked vertically with surfaces touching (centers offset by sum of touching radii)", "required": true },
+      { "id": "eyes_present", "description": "Two black spheres of radius ~0.05 placed on the head sphere", "required": true }
+    ],
+    "expected_artifacts": ["scene with snowman: 3 body spheres + 2 eyes"]
+  },
+  {
+    "id": "M10",
+    "tier": "multi-object-scene",
+    "prompt": "Create a tiny bedroom: floor (10x10 plane), back wall (10x3 plane on -Z side), a bed (1.5x2x0.4 box at one corner) and a nightstand (0.4x0.4x0.5 box next to the bed).",
+    "evaluation_rubric": [
+      { "id": "floor", "description": "10x10 horizontal plane exists at y~0", "required": true },
+      { "id": "back_wall", "description": "10x3 vertical plane exists on -Z side", "required": true },
+      { "id": "bed", "description": "A 1.5x2x0.4 box (bed) exists in a corner of the floor", "required": true },
+      { "id": "nightstand", "description": "A 0.4x0.4x0.5 box (nightstand) is adjacent to the bed", "required": true },
+      { "id": "no_overlap", "description": "Bed and nightstand do not overlap volumetrically", "required": true }
+    ],
+    "expected_artifacts": ["scene with bedroom: floor + wall + bed + nightstand"]
+  }
+]
