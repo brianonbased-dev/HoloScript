@@ -124,6 +124,46 @@ export {
   type NavigateCallback,
 } from './navigation.js';
 
+// Pattern E consumer-bus infrastructures
+export {
+  AssetLoadCoordinator,
+  createAssetLoadCoordinator,
+  type AssetRecord,
+  type AssetLoadedEvent,
+  type AssetErrorEvent,
+  type AssetType,
+  type AssetLoadCoordinatorOptions,
+} from './AssetLoadCoordinator.js';
+
+export {
+  SecurityEventBus,
+  createSecurityEventBus,
+  type SecurityEventBusOptions,
+  type RbacEvent,
+  type SsoEvent,
+  type QuotaEvent,
+  type TenantEvent,
+  type AuditEvent,
+  type ForgetPolicyEvent,
+  type AuditRecord,
+} from './SecurityEventBus.js';
+
+export {
+  SessionPresenceCoordinator,
+  createSessionPresenceCoordinator,
+  type SharePlayEvent,
+  type SpatialVoiceEvent,
+  type HeartbeatEvent,
+  type MessagingEvent,
+  type SessionRecord,
+  type PeerRecord,
+  type HeartbeatStatus,
+  type PeerHandler,
+  type MessageHandler,
+  type HeartbeatHandler,
+  type SessionPresenceCoordinatorOptions,
+} from './SessionPresenceCoordinator.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,

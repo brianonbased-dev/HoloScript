@@ -166,3 +166,21 @@ export type {
   WorldSimulationBridgeListener,
   EventBusLike,
 } from './lib/worldSimulationBridge';
+
+// ═══════════════════════════════════════════════════════════════════
+// Pattern E: Generative AI job monitor (consumer-bus infrastructure)
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  GenerativeJobMonitor,
+  type InpaintRequest,
+  type TextureGenRequest,
+  type ControlNetRequest,
+  type DiffusionRealtimeFrame,
+  type GenerativeJobProgress,
+  type GenerativeJobComplete,
+  type GenerativeJobError,
+  type GenerativeJobRecord,
+  type GenerativeJobStatus,
+  type GenerativeJobMonitorOptions,
+} from './GenerativeJobMonitor';
