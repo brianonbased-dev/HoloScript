@@ -176,10 +176,8 @@ export class AgentRunner {
           const tu = resp.toolUses[ti];
           if (tu.name === 'bash') {
             const tr = toolResults[ti];
-            if (tr && !tr.isError) {
-              const out = typeof tr.content === 'string' ? tr.content
-                : Array.isArray(tr.content) ? tr.content.map((c: { text?: string }) => c.text ?? '').join('') : '';
-              const shaMatch = out.match(/\b([0-9a-f]{7,40})\b/);
+            if (tr && !tr.is_error) {
+              const shaMatch = tr.content.match(/\b([0-9a-f]{7,40})\b/);
               if (shaMatch) lastCommitHash = shaMatch[1];
             }
           }
