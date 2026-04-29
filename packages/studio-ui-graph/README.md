@@ -48,16 +48,38 @@ Each `page` block is one `page.tsx`. Each component node is one TSX file reachab
 
 ## Roadmap
 
-| Milestone | Scope |
-|---|---|
-| **v0.1 (this)** | Pages + component trees + reuse map |
-| v0.2 | Zustand `@uses_store("name")` detection |
-| v0.3 | API call detection — `@api("/api/...")`, `@sse("/api/...")` |
-| v0.4 | `--watch` mode tied to Studio's dev server; auto-regenerate on save |
-| v0.5 | Studio dev page `/dev/ui-graph` rendering the graph as a Mermaid diagram |
-| v1.0 | Wire into `holo_absorb_repo` so the .holo lands in the production absorb-service GraphRAG store automatically |
+| Milestone | Scope | Status |
+|---|---|---|
+| v0.1 | Pages + component trees + reuse map | ✅ shipped |
+| v0.2 | Zustand `@uses_stores([…])` detection | ✅ shipped |
+| v0.3 | API/SSE detection — `@calls_apis([…])` for `fetch`, `useSWR`, `EventSource`, `axios` | ✅ shipped |
+| v0.4 | Dynamic + `React.lazy` import following + JSX-aware project options (closes the empty-tree bug) | ✅ shipped |
+| v0.5 | `--watch` mode (debounced 300ms on `src/**/*.ts{,x}`) | ✅ shipped |
+| v0.6 | Mermaid serializer (`--format mermaid`) — markdown-fenced flowchart TD with one subgraph per page | ✅ shipped |
+| v0.7 | In-Studio viewer page at `/dev/ui-graph` — server-rendered summary table + per-page rollups | ✅ shipped |
+| **v1.0** | **`publish` subcommand** — POSTs the `.holo` to the MCP orchestrator's `/knowledge/sync` endpoint as a `pattern` entry under id `studio-ui-graph`. Any agent on the mesh can now query Studio UI structure via `/knowledge/query`. | **✅ shipped** |
+| v1.1+ | Native absorb-service ingest (`POST /api/absorb/holo`) so the .holo lands in the GraphRAG store directly, not just the knowledge-store | open |
+| v1.2+ | Per-page Mermaid output split into individual files (the single 97 KB Mermaid is too big for some renderers) | open |
 
-## Limitations (v0.1, intentionally)
+## Live in production (verified 2026-04-29)
+
+The graph is published to the MCP orchestrator's knowledge store as `id=studio-ui-graph` (workspace `ai-ecosystem`, type `pattern`). Verify via:
+
+```bash
+curl -X POST https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/query \
+  -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"search":"page agents shared_component","workspace_id":"ai-ecosystem"}'
+```
+
+Re-publish after regenerating:
+
+```bash
+node packages/studio-ui-graph/dist/cli.js generate
+node packages/studio-ui-graph/dist/cli.js publish
+```
+
+## Limitations (intentionally)
 
 - **Built-in HTML tags** (`<div>`, `<button>`, etc.) are skipped — we only track PascalCase imported components.
 - **Locally-defined components** within a single TSX file are not separately listed — only imported components become tree nodes.
