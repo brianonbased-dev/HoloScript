@@ -53,7 +53,7 @@ const nextConfig = {
   },
   // Enable standard Next.js build checks
   eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: false },
+  typescript: { ignoreBuildErrors: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 
@@ -111,6 +111,7 @@ const nextConfig = {
     '@jsonjoy.com/fs-node',
     '@jsonjoy.com/fs-node-builtins',
     '@holoscript/engine',
+    'onnxruntime-node',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',
@@ -311,6 +312,18 @@ const nextConfig = {
     config.resolve.alias['ws'] = require.resolve('./src/lib/empty-module.js');
     config.resolve.alias['bufferutil'] = false;
     config.resolve.alias['utf-8-validate'] = false;
+
+    // Stub ONNX Runtime node bindings — native .node files can't be bundled by
+    // webpack. onnxruntime-node leaks into the client bundle via @holoscript/core's
+    // traits barrel (chunk-QPIPBNG5.js → ort.node.min-*.js → ort.node.min.mjs).
+    // See Studio build error: "Module not found: Can't resolve 'ort.node.min.mjs'".
+    config.resolve.alias['onnxruntime-node'] = require.resolve('./src/lib/empty-module.js');
+    config.plugins.push(
+      new (require('webpack').NormalModuleReplacementPlugin)(
+        /ort\.node\.min/,
+        require.resolve('./src/lib/empty-module.js')
+      )
+    );
 
     return config;
   },

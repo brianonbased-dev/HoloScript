@@ -95,7 +95,7 @@ type TileRasterizer = (params: {
 
 // ── Default image decoder (browser) ──────────────────────────────────────────
 
-const defaultBrowserImageDecoder: BrowserQuiltRendererConfig['imageDecoder'] = async (
+const defaultBrowserImageDecoder: NonNullable<BrowserQuiltRendererConfig['imageDecoder']> = async (
   media,
   sourceKind
 ) => {
