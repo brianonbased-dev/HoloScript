@@ -679,6 +679,14 @@ def main() -> int:
                    help="emit JSON only (no human table)")
     p.add_argument("--dry-run", action="store_true",
                    help="default behavior — produce schedule without acting")
+    p.add_argument("--execute", action="store_true",
+                   help=(
+                       "Take the top schedulable gate and rent a Vast.ai instance via "
+                       "paper-gate-execute.py --mode rent. Exits with the instance_id on "
+                       "stdout. Requires F.031 manual-validation sweep before production use."
+                   ))
+    p.add_argument("--override-min-vram", type=int, default=None,
+                   help="passed through to paper-gate-execute.py --override-min-vram")
     p.add_argument("--self-test", action="store_true")
     args = p.parse_args()
 
@@ -696,12 +704,71 @@ def main() -> int:
         paper_filter=args.paper,
     )
 
+    if args.execute:
+        return execute_top_gate(schedule, args)
+
     if args.json:
         print(json.dumps(schedule, indent=2, default=str))
     else:
         print(render_table(schedule))
 
     return 0
+
+
+def execute_top_gate(schedule: dict, args: argparse.Namespace) -> int:
+    """Rent the top schedulable gate via paper-gate-execute.py --mode rent.
+
+    Exits with the rental's instance_id on stdout.  Wired per task
+    task_1777249616756_l4kd: scheduler PLANNER → executor (this function)
+    → paper-gate-execute.py --mode rent → ledger + vastai.
+    """
+    schedulable = schedule.get("schedulable", [])
+    if not schedulable:
+        blocked_count = (
+            len(schedule.get("blocked_by_cap", []))
+            + len(schedule.get("blocked_by_missing_scaffold", []))
+        )
+        print(
+            json.dumps({
+                "ok": False,
+                "reason": "no schedulable gates",
+                "blocked_count": blocked_count,
+                "schedule_as_of": schedule.get("asOf"),
+            }),
+            file=sys.stderr,
+        )
+        return 1
+
+    top_gate = schedulable[0]
+    gate_id = top_gate["gate_id"]
+    print(
+        f"[execute] top gate: {gate_id}  priority={top_gate['priority']}"
+        f"  brain={top_gate['brain']}  est={top_gate['estimated_hours']}h"
+        f"  ~${top_gate['estimated_cost_usd']:.2f}",
+        file=sys.stderr,
+    )
+
+    executor = Path(__file__).parent / "paper-gate-execute.py"
+    if not executor.exists():
+        print(f"ERROR: paper-gate-execute.py not found at {executor}", file=sys.stderr)
+        return 2
+
+    cmd = [
+        sys.executable, str(executor),
+        "--mode", "rent",
+        "--gate-id", gate_id,
+        "--cap", str(args.cap),
+    ]
+    if args.override_min_vram is not None:
+        cmd += ["--override-min-vram", str(args.override_min_vram)]
+    if args.team_id:
+        cmd += ["--team-id", args.team_id]
+    if args.api_key:
+        cmd += ["--api-key", args.api_key]
+
+    import subprocess as _sp
+    cp = _sp.run(cmd, text=True)
+    return cp.returncode
 
 
 if __name__ == "__main__":
