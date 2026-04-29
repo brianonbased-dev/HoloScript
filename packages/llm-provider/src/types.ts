@@ -29,6 +29,18 @@ export interface ToolResultBlock {
    * (holoscript-agent/src/tools.ts: okResult / errResult) emits string
    * content. If/when an image-returning tool is added, widen here AND update
    * the display formatter at types.ts:~164 plus runner.ts SHA-extraction.
+   *
+   * Revisit triggers (do not speculate-widen — wait for one of these):
+   *   1. A vision-shaped tool is added to MESH_TOOLS (e.g. `screenshot`,
+   *      `read_media_file`) — the new producer would emit Array content.
+   *   2. Paper 20 (Learned Scene Composition) acceptance criteria require a
+   *      headless mesh agent to ingest rendered frames.
+   *   3. Anthropic deprecates string-form `tool_result.content` and requires
+   *      the array shape on the wire.
+   *
+   * Until one of those triggers fires: text-only is intentional. Routing rule
+   * (global CLAUDE.md): multimodal verification → Gemini in Antigravity, not
+   * a headless HoloScript mesh agent.
    */
   content: string;
   /** Optional: mark the tool result as an error so the model retries / reroutes. */
