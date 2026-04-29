@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "sha": "307061fb292b",
+    "date": "2026-04-24",
+    "subject": "bib: normalize author name Taxwise -> Krzywoszyja",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col",
+    "notes": "Earliest 04-24 snapshot. Pre-Paper-7-retirement. Paper 9 still skeleton (🟡 278). Paper 7 LOC=`✅ fleshed` -> human reads as blooming (drafted, OTS-only); parser misreads -> sealed (loc=0 from text). Paper 2 has `no user-study` per Repro -> human says benchmark-todo present -> blooming; parser pattern-misses 'RTX ✓' (vs 'RTX bench') and treats benchmark=0 -> full. These two are the legitimate parser-vs-human disagreements for this snapshot.",
+    "expected_disagreements": [
+      "snn: parser=full, human=blooming (parser misses 'RTX ✓' shorthand vs 'RTX bench' canonical)",
+      "p2-1-ik: parser=sealed, human=blooming (parser fails to extract LOC from '✅ fleshed' free-text)"
+    ]
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "blooming",
+    "snn": "blooming",
+    "crdt": "blooming",
+    "sandboxed-sim": "blooming",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "blooming",
+    "p2-1-ik": "blooming",
+    "p2-2-unified-sim-anim": "blooming",
+    "p2-3-verifiable-motion": "sealed",
+    "p3-s1-hs-core-ir": "blooming",
+    "p3-s2-hsplus-traits": "blooming",
+    "p3-s3-holo-composition": "blooming",
+    "p3-center": "blooming"
+  }
+}

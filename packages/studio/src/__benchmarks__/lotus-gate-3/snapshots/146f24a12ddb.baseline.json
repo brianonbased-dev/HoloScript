@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "sha": "146f24a12ddb",
+    "date": "2026-04-19",
+    "subject": "chore(audit): update matrix for papers 6/7/11 and anchor",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col",
+    "notes": "Pre-Paper-7-retirement (04-24). Paper 9 still 🟡 278 skeleton -> human=sealed, parser misreads -> blooming. Paper 7 LOC=`✅ fleshed` -> human reads as blooming, parser fails LOC extraction -> sealed. 2 parser-vs-human disagreements expected.",
+    "expected_disagreements": [
+      "p2-1-ik: parser=sealed, human=blooming (LOC '✅ fleshed' free-text)",
+      "p2-3-verifiable-motion: parser=blooming, human=sealed (🟡 skeleton signal)"
+    ]
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "blooming",
+    "snn": "blooming",
+    "crdt": "blooming",
+    "sandboxed-sim": "blooming",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "blooming",
+    "p2-1-ik": "blooming",
+    "p2-2-unified-sim-anim": "blooming",
+    "p2-3-verifiable-motion": "sealed",
+    "p3-s1-hs-core-ir": "blooming",
+    "p3-s2-hsplus-traits": "blooming",
+    "p3-s3-holo-composition": "blooming",
+    "p3-center": "blooming"
+  }
+}

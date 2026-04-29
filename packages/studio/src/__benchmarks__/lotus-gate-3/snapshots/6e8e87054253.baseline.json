@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "sha": "6e8e87054253",
+    "date": "2026-04-25",
+    "subject": "feat(papers): scaffold Paper 25 + ship fleet-corpus collector",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col-evolved",
+    "notes": "Same anchor pattern as 9a5e161a/1aa5fccc. Paper 7 RETIRED, papers 1/2/3/4/6/8/10/11/12 dual-anchored, paper 5/9 Base-pending, paper 13/UI 🟡 unsigned."
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "full",
+    "snn": "full",
+    "crdt": "full",
+    "sandboxed-sim": "full",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "full",
+    "p2-1-ik": "wilted",
+    "p2-2-unified-sim-anim": "full",
+    "p2-3-verifiable-motion": "blooming",
+    "p3-s1-hs-core-ir": "full",
+    "p3-s2-hsplus-traits": "full",
+    "p3-s3-holo-composition": "full",
+    "p3-center": "blooming"
+  }
+}

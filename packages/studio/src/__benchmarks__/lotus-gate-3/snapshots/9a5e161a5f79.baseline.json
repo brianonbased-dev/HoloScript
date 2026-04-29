@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "sha": "9a5e161a5f79d701caae2653d507c93857b0f1ee",
+    "date": "2026-04-26",
+    "subject": "docs(papers): $50 -> $100/day cap raise",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col-evolved",
+    "notes": "11-col matrix; cael Anchor=OTS-only (Base missing) -> blooming. Most papers dual-anchored ✅/✅. Papers 5, 9 still Base-pending. Paper 13 + UI Anchor=✅/🟡 unsigned -> Base treated as not-anchored, so blooming. Paper 7 RETIRED -> wilted. trust-by-construction off-matrix default -> blooming."
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "full",
+    "snn": "full",
+    "crdt": "full",
+    "sandboxed-sim": "full",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "full",
+    "p2-1-ik": "wilted",
+    "p2-2-unified-sim-anim": "full",
+    "p2-3-verifiable-motion": "blooming",
+    "p3-s1-hs-core-ir": "full",
+    "p3-s2-hsplus-traits": "full",
+    "p3-s3-holo-composition": "full",
+    "p3-center": "blooming"
+  }
+}

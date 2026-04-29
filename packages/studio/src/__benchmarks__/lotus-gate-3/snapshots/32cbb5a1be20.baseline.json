@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "sha": "32cbb5a1be20",
+    "date": "2026-04-24",
+    "subject": "anchor(base): round 5 receipts — 7 RTX-evidence memos dual-anchored",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col-evolved",
+    "notes": "Round-5 anchor close. Most papers dual-anchored. Paper 7 RETIRED. Papers 5+9 Base-pending. Paper 13+UI 🟡 unsigned."
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "full",
+    "snn": "full",
+    "crdt": "full",
+    "sandboxed-sim": "full",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "full",
+    "p2-1-ik": "wilted",
+    "p2-2-unified-sim-anim": "full",
+    "p2-3-verifiable-motion": "blooming",
+    "p3-s1-hs-core-ir": "full",
+    "p3-s2-hsplus-traits": "full",
+    "p3-s3-holo-composition": "full",
+    "p3-center": "blooming"
+  }
+}
