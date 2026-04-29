@@ -30,14 +30,12 @@ import type { Vector3 } from '../types';
 
 
 /**
- * Quaternion rotation
+ * Quaternion rotation — canonical 4-tuple definition lives at
+ * packages/core/src/types/HoloScriptPlus.ts:26. Founder ruling (2026-04-28):
+ * single source of truth.
  */
-export interface Quaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+import type { Quaternion } from '../types/HoloScriptPlus';
+export type { Quaternion };
 
 /**
  * Bone transform

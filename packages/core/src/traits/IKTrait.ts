@@ -28,9 +28,16 @@ export type IKSolverType = 'fabrik' | 'ccd' | 'two-bone' | 'full-body';
 
 
 /**
- * Quaternion rotation
+ * Quaternion rotation — canonical 4-tuple definition lives at
+ * packages/core/src/types/HoloScriptPlus.ts:26. Founder ruling (2026-04-28):
+ * single source of truth (this file's previous local
+ * `type Quaternion = [number, number, number, number]` was the same shape
+ * but a separate declaration; importing eliminates the cross-file drift
+ * that produced HumanoidLoader.ts:115 + SkeletonTrait.ts:35 object-form
+ * divergence).
  */
-export type Quaternion = [number, number, number, number];
+import type { Quaternion } from '../types/HoloScriptPlus';
+export type { Quaternion };
 
 /**
  * Transform

@@ -27,20 +27,23 @@ import type { TraitHandler } from './TraitTypes';
 // SHARED TYPES
 // =============================================================================
 
-/** 3D position vector */
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
+/**
+ * 3D position vector (tuple form per founder ruling 2026-04-28 — aligns with
+ * Vec3 tuple migration). Local alias kept (rather than importing Vector3 from
+ * '../types') because the rest of this file already uses tuple-style indexing
+ * `pose.position[0]/[1]/[2]` and the public surface name `Vec3` is referenced
+ * by SpatialPose consumers.
+ */
+export type Vec3 = [number, number, number];
 
-/** Quaternion rotation */
-export interface Quat {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+/**
+ * Quaternion rotation (tuple form per founder ruling 2026-04-28 — single
+ * source of truth lives at types/HoloScriptPlus.ts:26). Local alias `Quat`
+ * is preserved for the public surface but maps to the canonical 4-tuple
+ * shape, eliminating the TS2739 + TS7053 mismatch where the file declared
+ * object form but indexed as tuple.
+ */
+export type Quat = [number, number, number, number];
 
 /** 6-DOF pose (position + orientation) */
 export interface SpatialPose {
@@ -196,12 +199,12 @@ function smoothJointPose(
   const inv = 1 - factor;
   return {
     position: [prev.position[0] * factor + current.position[0] * inv, prev.position[1] * factor + current.position[1] * inv, prev.position[2] * factor + current.position[2] * inv,],
-    rotation: {
-      x: prev.rotation[0] * factor + current.rotation[0] * inv,
-      y: prev.rotation[1] * factor + current.rotation[1] * inv,
-      z: prev.rotation[2] * factor + current.rotation[2] * inv,
-      w: prev.rotation[3] * factor + current.rotation[3] * inv,
-    },
+    rotation: [
+      prev.rotation[0] * factor + current.rotation[0] * inv,
+      prev.rotation[1] * factor + current.rotation[1] * inv,
+      prev.rotation[2] * factor + current.rotation[2] * inv,
+      prev.rotation[3] * factor + current.rotation[3] * inv,
+    ],
     radius: current.radius,
     linearVelocity: current.linearVelocity,
   };

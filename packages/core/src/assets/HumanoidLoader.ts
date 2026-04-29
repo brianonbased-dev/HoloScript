@@ -110,14 +110,13 @@ export type VRMExpressionName =
 export type Vector3 = [number, number, number];
 
 /**
- * Quaternion type
+ * Quaternion rotation — canonical 4-tuple definition lives at
+ * packages/core/src/types/HoloScriptPlus.ts:26. Founder ruling (2026-04-28):
+ * Quaternion is a tuple `[x, y, z, w]` everywhere, aligned with Vec3's prior
+ * tuple migration + Three.js/WebGL/ONNX array conventions.
  */
-export interface Quaternion {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-}
+import type { Quaternion } from '../types/HoloScriptPlus';
+export type { Quaternion };
 
 /**
  * Transform type
@@ -462,7 +461,7 @@ export class HumanoidLoader {
       format,
       transform: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1], // identity quaternion (x, y, z, w)
         scale: [config.scale ?? 1, config.scale ?? 1, config.scale ?? 1],
       },
       visible: true,
