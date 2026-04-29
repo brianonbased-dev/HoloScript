@@ -29,6 +29,11 @@ COPY scripts/docker/tsup.core.docker.cjs scripts/docker/tsup.core.docker.cjs
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
+# core-types must come first — build-core-stack-no-dts.sh builds it before
+# crdt/agent-protocol/etc. (commit f3751ef55). Dockerfile copy block had drifted
+# from the script for 9+ days, manifesting as "tsup: No input files" because the
+# manifests stage created packages/core-types/package.json but src/ was absent.
+COPY packages/core-types/ packages/core-types/
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/config/ packages/config/
