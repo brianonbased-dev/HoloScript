@@ -94,7 +94,7 @@ export const graphRagTools: Tool[] = [
         llmModel: {
           type: 'string',
           description:
-            'Model name override (e.g., "gpt-4o-mini", "claude-3-haiku-20240307", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
+            'Model name override (e.g., "gpt-4o-mini", "claude-haiku-4-5", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
         },
       },
       required: ['question'],
@@ -248,7 +248,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           case 'anthropic':
             llmAdapter = new llmPkg.AnthropicAdapter({
               apiKey,
-              defaultModel: llmModel ?? 'claude-3-haiku-20240307',
+              defaultModel: llmModel ?? 'claude-haiku-4-5',
             }) as unknown as LLMProvider;
             break;
           case 'gemini':

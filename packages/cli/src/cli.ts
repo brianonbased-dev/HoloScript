@@ -3526,7 +3526,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               case 'anthropic':
                 llmProvider = new llmPkg.AnthropicAdapter({
                   apiKey: key || process.env['ANTHROPIC_API_KEY'] || '',
-                  defaultModel: options.queryModel ?? 'claude-3-haiku-20240307',
+                  defaultModel: options.queryModel ?? 'claude-haiku-4-5',
                 });
                 break;
               case 'gemini':
