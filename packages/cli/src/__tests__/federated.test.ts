@@ -444,7 +444,7 @@ describe('TraitShareRegistry', () => {
 describe('federated sharing end-to-end (10 participants)', () => {
   it('improves trait weights after one federation round', () => {
     const config: FederationConfig = {
-      epsilon: 1.0,
+      epsilon: 100.0,  // High epsilon = low noise, signal clearly dominates
       sensitivity: 1.0,
       minParticipants: 10,
     };

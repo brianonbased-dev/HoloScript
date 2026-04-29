@@ -23,6 +23,8 @@ export interface HarvesterStats {
 
 export interface HarvesterConfig {
   outputFile?: string;
+  outputDir?: string;
+  minQualityScore?: number;
 }
 
 /**
@@ -31,9 +33,11 @@ export interface HarvesterConfig {
 export class SelfImproveHarvester {
   private readonly entries: HarvestEntry[] = [];
   private readonly outputFile: string;
+  private readonly minQualityScore: number;
 
   constructor(config: HarvesterConfig = {}) {
-    this.outputFile = config.outputFile ?? 'memory://self-improvement-harvest.jsonl';
+    this.outputFile = config.outputFile ?? config.outputDir ?? 'memory://self-improvement-harvest.jsonl';
+    this.minQualityScore = config.minQualityScore ?? 0;
   }
 
   harvestFromCycle(
@@ -43,6 +47,9 @@ export class SelfImproveHarvester {
     qualityScore: number,
     metadata?: Record<string, unknown>
   ): void {
+    if (qualityScore < this.minQualityScore) {
+      return;
+    }
     this.entries.push({
       instruction,
       output,

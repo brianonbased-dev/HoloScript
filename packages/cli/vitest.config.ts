@@ -14,6 +14,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/parser/$1.ts'),
       },
       {
+        find: '@holoscript/core/self-improvement',
+        replacement: path.resolve(__dirname, '../core/src/self-improvement/index.ts'),
+      },
+      {
         find: /^@holoscript\/core$/,
         replacement: path.resolve(__dirname, '../core/src/index.ts'),
       },
