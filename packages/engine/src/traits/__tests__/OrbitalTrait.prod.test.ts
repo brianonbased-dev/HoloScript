@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── mock KeplerianCalculator ──────────────────────────────────────────────
 vi.mock('@holoscript/engine/orbital', () => ({
-  calculatePosition: vi.fn().mockReturnValue([1, 2, 3 ]),
+  calculatePosition: vi.fn().mockReturnValue({ x: 1, y: 2, z: 3 }),
 }));
 
 import { orbitalHandler } from '../OrbitalTrait';
@@ -45,7 +45,7 @@ function makeCtx(overrides: Record<string, any> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockCalcPos.mockReturnValue([1, 2, 3 ]);
+  mockCalcPos.mockReturnValue({ x: 1, y: 2, z: 3 });
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ describe('orbitalHandler.onUpdate — calculatePosition', () => {
 
 describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', () => {
   it('maps rawPos.x to finalPosition.x', () => {
-    mockCalcPos.mockReturnValue([2, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 2, y: 0, z: 0 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx(); // scaleMultiplier=1 → visualScale=50
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -133,7 +133,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
   });
 
   it('maps rawPos.z (Keplerian height) → Three.js Y', () => {
-    mockCalcPos.mockReturnValue([0, 0, 4 ]);
+    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 4 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -141,7 +141,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
   });
 
   it('maps rawPos.y (Keplerian in-plane) → Three.js Z', () => {
-    mockCalcPos.mockReturnValue([0, 3, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 0, y: 3, z: 0 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -149,7 +149,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
   });
 
   it('applies scaleMultiplier * 50 to all axes', () => {
-    mockCalcPos.mockReturnValue([1, 1, 1 ]);
+    mockCalcPos.mockReturnValue({ x: 1, y: 1, z: 1 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx({ getScaleMultiplier: vi.fn().mockReturnValue(2) }); // visualScale=100
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -157,7 +157,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
   });
 
   it('applies satelliteScale ×5 when config.parent set', () => {
-    mockCalcPos.mockReturnValue([1, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
     const node = makeNode({});
     const ctx = makeCtx(); // visualScale=50
     // config.parent set → currentScale = visualScale * 5 = 250
@@ -171,7 +171,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
   });
 
   it('does NOT apply satelliteScale when no parent', () => {
-    mockCalcPos.mockReturnValue([1, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
     const node = makeNode({});
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, { semiMajorAxis: 1 } as any, ctx as any, 0.016);
@@ -183,7 +183,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
 
 describe('orbitalHandler.onUpdate — parent node offset', () => {
   it('adds parent node position when getNode resolves it', () => {
-    mockCalcPos.mockReturnValue([0, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
     const parentNode = { position: [100, 200, 300] };
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(parentNode) });
     const node = makeNode({});
@@ -200,7 +200,7 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
   });
 
   it('no parent offset when getNode returns null', () => {
-    mockCalcPos.mockReturnValue([1, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(null) });
     const node = makeNode({});
     orbitalHandler.onUpdate!(
@@ -214,7 +214,7 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
   });
 
   it('supports parent passed as object reference (fallback path)', () => {
-    mockCalcPos.mockReturnValue([0, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
     const parentObj = { position: [5, 10, 15] };
     // getNode returns null, but parent IS the object
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(null) });
@@ -236,7 +236,7 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
 
 describe('orbitalHandler.onUpdate — position_update', () => {
   it('emits position_update with finalPosition', () => {
-    mockCalcPos.mockReturnValue([1, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 1, y: 0, z: 0 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
@@ -247,7 +247,7 @@ describe('orbitalHandler.onUpdate — position_update', () => {
   });
 
   it('emitted position matches node.position', () => {
-    mockCalcPos.mockReturnValue([2, 0, 0 ]);
+    mockCalcPos.mockReturnValue({ x: 2, y: 0, z: 0 });
     const node = makeNode({ semiMajorAxis: 1 });
     const ctx = makeCtx();
     orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
