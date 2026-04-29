@@ -17,7 +17,7 @@
  * Inference: Present input as spike train over T timesteps, decode
  * output layer membrane potential as property values.
  *
- * @version 1.0.0
+ * @version 1.1.0 — added lateral inhibition + structural abstention
  */
 
 import type {
@@ -94,6 +94,8 @@ export class SNNRetrievalModel implements FactRetrievalModel {
   // Network weights
   private weightsInputHidden: Float32Array;
   private weightsHiddenOutput: Float32Array;
+  /** Lateral inhibition weights (hidden-to-hidden). Off-diagonal negative. Structural, not trained. */
+  private weightsLateralInhibition: Float32Array;
 
   // Neuron populations
   private hiddenNeurons: LIFNeuron[];
@@ -135,6 +137,17 @@ export class SNNRetrievalModel implements FactRetrievalModel {
     this.weightsHiddenOutput = new Float32Array(this.hiddenSize * this.outputDim);
     for (let i = 0; i < this.weightsHiddenOutput.length; i++) {
       this.weightsHiddenOutput[i] = (seededRandom(i * 7 + 3) * 2 - 1) * hiddenScale;
+    }
+
+    // Lateral inhibition: structural, not learned. Off-diagonal negative weights.
+    const liStrength = config.lateralInhibitionStrength ?? -0.05;
+    this.weightsLateralInhibition = new Float32Array(this.hiddenSize * this.hiddenSize);
+    for (let i = 0; i < this.hiddenSize; i++) {
+      for (let j = 0; j < this.hiddenSize; j++) {
+        if (i !== j) {
+          this.weightsLateralInhibition[i * this.hiddenSize + j] = liStrength;
+        }
+      }
     }
 
     // Create neuron populations
@@ -181,6 +194,19 @@ export class SNNRetrievalModel implements FactRetrievalModel {
               current += inputVec[i] * this.weightsInputHidden[i * this.hiddenSize + h];
             }
             hiddenCurrents[h] = current;
+          }
+
+          // Apply lateral inhibition from previous-timestep spikes
+          if (this.config.lateralInhibitionStrength !== undefined && this.config.lateralInhibitionStrength !== 0) {
+            for (let h = 0; h < this.hiddenSize; h++) {
+              let inhibition = 0;
+              for (let j = 0; j < this.hiddenSize; j++) {
+                if (j !== h && this.hiddenNeurons[j].spiked) {
+                  inhibition += this.weightsLateralInhibition[j * this.hiddenSize + h];
+                }
+              }
+              hiddenCurrents[h] += inhibition;
+            }
           }
 
           // Step hidden layer
@@ -319,6 +345,19 @@ export class SNNRetrievalModel implements FactRetrievalModel {
         hiddenCurrents[h] = current;
       }
 
+      // Apply lateral inhibition from previous-timestep spikes
+      if (this.config.lateralInhibitionStrength !== undefined && this.config.lateralInhibitionStrength !== 0) {
+        for (let h = 0; h < this.hiddenSize; h++) {
+          let inhibition = 0;
+          for (let j = 0; j < this.hiddenSize; j++) {
+            if (j !== h && this.hiddenNeurons[j].spiked) {
+              inhibition += this.weightsLateralInhibition[j * this.hiddenSize + h];
+            }
+          }
+          hiddenCurrents[h] += inhibition;
+        }
+      }
+
       // Step hidden
       for (let h = 0; h < this.hiddenSize; h++) {
         const spiked = stepLIFNeuron(
@@ -369,6 +408,34 @@ export class SNNRetrievalModel implements FactRetrievalModel {
     const maxSpikes = this.config.timestepsPerInference;
     const predictedVector = Array.from(outputSpikeCounts).map((c) => Math.min(1.0, c / maxSpikes));
 
+    // Structural abstention: measure hidden-layer spike-pattern uncertainty.
+    // Low total spikes = weak evidence. Uniform distribution = no selective pattern.
+    // This is NOT trained on "don't confabulate" examples — it's a structural readout.
+    const hiddenSpikeCounts = this.hiddenNeurons.map((n) => {
+      // Approximate: count how many timesteps this neuron spiked during inference
+      // We don't have per-timestep history in retrieve(), so we use membrane state
+      // as a proxy: high voltage = active, low = inactive
+      return n.voltage;
+    });
+    const hiddenTotal = hiddenSpikeCounts.reduce((a, b) => a + b, 0);
+    const hiddenMean = hiddenTotal / this.hiddenSize;
+    let hiddenVariance = 0;
+    for (const v of hiddenSpikeCounts) {
+      hiddenVariance += (v - hiddenMean) ** 2;
+    }
+    hiddenVariance /= this.hiddenSize;
+    const hiddenStd = Math.sqrt(hiddenVariance + 1e-8);
+    const cv = hiddenMean > 0 ? hiddenStd / hiddenMean : 0; // coefficient of variation
+
+    // Confidence: high when total activity is moderate AND pattern is selective (high CV)
+    // Normalize total activity relative to threshold * timesteps as ceiling
+    const activityCeiling = this.config.vThreshold * this.config.timestepsPerInference;
+    const totalActivityRatio = Math.min(1.0, hiddenTotal / (this.hiddenSize * activityCeiling * 0.5));
+    const selectivity = Math.min(1.0, cv / 1.5); // CV > 1.5 is very selective
+    const confidence = totalActivityRatio * selectivity;
+    const abstentionThreshold = this.config.abstentionThreshold ?? 0.85;
+    const shouldAbstain = confidence < abstentionThreshold;
+
     return {
       predictedVector,
       inferenceTimeMs: performance.now() - startTime,
@@ -377,6 +444,9 @@ export class SNNRetrievalModel implements FactRetrievalModel {
         hiddenSpikes:
           this.totalSpikeCount - Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
         outputSpikes: Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
+        confidence,
+        shouldAbstain,
+        abstentionThreshold,
       },
     };
   }
@@ -390,7 +460,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
   }
 
   reset(): void {
-    // Re-initialize weights
+    // Re-initialize learned weights
     const inputScale = 1.0 / Math.sqrt(this.inputDim);
     for (let i = 0; i < this.weightsInputHidden.length; i++) {
       this.weightsInputHidden[i] = (seededRandom(i * 3 + 1) * 2 - 1) * inputScale;
@@ -399,6 +469,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
     for (let i = 0; i < this.weightsHiddenOutput.length; i++) {
       this.weightsHiddenOutput[i] = (seededRandom(i * 7 + 3) * 2 - 1) * hiddenScale;
     }
+    // Preserve structural lateral inhibition weights (not learned)
 
     this.resetNeuronState();
     this.totalSpikeCount = 0;

@@ -346,6 +346,63 @@ describe('SNNRetrievalModel', () => {
     // After reset, should produce same output as fresh model
     expect(result2.predictedVector).toEqual(result1.predictedVector);
   });
+
+  it('should return structural abstention metrics', () => {
+    const inputVec = model.getInputVector('grabbable');
+    const result = model.retrieve(inputVec);
+
+    expect(result.modelSpecific.confidence).toBeDefined();
+    expect(result.modelSpecific.confidence).toBeGreaterThanOrEqual(0);
+    expect(result.modelSpecific.confidence).toBeLessThanOrEqual(1);
+    expect(result.modelSpecific.shouldAbstain).toBeDefined();
+    expect(typeof result.modelSpecific.shouldAbstain).toBe('boolean');
+    expect(result.modelSpecific.abstentionThreshold).toBeDefined();
+  });
+
+  it('should abstain on weak / unrecognised input', () => {
+    // A random zero-mean vector should produce low confidence
+    const noiseInput = Array.from({ length: model.getInputVector('grabbable').length }, () =>
+      Math.random()
+    );
+    const result = model.retrieve(noiseInput);
+
+    expect(result.modelSpecific.shouldAbstain).toBe(true);
+    expect(result.modelSpecific.confidence).toBeLessThan(
+      (DEFAULT_EXPERIMENT_CONFIG.snn.abstentionThreshold ?? 0.85)
+    );
+  });
+
+  it('should have lower total hidden spikes with lateral inhibition enabled', () => {
+    const inputVec = model.getInputVector('grabbable');
+
+    // With inhibition
+    const withInhibition = model.retrieve(inputVec);
+    model.reset();
+
+    // Without inhibition
+    const noLiModel = new SNNRetrievalModel(
+      { ...DEFAULT_EXPERIMENT_CONFIG.snn, neuronsPerLayer: 32, timestepsPerInference: 20, lateralInhibitionStrength: 0 },
+      kb.facts.length,
+      kb.facts.map((f) => f.name)
+    );
+    const withoutInhibition = noLiModel.retrieve(inputVec);
+
+    expect(withInhibition.modelSpecific.hiddenSpikes).toBeLessThanOrEqual(
+      withoutInhibition.modelSpecific.hiddenSpikes!
+    );
+  });
+
+  it('should preserve lateral inhibition weights after training', () => {
+    const { train } = splitTrainTest(kb, 0.8, 42);
+    const liBefore = (model as unknown as { weightsLateralInhibition: Float32Array }).weightsLateralInhibition;
+    const snapshotBefore = new Float32Array(liBefore);
+
+    model.train(train.slice(0, 5), 3);
+
+    const liAfter = (model as unknown as { weightsLateralInhibition: Float32Array }).weightsLateralInhibition;
+    // Structural weights should not be modified by Hebbian learning
+    expect(liAfter).toEqual(snapshotBefore);
+  });
 });
 
 // =============================================================================

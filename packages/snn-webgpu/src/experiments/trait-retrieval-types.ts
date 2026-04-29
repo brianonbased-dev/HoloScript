@@ -157,6 +157,10 @@ export interface ExperimentConfig {
     timestepsPerInference: number;
     /** Spike encoding time window */
     encodingTimeWindow: number;
+    /** Lateral inhibition strength (0 = disabled, negative = inhibitory) */
+    lateralInhibitionStrength?: number;
+    /** Abstention threshold: if uncertainty exceeds this, model abstains (structural, not trained) */
+    abstentionThreshold?: number;
   };
 
   /** Backprop-specific configuration */
@@ -187,6 +191,8 @@ export const DEFAULT_EXPERIMENT_CONFIG: ExperimentConfig = {
     learningRate: 0.01,
     timestepsPerInference: 50,
     encodingTimeWindow: 50,
+    lateralInhibitionStrength: -0.05,
+    abstentionThreshold: 0.85,
   },
 
   backprop: {
