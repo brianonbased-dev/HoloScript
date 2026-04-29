@@ -8,34 +8,44 @@
 // Re-export THREE.js IK solver class
 export { IKSolver } from './sculpt/ikSolver';
 
+export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
+
+function toTuple(v: Vec3): [number, number, number] {
+  if (Array.isArray(v)) return v;
+  return [v.x, v.y, v.z];
+}
+
 function vec3Distance(a: Vec3, b: Vec3): number {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  const dz = a[2] - b[2];
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
+  const dx = ax - bx;
+  const dy = ay - by;
+  const dz = az - bz;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
-function vec3Sub(a: Vec3, b: Vec3): Vec3 {
-  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+function vec3Sub(a: Vec3, b: Vec3): [number, number, number] {
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
+  return [ax - bx, ay - by, az - bz];
 }
-function vec3Add(a: Vec3, b: Vec3): Vec3 {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+function vec3Add(a: Vec3, b: Vec3): [number, number, number] {
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
+  return [ax + bx, ay + by, az + bz];
 }
-function vec3Scale(a: Vec3, s: number): Vec3 {
-  return [a[0] * s, a[1] * s, a[2] * s];
+function vec3Scale(a: Vec3, s: number): [number, number, number] {
+  const [ax, ay, az] = toTuple(a);
+  return [ax * s, ay * s, az * s];
 }
 function vec3Length(a: Vec3): number {
-  return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+  const [ax, ay, az] = toTuple(a);
+  return Math.sqrt(ax * ax + ay * ay + az * az);
 }
-function vec3Normalize(a: Vec3): Vec3 {
+function vec3Normalize(a: Vec3): [number, number, number] {
   const len = vec3Length(a);
   if (len === 0) return [0, 0, 0];
   return vec3Scale(a, 1 / len);
 }
-
-/*
- */
-
-export type Vec3 = [number, number, number];
 
 export interface IKJoint {
   id: string;
@@ -54,15 +64,11 @@ export interface IKChain {
 }
 
 export interface IKResult {
-  joints: Vec3[];
+  joints: [number, number, number][];
   reached: boolean;
   iterations: number;
   finalDistance: number;
 }
-
-// Removed duplicate vec3Dist - using centralized vec3Distance
-
-// Removed duplicate vec3Sub, vec3Scale, vec3Add, vec3Normalize - using centralized math utilities
 
 /**
  * Solve IK using the FABRIK algorithm.
@@ -71,7 +77,7 @@ export function fabrikSolve(chain: IKChain): IKResult {
   const n = chain.joints.length;
   if (n < 2) {
     return {
-      joints: chain.joints.map((j) => j.position),
+      joints: chain.joints.map((j) => [...toTuple(j.position)]),
       reached: false,
       iterations: 0,
       finalDistance: Infinity,
@@ -87,8 +93,8 @@ export function fabrikSolve(chain: IKChain): IKResult {
   const totalLength = boneLengths.reduce((s, l) => s + l, 0);
   const targetDist = vec3Distance(chain.joints[0].position, chain.target);
 
-  const positions = chain.joints.map((j) => [...j.position] as Vec3);
-  const root = [...positions[0]] as Vec3;
+  const positions = chain.joints.map((j) => [...toTuple(j.position)] as [number, number, number]);
+  const root = [...positions[0]] as [number, number, number];
 
   // If target is unreachable, stretch toward it
   if (targetDist > totalLength) {
@@ -113,7 +119,7 @@ export function fabrikSolve(chain: IKChain): IKResult {
     if (endDist <= chain.tolerance) break;
 
     // Forward pass: move end effector to target
-    positions[n - 1] = [...chain.target];
+    positions[n - 1] = [...toTuple(chain.target)];
     for (let i = n - 2; i >= 0; i--) {
       const dir = vec3Normalize(vec3Sub(positions[i], positions[i + 1]));
       positions[i] = vec3Add(positions[i + 1], vec3Scale(dir, boneLengths[i]));
