@@ -11,9 +11,11 @@ import { BaseLLMAdapter } from '../base-adapter';
 import type {
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMStreamChunk,
   AnthropicProviderConfig,
   AnthropicEffortLevel,
   LLMMessage,
+  TokenUsage,
 } from '../types';
 import {
   LLMAuthenticationError,
@@ -295,6 +297,231 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       throw this.mapAnthropicError(err);
     }
     });
+  }
+
+  /**
+   * Stream a completion as provider-agnostic chunks. Translates Anthropic
+   * SDK stream events to `LLMStreamChunk`:
+   *
+   *   content_block_start { type: 'tool_use', id, name }   → tool_use_start
+   *   content_block_start { type: 'text' }                 → (no chunk; first text_delta covers it)
+   *   content_block_delta { delta.text }                   → text_delta
+   *   content_block_delta { delta.partial_json }           → tool_use_input_delta
+   *   content_block_stop  (after a tool_use block)         → tool_use_end (with parsed input)
+   *   message_delta       { delta.stop_reason }            → captured for final message_stop
+   *   stream.finalMessage().usage                          → emitted in message_stop
+   *
+   * No `withRetry` — partial-text retries would re-emit prefix tokens and
+   * corrupt downstream state (the route's roundText accumulator, the CAEL
+   * chain, and the SSE bytes already sent to the client). Pre-flight
+   * failures (auth, 429, request validation) throw on the FIRST `for await`
+   * iteration before any chunk is yielded, so the caller sees them as
+   * thrown errors. Mid-stream failures yield a `message_stop` with
+   * `finishReason: 'error'` and the partial usage observed so far.
+   */
+  async *streamCompletion(
+    request: LLMCompletionRequest,
+    model: string = this.defaultHoloScriptModel
+  ): AsyncIterable<LLMStreamChunk> {
+    let Anthropic: typeof import('@anthropic-ai/sdk').default;
+    try {
+      const module = await import('@anthropic-ai/sdk');
+      Anthropic = module.default;
+    } catch {
+      throw new LLMProviderError(
+        '@anthropic-ai/sdk package not installed. Run: npm install @anthropic-ai/sdk',
+        'anthropic'
+      );
+    }
+
+    const client = new Anthropic({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseURL || undefined,
+      timeout: this.config.timeoutMs,
+      maxRetries: 0,
+    });
+
+    const { system, messages } = this.separateSystemMessages(request.messages);
+
+    const samplingParams: { temperature?: number; top_p?: number } = {};
+    if (supportsSamplingParams(model)) {
+      if (request.temperature !== undefined) samplingParams.temperature = request.temperature;
+      if (request.topP !== undefined) samplingParams.top_p = request.topP;
+    }
+
+    const systemField =
+      this.enablePromptCaching && system
+        ? [{ type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } }]
+        : system || undefined;
+
+    const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
+
+    let stream;
+    try {
+      stream = client.messages.stream({
+        model,
+        max_tokens: request.maxTokens ?? 16000,
+        ...samplingParams,
+        stop_sequences: request.stop,
+        system: systemField as never,
+        messages: messages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content as never,
+        })),
+        ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+        ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
+        ...(thinkingOut.output_config
+          ? { output_config: thinkingOut.output_config as never }
+          : {}),
+      });
+    } catch (err) {
+      throw this.mapAnthropicError(err);
+    }
+
+    // Per-content-block tool-use accumulators. Anthropic emits one
+    // content_block_start with the tool_use shape (id + name), then a
+    // sequence of content_block_delta with delta.partial_json fragments,
+    // then a content_block_stop. We accumulate the partial JSON to emit
+    // a tool_use_end with the FULLY PARSED input on content_block_stop.
+    let activeToolId: string | null = null;
+    let activeToolJson = '';
+    // Captured stop_reason from message_delta (Anthropic's signal for
+    // tool_use vs end_turn vs max_tokens vs refusal vs context-window).
+    let capturedStopReason: string | null = null;
+
+    let streamErrored = false;
+    let streamError: unknown;
+
+    try {
+      for await (const event of stream) {
+        switch (event.type) {
+          case 'content_block_start': {
+            const block = event.content_block as
+              | { type: 'text' }
+              | { type: 'tool_use'; id: string; name: string }
+              | { type: 'thinking' };
+            if (block.type === 'tool_use') {
+              activeToolId = block.id;
+              activeToolJson = '';
+              yield { type: 'tool_use_start', id: block.id, name: block.name };
+            }
+            // text + thinking blocks need no start chunk — text_delta covers
+            // text incrementally; thinking blocks aren't surfaced in v1
+            // (could become 'thinking_delta' in a future chunk type).
+            break;
+          }
+
+          case 'content_block_delta': {
+            const delta = event.delta as
+              | { type: 'text_delta'; text: string }
+              | { type: 'input_json_delta'; partial_json: string }
+              | { type: 'thinking_delta'; thinking: string }
+              | { type: 'signature_delta'; signature: string };
+            if (delta.type === 'text_delta' && delta.text) {
+              yield { type: 'text_delta', text: delta.text };
+            } else if (delta.type === 'input_json_delta' && delta.partial_json) {
+              if (activeToolId !== null) {
+                activeToolJson += delta.partial_json;
+                yield {
+                  type: 'tool_use_input_delta',
+                  id: activeToolId,
+                  partialJson: delta.partial_json,
+                };
+              }
+              // If activeToolId is null we got a partial_json without a
+              // matching content_block_start tool_use — drop silently rather
+              // than crash; the SDK contract guarantees the start arrives
+              // first, but defensive code costs nothing.
+            }
+            // thinking_delta + signature_delta intentionally ignored in v1.
+            break;
+          }
+
+          case 'content_block_stop': {
+            if (activeToolId !== null) {
+              let parsedInput: Record<string, unknown> = {};
+              if (activeToolJson.length > 0) {
+                try {
+                  parsedInput = JSON.parse(activeToolJson) as Record<string, unknown>;
+                } catch {
+                  // Anthropic's input_json_delta fragments concatenate into
+                  // valid JSON — a parse failure here means truncated
+                  // streaming (the model didn't finish). Surface as empty
+                  // input + let the caller see a tool_use_end with {} so
+                  // tool dispatch fails fast instead of receiving garbage.
+                  parsedInput = {};
+                }
+              }
+              yield { type: 'tool_use_end', id: activeToolId, input: parsedInput };
+              activeToolId = null;
+              activeToolJson = '';
+            }
+            break;
+          }
+
+          case 'message_delta': {
+            const md = event as { delta?: { stop_reason?: string | null } };
+            if (md.delta && typeof md.delta.stop_reason !== 'undefined') {
+              capturedStopReason = md.delta.stop_reason ?? null;
+            }
+            break;
+          }
+
+          // message_start / message_stop / ping not surfaced — final
+          // usage + model come from finalMessage() below.
+          default:
+            break;
+        }
+      }
+    } catch (err) {
+      streamErrored = true;
+      streamError = err;
+    }
+
+    // Pull the final message off the stream for usage + model. finalMessage()
+    // resolves once the stream is fully drained; on a mid-stream throw we
+    // skip it (the stream object may not have a valid final state) and
+    // synthesize a zero-usage stop.
+    let usage: TokenUsage = this.zeroUsage();
+    let finalModel = model;
+    let finishReason: LLMCompletionResponse['finishReason'] = 'stop';
+
+    if (!streamErrored) {
+      try {
+        const final = await stream.finalMessage();
+        usage = {
+          promptTokens: final.usage.input_tokens,
+          completionTokens: final.usage.output_tokens,
+          totalTokens: final.usage.input_tokens + final.usage.output_tokens,
+        };
+        finalModel = final.model;
+        finishReason =
+          final.stop_reason === 'tool_use'
+            ? 'tool_use'
+            : this.mapStopReason(final.stop_reason);
+      } catch {
+        // finalMessage() can throw if the stream ended without a clean
+        // message_stop event. Fall back to capturedStopReason from the
+        // mid-stream message_delta.
+        finishReason =
+          capturedStopReason === 'tool_use'
+            ? 'tool_use'
+            : this.mapStopReason(capturedStopReason);
+      }
+    } else {
+      finishReason = 'error';
+    }
+
+    yield {
+      type: 'message_stop',
+      finishReason,
+      usage,
+      model: finalModel,
+    };
+
+    if (streamErrored) {
+      throw this.mapAnthropicError(streamError);
+    }
   }
 
   private separateSystemMessages(messages: LLMMessage[]): {

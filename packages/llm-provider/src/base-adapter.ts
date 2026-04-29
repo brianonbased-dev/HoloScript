@@ -11,6 +11,7 @@ import type {
   ILLMProvider,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMStreamChunk,
   HoloScriptGenerationRequest,
   HoloScriptGenerationResponse,
   LLMProviderName,
@@ -108,6 +109,45 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
   protected abstract getDefaultModel(): string;
 
   abstract complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
+
+  /**
+   * Default `streamCompletion` implementation: call `complete()`, then yield
+   * the full response as a synthesized batch of stream chunks.
+   *
+   * Adapters that support NATIVE streaming (Anthropic, Ollama, OpenAI)
+   * override this with a real translation of their provider's stream events
+   * to `LLMStreamChunk`. Adapters that don't (Mock, BitNet, Gemini) inherit
+   * this default — callers get the same chunk shape, just batched at the end
+   * instead of token-by-token.
+   *
+   * Synthesis order: text chunks first (one `text_delta` carrying the full
+   * concatenated text), then tool-use chunks (one `tool_use_start` +
+   * `tool_use_end` per tool — no `tool_use_input_delta` since the input is
+   * already fully parsed), finally `message_stop`. This preserves the
+   * type-level invariant that `tool_use_end` carries fully-parsed input.
+   */
+  async *streamCompletion(
+    request: LLMCompletionRequest,
+    model?: string
+  ): AsyncIterable<LLMStreamChunk> {
+    const response = await this.complete(request, model);
+
+    if (response.content.length > 0) {
+      yield { type: 'text_delta', text: response.content };
+    }
+
+    for (const tu of response.toolUses ?? []) {
+      yield { type: 'tool_use_start', id: tu.id, name: tu.name };
+      yield { type: 'tool_use_end', id: tu.id, input: tu.input };
+    }
+
+    yield {
+      type: 'message_stop',
+      finishReason: response.finishReason,
+      usage: response.usage,
+      model: response.model,
+    };
+  }
 
   /**
    * Generate HoloScript code from a natural language description.
