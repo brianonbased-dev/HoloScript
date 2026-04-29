@@ -5,14 +5,21 @@ import { findPages } from './routes.js';
 import { TreeBuilder } from './tree.js';
 import { emitHolo, type PageGraph } from './emit.js';
 import { emitMermaid } from './mermaid.js';
+import { publishHolo } from './publish.js';
 
 type Format = 'holo' | 'mermaid';
+type Subcommand = 'generate' | 'publish';
 
 interface ParsedArgs {
+  subcommand?: Subcommand;
   studioRoot?: string;
   output?: string;
   format?: Format;
   watch?: boolean;
+  publishEndpoint?: string;
+  publishWorkspace?: string;
+  publishApiKey?: string;
+  publishDryRun?: boolean;
   showHelp?: boolean;
   showVersion?: boolean;
   quiet?: boolean;
@@ -22,7 +29,8 @@ function parseArgs(argv: string[]): ParsedArgs {
   const out: ParsedArgs = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--root' || a === '-r') out.studioRoot = argv[++i];
+    if (!out.subcommand && (a === 'generate' || a === 'publish')) out.subcommand = a;
+    else if (a === '--root' || a === '-r') out.studioRoot = argv[++i];
     else if (a === '--output' || a === '-o') out.output = argv[++i];
     else if (a === '--format' || a === '-f') {
       const v = argv[++i];
@@ -33,6 +41,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       out.format = v;
     }
     else if (a === '--watch' || a === '-w') out.watch = true;
+    else if (a === '--endpoint') out.publishEndpoint = argv[++i];
+    else if (a === '--workspace') out.publishWorkspace = argv[++i];
+    else if (a === '--api-key') out.publishApiKey = argv[++i];
+    else if (a === '--dry-run') out.publishDryRun = true;
     else if (a === '--quiet' || a === '-q') out.quiet = true;
     else if (a === '--version' || a === '-v') out.showVersion = true;
     else if (a === '--help' || a === '-h') out.showHelp = true;
@@ -64,20 +76,30 @@ function printHelp(): void {
 
 Walk a Studio src tree, follow JSX imports rooted at every page.tsx, and emit
 an agent-readable scene representation of the UI page/component graph.
-Detects component trees, Zustand stores, and API/SSE endpoints. Now follows
-dynamic() and React.lazy() code-split boundaries (v0.4).
+Detects component trees, Zustand stores, and API/SSE endpoints. Follows
+dynamic() and React.lazy() code-split boundaries.
 
 usage:
-  holoscript-studio-ui-graph
-  holoscript-studio-ui-graph --root packages/studio --output packages/studio/.holo/studio.ui.holo
-  holoscript-studio-ui-graph --format mermaid --output packages/studio/.holo/studio.ui.mmd
-  holoscript-studio-ui-graph --watch
+  holoscript-studio-ui-graph                                          # alias for 'generate'
+  holoscript-studio-ui-graph generate --root packages/studio
+  holoscript-studio-ui-graph generate --format mermaid
+  holoscript-studio-ui-graph generate --watch
+  holoscript-studio-ui-graph publish                                  # POST .holo to mesh knowledge store
+  holoscript-studio-ui-graph publish --dry-run
 
-flags:
+generate flags:
   -r, --root <path>      Studio package root (default: packages/studio)
   -o, --output <path>    output path (default: <root>/.holo/studio.ui.<ext>)
   -f, --format <fmt>     'holo' (default) or 'mermaid'
   -w, --watch            regenerate on src/** change (debounced 300ms)
+
+publish flags (v1.0 — POST to MCP orchestrator's /knowledge/sync):
+      --endpoint <url>   knowledge-store sync URL (default: production orchestrator)
+      --workspace <id>   workspace id (default: 'ai-ecosystem')
+      --api-key <key>    auth (default: \$HOLOSCRIPT_API_KEY or \$MCP_API_KEY)
+      --dry-run          show payload that would be sent, don't POST
+
+common flags:
   -q, --quiet            suppress progress output
   -v, --version
   -h, --help
@@ -97,6 +119,40 @@ async function main(): Promise<number> {
 
   const repoRoot = findRepoRoot(process.cwd());
   const studioRoot = resolve(repoRoot, args.studioRoot ?? 'packages/studio');
+
+  // v1.0: 'publish' subcommand — POST current .holo to mesh knowledge store
+  if (args.subcommand === 'publish') {
+    const log = (msg: string) => { if (!args.quiet) process.stderr.write(msg); };
+    const holoPath = resolve(repoRoot, args.output ?? join(studioRoot, '.holo', 'studio.ui.holo'));
+    if (!existsSync(holoPath)) {
+      process.stderr.write(`error: ${holoPath} not found — run 'generate' first\n`);
+      return 2;
+    }
+    log(`publishing ${holoPath}\n`);
+    try {
+      const result = await publishHolo({
+        holoPath,
+        endpoint: args.publishEndpoint,
+        workspaceId: args.publishWorkspace,
+        apiKey: args.publishApiKey,
+        dryRun: args.publishDryRun,
+      });
+      log(`  endpoint: ${result.endpoint}\n`);
+      log(`  entry id: ${result.entryId}\n`);
+      log(`  content:  ${result.contentBytes} bytes (sha256:${result.contentSha256})\n`);
+      if (args.publishDryRun) {
+        log(`  ${result.responseBody}\n`);
+        return 0;
+      }
+      log(`  status:   HTTP ${result.status} ${result.ok ? 'OK' : 'FAILED'}\n`);
+      log(`  response: ${result.responseBody.slice(0, 400)}\n`);
+      return result.ok ? 0 : 1;
+    } catch (err) {
+      process.stderr.write(`publish error: ${(err as Error).message}\n`);
+      return 1;
+    }
+  }
+
   const appRoot = join(studioRoot, 'src', 'app');
   if (!existsSync(appRoot)) {
     process.stderr.write(`error: ${appRoot} not found — pass --root to point at a Studio package\n`);
