@@ -93,7 +93,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     }
 
     // Apply offset to content container
-    const contentNode = context.getNode(`${node.id}_content`);
+    const contentNode = (context as any).getNode(`${node.id}_content`);
     if (contentNode && contentNode.properties) {
       (contentNode.properties.position as unknown as number[])[1] = state.offset;
       context.emit('property_changed', {
@@ -114,7 +114,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
         (() => {
           const p = (event as Record<string, unknown>).position as Vector3 | undefined;
           if (!p) return 0;
-          return Array.isArray(p) ? Number(p[1]) || 0 : p.y;
+          return Array.isArray(p) ? Number(p[1]) || 0 : p[1];
         })();
       state.velocity = 0;
     } else if (event.type === 'ui_press_end') {
@@ -124,7 +124,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
         const currentY = (() => {
           const p = (event as Record<string, unknown>).position as Vector3 | undefined;
           if (!p) return 0;
-          return Array.isArray(p) ? Number(p[1]) || 0 : p.y;
+          return Array.isArray(p) ? Number(p[1]) || 0 : p[1];
         })();
         const dy = currentY - state.lastY;
         state.offset += dy;
@@ -132,7 +132,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
         state.lastY = currentY;
 
         // Immediate update
-        const contentNode = context.getNode(`${node.id}_content`);
+        const contentNode = (context as any).getNode(`${node.id}_content`);
         if (contentNode && contentNode.properties) {
           (contentNode.properties.position as unknown as number[])[1] = state.offset;
           context.emit('property_changed', {

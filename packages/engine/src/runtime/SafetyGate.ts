@@ -15,7 +15,7 @@
 import { SafetyReport, SafetyVerdict } from '@holoscript/core';
 import { runSafetyPass, EffectASTNode } from '@holoscript/core';
 import { ResourceCategory, PLATFORM_BUDGETS } from '@holoscript/core';
-import { PlatformTarget, PLATFORM_CAPABILITIES } from '@holoscript/core';
+import { PlatformTarget, XR_PLATFORM_CAPABILITIES as PLATFORM_CAPABILITIES } from '@holoscript/core';
 import { InstallManifest } from '@holoscript/core';
 
 // =============================================================================
@@ -103,7 +103,8 @@ export function gateCheck(
   }
 
   // Check platform compatibility
-  if (!manifest.targetPlatforms.includes(p.platform)) {
+  const platforms = (manifest as any).targetPlatforms;
+  if (!platforms?.includes(p.platform)) {
     warnings.push(`Package not optimized for ${p.platform}`);
   }
 

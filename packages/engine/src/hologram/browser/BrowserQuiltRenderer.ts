@@ -405,7 +405,7 @@ function makeGpuRasterizer(): TileRasterizer {
     const sourceLen = source.width * source.height;
     if (!s.sourceTexture || s.lastSourceWH !== sourceLen) {
       const tex = new THREE.DataTexture(
-        new Uint8Array(source.data.buffer, source.data.byteOffset, source.data.byteLength),
+        new Uint8Array(source.data.buffer, source.data.byteOffset, source.data.byteLength) as unknown as BufferSource,
         source.width,
         source.height,
         THREE.RGBAFormat,

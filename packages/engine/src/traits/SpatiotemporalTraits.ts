@@ -33,7 +33,7 @@ import type { Vector3 } from '@holoscript/core';
 /** Normalize core `{x,y,z}` or numeric tuples to components (trait code mixes both). */
 function v3c(v: Vector3 | [number, number, number] | readonly [number, number, number]): [number, number, number] {
   if (Array.isArray(v)) return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
-  return [v.x, v.y, v.z];
+  return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
 }
 
 function computeDistance3D(
@@ -529,8 +529,8 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
       if (slen > 0) {
         const [ox, oy, oz] = v3c(nodePos);
         const hit = context.physics.raycast(
-          { x: ox, y: oy, z: oz },
-          { x: sdx / slen, y: sdy / slen, z: sdz / slen },
+          [ox, oy, oz] as unknown as import('@holoscript/core').Vector3,
+          [sdx / slen, sdy / slen, sdz / slen] as unknown as import('@holoscript/core').Vector3,
           slen
         );
         if (hit && hit.distance < slen - 0.01) {

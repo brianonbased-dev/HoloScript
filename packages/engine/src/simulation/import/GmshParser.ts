@@ -89,7 +89,7 @@ function parseElementTail(parts: string[], elmType: number): { tags: number[]; n
     throw new MeshImportError(`Bad tag count`, 'GMSH_INVALID');
   }
   let idx = 3;
-  const tags = [];
+  const tags: number[] = [];
   for (let t = 0; t < ntags; t++) {
     if (idx >= parts.length) throw new MeshImportError('Missing element tags', 'GMSH_INVALID');
     tags.push(parseInt(parts[idx++], 10));

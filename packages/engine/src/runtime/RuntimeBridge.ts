@@ -9,15 +9,15 @@
  */
 import { World } from '../ecs';
 import { ComponentRegistry } from '../ecs';
-import { registerBuiltInComponents } from '@holoscript/core';
-import { SystemScheduler, SystemPhase } from '@holoscript/core';
+import { registerBuiltInComponents, SystemScheduler } from '../ecs';
+import type { SystemPhase } from '../ecs';
 import { EventBus } from '@holoscript/core';
 import { ThemeEngine } from '@holoscript/core';
 import { StyleResolver } from '@holoscript/core';
 import { SceneRunner } from './SceneRunner';
 import { TraitBinder } from './TraitBinder';
 import type { HSPlusNode } from '@holoscript/core';
-import type { Entity } from '@holoscript/core';
+import type { UIEntity as Entity } from '@holoscript/core';
 
 export interface SystemConfig {
   name: string;
@@ -102,7 +102,7 @@ export class RuntimeBridge {
    */
   loadScene(root: HSPlusNode): Entity {
     this.eventBus.emit('scene:loading', { nodeCount: this.countNodes(root) });
-    const rootEntity = this.sceneRunner.run(root);
+    const rootEntity = this.sceneRunner.run(root) as unknown as Entity;
     this.eventBus.emit('scene:loaded', { rootEntity, spawnedCount: this.sceneRunner.spawnedCount });
     return rootEntity;
   }

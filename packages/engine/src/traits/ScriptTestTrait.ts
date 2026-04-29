@@ -415,6 +415,6 @@ export const scriptTestHandler = {
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__script_test_instance as TraitInstanceDelegate;
     if (!instance) return;
-    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(ctx, dt);
   },
 } as const satisfies TraitHandler;

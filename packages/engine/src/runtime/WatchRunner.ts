@@ -62,19 +62,19 @@ export class WatchRunner {
       bail: options.bail ?? false,
     };
 
-    this.watcher = new HotReloadWatcher({
+    this.watcher = new (HotReloadWatcher as any)({
       watchPaths: this.options.watchPaths,
       debounceMs: this.options.debounceMs,
       extensions: ['.hs', '.hsplus', '.holo'],
     });
 
-    this.testRunner = new ScriptTestRunner({
+    this.testRunner = new (ScriptTestRunner as any)({
       debug: this.options.debug,
       bail: this.options.bail,
     });
 
     // Wire reload events to re-parse + re-test
-    this.watcher.on('reload', (event: { filePath: string; type: string }) => {
+    (this.watcher as any).on('reload', (event: { filePath: string; type: string }) => {
       this.handleReload(event.filePath);
     });
   }
@@ -94,7 +94,7 @@ export class WatchRunner {
       body: [],
       root: { type: 'root', id: 'root', name: 'root', children: [], properties: {} },
     } as unknown as HSPlusAST);
-    this.watcher.start();
+    (this.watcher as any).start();
 
     this.pushEvent({
       type: 'reload',
@@ -110,7 +110,7 @@ export class WatchRunner {
 
     this.watcher.stop();
     if (this.runtime) {
-      this.runtime.stop();
+      (this.runtime as any).stop();
       this.runtime = null;
     }
 
@@ -132,7 +132,7 @@ export class WatchRunner {
   /** Get watcher stats */
   getStats(): { reloadCount: number; events: number; running: boolean } {
     return {
-      reloadCount: this.watcher.getStats().reloadCount,
+      reloadCount: (this.watcher as any).getStats().reloadCount,
       events: this.events.length,
       running: this.running,
     };
@@ -159,10 +159,10 @@ export class WatchRunner {
 
         // Bind runtime state if available
         if (this.runtime) {
-          this.testRunner.bindHeadlessRuntime(this.runtime);
+          (this.testRunner as any).bindHeadlessRuntime(this.runtime);
         }
 
-        const results = this.testRunner.runTestsFromSource(source, filePath);
+        const results = (this.testRunner as any).runTestsFromSource(source, filePath);
 
         if (results.length > 0) {
           const passed = results.filter((r) => r.status === 'passed').length;

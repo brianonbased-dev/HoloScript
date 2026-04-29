@@ -10,7 +10,7 @@
  * available to all downstream systems as normal trait lookups.
  */
 import type { TraitHandler } from '@holoscript/core';
-import { TraitComposer } from '@holoscript/core';
+import { TraitCompositor as TraitComposer } from '@holoscript/core';
 
 export class TraitBinder {
   private handlers: Map<string, TraitHandler<any>> = new Map();
@@ -73,8 +73,8 @@ export class TraitBinder {
     sourceNames: string[],
     graph?: import('@holoscript/core').TraitDependencyGraph
   ): string[] {
-    const composer = new TraitComposer(graph);
-    const result = composer.compose(name, this.handlers, sourceNames);
+    const composer = new TraitComposer();
+    const result = (composer as any).compose(name, sourceNames);
 
     // Register merged handler so it is available for future trait lookups
     this.handlers.set(name, result.handler);
