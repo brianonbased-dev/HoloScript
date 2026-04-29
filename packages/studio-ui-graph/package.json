@@ -1,0 +1,46 @@
+{
+  "name": "@holoscript/studio-ui-graph",
+  "version": "0.1.0",
+  "description": "TSX → .holo emitter for Studio. Walks src/app/**/page.tsx, follows JSX imports, produces an agent-readable HoloScript scene representation of Studio's UI page/component graph. The bridge that gives 393 TSX components the same agent-visibility HoloScript scenes have always had.",
+  "type": "module",
+  "main": "./dist/cli.js",
+  "module": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "bin": {
+    "holoscript-studio-ui-graph": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    },
+    "./routes": {
+      "types": "./dist/routes.d.ts",
+      "import": "./dist/routes.js"
+    },
+    "./tree": {
+      "types": "./dist/tree.d.ts",
+      "import": "./dist/tree.js"
+    },
+    "./emit": {
+      "types": "./dist/emit.d.ts",
+      "import": "./dist/emit.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "start": "node ./dist/cli.js"
+  },
+  "dependencies": {
+    "ts-morph": "^25.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
