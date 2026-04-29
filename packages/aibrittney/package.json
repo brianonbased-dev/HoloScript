@@ -1,0 +1,42 @@
+{
+  "name": "@holoscript/aibrittney",
+  "version": "0.1.0",
+  "description": "AIBrittney — interactive CLI agent for HoloScript, backed by local Ollama models. Display brand: 'AI'Brittney with AI rendered as a math-style superscript exponent.",
+  "type": "module",
+  "main": "./dist/cli.js",
+  "module": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "bin": {
+    "aibrittney": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    },
+    "./repl": {
+      "types": "./dist/repl.d.ts",
+      "import": "./dist/repl.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "start": "node ./dist/cli.js"
+  },
+  "dependencies": {
+    "@holoscript/llm-provider": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
