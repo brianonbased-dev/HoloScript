@@ -10,7 +10,7 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export type Vec3 = [number, number, number];
+export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
 
 export interface EntityState {
   id: string;
@@ -67,11 +67,25 @@ export interface InterpolationFrame {
 
 const EPSILON = 0.001;
 
+function toTuple(v: Vec3): [number, number, number] {
+  if (Array.isArray(v)) return v;
+  return [v.x, v.y, v.z];
+}
+
+function toObject(v: Vec3): { x: number; y: number; z: number } {
+  if (Array.isArray(v)) {
+    return { x: v[0], y: v[1], z: v[2] };
+  }
+  return v;
+}
+
 function vec3Equal(a: Vec3, b: Vec3): boolean {
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
   return (
-    Math.abs(a[0] - b[0]) < EPSILON &&
-    Math.abs(a[1] - b[1]) < EPSILON &&
-    Math.abs(a[2] - b[2]) < EPSILON
+    Math.abs(ax - bx) < EPSILON &&
+    Math.abs(ay - by) < EPSILON &&
+    Math.abs(az - bz) < EPSILON
   );
 }
 
@@ -139,9 +153,9 @@ export function deltaApply(base: Snapshot, patch: DeltaPatch): Snapshot {
       if (!delta) return e;
       return {
         ...e,
-        position: delta.position ?? e.position,
-        rotation: delta.rotation ?? e.rotation,
-        velocity: delta.velocity ?? e.velocity,
+        position: toObject(delta.position ?? e.position),
+        rotation: toObject(delta.rotation ?? e.rotation),
+        velocity: toObject(delta.velocity ?? e.velocity),
         health: delta.health ?? e.health,
         timestamp: Date.now(),
       };
@@ -159,11 +173,13 @@ export function deltaApply(base: Snapshot, patch: DeltaPatch): Snapshot {
 // ═══════════════════════════════════════════════════════════════════
 
 function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
-  return [
-    a[0] + (b[0] - a[0]) * t,
-    a[1] + (b[1] - a[1]) * t,
-    a[2] + (b[2] - a[2]) * t,
-  ];
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
+  return {
+    x: ax + (bx - ax) * t,
+    y: ay + (by - ay) * t,
+    z: az + (bz - az) * t,
+  };
 }
 
 /**
@@ -214,8 +230,8 @@ export function conflictResolve(
       return {
         resolved: {
           ...serverState,
-          position: clientState.position,
-          rotation: clientState.rotation,
+          position: toObject(clientState.position),
+          rotation: toObject(clientState.rotation),
           velocity: lerpVec3(serverState.velocity, clientState.velocity, 0.5),
         },
         strategy,

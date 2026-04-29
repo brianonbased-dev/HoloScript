@@ -9,10 +9,22 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
+export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
+
+function toTuple(v: Vec3): [number, number, number] {
+  if (Array.isArray(v)) return v;
+  return [v.x, v.y, v.z];
+}
+
+function toObject(v: Vec3): { x: number; y: number; z: number } {
+  if (Array.isArray(v)) return { x: v[0], y: v[1], z: v[2] };
+  return v;
+}
+
 export interface Atom {
   id: string;
   element: string; // 'C', 'N', 'O', 'H', 'S', 'P', etc.
-  position: [number, number, number];
+  position: Vec3;
   charge: number; // partial charge
   radius: number; // van der Waals radius (Å)
 }
@@ -64,14 +76,14 @@ export interface ProteinResidue {
   id: number;
   aminoAcid: AminoAcid;
   chain: string;
-  position: [number, number, number];
+  position: Vec3;
 }
 
 export interface BindingSite {
   id: string;
   name: string;
   residues: ProteinResidue[];
-  center: [number, number, number];
+  center: Vec3;
   volume: number; // Å³
 }
 
@@ -155,11 +167,9 @@ export const AMINO_ACID_CODES: Record<AminoAcid, string> = {
 // ═══════════════════════════════════════════════════════════════════
 
 export function atomDistance(a: Atom, b: Atom): number {
-  return Math.sqrt(
-    (a.position[0] - b.position[0]) ** 2 +
-      (a.position[1] - b.position[1]) ** 2 +
-      (a.position[2] - b.position[2]) ** 2
-  );
+  const [ax, ay, az] = toTuple(a.position);
+  const [bx, by, bz] = toTuple(b.position);
+  return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2);
 }
 
 export function molecularFormula(atoms: Atom[]): string {
@@ -180,13 +190,12 @@ export function totalCharge(atoms: Atom[]): number {
   return atoms.reduce((sum, a) => sum + a.charge, 0);
 }
 
-export function moleculeCenter(atoms: Atom[]): [number, number, number] {
+export function moleculeCenter(atoms: Atom[]): { x: number; y: number; z: number } {
   const n = atoms.length || 1;
-  return [
-    atoms.reduce((s, a) => s + a.position[0], 0) / n,
-    atoms.reduce((s, a) => s + a.position[1], 0) / n,
-    atoms.reduce((s, a) => s + a.position[2], 0) / n,
-  ];
+  const cx = atoms.reduce((s, a) => s + toTuple(a.position)[0], 0) / n;
+  const cy = atoms.reduce((s, a) => s + toTuple(a.position)[1], 0) / n;
+  const cz = atoms.reduce((s, a) => s + toTuple(a.position)[2], 0) / n;
+  return { x: cx, y: cy, z: cz };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -244,12 +253,13 @@ export function bindingSiteVolume(residues: ProteinResidue[]): number {
   let minZ = Infinity,
     maxZ = -Infinity;
   for (const r of residues) {
-    minX = Math.min(minX, r.position[0]);
-    maxX = Math.max(maxX, r.position[0]);
-    minY = Math.min(minY, r.position[1]);
-    maxY = Math.max(maxY, r.position[1]);
-    minZ = Math.min(minZ, r.position[2]);
-    maxZ = Math.max(maxZ, r.position[2]);
+    const [x, y, z] = toTuple(r.position);
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
   }
   return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
 }
@@ -320,7 +330,7 @@ export function parsePDB(pdbText: string): ProteinResidue[] {
     const aa = AA_MAP[resName];
     if (!aa) continue;
 
-    residues.push({ id: resSeq, aminoAcid: aa, chain, position: [x, y, z] });
+    residues.push({ id: resSeq, aminoAcid: aa, chain, position: { x, y, z } });
   }
   return residues;
 }

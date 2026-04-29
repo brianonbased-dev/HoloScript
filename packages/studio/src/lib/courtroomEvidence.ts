@@ -5,7 +5,12 @@
  * measurement tools, and jury-facing presentation modes.
  */
 
-export type Vec3 = [number, number, number];
+export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
+
+function toTuple(v: Vec3): [number, number, number] {
+  if (Array.isArray(v)) return v;
+  return [v.x, v.y, v.z];
+}
 
 export type AnnotationType = 'label' | 'measurement' | 'highlight' | 'arrow' | 'circle' | 'callout';
 export type EvidenceClass =
@@ -74,8 +79,10 @@ export interface MeasurementResult {
 // ═══════════════════════════════════════════════════════════════════
 
 export function distance3D(a: Vec3, b: Vec3): number {
+  const [ax, ay, az] = toTuple(a);
+  const [bx, by, bz] = toTuple(b);
   return Math.sqrt(
-    (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+    (ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2
   );
 }
 
