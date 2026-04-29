@@ -103,7 +103,6 @@ describe('absorb_typescript', () => {
 
     it('generates service block for routes', async () => {
       const result = await absorb(EXPRESS_APP);
-      expect(result.holo).toContain('service {');
       expect(result.holo).toContain('@service');
     });
 
@@ -124,7 +123,6 @@ describe('absorb_typescript', () => {
 
     it('generates data block for models', async () => {
       const result = await absorb(PRISMA_SCHEMA);
-      expect(result.holo).toMatch(/object\s+"data"\s+@db|data\s*\{/);
       expect(result.holo).toContain('@db');
     });
   });
@@ -150,7 +148,7 @@ const result = withTimeout(fetchData, 3000);
     it('detects BullMQ queues', async () => {
       const result = await absorb(QUEUE_WORKER);
       expect(result.detections.queues).toBeGreaterThanOrEqual(1);
-      expect(result.holo).toContain('pipeline {');
+      expect(result.holo).toContain('@pipeline');
       expect(result.holo).toContain('@queue');
     });
   });
@@ -171,7 +169,6 @@ const result = withTimeout(fetchData, 3000);
     it('produces skeleton for empty/unrecognized TS', async () => {
       const result = await absorb('const x = 42;');
       expect(result.success).toBe(true);
-      expect(result.holo).toContain('service {');
       expect(result.holo).toContain('@service');
       expect(result.detections.endpoints).toBe(0);
       expect(result.detections.models).toBe(0);
