@@ -76,6 +76,12 @@ COPY packages/llm-provider/ packages/llm-provider/
 # TODO follow-up: convert these to proper @holoscript/marketplace-api
 # workspace imports + drop this COPY.
 COPY packages/marketplace-api/ packages/marketplace-api/
+# marketplace-agentkit: dynamic-imported at runtime by
+# /api/holomesh/agent/[id]/withdraw/route.ts (CdpEvmWalletProvider +
+# erc20ActionProvider). Webpack walks dynamic imports at build time so
+# the package must exist in the build context even though the route
+# guards behind a try/catch.
+COPY packages/marketplace-agentkit/ packages/marketplace-agentkit/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
