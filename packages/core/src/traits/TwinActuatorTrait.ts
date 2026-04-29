@@ -1,4 +1,5 @@
 import type { Vector3 } from '../types';
+import type { TraitHandler } from './TraitTypes';
 
 export interface TwinActuatorConfig {
   actuator_id: string;

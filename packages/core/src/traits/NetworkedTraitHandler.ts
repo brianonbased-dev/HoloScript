@@ -1,4 +1,5 @@
 import type { Vector3 } from '../types';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 /**
  * Networked Trait Handler
  *

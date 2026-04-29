@@ -42,7 +42,8 @@ type BodyJoint =
 
 interface JointPose {
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number; w: number };
+  // Quaternion (x, y, z, w) — founder ruling 2026-04-28: 4-tuple form, canonical at types/HoloScriptPlus.ts:26
+  rotation: [number, number, number, number];
   confidence: number;
   velocity?: Vector3;
 }
@@ -123,12 +124,12 @@ function smoothPose(current: JointPose, prev: JointPose, smoothing: number): Joi
       prev.position[1] * s + current.position[1] * inv,
       prev.position[2] * s + current.position[2] * inv,
     ],
-    rotation: {
-      x: prev.rotation[0] * s + current.rotation[0] * inv,
-      y: prev.rotation[1] * s + current.rotation[1] * inv,
-      z: prev.rotation[2] * s + current.rotation[2] * inv,
-      w: prev.rotation.w * s + current.rotation.w * inv,
-    },
+    rotation: [
+      prev.rotation[0] * s + current.rotation[0] * inv,
+      prev.rotation[1] * s + current.rotation[1] * inv,
+      prev.rotation[2] * s + current.rotation[2] * inv,
+      prev.rotation[3] * s + current.rotation[3] * inv,
+    ],
     confidence: current.confidence,
     velocity: current.velocity,
   };
