@@ -42,6 +42,11 @@ COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/absorb-service/ packages/absorb-service/
+# packages/platform/src/marketplace/{MarketplaceRegistry,MarketplaceSubmission}.ts
+# do `export * from '../../../marketplace-api/src/core-marketplace/...js'`. The
+# source comments at those files explicitly document this Dockerfile requirement.
+# Same drift class as the core-types miss above.
+COPY packages/marketplace-api/ packages/marketplace-api/
 COPY packages/platform/ packages/platform/
 COPY packages/mesh/ packages/mesh/
 COPY services/absorb-service/ services/absorb-service/
