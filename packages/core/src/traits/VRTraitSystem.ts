@@ -522,7 +522,6 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
     const hand = state.grabbingHand;
     const handPos = vec3ToTuple(hand.position);
     const offset = state.grabOffset;
-    // @ts-expect-error
     const newPosition: Vector3 = config.snap_to_hand
       ? hand.position
       : [handPos[0] + offset[0], handPos[1] + offset[1], handPos[2] + offset[2]];
@@ -618,8 +617,7 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
             const throwConfig = node.traits.get('throwable') as ThrowableTrait;
             const multiplier =
               (throwConfig.velocity_multiplier || 1) * context.getScaleMultiplier();
-            // @ts-expect-error
-            context.physics.applyVelocity(node, [
+                    context.physics.applyVelocity(node, [
               velocity[0] * multiplier,
               velocity[1] * multiplier,
               velocity[2] * multiplier,
@@ -964,8 +962,13 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
     const hand = context.vr.getDominantHand();
     if (!hand) return;
 
-    // Calculate rotation delta
-    const handRot = vec3ToTuple(hand.rotation);
+    // Calculate rotation delta.
+    // hand.rotation is Quaternion ([x,y,z,w]) post Vec3 tuple migration. The
+    // existing delta math below treats it as Euler xyz, so slice the imaginary
+    // components for parity with pre-migration behavior. TODO: replace with
+    // proper quaternion multiplication — the component-wise subtraction below
+    // is mathematically incorrect for quaternions but predates this migration.
+    const handRot: Vector3 = [hand.rotation[0], hand.rotation[1], hand.rotation[2]];
     const initHandRot = state.initialHandRotation;
     const initObjRot = state.initialObjectRotation;
     const deltaRotation: Vector3 = [
@@ -978,20 +981,16 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
     let newRotation: Vector3;
     switch (config.axis) {
       case 'x':
-        // @ts-expect-error
-        newRotation = [initObjRot[0] + deltaRotation[0], initObjRot[1], initObjRot[2]];
+            newRotation = [initObjRot[0] + deltaRotation[0], initObjRot[1], initObjRot[2]];
         break;
       case 'y':
-        // @ts-expect-error
-        newRotation = [initObjRot[0], initObjRot[1] + deltaRotation[1], initObjRot[2]];
+            newRotation = [initObjRot[0], initObjRot[1] + deltaRotation[1], initObjRot[2]];
         break;
       case 'z':
-        // @ts-expect-error
-        newRotation = [initObjRot[0], initObjRot[1], initObjRot[2] + deltaRotation[2]];
+            newRotation = [initObjRot[0], initObjRot[1], initObjRot[2] + deltaRotation[2]];
         break;
       default:
-        // @ts-expect-error
-        newRotation = [
+            newRotation = [
           initObjRot[0] + deltaRotation[0],
           initObjRot[1] + deltaRotation[1],
           initObjRot[2] + deltaRotation[2],
@@ -1000,8 +999,7 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     // Snap to angles if configured
     if (config.snap_angles && config.snap_angles.length > 0) {
-      // @ts-expect-error
-      newRotation = newRotation.map((angle: number) => {
+        newRotation = newRotation.map((angle: number) => {
         let closest = config.snap_angles![0];
         let minDiff = Math.abs(angle - closest);
         for (const snapAngle of config.snap_angles!) {
@@ -1027,9 +1025,11 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     if (event.type === 'rotate_start') {
       state.isRotating = true;
-      state.initialHandRotation = vec3ToTuple(
-        ((event as unknown as Record<string, unknown>).hand as VRHand).rotation
-      );
+      // Slice xyz from the Quaternion 4-tuple for parity with pre-Vec3-tuple-migration
+      // behavior — same caveat as line ~966 (component-wise rotation arithmetic
+      // is mathematically incorrect for quaternions; TODO replace).
+      const eventHandRot = ((event as unknown as Record<string, unknown>).hand as VRHand).rotation;
+      state.initialHandRotation = [eventHandRot[0], eventHandRot[1], eventHandRot[2]];
       state.initialObjectRotation = vec3ToTuple(
         (node.properties?.rotation as Vector3) || [0, 0, 0]
       );
@@ -1162,8 +1162,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
     let closestDistance = (config.snap_distance || 0.3) * context.getScaleMultiplier();
 
     for (const snapPoint of config.snap_points) {
-      // @ts-expect-error
-      const snapArr = vec3ToTuple(snapPoint);
+        const snapArr = vec3ToTuple(snapPoint);
       const distance = Math.sqrt(
         Math.pow(nodePosArr[0] - snapArr[0], 2) +
           Math.pow(nodePosArr[1] - snapArr[1], 2) +
@@ -1172,8 +1171,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
 
       if (distance < closestDistance) {
         closestDistance = distance;
-        // @ts-expect-error
-        closestPoint = snapPoint;
+            closestPoint = snapPoint;
       }
     }
 
@@ -1200,8 +1198,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
     let closestDistance = (config.snap_distance || 0.3) * context.getScaleMultiplier();
 
     for (const snapPoint of config.snap_points) {
-      // @ts-expect-error
-      const snapArr = vec3ToTuple(snapPoint);
+        const snapArr = vec3ToTuple(snapPoint);
       const distance = Math.sqrt(
         Math.pow(nodePosArr[0] - snapArr[0], 2) +
           Math.pow(nodePosArr[1] - snapArr[1], 2) +
@@ -1210,8 +1207,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
 
       if (distance < closestDistance) {
         closestDistance = distance;
-        // @ts-expect-error
-        closestPoint = snapPoint;
+            closestPoint = snapPoint;
       }
     }
 
@@ -1260,8 +1256,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
     // Play break sound
     if (config.sound_on_break) {
       context.audio.playSound(config.sound_on_break, {
-        // @ts-expect-error
-        position: collision.point,
+            position: collision.point,
         spatial: true,
       });
     }
@@ -1270,8 +1265,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
     const fragmentCount = config.fragments || 8;
     for (let i = 0; i < fragmentCount; i++) {
       const angle = (i / fragmentCount) * Math.PI * 2;
-      // @ts-expect-error
-      const velocity: Vector3 = [Math.cos(angle) * 2, Math.random() * 3, Math.sin(angle) * 2];
+        const velocity: Vector3 = [Math.cos(angle) * 2, Math.random() * 3, Math.sin(angle) * 2];
 
       context.emit('spawn_fragment', {
         position: collision.point,
