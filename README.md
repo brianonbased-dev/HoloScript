@@ -55,6 +55,15 @@ Most teams begin with one use case (dashboard, workflow, agent task, or spatial 
 - **Agent builders:** deterministic interfaces and task-driven execution loops.
 - **Research / simulation teams:** provenance-aware workflows with replayability hooks.
 
+### One-line outcomes by role
+
+| If you are a... | Describe this | Get this |
+| --------------- | -------------- | -------- |
+| Game / XR developer | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Compiled Unity C#, Unreal C++, Godot GDScript, or R3F JSX |
+| AI agent builder | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with 200+ tools, deterministic tool contracts, agent economy |
+| Simulation engineer | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }` | Browser-native WebGPU FEA with TET10 convergence, no server required |
+| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }` | Deployed Node.js service with observability, metering, and rollback |
+
 ## Example outcomes
 
 - "Describe a service" -> compile to backend/service targets
@@ -112,7 +121,7 @@ Individual traits solve individual problems. When you wire them together, autono
 - **Trust by Construction:** Provable simulation accuracy (TET10 convergence p=1.99).
 - **CAEL Agent Contracts:** Hash-chained, replayable, and forkable agent thoughts.
 - **Trustworthy Tool Use:** independent trace replay for MCP tool verification.
-- **Browser-Native SNN:** neuromorphic computing at 2,778 Hz via WebGPU compute shaders.
+- **Browser-Native SNN:** neuromorphic computing via WebGPU compute shaders (verify benchmarks live).
 - **Conflict-Free Spatial State:** spatial CRDTs resolved via physics-native replay.
 - **Sandboxed Embodied Simulation:** AI-generated physics verified in V8 isolates.
 - **GraphRAG Self-Understanding:** provenance-backed codebase intelligence queries.

@@ -1,6 +1,8 @@
 # HoloScript Social Media Posts
 
-Ready-to-post content for X/Twitter. Generated with Grok AI assistance.
+> **ARCHIVED — Stale as of 2026-04-29.** Contains hardcoded metrics (v6.0.2, 3,300+ traits, 30+ targets) and references Grok AI assistance that should not appear in HoloScript marketing. Do not use these posts as-is. For fresh, verified copy, use `/marketer` skill. For live numbers, verify: `curl https://mcp.holoscript.net/health` and see `docs/NUMBERS.md`.
+
+Ready-to-post content for X/Twitter. Historical archive — verify metrics before reuse.
 
 ## Quick Links (copy-paste into posts)
 

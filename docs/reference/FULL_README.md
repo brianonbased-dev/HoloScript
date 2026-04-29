@@ -1,6 +1,8 @@
 # HoloScript
 
-Absorb any codebase. Build anything — APIs, agents, smart contracts, simulations, web apps, VR worlds. Deploy agents that run without you.
+> Describe what you want. It runs everywhere.
+>
+> HoloScript is a semantic runtime where descriptions become working software. Write `.holo`, `.hsplus`, or `.hs` — the runtime interprets it directly. Compilers optimize for specific platforms when you need them.
 
 ```json
 {

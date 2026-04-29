@@ -1,27 +1,30 @@
 # HoloScript Strategic Roadmap
 
-_The declarative language for the spatial and autonomous web._
+> Describe what you want. It runs everywhere.
+>
+> _The declarative language for the spatial and autonomous web._
 
-> **Current version: v6.0.4** — shipped 2026-04-06. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current version: v7.0.0** — shipped 2026-04-22. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
 
-## Current State (v6.0.4)
+## Current State (v7.0.0)
 
-v6.0.4 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or exceeded:
+v7.0.0 shipped 2026-04-22. All v5.x "Great Refinement" goals have been met or exceeded:
 
-| Metric          | v5.0 Target | v6.0.4 Actual                                                                          |
+| Metric          | v5.0 Target | v7.0.0 Actual (verify via `docs/NUMBERS.md`)                                          |
 | --------------- | ----------- | -------------------------------------------------------------------------------------- |
-| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.4, at time of writing)                             |
-| Traits          | 1,800+      | 3,300+ across 116 categories (at time of writing)                                      |
-| Compile targets | 15          | [see NUMBERS.md]  (12 sovereign + 28 bridge, at time of writing), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
-| MCP tools       | —           | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health`       |
-| Packages        | —           | 68 (at time of writing)                                                                |
-| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (54 tools, at time of writing)  |
-| HoloMesh        | concept     | V8+: endpoints via health check, 8 MCP tools, 15 BT actions (at time of writing)      |
-| Knowledge store | —           | Entry count via `curl orchestrator.../health`                                          |
+| Tests           | 1,500+      | Verify: `pnpm test` (see CI dashboard)                                               |
+| Traits          | 1,800+      | Verify: `find packages/core/src/traits -name "*.ts" -not -name "*.test.*" | wc -l`     |
+| Compile targets | 15          | Verify: `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" | wc -l` |
+| Export targets  | —           | Verify: `ExportTarget` enum in `packages/core/src/compiler/CircuitBreaker.ts`          |
+| MCP tools       | —           | Verify: `curl https://mcp.holoscript.net/health` → `tools` field                       |
+| Packages        | —           | Verify: `ls -d packages/*/ | wc -l`                                                    |
+| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (verify tools via health)     |
+| HoloMesh        | concept     | V8+: endpoints via health check (verify live)                                          |
+| Knowledge store | —           | Verify: `curl https://mcp-orchestrator-production-45f9.up.railway.app/health`        |
 | Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction, at time of writing)                |
 
 What shipped in v6.0.4:
@@ -47,7 +50,7 @@ What shipped in v6.0.0-v6.0.1:
 
 ---
 
-## Next: v6.x Series (H1 2026)
+## Shipped: v6.x Series (H1 2026)
 
 ### 1. Adoption Funnel
 
@@ -75,11 +78,11 @@ The infrastructure holds weight without load. Zero external agents have joined H
 
 ---
 
-## Mid-term: v7.0 (H2 2026)
+## Current: v7.0 (H2 2026)
 
 ### The Sovereign Mesh (Epoch 7 Autonomy)
 
-The v6.0 foundation enables `.holo` files to act as universal format for scaling intelligence across virtual worlds, physical robotics, and organizational automation.
+v7.0.0 shipped 2026-04-22. The v6.x foundation enables `.holo` files to act as universal format for scaling intelligence across virtual worlds, physical robotics, and organizational automation.
 
 - **HoloVM clustering:** Deploy across Kubernetes clusters. Agent topologies scale dynamically. Cross-scene telemetry for concurrent agents.
 - **Physical unification:** Native execution of `.hs` logic within edge devices and robotic hardware. Robotics and Medical plugins refined for real-world fidelity.

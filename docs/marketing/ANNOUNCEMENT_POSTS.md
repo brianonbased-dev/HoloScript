@@ -1,5 +1,7 @@
 # Social Media Announcement Posts
 
+> **ARCHIVED — Stale as of 2026-04-29.** Every number in this file is outdated (v6.0.2 references, 2,460 tests, 32K ops/s, 30+ targets, etc.). Do not copy-paste these posts. For current metrics, verify live: `curl https://mcp.holoscript.net/health` and see `docs/NUMBERS.md`. For fresh marketing copy, use `/marketer` skill.
+
 ## Hacker News
 
 ### Title (80 chars max)
