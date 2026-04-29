@@ -46,6 +46,42 @@ export function emitHolo(graphs: PageGraph[], meta: EmitMeta): string {
     }
     lines.push('');
   }
+
+  // Backend usage summary — which pages hit which APIs / stores
+  const apiToPages = new Map<string, Set<string>>();
+  const storeToPages = new Map<string, Set<string>>();
+  for (const g of graphs) {
+    const apis = new Set<string>();
+    const stores = new Set<string>();
+    collectRollup(g.tree, stores, apis);
+    for (const a of apis) {
+      const set = apiToPages.get(a) ?? new Set<string>();
+      set.add(g.page.id); apiToPages.set(a, set);
+    }
+    for (const s of stores) {
+      const set = storeToPages.get(s) ?? new Set<string>();
+      set.add(g.page.id); storeToPages.set(s, set);
+    }
+  }
+  if (apiToPages.size > 0) {
+    lines.push('  // Backend endpoints — used_in shows fan-out (pages depending on this API)');
+    const apis = [...apiToPages.entries()].sort(([a], [b]) => a.localeCompare(b));
+    for (const [url, pageIds] of apis) {
+      const sortedPages = [...pageIds].sort().join(', ');
+      lines.push(`  api_endpoint ${quote(url)} { @used_in([${sortedPages}]) }`);
+    }
+    lines.push('');
+  }
+  if (storeToPages.size > 0) {
+    lines.push('  // Zustand stores — which pages consume each store');
+    const stores = [...storeToPages.entries()].sort(([a], [b]) => a.localeCompare(b));
+    for (const [name, pageIds] of stores) {
+      const sortedPages = [...pageIds].sort().join(', ');
+      lines.push(`  store ${sanitize(name)} { @used_in([${sortedPages}]) }`);
+    }
+    lines.push('');
+  }
+
   lines.push('}');
   lines.push('');
   return lines.join('\n');
@@ -53,7 +89,15 @@ export function emitHolo(graphs: PageGraph[], meta: EmitMeta): string {
 
 function emitPage(g: PageGraph, reuse: Map<string, Set<string>>, indent: number, out: string[]): void {
   const pad = '  '.repeat(indent);
-  out.push(`${pad}page ${g.page.id} { @route("${g.page.route}") @file("${g.page.file}")`);
+  // Roll up stores + APIs across the page's whole tree so the page block
+  // shows what the route consumes without burying it in deep components.
+  const pageStores = new Set<string>();
+  const pageApis = new Set<string>();
+  collectRollup(g.tree, pageStores, pageApis);
+  const pageTraits = [`@route("${g.page.route}")`, `@file("${g.page.file}")`];
+  if (pageStores.size > 0) pageTraits.push(`@uses_stores([${[...pageStores].sort().map(quote).join(', ')}])`);
+  if (pageApis.size > 0) pageTraits.push(`@calls_apis([${[...pageApis].sort().map(quote).join(', ')}])`);
+  out.push(`${pad}page ${g.page.id} { ${pageTraits.join(' ')}`);
   for (const child of g.tree.children) {
     emitNode(child, g.page.id, reuse, indent + 1, out);
   }
@@ -68,6 +112,12 @@ function emitNode(node: ComponentNode, pageId: string, reuse: Map<string, Set<st
     const others = [...reusedIn].filter((id) => id !== pageId).sort();
     if (others.length > 0) traits.push(`@reused_in([${others.join(', ')}])`);
   }
+  if (node.stores && node.stores.length > 0) {
+    traits.push(`@uses_stores([${node.stores.map(quote).join(', ')}])`);
+  }
+  if (node.apis && node.apis.length > 0) {
+    traits.push(`@calls_apis([${node.apis.map(quote).join(', ')}])`);
+  }
   if (node.children.length === 0) {
     out.push(`${pad}${sanitize(node.name)} { ${traits.join(' ')} }`);
     return;
@@ -77,6 +127,16 @@ function emitNode(node: ComponentNode, pageId: string, reuse: Map<string, Set<st
     emitNode(child, pageId, reuse, indent + 1, out);
   }
   out.push(`${pad}}`);
+}
+
+function collectRollup(node: ComponentNode, stores: Set<string>, apis: Set<string>): void {
+  for (const s of node.stores ?? []) stores.add(s);
+  for (const a of node.apis ?? []) apis.add(a);
+  for (const c of node.children) collectRollup(c, stores, apis);
+}
+
+function quote(s: string): string {
+  return `"${s.replace(/"/g, '\\"')}"`;
 }
 
 function collectReuseMap(graphs: PageGraph[]): Map<string, Set<string>> {

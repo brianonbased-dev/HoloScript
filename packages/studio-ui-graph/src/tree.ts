@@ -9,6 +9,10 @@ export interface ComponentNode {
   file: string;
   /** Children rendered inside this component's JSX, recursively. */
   children: ComponentNode[];
+  /** Zustand stores this file consumes (v0.2). */
+  stores?: string[];
+  /** API/SSE endpoints this file calls (v0.3). */
+  apis?: string[];
 }
 
 export interface TreeBuilderOptions {
@@ -62,6 +66,10 @@ export class TreeBuilder {
 
     const importMap = this.collectImports(sf);
     const used = this.collectJsxIdentifiers(sf);
+    const stores = this.collectStores(sf);
+    const apis = this.collectApis(sf);
+    if (stores.length) root.stores = stores;
+    if (apis.length) root.apis = apis;
 
     for (const ident of used) {
       const importInfo = importMap.get(ident);
@@ -115,6 +123,71 @@ export class TreeBuilder {
       if (tagText && /^[A-Z]/.test(tagText)) set.add(tagText);
     });
     return Array.from(set).sort();
+  }
+
+  /**
+   * v0.2: detect Zustand stores consumed by this source file. Two patterns:
+   *   - hook named `use*Store` / `use*State` invoked in JSX or component body
+   *   - direct `create<...>()(...)` call (file owns the store definition)
+   * Returned names are PascalCase store identifiers (e.g. "ConnectorStore").
+   */
+  private collectStores(sf: SourceFile): string[] {
+    const set = new Set<string>();
+    const text = sf.getFullText();
+    // Hook calls: useFooStore(...) / useFooState(...)
+    const hookRegex = /\buse([A-Z][A-Za-z0-9]*?)(Store|State)\s*\(/g;
+    let m: RegExpExecArray | null;
+    while ((m = hookRegex.exec(text)) !== null) {
+      const name = m[1] + m[2]; // e.g. "ConnectorStore"
+      // skip stdlib React hooks: useState, useReducer (already excluded by capitalised first char)
+      if (name === 'State') continue;
+      set.add(name);
+    }
+    // create<X>()(...)  — Zustand definition site
+    const createRegex = /\bcreate\s*<\s*([A-Z][A-Za-z0-9]*)\s*>\s*\(/g;
+    while ((m = createRegex.exec(text)) !== null) {
+      set.add(m[1] + ' (defined here)');
+    }
+    return Array.from(set).sort();
+  }
+
+  /**
+   * v0.3: detect API endpoints + SSE streams hit by this source file. Patterns:
+   *   - fetch('/api/...') | fetch(`/api/.../${id}`)
+   *   - useSWR('/api/...') | useSWRMutation('/api/...')
+   *   - new EventSource('/api/.../sse')
+   *   - axios.get/post/etc('/api/...')
+   * Template-literal interpolations are normalized to `[id]`-style placeholders
+   * to preserve route uniqueness without leaking expression noise.
+   */
+  private collectApis(sf: SourceFile): string[] {
+    const set = new Set<string>();
+    const text = sf.getFullText();
+    const patterns = [
+      /\bfetch\s*\(\s*['"`]([^'"`]+)['"`]/g,
+      /\bfetch\s*\(\s*`([^`]+)`/g,
+      /\buseSWR(?:Mutation|Infinite)?\s*\(\s*['"`]([^'"`]+)['"`]/g,
+      /\bnew\s+EventSource\s*\(\s*['"`]([^'"`]+)['"`]/g,
+      /\baxios\.[a-z]+\s*\(\s*['"`]([^'"`]+)['"`]/g,
+    ];
+    for (const re of patterns) {
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        const url = m[1];
+        if (url.startsWith('/api/') || url.startsWith('/v1/') || url.startsWith('/sse')) {
+          set.add(this.normalizeUrl(url));
+        }
+      }
+    }
+    return Array.from(set).sort();
+  }
+
+  private normalizeUrl(url: string): string {
+    // Replace `${expr}` interpolations with `[expr]`-style param markers so URLs
+    // that vary only by interpolation collapse to a single canonical form.
+    return url
+      .replace(/\$\{[^}]+\}/g, '[id]')
+      .replace(/\?.*$/, ''); // strip query strings — not part of route identity
   }
 
   private resolveImport(spec: string, fromAbs: string): string | undefined {
