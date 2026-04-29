@@ -165,7 +165,7 @@
     "@vitest/coverage-v8": "^4.1.0",
     "@webgpu/types": ">=0.1.40",
     "tsup": "^8.0.1",
-    "typedoc": "^0.28.17",
+    "typedoc": "^0.28.19",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"
   }

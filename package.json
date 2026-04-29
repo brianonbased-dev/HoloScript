@@ -105,7 +105,7 @@
     "prettier": "^3.8.1",
     "syncpack": "^14.0.0",
     "tsup": "^8.0.1",
-    "typedoc": "^0.28.17",
+    "typedoc": "^0.28.19",
     "typedoc-plugin-markdown": "^4.2.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
