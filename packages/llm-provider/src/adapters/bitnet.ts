@@ -191,28 +191,14 @@ export class BitNetAdapter extends BaseLLMAdapter {
 
   /**
    * Check if the local BitNet server is reachable.
+   * Delegates to BaseLLMAdapter.healthCheckLocalServer — same /health →
+   * /v1/models fallback, branded error with bitnet.cpp setup hint.
    */
   async healthCheck(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
-    const start = Date.now();
-    try {
-      const response = await fetch(`${this.localBaseURL}/health`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      // Some llama.cpp builds use /v1/models instead of /health
-      if (!response.ok) {
-        const modelsResponse = await fetch(`${this.localBaseURL}/v1/models`, {
-          signal: AbortSignal.timeout(5000),
-        });
-        if (!modelsResponse.ok) throw new Error(`Status ${modelsResponse.status}`);
-      }
-      return { ok: true, latencyMs: Date.now() - start };
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      return {
-        ok: false,
-        latencyMs: Date.now() - start,
-        error: `bitnet.cpp server unreachable at ${this.localBaseURL}. Run: python run_inference.py --serve. Error: ${error}`,
-      };
-    }
+    return this.healthCheckLocalServer(
+      this.localBaseURL,
+      (baseURL, message) =>
+        `bitnet.cpp server unreachable at ${baseURL}. Run: python run_inference.py --serve. Error: ${message}`
+    );
   }
 }

@@ -212,6 +212,46 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
     }
   }
 
+  /**
+   * Probe an OpenAI-compatible local inference server (llama.cpp, Ollama,
+   * LM Studio, bitnet.cpp). Tries `${baseURL}/health` first, falls back to
+   * `${baseURL}/v1/models` if that 404s — different runtimes ship different
+   * health endpoints. 5s timeout per probe.
+   *
+   * `formatError` brands the error string per adapter so the failure message
+   * carries the right setup hint (e.g. local-llm says "Start with: llama-server
+   * -m model.gguf"; bitnet says "Run: python run_inference.py --serve").
+   *
+   * Local-server adapters (local-llm, bitnet) override the cloud-flavored
+   * `healthCheck()` (which calls `complete()`) and delegate here instead —
+   * pinging a tiny endpoint is much cheaper than a full chat round-trip.
+   */
+  protected async healthCheckLocalServer(
+    baseURL: string,
+    formatError: (baseURL: string, message: string) => string
+  ): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+    const start = Date.now();
+    try {
+      const response = await fetch(`${baseURL}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) {
+        const modelsResponse = await fetch(`${baseURL}/v1/models`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!modelsResponse.ok) throw new Error(`Status ${modelsResponse.status}`);
+      }
+      return { ok: true, latencyMs: Date.now() - start };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: formatError(baseURL, message),
+      };
+    }
+  }
+
   // ===========================================================================
   // Protected Helpers
   // ===========================================================================
