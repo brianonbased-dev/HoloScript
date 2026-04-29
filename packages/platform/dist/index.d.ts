@@ -111,6 +111,27 @@ export type Web3ConnectorConfig = any;
 // Agent Validation
 export const AgentOutputSchemaValidator: any;
 
+// Package Registry (Sprint 5 — registry surface used by core/legacy-exports.ts)
+// All any-typed per the same catch-all pattern. Real shapes will land when
+// tsup's dts pass is restored after task_1777164512763_x545 (engine Vec3 migration)
+// and the source-vs-dist divergence is reconciled in tsup.config.ts.
+export const PackageRegistry: any;
+export type PackageRegistry = any;
+export const createPackageRegistry: any;
+export const defaultRegistry: any;
+export const parseSemVer: any;
+export const formatSemVer: any;
+export const compareSemVer: any;
+export const satisfiesRange: any;
+export const findBestMatch: any;
+export const validatePackageName: any;
+export const validateManifest: any;
+export type SemVer = any;
+export type PackageDependency = any;
+export type PackageManifest = any;
+export type ResolvedDependency = any;
+export type InstallResult = any;
+
 // Catch-all: any other named import resolves to `any`.
 declare const __platformCatchAll: any;
 export default __platformCatchAll;
