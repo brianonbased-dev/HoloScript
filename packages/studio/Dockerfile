@@ -94,7 +94,12 @@ RUN cd packages/crdt && npx tsup --no-dts
 # deployment 48b215cf — without this build step, the plugin tsc dies with
 # "Cannot find module '@holoscript/crdt-spatial' or its corresponding type
 # declarations" even though the package source IS in the build context.
-RUN cd packages/crdt-spatial && npx tsup --no-dts || true
+# DTS REQUIRED (not --no-dts): same root cause as core-types fix on this
+# session — engine/src/simulation/CRDTCAELBridge.ts imports SpatialCRDTBridge
+# from '@holoscript/crdt-spatial' and studio's tsc walks engine src via
+# package.json types resolution; .d.ts must exist on disk. Verified
+# 2026-04-29 deploy 330aeb15 (commit 7bdab0b43, my 5th deploy fix).
+RUN cd packages/crdt-spatial && npx tsup || true
 RUN cd packages/agent-protocol && npx tsup --no-dts
 # core-types must build before core so that ../core-types/dist/ans.js exists
 # when webpack walks core's compiled chunks during studio's `pnpm run build`.
