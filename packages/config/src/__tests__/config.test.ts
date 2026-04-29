@@ -92,16 +92,14 @@ describe('validateConfig', () => {
     expect(result.warnings).toHaveLength(1);
   });
 
-  it('requireConfig exits on missing vars', () => {
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  it('requireConfig throws on missing vars', () => {
     const mockError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    requireConfig(['DEFINITELY_MISSING_VAR'], 'test-service');
-
-    expect(mockExit).toHaveBeenCalledWith(1);
+    expect(() => requireConfig(['DEFINITELY_MISSING_VAR'], 'test-service')).toThrow(
+      'DEFINITELY_MISSING_VAR'
+    );
     expect(mockError).toHaveBeenCalledWith(expect.stringContaining('DEFINITELY_MISSING_VAR'));
 
-    mockExit.mockRestore();
     mockError.mockRestore();
   });
 });
