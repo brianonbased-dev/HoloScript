@@ -832,6 +832,7 @@
     "@holoscript/holomap": "workspace:*",
     "@huggingface/transformers": "^3.8.1",
     "@types/node": "^24.10.1",
+    "@types/three": "^0.170.0",
     "@webgpu/types": ">=0.1.40",
     "@vitest/coverage-v8": "^4.1.0",
     "tsup": "^8.0.1",
