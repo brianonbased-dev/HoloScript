@@ -39,7 +39,7 @@ jobs:
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       # ── Chrome Headless Shell dependencies ──────────────────────────────────
       # Required for Remotion's renderMedia() on Ubuntu runners
@@ -60,11 +60,11 @@ jobs:
 
       # ── pnpm ────────────────────────────────────────────────────────────────
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
 
       # ── Node.js ─────────────────────────────────────────────────────────────
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -95,7 +95,7 @@ jobs:
 
       # ── Upload artifacts ─────────────────────────────────────────────────────
       - name: Upload rendered videos as artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: tutorial-videos-${{ github.sha }}
@@ -106,7 +106,7 @@ jobs:
       # ── Attach MP4s to GitHub Release ────────────────────────────────────────
       - name: Attach videos to release
         if: github.event_name == 'release' || github.event.inputs.attach_to_release == 'true'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           files: packages/video-tutorials/out/*.mp4
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}

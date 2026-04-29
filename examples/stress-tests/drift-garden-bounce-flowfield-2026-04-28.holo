@@ -1,0 +1,228 @@
+// The Drift Garden — A-009 Stress-Test 2026-04-28
+//
+// Traits under test (never previously exercised in any example):
+//   @bounce     — elastic collision response (elasticityCore alias)
+//   @flow_field — GPU flow-field navigation to a destination beacon
+//
+// Supporting cast (well-exercised in corpus):
+//   @physics, @collidable, @emissive, @spatial_audio, @particle_system
+//
+// Visual story: Phosphorescent seed pods tumble through a twilight void,
+// bouncing off each other and the invisible drift-floor with high restitution.
+// Three ghost-light spirits navigate via GPU flow fields, converging on the
+// central wind-beacon — a crystalline spire that hums with spatial audio.
+// The scene is entirely bioluminescent: no sun, only emissive glow.
+
+composition "The Drift Garden" {
+
+  environment {
+    skybox: "void"
+    background_color: "#020510"
+    ambient_light: 0.05
+    fog_density: 0.008
+    fog_color: "#040818"
+  }
+
+  // ==========================================================================
+  // WIND BEACON — the crystalline attractor that flow-field spirits navigate to
+  // ==========================================================================
+
+  object "wind_beacon" {
+    geometry: "octahedron"
+    position: { x: 0, y: 3, z: 0 }
+    scale: { x: 0.8, y: 1.6, z: 0.8 }
+    material: { baseColor: "#a0e8ff", roughness: 0.05, metallic: 0.9 }
+    emissive: "#40b8ff"
+    emissiveIntensity: 2.2
+    glow: true
+
+    @emissive { color: "#40b8ff", intensity: 2.2 }
+    @spatial_audio {
+      src: "ambient/crystal-hum.ogg"
+      loop: true
+      volume: 0.4
+      rolloff: "inverse"
+      ref_distance: 2.0
+      max_distance: 18.0
+    }
+  }
+
+  object "beacon_corona" {
+    type: "particles"
+    count: 60
+    color: "#60c8ff"
+    position: { x: 0, y: 3, z: 0 }
+    spread: 2.2
+    size: 0.04
+    speed: 0.15
+    @particle_system { rate: 12, lifetime: 3.5, blend_mode: "additive" }
+  }
+
+  // ==========================================================================
+  // SEED PODS — @bounce + @physics + @collidable
+  // High-restitution spheres that tumble and bounce through the void.
+  // Each pod pulses its bioluminescent glow at a slightly different frequency.
+  // ==========================================================================
+
+  object "seed_pod_1" {
+    geometry: "sphere"
+    position: { x: -2.4, y: 2.5, z: 1.2 }
+    scale: 0.28
+    material: { baseColor: "#b0ff90", roughness: 0.3, metallic: 0.0 }
+    emissive: "#60ff40"
+    emissiveIntensity: 1.4
+    glow: true
+
+    @physics { mass: 0.08, restitution: 0.82, friction: 0.1 }
+    @collidable { shape: "sphere", layer: "seeds" }
+    @bounce { mode: true, bounce_factor: 0.82 }
+    @emissive { color: "#60ff40", intensity: 1.4, pulse: true, pulse_rate: 0.8 }
+  }
+
+  object "seed_pod_2" {
+    geometry: "sphere"
+    position: { x: 1.8, y: 1.9, z: -1.5 }
+    scale: 0.22
+    material: { baseColor: "#d4ff80", roughness: 0.25, metallic: 0.0 }
+    emissive: "#a0ff30"
+    emissiveIntensity: 1.2
+    glow: true
+
+    @physics { mass: 0.06, restitution: 0.88, friction: 0.08 }
+    @collidable { shape: "sphere", layer: "seeds" }
+    @bounce { mode: true, bounce_factor: 0.88 }
+    @emissive { color: "#a0ff30", intensity: 1.2, pulse: true, pulse_rate: 1.1 }
+  }
+
+  object "seed_pod_3" {
+    geometry: "sphere"
+    position: { x: -0.6, y: 4.2, z: -2.0 }
+    scale: 0.35
+    material: { baseColor: "#90ffcc", roughness: 0.35, metallic: 0.0 }
+    emissive: "#30ffa0"
+    emissiveIntensity: 1.6
+    glow: true
+
+    @physics { mass: 0.12, restitution: 0.76, friction: 0.12 }
+    @collidable { shape: "sphere", layer: "seeds" }
+    @bounce { mode: true, bounce_factor: 0.76 }
+    @emissive { color: "#30ffa0", intensity: 1.6, pulse: true, pulse_rate: 0.6 }
+  }
+
+  object "seed_pod_4" {
+    geometry: "sphere"
+    position: { x: 3.0, y: 3.5, z: 0.8 }
+    scale: 0.18
+    material: { baseColor: "#c8ff60", roughness: 0.2, metallic: 0.0 }
+    emissive: "#88ff20"
+    emissiveIntensity: 1.0
+    glow: true
+
+    @physics { mass: 0.04, restitution: 0.92, friction: 0.06 }
+    @collidable { shape: "sphere", layer: "seeds" }
+    @bounce { mode: true, bounce_factor: 0.92 }
+    @emissive { color: "#88ff20", intensity: 1.0, pulse: true, pulse_rate: 1.4 }
+  }
+
+  object "seed_pod_5" {
+    geometry: "sphere"
+    position: { x: -3.2, y: 4.8, z: -0.4 }
+    scale: 0.26
+    material: { baseColor: "#a8ffd0", roughness: 0.28, metallic: 0.0 }
+    emissive: "#50ffb0"
+    emissiveIntensity: 1.3
+    glow: true
+
+    @physics { mass: 0.09, restitution: 0.80, friction: 0.11 }
+    @collidable { shape: "sphere", layer: "seeds" }
+    @bounce { mode: true, bounce_factor: 0.80 }
+    @emissive { color: "#50ffb0", intensity: 1.3, pulse: true, pulse_rate: 0.9 }
+  }
+
+  // ==========================================================================
+  // GHOST-LIGHT SPIRITS — @flow_field + @emissive + @particle_system
+  // Each spirit navigates toward wind_beacon via GPU flow field, leaving
+  // an additive-blend particle trail as it converges.
+  // ==========================================================================
+
+  object "spirit_a" {
+    geometry: "icosahedron"
+    position: { x: -4.5, y: 1.0, z: 2.5 }
+    scale: 0.15
+    material: { baseColor: "#e0c8ff", roughness: 0.1, metallic: 0.8 }
+    emissive: "#b070ff"
+    emissiveIntensity: 3.0
+    glow: true
+
+    @flow_field {
+      destinationId: "wind_beacon"
+      speed: 1.4
+      steeringWeight: 0.6
+      stopDistance: 1.2
+    }
+    @emissive { color: "#b070ff", intensity: 3.0 }
+    @particle_system { rate: 5, lifetime: 1.8, color: "#8040ff", blend_mode: "additive" }
+  }
+
+  object "spirit_b" {
+    geometry: "icosahedron"
+    position: { x: 5.0, y: 5.5, z: -3.0 }
+    scale: 0.12
+    material: { baseColor: "#ffd0f0", roughness: 0.08, metallic: 0.9 }
+    emissive: "#ff70c0"
+    emissiveIntensity: 2.8
+    glow: true
+
+    @flow_field {
+      destinationId: "wind_beacon"
+      speed: 1.7
+      steeringWeight: 0.75
+      stopDistance: 1.0
+    }
+    @emissive { color: "#ff70c0", intensity: 2.8 }
+    @particle_system { rate: 4, lifetime: 1.5, color: "#ff40a0", blend_mode: "additive" }
+  }
+
+  object "spirit_c" {
+    geometry: "icosahedron"
+    position: { x: 2.5, y: 6.0, z: 4.0 }
+    scale: 0.18
+    material: { baseColor: "#c0f0ff", roughness: 0.06, metallic: 0.95 }
+    emissive: "#40d0ff"
+    emissiveIntensity: 3.2
+    glow: true
+
+    @flow_field {
+      destinationId: "wind_beacon"
+      speed: 1.2
+      steeringWeight: 0.65
+      stopDistance: 1.4
+    }
+    @emissive { color: "#40d0ff", intensity: 3.2 }
+    @particle_system { rate: 6, lifetime: 2.0, color: "#20a0ff", blend_mode: "additive" }
+  }
+
+  // ==========================================================================
+  // DRIFT FLOOR — invisible static collision plane for seed pods to bounce off
+  // ==========================================================================
+
+  object "drift_floor" {
+    geometry: "cube"
+    position: { x: 0, y: 0, z: 0 }
+    scale: { x: 20, y: 0.05, z: 20 }
+    visible: false
+    @collidable { shape: "box", layer: "ground", static: true }
+    @physics { mass: 0, static: true }
+  }
+
+  object "ground_glow" {
+    type: "particles"
+    count: 80
+    color: "#102030"
+    position: { x: 0, y: 0.3, z: 0 }
+    spread: 12
+    size: 0.08
+    speed: 0.03
+    @particle_system { rate: 3, lifetime: 8.0, blend_mode: "additive" }
+  }
+}

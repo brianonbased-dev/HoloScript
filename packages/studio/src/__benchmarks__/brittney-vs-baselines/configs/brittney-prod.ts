@@ -77,6 +77,14 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       let lastWasToolUse = false;
       let assistantOutputChars = 0;
       const inputChars = task.prompt.length;
+      let pendingCheck:
+        | {
+            passed: boolean;
+            mutation?: { tool?: string; input?: Record<string, unknown> };
+            tool?: string;
+          }
+        | null = null;
+      let caelChainFnv1a: string | undefined;
 
       const response = await fetchImpl(opts.endpoint, {
         method: 'POST',
@@ -108,25 +116,55 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
           case 'tool_call': {
             const p = ev.payload as { name?: string; arguments?: Record<string, unknown> };
             if (p?.name && SCENE_TOOL_NAMES.has(p.name)) {
+              const checkPassed =
+                pendingCheck && (!pendingCheck.tool || pendingCheck.tool === p.name)
+                  ? pendingCheck.passed
+                  : null;
               mutations.push({
                 tool_name: p.name,
                 input: p.arguments ?? {},
-                sim_contract_passed: null,
+                sim_contract_passed: checkPassed,
               });
+              pendingCheck = null;
             }
             assistantOutputChars += JSON.stringify(p ?? {}).length;
             lastWasToolUse = true;
             break;
           }
-          case 'sim_contract_check': {
+          case 'simContractCheck': {
+            // Route emits BEFORE the matching tool_call when passed=true,
+            // and WITHOUT a following tool_call when passed=false (rejected
+            // mutation is held back and surfaced as is_error tool_result on
+            // the next round). Either way: count the attempt.
             const p = ev.payload as {
               passed?: boolean;
-              mutation?: string;
+              contractId?: string;
+              mutation?: { tool?: string; input?: Record<string, unknown> };
+              reason?: string;
             };
-            const last = mutations[mutations.length - 1];
-            if (last && typeof p?.passed === 'boolean') {
-              last.sim_contract_passed = p.passed;
+            if (typeof p?.passed === 'boolean') {
+              pendingCheck = {
+                passed: p.passed,
+                mutation: p.mutation,
+                tool: p.mutation?.tool,
+              };
+              if (p.passed === false) {
+                // Rejected — no tool_call will follow. Record the attempt now.
+                if (p.mutation?.tool && SCENE_TOOL_NAMES.has(p.mutation.tool)) {
+                  mutations.push({
+                    tool_name: p.mutation.tool,
+                    input: p.mutation.input ?? {},
+                    sim_contract_passed: false,
+                  });
+                  pendingCheck = null;
+                }
+              }
             }
+            break;
+          }
+          case 'caelChain': {
+            const p = ev.payload as { chainId?: string; fnv1a?: string };
+            if (typeof p?.fnv1a === 'string') caelChainFnv1a = p.fnv1a;
             break;
           }
           case 'tool_result': {
@@ -164,6 +202,7 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
         usage,
         model_id: model,
         scene_mutations: mutations,
+        cael_chain_fnv1a: caelChainFnv1a,
         error: lastError,
       };
     },

@@ -404,6 +404,9 @@ function makeGpuRasterizer(): TileRasterizer {
     // Update or create source texture
     const sourceLen = source.width * source.height;
     if (!s.sourceTexture || s.lastSourceWH !== sourceLen) {
+      // Cast to TexImageSource-compatible buffer view: TS 5.7+ types
+      // Uint8Array as Uint8Array<ArrayBufferLike> while THREE.DataTexture's
+      // first parameter is the older BufferSource shape.
       const tex = new THREE.DataTexture(
         new Uint8Array(source.data.buffer, source.data.byteOffset, source.data.byteLength) as unknown as BufferSource,
         source.width,

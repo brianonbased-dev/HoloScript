@@ -22,6 +22,26 @@ export type MessageRole = 'system' | 'user' | 'assistant';
 export interface ToolResultBlock {
   type: 'tool_result';
   tool_use_id: string;
+  /**
+   * Tool output to feed back to the model. Anthropic's API also accepts an
+   * `Array<{type:'text',text:string} | {type:'image',source:...}>` here, but
+   * this codebase deliberately narrows to `string` because every producer
+   * (holoscript-agent/src/tools.ts: okResult / errResult) emits string
+   * content. If/when an image-returning tool is added, widen here AND update
+   * the display formatter at types.ts:~164 plus runner.ts SHA-extraction.
+   *
+   * Revisit triggers (do not speculate-widen — wait for one of these):
+   *   1. A vision-shaped tool is added to MESH_TOOLS (e.g. `screenshot`,
+   *      `read_media_file`) — the new producer would emit Array content.
+   *   2. Paper 20 (Learned Scene Composition) acceptance criteria require a
+   *      headless mesh agent to ingest rendered frames.
+   *   3. Anthropic deprecates string-form `tool_result.content` and requires
+   *      the array shape on the wire.
+   *
+   * Until one of those triggers fires: text-only is intentional. Routing rule
+   * (global CLAUDE.md): multimodal verification → Gemini in Antigravity, not
+   * a headless HoloScript mesh agent.
+   */
   content: string;
   /** Optional: mark the tool result as an error so the model retries / reroutes. */
   is_error?: boolean;
@@ -144,6 +164,60 @@ export interface TextBlock {
 }
 
 export type AssistantContentBlock = TextBlock | ToolUseBlock;
+
+/**
+ * Provider-agnostic stream chunk emitted by `ILLMProvider.streamCompletion`.
+ *
+ * Adapters MAP their native streaming surface (Anthropic SSE events, Ollama
+ * NDJSON, OpenAI chat-completion stream, etc.) onto this discriminated union
+ * so callers consume one shape regardless of provider. The chunk vocabulary
+ * is intentionally minimal — text deltas, tool-use lifecycle, and a final
+ * `message_stop` carrying the same `finishReason` + usage that
+ * `LLMCompletionResponse` carries. Thinking/refusal/error chunks can be added
+ * later without breaking existing consumers.
+ *
+ * Reading the stream:
+ *   for await (const chunk of provider.streamCompletion(req)) {
+ *     if (chunk.type === 'text_delta') sendToClient(chunk.text);
+ *     if (chunk.type === 'tool_use_end') queueTool(chunk.id, chunk.name, chunk.input);
+ *     if (chunk.type === 'message_stop') finalize(chunk.finishReason, chunk.usage);
+ *   }
+ *
+ * Tool-input deltas are emitted as PARTIAL JSON fragments (the exact text the
+ * provider emitted, before any parse). The terminating `tool_use_end` chunk
+ * carries the FULLY PARSED `input` object — callers should use `tool_use_end`
+ * to dispatch, and use `tool_use_input_delta` only for live UX (e.g. showing
+ * partial JSON in a spinner).
+ */
+export type LLMStreamChunk =
+  | {
+      type: 'text_delta';
+      text: string;
+    }
+  | {
+      type: 'tool_use_start';
+      id: string;
+      name: string;
+    }
+  | {
+      type: 'tool_use_input_delta';
+      id: string;
+      /** Provider-emitted partial JSON fragment. NOT cumulative — each delta
+       *  is the new fragment to append to prior fragments for the same id. */
+      partialJson: string;
+    }
+  | {
+      type: 'tool_use_end';
+      id: string;
+      /** Fully parsed tool input. Empty object if the model emitted no input. */
+      input: Record<string, unknown>;
+    }
+  | {
+      type: 'message_stop';
+      finishReason: LLMCompletionResponse['finishReason'];
+      usage: TokenUsage;
+      model: string;
+    };
 
 /**
  * Coerce LLMMessage content to a plain string for adapters that don't
@@ -391,13 +465,19 @@ export interface ILLMProvider {
   readonly defaultHoloScriptModel: string;
 
   /**
-   * Send a completion request to the provider.
+   * Send a completion request to the provider. Adapters wrap the underlying
+   * SDK/fetch call in `withRetry` (BaseLLMAdapter) so transient errors
+   * (429, 5xx, network) retry with exponential backoff and Retry-After
+   * honor before throwing.
    */
   complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
 
   /**
-   * Generate HoloScript code from a natural language description.
-   * Includes automatic validation and retry logic.
+   * Generate HoloScript code from a natural language description. Validates
+   * the model output's structure (balanced braces, recognized object types)
+   * and returns the validation result on the response. Transient-error retry
+   * is handled inside `complete()` — this method calls it once and surfaces
+   * any final error.
    */
   generateHoloScript(request: HoloScriptGenerationRequest): Promise<HoloScriptGenerationResponse>;
 
@@ -405,6 +485,28 @@ export interface ILLMProvider {
    * Check if the provider is correctly configured and reachable.
    */
   healthCheck(): Promise<{ ok: boolean; latencyMs: number; error?: string }>;
+
+  /**
+   * Stream a completion as an async iterable of provider-agnostic chunks
+   * (`LLMStreamChunk`). Adapters that support native streaming (Anthropic
+   * SSE, Ollama NDJSON, OpenAI chat-completion stream) translate native
+   * events to this shape; adapters that don't yet have a streaming impl
+   * fall back to the BaseLLMAdapter default (call `complete()`, then
+   * yield the full text + tool-use blocks as a synthesized batch).
+   *
+   * Stream MUST end with exactly one `message_stop` chunk. Callers can
+   * trust this and finalize state on `message_stop`.
+   *
+   * Adapters do NOT wrap streamCompletion in `withRetry` — partial-text
+   * retries would re-emit prefix tokens and corrupt downstream state.
+   * Pre-flight failures (auth, 429, request validation) throw before the
+   * first chunk; mid-stream failures yield a final `message_stop` with
+   * `finishReason: 'error'` and the partial state observed so far.
+   */
+  streamCompletion(
+    request: LLMCompletionRequest,
+    model?: string
+  ): AsyncIterable<LLMStreamChunk>;
 }
 
 // =============================================================================

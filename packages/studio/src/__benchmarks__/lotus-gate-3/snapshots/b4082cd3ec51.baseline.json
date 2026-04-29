@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "sha": "b4082cd3ec5114bcbcac4d6f26647f69d9a0f23e",
+    "date": "2026-04-28",
+    "subject": "docs(paper-audit): add Paper-9 subsystem-candidate linkage (TASK-1 + BUILD-1)",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "16-col",
+    "notes": "Latest matrix; all 16 papers anchored OTS+Base; Staleness column drives bloom for most. UI=0 todos+0 bench-todo+dual-anchored -> full. Paper 7 RETIRED -> wilted. trust-by-construction off-matrix default -> blooming."
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "budding",
+    "trust-by-replay": "budding",
+    "snn": "budding",
+    "crdt": "budding",
+    "sandboxed-sim": "budding",
+    "graphrag": "budding",
+    "capstone-notation-cognition": "full",
+    "p2-0-contracted-animation": "budding",
+    "p2-1-ik": "wilted",
+    "p2-2-unified-sim-anim": "budding",
+    "p2-3-verifiable-motion": "budding",
+    "p3-s1-hs-core-ir": "budding",
+    "p3-s2-hsplus-traits": "budding",
+    "p3-s3-holo-composition": "budding",
+    "p3-center": "budding"
+  }
+}

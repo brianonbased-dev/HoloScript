@@ -11,11 +11,18 @@ import type {
   ILLMProvider,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMStreamChunk,
   HoloScriptGenerationRequest,
   HoloScriptGenerationResponse,
   LLMProviderName,
   LLMProviderConfig,
   TokenUsage,
+} from './types';
+import {
+  LLMProviderError,
+  LLMRateLimitError,
+  LLMAuthenticationError,
+  LLMContextLengthError,
 } from './types';
 
 // =============================================================================
@@ -104,8 +111,52 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
   abstract complete(request: LLMCompletionRequest, model?: string): Promise<LLMCompletionResponse>;
 
   /**
+   * Default `streamCompletion` implementation: call `complete()`, then yield
+   * the full response as a synthesized batch of stream chunks.
+   *
+   * Adapters that support NATIVE streaming (Anthropic, Ollama, OpenAI)
+   * override this with a real translation of their provider's stream events
+   * to `LLMStreamChunk`. Adapters that don't (Mock, BitNet, Gemini) inherit
+   * this default — callers get the same chunk shape, just batched at the end
+   * instead of token-by-token.
+   *
+   * Synthesis order: text chunks first (one `text_delta` carrying the full
+   * concatenated text), then tool-use chunks (one `tool_use_start` +
+   * `tool_use_end` per tool — no `tool_use_input_delta` since the input is
+   * already fully parsed), finally `message_stop`. This preserves the
+   * type-level invariant that `tool_use_end` carries fully-parsed input.
+   */
+  async *streamCompletion(
+    request: LLMCompletionRequest,
+    model?: string
+  ): AsyncIterable<LLMStreamChunk> {
+    const response = await this.complete(request, model);
+
+    if (response.content.length > 0) {
+      yield { type: 'text_delta', text: response.content };
+    }
+
+    for (const tu of response.toolUses ?? []) {
+      yield { type: 'tool_use_start', id: tu.id, name: tu.name };
+      yield { type: 'tool_use_end', id: tu.id, input: tu.input };
+    }
+
+    yield {
+      type: 'message_stop',
+      finishReason: response.finishReason,
+      usage: response.usage,
+      model: response.model,
+    };
+  }
+
+  /**
    * Generate HoloScript code from a natural language description.
-   * Includes retry logic and validation.
+   *
+   * Transient-error retry lives inside `complete()` (each adapter wraps its
+   * call in `withRetry`). The outer retry loop that previously lived here
+   * was multiplicative with the inner one (4 outer × 4 inner = 16 worst-case
+   * calls on persistent rate-limits) without adding behavior the inner loop
+   * doesn't already cover.
    */
   async generateHoloScript(
     request: HoloScriptGenerationRequest
@@ -124,45 +175,20 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
       temperature: request.temperature ?? 0.7,
     };
 
-    let lastError: Error | undefined;
-    for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
-      try {
-        const response = await this.complete(completionRequest, this.defaultHoloScriptModel);
+    const response = await this.complete(completionRequest, this.defaultHoloScriptModel);
 
-        const code = this.extractHoloScriptCode(response.content);
-        const validation = this.validateHoloScriptOutput(code);
-        const detectedTraits = extractTraits(code);
+    const code = this.extractHoloScriptCode(response.content);
+    const validation = this.validateHoloScriptOutput(code);
+    const detectedTraits = extractTraits(code);
 
-        return {
-          code,
-          valid: validation.valid,
-          errors: validation.errors,
-          provider: this.name,
-          usage: response.usage,
-          detectedTraits,
-        };
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-
-        // Don't retry authentication errors or context length errors
-        if (err instanceof Error && err.name === 'LLMAuthenticationError') {
-          throw err;
-        }
-        if (err instanceof Error && err.name === 'LLMContextLengthError') {
-          throw err;
-        }
-
-        if (attempt < this.config.maxRetries - 1) {
-          const delayMs = Math.min(1000 * Math.pow(2, attempt), 8000);
-          await this.sleep(delayMs);
-        }
-      }
-    }
-
-    throw (
-      lastError ??
-      new Error(`Failed to generate HoloScript after ${this.config.maxRetries} attempts`)
-    );
+    return {
+      code,
+      valid: validation.valid,
+      errors: validation.errors,
+      provider: this.name,
+      usage: response.usage,
+      detectedTraits,
+    };
   }
 
   /**
@@ -182,6 +208,46 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
         ok: false,
         latencyMs: Date.now() - start,
         error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  /**
+   * Probe an OpenAI-compatible local inference server (llama.cpp, Ollama,
+   * LM Studio, bitnet.cpp). Tries `${baseURL}/health` first, falls back to
+   * `${baseURL}/v1/models` if that 404s — different runtimes ship different
+   * health endpoints. 5s timeout per probe.
+   *
+   * `formatError` brands the error string per adapter so the failure message
+   * carries the right setup hint (e.g. local-llm says "Start with: llama-server
+   * -m model.gguf"; bitnet says "Run: python run_inference.py --serve").
+   *
+   * Local-server adapters (local-llm, bitnet) override the cloud-flavored
+   * `healthCheck()` (which calls `complete()`) and delegate here instead —
+   * pinging a tiny endpoint is much cheaper than a full chat round-trip.
+   */
+  protected async healthCheckLocalServer(
+    baseURL: string,
+    formatError: (baseURL: string, message: string) => string
+  ): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+    const start = Date.now();
+    try {
+      const response = await fetch(`${baseURL}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) {
+        const modelsResponse = await fetch(`${baseURL}/v1/models`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!modelsResponse.ok) throw new Error(`Status ${modelsResponse.status}`);
+      }
+      return { ok: true, latencyMs: Date.now() - start };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: formatError(baseURL, message),
       };
     }
   }
@@ -252,6 +318,69 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
 
   protected sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Run an async operation with retry on transient errors.
+   *
+   * Retries `LLMProviderError` instances where `retryable=true` (e.g.
+   * `LLMRateLimitError`, 5xx via `mapXError`) up to `this.config.maxRetries`
+   * times. `LLMAuthenticationError`, `LLMContextLengthError`, and any
+   * `LLMProviderError` with `retryable=false` (4xx other than 429) throw
+   * immediately. Non-`LLMProviderError` exceptions (network errors, SDK
+   * shapes the adapter didn't classify) get one retry then re-throw — they
+   * could be transient or programmer errors, one retry covers the common
+   * "first connection from cold worker" case without masking real bugs.
+   *
+   * Backoff is `2^attempt * 100ms + jitter`, capped at 8000ms. When the
+   * caught error is `LLMRateLimitError` with `retryAfterMs`, that value is
+   * used instead of the exponential backoff.
+   *
+   * Adapters call this around their SDK invocation: previously the SDK's
+   * own retry was disabled (`maxRetries: 0` with the comment "We handle
+   * retries ourselves") but no handler existed; this is that handler.
+   */
+  protected async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    const maxRetries = this.config.maxRetries;
+    let lastError: unknown;
+    let unknownErrorRetried = false;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (err) {
+        lastError = err;
+
+        if (err instanceof LLMAuthenticationError || err instanceof LLMContextLengthError) {
+          throw err;
+        }
+
+        let isRetryable: boolean;
+        let retryAfterMs: number | undefined;
+
+        if (err instanceof LLMProviderError) {
+          isRetryable = err.retryable;
+          if (err instanceof LLMRateLimitError) {
+            retryAfterMs = err.retryAfterMs;
+          }
+        } else {
+          // Non-LLMProviderError: retry once, then surface to caller.
+          if (unknownErrorRetried) throw err;
+          unknownErrorRetried = true;
+          isRetryable = true;
+        }
+
+        if (!isRetryable) throw err;
+        if (attempt >= maxRetries) break;
+
+        const backoffMs = Math.min(Math.pow(2, attempt) * 100, 8000);
+        const jitter = Math.random() * 100;
+        const delayMs = retryAfterMs ?? backoffMs + jitter;
+        await this.sleep(delayMs);
+      }
+    }
+
+    throw lastError;
   }
 
   /**

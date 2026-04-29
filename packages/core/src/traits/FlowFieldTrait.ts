@@ -65,7 +65,6 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
     const currentPos = toTuple((node.properties?.position as Vector3) || [0, 0, 0]);
 
     // Sample direction from flow field
-    // @ts-expect-error
     const flowDir = toTuple(navEngine.sampleDirection(config.destinationId, currentPos));
 
     // Combine with current movement or apply directly

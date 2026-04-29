@@ -179,6 +179,61 @@ out of 16); median tend time ≤ 30s. Markdown report committed.
 - (Coming in same commit) `examples/lotus-flower/garden.holo` seed scene.
 - (Coming in same commit) `derive-bloom-state.ts` utility + unit tests.
 
+## Session 2026-04-29 update — gate state + harness shipped
+
+**Lotus-reframe Gate 1 + Gate 2 — SHIPPED** (peer commits):
+- `04adb85c0` feat(lotus): seed Lotus Flower garden + bloom-state derivation (Gate 1)
+- `c2253cd15` feat(lotus): seed Lotus Flower garden + bloom-state derivation
+- `7ec336078` feat(brittney): SimContract grounding + CAEL audit trail (Gates 1+2)
+- `98dc39952` feat(lotus): wire LOTUS_TOOLS into Brittney route + system prompt (Gate 2)
+- `257c9bdea` test(brittney): isLotusGardenScene predicate + lotus context injection
+- `823391687` test(brittney): SSE event integration coverage for lotusGardenEvent
+- `4e2be2ae8` test(brittney): regression coverage for SimContract grounding (Gate 1)
+
+**Lotus-reframe Gate 3 — NOT YET SHIPPED.** "Live garden tending against
+ai-ecosystem" requires snapshotting paper-audit-matrix.md at 10 historical
+commits, computing human-baseline bloom-states, running Brittney's
+`tend_garden` against each, and measuring agreement rate. Owner: TBD.
+
+**Original (pre-Lotus) Gate 3 — PARTIAL.** Head-to-head benchmark
+harness vs IDE baselines was the original Gate 3. Even though superseded
+by the Lotus reframe, the harness was built this session because gate
+3 measurement of "creation-completion against unverified-baselines" was
+specified verbatim in the original memo body and has standalone value
+for any future application-paper comparison:
+- Harness shipped at `packages/studio/src/__benchmarks__/brittney-vs-baselines/`
+  (commits `4284dda32` + `aabb1f8f8` + chain).
+- 270-cell baselines-only run completed 2026-04-29 ($42.93 / $100 budget).
+  Results at `results/20260429T034851/`. **Vanilla 95.6%, claude-code 85.6%,
+  cursor 72.2%** completion rate. cursor failed 0/3 on 6 of 10 agentic
+  tasks; claude-code dominated by vanilla on cost+completion.
+- Brittney-prod column **PENDING** — studio prod was 500 across all
+  routes for the entire session window. 6 deploy fixes applied this session
+  (BrowserQuiltRenderer NonNullable, comprehensive Dockerfile sweep dropping
+  `--no-dts` everywhere + replacing 27 individual COPY lines with one
+  `COPY packages/`, four missing-deps fixes for transformers/three/jsonwebtoken/
+  marketplace-agentkit/snn-webgpu/uaal/security-sandbox). Latest commit
+  `3d2980cc3` peeled the entire whack-a-mole layer. Build #8 in flight.
+- Brittney-fill-in run is gated on (a) prod healthy and (b) NextAuth
+  session cookie passed via `--brittney-cookie` (no service-token bearer
+  exists; per W.GOLD.001, NOT adding a benchmark-bypass auth surface to
+  prod route).
+
+**Caveat surfaced for the original Gate 3 framing**: the rubric judge is
+text-based (Opus 4.7 with structured tool use), so it favors text-only
+output. Vanilla's 95.6% may be partly a methodology artifact — the judge
+can score complete prose descriptions but cannot render brittney's
+tool_call payloads to evaluate them spatially. Paper 26 (when allocated)
+has to either (a) judge tool calls directly via SimulationContract
+verification, or (b) render tool calls into descriptions before judging.
+This is a real Paper 26 methodology open question, not a benchmark bug.
+
+**Naming clarification**: this scoping memo's "Paper 26" is a placeholder —
+no paper number has been allocated to Brittney. The
+`paper-audit-matrix.md` row "Paper 26: Brain-Composed LLM Agents (BCLA)"
+is a *different* paper. Per the original memo body §"Slot status":
+"scoping memo only. No paper number assigned."
+
 ## Out of scope for THIS memo (do NOT bundle)
 
 - User study (N≥10 humans) — wait for gate-3 quant data first; user study is gate-4 in a future memo.

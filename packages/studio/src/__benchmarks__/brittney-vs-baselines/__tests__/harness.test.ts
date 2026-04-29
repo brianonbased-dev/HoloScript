@@ -395,6 +395,69 @@ describe('brittney-prod SSE parsing + token-usage fallback', () => {
     expect(result.error).toContain('brittney http 500');
   });
 
+  it('records simContractCheck=passed against the next scene tool_call', async () => {
+    const fetchImpl = makeMockSseFetch([
+      {
+        type: 'simContractCheck',
+        payload: {
+          passed: true,
+          contractId: 'c1',
+          mutation: { tool: 'create_object', input: { type: 'cube' } },
+        },
+      },
+      { type: 'tool_call', payload: { name: 'create_object', arguments: { type: 'cube' } } },
+      { type: 'tool_result', payload: { name: 'create_object', success: true } },
+      { type: 'caelChain', payload: { chainId: 'sess1', fnv1a: 'abc12345' } },
+      { type: 'done', payload: null },
+    ]);
+    const cfg = makeBrittneyProd({
+      endpoint: 'https://example.test/api/brittney',
+      fetchImpl: fetchImpl as never,
+    });
+    const task: Task = {
+      id: 'TX',
+      tier: 'trivial-scene',
+      prompt: 'cube',
+      evaluation_rubric: [{ id: 'x', description: 'x', required: true }],
+      expected_artifacts: [],
+    };
+    const result = await cfg.run(task, new AbortController().signal);
+    expect(result.scene_mutations).toHaveLength(1);
+    expect(result.scene_mutations[0].sim_contract_passed).toBe(true);
+    expect(result.cael_chain_fnv1a).toBe('abc12345');
+  });
+
+  it('records simContractCheck=failed even when no tool_call follows (rejected mutation)', async () => {
+    const fetchImpl = makeMockSseFetch([
+      {
+        type: 'simContractCheck',
+        payload: {
+          passed: false,
+          contractId: 'c1',
+          mutation: { tool: 'add_trait', input: { trait: 'rigidbody' } },
+          reason: 'trait conflict',
+        },
+      },
+      { type: 'tool_result', payload: { name: 'add_trait', success: false } },
+      { type: 'done', payload: null },
+    ]);
+    const cfg = makeBrittneyProd({
+      endpoint: 'https://example.test/api/brittney',
+      fetchImpl: fetchImpl as never,
+    });
+    const task: Task = {
+      id: 'TX',
+      tier: 'trivial-scene',
+      prompt: 'p',
+      evaluation_rubric: [{ id: 'x', description: 'x', required: true }],
+      expected_artifacts: [],
+    };
+    const result = await cfg.run(task, new AbortController().signal);
+    expect(result.scene_mutations).toHaveLength(1);
+    expect(result.scene_mutations[0].sim_contract_passed).toBe(false);
+    expect(result.scene_mutations[0].tool_name).toBe('add_trait');
+  });
+
   it('estimateTokens floors at 0 and rounds up', () => {
     expect(estimateTokens(0)).toBe(0);
     expect(estimateTokens(-5)).toBe(0);

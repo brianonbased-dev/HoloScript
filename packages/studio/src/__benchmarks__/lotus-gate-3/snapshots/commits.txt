@@ -1,0 +1,10 @@
+b4082cd3ec5114bcbcac4d6f26647f69d9a0f23e|2026-04-28|docs(paper-audit): add Paper-9 subsystem-candidate linkage (TASK-1 + BUILD-1)
+9a5e161a5f79d701caae2653d507c93857b0f1ee|2026-04-26|docs(papers): $50 -> $100/day cap raise (founder directive 2026-04-26)
+1aa5fcccf73c5ca1758b1b47ffcabb8a0666b614|2026-04-26|docs(paper-audit-matrix): Papers 22+23 — append AMBER memo recommendation
+6e8e87054253b0b6a0f78239132cfaf971c472dd|2026-04-25|feat(papers): scaffold Paper 25 + ship fleet-corpus collector for Papers 19/21/25
+32cbb5a1be206508dd755852052cb7caa6530a9d|2026-04-24|anchor(base): round 5 receipts — 7 RTX-evidence memos dual-anchored
+13fc279c1674667d756956d108539c8af114084e|2026-04-24|docs(research): audit matrix — paper-0c D.011 COMPLETE sha256 7062b527
+307061fb292bc1c963de32d400663dc98761a861|2026-04-24|bib: normalize author name Taxwise -> Krzywoszyja (founder-confirmed canonical)
+146f24a12ddbd20e6f94509553c003b850de46c0|2026-04-19|chore(audit): update matrix for papers 6/7/11 and anchor
+f3ffa6b8038a5d4fecb07ab228a4f88371da3664|2026-04-18|docs(provenance): batch OTS-anchor 7 papers (h8zc)
+69d9d4dbaefb25e4f527b55bff485b03a5c81d28|2026-04-18|docs(audit): 16-paper program submission-readiness matrix

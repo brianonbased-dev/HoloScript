@@ -22,16 +22,12 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import type { HologramBundle, HologramMeta } from '@holoscript/engine/hologram';
-import {
-  assertValidHash,
-  HologramStoreError,
-} from '@holoscript/engine/hologram';
+import type { HologramBundle } from '@holoscript/engine/hologram';
 
-import { getHologramStore } from '@/app/api/hologram/_lib/store';
 import { sanitizeMetaForRender } from '@/components/hologram/hologramMetaSanitizer';
 
 import HologramPageClient from './HologramPageClient';
+import { loadBundle } from './loadBundle';
 
 // Force Node runtime — we need filesystem access to the store.
 export const runtime = 'nodejs';
@@ -40,60 +36,6 @@ export const runtime = 'nodejs';
 // FileSystemHologramStore is local-volume backed; cache control is
 // handled at the asset route level (immutable).
 export const dynamic = 'force-dynamic';
-
-// ── Server-side bundle load ──────────────────────────────────────────────────
-
-interface LoadedBundle {
-  hash: string;
-  meta: HologramMeta;
-  hasQuilt: boolean;
-  hasMvhevc: boolean;
-  hasParallax: boolean;
-}
-
-async function loadBundle(rawHash: unknown): Promise<LoadedBundle | null> {
-  // Validate before any I/O. assertValidHash throws HologramStoreError
-  // (code 'invalid_hash') for anything that isn't 64 lowercase hex.
-  try {
-    assertValidHash(rawHash);
-  } catch (err) {
-    if (err instanceof HologramStoreError) return null;
-    throw err;
-  }
-  const hash = rawHash; // narrowed to string by assertion
-
-  const store = getHologramStore();
-
-  let meta: HologramMeta | null;
-  try {
-    meta = await store.getMeta(hash);
-  } catch (err) {
-    if (err instanceof HologramStoreError) return null;
-    throw err;
-  }
-  if (!meta) return null;
-
-  // We don't load the depth/normal binary blobs server-side — the client
-  // viewer fetches them lazily via /api/hologram/<hash>/<asset>. We DO
-  // need to know which optional renderer outputs exist so the viewer can
-  // pick a path. Existence checks are cheap (HEAD-equivalent).
-  const [quilt, mvhevc, parallax] = await Promise.all([
-    store.getAsset(hash, 'quilt.png').then((b) => b !== null).catch(() => false),
-    store.getAsset(hash, 'mvhevc.mp4').then((b) => b !== null).catch(() => false),
-    store
-      .getAsset(hash, 'parallax.webm')
-      .then((b) => b !== null)
-      .catch(() => false),
-  ]);
-
-  return {
-    hash,
-    meta,
-    hasQuilt: quilt,
-    hasMvhevc: mvhevc,
-    hasParallax: parallax,
-  };
-}
 
 // ── Metadata (Open Graph) ────────────────────────────────────────────────────
 
@@ -165,5 +107,3 @@ export default async function HologramPage({
   );
 }
 
-// Export internals for unit tests (the route is otherwise opaque).
-export const __test__ = { loadBundle };

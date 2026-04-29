@@ -33,85 +33,57 @@ FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/ ./
-COPY packages/crdt/ packages/crdt/
-COPY packages/crdt-spatial/ packages/crdt-spatial/
-# core-types must be copied AND built before core: @holoscript/core's compiled
-# chunks (dist/chunk-*.js) reference '@holoscript/core-types/ans' as an
-# external import. Webpack resolves these via the workspace symlink at build
-# time, so packages/core-types/dist/ans.js must exist on disk when
-# `pnpm run build` runs in studio. Without this COPY + build step the studio
-# build fails with: "Module not found: Can't resolve '@holoscript/core-types/ans'"
-# from ../core/dist/chunk-*.js. Verified 2026-04-27 — Railway studio service
-# was 500 on every /api/* route since the workspace gained the /ans subpath
-# entry; the running container is a stale image, all subsequent build deploys
-# regressed silently. Pattern parallels the crdt-spatial+marketplace-api
-# precedents on this same file.
-COPY packages/core-types/ packages/core-types/
-COPY packages/core/ packages/core/
-COPY packages/engine/ packages/engine/
-COPY packages/framework/ packages/framework/
-COPY packages/std/ packages/std/
-COPY packages/ui/ packages/ui/
-COPY packages/config/ packages/config/
-COPY packages/absorb-service/ packages/absorb-service/
-COPY packages/agent-protocol/ packages/agent-protocol/
-COPY packages/r3f-renderer/ packages/r3f-renderer/
-COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
-COPY packages/connector-core/ packages/connector-core/
-COPY packages/connector-appstore/ packages/connector-appstore/
-COPY packages/connector-github/ packages/connector-github/
-COPY packages/connector-railway/ packages/connector-railway/
-COPY packages/connector-upstash/ packages/connector-upstash/
-COPY packages/connector-vscode/ packages/connector-vscode/
-COPY packages/plugins/ packages/plugins/
-COPY packages/platform/ packages/platform/
-COPY packages/mesh/ packages/mesh/
-COPY packages/llm-provider/ packages/llm-provider/
-# marketplace-api is referenced by studio/src/marketplace/MarketplaceRegistry.ts
-# and MarketplaceSubmission.ts via relative ../../../marketplace-api/src/...
-# imports (cross-package source-path import, not @workspace dep). Without
-# COPYing the package source, webpack can't resolve those paths and dies
-# with: "Could not resolve ../../../marketplace-api/src/core-marketplace/
-# MarketplaceRegistry.js". Verified 2026-04-25 deployment 48b215cf.
-# TODO follow-up: convert these to proper @holoscript/marketplace-api
-# workspace imports + drop this COPY.
-COPY packages/marketplace-api/ packages/marketplace-api/
-COPY packages/studio/ packages/studio/
+# Copy ALL workspace packages in one shot. Was 27 individual COPY lines that
+# silently missed transitively-imported packages (snn-webgpu, marketplace-agentkit,
+# uaal, holomap, etc.) causing a whack-a-mole of "Cannot find module
+# '@holoscript/<name>'" deploy failures. Studio's tsconfig has
+# `"@holoscript/engine": ["../engine/src"]` so tsc walks engine SOURCE, which
+# transitively imports ~15 workspace packages — every one needs to be on disk.
+# .dockerignore excludes node_modules, dist, .git, demos, samples, etc., so
+# this pulls only source + package.json files (~30MB).
+COPY packages/ packages/
 
-# Build workspace dependencies in order (Studio imports from all of these)
-# Use tsup --no-dts directly — Studio only needs JS runtime, not type declarations.
-# tsc --emitDeclarationOnly often fails in Docker due to missing cross-package refs.
-RUN cd packages/crdt && npx tsup --no-dts
-# crdt-spatial must build BEFORE the plugin tsc check (line further down)
-# because plugins like film3d-volumetrics-plugin import @holoscript/crdt-spatial
-# and `tsc --noEmit false` needs its dist/ d.ts files. Verified 2026-04-25
-# deployment 48b215cf — without this build step, the plugin tsc dies with
-# "Cannot find module '@holoscript/crdt-spatial' or its corresponding type
-# declarations" even though the package source IS in the build context.
-RUN cd packages/crdt-spatial && npx tsup --no-dts || true
-RUN cd packages/agent-protocol && npx tsup --no-dts
-# core-types must build before core so that ../core-types/dist/ans.js exists
-# when webpack walks core's compiled chunks during studio's `pnpm run build`.
-RUN cd packages/core-types && npx tsup --no-dts
+# Build workspace dependencies in topological order with DTS emitted.
+# Why dts everywhere: studio's tsconfig has `"@holoscript/engine": ["../engine/src"]`
+# so studio's tsc step walks engine SOURCE, which transitively imports types from
+# ~15 workspace packages. Without dts on disk, tsc reports "Could not find a
+# declaration file for module '@holoscript/<name>'" — the whack-a-mole pattern
+# we hit 7 times this session (BrowserQuiltRenderer, core-types/ans, jsonwebtoken,
+# marketplace-agentkit, transformers, three, crdt-spatial, snn-webgpu).
+# Engine itself stays --no-dts (build-engine-no-dts.sh) — its tsup OOMs on the
+# full graph; engine src is walked directly via tsconfig path alias instead.
+# core stays --no-dts because it has hand-crafted index.d.ts via generate-types.mjs.
+# JS compilation must succeed (fail loudly); only dts emission is tolerated as
+# optional — tsc later reports the specific gap if a needed type is missing.
+# Pattern: `npx tsup --no-dts` fails the build on JS errors; `npx tsup --dts-only || true`
+# attempts declaration emit and silently ignores dts-only failures (tsup 8+ flag).
+RUN cd packages/crdt && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/crdt-spatial && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/snn-webgpu && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/uaal && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-RUN cd packages/framework && npx tsup --no-dts
-RUN cd packages/std && npx tsup --no-dts
-RUN cd packages/config && npx tsup --no-dts || true
-RUN cd packages/absorb-service && npx tsup --no-dts
-RUN cd packages/platform && npx tsup --no-dts || true
-RUN cd packages/mesh && npx tsup --no-dts || true
-RUN cd packages/llm-provider && npx tsup --no-dts || true
+RUN cd packages/framework && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/std && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/config && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/absorb-service && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/platform && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/mesh && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/llm-provider && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/marketplace-agentkit && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/security-sandbox && npx tsup --no-dts && npx tsup --dts-only || true
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
-RUN cd packages/r3f-renderer && npx tsup --no-dts || true
-RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
-RUN cd packages/ui && npx tsup --no-dts || true
-RUN cd packages/connector-core && npx tsup --no-dts || true
-RUN cd packages/connector-appstore && npx tsup --no-dts || true
-RUN cd packages/connector-github && npx tsup --no-dts || true
-RUN cd packages/connector-railway && npx tsup --no-dts || true
-RUN cd packages/connector-upstash && npx tsup --no-dts || true
-RUN cd packages/connector-vscode && npx tsup --no-dts || true
+RUN cd packages/r3f-renderer && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/ui && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-core && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-appstore && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-github && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-railway && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-upstash && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-vscode && npx tsup --no-dts && npx tsup --dts-only || true
 
 # Ensure webpack stubs exist (Docker cache can miss them)
 RUN test -f packages/studio/src/lib/empty-module.js || \

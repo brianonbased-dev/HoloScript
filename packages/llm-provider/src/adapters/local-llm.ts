@@ -112,66 +112,73 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: false,
     });
 
-    let raw: unknown;
+    return await this.withRetry(async () => {
+      let raw: unknown;
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: controller.signal,
-      });
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          signal: controller.signal,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new LLMProviderError(
-          `Local LLM server returned ${response.status}: ${text}`,
-          'local-llm',
-          response.status,
-          response.status === 429
-        );
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          const isRetryable =
+            response.status === 429 || (response.status >= 500 && response.status < 600);
+          throw new LLMProviderError(
+            `Local LLM server returned ${response.status}: ${text}`,
+            'local-llm',
+            response.status,
+            isRetryable
+          );
+        }
+
+        raw = await response.json();
+      } catch (err) {
+        if (err instanceof LLMProviderError) throw err;
+
+        const msg = err instanceof Error ? err.message : String(err);
+        const isTimeout = msg.includes('aborted') || msg.includes('timeout');
+        const hint = isTimeout
+          ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
+          : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+
+        // Local-server unreachable is a config issue, not a transient cloud
+        // hiccup — retrying won't fix a server that isn't running. Mark
+        // retryable=false so withRetry doesn't burn the budget on it.
+        throw new LLMProviderError(hint, 'local-llm', undefined, false);
       }
 
-      raw = await response.json();
-    } catch (err) {
-      if (err instanceof LLMProviderError) throw err;
+      // Parse OpenAI-compatible response shape
+      const data = raw as {
+        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+        model?: string;
+      };
 
-      const msg = err instanceof Error ? err.message : String(err);
-      const isTimeout = msg.includes('aborted') || msg.includes('timeout');
-      const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
-        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+      const choice = data.choices?.[0];
+      const content = choice?.message?.content ?? '';
 
-      throw new LLMProviderError(hint, 'local-llm', undefined, false);
-    }
-
-    // Parse OpenAI-compatible response shape
-    const data = raw as {
-      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-      model?: string;
-    };
-
-    const choice = data.choices?.[0];
-    const content = choice?.message?.content ?? '';
-
-    return {
-      content,
-      model: data.model ?? model,
-      provider: 'local-llm',
-      finishReason: (choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop',
-      usage: {
-        promptTokens: data.usage?.prompt_tokens ?? 0,
-        completionTokens: data.usage?.completion_tokens ?? 0,
-        totalTokens: data.usage?.total_tokens ?? 0,
-      },
-      raw,
-    };
+      return {
+        content,
+        model: data.model ?? model,
+        provider: 'local-llm' as const,
+        finishReason: (choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop',
+        usage: {
+          promptTokens: data.usage?.prompt_tokens ?? 0,
+          completionTokens: data.usage?.completion_tokens ?? 0,
+          totalTokens: data.usage?.total_tokens ?? 0,
+        },
+        raw,
+      };
+    });
   }
 
   /**
@@ -183,28 +190,13 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
   /**
    * Check if the local LLM server is reachable.
+   * Delegates to BaseLLMAdapter.healthCheckLocalServer — same /health →
+   * /v1/models fallback, branded error message for this adapter.
    */
   async healthCheck(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
-    const start = Date.now();
-    try {
-      const response = await fetch(`${this.localBaseURL}/health`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      // Some llama.cpp builds use /v1/models instead of /health
-      if (!response.ok) {
-        const modelsResponse = await fetch(`${this.localBaseURL}/v1/models`, {
-          signal: AbortSignal.timeout(5000),
-        });
-        if (!modelsResponse.ok) throw new Error(`Status ${modelsResponse.status}`);
-      }
-      return { ok: true, latencyMs: Date.now() - start };
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      return {
-        ok: false,
-        latencyMs: Date.now() - start,
-        error: `Local LLM server unreachable at ${this.localBaseURL}: ${error}`,
-      };
-    }
+    return this.healthCheckLocalServer(
+      this.localBaseURL,
+      (baseURL, message) => `Local LLM server unreachable at ${baseURL}: ${message}`
+    );
   }
 }

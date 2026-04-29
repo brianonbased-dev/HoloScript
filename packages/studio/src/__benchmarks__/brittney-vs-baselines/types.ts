@@ -33,6 +33,7 @@ export interface ConfigRunResult {
   usage: TokenUsage;
   model_id: string;
   scene_mutations: SceneMutation[];
+  cael_chain_fnv1a?: string;
   error?: string;
 }
 

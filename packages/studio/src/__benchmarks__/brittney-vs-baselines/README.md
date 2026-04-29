@@ -85,23 +85,30 @@ this benchmark is single-axis (one Brittney config vs three baselines),
 and ablations are gate-4+ work. Adding a vanilla-with-context cell would
 make this two-axis and double the cell count without decided value.
 
-**Full run is blocked on gates 1+2.** Per the scoping memo, gate 1
-(SimulationContract grounding in route.ts) and gate 2 (CAEL audit trail)
-are pre-requisites for Paper 26. Running the 360-cell benchmark before
-they land produces `sim_contract_pass_rate=0` across every config
-(brittney-prod included), which dark-fields the architectural-grounding
-differentiator that defines the paper's strongest framing. Run gate 3
-ONCE, after gates 1+2 land — not now-then-rerun-later.
+**Gates 1+2 landed (2026-04-27).** Per the scoping memo, gate 1
+(SimulationContract grounding) and gate 2 (CAEL audit trail) were
+pre-requisites for Paper 26. Both are now wired into
+[route.ts](../../app/api/brittney/route.ts) — gate 1 emits
+`simContractCheck` SSE events on every scene-mutation tool call (passed
+or rejected), gate 2 emits `caelChain` SSE events with the running
+fnv1a chain id per session. The harness picks up both: brittney-prod
+records `sim_contract_passed` per mutation and `cael_chain_fnv1a` per
+run. SSE event names are camelCase (`simContractCheck`, `caelChain`) —
+matching the route, NOT the snake_case used in early scoping notes.
 
-**Live `--quick` smoke is deferred until gates 1+2 land OR until founder
-requests a pre-gate datapoint.** The 18 unit tests with a faked Anthropic
-client cover the harness's structural correctness (cost math, corpus
-integrity, judge consistency on golden cases, config-failure isolation,
-budget halt, JSON+MD emission). A live `--quick` run would produce one
-throwaway pre-gate results.json/md; not worth $1-2 spend for a snapshot
-that will be obsoleted by gates 1+2. To force a live smoke now:
-`HARNESS_FOUNDER_GO=1` is NOT required for `--quick` — just set
-ANTHROPIC_API_KEY and run.
+**Full 360-cell run is now eligible to proceed** once founder authorizes
+the >\$5 spend via `HARNESS_FOUNDER_GO=1`. With gates 1+2 live,
+brittney-prod's `sim_contract_pass_rate` will be a real measurement —
+the architectural-grounding differentiator that defines Paper 26's
+strongest framing per W.GOLD.001 + W.GOLD.188+189.
+
+**Live `--quick` smoke remains optional but no longer obsoleted by
+pending gates.** The 20 unit tests with a faked Anthropic client cover
+structural correctness (cost math, corpus integrity, judge consistency,
+config-failure isolation, budget halt, JSON+MD emission, SSE event
+parsing including simContractCheck pass/reject and caelChain capture).
+To run live: set `ANTHROPIC_API_KEY` and run `--quick` (no
+`HARNESS_FOUNDER_GO` required for the smoke).
 
 ## Layout
 

@@ -184,7 +184,7 @@ type HandJoint =
 
 interface JointPose {
   position: [number, number, number];
-  rotation: { x: number; y: number; z: number; w: number }; // Quaternion
+  rotation: [number, number, number, number]; // Quaternion (x, y, z, w) — founder ruling 2026-04-28: 4-tuple form, canonical at types/HoloScriptPlus.ts:26
   radius: number; // Joint radius in meters
 }
 
@@ -1171,7 +1171,7 @@ function pollHandTracking(
   // XRHand provides joint data as an iterable
   for (const [jointName, xrJoint] of source.hand.entries()) {
     let position: [number, number, number] = [0, 0, 0];
-    let rotation = [0, 0, 0, 1 ];
+    let rotation: [number, number, number, number] = [0, 0, 0, 1];
     let radius = 0.01;
 
     if (frame && referenceSpace) {
@@ -1181,8 +1181,12 @@ function pollHandTracking(
           const t = jointPose.transform.position;
           const r = jointPose.transform.orientation;
           // t is assumed to be an array from XRPoseResult, but if it was not we would wrap it
+          // WebXR's XRRigidTransform.orientation is DOMPointReadOnly (object
+          // form { x, y, z, w }); .position here is already a numeric tuple.
+          // Convert orientation at the boundary to the canonical tuple form
+          // (founder ruling 2026-04-28).
           position = [t[0], t[1], t[2]];
-          rotation = [r[0], r[1], r[2], r[3] ];
+          rotation = [r.x, r.y, r.z, r.w];
           radius = jointPose.radius ?? 0.01;
         }
       } catch {
@@ -1286,9 +1290,10 @@ function pollInputSources(state: OpenXRHALState, context: TraitContext, node: HS
         if (xrPose) {
           const t = xrPose.transform.position;
           const r = xrPose.transform.orientation;
+          // WebXR DOMPointReadOnly orientation -> canonical tuple form.
           pose = {
             position: [t[0], t[1], t[2]],
-            rotation: [r[0], r[1], r[2], r[3] ],
+            rotation: [r.x, r.y, r.z, r.w],
           };
         }
       } catch {

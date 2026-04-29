@@ -29,6 +29,11 @@ import {
   executeLotusTool,
   type LotusToolResult,
 } from '@/lib/brittney/lotus/LotusTools';
+import {
+  EMBODIED_TOOLS,
+  EMBODIED_TOOL_NAMES,
+  executeEmbodiedTool,
+} from '@/lib/brittney/EmbodiedTools';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
@@ -78,7 +83,15 @@ function convertToolsToClaudeFormat(): Anthropic.Tool[] {
     description: t.function.description,
     input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
   }));
-  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools, ...lotusTools];
+  // EMBODIED_TOOLS: lets Brittney read the cross-skill composite from
+  // /api/embodied/composite (pushed by ai-ecosystem voice adapter).
+  // Answers "is everything ok?" honestly without forcing system-prompt drift.
+  const embodiedTools = EMBODIED_TOOLS.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+  }));
+  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools, ...lotusTools, ...embodiedTools];
 }
 
 /**
@@ -338,7 +351,8 @@ export async function POST(request: NextRequest) {
                   if (
                     STUDIO_API_TOOL_NAMES.has(currentToolName) ||
                     MCP_TOOL_NAMES.has(currentToolName) ||
-                    LOTUS_TOOL_NAMES.has(currentToolName)
+                    LOTUS_TOOL_NAMES.has(currentToolName) ||
+                    EMBODIED_TOOL_NAMES.has(currentToolName)
                   ) {
                     // Studio API, MCP, or Lotus tool — execute server-side and
                     // collect for tool_result. Lotus tools route through
@@ -452,6 +466,9 @@ export async function POST(request: NextRequest) {
                         });
                       } else if (MCP_TOOL_NAMES.has(tc.name)) {
                         result = await executeMCPTool(tc.name, tc.input);
+                      } else if (EMBODIED_TOOL_NAMES.has(tc.name)) {
+                        const emb = await executeEmbodiedTool(tc.name, tc.input);
+                        result = { success: emb.success, data: emb.data, error: emb.error };
                       } else {
                         result = await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
                       }

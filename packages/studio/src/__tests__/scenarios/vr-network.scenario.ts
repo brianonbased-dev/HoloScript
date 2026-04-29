@@ -8,8 +8,10 @@ import { describe, it, expect, vi } from 'vitest';
 // WebXRSystem Tests
 // ============================================================================
 
-import { WebXRSystem } from '../../../../core/src/vr/WebXRSystem';
-import type { XRFrameData } from '../../../../core/src/vr/WebXRSystem';
+// WebXRSystem moved from @holoscript/core to @holoscript/engine during the
+// A.011 engine extraction; old core path no longer exists.
+import { WebXRSystem } from '@holoscript/engine/vr';
+import type { XRFrameData } from '@holoscript/engine/vr';
 
 describe('WebXRSystem', () => {
   it('starts in inactive mode', () => {
@@ -197,12 +199,14 @@ describe('WebXRSystem', () => {
 // DeltaCompressor Tests
 // ============================================================================
 
+// NetworkSystem moved from @holoscript/core to @holoscript/mesh during the
+// A.011 mesh extraction; old core path no longer exists.
 import {
   DeltaCompressor,
   InterestManager,
   EntityInterpolator,
   NetworkSystem,
-} from '../../../../core/src/network/NetworkSystem';
+} from '@holoscript/mesh';
 
 describe('DeltaCompressor', () => {
   it('returns full state on first compress', () => {

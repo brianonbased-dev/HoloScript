@@ -487,15 +487,15 @@ export class ClothFluidInteraction {
       if (fluidDensity > 0.1) {
         // Apply drag force opposing particle velocity
         const velocityMag = Math.sqrt(
-          particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2
+          particle.velocity[0] ** 2 + particle.velocity[1] ** 2 + particle.velocity[2] ** 2
         );
 
         const dragForce = dragCoefficient * fluidDensity * velocityMag;
 
         if (velocityMag > 0) {
-          particle.velocity.x -= (particle.velocity.x / velocityMag) * dragForce * 0.01;
-          particle.velocity.y -= (particle.velocity.y / velocityMag) * dragForce * 0.01;
-          particle.velocity.z -= (particle.velocity.z / velocityMag) * dragForce * 0.01;
+          particle.velocity[0] -= (particle.velocity[0] / velocityMag) * dragForce * 0.01;
+          particle.velocity[1] -= (particle.velocity[1] / velocityMag) * dragForce * 0.01;
+          particle.velocity[2] -= (particle.velocity[2] / velocityMag) * dragForce * 0.01;
         }
       }
     }
@@ -519,7 +519,7 @@ export class ClothFluidInteraction {
         const wetnessFactor = Math.min(fluidDensity / 1000, 1.0);
         const additionalWeight = particle.mass * 9.81 * wetnessFactor * wetWeightMultiplier;
 
-        particle.force.y -= additionalWeight;
+        particle.force[1] -= additionalWeight;
       }
     }
   }

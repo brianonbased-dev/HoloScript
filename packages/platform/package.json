@@ -29,8 +29,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "node --max-old-space-size=16384 run-vitest.mjs",
-    "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "keywords": [

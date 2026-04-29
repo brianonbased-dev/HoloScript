@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "sha": "f3ffa6b8038a",
+    "date": "2026-04-18",
+    "subject": "docs(provenance): batch OTS-anchor 7 papers (h8zc)",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col",
+    "notes": "Oldest matrix format. Papers 6, 7, 9 are 🟡 skeleton (LOC=238/252/278). Human strict reading: 🟡 skeleton -> sealed (rule 3, !hasDraft). Parser ignores 🟡 signal, treats loc>0 as draft -> blooming. 3 parser-vs-human disagreements expected.",
+    "expected_disagreements": [
+      "p2-0-contracted-animation: parser=blooming, human=sealed (🟡 238 skeleton)",
+      "p2-1-ik: parser=blooming, human=sealed (🟡 252 skeleton)",
+      "p2-3-verifiable-motion: parser=blooming, human=sealed (🟡 278 skeleton)"
+    ]
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "blooming",
+    "snn": "blooming",
+    "crdt": "blooming",
+    "sandboxed-sim": "blooming",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "sealed",
+    "p2-1-ik": "sealed",
+    "p2-2-unified-sim-anim": "blooming",
+    "p2-3-verifiable-motion": "sealed",
+    "p3-s1-hs-core-ir": "blooming",
+    "p3-s2-hsplus-traits": "blooming",
+    "p3-s3-holo-composition": "blooming",
+    "p3-center": "blooming"
+  }
+}

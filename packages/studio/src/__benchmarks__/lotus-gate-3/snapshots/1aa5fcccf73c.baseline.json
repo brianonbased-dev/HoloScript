@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "sha": "1aa5fcccf73c5ca1758b1b47ffcabb8a0666b614",
+    "date": "2026-04-26",
+    "subject": "docs(paper-audit-matrix): Papers 22+23 — append AMBER memo recommendation",
+    "curated_at": "2026-04-29",
+    "curator": "claude-code",
+    "format": "11-col-evolved",
+    "notes": "Same matrix snapshot pattern as 9a5e161a (close in time). Anchor states identical."
+  },
+  "petals": {
+    "trust-by-construction": "blooming",
+    "cael": "blooming",
+    "trust-by-replay": "full",
+    "snn": "full",
+    "crdt": "full",
+    "sandboxed-sim": "full",
+    "graphrag": "blooming",
+    "capstone-notation-cognition": "blooming",
+    "p2-0-contracted-animation": "full",
+    "p2-1-ik": "wilted",
+    "p2-2-unified-sim-anim": "full",
+    "p2-3-verifiable-motion": "blooming",
+    "p3-s1-hs-core-ir": "full",
+    "p3-s2-hsplus-traits": "full",
+    "p3-s3-holo-composition": "full",
+    "p3-center": "blooming"
+  }
+}
