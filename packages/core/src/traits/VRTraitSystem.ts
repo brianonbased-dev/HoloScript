@@ -59,6 +59,7 @@ export type {
 };
 
 // Import all trait handlers here at the top
+import { toEuler as quaternionToEuler } from '../math/Quaternion';
 import { bounceHandler } from './BounceTrait';
 import { elasticityHandler } from './ElasticityTrait';
 import { compileElasticityTraitContext, applyElasticCollisionResponse } from './elasticityCore';
@@ -963,12 +964,14 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
     if (!hand) return;
 
     // Calculate rotation delta.
-    // hand.rotation is Quaternion ([x,y,z,w]) post Vec3 tuple migration. The
-    // existing delta math below treats it as Euler xyz, so slice the imaginary
-    // components for parity with pre-migration behavior. TODO: replace with
-    // proper quaternion multiplication — the component-wise subtraction below
-    // is mathematically incorrect for quaternions but predates this migration.
-    const handRot: Vector3 = [hand.rotation[0], hand.rotation[1], hand.rotation[2]];
+    // hand.rotation is Quaternion ([x,y,z,w]) post Vec3 tuple migration.
+    // Decode to Euler (radians, YXZ order) at the boundary so the
+    // component-wise delta math below is mathematically valid: Euler
+    // components add and subtract (within a single chosen order), whereas
+    // raw quaternion components do NOT — slicing the imaginary part
+    // produced visible drift on multi-axis hand rotations.
+    const handEuler = quaternionToEuler(hand.rotation);
+    const handRot: Vector3 = [handEuler[0], handEuler[1], handEuler[2]];
     const initHandRot = state.initialHandRotation;
     const initObjRot = state.initialObjectRotation;
     const deltaRotation: Vector3 = [
@@ -1025,11 +1028,12 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     if (event.type === 'rotate_start') {
       state.isRotating = true;
-      // Slice xyz from the Quaternion 4-tuple for parity with pre-Vec3-tuple-migration
-      // behavior — same caveat as line ~966 (component-wise rotation arithmetic
-      // is mathematically incorrect for quaternions; TODO replace).
+      // Decode the start-frame hand quaternion to Euler so the delta math in
+      // onUpdate() compares Euler-vs-Euler (mathematically valid) rather than
+      // quaternion-component-vs-quaternion-component (NOT valid).
       const eventHandRot = ((event as unknown as Record<string, unknown>).hand as VRHand).rotation;
-      state.initialHandRotation = [eventHandRot[0], eventHandRot[1], eventHandRot[2]];
+      const eventHandEuler = quaternionToEuler(eventHandRot);
+      state.initialHandRotation = [eventHandEuler[0], eventHandEuler[1], eventHandEuler[2]];
       state.initialObjectRotation = vec3ToTuple(
         (node.properties?.rotation as Vector3) || [0, 0, 0]
       );
