@@ -34,7 +34,12 @@ interface VPSState {
   locationId: string | null;
   pose: {
     position: Vector3;
-    rotation: { x: number; y: number; z: number; w: number };
+    // Quaternion as tuple [x, y, z, w] — consistent with HoloScriptPlus +
+    // IKTrait + the post-Vec3-tuple-migration codebase trend. The rest of
+    // this trait already uses tuple-style access (lines 122-131); this
+    // type definition was the lone holdout in object form, producing
+    // TS2739 + TS7053 errors at lines 82+127-131.
+    rotation: [number, number, number, number];
   };
   localizationAttempts: number;
 }
