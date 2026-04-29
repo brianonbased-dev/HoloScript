@@ -227,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-studio
-      url: https://studio-production-a071.up.railway.app
+      url: https://holoscript.studio
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -253,13 +253,13 @@ jobs:
 
       - name: Health check
         run: |
-          curl -f https://studio-production-a071.up.railway.app/api/health || exit 1
+          curl -f https://holoscript.studio/api/health || exit 1
 
       - name: Notify deployment success
         if: success()
         run: |
           echo "✅ HoloScript Studio deployed successfully"
-          echo "URL: https://studio-production-a071.up.railway.app"
+          echo "URL: https://holoscript.studio"
 
   deploy-marketplace-web:
     needs: [detect-changes, pre-flight]
@@ -509,7 +509,7 @@ jobs:
           ENDPOINTS=""
 
           if [ "${{ needs.deploy-studio.result }}" = "success" ]; then
-            ENDPOINTS="${ENDPOINTS},https://studio-production-a071.up.railway.app/api/health"
+            ENDPOINTS="${ENDPOINTS},https://holoscript.studio/api/health"
           fi
           if [ "${{ needs.deploy-marketplace-api.result }}" = "success" ]; then
             ENDPOINTS="${ENDPOINTS},https://marketplace-api.holoscript.net/health"
