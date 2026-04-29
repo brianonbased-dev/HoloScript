@@ -151,6 +151,16 @@ export type {
   SocialMergeReport,
   SocialMergeResult,
 } from './social-causality';
+export {
+  AgentTrustLedger,
+  byzantineResilientMerge,
+} from './social-causality-byzantine';
+export type {
+  AgentTrustEntry,
+  ByzantineMergeOptions,
+  ByzantineMergeReport,
+  ByzantineMergeResult,
+} from './social-causality-byzantine';
 
 // v6 Service compilers (v5.2 experimental)
 export { NodeServiceCompiler } from './NodeServiceCompiler';
