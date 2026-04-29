@@ -130,8 +130,8 @@ export interface HoloMapRuntime {
   /** Initialize the WebGPU pipeline and load weights */
   init(config: HoloMapConfig): Promise<void>;
 
-  /** Feed one frame, return the incremental reconstruction step */
-  step(frame: ReconstructionFrame): Promise<ReconstructionStep>;
+  /** Feed one frame, return the incremental reconstruction step (null if throttled). */
+  step(frame: ReconstructionFrame): Promise<ReconstructionStep | null>;
 
   /** Finalize and export the full reconstruction as a .holo trait composition */
   finalize(): Promise<ReconstructionManifest>;
@@ -198,6 +198,26 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   /** Loaded weight blob (optional; GPU upload wiring follows R3+). */
   private weightBytes: ArrayBuffer | null = null;
 
+  // ── Sprint-3 performance / determinism state ──
+  /** Running bounding box (updated incrementally per step). */
+  private boundsMin: [number, number, number] = [0, 0, 0];
+  private boundsMax: [number, number, number] = [0, 0, 0];
+  private boundsValid = false;
+  /** Running total point count (avoids O(n) re-scan in finalize). */
+  private totalPointCount = 0;
+  /** Last accepted frame timestamp (ms) for FPS throttling. */
+  private lastStepTimeMs = 0;
+  /** Deterministic session start timestamp. */
+  private sessionStartMs = 0;
+  /** Performance metrics accumulated across steps. */
+  private perfMetrics: {
+    stepCount: number;
+    throttledCount: number;
+    totalStepMs: number;
+    maxStepMs: number;
+    minStepMs: number;
+  } = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
+
   private static computeBounds(steps: ReconstructionStep[]): {
     min: [number, number, number];
     max: [number, number, number];
@@ -244,6 +264,35 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     };
   }
 
+  /** Update running bounds with new point positions. */
+  private updateBounds(positions: Float32Array): void {
+    if (positions.length === 0) return;
+    if (!this.boundsValid) {
+      this.boundsMin = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+      this.boundsMax = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    }
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i] ?? 0;
+      const y = positions[i + 1] ?? 0;
+      const z = positions[i + 2] ?? 0;
+      if (x < this.boundsMin[0]) this.boundsMin[0] = x;
+      if (y < this.boundsMin[1]) this.boundsMin[1] = y;
+      if (z < this.boundsMin[2]) this.boundsMin[2] = z;
+      if (x > this.boundsMax[0]) this.boundsMax[0] = x;
+      if (y > this.boundsMax[1]) this.boundsMax[1] = y;
+      if (z > this.boundsMax[2]) this.boundsMax[2] = z;
+    }
+    this.boundsValid = true;
+  }
+
+  /** Get current bounds (running or computed). */
+  private getBounds(): { min: [number, number, number]; max: [number, number, number] } {
+    if (this.boundsValid) {
+      return { min: [...this.boundsMin], max: [...this.boundsMax] };
+    }
+    return HoloMapRuntimeImpl.computeBounds(this.steps);
+  }
+
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
     const allowCpu = this.config.allowCpuFallback !== false;
@@ -255,7 +304,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       logHoloMapEvent(this.runId, 'error', { message: err });
       throw new Error(err);
     }
+    // Sprint-3: reset all state deterministically
     this.steps.length = 0;
+    this.totalPointCount = 0;
+    this.boundsValid = false;
+    this.boundsMin = [0, 0, 0];
+    this.boundsMax = [0, 0, 0];
+    this.lastStepTimeMs = 0;
+    this.sessionStartMs = performance.now();
+    this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
+
     this.replayKey = computeHoloMapReplayFingerprint({
       modelHash: this.config.modelHash,
       seed: this.config.seed,
@@ -371,7 +429,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     return out;
   }
 
-  async step(frame: ReconstructionFrame): Promise<ReconstructionStep> {
+  async step(frame: ReconstructionFrame): Promise<ReconstructionStep | null> {
     if (!this.initialized) {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
     }
@@ -381,6 +439,36 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       throw new Error(
         `HoloMapRuntime.step invalid frame byte length: got ${frame.rgb.byteLength}, expected ${expectedBytes} (w=${frame.width}, h=${frame.height}, stride=${frame.stride})`
       );
+    }
+
+    // Sprint-3: frame-rate throttling
+    const now = performance.now();
+    const minIntervalMs = 1000 / Math.max(1, this.config.targetFPS);
+    if (this.lastStepTimeMs > 0 && now - this.lastStepTimeMs < minIntervalMs) {
+      this.perfMetrics.throttledCount += 1;
+      logHoloMapEvent(this.runId, 'step_throttled', {
+        frameIndex: frame.index,
+        elapsedSinceLastMs: Math.round(now - this.lastStepTimeMs),
+        targetIntervalMs: Math.round(minIntervalMs),
+      });
+      return null;
+    }
+
+    const stepStartMs = performance.now();
+    this.lastStepTimeMs = stepStartMs;
+
+    // Sprint-3: memory bound enforcement
+    if (this.steps.length >= this.config.maxSequenceLength) {
+      const evicted = this.steps.shift()!;
+      const evictedPoints = evicted.points.positions.length / 3;
+      this.totalPointCount -= evictedPoints;
+      // If bounds were derived from evicted data, invalidate
+      this.boundsValid = false;
+      logHoloMapEvent(this.runId, 'step_evict', {
+        frameIndex: evicted.frame.index,
+        evictedPoints,
+        retainedSteps: this.steps.length,
+      });
     }
 
     const microCfg = { seed: this.config.seed, modelHash: this.config.modelHash };
@@ -468,9 +556,22 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     };
 
     this.steps.push(step);
+    this.totalPointCount += numPoints;
+    this.updateBounds(positions);
+
+    // Sprint-3: performance metrics
+    const stepMs = performance.now() - stepStartMs;
+    this.perfMetrics.stepCount += 1;
+    this.perfMetrics.totalStepMs += stepMs;
+    if (stepMs > this.perfMetrics.maxStepMs) this.perfMetrics.maxStepMs = stepMs;
+    if (stepMs < this.perfMetrics.minStepMs) this.perfMetrics.minStepMs = stepMs;
+
     logHoloMapEvent(this.runId, 'step', {
       frameIndex: frame.index,
-      pointCount: step.points.positions.length / 3,
+      pointCount: numPoints,
+      stepMs: Math.round(stepMs),
+      avgStepMs: Math.round(this.perfMetrics.totalStepMs / this.perfMetrics.stepCount),
+      throttledSoFar: this.perfMetrics.throttledCount,
     });
     return step;
   }
@@ -481,10 +582,23 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     }
 
     const frameCount = this.steps.length;
-    const pointCount = this.steps.reduce((acc, s) => acc + s.points.positions.length / 3, 0);
-    const bounds = HoloMapRuntimeImpl.computeBounds(this.steps);
+    const pointCount = this.totalPointCount;
+    const bounds = this.getBounds();
 
-    logHoloMapEvent(this.runId, 'finalize', { frameCount, pointCount });
+    // Sprint-3: include performance summary in finalize telemetry
+    const avgStepMs =
+      this.perfMetrics.stepCount > 0
+        ? this.perfMetrics.totalStepMs / this.perfMetrics.stepCount
+        : 0;
+    logHoloMapEvent(this.runId, 'finalize', {
+      frameCount,
+      pointCount,
+      avgStepMs: Math.round(avgStepMs),
+      maxStepMs: Math.round(this.perfMetrics.maxStepMs),
+      minStepMs: Math.round(this.perfMetrics.minStepMs),
+      throttledCount: this.perfMetrics.throttledCount,
+      sessionDurationMs: Math.round(performance.now() - this.sessionStartMs),
+    });
 
     return {
       version: '1.0.0',
@@ -517,12 +631,19 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   }
 
   async dispose(): Promise<void> {
-    logHoloMapEvent(this.runId, 'dispose', { stepsRetained: this.steps.length });
+    logHoloMapEvent(this.runId, 'dispose', {
+      stepsRetained: this.steps.length,
+      totalPointCount: this.totalPointCount,
+      throttledCount: this.perfMetrics.throttledCount,
+    });
     this.initialized = false;
     this.steps.length = 0;
     this.microEncoder = null;
     this.encoderDevice = null;
     this.weightBytes = null;
+    this.totalPointCount = 0;
+    this.boundsValid = false;
+    this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
   }
 }
 
