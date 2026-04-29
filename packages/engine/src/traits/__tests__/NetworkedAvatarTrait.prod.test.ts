@@ -65,11 +65,22 @@ vi.mock('@holoscript/engine/animation/IKSolver', () => {
 });
 
 vi.mock('@holoscript/engine/animation/AvatarController', () => {
+  class BoneSystem {
+    addBone = _boneInstance.addBone;
+    getBone = _boneInstance.getBone;
+    getChain = _boneInstance.getChain;
+    setLocalTransform = _boneInstance.setLocalTransform;
+    updateWorldTransforms = _boneInstance.updateWorldTransforms;
+  }
+  class IKSolver {
+    addChain = _solverInstance.addChain;
+    solve = _solverInstance.solve;
+  }
   class AvatarController {
     calibrate = _controllerInstance.calibrate;
     update = _controllerInstance.update;
   }
-  return { AvatarController };
+  return { AvatarController, BoneSystem, IKSolver };
 });
 
 import { networkedAvatarHandler } from '../NetworkedAvatarTrait';

@@ -34,7 +34,7 @@ vi.mock('@holoscript/engine/runtime/VoiceSynthesizer', () => {
 });
 
 import { emotionalVoiceHandler } from '../EmotionalVoiceTrait';
-import { voiceSynthesizerRegistry } from '../../runtime/VoiceSynthesizer';
+import { voiceSynthesizerRegistry } from '@holoscript/engine/runtime/VoiceSynthesizer';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
