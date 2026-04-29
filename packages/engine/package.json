@@ -830,6 +830,7 @@
   },
   "devDependencies": {
     "@holoscript/holomap": "workspace:*",
+    "@huggingface/transformers": "^3.8.1",
     "@types/node": "^24.10.1",
     "@webgpu/types": ">=0.1.40",
     "@vitest/coverage-v8": "^4.1.0",
