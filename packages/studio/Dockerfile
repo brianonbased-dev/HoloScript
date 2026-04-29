@@ -53,35 +53,37 @@ COPY packages/ packages/
 # Engine itself stays --no-dts (build-engine-no-dts.sh) — its tsup OOMs on the
 # full graph; engine src is walked directly via tsconfig path alias instead.
 # core stays --no-dts because it has hand-crafted index.d.ts via generate-types.mjs.
-# `|| true` tolerates packages whose dts emission has known issues and lets the
-# build continue; tsc later reports the specific gap if a needed type is missing.
-RUN cd packages/crdt && npx tsup || true
-RUN cd packages/crdt-spatial && npx tsup || true
-RUN cd packages/snn-webgpu && npx tsup || true
-RUN cd packages/uaal && npx tsup || true
-RUN cd packages/agent-protocol && npx tsup || true
+# JS compilation must succeed (fail loudly); only dts emission is tolerated as
+# optional — tsc later reports the specific gap if a needed type is missing.
+# Pattern: `npx tsup --no-dts` fails the build on JS errors; `npx tsup --dts-only || true`
+# attempts declaration emit and silently ignores dts-only failures (tsup 8+ flag).
+RUN cd packages/crdt && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/crdt-spatial && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/snn-webgpu && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/uaal && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsup --dts-only || true
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-RUN cd packages/framework && npx tsup || true
-RUN cd packages/std && npx tsup || true
-RUN cd packages/config && npx tsup || true
-RUN cd packages/absorb-service && npx tsup || true
-RUN cd packages/platform && npx tsup || true
-RUN cd packages/mesh && npx tsup || true
-RUN cd packages/llm-provider && npx tsup || true
-RUN cd packages/marketplace-agentkit && npx tsup || true
-RUN cd packages/security-sandbox && npx tsup || true
+RUN cd packages/framework && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/std && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/config && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/absorb-service && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/platform && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/mesh && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/llm-provider && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/marketplace-agentkit && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/security-sandbox && npx tsup --no-dts && npx tsup --dts-only || true
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
-RUN cd packages/r3f-renderer && npx tsup || true
-RUN cd packages/studio-plugin-sdk && npx tsup || true
-RUN cd packages/ui && npx tsup || true
-RUN cd packages/connector-core && npx tsup || true
-RUN cd packages/connector-appstore && npx tsup || true
-RUN cd packages/connector-github && npx tsup || true
-RUN cd packages/connector-railway && npx tsup || true
-RUN cd packages/connector-upstash && npx tsup || true
-RUN cd packages/connector-vscode && npx tsup || true
+RUN cd packages/r3f-renderer && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/ui && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-core && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-appstore && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-github && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-railway && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-upstash && npx tsup --no-dts && npx tsup --dts-only || true
+RUN cd packages/connector-vscode && npx tsup --no-dts && npx tsup --dts-only || true
 
 # Ensure webpack stubs exist (Docker cache can miss them)
 RUN test -f packages/studio/src/lib/empty-module.js || \

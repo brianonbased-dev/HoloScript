@@ -243,7 +243,9 @@ app.get('/api/builds', async (req: Request, res: Response) => {
 app.get('/api/builds/:id', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).apiKey || 'anonymous';
-    const build = await buildService.getBuild(req.params['id'] as string, userId);
+    const rawId = req.params['id'];
+    const id = Array.isArray(rawId) ? (rawId[0] ?? '') : rawId;
+    const build = await buildService.getBuild(id, userId);
     if (!build) { res.status(404).json({ error: 'Build not found' }); return; }
     res.json(build);
   } catch (error) {
@@ -255,7 +257,9 @@ app.get('/api/builds/:id', async (req: Request, res: Response) => {
 app.delete('/api/builds/:id', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).apiKey || 'anonymous';
-    await buildService.deleteBuild(req.params['id'] as string, userId);
+    const rawId = req.params['id'];
+    const id = Array.isArray(rawId) ? (rawId[0] ?? '') : rawId;
+    await buildService.deleteBuild(id, userId);
     res.json({ success: true });
   } catch (error) {
     logger.error('Delete build error:', error);
