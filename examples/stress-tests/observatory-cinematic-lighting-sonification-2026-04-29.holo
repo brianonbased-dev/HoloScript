@@ -1,0 +1,320 @@
+// ============================================================
+// Stress-Test: Asteroid Observatory — Cinematic Dome Opening
+// A009 — 2026-04-29
+//
+// Never-exercised traits under test:
+//   @cinematic_seq     — timeline drives dome open + camera cuts
+//   @advanced_lighting — IES photometric lamp + area rect console light
+//   @sonification      — telescope elevation mapped to cosmic drone pitch
+//
+// Well-exercised anchors:
+//   @glowing  @collidable  @physics  @animated
+//
+// Visual story:
+// You are inside an observatory carved into the rock of a near-Earth
+// asteroid. The control console hums under warm photometric lamp glow.
+// At T=0 the dome iris begins to open — a cinematic sequence cuts
+// between the dome gears, the widening star field, and your hands at
+// the controls. As the telescope arm tilts toward the ecliptic plane
+// (elevation 23.4°) the sonification trait begins to moan a low
+// drone: a perfect fifth built from the two brightest stars in
+// the current field of view, their angular separation mapped linearly
+// from 80 Hz to 440 Hz. The observatory has never been more alive.
+// ============================================================
+
+composition "AsteroidObservatory" {
+  version: "7.0"
+  description: "Stress-test: cinematic_seq + advanced_lighting + sonification in an orbital observatory"
+  tags: ["a009", "stress-test", "cinematic", "lighting", "audio", "space", "observatory"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // Hard vacuum above; the asteroid's stone below.
+  // No atmosphere means no sky — just stars and the void.
+  // ----------------------------------------------------------
+  environment {
+    skybox: "starfield_8k"
+    ambient_light: 0.0
+    fog: { enabled: false }
+    gravity: [0, -1.62, 0]
+  }
+
+  // ----------------------------------------------------------
+  // CINEMATIC SEQUENCER
+  // Drives the dome-opening ceremony in 24 fps timeline.
+  //
+  // Clips:
+  //   "dome_gear_close_up"  — frames 0–72   (3 s)
+  //   "dome_iris_first_gap" — frames 73–144  (3 s)
+  //   "stars_revealed"      — frames 145–264 (5 s)
+  //   "telescope_lock_on"   — frames 265–384 (5 s)
+  //
+  // The sequencer drives the dome mesh opacity and
+  // triggers the telescope rotation animation.
+  // ----------------------------------------------------------
+  object "sequencer" {
+    geometry: "box"
+    visible: false
+    position: [0, 0, 0]
+    scale: [0.01, 0.01, 0.01]
+
+    @cinematic_seq {
+      fps: 24
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ADVANCED LIGHTING — PHOTOMETRIC CONSOLE LAMP
+  //
+  // Two light sources:
+  //   1. IES lamp above the control console (warm 2700 K)
+  //      Profile: manufacturer IES for a 10 W directional PAR20.
+  //   2. Area rect light over the instrument panel
+  //      (cool white, wide soft shadow).
+  //
+  // @advanced_lighting requires the lights[] array config.
+  // This is the first time this trait is exercised in any
+  // example — testing parser support for array-of-typed-objects.
+  // ----------------------------------------------------------
+  object "console_lights" {
+    geometry: "box"
+    visible: false
+    position: [0, 3.2, -1.5]
+    scale: [0.1, 0.1, 0.1]
+
+    @advanced_lighting {
+      lights: [
+        {
+          type: "ies"
+          config: {
+            profilePath: "assets/lights/par20_warm_2700k.ies"
+            intensity: 850
+            color: [1.0, 0.87, 0.7]
+            scale: 1.0
+          }
+        },
+        {
+          type: "area_rect"
+          config: {
+            width: 1.2
+            height: 0.35
+            intensity: 420
+            color: [0.95, 0.97, 1.0]
+            doubleSided: false
+            castShadows: true
+            shadowResolution: 1024
+          }
+        }
+      ]
+    }
+  }
+
+  // ----------------------------------------------------------
+  // DOME STRUCTURE
+  // ----------------------------------------------------------
+  object "dome_shell" @collidable {
+    geometry: "sphere"
+    position: [0, 5, 0]
+    scale: [10, 5.5, 10]
+    color: "#1c1c28"
+    material: { baseColor: "#1c1c28", roughness: 0.7, metallic: 0.6 }
+    interior_faces: true
+  }
+
+  object "dome_iris_panel_a" @collidable @animated {
+    geometry: "box"
+    position: [1.8, 9.2, 0]
+    scale: [3.2, 0.12, 5.2]
+    rotation: [0, 0, 0]
+    color: "#2a2a3c"
+    material: { baseColor: "#2a2a3c", roughness: 0.5, metallic: 0.8 }
+    animate: "slide"
+    animAxis: "x"
+    animDistance: 4.5
+    animDuration: 5.0
+    animDelay: 3.5
+  }
+
+  object "dome_iris_panel_b" @collidable @animated {
+    geometry: "box"
+    position: [-1.8, 9.2, 0]
+    scale: [3.2, 0.12, 5.2]
+    rotation: [0, 0, 0]
+    color: "#2a2a3c"
+    material: { baseColor: "#2a2a3c", roughness: 0.5, metallic: 0.8 }
+    animate: "slide"
+    animAxis: "x"
+    animDistance: -4.5
+    animDuration: 5.0
+    animDelay: 3.5
+  }
+
+  // Gear ring around dome base — adds industrial texture
+  object "gear_ring" @collidable {
+    geometry: "torus"
+    position: [0, 4.6, 0]
+    scale: [9.8, 0.4, 9.8]
+    color: "#3a3a4a"
+    material: { baseColor: "#3a3a4a", roughness: 0.35, metallic: 0.9 }
+  }
+
+  // ----------------------------------------------------------
+  // FLOOR — asteroid rock
+  // ----------------------------------------------------------
+  object "floor" @collidable {
+    geometry: "box"
+    position: [0, 0, 0]
+    scale: [22, 0.25, 22]
+    material: { baseColor: "#2c2420", roughness: 0.98, metallic: 0.01 }
+  }
+
+  object "floor_center_ring" {
+    geometry: "cylinder"
+    position: [0, 0.13, 0]
+    scale: [4.0, 0.04, 4.0]
+    material: { baseColor: "#1a1a26", roughness: 0.6, metallic: 0.75 }
+  }
+
+  // ----------------------------------------------------------
+  // TELESCOPE ASSEMBLY
+  // The telescope is the protagonist of the scene.
+  // @sonification lives on the mount — it reads the elevation
+  // property (0–90°) and maps it to a sine-wave pitch drone.
+  // ----------------------------------------------------------
+  object "telescope_mount_base" @collidable {
+    geometry: "cylinder"
+    position: [0, 0.28, 0]
+    scale: [0.9, 0.28, 0.9]
+    material: { baseColor: "#444458", roughness: 0.3, metallic: 0.92 }
+  }
+
+  object "telescope_azimuth_ring" @collidable @animated {
+    geometry: "torus"
+    position: [0, 0.45, 0]
+    scale: [0.85, 0.12, 0.85]
+    material: { baseColor: "#505065", roughness: 0.28, metallic: 0.95 }
+    animate: "rotate"
+    animAxis: "y"
+    animSpeed: 0.04
+  }
+
+  object "telescope_elevation_arm" @collidable @animated {
+    geometry: "cylinder"
+    position: [0, 1.4, -0.4]
+    scale: [0.22, 2.2, 0.22]
+    rotation: [23, 0, 0]
+    material: { baseColor: "#4a4a60", roughness: 0.25, metallic: 0.95 }
+    animate: "rotate"
+    animAxis: "x"
+    animSpeed: 0.008
+    animMin: 0
+    animMax: 90
+
+    @sonification {
+      data_source: "rotation.x"
+      mapping: "pitch"
+      min_freq: 80
+      max_freq: 440
+      min_value: 0
+      max_value: 90
+      pan_mode: "spatial"
+      continuous: true
+      instrument: "sine"
+      volume: 0.38
+      attack: 3.5
+      release: 4.0
+      custom_mappings: []
+    }
+  }
+
+  object "telescope_tube" @collidable {
+    geometry: "cylinder"
+    position: [0, 2.8, -1.1]
+    scale: [0.18, 1.8, 0.18]
+    rotation: [23, 0, 0]
+    material: { baseColor: "#3c3c50", roughness: 0.2, metallic: 0.97 }
+  }
+
+  object "telescope_objective" @glowing {
+    geometry: "cylinder"
+    position: [0, 3.4, -2.0]
+    scale: [0.2, 0.12, 0.2]
+    rotation: [23, 0, 0]
+    material: { baseColor: "#0a0a18", roughness: 0.0, metallic: 0.0 }
+    emissive: "#1133ff"
+    emissiveIntensity: 0.4
+  }
+
+  // ----------------------------------------------------------
+  // CONTROL CONSOLE
+  // ----------------------------------------------------------
+  object "console_body" @collidable {
+    geometry: "box"
+    position: [-2.5, 0.9, -1.8]
+    scale: [1.8, 0.9, 0.7]
+    material: { baseColor: "#1e1e2c", roughness: 0.55, metallic: 0.6 }
+  }
+
+  object "console_surface" @collidable {
+    geometry: "box"
+    position: [-2.5, 1.38, -1.8]
+    scale: [1.75, 0.06, 0.65]
+    material: { baseColor: "#252535", roughness: 0.4, metallic: 0.7 }
+  }
+
+  // Status LEDs on the console
+  orb "led_green" @glowing {
+    geometry: "sphere"
+    position: [-3.1, 1.48, -1.65]
+    scale: [0.06, 0.06, 0.06]
+    emissive: "#00ff44"
+    emissiveIntensity: 2.5
+  }
+
+  orb "led_amber" @glowing @animated {
+    geometry: "sphere"
+    position: [-2.8, 1.48, -1.65]
+    scale: [0.06, 0.06, 0.06]
+    emissive: "#ff9900"
+    emissiveIntensity: 2.2
+    animate: "pulse"
+    animSpeed: 1.2
+  }
+
+  orb "led_blue" @glowing {
+    geometry: "sphere"
+    position: [-2.5, 1.48, -1.65]
+    scale: [0.06, 0.06, 0.06]
+    emissive: "#0066ff"
+    emissiveIntensity: 2.0
+  }
+
+  // ----------------------------------------------------------
+  // AMBIENT STAR GLOW (once dome opens)
+  // A softly pulsing orb representing distant star wash.
+  // ----------------------------------------------------------
+  orb "star_wash" @glowing @animated {
+    geometry: "sphere"
+    position: [0, 15, 0]
+    scale: [0.8, 0.8, 0.8]
+    emissive: "#c8d8ff"
+    emissiveIntensity: 0.6
+    animate: "pulse"
+    animSpeed: 0.15
+    opacity: 0.4
+  }
+
+  // ----------------------------------------------------------
+  // PHYSICS TEST OBJECT — sample meteorite on the floor
+  // (exercises @physics collidable interaction with lighting)
+  // ----------------------------------------------------------
+  orb "meteorite_sample" @collidable @physics @glowing {
+    geometry: "sphere"
+    position: [2.2, 1.2, 0.8]
+    scale: [0.28, 0.28, 0.28]
+    material: { baseColor: "#1a0e0a", roughness: 0.97, metallic: 0.08 }
+    emissive: "#ff4400"
+    emissiveIntensity: 0.15
+  }
+
+}

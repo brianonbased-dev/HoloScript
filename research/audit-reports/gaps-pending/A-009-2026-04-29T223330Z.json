@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-04-29T22:33:30Z",
+  "gaps": [
+    {
+      "type": "missing-trait-wish",
+      "title": "Add TraitBioluminescent for pulsing nature surfaces (A-009 example-driven request)",
+      "description": "The enchanted-forest Phase 2 refresh (examples/ai-generation/examples/enchanted-forest.refreshed.holo) demonstrates the need: the forest floor and pond surface should slowly pulse with shifting cyan-green bioluminescent patterns, reactive to player proximity and elapsed time. Only @glowing (static emissive) is available today. The name 'bioluminescent' appears in packages/core/src/traits/constants/nature-life.ts and packages/core/src/traits/visual/composition-rules.ts as a visual composite rule, but no TraitHandler implementation (BioluminescentTrait.ts) exists. Suggested API: @bioluminescent { color: \"#00ffcc\", pulse_bpm: 12, radius_falloff: 2.5, min_intensity: 0.05, max_intensity: 0.8, pattern: \"perlin\" } where pattern can be 'perlin' | 'voronoi' | 'solid'. Essential for nature scenes, underwater environments, alien biomes.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension"],
+      "dedup_key": "a009-trait-bioluminescent",
+      "source_file": "examples/ai-generation/examples/enchanted-forest.refreshed.holo",
+      "phase": "phase-2-refresh"
+    }
+  ]
+}

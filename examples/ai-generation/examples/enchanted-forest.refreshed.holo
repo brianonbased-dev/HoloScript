@@ -1,0 +1,385 @@
+// ============================================================
+// Enchanted Forest — Refreshed
+// A009 Phase 2 — 2026-04-29
+//
+// Original: basic moonlit forest with fireflies and a crystal.
+// Refresh adds:
+//   @spatial_audio     — ancient tree breathes a subsonic hum (40 Hz)
+//   @particle_system   — golden spores drift down from the canopy
+//   @reactive          — mushrooms pulse faster when player is within 2m
+//   @throwable         — the crystal cluster can be grabbed and thrown
+//   @physics           — crystal bounces off the cave floor and logs
+//
+// New geometry: fallen hollow log, second crystal cluster, moonbeam
+// pillar, berry thicket. Richer fog depth. Layered post-processing.
+//
+// MISSING-TRAIT WISH (Phase 4 / A-009):
+//   @bioluminescent — the forest floor should slowly pulse with shifting
+//   cyan-green patterns, reactive to player proximity and elapsed time.
+//   Only @glowing (static) exists today. Filed as capability request.
+// ============================================================
+
+@world {
+  backgroundColor: "#060f06"
+  ambient: 0.2
+  fog: { type: "exponential", color: "#060f06", density: 0.018 }
+  shadows: true
+}
+
+// === LIGHTING ===
+
+light "Moon" {
+  type: "directional"
+  color: "#9aaddd"
+  intensity: 0.35
+  rotation: [-42, 18, 0]
+  cast_shadows: true
+  shadow_bias: 0.0002
+}
+
+light "MagicCanopy" {
+  type: "point"
+  color: "#3dff8f"
+  intensity: 0.55
+  position: [0, 5.5, -3]
+  range: 14
+}
+
+light "CrystalFill" {
+  type: "point"
+  color: "#00e5ff"
+  intensity: 0.3
+  position: [3.2, 1.2, -2.1]
+  range: 6
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.55, threshold: 0.5 }
+  chromatic_aberration: { enabled: true, intensity: 0.004 }
+  tone_mapping: { enabled: true, type: "aces" }
+  vignette: { enabled: true, intensity: 0.28 }
+}
+
+// === GROUND ===
+
+object "ground" @collidable {
+  position: [0, 0, 0]
+  scale: [20, 0.12, 20]
+  geometry: "cube"
+  color: "#122212"
+  material: "moss"
+  roughness: 0.95
+}
+
+// === ANCIENT TREE ===
+// The oldest living thing in the forest.
+// Emits a low 40 Hz subsonic hum — felt more than heard.
+// Spores drift from the crown in a slow golden cascade.
+
+object "tree_trunk" @collidable {
+  position: [0, 3, -4]
+  scale: [0.9, 6, 0.9]
+  geometry: "cylinder"
+  color: "#3d2b1d"
+  material: "bark"
+  roughness: 0.88
+
+  @spatial_audio {
+    src: "audio/forest_subsonic_hum.mp3"
+    volume: 0.55
+    loop: true
+    refDistance: 2.0
+    rolloffFactor: 1.4
+    maxDistance: 18
+    pitch: 0.92
+  }
+}
+
+object "tree_roots_l" @collidable {
+  position: [-1.1, 0.3, -3.4]
+  scale: [0.35, 0.6, 1.3]
+  rotation: [0, 25, 8]
+  geometry: "cylinder"
+  color: "#3d2b1d"
+  roughness: 0.9
+}
+
+object "tree_roots_r" @collidable {
+  position: [1.0, 0.3, -3.5]
+  scale: [0.3, 0.55, 1.2]
+  rotation: [0, -20, -6]
+  geometry: "cylinder"
+  color: "#3d2b1d"
+  roughness: 0.9
+}
+
+object "tree_crown" {
+  position: [0, 7, -4]
+  scale: [3.5, 2.5, 3.5]
+  geometry: "sphere"
+  color: "#163a16"
+
+  @particle_system {
+    preset: "drift"
+    count: 280
+    size: 0.025
+    color: "#ffe066"
+    emissive: "#ffe066"
+    emissive_intensity: 1.4
+    speed: 0.07
+    spread: 2.8
+    gravity: -0.025
+    lifetime: 9.0
+    emission_rate: 32
+  }
+}
+
+// === MAGICAL MUSHROOMS ===
+// Each mushroom pulses with its own hue.
+// The @reactive trait makes them breathe faster when a player steps close.
+
+orb "mushroom_rose" @glowing @reactive @pointable {
+  position: [-2.1, 0.35, 0.3]
+  scale: [0.32, 0.42, 0.32]
+  geometry: "sphere"
+  color: "#ff6b9d"
+  emissive: "#ff6b9d"
+  emissiveIntensity: 0.6
+
+  @reactive {
+    trigger: "player_distance"
+    threshold: 2.0
+    property: "emissiveIntensity"
+    active_value: 1.8
+    idle_value: 0.6
+    transition_speed: 0.9
+  }
+}
+
+orb "mushroom_violet" @glowing @reactive @pointable {
+  position: [1.6, 0.22, 1.2]
+  scale: [0.22, 0.32, 0.22]
+  geometry: "sphere"
+  color: "#9d6bff"
+  emissive: "#9d6bff"
+  emissiveIntensity: 0.55
+
+  @reactive {
+    trigger: "player_distance"
+    threshold: 2.0
+    property: "emissiveIntensity"
+    active_value: 1.6
+    idle_value: 0.55
+    transition_speed: 1.1
+  }
+}
+
+orb "mushroom_amber" @glowing @reactive {
+  position: [0.6, 0.18, 2.1]
+  scale: [0.18, 0.25, 0.18]
+  geometry: "sphere"
+  color: "#ffaa22"
+  emissive: "#ffaa22"
+  emissiveIntensity: 0.5
+
+  @reactive {
+    trigger: "player_distance"
+    threshold: 1.5
+    property: "emissiveIntensity"
+    active_value: 2.0
+    idle_value: 0.5
+    transition_speed: 1.4
+  }
+}
+
+// === FLOATING FIREFLIES ===
+
+orb "firefly_a" @glowing @animated {
+  position: [-1.2, 2.3, 0.8]
+  scale: [0.07, 0.07, 0.07]
+  geometry: "sphere"
+  color: "#ffffaa"
+  animate: "float"
+  animSpeed: 1.9
+  animRadius: 0.6
+  emissive: "#ffffaa"
+  emissiveIntensity: 2.2
+}
+
+orb "firefly_b" @glowing @animated {
+  position: [1.1, 1.7, 0.3]
+  scale: [0.07, 0.07, 0.07]
+  geometry: "sphere"
+  color: "#88ff88"
+  animate: "float"
+  animSpeed: 1.4
+  animRadius: 0.5
+  emissive: "#88ff88"
+  emissiveIntensity: 2.0
+}
+
+orb "firefly_c" @glowing @animated {
+  position: [-0.3, 2.8, -1.4]
+  scale: [0.07, 0.07, 0.07]
+  geometry: "sphere"
+  color: "#00ffcc"
+  animate: "float"
+  animSpeed: 2.1
+  animRadius: 0.7
+  emissive: "#00ffcc"
+  emissiveIntensity: 2.4
+}
+
+orb "firefly_d" @glowing @animated {
+  position: [2.2, 1.9, -0.6]
+  scale: [0.06, 0.06, 0.06]
+  geometry: "sphere"
+  color: "#ff88ff"
+  animate: "float"
+  animSpeed: 1.6
+  animRadius: 0.45
+  emissive: "#ff88ff"
+  emissiveIntensity: 1.8
+}
+
+// === CRYSTAL CLUSTER ===
+// Primary crystal — glowing cyan, throwable, bounces with physics.
+
+orb "crystal_main" @grabbable @glowing @throwable @physics @collidable {
+  position: [3.1, 0.55, -2.2]
+  scale: [0.32, 0.65, 0.28]
+  geometry: "cone"
+  color: "#00ffff"
+  material: "glass"
+  roughness: 0.08
+  metallic: 0.3
+  emissive: "#00ffff"
+  emissiveIntensity: 0.85
+
+  @physics {
+    mass: 0.4
+    restitution: 0.7
+    friction: 0.3
+    linear_damping: 0.05
+  }
+}
+
+orb "crystal_shard_a" @glowing {
+  position: [3.6, 0.35, -2.0]
+  scale: [0.18, 0.38, 0.15]
+  rotation: [0, 35, 12]
+  geometry: "cone"
+  color: "#44ddff"
+  emissive: "#44ddff"
+  emissiveIntensity: 0.6
+}
+
+orb "crystal_shard_b" @glowing {
+  position: [2.7, 0.28, -1.7]
+  scale: [0.14, 0.32, 0.12]
+  rotation: [0, -20, -8]
+  geometry: "cone"
+  color: "#aaffff"
+  emissive: "#aaffff"
+  emissiveIntensity: 0.5
+}
+
+// === FALLEN HOLLOW LOG ===
+// An old tree, collapsed and colonized by moss. Gives the forest depth.
+
+object "log_body" @collidable {
+  position: [-3.5, 0.22, 1.5]
+  scale: [2.5, 0.45, 0.5]
+  rotation: [0, 28, 0]
+  geometry: "cylinder"
+  color: "#2a1e14"
+  material: "bark"
+  roughness: 0.95
+}
+
+object "log_interior" {
+  position: [-3.5, 0.22, 1.5]
+  scale: [2.4, 0.38, 0.38]
+  rotation: [0, 28, 0]
+  geometry: "cylinder"
+  color: "#1a1208"
+  roughness: 0.98
+}
+
+// === MOONBEAM PILLAR ===
+// A shaft of moonlight breaking through the canopy.
+
+object "moonbeam" @glowing @animated {
+  position: [1.5, 3, -1.5]
+  scale: [0.3, 6, 0.3]
+  geometry: "cylinder"
+  color: "#ddeeff"
+  emissive: "#ddeeff"
+  emissiveIntensity: 0.12
+  opacity: 0.08
+  animate: "pulse"
+  animSpeed: 0.3
+}
+
+// === GLOWING BERRY THICKET ===
+
+orb "berries_cluster" @glowing @collidable {
+  position: [-1.8, 0.6, -1.8]
+  scale: [0.55, 0.55, 0.55]
+  geometry: "sphere"
+  color: "#ff3355"
+  emissive: "#ff1133"
+  emissiveIntensity: 0.4
+}
+
+// === ENCHANTED POND ===
+// Still water catching moonlight.
+// WISH: @bioluminescent would let the pond surface slowly pulse
+// with shifting cyan patterns. @glowing only provides static glow.
+
+object "pond_water" @glowing {
+  position: [-3.2, 0.06, 2.8]
+  scale: [2.2, 0.06, 2.2]
+  geometry: "cylinder"
+  color: "#1a3f5a"
+  emissive: "#0088bb"
+  emissiveIntensity: 0.18
+  opacity: 0.85
+  roughness: 0.05
+  metallic: 0.2
+}
+
+object "pond_edge" @collidable {
+  position: [-3.2, 0.0, 2.8]
+  scale: [2.6, 0.08, 2.6]
+  geometry: "cylinder"
+  color: "#0e2216"
+  roughness: 0.9
+}
+
+// === DISTANT FOG TREES ===
+// Silhouettes that give a sense of forest depth beyond the scene.
+
+object "fog_tree_a" {
+  position: [7, 3, -6]
+  scale: [0.6, 6, 0.6]
+  geometry: "cylinder"
+  color: "#0a1a0a"
+  roughness: 1.0
+}
+
+object "fog_tree_b" {
+  position: [-6, 2.5, -7]
+  scale: [0.5, 5, 0.5]
+  geometry: "cylinder"
+  color: "#0a1a0a"
+  roughness: 1.0
+}
+
+object "fog_tree_c" {
+  position: [5.5, 2, 5]
+  scale: [0.4, 4.5, 0.4]
+  geometry: "cylinder"
+  color: "#0a1a0a"
+  roughness: 1.0
+}
