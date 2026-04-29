@@ -244,16 +244,23 @@ interface OrtSession {
  * then onnxruntime-node (Node.js). Returns null if neither is available.
  */
 async function tryLoadOrt(): Promise<OrtModule | null> {
-  // onnxruntime-web supports WebGPU execution provider
+  // onnxruntime-web supports WebGPU execution provider.
+  // /* webpackIgnore: true */ tells webpack not to walk this dynamic import
+  // at build time — onnxruntime-web ships ESM bundles that reference WebGPU
+  // platform code webpack can't resolve; we always runtime-resolve it.
   try {
-    const m = await import('onnxruntime-web') as unknown as OrtModule;
+    const m = await import(/* webpackIgnore: true */ 'onnxruntime-web') as unknown as OrtModule;
     if (m?.InferenceSession) return m;
   } catch {
     // not available
   }
-  // onnxruntime-node for Node.js environments
+  // onnxruntime-node ships native (.node) binaries that are NOT browser-safe.
+  // Same /* webpackIgnore: true */ pattern as DepthEstimationTrait CDN
+  // fallback (commit 1ae571331) so Next.js client bundles don't try to
+  // resolve napi-v3/<platform>/onnxruntime_binding.node — which webpack
+  // refuses with "Node.js binary module ... is not supported in the browser".
   try {
-    const m = await import('onnxruntime-node') as unknown as OrtModule;
+    const m = await import(/* webpackIgnore: true */ 'onnxruntime-node') as unknown as OrtModule;
     if (m?.InferenceSession) return m;
   } catch {
     // not available

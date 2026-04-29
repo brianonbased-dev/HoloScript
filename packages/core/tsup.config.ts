@@ -157,6 +157,15 @@ export default defineConfig({
     'tree-sitter-go',
     'tree-sitter-javascript',
     'web-tree-sitter',
+    // Externalize onnxruntime — native bindings (onnxruntime-node) + WebGPU
+    // platform packages (onnxruntime-web). Bundling them makes tsup pull in
+    // ort.node.min.mjs / ort.bundle.min.mjs which webpack downstream cannot
+    // resolve (referenced by a relative path inside the bundled file). The
+    // motion-matching trait already lazy-imports these via dynamic import +
+    // try/catch fallback, so they should always be runtime-resolved.
+    'onnxruntime-node',
+    'onnxruntime-web',
+    'onnxruntime-common',
   ],
   // Rollup-specific options for advanced code splitting
   esbuildOptions(options) {
