@@ -3,10 +3,11 @@ import { resolve } from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@holoscript/core': resolve(__dirname, '../core/src/index.ts'),
-      '@holoscript/core-types': resolve(__dirname, '../core-types/src/index.ts'),
-    },
+    alias: [
+      { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
+      { find: /^@holoscript\/core-types$/, replacement: resolve(__dirname, '../core-types/src/index.ts') },
+      { find: /^@holoscript\/core-types\/ans$/, replacement: resolve(__dirname, '../core-types/src/ans.ts') },
+    ],
   },
   test: {
     name: '@holoscript/semantic-2d',
