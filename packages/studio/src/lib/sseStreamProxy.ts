@@ -4,17 +4,30 @@ export function resolveReconnectCursor(request: {
   headers: { get(name: string): string | null };
   nextUrl?: { searchParams: URLSearchParams };
 }): string | undefined {
-  return (
-    request.headers.get('last-event-id') ??
-    request.headers.get('x-reconnect-cursor') ??
-    request.nextUrl?.searchParams.get('cursor') ??
-    undefined
-  );
+  const isSafeCursor = (value: string | null | undefined): value is string => {
+    if (!value) return false;
+    // Conservative allowlist for SSE cursors (reject traversal / separators / whitespace)
+    return /^[A-Za-z0-9._:-]+$/.test(value);
+  };
+
+  const candidates = [
+    request.headers.get('last-event-id'),
+    request.headers.get('x-reconnect-cursor'),
+    request.nextUrl?.searchParams.get('cursor') ?? null,
+  ];
+
+  for (const candidate of candidates) {
+    if (isSafeCursor(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
 }
 
 export function createSSEHeartbeatStream<TChunk extends Uint8Array>(
   source: ReadableStream<TChunk>,
-  options: { heartbeatIntervalMs?: number; cursor?: string } = {}
+  options: { heartbeatIntervalMs?: number; cursor?: string; retryMs?: number } = {}
 ): ReadableStream<Uint8Array> {
   const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 15000;
 
@@ -24,9 +37,14 @@ export function createSSEHeartbeatStream<TChunk extends Uint8Array>(
       let closed = false;
 
       if (options.cursor) {
+        controller.enqueue(encoder.encode(`id: ${options.cursor}\n`));
         controller.enqueue(
           encoder.encode(`event: cursor\ndata: ${JSON.stringify({ cursor: options.cursor })}\n\n`)
         );
+      }
+
+      if (typeof options.retryMs === 'number' && Number.isFinite(options.retryMs)) {
+        controller.enqueue(encoder.encode(`retry: ${Math.max(0, Math.floor(options.retryMs))}\n\n`));
       }
 
       controller.enqueue(encoder.encode(`: heartbeat open\n\n`));

@@ -10,6 +10,22 @@ vi.mock('@/lib/historyStore', () => ({
   useHistoryStore: {
     subscribe: vi.fn(() => vi.fn()),
   },
+  beginHistoryReplay: vi.fn(),
+  endHistoryReplay: vi.fn(),
+  installSpatialTraitHistoryBridge: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('@/lib/stores', () => ({
+  useSceneStore: {
+    getState: vi.fn(() => ({
+      code: '',
+      setCode: vi.fn(),
+    })),
+  },
+  useSceneGraphStore: {
+    getState: vi.fn(() => ({ nodes: [] })),
+    setState: vi.fn(),
+  },
 }));
 
 describe('useUndoRedo', () => {
