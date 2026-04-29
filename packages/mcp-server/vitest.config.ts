@@ -17,7 +17,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../holomap/src/index.ts'),
       },
       {
-        find: '@holoscript/core',
+        find: /^@holoscript\/core$/,
         replacement: path.resolve(__dirname, '../core/src/index.ts'),
       },
       {

@@ -94,23 +94,24 @@ const IS_COVERAGE_RUN =
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@holoscript/core/reconstruction': resolve(__dirname, '../core/src/reconstruction/index.ts'),
-      '@holoscript/core/paper-0c-spike': resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
-      '@holoscript/core/coordinators': resolve(__dirname, '../core/src/coordinators/index.ts'),
-      '@holoscript/core': resolve(__dirname, '../core/src/index.ts'),
-      '@holoscript/holomap': resolve(__dirname, '../holomap/src/index.ts'),
-      '@holoscript/framework/agents': resolve(__dirname, '../framework/src/agents/index.ts'),
-      '@holoscript/framework/behavior': resolve(__dirname, '../framework/src/behavior.ts'),
-      '@holoscript/framework/economy': resolve(__dirname, '../framework/src/economy/index.ts'),
-      '@holoscript/framework/learning': resolve(__dirname, '../framework/src/learning/index.ts'),
-      '@holoscript/framework/negotiation': resolve(__dirname, '../framework/src/negotiation/index.ts'),
-      '@holoscript/framework/training': resolve(__dirname, '../framework/src/training/index.ts'),
-      '@holoscript/framework/ai': resolve(__dirname, '../framework/src/ai/index.ts'),
-      '@holoscript/framework/skills': resolve(__dirname, '../framework/src/skills/index.ts'),
-      '@holoscript/framework/swarm': resolve(__dirname, '../framework/src/swarm/index.ts'),
-      '@holoscript/framework': resolve(__dirname, '../framework/src/index.ts'),
-    },
+    alias: [
+      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, '../core/src/reconstruction/index.ts') },
+      { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, '../core/src/paper-0c-spike/index.ts') },
+      { find: '@holoscript/core/coordinators', replacement: resolve(__dirname, '../core/src/coordinators/index.ts') },
+      // Use exact-match regex to prevent prefix-matching subpath imports
+      { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
+      { find: '@holoscript/holomap', replacement: resolve(__dirname, '../holomap/src/index.ts') },
+      { find: '@holoscript/framework/agents', replacement: resolve(__dirname, '../framework/src/agents/index.ts') },
+      { find: '@holoscript/framework/behavior', replacement: resolve(__dirname, '../framework/src/behavior.ts') },
+      { find: '@holoscript/framework/economy', replacement: resolve(__dirname, '../framework/src/economy/index.ts') },
+      { find: '@holoscript/framework/learning', replacement: resolve(__dirname, '../framework/src/learning/index.ts') },
+      { find: '@holoscript/framework/negotiation', replacement: resolve(__dirname, '../framework/src/negotiation/index.ts') },
+      { find: '@holoscript/framework/training', replacement: resolve(__dirname, '../framework/src/training/index.ts') },
+      { find: '@holoscript/framework/ai', replacement: resolve(__dirname, '../framework/src/ai/index.ts') },
+      { find: '@holoscript/framework/skills', replacement: resolve(__dirname, '../framework/src/skills/index.ts') },
+      { find: '@holoscript/framework/swarm', replacement: resolve(__dirname, '../framework/src/swarm/index.ts') },
+      { find: '@holoscript/framework', replacement: resolve(__dirname, '../framework/src/index.ts') },
+    ],
   },
   test: {
     clearMocks: true,

@@ -3,33 +3,31 @@ import { resolve } from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@holoscript/core/reconstruction': resolve(__dirname, 'src/reconstruction/index.ts'),
+    alias: [
+      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, 'src/reconstruction/index.ts') },
       // Allow sibling packages that import @holoscript/core to resolve it locally
-      '@holoscript/core': resolve(__dirname, 'src/index.ts'),
+      // Use exact-match regex to prevent prefix-matching subpath imports (e.g. @holoscript/core/trait-docs)
+      { find: /^@holoscript\/core$/, replacement: resolve(__dirname, 'src/index.ts') },
       // Cross-package aliases for integration tests
       // agent-sdk shim removed — imports now resolve to @holoscript/framework directly
-      '@holoscript/agent-protocol': resolve(__dirname, '../agent-protocol/src/index.ts'),
-      '@holoscript/uaal': resolve(__dirname, '../uaal/src/index.ts'),
-      '@holoscript/holo-vm': resolve(__dirname, '../holo-vm/src/index.ts'),
-      '@holoscript/vm-bridge': resolve(__dirname, '../vm-bridge/src/index.ts'),
-      '@holoscript/framework/ai': resolve(__dirname, '../framework/src/ai/index.ts'),
-      '@holoscript/framework/agents': resolve(__dirname, '../framework/src/agents/index.ts'),
-      '@holoscript/framework/behavior': resolve(__dirname, '../framework/src/behavior.ts'),
-      '@holoscript/framework/economy': resolve(__dirname, '../framework/src/economy/index.ts'),
-      '@holoscript/framework/learning': resolve(__dirname, '../framework/src/learning/index.ts'),
-      '@holoscript/framework/negotiation': resolve(
-        __dirname,
-        '../framework/src/negotiation/index.ts'
-      ),
-      '@holoscript/framework/skills': resolve(__dirname, '../framework/src/skills/index.ts'),
-      '@holoscript/framework/swarm': resolve(__dirname, '../framework/src/swarm/index.ts'),
-      '@holoscript/framework/training': resolve(__dirname, '../framework/src/training/index.ts'),
-      '@holoscript/framework': resolve(__dirname, '../framework/src/index.ts'),
-      '@holoscript/engine/materials': resolve(__dirname, '../engine/src/materials/index.ts'),
-      '@holoscript/engine': resolve(__dirname, '../engine/src'),
-      '@holoscript/platform': resolve(__dirname, '../platform/src/index.ts'),
-    },
+      { find: '@holoscript/agent-protocol', replacement: resolve(__dirname, '../agent-protocol/src/index.ts') },
+      { find: '@holoscript/uaal', replacement: resolve(__dirname, '../uaal/src/index.ts') },
+      { find: '@holoscript/holo-vm', replacement: resolve(__dirname, '../holo-vm/src/index.ts') },
+      { find: '@holoscript/vm-bridge', replacement: resolve(__dirname, '../vm-bridge/src/index.ts') },
+      { find: '@holoscript/framework/ai', replacement: resolve(__dirname, '../framework/src/ai/index.ts') },
+      { find: '@holoscript/framework/agents', replacement: resolve(__dirname, '../framework/src/agents/index.ts') },
+      { find: '@holoscript/framework/behavior', replacement: resolve(__dirname, '../framework/src/behavior.ts') },
+      { find: '@holoscript/framework/economy', replacement: resolve(__dirname, '../framework/src/economy/index.ts') },
+      { find: '@holoscript/framework/learning', replacement: resolve(__dirname, '../framework/src/learning/index.ts') },
+      { find: '@holoscript/framework/negotiation', replacement: resolve(__dirname, '../framework/src/negotiation/index.ts') },
+      { find: '@holoscript/framework/skills', replacement: resolve(__dirname, '../framework/src/skills/index.ts') },
+      { find: '@holoscript/framework/swarm', replacement: resolve(__dirname, '../framework/src/swarm/index.ts') },
+      { find: '@holoscript/framework/training', replacement: resolve(__dirname, '../framework/src/training/index.ts') },
+      { find: '@holoscript/framework', replacement: resolve(__dirname, '../framework/src/index.ts') },
+      { find: '@holoscript/engine/materials', replacement: resolve(__dirname, '../engine/src/materials/index.ts') },
+      { find: '@holoscript/engine', replacement: resolve(__dirname, '../engine/src') },
+      { find: '@holoscript/platform', replacement: resolve(__dirname, '../platform/src/index.ts') },
+    ],
   },
   test: {
     // Exclude problematic test file that causes OOM during collection

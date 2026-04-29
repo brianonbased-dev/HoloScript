@@ -14,7 +14,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/parser/$1.ts'),
       },
       {
-        find: '@holoscript/core',
+        find: /^@holoscript\/core$/,
         replacement: path.resolve(__dirname, '../core/src/index.ts'),
       },
     ],
