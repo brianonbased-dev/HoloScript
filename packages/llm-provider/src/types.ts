@@ -22,6 +22,14 @@ export type MessageRole = 'system' | 'user' | 'assistant';
 export interface ToolResultBlock {
   type: 'tool_result';
   tool_use_id: string;
+  /**
+   * Tool output to feed back to the model. Anthropic's API also accepts an
+   * `Array<{type:'text',text:string} | {type:'image',source:...}>` here, but
+   * this codebase deliberately narrows to `string` because every producer
+   * (holoscript-agent/src/tools.ts: okResult / errResult) emits string
+   * content. If/when an image-returning tool is added, widen here AND update
+   * the display formatter at types.ts:~164 plus runner.ts SHA-extraction.
+   */
   content: string;
   /** Optional: mark the tool result as an error so the model retries / reroutes. */
   is_error?: boolean;
