@@ -29,9 +29,8 @@ import { FileSystemHologramStore } from '@holoscript/engine/hologram/FileSystemH
 
 import { __resetHologramStoreForTests } from '@/app/api/hologram/_lib/store';
 
-import { __test__, generateMetadata } from './page';
-
-const { loadBundle } = __test__;
+import { generateMetadata } from './page';
+import { loadBundle } from './loadBundle';
 
 function makeMeta(over: Partial<HologramMeta> = {}): HologramMeta {
   return {

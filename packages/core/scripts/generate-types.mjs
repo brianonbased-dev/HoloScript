@@ -4383,6 +4383,197 @@ export declare function verifySubgridAttestation(attestation: SubgridAttestation
 export declare function verifySubgridAttestationAsync(attestation: SubgridAttestation, params: SubgridParams): Promise<VerifyResult>;
 `;
 
+const coordinatorsDTS = `/** @holoscript/core/coordinators — Pattern E consumer-bus infrastructure (4 buses) */
+
+// --- Shared duck-typed event source ---
+export interface CoordinatorEventSource {
+  on(event: string, handler: (payload: unknown) => void): void;
+}
+
+// --- AssetLoadCoordinator ---
+export type AssetLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
+export interface AssetLoadState {
+  url: string;
+  format: 'gltf' | 'usd' | 'fbx' | 'unknown';
+  status: AssetLoadStatus;
+  progress: number;
+  error?: string;
+  updatedAt: number;
+}
+export interface AssetLoadStats {
+  total: number;
+  loading: number;
+  loaded: number;
+  failed: number;
+  averageProgress: number;
+}
+export type AssetLoadListener = (state: AssetLoadState) => void;
+export declare class AssetLoadCoordinator {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: AssetLoadListener): () => void;
+  getAllStates(): AssetLoadState[];
+  getStats(): AssetLoadStats;
+  reset(): void;
+}
+
+// --- SecurityEventBus ---
+export interface SessionState {
+  sessionId: string;
+  status: 'authenticated' | 'expired' | 'revoked';
+  idp?: string;
+  userId?: string;
+  updatedAt: number;
+}
+export interface AuthorizationState {
+  agentId: string;
+  tenantId?: string;
+  roles: Set<string>;
+  capabilities: Set<string>;
+  updatedAt: number;
+}
+export interface QuotaState {
+  resource: string;
+  subject: string;
+  consumed: number;
+  limit: number;
+  status: 'ok' | 'threshold_reached' | 'grace' | 'exceeded';
+  updatedAt: number;
+}
+export interface TenantState {
+  tenantId: string;
+  status: 'provisioned' | 'active' | 'suspended' | 'decommissioned';
+  tier?: string;
+  updatedAt: number;
+}
+export interface AuditLogEntry {
+  event: string;
+  action?: string;
+  actor?: string;
+  tenantId?: string;
+  outcome?: 'success' | 'denied' | 'error';
+  observedAt: number;
+}
+export interface SecurityStats {
+  sessions: { authenticated: number; expired: number; revoked: number };
+  agents: { tracked: number };
+  tenants: { active: number; suspended: number; decommissioned: number };
+  quotas: { tracked: number; exceeded: number; grace: number };
+  auditLog: { entries: number; capacity: number };
+}
+export interface SecurityEventEnvelope {
+  domain: 'auth' | 'authz' | 'quota' | 'tenant' | 'audit' | 'forget' | 'unknown';
+  event: string;
+  payload: unknown;
+  observedAt: number;
+}
+export type SecurityEventListener = (envelope: SecurityEventEnvelope) => void;
+export declare class SecurityEventBus {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: SecurityEventListener): () => void;
+  getAllSessions(): SessionState[];
+  getAuditLog(): AuditLogEntry[];
+  getStats(): SecurityStats;
+  reset(): void;
+}
+
+// --- GenerativeJobMonitor ---
+export type GenerativeJobKind = 'inpainting' | 'texture_gen' | 'controlnet' | 'diffusion_rt';
+export type GenerativeJobStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'cancelled'
+  | 'errored';
+export interface GenerativeJobState {
+  jobId: string;
+  kind: GenerativeJobKind;
+  status: GenerativeJobStatus;
+  startedAt: number;
+  updatedAt: number;
+  durationMs?: number;
+  error?: string;
+}
+export interface GenerativeJobKindStats {
+  queued: number;
+  running: number;
+  completed: number;
+  cancelled: number;
+  errored: number;
+  meanLatencyMs: number;
+}
+export interface GenerativeJobStats {
+  total: number;
+  byKind: Record<GenerativeJobKind, GenerativeJobKindStats>;
+  anyReady: boolean;
+}
+export type GenerativeJobListener = (state: GenerativeJobState) => void;
+export declare class GenerativeJobMonitor {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: GenerativeJobListener): () => void;
+  getAllJobs(): GenerativeJobState[];
+  getStats(): GenerativeJobStats;
+  reset(): void;
+}
+
+// --- SessionPresenceCoordinator ---
+export type PresenceDomain = 'shareplay' | 'voice' | 'messaging' | 'heartbeat' | 'unknown';
+export type SessionStatus = 'idle' | 'started' | 'joined' | 'ended';
+export interface SharePlaySessionState {
+  sessionId: string;
+  status: SessionStatus;
+  participants: Set<string>;
+  activityTitle?: string;
+  updatedAt: number;
+}
+export interface SpatialVoiceState {
+  nodeId: string;
+  peers: Set<string>;
+  muted: boolean;
+  lastVoiceActivityAt: number;
+  updatedAt: number;
+}
+export type MessagingConnectionStatus = 'disconnected' | 'connected' | 'errored';
+export interface MessagingConnectionState {
+  platform: string;
+  status: MessagingConnectionStatus;
+  messagesReceived: number;
+  messagesSent: number;
+  error?: string;
+  updatedAt: number;
+}
+export interface HeartbeatState {
+  nodeId: string;
+  status: 'initialized' | 'alive' | 'failover' | 'errored';
+  ticks: number;
+  lastTickAt: number;
+  error?: string;
+  updatedAt: number;
+}
+export interface SessionPresenceStats {
+  sessions: { active: number; ended: number; participants: number };
+  voice: { nodes: number; peers: number; muted: number };
+  messaging: { connections: number; connected: number; errored: number };
+  heartbeat: { tracked: number; alive: number; failover: number; errored: number };
+}
+export interface SessionPresenceEnvelope {
+  domain: PresenceDomain;
+  event: string;
+  payload: unknown;
+  observedAt: number;
+}
+export type SessionPresenceListener = (envelope: SessionPresenceEnvelope) => void;
+export declare class SessionPresenceCoordinator {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: SessionPresenceListener): () => void;
+  getAllSessions(): SharePlaySessionState[];
+  getAllVoiceNodes(): SpatialVoiceState[];
+  getAllMessagingConnections(): MessagingConnectionState[];
+  getAllHeartbeats(): HeartbeatState[];
+  getStats(): SessionPresenceStats;
+  reset(): void;
+}
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -4394,6 +4585,7 @@ const subdirDeclarations = [
   { dir: 'tools', content: toolsDTS },
   { dir: 'reconstruction', content: reconstructionDTS },
   { dir: 'paper-0c-spike', content: paper0cSpikeDTS },
+  { dir: 'coordinators', content: coordinatorsDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {

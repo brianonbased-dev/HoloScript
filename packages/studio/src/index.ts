@@ -168,19 +168,7 @@ export type {
 } from './lib/worldSimulationBridge';
 
 // ═══════════════════════════════════════════════════════════════════
-// Pattern E: Generative AI job monitor (consumer-bus infrastructure)
+// Pattern E consumer-bus infrastructure has been relocated to
+// `@holoscript/core/coordinators` (commit 7c5d54608). Consumers should
+// import GenerativeJobMonitor + the other 3 buses from there.
 // ═══════════════════════════════════════════════════════════════════
-
-export {
-  GenerativeJobMonitor,
-  type InpaintRequest,
-  type TextureGenRequest,
-  type ControlNetRequest,
-  type DiffusionRealtimeFrame,
-  type GenerativeJobProgress,
-  type GenerativeJobComplete,
-  type GenerativeJobError,
-  type GenerativeJobRecord,
-  type GenerativeJobStatus,
-  type GenerativeJobMonitorOptions,
-} from './GenerativeJobMonitor';
