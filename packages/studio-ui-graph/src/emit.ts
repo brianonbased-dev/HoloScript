@@ -11,7 +11,7 @@ export interface EmitMeta {
   studioRoot: string;
   pageCount: number;
   uniqueComponentCount: number;
-  source: 'studio-ui-graph v0.1';
+  source: string;
 }
 
 /**

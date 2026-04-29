@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/cli.ts', 'src/routes.ts', 'src/tree.ts', 'src/emit.ts'],
+  entry: ['src/cli.ts', 'src/routes.ts', 'src/tree.ts', 'src/emit.ts', 'src/mermaid.ts'],
   format: ['esm'],
   dts: true,
   sourcemap: true,

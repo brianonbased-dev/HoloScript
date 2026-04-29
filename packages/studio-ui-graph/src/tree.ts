@@ -26,7 +26,14 @@ export interface TreeBuilderOptions {
 const TS_EXTS = ['.tsx', '.ts', '.jsx', '.js'];
 
 export class TreeBuilder {
-  private project = new Project({ skipAddingFilesFromTsConfig: true, useInMemoryFileSystem: false });
+  // Explicit JSX support — without this, ts-morph defaults to jsx=None and
+  // silently fails to surface JSX descendants for some .tsx files (observed
+  // empty-tree result on packages/studio/src/app/coordinator/page.tsx).
+  private project = new Project({
+    skipAddingFilesFromTsConfig: true,
+    useInMemoryFileSystem: false,
+    compilerOptions: { jsx: 4 /* Preserve */, allowJs: true, target: 99 /* ESNext */ },
+  });
   private cache = new Map<string, ComponentNode>();
   private repoRoot: string;
   private aliases: Record<string, string>;
@@ -70,10 +77,9 @@ export class TreeBuilder {
     const apis = this.collectApis(sf);
     if (stores.length) root.stores = stores;
     if (apis.length) root.apis = apis;
-
     for (const ident of used) {
       const importInfo = importMap.get(ident);
-      if (!importInfo) continue; // built-in HTML or local-defined component — skip in v0.1
+      if (!importInfo) continue; // built-in HTML or local-defined component
       const childAbs = this.resolveImport(importInfo, abs);
       if (!childAbs || !TS_EXTS.some((e) => childAbs.endsWith(e))) continue;
       root.children.push(this.nodeForFile(childAbs, ident, depth + 1, next));
@@ -96,6 +102,7 @@ export class TreeBuilder {
 
   private collectImports(sf: SourceFile): Map<string, string> {
     const map = new Map<string, string>();
+    // Standard ESM imports — covers `import Foo from './X'` and `import { Foo } from './X'`.
     for (const imp of sf.getImportDeclarations()) {
       const spec = imp.getModuleSpecifierValue();
       const def = imp.getDefaultImport();
@@ -104,6 +111,20 @@ export class TreeBuilder {
         const local = named.getAliasNode()?.getText() ?? named.getName();
         map.set(local, spec);
       }
+    }
+    // v0.4: dynamic + React.lazy. Two shapes Next.js Studio uses heavily:
+    //   const Foo = dynamic(() => import('./X'))                // next/dynamic
+    //   const Foo = dynamic(() => import('./X'), { ssr: false })
+    //   const Foo = React.lazy(() => import('./X'))             // React.lazy
+    //   const Foo = lazy(() => import('./X'))                   // named lazy
+    // Without this, pages like /coordinator and /holomesh/dashboard look empty
+    // because their main panels are code-split and never appear in import decls.
+    const text = sf.getFullText();
+    const dynamicRegex = /(?:const|let|var)\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(?:React\.)?(?:dynamic|lazy)\s*\(\s*(?:\(\)\s*=>\s*)?import\s*\(\s*['"`]([^'"`]+)['"`]/g;
+    let m: RegExpExecArray | null;
+    while ((m = dynamicRegex.exec(text)) !== null) {
+      const [, local, spec] = m;
+      if (!map.has(local)) map.set(local, spec);
     }
     return map;
   }
@@ -203,8 +224,12 @@ export class TreeBuilder {
     } else {
       target = resolve(dirname(fromAbs), spec);
     }
-    // Try direct + extension variants + index files
-    for (const ext of ['', ...TS_EXTS]) {
+    // Try direct + extension variants. Skip the bare-target check first if
+    // it's a directory — otherwise we return the dir path and downstream
+    // filters drop it (existsSync('.../coordinator-panels') = true because
+    // it's a folder, but the caller wants a TS file). Try index files in
+    // that case.
+    for (const ext of TS_EXTS) {
       const candidate = target + ext;
       if (existsSync(candidate)) return candidate;
     }
@@ -212,6 +237,8 @@ export class TreeBuilder {
       const candidate = join(target, 'index' + ext);
       if (existsSync(candidate)) return candidate;
     }
+    // Last resort: bare path with no extension (handles direct .ts spec).
+    if (existsSync(target) && TS_EXTS.some((e) => target.endsWith(e))) return target;
     return undefined;
   }
 
