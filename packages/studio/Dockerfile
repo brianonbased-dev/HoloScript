@@ -92,7 +92,14 @@ RUN cd packages/crdt-spatial && npx tsup --no-dts || true
 RUN cd packages/agent-protocol && npx tsup --no-dts
 # core-types must build before core so that ../core-types/dist/ans.js exists
 # when webpack walks core's compiled chunks during studio's `pnpm run build`.
-RUN cd packages/core-types && npx tsup --no-dts
+# DTS emission required (NOT --no-dts): studio's tsc step traverses imports
+# from core/dist/chunk-*.js into '@holoscript/core-types/ans' and needs the
+# .d.ts to resolve the type. Without dts the build fails with
+# "implicitly has 'any' type — Try ... add a new declaration (.d.ts) file".
+# Verified 2026-04-29 deploy e72c8439 — same root cause as the BrowserQuiltRenderer
+# fix that landed earlier this session: stale Dockerfile assumption that JS-only
+# builds suffice for downstream type resolution. ~20s with dts vs ~3s without.
+RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
 RUN cd packages/framework && npx tsup --no-dts
