@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@holoscript/studio", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "studio-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@holoscript/studio-api", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "absorb-service",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@holoscript/absorb-service", "dev"],
+      "port": 3002
+    }
+  ]
+}
