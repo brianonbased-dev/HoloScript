@@ -194,7 +194,12 @@ async function runAbsorbPhase(
   };
 
   try {
-    const absorbUrl = process.env.ABSORB_SERVICE_URL || 'http://localhost:8081';
+    // Same NODE_ENV-aware pattern as the other Studio→absorb proxies. The 'localhost:8081'
+    // legacy default is replaced because the absorb-service standardized on port 3000.
+    const absorbUrl =
+      process.env.ABSORB_SERVICE_INTERNAL_URL ||
+      process.env.ABSORB_SERVICE_URL ||
+      (process.env.NODE_ENV === 'production' ? 'https://absorb.holoscript.net' : 'http://localhost:3000');
     
     // Delegate codebase scanning to the headless absorb-service
     const res = await fetch(`${absorbUrl}/scan`, {

@@ -8,7 +8,12 @@
 import { NextRequest } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 
-const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
+// Resolve order: in-cluster internal URL > explicit public URL > NODE_ENV-aware fallback.
+// See app/api/admin/[[...path]]/route.ts for the rationale on the production default.
+const ABSORB_SERVICE_URL =
+  process.env.ABSORB_SERVICE_INTERNAL_URL ||
+  process.env.ABSORB_SERVICE_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://absorb.holoscript.net' : 'http://localhost:3000');
 
 export async function POST(req: NextRequest) {
   try {

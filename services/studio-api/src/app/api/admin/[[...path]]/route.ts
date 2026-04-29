@@ -9,7 +9,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 
-const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
+// Resolve order: in-cluster internal URL > explicit public URL > NODE_ENV-aware fallback.
+// Production falls back to the deployed absorb-service so missing env vars don't silently
+// route admin traffic at localhost (which doesn't exist on Railway containers). Dev still
+// defaults to localhost:3000 so a local `pnpm --filter @holoscript/absorb-service start`
+// keeps working without ceremony.
+const ABSORB_SERVICE_URL =
+  process.env.ABSORB_SERVICE_INTERNAL_URL ||
+  process.env.ABSORB_SERVICE_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://absorb.holoscript.net' : 'http://localhost:3000');
 
 function buildUpstreamUrl(req: NextRequest): string {
   // Extract the path segments after /api/admin/
