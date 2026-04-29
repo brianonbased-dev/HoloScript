@@ -1411,8 +1411,6 @@ export class HoloCompositionParser {
       let config: Record<string, HoloValue> = {};
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
-      } else if (this.check('LBRACE')) {
-        config = this.parseBlockTraitConfig();
       }
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -1498,6 +1496,7 @@ export class HoloCompositionParser {
 
     this.expect('COMPOSITION');
     const name = this.expectString();
+    this.skipNewlines();
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -1915,6 +1914,7 @@ export class HoloCompositionParser {
   private parseEnvironment(): HoloEnvironment {
       const startLoc = this.currentLocation();
     this.expect('ENVIRONMENT');
+    this.skipNewlines();
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -2586,6 +2586,7 @@ export class HoloCompositionParser {
       const startLoc = this.currentLocation();
     this.expect('TEMPLATE');
     const name = this.expectString();
+    this.skipNewlines();
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -2791,12 +2792,11 @@ export class HoloCompositionParser {
       let config: Record<string, HoloValue> = {};
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
-      } else if (this.check('LBRACE')) {
-        config = this.parseBlockTraitConfig();
       }
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
 
+    this.skipNewlines();
     this.expect('LBRACE');
     this.skipNewlines();
 
