@@ -202,3 +202,25 @@ export {
   createMeshletGenerator,
   generateMeshlets,
 } from './MeshletGenerator';
+
+// ============================================================================
+// Meshlet LOD Hierarchy Builder (Nanite-style DAG)
+// ============================================================================
+
+export {
+  // Types
+  type HierarchicalMeshlet,
+  type MeshletLODLevel,
+  type MeshletHierarchyResult,
+  type MeshletHierarchyOptions,
+
+  // Constants
+  DEFAULT_HIERARCHY_OPTIONS,
+
+  // Builder class
+  MeshletLODBuilder,
+
+  // Factory functions
+  createMeshletLODBuilder,
+  buildMeshletHierarchy,
+} from './MeshletLODBuilder';
