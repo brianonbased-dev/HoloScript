@@ -140,7 +140,7 @@
       "socket.io-parser": ">=4.2.6",
       "@modelcontextprotocol/sdk": "^1.27.1",
       "tree-sitter": "^0.22.4",
-      "path-to-regexp": "0.1.13",
+      "path-to-regexp@<1": "0.1.13",
       "esbuild": "^0.27.3",
       "nanoid": ">=5.0.9",
       "bn.js": ">=4.12.3",
