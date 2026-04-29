@@ -5,7 +5,10 @@
  * lighting cue integration, and show timing management.
  */
 
-export type Vec2 = [number, number];
+export interface Vec2 {
+  x: number;
+  y: number;
+}
 
 export type WalkStyle = 'standard' | 'editorial' | 'casual' | 'dramatic' | 'avant-garde';
 export type GarmentType =
@@ -72,12 +75,12 @@ export interface ShowSegment {
 
 export function pathLength(waypoints: Vec2[]): number {
   let total = 0;
-  for (let i = 1; i < waypoints.length; i++) {
-    const dx = waypoints[i][0] - waypoints[i - 1][0];
-    const dy = waypoints[i][1] - waypoints[i - 1][1];
-    total += Math.sqrt(dx * dx + dy * dy);
-  }
-  return total;
+   for (let i = 1; i < waypoints.length; i++) {
+      const dx = waypoints[i].x - waypoints[i - 1].x;
+      const dy = waypoints[i].y - waypoints[i - 1].y;
+      total += Math.sqrt(dx * dx + dy * dy);
+   }
+   return total;
 }
 
 export function walkDuration(path: RunwayPath, model: ModelProfile): number {
@@ -90,23 +93,25 @@ export function modelPositionAtTime(
   path: RunwayPath,
   model: ModelProfile,
   elapsedSec: number
-): Vec2 {
-  const distanceTraveled = elapsedSec * model.walkSpeedMPS;
-  let accumulated = 0;
-  for (let i = 1; i < path.waypoints.length; i++) {
-    const dx = path.waypoints[i][0] - path.waypoints[i - 1][0];
-    const dy = path.waypoints[i][1] - path.waypoints[i - 1][1];
+   ): Vec2 {
+   const distanceTraveled = elapsedSec * model.walkSpeedMPS;
+   let accumulated = 0;
+   for (let i = 1; i < path.waypoints.length; i++) {
+      const dx = path.waypoints[i].x - path.waypoints[i - 1].x;
+      const dy = path.waypoints[i].y - path.waypoints[i - 1].y;
     const segLen = Math.sqrt(dx * dx + dy * dy);
     if (accumulated + segLen >= distanceTraveled) {
       const frac = (distanceTraveled - accumulated) / segLen;
-      return [
-        path.waypoints[i - 1][0] + dx * frac,
-        path.waypoints[i - 1][1] + dy * frac,
-      ];
+        return {
+          x: path.waypoints[i - 1].x + dx * frac,
+          y: path.waypoints[i - 1].y + dy * frac,
+        };
     }
     accumulated += segLen;
   }
-  return path.waypoints[path.waypoints.length - 1]; // End of path
+  // End of path
+  const lastWaypoint = path.waypoints[path.waypoints.length - 1];
+  return { x: lastWaypoint.x, y: lastWaypoint.y };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -193,8 +198,9 @@ export function clothSimSnapshot(
     grid[r] = [];
     for (let c = 0; c < gridW; c++) {
       grid[r][c] = {
-        position: [c * 0.1, r * 0.1],
-        velocity: [0, 0],
+        x: c * 0.1, y: r * 0.1,
+        position: { x: c * 0.1, y: r * 0.1 },
+        velocity: { x: 0, y: 0 },
         pinned: r === 0,
       };
     }
@@ -205,9 +211,11 @@ export function clothSimSnapshot(
     for (const row of grid) {
       for (const p of row) {
         if (p.pinned) continue;
-        p.velocity[1] += gravity * dt;
-        p.position[0] += p.velocity[0] * dt;
-        p.position[1] += p.velocity[1] * dt;
+        p.velocity.y += gravity * dt;
+        p.position.x += p.velocity.x * dt;
+        p.position.y += p.velocity.y * dt;
+        p.x = p.position.x;
+        p.y = p.position.y;
       }
     }
     // Spring constraints (horizontal + vertical neighbors)
@@ -219,20 +227,24 @@ export function clothSimSnapshot(
         if (c + 1 < gridW) neighbors.push(grid[r][c + 1]);
         if (r + 1 < gridH) neighbors.push(grid[r + 1][c]);
         for (const n of neighbors) {
-          const dx = n.position[0] - p.position[0];
-          const dy = n.position[1] - p.position[1];
+          const dx = n.position.x - p.position.x;
+          const dy = n.position.y - p.position.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 0.0001) continue;
           const diff = (dist - restLen) * stiffness;
           const nx = dx / dist,
             ny = dy / dist;
           if (!p.pinned) {
-            p.position[0] += nx * diff * 0.5;
-            p.position[1] += ny * diff * 0.5;
+            p.position.x += nx * diff * 0.5;
+            p.position.y += ny * diff * 0.5;
+            p.x = p.position.x;
+            p.y = p.position.y;
           }
           if (!n.pinned) {
-            n.position[0] -= nx * diff * 0.5;
-            n.position[1] -= ny * diff * 0.5;
+            n.position.x -= nx * diff * 0.5;
+            n.position.y -= ny * diff * 0.5;
+            n.x = n.position.x;
+            n.y = n.position.y;
           }
         }
       }
@@ -246,7 +258,8 @@ export function clothSimSnapshot(
 // ═══════════════════════════════════════════════════════════════════
 
 export interface HeatmapCell {
-  position: Vec2; // [x, y]
+  x: number;
+  y: number;
   intensity: number;
 }
 
@@ -272,13 +285,22 @@ export function audienceHeatmap(
       const cy = (gj + 0.5) * cellH;
       let intensity = 0;
       for (const model of modelPositions) {
-        const dx = cx - model[0];
-        const dy = cy - model[1];
+        const dx = cx - model.x;
+        const dy = cy - model.y;
         const dist2 = dx * dx + dy * dy + 0.01; // Epsilon to avoid division by zero
         intensity += 1 / dist2;
       }
-      cells.push({ position: [cx, cy], intensity });
+      cells.push({ position: { x: cx, y: cy }, intensity });
+      cells.pop();
+      cells.push({ x: cx, y: cy, intensity });
     }
   }
   return cells;
+}
+
+// Re-export for convenience
+export interface HeatmapCell2 {
+  x: number;
+  y: number;
+  intensity: number;
 }
