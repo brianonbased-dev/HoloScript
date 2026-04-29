@@ -69,7 +69,7 @@ import {
   createMQTTClient,
   getMQTTClient,
   registerMQTTClient,
-} from '../../runtime/protocols/MQTTClient';
+} from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
