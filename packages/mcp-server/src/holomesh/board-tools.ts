@@ -77,7 +77,7 @@ export const boardTools: Tool[] = [
               },
               description: {
                 type: 'string',
-                description: 'Task description (max 1000 chars)',
+                description: 'Task description (max 2000 chars; longer values are truncated and surface a description_truncated warning)',
               },
               priority: {
                 type: 'number',
