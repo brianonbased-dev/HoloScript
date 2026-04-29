@@ -14,6 +14,13 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Express 5 types req.params values as `string | string[]` (ParamsDictionary).
+// Drizzle's eq() and other consumers need a plain string. Same guard pattern as
+// commit b7b1c1683 applied to studio + llm-service. Centralized here so any
+// new param-using route can reuse it instead of inlining the cast.
+const paramOf = (v: string | string[] | undefined): string =>
+  Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
+
 // ─── Admin Guard ────────────────────────────────────────────────────────────
 
 function requireAdmin(req: Request, res: Response, next: NextFunction): void {
@@ -100,7 +107,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, req.params.id))
+      .where(eq(users.id, paramOf(req.params.id)))
       .limit(1);
 
     if (!user) {
@@ -283,7 +290,7 @@ router.post('/agents/:id/force-stop', async (req: Request, res: Response) => {
     const result = await db
       .update(moltbookAgents)
       .set({ heartbeatEnabled: false, updatedAt: new Date() })
-      .where(eq(moltbookAgents.id, req.params.id))
+      .where(eq(moltbookAgents.id, paramOf(req.params.id)))
       .returning();
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -292,11 +299,11 @@ router.post('/agents/:id/force-stop', async (req: Request, res: Response) => {
     }
 
     const admin = (req as AuthenticatedRequest).githubUsername || 'admin';
-    console.log(`[admin] Force-stopped agent ${req.params.id} by ${admin}`);
+    console.log(`[admin] Force-stopped agent ${paramOf(req.params.id)} by ${admin}`);
 
     res.json({
       forceStopped: true,
-      agentId: req.params.id,
+      agentId: paramOf(req.params.id),
       agentName: result[0].agentName,
       stoppedBy: admin,
     });

@@ -35,7 +35,7 @@ const CreateProjectSchema = z.object({
   sourceType: z.enum(['github', 'local', 'upload', 'url']),
   sourceUrl: z.string().optional(),
   localPath: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // POST /scan — Scan a codebase
@@ -149,7 +149,7 @@ router.post('/scan', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[absorb/scan] Error:', error.message);
@@ -214,7 +214,7 @@ router.post('/query', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[absorb/query] Error:', error.message);
@@ -284,7 +284,7 @@ router.post('/projects', async (req: Request, res: Response) => {
     res.status(201).json({ project });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[absorb/projects] Error:', error.message);

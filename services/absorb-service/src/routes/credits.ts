@@ -100,7 +100,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[credits/purchase] Error:', error.message);

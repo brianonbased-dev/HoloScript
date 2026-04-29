@@ -6,6 +6,13 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Express 5 types req.params values as `string | string[]` (ParamsDictionary).
+// Drizzle's eq() and downstream consumers need plain `string`. Same guard
+// pattern as commit b7b1c1683 (studio + llm-service). Used everywhere
+// paramOf(req.params.id) is read in this file.
+const paramOf = (v: string | string[] | undefined): string =>
+  Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
+
 // ─── Validation Schemas ─────────────────────────────────────────────────────
 
 const CreateAgentSchema = z.object({
@@ -182,7 +189,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[moltbook] Create error:', error.message);
@@ -212,7 +219,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     const result = await db
       .update(moltbookAgents)
       .set(updates)
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .returning();
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -222,12 +229,12 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
     const agent = result[0];
 
-    logAgentEvent(req.params.id, 'config_updated', { fields: Object.keys(body).filter((k) => k !== 'config') });
+    logAgentEvent(paramOf(req.params.id), 'config_updated', { fields: Object.keys(body).filter((k) => k !== 'config') });
 
     res.json({ agent: { ...agent, moltbookApiKey: maskApiKey(agent.moltbookApiKey) } });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[moltbook] Update error:', error.message);
@@ -250,7 +257,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     const result = await db
       .delete(moltbookAgents)
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .returning();
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -258,7 +265,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ deleted: true, id: req.params.id });
+    res.json({ deleted: true, id: paramOf(req.params.id) });
   } catch (error: any) {
     console.error('[moltbook] Delete error:', error.message);
     res.status(500).json({ error: 'Failed to delete agent', message: error.message });
@@ -315,7 +322,7 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation error', details: error.errors });
+      res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
     console.error('[moltbook] Semantic dedup error:', error.message);
@@ -343,7 +350,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
     const result = await db
       .update(moltbookAgents)
       .set({ heartbeatEnabled: true, updatedAt: new Date() })
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .returning();
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -351,7 +358,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
       return;
     }
 
-    logAgentEvent(req.params.id, 'started', { agentName: result[0].agentName });
+    logAgentEvent(paramOf(req.params.id), 'started', { agentName: result[0].agentName });
 
     res.json({ started: true, agent: { ...result[0], moltbookApiKey: maskApiKey(result[0].moltbookApiKey) } });
   } catch (error: any) {
@@ -376,7 +383,7 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
     const result = await db
       .update(moltbookAgents)
       .set({ heartbeatEnabled: false, updatedAt: new Date() })
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .returning();
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -384,7 +391,7 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
       return;
     }
 
-    logAgentEvent(req.params.id, 'stopped', { agentName: result[0].agentName });
+    logAgentEvent(paramOf(req.params.id), 'stopped', { agentName: result[0].agentName });
 
     res.json({ stopped: true, agent: { ...result[0], moltbookApiKey: maskApiKey(result[0].moltbookApiKey) } });
   } catch (error: any) {
@@ -410,7 +417,7 @@ router.post('/:id/trigger', async (req: Request, res: Response) => {
     const [agent] = await db
       .select()
       .from(moltbookAgents)
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .limit(1);
 
     if (!agent) {
@@ -422,13 +429,13 @@ router.post('/:id/trigger', async (req: Request, res: Response) => {
     await db
       .update(moltbookAgents)
       .set({ lastHeartbeat: new Date(), updatedAt: new Date() })
-      .where(eq(moltbookAgents.id, req.params.id));
+      .where(eq(moltbookAgents.id, paramOf(req.params.id)));
 
-    logAgentEvent(req.params.id, 'triggered', { agentName: agent.agentName });
+    logAgentEvent(paramOf(req.params.id), 'triggered', { agentName: agent.agentName });
 
     res.json({
       triggered: true,
-      agentId: req.params.id,
+      agentId: paramOf(req.params.id),
       agentName: agent.agentName,
       timestamp: new Date().toISOString(),
     });
@@ -454,7 +461,7 @@ router.get('/:id/status', async (req: Request, res: Response) => {
     const [agent] = await db
       .select()
       .from(moltbookAgents)
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .limit(1);
 
     if (!agent) {
@@ -504,7 +511,7 @@ router.get('/:id/events', async (req: Request, res: Response) => {
     const [agent] = await db
       .select({ id: moltbookAgents.id })
       .from(moltbookAgents)
-      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .where(and(eq(moltbookAgents.id, paramOf(req.params.id)), eq(moltbookAgents.userId, userId)))
       .limit(1);
 
     if (!agent) {
@@ -517,7 +524,7 @@ router.get('/:id/events', async (req: Request, res: Response) => {
     const events = await db
       .select()
       .from(moltbookAgentEvents)
-      .where(eq(moltbookAgentEvents.agentId, req.params.id))
+      .where(eq(moltbookAgentEvents.agentId, paramOf(req.params.id)))
       .orderBy(desc(moltbookAgentEvents.createdAt))
       .limit(limit);
 
