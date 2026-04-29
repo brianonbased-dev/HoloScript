@@ -141,7 +141,7 @@ describe('TensorOpTrait', () => {
 });
 
 describe('OnnxRuntimeTrait', () => {
-  it('should load and run model', () => {
+  it('should load and run model', async () => {
     const n = createMockNode('o');
     const c = createMockContext();
     attachTrait(onnxRuntimeHandler, n, { execution_provider: 'cpu' }, c);
@@ -149,11 +149,15 @@ describe('OnnxRuntimeTrait', () => {
       type: 'onnx:load',
       modelId: 'm1',
     });
+    const state = (n as any).__onnxState;
+    await state.loadPromises.get('m1');
     expect((getLastEvent(c, 'onnx:loaded') as any).provider).toBe('cpu');
     sendEvent(onnxRuntimeHandler, n, { execution_provider: 'cpu' }, c, {
       type: 'onnx:run',
       modelId: 'm1',
+      inputs: { x: { data: new Float32Array([1]), shape: [1] } },
     });
+    for (let i = 0; i < 6; i++) await Promise.resolve();
     expect((getLastEvent(c, 'onnx:output') as any).inferences).toBe(1);
   });
 });

@@ -145,7 +145,7 @@ describe('StreamTrait', () => {
     });
     expect(getEventCount(ctx, 'stream:message')).toBe(1);
     const msg = getLastEvent(ctx, 'stream:message') as any;
-    expect(msg.data[0]).toBe(1);
+    expect(msg.data.x).toBe(1);
     expect(msg.sequence).toBe(1);
   });
 

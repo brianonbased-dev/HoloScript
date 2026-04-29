@@ -23,14 +23,14 @@ import {
   canPublishPackages,
   canManageSecrets,
   type WorkspaceRole,
-} from '@holoscript/platform';
+} from '../../../registry/src/types';
 
 // â”€â”€ WorkspaceService â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
   WorkspaceService,
   WorkspaceServiceError,
-} from '@holoscript/platform';
-import { WorkspaceRepository } from '@holoscript/platform';
+} from '../../../registry/src/workspace/WorkspaceService';
+import { WorkspaceRepository } from '../../../registry/src/workspace/WorkspaceRepository';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Path constants

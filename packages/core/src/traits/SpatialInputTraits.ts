@@ -193,15 +193,35 @@ function smoothJointPose(
   prev: SpatialHandJointPose,
   factor: number
 ): SpatialHandJointPose {
+  const v3 = (v: unknown): [number, number, number] => {
+    if (Array.isArray(v)) {
+      return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
+    }
+    const o = v as { x?: number; y?: number; z?: number };
+    return [Number(o?.x) || 0, Number(o?.y) || 0, Number(o?.z) || 0];
+  };
+  const q4 = (q: unknown): [number, number, number, number] => {
+    if (Array.isArray(q)) {
+      return [Number(q[0]) || 0, Number(q[1]) || 0, Number(q[2]) || 0, Number(q[3]) || 1];
+    }
+    const o = q as { x?: number; y?: number; z?: number; w?: number };
+    return [Number(o?.x) || 0, Number(o?.y) || 0, Number(o?.z) || 0, Number(o?.w) || 1];
+  };
+
+  const [px, py, pz] = v3(prev.position as unknown);
+  const [cx, cy, cz] = v3(current.position as unknown);
+  const [prx, pry, prz, prw] = q4(prev.rotation as unknown);
+  const [crx, cry, crz, crw] = q4(current.rotation as unknown);
+
   const inv = 1 - factor;
   return {
-    position: [prev.position[0] * factor + current.position[0] * inv, prev.position[1] * factor + current.position[1] * inv, prev.position[2] * factor + current.position[2] * inv,],
-    rotation: {
-      x: prev.rotation[0] * factor + current.rotation[0] * inv,
-      y: prev.rotation[1] * factor + current.rotation[1] * inv,
-      z: prev.rotation[2] * factor + current.rotation[2] * inv,
-      w: prev.rotation[3] * factor + current.rotation[3] * inv,
-    },
+    position: [px * factor + cx * inv, py * factor + cy * inv, pz * factor + cz * inv] as unknown as Vec3,
+    rotation: [
+      prx * factor + crx * inv,
+      pry * factor + cry * inv,
+      prz * factor + crz * inv,
+      prw * factor + crw * inv,
+    ] as unknown as Quat,
     radius: current.radius,
     linearVelocity: current.linearVelocity,
   };

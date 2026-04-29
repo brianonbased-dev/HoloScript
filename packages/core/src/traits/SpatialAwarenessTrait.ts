@@ -42,7 +42,7 @@ export interface SpatialAwarenessTraitConfig extends SpatialAwarenessConfig {
  */
 export const DEFAULT_TRAIT_CONFIG: SpatialAwarenessTraitConfig = {
   ...DEFAULT_SPATIAL_CONFIG,
-  initialPosition: [0, 0, 0 ],
+  initialPosition: [0, 0, 0] as [number, number, number],
   autoStart: true,
 };
 
@@ -102,7 +102,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
   private provider: SpatialContextProvider;
   private ownsProvider: boolean = false;
   private position: Vector3;
-  private velocity: Vector3 = [0, 0, 0 ];
+  private velocity: Vector3 = [0, 0, 0];
   private isActive: boolean = false;
   private lastContext: SpatialContext | null = null;
 
@@ -113,7 +113,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
     super();
     this.id = id;
     this.config = { ...DEFAULT_TRAIT_CONFIG, ...config };
-    this.position = this.config.initialPosition || [0, 0, 0 ];
+    this.position = this.config.initialPosition || [0, 0, 0];
 
     // Use shared provider or create own
     if (this.config.sharedProvider) {
@@ -183,7 +183,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Get current position
    */
   getPosition(): Vector3 {
-    return [...this.position] as Vector3;
+    return [this.position[0], this.position[1], this.position[2]];
   }
 
   /**
@@ -200,7 +200,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Get current velocity
    */
   getVelocity(): Vector3 {
-    return [...this.velocity] as Vector3;
+    return [this.velocity[0], this.velocity[1], this.velocity[2]];
   }
 
   /**
@@ -217,11 +217,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Move by delta
    */
   move(delta: Vector3): void {
-    this.setPosition([
-      this.position[0] + delta[0],
-      this.position[1] + delta[1],
-      this.position[2] + delta[2],
-    ] as Vector3);
+    this.setPosition([this.position[0] + delta[0], this.position[1] + delta[1], this.position[2] + delta[2]]);
   }
 
   // ===========================================================================
