@@ -48,24 +48,24 @@ export const thermalSimulationHandler: TraitHandler<ThermalSimConfig> = {
       solver,
       isSimulating: solver !== null,
     };
-    (node as Record<string, unknown>).__thermalState = state;
+    (node as unknown as Record<string, unknown>).__thermalState = state;
     context.emit?.('thermal_simulation_create', { node, config, solver });
   },
   onUpdate(node, _config, _context, delta) {
-    const state = (node as Record<string, unknown>).__thermalState as
+    const state = (node as unknown as Record<string, unknown>).__thermalState as
       | ThermalState
       | undefined;
     if (!state?.isSimulating || !state.solver?.step) return;
     state.solver.step(delta / 1000);
   },
   onDetach(node) {
-    const state = (node as Record<string, unknown>).__thermalState as
+    const state = (node as unknown as Record<string, unknown>).__thermalState as
       | ThermalState
       | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }
-    delete (node as Record<string, unknown>).__thermalState;
+    delete (node as unknown as Record<string, unknown>).__thermalState;
   },
 };
 
@@ -93,7 +93,7 @@ export const structuralFEMHandler: TraitHandler<StructuralFEMConfig> = {
       (config ?? {}) as Record<string, unknown>
     );
     const state: StructuralState = { solver, isSolved: false };
-    (node as Record<string, unknown>).__structuralState = state;
+    (node as unknown as Record<string, unknown>).__structuralState = state;
 
     // Static analysis: solve immediately
     if (solver?.solve) {
@@ -104,7 +104,7 @@ export const structuralFEMHandler: TraitHandler<StructuralFEMConfig> = {
     context.emit?.('structural_fem_create', { node, config, solver });
   },
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as Record<string, unknown>).__structuralState as
+    const state = (node as unknown as Record<string, unknown>).__structuralState as
       | StructuralState
       | undefined;
     if (!state?.solver?.solve || state.isSolved) return;
@@ -112,13 +112,13 @@ export const structuralFEMHandler: TraitHandler<StructuralFEMConfig> = {
     state.isSolved = true;
   },
   onDetach(node) {
-    const state = (node as Record<string, unknown>).__structuralState as
+    const state = (node as unknown as Record<string, unknown>).__structuralState as
       | StructuralState
       | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }
-    delete (node as Record<string, unknown>).__structuralState;
+    delete (node as unknown as Record<string, unknown>).__structuralState;
   },
 };
 
@@ -149,7 +149,7 @@ export const hydraulicPipeHandler: TraitHandler<HydraulicPipeConfig> = {
       (config ?? {}) as Record<string, unknown>
     );
     const state: HydraulicState = { solver, isSolved: false };
-    (node as Record<string, unknown>).__hydraulicState = state;
+    (node as unknown as Record<string, unknown>).__hydraulicState = state;
 
     // Steady-state: solve immediately
     if (solver?.solve) {
@@ -160,7 +160,7 @@ export const hydraulicPipeHandler: TraitHandler<HydraulicPipeConfig> = {
     context.emit?.('hydraulic_pipe_create', { node, config, solver });
   },
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as Record<string, unknown>).__hydraulicState as
+    const state = (node as unknown as Record<string, unknown>).__hydraulicState as
       | HydraulicState
       | undefined;
     if (!state?.solver?.solve || state.isSolved) return;
@@ -168,13 +168,13 @@ export const hydraulicPipeHandler: TraitHandler<HydraulicPipeConfig> = {
     state.isSolved = true;
   },
   onDetach(node) {
-    const state = (node as Record<string, unknown>).__hydraulicState as
+    const state = (node as unknown as Record<string, unknown>).__hydraulicState as
       | HydraulicState
       | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }
-    delete (node as Record<string, unknown>).__hydraulicState;
+    delete (node as unknown as Record<string, unknown>).__hydraulicState;
   },
 };
 
@@ -191,7 +191,7 @@ export const saturationThermalHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_thermal',
   defaultConfig: { type: 'thermal', warning: 0.8, critical: 0.95, recovery: 0.7 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'thermal' });
   },
 };
@@ -200,7 +200,7 @@ export const saturationMoistureHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_moisture',
   defaultConfig: { type: 'moisture', warning: 0.7, critical: 0.9, recovery: 0.5 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'moisture' });
   },
 };
@@ -209,7 +209,7 @@ export const saturationPressureHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_pressure',
   defaultConfig: { type: 'pressure', warning: 0.85, critical: 0.95, recovery: 0.75 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'pressure' });
   },
 };
@@ -218,7 +218,7 @@ export const saturationElectricalHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_electrical',
   defaultConfig: { type: 'electrical', warning: 0.8, critical: 0.95, recovery: 0.7 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'electrical' });
   },
 };
@@ -227,7 +227,7 @@ export const saturationChemicalHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_chemical',
   defaultConfig: { type: 'chemical', warning: 0.75, critical: 0.9, recovery: 0.6 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'chemical' });
   },
 };
@@ -236,7 +236,7 @@ export const saturationStructuralHandler: TraitHandler<SaturationConfig> = {
   name: 'saturation_structural',
   defaultConfig: { type: 'structural', warning: 0.7, critical: 0.9, recovery: 0.5 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__saturationConfig = config;
+    (node as unknown as Record<string, unknown>).__saturationConfig = config;
     context.emit?.('saturation_create', { node, config, type: 'structural' });
   },
 };
@@ -259,7 +259,7 @@ export const phaseTransitionHandler: TraitHandler<PhaseTransitionConfig> = {
     to_phase: 'gas',
   },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__phaseTransitionConfig = config;
+    (node as unknown as Record<string, unknown>).__phaseTransitionConfig = config;
     context.emit?.('phase_transition_create', { node, config });
   },
 };
@@ -270,7 +270,7 @@ export const thresholdWarningHandler: TraitHandler<{ level?: number }> = {
   name: 'threshold_warning',
   defaultConfig: { level: 0.8 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__thresholdWarning = config;
+    (node as unknown as Record<string, unknown>).__thresholdWarning = config;
     context.emit?.('threshold_configure', { node, type: 'warning', ...config });
   },
 };
@@ -279,7 +279,7 @@ export const thresholdCriticalHandler: TraitHandler<{ level?: number }> = {
   name: 'threshold_critical',
   defaultConfig: { level: 0.95 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__thresholdCritical = config;
+    (node as unknown as Record<string, unknown>).__thresholdCritical = config;
     context.emit?.('threshold_configure', { node, type: 'critical', ...config });
   },
 };
@@ -288,7 +288,7 @@ export const thresholdRecoveryHandler: TraitHandler<{ level?: number }> = {
   name: 'threshold_recovery',
   defaultConfig: { level: 0.7 },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__thresholdRecovery = config;
+    (node as unknown as Record<string, unknown>).__thresholdRecovery = config;
     context.emit?.('threshold_configure', { node, type: 'recovery', ...config });
   },
 };
@@ -313,11 +313,11 @@ export const scalarFieldOverlayHandler: TraitHandler<ScalarFieldOverlayConfig> =
     visible: true,
   },
   onAttach(node, config, context) {
-    (node as Record<string, unknown>).__scalarFieldOverlay = config;
+    (node as unknown as Record<string, unknown>).__scalarFieldOverlay = config;
     context.emit?.('scalar_field_overlay_create', { node, config });
   },
   onUpdate(node, config, _context, _delta) {
     // The overlay renderer reads __scalarFieldOverlay config each frame
-    (node as Record<string, unknown>).__scalarFieldOverlay = config;
+    (node as unknown as Record<string, unknown>).__scalarFieldOverlay = config;
   },
 };
