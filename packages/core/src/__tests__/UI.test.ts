@@ -64,8 +64,8 @@ describe('Cycle 117: UI Framework', () => {
 
     engine.compute(parent, 200, 200);
 
-    expect(child1.result[1]).toBe(0);
-    expect(child2.result[1]).toBe(60); // 50 + 10 gap
+    expect(child1.result.y).toBe(0);
+    expect(child2.result.y).toBe(60); // 50 + 10 gap
   });
 
   it('should distribute space via flexGrow', () => {
@@ -95,7 +95,7 @@ describe('Cycle 117: UI Framework', () => {
     engine.addChild(parent, child);
 
     engine.compute(parent, 200, 200);
-    expect(child.result[0]).toBeCloseTo(60, 0); // (200-80)/2
+    expect(child.result.x).toBeCloseTo(60, 0); // (200-80)/2
   });
 
   // -------------------------------------------------------------------------

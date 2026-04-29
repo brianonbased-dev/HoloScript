@@ -460,15 +460,15 @@ describe('Feature 9: TileMap', () => {
   it('worldToTile converts correctly', () => {
     const tm = new TileMap(10, 10, 16);
     const tile = tm.worldToTile(32, 48);
-    expect(tile[0]).toBe(2);
-    expect(tile[1]).toBe(3);
+    expect(tile.x).toBe(2);
+    expect(tile.y).toBe(3);
   });
 
   it('tileToWorld converts correctly', () => {
     const tm = new TileMap(10, 10, 16);
     const world = tm.tileToWorld(2, 3);
-    expect(world[0]).toBe(32);
-    expect(world[1]).toBe(48);
+    expect(world.x).toBe(32);
+    expect(world.y).toBe(48);
   });
 
   it('getWidth and getHeight return dimensions', () => {

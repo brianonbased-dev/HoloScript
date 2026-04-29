@@ -66,14 +66,14 @@ describe('CRDTStateManager — reconcile', () => {
     // Construct a stale op with lower clock
     const staleOp = { clientId: 'c2', clock: 0, key: 'x', value: 99 };
     expect(crdt.reconcile(staleOp)).toBe(false);
-    expect(crdt.getSnapshot()[0]).toBe(42);
+    expect(crdt.getSnapshot().x).toBe(42);
   });
 
   it('reconcile applies higher-clock op', () => {
     const crdt = new CRDTStateManager('c1');
     crdt.reconcile({ clientId: 'c1', clock: 1, key: 'y', value: 'old' });
     crdt.reconcile({ clientId: 'c2', clock: 5, key: 'y', value: 'new' });
-    expect(crdt.getSnapshot()[1]).toBe('new');
+    expect(crdt.getSnapshot().y).toBe('new');
   });
 
   it('tie-break: higher clientId string wins on equal clock', () => {

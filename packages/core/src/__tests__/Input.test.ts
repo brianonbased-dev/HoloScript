@@ -25,10 +25,10 @@ describe('Cycle 116: Input System', () => {
   it('should track mouse position and buttons', () => {
     const input = new InputManager();
     input.setMousePosition(100, 200);
-    expect(input.getMousePosition()).toEqual({ x: 100, y: 200 });
+    expect(input.getMousePosition()).toMatchObject({ x: 100, y: 200 });
 
     input.setMousePosition(110, 205);
-    expect(input.getMouseDelta()).toEqual({ x: 10, y: 5 });
+    expect(input.getMouseDelta()).toMatchObject({ x: 10, y: 5 });
 
     input.mouseButtonDown(0);
     expect(input.isMouseButtonPressed(0)).toBe(true);

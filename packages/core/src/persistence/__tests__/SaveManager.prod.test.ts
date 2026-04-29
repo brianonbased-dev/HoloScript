@@ -26,8 +26,8 @@ describe('SaveManager — Production', () => {
     it('deep copies data on save', () => {
       const original = { x: 1 };
       mgr.save('s', 'S', original);
-      original[0] = 999;
-      expect(mgr.load('s')[0]).toBe(1);
+      original.x = 999;
+      expect(mgr.load('s')?.x).toBe(1);
     });
 
     it('returns null for missing slot', () => {

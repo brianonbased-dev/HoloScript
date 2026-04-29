@@ -36,9 +36,9 @@ describe('InputManager', () => {
 
   it('tracks mouse position and delta', () => {
     im.setMousePosition(100, 200);
-    expect(im.getMousePosition()).toEqual({ x: 100, y: 200 });
+    expect(im.getMousePosition()).toMatchObject({ x: 100, y: 200 });
     im.setMousePosition(110, 210);
-    expect(im.getMouseDelta()).toEqual({ x: 10, y: 10 });
+    expect(im.getMouseDelta()).toMatchObject({ x: 10, y: 10 });
   });
 
   it('tracks mouse buttons', () => {

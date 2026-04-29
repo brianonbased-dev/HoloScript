@@ -58,7 +58,7 @@ describe('UIDataBinding', () => {
 
     it('stores objects', () => {
       db.set('pos', { x: 1, y: 2 });
-      expect(db.get<{ x: number }>('pos')[0]).toBe(1);
+      expect(db.get<{ x: number }>('pos')?.x).toBe(1);
     });
   });
 

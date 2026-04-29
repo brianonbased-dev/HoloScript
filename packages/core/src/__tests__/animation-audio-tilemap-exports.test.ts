@@ -205,11 +205,11 @@ describe('TileMap exports', () => {
   it('TileMap world/tile coordinate conversion', () => {
     const tm = new TileMap(10, 10, 32);
     const tc = tm.worldToTile(100, 64);
-    expect(tc[0]).toBe(3);
-    expect(tc[1]).toBe(2);
+    expect(tc.x).toBe(3);
+    expect(tc.y).toBe(2);
     const wc = tm.tileToWorld(3, 2);
-    expect(wc[0]).toBe(96);
-    expect(wc[1]).toBe(64);
+    expect(wc.x).toBe(96);
+    expect(wc.y).toBe(64);
   });
 
   it('TileMap auto-tiling applies rules', () => {

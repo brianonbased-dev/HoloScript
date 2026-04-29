@@ -59,8 +59,8 @@ describe('UILayoutEngine — Production', () => {
       engine.addChild(root, c2);
 
       engine.compute(root, 400, 400);
-      expect(c1.result[1]).toBe(0);
-      expect(c2.result[1]).toBe(50); // after c1
+      expect(c1.result.y).toBe(0);
+      expect(c2.result.y).toBe(50); // after c1
     });
   });
 
@@ -73,8 +73,8 @@ describe('UILayoutEngine — Production', () => {
       engine.addChild(root, c2);
 
       engine.compute(root, 800, 600);
-      expect(c1.result[0]).toBe(0);
-      expect(c2.result[0]).toBe(100);
+      expect(c1.result.x).toBe(0);
+      expect(c2.result.x).toBe(100);
     });
   });
 
@@ -87,7 +87,7 @@ describe('UILayoutEngine — Production', () => {
       engine.addChild(root, c2);
 
       engine.compute(root, 400, 400);
-      expect(c2.result[1]).toBe(60); // 50 + 10 gap
+      expect(c2.result.y).toBe(60); // 50 + 10 gap
     });
   });
 
@@ -103,8 +103,8 @@ describe('UILayoutEngine — Production', () => {
       engine.addChild(root, c1);
 
       engine.compute(root, 400, 400);
-      expect(c1.result[0]).toBe(30);
-      expect(c1.result[1]).toBe(20);
+      expect(c1.result.x).toBe(30);
+      expect(c1.result.y).toBe(20);
     });
   });
 
@@ -120,7 +120,7 @@ describe('UILayoutEngine — Production', () => {
       engine.addChild(root, c1);
 
       engine.compute(root, 400, 400);
-      expect(c1.result[1]).toBe(75); // (200-50)/2
+      expect(c1.result.y).toBe(75); // (200-50)/2
     });
   });
 

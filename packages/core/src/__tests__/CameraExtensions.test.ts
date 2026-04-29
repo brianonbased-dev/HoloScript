@@ -40,8 +40,8 @@ describe('Cycle 165: Camera Extensions', () => {
     cam.setSmoothing(1); // instant
 
     const pos = cam.follow(150, -20);
-    expect(pos[0]).toBe(100);
-    expect(pos[1]).toBe(0);
+    expect(pos.x).toBe(100);
+    expect(pos.y).toBe(0);
   });
 
   it('should apply dead zone', () => {
@@ -52,8 +52,8 @@ describe('Cycle 165: Camera Extensions', () => {
 
     // Target inside dead zone — camera shouldn't move
     const pos = cam.follow(55, 55);
-    expect(pos[0]).toBe(50);
-    expect(pos[1]).toBe(50);
+    expect(pos.x).toBe(50);
+    expect(pos.y).toBe(50);
   });
 
   // -------------------------------------------------------------------------

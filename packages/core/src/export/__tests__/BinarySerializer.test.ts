@@ -211,9 +211,9 @@ describe('BinaryReader', () => {
       const reader = new BinaryReader(writer.getBuffer());
 
       const quat = reader.readQuaternion();
-      expect(quat[0]).toBe(0);
-      expect(quat[1]).toBeCloseTo(0.5);
-      expect(quat[2]).toBe(0);
+      expect(quat.x).toBe(0);
+      expect(quat.y).toBeCloseTo(0.5);
+      expect(quat.z).toBe(0);
       expect(quat.w).toBeCloseTo(0.866, 3);
     });
   });
