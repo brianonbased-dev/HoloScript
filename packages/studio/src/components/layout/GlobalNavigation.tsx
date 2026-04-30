@@ -15,6 +15,7 @@ import {
   Zap,
   BookOpen,
   Settings,
+  User,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -31,6 +32,7 @@ const coreItems: NavItem[] = [
   { label: 'Playground', href: '/playground', icon: ImagePlus, exact: true },
   { label: 'Create', href: '/create', icon: Wand2, exact: false },
   { label: 'Projects', href: '/projects', icon: FolderGit2, exact: false },
+  { label: 'Avatar', href: '/avatar', icon: User, exact: false },
 ];
 
 const ecosystemItems: NavItem[] = [

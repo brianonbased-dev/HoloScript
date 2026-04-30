@@ -246,7 +246,7 @@ export class LODGenerator {
   /**
    * Simplify mesh to target triangle count
    */
-  private simplifyMesh(
+  public simplifyMesh(
     mesh: MeshData,
     targetTriangles: number,
     algorithm: SimplificationAlgorithm

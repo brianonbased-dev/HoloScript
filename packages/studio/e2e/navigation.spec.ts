@@ -84,7 +84,7 @@ test.describe('Studio Navigation Smoke', () => {
     const nav = page.getByRole('navigation', { name: /Main navigation/i });
     await expect(nav).toBeVisible({ timeout: 10_000 });
 
-    const expectedLinks = ['Start', 'Vibe', 'Playground', 'Create', 'Projects', 'HoloMesh', 'Teams', 'Agents', 'Absorb', 'Learn'];
+    const expectedLinks = ['Start', 'Vibe', 'Playground', 'Create', 'Projects', 'Avatar', 'HoloMesh', 'Teams', 'Agents', 'Absorb', 'Learn'];
     for (const label of expectedLinks) {
       const link = nav.getByRole('link', { name: new RegExp(label, 'i') }).first();
       await expect(link, `Nav link "${label}" should be visible`).toBeVisible({ timeout: 5_000 });
