@@ -54,6 +54,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
       seed: 7,
       modelHash: 'integration-32x32',
       videoHash: 'fixture-gradient',
+      targetFPS: 10000, // disable throttling for deterministic integration tests
     });
 
     const step = await runtime.step(buildGradientFrame(0));
@@ -78,6 +79,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
       seed: 11,
       modelHash: 'integration-spread',
       videoHash: 'fixture-gradient',
+      targetFPS: 10000,
     });
 
     const step = await runtime.step(buildGradientFrame(0));
@@ -130,6 +132,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
       ...HOLOMAP_DEFAULTS,
       seed: 0,
       modelHash: 'integration-color',
+      targetFPS: 10000,
     });
 
     // All-red frame.
@@ -172,6 +175,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
         seed: 99,
         modelHash: 'integration-determinism',
         videoHash: 'fixture-gradient',
+        targetFPS: 10000,
       });
       const step = await rt.step(buildGradientFrame(3));
       await rt.dispose();
@@ -192,6 +196,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
       ...HOLOMAP_DEFAULTS,
       seed: 5,
       modelHash: 'integration-pose-centroid',
+      targetFPS: 10000,
     });
 
     const step = await runtime.step(buildGradientFrame(2));
@@ -224,6 +229,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
       seed: 1,
       modelHash: 'integration-finalize',
       videoHash: 'fixture-multi',
+      targetFPS: 10000,
     });
 
     const NSTEPS = 4;

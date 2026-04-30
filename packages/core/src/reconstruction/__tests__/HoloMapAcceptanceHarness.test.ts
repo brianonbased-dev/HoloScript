@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHoloMapRuntime, HOLOMAP_DEFAULTS, type ReconstructionFrame } from '../HoloMapRuntime';
 
+vi.mock('../holoMapWeightCache', () => ({
+  getCachedWeightBlob: vi.fn(() => Promise.resolve(undefined)),
+  putCachedWeightBlob: vi.fn(() => Promise.resolve()),
+}));
+
 type TimingStats = { p50: number; p99: number; samples: number[] };
 
 function buildFrame(index: number): ReconstructionFrame {
@@ -78,6 +83,7 @@ describe('HoloMap acceptance harness', () => {
         videoHash: 'acceptance-video-fixture',
         weightCid,
         weightUrl: 'https://example.invalid/holomap-weights.bin',
+        targetFPS: 10000, // disable throttling for deterministic acceptance test
       });
 
       const timings: number[] = [];
