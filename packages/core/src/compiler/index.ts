@@ -186,3 +186,10 @@ export type {
   PipelineNodeCompilerOptions,
   PipelinePythonCompilerOptions,
 } from './PipelineNodeCompiler';
+
+// FlatSemanticCompiler — V6 @semantic_entity / @2d_canvas → R3F output.
+// Merged from @holoscript/semantic-2d (2026-04-29) — 0 consumers + the
+// file header already self-identified as living under
+// @holoscript/core/compiler. Companion: traits/v6/Semantic2DTraits.ts.
+export { FlatSemanticCompiler } from './FlatSemanticCompiler';
+export type { FlatSemanticCompilerOptions } from './FlatSemanticCompiler';

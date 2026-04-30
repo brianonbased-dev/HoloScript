@@ -39,3 +39,9 @@ export * from './ContainerTraits';
 
 // Resilience patterns
 export * from './ResilienceTraits';
+
+// 2D UI Revolution traits — physics-aware UI overlaid on procedural WebGL
+// fields. Merged from @holoscript/semantic-2d (2026-04-29) — the package
+// had 0 code consumers and the file headers already self-identified as
+// living under @holoscript/core/traits.
+export * from './Semantic2DTraits';

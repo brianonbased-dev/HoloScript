@@ -6,7 +6,10 @@
  * of the universal semantic platform.
  */
 
-import type { TraitHandler } from '@holoscript/core';
+// Relative-path import after the move from @holoscript/semantic-2d
+// (2026-04-29) — self-referencing the parent package via its scope name
+// would create a build cycle.
+import type { TraitHandler } from '../TraitTypes';
 
 // ============================================================================
 // CONFIGURATION INTERFACES (Semantic2D Trait Pack)

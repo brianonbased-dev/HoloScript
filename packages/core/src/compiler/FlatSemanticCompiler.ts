@@ -6,7 +6,10 @@
  * physics-aware UI overlaid on procedural WebGL fields.
  */
 
-import { CompilerBase, type BaseCompilerOptions } from '@holoscript/core';
+// Relative-path import after the move from @holoscript/semantic-2d
+// (2026-04-29). CompilerBase is now a sibling in the same compiler dir;
+// @holoscript/core-types stays external (still a separate sibling package).
+import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
 import type { HoloComposition, HoloObjectDecl } from '@holoscript/core-types/composition';
 
 export interface FlatSemanticCompilerOptions extends BaseCompilerOptions {

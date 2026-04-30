@@ -16,7 +16,10 @@ import {
   v6AgentAttentionHandler,
   v6IntentDrivenHandler,
   v6LiveMetricHandler,
-} from './V6Semantic2DTraits';
+  // File renamed Semantic2DTraits.ts (V6 prefix dropped — the parent dir
+  // is already v6/) when moved from @holoscript/semantic-2d into core
+  // (2026-04-29).
+} from './Semantic2DTraits';
 
 describe('V6_SEMANTIC_2D_TRAIT_HANDLERS', () => {
   it('should export exactly 8 trait handlers', () => {
