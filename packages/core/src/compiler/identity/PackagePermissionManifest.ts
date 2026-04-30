@@ -192,18 +192,11 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: true,
     notes: 'GraphQL API server with auth endpoints.',
   },
-  {
-    name: 'collab-server',
-    scopeName: '@holoscript/collab-server',
-    path: 'packages/collab-server',
-    tier: PackageTier.HIGH,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.HIGH],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: false,
-    accessesNetwork: true,
-    handlesSecrets: false,
-    notes: 'Real-time collaboration server (WebSocket).',
-  },
+  // @holoscript/collab-server entry removed 2026-04-29 — WebSocket room
+  // server merged into mcp-server/src/collab/ (audit recommendation: 0
+  // consumers, fits naturally alongside mcp-server's other backend
+  // infrastructure). HIGH-tier network permissions are subsumed by
+  // mcp-server's existing manifest entry below.
   {
     name: 'llm-provider',
     scopeName: '@holoscript/llm-provider',
@@ -601,18 +594,10 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'AST/scene visualizer client.',
   },
-  {
-    name: 'playground',
-    scopeName: '@holoscript/playground',
-    path: 'packages/playground',
-    tier: PackageTier.LOW,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.LOW],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: false,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'Online code playground.',
-  },
+  // @holoscript/playground entry removed 2026-04-29 — Monaco + Three.js
+  // sandbox merged into studio/src/features/playground/ (audit recommendation:
+  // "Monaco + Three.js preview — studio already has both"). The LOW-tier
+  // permission profile is subsumed by studio's existing manifest entry.
   {
     name: 'studio',
     scopeName: '@holoscript/studio',

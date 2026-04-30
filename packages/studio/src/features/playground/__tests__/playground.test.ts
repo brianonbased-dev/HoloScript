@@ -47,7 +47,7 @@ import {
   type SceneOrb,
   type SceneNode,
   type ThreeScene,
-} from '../src/preview/scene-builder.js';
+} from '../preview/scene-builder.js';
 
 describe('Scene Builder - diffOrbs', () => {
   const baseOrb: SceneOrb = {
@@ -223,7 +223,7 @@ describe('Scene Builder - SceneManager', () => {
 // URL Encoder
 // ---------------------------------------------------------------------------
 
-import { encodeState, decodeState, type PlaygroundState } from '../src/sharing/url-encoder.js';
+import { encodeState, decodeState, type PlaygroundState } from '../sharing/url-encoder.js';
 
 describe('URL Encoder - encodeState / decodeState', () => {
   // Override TextEncoder/Decoder/btoa/atob for node (available in Node 18+)
@@ -281,7 +281,7 @@ import {
   registerHoloScriptLanguage,
   registerThemes,
   EXAMPLE_SCENES,
-} from '../src/editor/monaco-setup.js';
+} from '../editor/monaco-setup.js';
 
 describe('Monaco Setup - language registration', () => {
   test('registers holoscript language with monaco', () => {
@@ -348,31 +348,15 @@ describe('Monaco Setup - example scenes', () => {
 // HTML playground mobile-responsive layout
 // ---------------------------------------------------------------------------
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-describe('Playground HTML', () => {
-  const html = readFileSync(
-    join(import.meta.dirname ?? __dirname, '../public/index.html'),
-    'utf-8'
-  );
-
-  test('has viewport meta tag for mobile responsiveness', () => {
-    expect(html).toContain('name="viewport"');
-    expect(html).toContain('width=device-width');
-  });
-
-  test('has all 5 example options in dropdown', () => {
-    expect(html).toContain('Hello Orb');
-    expect(html).toContain('Physics Sandbox');
-    expect(html).toContain('Multiplayer');
-    expect(html).toContain('Gallery');
-    expect(html).toContain('Accessible UI');
-  });
-
-  test('has share button', () => {
-    expect(html).toContain('btn-share');
-    expect(html).toContain('Share');
+// The HTML-shell tests (mobile viewport, example dropdown options, share
+// button presence) tested the standalone playground's `public/index.html`
+// scaffolding. After the merge into studio (2026-04-29), the playground is
+// a feature module consumed by Studio components — there is no standalone
+// HTML shell anymore. Studio's own page-level tests cover the consumer's
+// rendered surface; the static-asset shape pinned here doesn't apply.
+describe.skip('Playground HTML (retired post-studio-merge 2026-04-29)', () => {
+  test('mobile viewport, dropdown options, share button — see Studio page tests', () => {
+    // intentionally empty — describe.skip keeps the suite name visible
   });
 
   test('has mobile-responsive CSS media query', () => {
