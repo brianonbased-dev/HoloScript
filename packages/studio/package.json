@@ -47,6 +47,7 @@
     "@holoscript/r3f-renderer": "workspace:*",
     "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",
+    "@holoscript/uaal": "workspace:*",
     "@holoscript/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@monaco-editor/react": "^4.7.0",

@@ -138,40 +138,25 @@ describe('sketchfabIntegration — assertRelativeSameOriginPath', () => {
   });
 });
 
-describe('creditGate — validateAbsorbBaseUrl', () => {
-  // Imported lazily because creditGate pulls server-only @holoscript/config
-  // when imported in some test envs. Lazy-import is fine here because the
-  // validator is the pure surface we want to pin; the IIFE that wraps it
-  // can be flaky depending on test env ENDPOINTS resolution.
-  it('rejects unsafe protocols and untrusted hosts', async () => {
-    let validateAbsorbBaseUrl:
-      | ((base: string, extra?: readonly string[]) => URL)
-      | undefined;
-    try {
-      ({ validateAbsorbBaseUrl } = await import('../creditGate'));
-    } catch {
-      // creditGate is server-only in some envs; if the module-load IIFE
-      // fails, the validator itself is still wired into the file. Pin the
-      // contract via the file-level skip rather than failing the suite.
-      return;
-    }
-    if (typeof validateAbsorbBaseUrl !== 'function') return;
+// Imported from the extracted pure-validator file rather than from creditGate
+// directly — creditGate's module-load pulls in next/server + @holoscript/config
+// and that resolution can hang under vitest for >5s on some test envs. The
+// validator behaviour is identical (creditGate re-exports from the same file).
+import { validateAbsorbBaseUrl } from '../absorb-host-validator';
 
-    expect(() => validateAbsorbBaseUrl!('ftp://absorb.holoscript.net/')).toThrow(
-      /must be an http\/https URL/i
+describe('creditGate — validateAbsorbBaseUrl', () => {
+  it('rejects unsafe protocols and untrusted hosts', () => {
+    expect(() => validateAbsorbBaseUrl('ftp://absorb.holoscript.net/')).toThrow(
+      /must be an http\/https URL/i,
     );
-    expect(() => validateAbsorbBaseUrl!('https://attacker.example/')).toThrow(
-      /not in the trusted-host allowlist/i
+    expect(() => validateAbsorbBaseUrl('https://attacker.example/')).toThrow(
+      /not in the trusted-host allowlist/i,
     );
-    expect(() =>
-      validateAbsorbBaseUrl!('https://absorb.holoscript.net/')
-    ).not.toThrow();
-    expect(() =>
-      validateAbsorbBaseUrl!('http://localhost:8080/')
-    ).not.toThrow();
+    expect(() => validateAbsorbBaseUrl('https://absorb.holoscript.net/')).not.toThrow();
+    expect(() => validateAbsorbBaseUrl('http://localhost:8080/')).not.toThrow();
     // Override path
     expect(() =>
-      validateAbsorbBaseUrl!('https://staging.example/', ['staging.example'])
+      validateAbsorbBaseUrl('https://staging.example/', ['staging.example']),
     ).not.toThrow();
   });
 });

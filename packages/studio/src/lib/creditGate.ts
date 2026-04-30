@@ -19,52 +19,16 @@ import { NextResponse } from 'next/server';
 import { getSession } from './api-auth';
 
 import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
+import { ALLOWED_ABSORB_HOSTS, validateAbsorbBaseUrl } from './absorb-host-validator';
+
+// Re-export the validator surface for any caller that already imports it
+// from this module (the implementation lives in ./absorb-host-validator so
+// it can be exercised by tests without triggering the next/server +
+// @holoscript/config resolution that would otherwise hang vitest).
+export { ALLOWED_ABSORB_HOSTS, validateAbsorbBaseUrl };
 
 const ABSORB_BASE = ENDPOINTS.ABSORB_SERVICE;
 const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
-
-/**
- * Allowlist of trusted ABSORB_SERVICE hosts. The credit endpoint is called
- * on every paid LLM op, so a tampered endpoint env would silently route
- * credit checks to an attacker. Self-hosted contributors can extend the
- * list deliberately via the ABSORB_SERVICE_ALLOWED_HOSTS env var.
- */
-export const ALLOWED_ABSORB_HOSTS: ReadonlySet<string> = new Set<string>([
-  'absorb.holoscript.net',
-  'mcp.holoscript.net',
-  // Local dev / staging — only matched exactly, no wildcards.
-  'localhost',
-  '127.0.0.1',
-  '0.0.0.0',
-]);
-
-/**
- * Validate an ABSORB_SERVICE endpoint URL string. Throws on bad protocol or
- * untrusted host. Exported for tests and for any caller that wants to
- * pre-flight an endpoint without triggering the module-load IIFE.
- */
-export function validateAbsorbBaseUrl(
-  base: string,
-  extraAllowedHosts: readonly string[] = []
-): URL {
-  let parsed: URL;
-  try {
-    parsed = new URL(base);
-  } catch (e) {
-    throw new Error(`Invalid ABSORB_SERVICE endpoint: ${base} — ${String(e)}`);
-  }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error(`ABSORB_SERVICE must be an http/https URL, got protocol: ${parsed.protocol}`);
-  }
-  const allowed = new Set([...ALLOWED_ABSORB_HOSTS, ...extraAllowedHosts]);
-  if (!allowed.has(parsed.hostname)) {
-    throw new Error(
-      `ABSORB_SERVICE host '${parsed.hostname}' is not in the trusted-host allowlist. ` +
-        `Set ABSORB_SERVICE_ALLOWED_HOSTS=${parsed.hostname} to override.`
-    );
-  }
-  return parsed;
-}
 
 // Guard at module load — credit gate is the SSOT for paid-op credit checks.
 (function () {

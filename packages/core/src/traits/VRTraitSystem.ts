@@ -618,7 +618,7 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
             const throwConfig = node.traits.get('throwable') as ThrowableTrait;
             const multiplier =
               (throwConfig.velocity_multiplier || 1) * context.getScaleMultiplier();
-                    context.physics.applyVelocity(node, [
+            context.physics.applyVelocity(node, [
               velocity[0] * multiplier,
               velocity[1] * multiplier,
               velocity[2] * multiplier,
@@ -984,16 +984,16 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
     let newRotation: Vector3;
     switch (config.axis) {
       case 'x':
-            newRotation = [initObjRot[0] + deltaRotation[0], initObjRot[1], initObjRot[2]];
+        newRotation = [initObjRot[0] + deltaRotation[0], initObjRot[1], initObjRot[2]];
         break;
       case 'y':
-            newRotation = [initObjRot[0], initObjRot[1] + deltaRotation[1], initObjRot[2]];
+        newRotation = [initObjRot[0], initObjRot[1] + deltaRotation[1], initObjRot[2]];
         break;
       case 'z':
-            newRotation = [initObjRot[0], initObjRot[1], initObjRot[2] + deltaRotation[2]];
+        newRotation = [initObjRot[0], initObjRot[1], initObjRot[2] + deltaRotation[2]];
         break;
       default:
-            newRotation = [
+        newRotation = [
           initObjRot[0] + deltaRotation[0],
           initObjRot[1] + deltaRotation[1],
           initObjRot[2] + deltaRotation[2],
@@ -1002,7 +1002,7 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     // Snap to angles if configured
     if (config.snap_angles && config.snap_angles.length > 0) {
-        newRotation = newRotation.map((angle: number) => {
+      newRotation = newRotation.map((angle: number) => {
         let closest = config.snap_angles![0];
         let minDiff = Math.abs(angle - closest);
         for (const snapAngle of config.snap_angles!) {
@@ -1166,7 +1166,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
     let closestDistance = (config.snap_distance || 0.3) * context.getScaleMultiplier();
 
     for (const snapPoint of config.snap_points) {
-        const snapArr = vec3ToTuple(snapPoint);
+      const snapArr = vec3ToTuple(snapPoint);
       const distance = Math.sqrt(
         Math.pow(nodePosArr[0] - snapArr[0], 2) +
           Math.pow(nodePosArr[1] - snapArr[1], 2) +
@@ -1175,7 +1175,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
 
       if (distance < closestDistance) {
         closestDistance = distance;
-            closestPoint = snapPoint;
+        closestPoint = snapPoint;
       }
     }
 
@@ -1202,7 +1202,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
     let closestDistance = (config.snap_distance || 0.3) * context.getScaleMultiplier();
 
     for (const snapPoint of config.snap_points) {
-        const snapArr = vec3ToTuple(snapPoint);
+      const snapArr = vec3ToTuple(snapPoint);
       const distance = Math.sqrt(
         Math.pow(nodePosArr[0] - snapArr[0], 2) +
           Math.pow(nodePosArr[1] - snapArr[1], 2) +
@@ -1211,7 +1211,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
 
       if (distance < closestDistance) {
         closestDistance = distance;
-            closestPoint = snapPoint;
+        closestPoint = snapPoint;
       }
     }
 
@@ -1260,7 +1260,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
     // Play break sound
     if (config.sound_on_break) {
       context.audio.playSound(config.sound_on_break, {
-            position: collision.point,
+        position: collision.point,
         spatial: true,
       });
     }
@@ -1269,7 +1269,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
     const fragmentCount = config.fragments || 8;
     for (let i = 0; i < fragmentCount; i++) {
       const angle = (i / fragmentCount) * Math.PI * 2;
-        const velocity: Vector3 = [Math.cos(angle) * 2, Math.random() * 3, Math.sin(angle) * 2];
+      const velocity: Vector3 = [Math.cos(angle) * 2, Math.random() * 3, Math.sin(angle) * 2];
 
       context.emit('spawn_fragment', {
         position: collision.point,

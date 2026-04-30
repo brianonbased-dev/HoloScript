@@ -13,17 +13,27 @@ const connectorPackages = Object.keys(packageJson.dependencies ?? {}).filter((na
 );
 
 describe('Studio Docker connector parity', () => {
-  it('copies every connector workspace package required by Studio', () => {
-    for (const packageName of connectorPackages) {
-      const folder = packageName.replace('@holoscript/', '');
-      expect(dockerfile).toContain(`COPY packages/${folder}/ packages/${folder}/`);
-    }
+  // The Dockerfile evolved from per-connector COPY lines to a single mass
+  // `COPY packages/ packages/` (commit 3d2980cc3 — "kill the deploy
+  // whack-a-mole"). The test invariant is: every connector dep Studio
+  // declares must be reachable inside the image. With mass-COPY that's
+  // satisfied as long as the COPY itself is present and not narrowed.
+  it('copies the workspace packages tree wholesale', () => {
+    expect(connectorPackages.length).toBeGreaterThan(0);
+    expect(dockerfile).toMatch(/^COPY packages\/ packages\/(\s|$)/m);
   });
 
-  it('builds every copied connector workspace package in the Docker build stage', () => {
+  // Build coverage is still per-connector — only the connectors explicitly
+  // listed in the Dockerfile get a tsup invocation. The current build line
+  // also runs --dts-only after --no-dts so types reach disk; a copy that
+  // skipped --dts-only would silently break downstream package imports
+  // (commit 3d2980cc3 "dts-everywhere").
+  it('builds every connector workspace package with --no-dts and --dts-only', () => {
     for (const packageName of connectorPackages) {
       const folder = packageName.replace('@holoscript/', '');
-      expect(dockerfile).toContain(`RUN cd packages/${folder} && npx tsup --no-dts || true`);
+      expect(dockerfile).toContain(
+        `RUN cd packages/${folder} && npx tsup --no-dts && npx tsup --dts-only || true`,
+      );
     }
   });
 });
