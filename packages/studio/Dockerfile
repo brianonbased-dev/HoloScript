@@ -118,7 +118,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/.next/standalone 
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/.next/static ./packages/studio/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages/studio/public
 
+# Migrations + runner — copied alongside the standalone output so the runtime
+# can self-heal schema on cold start. The pre-CMD step runs
+# scripts/db-migrate.cjs, which is idempotent against drizzle's
+# __drizzle_migrations ledger so reruns are no-ops. Without this step the
+# Studio container boots against whatever schema state Postgres happens to
+# be in — which already bit us once on 2026-04-29 (the 35-table push had to
+# be applied by hand from a workstation against the prod proxy).
+COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/drizzle ./packages/studio/drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrate.cjs ./packages/studio/scripts/db-migrate.cjs
+
 USER nextjs
 EXPOSE 3000
 
-CMD ["dumb-init", "node", "packages/studio/server.js"]
+CMD ["dumb-init", "sh", "-c", "node packages/studio/scripts/db-migrate.cjs && node packages/studio/server.js"]
