@@ -167,6 +167,79 @@ function FeatureChipRow({ onChip }: { onChip: (prompt: string) => void }) {
 }
 
 // ---------------------------------------------------------------------------
+// HoloMesh template chips — Path 5 from the wizard-redundancy audit.
+//
+// OnboardingWizard explicitly offers four Studio-builder paths (GitHub-
+// starter / Absorb-driven / domain-templated / Brittney-driven) but
+// HoloMesh, one of the four roots, has no entry into the build surface.
+// This row closes that gap by surfacing room templates from the live
+// `/api/holomesh/team/templates` endpoint. Click → seed the chat with a
+// "Set up a <name> session" prompt; Brittney's existing tools take it
+// from there. Future iteration can offer inline team-creation; v0 is
+// "make HoloMesh visible in the entry."
+// ---------------------------------------------------------------------------
+
+interface HolomeshTemplate {
+  slug: string;
+  name: string;
+  description: string;
+  mode: string;
+  objective: string;
+}
+
+function HolomeshTemplateChips({ onChip }: { onChip: (prompt: string) => void }) {
+  const [templates, setTemplates] = useState<HolomeshTemplate[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/holomesh/team/templates')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d: { templates?: HolomeshTemplate[] }) => {
+        if (cancelled) return;
+        setTemplates(d.templates ?? []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoadFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Quietly hide the row when the endpoint is unreachable (local dev w/o
+  // backend, etc.). The chips are progressive enhancement — their absence
+  // shouldn't dent the rest of the surface. Returning null hides the
+  // group label too (parent renders the label only as part of the
+  // wrapper this component returns).
+  if (loadFailed || templates.length === 0) return null;
+
+  return (
+    <div>
+      <div className="mb-1 px-1 text-[10px] uppercase tracking-wider text-white/25">
+        from holomesh
+      </div>
+      <div className="flex flex-wrap gap-1.5 px-1">
+      {templates.map((t) => {
+        const prompt = `Set up a HoloMesh "${t.name}" team session — ${t.objective}.`;
+        return (
+          <button
+            key={t.slug}
+            onClick={() => onChip(prompt)}
+            className="rounded-full border border-purple-400/20 bg-purple-500/[0.06] px-3 py-1 text-[11px] text-purple-300/80 transition hover:border-purple-400/50 hover:bg-purple-500/[0.12] hover:text-purple-200"
+            title={t.description}
+          >
+            {t.name}
+          </button>
+        );
+      })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main surface
 // ---------------------------------------------------------------------------
 
@@ -458,11 +531,18 @@ export function BrittneyBuildSurface() {
           </div>
 
           {/* Feature chips — always available, even mid-conversation */}
-          <div className="border-t border-white/[0.04] px-3 py-2">
-            <div className="mb-1 px-1 text-[10px] uppercase tracking-wider text-white/25">
-              quick adds
+          <div className="border-t border-white/[0.04] px-3 py-2 space-y-2">
+            <div>
+              <div className="mb-1 px-1 text-[10px] uppercase tracking-wider text-white/25">
+                quick adds
+              </div>
+              <FeatureChipRow onChip={runSend} />
             </div>
-            <FeatureChipRow onChip={runSend} />
+            {/* Path 5 — HoloMesh team templates. Rendered below the local
+                chips because they're remote-fetched and progressive: the
+                component owns its own label and renders nothing when the
+                /api/holomesh/team/templates endpoint is unreachable. */}
+            <HolomeshTemplateChips onChip={runSend} />
           </div>
 
           {/* Input */}
