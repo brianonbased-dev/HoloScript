@@ -75,6 +75,7 @@ async function streamReply(session: Session): Promise<void> {
   process.once('SIGINT', onSigint);
   let assistantBuffer = '';
   let firstToken = true;
+  let streamDone = false;
   try {
     for await (const chunk of streamChatFromOllama(
       session.config.ollamaHost,
@@ -90,6 +91,7 @@ async function streamReply(session: Session): Promise<void> {
         stdout.write(chunk.content);
         assistantBuffer += chunk.content;
       } else if (chunk.type === 'done') {
+        streamDone = true;
         stdout.write('\n');
         if (chunk.totalTokens && chunk.evalDurationMs) {
           const tps = chunk.totalTokens / (chunk.evalDurationMs / 1000);
@@ -103,7 +105,10 @@ async function streamReply(session: Session): Promise<void> {
   } finally {
     process.removeListener('SIGINT', onSigint);
   }
-  if (assistantBuffer) session.push('assistant', assistantBuffer);
+  // Only save completed responses. If the stream was aborted (Ctrl+C) or
+  // errored mid-stream, assistantBuffer holds a partial message that would
+  // corrupt the model's context on subsequent turns.
+  if (assistantBuffer && streamDone) session.push('assistant', assistantBuffer);
 }
 
 export async function runRepl(initial: Partial<SessionConfig> = {}): Promise<number> {
