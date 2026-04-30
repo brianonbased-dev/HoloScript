@@ -121,7 +121,7 @@ export function AvatarExportPanel() {
     .filter(Boolean);
 
   return (
-    <div className="flex h-full">
+    <div data-testid="avatar-export-panel" className="flex h-full">
       {/* Left: Export actions */}
       <div className="flex w-96 flex-col border-r border-studio-border bg-studio-panel p-6">
         <h2 className="text-lg font-bold text-white">Export Avatar</h2>

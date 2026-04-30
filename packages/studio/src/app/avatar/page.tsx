@@ -37,7 +37,7 @@ export default function AvatarAuthoringPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-4">
+      <header data-testid="avatar-header" className="flex h-12 shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-4">
         <div className="flex items-center gap-4">
           <Link
             href="/create"
@@ -57,6 +57,7 @@ export default function AvatarAuthoringPage() {
 
         <div className="flex items-center gap-2">
           <button
+            data-testid="avatar-reset"
             onClick={handleReset}
             className="flex items-center gap-1.5 rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted transition hover:text-studio-text"
             title="Reset to default"
@@ -65,7 +66,7 @@ export default function AvatarAuthoringPage() {
             Reset
           </button>
 
-          <div className="flex rounded-lg border border-studio-border overflow-hidden">
+          <div data-testid="avatar-tabs" className="flex rounded-lg border border-studio-border overflow-hidden">
             {([
               { id: 'compose', label: 'Compose', icon: Sparkles },
               { id: 'preview', label: 'Preview', icon: User },
@@ -91,6 +92,7 @@ export default function AvatarAuthoringPage() {
           </div>
 
           <button
+            data-testid="avatar-save"
             onClick={() => {
               logger.debug('[AvatarAuthoring] Save triggered');
               alert('Avatar saved to library (POC stub)');

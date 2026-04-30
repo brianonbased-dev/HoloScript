@@ -41,6 +41,7 @@ export function AvatarPreview() {
       {/* 3D Viewport placeholder */}
       <div className="flex flex-1 flex-col items-center justify-center bg-studio-bg">
         <div
+          data-testid="avatar-preview-canvas"
           ref={canvasRef}
           className="relative flex h-[60vh] w-[60vh] items-center justify-center rounded-2xl border border-studio-border bg-black/40"
         >

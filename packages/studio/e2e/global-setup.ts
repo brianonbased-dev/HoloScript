@@ -15,10 +15,25 @@ export default async function globalSetup(): Promise<void> {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
+
+    // Suppress onboarding modals so the warm-up page can render unobstructed.
+    await page.addInitScript(() => {
+      localStorage.setItem('holoscript-studio-tutorial-complete', 'true');
+      localStorage.setItem('studio-wizard-seen', '1');
+      localStorage.setItem('studio-mode', 'artist');
+    });
+
     await page.goto(`${baseURL}/create`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
     // Wait for R3F canvas — this is the expensive first-compile step.
-    // Once it resolves the chunks are cached by Next.js for all subsequent requests.
-    await page.locator('canvas').first().waitFor({ state: 'visible', timeout: 120_000 });
+    // If the viewport is permanently broken (pre-existing env issue) we still
+    // wait for networkidle so the JS chunks are at least cached.
+    try {
+      await page.locator('canvas').first().waitFor({ state: 'visible', timeout: 120_000 });
+    } catch {
+      await page.waitForLoadState('networkidle', { timeout: 60_000 });
+      console.warn('[global-setup] R3F canvas did not appear — continuing with partial warm-up');
+    }
   } finally {
     await browser.close();
   }
