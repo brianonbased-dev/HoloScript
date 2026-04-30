@@ -41,6 +41,11 @@
       "types": "./dist/traits/EconomicTraits.d.ts",
       "import": "./dist/traits/EconomicTraits.js",
       "require": "./dist/traits/EconomicTraits.cjs"
+    },
+    "./fs": {
+      "types": "./dist/fs/index.d.ts",
+      "import": "./dist/fs/index.js",
+      "require": "./dist/fs/index.cjs"
     }
   },
   "scripts": {

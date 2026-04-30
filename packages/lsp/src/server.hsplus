@@ -679,7 +679,7 @@ module CompletionProvider {
       { label: "@holoscript/core", kind: CompletionItemKind.Module }
       { label: "@holoscript/network", kind: CompletionItemKind.Module }
       { label: "@holoscript/std", kind: CompletionItemKind.Module }
-      { label: "@holoscript/fs", kind: CompletionItemKind.Module }
+      { label: "@holoscript/std/fs", kind: CompletionItemKind.Module }
       { label: "@holoscript/commerce", kind: CompletionItemKind.Module }
       { label: "@holoscript/llm", kind: CompletionItemKind.Module }
       { label: "./", kind: CompletionItemKind.Folder }

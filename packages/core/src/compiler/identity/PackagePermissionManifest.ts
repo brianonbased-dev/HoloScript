@@ -140,18 +140,10 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'Scene execution runtime. Network for multiplayer sync.',
   },
-  {
-    name: 'fs',
-    scopeName: '@holoscript/fs',
-    path: 'packages/fs',
-    tier: PackageTier.HIGH,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.HIGH],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: true,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'File system module. NO path boundary enforcement currently.',
-  },
+  // @holoscript/fs entry removed 2026-04-29 — package merged into
+  // @holoscript/std/fs. The HIGH-tier filesystem-write capability is now
+  // covered by the std manifest entry below; consumers checking permissions
+  // for filesystem operations resolve via the @holoscript/std/fs subpath.
   {
     name: 'mcp-server',
     scopeName: '@holoscript/mcp-server',
@@ -395,6 +387,23 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     accessesNetwork: false,
     handlesSecrets: false,
     notes: 'Standard library.',
+  },
+  // The @holoscript/std/fs subpath inherits the HIGH-tier filesystem-write
+  // permission profile that the @holoscript/fs package had before the merge
+  // (2026-04-29). Carries its own entry rather than relaxing the parent std
+  // permissions, so plain `@holoscript/std` imports stay STANDARD-tier with
+  // no filesystem writes — only the explicit /fs subpath unlocks them.
+  {
+    name: 'std-fs',
+    scopeName: '@holoscript/std/fs',
+    path: 'packages/std/src/fs',
+    tier: PackageTier.HIGH,
+    writeRoles: TIER_WRITE_ROLES[PackageTier.HIGH],
+    readRoles: ALL_READ_ROLES,
+    allowsFsWrites: true,
+    accessesNetwork: false,
+    handlesSecrets: false,
+    notes: 'File system subpath of @holoscript/std (merged from @holoscript/fs 2026-04-29). NO path boundary enforcement currently.',
   },
   {
     name: 'spatial-engine',

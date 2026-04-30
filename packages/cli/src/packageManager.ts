@@ -62,7 +62,8 @@ export class PackageManager {
     '@holoscript/std',
     '@holoscript/runtime',
     '@holoscript/network',
-    '@holoscript/fs',
+    // @holoscript/fs merged into @holoscript/std/fs (2026-04-29) — kept off
+    // this list so the CLI no longer suggests installing a removed package.
     '@holoscript/linter',
     '@holoscript/formatter',
     '@holoscript/test',
@@ -379,8 +380,6 @@ export class PackageManager {
         console.log(`  import { Server, Client, Room } from '@holoscript/network';`);
       } else if (pkg === '@holoscript/test' || pkg === 'test') {
         console.log(`  import { describe, it, expect } from '@holoscript/test';`);
-      } else if (pkg === '@holoscript/fs' || pkg === 'fs') {
-        console.log(`  import { readFile, writeFile } from '@holoscript/fs';`);
       } else if (pkg === '@holoscript/linter' || pkg === 'linter') {
         console.log(`  import { createLinter, LintEngine } from '@holoscript/linter';`);
       }

@@ -472,3 +472,17 @@ export function noop(): void {}
 export function constant<T>(value: T): () => T {
   return () => value;
 }
+
+
+// =============================================================================
+// File system (merged from @holoscript/fs, 2026-04-29)
+//
+// Filesystem utilities for hsplus programs — file I/O, path manipulation, and
+// watching. Originally lived as a sibling package; merged into std because
+// the package had no actual code consumers and the audit recommendation
+// ("filesystem utilities belong in standard library") was correct. The
+// `@holoscript/fs` brand was preserved only in user-facing template strings
+// and the package permission manifest, both updated in the same commit that
+// archived the old package.
+// =============================================================================
+export * as fs from "./fs/index.js";
