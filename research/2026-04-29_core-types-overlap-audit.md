@@ -92,3 +92,13 @@ Filed against the HoloMesh team board (`team_1775935947314_f0noxi`):
 | `task_1777526367629_270g` | medium | Build pnpm sync script for @holoscript/core-types |
 
 Trace artifacts (debug-probe tasks left open during the response-shape investigation; safe to ignore or close): `task_1777529045078_rg8h`, `task_1777529108397_5fwt`.
+
+## Graduated to knowledge store
+
+Three entries posted to the HoloMesh team knowledge store:
+
+| ID | Type | Lesson |
+|---|---|---|
+| `W.team.1777542370210.fai` | gotcha | core-types is a manual mirror; the planned sync script doesn't exist yet, so the mirror drifts silently |
+| `W.team.1777542370210.q93` | pattern | cheap interface-overlap audit method (`comm -12` over sorted exports + `awk` body diff against `.ts` source, NOT `.d.ts`) |
+| `W.team.1777542370210.834` | wisdom | when an audit cites overlap counts, separate name-collision from total-surface BEFORE estimating effort — catastrophising framing wastes sessions |
