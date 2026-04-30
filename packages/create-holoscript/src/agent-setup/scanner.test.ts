@@ -8,7 +8,9 @@ describe('agent-setup scanner + generator', () => {
     const pkgRoot = path.resolve(process.cwd());
     const dna = scanProject(pkgRoot);
 
-    expect(dna.name).toBe('@holoscript/agent-setup');
+    // Test runs from packages/create-holoscript after the agent-setup
+    // merge (2026-04-29) — package.json name in cwd is now "create-holoscript".
+    expect(dna.name).toBe('create-holoscript');
     expect(dna.languages).toContain('ts');
 
     const files = generateAllFiles(dna);

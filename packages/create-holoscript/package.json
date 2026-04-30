@@ -5,7 +5,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "create-holoscript": "./dist/index.js"
+    "create-holoscript": "./dist/index.js",
+    "agent-setup": "./dist/agent-setup/cli.js",
+    "holoscript-agents": "./dist/agent-setup/cli.js"
   },
   "files": [
     "dist",
