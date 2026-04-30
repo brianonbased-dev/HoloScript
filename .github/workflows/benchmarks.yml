@@ -8,6 +8,7 @@ on:
     paths:
       - 'packages/core/src/parser/**'
       - 'packages/core/src/compiler/**'
+      - 'packages/core/src/reconstruction/**'
       - 'benchmarks/**'
       - 'scripts/perf-regression-check.mjs'
       - '.github/workflows/benchmarks.yml'
@@ -234,6 +235,74 @@ jobs:
           name: paper-targets-overhead-bench-${{ github.sha }}
           path: ${{ runner.temp }}/paper-targets-overhead-bench.log
           retention-days: 90
+
+  holomap-performance-bench:
+    name: HoloMap Sprint-3 Performance + Determinism (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run HoloMap performance benchmark
+        env:
+          NODE_OPTIONS: '--max-old-space-size=16384'
+        run: |
+          set -o pipefail
+          pnpm --filter @holoscript/core exec vitest run \
+            src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts \
+            --reporter=verbose 2>&1 | tee "${{ runner.temp }}/holomap-performance-bench.log"
+
+      - name: Upload bench log artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: holomap-performance-bench-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/holomap-performance-bench.log
+            packages/core/src/reconstruction/__tests__/holomap-perf-report.json
+          retention-days: 90
+
+      - name: Comment PR with HoloMap benchmark summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'packages/core/src/reconstruction/__tests__/holomap-perf-report.json';
+            if (!fs.existsSync(reportPath)) {
+              console.log('No HoloMap perf report found');
+              return;
+            }
+            const d = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+            const g = d.ciGate;
+            let body = '## 📊 HoloMap Sprint-3 Performance Gate\n\n';
+            body += `**Result**: ${g.passed ? '✅ PASSED' : '❌ FAILED'}\n\n`;
+            body += '| Metric | Value | Target |\n';
+            body += '|--------|-------|--------|\n';
+            body += `| p50 (2k frames) | ${g.p50_2k_s.toFixed(2)}s | < ${g.targetP50_s}s |\n`;
+            body += `| p99 (2k frames) | ${g.p99_2k_s.toFixed(2)}s | < ${g.targetP99_s}s |\n`;
+            body += `| Main-thread stalls | ${g.stallCount_2k} | = 0 |\n\n`;
+            body += '*Determinism: 10/10 identical manifests*\n';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
 
   snn-webgpu-playwright-benchmarks:
     name: WebGPU SNN Playwright Benchmarks (N=12)
