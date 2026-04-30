@@ -95,6 +95,8 @@ export interface HoloMapConfig {
   weightCid?: string;
   /** URL for weight blob fetch (pair with weightCid for digest verify). See RFC §5.1. */
   weightUrl?: string;
+  /** Fallback URLs tried after weightUrl fails. */
+  weightUrls?: string[];
   /** Optional CPU offloading for limited VRAM */
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
@@ -324,10 +326,12 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     });
     this.weightBytes = null;
     if (this.config.weightUrl) {
-      this.weightBytes = await loadHoloMapWeightBlob({
+      const result = await loadHoloMapWeightBlob({
         weightUrl: this.config.weightUrl,
+        weightUrls: this.config.weightUrls,
         weightCid: this.config.weightCid,
       });
+      this.weightBytes = result.bytes;
     }
 
     this.encoderDevice = await tryCreateHoloMapEncoderDevice();

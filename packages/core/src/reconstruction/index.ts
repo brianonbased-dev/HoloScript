@@ -15,6 +15,7 @@ export * from './simulationContractBinding';
 export * from './holoMapTelemetry';
 export * from './webgpuGate';
 export * from './holoMapWeightLoader';
+export { getCachedWeightBlob, putCachedWeightBlob } from './holoMapWeightCache';
 export * from './holoMapAnchoredManifest';
 // Sprint-2 E2E + CPU-parity gate needs the micro-encoder entry points
 // (GPU device factory + CPU reference) to assert pipeline parity.
