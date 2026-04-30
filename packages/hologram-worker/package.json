@@ -20,7 +20,7 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@holoscript/engine": "workspace:*",
-    "onnxruntime-node": "1.21.0",
+    "onnxruntime-node": "1.25.1",
     "playwright": "^1.58.2",
     "sharp": "^0.34.5"
   },
