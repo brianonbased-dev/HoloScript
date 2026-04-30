@@ -111,6 +111,11 @@ export interface HoloMapConfig {
    * should keep true (default) or use compatibility ingest (Marble) for benchmarks.
    */
   allowCpuFallback?: boolean;
+  /**
+   * Platform-specific mesh-local weight resolver (RFC §5.1 HoloLand pointer mode).
+   * Tried before cache and network. Receives `weightCid`, returns bytes or undefined.
+   */
+  localResolver?: (weightCid: string) => Promise<ArrayBuffer | undefined>;
 }
 
 export const HOLOMAP_DEFAULTS: HoloMapConfig = {

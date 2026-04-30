@@ -22,6 +22,13 @@ export interface LoadHoloMapWeightsOptions {
   fetchImpl?: typeof fetch;
   /** When true, skip cache read but still write after successful fetch. */
   skipCache?: boolean;
+  /**
+   * Platform-specific local resolver for mesh-local cache handles (RFC §5.1 HoloLand mode).
+   * When provided, the loader tries this BEFORE network fetch. The resolver receives the
+   * `weightCid` and should return the blob bytes if the handle resolves locally, or
+   * `undefined` to fall through to network / file paths.
+   */
+  localResolver?: (weightCid: string) => Promise<ArrayBuffer | undefined>;
 }
 
 async function sha256Digest(bytes: Uint8Array): Promise<string> {
@@ -96,10 +103,24 @@ async function sleep(ms: number): Promise<void> {
  *   4. `file://` and package-relative paths bypass the network and go straight to disk.
  */
 export async function loadHoloMapWeightBlob(options: LoadHoloMapWeightsOptions): Promise<LoadResult> {
-  const { weightUrl, weightUrls = [], weightCid, fetchImpl, skipCache } = options;
+  const { weightUrl, weightUrls = [], weightCid, fetchImpl, skipCache, localResolver } = options;
   const f = fetchImpl ?? globalThis.fetch;
 
-  // 1. Cache-first read when we know the CID
+  // 1. Mesh-local pointer routing (HoloLand / XR — before cache or network)
+  if (localResolver && weightCid) {
+    try {
+      const local = await localResolver(weightCid);
+      if (local) {
+        await assertWeightCid(new Uint8Array(local), weightCid);
+        await putCachedWeightBlob(weightCid, local);
+        return { bytes: local, verified: true, source: 'file' };
+      }
+    } catch {
+      // fall through to cache / network
+    }
+  }
+
+  // 2. Cache-first read when we know the CID
   if (weightCid && !skipCache) {
     const cached = await getCachedWeightBlob(weightCid);
     if (cached) {

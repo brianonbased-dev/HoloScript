@@ -154,4 +154,44 @@ describe('holoMapWeightLoader', () => {
     expect(result.source).toBe('file');
     expect(new Uint8Array(result.bytes)).toEqual(payload);
   });
+
+  it('localResolver is tried before cache and network', async () => {
+    const payload = new TextEncoder().encode('mesh-local');
+    const hex = createHash('sha256').update(payload).digest('hex');
+    const localResolver = vi.fn().mockResolvedValue(payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength));
+    vi.mocked(getCachedWeightBlob).mockResolvedValue(undefined);
+    vi.mocked(putCachedWeightBlob).mockResolvedValue(undefined);
+
+    const result = await loadHoloMapWeightBlob({
+      weightUrl: 'https://example.invalid/holomap.bin',
+      weightCid: hex,
+      localResolver,
+    });
+
+    expect(localResolver).toHaveBeenCalledWith(hex);
+    expect(getCachedWeightBlob).not.toHaveBeenCalled();
+    expect(result.source).toBe('file');
+    expect(result.verified).toBe(true);
+    expect(new Uint8Array(result.bytes)).toEqual(payload);
+    expect(putCachedWeightBlob).toHaveBeenCalledWith(hex, expect.any(ArrayBuffer));
+  });
+
+  it('localResolver returning undefined falls through to network', async () => {
+    const payload = new TextEncoder().encode('fallback-net');
+    const hex = createHash('sha256').update(payload).digest('hex');
+    const localResolver = vi.fn().mockResolvedValue(undefined);
+    const fetchImpl: typeof fetch = async () => new Response(payload, { status: 200 });
+    vi.mocked(getCachedWeightBlob).mockResolvedValue(undefined);
+    vi.mocked(putCachedWeightBlob).mockResolvedValue(undefined);
+
+    const result = await loadHoloMapWeightBlob({
+      weightUrl: 'https://example.invalid/holomap.bin',
+      weightCid: hex,
+      localResolver,
+      fetchImpl,
+    });
+
+    expect(localResolver).toHaveBeenCalledWith(hex);
+    expect(result.source).toBe('network');
+  });
 });
