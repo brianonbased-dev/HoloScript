@@ -122,12 +122,19 @@ export { NetworkClientImpl, createNetworkClient } from './NetworkClientImpl';
 export { StateSynchronizerImpl, createStateSynchronizer } from './StateSynchronizerImpl';
 
 // SyncProtocol and Transports
+//
+// `SyncInterestManager` is the SyncProtocol-internal client-interest tracker
+// (per-client `setInterest` / `isInInterest`). The plain `InterestManager`
+// canonical export comes from NetworkSystem (further down via
+// `export * from './NetworkSystem'`) and is the spatial-radius filter used
+// by the EngineSystem and by every external consumer that imports
+// `InterestManager` from `@holoscript/mesh`. Both live, distinct purposes.
 export {
   SyncProtocol,
   createSyncProtocol,
   createLocalSync,
   DeltaEncoder,
-  InterestManager,
+  InterestManager as SyncInterestManager,
   WebSocketTransport,
   WebRTCTransport,
   LocalBroadcastTransport,
@@ -212,7 +219,12 @@ export {
 
 // Merged from networking/
 export { LWWRegister, PNCounter, ORSet, isCRDT } from './CRDT';
-export { DeltaCompressor } from './DeltaCompressor';
+// CRDTStateDeltaUtil — static, pair-of-snapshots delta computation used by
+// the CRDT hydration path (computeDeltas / applyDeltas). Distinct from the
+// NetworkSystem `DeltaCompressor` (instance-based, per-entity sparse delta
+// against an internal cache) which becomes the canonical `DeltaCompressor`
+// via `export * from './NetworkSystem'` further down.
+export { DeltaCompressor as CRDTStateDeltaUtil } from './DeltaCompressor';
 export { NetworkTransport } from './NetworkTransport';
 export { PriorityScorer } from './PriorityScorer';
 export { RPCManager } from './RPCManager';
