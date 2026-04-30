@@ -11,11 +11,34 @@ import { AIValidator, validateAICode, ValidationResultSchema } from '../index';
 describe('AIValidator', () => {
   let validator: AIValidator;
 
+  // Test-scoped trait universe. Each scenario uses a subset; tests no longer
+  // rely on the validator carrying a hardcoded default (zero-hardcoded-stats
+  // rule — DEFAULT_KNOWN_TRAITS removed 2026-04-29). Tests now declare the
+  // trait surface they're working in, which is the pattern external callers
+  // should follow too.
+  const TEST_KNOWN_TRAITS = [
+    '@grabbable',
+    '@throwable',
+    '@physics',
+    '@collidable',
+    '@color',
+    '@position',
+    '@rotation',
+    '@scale',
+    '@anchor',
+    '@material',
+    '@texture',
+    '@glowing',
+    '@networked',
+    '@billboard',
+  ];
+
   beforeEach(() => {
     validator = new AIValidator({
       strict: false,
       hallucinationThreshold: 50,
       detectHallucinations: true,
+      knownTraits: TEST_KNOWN_TRAITS,
     });
   });
 

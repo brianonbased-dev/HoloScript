@@ -118,82 +118,27 @@ const HALLUCINATION_PATTERNS = [
 ];
 
 /**
- * Known HoloScript traits (comprehensive list)
+ * Known-trait list for the validator.
+ *
+ * Per the zero-hardcoded-stats rule: HoloScript ships 1,000+ trait
+ * handlers (count: `find packages/core/src/traits -name "*Trait.ts"
+ * -not -name "*.test.ts"`) and the set grows with every domain plugin.
+ * Any hardcoded list here goes stale within days — false-rejecting
+ * valid traits and silently accepting deprecated ones.
+ *
+ * The validator therefore takes `knownTraits` from config at
+ * construction time. Callers should pass the live list from whatever
+ * trait registry their compilation target uses (e.g.
+ * `defaultTraitRegistry.getAll().map(t => '@' + t.id)` from
+ * `@holoscript/core/traits`, or the result of walking the plugin's
+ * registered handlers).
+ *
+ * When `knownTraits` is omitted or empty, the validator skips
+ * unknown-trait detection entirely rather than rejecting valid traits
+ * by accident. Callers see "trait validation: skipped (no knownTraits
+ * configured)" in the warnings array so the gap is visible, not silent.
  */
-const DEFAULT_KNOWN_TRAITS = [
-  // Interaction
-  '@grabbable',
-  '@throwable',
-  '@holdable',
-  '@clickable',
-  '@hoverable',
-  '@draggable',
-  '@pointable',
-  '@scalable',
-  '@rotatable',
-  '@snappable',
-  // Physics
-  '@collidable',
-  '@physics',
-  '@rigid',
-  '@kinematic',
-  '@trigger',
-  '@gravity',
-  // Visual
-  '@glowing',
-  '@emissive',
-  '@transparent',
-  '@reflective',
-  '@animated',
-  '@billboard',
-  '@color',
-  '@material',
-  '@texture',
-  // Networking
-  '@networked',
-  '@synced',
-  '@persistent',
-  '@owned',
-  '@host_only',
-  // Behavior
-  '@stackable',
-  '@attachable',
-  '@equippable',
-  '@consumable',
-  '@destructible',
-  '@breakable',
-  '@character',
-  // Spatial
-  '@anchor',
-  '@tracked',
-  '@world_locked',
-  '@hand_tracked',
-  '@eye_tracked',
-  '@position',
-  '@rotation',
-  '@scale',
-  // Audio
-  '@spatial_audio',
-  '@ambient',
-  '@voice_activated',
-  '@sound',
-  // State
-  '@state',
-  '@reactive',
-  '@observable',
-  '@computed',
-  // Advanced
-  '@teleport',
-  '@ui_panel',
-  '@particle_system',
-  '@weather',
-  '@day_night',
-  '@lod',
-  '@hand_tracking',
-  '@haptic',
-  '@portal',
-  '@mirror',
-];
+const KNOWN_TRAITS_BOOTSTRAP: readonly string[] = [];
 
 /**
  * HoloScript AI Validator
@@ -224,7 +169,7 @@ export class AIValidator {
   constructor(config: ValidatorConfig = {}) {
     this.config = {
       strict: config.strict ?? false,
-      knownTraits: config.knownTraits ?? DEFAULT_KNOWN_TRAITS,
+      knownTraits: config.knownTraits ?? [...KNOWN_TRAITS_BOOTSTRAP],
       hallucinationThreshold: config.hallucinationThreshold ?? 50,
       detectHallucinations: config.detectHallucinations ?? true,
       provider: config.provider ?? 'unknown',
@@ -267,7 +212,19 @@ export class AIValidator {
     const structuralErrors = this.validateStructure(code);
     errors.push(...structuralErrors);
 
-    // Step 3: Trait validation
+    // Step 3: Trait validation. Surface the gap as a warning when the
+    // caller didn't pass a knownTraits list — silent skipping would let
+    // hallucinated traits through unflagged, which is the exact scenario
+    // the validator exists to catch.
+    if (this.config.knownTraits.length === 0) {
+      warnings.push({
+        type: 'unusual',
+        message:
+          'trait validation: skipped (no knownTraits configured). Pass config.knownTraits with the live trait list from your compilation target to enable unknown-trait detection.',
+        suggestion:
+          'See @holoscript/ai-validator README — typical pattern is `defaultTraitRegistry.getAll().map(t => "@" + t.id)` from @holoscript/core/traits.',
+      });
+    }
     const traitErrors = this.validateTraits(code);
     errors.push(...traitErrors);
 
@@ -408,6 +365,12 @@ export class AIValidator {
    */
   private validateTraits(code: string): ValidationError[] {
     const errors: ValidationError[] = [];
+    // If the caller didn't configure a knownTraits list, skip unknown-trait
+    // detection entirely — see KNOWN_TRAITS_BOOTSTRAP comment for why a
+    // hardcoded default would do more harm than good. The gap is visible
+    // via the surfaceUnknownTraitsConfigured() warning emitted up the stack.
+    if (this.config.knownTraits.length === 0) return errors;
+
     const traitPattern = /@(\w+)/g;
     const lines = code.split('\n');
 

@@ -48,8 +48,8 @@ import type { UAALBytecode } from '@holoscript/uaal';
 import { ECSWorld, ComponentType } from '@holoscript/holo-vm';
 
 // vm-bridge
-import { SpatialCognitiveAgent, captureSceneSnapshot, applyActions } from '@holoscript/vm-bridge';
-import type { SceneSnapshot, AgentAction } from '@holoscript/vm-bridge';
+import { SpatialCognitiveAgent, captureSceneSnapshot, applyActions } from '@holoscript/engine/vm-bridge';
+import type { SceneSnapshot, AgentAction } from '@holoscript/engine/vm-bridge';
 
 // =============================================================================
 // TEST AGENT IMPLEMENTATION (extends BaseAgent from agent-protocol)

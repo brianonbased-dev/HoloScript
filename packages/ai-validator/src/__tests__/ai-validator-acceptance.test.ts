@@ -197,9 +197,16 @@ describe('AIValidator â€” getStats', () => {
     expect(stats).toHaveProperty('threshold');
   });
 
-  it('knownTraits count is positive', () => {
-    const validator = new AIValidator();
-    expect(validator.getStats().knownTraits).toBeGreaterThan(0);
+  it('knownTraits count reflects what the caller passed', () => {
+    // Default (no config.knownTraits) is 0 — that's the post-2026-04-29
+    // zero-hardcoded-stats behavior. Hardcoding a default would silently
+    // accept stale traits + reject newly-added ones every deploy. Callers
+    // pass their live trait list; the count is whatever they passed.
+    const empty = new AIValidator();
+    expect(empty.getStats().knownTraits).toBe(0);
+
+    const populated = new AIValidator({ knownTraits: ['@grabbable', '@physics'] });
+    expect(populated.getStats().knownTraits).toBe(2);
   });
 
   it('hallucinationPatterns count is positive', () => {

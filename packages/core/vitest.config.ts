@@ -13,7 +13,9 @@ export default defineConfig({
       { find: '@holoscript/agent-protocol', replacement: resolve(__dirname, '../agent-protocol/src/index.ts') },
       { find: '@holoscript/uaal', replacement: resolve(__dirname, '../uaal/src/index.ts') },
       { find: '@holoscript/holo-vm', replacement: resolve(__dirname, '../holo-vm/src/index.ts') },
-      { find: '@holoscript/vm-bridge', replacement: resolve(__dirname, '../vm-bridge/src/index.ts') },
+      // @holoscript/vm-bridge alias removed — package archived 2026-04-29
+      // (A.011.01k merged it into @holoscript/engine). Imports now resolve
+      // via the @holoscript/engine alias below as @holoscript/engine/vm-bridge.
       { find: '@holoscript/framework/ai', replacement: resolve(__dirname, '../framework/src/ai/index.ts') },
       { find: '@holoscript/framework/agents', replacement: resolve(__dirname, '../framework/src/agents/index.ts') },
       { find: '@holoscript/framework/behavior', replacement: resolve(__dirname, '../framework/src/behavior.ts') },
