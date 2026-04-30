@@ -59,6 +59,7 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
       model: session.config.model,
       messages: session.messages(),
       tools,
+      apiKey: session.config.apiKey || undefined,
       signal: opts.signal,
       fetchImpl: opts.fetchImpl,
     });

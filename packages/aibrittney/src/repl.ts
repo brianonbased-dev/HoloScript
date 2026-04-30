@@ -1,6 +1,6 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { Session, type SessionConfig, DEFAULT_SYSTEM_PROMPT } from './session.js';
+import { Session, type SessionConfig, DEFAULT_SYSTEM_PROMPT, looksLikeRemoteOllama } from './session.js';
 import { streamChatFromOllama } from './ollama-stream.js';
 import { runAgentTurn, type AgentEvent } from './agent.js';
 import { McpClient, defaultMcpConfig } from './mcp-client.js';
@@ -15,9 +15,23 @@ const YELLOW = '\x1b[33m';
 
 function banner(session: Session, toolsOn: boolean): void {
   stdout.write(`${CYAN}${'ᴬᴵ'}Brittney${RESET} v0.2 — local agent for HoloScript\n`);
-  stdout.write(`${DIM}model: ${session.config.model}  ollama: ${session.config.ollamaHost}${RESET}\n`);
+  const remote = looksLikeRemoteOllama(session.config.ollamaHost);
+  const hostBadge = remote
+    ? `${YELLOW}cloud${RESET}${DIM}: ${session.config.ollamaHost}${RESET}`
+    : `${DIM}ollama: ${session.config.ollamaHost}${RESET}`;
+  stdout.write(`${DIM}model: ${session.config.model}  ${RESET}${hostBadge}\n`);
   const toolsLabel = toolsOn ? `${GREEN}ON${RESET}` : `${DIM}OFF${RESET}`;
-  stdout.write(`${DIM}/help for commands. Tools: ${toolsLabel}${DIM}. Ctrl+C to quit.${RESET}\n\n`);
+  stdout.write(`${DIM}/help for commands. Tools: ${toolsLabel}${DIM}. Ctrl+C to quit.${RESET}\n`);
+  // Loud warn if pointed at a remote host without an api-key — the
+  // request will 401 and the symptom will read like an ollama outage.
+  if (remote && !session.config.apiKey) {
+    stdout.write(
+      `${YELLOW}warn: host is non-localhost but OLLAMA_API_KEY is not set. ` +
+        `Cloud / hosted endpoints will reject requests as unauthorized. ` +
+        `Pass --api-key or export OLLAMA_API_KEY.${RESET}\n`,
+    );
+  }
+  stdout.write('\n');
 }
 
 function help(): void {
@@ -105,6 +119,7 @@ async function streamReply(session: Session): Promise<void> {
       session.config.model,
       session.messages(),
       ac.signal,
+      session.config.apiKey || undefined,
     )) {
       if (chunk.type === 'token') {
         if (firstToken) {

@@ -28,10 +28,10 @@ export default defineConfig({
         'packages/linter/src/**/*.ts',
         'packages/partner-sdk/src/**/*.ts',
         'packages/adapter-postgres/src/**/*.ts',
-        'packages/collab-server/src/**/*.ts',
+        // packages/collab-server merged into packages/mcp-server/src/collab/ on 2026-04-29.
+        // packages/fs merged into packages/std/src/fs/ on 2026-04-29.
         'packages/registry/src/**/*.ts',
         'packages/runtime/src/**/*.ts',
-        'packages/fs/src/**/*.ts',
         'packages/security-sandbox/src/**/*.ts',
         'packages/ai-validator/src/**/*.ts',
         'packages/holoscript-cdn/src/**/*.ts',
@@ -83,9 +83,11 @@ export default defineConfig({
       resolve(__dirname, 'packages/registry/vitest.config.ts'),
       resolve(__dirname, 'packages/holoscript-cdn/vitest.config.ts'),
       resolve(__dirname, 'packages/runtime/vitest.config.ts'),
-      resolve(__dirname, 'packages/fs/vitest.config.ts'),
-      resolve(__dirname, 'packages/playground/vitest.config.ts'),
-      resolve(__dirname, 'packages/collab-server/vitest.config.ts'),
+      // packages/fs / packages/playground / packages/collab-server / packages/agent-setup
+      // / packages/semantic-2d / packages/vm-bridge — archived 2026-04-29
+      // (audit dead-merges + deprecated). Their tests now live under their
+      // merge targets (std/fs, studio/features/playground, mcp-server/collab,
+      // create-holoscript/agent-setup, core/{compiler,traits/v6}, engine/vm-bridge).
       resolve(__dirname, 'packages/studio/vitest.config.ts'),
       resolve(__dirname, 'packages/studio-plugin-sdk/vitest.config.ts'),
       resolve(__dirname, 'packages/react-agent-sdk/vitest.config.ts'),

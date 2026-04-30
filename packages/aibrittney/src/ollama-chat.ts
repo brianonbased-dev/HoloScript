@@ -30,6 +30,14 @@ export interface OllamaChatOptions {
   model: string;
   messages: ChatMessage[];
   tools?: Array<{ type: 'function'; function: unknown }>;
+  /**
+   * Optional bearer token. Required when `host` points at Ollama Cloud
+   * (`https://ollama.com/...`) or any hosted Ollama-compatible endpoint
+   * that gates `/api/chat`. Local Ollama (`127.0.0.1:11434`) ignores it.
+   * Sourced from `OLLAMA_API_KEY` by default — see `defaultApiKey()` in
+   * `session.ts`.
+   */
+  apiKey?: string;
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
 }
@@ -37,11 +45,13 @@ export interface OllamaChatOptions {
 export async function chatOnceFromOllama(opts: OllamaChatOptions): Promise<ChatResult> {
   const url = `${opts.host.replace(/\/$/, '')}/api/chat`;
   const fetchFn = opts.fetchImpl ?? fetch;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts.apiKey) headers['Authorization'] = `Bearer ${opts.apiKey}`;
   let res: Response;
   try {
     res = await fetchFn(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         model: opts.model,
         messages: opts.messages,

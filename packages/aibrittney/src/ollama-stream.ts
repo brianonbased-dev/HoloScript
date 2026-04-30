@@ -12,13 +12,22 @@ export async function* streamChatFromOllama(
   model: string,
   messages: ChatMessage[],
   signal?: AbortSignal,
+  /**
+   * Optional bearer token. Required when host is Ollama Cloud (or any
+   * hosted Ollama-compatible endpoint that gates /api/chat). Local
+   * Ollama ignores it. Sourced from OLLAMA_API_KEY by default in the
+   * REPL (see session.ts defaultApiKey()).
+   */
+  apiKey?: string,
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const url = `${host.replace(/\/$/, '')}/api/chat`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ model, messages, stream: true }),
       signal,
     });

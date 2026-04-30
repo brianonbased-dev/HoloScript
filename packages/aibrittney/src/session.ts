@@ -16,6 +16,14 @@ export interface SessionConfig {
   model: string;
   systemPrompt: string;
   ollamaHost: string;
+  /**
+   * Optional bearer token sent as `Authorization: Bearer <key>` on every
+   * /api/chat call. Required for Ollama Cloud and any hosted Ollama-
+   * compatible endpoint that gates the API. Local Ollama
+   * (`127.0.0.1:11434`) ignores it. Default: `OLLAMA_API_KEY` env (or
+   * empty string when local).
+   */
+  apiKey: string;
 }
 
 export const DEFAULT_SYSTEM_PROMPT = `You are AIBrittney — the local CLI persona of HoloScript's Brittney operator.
@@ -36,6 +44,28 @@ export function defaultOllamaHost(): string {
   return process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434';
 }
 
+export function defaultApiKey(): string {
+  return process.env.OLLAMA_API_KEY ?? '';
+}
+
+/**
+ * Heuristic: when we're pointed at Ollama Cloud (or any non-localhost
+ * Ollama-compatible host) the request needs an Authorization bearer.
+ * Local Ollama doesn't. Used by the REPL to warn loudly if the user
+ * configured a remote host without exporting an API key.
+ */
+export function looksLikeRemoteOllama(host: string): boolean {
+  try {
+    const url = new URL(host);
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '0.0.0.0') {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export class Session {
   readonly config: SessionConfig;
   readonly history: ChatMessage[];
@@ -45,6 +75,7 @@ export class Session {
       model: config.model ?? defaultModel(),
       systemPrompt: config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
       ollamaHost: config.ollamaHost ?? defaultOllamaHost(),
+      apiKey: config.apiKey ?? defaultApiKey(),
     };
     this.history = [{ role: 'system', content: this.config.systemPrompt }];
   }

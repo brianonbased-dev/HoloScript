@@ -29,6 +29,10 @@ aibrittney --tools                  # start REPL with MCP tools enabled
 aibrittney --model brittney-qwen    # use a different model
 aibrittney --host http://lan-host:11434
 AIBRITTNEY_MODEL=qwen2.5-coder:7b aibrittney   # via env
+
+# Ollama Cloud (paid hosted endpoint, cloud-class models like kimi-k2.6:cloud)
+export OLLAMA_API_KEY=<your-cloud-key>
+aibrittney --cloud --model kimi-k2.6:cloud
 ```
 
 ### REPL slash commands
@@ -44,6 +48,34 @@ AIBRITTNEY_MODEL=qwen2.5-coder:7b aibrittney   # via env
 | `/tools` | toggle MCP tool calling on/off (resets system prompt + history) |
 
 Ctrl+C aborts an in-flight reply without exiting the REPL.
+
+## Ollama Cloud (v0.2.1, opt-in)
+
+The same `/api/chat` protocol works against `ollama.com` when the request
+carries `Authorization: Bearer <key>`. AIBrittney now threads an api-key
+through `Session` → `streamChatFromOllama` / `chatOnceFromOllama`, so the
+exact same REPL works against:
+
+- **local Ollama** at `http://127.0.0.1:11434` (default; no key needed)
+- **LAN Ollama** at any reachable host (key only if that host gates it)
+- **Ollama Cloud** at `https://ollama.com` (paid; key required)
+
+The `--cloud` flag is a shorthand for `--host https://ollama.com` and
+pairs naturally with `--model kimi-k2.6:cloud` (or any other published
+cloud model). The REPL warns at startup if the host is non-localhost
+and `OLLAMA_API_KEY` isn't set — that prevents the "401 looks like an
+outage" failure mode.
+
+```bash
+export OLLAMA_API_KEY=<your-cloud-key>
+aibrittney --cloud --model kimi-k2.6:cloud --tools
+```
+
+Why care: cloud-class models (kimi-k2.6, llama3.1-405b, etc.) are
+substantially more capable than what fits in 8 GB local VRAM but still
+speak the same `/api/chat` shape. AIBrittney becomes a single CLI that
+covers every provider tier — local 7B, LAN-shared mid-size, paid
+cloud — without changing the REPL or the tool-calling protocol.
 
 ## Tool calling (v0.2, opt-in)
 
