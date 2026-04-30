@@ -107,6 +107,11 @@ export async function checkCredits(
 ): Promise<CreditGateResult> {
   const { id: userId, githubUsername } = await resolveUser(request);
 
+  // Dev bypass — credit endpoints may not be available locally
+  if (process.env.NODE_ENV === 'development') {
+    return { userId: userId || 'dev', error: null };
+  }
+
   // Admin bypass — founders/admins skip credit checks
   if (githubUsername && ADMIN_GITHUB_USERNAMES.has(githubUsername.toLowerCase())) {
     return { userId: userId || `admin:${githubUsername}`, error: null };

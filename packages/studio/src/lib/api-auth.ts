@@ -6,15 +6,41 @@
  */
 
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { authOptions } from './auth';
 
 /**
  * Get the current session in a server component or API route.
  * Returns null if not authenticated.
+ *
+ * In Next.js App Router, getServerSession() without req/res can fail
+ * to read cookies. We fallback to getToken() from next-auth/jwt which
+ * reads cookies via next/headers.
  */
 export async function getSession() {
-  return getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  if (session) return session;
+
+  // Fallback for App Router: decode JWT directly from cookies
+  const cookieStore = await cookies();
+  const token = await getToken({
+    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+  if (!token) return null;
+
+  return {
+    user: {
+      id: token.sub ?? '',
+      name: token.name ?? null,
+      email: token.email ?? null,
+      image: token.picture ?? null,
+      githubUsername: (token.githubUsername as string) ?? '',
+    },
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  };
 }
 
 /**
