@@ -1,0 +1,302 @@
+// ============================================================================
+// Stress-Test: Vault of Elemental Crystals
+// A-009 — 2026-04-30
+//
+// Never-exercised traits under test:
+//   @crystal_gem   — gems-minerals vocabulary, 0 refs before this file
+//   @enchantable   — magic-fantasy vocabulary, 0 refs before this file
+//
+// Well-exercised anchors:
+//   @glowing  @grabbable  @physics  @animated  @collidable  @clickable
+//
+// Visual story:
+//   Deep underground, a circular stone vault holds seven ancient crystals —
+//   one for each elemental force. Each floats on its plinth, softly lit by
+//   its own elemental color. You can grab any crystal; it hums with power and
+//   shifts the vault's ambient glow. A clear quartz keystone at the center
+//   is arch-enchanted across all elements — the vault's crowning piece.
+//
+// MISSING-TRAIT WISH (queued for Phase 4):
+//   @gem_resonance — when two crystals are held within 0.5 m of each other
+//   they should produce harmonic audio from their elemental base frequencies.
+//   No such trait exists in the codebase as of 2026-04-30.
+// ============================================================================
+
+composition "Vault of Elemental Crystals" {
+
+  // ── Environment ─────────────────────────────────────────────────────────
+
+  environment {
+    skybox: { type: "solid", color: "#05050a" }
+    ambient_light: 0.07
+    shadows: true
+    physics: true
+    physics_substeps: 4
+    fog: { enabled: true, density: 0.04, color: "#0a0515" }
+  }
+
+  light "VaultAmbient" {
+    type: "point"
+    position: [0, 5, 0]
+    intensity: 60
+    color: "#221133"
+    radius: 12
+  }
+
+  light "AltarGlow" {
+    type: "point"
+    position: [0, 1.3, 0]
+    intensity: 200
+    color: "#ffffff"
+    radius: 4
+  }
+
+  // ── Vault Architecture ───────────────────────────────────────────────────
+
+  object "Floor" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0, 0]
+    scale: [10, 0.25, 10]
+    material: { baseColor: "#2a2030", roughness: 0.82, metallic: 0.08 }
+  }
+
+  object "CeilingDome" {
+    geometry: "sphere"
+    position: [0, 4, 0]
+    scale: [9, 5, 9]
+    material: { baseColor: "#1a1525", roughness: 0.9, metallic: 0.0, opacity: 0.8 }
+  }
+
+  // Seven perimeter plinths at 51.4° intervals, radius 4 m
+  template "CrystalPlinth" {
+    @collidable
+    geometry: "cylinder"
+    scale: [0.25, 0.9, 0.25]
+    material: { baseColor: "#3a2a50", roughness: 0.7, metallic: 0.15 }
+  }
+
+  object "Plinth_Fire"   using "CrystalPlinth" { position: [4.0, 0.45, 0.0] }
+  object "Plinth_Water"  using "CrystalPlinth" { position: [2.74, 0.45, 2.93] }
+  object "Plinth_Earth"  using "CrystalPlinth" { position: [-0.62, 0.45, 3.95] }
+  object "Plinth_Air"    using "CrystalPlinth" { position: [-3.57, 0.45, 1.84] }
+  object "Plinth_Shadow" using "CrystalPlinth" { position: [-3.57, 0.45, -1.84] }
+  object "Plinth_Ice"    using "CrystalPlinth" { position: [-0.62, 0.45, -3.95] }
+  object "Plinth_Storm"  using "CrystalPlinth" { position: [2.74, 0.45, -2.93] }
+
+  object "Plinth_Keystone" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0.6, 0]
+    scale: [0.4, 1.2, 0.4]
+    material: { baseColor: "#5a4070", roughness: 0.55, metallic: 0.3, emissive: "#330055", emissiveIntensity: 0.4 }
+  }
+
+  // ── Crystal Base Template ────────────────────────────────────────────────
+  //   @crystal_gem and @enchantable are the never-exercised traits.
+  //   Combined with @glowing @grabbable @physics @animated (all well-exercised).
+
+  template "ElementalCrystal" {
+    @crystal_gem {
+      cut: "hexagonal"
+      clarity: 0.9
+      refractive_index: 2.1
+    }
+    @enchantable {
+      element: "none"
+      enchant_level: 5
+      aura_visible: true
+      aura_radius: 0.3
+    }
+    @glowing {
+      color: "#ffffff"
+      intensity: 2.5
+      pulse_speed: 1.1
+      pulse_min: 1.8
+      pulse_max: 3.2
+    }
+    @grabbable {
+      hand: "both"
+      highlight_on_near: true
+    }
+    @physics {
+      mass: 0.3
+      restitution: 0.15
+      friction: 0.3
+      gravity_scale: 0.0
+    }
+    @animated {
+      property: "rotation.y"
+      from: 0
+      to: 6.283
+      duration: 8000
+      loop: true
+      easing: "linear"
+    }
+    geometry: "sphere"
+    scale: 0.22
+    state { element: "none", held: false }
+  }
+
+  // ── The Seven Elemental Crystals ─────────────────────────────────────────
+
+  object "Crystal_Fire" using "ElementalCrystal" {
+    position: [4.0, 1.35, 0.0]
+    @crystal_gem { cut: "emerald", clarity: 0.92 }
+    @enchantable { element: "fire", enchant_level: 5, aura_radius: 0.35, aura_visible: true }
+    @glowing { color: "#ff4400", intensity: 3.0, pulse_speed: 1.8 }
+    material: { baseColor: "#ff3300", roughness: 0.1, metallic: 0.0, emissive: "#cc2200", emissiveIntensity: 4.0 }
+    state { element: "fire", held: false }
+  }
+
+  object "Crystal_Water" using "ElementalCrystal" {
+    position: [2.74, 1.35, 2.93]
+    @crystal_gem { cut: "cushion", clarity: 0.95 }
+    @enchantable { element: "water", enchant_level: 5, aura_radius: 0.3, aura_visible: true }
+    @glowing { color: "#0088ff", intensity: 2.8, pulse_speed: 0.9 }
+    material: { baseColor: "#0066cc", roughness: 0.05, metallic: 0.0, emissive: "#0044aa", emissiveIntensity: 3.5 }
+    state { element: "water", held: false }
+  }
+
+  object "Crystal_Earth" using "ElementalCrystal" {
+    position: [-0.62, 1.35, 3.95]
+    @crystal_gem { cut: "octagon", clarity: 0.85, refractive_index: 1.95 }
+    @enchantable { element: "earth", enchant_level: 4, aura_radius: 0.28, aura_visible: true }
+    @glowing { color: "#44aa22", intensity: 2.4, pulse_speed: 0.6 }
+    material: { baseColor: "#2d7a1a", roughness: 0.18, metallic: 0.0, emissive: "#1a5510", emissiveIntensity: 3.2 }
+    state { element: "earth", held: false }
+  }
+
+  object "Crystal_Air" using "ElementalCrystal" {
+    position: [-3.57, 1.35, 1.84]
+    @crystal_gem { cut: "hexagonal", clarity: 0.98, refractive_index: 1.85 }
+    @enchantable { element: "air", enchant_level: 5, aura_radius: 0.4, aura_visible: true }
+    @glowing { color: "#ccddff", intensity: 2.2, pulse_speed: 1.3 }
+    material: { baseColor: "#aaccff", roughness: 0.02, metallic: 0.0, emissive: "#88aadd", emissiveIntensity: 2.8 }
+    state { element: "air", held: false }
+  }
+
+  object "Crystal_Shadow" using "ElementalCrystal" {
+    position: [-3.57, 1.35, -1.84]
+    @crystal_gem { cut: "princess", clarity: 0.88 }
+    @enchantable { element: "shadow", enchant_level: 7, aura_radius: 0.45, aura_visible: true }
+    @glowing { color: "#8800cc", intensity: 3.5, pulse_speed: 0.7 }
+    material: { baseColor: "#220033", roughness: 0.08, metallic: 0.2, emissive: "#660099", emissiveIntensity: 4.5 }
+    state { element: "shadow", held: false }
+  }
+
+  object "Crystal_Ice" using "ElementalCrystal" {
+    position: [-0.62, 1.35, -3.95]
+    @crystal_gem { cut: "hexagonal", clarity: 0.97, refractive_index: 2.4 }
+    @enchantable { element: "ice", enchant_level: 5, aura_radius: 0.38, aura_visible: true }
+    @glowing { color: "#88ddff", intensity: 2.6, pulse_speed: 1.0 }
+    material: { baseColor: "#bbeeff", roughness: 0.04, metallic: 0.0, emissive: "#6699cc", emissiveIntensity: 3.0 }
+    state { element: "ice", held: false }
+  }
+
+  object "Crystal_Storm" using "ElementalCrystal" {
+    position: [2.74, 1.35, -2.93]
+    @crystal_gem { cut: "trillion", clarity: 0.91 }
+    @enchantable { element: "lightning", enchant_level: 6, aura_radius: 0.42, aura_visible: true }
+    @glowing { color: "#ffee22", intensity: 3.8, pulse_speed: 2.8 }
+    material: { baseColor: "#ffdd00", roughness: 0.06, metallic: 0.0, emissive: "#ccaa00", emissiveIntensity: 4.2 }
+    state { element: "storm", held: false }
+  }
+
+  // ── Keystone — Clear Quartz (Arch-Enchanted Across All Elements) ──────────
+
+  object "Crystal_Keystone" {
+    @crystal_gem {
+      cut: "round"
+      clarity: 1.0
+      refractive_index: 2.8
+    }
+    @enchantable {
+      element: "all"
+      enchant_level: 10
+      aura_visible: true
+      aura_radius: 0.55
+      aura_color: "#ffffff"
+    }
+    @glowing {
+      color: "#ffffff"
+      intensity: 5.0
+      pulse_speed: 0.5
+      pulse_min: 3.5
+      pulse_max: 6.0
+    }
+    @grabbable {
+      hand: "both"
+      highlight_on_near: true
+    }
+    @physics {
+      mass: 0.4
+      restitution: 0.1
+      gravity_scale: 0.0
+    }
+    @animated {
+      property: "rotation.y"
+      from: 0
+      to: 6.283
+      duration: 5000
+      loop: true
+      easing: "linear"
+    }
+    geometry: "sphere"
+    position: [0, 2.1, 0]
+    scale: 0.32
+    material: {
+      baseColor: "#ffffff"
+      roughness: 0.01
+      metallic: 0.0
+      opacity: 0.88
+      emissive: "#aaaaff"
+      emissiveIntensity: 5.5
+    }
+    state { element: "all", held: false, door_unlocked: false }
+  }
+
+  // ── Vault Gate ───────────────────────────────────────────────────────────
+
+  object "VaultGate" {
+    @collidable
+    @clickable { feedback: "haptic" }
+    @animated {
+      property: "rotation.y"
+      from: 0
+      to: 1.5708
+      duration: 2200
+      easing: "ease_out"
+      autoplay: false
+    }
+    geometry: "cube"
+    position: [0, 1.5, -7]
+    scale: [3.5, 3.0, 0.2]
+    material: { baseColor: "#3a2a40", roughness: 0.6, metallic: 0.4 }
+    state { locked: true }
+  }
+
+  // ── Post-Processing ──────────────────────────────────────────────────────
+
+  post_processing {
+    bloom { intensity: 0.95, threshold: 0.4, radius: 6 }
+    tone_mapping { mode: "aces", exposure: 0.88 }
+    ambient_occlusion { intensity: 1.6, radius: 0.6 }
+    color_grading {
+      saturation: 1.3
+      contrast: 1.1
+      lift: [0.01, 0.0, 0.02]
+    }
+    vignette { intensity: 0.6, smoothness: 0.4 }
+    chromatic_aberration { intensity: 0.25 }
+  }
+
+  // ── Camera ───────────────────────────────────────────────────────────────
+
+  camera "Main" {
+    type: "perspective"
+    position: [0, 4.5, 8.5]
+    look_at: [0, 1.5, 0]
+    fov: 62
+  }
+}

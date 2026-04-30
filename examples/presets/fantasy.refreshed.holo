@@ -1,0 +1,252 @@
+// ============================================================================
+// Environment Preset: Fantasy — Moonlit Enchanted Grove
+// A-009 Refresh — 2026-04-30
+//
+// Original intent: fantasy env template for games, NPC, narrative, RPG.
+// Refresh adds:
+//   @animated  — stone rune pillars pulsing with arcane energy
+//   @glowing   — mana orbs orbiting the altar
+//   @npc       — wandering will-o-wisp guide
+//   @hoverable — interactive rune stones reveal lore tooltip
+//
+// Visual story:
+//   A stone circle stands in a moonlit forest clearing. Ancient runes
+//   carved into seven standing stones pulse with violet light. Three
+//   mana orbs circle a central obsidian altar, trailing cold fire.
+//   A will-o-wisp drifts between the stones — ancient guide to those
+//   who enter the grove. Touch any rune stone to reveal its lore.
+// ============================================================================
+
+composition "Moonlit Enchanted Grove" {
+
+  // ── Environment ─────────────────────────────────────────────────────────
+
+  environment {
+    skybox: { type: "gradient", top: "#0d001a", bottom: "#2a0840" }
+    ambient_light: 0.18
+    shadows: true
+    fog: { enabled: true, density: 0.006, color: "#1a0530" }
+  }
+
+  light "Moon" {
+    type: "directional"
+    position: [-4, 10, 6]
+    intensity: 0.55
+    color: "#c8d0ff"
+    castShadow: true
+  }
+
+  light "AltarGlow" {
+    type: "point"
+    position: [0, 1.4, 0]
+    intensity: 280
+    color: "#9933cc"
+    radius: 6
+  }
+
+  light "WispLight" {
+    type: "point"
+    position: [3, 1.2, 1]
+    intensity: 120
+    color: "#44ffcc"
+    radius: 3
+  }
+
+  // ── Ground ───────────────────────────────────────────────────────────────
+
+  object "ForestFloor" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [40, 1, 40]
+    material: {
+      baseColor: "#2a1f10"
+      roughness: 0.92
+      metallic: 0.0
+      normal_map: "textures/forest_floor_normal.png"
+    }
+  }
+
+  object "StonePaving" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0.01, 0]
+    scale: [8, 1, 8]
+    material: { baseColor: "#3c3040", roughness: 0.8, metallic: 0.05 }
+  }
+
+  // ── Central Obsidian Altar ───────────────────────────────────────────────
+
+  object "Altar" {
+    @collidable
+    @glowing {
+      color: "#9933cc"
+      intensity: 1.2
+      pulse_speed: 0.6
+      pulse_min: 0.8
+      pulse_max: 1.4
+    }
+    geometry: "cube"
+    position: [0, 0.5, 0]
+    scale: [0.9, 1.0, 0.9]
+    material: { baseColor: "#0d0010", roughness: 0.15, metallic: 0.6, emissive: "#330044", emissiveIntensity: 0.5 }
+  }
+
+  // ── Seven Standing Rune Stones ───────────────────────────────────────────
+  //   Placed at 51.4° intervals around a 4m radius circle.
+  //   Each stone has a different rune lore glyph.
+
+  template "RuneStone" {
+    @collidable
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: ""
+      glow_on_hover: true
+      glow_color: "#cc88ff"
+    }
+    @animated {
+      property: "material.emissiveIntensity"
+      from: 0.3
+      to: 0.9
+      duration: 2200
+      loop: true
+      easing: "sine"
+    }
+    geometry: "cylinder"
+    material: { baseColor: "#4a3060", roughness: 0.7, metallic: 0.1, emissive: "#7733aa", emissiveIntensity: 0.5 }
+    state { lore: "" }
+  }
+
+  object "Stone_Aether" using "RuneStone" {
+    position: [4.0, 0.8, 0.0]
+    scale: [0.35, 1.6, 0.35]
+    state { lore: "Rune of Aether — where sky meets void" }
+  }
+  object "Stone_Fire" using "RuneStone" {
+    position: [2.74, 0.8, 2.93]
+    scale: [0.35, 1.4, 0.35]
+    state { lore: "Rune of Fire — will forged in flame" }
+  }
+  object "Stone_Water" using "RuneStone" {
+    position: [-0.62, 0.8, 3.95]
+    scale: [0.35, 1.7, 0.35]
+    state { lore: "Rune of Water — memory flows beneath all things" }
+  }
+  object "Stone_Earth" using "RuneStone" {
+    position: [-3.57, 0.8, 1.84]
+    scale: [0.35, 1.5, 0.35]
+    state { lore: "Rune of Earth — roots older than names" }
+  }
+  object "Stone_Shadow" using "RuneStone" {
+    position: [-3.57, 0.8, -1.84]
+    scale: [0.35, 1.65, 0.35]
+    state { lore: "Rune of Shadow — the shape between light" }
+  }
+  object "Stone_Storm" using "RuneStone" {
+    position: [-0.62, 0.8, -3.95]
+    scale: [0.35, 1.45, 0.35]
+    state { lore: "Rune of Storm — patience and fury as one" }
+  }
+  object "Stone_Spirit" using "RuneStone" {
+    position: [2.74, 0.8, -2.93]
+    scale: [0.35, 1.55, 0.35]
+    state { lore: "Rune of Spirit — the grove remembers those who listen" }
+  }
+
+  // ── Orbiting Mana Orbs ───────────────────────────────────────────────────
+
+  template "ManaOrb" {
+    @glowing {
+      color: "#aa44ff"
+      intensity: 2.0
+      bloom_radius: 0.4
+    }
+    @animated {
+      property: "position"
+      keyframes: "orbit_path"
+      duration: 6000
+      loop: true
+    }
+    geometry: "sphere"
+    scale: 0.14
+    material: {
+      baseColor: "#cc66ff"
+      roughness: 0.05
+      metallic: 0.0
+      emissive: "#8822cc"
+      emissiveIntensity: 3.0
+    }
+  }
+
+  object "Orb_A" using "ManaOrb" {
+    position: [1.2, 1.8, 0.0]
+    animation_offset: 0
+    material { emissive: "#880088" }
+  }
+  object "Orb_B" using "ManaOrb" {
+    position: [-0.6, 2.1, 1.04]
+    animation_offset: 2000
+    material { emissive: "#4422cc" }
+  }
+  object "Orb_C" using "ManaOrb" {
+    position: [-0.6, 1.6, -1.04]
+    animation_offset: 4000
+    material { emissive: "#cc22aa" }
+  }
+
+  // ── Will-o-Wisp ──────────────────────────────────────────────────────────
+  //   Animated along a patrol path between the rune stones.
+  //   @clickable reveals the grove's legend when touched.
+
+  object "Wisp" {
+    @clickable {
+      feedback: "haptic"
+      tooltip: "Ancient guide — touch to hear the grove's legend"
+    }
+    @glowing {
+      color: "#44ffcc"
+      intensity: 1.8
+      pulse_speed: 1.4
+      pulse_min: 0.7
+      pulse_max: 2.2
+    }
+    @animated {
+      property: "position"
+      keyframes: [
+        { t: 0,    value: [3.5, 1.2, 0.0] },
+        { t: 0.25, value: [0.0, 1.6, 3.5] },
+        { t: 0.5,  value: [-3.5, 1.2, 0.0] },
+        { t: 0.75, value: [0.0, 1.4, -3.5] },
+        { t: 1.0,  value: [3.5, 1.2, 0.0] }
+      ]
+      duration: 18000
+      loop: true
+      easing: "cubic"
+    }
+    geometry: "sphere"
+    position: [3.0, 1.2, 1.0]
+    scale: 0.09
+    material: {
+      baseColor: "#88ffee"
+      roughness: 0.0
+      metallic: 0.0
+      emissive: "#44ffaa"
+      emissiveIntensity: 4.0
+    }
+  }
+
+  // ── Post-Processing ──────────────────────────────────────────────────────
+
+  post_processing {
+    bloom { intensity: 0.55, threshold: 0.5, radius: 5 }
+    volumetric_fog { density: 0.012, scattering: 0.5, color: "#1a0030" }
+    tone_mapping { mode: "aces", exposure: 0.95 }
+    color_grading {
+      saturation: 1.2
+      contrast: 1.08
+      lift: [0.01, 0.0, 0.03]
+      gamma: [0.97, 0.97, 1.0]
+    }
+    vignette { intensity: 0.4, smoothness: 0.55 }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-04-30T22:40:28Z",
+  "gaps": [
+    {
+      "type": "feature-request",
+      "title": "Add @gem_resonance trait for harmonic audio between co-located enchanted gems (A-009 example-driven request)",
+      "description": "While composing examples/stress-tests/gem-vault-crystal-enchantable-2026-04-30.holo, the scene would be significantly more expressive with a @gem_resonance trait. When two @crystal_gem objects tagged @enchantable are held within 0.5 m of each other, they should produce harmonic audio built from their elemental base frequencies (e.g. fire=440 Hz, water=528 Hz, earth=396 Hz). The interference pattern creates a recognizable chord — a gameplay signal that crystal combination is meaningful. Suggested API: @gem_resonance { max_distance: 0.5, base_frequencies: auto, blend_mode: \"harmonic\", output: \"spatial_audio\" }. No Trait*.ts file implements this. The scene currently uses @crystal_gem + @enchantable without resonance, which parses fine but misses the sonic storytelling layer.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "crystal_gem", "enchantable", "audio"],
+      "dedup_key": "a009-trait-gem_resonance"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+// ============================================================================
+// Hello World — Your First HoloScript Scene
+// A-009 Refresh — 2026-04-30
+//
+// Original: "Developer Portal" showcase (confusing for newcomers)
+// Refresh: Genuine entry-point welcome — one glowing cube, one interaction,
+//          one environment. Everything a beginner needs to see in 60 lines.
+//
+// Added traits:
+//   @hoverable — greeting text appears when you look at the cube
+//   @glowing   — soft cyan emissive without heavy post-fx
+//   @animated  — gentle float to show the runtime is alive
+// ============================================================================
+
+composition "Hello, HoloScript" {
+
+  environment {
+    skybox: { type: "gradient", top: "#0a1020", bottom: "#182840" }
+    ambient_light: 0.3
+    shadows: true
+  }
+
+  light "Key" {
+    type: "directional"
+    position: [4, 8, 5]
+    intensity: 1.0
+    color: "#ffffff"
+    castShadow: true
+  }
+
+  light "Fill" {
+    type: "point"
+    position: [-3, 3, 3]
+    intensity: 180
+    color: "#3388ff"
+  }
+
+  // ── Ground ───────────────────────────────────────────────────────────────
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [12, 1, 12]
+    material: { baseColor: "#1a2030", roughness: 0.75, metallic: 0.1 }
+  }
+
+  // ── Welcome Cube ─────────────────────────────────────────────────────────
+  //   The star of the scene. Hover to see the greeting.
+  //   Grab it, move it, let it go — it floats back.
+
+  object "WelcomeCube" {
+    @grabbable
+    @hoverable {
+      show_tooltip: true
+      tooltip_text: "Welcome to HoloScript — drag me anywhere"
+      glow_on_hover: true
+      glow_color: "#00ddff"
+    }
+    @glowing {
+      color: "#00aacc"
+      intensity: 1.4
+      pulse_speed: 0.9
+      pulse_min: 0.9
+      pulse_max: 1.6
+    }
+    @animated {
+      property: "position.y"
+      from: 1.35
+      to: 1.65
+      duration: 2800
+      loop: true
+      easing: "sine"
+    }
+    geometry: "cube"
+    position: [0, 1.5, -1.5]
+    scale: 0.55
+    material: {
+      baseColor: "#00d4ff"
+      roughness: 0.22
+      metallic: 0.45
+      emissive: "#005577"
+      emissiveIntensity: 0.6
+    }
+  }
+
+  // ── Floating Label ───────────────────────────────────────────────────────
+
+  object "Label" {
+    geometry: "plane"
+    position: [0, 2.5, -1.5]
+    scale: [2.0, 0.5, 1.0]
+    material: { baseColor: "#0a1020", opacity: 0.85, roughness: 0.9 }
+    text: {
+      content: "Hello, HoloScript v7.0"
+      font_size: 18
+      color: "#00d4ff"
+      align: "center"
+      weight: "light"
+    }
+  }
+
+  // ── Post-Processing ──────────────────────────────────────────────────────
+
+  post_processing {
+    bloom { intensity: 0.35, threshold: 0.85 }
+    tone_mapping { mode: "aces", exposure: 1.05 }
+    ambient_occlusion { intensity: 0.4, radius: 0.4 }
+  }
+
+  // ── Camera ───────────────────────────────────────────────────────────────
+
+  camera "Main" {
+    type: "perspective"
+    position: [2.5, 2.2, 4.0]
+    look_at: [0, 1.5, -1.5]
+    fov: 58
+  }
+}
