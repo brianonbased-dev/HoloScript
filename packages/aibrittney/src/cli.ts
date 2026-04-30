@@ -7,6 +7,7 @@ import { defaultModel, defaultOllamaHost } from './session.js';
 interface ParsedArgs {
   model?: string;
   host?: string;
+  toolsEnabled?: boolean;
   showVersion?: boolean;
   showHelp?: boolean;
   subcommand?: 'configure' | 'gateway' | 'channels';
@@ -21,6 +22,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       out.model = argv[++i];
     } else if (a === '--host' || a === '-H') {
       out.host = argv[++i];
+    } else if (a === '--tools' || a === '-t') {
+      out.toolsEnabled = true;
+    } else if (a === '--no-tools') {
+      out.toolsEnabled = false;
     } else if (a === '--version' || a === '-v') {
       out.showVersion = true;
     } else if (a === '--help' || a === '-h') {
@@ -52,6 +57,7 @@ usage:
   aibrittney                  start interactive REPL with default model
   aibrittney --model <name>   start REPL with specific ollama model
   aibrittney --host <url>     point at a remote ollama (default: ${defaultOllamaHost()})
+  aibrittney --tools          enable MCP tool calling (codebase, knowledge, parser)
   aibrittney configure        manage local config (placeholder in v0.1)
   aibrittney gateway          run as a background gateway (placeholder in v0.1)
   aibrittney channels         manage messaging channels (placeholder in v0.1)
@@ -61,9 +67,20 @@ usage:
 defaults:
   model = ${defaultModel()} (override via AIBRITTNEY_MODEL or --model)
   host  = ${defaultOllamaHost()} (override via OLLAMA_HOST or --host)
+  tools = OFF (toggle in REPL with /tools, or pass --tools)
 
 REPL slash commands:
-  /help /exit /clear /model <name> /system <prompt> /show
+  /help /exit /clear /model <name> /system <prompt> /show /tools
+
+tool calling (v0.2, opt-in):
+  - requires HOLOSCRIPT_API_KEY (or MCP_API_KEY) in env
+  - exposes a curated set of MCP tools to the local model:
+    holo_query_codebase, holo_ask_codebase, knowledge_query, holo_parse_to_graph
+  - tool calls are dispatched via the orchestrator at MCP_ORCHESTRATOR_URL
+    (default https://mcp-orchestrator-production-45f9.up.railway.app)
+  - the model must natively support function/tool calls (qwen2.5-coder, llama3.1+,
+    etc). Brittney custom models that don't expose tool tokens will fall back
+    to plain chat with no calls.
 
 prerequisites:
   - ollama running locally on ${defaultOllamaHost()}
@@ -87,7 +104,7 @@ async function main(): Promise<number> {
     );
     return 2;
   }
-  return runRepl({ model: args.model, ollamaHost: args.host });
+  return runRepl({ model: args.model, ollamaHost: args.host, toolsEnabled: args.toolsEnabled });
 }
 
 main().then(

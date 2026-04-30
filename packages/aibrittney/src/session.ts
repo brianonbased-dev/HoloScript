@@ -1,6 +1,15 @@
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  /** Present on assistant turns that requested tool calls. */
+  tool_calls?: Array<{
+    id?: string;
+    function: { name: string; arguments: Record<string, unknown> | string };
+  }>;
+  /** Set on role=tool messages so the model can match the result to its call. */
+  tool_call_id?: string;
+  /** Set on role=tool messages to label which tool produced the content. */
+  name?: string;
 }
 
 export interface SessionConfig {
@@ -42,6 +51,10 @@ export class Session {
 
   push(role: 'user' | 'assistant', content: string): void {
     this.history.push({ role, content });
+  }
+
+  pushRaw(message: ChatMessage): void {
+    this.history.push(message);
   }
 
   clear(): void {
