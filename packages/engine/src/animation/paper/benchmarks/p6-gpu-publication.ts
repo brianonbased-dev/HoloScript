@@ -97,7 +97,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const out_path =
     (idx >= 0 && argv[idx + 1]) ||
     process.env.PAPER6_OUT ||
-    '.bench-logs/paper-6-gpu-bench.json';
+    '.bench-logs/paper-6-mecanim-divergence.json';
 
   const publication = runPaper6MecanimBenchmark();
   writePaper6Artifact(publication, resolve(process.cwd(), out_path));
