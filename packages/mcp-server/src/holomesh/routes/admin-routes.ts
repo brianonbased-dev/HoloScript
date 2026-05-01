@@ -21,6 +21,7 @@ import {
   persistAgentStore,
   teamStore,
   persistTeamStore,
+  reloadTeam,
 } from '../state';
 import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
@@ -290,6 +291,7 @@ export async function handleAdminRoutes(
   const adminRoomMatch = pathname.match(/^\/api\/holomesh\/admin\/team\/([^/]+)\/admin-room$/);
   if (adminRoomMatch && method === 'PATCH') {
     const teamId = adminRoomMatch[1];
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
