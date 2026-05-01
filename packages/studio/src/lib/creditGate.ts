@@ -72,7 +72,16 @@ export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
  * as an admin identity.
  */
 async function resolveUser(request: Request): Promise<{ id: string | null; githubUsername: string }> {
-  // 1. NextAuth session (browser users)
+  // 1. Benchmark bypass — if BRITTNEY_BENCHMARK_KEY is configured and the
+  // request carries a matching x-benchmark-key header, treat as benchmark user.
+  if (process.env.BRITTNEY_BENCHMARK_KEY) {
+    const benchKey = request.headers.get('x-benchmark-key');
+    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+      return { id: 'benchmark', githubUsername: '' };
+    }
+  }
+
+  // 2. NextAuth session (browser users)
   try {
     const session = await getSession();
     if (session?.user?.id) {
@@ -83,11 +92,11 @@ async function resolveUser(request: Request): Promise<{ id: string | null; githu
     // NextAuth not configured — fall through
   }
 
-  // 2. Explicit header (API/CLI clients)
+  // 3. Explicit header (API/CLI clients)
   const headerUserId = request.headers.get('x-user-id');
   if (headerUserId) return { id: headerUserId, githubUsername: '' };
 
-  // 3. Authorization bearer token as user identity
+  // 4. Authorization bearer token as user identity
   const auth = request.headers.get('authorization');
   if (auth?.startsWith('Bearer ')) {
     return { id: `apikey:${auth.slice(7, 20)}`, githubUsername: '' };

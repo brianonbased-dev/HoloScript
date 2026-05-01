@@ -106,7 +106,7 @@ function getBaseUrl(request: Request): string {
 
 export async function POST(request: NextRequest) {
   // SEC-T03: gate on authenticated session before any LLM spend.
-  const auth = await requireAuth();
+  const auth = await requireAuth(request);
   if (auth instanceof NextResponse) return auth;
 
   const limit = rateLimit(

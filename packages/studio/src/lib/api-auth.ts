@@ -56,7 +56,17 @@ export async function getSession() {
  * }
  * ```
  */
-export async function requireAuth() {
+export async function requireAuth(request?: Request) {
+  // Benchmark bypass: if BRITTNEY_BENCHMARK_KEY is configured and the
+  // request carries a matching x-benchmark-key header, skip NextAuth.
+  // This is strictly opt-in via env var — never active by default.
+  if (request && process.env.BRITTNEY_BENCHMARK_KEY) {
+    const benchKey = request.headers.get('x-benchmark-key');
+    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+      return { user: { id: 'benchmark', name: 'Benchmark Runner', email: '', githubUsername: '' } };
+    }
+  }
+
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json(
