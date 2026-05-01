@@ -24,11 +24,9 @@
         "@holoscript/r3f-renderer",
         "@holoscript/runtime",
         "@holoscript/sdk",
-        "@holoscript/semantic-2d",
         "@holoscript/snn-webgpu",
         "@holoscript/studio",
-        "@holoscript/uaal",
-        "@holoscript/vm-bridge"
+        "@holoscript/uaal"
       ]
     },
     {
@@ -53,8 +51,7 @@
       "enforce": "major",
       "targetMajor": 3,
       "packages": [
-        "@holoscript/formatter",
-        "@holoscript/fs"
+        "@holoscript/formatter"
       ]
     },
     {
@@ -65,9 +62,7 @@
       "packages": [
         "@holoscript/ai-validator",
         "@holoscript/animation-presets",
-        "@holoscript/agent-setup",
         "@holoscript/cdn",
-        "@holoscript/collab-server",
         "@holoscript/comparative-benchmarks",
         "@holoscript/connector-appstore",
         "@holoscript/connector-core",
@@ -83,7 +78,6 @@
         "@holoscript/marketplace-api",
         "@holoscript/marketplace-web",
         "@holoscript/mvc-schema",
-        "@holoscript/playground",
         "@holoscript/net-service",
         "@holoscript/security-sandbox",
         "@holoscript/spatial-index",
