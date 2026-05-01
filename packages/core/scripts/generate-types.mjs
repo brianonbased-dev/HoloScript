@@ -3631,6 +3631,31 @@ export class MoMETraitDatabase {
   [key: string]: any;
 }
 
+export interface EmergentSpacetimeConfig {
+  initial_voxels?: number;
+  max_voxels?: number;
+  seed?: number;
+  force_layout_guard?: boolean;
+  ricci_error_bound?: number;
+  ricci_heatmap?: boolean;
+  loop_threshold?: number;
+  real_time_budget_ms?: number;
+}
+
+export interface EmergentSpacetimeState {
+  network: {
+    voxels: Map<string, any>;
+    edges: any[];
+    loopCount: number;
+  };
+  hubbleCorrection: number;
+  violationCount: number;
+  lastRicciError: number;
+  isSimulating: boolean;
+}
+
+export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig>;
+
 // ── Namespaced domain plugins (mirrors packages/core/src/traits/index.ts) ──
 // Keeps \`import { FilmVFXPlugin } from '@holoscript/core/traits'\` resolving after barrel namespacing.
 export * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
