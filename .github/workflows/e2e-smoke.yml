@@ -72,7 +72,7 @@ jobs:
           NODE_ENV: production
 
       - name: Run smoke tests
-        run: pnpm --filter @holoscript/studio exec playwright test e2e/studio-smoke.spec.ts e2e/navigation.spec.ts e2e/create-page.spec.ts
+        run: pnpm --filter @holoscript/studio exec playwright test e2e/studio-smoke.spec.ts e2e/navigation.spec.ts e2e/create-page.spec.ts e2e/avatar-page.spec.ts
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3100
