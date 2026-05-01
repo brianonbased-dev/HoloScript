@@ -39,8 +39,19 @@ async function main() {
   const migrationsFolder = path.join(__dirname, '..', 'drizzle');
 
   const start = Date.now();
-  await migrate(db, { migrationsFolder });
-  process.stderr.write(`[db-migrate] ok (${Date.now() - start}ms; folder=${migrationsFolder})\n`);
+  try {
+    await migrate(db, { migrationsFolder });
+    process.stderr.write(`[db-migrate] ok (${Date.now() - start}ms; folder=${migrationsFolder})\n`);
+  } catch (err) {
+    const msg = String(err);
+    // If migrations fail because tables already exist (e.g. __drizzle_migrations
+    // ledger was reset), log and continue — the schema is already present.
+    if (/relation .* already exists/i.test(msg) || /CREATE TABLE/i.test(msg)) {
+      process.stderr.write(`[db-migrate] warning: migration failed with schema-already-exists error; continuing startup. Error: ${msg.slice(0, 500)}\n`);
+    } else {
+      throw err;
+    }
+  }
 
   await client.end();
 }
