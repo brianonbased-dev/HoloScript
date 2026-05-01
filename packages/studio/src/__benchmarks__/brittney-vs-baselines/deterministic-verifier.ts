@@ -1,3 +1,4 @@
+import { getGoldenCase } from './golden-cases';
 import type { SceneMutation, Task } from './types';
 
 /**
@@ -53,6 +54,38 @@ function dist(a: [number, number, number], b: [number, number, number]): number 
 
 function within(a: number, b: number, tol: number): boolean {
   return Math.abs(a - b) <= tol;
+}
+
+function matchGoldenCase(
+  actualObjs: ParsedObject[],
+  taskId: string,
+  tol = 0.15
+): { matched: number; total: number; missing: string[] } {
+  const golden = getGoldenCase(taskId);
+  if (!golden) return { matched: 0, total: 0, missing: [] };
+
+  const missing: string[] = [];
+  let matched = 0;
+
+  for (const expected of golden.objects) {
+    // Find closest actual object by name or position
+    const candidate = actualObjs.find((o) => {
+      const nameMatch = o.name.toLowerCase().includes(expected.name.toLowerCase().slice(0, 4));
+      const posMatch =
+        within(o.position[0], expected.position[0], tol) &&
+        within(o.position[1], expected.position[1], tol) &&
+        within(o.position[2], expected.position[2], tol);
+      return nameMatch || posMatch;
+    });
+
+    if (candidate) {
+      matched++;
+    } else {
+      missing.push(expected.name);
+    }
+  }
+
+  return { matched, total: golden.objects.length, missing };
 }
 
 function countBy(objs: ParsedObject[], fn: (o: ParsedObject) => boolean): number {
