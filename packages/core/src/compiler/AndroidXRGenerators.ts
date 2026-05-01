@@ -29,6 +29,7 @@ import {
 } from './DomainBlockCompilerMixin';
 import type { CompiledPostProcessing } from './DomainBlockCompilerMixin';
 import type { AndroidXRCompiler } from './AndroidXRCompiler';
+import { generateTraitCode } from './AndroidXRTraitMap';
 
 export function generateActivityFile(compiler: AndroidXRCompiler, composition: HoloComposition): string {
   compiler.lines = [];
@@ -592,6 +593,22 @@ export function emitImports(compiler: AndroidXRCompiler, composition: HoloCompos
     compiler.emit('import android.media.SoundPool');
     compiler.emit('import androidx.xr.scenecore.SpatialAudioTrack');
   }
+
+  // AI upscaling / inpainting
+  const hasAiUpscaling = composition.objects?.some((o) =>
+    o.traits?.some((t) => t.name === 'ai_upscaling')
+  );
+  const hasAiInpainting = composition.objects?.some((o) =>
+    o.traits?.some((t) => t.name === 'ai_inpainting')
+  );
+  if (hasAiUpscaling || hasAiInpainting) {
+    compiler.emit('import android.content.Context');
+    compiler.emit('import android.graphics.Bitmap');
+    compiler.emit('import android.graphics.BitmapFactory');
+    compiler.emit('import org.tensorflow.lite.Interpreter');
+    compiler.emit('import androidx.compose.ui.platform.LocalContext');
+    compiler.emit('import java.nio.channels.FileChannel');
+  }
 }
 
 // ─── Activity Class ──────────────────────────────────────────────────
@@ -632,12 +649,52 @@ export function emitActivityClass(compiler: AndroidXRCompiler, composition: Holo
   compiler.emit('}');
   compiler.emit('');
 
+  emitAITraitHelpers(compiler, composition);
+
   emitSceneComposable(compiler, composition);
   for (const tl of composition.timelines ?? []) emitTimeline(compiler, tl);
   for (const tr of composition.transitions ?? []) emitTransition(compiler, tr);
 
   compiler.dedent();
   compiler.emit('}');
+}
+
+// ─── AI Trait Helpers ────────────────────────────────────────────────
+
+function collectObjectsWithTraits(
+  composition: HoloComposition,
+  traitNames: string[]
+): Array<{ obj: HoloObjectDecl; traitName: string; config: Record<string, unknown> }> {
+  const results: Array<{ obj: HoloObjectDecl; traitName: string; config: Record<string, unknown> }> = [];
+  function visit(obj: HoloObjectDecl) {
+    for (const t of obj.traits ?? []) {
+      if (traitNames.includes(t.name)) {
+        results.push({ obj, traitName: t.name, config: t.config ?? {} });
+      }
+    }
+    for (const child of obj.children ?? []) visit(child);
+  }
+  for (const obj of composition.objects ?? []) visit(obj);
+  return results;
+}
+
+export function emitAITraitHelpers(compiler: AndroidXRCompiler, composition: HoloComposition): void {
+  const aiTraits = collectObjectsWithTraits(composition, ['ai_upscaling', 'ai_inpainting']);
+  if (aiTraits.length === 0) return;
+
+  compiler.emit('// AI trait helper functions');
+  const emitted = new Set<string>();
+  for (const { obj, traitName, config } of aiTraits) {
+    const varName = compiler.sanitizeName(obj.name);
+    const key = `${traitName}:${varName}`;
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    const lines = generateTraitCode(traitName, varName, config);
+    for (const line of lines) {
+      compiler.emit(line);
+    }
+    compiler.emit('');
+  }
 }
 
 // ─── AR Session ──────────────────────────────────────────────────────
@@ -857,6 +914,35 @@ export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): vo
       compiler.emit(`// Attach HDR environmental projection to scene root`);
       compiler.emit(`val ${v}Probe = xrSession.scene.perceptionSpace.createEnvironmentProbe()`);
       compiler.emit(`sceneRoot.addComponent(${v}Probe)`);
+    }
+    // AI upscaling: apply TFLite super-resolution to texture
+    else if (t.name === 'ai_upscaling') {
+      const texture = compiler.findProp(obj, 'texture');
+      if (texture && typeof texture === 'string') {
+        compiler.emit(`// AI upscaling: load texture, apply TFLite super-resolution`);
+        compiler.emit(`val ${v}TexturePath = "${texture}"`);
+        compiler.emit(`val ${v}OriginalBitmap = BitmapFactory.decodeFile(${v}TexturePath)`);
+        compiler.emit(`val ${v}UpscaledBitmap = ${v}Upscale(LocalContext.current, ${v}OriginalBitmap)`);
+        compiler.emit(`// Apply ${v}UpscaledBitmap to material texture`);
+      } else {
+        compiler.emit(`// AI upscaling trait present but no texture property found on ${v}`);
+      }
+    }
+    // AI inpainting: apply TFLite mask-based inpainting
+    else if (t.name === 'ai_inpainting') {
+      const texture = compiler.findProp(obj, 'texture');
+      const mask = compiler.findProp(obj, 'mask');
+      if (texture && typeof texture === 'string' && mask && typeof mask === 'string') {
+        compiler.emit(`// AI inpainting: load texture + mask, apply TFLite inpainting`);
+        compiler.emit(`val ${v}TexturePath = "${texture}"`);
+        compiler.emit(`val ${v}MaskPath = "${mask}"`);
+        compiler.emit(`val ${v}ImageBitmap = BitmapFactory.decodeFile(${v}TexturePath)`);
+        compiler.emit(`val ${v}MaskBitmap = BitmapFactory.decodeFile(${v}MaskPath)`);
+        compiler.emit(`val ${v}InpaintedBitmap = ${v}Inpaint(LocalContext.current, ${v}ImageBitmap, ${v}MaskBitmap)`);
+        compiler.emit(`// Apply ${v}InpaintedBitmap to material texture`);
+      } else {
+        compiler.emit(`// AI inpainting trait present but requires both 'texture' and 'mask' properties on ${v}`);
+      }
     }
   }
 

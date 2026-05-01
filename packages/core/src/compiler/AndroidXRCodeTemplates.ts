@@ -875,6 +875,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
+      'android.content.Context',
       'android.graphics.Bitmap',
       'android.graphics.BitmapFactory',
     ],
@@ -883,7 +884,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
       const modelName = String(config.model || 'super_resolution.tflite');
       return [
         `// @ai_upscaling -- TFLite super-resolution (factor: ${factor}x)`,
-        `fun ${varName}Upscale(bitmap: Bitmap): Bitmap {`,
+        `fun ${varName}Upscale(context: Context, bitmap: Bitmap): Bitmap {`,
         `    val modelBuffer = context.assets.openFd("${modelName}").use {`,
         `        it.createInputStream().channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, it.startOffset, it.declaredLength)`,
         `    }`,
@@ -909,13 +910,14 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     level: 'full',
     imports: [
       'org.tensorflow.lite.Interpreter',
+      'android.content.Context',
       'android.graphics.Bitmap',
     ],
     generate: (varName, config) => {
       const modelName = String(config.model || 'inpainting.tflite');
       return [
         `// @ai_inpainting -- TFLite mask-based inpainting`,
-        `fun ${varName}Inpaint(image: Bitmap, mask: Bitmap): Bitmap {`,
+        `fun ${varName}Inpaint(context: Context, image: Bitmap, mask: Bitmap): Bitmap {`,
         `    val modelBuffer = context.assets.openFd("${modelName}").use {`,
         `        it.createInputStream().channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, it.startOffset, it.declaredLength)`,
         `    }`,

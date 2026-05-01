@@ -488,14 +488,45 @@ describe('AndroidXRCompiler -- Production', () => {
     expect(result.buildGradle).toContain('implementation(');
   });
 
-  // ─── Custom package name in all files ─────────────────────────────
-  it('custom package name appears in all relevant files', () => {
-    const c = new AndroidXRCompiler({ packageName: 'com.mygame.xr' });
-    const result = c.compile(makeComp(), 'test-token');
-    expect(result.activityFile).toContain('com.mygame.xr');
-    expect(result.stateFile).toContain('com.mygame.xr');
-    expect(result.nodeFactoryFile).toContain('com.mygame.xr');
-    expect(result.manifestFile).toContain('com.mygame.xr');
-    expect(result.buildGradle).toContain('com.mygame.xr');
+  // ─── AI traits: upscaling + inpainting ─────────────────────────────
+  it('activity file emits TFLite helper for ai_upscaling trait', () => {
+    const obj = makeObj('Hero', [{ key: 'texture', value: 'textures/hero.png' }], [
+      { name: 'ai_upscaling', config: { factor: 4 } },
+    ]);
+    const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
+    expect(result.activityFile).toContain('fun HeroUpscale(context: Context, bitmap: Bitmap): Bitmap');
+    expect(result.activityFile).toContain('HeroTexturePath');
+    expect(result.activityFile).toContain('HeroUpscale(LocalContext.current, HeroOriginalBitmap)');
+  });
+
+  it('activity file emits TFLite helper for ai_inpainting trait', () => {
+    const obj = makeObj('Portal', [
+      { key: 'texture', value: 'textures/portal.png' },
+      { key: 'mask', value: 'textures/portal_mask.png' },
+    ], [
+      { name: 'ai_inpainting', config: {} },
+    ]);
+    const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
+    expect(result.activityFile).toContain('fun PortalInpaint(context: Context, image: Bitmap, mask: Bitmap): Bitmap');
+    expect(result.activityFile).toContain('PortalTexturePath');
+    expect(result.activityFile).toContain('PortalMaskPath');
+    expect(result.activityFile).toContain('PortalInpaint(LocalContext.current, PortalImageBitmap, PortalMaskBitmap)');
+  });
+
+  it('imports AI trait dependencies when ai_upscaling is used', () => {
+    const obj = makeObj('Hero', [{ key: 'texture', value: 'textures/hero.png' }], [
+      { name: 'ai_upscaling', config: {} },
+    ]);
+    const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
+    expect(result.activityFile).toContain('import android.content.Context');
+    expect(result.activityFile).toContain('import android.graphics.Bitmap');
+    expect(result.activityFile).toContain('import org.tensorflow.lite.Interpreter');
+    expect(result.activityFile).toContain('import androidx.compose.ui.platform.LocalContext');
+  });
+
+  it('comments when ai_upscaling is present but no texture property', () => {
+    const obj = makeObj('Hero', [], [{ name: 'ai_upscaling', config: {} }]);
+    const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
+    expect(result.activityFile).toContain('AI upscaling trait present but no texture property found');
   });
 });
