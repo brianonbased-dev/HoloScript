@@ -1,0 +1,118 @@
+#usda 1.0
+(
+    defaultPrim = "TwoLinkArm"
+    upAxis = "Z"
+    metersPerUnit = 1.0
+    kilogramsPerMass = 1.0
+)
+
+def Xform "TwoLinkArm" (
+    prepend apiSchemas = ["PhysicsArticulationRootAPI"]
+)
+{
+    
+    # base
+    def Cylinder "base" (
+    )
+    {
+        float radius = 0.2
+        float height = 0.2
+        color3f[] primvars:displayColor = [(0.8, 0.8, 0.8)]
+        
+        # Static object
+        uniform token physics:rigidBodyEnabled = false
+        
+        double3 xformOp:translate = (0, 0.1, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+    
+    # link1
+    def Cylinder "link1" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+    )
+    {
+        float radius = 0.05
+        float height = 1
+        color3f[] primvars:displayColor = [(0.8, 0.8, 0.8)]
+        
+        # Physics properties
+        float physics:mass = 5
+        uniform token physics:approximation = "convexHull"
+        
+        double3 xformOp:translate = (0, 0.5, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+    
+    # link2
+    def Cylinder "link2" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+    )
+    {
+        float radius = 0.04
+        float height = 1
+        color3f[] primvars:displayColor = [(0.8, 0.8, 0.8)]
+        
+        # Physics properties
+        float physics:mass = 3
+        uniform token physics:approximation = "convexHull"
+        
+        double3 xformOp:translate = (0, 0.5, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+    
+    # end_effector
+    def Sphere "end_effector" (
+    )
+    {
+        float radius = 0.08
+        color3f[] primvars:displayColor = [(0.8, 0.8, 0.8)]
+        
+        # Static object
+        uniform token physics:rigidBodyEnabled = false
+        
+        double3 xformOp:translate = (0, 1, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+    
+    # Joints
+    
+    def PhysicsRevoluteJoint "joint1"
+    {
+        rel physics:body0 = <../base>
+        rel physics:body1 = <../link1>
+        
+        point3f physics:localPos0 = (0, 0.2, 0)
+        quatf physics:localRot0 = (1, 0, 0, 0)
+        
+        point3f physics:localPos1 = (0, 0, 0)
+        quatf physics:localRot1 = (1, 0, 0, 0)
+        
+        uniform token physics:axis = "Y"
+        
+        float physics:lowerLimit = -3.14
+        float physics:upperLimit = 3.14
+        
+        float physics:maxForce = 100
+        float physics:maxVelocity = 2
+    }
+    
+    def PhysicsRevoluteJoint "joint2"
+    {
+        rel physics:body0 = <../link1>
+        rel physics:body1 = <../link2>
+        
+        point3f physics:localPos0 = (0, 1, 0)
+        quatf physics:localRot0 = (1, 0, 0, 0)
+        
+        point3f physics:localPos1 = (0, 0, 0)
+        quatf physics:localRot1 = (1, 0, 0, 0)
+        
+        uniform token physics:axis = "Y"
+        
+        float physics:lowerLimit = -1.57
+        float physics:upperLimit = 1.57
+        
+        float physics:maxForce = 50
+        float physics:maxVelocity = 2
+    }
+}
