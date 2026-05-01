@@ -91,11 +91,11 @@ jobs:
           git config user.name  "holoscript-bot"
           git config user.email "bot@holoscript.net"
           git add docs/test-snapshot.json
-          git commit -m "chore(test-snapshot): refresh S.TST counts from $(date -u +%Y-%m-%d) CI run
-
-[skip ci]
-Run: ${GH_RUN_URL:-n/a}
-Closes board task: task_1776987250351_ljyi (option a wiring)"
+          git commit \
+            -m "chore(test-snapshot): refresh S.TST counts from $(date -u +%Y-%m-%d) CI run" \
+            -m "[skip ci]" \
+            -m "Run: ${GH_RUN_URL:-n/a}" \
+            -m "Closes board task: task_1776987250351_ljyi (option a wiring)"
           git push origin HEAD:main
         env:
           GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
