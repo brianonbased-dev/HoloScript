@@ -289,12 +289,30 @@ for tier in table['tiers']:
   # `jupyter-notebook ... --port=8080`, silently shadowing vLLM and leaving
   # 16 local-llm workers unable to reach their LLM despite claiming tasks).
   LLM_PORT="${LOCAL_LLM_PORT:-8081}"
-  # Verify nothing else owns the port; fail loud rather than silently shadow.
+
+  # ── Idempotency: skip if vLLM already running and healthy ──────────────────
+  # Re-bootstrap of the same instance (retry, update, idempotent deploy) must
+  # not fatal-exit on port collision. Pattern matches sidecar guard below.
+  VLLM_ALREADY_UP=0
   if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${LLM_PORT}$"; then
-    echo "[bootstrap] FATAL: port $LLM_PORT already in use — set LOCAL_LLM_PORT to a free port" >&2
-    ss -ltn 2>&1 | head -10 >&2
-    exit 5
+    if curl -sf "http://localhost:${LLM_PORT}/v1/models" > /dev/null 2>&1; then
+      echo "[bootstrap] vLLM already running on port $LLM_PORT and healthy — skipping start"
+      export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT"
+      VLLM_ALREADY_UP=1
+    else
+      echo "[bootstrap] port $LLM_PORT in use but not healthy — reclaiming..."
+      _PORT_PID=$(lsof -ti :${LLM_PORT} 2>/dev/null || ss -ltnp 2>/dev/null | awk -v p=":${LLM_PORT}" '$0~p{for(i=1;i<=NF;i++)if(match($i,/^pid=[0-9]+/))print substr($i,5)}' || true)
+      if [ -n "$_PORT_PID" ]; then
+        echo "[bootstrap] killing pid $_PORT_PID on port $LLM_PORT"
+        kill "$_PORT_PID" 2>/dev/null || true
+        sleep 2
+      fi
+    fi
   fi
+
+  if [ "$VLLM_ALREADY_UP" = "1" ]; then
+    : # nothing more to do for main vLLM
+  else
   echo "[bootstrap] starting vLLM server: $LLM_MODEL on port $LLM_PORT"
   # Vast.ai images ship `python3` and `pip3` only — no bare `python` symlink.
   # Without this resolution every previous bootstrap silently aborted vLLM
@@ -349,6 +367,7 @@ for tier in table['tiers']:
     tail -30 "$LOG_DIR/vllm.log" >&2 || true
     exit 6
   fi
+  fi # closes VLLM_ALREADY_UP else
 fi
 
 # ---------------------------------------------------------------------------
