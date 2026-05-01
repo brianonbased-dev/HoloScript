@@ -323,10 +323,10 @@ describe('Scenario: Urban Farm — Cover Crops & Rotation (Restorative)', () => 
 
   it('mycorrhizal network — simulate underground fungal nutrient sharing', () => {
     const plants = [
-      { id: 'clover', position: { x: 0, y: 0 }, nitrogenFixer: true },
-      { id: 'tomato', position: { x: 1, y: 0 }, nitrogenFixer: false },
-      { id: 'basil', position: { x: 0.5, y: 0.5 }, nitrogenFixer: false },
-      { id: 'far-tree', position: { x: 100, y: 100 }, nitrogenFixer: false },
+      { id: 'clover', position: [0, 0], nitrogenFixer: true },
+      { id: 'tomato', position: [1, 0], nitrogenFixer: false },
+      { id: 'basil', position: [0.5, 0.5], nitrogenFixer: false },
+      { id: 'far-tree', position: [100, 100], nitrogenFixer: false },
     ];
     const links = mycorrhizalNetworkSim(plants, 2);
     // Close plants should be connected, far-tree should not
@@ -530,10 +530,10 @@ describe('Scenario: Urban Farm — IoT Weather & Growing', () => {
 
   it('LoRaWAN mesh — long-range IoT connectivity for field sensors', () => {
     const nodes = [
-      { id: 'gateway', position: { x: 0, y: 0 }, rangeM: 5000, isGateway: true },
-      { id: 'sensor-a', position: { x: 1000, y: 0 }, rangeM: 3000, isGateway: false },
-      { id: 'sensor-b', position: { x: 4000, y: 0 }, rangeM: 3000, isGateway: false },
-      { id: 'isolated', position: { x: 20000, y: 20000 }, rangeM: 500, isGateway: false },
+      { id: 'gateway', position: [0, 0], rangeM: 5000, isGateway: true },
+      { id: 'sensor-a', position: [1000, 0], rangeM: 3000, isGateway: false },
+      { id: 'sensor-b', position: [4000, 0], rangeM: 3000, isGateway: false },
+      { id: 'isolated', position: [20000, 20000], rangeM: 500, isGateway: false },
     ];
     const mesh = lorawanMeshConnect(nodes);
     // Gateway-to-sensor-a within range
@@ -549,9 +549,9 @@ describe('Scenario: Urban Farm — IoT Weather & Growing', () => {
     const waypoints = droneSurveyGrid(0, 0, 100, 200, 30, 25);
     expect(waypoints.length).toBeGreaterThanOrEqual(8); // 4+ lanes × 2 waypoints
     // Alternating direction (boustrophedon pattern)
-    expect(waypoints[0].y).toBe(0);
-    expect(waypoints[1].y).toBe(200);
-    expect(waypoints[2].y).toBe(200); // Odd lane starts from far end
-    expect(waypoints[3].y).toBe(0);
+    expect(waypoints[0][1]).toBe(0);
+    expect(waypoints[1][1]).toBe(200);
+    expect(waypoints[2][1]).toBe(200); // Odd lane starts from far end
+    expect(waypoints[3][1]).toBe(0);
   });
 });

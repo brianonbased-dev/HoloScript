@@ -493,7 +493,7 @@ describe('Scenario: Sculptor — Sculpt Brushes (Typed Array Acceleration)', () 
   it('Grab brush displaces vertices along computed hit normal', () => {
     // applyGrabBrush requires positions, hitNormals, center, radius, strength
     const hitNormal = new Float32Array([0, 0, 1]);
-    const res = applyGrabBrush(mesh, hitNormal, { x: 0, y: 0, z: 0 }, 0.5, 1.0);
+    const res = applyGrabBrush(mesh, hitNormal, [0, 0, 0], 0.5, 1.0);
     expect(res[2]).toBe(1); // Vertex 0 Z is fully displaced
     expect(res[5]).toBe(0); // Vertex 1 Z is outside radius, undisturbed
   });
@@ -501,17 +501,17 @@ describe('Scenario: Sculptor — Sculpt Brushes (Typed Array Acceleration)', () 
   it('Smooth brush (Gaussian) averages neighbouring vertex positions', () => {
     // A spike at [0,0,1], rest at z=0
     const spikeMesh = new Float32Array([0, 0, 1, 0.1, 0, 0, -0.1, 0, 0]);
-    const res = applySmoothBrush(spikeMesh, [], { x: 0, y: 0, z: 1 }, 1.5, 1.0, 1);
+    const res = applySmoothBrush(spikeMesh, [], [0, 0, 1], 1.5, 1.0, 1);
     expect(res[2]).toBeLessThan(1.0); // spike is smoothed down
   });
 
   it('Inflate brush displaces vertices along surface normal', () => {
-    const res = applyInflateBrush(mesh, normals, { x: 0, y: 0, z: 0 }, 0.5, 1.0);
+    const res = applyInflateBrush(mesh, normals, [0, 0, 0], 0.5, 1.0);
     expect(res[2]).toBe(1.0); // Inflated along its own normal
   });
 
   it('Crease brush applies a sharpening filter along strokes', () => {
-    const res = applyCreaseBrush(mesh, { x: 0, y: 0, z: 0 }, 0.5, 1.0, { x: 1, y: 0, z: 0 });
+    const res = applyCreaseBrush(mesh, [0, 0, 0], 0.5, 1.0, [1, 0, 0]);
     expect(res[0]).toBe(0); // On the plane, doesn't move
     expect(res[3]).toBe(1); // Outside radius, doesn't move
   });

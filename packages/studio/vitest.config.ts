@@ -81,6 +81,7 @@ export default defineConfig({
         '../engine/src/runtime/TraitRuntimeIntegration.ts'
       ),
       '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
+      '@holoscript/mesh': path.resolve(__dirname, '../mesh/src/index.ts'),
       '@holoscript/uaal': path.resolve(__dirname, '../uaal/src/index.ts'),
       '@holoscript/framework/ai': path.resolve(__dirname, '../framework/src/ai'),
       '@holoscript/framework/economy': path.resolve(__dirname, '../framework/src/economy'),

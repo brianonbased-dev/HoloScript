@@ -28,18 +28,14 @@ describe('Film3D Virtual Production Pre-Viz MVP', () => {
     const directorLogic = {
       version: 1,
       instructions: [
-        { opCode: 1, operands: ['splat_scene_001_vfx', [0, 1.5, -2]] }, // UAALOpCode.PUSH
-        { opCode: 0xB1, operands: [] }, // Native Render Call
+        { opCode: 0xB1, operands: ['splat_scene_001_vfx', [0, 1.5, -2]] }, // Native Render Call
         { opCode: 255 } // HALT
       ]
     };
 
-    // 3. Mount scene 
-    vm.load(directorLogic);
-
-    // 4. Time the execution to verify we skip the ~2.5s LLM inference loop
+    // 3. Execute scene
     const start = performance.now();
-    await vm.run();
+    await vm.execute(directorLogic);
     const end = performance.now();
 
     expect(nativeRenderFired).toBe(true);

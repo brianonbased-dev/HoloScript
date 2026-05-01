@@ -157,7 +157,7 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
 
   it('extracts joint origin position', () => {
     const j2 = arm.joints.find((j) => j.name === 'joint_2')!;
-    expect(j2.origin.x).toBeCloseTo(0.5, 3);
+    expect(j2.origin.position[0]).toBeCloseTo(0.5, 3);
   });
 
   // ── Missing features (product backlog) ──────────────────────────────────────
@@ -376,7 +376,7 @@ describe('Scenario: Robot Engineer — Forward Kinematics', () => {
   it('FK with joint offsets from URDF origin tags', () => {
     const arm = parseRobotDefinition(SIMPLE_ARM_URDF);
     const j2 = arm.joints.find((j) => j.name === 'joint_2')!;
-    expect(j2.origin.x).toBe(0.5);
+    expect(j2.origin.position[0]).toBe(0.5);
   });
 
   it('FK updates live in 3D viewport as joint sliders move', () => {

@@ -221,24 +221,24 @@ describe('Scenario: Archaeological Dig — Artifacts & Reconstruction', () => {
   it('3D fragment fitting — auto-align fragments by edge contour matching', () => {
     const edgeA: FragmentEdge = {
       points: [
-        { x: 0, y: 0, z: 0 },
-        { x: 1, y: 0.1, z: 0 },
-        { x: 2, y: 0, z: 0 },
+        [0, 0, 0],
+        [1, 0.1, 0],
+        [2, 0, 0],
       ],
       curvature: 0.15,
     };
     const edgeB: FragmentEdge = {
       points: [
-        { x: 0, y: 0, z: 0 },
-        { x: 1, y: 0.12, z: 0 },
-        { x: 2, y: 0, z: 0 },
+        [0, 0, 0],
+        [1, 0.12, 0],
+        [2, 0, 0],
       ],
       curvature: 0.16,
     };
     const edgeC: FragmentEdge = {
       points: [
-        { x: 5, y: 5, z: 5 },
-        { x: 6, y: 6, z: 6 },
+        [5, 5, 5],
+        [6, 6, 6],
       ],
       curvature: 0.8,
     };

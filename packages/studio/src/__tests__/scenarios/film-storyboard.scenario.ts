@@ -204,17 +204,17 @@ describe('Scenario: Film Storyboard — Production', () => {
 
   it('previsualization — 3D camera path animation preview', () => {
     const keyframes: CameraKeyframe[] = [
-      { time: 0, position: [0, 2, -5], lookAt: { x: 0, y: 0, z: 0 }, fov: 50 },
-      { time: 2, position: [5, 3, 0], lookAt: { x: 0, y: 1, z: 0 }, fov: 35 },
-      { time: 4, position: [0, 1, 5], lookAt: { x: 0, y: 0, z: 0 }, fov: 60 },
+      { time: 0, position: [0, 2, -5], lookAt: [0, 0, 0], fov: 50 },
+      { time: 2, position: [5, 3, 0], lookAt: [0, 1, 0], fov: 35 },
+      { time: 4, position: [0, 1, 5], lookAt: [0, 0, 0], fov: 60 },
     ];
     const path = previsCamera(keyframes, 10); // 10 samples/sec over 4 sec
     expect(path.length).toBeGreaterThan(10);
     // First sample should match first keyframe
-    expect(path[0].position.x).toBeCloseTo(0, 1);
+    expect(path[0].position[0]).toBeCloseTo(0, 1);
     expect(path[0].fov).toBeCloseTo(50, 1);
     // Last sample should match last keyframe
-    expect(path[path.length - 1].position.z).toBeCloseTo(5, 1);
+    expect(path[path.length - 1].position[2]).toBeCloseTo(5, 1);
     // Midpoint should be interpolated
     const mid = path[Math.floor(path.length / 2)];
     expect(mid.time).toBeGreaterThan(1);

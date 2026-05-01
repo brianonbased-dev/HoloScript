@@ -197,7 +197,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
     };
     expect(pannerConfig.panningModel).toBe('HRTF');
     expect(pannerConfig.distanceModel).toBe('inverse');
-    expect(pannerConfig.position.x).toBe(2);
+    expect(pannerConfig.position[0]).toBe(2);
   });
 
   it('audio import from URL produces ArrayBuffer', () => {

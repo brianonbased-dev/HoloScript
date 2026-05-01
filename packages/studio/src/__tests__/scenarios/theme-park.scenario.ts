@@ -205,16 +205,16 @@ describe('Scenario: Theme Park — Queues & Capacity', () => {
 
   it('crowd flow simulation — agent-based movement through park', () => {
     const agents: CrowdAgent[] = [
-      { id: 'a1', position: { x: 0, y: 0 }, target: { x: 10, y: 10 }, speed: 1.5 },
-      { id: 'a2', position: { x: 0, y: 1 }, target: { x: 10, y: 10 }, speed: 1.3 },
+      { id: 'a1', position: [0, 0], target: [10, 10], speed: 1.5 },
+      { id: 'a2', position: [0, 1], target: [10, 10], speed: 1.3 },
     ];
     const result = crowdFlowSimulation(agents, 50, 0.1, 2);
     // Both agents should have moved toward the target
-    expect(result[0].position.x).toBeGreaterThan(0);
-    expect(result[1].position.x).toBeGreaterThan(0);
+    expect(result[0].position[0]).toBeGreaterThan(0);
+    expect(result[1].position[0]).toBeGreaterThan(0);
     // They should not be at the exact same position (avoidance)
-    const dx = result[0].position.x - result[1].position.x;
-    const dy = result[0].position.y - result[1].position.y;
+    const dx = result[0].position[0] - result[1].position[0];
+    const dy = result[0].position[1] - result[1].position[1];
     const dist = Math.sqrt(dx * dx + dy * dy);
     expect(dist).toBeGreaterThan(0.01);
   });

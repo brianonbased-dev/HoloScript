@@ -46,8 +46,8 @@ describe('WebXRSystem', () => {
 
     const frame: XRFrameData = {
       time: 0,
-      headPosition: { x: 1, y: 1.7, z: 0 },
-      headRotation: { x: 0, y: 0.5, z: 0 },
+      headPosition: [1, 1.7, 0],
+      headRotation: [0, 0.5, 0],
       views: [
         {
           eye: 'left',
@@ -67,7 +67,7 @@ describe('WebXRSystem', () => {
     };
 
     xr.submitFrame(frame);
-    expect(xr.getHeadPosition()).toEqual({ x: 1, y: 1.7, z: 0 });
+    expect(xr.getHeadPosition()).toEqual([1, 1.7, 0]);
     expect(xr.getLeftEye()).not.toBeNull();
     expect(xr.getRightEye()).not.toBeNull();
     expect(xr.getStereoViews().length).toBe(2);
@@ -80,17 +80,17 @@ describe('WebXRSystem', () => {
     const controllers = new Map();
     controllers.set('left-hand', {
       position: [-0.3, 1.0, -0.5],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0],
       trigger: 0.9,
       grip: 0.1,
-      thumbstick: { x: 0, y: 0 },
+      thumbstick: [0, 0],
       buttons: [],
     });
 
     xr.submitFrame({
       time: 0,
-      headPosition: { x: 0, y: 1.7, z: 0 },
-      headRotation: { x: 0, y: 0, z: 0 },
+      headPosition: [0, 1.7, 0],
+      headRotation: [0, 0, 0],
       views: [],
       controllers,
       hands: new Map(),
@@ -110,17 +110,17 @@ describe('WebXRSystem', () => {
     const controllers = new Map();
     controllers.set('left-hand', {
       position: [0, 1, 0],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0],
       trigger: 0,
       grip: 0,
-      thumbstick: { x: 0, y: -1 }, // Forward
+      thumbstick: [0, -1], // Forward
       buttons: [],
     });
 
     xr.submitFrame({
       time: 0,
-      headPosition: { x: 0, y: 1.7, z: 0 },
-      headRotation: { x: 0, y: 0, z: 0 },
+      headPosition: [0, 1.7, 0],
+      headRotation: [0, 0, 0],
       views: [],
       controllers,
       hands: new Map(),
@@ -128,7 +128,7 @@ describe('WebXRSystem', () => {
 
     xr.update(1 / 60);
     const pos = xr.getPlayerPosition();
-    expect(pos.z).toBeLessThan(0); // Moved forward (negative Z in standard coords)
+    expect(pos[2]).toBeLessThan(0); // Moved forward (negative Z in standard coords)
   });
 
   it('teleportTo queues teleport for next frame', () => {
@@ -136,16 +136,16 @@ describe('WebXRSystem', () => {
     xr.enterVR();
     xr.submitFrame({
       time: 0,
-      headPosition: { x: 0, y: 1.7, z: 0 },
-      headRotation: { x: 0, y: 0, z: 0 },
+      headPosition: [0, 1.7, 0],
+      headRotation: [0, 0, 0],
       views: [],
       controllers: new Map(),
       hands: new Map(),
     });
 
-    xr.teleportTo({ x: 10, y: 0, z: -5 });
+    xr.teleportTo([10, 0, -5]);
     xr.update(1 / 60);
-    expect(xr.getPlayerPosition()).toEqual({ x: 10, y: 0, z: -5 });
+    expect(xr.getPlayerPosition()).toEqual([10, 0, -5]);
   });
 
   it('grab callback fires when grip > 0.8', () => {
@@ -158,17 +158,17 @@ describe('WebXRSystem', () => {
     const controllers = new Map();
     controllers.set('right-hand', {
       position: [0.3, 1, -0.3],
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: [0, 0, 0],
       trigger: 0,
       grip: 0.9, // Gripping!
-      thumbstick: { x: 0, y: 0 },
+      thumbstick: [0, 0],
       buttons: [],
     });
 
     xr.submitFrame({
       time: 0,
-      headPosition: { x: 0, y: 1.7, z: 0 },
-      headRotation: { x: 0, y: 0, z: 0 },
+      headPosition: [0, 1.7, 0],
+      headRotation: [0, 0, 0],
       views: [],
       controllers,
       hands: new Map(),
@@ -271,9 +271,9 @@ describe('InterestManager', () => {
     im.setRadius(10);
 
     const entities = [
-      { id: 'near', position: [5, 0, 0] },
-      { id: 'far', position: [100, 0, 0] },
-      { id: 'edge', position: [10, 0, 0] },
+      { id: 'near', position: { x: 5, y: 0, z: 0 } },
+      { id: 'far', position: { x: 100, y: 0, z: 0 } },
+      { id: 'edge', position: { x: 10, y: 0, z: 0 } },
     ];
 
     const relevant = im.filterRelevant(entities);
@@ -315,7 +315,7 @@ describe('EntityInterpolator', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
       id: 'e1',
-      position: [1, 2, 3],
+      position: { x: 1, y: 2, z: 3 },
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       timestamp: 0,
@@ -331,7 +331,7 @@ describe('EntityInterpolator', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
       id: 'e1',
-      position: [0, 0, 0],
+      position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       timestamp: 0,
@@ -396,7 +396,7 @@ describe('NetworkSystem', () => {
       {
         entityId: 'remote1',
         fields: {
-          position: [10, 0, 5],
+          position: { x: 10, y: 0, z: 5 },
           rotation: { x: 0, y: 0, z: 0 },
           velocity: { x: 0, y: 0, z: 0 },
         },

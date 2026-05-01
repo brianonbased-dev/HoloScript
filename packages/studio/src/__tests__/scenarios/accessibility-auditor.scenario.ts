@@ -393,9 +393,9 @@ describe('Scenario: Accessibility Auditor — Reports & Mobility', () => {
       { id: 'table', position: [2, 0, 0], heightCm: 75 },
       { id: 'far-wall', position: [50, 0, 0], heightCm: 300 },
     ];
-    const cam = vrWheelchairPerspective({ x: 0, y: 0, z: 0 }, obstacles);
+    const cam = vrWheelchairPerspective([0, 0, 0], obstacles);
     expect(cam.eyeHeight).toBeCloseTo(1.15, 1);
-    expect(cam.position.y).toBeCloseTo(1.15, 1);
+    expect(cam.position[1]).toBeCloseTo(1.15, 1);
     // Shelf is tall and close — should be visible
     expect(cam.obstaclesInView).toContain('shelf');
     // Table is below eye height — should NOT obstruct
