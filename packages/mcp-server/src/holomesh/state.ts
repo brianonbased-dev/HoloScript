@@ -24,6 +24,7 @@ import {
   isExportSessionExpired,
   serializeExportSession,
 } from './export-session';
+import { createTeamStore, type TeamStore } from './team-store';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ export const walletToAgent: Map<string, RegisteredAgent> = new Map(); // walletA
 export const paidAccessStore: Set<string> = new Set(); // "agentId:entryId" → true
 
 // Teams
-export const teamStore: Map<string, Team> = new Map(); // teamId → Team
+export const teamStore: TeamStore = createTeamStore(); // teamId → Team
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
 /** Public team feed (hologram publishes, etc.) — poster identity is server-authoritative */
@@ -505,6 +506,13 @@ export function persistHoloDoorStore(): void {
   });
 }
 
+/** Refresh a single team from the shared backend (PostgreSQL) into local cache.
+ *  Call at the start of mutation handlers so cross-instance writes are visible.
+ */
+export async function reloadTeam(teamId: string): Promise<void> {
+  await (teamStore as TeamStore).getFresh(teamId);
+}
+
 export function persistTeamStore(): void {
   const teams = Array.from(teamStore.values()).map((t) => ({
     ...t,
@@ -617,7 +625,7 @@ function _seedFounderKeysFromEnv(): void {
   persistKeyRegistry();
 }
 
-export function initStores(): void {
+export async function initStores(): Promise<void> {
   // Load Key Registry (must come first — auth depends on it)
   const keyData = readJSON(KEY_REGISTRY_PATH);
   if (keyData?.keys && Array.isArray(keyData.keys) && keyData.keys.length > 0) {
@@ -672,43 +680,81 @@ export function initStores(): void {
   }
 
   // Load Teams
-  const teamData = readJSON(TEAM_STORE_PATH);
-  if (teamData?.teams) {
-    for (const t of teamData.teams) {
-      // Reconstitute classes
-      if (t.knowledgeMarketplace) {
-        // Fallback to plain object if constructor fails or doesn't match
-        try {
-          t.knowledgeMarketplace = new KnowledgeMarketplace(t.knowledgeMarketplace);
-        } catch { /* ignore */ }
+  // Priority: PostgreSQL (multi-instance) → JSON file (single-instance / migration)
+  let teamsLoaded = false;
+  if (process.env.DATABASE_URL) {
+    try {
+      await (teamStore as TeamStore).loadAll();
+      teamsLoaded = true;
+      console.log('[loadAllStores] teams loaded from PostgreSQL');
+      // Reconstruct presence, messages, feed from loaded teams
+      for (const t of teamStore.values()) {
+        const raw = t as any;
+        if (raw.presence) {
+          const pMap = new Map();
+          for (const p of raw.presence) pMap.set(p.agentId, p);
+          teamPresenceStore.set(t.id, pMap);
+        }
+        if (raw.messages) {
+          teamMessageStore.set(t.id, raw.messages);
+        }
+        const feedRaw = raw.feed as TeamFeedItem[] | undefined;
+        if (feedRaw && Array.isArray(feedRaw)) {
+          teamFeedStore.set(t.id, feedRaw.slice(-MAX_TEAM_FEED_ITEMS));
+        }
+        if (t.members) {
+          for (const m of t.members) {
+            const teams = agentTeamIndex.get(m.agentId) || [];
+            if (!teams.includes(t.id)) {
+              teams.push(t.id);
+              agentTeamIndex.set(m.agentId, teams);
+            }
+          }
+        }
       }
-      if (t.bounties) {
-        try {
-          t.bounties = new BountyManager(t.bounties);
-        } catch { /* ignore */ }
-      }
-      teamStore.set(t.id, t);
+    } catch (e) {
+      console.warn('[loadAllStores] PostgreSQL team load failed, falling back to file:', e);
+    }
+  }
 
-      if (t.presence) {
-        const pMap = new Map();
-        for (const p of t.presence) pMap.set(p.agentId, p);
-        teamPresenceStore.set(t.id, pMap);
-      }
-      if (t.messages) {
-        teamMessageStore.set(t.id, t.messages);
-      }
-      const feedRaw = (t as { feed?: TeamFeedItem[] }).feed;
-      if (feedRaw && Array.isArray(feedRaw)) {
-        teamFeedStore.set(t.id, feedRaw.slice(-MAX_TEAM_FEED_ITEMS));
-      }
+  if (!teamsLoaded) {
+    const teamData = readJSON(TEAM_STORE_PATH);
+    if (teamData?.teams) {
+      for (const t of teamData.teams) {
+        // Reconstitute classes
+        if (t.knowledgeMarketplace) {
+          try {
+            t.knowledgeMarketplace = new KnowledgeMarketplace(t.knowledgeMarketplace);
+          } catch { /* ignore */ }
+        }
+        if (t.bounties) {
+          try {
+            t.bounties = new BountyManager(t.bounties);
+          } catch { /* ignore */ }
+        }
+        teamStore.set(t.id, t);
 
-      // Re-index members
-      if (t.members) {
-        for (const m of t.members) {
-          const teams = agentTeamIndex.get(m.agentId) || [];
-          if (!teams.includes(t.id)) {
-            teams.push(t.id);
-            agentTeamIndex.set(m.agentId, teams);
+        if (t.presence) {
+          const pMap = new Map();
+          for (const p of t.presence) pMap.set(p.agentId, p);
+          teamPresenceStore.set(t.id, pMap);
+        }
+        if (t.messages) {
+          teamMessageStore.set(t.id, t.messages);
+        }
+        const feedRaw = (t as { feed?: TeamFeedItem[] }).feed;
+        if (feedRaw && Array.isArray(feedRaw)) {
+          teamFeedStore.set(t.id, feedRaw.slice(-MAX_TEAM_FEED_ITEMS));
+        }
+
+        // Re-index members
+        if (t.members) {
+          for (const m of t.members) {
+            const teams = agentTeamIndex.get(m.agentId) || [];
+            if (!teams.includes(t.id)) {
+              teams.push(t.id);
+              agentTeamIndex.set(m.agentId, teams);
+            }
           }
         }
       }

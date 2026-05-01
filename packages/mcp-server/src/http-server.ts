@@ -2779,9 +2779,10 @@ const httpServer = http.createServer(async (req, res) => {
 new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 
 // Load team, social, and agent state
-initStores();
+(async () => {
+  await initStores();
 
-httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
   ensureMcpOtelTracer();
   const otlp = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
@@ -2850,6 +2851,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   maybeStartRailwayAutoscaleLoop({ port: PORT });
   maybeStartPredictiveCloudflareLbLoop();
 });
+})();
 
 // ─── Thermodynamic consolidation timer ─────────────────────────────────────
 // Runs the biological sleep cycle every 6 hours (matching security domain's
