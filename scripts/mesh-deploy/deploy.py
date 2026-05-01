@@ -742,6 +742,37 @@ def _self_test_sidecar_script_generation() -> None:
     assert quoted2 == "'plain'", quoted2
 
 
+def check_spend_cap(cap: float, *, ledger_path: Path | None = None,
+                      allow_projected_breach: bool = False) -> tuple[bool, dict]:
+    """Run vast-spend-ledger check-cap before deploying.
+
+    Returns (allowed, ledger_state). allowed=False means the fleet-wide
+    daily cap has been reached or the projected burn would exceed it.
+    """
+    ledger_script = Path(__file__).parent / "vast-spend-ledger.py"
+    if not ledger_script.exists():
+        return True, {"_warning": f"ledger script not found: {ledger_script}"}
+    cmd = [
+        sys.executable, str(ledger_script), "check-cap",
+        "--cap", str(cap),
+    ]
+    if allow_projected_breach:
+        cmd.append("--allow-projected-breach")
+    if ledger_path:
+        cmd += ["--ledger", str(ledger_path)]
+    try:
+        cp = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except Exception as exc:  # noqa: BLE001
+        return True, {"_warning": f"ledger check failed: {exc}"}
+    try:
+        state = json.loads(cp.stdout)
+    except json.JSONDecodeError:
+        state = {"_parse_error": cp.stdout[:300]}
+    if cp.returncode == 1:
+        return False, state
+    return True, state
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--config", type=Path, required=True, help="agents.json path")
@@ -762,6 +793,10 @@ def main() -> int:
                    help="W.111: re-bootstrap even instances already labeled with their handle. Default: skip already-deployed handles (idempotent).")
     p.add_argument("--validate-only", action="store_true",
                    help="AMBER §7: parse the config, validate sidecars[] schema on every agent, run self-tests, and exit. No vastai or SSH calls.")
+    p.add_argument('--cap', type=float, default=None,
+                   help='Fleet-wide $/day spend cap (default: env VAST_SPEND_CAP_USD -> agents.json globalBudgetUsdPerDay -> 100.0)')
+    p.add_argument('--skip-cap-check', action='store_true',
+                   help='Bypass the vast-spend-ledger check-cap pre-flight (emergency override)')
     args = p.parse_args()
 
     # --validate-only: schema-test path, no vastai/SSH side effects.
@@ -829,6 +864,24 @@ def main() -> int:
 
     env = load_env(args.env_file)
     print(f"[env] loaded {len(env)} vars from {args.env_file}")
+
+    # --- Spend-cap pre-flight (founder ruling 2026-04-26: fleet-wide aggregate) ---
+    if not args.skip_cap_check:
+        config_json = json.loads(args.config.read_text(encoding="utf-8"))
+        cap = (
+            args.cap
+            if args.cap is not None
+            else float(env.get("VAST_SPEND_CAP_USD") or 0)
+            or float(config_json.get("globalBudgetUsdPerDay") or 0)
+            or 100.0
+        )
+        allowed, ledger_state = check_spend_cap(cap)
+        print(f"[cap] fleet-wide cap=${cap:.2f}/day  spent=${ledger_state.get('already_spent_usd', '?')}  burn_rate=${ledger_state.get('daily_burn_rate_usd', '?')}  active={len(ledger_state.get('active_rentals', []))}")
+        if not allowed:
+            print(f"ERROR: spend cap reached or projected breach. cap=${cap:.2f}  state={json.dumps(ledger_state, indent=2)}", file=sys.stderr)
+            return 1
+    else:
+        print("[cap] SKIP (operator override)")
 
     print("[vastai] fetching live instances ...")
     instances = vast_instances()
