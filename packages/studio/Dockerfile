@@ -132,7 +132,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrat
 # db-migrate.cjs needs pg + drizzle-orm/node-postgres which are NOT imported
 # by any page/API route, so they're missing from the standalone bundle.
 # Install them explicitly in the runner image so migrations run on cold start.
-RUN npm install pg drizzle-orm --no-save --omit=dev && chown -R nextjs:nodejs /app/node_modules
+# Hide package.json during install because the standalone output's package.json
+# contains pnpm workspace: protocol URLs that npm does not understand.
+RUN mv package.json package.json.bak && npm install pg drizzle-orm --no-save --omit=dev --no-optional && mv package.json.bak package.json && chown -R nextjs:nodejs /app/node_modules
 
 USER nextjs
 EXPOSE 3000
