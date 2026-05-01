@@ -113,6 +113,16 @@ export const BRITTNEY_TOOLS = [
             items: { type: 'number' },
             description: '[x, y, z] target position for cameras to look at',
           },
+          light_type: {
+            type: 'string',
+            enum: ['directional', 'point', 'spot'],
+            description: 'Light type (only for light objects)',
+          },
+          projection: {
+            type: 'string',
+            enum: ['perspective', 'orthographic'],
+            description: 'Camera projection type (only for camera objects)',
+          },
           radius: {
             type: 'number',
             description: 'Radius for sphere/cylinder/cone primitives',
@@ -407,6 +417,8 @@ function codeCreateObject(
     radius?: number;
     major_radius?: number;
     minor_radius?: number;
+    light_type?: string;
+    projection?: string;
   } = {}
 ): string {
   const [x, y, z] = position;
@@ -416,6 +428,8 @@ function codeCreateObject(
   if (opts.rotation) lines.push(`  rotation: [${opts.rotation.join(', ')}]`);
   if (opts.primitive) lines.push(`  geometry: "${opts.primitive}"`);
   if (opts.color) lines.push(`  color: "${opts.color}"`);
+  if (opts.light_type) lines.push(`  light_type: "${opts.light_type}"`);
+  if (opts.projection) lines.push(`  projection: "${opts.projection}"`);
   if (opts.radius !== undefined) lines.push(`  radius: ${opts.radius}`);
   if (opts.major_radius !== undefined) lines.push(`  major_radius: ${opts.major_radius}`);
   if (opts.minor_radius !== undefined) lines.push(`  minor_radius: ${opts.minor_radius}`);
@@ -558,6 +572,8 @@ export function executeTool(
         const minorRadius = typeof args.minor_radius === 'number' ? args.minor_radius : undefined;
         const direction = (args.direction as [number, number, number]) ?? undefined;
         const lookAt = (args.look_at as [number, number, number]) ?? undefined;
+        const lightType = typeof args.light_type === 'string' ? args.light_type : undefined;
+        const projectionType = typeof args.projection === 'string' ? args.projection : undefined;
 
         const traits: TraitConfig[] = [];
         const geoProps: Record<string, unknown> = { primitive };
@@ -568,6 +584,8 @@ export function executeTool(
         if (color) traits.push({ name: 'material', properties: { color } });
         if (direction) traits.push({ name: 'direction', properties: { vector: direction } });
         if (lookAt) traits.push({ name: 'camera_target', properties: { target: lookAt } });
+        if (lightType) traits.push({ name: 'light_type', properties: { type: lightType } });
+        if (projectionType) traits.push({ name: 'projection', properties: { type: projectionType } });
 
         setNextHistoryLabel(`Create "${name}"`);
         store.addNode({
@@ -591,6 +609,8 @@ export function executeTool(
             minor_radius: minorRadius,
             direction,
             look_at: lookAt,
+            light_type: lightType,
+            projection: projectionType,
           })
         );
         return { tool: toolName, success: true, message: `Created "${name}" in the scene` };
