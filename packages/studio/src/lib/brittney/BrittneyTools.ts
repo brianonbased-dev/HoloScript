@@ -70,7 +70,7 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'create_object',
-      description: 'Add a new object to the scene.',
+      description: 'Add a new object to the scene. Supports full transform (position, rotation, scale), geometry (primitive, radius, major/minor radius for torus), material (color), light direction, and camera look-at target. Prefer setting all relevant properties in a single call rather than follow-up tools.',
       parameters: {
         type: 'object',
         properties: {
@@ -98,9 +98,32 @@ export const BRITTNEY_TOOLS = [
             items: { type: 'number' },
             description: '[x, y, z] scale factors (default [1, 1, 1])',
           },
+          rotation: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] Euler rotation in radians (default [0, 0, 0])',
+          },
+          direction: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] direction vector for lights (e.g. [0, -1, 0] for downward)',
+          },
+          look_at: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] target position for cameras to look at',
+          },
           radius: {
             type: 'number',
-            description: 'Radius for sphere/cylinder/torus primitives',
+            description: 'Radius for sphere/cylinder/cone primitives',
+          },
+          major_radius: {
+            type: 'number',
+            description: 'Major radius for torus primitive',
+          },
+          minor_radius: {
+            type: 'number',
+            description: 'Minor radius for torus primitive',
           },
         },
         required: ['name', 'type'],
@@ -378,16 +401,26 @@ function codeCreateObject(
     primitive?: string;
     color?: string;
     scale?: [number, number, number];
+    rotation?: [number, number, number];
+    direction?: [number, number, number];
+    look_at?: [number, number, number];
     radius?: number;
+    major_radius?: number;
+    minor_radius?: number;
   } = {}
 ): string {
   const [x, y, z] = position;
   const lines: string[] = [];
   if (x !== 0 || y !== 0 || z !== 0) lines.push(`  position: [${x}, ${y}, ${z}]`);
   if (opts.scale) lines.push(`  scale: [${opts.scale.join(', ')}]`);
+  if (opts.rotation) lines.push(`  rotation: [${opts.rotation.join(', ')}]`);
   if (opts.primitive) lines.push(`  geometry: "${opts.primitive}"`);
   if (opts.color) lines.push(`  color: "${opts.color}"`);
   if (opts.radius !== undefined) lines.push(`  radius: ${opts.radius}`);
+  if (opts.major_radius !== undefined) lines.push(`  major_radius: ${opts.major_radius}`);
+  if (opts.minor_radius !== undefined) lines.push(`  minor_radius: ${opts.minor_radius}`);
+  if (opts.direction) lines.push(`  direction: [${opts.direction.join(', ')}]`);
+  if (opts.look_at) lines.push(`  look_at: [${opts.look_at.join(', ')}]`);
   return code + `\n${type} "${name}" {\n${lines.join('\n')}\n}\n`;
 }
 
@@ -517,13 +550,24 @@ export function executeTool(
         const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
         const scale = (args.scale as [number, number, number]) ?? [1, 1, 1];
+        const rotation = (args.rotation as [number, number, number]) ?? [0, 0, 0];
         const primitive = typeof args.primitive === 'string' ? args.primitive : undefined;
         const color = typeof args.color === 'string' ? args.color : undefined;
         const radius = typeof args.radius === 'number' ? args.radius : undefined;
+        const majorRadius = typeof args.major_radius === 'number' ? args.major_radius : undefined;
+        const minorRadius = typeof args.minor_radius === 'number' ? args.minor_radius : undefined;
+        const direction = (args.direction as [number, number, number]) ?? undefined;
+        const lookAt = (args.look_at as [number, number, number]) ?? undefined;
 
         const traits: TraitConfig[] = [];
-        if (primitive) traits.push({ name: 'geometry', properties: { primitive, ...(radius !== undefined ? { radius } : {}) } });
+        const geoProps: Record<string, unknown> = { primitive };
+        if (radius !== undefined) geoProps.radius = radius;
+        if (majorRadius !== undefined) geoProps.major_radius = majorRadius;
+        if (minorRadius !== undefined) geoProps.minor_radius = minorRadius;
+        if (primitive) traits.push({ name: 'geometry', properties: geoProps });
         if (color) traits.push({ name: 'material', properties: { color } });
+        if (direction) traits.push({ name: 'direction', properties: { vector: direction } });
+        if (lookAt) traits.push({ name: 'camera_target', properties: { target: lookAt } });
 
         setNextHistoryLabel(`Create "${name}"`);
         store.addNode({
@@ -533,11 +577,21 @@ export function executeTool(
           parentId: null,
           traits,
           position: pos,
-          rotation: [0, 0, 0],
+          rotation,
           scale,
         });
         store.setCode(
-          codeCreateObject(store.getCode(), name, type, pos, { primitive, color, scale, radius })
+          codeCreateObject(store.getCode(), name, type, pos, {
+            primitive,
+            color,
+            scale,
+            rotation,
+            radius,
+            major_radius: majorRadius,
+            minor_radius: minorRadius,
+            direction,
+            look_at: lookAt,
+          })
         );
         return { tool: toolName, success: true, message: `Created "${name}" in the scene` };
       }
