@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { OllamaClient } from './lib/ollama-client';
+import { renderMutationsToProse } from './mutation-renderer';
 import type { ConfigName, RubricCriterion, RubricVerdict, SceneMutation, Task, TokenUsage } from './types';
 
 export interface JudgeOptions {
@@ -103,10 +104,12 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
       : candidateOutput,
     `--- END OUTPUT ---`,
     ``,
-    `SCENE MUTATIONS (tool calls executed by the candidate):`,
-    formatMutations(mutations),
+    `SCENE MUTATIONS (tool calls executed by the candidate, rendered as object descriptions):`,
+    renderMutationsToProse(mutations),
     ``,
     `For each rubric criterion, decide if the candidate output OR the scene mutations satisfy it.`,
+    `The candidate output may be truncated at 16,000 characters. The scene mutations below are NEVER truncated and contain the complete ground-truth of what objects were created.`,
+    `When evaluating, PRIORITIZE the scene mutations over the text output. If the mutations show the correct objects with correct properties, that is sufficient evidence.`,
     `Be strict: if information is ambiguous or absent from both the output text and the mutations, mark FAIL.`,
     ...(isSpatialPattern
       ? [
