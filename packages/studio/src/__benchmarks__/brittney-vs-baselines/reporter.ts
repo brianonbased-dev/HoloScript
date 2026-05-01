@@ -48,6 +48,7 @@ export function renderResultsMarkdown(run: BenchmarkRun): string {
     ``,
     renderTaskMatrix(run),
     ``,
+    renderCriterionFailureMatrix(run),
     `## Errors`,
     ``,
     errorOutcomes.length === 0
@@ -80,4 +81,51 @@ function renderTaskMatrix(run: BenchmarkRun): string {
     lines.push(`| ${t} | ${cells.join(' | ')} |`);
   }
   return lines.join('\n');
+}
+
+function renderCriterionFailureMatrix(run: BenchmarkRun): string {
+  const configs = Array.from(new Set(run.outcomes.map((o) => o.config)));
+  const taskIds = Array.from(new Set(run.outcomes.map((o) => o.task_id)));
+  const sections: string[] = [];
+
+  for (const taskId of taskIds) {
+    const taskOutcomes = run.outcomes.filter((o) => o.task_id === taskId);
+    if (taskOutcomes.length === 0) continue;
+
+    const criterionIds = Array.from(
+      new Set(taskOutcomes.flatMap((o) => o.per_criterion.map((v) => v.criterion_id)))
+    );
+    if (criterionIds.length === 0) continue;
+
+    const rows: { criterion: string; cells: string[] }[] = [];
+    for (const cid of criterionIds) {
+      const cells = configs.map((c) => {
+        const slice = taskOutcomes.filter((o) => o.config === c);
+        if (slice.length === 0) return '–';
+        const fails = slice.filter((o) => {
+          const v = o.per_criterion.find((pc) => pc.criterion_id === cid);
+          return v ? !v.passed : false;
+        }).length;
+        return fails === 0 ? '0' : `${fails}/${slice.length}`;
+      });
+      if (cells.some((s) => s !== '0' && s !== '–')) {
+        rows.push({ criterion: cid, cells });
+      }
+    }
+
+    if (rows.length === 0) continue;
+
+    sections.push(`### ${taskId}`);
+    sections.push(`| criterion | ${configs.join(' | ')} |`);
+    sections.push(`|---|${configs.map(() => '---').join('|')}|`);
+    for (const row of rows) {
+      sections.push(`| ${row.criterion} | ${row.cells.join(' | ')} |`);
+    }
+    sections.push('');
+  }
+
+  if (sections.length === 0) {
+    return `## Per-criterion failures\n\n_(none)_\n\n`;
+  }
+  return `## Per-criterion failures\n\n${sections.join('\n')}\n`;
 }
