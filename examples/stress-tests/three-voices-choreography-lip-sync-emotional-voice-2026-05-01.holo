@@ -1,0 +1,387 @@
+// ============================================================
+// Stress-Test: Three Voices — AI Performer Troupe
+// A009 — 2026-05-01
+//
+// Never-exercised traits under test:
+//   @choreography      — multi-step movement orchestration with
+//                        HITL gates and fallback plans
+//   @lip_sync          — phoneme-driven viseme animation
+//   @emotional_voice   — emotion-modulated TTS voice synthesis
+//   @avatar_embodiment — IK-tracked avatar body with emotion
+//                        directive integration
+//   @spatial_persona   — persistent spatial identity, proximity
+//                        visibility, gesture mirroring
+//
+// Well-exercised anchors:
+//   @glowing  @animated  @accessible  @collidable
+//
+// Visual story:
+// A minimalist stage: white cyclorama, three pools of colored
+// light. Three AI performers stand in the light pools, each
+// assigned a single emotional register that cannot leave them.
+//
+// ANGER speaks in clipped declarative sentences — short, loud,
+// percussive. Her lips follow every word. She advances on the
+// audience then retreats, pacing, never still.
+//
+// GRIEF moves slowly, barely at all. She rarely speaks; when
+// she does the voice wavers at the consonants. Her spatial
+// persona flickers at the boundary of visibility — you have
+// to stand close to see her properly.
+//
+// WONDER never stops talking. She gestures upward, turns her
+// head toward sounds nobody else hears, addresses objects as
+// if they are friends. Her persona is always fully visible,
+// arms wide.
+//
+// A choreography controller sequences their positions across
+// nine named stages, pausing at an HITL gate on stage 5 —
+// a deliberate human-approval pause built into the script.
+//
+// This exercises: nested choreography step config, multi-trait
+// composition on avatar objects, lip_sync method enum, and the
+// spatial_persona proximity_radius field.
+// ============================================================
+
+composition "ThreeVoicesPerformance" {
+  version: "7.0"
+  description: "Stress-test: choreography + lip_sync + emotional_voice + avatar_embodiment + spatial_persona"
+  tags: ["a009", "stress-test", "avatar", "performance", "ai", "choreography", "theater"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT — pure white cyclorama, no horizon
+  // ----------------------------------------------------------
+  environment {
+    skybox: "white"
+    ambient_light: 0.12
+    fog: { enabled: false }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // STAGE GEOMETRY
+  // ----------------------------------------------------------
+  object "stage_floor" @collidable {
+    geometry: "box"
+    position: [0, 0, 0]
+    scale: [20, 0.06, 12]
+    material: { baseColor: "#f8f8f8", roughness: 0.85, metallic: 0.0 }
+    receiveShadow: true
+  }
+
+  object "cyclorama" @collidable {
+    geometry: "box"
+    position: [0, 6, -6.1]
+    scale: [20, 12, 0.15]
+    material: { baseColor: "#fafafa", roughness: 1.0, metallic: 0.0 }
+  }
+
+  // ----------------------------------------------------------
+  // LIGHT POOLS — one for each performer
+  // ----------------------------------------------------------
+  object "pool_anger" {
+    type: "spot_light"
+    color: "#ff3300"
+    intensity: 4.5
+    position: [-4, 9, 0]
+    rotation: [-90, 0, 0]
+    angle: 18
+    penumbra: 0.4
+    castShadow: true
+  }
+
+  object "pool_grief" {
+    type: "spot_light"
+    color: "#4466cc"
+    intensity: 2.8
+    position: [0, 9, -2]
+    rotation: [-90, 0, 0]
+    angle: 16
+    penumbra: 0.6
+    castShadow: true
+  }
+
+  object "pool_wonder" {
+    type: "spot_light"
+    color: "#aaff66"
+    intensity: 5.2
+    position: [4, 9, 0]
+    rotation: [-90, 0, 0]
+    angle: 22
+    penumbra: 0.3
+    castShadow: true
+  }
+
+  // House fill — dim white wash
+  object "house_fill" {
+    type: "directional_light"
+    color: "#e8e8f0"
+    intensity: 0.4
+    position: [0, 10, 8]
+    rotation: [-40, 0, 0]
+    castShadow: false
+  }
+
+  // ----------------------------------------------------------
+  // CHOREOGRAPHY CONTROLLER
+  //
+  // Orchestrates all three performers through nine spatial
+  // stages. auto_start: true begins the sequence immediately.
+  // Stage 5 has hitl_auto_pause: true — the performance waits
+  // for a human operator signal before continuing.
+  //
+  // Testing: nested step/plan config, HITL pause semantics,
+  // mode "orchestrator" with 3 concurrent plans.
+  // ----------------------------------------------------------
+  object "choreography_controller" {
+    geometry: "box"
+    visible: false
+    position: [0, 0.5, 5]
+    scale: [0.1, 0.1, 0.1]
+
+    @choreography {
+      mode: "orchestrator"
+      auto_start: true
+      max_concurrent_plans: 3
+      default_step_timeout: 8000
+      event_history_limit: 50
+      hitl_auto_pause: true
+      execute_fallback: true
+      verbose: false
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PERFORMER: ANGER
+  //
+  // Emotional register: rage — clipped, loud, declarative.
+  // Paces a 2-meter arc in front of her light pool.
+  // Lip sync uses FFT method (fast, phoneme-approximate).
+  // Emotional voice fires with 'angry' preset, high intensity.
+  // Avatar embodiment uses full-body IK with controller source.
+  // Spatial persona: always visible, gesture mirroring on.
+  // ----------------------------------------------------------
+  object "performer_anger" @collidable @animated @accessible {
+    geometry: "capsule"
+    position: [-4, 0.9, 0]
+    scale: [0.5, 1.75, 0.5]
+    material: { baseColor: "#c83020", roughness: 0.7, metallic: 0.0 }
+    animate: "pace"
+    animAxis: "x"
+    animDistance: 2.0
+    animDuration: 3.2
+    animLoop: true
+
+    accessible: { role: "character", label: "Anger — AI performer, speaks in short declarative statements" }
+
+    @avatar_embodiment {
+      tracking_source: "controller"
+      ik_mode: "full_body"
+      lip_sync: true
+      lip_sync_config: {
+        method: "fft"
+        blendShapeSet: "arkit52"
+        smoothing: 0.45
+        sensitivity: 1.3
+      }
+      emotion_directives: true
+    }
+
+    @lip_sync {
+      method: "fft"
+      blendShapeSet: "arkit52"
+      smoothing: 0.45
+      sensitivity: 1.3
+    }
+
+    @emotional_voice {
+      voiceId: "en-US-anger-neural-01"
+      defaultEmotion: "angry"
+      defaultIntensity: 0.88
+    }
+
+    @spatial_persona {
+      persona_style: "expressive"
+      visibility: "always"
+      spatial_audio: true
+      gesture_mirroring: true
+      expression_sync: true
+      proximity_radius: 12.0
+      render_quality: "high"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PERFORMER: GRIEF
+  //
+  // Emotional register: sorrow — slow, wavering, quiet.
+  // Barely moves; when she does it is a single step.
+  // Lip sync uses ML method for fine consonant fidelity —
+  // the trembling at consonants is the whole performance.
+  // Spatial persona uses 'proximity' visibility: you must
+  // enter within 2.5 m to fully perceive her.
+  // ----------------------------------------------------------
+  object "performer_grief" @collidable @accessible {
+    geometry: "capsule"
+    position: [0, 0.9, -2]
+    scale: [0.48, 1.70, 0.48]
+    material: { baseColor: "#334488", roughness: 0.8, metallic: 0.0 }
+
+    accessible: { role: "character", label: "Grief — AI performer, speaks rarely and softly" }
+
+    @avatar_embodiment {
+      tracking_source: "scripted"
+      ik_mode: "upper_body"
+      lip_sync: true
+      lip_sync_config: {
+        method: "ml_phoneme"
+        blendShapeSet: "arkit52"
+        smoothing: 0.88
+        sensitivity: 0.65
+      }
+      emotion_directives: true
+    }
+
+    @lip_sync {
+      method: "ml_phoneme"
+      blendShapeSet: "arkit52"
+      smoothing: 0.88
+      sensitivity: 0.65
+    }
+
+    @emotional_voice {
+      voiceId: "en-US-grief-neural-03"
+      defaultEmotion: "sad"
+      defaultIntensity: 0.92
+    }
+
+    @spatial_persona {
+      persona_style: "minimal"
+      visibility: "proximity"
+      spatial_audio: true
+      gesture_mirroring: false
+      expression_sync: true
+      proximity_radius: 2.5
+      render_quality: "medium"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PERFORMER: WONDER
+  //
+  // Emotional register: awe — rapid, breathless, abundant.
+  // Turns and gestures constantly. Addresses objects in the
+  // room. Lip sync on all utterances; voice excited preset.
+  // Spatial persona is "expressive" and always visible —
+  // she wants to be seen by everyone.
+  // ----------------------------------------------------------
+  object "performer_wonder" @collidable @animated @accessible @glowing {
+    geometry: "capsule"
+    position: [4, 0.9, 0]
+    scale: [0.52, 1.72, 0.52]
+    material: { baseColor: "#44aa22", roughness: 0.6, metallic: 0.0 }
+    emissive: "#224411"
+    emissiveIntensity: 0.3
+    animate: "sway"
+    animAmplitude: 0.1
+    animSpeed: 0.9
+    animLoop: true
+
+    accessible: { role: "character", label: "Wonder — AI performer, speaks continuously with excitement" }
+
+    @avatar_embodiment {
+      tracking_source: "scripted"
+      ik_mode: "full_body"
+      lip_sync: true
+      lip_sync_config: {
+        method: "fft"
+        blendShapeSet: "arkit52"
+        smoothing: 0.30
+        sensitivity: 1.6
+      }
+      emotion_directives: true
+    }
+
+    @lip_sync {
+      method: "fft"
+      blendShapeSet: "arkit52"
+      smoothing: 0.30
+      sensitivity: 1.6
+    }
+
+    @emotional_voice {
+      voiceId: "en-US-wonder-neural-02"
+      defaultEmotion: "excited"
+      defaultIntensity: 0.78
+    }
+
+    @spatial_persona {
+      persona_style: "expressive"
+      visibility: "always"
+      spatial_audio: true
+      gesture_mirroring: true
+      expression_sync: true
+      proximity_radius: 15.0
+      render_quality: "high"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // STAGE PROP: three low pedestals mark the light pools
+  // ----------------------------------------------------------
+  object "pedestal_anger" @collidable {
+    geometry: "cylinder"
+    position: [-4, 0.04, 0]
+    scale: [0.9, 0.08, 0.9]
+    material: { baseColor: "#cc2200", roughness: 0.3, metallic: 0.7 }
+  }
+
+  object "pedestal_grief" @collidable {
+    geometry: "cylinder"
+    position: [0, 0.04, -2]
+    scale: [0.9, 0.08, 0.9]
+    material: { baseColor: "#2244aa", roughness: 0.3, metallic: 0.7 }
+  }
+
+  object "pedestal_wonder" @collidable {
+    geometry: "cylinder"
+    position: [4, 0.04, 0]
+    scale: [0.9, 0.08, 0.9]
+    material: { baseColor: "#44aa22", roughness: 0.3, metallic: 0.7 }
+  }
+
+  // ----------------------------------------------------------
+  // CENTER MARKER — focus point where the three pools converge
+  // ----------------------------------------------------------
+  object "center_triangle" @glowing {
+    geometry: "plane"
+    position: [0, 0.05, -0.7]
+    scale: [4.5, 4.5, 4.5]
+    rotation: [90, 0, 0]
+    emissive: "#ffffff"
+    emissiveIntensity: 0.12
+    opacity: 0.25
+  }
+
+  // ----------------------------------------------------------
+  // POST-PROCESSING — crisp and clean; let the performers read
+  // ----------------------------------------------------------
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.25
+      threshold: 0.9
+      radius: 0.35
+    }
+    tone_mapping: {
+      type: "linear"
+      exposure: 1.0
+    }
+    vignette: {
+      enabled: true
+      intensity: 0.22
+      smoothness: 0.6
+    }
+  }
+
+}

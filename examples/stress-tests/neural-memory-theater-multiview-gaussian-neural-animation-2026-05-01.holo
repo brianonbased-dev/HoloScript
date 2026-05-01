@@ -1,0 +1,456 @@
+// ============================================================
+// Stress-Test: Neural Memory Theater
+// A009 — 2026-05-01
+//
+// Never-exercised traits under test:
+//   @multiview_gaussian_renderer — foveated multi-user Gaussian
+//                                  splat rendering with per-view
+//                                  quality adaptation
+//   @neural_animation            — ML locomotion and body motion
+//                                  applied to volumetric figures
+//   @volumetric                  — pointcloud / Gaussian-splat
+//                                  3D scan playback at runtime
+//
+// Well-exercised anchors:
+//   @glowing  @collidable  @animated  @physics
+//
+// Visual story:
+// You step into a black-box theater. The stage is empty save
+// for four floating memory-frames: 3D scans of past performances,
+// each a volumetric ghost rendered in Gaussian splat mode. The
+// renderer adapts quality per viewer — full fidelity at your
+// fovea, gracefully coarsening at the periphery. Each ghost is
+// neural-animated: the motion model infers the performer's next
+// gesture from their body state, so no two viewings are alike.
+// A slow haze of volumetric cloud fills the stage floor. The
+// ghosts breathe, shift weight, occasionally turn toward you as
+// if they remember being seen.
+//
+// This is the first time @multiview_gaussian_renderer,
+// @neural_animation, and @volumetric are exercised together.
+// The test verifies: (a) foveated blend config parses as a
+// nested object, (b) neural animation config validates the
+// AnimationModel enum path, (c) volumetric src + renderMode
+// parse inside a composition.
+// ============================================================
+
+composition "NeuralMemoryTheater" {
+  version: "7.0"
+  description: "Stress-test: multiview_gaussian_renderer + neural_animation + volumetric in a ghost-theater scene"
+  tags: ["a009", "stress-test", "gaussian", "neural", "volumetric", "theater", "memory"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // A black-box theater: no ambient, only stage lights.
+  // ----------------------------------------------------------
+  environment {
+    skybox: "black"
+    ambient_light: 0.0
+    fog: { enabled: true, color: "#0a0a14", density: 0.04, near: 8.0, far: 30.0 }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // MULTIVIEW GAUSSIAN RENDERER
+  //
+  // One controller object carries the renderer trait. It holds
+  // no visible geometry — its job is to manage the shared
+  // Gaussian sort buffer and distribute foveated views to each
+  // connected observer.
+  //
+  // foveated_blend controls the quality ring:
+  //   innerRadius  0.15 → full quality in central 15% of FOV
+  //   outerRadius  0.55 → quality falls off by outer 55%
+  //   outerQuality 0.22 → 22% of splats rendered at periphery
+  //
+  // This exercises the nested-object config path inside a trait.
+  // ----------------------------------------------------------
+  object "render_controller" {
+    geometry: "box"
+    visible: false
+    position: [0, 0, 0]
+    scale: [0.01, 0.01, 0.01]
+
+    @multiview_gaussian_renderer {
+      foveated_blend: {
+        innerRadius: 0.15
+        outerRadius: 0.55
+        innerQuality: 1.0
+        outerQuality: 0.22
+        peripheralDecimation: 0.6
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // FLOOR — black Marley dance floor, matte
+  // ----------------------------------------------------------
+  object "stage_floor" @collidable {
+    geometry: "box"
+    position: [0, 0, 0]
+    scale: [18, 0.08, 14]
+    material: { baseColor: "#0d0d0d", roughness: 0.9, metallic: 0.0 }
+    receiveShadow: true
+  }
+
+  // Stage front lip
+  object "stage_lip" @collidable {
+    geometry: "box"
+    position: [0, 0.06, 7.1]
+    scale: [18, 0.12, 0.3]
+    material: { baseColor: "#1a1a1a", roughness: 0.7, metallic: 0.3 }
+  }
+
+  // ----------------------------------------------------------
+  // THEATER WALLS + BACK CURTAIN
+  // ----------------------------------------------------------
+  object "back_wall" @collidable {
+    geometry: "box"
+    position: [0, 5, -7.2]
+    scale: [18, 10, 0.2]
+    material: { baseColor: "#060608", roughness: 1.0, metallic: 0.0 }
+  }
+
+  object "side_wall_left" @collidable {
+    geometry: "box"
+    position: [-9.1, 5, 0]
+    scale: [0.2, 10, 14]
+    material: { baseColor: "#060608", roughness: 1.0, metallic: 0.0 }
+  }
+
+  object "side_wall_right" @collidable {
+    geometry: "box"
+    position: [9.1, 5, 0]
+    scale: [0.2, 10, 14]
+    material: { baseColor: "#060608", roughness: 1.0, metallic: 0.0 }
+  }
+
+  object "ceiling" @collidable {
+    geometry: "box"
+    position: [0, 10, 0]
+    scale: [18, 0.2, 14]
+    material: { baseColor: "#080808", roughness: 1.0, metallic: 0.0 }
+  }
+
+  // ----------------------------------------------------------
+  // STAGE LIGHTING — three vintage Fresnel ellipsoidals
+  // ----------------------------------------------------------
+  object "key_light" {
+    type: "spot_light"
+    color: "#f4e8d8"
+    intensity: 3.2
+    position: [0, 9, 3]
+    rotation: [-65, 0, 0]
+    angle: 22
+    penumbra: 0.35
+    castShadow: true
+  }
+
+  object "fill_light_left" {
+    type: "spot_light"
+    color: "#c8d4f0"
+    intensity: 1.1
+    position: [-4, 8, 1]
+    rotation: [-55, 18, 0]
+    angle: 30
+    penumbra: 0.5
+  }
+
+  object "fill_light_right" {
+    type: "spot_light"
+    color: "#f0e0c8"
+    intensity: 0.8
+    position: [4, 8, 1]
+    rotation: [-55, -18, 0]
+    angle: 30
+    penumbra: 0.5
+  }
+
+  // Footlights strip — cold blue wash from stage front
+  object "footlights" {
+    type: "point_light"
+    color: "#9ac0ff"
+    intensity: 0.6
+    position: [0, 0.2, 5.8]
+  }
+
+  // ----------------------------------------------------------
+  // VOLUMETRIC STAGE HAZE
+  //
+  // A pointcloud volume at floor level simulates atmospheric
+  // haze. renderMode "cloud" gives it a volumetric appearance
+  // rather than discrete splats.
+  //
+  // This is the first use of @volumetric in any example.
+  // Testing: src path with placeholder asset, renderMode enum.
+  // ----------------------------------------------------------
+  object "stage_haze" {
+    geometry: "box"
+    position: [0, 0.4, -1]
+    scale: [16, 0.8, 12]
+    visible: false
+
+    @volumetric {
+      src: "assets/volumes/stage-haze-32k.ply"
+      renderMode: "cloud"
+      pointSize: 0.04
+      opacity: 0.28
+      lod_auto: true
+      max_points: 32000
+      use_gpu_compute: true
+    }
+  }
+
+  // ----------------------------------------------------------
+  // MEMORY GHOST 1 — "The Dancer"
+  //
+  // A Gaussian-splat scan of a solo contemporary dancer,
+  // midway through a turning jump. Neural animation infers
+  // the continuation of the movement — each visit shows a
+  // different imagined landing.
+  //
+  // @volumetric: the 3D scan source
+  // @neural_animation: ML motion model drives the figure
+  //
+  // Both traits live on the same object — testing multi-trait
+  // composition on a single node.
+  // ----------------------------------------------------------
+  object "ghost_dancer" @glowing {
+    geometry: "capsule"
+    visible: false
+    position: [-3.5, 0.9, -2]
+    scale: [0.6, 1.8, 0.6]
+    emissive: "#d0e8ff"
+    emissiveIntensity: 0.15
+
+    @volumetric {
+      src: "assets/scans/memory-dancer-capture.ply"
+      renderMode: "splat"
+      pointSize: 0.012
+      opacity: 0.82
+      lod_auto: true
+      max_points: 180000
+      use_gpu_compute: true
+    }
+
+    @neural_animation {
+      animation_model: "universal_v2"
+      smoothing: 0.72
+      retargeting: false
+      blend_weight: 0.88
+      locomotion: {
+        max_speed: 2.4
+        acceleration: 1.8
+        turn_rate: 90
+        foot_ik_enabled: true
+        terrain_adaptation: false
+        energy_efficiency: 0.7
+        performance_mode: "high"
+        fallback_mode: "clip"
+        trajectory_visual: false
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // MEMORY GHOST 2 — "The Speaker"
+  //
+  // A Gaussian scan of a figure mid-oration, one hand
+  // extended. Neural animation breathes life into the
+  // gesture — the arm never arrives at the same resting
+  // point twice.
+  // ----------------------------------------------------------
+  object "ghost_speaker" @glowing {
+    geometry: "capsule"
+    visible: false
+    position: [0, 0.9, -3.5]
+    scale: [0.55, 1.72, 0.55]
+    emissive: "#ffd8a0"
+    emissiveIntensity: 0.12
+
+    @volumetric {
+      src: "assets/scans/memory-orator-capture.ply"
+      renderMode: "splat"
+      pointSize: 0.010
+      opacity: 0.75
+      lod_auto: true
+      max_points: 150000
+      use_gpu_compute: true
+    }
+
+    @neural_animation {
+      animation_model: "upper_body_v1"
+      smoothing: 0.85
+      retargeting: false
+      blend_weight: 0.7
+      locomotion: {
+        max_speed: 0.5
+        acceleration: 0.8
+        turn_rate: 30
+        foot_ik_enabled: true
+        terrain_adaptation: false
+        energy_efficiency: 0.9
+        performance_mode: "balanced"
+        fallback_mode: "clip"
+        trajectory_visual: false
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // MEMORY GHOST 3 — "The Instrument Player"
+  //
+  // Upper body of a musician at a piano. The neural model
+  // infers fingering sequences — the hands never play the
+  // same passage.
+  // ----------------------------------------------------------
+  object "ghost_musician" @glowing {
+    geometry: "capsule"
+    visible: false
+    position: [3.5, 0.9, -2.5]
+    scale: [0.58, 1.65, 0.58]
+    emissive: "#d8ffd8"
+    emissiveIntensity: 0.1
+
+    @volumetric {
+      src: "assets/scans/memory-pianist-capture.ply"
+      renderMode: "splat"
+      pointSize: 0.008
+      opacity: 0.70
+      lod_auto: true
+      max_points: 120000
+      use_gpu_compute: true
+    }
+
+    @neural_animation {
+      animation_model: "hand_detail_v3"
+      smoothing: 0.90
+      retargeting: true
+      target_skeleton: "humanoid_5finger"
+      blend_weight: 0.95
+      locomotion: {
+        max_speed: 0.1
+        acceleration: 0.2
+        turn_rate: 10
+        foot_ik_enabled: false
+        terrain_adaptation: false
+        energy_efficiency: 1.0
+        performance_mode: "high"
+        fallback_mode: "clip"
+        trajectory_visual: false
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // MEMORY GHOST 4 — "The Child Running"
+  //
+  // A wide-gate Gaussian scan of a child in mid-stride.
+  // The neural locomotion model is especially prominent here —
+  // the child's path through the stage is never the same.
+  // ----------------------------------------------------------
+  object "ghost_child" @glowing @animated {
+    geometry: "capsule"
+    visible: false
+    position: [1, 0.7, 1]
+    scale: [0.45, 1.30, 0.45]
+    emissive: "#ffe0f0"
+    emissiveIntensity: 0.18
+    animate: "path"
+    animPath: [
+      [1, 0.7, 1],
+      [-2, 0.7, 0],
+      [-3, 0.7, -3],
+      [2, 0.7, -2],
+      [1, 0.7, 1]
+    ]
+    animDuration: 14.0
+    animLoop: true
+
+    @volumetric {
+      src: "assets/scans/memory-child-run-capture.ply"
+      renderMode: "splat"
+      pointSize: 0.009
+      opacity: 0.65
+      lod_auto: true
+      max_points: 90000
+      use_gpu_compute: true
+    }
+
+    @neural_animation {
+      animation_model: "universal_v2"
+      smoothing: 0.55
+      retargeting: false
+      blend_weight: 0.82
+      locomotion: {
+        max_speed: 3.8
+        acceleration: 4.0
+        deceleration: 3.2
+        turn_rate: 140
+        stride_scale: 0.72
+        foot_ik_enabled: true
+        terrain_adaptation: true
+        energy_efficiency: 0.45
+        performance_mode: "balanced"
+        fallback_mode: "physics"
+        trajectory_visual: false
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PROSCENIUM ARCH — frames the stage
+  // ----------------------------------------------------------
+  object "arch_left_column" @collidable {
+    geometry: "box"
+    position: [-7, 4, 6.5]
+    scale: [0.5, 8, 0.4]
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+  }
+
+  object "arch_right_column" @collidable {
+    geometry: "box"
+    position: [7, 4, 6.5]
+    scale: [0.5, 8, 0.4]
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+  }
+
+  object "arch_header" @collidable {
+    geometry: "box"
+    position: [0, 8.2, 6.5]
+    scale: [14.5, 0.5, 0.4]
+    material: { baseColor: "#1c1c22", roughness: 0.6, metallic: 0.5 }
+  }
+
+  // Arch accent strip — subtle glow band
+  object "arch_glow_strip" @glowing {
+    geometry: "box"
+    position: [0, 8.45, 6.4]
+    scale: [14.0, 0.06, 0.06]
+    emissive: "#4466aa"
+    emissiveIntensity: 1.2
+  }
+
+  // ----------------------------------------------------------
+  // POST-PROCESSING — heavy bloom + dark tone
+  // The emissive ghosts should corona-glow in the dark.
+  // ----------------------------------------------------------
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.65
+      threshold: 0.55
+      radius: 0.7
+    }
+    tone_mapping: {
+      type: "aces"
+      exposure: 0.8
+    }
+    vignette: {
+      enabled: true
+      intensity: 0.45
+      smoothness: 0.4
+    }
+  }
+
+}
