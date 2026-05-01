@@ -73,12 +73,15 @@ export default defineConfig({
       '@aztec/bb.js': path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts'),
       // Cross-package resolution (A.011 extraction)
       '@holoscript/core/coordinators': path.resolve(__dirname, '../core/src/coordinators/index.ts'),
+      '@holoscript/core/paper-0c-spike': path.resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
+      '@holoscript/core/reconstruction': path.resolve(__dirname, '../core/src/reconstruction/index.ts'),
       '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
       '@holoscript/engine/runtime/TraitRuntimeIntegration': path.resolve(
         __dirname,
         '../engine/src/runtime/TraitRuntimeIntegration.ts'
       ),
       '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
+      '@holoscript/uaal': path.resolve(__dirname, '../uaal/src/index.ts'),
       '@holoscript/framework/ai': path.resolve(__dirname, '../framework/src/ai'),
       '@holoscript/framework/economy': path.resolve(__dirname, '../framework/src/economy'),
       '@holoscript/framework/negotiation': path.resolve(__dirname, '../framework/src/negotiation'),

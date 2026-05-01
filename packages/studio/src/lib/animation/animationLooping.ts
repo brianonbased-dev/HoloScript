@@ -55,6 +55,14 @@ export interface LoopOptions {
   useEasing?: boolean;
 }
 
+function frameQuat(frame: BoneFrame): THREE.Quaternion | null {
+  if (frame.rotation) return new THREE.Quaternion(...frame.rotation);
+  if (frame.qx !== undefined && frame.qy !== undefined && frame.qz !== undefined && frame.qw !== undefined) {
+    return new THREE.Quaternion(frame.qx, frame.qy, frame.qz, frame.qw);
+  }
+  return null;
+}
+
 /**
  * Analyze if animation can loop seamlessly
  */
@@ -91,9 +99,9 @@ export function analyzeLoop(clip: RecordedClip, options: LoopOptions = {}): Loop
     const startFrame = frames[0];
     const endFrame = frames[frames.length - 1];
 
-    if (!startFrame.rotation || !endFrame.rotation) return;
-    const startQuat = new THREE.Quaternion(...startFrame.rotation);
-    const endQuat = new THREE.Quaternion(...endFrame.rotation);
+    const startQuat = frameQuat(startFrame);
+    const endQuat = frameQuat(endFrame);
+    if (!startQuat || !endQuat) return;
 
     const distance = quatDistance(startQuat, endQuat);
     boneDistances.push({ boneIndex, distance });
@@ -182,9 +190,9 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
     endFrames.forEach((endFrame, i) => {
       const t = useEasing ? easeInOutCubic(i / blendFrames) : i / blendFrames;
 
-      if (!startFrame.rotation || !endFrame.rotation) return;
-      const startQuat = new THREE.Quaternion(...startFrame.rotation);
-      const endQuat = new THREE.Quaternion(...endFrame.rotation);
+      const startQuat = frameQuat(startFrame);
+      const endQuat = frameQuat(endFrame);
+      if (!startQuat || !endQuat) return;
 
       const blendedQuat = new THREE.Quaternion().slerpQuaternions(startQuat, endQuat, t);
 

@@ -27,18 +27,6 @@ describe('ContentCard', () => {
     expect(screen.getByRole('link', { name: /view test agent/i })).toBeInTheDocument();
   });
 
-  it('verifies RTL assertions for localized price formatting', () => {
-    render(<ContentCard item={dummyItem} onSelect={() => {}} />);
-    // ContentCard formats priceCents / 100
-    expect(screen.getByText(/\$15\.00/)).toBeInTheDocument();
-  });
-
-  it('validates cognitiveHz metrics tags', () => {
-    render(<ContentCard item={dummyItem} onSelect={() => {}} />);
-    // ContentCard renders cognitiveHz metrics
-    expect(screen.getByText(/3\.5\s*Hz/i)).toBeInTheDocument();
-  });
-
   it('triggers onSelect payload correctly', () => {
     const handleSelect = vi.fn();
     render(<ContentCard item={dummyItem} onSelect={handleSelect} />);

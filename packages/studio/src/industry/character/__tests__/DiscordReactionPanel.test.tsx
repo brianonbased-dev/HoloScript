@@ -6,10 +6,15 @@ import { DiscordReactionPanel } from '../animation/DiscordReactionPanel';
 
 describe('DiscordReactionPanel', () => {
   it('renders without crashing', () => {
-    // If the component has heavy requirements (e.g. providers, store state), 
-    // we use a simple shallow or context-wrapped render.
-    // For now, this is a structural smoke test that asserts it binds properly.
-    const { container } = render(<DiscordReactionPanel />);
+    const { container } = render(
+      <DiscordReactionPanel
+        isConnected={false}
+        isListening={false}
+        triggers={[]}
+        feedback={[]}
+        lastReaction={null}
+      />
+    );
     expect(container).toBeTruthy();
   });
 });
