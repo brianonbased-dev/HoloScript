@@ -424,7 +424,8 @@ function codeCreateObject(
   const [x, y, z] = position;
   const lines: string[] = [];
   if (x !== 0 || y !== 0 || z !== 0) lines.push(`  position: [${x}, ${y}, ${z}]`);
-  if (opts.scale) lines.push(`  scale: [${opts.scale.join(', ')}]`);
+  const scale = opts.scale ?? [1, 1, 1];
+  lines.push(`  scale: [${scale.join(', ')}]`);
   if (opts.rotation) lines.push(`  rotation: [${opts.rotation.join(', ')}]`);
   if (opts.primitive) lines.push(`  geometry: "${opts.primitive}"`);
   if (opts.color) lines.push(`  color: "${opts.color}"`);
