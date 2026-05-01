@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { OllamaClient } from './lib/ollama-client';
 import { renderMutationsToProse } from './mutation-renderer';
+import { hasDeterministicVerifier, verifyDeterministically } from './deterministic-verifier';
 import type { ConfigName, RubricCriterion, RubricVerdict, SceneMutation, Task, TokenUsage } from './types';
 
 export interface JudgeOptions {
@@ -177,7 +178,7 @@ export async function judgeRun(
       const submitted = input.verdicts ?? [];
       const byId = new Map(submitted.map((v) => [v.criterion_id, v] as const));
 
-      const verdicts: RubricVerdict[] = task.evaluation_rubric.map((c) => {
+      let verdicts: RubricVerdict[] = task.evaluation_rubric.map((c) => {
         const found = byId.get(c.id);
         return {
           task_id: task.id,
@@ -188,6 +189,22 @@ export async function judgeRun(
           rationale: found?.rationale ?? 'missing in judge response',
         };
       });
+
+      // Deterministic override: for tasks with coded verifiers, override
+      // LLM-judge verdicts with ground-truth computed from mutations.
+      if (hasDeterministicVerifier(task.id)) {
+        const deterministic = verifyDeterministically(task, mutations);
+        const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
+        verdicts = verdicts.map((v) => {
+          const det = detById.get(v.criterion_id);
+          if (!det) return v;
+          return {
+            ...v,
+            passed: det.passed,
+            rationale: `[deterministic] ${det.rationale} | [llm] ${v.rationale}`,
+          };
+        });
+      }
 
       return { verdicts, usage };
     } catch (err) {
