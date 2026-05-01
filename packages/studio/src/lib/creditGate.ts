@@ -121,6 +121,17 @@ export async function checkCredits(
     return { userId: userId || 'dev', error: null };
   }
 
+  // Benchmark bypass — if BRITTNEY_BENCHMARK_KEY is configured and the
+  // request carries a matching x-benchmark-key header, skip credit checks.
+  // This lets the benchmark harness run against production without consuming
+  // real credits or depending on the absorb service. Strictly opt-in.
+  if (process.env.BRITTNEY_BENCHMARK_KEY) {
+    const benchKey = request.headers.get('x-benchmark-key');
+    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+      return { userId: userId || 'benchmark', error: null };
+    }
+  }
+
   // Admin bypass — founders/admins skip credit checks
   if (githubUsername && ADMIN_GITHUB_USERNAMES.has(githubUsername.toLowerCase())) {
     return { userId: userId || `admin:${githubUsername}`, error: null };
