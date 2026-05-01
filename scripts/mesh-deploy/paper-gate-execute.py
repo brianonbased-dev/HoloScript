@@ -56,6 +56,7 @@ SCRIPT_DIR = Path(__file__).parent
 PICKER = SCRIPT_DIR / "pick-cheapest-offer.py"
 LEDGER = SCRIPT_DIR / "vast-spend-ledger.py"
 SCHEDULER = SCRIPT_DIR / "paper-gate-scheduler.py"
+BOOTSTRAP_SCRIPT = SCRIPT_DIR / "bootstrap-agent.sh"
 
 
 def _now_iso() -> str:
@@ -240,6 +241,146 @@ def fetch_cael_records(team_id: str, api_key: str, handle: str) -> list[dict]:
     return []
 
 
+def resolve_instance_ssh(instance_id: int) -> tuple[str, int] | None:
+    """Resolve direct SSH host:port for a Vast.ai instance by ID."""
+    rc, out, err = run_subprocess(["vastai", "show", "instances", "--raw"], timeout=30)
+    if rc != 0:
+        return None
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(data, dict):
+        data = [data]
+    for inst in data:
+        if inst.get("id") == instance_id or inst.get("new_contract") == instance_id:
+            ip = inst.get("public_ipaddr")
+            ports = inst.get("ports") or {}
+            port_entry = ports.get("22/tcp") if isinstance(ports, dict) else None
+            if ip and isinstance(port_entry, list) and port_entry:
+                port = port_entry[0].get("HostPort")
+                if port:
+                    return ip.strip(), int(port)
+            if inst.get("ssh_host"):
+                return inst["ssh_host"], int(inst.get("ssh_port", 22))
+    return None
+
+
+def _build_env_lines(handle: str, gate: dict, wallet: str, bearer: str, team_id: str) -> list[str]:
+    """Compose agent.env lines for bootstrap-agent.sh."""
+    provider = gate.get("provider", "local-llm")
+    model = gate.get("model", "Qwen/Qwen2.5-0.5B-Instruct")
+    brain_name = gate["brain"]
+    brain_remote = f"/root/{brain_name}.hsplus"
+    budget = gate.get("estimated_cost_usd", 5)
+
+    lines = [
+        f"HOLOSCRIPT_AGENT_HANDLE={handle}",
+        f"HOLOSCRIPT_AGENT_PROVIDER={provider}",
+        f"HOLOSCRIPT_AGENT_MODEL={model}",
+        f"HOLOSCRIPT_AGENT_BRAIN={brain_remote}",
+        f"HOLOSCRIPT_AGENT_WALLET={wallet}",
+        f"HOLOSCRIPT_AGENT_X402_BEARER={bearer}",
+        f"HOLOSCRIPT_AGENT_BUDGET_USD_DAY={budget}",
+        f"HOLOMESH_TEAM_ID={team_id}",
+    ]
+
+    github_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("PERSONAL_ACCESS_TOKEN")
+    if github_token:
+        lines.append(
+            f"HOLOSCRIPT_REPO_URL=https://x-access-token:{github_token}@github.com/brianonbased-dev/HoloScript.git"
+        )
+
+    if provider == "local-llm":
+        lines.append("START_LOCAL_LLM_SERVER=1")
+        lines.append(f"LOCAL_LLM_MODEL={model}")
+        lines.append("HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:8081/v1")
+    elif provider == "anthropic":
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if key:
+            lines.append(f"ANTHROPIC_API_KEY={key}")
+    elif provider == "openai":
+        key = os.environ.get("OPENAI_API_KEY", "")
+        if key:
+            lines.append(f"OPENAI_API_KEY={key}")
+    elif provider == "gemini":
+        key = os.environ.get("GEMINI_API_KEY", "")
+        if key:
+            lines.append(f"GEMINI_API_KEY={key}")
+
+    return lines
+
+
+def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, bearer: str, team_id: str, ssh_key: Path) -> dict:
+    """SCP bootstrap-agent.sh + env + runner + brain, then SSH dispatch.
+    Returns {ok, ssh_host, ssh_port} or {ok, error}."""
+    ssh = resolve_instance_ssh(instance_id)
+    if not ssh:
+        return {"ok": False, "error": "could not resolve SSH host:port for instance"}
+    host, port = ssh
+
+    brain_name = gate["brain"]
+    brain_local = Path.home() / ".ai-ecosystem" / "compositions" / f"{brain_name}.hsplus"
+    if not brain_local.exists():
+        return {"ok": False, "error": f"brain file not found: {brain_local}"}
+
+    with tempfile.TemporaryDirectory() as staging:
+        staging_path = Path(staging)
+        env_file = staging_path / "agent.env"
+        runner_file = staging_path / "runner.sh"
+
+        env_lines = _build_env_lines(handle, gate, wallet, bearer, team_id)
+        env_file.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
+
+        runner_text = (
+            "#!/bin/bash\n"
+            "set -a\n"
+            "source /root/agent.env\n"
+            "set +a\n"
+            "chmod +x /root/bootstrap-agent.sh\n"
+            "nohup /root/bootstrap-agent.sh > /root/bootstrap-stdout.log 2>&1 < /dev/null &\n"
+            "sleep 2\n"
+            "echo DEPLOY_DISPATCHED\n"
+        )
+        runner_file.write_text(runner_text, encoding="utf-8")
+
+        ssh_base = [
+            "ssh", "-i", str(ssh_key),
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=15",
+            "-o", "BatchMode=yes",
+            "-p", str(port),
+        ]
+        scp_base = [
+            "scp", "-i", str(ssh_key),
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=15",
+            "-o", "BatchMode=yes",
+            "-P", str(port),
+        ]
+        remote = f"root@{host}"
+
+        scp_cmd = scp_base + [
+            str(BOOTSTRAP_SCRIPT),
+            str(env_file),
+            str(runner_file),
+            str(brain_local),
+            f"{remote}:/root/",
+        ]
+        rc, out, err = run_subprocess(scp_cmd, timeout=60)
+        if rc != 0:
+            return {"ok": False, "error": f"scp failed: {err[:300]}"}
+
+        ssh_cmd = ssh_base + [remote, "bash /root/runner.sh"]
+        rc, out, err = run_subprocess(ssh_cmd, timeout=30)
+        if rc != 0 or "DEPLOY_DISPATCHED" not in out:
+            return {"ok": False, "error": f"ssh bootstrap dispatch failed: rc={rc} stderr={err[:300]}"}
+
+        return {"ok": True, "ssh_host": host, "ssh_port": port}
+
+
 # Success markers per gate. The watchdog matches these against CAEL records'
 # operation field. Concrete + auditable: each gate names what success looks
 # like in code, not in a comment.
@@ -334,6 +475,21 @@ def cmd_rent(args: argparse.Namespace) -> int:
     # Label for W.111 idempotency
     label_instance(int(instance_id), handle)
 
+    # Bootstrap: SCP + SSH dispatch (fire-and-forget, runs in background on instance)
+    wallet = os.environ.get(args.wallet_env_key, "")
+    bearer = os.environ.get(args.bearer_env_key, "")
+    if not wallet or not bearer:
+        bootstrap_result = {"ok": False, "error": f"identity missing: {args.wallet_env_key} / {args.bearer_env_key}"}
+        print(f"WARN: bootstrap identity missing. Instance rented but NOT bootstrapped.", file=sys.stderr)
+    else:
+        bootstrap_result = _scp_and_bootstrap(
+            int(instance_id), handle, gate, wallet, bearer,
+            args.team_id or os.environ.get("HOLOMESH_TEAM_ID", ""),
+            Path.home() / ".ssh" / "id_rsa",
+        )
+        if not bootstrap_result.get("ok"):
+            print(f"WARN: bootstrap dispatch failed: {bootstrap_result.get('error')}", file=sys.stderr)
+
     print(json.dumps({
         "ok": True,
         "gate_id": args.gate_id,
@@ -343,17 +499,19 @@ def cmd_rent(args: argparse.Namespace) -> int:
         "dph_total": offer["dph_total"],
         "estimated_cost_usd": round(estimated_cost, 2),
         "timeout_at_iso": (datetime.now(timezone.utc) + timedelta(hours=gate["estimated_hours"] * 1.5)).isoformat(timespec="seconds"),
+        "bootstrap": bootstrap_result,
         "next_action": f"--mode check --instance-id {instance_id} --gate-id {args.gate_id}",
     }, indent=2))
     return 0
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    """Poll CAEL records + check timeout. Exit codes:
+    """Poll CAEL records + check timeout + vLLM health. Exit codes:
     0 = still running (re-check later)
     2 = success (caller should teardown)
     3 = timeout (caller should teardown)
     4 = cap breached (caller should teardown)
+    5 = vLLM unhealthy (caller may re-bootstrap or teardown)
     """
     gate = fetch_gate(args.gate_id) if args.gate_id else None
     handle = args.handle or (f"paper-gate-exec-{args.gate_id}" if args.gate_id else None)
@@ -386,6 +544,24 @@ def cmd_check(args: argparse.Namespace) -> int:
                               "timeout_hours": timeout_h}, indent=2))
             return 3
 
+    # vLLM health check — if bootstrap never ran or vLLM crashed, no CAEL will ever arrive
+    ssh = resolve_instance_ssh(args.instance_id) if args.instance_id else None
+    if ssh:
+        host, port = ssh
+        rc, out, _ = run_subprocess([
+            "ssh", "-i", str(Path.home() / ".ssh" / "id_rsa"),
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=10",
+            "-o", "BatchMode=yes",
+            "-p", str(port),
+            f"root@{host}",
+            "curl -sf http://localhost:8081/v1/models >/dev/null 2>&1 && echo OK || echo FAIL",
+        ], timeout=20)
+        if rc != 0 or "OK" not in out:
+            print(json.dumps({"status": "vllm-unhealthy", "instance_id": args.instance_id, "handle": handle}, indent=2))
+            return 5
+
     # CAEL success-marker check
     if gate:
         records = fetch_cael_records(args.team_id, args.api_key, handle)
@@ -408,6 +584,32 @@ def cmd_teardown(args: argparse.Namespace) -> int:
     print(json.dumps({"ok": destroyed and closed, "destroyed": destroyed,
                       "ledger_closed": closed, "instance_id": args.instance_id}, indent=2))
     return 0 if destroyed and closed else 1
+
+
+def cmd_bootstrap(args: argparse.Namespace) -> int:
+    """Standalone bootstrap for an already-rented instance."""
+    gate = fetch_gate(args.gate_id)
+    if not gate:
+        print(f"ERROR: gate not found: {args.gate_id}", file=sys.stderr)
+        return 2
+    if not args.instance_id:
+        print("ERROR: --instance-id required for bootstrap", file=sys.stderr)
+        return 2
+
+    handle = args.handle or f"paper-gate-exec-{args.gate_id}"
+    wallet = os.environ.get(args.wallet_env_key, "")
+    bearer = os.environ.get(args.bearer_env_key, "")
+    if not wallet or not bearer:
+        print(f"ERROR: bootstrap identity missing. Set {args.wallet_env_key} and {args.bearer_env_key}", file=sys.stderr)
+        return 6
+
+    result = _scp_and_bootstrap(
+        args.instance_id, handle, gate, wallet, bearer,
+        args.team_id or os.environ.get("HOLOMESH_TEAM_ID", ""),
+        Path.home() / ".ssh" / "id_rsa",
+    )
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok") else 1
 
 
 def cmd_self_test(args: argparse.Namespace) -> int:
@@ -438,7 +640,7 @@ def cmd_self_test(args: argparse.Namespace) -> int:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--mode", required=True,
-                   choices=["plan", "rent", "check", "teardown", "self-test"])
+                   choices=["plan", "rent", "check", "teardown", "self-test", "bootstrap"])
     p.add_argument("--gate-id", help="gate id from paper-gate-scheduler GATES")
     p.add_argument("--instance-id", type=int, help="for check/teardown")
     p.add_argument("--handle", help="for check (default: derived from gate-id)")
@@ -449,6 +651,10 @@ def main() -> int:
     p.add_argument("--reason", default="", help="for teardown logging")
     p.add_argument("--team-id", default=os.environ.get("HOLOMESH_TEAM_ID", ""))
     p.add_argument("--api-key", default=os.environ.get("HOLOMESH_API_KEY", ""))
+    p.add_argument("--wallet-env-key", default="HOLOMESH_WALLET_PAPER_GATE_X402",
+                   help="env var name for the instance wallet address")
+    p.add_argument("--bearer-env-key", default="HOLOMESH_API_KEY_PAPER_GATE_X402",
+                   help="env var name for the instance x402 bearer")
     args = p.parse_args()
 
     handlers = {
@@ -457,6 +663,7 @@ def main() -> int:
         "check": cmd_check,
         "teardown": cmd_teardown,
         "self-test": cmd_self_test,
+        "bootstrap": cmd_bootstrap,
     }
     return handlers[args.mode](args)
 

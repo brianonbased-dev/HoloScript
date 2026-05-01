@@ -10,7 +10,7 @@
     "founder_checkpoint": "~/.ai-ecosystem/research/founder-checkpoint.json (Trezor 0x0C57...660E3 verified)"
   },
 
-  "globalBudgetUsdPerDay": 50,
+  "globalBudgetUsdPerDay": 100,
   "defaultTickIntervalMs": 60000,
 
   "agents": [
