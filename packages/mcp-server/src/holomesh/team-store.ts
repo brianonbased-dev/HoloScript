@@ -146,6 +146,10 @@ export class TeamStore {
     this.usePostgres = usePostgres;
   }
 
+  get usesPostgres(): boolean {
+    return this.usePostgres;
+  }
+
   // Internal: sync local cache after backend read
   private async syncFromBackend(teamId: string): Promise<Team | undefined> {
     const team = await this.backend.get(teamId);

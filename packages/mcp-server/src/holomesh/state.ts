@@ -514,6 +514,11 @@ export async function reloadTeam(teamId: string): Promise<void> {
 }
 
 export function persistTeamStore(): void {
+  // PostgreSQL backend is the source of truth — skip shadow JSON write.
+  if ((teamStore as TeamStore).usesPostgres) {
+    return;
+  }
+
   const teams = Array.from(teamStore.values()).map((t) => ({
     ...t,
     presence: teamPresenceStore.get(t.id) ? Array.from(teamPresenceStore.get(t.id)!.values()) : [],
