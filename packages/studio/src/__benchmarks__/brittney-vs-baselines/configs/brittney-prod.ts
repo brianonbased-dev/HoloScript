@@ -7,6 +7,7 @@ export interface BrittneyProdOptions {
   model?: string;
   fetchImpl?: typeof fetch;
   systemPrompt?: string;
+  benchmarkKey?: string;
 }
 
 interface SseEvent {
@@ -68,6 +69,7 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (opts.authHeader) headers['authorization'] = opts.authHeader;
       if (opts.cookie) headers['cookie'] = opts.cookie;
+      if (opts.benchmarkKey) headers['x-benchmark-key'] = opts.benchmarkKey;
 
       let outputText = '';
       let thinkingText = '';

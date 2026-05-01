@@ -19,6 +19,7 @@ interface CliArgs {
   brittneyEndpoint?: string;
   brittneyAuthHeader?: string;
   brittneyCookie?: string;
+  brittneyBenchmarkKey?: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -52,6 +53,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--brittney-cookie':
         out.brittneyCookie = argv[++i];
+        break;
+      case '--brittney-benchmark-key':
+        out.brittneyBenchmarkKey = argv[++i];
         break;
       case '--help':
       case '-h':
@@ -117,6 +121,7 @@ async function main(): Promise<void> {
     brittneyEndpoint: endpoint,
     brittneyAuthHeader: args.brittneyAuthHeader,
     brittneyCookie: args.brittneyCookie,
+    brittneyBenchmarkKey: args.brittneyBenchmarkKey,
   });
   if (args.configs && args.configs.length > 0) {
     const want = new Set(args.configs);

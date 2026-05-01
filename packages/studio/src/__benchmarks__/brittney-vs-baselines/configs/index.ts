@@ -10,6 +10,7 @@ export interface BuildConfigsOptions {
   brittneyEndpoint: string;
   brittneyAuthHeader?: string;
   brittneyCookie?: string;
+  brittneyBenchmarkKey?: string;
 }
 
 const BENCHMARK_SYSTEM_PROMPT = `You are Brittney, a 3D scene construction assistant. You are being evaluated on a benchmark that tests your ability to create 3D scenes accurately.
@@ -29,6 +30,7 @@ export function buildAllConfigs(opts: BuildConfigsOptions): ConfigRunner[] {
       endpoint: opts.brittneyEndpoint,
       authHeader: opts.brittneyAuthHeader,
       cookie: opts.brittneyCookie,
+      benchmarkKey: opts.brittneyBenchmarkKey,
       systemPrompt: BENCHMARK_SYSTEM_PROMPT,
     }),
     makeCursorBaseline({ client }),
