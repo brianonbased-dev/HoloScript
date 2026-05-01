@@ -559,6 +559,14 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
         # no LOCAL_LLM_BASE_URL exported and never reached vLLM on 8081.
         env_lines.append("HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:8081/v1")
 
+    # AMBER §7: sidecars passed as JSON so bootstrap-agent.sh can start them
+    sidecars = plan.get("sidecars")
+    if sidecars:
+        env_lines.append(f"HOLOSCRIPT_AGENT_SIDECARS={json.dumps(sidecars)}")
+        for sc in sidecars:
+            url = f"http://localhost:{sc['port']}/v1"
+            env_lines.append(f"{sc['consumed_by_env_var']}={url}")
+
     env_text = "\n".join(env_lines) + "\n"
     runner_text = (
         "#!/bin/bash\n"

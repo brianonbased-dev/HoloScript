@@ -352,6 +352,68 @@ for tier in table['tiers']:
 fi
 
 # ---------------------------------------------------------------------------
+# Sidecars: co-located vLLM processes for specialist models (AMBER §7)
+# ---------------------------------------------------------------------------
+# HOLOSCRIPT_AGENT_SIDECARS is a JSON array passed by the deployer.
+# Each entry: {"name":"lean-prover","model":"Goedel-LM/Goedel-Prover-V2-7B",
+#              "port":8082,"vllm_args":["--enforce-eager","--gpu-memory-utilization=0.10"]}
+# GPU sharing: each sidecar gets a VRAM slice via --gpu-memory-utilization.
+# The main vLLM already claimed its slice above; sidecars must fit in remainder.
+if [ -n "${HOLOSCRIPT_AGENT_SIDECARS:-}" ]; then
+  echo "[bootstrap] parsing sidecars from env..."
+  _SC_COUNT=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
+  if [ "$_SC_COUNT" -gt 0 ] 2>/dev/null; then
+    for _SC_IDX in $(seq 0 $((_SC_COUNT - 1))); do
+      _SC_NAME=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['name'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_MODEL=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['model'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_PORT=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['port'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_ARGS=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(' '.join(d.get('vllm_args',[])))" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_ENVVAR=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d.get('consumed_by_env_var',''))" IDX="$_SC_IDX" 2>/dev/null)
+
+      if [ -z "$_SC_NAME" ] || [ -z "$_SC_MODEL" ] || [ -z "$_SC_PORT" ]; then
+        echo "[bootstrap] WARN: sidecar[$_SC_IDX] missing required fields — skipping" >&2
+        continue
+      fi
+
+      # Port collision guard
+      if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${_SC_PORT}$"; then
+        echo "[bootstrap] WARN: sidecar $_SC_NAME port $_SC_PORT already in use — skipping" >&2
+        continue
+      fi
+
+      echo "[bootstrap] starting sidecar $_SC_NAME: $_SC_MODEL on port $_SC_PORT"
+      nohup "$PY_BIN" -m vllm.entrypoints.openai.api_server \
+        --model "$_SC_MODEL" \
+        --port "$_SC_PORT" \
+        $_SC_ARGS \
+        > "$LOG_DIR/sidecar-${_SC_NAME}.log" 2>&1 &
+      _SC_PID=$!
+      echo $_SC_PID > "$LOG_DIR/sidecar-${_SC_NAME}.pid"
+
+      # Wait for sidecar to be ready (shorter grace than main vLLM)
+      _SC_UP=0
+      for _SC_ATTEMPT in $(seq 1 30); do
+        sleep 5
+        if curl -sf "http://localhost:${_SC_PORT}/v1/models" >/dev/null 2>&1; then
+          _SC_UP=1
+          echo "[bootstrap] sidecar $_SC_NAME responding on $_SC_PORT (attempt $_SC_ATTEMPT)"
+          break
+        fi
+      done
+      if [ "$_SC_UP" = "0" ]; then
+        echo "[bootstrap] WARN: sidecar $_SC_NAME did not bind $_SC_PORT within 150s — see $LOG_DIR/sidecar-${_SC_NAME}.log" >&2
+      fi
+
+      # Export URL for agent runtime dispatch
+      if [ -n "$_SC_ENVVAR" ]; then
+        export "${_SC_ENVVAR}=http://localhost:${_SC_PORT}/v1"
+        echo "[bootstrap] exported ${_SC_ENVVAR}=http://localhost:${_SC_PORT}/v1"
+      fi
+    done
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # whoami pre-flight (validates identity tuple end-to-end via /me)
 # ---------------------------------------------------------------------------
 echo "[bootstrap] running whoami pre-flight…"

@@ -308,6 +308,14 @@ def _build_env_lines(handle: str, gate: dict, wallet: str, bearer: str, team_id:
         if key:
             lines.append(f"GEMINI_API_KEY={key}")
 
+    # Sidecars: if gate declares them, pass JSON to bootstrap-agent.sh
+    sidecars = gate.get("sidecars")
+    if sidecars:
+        lines.append(f"HOLOSCRIPT_AGENT_SIDECARS={json.dumps(sidecars)}")
+        for sc in sidecars:
+            url = f"http://localhost:{sc['port']}/v1"
+            lines.append(f"{sc['consumed_by_env_var']}={url}")
+
     return lines
 
 
