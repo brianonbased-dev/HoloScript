@@ -99,8 +99,8 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
     ``,
     `CANDIDATE OUTPUT:`,
     `--- BEGIN OUTPUT ---`,
-    candidateOutput.length > 16000
-      ? `${candidateOutput.slice(0, 16000)}\n[...truncated]`
+    candidateOutput.length > 32000
+      ? `${candidateOutput.slice(0, 32000)}\n[...truncated]`
       : candidateOutput,
     `--- END OUTPUT ---`,
     ``,
@@ -108,7 +108,7 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
     renderMutationsToProse(mutations),
     ``,
     `For each rubric criterion, decide if the candidate output OR the scene mutations satisfy it.`,
-    `The candidate output may be truncated at 16,000 characters. The scene mutations below are NEVER truncated and contain the complete ground-truth of what objects were created.`,
+    `The candidate output may be truncated at 32,000 characters. The scene mutations below are NEVER truncated and contain the complete ground-truth of what objects were created.`,
     `When evaluating, PRIORITIZE the scene mutations over the text output. If the mutations show the correct objects with correct properties, that is sufficient evidence.`,
     `Be strict: if information is ambiguous or absent from both the output text and the mutations, mark FAIL.`,
     ...(trustMutations
