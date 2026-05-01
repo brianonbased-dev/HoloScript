@@ -51,6 +51,11 @@ jobs:
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
 
+      - name: Build UI (required by studio)
+        run: pnpm --filter @holoscript/ui build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
       - name: Build studio
         run: pnpm --filter @holoscript/studio build
         env:

@@ -74,7 +74,7 @@ jobs:
             exit 1
           fi
           git clone --depth=50 \
-            "https://x-access-token:${AI_ECOSYSTEM_READ_PAT}@github.com/brianonbased-dev/ai-ecosystem.git" \
+            "https://oauth2:${AI_ECOSYSTEM_READ_PAT}@github.com/brianonbased-dev/ai-ecosystem.git" \
             ../ai-ecosystem
           echo "AI_ECO_ROOT=$GITHUB_WORKSPACE/../ai-ecosystem" >> $GITHUB_ENV
 

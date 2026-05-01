@@ -471,8 +471,14 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       const evicted = this.steps.shift()!;
       const evictedPoints = evicted.points.positions.length / 3;
       this.totalPointCount -= evictedPoints;
-      // If bounds were derived from evicted data, invalidate
+      // Recompute bounds from all remaining retained steps so the subsequent
+      // updateBounds(positions) call starts from the correct baseline rather
+      // than reinitializing to ±Infinity from just the incoming frame.
+      // (Without this, bounds after eviction reflected only the newest frame.)
       this.boundsValid = false;
+      for (const s of this.steps) {
+        this.updateBounds(s.points.positions);
+      }
       logHoloMapEvent(this.runId, 'step_evict', {
         frameIndex: evicted.frame.index,
         evictedPoints,
