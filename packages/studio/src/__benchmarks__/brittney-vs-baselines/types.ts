@@ -19,6 +19,8 @@ export interface Task {
   prompt: string;
   evaluation_rubric: RubricCriterion[];
   expected_artifacts: string[];
+  /** When true, the judge should trust scene mutations over prose for geometric criteria. */
+  trust_mutations_over_prose?: boolean;
 }
 
 export interface TokenUsage {

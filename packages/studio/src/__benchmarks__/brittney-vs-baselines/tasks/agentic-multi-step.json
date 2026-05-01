@@ -9,6 +9,7 @@
       { "id": "windows_per_face", "description": "Each floor has at least 4 small cube windows on each of its 4 vertical faces", "required": true },
       { "id": "windows_in_face_plane", "description": "Window cubes are coplanar with (or slightly inset/outset from) their parent floor face", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with 3-floor tower and faceted windows"]
   },
   {
@@ -22,6 +23,7 @@
       { "id": "gripper", "description": "A small sphere acts as gripper at the forearm tip", "required": true },
       { "id": "joints_or_grouping", "description": "Output explicitly identifies pivot/joint locations or hierarchy between segments", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with a 3-segment robot arm with explicit joints"]
   },
   {
@@ -35,6 +37,7 @@
       { "id": "color_variance", "description": "Sphere colors vary across slight blue tints (not all identical)", "required": true },
       { "id": "point_light", "description": "A point light is co-located with the base", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with fountain base + 20 particles + light"]
   },
   {
@@ -47,6 +50,7 @@
       { "id": "wall_thickness_height", "description": "Walls are exactly 0.1m thick and 1.5m tall (within 5%)", "required": true },
       { "id": "connected_path", "description": "Output explicitly verifies or claims a unique connected path exists from (0,0) to (4,4)", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with a 5x5 maze having a unique solution path"]
   },
   {
@@ -60,6 +64,7 @@
       { "id": "color_correctness", "description": "Walls white, roofs brown across all houses", "required": true },
       { "id": "sun_present", "description": "A yellow sphere acts as the sun above the scene", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with 5 houses in a row + sun"]
   },
   {
@@ -73,6 +78,7 @@
       { "id": "hour_at_3", "description": "Hour hand points toward the 3 o'clock position (+X)", "required": true },
       { "id": "minute_at_12", "description": "Minute hand points toward the 12 o'clock position (+Y)", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with clock face, hour marks, and two hands"]
   },
   {
@@ -85,6 +91,7 @@
       { "id": "follow_parabola", "description": "Cone positions lie on z = 0.5 * x^2 within 0.1 tolerance", "required": true },
       { "id": "uniform_arc", "description": "Cones are spaced approximately uniformly along arc length (not by raw x)", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with 4 cones along a parabolic curve"]
   },
   {
@@ -98,6 +105,7 @@
       { "id": "cars_in_spaces", "description": "Each car is positioned within an existing parking space (not overlapping lines, not outside lot)", "required": true },
       { "id": "car_color_variety", "description": "All 3 cars have distinct colors", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with parking lot grid + 3 parked cars"]
   },
   {
@@ -111,6 +119,7 @@
       { "id": "pawns_centered", "description": "Each pawn is centered in its tile (XZ center within 0.1)", "required": true },
       { "id": "pawn_dimensions", "description": "Pawns are radius ~0.3, height ~0.5", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with chessboard + 16 pawns in starting positions"]
   },
   {
@@ -124,6 +133,7 @@
       { "id": "axles", "description": "Each gear has a thin axle cylinder through its center", "required": true },
       { "id": "axle_color", "description": "Axles are metal gray", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with two gears + teeth + axles"]
   }
 ]

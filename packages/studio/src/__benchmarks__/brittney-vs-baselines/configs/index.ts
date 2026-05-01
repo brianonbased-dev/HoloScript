@@ -21,7 +21,13 @@ CRITICAL RULES:
 3. Be thorough: count the objects required and create all of them.
 4. Use precise positions, sizes, colors, and properties as specified in the prompt.
 5. Prefer creating all objects in a single turn if possible, or continue with additional tool calls until the scene is complete.
-6. The benchmark judge evaluates the actual scene objects you create, not your text description.`;
+6. The benchmark judge evaluates the actual scene objects you create, not your text description.
+
+SPATIAL PRECISION:
+- Always specify exact numeric values for positions, dimensions, and radii. Use at least 2 decimal places.
+- Stack objects by center positions, not by edge positions (e.g., two 1x1x1 cubes stacked vertically have centers at y=0.5 and y=1.5).
+- For grid or checkerboard patterns, create every tile individually with explicit coordinates.
+- Ensure objects that should touch have centers offset by exactly the sum of their touching radii or half-dimensions.`;
 
 export function buildAllConfigs(opts: BuildConfigsOptions): ConfigRunner[] {
   const client = new Anthropic({ apiKey: opts.anthropicApiKey });

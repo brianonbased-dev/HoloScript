@@ -86,8 +86,7 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
         `${i + 1}. id=${c.id} required=${c.required}\n   ${c.description}`
     )
     .join('\n');
-  const isSpatialPattern =
-    task.id === 'M02' || task.id === 'M06' || task.id === 'M09' || task.id === 'A01' || task.id === 'A04' || task.id === 'A10';
+  const trustMutations = task.trust_mutations_over_prose ?? false;
 
   return [
     `You are evaluating a candidate output against a rubric for the following task:`,
@@ -112,7 +111,7 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
     `The candidate output may be truncated at 16,000 characters. The scene mutations below are NEVER truncated and contain the complete ground-truth of what objects were created.`,
     `When evaluating, PRIORITIZE the scene mutations over the text output. If the mutations show the correct objects with correct properties, that is sufficient evidence.`,
     `Be strict: if information is ambiguous or absent from both the output text and the mutations, mark FAIL.`,
-    ...(isSpatialPattern
+    ...(trustMutations
       ? [
           `IMPORTANT: This is a spatial pattern task. The scene mutations contain the ground-truth object positions, colors, and sizes. If the mutations show objects with correct properties arranged correctly, mark PASS even if the text description is vague or incomplete. Trust the geometric data over prose.`,
         ]

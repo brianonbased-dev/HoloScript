@@ -10,6 +10,7 @@
       { "id": "moon_position", "description": "A gray sphere is at (3.5,0,0) and is smaller than Earth", "required": true },
       { "id": "size_hierarchy", "description": "Sun > Earth > Moon by visible radius", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with sun, earth, moon arranged correctly"]
   },
   {
@@ -22,6 +23,7 @@
       { "id": "stacked_vertically", "description": "Y positions form a stack with no gaps and no overlap (e.g. y=0.5, 1.5, 2.5 if cubes are size 1)", "required": true },
       { "id": "uniform_size", "description": "All cubes are 1x1x1", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with vertical RGB cube stack"]
   },
   {
@@ -34,6 +36,7 @@
       { "id": "x_spacing", "description": "X positions are 0,1,2,3,4 (within 0.05)", "required": true },
       { "id": "y_z_zero", "description": "Y and Z are 0 for each sphere", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with row of 5 white spheres"]
   },
   {
@@ -47,6 +50,7 @@
       { "id": "top_height", "description": "Top center is roughly at y=0.7", "required": true },
       { "id": "all_brown", "description": "All five parts are brown", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with table consisting of top + 4 legs"]
   },
   {
@@ -59,6 +63,7 @@
       { "id": "color_order_traffic", "description": "Top sphere is red, middle yellow, bottom green", "required": true },
       { "id": "spheres_on_post", "description": "Sphere positions form a vertical stack along the post height", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with a traffic light post + 3 colored spheres"]
   },
   {
@@ -71,6 +76,7 @@
       { "id": "grid_origin", "description": "Bottom-left tile is at (0,0,0) within 0.05", "required": true },
       { "id": "in_xz_plane", "description": "All tiles lie on the XZ plane (y is small/0 for all)", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with 8x8 chessboard pattern"]
   },
   {
@@ -84,6 +90,7 @@
       { "id": "stacked_correctly", "description": "Base at bottom, pole on base, bulb on pole", "required": true },
       { "id": "light_source", "description": "A point light is co-located with the bulb", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with a 3-part desk lamp emitting light"]
   },
   {
@@ -96,6 +103,7 @@
       { "id": "on_ring", "description": "Each cube center sits at radius 2 from origin in the XZ plane within 0.05", "required": true },
       { "id": "even_angular_spacing", "description": "Angular spacing is uniform (every 36 degrees) within 5 degrees", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with 10 cubes in a ring"]
   },
   {
@@ -108,6 +116,7 @@
       { "id": "stacked_correctly", "description": "Body spheres are stacked vertically with surfaces touching (centers offset by sum of touching radii)", "required": true },
       { "id": "eyes_present", "description": "Two black spheres of radius ~0.05 placed on the head sphere", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with snowman: 3 body spheres + 2 eyes"]
   },
   {
@@ -121,6 +130,7 @@
       { "id": "nightstand", "description": "A 0.4x0.4x0.5 box (nightstand) is adjacent to the bed", "required": true },
       { "id": "no_overlap", "description": "Bed and nightstand do not overlap volumetrically", "required": true }
     ],
+    "trust_mutations_over_prose": true,
     "expected_artifacts": ["scene with bedroom: floor + wall + bed + nightstand"]
   }
 ]
