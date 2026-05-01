@@ -49,6 +49,13 @@ ALWAYS → Run pnpm test before committing
 ALWAYS → Call validate_holoscript after generating any HoloScript code
 ALWAYS → Add new packages to typedoc.json entryPoints
 ALWAYS → Attempt MCP recovery (diagnose → start → retry) before falling back to CLI
+ALWAYS → Close tasks with /room done <id> <commit> <summary> — closed
+         tasks now auto-derive a tier-1.5 knowledge entry tagged
+         [from-done-log, task:<id>] (confidence 0.7, type heuristic:
+         gotcha/pattern/wisdom from title keywords). Founder ruling
+         2026-04-30 closes the gap where done-log entries were stranded
+         and never reached the GOLD pipeline. Pass --no-knowledge-sync
+         (4th positional) only for trivial mechanical closes.
 ALWAYS → /room for board, knowledge, messages, presence, suggestions —
          not curl. Skill handles bearer-auth, response parsing, endpoint
          shape, truncation warnings, ~5k token savings per multi-step flow.
