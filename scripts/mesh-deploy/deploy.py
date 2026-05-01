@@ -922,10 +922,10 @@ def main() -> int:
         idem = 'skip-bootstrap' if pl.get('already_deployed') else 'rebuild'
         sc_count = len(pl.get('sidecars') or [])
         total_sidecars += sc_count
-        sc_label = f"{sc_count} (NOT YET WIRED)" if sc_count > 0 else "0"
+        sc_label = f"{sc_count} (bootstrap-agent.sh)" if sc_count > 0 else "0"
         print(f"{pl['index']:>3} {pl['instance_id']:>10} {pl['gpu_name']:<14} {pl['handle']:<28} {pl['provider']:<10} {pl.get('match_phase', '?'):<14} {idem:<10} {sc_label:<10} {pl['ok']!s:<5}")
     if total_sidecars > 0:
-        print(f"  NOTE: {total_sidecars} sidecar(s) declared but execution path is NOT YET WIRED in deploy_one (AMBER §7.3-7.5 deferred to next agent + live fleet). Use --validate-only to test the schema in isolation.")
+        print(f"  NOTE: {total_sidecars} sidecar(s) wired via HOLOSCRIPT_AGENT_SIDECARS → bootstrap-agent.sh.")
 
     blocked = [pl for pl in plans if not pl["ok"]]
     if blocked:
