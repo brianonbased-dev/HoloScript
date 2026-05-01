@@ -305,28 +305,6 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
-  packages/agent-setup:
-    dependencies:
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      prompts:
-        specifier: ^2.4.2
-        version: 2.4.2
-    devDependencies:
-      '@types/prompts':
-        specifier: ^2.4.9
-        version: 2.4.9
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
-
   packages/ai-validator:
     dependencies:
       '@holoscript/core':
@@ -489,28 +467,6 @@ importers:
       vscode-languageserver-textdocument:
         specifier: ^1.0.12
         version: 1.0.12
-
-  packages/collab-server:
-    dependencies:
-      ws:
-        specifier: ^8.20.0
-        version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-    devDependencies:
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      esbuild:
-        specifier: ^0.27.3
-        version: 0.27.3
-      tsx:
-        specifier: ^4.19.4
-        version: 4.21.0
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
   packages/comparative-benchmarks:
     dependencies:
@@ -1123,31 +1079,6 @@ importers:
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
-
-  packages/fs:
-    dependencies:
-      '@holoscript/std':
-        specifier: workspace:^
-        version: link:../std
-      chokidar:
-        specifier: ^3.5.3
-        version: 3.6.0
-      glob:
-        specifier: ^13.0.6
-        version: 13.0.6
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.13
-      rimraf:
-        specifier: ^5.0.5
-        version: 5.0.10
-      typescript:
-        specifier: ~5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
@@ -2274,31 +2205,6 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
-  packages/playground:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
-      '@holoscript/std':
-        specifier: workspace:*
-        version: link:../std
-      monaco-editor:
-        specifier: ^0.45.0
-        version: 0.45.0
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.13
-      gh-pages:
-        specifier: ^6.1.0
-        version: 6.3.0
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vite:
-        specifier: '>=7.3.2'
-        version: 7.3.2(@types/node@24.10.13)(tsx@4.21.0)
-
   packages/plugins/alphafold-plugin:
     dependencies:
       '@holoscript/core':
@@ -2949,31 +2855,6 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
-  packages/semantic-2d:
-    dependencies:
-      '@react-three/fiber':
-        specifier: ^9.5.0
-        version: 9.5.0(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
-      react:
-        specifier: ^19.2.0
-        version: 19.2.4
-      three:
-        specifier: ^0.182.0
-        version: 0.182.0
-    devDependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
-      '@holoscript/core-types':
-        specifier: workspace:*
-        version: link:../core-types
-      tsup:
-        specifier: ^8.3.0
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
   packages/snn-webgpu:
     devDependencies:
       '@holoscript/core':
@@ -3321,8 +3202,8 @@ importers:
   packages/studio-ui-graph:
     dependencies:
       ts-morph:
-        specifier: ^25.0.1
-        version: 25.0.1
+        specifier: ^27.0.2
+        version: 27.0.2
 
   packages/tree-sitter-holoscript:
     dependencies:
@@ -3574,28 +3455,6 @@ importers:
       vite:
         specifier: '>=7.3.2'
         version: 7.3.2(@types/node@24.10.13)(tsx@4.21.0)
-
-  packages/vm-bridge:
-    dependencies:
-      '@holoscript/holo-vm':
-        specifier: workspace:*
-        version: link:../holo-vm
-      '@holoscript/uaal':
-        specifier: workspace:*
-        version: link:../uaal
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.13
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
   packages/vscode-extension:
     dependencies:
@@ -13674,14 +13533,6 @@ packages:
       '@ts-graphviz/common': 2.1.5
     dev: true
 
-  /@ts-morph/common@0.26.1:
-    resolution: {integrity: sha512-Sn28TGl/4cFpcM+jwsH1wLncYq3FtN/BIpem+HOygfBWPT5pAeS5dB4VFVzV8FbnOKHpDLZmvAl4AjPEev5idA==}
-    dependencies:
-      fast-glob: 3.3.3
-      minimatch: 10.2.5
-      path-browserify: 1.0.1
-    dev: false
-
   /@ts-morph/common@0.28.1:
     resolution: {integrity: sha512-W74iWf7ILp1ZKNYXY5qbddNaml7e9Sedv5lvU1V8lftlitkc9Pq1A+jlH23ltDgWYeZFFEqGCD1Ies9hqu3O+g==}
     dependencies:
@@ -17037,6 +16888,7 @@ packages:
 
   /async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
+    dev: false
 
   /asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -18126,11 +17978,6 @@ packages:
   /commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
-
-  /commander@13.1.0:
-    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
-    engines: {node: '>=18'}
-    dev: true
 
   /commander@14.0.2:
     resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
@@ -19560,10 +19407,6 @@ packages:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
-  /email-addresses@5.0.0:
-    resolution: {integrity: sha512-4OIPYlA6JXqtVn8zpHpGiI7vE6EQOAg16aGnDMIAlZVinnoZ8208tW1hAbjWydgN/4PLTT9q+O1K6AH/vALJGw==}
-    dev: true
-
   /emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
     dev: false
@@ -20816,20 +20659,6 @@ packages:
     resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
     dev: false
 
-  /filename-reserved-regex@2.0.0:
-    resolution: {integrity: sha512-lc1bnsSr4L4Bdif8Xb/qrtokGbq5zlsms/CYH8PP+WtCkGNF65DPiQY8vG3SakEdRn8Dlnm+gW/qWKKjS5sZzQ==}
-    engines: {node: '>=4'}
-    dev: true
-
-  /filenamify@4.3.0:
-    resolution: {integrity: sha512-hcFKyUG57yWGAzu1CMt/dPzYZuv+jAJUT85bL8mrXvNe6hWj6yEHEc4EdcgiA6Z3oi1/9wXJdZPXF2dZNgwgOg==}
-    engines: {node: '>=8'}
-    dependencies:
-      filename-reserved-regex: 2.0.0
-      strip-outer: 1.0.1
-      trim-repeated: 1.0.0
-    dev: true
-
   /filing-cabinet@5.1.0:
     resolution: {integrity: sha512-xA3nKuR0N762AtUloSEbq4T+tOqNf1rZ3vgPW8Sijurqz9rvArjTpZhfrV1OxSrhX6OUoDGAONXo6liKZTNXKQ==}
     engines: {node: '>=18'}
@@ -20872,15 +20701,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: false
-
-  /find-cache-dir@3.3.2:
-    resolution: {integrity: sha512-wXZV5emFEjrridIgED11OoUKLxiYjAcqot/NJdAkOhlJ+vGzwhOAfcG5OX1jP+S0PcjEn8bdMJv+g2jwQ3Onig==}
-    engines: {node: '>=8'}
-    dependencies:
-      commondir: 1.0.1
-      make-dir: 3.1.0
-      pkg-dir: 4.2.0
-    dev: true
 
   /find-up@4.1.0:
     resolution: {integrity: sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw==}
@@ -21201,20 +21021,6 @@ packages:
       - supports-color
     dev: false
 
-  /gh-pages@6.3.0:
-    resolution: {integrity: sha512-Ot5lU6jK0Eb+sszG8pciXdjMXdBJ5wODvgjR+imihTqsUWF2K6dJ9HST55lgqcs8wWcw6o6wAsUzfcYRhJPXbA==}
-    engines: {node: '>=10'}
-    hasBin: true
-    dependencies:
-      async: 3.2.6
-      commander: 13.1.0
-      email-addresses: 5.0.0
-      filenamify: 4.3.0
-      find-cache-dir: 3.3.2
-      fs-extra: 11.3.3
-      globby: 11.1.0
-    dev: true
-
   /github-from-package@0.0.0:
     resolution: {integrity: sha512-SyHy3T1v2NUXn29OsWdxmK6RwHD+vkj3v8en8AOBZ1wBQ/hCAQ5bAQTD02kW4W9tUp/3Qh6J8r9EvntiyCmOOw==}
     requiresBuild: true
@@ -21259,6 +21065,7 @@ packages:
       minimatch: 10.2.5
       minipass: 7.1.3
       path-scurry: 2.0.2
+    dev: true
 
   /global-agent@3.0.0:
     resolution: {integrity: sha512-PT6XReJ+D07JvGoxQMkT6qji/jVNfX/h364XHZOWeRzy64sSFr+xJ5OX7LI3b4MPQzdL4H8Y8M0xzPpsVMwA8Q==}
@@ -23423,13 +23230,6 @@ packages:
     dev: false
     optional: true
 
-  /make-dir@3.1.0:
-    resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
-    engines: {node: '>=8'}
-    dependencies:
-      semver: 6.3.1
-    dev: true
-
   /make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
@@ -24991,6 +24791,7 @@ packages:
     dependencies:
       lru-cache: 11.2.6
       minipass: 7.1.3
+    dev: true
 
   /path-to-regexp@8.4.2:
     resolution: {integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==}
@@ -25220,13 +25021,6 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
     dev: false
-
-  /pkg-dir@4.2.0:
-    resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
-    engines: {node: '>=8'}
-    dependencies:
-      find-up: 4.1.0
-    dev: true
 
   /pkg-dir@5.0.0:
     resolution: {integrity: sha512-NPE8TDbzl/3YQYY7CSS228s3g2ollTFnc+Qi3tqmqJp9Vg2ovUpixcJEo2HJScN2Ez+kEaal6y70c0ehqJBJeA==}
@@ -27679,13 +27473,6 @@ packages:
       js-tokens: 9.0.1
     dev: true
 
-  /strip-outer@1.0.1:
-    resolution: {integrity: sha512-k55yxKHwaXnpYGsOzg4Vl8+tDrWylxDEpknGjhTiZB8dFRU5rTo9CAzeycivxV3s+zlTKwrs6WxMxR95n26kwg==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      escape-string-regexp: 1.0.5
-    dev: true
-
   /stripe@20.4.1(@types/node@24.10.13):
     resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
     engines: {node: '>=16'}
@@ -28441,13 +28228,6 @@ packages:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
     dev: false
 
-  /trim-repeated@1.0.0:
-    resolution: {integrity: sha512-pkonvlKk8/ZuR0D5tLW8ljt5I8kmxp2XKymhepUeOdCEfKpZaktSArkLHZt76OB1ZvO9bssUsDty4SWhLvZpLg==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      escape-string-regexp: 1.0.5
-    dev: true
-
   /triple-beam@1.4.1:
     resolution: {integrity: sha512-aZbgViZrg1QNcG+LULa7nhZpJTZSLm/mXnHXnbAbjmN5aSa0y7V+wvv6+4WaBtpISJzThKy+PIPxc1Nq1EJ9mg==}
     engines: {node: '>= 14.0.0'}
@@ -28513,13 +28293,6 @@ packages:
     requiresBuild: true
     dev: false
     optional: true
-
-  /ts-morph@25.0.1:
-    resolution: {integrity: sha512-QJEiTdnz1YjrB3JFhd626gX4rKHDLSjSVMvGGG4v7ONc3RBwa0Eei98G9AT9uNFDMtV54JyuXsFeC+OH0n6bXQ==}
-    dependencies:
-      '@ts-morph/common': 0.26.1
-      code-block-writer: 13.0.3
-    dev: false
 
   /ts-morph@27.0.2:
     resolution: {integrity: sha512-fhUhgeljcrdZ+9DZND1De1029PrE+cMkIP7ooqkLRTrRLTqcki2AstsyJm0vRNbTbVCNJ0idGlbBrfqc7/nA8w==}
