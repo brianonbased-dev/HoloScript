@@ -54,6 +54,8 @@ describe('hologram mcp tools', () => {
     expect(names).toContain('holo_hologram_render');
     expect(names).toContain('holo_hologram_publish_feed');
     expect(names).toContain('holo_hologram_send');
+    expect(names).toContain('holo_hologram_upload_bundle');
+    expect(names).toContain('holo_hologram_get_asset');
   });
 
   it('identifies hologram tool names', () => {
@@ -471,5 +473,158 @@ describe('hologram mcp tools', () => {
         teamId: 'team_tf',
       }),
     );
+  });
+
+  describe('holo_hologram_upload_bundle', () => {
+    const prevStudioUrl = process.env.HOLOGRAM_STUDIO_URL;
+
+    beforeEach(() => {
+      process.env.HOLOGRAM_STUDIO_URL = 'http://localhost:3999';
+    });
+
+    afterEach(() => {
+      if (prevStudioUrl === undefined) delete process.env.HOLOGRAM_STUDIO_URL;
+      else process.env.HOLOGRAM_STUDIO_URL = prevStudioUrl;
+    });
+
+    it('uploads depth+normal bundle and returns hash', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ hash: 'abc123', written: true, url: '/g/abc123' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const meta = JSON.stringify({
+        schemaVersion: 1,
+        sourceKind: 'image',
+        width: 2,
+        height: 2,
+        frames: 1,
+        modelId: 'test',
+        backend: 'cpu',
+        inferenceMs: 1,
+        createdAt: '2026-04-29T00:00:00Z',
+      });
+      const depth = Buffer.from(new Float32Array([0.1, 0.2, 0.3, 0.4]).buffer);
+      const normal = Buffer.from(new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]).buffer);
+
+      const out = (await handleHologramTool('holo_hologram_upload_bundle', {
+        meta,
+        depthBinBase64: depth.toString('base64'),
+        normalBinBase64: normal.toString('base64'),
+      })) as { ok: boolean; hash: string; written: boolean; url: string };
+
+      expect(out.ok).toBe(true);
+      expect(out.hash).toBe('abc123');
+      expect(out.written).toBe(true);
+      expect(out.url).toBe('/g/abc123');
+
+      const call = fetchSpy.mock.calls[0];
+      expect(call?.[0]).toBe('http://localhost:3999/api/hologram/upload');
+      const init = call?.[1] as { method: string; body: FormData };
+      expect(init.method).toBe('POST');
+      expect(init.body.get('meta')).toBe(meta);
+
+      fetchSpy.mockRestore();
+    });
+
+    it('rejects missing meta', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_upload_bundle', {
+          depthBinBase64: 'AA==',
+          normalBinBase64: 'AA==',
+        } as Record<string, unknown>),
+      ).rejects.toThrow('meta is required');
+    });
+
+    it('surfaces HTTP errors from Studio', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Payload too large', code: 'payload_too_large' }), {
+          status: 413,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const meta = JSON.stringify({
+        schemaVersion: 1,
+        sourceKind: 'image',
+        width: 2,
+        height: 2,
+        frames: 1,
+        modelId: 'test',
+        backend: 'cpu',
+        inferenceMs: 1,
+        createdAt: '2026-04-29T00:00:00Z',
+      });
+
+      await expect(
+        handleHologramTool('holo_hologram_upload_bundle', {
+          meta,
+          depthBinBase64: 'AA==',
+          normalBinBase64: 'AA==',
+        } as Record<string, unknown>),
+      ).rejects.toThrow('Payload too large');
+    });
+  });
+
+  describe('holo_hologram_get_asset', () => {
+    const prevStudioUrl = process.env.HOLOGRAM_STUDIO_URL;
+
+    beforeEach(() => {
+      process.env.HOLOGRAM_STUDIO_URL = 'http://localhost:3999';
+    });
+
+    afterEach(() => {
+      if (prevStudioUrl === undefined) delete process.env.HOLOGRAM_STUDIO_URL;
+      else process.env.HOLOGRAM_STUDIO_URL = prevStudioUrl;
+    });
+
+    it('retrieves depth.bin as base64', async () => {
+      const bytes = Buffer.from(new Float32Array([0.1, 0.2, 0.3]).buffer);
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(bytes, {
+          status: 200,
+          headers: { 'Content-Type': 'application/octet-stream' },
+        }),
+      );
+
+      const out = (await handleHologramTool('holo_hologram_get_asset', {
+        hash: 'abc123',
+        asset: 'depth.bin',
+      })) as { ok: boolean; base64: string; mimeType: string; byteLength: number };
+
+      expect(out.ok).toBe(true);
+      expect(out.base64).toBe(bytes.toString('base64'));
+      expect(out.mimeType).toBe('application/octet-stream');
+      expect(out.byteLength).toBe(bytes.byteLength);
+      expect(fetchSpy).toHaveBeenCalledWith('http://localhost:3999/api/hologram/abc123/depth.bin');
+
+      fetchSpy.mockRestore();
+    });
+
+    it('rejects missing hash', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_get_asset', {
+          asset: 'depth.bin',
+        } as Record<string, unknown>),
+      ).rejects.toThrow('hash is required');
+    });
+
+    it('surfaces 404 as error', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Not found', code: 'not_found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await expect(
+        handleHologramTool('holo_hologram_get_asset', {
+          hash: 'missing',
+          asset: 'depth.bin',
+        } as Record<string, unknown>),
+      ).rejects.toThrow('Not found');
+    });
   });
 });

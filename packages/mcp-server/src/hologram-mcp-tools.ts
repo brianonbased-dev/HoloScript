@@ -15,6 +15,7 @@ import {
 import { renderHologramBundle } from './hologram-renderer';
 import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram-worker-client';
 import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-holomesh-send';
+import { getHologramAsset, uploadHologramBundle } from './hologram-bundle-client';
 
 type HologramMediaType = 'image' | 'gif' | 'video';
 type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
@@ -289,6 +290,61 @@ export const hologramToolDefinitions: Tool[] = [
       required: ['hash', 'shareUrl', 'recipientAgentId'],
     },
   },
+  {
+    name: 'holo_hologram_upload_bundle',
+    description:
+      'Upload a HoloGram bundle (depth + normal binaries) to the Studio store. Accepts base64-encoded depth.bin and normal.bin plus a JSON meta object. Optional quilt.png, mvhevc.mp4, and parallax.webm. Returns the content hash and canonical viewer URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'string',
+          description: 'JSON-stringified HologramMeta (schemaVersion, width, height, frames, modelId, backend, inferenceMs, createdAt, sourceKind).',
+        },
+        depthBinBase64: {
+          type: 'string',
+          description: 'Base64-encoded depth map binary (Float32Array bytes).',
+        },
+        normalBinBase64: {
+          type: 'string',
+          description: 'Base64-encoded normal map binary (Float32Array bytes, 3 channels).',
+        },
+        quiltPngBase64: {
+          type: 'string',
+          description: 'Optional base64-encoded quilt PNG.',
+        },
+        mvhevcMp4Base64: {
+          type: 'string',
+          description: 'Optional base64-encoded MV-HEVC MP4.',
+        },
+        parallaxWebmBase64: {
+          type: 'string',
+          description: 'Optional base64-encoded parallax WebM.',
+        },
+      },
+      required: ['meta', 'depthBinBase64', 'normalBinBase64'],
+    },
+  },
+  {
+    name: 'holo_hologram_get_asset',
+    description:
+      'Retrieve a HoloGram bundle asset by content hash. Returns base64-encoded bytes plus MIME type. Assets: depth.bin, normal.bin, quilt.png, mvhevc.mp4, parallax.webm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        hash: {
+          type: 'string',
+          description: 'Content-addressed bundle hash (64-char hex).',
+        },
+        asset: {
+          type: 'string',
+          enum: ['depth.bin', 'normal.bin', 'quilt.png', 'mvhevc.mp4', 'parallax.webm'],
+          description: 'Asset name to retrieve.',
+        },
+      },
+      required: ['hash', 'asset'],
+    },
+  },
 ];
 
 const HOLOGRAM_NAMES = new Set(hologramToolDefinitions.map((t) => t.name));
@@ -517,6 +573,33 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
       note,
     });
     return { ok: true, teamId, recipientAgentId, holomesh };
+  }
+
+  if (name === 'holo_hologram_upload_bundle') {
+    const meta = typeof args.meta === 'string' ? args.meta : '';
+    const depthBinBase64 = typeof args.depthBinBase64 === 'string' ? args.depthBinBase64 : '';
+    const normalBinBase64 = typeof args.normalBinBase64 === 'string' ? args.normalBinBase64 : '';
+    if (!meta) throw new Error('hologram upload_bundle: meta is required');
+    if (!depthBinBase64) throw new Error('hologram upload_bundle: depthBinBase64 is required');
+    if (!normalBinBase64) throw new Error('hologram upload_bundle: normalBinBase64 is required');
+    const result = await uploadHologramBundle({
+      meta,
+      depthBinBase64,
+      normalBinBase64,
+      quiltPngBase64: typeof args.quiltPngBase64 === 'string' ? args.quiltPngBase64 : undefined,
+      mvhevcMp4Base64: typeof args.mvhevcMp4Base64 === 'string' ? args.mvhevcMp4Base64 : undefined,
+      parallaxWebmBase64: typeof args.parallaxWebmBase64 === 'string' ? args.parallaxWebmBase64 : undefined,
+    });
+    return { ok: true, ...result };
+  }
+
+  if (name === 'holo_hologram_get_asset') {
+    const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
+    const asset = typeof args.asset === 'string' ? args.asset.trim() : '';
+    if (!hash) throw new Error('hologram get_asset: hash is required');
+    if (!asset) throw new Error('hologram get_asset: asset is required');
+    const result = await getHologramAsset(hash, asset);
+    return { ok: true, ...result };
   }
 
   const mediaType = assertMediaType(args.mediaType);
