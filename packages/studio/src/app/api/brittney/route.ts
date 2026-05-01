@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
     sessionId?: string;
     closeSession?: boolean;
     simContractCheck?: SimContractCheck | null;
+    systemPrompt?: string;
   }>(request, { maxBytes: 32_000 });
   if (!parsed.ok) {
     const msg =
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
   }
   const body = parsed.body;
 
-  const { messages, sceneContext, sessionId: bodySessionId, closeSession, simContractCheck } = body;
+  const { messages, sceneContext, sessionId: bodySessionId, closeSession, simContractCheck, systemPrompt: bodySystemPrompt } = body;
   const sessionId =
     typeof bodySessionId === 'string' && bodySessionId.length > 0
       ? bodySessionId
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
   const gate = await checkCredits(request, 'studio_chat');
   if (gate.error) return gate.error;
 
-  const systemPrompt = buildContextualPrompt(sceneContext);
+  const systemPrompt = bodySystemPrompt ?? buildContextualPrompt(sceneContext);
 
   const baseUrl = getBaseUrl(request);
 
@@ -333,6 +334,9 @@ export async function POST(request: NextRequest) {
                 if ('text' in event.delta && event.delta.text) {
                   roundText += event.delta.text;
                   send({ type: 'text', payload: event.delta.text });
+                }
+                if ('thinking' in event.delta && event.delta.thinking) {
+                  send({ type: 'thinking', payload: event.delta.thinking });
                 }
                 if ('partial_json' in event.delta && event.delta.partial_json) {
                   currentToolInput += event.delta.partial_json;

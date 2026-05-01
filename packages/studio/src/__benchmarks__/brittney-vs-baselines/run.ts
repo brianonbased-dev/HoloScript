@@ -2,6 +2,7 @@
 /* eslint-disable no-console */
 import path from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
+import { OllamaClient } from './lib/ollama-client';
 import { buildAllConfigs } from './configs';
 import { loadAllTasks, loadQuickSubset } from './tasks';
 import { runBenchmark } from './runner';
@@ -76,7 +77,7 @@ function printHelpAndExit(code: number): never {
       '  --brittney-auth <header>         Authorization header for /api/brittney',
       '  --brittney-cookie <cookie>       Cookie header for /api/brittney',
       '',
-      'Required env: ANTHROPIC_API_KEY',
+      'Required env: ANTHROPIC_API_KEY (or OLLAMA_API_KEY as judge fallback)',
     ].join('\n')
   );
   process.exit(code);
@@ -85,8 +86,9 @@ function printHelpAndExit(code: number): never {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey && !args.dryRun) {
-    console.error('ANTHROPIC_API_KEY is required (or use --dry-run)');
+  const ollamaKey = process.env.OLLAMA_API_KEY;
+  if (!apiKey && !ollamaKey && !args.dryRun) {
+    console.error('ANTHROPIC_API_KEY or OLLAMA_API_KEY is required (or use --dry-run)');
     process.exit(2);
   }
 
@@ -111,7 +113,7 @@ async function main(): Promise<void> {
     'http://localhost:3100/api/brittney';
 
   let allConfigs = buildAllConfigs({
-    anthropicApiKey: apiKey ?? '',
+    anthropicApiKey: apiKey ?? ollamaKey ?? '',
     brittneyEndpoint: endpoint,
     brittneyAuthHeader: args.brittneyAuthHeader,
     brittneyCookie: args.brittneyCookie,
@@ -152,7 +154,14 @@ async function main(): Promise<void> {
     }
   }
 
-  const judgeClient = new Anthropic({ apiKey: apiKey! });
+  const judgeClient = apiKey ? new Anthropic({ apiKey }) : new Anthropic({ apiKey: 'dummy' });
+  const judgeOllamaClient = ollamaKey
+    ? new OllamaClient({
+        apiKey: ollamaKey,
+        model: process.env.OLLAMA_JUDGE_MODEL || 'qwen3.5:397b',
+        baseURL: process.env.OLLAMA_BASE_URL,
+      })
+    : undefined;
 
   const run = await runBenchmark({
     configs: allConfigs,
@@ -160,12 +169,14 @@ async function main(): Promise<void> {
     trialsPerCell,
     budgetUsdMax,
     judgeClient,
+    judgeOllamaClient,
     onProgress: (e) => {
       if (e.type === 'cell_complete') {
         const o = e.outcome;
         const status = o.error ? `ERR(${o.error.slice(0, 40)})` : o.creation_completion ? 'PASS' : 'FAIL';
+        const objInfo = o.create_object_count !== undefined ? ` objs=${o.create_object_count}` : '';
         console.log(
-          `  ${o.task_id} ${o.config} t${o.trial}: ${status} cost=$${o.token_cost_usd.toFixed(4)} wall=${o.wall_clock_seconds.toFixed(1)}s`
+          `  ${o.task_id} ${o.config} t${o.trial}: ${status} cost=$${o.token_cost_usd.toFixed(4)} wall=${o.wall_clock_seconds.toFixed(1)}s${objInfo}`
         );
       } else if (e.type === 'budget_exceeded') {
         console.warn(

@@ -73,7 +73,9 @@ function renderTaskMatrix(run: BenchmarkRun): string {
       const slice = run.outcomes.filter((o) => o.task_id === t && o.config === c);
       if (slice.length === 0) return '–';
       const completed = slice.filter((o) => o.creation_completion).length;
-      return `${completed}/${slice.length}`;
+      const avgCreateObjects =
+        slice.reduce((s, o) => s + (o.create_object_count ?? 0), 0) / slice.length;
+      return `${completed}/${slice.length} (${avgCreateObjects.toFixed(0)} objs)`;
     });
     lines.push(`| ${t} | ${cells.join(' | ')} |`);
   }

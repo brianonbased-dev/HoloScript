@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { OllamaClient } from './lib/ollama-client';
 import type {
   BenchmarkRun,
   ConfigName,
@@ -18,6 +19,8 @@ export interface RunnerOptions {
   judgeModel?: string;
   perRunTimeoutMs?: number;
   onProgress?: (event: ProgressEvent) => void;
+  /** Optional Ollama client for judge fallback when Anthropic credits are depleted. */
+  judgeOllamaClient?: OllamaClient;
 }
 
 export type ProgressEvent =
@@ -100,7 +103,11 @@ export async function runBenchmark(opts: RunnerOptions): Promise<BenchmarkRun> {
               trial,
               cfgResult.output_text,
               cfgResult.scene_mutations,
-              { client: opts.judgeClient, model: judgeModel }
+              {
+                client: opts.judgeClient,
+                model: judgeModel,
+                ollamaClient: opts.judgeOllamaClient,
+              }
             );
             tracker.add(judged.usage, judgeModel);
             perCriterion = judged.verdicts;
@@ -126,6 +133,8 @@ export async function runBenchmark(opts: RunnerOptions): Promise<BenchmarkRun> {
             wall_clock_seconds: (Date.now() - wallStart) / 1000,
             per_criterion: perCriterion,
             error: cfgResult.error,
+            create_object_count: cfgResult.create_object_count,
+            thinking_content: cfgResult.thinking_content,
           };
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

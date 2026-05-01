@@ -6,6 +6,7 @@ export interface BrittneyProdOptions {
   cookie?: string;
   model?: string;
   fetchImpl?: typeof fetch;
+  systemPrompt?: string;
 }
 
 interface SseEvent {
@@ -69,6 +70,7 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       if (opts.cookie) headers['cookie'] = opts.cookie;
 
       let outputText = '';
+      let thinkingText = '';
       const mutations: SceneMutation[] = [];
       const usage: TokenUsage = { input_tokens: 0, output_tokens: 0 };
       let usageReported = false;
@@ -89,7 +91,10 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       const response = await fetchImpl(opts.endpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ messages: [{ role: 'user', content: task.prompt }] }),
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: task.prompt }],
+          ...(opts.systemPrompt ? { systemPrompt: opts.systemPrompt } : {}),
+        }),
         signal,
       });
       if (!response.ok) {
@@ -110,6 +115,13 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
             if (typeof t === 'string') {
               outputText += t;
               assistantOutputChars += t.length;
+            }
+            break;
+          }
+          case 'thinking': {
+            const t = ev.payload;
+            if (typeof t === 'string') {
+              thinkingText += t;
             }
             break;
           }
@@ -198,12 +210,14 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
 
       return {
         output_text: outputText,
+        thinking_content: thinkingText || undefined,
         tool_rounds: toolRounds,
         usage,
         model_id: model,
         scene_mutations: mutations,
         cael_chain_fnv1a: caelChainFnv1a,
         error: lastError,
+        create_object_count: mutations.filter((m) => m.tool_name === 'create_object').length,
       };
     },
   };

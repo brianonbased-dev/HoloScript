@@ -4,7 +4,8 @@ export type ConfigName =
   | 'brittney-prod'
   | 'cursor-baseline'
   | 'claude-code-baseline'
-  | 'vanilla-baseline';
+  | 'vanilla-baseline'
+  | 'ollama-baseline';
 
 export interface RubricCriterion {
   id: string;
@@ -35,6 +36,8 @@ export interface ConfigRunResult {
   scene_mutations: SceneMutation[];
   cael_chain_fnv1a?: string;
   error?: string;
+  thinking_content?: string;
+  create_object_count?: number;
 }
 
 export interface SceneMutation {
@@ -64,6 +67,8 @@ export interface RunOutcome {
   wall_clock_seconds: number;
   per_criterion: RubricVerdict[];
   error?: string;
+  create_object_count?: number;
+  thinking_content?: string;
 }
 
 export interface BenchmarkRun {
