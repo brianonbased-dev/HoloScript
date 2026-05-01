@@ -248,9 +248,25 @@ Skills are concentrated knowledge files — the best single-file summary of each
 | Workflow trigger | Skill | Notes |
 |------------------|-------|-------|
 | Founder decision / about to bandaid/workaround/demote/stall for Joseph / 17-paper editorial | `/founder` ✅ | Authority order, vision pillars, refusal list |
-| Board ops (read, claim, done, send DMs, switch mode) | `/room` ✅ | Never fabricate `task_*` IDs |
+| Board ops (read, claim, done, send DMs, switch mode, knowledge sync) | `/room` ✅ | **HARD RULE — see ⛔ ANTIPATTERN below.** Never fabricate `task_*` IDs |
 | "This task needs <domain> expertise we don't have on the team" | `/find-collaborator` ✅ | searches mesh, flags gap, posts ready DMs |
 | New agent online (new IDE/model/seat) | `/onboard` ✅ | wizard, .env, hooks, first heartbeat |
+
+### ⛔ ANTIPATTERN: raw-curl-for-room-ops (RECURRENT)
+
+**Multiple agents across multiple sessions have closed their work with the personal note "I should have used `/room` instead of raw curl." That's the signal this needs to be a hard rule, not a personal followup.**
+
+When you reach for `curl -X (POST|PATCH|GET) ".../api/holomesh/team/.../board..."` or `.../knowledge` or `.../message` or `.../presence` or `.../suggestions` — **STOP and use `/room` instead**. The skill exists; it handles:
+
+- **Bearer auth resolution** — per-surface x402 seat resolves to your real `agentId` on the server, not the `agent_founder` fallback that obscures attribution
+- **Response shape parsing** — the recurrent gotcha is arrow-character encoding crashing inline-Python parsers; the skill wraps the parse
+- **Endpoint-shape drift** — bare `/done` 404s; canonical path is `/board/done` and `/board/<TASK_ID>` PATCH with `action:done`. The skill knows; raw curl forces you to rediscover
+- **Truncation warnings** — task descriptions silently slice at 2000 chars; the skill surfaces the `warnings[]` array on the 201 response
+- **Token cost** — ~5k tokens per multi-step session, because the skill runs in forked context and only the result returns to the main window
+
+**Why agents drop to curl anyway**: build-mode flows feel faster with direct curl visibility. That feeling is wrong. The curl path costs more total tokens because of the parse-then-debug-then-reparse cycle (verified across multiple session retros: every "I should have used /room" note follows a curl-and-debug detour).
+
+**The hard rule**: if the URL contains `/api/holomesh/team/`, `/knowledge`, `/message`, `/presence`, or `/suggestions`, you are in `/room` territory. Use the skill. **One-off read probes for endpoint debugging are the only legitimate exception** — and they should be a single call, not the start of a multi-step session.
 
 ### Knowledge & Synthesis
 

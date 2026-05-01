@@ -38,6 +38,10 @@ NEVER  → Hand-write .hs/.hsplus/.holo without calling suggest_traits first
 NEVER  → git add -A  or  git add .  (Windows: creates nul device file — BREAKS REPO)
 NEVER  → Create UPPERCASE .md files in docs/ root (they go in docs/_archive/)
 NEVER  → Add doc pages without updating docs/.vitepress/config.ts sidebar
+NEVER  → Raw curl against /api/holomesh/team/* /knowledge /message /presence
+         /suggestions — use /room skill instead. Recurrent multi-agent
+         antipattern; full reasoning in AGENTS.md §"⛔ ANTIPATTERN:
+         raw-curl-for-room-ops". One-off endpoint-debug probes excepted.
 
 ALWAYS → Use .holo for cross-platform compositions
 ALWAYS → Stage git files explicitly: git add path/to/file.ts
@@ -45,6 +49,9 @@ ALWAYS → Run pnpm test before committing
 ALWAYS → Call validate_holoscript after generating any HoloScript code
 ALWAYS → Add new packages to typedoc.json entryPoints
 ALWAYS → Attempt MCP recovery (diagnose → start → retry) before falling back to CLI
+ALWAYS → /room for board, knowledge, messages, presence, suggestions —
+         not curl. Skill handles bearer-auth, response parsing, endpoint
+         shape, truncation warnings, ~5k token savings per multi-step flow.
 ```
 
 ## ∞ STRATEGIC DIRECTION — BRITTNEY / STUDIO FIRST
