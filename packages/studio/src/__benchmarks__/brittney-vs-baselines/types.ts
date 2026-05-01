@@ -80,6 +80,10 @@ export interface RunOutcome {
   create_object_count?: number;
   thinking_content?: string;
   scene_mutations?: SceneMutation[];
+  /** If set, this outcome is a retry of the given original trial. */
+  retry_of_trial?: number;
+  /** The hint text injected into the prompt for this retry. */
+  hint_text?: string;
 }
 
 export interface BenchmarkRun {

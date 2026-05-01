@@ -12,6 +12,7 @@ import type { ConfigName, ConfigRunner } from './types';
 interface CliArgs {
   quick: boolean;
   dryRun: boolean;
+  retryWithHint: boolean;
   configs?: ConfigName[];
   trials?: number;
   budgetUsdMax?: number;
@@ -23,7 +24,7 @@ interface CliArgs {
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const out: CliArgs = { quick: false, dryRun: false };
+  const out: CliArgs = { quick: false, dryRun: false, retryWithHint: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
@@ -32,6 +33,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--dry-run':
         out.dryRun = true;
+        break;
+      case '--retry-with-hint':
+        out.retryWithHint = true;
         break;
       case '--configs':
         out.configs = (argv[++i] ?? '').split(',').filter(Boolean) as ConfigName[];
@@ -73,6 +77,7 @@ function printHelpAndExit(code: number): never {
       '',
       '  --quick                          run smoke test (3 tasks, 1 trial)',
       '  --dry-run                        plan-only: load tasks + configs, no LLM calls',
+      '  --retry-with-hint                on first failure, retry with judge feedback hint',
       '  --configs <a,b,...>              subset of configs (default: all 4)',
       '  --trials <N>                     trials per cell (default: 3 full / 1 quick)',
       '  --budget <USD>                   hard budget cap (default: 50 full / 2 quick)',
@@ -144,6 +149,7 @@ async function main(): Promise<void> {
       for (const c of allConfigs) {
         for (let trial = 1; trial <= trialsPerCell; trial++) {
           console.log(`    config=${c.name} trial=${trial}`);
+          if (args.retryWithHint) console.log(`      (retry_with_hint enabled)`);
         }
       }
     }
@@ -175,13 +181,15 @@ async function main(): Promise<void> {
     budgetUsdMax,
     judgeClient,
     judgeOllamaClient,
+    retryWithHint: args.retryWithHint,
     onProgress: (e) => {
       if (e.type === 'cell_complete') {
         const o = e.outcome;
+        const retryTag = o.retry_of_trial !== undefined ? ' [RETRY]' : '';
         const status = o.error ? `ERR(${o.error.slice(0, 40)})` : o.creation_completion ? 'PASS' : 'FAIL';
         const objInfo = o.create_object_count !== undefined ? ` objs=${o.create_object_count}` : '';
         console.log(
-          `  ${o.task_id} ${o.config} t${o.trial}: ${status} cost=$${o.token_cost_usd.toFixed(4)} wall=${o.wall_clock_seconds.toFixed(1)}s${objInfo}`
+          `  ${o.task_id} ${o.config} t${o.trial}${retryTag}: ${status} cost=$${o.token_cost_usd.toFixed(4)} wall=${o.wall_clock_seconds.toFixed(1)}s${objInfo}`
         );
       } else if (e.type === 'budget_exceeded') {
         console.warn(

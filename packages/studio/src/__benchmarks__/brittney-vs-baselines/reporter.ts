@@ -49,6 +49,7 @@ export function renderResultsMarkdown(run: BenchmarkRun): string {
     renderTaskMatrix(run),
     ``,
     renderCriterionFailureMatrix(run),
+    renderHintRecoveryRate(run),
     `## Errors`,
     ``,
     errorOutcomes.length === 0
@@ -128,4 +129,33 @@ function renderCriterionFailureMatrix(run: BenchmarkRun): string {
     return `## Per-criterion failures\n\n_(none)_\n\n`;
   }
   return `## Per-criterion failures\n\n${sections.join('\n')}\n`;
+}
+
+function renderHintRecoveryRate(run: BenchmarkRun): string {
+  const retries = run.outcomes.filter((o) => o.retry_of_trial !== undefined);
+  if (retries.length === 0) return '';
+
+  const recovered = retries.filter((o) => o.creation_completion).length;
+  const rate = retries.length > 0 ? (recovered / retries.length) * 100 : 0;
+
+  const byConfig = new Map<ConfigName, { attempted: number; recovered: number }>();
+  for (const o of retries) {
+    const prev = byConfig.get(o.config) ?? { attempted: 0, recovered: 0 };
+    prev.attempted++;
+    if (o.creation_completion) prev.recovered++;
+    byConfig.set(o.config, prev);
+  }
+
+  const lines: string[] = [];
+  lines.push(`## Hint recovery rate`);
+  lines.push('');
+  lines.push(`| config | attempted | recovered | rate |`);
+  lines.push(`|---|---|---|---|`);
+  for (const [config, stats] of byConfig) {
+    const r = stats.attempted > 0 ? ((stats.recovered / stats.attempted) * 100).toFixed(1) : '0.0';
+    lines.push(`| ${config} | ${stats.attempted} | ${stats.recovered} | ${r}% |`);
+  }
+  lines.push(`| **total** | ${retries.length} | ${recovered} | ${rate.toFixed(1)}% |`);
+  lines.push('');
+  return lines.join('\n');
 }
