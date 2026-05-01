@@ -85,7 +85,7 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
     )
     .join('\n');
   const isSpatialPattern =
-    task.id === 'M06' || task.id === 'M08' || task.id === 'A09';
+    task.id === 'M02' || task.id === 'M06' || task.id === 'M09' || task.id === 'A01' || task.id === 'A04' || task.id === 'A10';
 
   return [
     `You are evaluating a candidate output against a rubric for the following task:`,
