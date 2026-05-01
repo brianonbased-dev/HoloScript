@@ -39,7 +39,11 @@ export async function getSession() {
       image: token.picture ?? null,
       githubUsername: (token.githubUsername as string) ?? '',
     },
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
+    // only when the claim is absent so we don't extend a near-expiry token.
+    expires: token.exp
+      ? new Date(token.exp * 1000).toISOString()
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
 }
 

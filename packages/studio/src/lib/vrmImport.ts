@@ -280,7 +280,9 @@ export async function createVRMAvatarFromFile(file: File): Promise<VRMModel> {
     const primitives = (m['primitives'] as Array<Record<string, unknown>>) ?? [];
     for (const prim of primitives) {
       const targets = prim['targets'] as unknown[] | undefined;
-      if (targets) blendshapeCount += targets.length;
+      // Use Math.max across all primitives: morph targets are shared per mesh,
+      // so += would double-count when a mesh has multiple primitives.
+      if (targets) blendshapeCount = Math.max(blendshapeCount, targets.length);
       const extras = prim['extras'] as Record<string, unknown> | undefined;
       const targetNames = extras?.['targetNames'] as string[] | undefined;
       if (targetNames) blendshapeCount = Math.max(blendshapeCount, targetNames.length);
