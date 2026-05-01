@@ -16,4 +16,5 @@ export default defineConfig({
   dts: false,
   clean: true,
   sourcemap: true,
+  external: ['chokidar', 'glob'],
 });
