@@ -69,6 +69,7 @@ export interface RunOutcome {
   error?: string;
   create_object_count?: number;
   thinking_content?: string;
+  scene_mutations?: SceneMutation[];
 }
 
 export interface BenchmarkRun {

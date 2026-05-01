@@ -135,6 +135,7 @@ export async function runBenchmark(opts: RunnerOptions): Promise<BenchmarkRun> {
             error: cfgResult.error,
             create_object_count: cfgResult.create_object_count,
             thinking_content: cfgResult.thinking_content,
+            scene_mutations: cfgResult.scene_mutations,
           };
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
