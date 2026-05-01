@@ -179,8 +179,8 @@ function verifyA04(objs: ParsedObject[]): VerificationResult[] {
 function verifyA10(objs: ParsedObject[]): VerificationResult[] {
   const cylinders = objs.filter((o) => o.primitive === 'cylinder');
   const cubes = objs.filter((o) => o.primitive === 'cube');
-  const gears = cylinders.filter((o) => (o.radius ?? 0) > 0.5);
-  const axles = cylinders.filter((o) => (o.radius ?? 0) < 0.2);
+  const gears = cylinders.filter((o) => (o.radius ?? 0) >= 0.3);
+  const axles = cylinders.filter((o) => (o.radius ?? 0) <= 0.1);
 
   return [
     { criterion_id: 'two_gears', passed: gears.length >= 2, rationale: `found ${gears.length} gear cylinders` },
