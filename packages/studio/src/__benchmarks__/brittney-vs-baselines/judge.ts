@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { OllamaClient } from './lib/ollama-client';
 import { renderMutationsToProse } from './mutation-renderer';
-import { hasDeterministicVerifier, verifyDeterministically } from './deterministic-verifier';
+import { verifyDeterministically } from './deterministic-verifier';
 import type { ConfigName, RubricCriterion, RubricVerdict, SceneMutation, Task, TokenUsage } from './types';
 
 export interface JudgeOptions {
@@ -189,21 +189,22 @@ export async function judgeRun(
         };
       });
 
-      // Deterministic override: for tasks with coded verifiers, override
-      // LLM-judge verdicts with ground-truth computed from mutations.
-      if (hasDeterministicVerifier(task.id)) {
-        const deterministic = verifyDeterministically(task, mutations);
-        const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
-        verdicts = verdicts.map((v) => {
-          const det = detById.get(v.criterion_id);
-          if (!det) return v;
-          return {
-            ...v,
-            passed: det.passed,
-            rationale: `[deterministic] ${det.rationale} | [llm] ${v.rationale}`,
-          };
-        });
-      }
+      // Deterministic override: per-criterion routing based on verifier_type.
+      // Criteria tagged with geometric/count/presence get ground-truth checks;
+      // criteria tagged with 'llm' or untagged stay with the judge.
+      const deterministic = verifyDeterministically(task, mutations);
+      const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
+      verdicts = verdicts.map((v) => {
+        const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
+        const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
+        const det = detById.get(v.criterion_id);
+        if (!det || !useDeterministic) return v;
+        return {
+          ...v,
+          passed: det.passed,
+          rationale: `[deterministic] ${det.rationale} | [llm] ${v.rationale}`,
+        };
+      });
 
       return { verdicts, usage };
     } catch (err) {

@@ -11,6 +11,14 @@ export interface RubricCriterion {
   id: string;
   description: string;
   required: boolean;
+  /** Explicit numeric tolerance for geometric criteria (e.g., 0.05). */
+  tolerance?: number;
+  /** Patterns that cause automatic failure if present. */
+  forbidden?: string[];
+  /** Tool call that must appear in mutations for this criterion. */
+  expected_tool?: string;
+  /** Routing hint: llm = judge decides; geometric/count/presence = deterministic verifier. */
+  verifier_type?: 'llm' | 'geometric' | 'count' | 'presence';
 }
 
 export interface Task {
