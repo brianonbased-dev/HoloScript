@@ -168,10 +168,19 @@ function verifyA01(objs: ParsedObject[]): VerificationResult[] {
 function verifyA04(objs: ParsedObject[]): VerificationResult[] {
   const walls = objs.filter((o) => o.primitive === 'cube' && (o.scale?.[1] ?? 0) > 1);
 
+  // Each wall must have one dimension ~1.5 (height) and one ~0.1 (thickness).
+  const TOL = 0.05;
+  const validWalls = walls.filter((o) => {
+    const dims = [o.scale[0], o.scale[1], o.scale[2]];
+    const hasHeight = dims.some((d) => within(d, 1.5, TOL));
+    const hasThickness = dims.some((d) => within(d, 0.1, TOL));
+    return hasHeight && hasThickness;
+  });
+
   return [
     { criterion_id: 'grid_dimensions', passed: true, rationale: 'grid dimensions are specified in prompt, not verifiable from objects alone' },
     { criterion_id: 'walls_present', passed: walls.length >= 5, rationale: `found ${walls.length} walls` },
-    { criterion_id: 'wall_thickness_height', passed: walls.length > 0, rationale: `walls: ${walls.length}` },
+    { criterion_id: 'wall_thickness_height', passed: validWalls.length >= 5, rationale: `${validWalls.length}/${walls.length} walls match 0.1 thick + 1.5 tall (tol ${TOL})` },
     { criterion_id: 'connected_path', passed: walls.length >= 5, rationale: `walls present: ${walls.length}` },
   ];
 }
@@ -182,9 +191,23 @@ function verifyA10(objs: ParsedObject[]): VerificationResult[] {
   const gears = cylinders.filter((o) => (o.radius ?? 0) >= 0.3);
   const axles = cylinders.filter((o) => (o.radius ?? 0) <= 0.1);
 
+  // Tangency: small gear center should be at distance (r1 + r2) from large gear center.
+  const TOL = 0.05;
+  let tangencyPassed = false;
+  let tangencyRationale = `gears: ${gears.length}`;
+  if (gears.length >= 2) {
+    const sorted = [...gears].sort((a, b) => (b.radius ?? 0) - (a.radius ?? 0));
+    const large = sorted[0];
+    const small = sorted[1];
+    const d = dist(large.position, small.position);
+    const expected = (large.radius ?? 0) + (small.radius ?? 0);
+    tangencyPassed = within(d, expected, TOL);
+    tangencyRationale = `center distance=${d.toFixed(3)}, expected=${expected.toFixed(3)} (tol ${TOL})`;
+  }
+
   return [
     { criterion_id: 'two_gears', passed: gears.length >= 2, rationale: `found ${gears.length} gear cylinders` },
-    { criterion_id: 'tangency', passed: gears.length >= 2, rationale: `gears: ${gears.length}` },
+    { criterion_id: 'tangency', passed: tangencyPassed, rationale: tangencyRationale },
     { criterion_id: 'teeth_per_gear', passed: cubes.length >= 16, rationale: `found ${cubes.length} cube teeth (need 16)` },
     { criterion_id: 'axles', passed: axles.length >= 2, rationale: `found ${axles.length} axle cylinders` },
     { criterion_id: 'axle_color', passed: axles.some((o) => (o.color ?? '').toLowerCase().includes('gray')), rationale: `axle colors: ${axles.map((o) => o.color).join(', ')}` },
