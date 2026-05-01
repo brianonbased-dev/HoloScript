@@ -221,7 +221,7 @@ describe('rubric judge consistency on golden cases', () => {
     for (const g of golden) {
       const t = taskById.get(g.task_id)!;
       const { judgeRun, isCompleted } = await import('../judge');
-      const res = await judgeRun(t, 'vanilla-baseline', 1, g.candidate_output, {
+      const res = await judgeRun(t, 'vanilla-baseline', 1, g.candidate_output, [], {
         client: fakeAnthropic as never,
       });
       const completed = isCompleted(res.verdicts, t.evaluation_rubric);

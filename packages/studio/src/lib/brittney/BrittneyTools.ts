@@ -84,6 +84,24 @@ export const BRITTNEY_TOOLS = [
             items: { type: 'number' },
             description: '[x, y, z] position in world space',
           },
+          primitive: {
+            type: 'string',
+            enum: ['cube', 'sphere', 'cylinder', 'plane', 'cone', 'torus'],
+            description: 'Geometric primitive shape (only for mesh objects)',
+          },
+          color: {
+            type: 'string',
+            description: 'Color as CSS color name (e.g. "red", "blue") or hex string (e.g. "#ff0000")',
+          },
+          scale: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] scale factors (default [1, 1, 1])',
+          },
+          radius: {
+            type: 'number',
+            description: 'Radius for sphere/cylinder/torus primitives',
+          },
         },
         required: ['name', 'type'],
       },
@@ -355,11 +373,22 @@ function codeCreateObject(
   code: string,
   name: string,
   type: string,
-  position: [number, number, number]
+  position: [number, number, number],
+  opts: {
+    primitive?: string;
+    color?: string;
+    scale?: [number, number, number];
+    radius?: number;
+  } = {}
 ): string {
   const [x, y, z] = position;
-  const posLine = x !== 0 || y !== 0 || z !== 0 ? `\n  position: [${x}, ${y}, ${z}]` : '';
-  return code + `\n${type} "${name}" {${posLine}\n}\n`;
+  const lines: string[] = [];
+  if (x !== 0 || y !== 0 || z !== 0) lines.push(`  position: [${x}, ${y}, ${z}]`);
+  if (opts.scale) lines.push(`  scale: [${opts.scale.join(', ')}]`);
+  if (opts.primitive) lines.push(`  geometry: "${opts.primitive}"`);
+  if (opts.color) lines.push(`  color: "${opts.color}"`);
+  if (opts.radius !== undefined) lines.push(`  radius: ${opts.radius}`);
+  return code + `\n${type} "${name}" {\n${lines.join('\n')}\n}\n`;
 }
 
 /**
@@ -487,6 +516,14 @@ export function executeTool(
         const id = `obj-${Date.now()}`;
         const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
+        const scale = (args.scale as [number, number, number]) ?? [1, 1, 1];
+        const primitive = typeof args.primitive === 'string' ? args.primitive : undefined;
+        const color = typeof args.color === 'string' ? args.color : undefined;
+        const radius = typeof args.radius === 'number' ? args.radius : undefined;
+
+        const traits: TraitConfig[] = [];
+        if (primitive) traits.push({ name: 'geometry', properties: { primitive, ...(radius !== undefined ? { radius } : {}) } });
+        if (color) traits.push({ name: 'material', properties: { color } });
 
         setNextHistoryLabel(`Create "${name}"`);
         store.addNode({
@@ -494,12 +531,14 @@ export function executeTool(
           name,
           type,
           parentId: null,
-          traits: [],
+          traits,
           position: pos,
           rotation: [0, 0, 0],
-          scale: [1, 1, 1],
+          scale,
         });
-        store.setCode(codeCreateObject(store.getCode(), name, type, pos));
+        store.setCode(
+          codeCreateObject(store.getCode(), name, type, pos, { primitive, color, scale, radius })
+        );
         return { tool: toolName, success: true, message: `Created "${name}" in the scene` };
       }
 

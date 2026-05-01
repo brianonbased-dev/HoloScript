@@ -99,6 +99,7 @@ export async function runBenchmark(opts: RunnerOptions): Promise<BenchmarkRun> {
               config.name,
               trial,
               cfgResult.output_text,
+              cfgResult.scene_mutations,
               { client: opts.judgeClient, model: judgeModel }
             );
             tracker.add(judged.usage, judgeModel);

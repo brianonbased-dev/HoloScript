@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { ConfigName, RubricCriterion, RubricVerdict, Task, TokenUsage } from './types';
+import type { ConfigName, RubricCriterion, RubricVerdict, SceneMutation, Task, TokenUsage } from './types';
 
 export interface JudgeOptions {
   client: Anthropic;
@@ -37,7 +37,17 @@ const VERDICT_TOOL: Anthropic.Tool = {
   },
 };
 
-function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterion[]): string {
+function formatMutations(mutations: SceneMutation[]): string {
+  if (mutations.length === 0) return '_(none)_';
+  return mutations
+    .map((m) => {
+      const status = m.sim_contract_passed === true ? 'passed' : m.sim_contract_passed === false ? 'rejected' : 'unknown';
+      return `- ${m.tool_name}: ${JSON.stringify(m.input)} [sim_contract: ${status}]`;
+    })
+    .join('\n');
+}
+
+function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterion[], mutations: SceneMutation[]): string {
   const rubricBlock = rubric
     .map(
       (c, i) =>
@@ -60,8 +70,11 @@ function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterio
       : candidateOutput,
     `--- END OUTPUT ---`,
     ``,
-    `For each rubric criterion, decide if the candidate output satisfies it.`,
-    `Be strict: if information is ambiguous or absent from the output, mark FAIL.`,
+    `SCENE MUTATIONS (tool calls executed by the candidate):`,
+    formatMutations(mutations),
+    ``,
+    `For each rubric criterion, decide if the candidate output OR the scene mutations satisfy it.`,
+    `Be strict: if information is ambiguous or absent from both the output text and the mutations, mark FAIL.`,
     `Submit your verdicts via the submit_verdicts tool — every criterion must have exactly one verdict.`,
   ].join('\n');
 }
@@ -71,6 +84,7 @@ export async function judgeRun(
   config: ConfigName,
   trial: number,
   candidateOutput: string,
+  mutations: SceneMutation[],
   opts: JudgeOptions
 ): Promise<JudgeResult> {
   const model = opts.model ?? 'claude-opus-4-7';
@@ -86,7 +100,7 @@ export async function judgeRun(
       messages: [
         {
           role: 'user',
-          content: buildPrompt(task, candidateOutput, task.evaluation_rubric),
+          content: buildPrompt(task, candidateOutput, task.evaluation_rubric, mutations),
         },
       ],
     });
