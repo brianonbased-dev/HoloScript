@@ -3,6 +3,7 @@ import cors from 'cors';
 import { SERVICE_VERSION } from './version.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
+import { touchedByMiddleware } from './middleware/touched-by.js';
 import { absorbRouter } from './routes/absorb.js';
 import { creditsRouter } from './routes/credits.js';
 import { creditsWebhookRouter } from './routes/creditsWebhook.js';
@@ -91,6 +92,7 @@ async function fetchActiveMoltbookAgentsWithTimeout(
 
 // --- Middleware ---
 app.use(cors());
+app.use(touchedByMiddleware);
 
 // --- Webhooks (must come before express.json to preserve raw Buffer) ---
 app.use('/api/credits/webhook', express.raw({ type: 'application/json' }), creditsWebhookRouter);
