@@ -25,6 +25,7 @@ import {
   serializeExportSession,
 } from './export-session';
 import { createTeamStore, type TeamStore } from './team-store';
+import { createStateStore, type StateStoreBackend } from './state-store';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export const paidAccessStore: Set<string> = new Set(); // "agentId:entryId" → 
 
 // Teams
 export const teamStore: TeamStore = createTeamStore(); // teamId → Team
+const stateStore: StateStoreBackend = createStateStore(); // audit/defense/dispatch backend
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
 /** Public team feed (hologram publishes, etc.) — poster identity is server-authoritative */
@@ -160,12 +162,13 @@ function persistCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
     }
     fs.appendFileSync(caelAuditPath(handle), `${JSON.stringify(record)}\n`, 'utf8');
   } catch (err) {
-    // Persistence failure is logged but does not abort the append —
-    // in-memory store remains authoritative. The error path is observable
-    // via process stderr; production hardening could escalate to a metric.
     // eslint-disable-next-line no-console
     console.warn(`[state] persistCaelAuditRecord failed for ${handle}: ${(err as Error).message}`);
   }
+  // PostgreSQL backend: fire-and-forget append
+  stateStore.append('audit', handle, record).catch((e) => {
+    console.warn(`[state] stateStore audit append failed for ${handle}:`, e);
+  });
 }
 
 /**
@@ -258,6 +261,10 @@ function persistAgentDefense(handle: string, config: AgentDefenseConfig): void {
     // eslint-disable-next-line no-console
     console.warn(`[state] persistAgentDefense failed for ${handle}: ${(err as Error).message}`);
   }
+  // PostgreSQL backend: fire-and-forget overwrite
+  stateStore.set('defense', handle, config).catch((e) => {
+    console.warn(`[state] stateStore defense set failed for ${handle}:`, e);
+  });
 }
 
 /**
@@ -375,6 +382,10 @@ function persistDispatch(handle: string, entry: DispatchEntry): void {
     // eslint-disable-next-line no-console
     console.warn(`[state] persistDispatch failed for ${handle}: ${(err as Error).message}`);
   }
+  // PostgreSQL backend: fire-and-forget append
+  stateStore.append('dispatch', handle, entry).catch((e) => {
+    console.warn(`[state] stateStore dispatch append failed for ${handle}:`, e);
+  });
 }
 
 export function isValidAttackClass(value: unknown): value is AttackClass {
@@ -789,4 +800,37 @@ export async function initStores(): Promise<void> {
       exportSessionStore.set(session.sessionId, session);
     }
   }
+
+  // Load CAEL audit, defense, dispatch — PostgreSQL first, then JSONL fallback
+  if (process.env.DATABASE_URL) {
+    try {
+      const auditHandles = await stateStore.listHandles('audit');
+      for (const handle of auditHandles) {
+        const records = await stateStore.getAll('audit', handle) as CaelAuditRecord[];
+        const existing = agentAuditStore.get(handle) || [];
+        agentAuditStore.set(handle, [...existing, ...records].slice(-MAX_CAEL_RECORDS_PER_AGENT));
+      }
+
+      const defenseHandles = await stateStore.listHandles('defense');
+      for (const handle of defenseHandles) {
+        const config = await stateStore.get('defense', handle) as AgentDefenseConfig | undefined;
+        if (config) agentDefenseStore.set(handle, config);
+      }
+
+      const dispatchHandles = await stateStore.listHandles('dispatch');
+      for (const handle of dispatchHandles) {
+        const entries = await stateStore.getAll('dispatch', handle) as DispatchEntry[];
+        const existing = agentDispatchQueue.get(handle) || [];
+        agentDispatchQueue.set(handle, [...existing, ...entries].slice(-MAX_DISPATCH_QUEUE_PER_AGENT));
+      }
+
+      console.log(`[loadAllStores] state stores from PostgreSQL: audit=${auditHandles.length}, defense=${defenseHandles.length}, dispatch=${dispatchHandles.length}`);
+    } catch (e) {
+      console.warn('[loadAllStores] PostgreSQL state load failed, falling back to JSONL:', e);
+    }
+  }
+
+  // Fallback / always: JSONL rehydration (catches handles not yet in Postgres)
+  loadCaelAuditFromDisk();
+  loadAgentDefenseFromDisk();
 }
