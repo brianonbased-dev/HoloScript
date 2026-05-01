@@ -38,7 +38,6 @@ function AssetCard({ asset, onImport }: { asset: Asset; onImport: (a: Asset) => 
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-black/40">
         {asset.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={asset.thumbnail} alt={asset.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-[18px]">

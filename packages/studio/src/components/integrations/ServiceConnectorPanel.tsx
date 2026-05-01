@@ -24,7 +24,6 @@ import { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import {
   X,
-  // eslint-disable-next-line deprecation/deprecation -- lucide-react alias; no replacement yet
   Github as GithubIcon,
   Train,
   Code,

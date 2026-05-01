@@ -27,7 +27,6 @@ function SnapshotCard({
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-black/40">
         {snap.dataUrl && snap.dataUrl.length > 100 ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={snap.dataUrl} alt={snap.label} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-[10px] text-studio-muted">

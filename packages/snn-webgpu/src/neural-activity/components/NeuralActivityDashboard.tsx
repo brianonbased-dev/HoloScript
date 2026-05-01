@@ -73,7 +73,7 @@ export const NeuralActivityDashboard: React.FC<NeuralActivityDashboardProps> = (
     for (const snap of initialSnapshots) {
       pushSnapshot(snap);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Expose pushSnapshot to parent
   React.useEffect(() => {

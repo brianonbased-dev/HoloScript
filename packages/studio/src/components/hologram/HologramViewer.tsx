@@ -27,16 +27,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { HologramBundle } from '@holoscript/engine/hologram';
 
-import {
-  detectViewer,
-  type HologramViewerKind,
-} from '@/lib/hologram/deviceDetect';
+import { detectViewer, type HologramViewerKind } from '@/lib/hologram/deviceDetect';
 
-import {
-  isHashLike,
-  sanitizeMetaForRender,
-  type SafeHologramMeta,
-} from './hologramMetaSanitizer';
+import { isHashLike, sanitizeMetaForRender, type SafeHologramMeta } from './hologramMetaSanitizer';
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -90,7 +83,10 @@ async function mountLookingGlassRender(
     Function('return import(' + JSON.stringify(s) + ')')() as Promise<unknown>;
 
   const mod = (await dynamicImport('holoplay-core')) as {
-    Client?: new () => { sendQuilt(opts: { url: string; tilesX: number; tilesY: number }): void; close?: () => void };
+    Client?: new () => {
+      sendQuilt(opts: { url: string; tilesX: number; tilesY: number }): void;
+      close?: () => void;
+    };
   };
 
   if (!mod.Client) {
@@ -123,15 +119,9 @@ async function mountLookingGlassRender(
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function HologramViewer({
-  bundle,
-  viewerOverride,
-  className = '',
-}: HologramViewerProps) {
+export function HologramViewer({ bundle, viewerOverride, className = '' }: HologramViewerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [activeKind, setActiveKind] = useState<HologramViewerKind>(
-    viewerOverride ?? 'parallax'
-  );
+  const [activeKind, setActiveKind] = useState<HologramViewerKind>(viewerOverride ?? 'parallax');
   const [error, setError] = useState<string | null>(null);
 
   const safeMeta = useMemo(() => sanitizeMetaForRender(bundle.meta), [bundle.meta]);
@@ -212,7 +202,6 @@ export function HologramViewer({
           URL.
         */}
         <video
-          // eslint-disable-next-line jsx-a11y/media-has-caption
           src={bundleAssetUrl(safeHash, 'mvhevc.mp4')}
           autoPlay
           loop
@@ -260,11 +249,13 @@ export function HologramViewer({
       className={`relative flex flex-col gap-2 rounded-lg border border-studio-border bg-black/30 p-4 ${className}`}
       data-viewer-kind="parallax"
     >
-      <div className="relative w-full overflow-hidden rounded-md bg-black/60" style={{ aspectRatio: `${safeMeta.width || 16} / ${safeMeta.height || 9}` }}>
+      <div
+        className="relative w-full overflow-hidden rounded-md bg-black/60"
+        style={{ aspectRatio: `${safeMeta.width || 16} / ${safeMeta.height || 9}` }}
+      >
         {previewUrl ? (
           bundle.parallaxWebm ? (
             <video
-              // eslint-disable-next-line jsx-a11y/media-has-caption
               src={previewUrl}
               autoPlay
               loop
@@ -273,12 +264,7 @@ export function HologramViewer({
               className="h-full w-full object-contain"
             />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt="hologram preview"
-              className="h-full w-full object-contain"
-            />
+            <img src={previewUrl} alt="hologram preview" className="h-full w-full object-contain" />
           )
         ) : (
           <div className="flex h-32 items-center justify-center text-xs text-studio-muted">

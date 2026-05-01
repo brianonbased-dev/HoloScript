@@ -52,7 +52,6 @@ function AssetCard({
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-black/40">
         {!imgError ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={asset.thumbnail}
             alt={asset.name}

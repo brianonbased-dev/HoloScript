@@ -10,3 +10,4 @@ packages/vscode-extension/
 
 # Ignore generated files
 **/*.d.ts
+**/.next/

@@ -81,7 +81,6 @@ function AssetCard({
       {/* Thumbnail or icon */}
       <div className={`flex h-14 w-full items-center justify-center rounded-md ${bg}`}>
         {asset.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={asset.thumbnail}
             alt={asset.name}

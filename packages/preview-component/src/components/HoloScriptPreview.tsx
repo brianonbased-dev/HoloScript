@@ -231,7 +231,6 @@ export const HoloScriptPreview: React.FC<HoloScriptPreviewProps> = ({
       renderer.dispose();
       rendererRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threeLoaded]); // Only re-init when THREE loads; rendererConfig changes handled separately
 
   // Render scene from code
