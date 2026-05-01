@@ -22,6 +22,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import { useProjectStore } from '@/lib/projectStore';
 import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
+import { HoloFileDropHandler } from '@/components/assets/HoloFileDropHandler';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   AlertTriangle,
@@ -1252,7 +1253,7 @@ export default function CreatePage() {
           {/* CENTER: Viewport + Inspector split */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* Viewport */}
-            <div className="relative flex-1 overflow-hidden">
+            <HoloFileDropHandler className="relative flex-1 overflow-hidden">
               {/* Generative Art Panel — replaces viewport when artMode===generative */}
               {artMode === 'generative' ? (
                 <StudioErrorBoundary label="Generative Art">
@@ -1292,7 +1293,7 @@ export default function CreatePage() {
                   ))}
                 </div>
               )}
-            </div>
+            </HoloFileDropHandler>
 
             {/* Inspector (bottom strip) — Shader Editor — Animation Timeline */}
             {/* ── Bottom splitter ── */}
