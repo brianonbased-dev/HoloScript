@@ -90,7 +90,26 @@ export interface BaseASTNode {
 }
 
 /**
- * Full ASTNode with directives and traits.
+ * Algebraic-weight threading context for provenance.
+ *
+ * Mirrored from `packages/core/src/compiler/traits/ProvenanceSemiring.ts:142`.
+ * Kept inline here so core-types preserves its zero-runtime-import
+ * invariant (the README at `index.ts:14-30` describes the design rule;
+ * a planned `pnpm sync` script will eventually automate the mirror —
+ * task_1777526367629_270g). Drift fix: 2026-04-30 / task_1777526366319_mobj.
+ * See research/2026-04-29_core-types-overlap-audit.md §1.
+ */
+export interface ProvenanceContext {
+  /** Authority weight (e.g., Founder=100, Agent=50, Guest=0) */
+  authorityLevel: number;
+  agentId?: string;
+  sourceType?: 'user' | 'agent' | 'system';
+  /** Optional reputation score from HoloMesh (0-100) — threads reputation into algebra */
+  reputationScore?: number;
+}
+
+/**
+ * Full ASTNode with directives, traits, and spatial-feed provenance.
  * HSPlusDirective is defined below in this same file (no circular import needed).
  */
 export interface ASTNode extends BaseASTNode {
@@ -98,7 +117,52 @@ export interface ASTNode extends BaseASTNode {
   directives?: HSPlusDirective[];
   /** HS+ Traits (Pre-processed map) */
   traits?: Map<VRTraitName, Record<string, unknown>>;
+  /** Spatial Feed Provenance */
+  provenance?: {
+    author: string;
+    timestamp: number;
+    provenanceHash: string;
+    context?: ProvenanceContext; // Algebraic weight threading
+  };
 }
+
+/**
+ * Spatial-tuple alias mirrored from
+ * `packages/core/src/types/HoloScriptPlus.ts:10`. Vector3 is the canonical
+ * 3-axis tuple shape used by every spatial trait at runtime; downstream
+ * type-narrowing utilities key on this alias rather than the raw tuple,
+ * so core-types must export it under the same name to preserve narrowing
+ * across the core-types boundary. Drift fix: 2026-04-30 /
+ * task_1777526366932_d16p. See research/2026-04-29_core-types-overlap-audit.md §2.
+ */
+export type Vector3 = [number, number, number];
+
+/**
+ * Quaternion alias mirrored from
+ * `packages/core/src/types/HoloScriptPlus.ts:26`. Same reasoning as
+ * Vector3 above — the alias is load-bearing for type narrowing, not just
+ * documentation.
+ */
+export type Quaternion = [number, number, number, number];
+
+/**
+ * HSPlus primitive-type name union mirrored from
+ * `packages/core/src/types/HoloScriptPlus.ts:157`. Output of
+ * `TypeInferencePass` on parsed HSPlus AST nodes — the simple compiler-
+ * target type list, distinct from the richer structured `HoloScriptType`
+ * (defined below) which models the full type-system surface (arrays,
+ * unions, intersections, generics).
+ */
+export type HSPlusType =
+  | 'float'
+  | 'int'
+  | 'bool'
+  | 'string'
+  | 'vec2'
+  | 'vec3'
+  | 'vec4'
+  | 'color'
+  | 'unknown';
 
 /**
  * Minimal HoloScript+ scene node shape used by downstream packages that need
@@ -111,11 +175,14 @@ export interface HSPlusNode extends ASTNode {
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
-  rotation?: [number, number, number] | [number, number, number, number];
-  scale?: [number, number, number];
+  /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
+  rotation?: Vector3 | Quaternion;
+  /** Scene-graph scale set by spatial traits at runtime. */
+  scale?: Vector3;
   version?: string | number;
   migrations?: Array<{ type: string; fromVersion: number; body: string }>;
   migrationBlocks?: Record<number, string>;
+  // Additional properties for runtime evaluation
   value?: unknown;
   target?: unknown;
   arguments?: unknown[];
@@ -129,8 +196,19 @@ export interface HSPlusNode extends ASTNode {
     start: { line: number; column: number };
     end: { line: number; column: number };
   };
+  /**
+   * Per-node reactive state block.
+   * Populated by the parser when a `state { key = value }` block
+   * appears inside a node/object declaration.
+   * Keys are state variable names; values are initial values.
+   */
   stateBlock?: Record<string, unknown>;
-  inferredType?: HoloScriptType | unknown;
+  /**
+   * Type inferred by TypeInferencePass.
+   * Set during compilation; never present on freshly-parsed AST.
+   */
+  inferredType?: HSPlusType;
+  /** Trait private state — `__`-prefixed keys are reserved for trait handlers. */
   [key: `__${string}`]: unknown;
 }
 
