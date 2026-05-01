@@ -128,6 +128,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/drizzle ./packages/studio/drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrate.cjs ./packages/studio/scripts/db-migrate.cjs
 
+# Next.js standalone output traces only deps imported by the app code.
+# db-migrate.cjs needs pg + drizzle-orm/node-postgres which are NOT imported
+# by any page/API route, so they're missing from the standalone bundle.
+# Install them explicitly in the runner image so migrations run on cold start.
+RUN npm install pg drizzle-orm --no-save --omit=dev && chown -R nextjs:nodejs /app/node_modules
+
 USER nextjs
 EXPOSE 3000
 
