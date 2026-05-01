@@ -58,6 +58,7 @@ export * from './EmbeddingSearchTrait';
 export * from './EmotionalVoiceTrait';
 export * from './EmotionDirectiveTrait';
 export * from './EmotionTrait';
+export * from './EmergentSpacetimeTrait';
 export * from './EncryptionTrait';
 export * from './EnvironmentalAudioTrait';
 export * from './EyeTrackedTrait';
