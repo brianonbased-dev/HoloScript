@@ -23,7 +23,7 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY tsconfig.base.json tsconfig.json ./
+COPY --from=manifests /app/tsconfig.base.json /app/tsconfig.json ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 
