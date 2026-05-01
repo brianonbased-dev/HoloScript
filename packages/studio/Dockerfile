@@ -99,7 +99,7 @@ ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 # `webpack` config and no `turbopack` config. ... Build error occurred ...
 # Error: Call retries were exceeded ... type: 'WorkerError'". Verified
 # 2026-04-25 against Railway deployment b69f2efe (5 consecutive failures).
-RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache,target=/app/packages/studio/.next/cache cd packages/studio && pnpm run build
+RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache-v2,target=/app/packages/studio/.next/cache cd packages/studio && pnpm run build
 
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
