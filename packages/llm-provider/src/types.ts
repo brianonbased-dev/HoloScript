@@ -217,6 +217,10 @@ export type LLMStreamChunk =
       finishReason: LLMCompletionResponse['finishReason'];
       usage: TokenUsage;
       model: string;
+      /** Provider-assigned request-id (see LLMCompletionResponse.requestId). */
+      requestId?: string;
+      /** Raw response headers (see LLMCompletionResponse.responseHeaders). */
+      responseHeaders?: Record<string, string>;
     };
 
 /**
@@ -285,6 +289,37 @@ export interface LLMCompletionResponse {
   /** Full assistant content blocks (text + tool_use), in order, for the
    *  follow-up tool_result message construction. */
   assistantBlocks?: AssistantContentBlock[];
+
+  /**
+   * Provider-assigned request identifier for observability, debugging, and
+   * support escalations.
+   *
+   * - Anthropic: the `request-id` response header (via
+   *   `MessageStream.request_id` or `APIPromise.withResponse()`).
+   * - OpenAI: the `x-request-id` response header.
+   * - Other providers: the closest equivalent header/field, or `undefined`
+   *   if the provider doesn't expose one.
+   *
+   * Without this, debugging a failing request requires reconstructing the
+   * timeline from logs alone — the provider's own support team needs the
+   * request-id to look up server-side traces. Capturing it here makes every
+   * LLMCompletionResponse self-describing for incident response.
+   */
+  requestId?: string;
+
+  /**
+   * Raw response headers from the provider, keyed by header name.
+   *
+   * Captured alongside `requestId` so callers can extract rate-limit headers,
+   * retry-after, provider-specific metadata, etc. without parsing the `raw`
+   * response object. Only populated by adapters that expose it (currently
+   * Anthropic via `MessageStream.response`). Keys are lowercased.
+   *
+   * Deliberately `Record<string, string>` rather than `Headers` — this is
+   * a plain-data snapshot, not a live browser/Header object. Adapters
+   * convert at capture time.
+   */
+  responseHeaders?: Record<string, string>;
 
   /** Raw response from the provider (for debugging) */
   raw?: unknown;

@@ -146,6 +146,8 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
       finishReason: response.finishReason,
       usage: response.usage,
       model: response.model,
+      requestId: response.requestId,
+      responseHeaders: response.responseHeaders,
     };
   }
 

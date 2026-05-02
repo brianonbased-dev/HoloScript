@@ -256,6 +256,24 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       });
       const response = await stream.finalMessage();
 
+      // Capture request-id and response headers for observability.
+      // stream.request_id is the `request-id` HTTP header that Anthropic
+      // assigns to every request — critical for debugging and support
+      // escalations. stream.response exposes the raw Response with all
+      // headers (rate-limit, retry-after, etc).
+      const requestId: string | undefined = stream.request_id ?? undefined;
+      let responseHeaders: Record<string, string> | undefined;
+      const rawResponse = stream.response;
+      if (rawResponse) {
+        const headers: Record<string, string> = {};
+        rawResponse.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        if (Object.keys(headers).length > 0) {
+          responseHeaders = headers;
+        }
+      }
+
       // Split response.content into text + tool_use blocks. Some Opus paths
       // emit ONLY tool_use (no text) — content stays empty in that case;
       // toolUses carries the work. Caller's tool-loop must check toolUses
@@ -291,6 +309,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
           : this.mapStopReason(response.stop_reason),
         toolUses: toolUses.length > 0 ? toolUses : undefined,
         assistantBlocks: assistantBlocks as never,
+        requestId,
+        responseHeaders,
         raw: response,
       };
     } catch (err: unknown) {
@@ -478,6 +498,23 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       streamError = err;
     }
 
+    // Capture request-id and response headers from the stream object.
+    // Available after the stream connects (request_id is set by the first
+    // response from Anthropic). For mid-stream errors, the request_id may
+    // still be available if the connection was established before the error.
+    const capturedRequestId: string | undefined = stream.request_id ?? undefined;
+    let capturedResponseHeaders: Record<string, string> | undefined;
+    const rawResp = stream.response;
+    if (rawResp) {
+      const headers: Record<string, string> = {};
+      rawResp.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      if (Object.keys(headers).length > 0) {
+        capturedResponseHeaders = headers;
+      }
+    }
+
     // Pull the final message off the stream for usage + model. finalMessage()
     // resolves once the stream is fully drained; on a mid-stream throw we
     // skip it (the stream object may not have a valid final state) and
@@ -517,6 +554,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       finishReason,
       usage,
       model: finalModel,
+      requestId: capturedRequestId,
+      responseHeaders: capturedResponseHeaders,
     };
 
     if (streamErrored) {

@@ -34,7 +34,7 @@ type StreamEvent =
   | { type: 'content_block_stop' }
   | { type: 'message_delta'; delta: { stop_reason: string | null } };
 
-const { streamEvents, finalMessageData } = vi.hoisted(() => ({
+const { streamEvents, finalMessageData, mockRequestId, mockResponseHeaders } = vi.hoisted(() => ({
   streamEvents: [] as StreamEvent[],
   finalMessageData: {
     value: {
@@ -44,6 +44,8 @@ const { streamEvents, finalMessageData } = vi.hoisted(() => ({
       stop_reason: 'end_turn' as string | null,
     },
   },
+  mockRequestId: { value: 'req_abc123' as string | null | undefined },
+  mockResponseHeaders: { value: {} as Record<string, string> },
 }));
 
 vi.mock('@anthropic-ai/sdk', () => {
@@ -54,6 +56,11 @@ vi.mock('@anthropic-ai/sdk', () => {
           for (const ev of streamEvents) yield ev;
         },
         finalMessage: async () => finalMessageData.value,
+        get request_id() { return mockRequestId.value; },
+        get response() {
+          const headers = new Headers(Object.entries(mockResponseHeaders.value));
+          return { headers };
+        },
       }),
     };
     constructor(_config: Record<string, unknown>) {
@@ -275,5 +282,101 @@ describe('BaseLLMAdapter default streamCompletion (fallback)', () => {
     // Always at least a message_stop
     expect(chunks.length).toBeGreaterThanOrEqual(1);
     expect(chunks[chunks.length - 1].type).toBe('message_stop');
+  });
+});
+
+describe('AnthropicAdapter.streamCompletion — request_id + response headers capture', () => {
+  beforeEach(() => {
+    mockRequestId.value = 'req_test_001';
+    mockResponseHeaders.value = {
+      'request-id': 'req_test_001',
+      'anthropic-ratelimit-requests-remaining': '50',
+      'x-custom': 'value',
+    };
+  });
+
+  it('captures request_id from stream.request_id on message_stop', async () => {
+    streamEvents.length = 0;
+    streamEvents.push(
+      { type: 'content_block_start', content_block: { type: 'text' } },
+      { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } },
+      { type: 'content_block_stop' },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' } }
+    );
+    finalMessageData.value = {
+      content: [{ type: 'text', text: 'Hi' }],
+      usage: { input_tokens: 8, output_tokens: 2 },
+      model: 'claude-sonnet-4-6',
+      stop_reason: 'end_turn',
+    };
+
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const chunks = await collect(
+      adapter.streamCompletion({ messages: [{ role: 'user', content: 'hi' }] })
+    );
+
+    const stops = chunks.filter((c) => c.type === 'message_stop');
+    expect(stops).toHaveLength(1);
+    if (stops[0].type === 'message_stop') {
+      expect(stops[0].requestId).toBe('req_test_001');
+    }
+  });
+
+  it('captures response headers on message_stop', async () => {
+    streamEvents.length = 0;
+    streamEvents.push(
+      { type: 'content_block_start', content_block: { type: 'text' } },
+      { type: 'content_block_delta', delta: { type: 'text_delta', text: 'test' } },
+      { type: 'content_block_stop' },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' } }
+    );
+    finalMessageData.value = {
+      content: [{ type: 'text', text: 'test' }],
+      usage: { input_tokens: 5, output_tokens: 3 },
+      model: 'claude-sonnet-4-6',
+      stop_reason: 'end_turn',
+    };
+
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const chunks = await collect(
+      adapter.streamCompletion({ messages: [{ role: 'user', content: 'hi' }] })
+    );
+
+    const stops = chunks.filter((c) => c.type === 'message_stop');
+    expect(stops).toHaveLength(1);
+    if (stops[0].type === 'message_stop') {
+      expect(stops[0].responseHeaders).toBeDefined();
+      expect(stops[0].responseHeaders!['anthropic-ratelimit-requests-remaining']).toBe('50');
+      expect(stops[0].responseHeaders!['x-custom']).toBe('value');
+    }
+  });
+
+  it('handles null/undefined request_id gracefully', async () => {
+    mockRequestId.value = null;
+    streamEvents.length = 0;
+    streamEvents.push(
+      { type: 'content_block_start', content_block: { type: 'text' } },
+      { type: 'content_block_delta', delta: { type: 'text_delta', text: 'ok' } },
+      { type: 'content_block_stop' },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn' } }
+    );
+    finalMessageData.value = {
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 3, output_tokens: 1 },
+      model: 'claude-sonnet-4-6',
+      stop_reason: 'end_turn',
+    };
+
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const chunks = await collect(
+      adapter.streamCompletion({ messages: [{ role: 'user', content: 'hi' }] })
+    );
+
+    const stops = chunks.filter((c) => c.type === 'message_stop');
+    expect(stops).toHaveLength(1);
+    if (stops[0].type === 'message_stop') {
+      // null request_id → undefined (field omitted)
+      expect(stops[0].requestId).toBeUndefined();
+    }
   });
 });

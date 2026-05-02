@@ -32,9 +32,11 @@ import { buildThinkingAndOutputForAnthropic } from '../adapters/anthropic';
 
 // ---------- shared mock for stop-reason + cache-stability tests ----------
 
-const { streamCalls, nextStopReason } = vi.hoisted(() => ({
+const { streamCalls, nextStopReason, mockRequestId, mockResponseHeaders } = vi.hoisted(() => ({
   streamCalls: [] as Array<Record<string, unknown>>,
   nextStopReason: { value: 'end_turn' as string },
+  mockRequestId: { value: 'req_complete_test' as string | null | undefined },
+  mockResponseHeaders: { value: {} as Record<string, string> },
 }));
 
 vi.mock('@anthropic-ai/sdk', () => {
@@ -49,6 +51,11 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: nextStopReason.value,
           }),
+          get request_id() { return mockRequestId.value; },
+          get response() {
+            const headers = new Headers(Object.entries(mockResponseHeaders.value));
+            return { headers };
+          },
         };
       },
     };
@@ -251,5 +258,42 @@ describe('buildThinkingAndOutputForAnthropic — effort downgrade', () => {
       messages: [{ role: 'user', content: 'hi' }],
     });
     expect(out.output_config?.effort).toBe('high');
+  });
+});
+
+describe('AnthropicAdapter complete() — requestId + responseHeaders capture', () => {
+  beforeEach(() => {
+    streamCalls.length = 0;
+    nextStopReason.value = 'end_turn';
+    mockRequestId.value = 'req_complete_abc';
+    mockResponseHeaders.value = {
+      'anthropic-ratelimit-requests-remaining': '99',
+    };
+  });
+
+  it('complete() captures requestId from stream.request_id', async () => {
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const res = await adapter.complete({
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(res.requestId).toBe('req_complete_abc');
+  });
+
+  it('complete() captures responseHeaders from stream.response', async () => {
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const res = await adapter.complete({
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(res.responseHeaders).toBeDefined();
+    expect(res.responseHeaders!['anthropic-ratelimit-requests-remaining']).toBe('99');
+  });
+
+  it('complete() handles null request_id gracefully (field omitted)', async () => {
+    mockRequestId.value = null;
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const res = await adapter.complete({
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(res.requestId).toBeUndefined();
   });
 });

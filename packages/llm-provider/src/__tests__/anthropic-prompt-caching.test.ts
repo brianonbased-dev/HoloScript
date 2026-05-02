@@ -40,6 +40,8 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: 'end_turn',
           }),
+          get request_id() { return 'req_caching_test'; },
+          get response() { return { headers: new Headers() }; },
         };
       },
     };
