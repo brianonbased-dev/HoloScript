@@ -1,3 +1,20 @@
+/**
+ * Android XR Trait Registry
+ *
+ * Central registry that aggregates trait dispatch maps from domain-scoped
+ * modules. Replaces the previous monolithic ANDROIDXR_TRAIT_MAP with a
+ * composable pattern: each domain (physics, interaction, audio, etc.) owns
+ * its own map, and this module composes them into the unified registry.
+ *
+ * The split architecture:
+ *   AndroidXRTraitDispatch.ts — domain-scoped trait maps (physics, interaction,
+ *     audio, AR, accessibility, UI, environment, DP3, glasses, multiplayer)
+ *   AndroidXRCodeTemplates.ts — larger trait maps (visual, V43, AI)
+ *   AndroidXRTraitMap.ts — THIS FILE — registry composition + query helpers
+ *
+ * @version 2.0.0 — Registry pattern (was flat re-export monolith)
+ */
+
 import type { AndroidXRTraitMapping, TraitImplementationLevel } from './AndroidXRComponentTypes';
 import {
   PHYSICS_TRAIT_MAP,
@@ -17,6 +34,7 @@ import {
   AI_TRAIT_MAP,
 } from './AndroidXRCodeTemplates';
 
+// Re-export individual maps for consumers that need domain-scoped access
 export {
   PHYSICS_TRAIT_MAP,
   INTERACTION_TRAIT_MAP,
@@ -36,6 +54,31 @@ export {
 } from './AndroidXRCodeTemplates';
 export type { AndroidXRComponent, TraitImplementationLevel, AndroidXRTraitMapping } from './AndroidXRComponentTypes';
 
+// =============================================================================
+// REGISTRY COMPOSITION
+// =============================================================================
+
+/** Ordered list of domain maps in registration order */
+const DOMAIN_MAPS: ReadonlyArray<readonly [string, Record<string, AndroidXRTraitMapping>]> = [
+  ['physics', PHYSICS_TRAIT_MAP],
+  ['interaction', INTERACTION_TRAIT_MAP],
+  ['audio', AUDIO_TRAIT_MAP],
+  ['ar', AR_TRAIT_MAP],
+  ['visual', VISUAL_TRAIT_MAP],
+  ['accessibility', ACCESSIBILITY_TRAIT_MAP],
+  ['ui', UI_TRAIT_MAP],
+  ['environment', ENVIRONMENT_TRAIT_MAP],
+  ['dp3', DP3_TRAIT_MAP],
+  ['v43', V43_TRAIT_MAP],
+  ['glasses', GLASSES_TRAIT_MAP],
+  ['multiplayer', MULTIPLAYER_TRAIT_MAP],
+  ['ai', AI_TRAIT_MAP],
+] as const;
+
+/**
+ * Unified trait map — composed from all domain maps.
+ * Spread-based composition preserves the previous ANDROIDXR_TRAIT_MAP interface.
+ */
 export const ANDROIDXR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ...PHYSICS_TRAIT_MAP,
   ...INTERACTION_TRAIT_MAP,
@@ -53,7 +96,7 @@ export const ANDROIDXR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 };
 
 // =============================================================================
-// HELPER FUNCTIONS
+// REGISTRY QUERY HELPERS
 // =============================================================================
 
 export function getTraitMapping(traitName: string): AndroidXRTraitMapping | undefined {
@@ -104,6 +147,20 @@ export function listTraitsByLevel(level: TraitImplementationLevel): string[] {
   return Object.entries(ANDROIDXR_TRAIT_MAP)
     .filter(([_, mapping]) => mapping.level === level)
     .map(([name]) => name);
+}
+
+/** Get the domain that owns a given trait (physics, interaction, audio, etc.) */
+export function getTraitDomain(traitName: string): string | undefined {
+  for (const [domain, map] of DOMAIN_MAPS) {
+    if (traitName in map) return domain;
+  }
+  return undefined;
+}
+
+/** List all traits in a specific domain */
+export function listTraitsByDomain(domain: string): string[] {
+  const entry = DOMAIN_MAPS.find(([d]) => d === domain);
+  return entry ? Object.keys(entry[1]) : [];
 }
 
 // =============================================================================

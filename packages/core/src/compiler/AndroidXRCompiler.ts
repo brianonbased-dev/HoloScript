@@ -1,4 +1,3 @@
-import type { Vector3 } from '../types';
 /**
  * HoloScript -> Android XR Compiler
  *
@@ -32,7 +31,7 @@ import type { Vector3 } from '../types';
  *   - Spatial audio with Oboe
  *   - SurfaceEntity with DRM-protected video playback
  *
- * @version 3.0.0 — Android XR SDK Developer Preview 3 + AI Glasses
+ * @version 3.1.0 — Extracted shared helpers to AndroidKotlinHelpers
  */
 
 import { CompilerBase } from './CompilerBase';
@@ -67,6 +66,16 @@ import {
   weatherToAndroidXR,
 } from './DomainBlockCompilerMixin';
 import type { CompiledPostProcessing } from './DomainBlockCompilerMixin';
+import {
+  toKotlinType as _toKotlinType,
+  toKotlinValue as _toKotlinValue,
+  sanitizeName as _sanitizeName,
+  toKotlinColor as _toKotlinColor,
+  mapShapeToFilament as _mapShapeToFilament,
+  findObjProp as _findProp,
+  compositionUsesArCoreDepthTraits as _compositionUsesArCoreDepthTraits,
+  toKotlinFloat3 as _toKotlinFloat3,
+} from './AndroidKotlinHelpers';
 
 import type { AndroidXRCompileResult } from './CompilerTypes';
 export type { AndroidXRCompileResult } from './CompilerTypes';
@@ -155,79 +164,44 @@ export class AndroidXRCompiler extends CompilerBase {
     if (this.indentLevel > 0) this.indentLevel--;
   }
 
+  /** @deprecated Use sanitizeName from AndroidKotlinHelpers */
   public sanitizeName(name: string): string {
-    return name.replace(/[^a-zA-Z0-9_]/g, '_');
+    return _sanitizeName(name);
   }
 
+  /** @deprecated Use toKotlinFloat3 from AndroidKotlinHelpers */
   public toKotlinFloat3(arr: number[]): string {
-    if (Array.isArray(arr) && arr.length >= 3) return `Float3(${arr[0]}f, ${arr[1]}f, ${arr[2]}f)`;
-    if (Array.isArray(arr) && arr.length >= 1) return `Float3(${arr[0]}f, ${arr[0]}f, ${arr[0]}f)`;
-    const v = typeof arr === 'number' ? arr : 0;
-    return `Float3(${v}f, ${v}f, ${v}f)`;
+    return _toKotlinFloat3(arr);
   }
 
+  /** @deprecated Use toKotlinColor from AndroidKotlinHelpers */
   public toKotlinColor(hex: string): string {
-    if (typeof hex === 'string' && hex.startsWith('#')) {
-      const raw = hex.slice(1);
-      if (raw.length === 6) return `Color(0xFF${raw.toUpperCase()})`;
-      if (raw.length === 8) {
-        const [rr, gg, bb, aa] = [
-          raw.substring(0, 2),
-          raw.substring(2, 4),
-          raw.substring(4, 6),
-          raw.substring(6, 8),
-        ];
-        return `Color(0x${aa.toUpperCase()}${rr.toUpperCase()}${gg.toUpperCase()}${bb.toUpperCase()})`;
-      }
-    }
-    return 'Color.White';
+    return _toKotlinColor(hex);
   }
 
+  /** @deprecated Use mapShapeToFilament from AndroidKotlinHelpers */
   public mapShapeToFilament(type: string): string {
-    const map: Record<string, string> = {
-      cube: 'BoxShape',
-      box: 'BoxShape',
-      sphere: 'IcoSphereShape',
-      cylinder: 'CylinderShape',
-      cone: 'ConeShape',
-      plane: 'QuadShape',
-      torus: 'CustomRingGeometry',
-      capsule: 'CapsuleShape',
-    };
-    return map[type] ?? `Unknown("${type}")`;
+    return _mapShapeToFilament(type);
   }
 
+  /** @deprecated Use toKotlinType from AndroidKotlinHelpers */
   public toKotlinType(value: HoloValue): string {
-    if (value === null) return 'Any?';
-    if (typeof value === 'boolean') return 'Boolean';
-    if (typeof value === 'number') return Number.isInteger(value) ? 'Int' : 'Float';
-    if (typeof value === 'string') return 'String';
-    if (Array.isArray(value)) {
-      if (value.length === 3 && value.every((v) => typeof v === 'number')) return 'Vector3';
-      return 'List<Any>';
-    }
-    return 'Any';
+    return _toKotlinType(value);
   }
 
+  /** @deprecated Use toKotlinValue from AndroidKotlinHelpers */
   public toKotlinValue(value: HoloValue): string {
-    if (typeof value === 'number') return Number.isInteger(value) ? `${value}` : `${value}f`;
-    if (typeof value === 'boolean') return value ? 'true' : 'false';
-    if (typeof value === 'string') return `"${this.escapeStringValue(value, 'Kotlin')}"`;
-    if (value === null) return 'null';
-    if (Array.isArray(value))
-      return `listOf(${value.map((v) => this.toKotlinValue(v)).join(', ')})`;
-    return 'null';
+    return _toKotlinValue(value, (s, t) => this.escapeStringValue(s, t));
   }
 
+  /** @deprecated Use findObjProp from AndroidKotlinHelpers (note: XR uses 'findProp' alias) */
   public findProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {
-    return obj.properties?.find((p) => p.key === key)?.value;
+    return _findProp(obj, key);
   }
 
+  /** @deprecated Use compositionUsesArCoreDepthTraits from AndroidKotlinHelpers */
   public compositionUsesArCoreDepthTraits(composition: HoloComposition): boolean {
-    const depthTraits = new Set(['occlusion_mesh', 'environment_probe', 'spatial_awareness']);
-    return (
-      composition.objects?.some((o) => o.traits?.some((t) => depthTraits.has(t.name))) ?? false
-    );
+    return _compositionUsesArCoreDepthTraits(composition);
   }
 }
 
