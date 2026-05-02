@@ -276,21 +276,18 @@ function computeRicci(
 function forceLayoutGuard(
   voxelId: string,
   network: ProvenanceNetwork,
-  minSeparation: number = 0.01
+  minSeparation: number = 0.01,
+  neighborIds?: string[]
 ): [number, number, number] {
   const voxel = network.voxels.get(voxelId);
   if (!voxel) return [0, 0, 0];
 
   let force: [number, number, number] = [0, 0, 0];
 
-  // Only check edge-connected neighbors (O(k) not O(n))
-  const neighborIds = new Set<string>();
-  for (const edge of network.edges) {
-    if (edge.source === voxelId) neighborIds.add(edge.target);
-    if (edge.target === voxelId) neighborIds.add(edge.source);
-  }
+  // Use pre-computed adjacency list if provided
+  const neighbors = neighborIds || Array.from(network.voxels.keys()).filter(id => id !== voxelId);
 
-  for (const otherId of neighborIds) {
+  for (const otherId of neighbors) {
     const other = network.voxels.get(otherId);
     if (!other) continue;
 
@@ -527,24 +524,36 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     const startTime = performance.now();
     const network = state.network;
 
-    // 1. Update edge weights from mutual information
+    // Build adjacency list once (O(edges) not O(voxels × edges))
+    const adjacency = new Map<string, string[]>();
     for (const edge of network.edges) {
-      const source = network.voxels.get(edge.source);
-      const target = network.voxels.get(edge.target);
-      if (source && target) {
-        edge.mutualInfo = mutualInformation(source.state, target.state);
-        edge.weight = edge.mutualInfo * edge.provenance;
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
+      if (!adjacency.has(edge.target)) adjacency.set(edge.target, []);
+      adjacency.get(edge.source)!.push(edge.target);
+      adjacency.get(edge.target)!.push(edge.source);
+    }
+
+    // 1. Update edge weights from mutual information (skip if expensive)
+    // Run every 10 frames for performance
+    const frameSkip = 10;
+    const frame = Math.floor(performance.now() / 16);
+    if (frame % frameSkip === 0) {
+      for (const edge of network.edges) {
+        const source = network.voxels.get(edge.source);
+        const target = network.voxels.get(edge.target);
+        if (source && target) {
+          edge.mutualInfo = mutualInformation(source.state, target.state);
+          edge.weight = edge.mutualInfo * edge.provenance;
+        }
       }
     }
 
     // 2. Apply force-layout guard (singularity prevention)
     if (config.force_layout_guard) {
       for (const [voxelId, voxel] of network.voxels.entries()) {
-        const neighbors = network.edges
-          .filter((e) => e.source === voxelId || e.target === voxelId)
-          .map((e) => (e.source === voxelId ? e.target : e.source));
+        const neighborIds = adjacency.get(voxelId) || [];
 
-        const force = forceLayoutGuard(voxelId, network, 0.01);
+        const force = forceLayoutGuard(voxelId, network, 0.01, neighborIds);
 
         // Apply force to position (simple Euler integration with damping)
         const damping = 0.95;
@@ -577,11 +586,10 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       const voxel = network.voxels.get(voxelId);
       if (!voxel) continue;
 
-      const neighbors = network.edges
-        .filter((e) => e.source === voxelId || e.target === voxelId)
-        .map((e) => (e.source === voxelId ? e.target : e.source));
+      // Use pre-computed adjacency list
+      const neighborIds = adjacency.get(voxelId) || [];
 
-      const ricci = computeRicci(voxelId, network, neighbors);
+      const ricci = computeRicci(voxelId, network, neighborIds);
 
       // GR limit: Ricci → 0 in flat space (large-N, provenance → 1)
       const grRicci = 0;
