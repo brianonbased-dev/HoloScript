@@ -139,6 +139,48 @@ function countBy(objs: ParsedObject[], fn: (o: ParsedObject) => boolean): number
 
 // --- Task-specific deterministic checks ---
 
+function verifyT09(objs: ParsedObject[]): VerificationResult[] {
+  const cones = objs.filter((o) => o.primitive === 'cone');
+  const pinks = cones.filter((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return c.includes('pink') || c === '#ffc0cb' || c === '#ff69b4' || c === '#ffb6c1' || c === '#db7093';
+  });
+  const cone = cones[0];
+
+  // Cone primitives default to tip-up (+Y). No rotation = tip up.
+  // Explicit rotation only fails if it clearly reorients the tip.
+  let tipUp = true;
+  let tipRationale = 'default cone orientation is tip-up (+Y)';
+  if (cone && cone.rotation) {
+    if (cone.rotation.length === 3) {
+      const [rx, , rz] = cone.rotation;
+      // Any X or Z rotation that would tilt the cone away from +Y
+      if (Math.abs(rx) > 0.1 || Math.abs(rz) > 0.1) {
+        tipUp = false;
+        tipRationale = `rotation [${cone.rotation.map((n) => Number(n).toFixed(2)).join(', ')}] tilts tip away from +Y`;
+      }
+    } else if (cone.rotation.length === 4) {
+      // Quaternion: [x, y, z, w]. If x or z are significant, the cone is tilted.
+      const [, , z, w] = cone.rotation;
+      // A pure Y-axis rotation has x=z=0. Any x or z component tilts the axis.
+      if (Math.abs(cone.rotation[0]) > 0.05 || Math.abs(z) > 0.05) {
+        tipUp = false;
+        tipRationale = `quaternion rotation tilts tip away from +Y`;
+      }
+    }
+  }
+
+  const pos = cone?.position ?? [0, 0, 0];
+  const atOrigin = within(pos[0], 0, 0.01) && within(pos[1], 0, 0.01) && within(pos[2], 0, 0.01);
+
+  return [
+    { criterion_id: 'is_cone', passed: cones.length === 1, rationale: `found ${cones.length} cones` },
+    { criterion_id: 'color_pink', passed: pinks.length >= 1, rationale: `pink cones: ${pinks.length}` },
+    { criterion_id: 'tip_up', passed: tipUp, rationale: tipRationale },
+    { criterion_id: 'position_correct', passed: atOrigin, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+  ];
+}
+
 function verifyT06(objs: ParsedObject[]): VerificationResult[] {
   const cubes = objs.filter((o) => o.primitive === 'cube');
   const yellows = cubes.filter((o) => (o.color ?? '').toLowerCase().includes('yellow'));
@@ -445,6 +487,7 @@ function verifyA10(objs: ParsedObject[]): VerificationResult[] {
 
 const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResult[]> = {
   T06: verifyT06,
+  T09: verifyT09,
   M02: verifyM02,
   M06: verifyM06,
   M09: verifyM09,

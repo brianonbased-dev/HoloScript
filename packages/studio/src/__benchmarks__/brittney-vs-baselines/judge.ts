@@ -330,7 +330,7 @@ async function judgeWithOllama(
 
   const byId = new Map(submitted.map((v) => [v.criterion_id, v] as const));
 
-  const verdicts: RubricVerdict[] = task.evaluation_rubric.map((c) => {
+  let verdicts: RubricVerdict[] = task.evaluation_rubric.map((c) => {
     const found = byId.get(c.id);
     return {
       task_id: task.id,
@@ -339,6 +339,21 @@ async function judgeWithOllama(
       criterion_id: c.id,
       passed: found?.passed ?? false,
       rationale: found?.rationale ?? 'missing in judge response',
+    };
+  });
+
+  // Deterministic override: same logic as Anthropic judge path.
+  const deterministic = verifyDeterministically(task, mutations);
+  const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
+  verdicts = verdicts.map((v) => {
+    const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
+    const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
+    const det = detById.get(v.criterion_id);
+    if (!det || !useDeterministic) return v;
+    return {
+      ...v,
+      passed: det.passed,
+      rationale: `[deterministic] ${det.rationale} | [llm] ${v.rationale}`,
     };
   });
 
