@@ -2,7 +2,7 @@
  * SimulationContract tests — verify enforced guarantees.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   hashGeometry,
   validateUnits,
@@ -11,6 +11,14 @@ import {
   ContractedSimulation,
   computeAdapterFingerprint,
   type AdapterInfo,
+  acceptsCrossScale,
+  coarsestCommonScale,
+  SCALE_ALIASES,
+  SCALE_FROM_ALIAS,
+  SCALE_ORDER,
+  DEFAULT_SCALE_ENVELOPES,
+  type SimulationScale,
+  type ScaleEnvelope,
 } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 
@@ -896,5 +904,335 @@ describe('ContractedSimulation subgrid attestation (TODO-05)', () => {
     expect(att).toBeDefined();
     const result = await verifySubgridAttestationAsync(att!, params);
     expect(result.valid).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Scale Tag & Acceptance Envelopes (EVOLVED §7.2, W.QDA.001)
+//
+// Per task task_1777433041258_xs7f: SimulationContract.scale field +
+// per-scale acceptance envelopes. Cross-tier replay clause additive to
+// W.GOLD.189 Algebraic Trust framing.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Scale Tag & Acceptance Envelopes', () => {
+  const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  const e = new Uint32Array([0, 1, 2, 3]);
+
+  function makeConfig() {
+    return { vertices: v.slice(), tetrahedra: e.slice() };
+  }
+
+  // ── (1) Default scale is 'continuum' ─────────────────────────────────────
+
+  it('(1) defaults to continuum scale when no scale is specified', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+    });
+    expect(contracted.getScale()).toBe('continuum');
+  });
+
+  // ── (2) All canonical scale names are accepted ────────────────────────────
+
+  it('(2) accepts all five canonical scale names', () => {
+    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    for (const scale of scales) {
+      const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+        fixedDt: 0.001,
+        scale,
+      });
+      expect(contracted.getScale()).toBe(scale);
+    }
+  });
+
+  // ── (3) Short aliases resolve to canonical names ──────────────────────────
+
+  it('(3) resolves short aliases to canonical names', () => {
+    const aliasTests: [string, SimulationScale][] = [
+      ['qm', 'quantum'],
+      ['md', 'atomistic'],
+      ['meso', 'mesoscopic'],
+      ['continuum', 'continuum'],
+      ['system', 'empirical-surrogate'],
+    ];
+    for (const [alias, expected] of aliasTests) {
+      const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+        fixedDt: 0.001,
+        scale: alias as SimulationScale,
+      });
+      expect(contracted.getScale()).toBe(expected);
+    }
+  });
+
+  // ── (4) Default envelope matches scale ────────────────────────────────────
+
+  it('(4) provides the correct default envelope for each scale', () => {
+    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    for (const scale of scales) {
+      const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+        fixedDt: 0.001,
+        scale,
+      });
+      const envelope = contracted.getScaleEnvelope();
+      expect(envelope.scale).toBe(scale);
+      expect(envelope.tolerance).toBe(DEFAULT_SCALE_ENVELOPES[scale].tolerance);
+      expect(envelope.replayAllowed).toBe(true); // All scales allow replay
+      expect(Object.keys(envelope.vvCriteria).length).toBeGreaterThan(0);
+    }
+  });
+
+  // ── (5) Custom envelope overrides default ────────────────────────────────
+
+  it('(5) allows custom envelope override per contract', () => {
+    const customEnvelope: ScaleEnvelope = {
+      scale: 'continuum',
+      tolerance: 5e-3, // Tighter than default 1e-2
+      replayAllowed: true,
+      vvCriteria: { convergence: 5e-3 },
+      projectionsTo: {},
+    };
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'continuum',
+      scaleEnvelope: customEnvelope,
+    });
+    expect(contracted.getScaleEnvelope().tolerance).toBe(5e-3);
+    expect(contracted.getScaleEnvelope().vvCriteria.convergence).toBe(5e-3);
+  });
+
+  // ── (6) Scale is included in provenance ───────────────────────────────────
+
+  it('(6) includes scale and envelope in provenance', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'quantum',
+    });
+    const prov = contracted.getProvenance();
+    expect(prov.scale).toBe('quantum');
+    expect(prov.scaleEnvelope.scale).toBe('quantum');
+    expect(prov.scaleEnvelope.tolerance).toBe(1e-6);
+  });
+
+  // ── (7) Scale is included in replay ───────────────────────────────────────
+
+  it('(7) includes scale and envelope in replay record', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'atomistic',
+    });
+    const replay = contracted.createReplay();
+    expect(replay.scale).toBe('atomistic');
+    expect(replay.scaleEnvelope.tolerance).toBe(1e-4);
+  });
+
+  // ── (8) Scale differentiates Contract-IDs ────────────────────────────────
+
+  it('(8) different scale produces different Contract-ID than default continuum', () => {
+    const continuumContract = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      // No scale specified — defaults to 'continuum'
+    });
+    const quantumContract = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'quantum',
+    });
+    // Different scale → different contract ID (even with same geometry)
+    expect(quantumContract.getContractId()).not.toBe(continuumContract.getContractId());
+  });
+
+  // ── (9) Backward compat: continuum with no other opts = geometryHash ─────
+
+  it('(9) backward compat: continuum scale with no optional inputs = geometryHash', () => {
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      // scale defaults to 'continuum', no adapter fingerprint, no subgrid
+    });
+    // When scale is 'continuum' and no other identity inputs, contractId
+    // should be byte-identical to geometryHash (backward compat)
+    expect(contracted.getContractId()).toBe(contracted.getProvenance().geometryHash);
+  });
+
+  // ── (10) Non-default continuum scale is included in contract ID composition ─
+
+  it('(10) continuum scale + adapter fingerprint includes scale in composition', () => {
+    // When there IS an adapter fingerprint, the scale gets folded in too
+    // (since the fast path only applies when ALL optional inputs are default)
+    const withFp = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'continuum',
+      adapterFingerprint: 'test-fp',
+    });
+    // Contract ID should not be just geometryHash (has composition)
+    expect(withFp.getContractId()).not.toBe(
+      new ContractedSimulation(mockSolver(), makeConfig(), {
+        fixedDt: 0.001,
+        // default continuum, no fingerprint
+      }).getContractId()
+    );
+  });
+
+  // ── (11) Scale aliases are comprehensive ─────────────────────────────────
+
+  it('(11) SCALE_ALIASES maps all five canonical names', () => {
+    const canonicalNames = Object.keys(SCALE_ALIASES) as SimulationScale[];
+    expect(canonicalNames).toHaveLength(5);
+    expect(canonicalNames).toContain('quantum');
+    expect(canonicalNames).toContain('atomistic');
+    expect(canonicalNames).toContain('mesoscopic');
+    expect(canonicalNames).toContain('continuum');
+    expect(canonicalNames).toContain('empirical-surrogate');
+  });
+
+  it('(11b) SCALE_FROM_ALIAS maps all short aliases', () => {
+    expect(SCALE_FROM_ALIAS['qm']).toBe('quantum');
+    expect(SCALE_FROM_ALIAS['md']).toBe('atomistic');
+    expect(SCALE_FROM_ALIAS['meso']).toBe('mesoscopic');
+    expect(SCALE_FROM_ALIAS['continuum']).toBe('continuum');
+    expect(SCALE_FROM_ALIAS['system']).toBe('empirical-surrogate');
+    // Canonical names also resolve to themselves
+    expect(SCALE_FROM_ALIAS['quantum']).toBe('quantum');
+    expect(SCALE_FROM_ALIAS['empirical-surrogate']).toBe('empirical-surrogate');
+  });
+
+  // ── (12) Scale ordering is monotonic ─────────────────────────────────────
+
+  it('(12) SCALE_ORDER is monotonically increasing (finer → coarser)', () => {
+    expect(SCALE_ORDER.quantum).toBeLessThan(SCALE_ORDER.atomistic);
+    expect(SCALE_ORDER.atomistic).toBeLessThan(SCALE_ORDER.mesoscopic);
+    expect(SCALE_ORDER.mesoscopic).toBeLessThan(SCALE_ORDER.continuum);
+    expect(SCALE_ORDER.continuum).toBeLessThan(SCALE_ORDER['empirical-surrogate']);
+  });
+
+  // ── (13) Default envelopes have valid projections ─────────────────────────
+
+  it('(13) each scale has projections to coarser scales only', () => {
+    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    for (const scale of scales) {
+      const envelope = DEFAULT_SCALE_ENVELOPES[scale];
+      const projectionTargets = Object.keys(envelope.projectionsTo) as SimulationScale[];
+      for (const target of projectionTargets) {
+        // Projections should only go to coarser scales
+        expect(SCALE_ORDER[target]).toBeGreaterThan(SCALE_ORDER[scale]);
+      }
+    }
+    // Empirical-surrogate has no projections (coarsest scale)
+    expect(Object.keys(DEFAULT_SCALE_ENVELOPES['empirical-surrogate'].projectionsTo)).toHaveLength(0);
+  });
+
+  // ── (14) acceptsCrossScale — same-scale acceptance ────────────────────────
+
+  it('(14a) same-scale acceptance: field tolerance within envelope', () => {
+    const result = acceptsCrossScale('quantum', 'quantum', 1e-7);
+    expect(result.accepted).toBe(true);
+    expect(result.diagnostic).toBeUndefined();
+  });
+
+  it('(14b) same-scale rejection: field tolerance exceeds envelope', () => {
+    const result = acceptsCrossScale('quantum', 'quantum', 1e-3);
+    expect(result.accepted).toBe(false);
+    expect(result.diagnostic).toContain('exceeds same-scale envelope');
+  });
+
+  // ── (15) acceptsCrossScale — cross-scale projection ────────────────────────
+
+  it('(15a) quantum → continuum: valid projection path', () => {
+    // quantum can project to continuum (via effective properties)
+    const result = acceptsCrossScale('quantum', 'continuum', 1e-2);
+    expect(result.accepted).toBe(true);
+    // ε_total = max(1e-2, continuum envelope 1e-2) = 1e-2
+    expect(result.diagnostic).toContain('ε_total');
+  });
+
+  it('(15b) quantum → atomistic: valid projection path', () => {
+    const result = acceptsCrossScale('quantum', 'atomistic', 1e-5);
+    expect(result.accepted).toBe(true);
+  });
+
+  it('(15c) empirical-surrogate → quantum: no projection path (reverse)', () => {
+    // Surrogate cannot project to finer scales
+    const result = acceptsCrossScale('empirical-surrogate', 'quantum', 1e-6);
+    expect(result.accepted).toBe(false);
+    expect(result.diagnostic).toContain('No projection');
+  });
+
+  it('(15d) continuum → empirical-surrogate: valid projection', () => {
+    const result = acceptsCrossScale('continuum', 'empirical-surrogate', 0.1);
+    expect(result.accepted).toBe(true);
+  });
+
+  // ── (16) coarsestCommonScale ──────────────────────────────────────────────
+
+  it('(16a) same scale returns that scale', () => {
+    expect(coarsestCommonScale('quantum', 'quantum')).toBe('quantum');
+    expect(coarsestCommonScale('continuum', 'continuum')).toBe('continuum');
+  });
+
+  it('(16b) finer to coarser returns coarser', () => {
+    // quantum and continuum → both can project to continuum
+    const result = coarsestCommonScale('quantum', 'continuum');
+    expect(result).toBe('continuum');
+  });
+
+  it('(16c) quantum and atomistic → atomistic', () => {
+    // atomistic is coarser than quantum; quantum can project to atomistic
+    const result = coarsestCommonScale('quantum', 'atomistic');
+    expect(result).toBe('atomistic');
+  });
+
+  // ── (17) Unknown scale returns diagnostic ─────────────────────────────────
+
+  it('(17) acceptsCrossScale rejects unknown scale', () => {
+    const result = acceptsCrossScale('unknown_scale' as SimulationScale, 'quantum', 1e-6);
+    expect(result.accepted).toBe(false);
+    expect(result.diagnostic).toContain('Unknown scale');
+  });
+
+  // ── (18) Envelope mismatch warning ────────────────────────────────────────
+
+  it('(18) warns when envelope scale does not match contract scale', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const customEnvelope: ScaleEnvelope = {
+      scale: 'quantum',  // envelope says quantum
+      tolerance: 1e-6,
+      replayAllowed: true,
+      vvCriteria: { convergence: 1e-6 },
+      projectionsTo: {},
+    };
+    const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
+      fixedDt: 0.001,
+      scale: 'continuum',  // but contract says continuum
+      scaleEnvelope: customEnvelope,
+    });
+    // Contract scale wins
+    expect(contracted.getScale()).toBe('continuum');
+    // But the custom envelope is preserved (not auto-corrected)
+    expect(contracted.getScaleEnvelope().scale).toBe('quantum');
+    // Warning was emitted
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('does not match contract scale')
+    );
+    consoleSpy.mockRestore();
+  });
+
+  // ── (19) All default envelopes have positive tolerance ─────────────────────
+
+  it('(19) all default envelopes have positive tolerance and at least one V&V criterion', () => {
+    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    for (const scale of scales) {
+      const envelope = DEFAULT_SCALE_ENVELOPES[scale];
+      expect(envelope.tolerance).toBeGreaterThan(0);
+      expect(Object.keys(envelope.vvCriteria).length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  // ── (20) Scale order: tolerance increases monotonically (finer → coarser) ─
+
+  it('(20) tolerance increases monotonically from quantum to empirical-surrogate', () => {
+    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    for (let i = 1; i < scales.length; i++) {
+      const finer = DEFAULT_SCALE_ENVELOPES[scales[i - 1]].tolerance;
+      const coarser = DEFAULT_SCALE_ENVELOPES[scales[i]].tolerance;
+      expect(coarser).toBeGreaterThan(finer);
+    }
   });
 });

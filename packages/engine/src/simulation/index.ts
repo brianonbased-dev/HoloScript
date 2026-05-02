@@ -72,7 +72,10 @@ export {
 export {
   ContractedSimulation, DeterministicStepper,
   hashGeometry, validateUnits, validateMeshSanity,
+  acceptsCrossScale, coarsestCommonScale,
+  SCALE_ALIASES, SCALE_FROM_ALIAS, SCALE_ORDER, DEFAULT_SCALE_ENVELOPES,
   type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
+  type SimulationScale, type ScaleEnvelope,
 } from './SimulationContract';
 
 // Wire equivalence (W.315) — compare two contract / replay records (twin vs device)

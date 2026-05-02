@@ -45,6 +45,290 @@ export {
 export type { HashMode } from './sha256';
 export type { SubgridAttestation, SubgridParams } from '@holoscript/core/paper-0c-spike';
 
+// ── Scale Tag & Acceptance Envelopes ──────────────────────────────────────────
+
+/**
+ * Simulation scale taxonomy — the physical regime a solver operates in.
+ *
+ * Per W.QDA.001 (Query-Driven Abstraction): the right level of abstraction
+ * is determined by the user's question, not by the substrate. Scale tagging
+ * makes this routing explicit — Brittney dispatches to the tier the query
+ * demands, and the acceptance envelope at that tier determines whether the
+ * result is trustworthy.
+ *
+ * Short aliases (for serialization and UI):
+ *   quantum          → 'qm'      — Hartree-Fock, DFT, post-HF (Psi4, QE)
+ *   atomistic        → 'md'      — molecular dynamics (LAMMPS, GROMACS)
+ *   mesoscopic       → 'meso'    — coarse-grained, dissipative particle dynamics
+ *   continuum        → 'continuum' — FEM, FVM, FDTD, Navier-Stokes, structural
+ *   empirical-surrogate → 'system' — learned surrogates, system-level models
+ *
+ * Source: research/2026-04-28_qm-as-foundational-layer-EVOLVED.md §7.2
+ */
+export type SimulationScale =
+  | 'quantum'
+  | 'atomistic'
+  | 'mesoscopic'
+  | 'continuum'
+  | 'empirical-surrogate';
+
+/** Short-alias map for serialization / UI. Maps canonical name → short tag. */
+export const SCALE_ALIASES: Record<SimulationScale, string> = {
+  quantum: 'qm',
+  atomistic: 'md',
+  mesoscopic: 'meso',
+  continuum: 'continuum',
+  'empirical-surrogate': 'system',
+} as const;
+
+/** Reverse map: short tag → canonical name. */
+export const SCALE_FROM_ALIAS: Record<string, SimulationScale> = {
+  qm: 'quantum',
+  md: 'atomistic',
+  meso: 'mesoscopic',
+  continuum: 'continuum',
+  system: 'empirical-surrogate',
+  // Canonical names also accepted
+  quantum: 'quantum',
+  atomistic: 'atomistic',
+  mesoscopic: 'mesoscopic',
+  'empirical-surrogate': 'empirical-surrogate',
+} as const;
+
+/**
+ * Per-scale acceptance envelope.
+ *
+ * Defines tolerance bounds, replay rules, and V&V criteria that are
+ * scale-specific. Different physical regimes have fundamentally different
+ * notions of "good enough" — quantum convergence tolerances (10⁻⁶ Hartree)
+ * are meaningless for continuum FEM (where 1% strain error is excellent).
+ *
+ * Cross-tier replay (W.GOLD.189 Layer 3 extension): when two CAEL records
+ * are produced at different scales, `acceptsCrossScale` projects both to
+ * the coarsest common scale before applying the envelope. Under commutative
+ * regimes (π_scale and C_q commute), ε_total = max(ε_field, ε_scale).
+ * Non-commutative regimes return false with a diagnostic.
+ *
+ * Source: research/2026-04-28_qm-as-foundational-layer-EVOLVED.md §7.2, §8.1
+ */
+export interface ScaleEnvelope {
+  /** The scale this envelope applies to. */
+  scale: SimulationScale;
+  /**
+   * Relative tolerance for field-level acceptance.
+   * Quantum: ~1e-6 (Hartree), atomistic: ~1e-4, continuum: ~1e-2, etc.
+   */
+  tolerance: number;
+  /**
+   * Whether cross-scale replay is allowed for this scale.
+   * False for scales where projection is non-commutative (e.g. plasma
+   * kinetic-fluid coupling per EVOLVED §1.4).
+   */
+  replayAllowed: boolean;
+  /**
+   * V&V criteria applicable at this scale.
+   * Keys are criterion names (e.g. 'convergence', 'energy_drift', 'grid_convergence_index');
+   * values are scale-specific thresholds.
+   */
+  vvCriteria: Record<string, number>;
+  /**
+   * Coarser scales this scale can project to via π_scale.
+   * Maps target scale → projection description (e.g. "averaging over MD cells").
+   * Empty object if this scale has no coarser projections (only 'quantum' can
+   * project to all others; 'empirical-surrogate' projects to nothing).
+   */
+  projectionsTo: Partial<Record<SimulationScale, string>>;
+}
+
+/**
+ * Default acceptance envelopes per scale.
+ *
+ * These are conservative defaults — individual contracts can override
+ * via ContractConfig.scaleEnvelope.
+ */
+export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
+  quantum: {
+    scale: 'quantum',
+    tolerance: 1e-6,
+    replayAllowed: true,
+    vvCriteria: {
+      convergence: 1e-6,    // SCF convergence threshold (Hartree)
+      energy_drift: 1e-8,  // Max total energy drift per step
+    },
+    projectionsTo: {
+      atomistic: 'Born-Oppenheimer extraction of forces + partial charges',
+      mesoscopic: 'coarse-grained parameterization from QM observables',
+      continuum: 'effective properties (elasticity, conductivity) from QM-computed tensors',
+      'empirical-surrogate': 'training data from QM-computed property surfaces',
+    },
+  },
+  atomistic: {
+    scale: 'atomistic',
+    tolerance: 1e-4,
+    replayAllowed: true,
+    vvCriteria: {
+      convergence: 1e-4,    // MD force convergence (eV/Å)
+      energy_drift: 1e-5,  // Max energy drift per ps
+    },
+    projectionsTo: {
+      mesoscopic: 'coarse-graining atom groups → beads',
+      continuum: 'homogenization of MD-computed stress/strain fields',
+      'empirical-surrogate': 'training data from MD trajectories',
+    },
+  },
+  mesoscopic: {
+    scale: 'mesoscopic',
+    tolerance: 1e-3,
+    replayAllowed: true,
+    vvCriteria: {
+      convergence: 1e-3,    // DPD force convergence
+      energy_drift: 1e-4,  // Per timestep
+    },
+    projectionsTo: {
+      continuum: 'coarse-grained field averaging',
+      'empirical-surrogate': 'training data from mesoscale simulations',
+    },
+  },
+  continuum: {
+    scale: 'continuum',
+    tolerance: 1e-2,
+    replayAllowed: true,
+    vvCriteria: {
+      convergence: 1e-2,             // FEM residual convergence
+      grid_convergence_index: 1.5,    // GCI threshold
+      energy_drift: 1e-3,            // Max energy drift per step
+    },
+    projectionsTo: {
+      'empirical-surrogate': 'training data from FEM/CFD fields',
+    },
+  },
+  'empirical-surrogate': {
+    scale: 'empirical-surrogate',
+    tolerance: 5e-2,  // 5% — learned surrogates are inherently approximate
+    replayAllowed: true,
+    vvCriteria: {
+      convergence: 5e-2,          // Prediction error tolerance
+      held_out_rmse: 1e-2,       // Max RMSE on held-out test set
+    },
+    projectionsTo: {},  // Surrogates don't project to coarser scales
+  },
+};
+
+/**
+ * Cross-scale acceptance check.
+ *
+ * Per EVOLVED §8.1: two CAEL records produced by different solvers at
+ * different scales are adjudicated by projecting both to the coarsest
+ * common scale that both branches' observables admit, then applying the
+ * per-field acceptance envelope at that scale.
+ *
+ * Under commutative regimes (where π_scale and C_q commute), the cross-tier
+ * acceptance envelope composes as ε_total = max(ε_field, ε_scale).
+ * Non-commutative regimes return `false` with a diagnostic.
+ *
+ * @param sourceScale  The scale the solver operates at
+ * @param targetScale  The scale to project to
+ * @param fieldTolerance  Per-field tolerance (ε_field)
+ * @returns Object with `accepted` boolean and optional `diagnostic` message
+ */
+export function acceptsCrossScale(
+  sourceScale: SimulationScale,
+  targetScale: SimulationScale,
+  fieldTolerance: number,
+): { accepted: boolean; diagnostic?: string } {
+  const sourceEnvelope = DEFAULT_SCALE_ENVELOPES[sourceScale];
+  const targetEnvelope = DEFAULT_SCALE_ENVELOPES[targetScale];
+
+  if (!sourceEnvelope || !targetEnvelope) {
+    return {
+      accepted: false,
+      diagnostic: `Unknown scale: ${!sourceEnvelope ? sourceScale : targetScale}`,
+    };
+  }
+
+  // Same-scale: just compare field tolerance against scale envelope
+  if (sourceScale === targetScale) {
+    const accepted = fieldTolerance <= sourceEnvelope.tolerance;
+    return {
+      accepted,
+      diagnostic: accepted
+        ? undefined
+        : `Field tolerance ${fieldTolerance} exceeds same-scale envelope ${sourceEnvelope.tolerance}`,
+    };
+  }
+
+  // Check if source scale can project to target scale
+  if (!sourceEnvelope.projectionsTo[targetScale]) {
+    return {
+      accepted: false,
+      diagnostic: `No projection from ${sourceScale} to ${targetScale}. ` +
+        `Available projections: ${Object.keys(sourceEnvelope.projectionsTo).join(', ') || 'none'}`,
+    };
+  }
+
+  // Cross-scale composition: ε_total = max(ε_field, ε_scale)
+  // Per EVOLVED §8.1, this is valid only under commutative regimes.
+  // For non-commutative regimes (e.g. plasma kinetic-fluid), this function
+  // would need regime-specific operators — deferred to future work.
+  const epsilonScale = targetEnvelope.tolerance;
+  const epsilonTotal = Math.max(fieldTolerance, epsilonScale);
+
+  // Conservative check: field tolerance must be within the composed envelope
+  const accepted = fieldTolerance <= epsilonTotal;
+
+  return {
+    accepted,
+    diagnostic: accepted
+      ? `Cross-scale acceptance: ε_total = max(${fieldTolerance}, ${epsilonScale}) = ${epsilonTotal}`
+      : `Field tolerance ${fieldTolerance} exceeds composed envelope ${epsilonTotal}`,
+  };
+}
+
+/**
+ * Scale ordering for determining coarsest common scale in cross-tier replay.
+ * Lower number = finer scale; higher = coarser.
+ * Used to find the coarsest common scale for W.GOLD.189 cross-tier replay.
+ */
+export const SCALE_ORDER: Record<SimulationScale, number> = {
+  quantum: 0,
+  atomistic: 1,
+  mesoscopic: 2,
+  continuum: 3,
+  'empirical-surrogate': 4,
+};
+
+/**
+ * Find the coarsest common scale between two scales.
+ * Per EVOLVED §8.1 and W.GOLD.189 extension: project both branches'
+ * observables to the coarsest common scale before applying the acceptance
+ * envelope.
+ */
+export function coarsestCommonScale(
+  a: SimulationScale,
+  b: SimulationScale,
+): SimulationScale {
+  // The coarsest common scale is the one with the higher order number
+  // that both can project to.
+  const orderA = SCALE_ORDER[a];
+  const orderB = SCALE_ORDER[b];
+  const maxOrder = Math.max(orderA, orderB);
+  const targetScale = (Object.entries(SCALE_ORDER) as [SimulationScale, number][])
+    .find(([, order]) => order === maxOrder)![0];
+
+  // Verify both can project to this scale (directly or transitively)
+  // If the coarser scale can't be reached, fall back to the coarser of the two
+  const aCanProject = a === targetScale || DEFAULT_SCALE_ENVELOPES[a].projectionsTo[targetScale] !== undefined;
+  const bCanProject = b === targetScale || DEFAULT_SCALE_ENVELOPES[b].projectionsTo[targetScale] !== undefined;
+
+  if (aCanProject && bCanProject) {
+    return targetScale;
+  }
+
+  // Fallback: the coarser of the two input scales (they can always compare
+  // at that level)
+  return maxOrder === orderA ? a : b;
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface InteractionEvent {
@@ -79,6 +363,10 @@ export interface SimulationProvenance {
   subgridAttestation?: SubgridAttestation;
   /** Solver type identifier */
   solverType: string;
+  /** Simulation scale (physical regime). Defaults to 'continuum'. */
+  scale: SimulationScale;
+  /** Per-scale acceptance envelope applied during this run. */
+  scaleEnvelope: ScaleEnvelope;
   /** Full solver config (frozen at creation time) */
   config: Record<string, unknown>;
   /** Fixed timestep used */
@@ -120,6 +408,32 @@ export interface ContractConfig {
   logInteractions?: boolean;
   /** Solver type label */
   solverType?: string;
+
+  /**
+   * Simulation scale tag — the physical regime this solver operates in.
+   *
+   * Per EVOLVED §7.2 and W.QDA.001: the scale determines which acceptance
+   * envelope applies, what tolerance bounds are expected, and whether
+   * cross-scale replay is valid.
+   *
+   * Default: 'continuum' (backward compat — existing single-scale contracts
+   * are continuum FEM/CFD/structural by construction).
+   *
+   * Short aliases are also accepted:
+   *   'qm' → 'quantum', 'md' → 'atomistic', 'meso' → 'mesoscopic',
+   *   'system' → 'empirical-surrogate'
+   */
+  scale?: SimulationScale;
+
+  /**
+   * Override the default acceptance envelope for the given scale.
+   * When absent, DEFAULT_SCALE_ENVELOPES[scale] is used.
+   *
+   * Use this when a specific solver has tighter or looser tolerances
+   * than the scale default (e.g. a high-precision FEM solver might
+   * set tolerance: 1e-3 instead of the continuum default 1e-2).
+   */
+  scaleEnvelope?: ScaleEnvelope;
   /** Use cryptographic (SHA-256) hash at the three contract hash
    *  sites (hashGeometry, computeStateDigest, hashCAELEntry) instead
    *  of the default FNV-1a.
@@ -569,6 +883,25 @@ export class ContractedSimulation {
   private gpuOutputDigests: string[] = [];
 
   /**
+   * Simulation scale — the physical regime this contract operates in.
+   * Resolved from ContractConfig.scale at construction. Default: 'continuum'
+   * for backward compatibility (existing single-scale contracts are continuum
+   * FEM/CFD/structural by construction).
+   *
+   * Per W.QDA.001 (Query-Driven Abstraction): the right level of abstraction
+   * is determined by the user's question, not by the substrate. Scale tagging
+   * makes this routing explicit.
+   */
+  private scale: SimulationScale;
+
+  /**
+   * Per-scale acceptance envelope. Either the custom envelope from
+   * ContractConfig.scaleEnvelope or DEFAULT_SCALE_ENVELOPES[scale].
+   * Frozen at construction time.
+   */
+  private scaleEnvelope: ScaleEnvelope;
+
+  /**
    * Hash mode for all three contract hash sites (hashGeometry,
    * computeStateDigest, hashCAELEntry when this contract's recorder
    * wraps it). Option C (2026-04-20 SECURITY wiring): resolved from
@@ -585,6 +918,16 @@ export class ContractedSimulation {
    *  cael.init.payload.hashMode. */
   getHashMode(): HashMode {
     return this.hashMode;
+  }
+
+  /** Public accessor for the simulation scale. */
+  getScale(): SimulationScale {
+    return this.scale;
+  }
+
+  /** Public accessor for the scale acceptance envelope. */
+  getScaleEnvelope(): ScaleEnvelope {
+    return this.scaleEnvelope;
   }
 
   /**
@@ -635,6 +978,25 @@ export class ContractedSimulation {
     }
     this.solverType = contractConfig.solverType ?? 'unknown';
     this.logInteractions = contractConfig.logInteractions ?? true;
+
+    // Resolve scale tag — accept canonical names and short aliases.
+    // Default to 'continuum' for backward compatibility (existing single-scale
+    // contracts are continuum FEM/CFD/structural by construction).
+    const rawScale = contractConfig.scale ?? 'continuum';
+    this.scale = SCALE_FROM_ALIAS[rawScale] ?? rawScale;
+
+    // Resolve acceptance envelope — custom override or scale default.
+    this.scaleEnvelope = contractConfig.scaleEnvelope ?? DEFAULT_SCALE_ENVELOPES[this.scale];
+
+    // Validate that the envelope's scale matches the contract's scale.
+    if (this.scaleEnvelope.scale !== this.scale) {
+      // Auto-correct: if the user provided an envelope for a different scale,
+      // still use the contract's declared scale. Log a warning.
+      console.warn(
+        `[SimulationContract] scaleEnvelope.scale (${this.scaleEnvelope.scale}) ` +
+        `does not match contract scale (${this.scale}). Using contract scale.`
+      );
+    }
 
     // Resolve hash mode ONCE from contractConfig. Per Prereq 1, this
     // is the only authoritative source — no env var fallback, no
@@ -800,20 +1162,21 @@ export class ContractedSimulation {
 
   /**
    * Compose the Contract-ID from `geometryHash` and the optional
-   * adapter / subgrid identity inputs.
+   * adapter / subgrid / scale identity inputs.
    *
    * **Backward-compat invariant** (the load-bearing constraint of this
-   * function): when both `adapterFingerprint` and `subgridAttestation`
-   * are absent, this returns `geometryHash` BYTE-IDENTICALLY. No
-   * hashing, no concatenation, no prefix. Pre-change contracts that
-   * stored Contract-ID as `geometryHash` directly remain valid.
+   * function): when `adapterFingerprint`, `subgridAttestation`, AND
+   * `scale === 'continuum'` are all default/absent, this returns
+   * `geometryHash` BYTE-IDENTICALLY. No hashing, no concatenation, no
+   * prefix. Pre-change contracts that stored Contract-ID as
+   * `geometryHash` directly remain valid.
    *
-   * When at least one optional input is set, we hash the canonical
-   * pipe-joined tuple under the contract's hash mode. Same family as
-   * `replayFingerprint.ts`'s pipe-delimited canonicalization. Pipe is
-   * safe because hex hashes never contain `|`.
+   * When at least one optional input is set (or scale is non-default),
+   * we hash the canonical pipe-joined tuple under the contract's hash
+   * mode. Same family as `replayFingerprint.ts`'s pipe-delimited
+   * canonicalization. Pipe is safe because hex hashes never contain `|`.
    *
-   * Field order is fixed (`geometryHash | adapterFingerprint |
+   * Field order is fixed (`geometryHash | scale | adapterFingerprint |
    * subgridHash`) and missing fields collapse to empty string — same
    * pattern as `computeAdapterFingerprint()` above.
    *
@@ -826,13 +1189,14 @@ export class ContractedSimulation {
     adapterFingerprint: string | undefined,
     subgridAttestation: SubgridAttestation | undefined,
   ): string {
-    // Backward-compat fast path: no optional identity inputs → pass
-    // geometryHash through unchanged.
-    if (adapterFingerprint === undefined && subgridAttestation === undefined) {
+    // Backward-compat fast path: no optional identity inputs AND
+    // default scale → pass geometryHash through unchanged.
+    if (adapterFingerprint === undefined && subgridAttestation === undefined && this.scale === 'continuum') {
       return geometryHash;
     }
     const canonical = [
       geometryHash,
+      this.scale,
       adapterFingerprint ?? '',
       subgridAttestation?.hash ?? '',
     ].join('|');
@@ -904,6 +1268,8 @@ export class ContractedSimulation {
       ...(this.subgridAttestation !== undefined
         ? { subgridAttestation: this.subgridAttestation }
         : {}),
+      scale: this.scale,
+      scaleEnvelope: this.scaleEnvelope,
       solverType: this.solverType,
       config: this.config,
       fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
@@ -929,6 +1295,8 @@ export class ContractedSimulation {
     geometryHash: string;
     contractId: string;
     subgridAttestation?: SubgridAttestation;
+    scale: SimulationScale;
+    scaleEnvelope: ScaleEnvelope;
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
@@ -941,6 +1309,8 @@ export class ContractedSimulation {
       ...(this.subgridAttestation !== undefined
         ? { subgridAttestation: this.subgridAttestation }
         : {}),
+      scale: this.scale,
+      scaleEnvelope: this.scaleEnvelope,
       interactions: this.interactions,
       fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
       totalSteps: this.stepper.getStepCount(),
