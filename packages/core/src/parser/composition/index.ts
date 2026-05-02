@@ -13,3 +13,9 @@
 
 export { type TokenType, type Token, KEYWORDS, PRIMITIVE_SHAPES, LIGHT_PRIMITIVES } from './tokens';
 export { HoloLexer } from './lexer';
+export {
+  type ExpressionParserApi,
+  parseExpression,
+  isKeywordAsIdentifierType,
+  isKeywordAsIdentifier,
+} from './expression-rules';

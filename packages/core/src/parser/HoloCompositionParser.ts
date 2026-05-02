@@ -117,6 +117,15 @@ import { TypoDetector } from './TypoDetector';
 // HoloCompositionParser and get identical types/classes.
 import { type TokenType, type Token, KEYWORDS, PRIMITIVE_SHAPES, LIGHT_PRIMITIVES } from './composition/tokens';
 import { HoloLexer } from './composition/lexer';
+// W1-T2: Expression rules extracted to composition/ subdirectory.
+// Thin delegates in the parser class call through to these pure functions,
+// maintaining the original public API while keeping the rule logic modular.
+import {
+  type ExpressionParserApi,
+  parseExpression as parseExpressionRule,
+  isKeywordAsIdentifierType as isKeywordAsIdentifierTypeRule,
+  isKeywordAsIdentifier as isKeywordAsIdentifierRule,
+} from './composition/expression-rules';
 
 // Re-export token types so external consumers can import them from this module.
 export { type TokenType, type Token, KEYWORDS, PRIMITIVE_SHAPES, LIGHT_PRIMITIVES };
@@ -140,6 +149,11 @@ export class HoloCompositionParser {
       strict: false,
       ...options,
     };
+  }
+
+  /** Instance accessor for the static DOMAIN_TOKENS set — satisfies ExpressionParserApi. */
+  get DOMAIN_TOKENS(): Set<TokenType> {
+    return HoloCompositionParser.DOMAIN_TOKENS;
   }
 
   parse(source: string): HoloParseResult {
@@ -2497,313 +2511,29 @@ export class HoloCompositionParser {
   }
 
   // ===========================================================================
-  // EXPRESSIONS
+  // EXPRESSIONS — delegates to composition/expression-rules.ts (W1-T2)
   // ===========================================================================
 
+  /**
+   * Bridge accessor — satisfies ExpressionParserApi via duck typing.
+   * Private methods on this class match the structural interface, but
+   * TypeScript's visibility rules prevent `this` from being assigned
+   * directly. The cast is safe: the methods exist with matching signatures.
+   */
+  private get _exprApi(): ExpressionParserApi {
+    return this as unknown as ExpressionParserApi;
+  }
+
   private parseExpression(): HoloExpression {
-    return this.parseConditional();
-  }
-
-  private parseConditional(): HoloExpression {
-      const startLoc = this.currentLocation();
-    const expr = this.parseOr();
-
-    if (this.match('QUESTION')) {
-      const consequent = this.parseExpression();
-      this.expect('COLON');
-      const alternate = this.parseConditional();
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'ConditionalExpression', test: expr, consequent, alternate };
-    }
-
-    return expr;
-  }
-
-  private parseOr(): HoloExpression {
-    let left = this.parseAnd();
-    while (this.match('OR')) {
-      const right = this.parseAnd();
-      left = { type: 'BinaryExpression', operator: '||', left, right };
-    }
-    return left;
-  }
-
-  private parseAnd(): HoloExpression {
-    let left = this.parseEquality();
-    while (this.match('AND')) {
-      const right = this.parseEquality();
-      left = { type: 'BinaryExpression', operator: '&&', left, right };
-    }
-    return left;
-  }
-
-  private parseEquality(): HoloExpression {
-    let left = this.parseComparison();
-    while (this.check('EQUALS_EQUALS') || this.check('BANG_EQUALS')) {
-      const op = this.advance().value;
-      const right = this.parseComparison();
-      left = { type: 'BinaryExpression', operator: op, left, right };
-    }
-    return left;
-  }
-
-  private parseComparison(): HoloExpression {
-    let left = this.parseAdditive();
-    while (
-      this.check('LESS') ||
-      this.check('GREATER') ||
-      this.check('LESS_EQUALS') ||
-      this.check('GREATER_EQUALS')
-    ) {
-      const op = this.advance().value;
-      const right = this.parseAdditive();
-      left = { type: 'BinaryExpression', operator: op, left, right };
-    }
-    return left;
-  }
-
-  private parseAdditive(): HoloExpression {
-    let left = this.parseMultiplicative();
-    while (this.check('PLUS') || this.check('MINUS')) {
-      const op = this.advance().value;
-      const right = this.parseMultiplicative();
-      left = { type: 'BinaryExpression', operator: op, left, right };
-    }
-    return left;
-  }
-
-  private parseMultiplicative(): HoloExpression {
-    let left = this.parseUnary();
-    while (this.check('STAR') || this.check('SLASH')) {
-      const op = this.advance().value;
-      const right = this.parseUnary();
-      left = { type: 'BinaryExpression', operator: op, left, right };
-    }
-    return left;
-  }
-
-  private parseUnary(): HoloExpression {
-      const startLoc = this.currentLocation();
-    if (this.check('BANG') || this.check('MINUS')) {
-      const op = this.advance().value as '!' | '-';
-      const argument = this.parseUnary();
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'UnaryExpression', operator: op, argument };
-    }
-    return this.parsePostfix();
-  }
-
-  private parsePostfix(): HoloExpression {
-    let expr = this.parsePrimary();
-
-    while (true) {
-      if (this.match('DOT')) {
-        const property = this.expectIdentifier();
-        expr = { type: 'MemberExpression', object: expr, property, computed: false };
-      } else if (this.match('LBRACKET')) {
-        const index = this.parseExpression();
-        this.expect('RBRACKET');
-        const property = this.expressionToString(index);
-        expr = { type: 'MemberExpression', object: expr, property, computed: true };
-      } else if (this.match('LPAREN')) {
-        const args = this.parseArgumentList();
-        expr = { type: 'CallExpression', callee: expr, arguments: args };
-      } else if (this.match('INC')) {
-        expr = {
-          type: 'UpdateExpression' as const,
-          operator: '++' as const,
-          argument: expr,
-          prefix: false,
-        };
-      } else if (this.match('DEC')) {
-        expr = {
-          type: 'UpdateExpression' as const,
-          operator: '--' as const,
-          argument: expr,
-          prefix: false,
-        };
-      } else {
-        break;
-      }
-    }
-
-    return expr;
-  }
-
-  private parseArgumentList(): HoloExpression[] {
-    this.skipNewlines();
-    const args: HoloExpression[] = [];
-    if (this.check('RPAREN')) {
-      this.expect('RPAREN');
-      return args;
-    }
-
-    args.push(this.parseExpression());
-    while (this.match('COMMA')) {
-      this.skipNewlines();
-      args.push(this.parseExpression());
-    }
-    this.skipNewlines();
-    this.expect('RPAREN');
-    return args;
-  }
-
-  private parsePrimary(): HoloExpression {
-      const startLoc = this.currentLocation();
-    if (this.match('NUMBER')) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Literal', value: parseFloat(this.previous().value) };
-    }
-    if (this.match('STRING')) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Literal', value: this.previous().value };
-    }
-    if (this.match('BOOLEAN')) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Literal', value: this.previous().value === 'true' };
-    }
-    if (this.match('NULL')) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Literal', value: null };
-    }
-
-    // Explicitly handle Identifier
-    if (this.match('IDENTIFIER')) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Identifier', name: this.previous().value };
-    }
-
-    // Handle Keywords as Identifiers
-    if (this.isKeywordAsIdentifier()) {
-      return {
-          loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Identifier', name: this.previous().value };
-    }
-
-    if (this.match('LBRACKET')) {
-      return this.parseArrayExpression();
-    }
-    if (this.match('LBRACE')) {
-      return this.parseObjectExpression();
-    }
-    if (this.match('LPAREN')) {
-      const expr = this.parseExpression();
-      this.expect('RPAREN');
-      return expr;
-    }
-
-    this.error(`Unexpected token: ${this.current().type}`);
-    this.advance();
-    return {
-        loc: { start: startLoc, end: this.currentLocation() },
-        type: 'Literal', value: null };
+    return parseExpressionRule(this._exprApi);
   }
 
   private isKeywordAsIdentifierType(type: TokenType): boolean {
-    // All domain/simulation keywords can be used as identifiers (e.g. property names)
-    if (HoloCompositionParser.DOMAIN_TOKENS.has(type)) return true;
-
-    const keywordsAsIdentifiers: TokenType[] = [
-      'STATE',
-      'OBJECT',
-      'TEMPLATE',
-      'ENVIRONMENT',
-      'LOGIC',
-      'ACTION',
-      'EMIT',
-      'ANIMATE',
-      'RETURN',
-      'LIGHT',
-      'EFFECTS',
-      'CAMERA',
-      'BIND',
-      'TIMELINE',
-      'AUDIO',
-      'ZONE',
-      'UI',
-      'TRANSITION',
-      'ELEMENT',
-      'ON_ERROR',
-      'THEME',
-      'DIALOGUE_TREE',
-      // Spatial primitives
-      'SPAWN_GROUP',
-      'WAYPOINTS',
-      'CONSTRAINT',
-      'TERRAIN',
-      'PARTICLES',
-      // Game/AI keywords that can appear as property names
-      'SHAPE',
-      'NPC',
-      'QUEST',
-      'ABILITY',
-      'DIALOGUE',
-      'STATE_MACHINE',
-      'ACHIEVEMENT',
-      'TALENT_TREE',
-      'IMPORT',
-      'USING',
-      'FROM',
-      'COMPOSITION',
-      'SPATIAL_GROUP',
-      'SPATIAL_AGENT',
-      'SPATIAL_CONTAINER',
-    ];
-    return keywordsAsIdentifiers.includes(type);
+    return isKeywordAsIdentifierTypeRule(this._exprApi, type);
   }
 
   private isKeywordAsIdentifier(): boolean {
-    if (this.isKeywordAsIdentifierType(this.current().type)) {
-      this.advance();
-      return true;
-    }
-    return false;
-  }
-
-  private parseArrayExpression(): HoloExpression {
-      const startLoc = this.currentLocation();
-    this.skipNewlines();
-    const elements: HoloExpression[] = [];
-    while (!this.check('RBRACKET') && !this.isAtEnd()) {
-      this.skipNewlines();
-      elements.push(this.parseExpression());
-      this.skipNewlines();
-      if (!this.match('COMMA')) break;
-      this.skipNewlines();
-    }
-    this.skipNewlines();
-    this.expect('RBRACKET');
-    return {
-        loc: { start: startLoc, end: this.currentLocation() },
-        type: 'ArrayExpression', elements };
-  }
-
-  private parseObjectExpression(): HoloExpression {
-      const startLoc = this.currentLocation();
-    this.skipNewlines();
-    const properties: { key: string; value: HoloExpression }[] = [];
-    while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
-      const key = this.expectIdentifier();
-      this.expect('COLON');
-      const value = this.parseExpression();
-      properties.push({ key, value });
-      this.skipNewlines();
-      if (!this.match('COMMA')) break;
-      this.skipNewlines();
-    }
-    this.skipNewlines();
-    this.expect('RBRACE');
-    return {
-        loc: { start: startLoc, end: this.currentLocation() },
-        type: 'ObjectExpression', properties };
+    return isKeywordAsIdentifierRule(this._exprApi);
   }
 
   // ===========================================================================
