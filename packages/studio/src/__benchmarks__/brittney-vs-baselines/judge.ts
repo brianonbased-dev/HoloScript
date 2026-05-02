@@ -211,7 +211,9 @@ export async function judgeRun(
       const msg = err instanceof Error ? err.message : String(err);
       const isCreditOrRateLimit =
         msg.includes('credit balance is too low') || msg.includes('Rate limit') || msg.includes('429');
-      if (isCreditOrRateLimit && opts.ollamaClient) {
+      const isModelUnavailable =
+        msg.includes('not_found_error') || msg.includes('model') || msg.includes('404');
+      if ((isCreditOrRateLimit || isModelUnavailable) && opts.ollamaClient) {
         // Fallback to Ollama judge on Anthropic credit/rate-limit failure.
         return judgeWithOllama(
           task,
