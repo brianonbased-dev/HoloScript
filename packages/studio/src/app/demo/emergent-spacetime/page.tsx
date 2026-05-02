@@ -250,7 +250,7 @@ function SceneContent({
     traitNodeRef.current = node;
 
     const config: EmergentSpacetimeConfig = {
-      initial_voxels: 500,
+      initial_voxels: 1000,
       max_voxels: 1000,
       seed: 42,
       force_layout_guard: true,
@@ -299,7 +299,7 @@ function SceneContent({
 
     const node = traitNodeRef.current;
     const config: EmergentSpacetimeConfig = {
-      initial_voxels: 500,
+      initial_voxels: 1000,
       max_voxels: 1000,
       seed: 42,
       force_layout_guard: true,
