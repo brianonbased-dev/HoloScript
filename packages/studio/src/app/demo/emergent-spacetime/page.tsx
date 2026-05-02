@@ -387,6 +387,7 @@ function SceneContent({
       ricci_error_bound: 1e-4,
       ricci_heatmap: true,
       loop_threshold: 0.03,
+      real_time_budget_ms: 33, // 30Hz target for browser demo
     };
 
     emergentSpacetimeHandler.onAttach(node, config, {} as any);
@@ -437,6 +438,7 @@ function SceneContent({
       ricci_error_bound: 1e-4,
       ricci_heatmap: true,
       loop_threshold: 0.03,
+      real_time_budget_ms: 33, // 30Hz target
     }, {} as any, delta);
 
     // Sync state to visualization
