@@ -6,6 +6,7 @@ interface RenderedObject {
   primitive?: string;
   position?: number[];
   scale?: number[];
+  rotation?: number[];
   color?: string;
   radius?: number;
   light_type?: string;
@@ -23,6 +24,7 @@ function parseCreateObject(input: Record<string, unknown>): RenderedObject {
     primitive: input.primitive ? String(input.primitive) : undefined,
     position: Array.isArray(input.position) ? (input.position as number[]) : undefined,
     scale: Array.isArray(input.scale) ? (input.scale as number[]) : undefined,
+    rotation: Array.isArray(input.rotation) ? (input.rotation as number[]) : undefined,
     color: input.color ? String(input.color) : undefined,
     radius: typeof input.radius === 'number' ? input.radius : undefined,
     light_type: input.light_type ? String(input.light_type) : undefined,
@@ -67,6 +69,10 @@ function describeObject(obj: RenderedObject): string {
 
   // Transform
   parts.push(`  position: ${formatPosition(obj.position)}`);
+  if (obj.rotation && obj.rotation.length >= 3) {
+    const isQuaternion = obj.rotation.length === 4;
+    parts.push(`  rotation: [${obj.rotation.map((n) => Number(n).toFixed(3)).join(', ')}]${isQuaternion ? ' (quaternion)' : ''}`);
+  }
   if (obj.scale) {
     const scaleStr = formatScale(obj.scale);
     if (scaleStr) parts.push(`  ${scaleStr.slice(2)}`); // remove leading ", "

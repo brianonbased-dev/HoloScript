@@ -127,6 +127,9 @@ async function main(): Promise<void> {
     brittneyAuthHeader: args.brittneyAuthHeader,
     brittneyCookie: args.brittneyCookie,
     brittneyBenchmarkKey: args.brittneyBenchmarkKey,
+    ollamaApiKey: ollamaKey ?? undefined,
+    ollamaModel: process.env.OLLAMA_MODEL || process.env.OLLAMA_JUDGE_MODEL || undefined,
+    ollamaBaseURL: process.env.OLLAMA_BASE_URL || undefined,
   });
   if (args.configs && args.configs.length > 0) {
     const want = new Set(args.configs);

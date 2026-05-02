@@ -14,6 +14,7 @@ function goldenToMutations(taskId: string): SceneMutation[] {
       ...(o.primitive ? { primitive: o.primitive } : {}),
       position: o.position,
       ...(o.scale ? { scale: o.scale } : {}),
+      ...(o.rotation ? { rotation: o.rotation } : {}),
       ...(o.color ? { color: o.color } : {}),
       ...(o.radius !== undefined ? { radius: o.radius } : {}),
       ...(o.light_type ? { light_type: o.light_type } : {}),
@@ -33,7 +34,7 @@ function makeTask(id: string): Task {
   };
 }
 
-const goldenIds = ['M02', 'M06', 'M09', 'A01', 'A04', 'A10'];
+const goldenIds = ['T06', 'M02', 'M06', 'M09', 'A01', 'A04', 'A10'];
 
 describe('deterministic verifier golden cases', () => {
 

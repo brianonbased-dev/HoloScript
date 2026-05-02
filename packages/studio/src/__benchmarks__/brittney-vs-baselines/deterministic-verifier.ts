@@ -20,6 +20,7 @@ interface ParsedObject {
   primitive?: string;
   position: [number, number, number];
   scale: [number, number, number];
+  rotation?: [number, number, number] | [number, number, number, number];
   color?: string;
   radius?: number;
   light_type?: string;
@@ -40,10 +41,13 @@ function parseObjects(mutations: SceneMutation[]): ParsedObject[] {
         scale: Array.isArray(input.scale)
           ? ([Number(input.scale[0] ?? 1), Number(input.scale[1] ?? 1), Number(input.scale[2] ?? 1)] as [number, number, number])
           : [1, 1, 1],
-        color: input.color ? String(input.color) : undefined,
-        radius: typeof input.radius === 'number' ? input.radius : undefined,
-        light_type: input.light_type ? String(input.light_type) : undefined,
-        projection: input.projection ? String(input.projection) : undefined,
+      rotation: Array.isArray(input.rotation) && (input.rotation.length === 3 || input.rotation.length === 4)
+          ? (input.rotation.map((n: unknown) => Number(n ?? 0)) as [number, number, number] | [number, number, number, number])
+          : undefined,
+      color: input.color ? String(input.color) : undefined,
+      radius: typeof input.radius === 'number' ? input.radius : undefined,
+      light_type: input.light_type ? String(input.light_type) : undefined,
+      projection: input.projection ? String(input.projection) : undefined,
       };
     });
 }
@@ -54,6 +58,47 @@ function dist(a: [number, number, number], b: [number, number, number]): number 
 
 function within(a: number, b: number, tol: number): boolean {
   return Math.abs(a - b) <= tol;
+}
+
+function isGrayish(color: string | undefined): boolean {
+  const c = (color ?? '').toLowerCase().trim();
+  if (!c) return false;
+  // Named colors
+  if (c.includes('gray') || c.includes('grey') || c.includes('silver') || c.includes('metal')) return true;
+  // Hex gray: R ≈ G ≈ B (tolerance 8/255 ≈ 0.03)
+  if (c.startsWith('#')) {
+    const hex = c.slice(1);
+    if (hex.length === 3 || hex.length === 6) {
+      const r = parseInt(hex.length === 3 ? hex[0] + hex[0] : hex.slice(0, 2), 16);
+      const g = parseInt(hex.length === 3 ? hex[1] + hex[1] : hex.slice(2, 4), 16);
+      const b = parseInt(hex.length === 3 ? hex[2] + hex[2] : hex.slice(4, 6), 16);
+      if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+        const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+        return maxDiff <= 16; // ≈ 6% tolerance
+      }
+    }
+  }
+  return false;
+}
+
+function extractYRotationEuler(rotation: [number, number, number] | [number, number, number, number] | undefined): number | undefined {
+  if (!rotation) return undefined;
+  if (rotation.length === 3) {
+    const y = rotation[1];
+    // Could be radians or degrees. Normalise to degrees.
+    if (Math.abs(y) <= 2 * Math.PI) {
+      // Likely radians — but 45° = 0.785 rad, 90° = 1.571 rad. If y > 6 it's definitely degrees.
+      const deg = y > 6 ? y : (y * 180) / Math.PI;
+      return deg;
+    }
+    return y;
+  }
+  // Quaternion → euler Y (simplified; assumes ZYX order, extracts yaw)
+  const [x, y, z, w] = rotation;
+  const sinr_cosp = 2 * (w * y - z * x);
+  const cosr_cosp = 1 - 2 * (x * x + y * y);
+  const yaw = Math.atan2(sinr_cosp, cosr_cosp);
+  return (yaw * 180) / Math.PI;
 }
 
 function matchGoldenCase(
@@ -93,6 +138,20 @@ function countBy(objs: ParsedObject[], fn: (o: ParsedObject) => boolean): number
 }
 
 // --- Task-specific deterministic checks ---
+
+function verifyT06(objs: ParsedObject[]): VerificationResult[] {
+  const cubes = objs.filter((o) => o.primitive === 'cube');
+  const yellows = cubes.filter((o) => (o.color ?? '').toLowerCase().includes('yellow'));
+  const yellowCube = yellows[0];
+  const yRot = yellowCube ? extractYRotationEuler(yellowCube.rotation) : undefined;
+  const rotPassed = yRot !== undefined && within(Math.abs(yRot), 45, 2); // ±2° tolerance
+
+  return [
+    { criterion_id: 'single_cube', passed: cubes.length === 1, rationale: `found ${cubes.length} cubes` },
+    { criterion_id: 'color_yellow', passed: yellows.length >= 1, rationale: `yellow cubes: ${yellows.length}` },
+    { criterion_id: 'rotation_y_45', passed: rotPassed, rationale: yRot !== undefined ? `Y rotation ≈ ${yRot.toFixed(1)}°` : 'no rotation property' },
+  ];
+}
 
 function verifyM02(objs: ParsedObject[]): VerificationResult[] {
   const cubes = objs.filter((o) => o.primitive === 'cube');
@@ -145,23 +204,51 @@ function verifyM09(objs: ParsedObject[]): VerificationResult[] {
     if (!within(actual, expected, 0.15)) touching = false;
   }
 
+  const sizePassed =
+    radii.length >= 3 &&
+    within(radii[0], 1.0, 0.15) &&
+    within(radii[1], 0.7, 0.15) &&
+    within(radii[2], 0.5, 0.15);
+
   return [
     { criterion_id: 'five_spheres', passed: spheres.length === 5, rationale: `found ${spheres.length} spheres` },
-    { criterion_id: 'body_sizes', passed: radii.length >= 3 && radii[0] >= 0.9 && radii[1] >= 0.6 && radii[2] >= 0.4, rationale: `radii (bottom to top): ${radii.map((r) => r.toFixed(2)).join(', ')}` },
+    { criterion_id: 'body_sizes', passed: sizePassed, rationale: `radii (bottom to top): ${radii.map((r) => r.toFixed(2)).join(', ')}` },
     { criterion_id: 'stacked_correctly', passed: touching, rationale: touching ? 'spheres are touching' : 'spacing mismatch between body spheres' },
     { criterion_id: 'eyes_present', passed: blacks.length >= 2, rationale: `found ${blacks.length} black spheres (eyes)` },
   ];
 }
 
 function verifyA01(objs: ParsedObject[]): VerificationResult[] {
-  const floors = objs.filter((o) => (o.color ?? '').toLowerCase() === 'gray' || (o.scale?.[1] ?? 0) > 2);
-  const windows = objs.filter((o) => (o.scale?.[0] ?? 1) < 2 && (o.scale?.[1] ?? 1) < 2 && (o.scale?.[2] ?? 1) < 2 && o.primitive === 'cube');
+  // Floors: large gray cubes with tall Y scale
+  const floors = objs.filter((o) =>
+    o.primitive === 'cube' &&
+    ((o.color ?? '').toLowerCase() === 'gray' || (o.scale?.[1] ?? 0) >= 2.5)
+  );
+  // Windows: small cubes that are NOT floors
+  const windows = objs.filter((o) =>
+    o.primitive === 'cube' && !floors.includes(o)
+  );
+
+  // Check coplanarity: each window should sit on a floor face plane
+  // Floor centers at y ≈ 1.5, 4.5, 7.5 with half-height 1.5 → faces at y=0,3,6,9 (horizontal)
+  // and x=±5, z=±5 (vertical). Windows are on vertical faces.
+  let coplanarCount = 0;
+  const floorYCenters = floors.map((f) => f.position[1]).sort((a, b) => a - b);
+  for (const w of windows) {
+    const wx = w.position[0];
+    const wy = w.position[1];
+    const wz = w.position[2];
+    const onVerticalFace =
+      within(Math.abs(wx), 5, 0.5) || within(Math.abs(wz), 5, 0.5);
+    const alignedToFloor = floorYCenters.some((y) => within(wy, y, 1.6));
+    if (onVerticalFace && alignedToFloor) coplanarCount++;
+  }
 
   return [
     { criterion_id: 'three_floors', passed: floors.length === 3, rationale: `found ${floors.length} floors` },
     { criterion_id: 'stacked_no_gap', passed: floors.length === 3, rationale: `floors: ${floors.length}` },
     { criterion_id: 'windows_per_face', passed: windows.length >= 48, rationale: `found ${windows.length} windows (need 48)` },
-    { criterion_id: 'windows_in_face_plane', passed: windows.length >= 48, rationale: `windows: ${windows.length}` },
+    { criterion_id: 'windows_in_face_plane', passed: coplanarCount >= 48, rationale: `${coplanarCount}/${windows.length} windows are coplanar with floor faces` },
   ];
 }
 
@@ -210,11 +297,12 @@ function verifyA10(objs: ParsedObject[]): VerificationResult[] {
     { criterion_id: 'tangency', passed: tangencyPassed, rationale: tangencyRationale },
     { criterion_id: 'teeth_per_gear', passed: cubes.length >= 16, rationale: `found ${cubes.length} cube teeth (need 16)` },
     { criterion_id: 'axles', passed: axles.length >= 2, rationale: `found ${axles.length} axle cylinders` },
-    { criterion_id: 'axle_color', passed: axles.some((o) => (o.color ?? '').toLowerCase().includes('gray')), rationale: `axle colors: ${axles.map((o) => o.color).join(', ')}` },
+    { criterion_id: 'axle_color', passed: axles.some((o) => isGrayish(o.color)), rationale: `axle colors: ${axles.map((o) => o.color).join(', ')}` },
   ];
 }
 
 const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResult[]> = {
+  T06: verifyT06,
   M02: verifyM02,
   M06: verifyM06,
   M09: verifyM09,

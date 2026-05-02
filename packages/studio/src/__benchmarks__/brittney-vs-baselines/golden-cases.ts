@@ -12,6 +12,7 @@ interface GoldenObject {
   primitive?: string;
   position: [number, number, number];
   scale?: [number, number, number];
+  rotation?: [number, number, number] | [number, number, number, number];
   color?: string;
   radius?: number;
   light_type?: string;
@@ -25,6 +26,15 @@ interface GoldenCase {
 }
 
 const GOLDEN_CASES: GoldenCase[] = [
+  // --- T06: Yellow cube rotated 45° around Y ---
+  {
+    task_id: 'T06',
+    objects: [
+      { name: 'YellowCube', type: 'mesh', primitive: 'cube', position: [0, 0, 0], scale: [1, 1, 1], color: 'yellow', rotation: [0, 45, 0] },
+    ],
+    notes: 'Single yellow cube at origin with Y rotation of 45 degrees',
+  },
+
   // --- M02: Stacked cubes ---
   {
     task_id: 'M02',
