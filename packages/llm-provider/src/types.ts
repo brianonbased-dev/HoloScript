@@ -400,6 +400,22 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    * prefixes that never repeat — paying 1.25× writes with zero reads).
    */
   enablePromptCaching?: boolean;
+
+  /**
+   * Maximum total cache breakpoints per request (Anthropic API limit: 4).
+   *
+   * One breakpoint is always used for the system+tools prefix when
+   * `enablePromptCaching` is true. The remaining budget is distributed
+   * across message turns (assistant-turn boundaries), working backwards
+   * from the most recent turn. This gives agent tool-loops (which can hit
+   * 30+ iterations) intermediate cache hits within the 5-min TTL window,
+   * preventing the "cache miss after ~15 blocks" cliff.
+   *
+   * Default: 4 (Anthropic's hard limit). Set lower (e.g. 2) to reserve
+   * cache budget for the system prefix only, or in pathological cases
+   * where mid-turn breakpoints add cost without reuse.
+   */
+  maxCacheBreakpoints?: number;
 }
 
 export interface GeminiProviderConfig extends LLMProviderConfig {
