@@ -22,7 +22,7 @@ import { HologramBundleError, HologramStoreError } from '@holoscript/engine/holo
 import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
 
 import { authorizeHologramUpload } from '../_lib/authorizeUpload';
-import { getHologramStore, MAX_HOLOGRAM_UPLOAD_BYTES } from '../_lib/store';
+import { getHologramStore, getShareRegistry, MAX_HOLOGRAM_UPLOAD_BYTES } from '../_lib/store';
 
 const PLACEHOLDER_HASH = '0'.repeat(64);
 
@@ -133,10 +133,29 @@ export async function POST(request: NextRequest) {
     if (bundle.parallaxWebm?.length) scanChunks.push(Buffer.from(bundle.parallaxWebm));
     virusScanHookPoint('hologram/bundle', Buffer.concat(scanChunks));
     const { hash, written } = await store.put(bundle);
+
+    // Wave B Stream 5: create a share record with expiry policy.
+    // If the upload is from an authenticated session, record who shared it.
+    // The share registry is idempotent — calling createShare on an existing
+    // hash returns the existing record.
+    const registry = getShareRegistry();
+    const shareRecord = await registry.createShare({
+      hash,
+      createdBy: '', // TODO: extract from session when auth is wired
+    });
+
     // Sprint 2 (A): canonical share URL — clients display this directly so
     // they don't have to re-derive it from the hash. The path is /g/<hash>;
     // the route itself lives in app/g/[hash]/page.tsx.
-    return NextResponse.json({ hash, written, url: `/g/${hash}` });
+    const response: Record<string, unknown> = {
+      hash,
+      written,
+      url: `/g/${hash}`,
+    };
+    if (shareRecord.expiresAt) {
+      response.expiresAt = shareRecord.expiresAt;
+    }
+    return NextResponse.json(response);
   } catch (err) {
     if (err instanceof HologramBundleError) {
       return jsonError(400, err.message, err.code);

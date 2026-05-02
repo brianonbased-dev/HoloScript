@@ -11,6 +11,12 @@
  *   - URL query params are NEVER read here.
  *   - meta.json is parsed by the store (not by us); the page re-sanitizes
  *     before passing to the client renderer.
+ *
+ * WAVE B STREAM 5: expiry policy — loadBundle now checks the share registry.
+ * If a share record exists and has expired, returns { expired: true } instead
+ * of the bundle. The page component renders a 410 Gone response for expired
+ * grams. Grams with no share record are always accessible (content-addressed
+ * permanent links).
  */
 
 import type { HologramMeta } from '@holoscript/engine/hologram';
@@ -19,7 +25,7 @@ import {
   HologramStoreError,
 } from '@holoscript/engine/hologram';
 
-import { getHologramStore } from '@/app/api/hologram/_lib/store';
+import { getHologramStore, getShareRegistry } from '@/app/api/hologram/_lib/store';
 
 export interface LoadedBundle {
   hash: string;
@@ -29,16 +35,34 @@ export interface LoadedBundle {
   hasParallax: boolean;
 }
 
-export async function loadBundle(rawHash: unknown): Promise<LoadedBundle | null> {
+/**
+ * Result of loading a bundle for the viewer page. If the share has expired,
+ * `expired` is true and `bundle` is null. If the hash is invalid or the
+ * bundle doesn't exist, both are null. Otherwise `bundle` contains the
+ * loaded metadata and `expired` is false.
+ */
+export interface LoadResult {
+  bundle: LoadedBundle | null;
+  expired: boolean;
+}
+
+export async function loadBundle(rawHash: unknown): Promise<LoadResult> {
   // Validate before any I/O. assertValidHash throws HologramStoreError
   // (code 'invalid_hash') for anything that isn't 64 lowercase hex.
   try {
     assertValidHash(rawHash);
   } catch (err) {
-    if (err instanceof HologramStoreError) return null;
+    if (err instanceof HologramStoreError) return { bundle: null, expired: false };
     throw err;
   }
   const hash = rawHash; // narrowed to string by assertion
+
+  // Wave B Stream 5: check share expiry before loading the bundle.
+  const registry = getShareRegistry();
+  const { expired } = await registry.getShareStatus(hash);
+  if (expired) {
+    return { bundle: null, expired: true };
+  }
 
   const store = getHologramStore();
 
@@ -46,10 +70,10 @@ export async function loadBundle(rawHash: unknown): Promise<LoadedBundle | null>
   try {
     meta = await store.getMeta(hash);
   } catch (err) {
-    if (err instanceof HologramStoreError) return null;
+    if (err instanceof HologramStoreError) return { bundle: null, expired: false };
     throw err;
   }
-  if (!meta) return null;
+  if (!meta) return { bundle: null, expired: false };
 
   // We don't load the depth/normal binary blobs server-side — the client
   // viewer fetches them lazily via /api/hologram/<hash>/<asset>. We DO
@@ -65,10 +89,13 @@ export async function loadBundle(rawHash: unknown): Promise<LoadedBundle | null>
   ]);
 
   return {
-    hash,
-    meta,
-    hasQuilt: quilt,
-    hasMvhevc: mvhevc,
-    hasParallax: parallax,
+    bundle: {
+      hash,
+      meta,
+      hasQuilt: quilt,
+      hasMvhevc: mvhevc,
+      hasParallax: parallax,
+    },
+    expired: false,
   };
 }

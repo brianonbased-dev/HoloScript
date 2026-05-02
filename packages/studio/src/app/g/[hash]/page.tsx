@@ -7,6 +7,10 @@
  * against the strict 64-hex pattern before any I/O. Anything else returns
  * Next.js's 404.
  *
+ * WAVE B STREAM 5: expiry policy. If a share record exists and has expired,
+ * this page renders a 410 Gone response. Content-addressed bundles without
+ * a share record are always accessible (permanent links).
+ *
  * SECURITY:
  *   - Hash is validated by `assertValidHash` before any path is constructed.
  *   - URL query params are NEVER read or echoed.
@@ -17,6 +21,7 @@
  *     a hydrated client subtree.
  *
  * @see Sprint 2 (A): board task task_1776678231432_a08m
+ * @see Wave B Stream 5: task_1776813797701_zi8i
  */
 
 import { notFound } from 'next/navigation';
@@ -45,11 +50,17 @@ export async function generateMetadata({
   params: Promise<{ hash: string }>;
 }): Promise<Metadata> {
   const { hash } = await params;
-  const loaded = await loadBundle(hash);
-  if (!loaded) {
+  const result = await loadBundle(hash);
+  if (result.expired) {
+    return {
+      title: 'HoloGram — expired',
+      description: 'This HoloGram share link has expired.',
+    };
+  }
+  if (!result.bundle) {
     return { title: 'HoloGram — not found' };
   }
-  const safe = sanitizeMetaForRender(loaded.meta);
+  const safe = sanitizeMetaForRender(result.bundle.meta);
   return {
     title: `HoloGram - ${safe.sourceKind} ${safe.width}x${safe.height}`,
     description: 'A 3D HoloGram rendered from 2D media',
@@ -57,8 +68,8 @@ export async function generateMetadata({
       title: 'HoloGram',
       description: `${safe.sourceKind} hologram, ${safe.width}x${safe.height}, ${safe.frames} frame(s)`,
       type: 'website',
-      images: loaded.hasQuilt
-        ? [{ url: `/api/hologram/${loaded.hash}/quilt.png` }]
+      images: result.bundle.hasQuilt
+        ? [{ url: `/api/hologram/${result.bundle.hash}/quilt.png` }]
         : undefined,
     },
   };
@@ -72,10 +83,28 @@ export default async function HologramPage({
   params: Promise<{ hash: string }>;
 }) {
   const { hash } = await params;
-  const loaded = await loadBundle(hash);
-  if (!loaded) {
+  const result = await loadBundle(hash);
+
+  // Wave B Stream 5: expired grams return 410 Gone
+  if (result.expired) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-4 px-4 py-8">
+        <h1 className="text-2xl font-semibold text-studio-text">HoloGram — expired</h1>
+        <p className="text-sm text-studio-muted">
+          This share link has expired and is no longer available.
+        </p>
+        <a href="/" className="text-sm text-purple-400 hover:text-purple-300 transition">
+          Create a new HoloGram
+        </a>
+      </main>
+    );
+  }
+
+  if (!result.bundle) {
     notFound();
   }
+
+  const loaded = result.bundle;
 
   // Construct a minimal client-side bundle shape. The actual depth/normal
   // bytes are NOT shipped through the page payload — the viewer fetches

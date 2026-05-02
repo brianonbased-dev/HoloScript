@@ -16,6 +16,7 @@ import {
   detectMediaSourceKind,
   isValidUploadResponse,
   shareUrlForHash,
+  gramUrlForHash,
 } from '../hologramShareLogic';
 
 describe('detectMediaSourceKind', () => {
@@ -141,5 +142,18 @@ describe('shareUrlForHash', () => {
     expect(shareUrlForHash('short')).toBe('#');
     expect(shareUrlForHash('../etc/passwd')).toBe('#');
     expect(shareUrlForHash('')).toBe('#');
+  });
+});
+
+describe('gramUrlForHash', () => {
+  it('returns /gram/<hash> for valid hash', () => {
+    expect(gramUrlForHash('a'.repeat(64))).toBe(`/gram/${'a'.repeat(64)}`);
+  });
+
+  it('returns "#" for invalid hash', () => {
+    expect(gramUrlForHash('A'.repeat(64))).toBe('#');
+    expect(gramUrlForHash('short')).toBe('#');
+    expect(gramUrlForHash('../etc/passwd')).toBe('#');
+    expect(gramUrlForHash('')).toBe('#');
   });
 });

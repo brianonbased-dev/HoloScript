@@ -105,6 +105,16 @@ export type {
   HologramStorePutResult,
 } from './HologramStore';
 
+// HologramShareRegistry — share metadata + expiry policy (Wave B Stream 5).
+// Node-only (imports node:fs); NOT exported from this barrel for browser safety.
+// Import directly: `import { HologramShareRegistry } from '@holoscript/engine/hologram/HologramShareRegistry'`
+export type {
+  HologramShareRecord,
+  HologramShareRegistryOptions,
+  CreateShareParams,
+  ShareStatusResult,
+} from './HologramShareRegistry';
+
 // ── Browser providers (Sprint 0a.2) ──────────────────────────────────────────
 //
 // WebGPU/WASM depth + Three.js quilt renderer for Studio drop-zone use.

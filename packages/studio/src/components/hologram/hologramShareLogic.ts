@@ -67,6 +67,8 @@ export interface UploadResponse {
   written: boolean;
   /** Optional canonical share URL (server-supplied since Sprint 2 (A)). */
   url?: string;
+  /** Wave B Stream 5: ISO 8601 expiry time if TTL is configured. */
+  expiresAt?: string | null;
 }
 
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
@@ -90,4 +92,14 @@ export function isValidUploadResponse(v: unknown): v is UploadResponse {
 export function shareUrlForHash(hash: string): string {
   if (!HASH_PATTERN.test(hash)) return '#';
   return `/g/${hash}`;
+}
+
+/**
+ * Compose the social-friendly /gram/ URL for a validated hash.
+ * /gram/<hash> redirects to /g/<hash> (the canonical viewer URL).
+ * Use this for social sharing, link previews, and user-visible URLs.
+ */
+export function gramUrlForHash(hash: string): string {
+  if (!HASH_PATTERN.test(hash)) return '#';
+  return `/gram/${hash}`;
 }
