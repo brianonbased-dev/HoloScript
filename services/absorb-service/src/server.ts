@@ -64,7 +64,7 @@ async function fetchActiveMoltbookAgentsWithTimeout(
       const { moltbookAgents } = await import('./db/schema.js');
       const { sql } = await import('drizzle-orm');
       const [row] = await db
-        .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
+        .select({ count: sql<number>`(count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true))::int` })
         .from(moltbookAgents);
       _lastMoltbookProbeError = null;
       return { status: 'ok', count: row?.count ?? 0 };

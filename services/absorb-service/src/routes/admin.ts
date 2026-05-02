@@ -254,7 +254,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     const [agentStats] = await db
       .select({
         totalAgents: sql<number>`count(*)::int`,
-        activeAgents: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int`,
+        activeAgents: sql<number>`(count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true))::int`,
         totalPosts: sql<number>`coalesce(sum(${moltbookAgents.totalPostsGenerated}), 0)::int`,
         totalComments: sql<number>`coalesce(sum(${moltbookAgents.totalCommentsGenerated}), 0)::int`,
         totalUpvotesGiven: sql<number>`coalesce(sum(${moltbookAgents.totalUpvotesGiven}), 0)::int`,

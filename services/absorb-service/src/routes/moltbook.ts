@@ -123,7 +123,7 @@ router.get('/summary', async (req: Request, res: Response) => {
     const [summary] = await db
       .select({
         totalAgents: sql<number>`count(*)::int`,
-        activeAgents: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int`,
+        activeAgents: sql<number>`(count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true))::int`,
         totalPosts: sql<number>`coalesce(sum(${moltbookAgents.totalPostsGenerated}), 0)::int`,
         totalComments: sql<number>`coalesce(sum(${moltbookAgents.totalCommentsGenerated}), 0)::int`,
         totalLlmSpentCents: sql<number>`coalesce(sum(${moltbookAgents.totalLlmSpentCents}), 0)::int`,
