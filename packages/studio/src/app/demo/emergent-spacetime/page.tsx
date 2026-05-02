@@ -28,11 +28,11 @@ import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 // INSTANCED VOXEL RENDERER
 // =============================================================================
 
-const MAX_VOXELS = 2000;
-const MAX_EDGES = 6000;
-const MAX_FLOW_PARTICLES = 300; // Reduced from 500 for 2k voxel budget
-const MIN_FLOW_PARTICLES = 30;
-const FRAME_TIME_TARGET_MS = 33; // 30Hz target for 2k voxels
+const MAX_VOXELS = 1000;
+const MAX_EDGES = 4000;
+const MAX_FLOW_PARTICLES = 200;
+const MIN_FLOW_PARTICLES = 20;
+const FRAME_TIME_TARGET_MS = 33; // 30Hz target
 
 // =============================================================================
 // PROVENANCE FLOW PARTICLES
@@ -380,13 +380,13 @@ function SceneContent({
     traitNodeRef.current = node;
 
     const config: EmergentSpacetimeConfig = {
-      initial_voxels: 2000,
-      max_voxels: 2000,
+      initial_voxels: 1000,
+      max_voxels: 1000,
       seed: 42,
       force_layout_guard: true,
       ricci_error_bound: 1e-4,
       ricci_heatmap: true,
-      loop_threshold: 0.03, // Lower threshold to activate Hubble earlier
+      loop_threshold: 0.03,
     };
 
     emergentSpacetimeHandler.onAttach(node, config, {} as any);
@@ -412,7 +412,6 @@ function SceneContent({
       networkRef.current = { voxels, edges };
     }
 
-    // Camera position
     camera.position.set(3, 2, 3);
     camera.lookAt(0, 0, 0);
 
@@ -428,53 +427,59 @@ function SceneContent({
     if (!traitNodeRef.current) return;
 
     const node = traitNodeRef.current;
-    const config: EmergentSpacetimeConfig = {
-      initial_voxels: 2000,
-      max_voxels: 2000,
+
+    // Update trait (config is stable from useEffect)
+    emergentSpacetimeHandler.onUpdate(node, {
+      initial_voxels: 1000,
+      max_voxels: 1000,
       seed: 42,
       force_layout_guard: true,
-      ricci_error_bound: 1e-4, // Relaxed for demo stability (Paper 3 claims 1e-5)
+      ricci_error_bound: 1e-4,
       ricci_heatmap: true,
-      loop_threshold: 0.03, // Lower threshold to activate Hubble earlier
-    };
-
-    // Update trait
-    emergentSpacetimeHandler.onUpdate(node, config, {} as any, delta);
+      loop_threshold: 0.03,
+    }, {} as any, delta);
 
     // Sync state to visualization
     const state_ = (node as any).__emergentSpacetimeState;
     if (state_) {
-      // Update voxel positions and compute Ricci
+      // Update voxel positions only (no new allocations)
       for (const [id, voxel] of state_.network.voxels) {
-        let existing = networkRef.current.voxels.get(id);
-        if (!existing) {
-          existing = {
-            id,
-            position: voxel.position,
-            ricci: 0,
-            provenance: voxel.provenance,
-          };
-          networkRef.current.voxels.set(id, existing);
+        const existing = networkRef.current.voxels.get(id);
+        if (existing) {
+          existing.position = voxel.position;
+          existing.provenance = voxel.provenance;
         }
-        existing.position = voxel.position;
-        existing.provenance = voxel.provenance;
       }
 
-      // Update edges
-      networkRef.current.edges = state_.network.edges.map((e: any) => ({
-        source: e.source,
-        target: e.target,
-        weight: e.weight,
-        provenance: e.provenance,
-      }));
+      // Update edges (reuse array)
+      if (networkRef.current.edges.length !== state_.network.edges.length) {
+        networkRef.current.edges = state_.network.edges.map((e: any) => ({
+          source: e.source,
+          target: e.target,
+          weight: e.weight,
+          provenance: e.provenance,
+        }));
+      } else {
+        for (let i = 0; i < state_.network.edges.length; i++) {
+          const e = state_.network.edges[i];
+          networkRef.current.edges[i] = {
+            source: e.source,
+            target: e.target,
+            weight: e.weight,
+            provenance: e.provenance,
+          };
+        }
+      }
 
-      // Update stats (throttled)
-      setStats({
-        voxels: state_.network.voxels.size,
-        edges: state_.network.edges.length,
-        hubble: state_.hubbleCorrection,
-        violations: state_.violationCount,
-      });
+      // Update stats (throttled to every 10 frames)
+      if (frameCountRef.current % 10 === 0) {
+        setStats({
+          voxels: state_.network.voxels.size,
+          edges: state_.network.edges.length,
+          hubble: state_.hubbleCorrection,
+          violations: state_.violationCount,
+        });
+      }
     }
 
     // FPS counter
@@ -531,18 +536,18 @@ function SceneContent({
       />
       <EffectComposer disableNormalPass>
         <Bloom
-          intensity={0.6}
-          luminanceThreshold={0.8}
-          luminanceSmoothing={0.03}
+          intensity={0.4}
+          luminanceThreshold={0.85}
+          luminanceSmoothing={0.05}
           mipmapBlur
         />
         <SSAO
-          radius={0.4}
-          intensity={12}
-          luminanceInfluence={0.5}
+          radius={0.3}
+          intensity={4}
+          luminanceInfluence={0.3}
           normalPass={false}
         />
-        <Vignette offset={0.35} darkness={0.6} />
+        <Vignette offset={0.4} darkness={0.4} />
         <ToneMapping />
       </EffectComposer>
     </>
