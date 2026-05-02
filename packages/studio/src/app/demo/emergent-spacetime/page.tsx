@@ -9,14 +9,16 @@
  * Features:
  * - 1000-voxel entanglement network with force-layout
  * - Ricci curvature heatmap (red = violation, blue = flat)
- * - Provenance trails showing fusion history
+ * - Provenance flow particles along entanglement edges
  * - Real-time Hubble correction display
- * - Performance: adaptive LOD, instanced rendering
+ * - Post-processing: Bloom, SSAO, Vignette, ToneMapping
+ * - Performance: instanced rendering (2 draw calls)
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
+import { EffectComposer, Bloom, SSAO, Vignette, ToneMapping } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
 import type { HSPlusNode } from '@holoscript/core/traits';
@@ -28,6 +30,107 @@ import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 
 const MAX_VOXELS = 1000;
 const MAX_EDGES = 3000;
+const MAX_FLOW_PARTICLES = 500;
+
+// =============================================================================
+// PROVENANCE FLOW PARTICLES
+// =============================================================================
+
+function ProvenanceFlowParticles({
+  edges,
+  voxels,
+}: {
+  edges: EdgeData[];
+  voxels: Map<string, VoxelData>;
+}) {
+  const pointsRef = useRef<THREE.Points>(null);
+  const positionsRef = useRef<Float32Array>(new Float32Array(MAX_FLOW_PARTICLES * 3));
+  const colorsRef = useRef<Float32Array>(new Float32Array(MAX_FLOW_PARTICLES * 3));
+  const particleState = useRef<{
+    edgeIndex: number;
+    progress: number;
+    positions: Float32Array;
+    colors: Float32Array;
+  }>({
+    edgeIndex: 0,
+    progress: 0,
+    positions: new Float32Array(MAX_FLOW_PARTICLES * 3),
+    colors: new Float32Array(MAX_FLOW_PARTICLES * 3),
+  });
+
+  useFrame((_, delta) => {
+    if (!pointsRef.current || edges.length === 0) return;
+
+    const state = particleState.current;
+    const positions = state.positions;
+    const colors = state.colors;
+
+    // Update particle positions along edges
+    for (let i = 0; i < MAX_FLOW_PARTICLES; i++) {
+      const particleEdgeIndex = i % edges.length;
+      const edge = edges[particleEdgeIndex];
+      const source = voxels.get(edge.source);
+      const target = voxels.get(edge.target);
+
+      if (!source || !target) continue;
+
+      // Move particle along edge
+      state.progress += delta * (0.5 + edge.weight * 0.5);
+      if (state.progress > 1) state.progress = 0;
+
+      const t = (state.progress + (i / MAX_FLOW_PARTICLES)) % 1;
+      const x = source.position[0] + (target.position[0] - source.position[0]) * t;
+      const y = source.position[1] + (target.position[1] - source.position[1]) * t;
+      const z = source.position[2] + (target.position[2] - source.position[2]) * t;
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      // Color based on provenance
+      const color = new THREE.Color();
+      color.setHSL(0.5 + edge.provenance * 0.2, 0.8, 0.6);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+
+    pointsRef.current.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    pointsRef.current.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    pointsRef.current.geometry.attributes.color.needsUpdate = true;
+  });
+
+  const geometry = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    const positions = new Float32Array(MAX_FLOW_PARTICLES * 3);
+    const colors = new Float32Array(MAX_FLOW_PARTICLES * 3);
+    for (let i = 0; i < MAX_FLOW_PARTICLES; i++) {
+      positions[i * 3] = 0;
+      positions[i * 3 + 1] = -100;
+      positions[i * 3 + 2] = 0;
+      colors[i * 3] = 1;
+      colors[i * 3 + 1] = 1;
+      colors[i * 3 + 2] = 1;
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return geom;
+  }, []);
+
+  return (
+    <points ref={pointsRef} geometry={geometry}>
+      <pointsMaterial
+        size={0.03}
+        vertexColors
+        transparent
+        opacity={0.7}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
 
 function InstancedVoxels({
   voxels,
@@ -366,6 +469,7 @@ function SceneContent({
         <>
           <InstancedVoxels voxels={networkRef.current.voxels} />
           <InstancedEdges edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
+          <ProvenanceFlowParticles edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
         </>
       )}
       <OrbitControls
@@ -377,6 +481,21 @@ function SceneContent({
         autoRotate
         autoRotateSpeed={0.5}
       />
+      <EffectComposer>
+        <Bloom
+          intensity={0.6}
+          luminanceThreshold={0.8}
+          luminanceSmoothing={0.03}
+          mipmapBlur
+        />
+        <SSAO
+          radius={0.4}
+          intensity={12}
+          luminanceInfluence={0.5}
+        />
+        <Vignette offset={0.35} darkness={0.6} />
+        <ToneMapping />
+      </EffectComposer>
     </>
   );
 }
