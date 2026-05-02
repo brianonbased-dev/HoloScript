@@ -325,7 +325,7 @@ export const INPUT_NODES: INodeTemplate[] = [
     description: 'Constant vec3 value',
     inputs: [],
     outputs: [{ id: 'value', name: 'Value', type: 'vec3' }],
-    defaultProperties: [0, 0, 0 ],
+    defaultProperties: { x: 0, y: 0, z: 0 },
     generateCode: (node) => {
       const x = node.properties?.x ?? 0;
       const y = node.properties?.y ?? 0;

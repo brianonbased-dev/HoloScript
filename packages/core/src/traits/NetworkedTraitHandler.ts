@@ -30,9 +30,10 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
-import type { SyncTier } from '@holoscript/mesh';
+// SyncTier is defined in @holoscript/mesh NetworkTypes but not re-exported; define locally
+type SyncTier = 'physics' | 'movement' | 'ai_agent' | 'cosmetic';
 import { SYNC_TIER_RATES } from '@holoscript/mesh';
 
 // =============================================================================

@@ -284,7 +284,11 @@ describe('LivePreviewService', () => {
 
   it('should cache compilation results', async () => {
     const graph = new ShaderGraph('Cache Test');
-    const node = graph.createNode('constant_float', { x: 0, y: 0 });
+    const colorNode = graph.createNode('constant_color', { x: 0, y: 0 });
+    const outputNode = graph.createNode('output_surface', { x: 300, y: 0 });
+    if (colorNode && outputNode) {
+      graph.connect(colorNode.id, 'color', outputNode.id, 'baseColor');
+    }
 
     previewService.setGraph(graph);
 

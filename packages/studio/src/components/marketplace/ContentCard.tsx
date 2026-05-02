@@ -60,12 +60,21 @@ export function ContentCard({
           <h3 className="line-clamp-1 text-sm font-semibold text-studio-text">{item.name}</h3>
         </div>
         <p className="line-clamp-2 text-xs text-studio-muted">{item.description}</p>
-        <div className="mt-auto flex items-center justify-between gap-2 text-xs text-studio-muted">
+        <div className="mt-auto flex flex-col gap-1 text-xs text-studio-muted">
+          {item.priceCents > 0 && (
+            <span className="font-medium text-studio-text">
+              ${(item.priceCents / 100).toFixed(2)}
+            </span>
+          )}
+          {item.cognitiveHz != null && (
+            <span>{item.cognitiveHz} Hz</span>
+          )}
+          <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500" />
             {item.rating.toFixed(1)}
           </span>
-          <div className="flex gap-1">
+            <div className="flex gap-1">
             {onDownload && (
               <button
                 type="button"
@@ -92,6 +101,7 @@ export function ContentCard({
                 <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-400 text-red-400' : ''}`} />
               </button>
             )}
+          </div>
           </div>
         </div>
       </div>

@@ -346,7 +346,7 @@ export interface HoloScriptGenerationResponse {
 // Provider Configuration
 // =============================================================================
 
-export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm';
+export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm' | 'openrouter' | 'xai';
 
 export interface LLMProviderConfig {
   /** API key for authentication */
@@ -447,6 +447,35 @@ export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'
   model?: string;
 }
 
+/**
+ * Config for the OpenRouter provider.
+ * OpenRouter is an OpenAI-compatible API that routes to 200+ models.
+ * The required HTTP-Referer and X-Title headers are set for attribution;
+ * callers can override via referer/title config.
+ */
+export interface OpenRouterProviderConfig extends LLMProviderConfig {
+  /**
+   * HTTP-Referer header for attribution.
+   * OpenRouter requires this. Default: 'https://holoscript.net'
+   */
+  referer?: string;
+
+  /**
+   * X-Title header for attribution.
+   * OpenRouter requires this. Default: 'HoloScript'
+   */
+  title?: string;
+}
+
+/**
+ * Config for the xAI (Grok) provider.
+ * xAI provides an OpenAI-compatible API at https://api.x.ai/v1.
+ */
+export interface XAIProviderConfig extends LLMProviderConfig {
+  // No xAI-specific config beyond the base LLMProviderConfig fields.
+  // baseURL defaults to https://api.x.ai/v1.
+}
+
 // =============================================================================
 // Provider Interface
 // =============================================================================
@@ -519,6 +548,8 @@ export interface LLMProviderRegistry {
   gemini?: ILLMProvider;
   bitnet?: ILLMProvider;
   'local-llm'?: ILLMProvider;
+  openrouter?: ILLMProvider;
+  xai?: ILLMProvider;
 }
 
 export interface ProviderSelectionStrategy {

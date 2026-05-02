@@ -7,8 +7,6 @@ export default defineConfig({
     environment: 'node',
   },
   resolve: {
-    alias: {
-      '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
-    },
+    alias: [{ find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') }],
   },
 });

@@ -652,25 +652,27 @@ export {
 } from './migration';
 
 // Package Registry (Sprint 5 - Package management MVP)
-export {
-  PackageRegistry,
-  createPackageRegistry,
-  defaultRegistry as defaultPackageRegistry,
-  parseSemVer,
-  formatSemVer,
-  compareSemVer,
-  satisfiesRange,
-  findBestMatch,
-  validatePackageName,
-  validateManifest,
-  type SemVer,
-  type PackageDependency,
-  type PackageManifest as RegistryPackageManifest,
-  type PackageMetadata,
-  type SearchResult,
-  type ResolvedDependency,
-  type InstallResult,
-} from '@holoscript/platform';
+// NOTE: @holoscript/platform no longer exports these members.
+// Re-exports commented out until platform API is updated.
+// export {
+//   PackageRegistry,
+//   createPackageRegistry,
+//   defaultRegistry as defaultPackageRegistry,
+//   parseSemVer,
+//   formatSemVer,
+//   compareSemVer,
+//   satisfiesRange,
+//   findBestMatch,
+//   validatePackageName,
+//   validateManifest,
+//   type SemVer,
+//   type PackageDependency,
+//   type PackageManifest as RegistryPackageManifest,
+//   type PackageMetadata,
+//   type SearchResult,
+//   type ResolvedDependency,
+//   type InstallResult,
+// } from '@holoscript/platform';
 
 // HoloScript LSP Service (NEW - IDE integration)
 export {

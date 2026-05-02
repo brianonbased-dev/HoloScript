@@ -2,21 +2,35 @@
   "hooks": {
     "SessionStart": [
       {
-        "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs sessionstart/room-connect.mjs",
-        "description": "Establish real-time team room connection and inject current mode/objective"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs sessionstart/room-connect.mjs"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "node .claude/hooks/validate-edit.mjs \"$FILE_PATH\"",
-        "description": "Trigger quality gate on TypeScript and HoloScript file edit"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/validate-edit.mjs \"$FILE_PATH\""
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "command": "echo 'SESSION_END: Saving metrics and consolidating session backlog'",
-        "description": "Save session context on exit"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'SESSION_END: Saving metrics and consolidating session backlog'"
+          }
+        ]
       }
     ]
   }

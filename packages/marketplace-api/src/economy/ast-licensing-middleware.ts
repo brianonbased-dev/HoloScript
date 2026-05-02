@@ -20,6 +20,7 @@
  */
 
 import express, { type Request, type Response, type NextFunction, type Router } from 'express';
+import pathToRegexpCompat from 'path-to-regexp';
 import {
   ASTLicenseRegistry,
   ASTLicenseGate,
@@ -30,6 +31,41 @@ import {
   type X402PaymentPayload,
 } from '@holoscript/framework/economy';
 import { safeParseX402PaymentPayload } from '@holoscript/framework/economy';
+
+// -----------------------------------------------------------------------------
+// Compatibility shim:
+// In this workspace, `path-to-regexp` can resolve to a legacy function export
+// (no `.match`) while `router@2.x` expects `pathRegexp.match(...)`.
+// Mutate the cached export once so express/router can create routes reliably.
+// -----------------------------------------------------------------------------
+const pathRegexpAny = pathToRegexpCompat as unknown as {
+  (...args: unknown[]): RegExp;
+  match?: (path: string, options?: unknown) => (pathname: string) => false | {
+    path: string;
+    index: number;
+    params: Record<string, string>;
+  };
+};
+
+if (typeof pathRegexpAny.match !== 'function') {
+  pathRegexpAny.match = (path: string, options?: unknown) => {
+    const keys: Array<{ name: string }> = [];
+    const re = pathRegexpAny(path, keys, options) as RegExp;
+    return (pathname: string) => {
+      const m = re.exec(pathname);
+      if (!m) return false;
+      const params: Record<string, string> = {};
+      keys.forEach((k, i) => {
+        params[k.name] = m[i + 1];
+      });
+      return {
+        path: m[0],
+        index: m.index,
+        params,
+      };
+    };
+  };
+}
 
 // =============================================================================
 // CONFIG

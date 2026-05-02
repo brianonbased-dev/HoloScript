@@ -497,7 +497,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
           direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]
         );
         if (len > 0) {
-          const normalized = [direction[0] / len, direction[1] / len, direction[2] / len];
+          const normalized = [direction[0] / len, direction[1] / len, direction[2] / len] as Vector3;
           const hit = context.physics.raycast(nodePos, normalized, dist);
           state.isReachable = !hit || hit.distance >= dist - 0.01;
         } else {

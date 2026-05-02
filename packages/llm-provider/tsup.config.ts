@@ -7,6 +7,8 @@ export default defineConfig({
     'adapters/openai': 'src/adapters/openai.ts',
     'adapters/anthropic': 'src/adapters/anthropic.ts',
     'adapters/gemini': 'src/adapters/gemini.ts',
+    'adapters/openrouter': 'src/adapters/openrouter.ts',
+    'adapters/xai': 'src/adapters/xai.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,

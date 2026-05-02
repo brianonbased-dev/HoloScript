@@ -30,7 +30,7 @@ interface FlowFieldState {
 
 function toTuple(v: Vector3): [number, number, number] {
   if (Array.isArray(v)) return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
-  return [v.x, v.y, v.z];
+  return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
 }
 
 export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {

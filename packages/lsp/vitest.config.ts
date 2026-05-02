@@ -3,9 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
-    },
+    alias: [{ find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') }],
   },
   test: {
     include: ['src/**/*.test.ts'],

@@ -109,14 +109,14 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     const hand = context.vr.getDominantHand();
     const handPos = hand ? hand.position : null;
 
-    const hx = headPos.x;
-    const hy = headPos.y;
-    const hz = headPos.z;
+    const hx = headPos[0];
+    const hy = headPos[1];
+    const hz = headPos[2];
     state.headPositions.push([hx, hy, hz]);
     if (handPos) {
-      const px = handPos.x;
-      const py = handPos.y;
-      const pz = handPos.z;
+      const px = handPos[0];
+      const py = handPos[1];
+      const pz = handPos[2];
       state.handPositions.push([px, py, pz]);
     }
 

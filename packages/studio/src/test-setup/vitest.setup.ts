@@ -238,3 +238,13 @@ if (!('memory' in performance)) {
 if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// ── ResizeObserver stub ───────────────────────────────────────────────────────
+// react-use-measure requires ResizeObserver; jsdom doesn't provide it
+if (!global.ResizeObserver) {
+  global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

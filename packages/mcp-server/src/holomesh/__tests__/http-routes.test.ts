@@ -4890,6 +4890,7 @@ describe('HoloMesh HTTP Routes', () => {
         fnv1a_chain: 'fnv-stub',
         version_vector_fingerprint: 'vv-stub',
         received_at: '',
+        trust_epoch: 'post-w107',
         ...overrides,
       };
     }

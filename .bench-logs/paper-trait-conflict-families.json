@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-27T17:27:29.388Z",
+  "generatedAt": "2026-04-30T00:42:33.332Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-conflict-families.test.ts",
-  "traitUniverseCount": 2801,
-  "familyPairRows": 12245,
+  "traitUniverseCount": 2819,
+  "familyPairRows": 12402,
   "topByStrict": [
     {
       "familyA": "analytics_observability",
@@ -196,11 +196,11 @@
     {
       "familyA": "analytics_observability",
       "familyB": "rendering",
-      "totalPairs": 400,
+      "totalPairs": 384,
       "strictBidirectional": 0,
       "strictUnidirectional": 0,
       "domainOverride": 0,
-      "authorityWeighted": 400
+      "authorityWeighted": 384
     },
     {
       "familyA": "aerial_aquatic",

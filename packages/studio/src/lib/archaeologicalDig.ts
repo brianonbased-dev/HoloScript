@@ -5,7 +5,11 @@
  * fragment-to-artifact reconstruction, and stratigraphy modeling.
  */
 
-export type Vec3 = [number, number, number];
+export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
+
+function vx(v: Vec3): number { return Array.isArray(v) ? v[0] : v.x; }
+function vy(v: Vec3): number { return Array.isArray(v) ? v[1] : v.y; }
+function vz(v: Vec3): number { return Array.isArray(v) ? v[2] : v.z; }
 
 export type ArtifactMaterial =
   | 'ceramic'
@@ -197,9 +201,9 @@ export function fragmentFitting(edgeA: FragmentEdge, edgeB: FragmentEdge): numbe
   const n = Math.min(edgeA.points.length, edgeB.points.length);
   let totalDist = 0;
   for (let i = 0; i < n; i++) {
-    const dx = edgeA.points[i][0] - edgeB.points[i][0];
-    const dy = edgeA.points[i][1] - edgeB.points[i][1];
-    const dz = edgeA.points[i][2] - edgeB.points[i][2];
+    const dx = vx(edgeA.points[i]) - vx(edgeB.points[i]);
+    const dy = vy(edgeA.points[i]) - vy(edgeB.points[i]);
+    const dz = vz(edgeA.points[i]) - vz(edgeB.points[i]);
     totalDist += Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
   const avgDist = n > 0 ? totalDist / n : 10;
@@ -228,8 +232,8 @@ export function gisOverlay(
   metersPerDegLon: number = 78847
 ): { sw: GeoCoord; ne: GeoCoord } {
   const sw: GeoCoord = {
-    lat: origin.lat + grid.position[2] / metersPerDegLat,
-    lon: origin.lon + grid.position[0] / metersPerDegLon,
+    lat: origin.lat + vz(grid.position) / metersPerDegLat,
+    lon: origin.lon + vx(grid.position) / metersPerDegLon,
   };
   const ne: GeoCoord = {
     lat: sw.lat + grid.lengthM / metersPerDegLat,

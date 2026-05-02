@@ -130,9 +130,11 @@ export * from './NerfTrait';
 export * from './NetworkedAvatarTrait';
 export { NetworkedTrait } from './NetworkedTrait';
 export * from './NetworkedTraitHandler';
+export type { SkeletonPose } from './NeuralAnimationTrait'; // disambiguate: prefer NeuralAnimationTrait version
 export * from './NeuralAnimationTrait';
 // Motion-matching engine surface (idea-run-3 BUILD-1 scaffolding) — exported so
 // runtime + downstream consumers can import via @holoscript/core.
+export type { Vec3 } from './engines/motion-matching'; // disambiguate: prefer motion-matching version
 export * from './engines/motion-matching';
 export * from './engines/synthetic-walk-cycle';
 export * from './engines/onnx-adapter';
@@ -427,7 +429,7 @@ export * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics'
 export * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
 export * as ForensicsPlugin from '@holoscript/plugin-forensics';
 export * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
-export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention';
+// export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention'; // package not found
 export * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
 export * as InsurancePlugin from '@holoscript/plugin-insurance';
 export * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
@@ -439,7 +441,7 @@ export * as RestaurantPlugin from '@holoscript/plugin-restaurant';
 export * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
 export * as RoboticsPlugin from '@holoscript/robotics-plugin';
 export * as NarupaPlugin from '@holoscript/narupa-plugin';
-export * as TherapyPlugin from '@holoscript/plugin-therapy';
+// export * as TherapyPlugin from '@holoscript/plugin-therapy'; // package not found
 export * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
 export * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
 export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';

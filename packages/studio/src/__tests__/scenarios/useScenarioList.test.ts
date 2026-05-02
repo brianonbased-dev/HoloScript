@@ -2,20 +2,19 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useScenarioList } from '../../hooks/useScenarioList';
-import { SCENARIOS } from '@/industry/scenarios/ScenarioGallery';
 
 describe('useScenarioList', () => {
   it('returns all scenarios by default', () => {
     const { result } = renderHook(() => useScenarioList());
-    expect(result.current.scenarios.length).toBe(SCENARIOS.length);
-    expect(result.current.totalCount).toBe(SCENARIOS.length);
-    expect(result.current.resultCount).toBe(SCENARIOS.length);
+    expect(result.current.scenarios.length).toBe(38);
+    expect(result.current.totalCount).toBe(38);
+    expect(result.current.resultCount).toBe(38);
   });
 
   it('filters by search term', () => {
     const { result } = renderHook(() => useScenarioList());
     act(() => result.current.setSearch('DNA'));
-    expect(result.current.resultCount).toBeLessThan(SCENARIOS.length);
+    expect(result.current.resultCount).toBeLessThan(38);
     expect(result.current.scenarios.some((s) => s.id === 'dna')).toBe(true);
   });
 
@@ -60,11 +59,11 @@ describe('useScenarioList', () => {
 
   it('provides correct category counts', () => {
     const { result } = renderHook(() => useScenarioList());
-    expect(result.current.categoryCounts.all).toBe(SCENARIOS.length);
+    expect(result.current.categoryCounts.all).toBe(38);
     const sumCats = Object.entries(result.current.categoryCounts)
       .filter(([k]) => k !== 'all')
       .reduce((sum, [, v]) => sum + v, 0);
-    expect(sumCats).toBe(SCENARIOS.length);
+    expect(sumCats).toBe(38);
   });
 
   it('resetFilters restores defaults', () => {
@@ -73,9 +72,9 @@ describe('useScenarioList', () => {
       result.current.setSearch('xyz');
       result.current.setCategory('arts');
     });
-    expect(result.current.resultCount).toBeLessThan(SCENARIOS.length);
+    expect(result.current.resultCount).toBeLessThan(38);
     act(() => result.current.resetFilters());
-    expect(result.current.resultCount).toBe(SCENARIOS.length);
+    expect(result.current.resultCount).toBe(38);
     expect(result.current.search).toBe('');
     expect(result.current.category).toBe('all');
   });

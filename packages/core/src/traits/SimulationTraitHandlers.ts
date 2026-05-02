@@ -321,3 +321,4 @@ export const scalarFieldOverlayHandler: TraitHandler<ScalarFieldOverlayConfig> =
     (node as unknown as Record<string, unknown>).__scalarFieldOverlay = config;
   },
 };
+
