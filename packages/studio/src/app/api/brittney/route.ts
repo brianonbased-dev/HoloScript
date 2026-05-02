@@ -3,40 +3,53 @@ export const maxDuration = 300;
 /**
  * POST /api/brittney — Brittney AI chat endpoint.
  *
- * Streams Claude responses as SSE events. Supports tool use for
+ * Streams LLM responses as SSE events via the unified provider surface
+ * from @holoscript/llm-provider (D.025 Phase 3). Supports tool use for
  * scene manipulation (add_trait, create_object, etc.).
+ *
+ * Provider routing (BRITTNEY_PROVIDER env gate):
+ *   - anthropic (default when ANTHROPIC_API_KEY set) → Claude via AnthropicAdapter
+ *   - ollama (when OLLAMA_HOST set or BRITTNEY_PROVIDER=ollama) → local model
+ *     via LocalLLMAdapter (Ollama-compatible OpenAI endpoint)
+ *   - Error if neither is configured (downloaded apps must set OLLAMA_HOST)
+ *
+ * The stream yields LLMStreamChunk events which the route translates to the
+ * same SSE format the client already consumes — identical bytes for the
+ * Anthropic cloud path (regression-safe), same CAEL/SimContractGate/tool-loop
+ * semantics.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  type LLMMessage,
+  type ToolSpec,
+  type ToolUseBlock,
+  type ToolResultBlock,
+  type TextBlock,
+  type LLMCompletionRequest,
+} from '@holoscript/llm-provider';
+import { resolveBrittneyProvider } from '@/lib/brittney/provider';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
-import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
-import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
-import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
-import { rateLimit } from '@/lib/rate-limiter';
-import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
-import {
-  isSceneMutationTool,
-  verifySceneMutation,
-  type SimContractCheckResult,
-} from '@/lib/brittney/SimContractGate';
+import { isSceneMutationTool, verifySceneMutation, type SimContractCheckResult } from '@/lib/brittney/SimContractGate';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
   executeLotusTool,
   type LotusToolResult,
 } from '@/lib/brittney/lotus/LotusTools';
-import {
-  EMBODIED_TOOLS,
-  EMBODIED_TOOL_NAMES,
-  executeEmbodiedTool,
-} from '@/lib/brittney/EmbodiedTools';
+import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
+import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTools';
+import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
+import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
+import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import { rateLimit } from '@/lib/rate-limiter';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
-import { corsHeaders } from '../_lib/cors';
-import { readJsonBody } from '../_lib/body-size';
+import { corsHeaders } from '../../_lib/cors';
+import { readJsonBody } from '../../_lib/body-size';
 import {
   attachChain,
   buildBrittneyCaelRecord,
@@ -51,55 +64,51 @@ const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
 const MAX_MESSAGE_CHARS = 4000;
 
-/* System prompt lives in @/lib/brittney/systemPrompt.ts */
+/**
+ * All tool names that the Brittney route handles server-side
+ * (Studio API, MCP, Lotus, Embodied). Used to distinguish
+ * server-executed tools from client-side-only tools.
+ */
+const SERVER_EXECUTED_TOOL_NAMES = new Set([
+  ...STUDIO_API_TOOL_NAMES,
+  ...MCP_TOOL_NAMES,
+  ...LOTUS_TOOL_NAMES,
+  ...EMBODIED_TOOL_NAMES,
+]);
 
-function convertToolsToClaudeFormat(): Anthropic.Tool[] {
-  const sceneTtools = BRITTNEY_TOOLS.map((t) => ({
+/**
+ * Convert Brittney's tool definitions to the provider-agnostic ToolSpec shape.
+ *
+ * Brittney's tool definitions use { name, description, parameters }
+ * (same as OpenAI function-calling format). ToolSpec uses the same
+ * shape with `input_schema` instead of `parameters`. This function
+ * performs that rename.
+ */
+function convertToolsToProviderFormat(): ToolSpec[] {
+  const allDefs = [
+    ...BRITTNEY_TOOLS,
+    ...STUDIO_API_TOOLS,
+    ...MCP_TOOLS,
+    ...SIMULATION_TOOLS,
+    ...LOTUS_TOOLS,
+    ...EMBODIED_TOOLS,
+  ];
+
+  return allDefs.map((t) => ({
     name: t.function.name,
     description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+    input_schema: t.function.parameters as ToolSpec['input_schema'],
   }));
-  const apiTools = STUDIO_API_TOOLS.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
-  }));
-  const mcpTools = MCP_TOOLS.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
-  }));
-  const simTools = SIMULATION_TOOLS.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
-  }));
-  // LOTUS_TOOLS: Brittney's Paper 26 garden-tending toolset. Mutations
-  // (bloom_petal/wilt_petal) gate against derivePetalBloomState — the
-  // architectural-trust hook. Read-only tools (read_garden_state, tend_garden,
-  // propose_evidence) always succeed.
-  const lotusTools = LOTUS_TOOLS.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
-  }));
-  // EMBODIED_TOOLS: lets Brittney read the cross-skill composite from
-  // /api/embodied/composite (pushed by ai-ecosystem voice adapter).
-  // Answers "is everything ok?" honestly without forcing system-prompt drift.
-  const embodiedTools = EMBODIED_TOOLS.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
-  }));
-  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools, ...lotusTools, ...embodiedTools];
 }
+
+/* System prompt lives in @/lib/brittney/systemPrompt.ts */
 
 /**
  * Resolve the base URL for internal API calls.
  * In production Next.js, internal fetch needs the full origin.
  */
 function getBaseUrl(request: Request): string {
-  const proto = request.headers.get('x-forwarded-proto') || 'http';
+  const proto = request.headers.get('x-forwarded-proro') || 'http';
   const host = request.headers.get('host') || 'localhost:3000';
   return `${proto}://${host}`;
 }
@@ -118,13 +127,20 @@ export async function POST(request: NextRequest) {
     return limit.response;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  // Resolve provider via BRITTNEY_PROVIDER env gate (D.025 Phase 3).
+  // Throws a clear error if no provider is configured.
+  let resolved: ReturnType<typeof resolveBrittneyProvider>;
+  try {
+    resolved = resolveBrittneyProvider();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     return sseResponse([
-      { type: 'error', payload: 'ANTHROPIC_API_KEY not configured' },
+      { type: 'error', payload: msg },
       { type: 'done', payload: null },
     ]);
   }
+
+  const { provider, model, maxTokens, providerName } = resolved;
 
   // SEC-T17: cap body bytes before parsing. Per-message content is capped
   // below at MAX_MESSAGE_CHARS (4KB); 32KB body budget covers multi-turn
@@ -167,14 +183,15 @@ export async function POST(request: NextRequest) {
     ]);
   }
 
-  const client = new Anthropic({ apiKey });
-
-  const claudeMessages: Anthropic.MessageParam[] = (messages ?? []).map((m) => ({
-    role: m.role as 'user' | 'assistant',
+  // Convert client messages to LLMMessage[] (provider-agnostic).
+  // The client sends simple { role, content } objects; for the tool-loop
+  // rounds, we build structured content arrays (text + tool_use + tool_result).
+  const llmMessages: LLMMessage[] = (messages ?? []).map((m) => ({
+    role: m.role as LLMMessage['role'],
     content: m.content,
   }));
 
-  if (claudeMessages.length === 0) {
+  if (llmMessages.length === 0) {
     if (closeSession) {
       const result = closeChain(sessionId, { stopReason: 'client-close' });
       return sseResponse([
@@ -191,12 +208,11 @@ export async function POST(request: NextRequest) {
     ]);
   }
 
-  // SEC-T03: credit check before first Claude token (pricing op = Brittney chat).
+  // SEC-T03: credit check before first LLM token (pricing op = Brittney chat).
   const gate = await checkCredits(request, 'studio_chat');
   if (gate.error) return gate.error;
 
   const systemPrompt = bodySystemPrompt ?? buildContextualPrompt(sceneContext);
-
   const baseUrl = getBaseUrl(request);
 
   // Forward auth-related headers so Studio API calls inherit the session
@@ -205,6 +221,11 @@ export async function POST(request: NextRequest) {
   if (cookie) forwardHeaders['cookie'] = cookie;
   const authHeader = request.headers.get('authorization');
   if (authHeader) forwardHeaders['authorization'] = authHeader;
+
+  // Build tools in provider-agnostic format (ToolSpec[]).
+  // Same shape as Anthropic's { name, description, input_schema } — the
+  // conversion just renames `parameters` → `input_schema`.
+  const tools = convertToolsToProviderFormat();
 
   const encoder = new TextEncoder();
 
@@ -229,19 +250,24 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const model = process.env.BRITTNEY_MODEL || 'claude-opus-4-7';
       const simContractCheckSafe: SimContractCheck | null = simContractCheck ?? null;
 
       try {
         const MAX_TOOL_ROUNDS = 5;
-        let roundMessages = [...claudeMessages];
+        let roundMessages = [
+          // Prepend system prompt as a system message for the provider.
+          // The Anthropic adapter handles this internally via
+          // separateSystemMessages(); Ollama and others include it inline.
+          { role: 'system' as const, content: systemPrompt },
+          ...llmMessages,
+        ];
         let debited = false;
 
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-          // Accumulate tool use blocks during streaming
+          // Tool-call accumulators for this round.
           let currentToolName = '';
-          let currentToolInput = '';
           let currentToolId = '';
+          let currentToolInput = '';
           const pendingToolCalls: Array<{
             id: string;
             name: string;
@@ -249,28 +275,21 @@ export async function POST(request: NextRequest) {
           }> = [];
           // BRITTNEY mutation tools that fail SimulationContract grounding are
           // not emitted to the client; instead the rejection is fed back to
-          // Claude as a tool_result with is_error so it can recover or reroute.
+          // the model as a tool_result with is_error so it can recover.
           const rejectedMutations: Array<{
             id: string;
             name: string;
             input: Record<string, unknown>;
             check: SimContractCheckResult;
           }> = [];
-          // CAEL per-round accumulators. Track EVERY tool call Claude attempts
-          // (server, client, sim, rejected) so tool_iters reflects real model
-          // behavior, not just the server-execution subset.
+          // CAEL per-round accumulators.
           let roundText = '';
           const roundToolCalls: Array<{ name: string; input: unknown; result?: unknown }> = [];
-          // Snapshot the message thread at round-start. The assistant turn for
-          // this round isn't appended until after Claude completes (and only
-          // when continuing for tool results), so this is the deterministic
-          // L2 input that survives replay.
+          // Snapshot the message thread at round-start.
           const messagesAtRoundStart = roundMessages.map((m) => ({ ...m }));
 
           /**
            * Commit a CAEL record for this round and emit a caelChain SSE event.
-           * Called once per round from both exit paths (continue / break) so the
-           * chain extends per-round, not just per-request.
            */
           const commitCaelForRound = (): void => {
             const record = buildBrittneyCaelRecord({
@@ -302,149 +321,120 @@ export async function POST(request: NextRequest) {
             deductCredits(gate.userId, 'studio_chat').catch(() => {});
           }
 
-          const response = await client.messages.create({
-            // Opus 4.7 default — most capable. Override via BRITTNEY_MODEL env
-            // (e.g. 'claude-sonnet-4-6' for cost, 'claude-haiku-4-5' for speed).
-            model,
-            // 16K covers streaming tool use with scene manipulation (easily
-            // exceeds 2K per turn). Safe ONLY because stream:true (below) keeps
-            // the HTTP socket alive past undici's ~30s headersTimeout — a buffered
-            // (non-streaming) request at this max_tokens hangs on slow Opus turns
-            // (see packages/llm-provider/src/adapters/anthropic.ts:201-216).
-            max_tokens: 16000,
-            system: systemPrompt,
+          // Stream the LLM response via the unified provider surface.
+          // LLMStreamChunk events are translated to SSE events that the
+          // client already consumes — identical format regardless of backend.
+          const request: LLMCompletionRequest = {
             messages: roundMessages,
-            tools: convertToolsToClaudeFormat(),
+            maxTokens,
+            model,
+            tools: tools.length > 0 ? tools : undefined,
             stream: true,
-          });
+          };
 
           let stopReason: string | null = null;
 
-          for await (const event of response) {
-            switch (event.type) {
-              case 'content_block_start':
-                if (event.content_block.type === 'tool_use') {
-                  currentToolName = event.content_block.name;
-                  currentToolId = event.content_block.id;
-                  currentToolInput = '';
-                }
+          const streamIter = provider.streamCompletion(request, model);
+
+          for await (const chunk of streamIter) {
+            switch (chunk.type) {
+              case 'text_delta': {
+                roundText += chunk.text;
+                send({ type: 'text', payload: chunk.text });
                 break;
+              }
 
-              case 'content_block_delta':
-                if ('text' in event.delta && event.delta.text) {
-                  roundText += event.delta.text;
-                  send({ type: 'text', payload: event.delta.text });
-                }
-                if ('thinking' in event.delta && event.delta.thinking) {
-                  send({ type: 'thinking', payload: event.delta.thinking });
-                }
-                if ('partial_json' in event.delta && event.delta.partial_json) {
-                  currentToolInput += event.delta.partial_json;
-                }
+              case 'tool_use_start': {
+                currentToolName = chunk.name;
+                currentToolId = chunk.id;
+                currentToolInput = '';
                 break;
+              }
 
-              case 'content_block_stop':
-                if (currentToolName) {
-                  const parsedArgs: Record<string, unknown> = currentToolInput
-                    ? (JSON.parse(currentToolInput) as Record<string, unknown>)
-                    : {};
-                  // CAEL: record the call attempt regardless of branch (server,
-                  // client, sim, rejected). Result attached later when known.
-                  roundToolCalls.push({ name: currentToolName, input: parsedArgs });
+              case 'tool_use_input_delta': {
+                currentToolInput += chunk.partialJson;
+                break;
+              }
 
-                  if (
-                    STUDIO_API_TOOL_NAMES.has(currentToolName) ||
-                    MCP_TOOL_NAMES.has(currentToolName) ||
-                    LOTUS_TOOL_NAMES.has(currentToolName) ||
-                    EMBODIED_TOOL_NAMES.has(currentToolName)
-                  ) {
-                    // Studio API, MCP, or Lotus tool — execute server-side and
-                    // collect for tool_result. Lotus tools route through
-                    // executeLotusTool which gates `bloom_petal`/`wilt_petal`
-                    // mutations against derivePetalBloomState (Paper 26 Gate 2 —
-                    // architectural-trust enforcement).
-                    pendingToolCalls.push({
-                      id: currentToolId,
-                      name: currentToolName,
-                      input: parsedArgs,
-                    });
-                    // Notify the client that a tool is being executed
+              case 'tool_use_end': {
+                // tool_use_end carries the fully-parsed input.
+                const parsedArgs: Record<string, unknown> = chunk.input && Object.keys(chunk.input).length > 0
+                  ? chunk.input
+                  : (currentToolInput ? (JSON.parse(currentToolInput) as Record<string, unknown>) : {});
+                // CAEL: record the call attempt regardless of branch.
+                roundToolCalls.push({ name: currentToolName || chunk.name, input: parsedArgs });
+
+                if (SERVER_EXECUTED_TOOL_NAMES.has(currentToolName || chunk.name)) {
+                  // Studio API, MCP, Lotus, or Embodied tool — execute server-side.
+                  pendingToolCalls.push({
+                    id: chunk.id,
+                    name: currentToolName || chunk.name,
+                    input: parsedArgs,
+                  });
+                  send({
+                    type: 'tool_call',
+                    payload: {
+                      name: currentToolName || chunk.name,
+                      arguments: parsedArgs,
+                      serverExecuted: true,
+                    },
+                  });
+                } else if (isSceneMutationTool(currentToolName || chunk.name)) {
+                  // BRITTNEY scene mutation — pre-validate against SimulationContract.
+                  const check = verifySceneMutation(sceneContext, {
+                    tool: currentToolName || chunk.name,
+                    input: parsedArgs,
+                  });
+                  send({
+                    type: 'simContractCheck',
+                    payload: {
+                      passed: check.passed,
+                      contractId: check.contractId,
+                      mutation: check.mutation,
+                      ...(check.reason ? { reason: check.reason } : {}),
+                    },
+                  });
+                  if (check.passed) {
                     send({
                       type: 'tool_call',
-                      payload: {
-                        name: currentToolName,
-                        arguments: parsedArgs,
-                        serverExecuted: true,
-                      },
+                      payload: { name: currentToolName || chunk.name, arguments: parsedArgs },
                     });
-                  } else if (isSceneMutationTool(currentToolName)) {
-                    // BRITTNEY scene mutation — pre-validate against the
-                    // SimulationContract declared by the scene before applying
-                    // (Paper 26 gate 1 / Algebraic Trust application layer).
-                    const check = verifySceneMutation(sceneContext, {
-                      tool: currentToolName,
-                      input: parsedArgs,
-                    });
-                    send({
-                      type: 'simContractCheck',
-                      payload: {
-                        passed: check.passed,
-                        contractId: check.contractId,
-                        mutation: check.mutation,
-                        ...(check.reason ? { reason: check.reason } : {}),
-                      },
-                    });
-                    if (check.passed) {
-                      send({
-                        type: 'tool_call',
-                        payload: { name: currentToolName, arguments: parsedArgs },
-                      });
-                    } else {
-                      // Hold mutation back from the client; feed rejection to
-                      // Claude as a tool_result(is_error:true) on the next round.
-                      rejectedMutations.push({
-                        id: currentToolId,
-                        name: currentToolName,
-                        input: parsedArgs,
-                        check,
-                      });
-                    }
                   } else {
-                    // BRITTNEY read-only tool (list_objects/get_object) or
-                    // SIMULATION_TOOLS — pass through unchecked. Out-of-scope
-                    // for the gate-1 contract (different verification path).
-                    send({
-                      type: 'tool_call',
-                      payload: { name: currentToolName, arguments: parsedArgs },
+                    rejectedMutations.push({
+                      id: chunk.id,
+                      name: currentToolName || chunk.name,
+                      input: parsedArgs,
+                      check,
                     });
                   }
-                  currentToolName = '';
-                  currentToolInput = '';
-                  currentToolId = '';
+                } else {
+                  // BRITTNEY read-only tool or SIMULATION_TOOLS — pass through.
+                  send({
+                    type: 'tool_call',
+                    payload: { name: currentToolName || chunk.name, arguments: parsedArgs },
+                  });
                 }
+                currentToolName = '';
+                currentToolInput = '';
+                currentToolId = '';
                 break;
+              }
 
-              case 'message_delta':
-                if ('stop_reason' in event.delta) {
-                  stopReason = event.delta.stop_reason;
-                }
+              case 'message_stop': {
+                stopReason = chunk.finishReason;
                 break;
+              }
             }
           }
 
-          // If Claude stopped for tool_use AND there is server-side work to feed
-          // back (executed tools OR contract-rejected mutations), run another round.
+          // If the model stopped for tool_use AND there is server-side work
+          // to feed back (executed tools OR contract-rejected mutations),
+          // run another round.
           if (
             stopReason === 'tool_use' &&
             (pendingToolCalls.length > 0 || rejectedMutations.length > 0)
           ) {
-            // Execute server-side tools in parallel — route to correct executor.
-            // Lotus tools (sync) are wrapped in Promise.resolve so they share
-            // the same Promise.all path; their gateRejected results propagate
-            // back to the model as is_error tool_results just like MCP/Studio
-            // failures. Per-call we ALSO emit a `lotusGardenEvent` so the
-            // client UI sees garden mutations distinctly from generic tool_call
-            // events (the lotus visualization can react in real time).
+            // Execute server-side tools in parallel.
             const results =
               pendingToolCalls.length > 0
                 ? await Promise.all(
@@ -490,15 +480,15 @@ export async function POST(request: NextRequest) {
                   )
                 : [];
 
-            // Build the assistant message with tool_use blocks + tool results.
-            // Both executed and rejected tool_uses must round-trip so the
-            // assistant→user pairing stays valid for the next Claude turn.
-            const assistantContent: Anthropic.ContentBlockParam[] = [
+            // Build the assistant message with tool_use blocks + tool results
+            // in LLMMessage format (provider-agnostic).
+            const assistantContent: Array<TextBlock | ToolUseBlock> = [
+              ...(roundText ? [{ type: 'text' as const, text: roundText }] : []),
               ...pendingToolCalls.map((tc) => ({
                 type: 'tool_use' as const,
                 id: tc.id,
                 name: tc.name,
-                input: tc.input as Record<string, unknown>,
+                input: tc.input,
               })),
               ...rejectedMutations.map((rm) => ({
                 type: 'tool_use' as const,
@@ -508,7 +498,7 @@ export async function POST(request: NextRequest) {
               })),
             ];
 
-            const toolResultContent: Anthropic.ToolResultBlockParam[] = [
+            const toolResultContent: ToolResultBlock[] = [
               ...results.map((r) => ({
                 type: 'tool_result' as const,
                 tool_use_id: r.id,
@@ -520,7 +510,7 @@ export async function POST(request: NextRequest) {
                 type: 'tool_result' as const,
                 tool_use_id: rm.id,
                 content: `SimulationContract grounding rejected this mutation: ${rm.check.reason ?? 'contract violation'} (contractId: ${rm.check.contractId})`,
-                is_error: true,
+                is_error: true as const,
               })),
             ];
 
@@ -529,16 +519,17 @@ export async function POST(request: NextRequest) {
               { role: 'assistant' as const, content: assistantContent },
               { role: 'user' as const, content: toolResultContent },
             ];
-            // CAEL: commit the round's record before continuing — chain extends
-            // per-round, not just per-request.
+            // CAEL: commit the round's record before continuing.
             commitCaelForRound();
-            // Continue to next round — Claude will process the tool results
+            // Reset round text for next round.
+            roundText = '';
+            // Continue to next round.
             continue;
           }
 
           // CAEL: text-only or client-side-tool round terminating the request.
           commitCaelForRound();
-          // No more tool calls or all remaining are client-side — done
+          // No more tool calls or all remaining are client-side — done.
           break;
         }
 
@@ -567,6 +558,7 @@ export async function POST(request: NextRequest) {
       ...sseHeaders(),
       'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
       'X-RateLimit-Remaining': String(limit.remaining),
+      'X-LLM-Provider': providerName,
     },
   });
 }
@@ -583,7 +575,6 @@ function sseHeaders(): HeadersInit {
     Connection: 'keep-alive',
   };
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
