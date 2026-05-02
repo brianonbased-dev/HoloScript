@@ -103,6 +103,8 @@ interface InternalState {
   lastRicciError: number;
   hubbleCorrection: number;
   octreeDepth: number;
+  adjacency: Map<string, string[]>; // Cached adjacency list
+  frameCount: number;
 }
 
 // =============================================================================
@@ -488,6 +490,15 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       }
     }
 
+    // Build initial adjacency list
+    const adjacency = new Map<string, string[]>();
+    for (const edge of edges) {
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
+      if (!adjacency.has(edge.target)) adjacency.set(edge.target, []);
+      adjacency.get(edge.source)!.push(edge.target);
+      adjacency.get(edge.target)!.push(edge.source);
+    }
+
     const state: InternalState = {
       network: {
         voxels,
@@ -500,6 +511,8 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       lastRicciError: 0,
       hubbleCorrection: 0,
       octreeDepth: 4,
+      adjacency,
+      frameCount: 0,
     };
 
     node.__emergentSpacetimeState = state;
@@ -523,14 +536,8 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     const startTime = performance.now();
     const network = state.network;
 
-    // Build adjacency list once (O(edges) not O(voxels × edges))
-    const adjacency = new Map<string, string[]>();
-    for (const edge of network.edges) {
-      if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
-      if (!adjacency.has(edge.target)) adjacency.set(edge.target, []);
-      adjacency.get(edge.source)!.push(edge.target);
-      adjacency.get(edge.target)!.push(edge.source);
-    }
+    // Increment frame count
+    state.frameCount++;
 
     // 1. Update edge weights from distance (visual variation)
     // Mutual info is 0 for product states (physics-correct)
@@ -550,7 +557,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     // 2. Apply force-layout guard (singularity prevention)
     if (config.force_layout_guard) {
       for (const [voxelId, voxel] of network.voxels.entries()) {
-        const neighborIds = adjacency.get(voxelId) || [];
+        const neighborIds = state.adjacency.get(voxelId) || [];
 
         const force = forceLayoutGuard(voxelId, network, 0.01, neighborIds);
 
@@ -585,8 +592,8 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       const voxel = network.voxels.get(voxelId);
       if (!voxel) continue;
 
-      // Use pre-computed adjacency list
-      const neighborIds = adjacency.get(voxelId) || [];
+      // Use cached adjacency list from state
+      const neighborIds = state.adjacency.get(voxelId) || [];
 
       const ricci = computeRicci(voxelId, network, neighborIds);
 
