@@ -27,7 +27,7 @@ Scope: `packages/core/src/traits/*Trait.ts` cross-referenced with compiler usage
 
 - `NeuralForgeTrait` and `OnnxRuntimeTrait` both emit multiple events and should be checked for downstream listeners in runtime/studio/engine.
 - `OnnxRuntimeTrait`: **RESOLVED** — confirmed no runtime consumers exist outside tests. Pattern-E risk documented in JSDoc + trait-mappings.md. Consumer wiring deferred until real backends (HoloGram depth, motion matching) land.
-- `NeuralForgeTrait`: still needs listener wiring audit for emitted events to avoid emit-without-listener void.
+- `NeuralForgeTrait`: **RESOLVED** — NeuralForgeCoordinator (5th consumer-bus) closes Pattern E. Subscribes to all 5 emitted events (neural_forge_connected, neural_synthesis_request, neural_synthesis_timeout, neural_shard_created, neural_cognition_evolved), tracks per-node state (shards, weights, pending synthesis, timeout fallback). Wired into TraitRuntimeIntegration alongside the 4 existing buses. 21 tests pass. (task_1777423899630_nsna)
 
 ## Board tasks seeded from this report
 

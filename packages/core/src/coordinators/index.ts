@@ -3,17 +3,18 @@
  *
  * Per /stub-audit Phase 3.5 (commit 657e00d44) findings: Pattern E
  * (emit-without-listener) is systemic across the trait surface — 25/25
- * highest-emit traits have zero downstream consumers. The 4 cluster
- * groupings collapse into 4 shared consumer-bus infrastructures, each
- * one closing Pattern E for 3-6 traits at once via shared event vocabulary.
+ * highest-emit traits have zero downstream consumers. The 5 cluster
+ * groupings collapse into 5 shared consumer-bus infrastructures, each
+ * one closing Pattern E for 1-6 traits at once via shared event vocabulary.
  *
  * **Buses planned** (per task_1777281302813_eezs):
  *   - AssetLoadCoordinator       — GLTF + USD + FBX (35 void events / 69 refs) ✅ shipped
  *   - SecurityEventBus           — RBAC + SSO + Quota + Tenant + AuditLog + ForgetPolicy (~75 / 19) ✅ shipped
  *   - GenerativeJobMonitor       — AiInpainting + AiTextureGen + ControlNet + DiffusionRealtime (23 events) ✅ shipped
  *   - SessionPresenceCoordinator — SharePlay + SpatialVoice + WorldHeartbeat + Messaging (26 events) ✅ shipped
+ *   - NeuralForgeCoordinator     — NeuralForgeTrait synthesis lifecycle (5 events) ✅ shipped (task_1777423899630_nsna)
  *
- * **Pattern E status (2026-04-27)**: All 4 consumer-buses shipped.
+ * **Pattern E status (2026-05-01)**: All 5 consumer-buses shipped.
  * Closes the systemic emit-without-listener gap surfaced by /stub-audit
  * Phase 3.5 — every void-event vocabulary now has a unified consumer
  * surface and downstream packages can subscribe to state instead of
@@ -34,11 +35,12 @@
  * crashes other listeners (mirrors StudioBus pattern).
  *
  * See AssetLoadCoordinator for the canonical template — its docstring
- * details the architectural rationale + replication notes for the
- * remaining 3 buses.
+ * details the architectural rationale + replication notes for building
+ * additional buses.
  */
 
 export * from './AssetLoadCoordinator';
 export * from './SecurityEventBus';
 export * from './GenerativeJobMonitor';
 export * from './SessionPresenceCoordinator';
+export * from './NeuralForgeCoordinator';

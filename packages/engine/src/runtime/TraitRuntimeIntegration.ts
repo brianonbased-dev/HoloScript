@@ -2,7 +2,7 @@
  * TraitRuntimeIntegration
  *
  * Integrates HoloScript's VRTraitRegistry into any runtime loop.
- * This is the execution engine that makes all 121 trait handlers actually run:
+ * This is the execution engine that makes all trait handlers actually run:
  *
  *   1. Parses .holo/.hsplus files → AST with trait declarations
  *   2. Uses VRTraitRegistry to attach traits to nodes
@@ -26,6 +26,7 @@ import {
   SecurityEventBus,
   GenerativeJobMonitor,
   SessionPresenceCoordinator,
+  NeuralForgeCoordinator,
 } from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
@@ -96,7 +97,7 @@ export class TraitRuntimeIntegration {
   readonly generativeJobMonitor: GenerativeJobMonitor;
 
   /**
-   * Session presence consumer-bus — fourth and final of the 4 buses.
+   * Session presence consumer-bus — fourth of the 5 buses.
    * Subscribes to the multiplayer-presence trait cluster: SharePlay +
    * SpatialVoice + WorldHeartbeat + Messaging (26 events). Tracks
    * sessions, voice peers + mute state, messaging connections, and
@@ -105,6 +106,20 @@ export class TraitRuntimeIntegration {
    * call `traitRuntime.sessionPresenceCoordinator.subscribe(listener)`.
    */
   readonly sessionPresenceCoordinator: SessionPresenceCoordinator;
+
+  /**
+   * Neural-forge consumer-bus — fifth of the 5 buses. Subscribes to
+   * the NeuralForgeTrait synthesis-lifecycle event vocabulary:
+   * neural_forge_connected, neural_synthesis_request,
+   * neural_synthesis_timeout, neural_shard_created,
+   * neural_cognition_evolved (5 events). Tracks per-node state
+   * (shards, weights, pending synthesis, timeout fallback). Downstream
+   * consumers (Studio NPC panels, Brittney synthesis routing, Quest 3
+   * cognition overlays, logging/metrics) call
+   * `traitRuntime.neuralForgeCoordinator.subscribe(listener)`.
+   * Closes Pattern E for neural_forge (task_1777423899630_nsna).
+   */
+  readonly neuralForgeCoordinator: NeuralForgeCoordinator;
 
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
@@ -122,8 +137,13 @@ export class TraitRuntimeIntegration {
     this.generativeJobMonitor = new GenerativeJobMonitor(contextFactory);
     // Wire the session-presence coordinator — 26 events across the
     // 4-trait multiplayer-presence cluster (SharePlay/SpatialVoice/
-    // WorldHeartbeat/Messaging). Closes Pattern E end-to-end (4/4 buses).
+    // WorldHeartbeat/Messaging). Closes Pattern E end-to-end (5/5 buses).
     this.sessionPresenceCoordinator = new SessionPresenceCoordinator(contextFactory);
+    // Wire the neural-forge coordinator — 5 synthesis-lifecycle events
+    // from NeuralForgeTrait. Downstream consumers subscribe to per-node
+    // state (shards, weights, pending synthesis, timeout fallback).
+    // Closes Pattern E for neural_forge (task_1777423899630_nsna).
+    this.neuralForgeCoordinator = new NeuralForgeCoordinator(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------
