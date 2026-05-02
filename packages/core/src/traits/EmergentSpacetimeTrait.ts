@@ -283,8 +283,16 @@ function forceLayoutGuard(
 
   let force: [number, number, number] = [0, 0, 0];
 
-  for (const [otherId, other] of network.voxels.entries()) {
-    if (otherId === voxelId) continue;
+  // Only check edge-connected neighbors (O(k) not O(n))
+  const neighborIds = new Set<string>();
+  for (const edge of network.edges) {
+    if (edge.source === voxelId) neighborIds.add(edge.target);
+    if (edge.target === voxelId) neighborIds.add(edge.source);
+  }
+
+  for (const otherId of neighborIds) {
+    const other = network.voxels.get(otherId);
+    if (!other) continue;
 
     const dx = voxel.position[0] - other.position[0];
     const dy = voxel.position[1] - other.position[1];
@@ -293,15 +301,21 @@ function forceLayoutGuard(
     const distSq = dx * dx + dy * dy + dz * dz;
     const dist = Math.sqrt(distSq);
 
+    // Stronger repulsion with damping: F ~ 1/r³ + velocity damping
     if (dist < minSeparation && dist > 1e-10) {
-      // Repulsive force: F ~ 1/r²
-      const magnitude = (minSeparation - dist) / (distSq * distSq + 1e-6);
+      const magnitude = (minSeparation - dist) / (distSq * distSq * distSq + 1e-8);
       const fx = (dx / dist) * magnitude;
       const fy = (dy / dist) * magnitude;
       const fz = (dz / dist) * magnitude;
 
       force = [force[0] + fx, force[1] + fy, force[2] + fz];
     }
+
+    // Add velocity damping to reduce oscillations
+    const relVel = 0.15; // Damping coefficient
+    force[0] -= (voxel.position[0] - other.position[0]) * relVel;
+    force[1] -= (voxel.position[1] - other.position[1]) * relVel;
+    force[2] -= (voxel.position[2] - other.position[2]) * relVel;
   }
 
   return force;
