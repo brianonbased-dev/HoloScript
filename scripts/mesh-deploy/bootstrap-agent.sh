@@ -292,21 +292,41 @@ for tier in table['tiers']:
 
   # ── Idempotency: skip if vLLM already running and healthy ──────────────────
   # Re-bootstrap of the same instance (retry, update, idempotent deploy) must
-  # not fatal-exit on port collision. Pattern matches sidecar guard below.
+  # not fatal-exit on port collision. Matches sidecar guard pattern (line 417)
+  # but with smarter /proc/$PID/cmdline inspection: only reclaim the port if
+  # the owning process is actually vLLM. Non-vLLM owners (Jupyter, SSH, etc.)
+  # are never killed — the start is skipped and a warning is logged instead.
+  # This prevents the previous exit-5-on-any-collision behavior that broke retry
+  # and re-bootstrap on Vast.ai instances where port 8081 can be held by
+  # unrelated system processes.
   VLLM_ALREADY_UP=0
   if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${LLM_PORT}$"; then
+    # Find the PID owning the port (prefer lsof; fall back to ss -ltnp parse)
+    _PORT_PID=$(lsof -ti :${LLM_PORT} 2>/dev/null || ss -ltnp 2>/dev/null | awk -v p=":${LLM_PORT}" '$0~p{for(i=1;i<=NF;i++)if(match($i,/^pid=[0-9]+/))print substr($i,5)}' || true)
+    # Probe the owning process via /proc/$PID/cmdline to decide whether it's vLLM
+    _IS_VLLM=0
+    if [ -n "$_PORT_PID" ]; then
+      _CMDLINE=$(tr '\0' ' ' < "/proc/${_PORT_PID}/cmdline" 2>/dev/null || true)
+      if echo "$_CMDLINE" | grep -qiE 'vllm[./]|vllm\.entrypoints'; then
+        _IS_VLLM=1
+      fi
+    fi
+
     if curl -sf "http://localhost:${LLM_PORT}/v1/models" > /dev/null 2>&1; then
       echo "[bootstrap] vLLM already running on port $LLM_PORT and healthy — skipping start"
       export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT"
       VLLM_ALREADY_UP=1
+    elif [ "$_IS_VLLM" = "1" ]; then
+      # Port held by vLLM but NOT healthy — stale/zombie vLLM. Safe to reclaim.
+      echo "[bootstrap] port $LLM_PORT held by stale vLLM (pid $_PORT_PID) — reclaiming..."
+      kill "$_PORT_PID" 2>/dev/null || true
+      sleep 2
     else
-      echo "[bootstrap] port $LLM_PORT in use but not healthy — reclaiming..."
-      _PORT_PID=$(lsof -ti :${LLM_PORT} 2>/dev/null || ss -ltnp 2>/dev/null | awk -v p=":${LLM_PORT}" '$0~p{for(i=1;i<=NF;i++)if(match($i,/^pid=[0-9]+/))print substr($i,5)}' || true)
-      if [ -n "$_PORT_PID" ]; then
-        echo "[bootstrap] killing pid $_PORT_PID on port $LLM_PORT"
-        kill "$_PORT_PID" 2>/dev/null || true
-        sleep 2
-      fi
+      # Port held by a NON-vLLM process (Jupyter, SSH, etc.). Never kill it.
+      # Match sidecar behavior: skip start and warn. Agent will fall back to
+      # HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL or fail gracefully at runtime.
+      echo "[bootstrap] WARN: port $LLM_PORT held by non-vLLM process (pid ${_PORT_PID:-unknown}, cmd: ${_CMDLINE:-unknown}) — skipping vLLM start. Set LOCAL_LLM_PORT to a free port." >&2
+      VLLM_ALREADY_UP=1  # prevent vLLM start block; agent runtime decides what to do
     fi
   fi
 
