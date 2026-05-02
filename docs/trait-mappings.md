@@ -684,6 +684,18 @@ Source: `traits/constants/ml-tensor.ts` → `ML_TENSOR_TRAITS`
 tensor_op, onnx_runtime, training_loop
 ```
 
+> **Runtime-only note**: `onnx_runtime` has NO compiler surface beyond
+> `EffectInference.ts` resource effects (`resource:cpu`, `resource:memory`).
+> It uses an adapter pattern (`InferenceAdapter`) where the execution backend
+> is injected at runtime via `config.adapterFactory`. Adding a compiler
+> mapping would contradict this pattern — the adapter factory IS the
+> platform extension point. See `OnnxRuntimeTrait.ts` JSDoc for rationale.
+>
+> **Pattern-E note**: The trait emits `onnx:loaded`, `onnx:output`,
+> `onnx:error`, `onnx:disposed` with no runtime consumers outside tests.
+> Consumers will be wired as real backends (HoloGram depth, motion matching)
+> land.
+
 ### multisensory-haptic (16)
 
 Source: `traits/constants/multisensory-haptic.ts` → `MULTISENSORY_HAPTIC_TRAITS`
