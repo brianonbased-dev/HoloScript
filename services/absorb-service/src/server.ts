@@ -11,6 +11,7 @@ import { holodaemonRouter } from './routes/holodaemon.js';
 import { pipelineRouter } from './routes/pipeline.js';
 import { moltbookRouter } from './routes/moltbook.js';
 import { adminRouter } from './routes/admin.js';
+import { router as emergentSpacetimeRouter } from './routes/emergent-spacetime.js';
 import {
   handleMcpSse,
   handleMcpMessages,
@@ -228,6 +229,7 @@ app.use('/api/pipeline', pipelineRouter);
 app.use('/api/holodaemon', holodaemonRouter);
 app.use('/api/absorb/moltbook', moltbookRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/emergent-spacetime', emergentSpacetimeRouter);
 
 // --- Global error handler ---
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -553,6 +553,10 @@ function SceneContent({
 // PAGE COMPONENT
 // =============================================================================
 
+// =============================================================================
+// PAGE COMPONENT
+// =============================================================================
+
 export default function EmergentSpacetimeDemo() {
   const [stats, setStats] = useState({
     voxels: 0,
@@ -562,6 +566,81 @@ export default function EmergentSpacetimeDemo() {
   });
   const [fps, setFps] = useState(60);
   const [debugInfo, setDebugInfo] = useState({ particleCount: MAX_FLOW_PARTICLES, lodLevel: 0 });
+  const [exportState, setExportState] = useState<{
+    status: 'idle' | 'exporting' | 'done' | 'error';
+    exportId?: string;
+    message?: string;
+  }>({ status: 'idle' });
+
+  // Export current simulation state to absorb-service
+  const handleExport = useCallback(async () => {
+    setExportState({ status: 'exporting' });
+
+    try {
+      // Get current state from the trait handler
+      const mockNode = createMockNode();
+      const config: EmergentSpacetimeConfig = {
+        initial_voxels: 2000,
+        max_voxels: 2000,
+        seed: 42,
+        force_layout_guard: true,
+        ricci_error_bound: 1e-4,
+        ricci_heatmap: true,
+        loop_threshold: 0.03,
+      };
+
+      // We need to capture the current frame data
+      // This is a simplified export - in production, you'd capture the full time-series
+      const timeSeriesData = {
+        frame: 0,
+        timestamp: Date.now(),
+        voxels: [] as Array<{ id: string; position: [number, number, number]; provenance: number; ricci: number }>,
+        edges: [] as Array<{ source: string; target: string; weight: number; provenance: number }>,
+        hubbleCorrection: stats.hubble,
+        violationCount: stats.violations,
+        frameTimeMs: 1000 / fps,
+      };
+
+      // For now, export a snapshot - full time-series would require storing frames
+      const response = await fetch('https://absorb.holoscript.net/api/emergent-spacetime/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: null,
+          metadata: {
+            voxelCount: stats.voxels,
+            edgeCount: stats.edges,
+            seed: 42,
+          },
+          data: {
+            timeSeries: [timeSeriesData],
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Export failed' }));
+        throw new Error(error.error || 'Export failed');
+      }
+
+      const result = await response.json();
+      setExportState({
+        status: 'done',
+        exportId: result.id,
+        message: `Export complete! Download: JSON | CSV`,
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setExportState({ status: 'idle' });
+      }, 5000);
+    } catch (err) {
+      setExportState({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Export failed',
+      });
+    }
+  }, [stats, fps]);
 
   return (
     <div className="w-full h-screen bg-black relative">
@@ -574,6 +653,54 @@ export default function EmergentSpacetimeDemo() {
         particleCount={debugInfo.particleCount}
         lodLevel={debugInfo.lodLevel}
       />
+
+      {/* Export Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={handleExport}
+          disabled={exportState.status === 'exporting'}
+          className={`px-4 py-2 rounded-lg font-mono text-sm transition-all ${
+            exportState.status === 'exporting'
+              ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+              : exportState.status === 'done'
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : exportState.status === 'error'
+              ? 'bg-red-600 text-white hover:bg-red-700'
+              : 'bg-purple-600 text-white hover:bg-purple-700'
+          }`}
+        >
+          {exportState.status === 'exporting' ? 'Exporting...' : exportState.status === 'done' ? '✓ Exported' : exportState.status === 'error' ? '✗ Error' : '📊 Export Data'}
+        </button>
+        {exportState.status !== 'idle' && exportState.message && (
+          <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-mono ${
+            exportState.status === 'done' ? 'bg-green-900/80 text-green-200' : 'bg-red-900/80 text-red-200'
+          }`}>
+            {exportState.message}
+            {exportState.status === 'done' && exportState.exportId && (
+              <div className="mt-1 space-x-2">
+                <a
+                  href={`https://absorb.holoscript.net/api/emergent-spacetime/${exportState.exportId}/json`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-white"
+                >
+                  JSON
+                </a>
+                <span>|</span>
+                <a
+                  href={`https://absorb.holoscript.net/api/emergent-spacetime/${exportState.exportId}/csv`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-white"
+                >
+                  CSV
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <Canvas
         camera={{ position: [3, 2, 3], fov: 60 }}
         gl={{ antialias: true, alpha: false }}
