@@ -14,9 +14,9 @@
  * - Performance: adaptive LOD, instanced rendering
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars, Text, Stats } from '@react-three/drei';
+import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
 import type { HSPlusNode } from '@holoscript/core/traits';
@@ -72,27 +72,27 @@ function Voxel({
   provenance: number;
   scale?: number;
 }) {
-  // Ricci heatmap: red (violation) → yellow → green → blue (flat)
-  const color = new THREE.Color();
-  const violation = Math.max(0, Math.min(1, (ricci - 1e-5) / 0.001));
+  const geometry = useMemo(() => new THREE.IcosahedronGeometry(scale, 1), [scale]);
 
-  if (violation > 0.5) {
-    // Red to yellow
-    color.setHSL(0.0 + (1 - violation) * 0.15, 0.9, 0.5);
-  } else if (violation > 0.1) {
-    // Yellow to green
-    color.setHSL(0.15 + (0.5 - violation) * 0.3, 0.7, 0.5);
-  } else {
-    // Green to blue (flat space)
-    color.setHSL(0.5 + (0.1 - violation) * 0.3, 0.6, 0.5 + violation * 0.2);
-  }
+  // Ricci heatmap: red (violation) → yellow → green → blue (flat)
+  const color = useMemo(() => {
+    const c = new THREE.Color();
+    const violation = Math.max(0, Math.min(1, (ricci - 1e-5) / 0.001));
+    if (violation > 0.5) {
+      c.setHSL(0.0 + (1 - violation) * 0.15, 0.9, 0.5);
+    } else if (violation > 0.1) {
+      c.setHSL(0.15 + (0.5 - violation) * 0.3, 0.7, 0.5);
+    } else {
+      c.setHSL(0.5 + (0.1 - violation) * 0.3, 0.6, 0.5 + violation * 0.2);
+    }
+    return c;
+  }, [ricci]);
 
   // Provenance affects opacity
   const opacity = Math.min(1, 0.3 + provenance * 0.7);
 
   return (
-    <mesh position={position}>
-      <icosahedronGeometry args={[scale, 1]} />
+    <mesh position={position} geometry={geometry}>
       <meshStandardMaterial
         color={color}
         transparent
@@ -119,22 +119,22 @@ function Edge({
   weight: number;
   provenance: number;
 }) {
-  const lineRef = useRef<THREE.Line>(null);
-
   // Color based on weight (entanglement strength)
   const color = new THREE.Color();
   color.setHSL(0.6 - weight * 0.4, 0.8, 0.5 + weight * 0.3);
 
-  const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const points = useMemo(
+    () => [new THREE.Vector3(...start), new THREE.Vector3(...end)],
+    [start, end]
+  );
+  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
 
   return (
-    <line ref={lineRef} geometry={geometry}>
+    <line geometry={geometry}>
       <lineBasicMaterial
         color={color}
         transparent
         opacity={Math.min(1, 0.2 + provenance * 0.5)}
-        linewidth={1}
       />
     </line>
   );
@@ -243,20 +243,19 @@ function InfoPanel({
 // MAIN SCENE
 // =============================================================================
 
-function SceneContent() {
+function SceneContent({
+  setStats,
+  setFps,
+}: {
+  setStats: React.Dispatch<React.SetStateAction<{ voxels: number; edges: number; hubble: number; violations: number }>>;
+  setFps: React.Dispatch<React.SetStateAction<number>>;
+}) {
   const { camera } = useThree();
   const networkRef = useRef<{ voxels: Map<string, VoxelData>; edges: EdgeData[] }>({
     voxels: new Map(),
     edges: [],
   });
   const traitNodeRef = useRef<HSPlusNode | null>(null);
-  const [stats, setStats] = useState({
-    voxels: 0,
-    edges: 0,
-    hubble: 0,
-    violations: 0,
-  });
-  const [fps, setFps] = useState(60);
   const fpsAccumRef = useRef(0);
   const frameCountRef = useRef(0);
 
@@ -375,17 +374,12 @@ function SceneContent() {
 
   return (
     <>
-      <InfoPanel
-        voxelCount={stats.voxels}
-        edgeCount={stats.edges}
-        hubbleCorrection={stats.hubble}
-        violationCount={stats.violations}
-        fps={fps}
-      />
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
       <ambientLight intensity={0.2} />
       <pointLight position={[10, 10, 10]} intensity={0.5} />
-      <SpacetimeNetwork voxels={networkRef.current.voxels} edges={networkRef.current.edges} />
+      {networkRef.current && networkRef.current.voxels.size > 0 && (
+        <SpacetimeNetwork voxels={networkRef.current.voxels} edges={networkRef.current.edges} />
+      )}
       <OrbitControls
         enablePan={false}
         enableZoom={true}
@@ -404,14 +398,31 @@ function SceneContent() {
 // =============================================================================
 
 export default function EmergentSpacetimeDemo() {
+  const [stats, setStats] = useState({
+    voxels: 0,
+    edges: 0,
+    hubble: 0,
+    violations: 0,
+  });
+  const [fps, setFps] = useState(60);
+
   return (
     <div className="w-full h-screen bg-black relative">
+      <InfoPanel
+        voxelCount={stats.voxels}
+        edgeCount={stats.edges}
+        hubbleCorrection={stats.hubble}
+        violationCount={stats.violations}
+        fps={fps}
+      />
       <Canvas
         camera={{ position: [3, 2, 3], fov: 60 }}
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
+        linear
+        flat
       >
-        <SceneContent />
+        <SceneContent setStats={setStats} setFps={setFps} />
       </Canvas>
     </div>
   );
