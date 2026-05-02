@@ -28,11 +28,11 @@ import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 // INSTANCED VOXEL RENDERER
 // =============================================================================
 
-const MAX_VOXELS = 1000;
-const MAX_EDGES = 3000;
-const MAX_FLOW_PARTICLES = 500;
-const MIN_FLOW_PARTICLES = 50;
-const FRAME_TIME_TARGET_MS = 11; // 90Hz target
+const MAX_VOXELS = 2000;
+const MAX_EDGES = 6000;
+const MAX_FLOW_PARTICLES = 300; // Reduced from 500 for 2k voxel budget
+const MIN_FLOW_PARTICLES = 30;
+const FRAME_TIME_TARGET_MS = 33; // 30Hz target for 2k voxels
 
 // =============================================================================
 // PROVENANCE FLOW PARTICLES
@@ -429,8 +429,8 @@ function SceneContent({
 
     const node = traitNodeRef.current;
     const config: EmergentSpacetimeConfig = {
-      initial_voxels: 1000,
-      max_voxels: 1000,
+      initial_voxels: 2000,
+      max_voxels: 2000,
       seed: 42,
       force_layout_guard: true,
       ricci_error_bound: 1e-4, // Relaxed for demo stability (Paper 3 claims 1e-5)
