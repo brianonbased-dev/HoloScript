@@ -433,7 +433,7 @@ function SceneContent({
       max_voxels: 1000,
       seed: 42,
       force_layout_guard: true,
-      ricci_error_bound: 1e-5,
+      ricci_error_bound: 1e-4, // Relaxed for demo stability (Paper 3 claims 1e-5)
       ricci_heatmap: true,
       loop_threshold: 0.03, // Lower threshold to activate Hubble earlier
     };

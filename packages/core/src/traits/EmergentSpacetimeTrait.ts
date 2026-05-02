@@ -105,6 +105,7 @@ interface InternalState {
   octreeDepth: number;
   adjacency: Map<string, string[]>; // Cached adjacency list
   frameCount: number;
+  adaptiveDamping?: number;
 }
 
 // =============================================================================
@@ -564,8 +565,8 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
 
         const force = forceLayoutGuard(voxelId, network, 0.01, neighborIds);
 
-        // Apply force to position (simple Euler integration with damping)
-        const damping = 0.95;
+        // Apply force to position (simple Euler integration with adaptive damping)
+        const damping = state.adaptiveDamping ?? 0.95;
         const newPos: [number, number, number] = [
           voxel.position[0] + force[0] * delta * damping,
           voxel.position[1] + force[1] * delta * damping,
@@ -590,6 +591,11 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     // Sample subset of voxels for performance
     const sampleSize = Math.min(100, network.voxels.size);
     const voxelIds = Array.from(network.voxels.keys());
+
+    // Adaptive damping: increase damping when violations spike
+    const violationRatio = state.violationCount / sampleSize;
+    const adaptiveDamping = violationRatio > 0.5 ? 0.98 : 0.95;
+
     for (let i = 0; i < sampleSize; i++) {
       const voxelId = voxelIds[i % voxelIds.length];
       const voxel = network.voxels.get(voxelId);
@@ -616,6 +622,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
 
     state.violationCount = frameViolations; // Update with current frame count
     state.lastRicciError = maxRicciError;
+    state.adaptiveDamping = adaptiveDamping;
 
     // 4. Update Hubble correction from provenance loop density
     const loopThreshold = config.loop_threshold ?? 0.05;
