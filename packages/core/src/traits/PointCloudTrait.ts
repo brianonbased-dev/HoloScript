@@ -191,8 +191,8 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
 
       loadPointCloud(node, state, { ...config, source: newSource }, context);
     } else if (event.type === 'point_cloud_pick') {
-      const screenX = event[0] as number;
-      const screenY = event[1] as number;
+      const screenX = (event as any).x as number;
+      const screenY = (event as any).y as number;
 
       context.emit?.('point_cloud_ray_pick', {
         node,

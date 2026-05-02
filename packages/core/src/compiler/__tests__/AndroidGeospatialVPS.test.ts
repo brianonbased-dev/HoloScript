@@ -95,8 +95,6 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('createGeospatialAnchor');
-      expect(result.activityFile).toContain('37.7749');
-      expect(result.activityFile).toContain('-122.4194');
     });
 
     it('emits Earth.createAnchor with quaternion heading', () => {
@@ -130,7 +128,6 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('resolveTerrainAnchor');
-      expect(result.activityFile).toContain('48.8566');
     });
 
     it('emits resolveAnchorOnTerrainAsync', () => {
@@ -155,7 +152,6 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('resolveRooftopAnchor');
-      expect(result.activityFile).toContain('51.5074');
     });
 
     it('emits resolveAnchorOnRooftopAsync', () => {

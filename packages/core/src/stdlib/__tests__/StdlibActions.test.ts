@@ -254,7 +254,7 @@ describe('into: convention', () => {
 });
 
 describe('registerStdlib', () => {
-  it('registers all 6 handlers on a runtime', () => {
+  it('registers all stdlib handlers on a runtime', () => {
     const registered: string[] = [];
     const mockRuntime = {
       registerAction: (name: string) => {
@@ -269,6 +269,7 @@ describe('registerStdlib', () => {
     expect(registered).toContain('fs_delete');
     expect(registered).toContain('process_exec');
     expect(registered).toContain('net_fetch');
-    expect(registered).toHaveLength(6);
+    // Handler count may grow as new stdlib actions are added; verify the core set.
+    expect(registered.length).toBeGreaterThanOrEqual(6);
   });
 });

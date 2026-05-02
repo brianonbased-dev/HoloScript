@@ -179,7 +179,8 @@ describe('Inspector — setProperty', () => {
     sel.select(entity);
     inspector.setProperty(POSITION, 'x', 42);
     const data = inspector.getComponentData(POSITION) as PositionData;
-    expect(data[0]).toBe(42);
+    // setProperty('x', 42) sets the named property on the component data
+    expect((data as any).x).toBe(42);
   });
 
   it('setProperty on missing component does nothing', () => {

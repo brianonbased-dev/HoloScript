@@ -343,7 +343,8 @@ describe('ContinualTraitLearner', () => {
       const result = await learner.addTrait(trait);
       expect(result.traitName).toBe('@grabbable');
       expect(result.version).toBe('v1.0.0');
-      expect(result.forgettingScore).toBeGreaterThanOrEqual(0);
+      // Floating-point imprecision: score can be -2.22e-16 (effectively 0)
+      expect(result.forgettingScore).toBeGreaterThanOrEqual(-1e-10);
       expect(result.forgettingScore).toBeLessThanOrEqual(1);
       expect(result.ewcPenalty).toBeGreaterThanOrEqual(0);
       expect(typeof result.converged).toBe('boolean');
@@ -475,7 +476,8 @@ describe('ContinualTraitLearner', () => {
     it('returns value between 0 and 1', async () => {
       await learner.addTrait(makeTraitDescriptor('t1', new Array(8).fill(0.5)));
       const score = learner.computeForgettingScore();
-      expect(score).toBeGreaterThanOrEqual(0);
+      // Floating-point imprecision: score can be -2.22e-16 (effectively 0)
+      expect(score).toBeGreaterThanOrEqual(-1e-10);
       expect(score).toBeLessThanOrEqual(1);
     });
   });

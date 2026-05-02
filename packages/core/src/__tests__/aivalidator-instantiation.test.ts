@@ -95,9 +95,9 @@ describe('Feature 1B: AIValidator -- getStats() defaults', () => {
     expect(stats).not.toBeNull();
   });
 
-  it('knownTraits count is at least 50', () => {
+  it('knownTraits count is 0 when no knownTraits config provided (2026-04-29 change: no hardcoded bootstrap)', () => {
     const stats = validator.getStats();
-    expect(stats.knownTraits).toBeGreaterThanOrEqual(50);
+    expect(stats.knownTraits).toBe(0);
   });
 
   it('hallucinationPatterns count is at least 5', () => {
@@ -194,8 +194,10 @@ describe('Feature 2A: AIValidator.validate() -- result shape', () => {
 
 describe('Feature 2B: AIValidator.validate() -- error detection', () => {
   let validator: AIValidator;
+  // Known traits must be explicitly provided — no hardcoded bootstrap since 2026-04-29
+  const KNOWN_TRAITS = ['@grabbable', '@networked', '@physics', '@visible', '@audio'];
   beforeEach(() => {
-    validator = new AIValidator();
+    validator = new AIValidator({ knownTraits: KNOWN_TRAITS });
   });
 
   it('unbalanced opening brace produces structural error', async () => {

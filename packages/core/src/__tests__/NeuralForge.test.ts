@@ -21,10 +21,9 @@ describe('Neural Forge', () => {
       text: 'I am learning',
     });
 
-    expect(context.emit).toHaveBeenCalledWith(
-      'neural_synthesis_request',
-      expect.objectContaining({ node })
-    );
+    // Mock mode (default) does NOT emit neural_synthesis_request — only
+    // neural_shard_created (Annoying #10 fix: mock mode self-creates the
+    // shard without requesting external synthesis).
     expect(context.emit).toHaveBeenCalledWith(
       'neural_shard_created',
       expect.objectContaining({
