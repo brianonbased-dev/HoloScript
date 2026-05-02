@@ -22,6 +22,7 @@ vi.mock('fs', () => ({
   writeFileSync: (...args: any[]) => mockWriteFileSync(...args),
   mkdirSync: (...args: any[]) => mockMkdirSync(...args),
   renameSync: (...args: any[]) => mockRenameSync(...args),
+  appendFileSync: vi.fn(),
 }));
 
 // ── Mock viem/accounts for wallet generation ──
@@ -4890,6 +4891,10 @@ describe('HoloMesh HTTP Routes', () => {
         fnv1a_chain: 'fnv-stub',
         version_vector_fingerprint: 'vv-stub',
         received_at: '',
+        // W.110: fleet-status filters through isCaelRecordTrusted(), which
+        // requires trust_epoch === 'post-w107'. Without this, seeded records
+        // are silently dropped and caelRecords24h returns 0.
+        trust_epoch: 'post-w107',
         ...overrides,
       };
     }
