@@ -23,6 +23,114 @@ import type { HSPlusNode } from '@holoscript/core/traits';
 import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 
 // =============================================================================
+// INSTANCED VOXEL RENDERER
+// =============================================================================
+
+const MAX_VOXELS = 1000;
+const MAX_EDGES = 3000;
+
+function InstancedVoxels({
+  voxels,
+}: {
+  voxels: Map<string, VoxelData>;
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const color = useMemo(() => new THREE.Color(), []);
+  const geometry = useMemo(() => new THREE.IcosahedronGeometry(0.08, 1), []);
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+
+    let i = 0;
+    for (const voxel of voxels.values()) {
+      if (i >= MAX_VOXELS) break;
+
+      // Set position
+      dummy.position.set(...voxel.position);
+      dummy.updateMatrix();
+      meshRef.current.setMatrixAt(i, dummy.matrix);
+
+      // Set color based on Ricci heatmap
+      const violation = Math.max(0, Math.min(1, (voxel.ricci - 1e-5) / 0.001));
+      if (violation > 0.5) {
+        color.setHSL(0.0 + (1 - violation) * 0.15, 0.9, 0.5);
+      } else if (violation > 0.1) {
+        color.setHSL(0.15 + (0.5 - violation) * 0.3, 0.7, 0.5);
+      } else {
+        color.setHSL(0.5 + (0.1 - violation) * 0.3, 0.6, 0.5 + violation * 0.2);
+      }
+      meshRef.current.setColorAt(i, color);
+
+      i++;
+    }
+
+    meshRef.current.count = i;
+    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, MAX_VOXELS]}
+      geometry={geometry}
+      castShadow
+      receiveShadow
+    >
+      <meshStandardMaterial
+        transparent
+        opacity={0.9}
+        emissiveIntensity={0.3}
+      />
+    </instancedMesh>
+  );
+}
+
+// =============================================================================
+// INSTANCED EDGE RENDERER (LineSegments2)
+// =============================================================================
+
+function InstancedEdges({
+  edges,
+  voxels,
+}: {
+  edges: EdgeData[];
+  voxels: Map<string, VoxelData>;
+}) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    const colors: number[] = [];
+
+    for (const edge of edges) {
+      const source = voxels.get(edge.source);
+      const target = voxels.get(edge.target);
+      if (!source || !target) continue;
+
+      positions.push(...source.position, ...target.position);
+
+      const color = new THREE.Color();
+      color.setHSL(0.6 - edge.weight * 0.4, 0.8, 0.5 + edge.weight * 0.3);
+      const opacity = Math.min(1, 0.3 + edge.provenance * 0.5);
+
+      colors.push(color.r, color.g, color.b, opacity);
+      colors.push(color.r, color.g, color.b, opacity);
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+    return geom;
+  }, [edges, voxels]);
+
+  return (
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial attach="material" vertexColors transparent opacity={0.8} />
+    </lineSegments>
+  );
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -56,130 +164,6 @@ function createMockNode(): HSPlusNode {
     children: [],
     parentId: null,
   } as HSPlusNode;
-}
-
-// =============================================================================
-// VOXEL VISUALIZATION
-// =============================================================================
-
-function Voxel({
-  position,
-  ricci,
-  provenance,
-  scale = 0.08,
-}: {
-  position: [number, number, number];
-  ricci: number;
-  provenance: number;
-  scale?: number;
-}) {
-  const geometry = useMemo(() => new THREE.IcosahedronGeometry(scale, 1), [scale]);
-
-  // Ricci heatmap: red (violation) → yellow → green → blue (flat)
-  const color = useMemo(() => {
-    const c = new THREE.Color();
-    const violation = Math.max(0, Math.min(1, (ricci - 1e-5) / 0.001));
-    if (violation > 0.5) {
-      c.setHSL(0.0 + (1 - violation) * 0.15, 0.9, 0.5);
-    } else if (violation > 0.1) {
-      c.setHSL(0.15 + (0.5 - violation) * 0.3, 0.7, 0.5);
-    } else {
-      c.setHSL(0.5 + (0.1 - violation) * 0.3, 0.6, 0.5 + violation * 0.2);
-    }
-    return c;
-  }, [ricci]);
-
-  // Provenance affects opacity
-  const opacity = Math.min(1, 0.3 + provenance * 0.7);
-
-  return (
-    <mesh position={position} geometry={geometry}>
-      <meshStandardMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        emissive={color}
-        emissiveIntensity={0.3}
-      />
-    </mesh>
-  );
-}
-
-// =============================================================================
-// EDGE VISUALIZATION
-// =============================================================================
-
-function Edge({
-  start,
-  end,
-  weight,
-  provenance,
-}: {
-  start: [number, number, number];
-  end: [number, number, number];
-  weight: number;
-  provenance: number;
-}) {
-  // Color based on weight (entanglement strength)
-  const color = new THREE.Color();
-  color.setHSL(0.6 - weight * 0.4, 0.8, 0.5 + weight * 0.3);
-
-  const points = useMemo(
-    () => [new THREE.Vector3(...start), new THREE.Vector3(...end)],
-    [start, end]
-  );
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
-
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial
-        color={color}
-        transparent
-        opacity={Math.min(1, 0.2 + provenance * 0.5)}
-      />
-    </line>
-  );
-}
-
-// =============================================================================
-// NETWORK VISUALIZATION
-// =============================================================================
-
-function SpacetimeNetwork({
-  voxels,
-  edges,
-}: {
-  voxels: Map<string, VoxelData>;
-  edges: EdgeData[];
-}) {
-  const voxelArray = Array.from(voxels.values());
-
-  return (
-    <group>
-      {voxelArray.map((v) => (
-        <Voxel
-          key={v.id}
-          position={v.position}
-          ricci={v.ricci}
-          provenance={v.provenance}
-        />
-      ))}
-      {edges.map((e, i) => {
-        const source = voxels.get(e.source);
-        const target = voxels.get(e.target);
-        if (!source || !target) return null;
-        return (
-          <Edge
-            key={`edge-${i}`}
-            start={source.position}
-            end={target.position}
-            weight={e.weight}
-            provenance={e.provenance}
-          />
-        );
-      })}
-    </group>
-  );
 }
 
 // =============================================================================
@@ -379,7 +363,10 @@ function SceneContent({
       <ambientLight intensity={0.2} />
       <pointLight position={[10, 10, 10]} intensity={0.5} />
       {networkRef.current && networkRef.current.voxels.size > 0 && (
-        <SpacetimeNetwork voxels={networkRef.current.voxels} edges={networkRef.current.edges} />
+        <>
+          <InstancedVoxels voxels={networkRef.current.voxels} />
+          <InstancedEdges edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
+        </>
       )}
       <OrbitControls
         enablePan={false}
