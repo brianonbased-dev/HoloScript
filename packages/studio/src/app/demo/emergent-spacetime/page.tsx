@@ -529,7 +529,7 @@ function SceneContent({
         autoRotate
         autoRotateSpeed={0.5}
       />
-      <EffectComposer>
+      <EffectComposer disableNormalPass>
         <Bloom
           intensity={0.6}
           luminanceThreshold={0.8}
@@ -540,6 +540,7 @@ function SceneContent({
           radius={0.4}
           intensity={12}
           luminanceInfluence={0.5}
+          normalPass={false}
         />
         <Vignette offset={0.35} darkness={0.6} />
         <ToneMapping />
