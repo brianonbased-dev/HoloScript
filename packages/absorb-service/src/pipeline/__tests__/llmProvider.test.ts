@@ -1,12 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
-  AnthropicLLMProvider,
-  XAILLMProvider,
-  OpenAILLMProvider,
-  OllamaLLMProvider,
-  createLLMProvider,
+  createPipelineLLMProvider,
   detectLLMProviderName,
+  adaptToChatProvider,
 } from '../llmProvider';
+import { AnthropicAdapter, MockAdapter } from '@holoscript/llm-provider';
 
 /** All env vars that influence provider detection/creation. */
 const PROVIDER_ENV_KEYS = [
@@ -44,23 +42,36 @@ describe('detectLLMProviderName', () => {
     process.env = { ...originalEnv };
   });
 
+  it('returns openrouter when OPENROUTER_API_KEY is set (highest priority)', () => {
+    process.env.OPENROUTER_API_KEY = 'or-test';
+    expect(detectLLMProviderName()).toBe('openrouter');
+  });
+
   it('returns anthropic when ANTHROPIC_API_KEY is set', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     expect(detectLLMProviderName()).toBe('anthropic');
   });
 
-  it('returns xai when XAI_API_KEY is set (no anthropic)', () => {
+  it('returns xai when XAI_API_KEY is set (no anthropic/openrouter)', () => {
     process.env.XAI_API_KEY = 'xai-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
 
-  it('returns openai when OPENAI_API_KEY is set (no anthropic/xai)', () => {
+  it('returns openai when OPENAI_API_KEY is set (no anthropic/xai/openrouter)', () => {
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('openai');
   });
 
   it('returns ollama as fallback', () => {
     expect(detectLLMProviderName()).toBe('ollama');
+  });
+
+  it('prefers openrouter over all others', () => {
+    process.env.OPENROUTER_API_KEY = 'or-test';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
+    process.env.XAI_API_KEY = 'xai-test';
+    process.env.OPENAI_API_KEY = 'sk-test';
+    expect(detectLLMProviderName()).toBe('openrouter');
   });
 
   it('prefers anthropic over xai and openai', () => {
@@ -79,7 +90,7 @@ describe('detectLLMProviderName', () => {
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
-describe('createLLMProvider', () => {
+describe('createPipelineLLMProvider', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
@@ -90,223 +101,151 @@ describe('createLLMProvider', () => {
     process.env = { ...originalEnv };
   });
 
-  it('creates AnthropicLLMProvider when ANTHROPIC_API_KEY is set', () => {
+  it('creates a provider when ANTHROPIC_API_KEY is set', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    const provider = createLLMProvider();
-    expect(provider).toBeInstanceOf(AnthropicLLMProvider);
+    const provider = createPipelineLLMProvider();
+    // Provider has the chat() method (the pipeline LLMProvider interface)
+    expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates XAILLMProvider when XAI_API_KEY is set', () => {
+  it('creates a provider when OPENROUTER_API_KEY is set', () => {
+    process.env.OPENROUTER_API_KEY = 'or-test';
+    const provider = createPipelineLLMProvider();
+    expect(typeof provider.chat).toBe('function');
+  });
+
+  it('creates a provider when XAI_API_KEY is set', () => {
     process.env.XAI_API_KEY = 'xai-test';
-    const provider = createLLMProvider();
-    expect(provider).toBeInstanceOf(XAILLMProvider);
+    const provider = createPipelineLLMProvider();
+    expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates OpenAILLMProvider when OPENAI_API_KEY is set', () => {
+  it('creates a provider when OPENAI_API_KEY is set', () => {
     process.env.OPENAI_API_KEY = 'sk-test';
-    const provider = createLLMProvider();
-    expect(provider).toBeInstanceOf(OpenAILLMProvider);
+    const provider = createPipelineLLMProvider();
+    expect(typeof provider.chat).toBe('function');
   });
 
-  it('creates OllamaLLMProvider as fallback', () => {
+  it('creates a provider when OLLAMA_URL is set (fallback)', () => {
     process.env.OLLAMA_URL = 'http://localhost:11434';
-    const provider = createLLMProvider();
-    expect(provider).toBeInstanceOf(OllamaLLMProvider);
+    const provider = createPipelineLLMProvider();
+    expect(typeof provider.chat).toBe('function');
   });
 
   it('throws when no provider env vars are set', () => {
-    expect(() => createLLMProvider()).toThrow('No AI provider configured');
+    expect(() => createPipelineLLMProvider()).toThrow('No AI provider configured');
   });
 });
 
-// ─── Provider Interface Compliance ───────────────────────────────────────────
+// ─── adaptToChatProvider ────────────────────────────────────────────────────
 
-describe('provider interface', () => {
-  it('AnthropicLLMProvider has chat method', () => {
-    const p = new AnthropicLLMProvider('test-key');
-    expect(typeof p.chat).toBe('function');
-  });
-
-  it('XAILLMProvider has chat method', () => {
-    const p = new XAILLMProvider('test-key');
-    expect(typeof p.chat).toBe('function');
-  });
-
-  it('OpenAILLMProvider has chat method', () => {
-    const p = new OpenAILLMProvider('test-key');
-    expect(typeof p.chat).toBe('function');
-  });
-
-  it('OllamaLLMProvider has chat method', () => {
-    const p = new OllamaLLMProvider();
-    expect(typeof p.chat).toBe('function');
-  });
-});
-
-// ─── Anthropic Response Parsing ──────────────────────────────────────────────
-
-describe('AnthropicLLMProvider.chat', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
+describe('adaptToChatProvider', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('parses Anthropic Messages API response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          content: [{ type: 'text', text: '{"focusRotationChange":null,"rationale":"test"}' }],
-        }),
+  it('adapts ILLMProvider.complete() to chat() interface', async () => {
+    const mockProvider = new MockAdapter();
+    // MockAdapter returns a predictable response for generateHoloScript;
+    // for complete(), it echoes back content based on the last user message.
+    const adapted = adaptToChatProvider(mockProvider);
+
+    // The adapted provider should have a chat method
+    expect(typeof adapted.chat).toBe('function');
+
+    // Calling chat() should internally call complete() and return { text }
+    const result = await adapted.chat({
+      system: 'You are a test assistant.',
+      prompt: 'Say hello.',
+      maxTokens: 100,
     });
-    vi.stubGlobal('fetch', mockFetch);
 
-    const provider = new AnthropicLLMProvider('test-key');
-    const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
+    // MockAdapter.complete() returns content, so adapted.chat() should return { text }
+    expect(result).toHaveProperty('text');
+    expect(typeof result.text).toBe('string');
+  });
 
-    expect(result.text).toBe('{"focusRotationChange":null,"rationale":"test"}');
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.anthropic.com/v1/messages',
-      expect.objectContaining({ method: 'POST' })
+  it('maps system+prompt to messages array correctly', async () => {
+    // Use a spy-friendly adapter: AnthropicAdapter with a mock complete()
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'test response',
+      usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+      model: 'test-model',
+      provider: 'anthropic' as const,
+      finishReason: 'stop' as const,
+    });
+
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
+
+    const adapted = adaptToChatProvider(adapter);
+    await adapted.chat({ system: 'system prompt', prompt: 'user prompt', maxTokens: 500 });
+
+    expect(mockComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          { role: 'system', content: 'system prompt' },
+          { role: 'user', content: 'user prompt' },
+        ],
+        maxTokens: 500,
+      })
     );
   });
 
-  it('throws on non-200 response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 429,
-        text: () => Promise.resolve('rate limited'),
-      })
-    );
+  it('returns content as text from complete() response', async () => {
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'the answer is 42',
+      usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+      model: 'test-model',
+      provider: 'anthropic' as const,
+      finishReason: 'stop' as const,
+    });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 })).rejects.toThrow(
-      'Anthropic API error 429'
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
+
+    const adapted = adaptToChatProvider(adapter);
+    const result = await adapted.chat({ system: 'sys', prompt: 'prompt', maxTokens: 100 });
+
+    expect(result.text).toBe('the answer is 42');
+  });
+
+  it('propagates errors from complete()', async () => {
+    const mockComplete = vi.fn().mockRejectedValue(new Error('API error 429'));
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
+
+    const adapted = adaptToChatProvider(adapter);
+    await expect(adapted.chat({ system: 'sys', prompt: 'prompt', maxTokens: 100 })).rejects.toThrow(
+      'API error 429'
     );
   });
 });
 
-// ─── xAI Response Parsing ────────────────────────────────────────────────────
+// ─── Provider interface compliance ───────────────────────────────────────────
 
-describe('XAILLMProvider.chat', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+describe('pipeline LLMProvider interface', () => {
+  it('createPipelineLLMProvider returns an object with chat method', () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const provider = createPipelineLLMProvider();
+    expect(typeof provider.chat).toBe('function');
+    delete process.env.ANTHROPIC_API_KEY;
   });
 
-  it('parses xAI OpenAI-compatible response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            choices: [{ message: { content: 'grok response' } }],
-          }),
-      })
-    );
-
-    const provider = new XAILLMProvider('test-key');
-    const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-    expect(result.text).toBe('grok response');
-  });
-
-  it('uses x.ai base URL', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ choices: [{ message: { content: '' } }] }),
+  it('chat returns an object with text property', async () => {
+    // Use adaptToChatProvider with a mock to verify the return shape
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'hello world',
+      usage: { promptTokens: 5, completionTokens: 2, totalTokens: 7 },
+      model: 'test',
+      provider: 'mock' as const,
+      finishReason: 'stop' as const,
     });
-    vi.stubGlobal('fetch', mockFetch);
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
 
-    const provider = new XAILLMProvider('test-key');
-    await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.x.ai/v1/chat/completions',
-      expect.objectContaining({ method: 'POST' })
-    );
-  });
-});
-
-// ─── OpenAI Response Parsing ─────────────────────────────────────────────────
-
-describe('OpenAILLMProvider.chat', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('parses OpenAI chat completion response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            choices: [{ message: { content: 'openai response' } }],
-          }),
-      })
-    );
-
-    const provider = new OpenAILLMProvider('test-key');
-    const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-    expect(result.text).toBe('openai response');
-  });
-});
-
-// ─── Ollama Response Parsing ─────────────────────────────────────────────────
-
-describe('OllamaLLMProvider.chat', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('parses Ollama chat response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            message: { content: 'ollama response' },
-          }),
-      })
-    );
-
-    const provider = new OllamaLLMProvider();
-    const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-    expect(result.text).toBe('ollama response');
-  });
-
-  it('uses configured base URL', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ message: { content: '' } }),
-    });
-    vi.stubGlobal('fetch', mockFetch);
-
-    const provider = new OllamaLLMProvider('http://custom:8080');
-    await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://custom:8080/api/chat',
-      expect.objectContaining({ method: 'POST' })
-    );
-  });
-
-  it('strips trailing slashes from base URL', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ message: { content: '' } }),
-    });
-    vi.stubGlobal('fetch', mockFetch);
-
-    const provider = new OllamaLLMProvider('http://localhost:11434///');
-    await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
-
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:11434/api/chat', expect.any(Object));
+    const adapted = adaptToChatProvider(adapter);
+    const result = await adapted.chat({ system: 'sys', prompt: 'hi', maxTokens: 10 });
+    expect(result).toEqual({ text: 'hello world' });
   });
 });

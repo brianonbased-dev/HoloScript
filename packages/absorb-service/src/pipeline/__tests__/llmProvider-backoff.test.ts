@@ -1,191 +1,118 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { AnthropicLLMProvider } from '../llmProvider';
+import { adaptToChatProvider } from '../llmProvider';
+import { AnthropicAdapter } from '@holoscript/llm-provider';
 
 /**
- * Backoff retry tests for the absorb-service llmProvider.
+ * Backoff retry tests for the absorb-service pipeline LLM adapter.
  *
- * Provider type doesn't matter for retry semantics — fetchWithRetry is shared
- * across all five. We exercise via AnthropicLLMProvider as the canonical case;
- * the same loop wraps OpenAI / xAI / OpenRouter / Ollama identically.
+ * With Phase C, retry logic lives in BaseLLMAdapter.withRetry() inside
+ * @holoscript/llm-provider — those tests are in
+ * llm-provider/src/__tests__/base-adapter-retry.test.ts.
+ *
+ * This file verifies that the adaptToChatProvider shim correctly delegates
+ * to the upstream adapter's complete() method, which includes the retry
+ * logic.  We test the integration point, not the retry loop itself.
  */
 
-interface MockResponseInit {
-  ok?: boolean;
-  status?: number;
-  body?: unknown;
-  retryAfter?: string;
-}
-
-function mockResponse(init: MockResponseInit): Response {
-  const status = init.status ?? (init.ok ? 200 : 500);
-  const ok = init.ok ?? (status >= 200 && status < 300);
-  const headersMap = new Map<string, string>();
-  if (init.retryAfter !== undefined) headersMap.set('retry-after', init.retryAfter);
-  return {
-    ok,
-    status,
-    headers: { get: (name: string) => headersMap.get(name.toLowerCase()) ?? null },
-    json: () => Promise.resolve(init.body ?? {}),
-    text: () => Promise.resolve(typeof init.body === 'string' ? init.body : ''),
-  } as unknown as Response;
-}
-
-const ANTHROPIC_OK = mockResponse({
-  ok: true,
-  body: { content: [{ type: 'text', text: 'hi' }] },
-});
-
-describe('llmProvider backoff retry', () => {
+describe('adaptToChatProvider delegation', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.useRealTimers();
   });
 
-  it('retries 429 then succeeds within retry budget', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 429, body: 'rate limited' }))
-      .mockResolvedValueOnce(ANTHROPIC_OK);
-    vi.stubGlobal('fetch', fetchMock);
+  it('delegates chat() calls to the adapter.complete() method', async () => {
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'delegated response',
+      usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+      model: 'test-model',
+      provider: 'anthropic' as const,
+      finishReason: 'stop' as const,
+    });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    const result = await provider.chat({ system: 's', prompt: 'p', maxTokens: 10 });
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
 
-    expect(result.text).toBe('hi');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
+    const provider = adaptToChatProvider(adapter);
+    const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
 
-  it('retries 5xx then succeeds within retry budget', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 503, body: 'unavailable' }))
-      .mockResolvedValueOnce(ANTHROPIC_OK);
-    vi.stubGlobal('fetch', fetchMock);
-
-    const provider = new AnthropicLLMProvider('test-key');
-    const result = await provider.chat({ system: 's', prompt: 'p', maxTokens: 10 });
-
-    expect(result.text).toBe('hi');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('throws after exhausting retry budget on persistent 429', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(mockResponse({ status: 429, body: 'rate limited' }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 's', prompt: 'p', maxTokens: 10 })).rejects.toThrow(
-      'Anthropic API error 429'
+    expect(result.text).toBe('delegated response');
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(mockComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          { role: 'system', content: 'sys' },
+          { role: 'user', content: 'test' },
+        ],
+        maxTokens: 100,
+      })
     );
-    // 3 attempts total per DEFAULT_RETRY.maxAttempts.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('does NOT retry on 400 — falls through immediately', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 400, body: 'bad request' }));
-    vi.stubGlobal('fetch', fetchMock);
+  it('passes through errors from the underlying adapter', async () => {
+    const mockComplete = vi.fn().mockRejectedValue(new Error('provider error'));
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
 
-    const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 's', prompt: 'p', maxTokens: 10 })).rejects.toThrow(
-      'Anthropic API error 400'
+    const provider = adaptToChatProvider(adapter);
+    await expect(provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 })).rejects.toThrow(
+      'provider error'
     );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT retry on 401 — falls through immediately', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 401, body: 'unauthorized' }));
-    vi.stubGlobal('fetch', fetchMock);
+  it('maps system+prompt to messages in correct order', async () => {
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'ok',
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      model: 'test',
+      provider: 'anthropic' as const,
+      finishReason: 'stop' as const,
+    });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 's', prompt: 'p', maxTokens: 10 })).rejects.toThrow(
-      'Anthropic API error 401'
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
+
+    const provider = adaptToChatProvider(adapter);
+    await provider.chat({ system: 'be helpful', prompt: 'what is 2+2?', maxTokens: 50 });
+
+    const call = mockComplete.mock.calls[0][0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    expect(call.messages[0]).toEqual({ role: 'system', content: 'be helpful' });
+    expect(call.messages[1]).toEqual({ role: 'user', content: 'what is 2+2?' });
   });
 
-  it('retries network error once then succeeds', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError('fetch failed'))
-      .mockResolvedValueOnce(ANTHROPIC_OK);
-    vi.stubGlobal('fetch', fetchMock);
+  it('returns text content from complete() response', async () => {
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: 'response text',
+      usage: { promptTokens: 5, completionTokens: 10, totalTokens: 15 },
+      model: 'test-model',
+      provider: 'openai' as const,
+      finishReason: 'stop' as const,
+    });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    const result = await provider.chat({ system: 's', prompt: 'p', maxTokens: 10 });
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
 
-    expect(result.text).toBe('hi');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const provider = adaptToChatProvider(adapter);
+    const result = await provider.chat({ system: 'sys', prompt: 'prompt', maxTokens: 200 });
+
+    expect(result).toEqual({ text: 'response text' });
   });
 
-  it('throws on second consecutive network error (1 retry budget exhausted)', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError('fetch failed'))
-      .mockRejectedValueOnce(new TypeError('fetch failed again'));
-    vi.stubGlobal('fetch', fetchMock);
+  it('handles empty content from adapter', async () => {
+    const mockComplete = vi.fn().mockResolvedValue({
+      content: '',
+      usage: { promptTokens: 5, completionTokens: 0, totalTokens: 5 },
+      model: 'test-model',
+      provider: 'anthropic' as const,
+      finishReason: 'length' as const,
+    });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 's', prompt: 'p', maxTokens: 10 })).rejects.toThrow(
-      'fetch failed again'
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    adapter.complete = mockComplete;
 
-  it('honors Retry-After header (seconds) before retrying', async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 429, retryAfter: '1' }))
-      .mockResolvedValueOnce(ANTHROPIC_OK);
-    vi.stubGlobal('fetch', fetchMock);
+    const provider = adaptToChatProvider(adapter);
+    const result = await provider.chat({ system: 'sys', prompt: 'prompt', maxTokens: 10 });
 
-    const provider = new AnthropicLLMProvider('test-key');
-    const promise = provider.chat({ system: 's', prompt: 'p', maxTokens: 10 });
-
-    // Drain the first fetch + read of retry-after header.
-    await vi.advanceTimersByTimeAsync(0);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    // Retry-After = 1s. Advance < 1s — should NOT have retried yet.
-    await vi.advanceTimersByTimeAsync(500);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    // Advance past the 1s mark — second fetch fires.
-    await vi.advanceTimersByTimeAsync(600);
-    const result = await promise;
-    expect(result.text).toBe('hi');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('applies exponential backoff between retries (fake timers)', async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockResponse({ status: 503 }))
-      .mockResolvedValueOnce(mockResponse({ status: 503 }))
-      .mockResolvedValueOnce(ANTHROPIC_OK);
-    vi.stubGlobal('fetch', fetchMock);
-
-    const provider = new AnthropicLLMProvider('test-key');
-    const promise = provider.chat({ system: 's', prompt: 'p', maxTokens: 10 });
-
-    await vi.advanceTimersByTimeAsync(0);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    // First retry: 2^0 * 100ms + jitter (≤100ms). 200ms covers worst case.
-    await vi.advanceTimersByTimeAsync(200);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-
-    // Second retry: 2^1 * 100ms + jitter (≤100ms). 300ms covers worst case.
-    await vi.advanceTimersByTimeAsync(300);
-    const result = await promise;
-    expect(result.text).toBe('hi');
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.text).toBe('');
   });
 });
