@@ -301,21 +301,17 @@ function forceLayoutGuard(
     const distSq = dx * dx + dy * dy + dz * dz;
     const dist = Math.sqrt(distSq);
 
-    // Stronger repulsion with damping: F ~ 1/r³ + velocity damping
-    if (dist < minSeparation && dist > 1e-10) {
-      const magnitude = (minSeparation - dist) / (distSq * distSq * distSq + 1e-8);
-      const fx = (dx / dist) * magnitude;
-      const fy = (dy / dist) * magnitude;
-      const fz = (dz / dist) * magnitude;
+    // Softer repulsion: F ~ 1/r² with gentle spring constant
+    if (dist < minSeparation && dist > 1e-6) {
+      // Spring-like repulsion: F = k * (minSep - dist), capped magnitude
+      const springK = 0.5;
+      const magnitude = Math.min(springK * (minSeparation - dist), 0.1);
+      const fx = (dx / (dist + 1e-6)) * magnitude;
+      const fy = (dy / (dist + 1e-6)) * magnitude;
+      const fz = (dz / (dist + 1e-6)) * magnitude;
 
       force = [force[0] + fx, force[1] + fy, force[2] + fz];
     }
-
-    // Add velocity damping to reduce oscillations
-    const relVel = 0.15; // Damping coefficient
-    force[0] -= (voxel.position[0] - other.position[0]) * relVel;
-    force[1] -= (voxel.position[1] - other.position[1]) * relVel;
-    force[2] -= (voxel.position[2] - other.position[2]) * relVel;
   }
 
   return force;
@@ -538,12 +534,20 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
 
         const force = forceLayoutGuard(voxelId, network, 0.01);
 
-        // Apply force to position (simple Euler integration)
-        const damping = 0.9;
-        voxel.position = [
+        // Apply force to position (simple Euler integration with damping)
+        const damping = 0.95;
+        const newPos: [number, number, number] = [
           voxel.position[0] + force[0] * delta * damping,
           voxel.position[1] + force[1] * delta * damping,
           voxel.position[2] + force[2] * delta * damping,
+        ];
+
+        // Boundary constraint: keep voxels within [-1.5, 1.5] cube
+        const bounds = 1.5;
+        voxel.position = [
+          Math.max(-bounds, Math.min(bounds, newPos[0])),
+          Math.max(-bounds, Math.min(bounds, newPos[1])),
+          Math.max(-bounds, Math.min(bounds, newPos[2])),
         ];
       }
     }
