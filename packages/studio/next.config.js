@@ -40,7 +40,13 @@ const nextConfig = {
   // Rewrite (not redirect) so the browser keeps the short URL visible.
   // See research/quest3-iphone-moment/c-studio-share-path-map.md (G1).
   async rewrites() {
-    return [{ source: '/w/:id', destination: '/shared/:id' }];
+    return [
+      // /health -> /api/health: Railway and external monitors hit /health
+      // expecting JSON; without this rewrite Next.js serves the catch-all
+      // HTML page. The actual handler is src/app/api/health/route.ts.
+      { source: '/health', destination: '/api/health' },
+      { source: '/w/:id', destination: '/shared/:id' },
+    ];
   },
   async redirects() {
     const academyUrl = process.env.NEXT_PUBLIC_ACADEMY_URL || 'http://localhost:3102';
