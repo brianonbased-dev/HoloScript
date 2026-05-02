@@ -264,11 +264,153 @@ function verifyA04(objs: ParsedObject[]): VerificationResult[] {
     return hasHeight && hasThickness;
   });
 
+  // --- Path uniqueness check via BFS + DFS on 5x5 grid ---
+  // Cells are 2x2m, edges at x=0,2,4,6,8,10 and z=0,2,4,6,8,10.
+  const CELL_SIZE = 2;
+  const GRID = 5;
+  const EDGE_TOL = 0.15;
+
+  // Build a set of blocked edges: key = "i,j,dir" where dir = 'R' (right/x+) or 'U' (up/z+)
+  const blocked = new Set<string>();
+
+  for (const w of validWalls) {
+    const [px, , pz] = w.position;
+    const [sx, , sz] = w.scale;
+    // Vertical wall (thickness in x ≈ 0.1)
+    if (within(sx, 0.1, EDGE_TOL)) {
+      const gridX = Math.round(px / CELL_SIZE) * CELL_SIZE;
+      const zMin = pz - sz / 2;
+      const zMax = pz + sz / 2;
+      // This wall sits on vertical grid line x = gridX, spanning z=[zMin,zMax]
+      // Block rightward passage for any cell (i,j) whose right edge is on this line
+      for (let j = 0; j < GRID; j++) {
+        const cellZMin = j * CELL_SIZE;
+        const cellZMax = (j + 1) * CELL_SIZE;
+        if (zMax > cellZMin && zMin < cellZMax) {
+          const i = Math.round((gridX - CELL_SIZE) / CELL_SIZE); // cell to the left of wall
+          if (i >= 0 && i < GRID - 1 && j >= 0 && j < GRID) {
+            blocked.add(`${i},${j},R`);
+          }
+        }
+      }
+    }
+    // Horizontal wall (thickness in z ≈ 0.1)
+    if (within(sz, 0.1, EDGE_TOL)) {
+      const gridZ = Math.round(pz / CELL_SIZE) * CELL_SIZE;
+      const xMin = px - sx / 2;
+      const xMax = px + sx / 2;
+      // This wall sits on horizontal grid line z = gridZ, spanning x=[xMin,xMax]
+      for (let i = 0; i < GRID; i++) {
+        const cellXMin = i * CELL_SIZE;
+        const cellXMax = (i + 1) * CELL_SIZE;
+        if (xMax > cellXMin && xMin < cellXMax) {
+          const j = Math.round((gridZ - CELL_SIZE) / CELL_SIZE); // cell below wall
+          if (i >= 0 && i < GRID && j >= 0 && j < GRID - 1) {
+            blocked.add(`${i},${j},U`);
+          }
+        }
+      }
+    }
+  }
+
+  // Helper: get neighbors
+  const neighbors = (i: number, j: number): Array<[number, number]> => {
+    const out: Array<[number, number]> = [];
+    if (i > 0 && !blocked.has(`${i - 1},${j},R`)) out.push([i - 1, j]); // left
+    if (i < GRID - 1 && !blocked.has(`${i},${j},R`)) out.push([i + 1, j]); // right
+    if (j > 0 && !blocked.has(`${i},${j - 1},U`)) out.push([i, j - 1]); // down
+    if (j < GRID - 1 && !blocked.has(`${i},${j},U`)) out.push([i, j + 1]); // up
+    return out;
+  };
+
+  // BFS for reachability from (0,0) to (4,4)
+  const visited = new Set<string>();
+  const queue: Array<[number, number]> = [[0, 0]];
+  visited.add('0,0');
+  let reachable = false;
+  while (queue.length > 0) {
+    const [ci, cj] = queue.shift()!;
+    if (ci === GRID - 1 && cj === GRID - 1) {
+      reachable = true;
+      break;
+    }
+    for (const [ni, nj] of neighbors(ci, cj)) {
+      const key = `${ni},${nj}`;
+      if (!visited.has(key)) {
+        visited.add(key);
+        queue.push([ni, nj]);
+      }
+    }
+  }
+
+  // DFS counting simple paths from (0,0) to (4,4)
+  let pathCount = 0;
+  const dfs = (i: number, j: number, seen: Set<string>) => {
+    if (i === GRID - 1 && j === GRID - 1) {
+      pathCount++;
+      return;
+    }
+    for (const [ni, nj] of neighbors(i, j)) {
+      const key = `${ni},${nj}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        dfs(ni, nj, seen);
+        seen.delete(key);
+      }
+    }
+  };
+  dfs(0, 0, new Set(['0,0']));
+
+  const connectedPassed = reachable;
+  const uniquePathPassed = reachable && pathCount === 1;
+
   return [
     { criterion_id: 'grid_dimensions', passed: true, rationale: 'grid dimensions are specified in prompt, not verifiable from objects alone' },
     { criterion_id: 'walls_present', passed: walls.length >= 5, rationale: `found ${walls.length} walls` },
     { criterion_id: 'wall_thickness_height', passed: validWalls.length >= 5, rationale: `${validWalls.length}/${walls.length} walls match 0.1 thick + 1.5 tall (tol ${TOL})` },
-    { criterion_id: 'connected_path', passed: walls.length >= 5, rationale: `walls present: ${walls.length}` },
+    { criterion_id: 'connected_path', passed: uniquePathPassed, rationale: uniquePathPassed ? `reachable, exactly 1 path (count=${pathCount})` : `reachable=${connectedPassed}, pathCount=${pathCount}` },
+  ];
+}
+
+function verifyA07(objs: ParsedObject[]): VerificationResult[] {
+  const cones = objs.filter((o) => o.primitive === 'cone');
+  const oranges = cones.filter((o) => (o.color ?? '').toLowerCase().includes('orange'));
+
+  // Parabola: z = 0.5 * x^2
+  const TOL_POS = 0.15;
+  let parabolaPassed = false;
+  let parabolaRationale = `cones: ${cones.length}`;
+  if (cones.length >= 4) {
+    const sorted = [...cones].sort((a, b) => a.position[0] - b.position[0]);
+    const diffs = sorted.map((c) => {
+      const x = c.position[0];
+      const z = c.position[2];
+      const expected = 0.5 * x * x;
+      return Math.abs(z - expected);
+    });
+    parabolaPassed = diffs.every((d) => d <= TOL_POS);
+    parabolaRationale = `z vs 0.5x² diffs: ${diffs.map((d) => d.toFixed(3)).join(', ')} (tol ${TOL_POS})`;
+  }
+
+  // Uniform arc-length spacing (approximate check using ideal positions on z=0.5x²)
+  // For 4 cones on x∈[0,3], ideal uniform-arc x positions are approximately [0, 1.37, 2.20, 3.00]
+  const TOL_ARC = 0.25;
+  let arcPassed = false;
+  let arcRationale = `cones: ${cones.length}`;
+  if (cones.length >= 4) {
+    const sorted = [...cones].sort((a, b) => a.position[0] - b.position[0]);
+    const xs = sorted.map((c) => c.position[0]);
+    const idealXs = [0, 1.37, 2.20, 3.0];
+    const match = xs.every((x, i) => within(x, idealXs[i], TOL_ARC));
+    arcPassed = match;
+    arcRationale = `x positions: ${xs.map((x) => x.toFixed(2)).join(', ')} vs ideal ${idealXs.join(', ')} (tol ${TOL_ARC})`;
+  }
+
+  return [
+    { criterion_id: 'four_cones', passed: cones.length === 4, rationale: `found ${cones.length} cones` },
+    { criterion_id: 'all_orange', passed: oranges.length >= 4, rationale: `orange cones: ${oranges.length}` },
+    { criterion_id: 'follow_parabola', passed: parabolaPassed, rationale: parabolaRationale },
+    { criterion_id: 'uniform_arc', passed: arcPassed, rationale: arcRationale },
   ];
 }
 
@@ -308,6 +450,7 @@ const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResul
   M09: verifyM09,
   A01: verifyA01,
   A04: verifyA04,
+  A07: verifyA07,
   A10: verifyA10,
 };
 
