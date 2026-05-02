@@ -20,6 +20,7 @@ import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
 import type { HSPlusNode } from '@holoscript/core/traits';
+import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 
 // =============================================================================
 // TYPES
@@ -423,6 +424,7 @@ export default function EmergentSpacetimeDemo() {
         flat
       >
         <SceneContent setStats={setStats} setFps={setFps} />
+        <PerformanceOverlay />
       </Canvas>
     </div>
   );

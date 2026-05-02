@@ -557,6 +557,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     // 2. Apply force-layout guard (singularity prevention)
     if (config.force_layout_guard) {
       for (const [voxelId, voxel] of network.voxels.entries()) {
+        // Use edge-based neighbors for force layout (preserves topology)
         const neighborIds = state.adjacency.get(voxelId) || [];
 
         const force = forceLayoutGuard(voxelId, network, 0.01, neighborIds);
