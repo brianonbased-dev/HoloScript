@@ -61,6 +61,8 @@ describe('dispatch health check', () => {
     'holoscript_audit_numbers',
     // AlphaFold — also dispatched via compiler handler (see compiler-tools.ts switch)
     'alphafold_fetch_structure',
+    // handleHologramTool (handlers.ts) — dispatched before generic holo_ routing (W.024, W.026)
+    ...hologramToolDefinitions.map((t) => t.name),
     // Dedicated handlers — now in tools.ts but still dispatched via their own handlers
     ...compilerTools.map((t) => t.name),
     ...networkingTools.map((t) => t.name),
@@ -87,19 +89,6 @@ describe('dispatch health check', () => {
     }
   });
 
-  describe('hologram tool dispatch (handleTool)', () => {
-    for (const tool of hologramToolDefinitions) {
-      it(`dispatches ${tool.name} without Unknown tool`, async () => {
-        try {
-          await handleTool(tool.name, {});
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          expect(msg).not.toMatch(/^Unknown tool:/);
-        }
-      });
-    }
-  });
-
   describe('dedicated handler dispatch', () => {
     const handlerMap: Array<{ tools: typeof compilerTools; importPath: string; handlerKey: string }> = [
       { tools: compilerTools, importPath: '../compiler-tools', handlerKey: 'handleCompilerTool' },
@@ -108,6 +97,7 @@ describe('dispatch health check', () => {
       { tools: monitoringTools, importPath: '../monitoring-tools', handlerKey: 'handleMonitoringTool' },
       { tools: holotestTools, importPath: '../holotest-tools', handlerKey: 'handleHolotestTool' },
       { tools: refactorCodegenTools, importPath: '../refactor-codegen-tools', handlerKey: 'handleRefactorCodegenTool' },
+      { tools: hologramToolDefinitions, importPath: '../hologram-mcp-tools', handlerKey: 'handleHologramTool' },
     ];
 
     for (const { tools: toolSet, importPath, handlerKey } of handlerMap) {
