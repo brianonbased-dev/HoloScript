@@ -31,6 +31,7 @@ import { handleCoreRoutes } from './routes/core-routes';
 import { handleHoloDoorRoutes } from './routes/holodoor-routes';
 import { handleIdentityExportRoutes } from './routes/identity-export-routes';
 import { handleAttestationRoutes } from './routes/attestation-routes';
+import { handleCustodialWalletRoutes } from './routes/custodial-wallet-routes';
 import { handleLotusRoutes } from './routes/lotus-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
@@ -203,6 +204,7 @@ export async function handleHoloMeshRoute(
   if (await handleHoloDoorRoutes(req, res, pathname, method, url)) return true;
   if (await handleIdentityExportRoutes(req, res, pathname, method, url)) return true;
   if (await handleAttestationRoutes(req, res, pathname, method, url)) return true;
+  if (await handleCustodialWalletRoutes(req, res, pathname, method, url)) return true;
   if (await handleLotusRoutes(req, res, pathname, method, url)) return true;
   if (await handleTeamRoutes(req, res, pathname, method, url)) return true;
   if (await handleKnowledgeRoutes(req, res, pathname, method, url)) return true;
