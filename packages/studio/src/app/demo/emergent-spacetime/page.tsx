@@ -31,6 +31,8 @@ import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 const MAX_VOXELS = 1000;
 const MAX_EDGES = 3000;
 const MAX_FLOW_PARTICLES = 500;
+const MIN_FLOW_PARTICLES = 50;
+const FRAME_TIME_TARGET_MS = 11; // 90Hz target
 
 // =============================================================================
 // PROVENANCE FLOW PARTICLES
@@ -39,20 +41,18 @@ const MAX_FLOW_PARTICLES = 500;
 function ProvenanceFlowParticles({
   edges,
   voxels,
+  targetParticleCount = MAX_FLOW_PARTICLES,
 }: {
   edges: EdgeData[];
   voxels: Map<string, VoxelData>;
+  targetParticleCount?: number;
 }) {
   const pointsRef = useRef<THREE.Points>(null);
-  const positionsRef = useRef<Float32Array>(new Float32Array(MAX_FLOW_PARTICLES * 3));
-  const colorsRef = useRef<Float32Array>(new Float32Array(MAX_FLOW_PARTICLES * 3));
   const particleState = useRef<{
-    edgeIndex: number;
     progress: number;
     positions: Float32Array;
     colors: Float32Array;
   }>({
-    edgeIndex: 0,
     progress: 0,
     positions: new Float32Array(MAX_FLOW_PARTICLES * 3),
     colors: new Float32Array(MAX_FLOW_PARTICLES * 3),
@@ -64,9 +64,10 @@ function ProvenanceFlowParticles({
     const state = particleState.current;
     const positions = state.positions;
     const colors = state.colors;
+    const particleCount = Math.max(MIN_FLOW_PARTICLES, Math.min(MAX_FLOW_PARTICLES, targetParticleCount));
 
     // Update particle positions along edges
-    for (let i = 0; i < MAX_FLOW_PARTICLES; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const particleEdgeIndex = i % edges.length;
       const edge = edges[particleEdgeIndex];
       const source = voxels.get(edge.source);
@@ -134,13 +135,20 @@ function ProvenanceFlowParticles({
 
 function InstancedVoxels({
   voxels,
+  lodLevel = 1,
 }: {
   voxels: Map<string, VoxelData>;
+  lodLevel?: number;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const color = useMemo(() => new THREE.Color(), []);
-  const geometry = useMemo(() => new THREE.IcosahedronGeometry(0.08, 1), []);
+  const geometry = useMemo(() => {
+    // LOD 0 = high detail (icosahedron), LOD 1+ = low detail (tetrahedron-like)
+    const detail = lodLevel === 0 ? 1 : 0;
+    const radius = lodLevel === 0 ? 0.08 : 0.06;
+    return new THREE.IcosahedronGeometry(radius, detail);
+  }, [lodLevel]);
 
   useFrame(() => {
     if (!meshRef.current) return;
@@ -279,12 +287,16 @@ function InfoPanel({
   hubbleCorrection,
   violationCount,
   fps,
+  particleCount,
+  lodLevel,
 }: {
   voxelCount: number;
   edgeCount: number;
   hubbleCorrection: number;
   violationCount: number;
   fps: number;
+  particleCount?: number;
+  lodLevel?: number;
 }) {
   return (
     <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm text-white p-4 rounded-lg text-sm font-mono z-10">
@@ -318,6 +330,16 @@ function InfoPanel({
             {fps}
           </span>
         </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">Particles:</span>
+          <span className="font-semibold">{particleCount ?? MAX_FLOW_PARTICLES}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-400">LOD:</span>
+          <span className={`font-semibold ${lodLevel === 0 ? 'text-green-400' : 'text-yellow-400'}`}>
+            {lodLevel === 0 ? 'High' : 'Low'}
+          </span>
+        </div>
       </div>
       <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500">
         <p>Drag to rotate • Scroll to zoom</p>
@@ -334,9 +356,11 @@ function InfoPanel({
 function SceneContent({
   setStats,
   setFps,
+  setDebugInfo,
 }: {
   setStats: React.Dispatch<React.SetStateAction<{ voxels: number; edges: number; hubble: number; violations: number }>>;
   setFps: React.Dispatch<React.SetStateAction<number>>;
+  setDebugInfo: React.Dispatch<React.SetStateAction<{ particleCount: number; lodLevel: number }>>;
 }) {
   const { camera } = useThree();
   const networkRef = useRef<{ voxels: Map<string, VoxelData>; edges: EdgeData[] }>({
@@ -346,6 +370,9 @@ function SceneContent({
   const traitNodeRef = useRef<HSPlusNode | null>(null);
   const fpsAccumRef = useRef(0);
   const frameCountRef = useRef(0);
+  const lodLevelRef = useRef(0);
+  const frameTimeRef = useRef(0);
+  const targetParticleCountRef = useRef(MAX_FLOW_PARTICLES);
 
   // Initialize trait on mount
   useEffect(() => {
@@ -458,6 +485,27 @@ function SceneContent({
       fpsAccumRef.current = 0;
       frameCountRef.current = 0;
     }
+
+    // LOD calculation based on camera distance
+    const cameraDistance = camera.position.distanceTo(new THREE.Vector3(0, 0, 0));
+    lodLevelRef.current = cameraDistance > 5 ? 1 : 0;
+
+    // Auto-degrade particle count if frame time exceeds target
+    const frameTime = delta * 1000;
+    frameTimeRef.current = frameTime;
+    if (frameTime > FRAME_TIME_TARGET_MS && targetParticleCountRef.current > MIN_FLOW_PARTICLES) {
+      targetParticleCountRef.current -= 10;
+    } else if (frameTime < FRAME_TIME_TARGET_MS * 0.8 && targetParticleCountRef.current < MAX_FLOW_PARTICLES) {
+      targetParticleCountRef.current += 10;
+    }
+
+    // Update debug info (throttled to every 10 frames)
+    if (frameCountRef.current % 10 === 0) {
+      setDebugInfo({
+        particleCount: targetParticleCountRef.current,
+        lodLevel: lodLevelRef.current,
+      });
+    }
   });
 
   return (
@@ -467,9 +515,9 @@ function SceneContent({
       <pointLight position={[10, 10, 10]} intensity={0.5} />
       {networkRef.current && networkRef.current.voxels.size > 0 && (
         <>
-          <InstancedVoxels voxels={networkRef.current.voxels} />
+          <InstancedVoxels voxels={networkRef.current.voxels} lodLevel={lodLevelRef.current} />
           <InstancedEdges edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
-          <ProvenanceFlowParticles edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
+          <ProvenanceFlowParticles edges={networkRef.current.edges} voxels={networkRef.current.voxels} targetParticleCount={targetParticleCountRef.current} />
         </>
       )}
       <OrbitControls
@@ -512,6 +560,7 @@ export default function EmergentSpacetimeDemo() {
     violations: 0,
   });
   const [fps, setFps] = useState(60);
+  const [debugInfo, setDebugInfo] = useState({ particleCount: MAX_FLOW_PARTICLES, lodLevel: 0 });
 
   return (
     <div className="w-full h-screen bg-black relative">
@@ -521,6 +570,8 @@ export default function EmergentSpacetimeDemo() {
         hubbleCorrection={stats.hubble}
         violationCount={stats.violations}
         fps={fps}
+        particleCount={debugInfo.particleCount}
+        lodLevel={debugInfo.lodLevel}
       />
       <Canvas
         camera={{ position: [3, 2, 3], fov: 60 }}
@@ -529,7 +580,7 @@ export default function EmergentSpacetimeDemo() {
         linear
         flat
       >
-        <SceneContent setStats={setStats} setFps={setFps} />
+        <SceneContent setStats={setStats} setFps={setFps} setDebugInfo={setParticleCount} />
         <PerformanceOverlay />
       </Canvas>
     </div>
