@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicepkg/tauri-v2/HEAD/tooling/cli/schema.json",
+  "productName": "HoloScript Studio",
+  "version": "0.1.0",
+  "identifier": "net.holoscript.studio",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @holoscript/studio dev",
+    "devUrl": "http://localhost:3101",
+    "beforeBuildCommand": "pnpm --filter @holoscript/studio build",
+    "frontendDist": "../studio/out"
+  },
+  "app": {
+    "title": "HoloScript Studio",
+    "windows": [
+      {
+        "title": "HoloScript Studio",
+        "label": "main",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "decorations": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://mcp.holoscript.net https://studio-production-a071.up.railway.app wss://mcp.holoscript.net ws://localhost:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "app", "dmg", "deb"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "../studio/public/wasm/**"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://mcp.holoscript.net/api/releases/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": ""
+    }
+  }
+}

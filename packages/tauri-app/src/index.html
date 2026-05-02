@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Studio</title>
+    <style>
+      /* Minimal loading state while Next.js hydrates */
+      .tauri-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0a0a0f;
+        color: #e0e0e0;
+      }
+      .tauri-loading__logo {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      .tauri-loading__text {
+        font-size: 14px;
+        opacity: 0.6;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.4; transform: scale(0.95); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="__tauri_root">
+      <div class="tauri-loading" id="tauri-loading">
+        <svg class="tauri-loading__logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="28" stroke="#6366f1" stroke-width="2" fill="none" opacity="0.3" />
+          <circle cx="32" cy="32" r="20" stroke="#6366f1" stroke-width="2" fill="none" opacity="0.5" />
+          <circle cx="32" cy="32" r="12" stroke="#6366f1" stroke-width="2" fill="none" opacity="0.7" />
+          <circle cx="32" cy="32" r="4" fill="#6366f1" />
+        </svg>
+        <div class="tauri-loading__text">Initializing HoloScript Studio...</div>
+      </div>
+    </div>
+    <!--
+      In dev mode, Tauri loads http://localhost:3101 (Next.js dev server).
+      In production, Tauri serves the Studio frontend dist directory.
+      The Studio app detects `window.__TAURI__` and enables native features.
+      See: packages/studio/src/lib/tauri-bridge.ts
+    -->
+    <script>
+      // Hide the loading screen once Studio hydrates
+      // (Studio's Next.js will take over the DOM)
+      window.addEventListener('DOMContentLoaded', () => {
+        // Give Studio time to mount; if it doesn't, the loading screen stays
+        setTimeout(() => {
+          const loading = document.getElementById('tauri-loading');
+          if (loading && loading.parentNode) {
+            // Studio hasn't replaced the loading screen yet
+            // This is fine — Next.js SSR will replace it when ready
+          }
+        }, 5000);
+      });
+    </script>
+  </body>
+</html>
