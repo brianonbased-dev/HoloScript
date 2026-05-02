@@ -24,6 +24,7 @@ import {
   isExportSessionExpired,
   serializeExportSession,
 } from './export-session';
+import { serializeLedger, deserializeLedger } from './identity/token-ledger';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -495,6 +496,7 @@ const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
 const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
 const HOLODOOR_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'holodoor-store.json');
 const EXPORT_SESSION_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'export-sessions.json');
+const TOKEN_LEDGER_PATH = path.join(HOLOMESH_DATA_DIR, 'token-ledger.json');
 
 export function persistHoloDoorStore(): void {
   atomicWriteJSON(HOLODOOR_STORE_PATH, {
@@ -575,6 +577,10 @@ export function persistExportSessionStore(): void {
     sessions,
     savedAt: new Date().toISOString(),
   });
+}
+
+export function persistTokenLedger(): void {
+  atomicWriteJSON(TOKEN_LEDGER_PATH, serializeLedger());
 }
 
 // ── Initialization ────────────────────────────────────────────────────────────
@@ -736,6 +742,17 @@ export function initStores(): void {
       if (!session) continue;
       if (isExportSessionExpired(session, now)) continue;
       exportSessionStore.set(session.sessionId, session);
+    }
+  }
+
+  // Load Token Ledger (Phase 5 — Tier 2 balance)
+  const tokenLedgerData = readJSON(TOKEN_LEDGER_PATH);
+  if (tokenLedgerData?.entries) {
+    try {
+      deserializeLedger(tokenLedgerData);
+      console.info(`[TokenLedger] Loaded balances for ${Object.keys(tokenLedgerData.entries).length} user(s)`);
+    } catch (e: unknown) {
+      console.warn('[TokenLedger] Failed to load ledger, starting fresh:', e instanceof Error ? e.message : String(e));
     }
   }
 }
