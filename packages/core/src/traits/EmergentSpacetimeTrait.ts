@@ -532,9 +532,19 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       adjacency.get(edge.target)!.push(edge.source);
     }
 
-    // 1. Update edge weights from provenance (mutual info is 0 for product states)
+    // 1. Update edge weights from distance (visual variation)
+    // Mutual info is 0 for product states (physics-correct)
     for (const edge of network.edges) {
-      edge.weight = edge.provenance;
+      const source = network.voxels.get(edge.source);
+      const target = network.voxels.get(edge.target);
+      if (source && target) {
+        const dx = source.position[0] - target.position[0];
+        const dy = source.position[1] - target.position[1];
+        const dz = source.position[2] - target.position[2];
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        // Weight: 1.0 at close range, 0.2 at far range (for visual feedback)
+        edge.weight = Math.max(0.2, 1.0 - dist / 1.5);
+      }
     }
 
     // 2. Apply force-layout guard (singularity prevention)
