@@ -575,6 +575,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(proposal.teamId);
     const team = teamStore.get(proposal.teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found for proposal' });
@@ -628,6 +629,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(proposal.teamId);
     const team = teamStore.get(proposal.teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found for proposal' });
