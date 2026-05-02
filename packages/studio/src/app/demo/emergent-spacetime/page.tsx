@@ -580,7 +580,7 @@ export default function EmergentSpacetimeDemo() {
         linear
         flat
       >
-        <SceneContent setStats={setStats} setFps={setFps} setDebugInfo={setParticleCount} />
+        <SceneContent setStats={setStats} setFps={setFps} setDebugInfo={setDebugInfo} />
         <PerformanceOverlay />
       </Canvas>
     </div>
