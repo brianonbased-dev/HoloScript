@@ -5,6 +5,12 @@ import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
+import {
+  AnthropicAdapter,
+  OpenAIAdapter,
+  OpenRouterAdapter,
+  LocalLLMAdapter,
+} from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 30;
 // SEC-T03: cap untrusted prefix/suffix length before any LLM spend.
@@ -48,109 +54,66 @@ function getProviders(): Provider[] {
   const openaiKey = process.env.OPENAI_API_KEY || '';
 
   if (openrouterKey) {
+    const adapter = new OpenRouterAdapter({ apiKey: openrouterKey });
     providers.push({
       name: 'openrouter',
       call: async (prefix, suffix, maxTokens) => {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterKey}`,
-          },
-          body: JSON.stringify({
-            model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
-            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
-            max_tokens: maxTokens,
-            temperature: 0.1,
-          }),
-          signal: AbortSignal.timeout(8000),
+        const result = await adapter.complete({
+          messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+          maxTokens,
+          temperature: 0.1,
         });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content?.trimEnd() || null;
+        return result.content?.trimEnd() || null;
       },
     });
   }
 
   if (anthropicKey) {
+    const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
+    const adapter = new AnthropicAdapter({ apiKey: anthropicKey, defaultModel: model });
     providers.push({
       name: 'anthropic',
       call: async (prefix, suffix, maxTokens) => {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: (() => {
-            // Autocomplete wants low variance — Haiku default for speed + cost.
-            // Users can override via ANTHROPIC_MODEL. Opus 4.7 removes
-            // temperature, so conditionally omit it when selected.
-            const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
-            const isOpus47 = model === 'claude-opus-4-7';
-            return JSON.stringify({
-              model,
-              max_tokens: maxTokens,
-              messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
-              ...(isOpus47 ? {} : { temperature: 0.1 }),
-            });
-          })(),
-          signal: AbortSignal.timeout(8000),
+        const isOpus47 = model === 'claude-opus-4-7';
+        const result = await adapter.complete({
+          messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+          maxTokens,
+          ...(isOpus47 ? {} : { temperature: 0.1 }),
         });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.content?.[0]?.text?.trimEnd() || null;
+        return result.content?.trimEnd() || null;
       },
     });
   }
 
   if (openaiKey) {
+    const adapter = new OpenAIAdapter({ apiKey: openaiKey });
     providers.push({
       name: 'openai',
       call: async (prefix, suffix, maxTokens) => {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: process.env.OPENAI_MODEL || 'gpt-4.1',
-            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
-            max_tokens: maxTokens,
-            temperature: 0.1,
-          }),
-          signal: AbortSignal.timeout(8000),
+        const result = await adapter.complete({
+          messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+          maxTokens,
+          temperature: 0.1,
         });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content?.trimEnd() || null;
+        return result.content?.trimEnd() || null;
       },
     });
   }
 
-  // Ollama as optional local fallback
+  // Ollama as optional local fallback — now via @holoscript/llm-provider LocalLLMAdapter
   if (process.env.OLLAMA_URL) {
     const ollamaBase = process.env.OLLAMA_URL;
     const model = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
+    const adapter = new LocalLLMAdapter({ baseURL: ollamaBase, defaultModel: model, timeoutMs: 4000 });
     providers.push({
       name: 'ollama',
       call: async (prefix, suffix, maxTokens) => {
-        const res = await fetch(`${ollamaBase}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            prompt: buildFIMPrompt(prefix, suffix),
-            stream: false,
-            options: { num_predict: maxTokens, temperature: 0.1, stop: ['\n\n', '}', ')'] },
-          }),
-          signal: AbortSignal.timeout(4000),
+        const result = await adapter.complete({
+          messages: [{ role: 'user', content: buildFIMPrompt(prefix, suffix) }],
+          maxTokens,
+          temperature: 0.1,
         });
-        if (!res.ok) return null;
-        const data = (await res.json()) as { response?: string };
-        return data.response?.trimEnd() || null;
+        return result.content?.trimEnd() || null;
       },
     });
   }

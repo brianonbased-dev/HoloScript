@@ -348,192 +348,125 @@ function parseArgs(argv: string[]): CLIOptions {
   return opts;
 }
 
-interface ChatResponse {
-  content?: { text: string }[];
-  choices?: { message: { content: string } }[];
-  message?: { content: string };
-  response?: string;
-  usage?: {
-    input_tokens?: number;
-    prompt_tokens?: number;
-    output_tokens?: number;
-    completion_tokens?: number;
-  };
-  prompt_eval_count?: number;
-  eval_count?: number;
-}
+/**
+ * Create an LLM provider for the daemon/holodaemon loop.
+ *
+ * Migrated from inline fetch() calls (no retry on 429/5xx) to
+ * @holoscript/llm-provider adapters which inherit withRetry from
+ * BaseLLMAdapter — exponential backoff + Retry-After honoring.
+ *
+ * Phase B1d of task_1777429131189_5d74.
+ */
+async function createDaemonLLMProvider(opts: CLIOptions): Promise<import('@holoscript/absorb-service/daemon').LLMProvider> {
+  // Dynamic import for ESM compatibility — adapters are loaded only when
+  // a daemon session actually needs LLM, not at CLI startup.
+  const {
+    AnthropicAdapter,
+    XAIAdapter,
+    OpenAIAdapter,
+    LocalLLMAdapter,
+  } = await import('@holoscript/llm-provider');
 
-function extractChatText(data: unknown): string {
-  const d = data as ChatResponse;
-  return (
-    d?.content?.[0]?.text ??
-    d?.choices?.[0]?.message?.content ??
-    d?.message?.content ??
-    d?.response ??
-    ''
-  );
-}
-
-function extractTokenUsage(data: unknown): { inputTokens: number; outputTokens: number } {
-  const d = data as ChatResponse;
-  const inputTokens =
-    d?.usage?.input_tokens ?? d?.usage?.prompt_tokens ?? d?.prompt_eval_count ?? 0;
-  const outputTokens =
-    d?.usage?.output_tokens ?? d?.usage?.completion_tokens ?? d?.eval_count ?? 0;
-
-  return {
-    inputTokens: Number.isFinite(inputTokens) ? Number(inputTokens) : 0,
-    outputTokens: Number.isFinite(outputTokens) ? Number(outputTokens) : 0,
-  };
-}
-
-function createDaemonLLMProvider(opts: CLIOptions): import('@holoscript/absorb-service/daemon').LLMProvider {
   if (opts.provider === 'anthropic') {
+    const adapter = new AnthropicAdapter({
+      apiKey: process.env.ANTHROPIC_API_KEY || '',
+      defaultModel: opts.model,
+    });
     return {
       chat: async ({ system, prompt, maxTokens }) => {
-        const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: opts.model,
-            max_tokens: maxTokens || 4096,
-            system,
-            messages: [{ role: 'user', content: prompt }],
-          }),
+        const result = await adapter.complete({
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt },
+          ],
+          maxTokens: maxTokens || 4096,
+          temperature: 0.2,
         });
-
-        if (!response.ok) {
-          const body = await response.text().catch(() => '');
-          throw new Error(`Anthropic API ${response.status}: ${body.slice(0, 200)}`);
-        }
-
-        const data = await response.json();
-        const usage = extractTokenUsage(data);
         return {
-          text: extractChatText(data),
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
+          text: result.content,
+          inputTokens: result.usage?.promptTokens ?? 0,
+          outputTokens: result.usage?.completionTokens ?? 0,
         };
       },
     };
   }
 
   if (opts.provider === 'xai') {
+    const adapter = new XAIAdapter({
+      apiKey: process.env.XAI_API_KEY || '',
+      defaultModel: opts.model,
+    });
     return {
       chat: async ({ system, prompt, maxTokens }) => {
-        const apiKey = process.env.XAI_API_KEY;
-        if (!apiKey) throw new Error('XAI_API_KEY not set');
-
-        const response = await fetch('https://api[0].ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: opts.model,
-            max_tokens: maxTokens || 4096,
-            temperature: 0.2,
-            messages: [
-              { role: 'system', content: system },
-              { role: 'user', content: prompt },
-            ],
-          }),
+        const result = await adapter.complete({
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt },
+          ],
+          maxTokens: maxTokens || 4096,
+          temperature: 0.2,
         });
-
-        if (!response.ok) {
-          const body = await response.text().catch(() => '');
-          throw new Error(`xAI API ${response.status}: ${body.slice(0, 200)}`);
-        }
-
-        const data = await response.json();
-        const usage = extractTokenUsage(data);
         return {
-          text: extractChatText(data),
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
+          text: result.content,
+          inputTokens: result.usage?.promptTokens ?? 0,
+          outputTokens: result.usage?.completionTokens ?? 0,
         };
       },
     };
   }
 
   if (opts.provider === 'openai') {
+    const adapter = new OpenAIAdapter({
+      apiKey: process.env.OPENAI_API_KEY || '',
+      defaultModel: opts.model,
+      ...(process.env.OPENAI_BASE_URL && { baseURL: process.env.OPENAI_BASE_URL }),
+    });
     return {
       chat: async ({ system, prompt, maxTokens }) => {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) throw new Error('OPENAI_API_KEY not set');
-
-        const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-        const response = await fetch(`${baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: opts.model,
-            max_tokens: maxTokens || 4096,
-            temperature: 0.2,
-            messages: [
-              { role: 'system', content: system },
-              { role: 'user', content: prompt },
-            ],
-          }),
+        const result = await adapter.complete({
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt },
+          ],
+          maxTokens: maxTokens || 4096,
+          temperature: 0.2,
         });
-
-        if (!response.ok) {
-          const body = await response.text().catch(() => '');
-          throw new Error(`OpenAI API ${response.status}: ${body.slice(0, 200)}`);
-        }
-
-        const data = await response.json();
-        const usage = extractTokenUsage(data);
         return {
-          text: extractChatText(data),
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
+          text: result.content,
+          inputTokens: result.usage?.promptTokens ?? 0,
+          outputTokens: result.usage?.completionTokens ?? 0,
         };
       },
     };
   }
 
   // ollama (optional local fallback — requires OLLAMA_BASE_URL or OLLAMA_URL)
+  const ollamaUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
+  if (!ollamaUrl) {
+    throw new Error(
+      'Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. ' +
+      'Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
+    );
+  }
+  const adapter = new LocalLLMAdapter({
+    baseURL: ollamaUrl,
+    defaultModel: opts.model,
+    timeoutMs: 120_000,
+  });
   return {
     chat: async ({ system, prompt }) => {
-      const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
-      if (!baseUrl) throw new Error('Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env');
-      const response = await fetch(`${baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model: opts.model,
-          system,
-          prompt,
-          stream: false,
-          options: {
-            temperature: 0.2,
-          },
-        }),
+      const result = await adapter.complete({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 4096,
+        temperature: 0.2,
       });
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new Error(`Ollama API ${response.status}: ${body.slice(0, 200)}`);
-      }
-
-      const data = await response.json();
-      const usage = extractTokenUsage(data);
       return {
-        text: extractChatText(data),
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
+        text: result.content,
+        inputTokens: result.usage?.promptTokens ?? 0,
+        outputTokens: result.usage?.completionTokens ?? 0,
       };
     },
   };
@@ -1939,8 +1872,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     }
   }
 
-  // LLM provider (provider-aware)
-  const llm = createDaemonLLMProvider(opts);
+  // LLM provider (provider-aware) — async since B1d migration to @holoscript/llm-provider
+  const llm = await createDaemonLLMProvider(opts);
 
   // Daemon configuration — read strategy from composition blackboard (source of truth)
   const defaultFocusRotation = [
@@ -2123,7 +2056,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         model: cycleModel,
         toolProfile: cycleToolProfile,
       };
-      const cycleLlm = createDaemonLLMProvider(cycleOpts);
+      const cycleLlm = await createDaemonLLMProvider(cycleOpts);
       config.provider = cycleProvider;
       config.model = cycleModel;
       config.toolProfile = cycleToolProfile;

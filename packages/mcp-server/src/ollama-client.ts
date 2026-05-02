@@ -9,9 +9,22 @@
  *
  * Override with LLM_PROVIDER env var. Auto-detect runs if not set.
  *
+ * Migrated (B1c) from inline fetch() calls to @holoscript/llm-provider
+ * adapters which inherit withRetry from BaseLLMAdapter — exponential
+ * backoff + Retry-After honoring on 429/5xx.
+ *
  * Used by brittney-lite.ts, generators.ts, and self-improve-tools.ts
  * with graceful fallback to rule-based logic when unavailable.
  */
+
+import {
+  AnthropicAdapter,
+  OpenAIAdapter,
+  OpenRouterAdapter,
+  LocalLLMAdapter,
+  type ILLMProvider,
+  type LLMCompletionRequest,
+} from '@holoscript/llm-provider';
 
 type LLMProviderName = 'hybrid-gemma' | 'openrouter' | 'anthropic' | 'openai' | 'ollama';
 
@@ -66,94 +79,135 @@ export const HOLOSCRIPT_SYSTEM_PROMPT = `You are Brittney, an expert HoloScript 
 9. For .holo files, always include composition wrapper with environment block.`;
 
 // =============================================================================
-// PROVIDER IMPLEMENTATIONS
+// ADAPTER INSTANCES (lazy-initialized, reuse across calls)
+// =============================================================================
+
+let _anthropicAdapter: AnthropicAdapter | null = null;
+let _openaiAdapter: OpenAIAdapter | null = null;
+let _openrouterAdapter: OpenRouterAdapter | null = null;
+let _ollamaAdapter: LocalLLMAdapter | null = null;
+
+function getAnthropicAdapter(): AnthropicAdapter | null {
+  if (!ANTHROPIC_API_KEY) return null;
+  if (!_anthropicAdapter) {
+    _anthropicAdapter = new AnthropicAdapter({
+      apiKey: ANTHROPIC_API_KEY,
+      defaultModel: ANTHROPIC_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _anthropicAdapter;
+}
+
+function getOpenAIAdapter(): OpenAIAdapter | null {
+  if (!OPENAI_API_KEY) return null;
+  if (!_openaiAdapter) {
+    _openaiAdapter = new OpenAIAdapter({
+      apiKey: OPENAI_API_KEY,
+      defaultModel: OPENAI_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _openaiAdapter;
+}
+
+function getOpenRouterAdapter(): OpenRouterAdapter | null {
+  if (!OPENROUTER_API_KEY) return null;
+  if (!_openrouterAdapter) {
+    _openrouterAdapter = new OpenRouterAdapter({
+      apiKey: OPENROUTER_API_KEY,
+      defaultModel: OPENROUTER_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _openrouterAdapter;
+}
+
+function getOllamaAdapter(): LocalLLMAdapter | null {
+  if (!OLLAMA_URL) return null;
+  if (!_ollamaAdapter) {
+    _ollamaAdapter = new LocalLLMAdapter({
+      baseURL: OLLAMA_URL,
+      defaultModel: OLLAMA_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _ollamaAdapter;
+}
+
+// =============================================================================
+// PROVIDER IMPLEMENTATIONS (delegating to @holoscript/llm-provider adapters
+// with withRetry from BaseLLMAdapter — exponential backoff + Retry-After)
 // =============================================================================
 
 async function queryOpenRouterProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
-  if (!OPENROUTER_API_KEY) return null;
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://mcp.holoscript.net',
-      'X-Title': 'HoloScript MCP',
-    },
-    body: JSON.stringify({
-      model: modelOverride || OPENROUTER_MODEL,
+  const adapter = getOpenRouterAdapter();
+  if (!adapter) return null;
+  try {
+    const result = await adapter.complete({
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: prompt },
       ],
-      max_tokens: 4096,
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-  return data.choices?.[0]?.message?.content || null;
+      maxTokens: 4096,
+      ...(modelOverride && { model: modelOverride }),
+    });
+    return result.content || null;
+  } catch {
+    return null;
+  }
 }
 
 async function queryAnthropicProvider(prompt: string, system: string): Promise<string | null> {
-  if (!ANTHROPIC_API_KEY) return null;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: 4096,
-      system,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { content: Array<{ text: string }> };
-  return data.content?.[0]?.text || null;
-}
-
-async function queryOpenAIProvider(prompt: string, system: string): Promise<string | null> {
-  if (!OPENAI_API_KEY) return null;
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
+  const adapter = getAnthropicAdapter();
+  if (!adapter) return null;
+  try {
+    const result = await adapter.complete({
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: prompt },
       ],
-      max_tokens: 4096,
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-  return data.choices?.[0]?.message?.content || null;
+      maxTokens: 4096,
+    });
+    return result.content || null;
+  } catch {
+    return null;
+  }
+}
+
+async function queryOpenAIProvider(prompt: string, system: string): Promise<string | null> {
+  const adapter = getOpenAIAdapter();
+  if (!adapter) return null;
+  try {
+    const result = await adapter.complete({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt },
+      ],
+      maxTokens: 4096,
+    });
+    return result.content || null;
+  } catch {
+    return null;
+  }
 }
 
 async function queryOllamaProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({
-      model: modelOverride || OLLAMA_MODEL,
-      prompt,
-      system,
-      stream: false,
-    }),
-    signal: AbortSignal.timeout(LLM_TIMEOUT),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { response: string };
-  return data.response || null;
+  const adapter = getOllamaAdapter();
+  if (!adapter) return null;
+  try {
+    const result = await adapter.complete({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt },
+      ],
+      maxTokens: 4096,
+      ...(modelOverride && { model: modelOverride }),
+    });
+    return result.content || null;
+  } catch {
+    return null;
+  }
 }
 
 // =============================================================================
@@ -218,16 +272,13 @@ export async function isOllamaAvailable(): Promise<boolean> {
       case 'openai':
         return !!OPENAI_API_KEY;
       case 'ollama':
-      default: {
-        const res = await fetch(`${OLLAMA_URL}/api/tags`, {
-          signal: AbortSignal.timeout(3000),
-        });
-        if (!res.ok) return false;
-        const data = (await res.json()) as { models?: Array<{ name: string }> };
-        return (
-          data.models?.some((m) => m.name.startsWith(OLLAMA_MODEL.replace(':latest', ''))) ?? false
-        );
-      }
+      default:
+        // Use the adapter's healthCheck for Ollama (pings /health or /v1/models)
+        if (!OLLAMA_URL) return false;
+        const adapter = getOllamaAdapter();
+        if (!adapter) return false;
+        const health = await adapter.healthCheck();
+        return health.ok;
     }
   } catch {
     return false;
