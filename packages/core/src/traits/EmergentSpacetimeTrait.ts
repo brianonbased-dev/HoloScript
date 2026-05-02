@@ -567,6 +567,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     // 3. Compute Ricci curvature and check SimulationContract
     const ricciErrorBound = config.ricci_error_bound ?? 1e-5;
     let maxRicciError = 0;
+    let frameViolations = 0; // Reset per-frame
 
     // Sample subset of voxels for performance
     const sampleSize = Math.min(100, network.voxels.size);
@@ -590,14 +591,13 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
         maxRicciError = error;
       }
 
-      // Log violation (red voxel in VR heatmap)
-      if (error > ricciErrorBound && config.ricci_heatmap) {
-        state.violationCount++;
-        // In full implementation: trigger spatial heatmap overlay
-        console.debug(`[EmergentSpacetime] Ricci violation at ${voxelId}: ${error.toExponential(2)}`);
+      // Count violation (don't log every frame - too noisy)
+      if (error > ricciErrorBound) {
+        frameViolations++;
       }
     }
 
+    state.violationCount = frameViolations; // Update with current frame count
     state.lastRicciError = maxRicciError;
 
     // 4. Update Hubble correction from provenance loop density
