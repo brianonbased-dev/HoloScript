@@ -476,11 +476,13 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
         // Connect nearest neighbors (within threshold)
         if (dist < 0.3) {
           const mi = mutualInformation(a.state, b.state);
+          // Initialize with provenance >1 to activate Hubble correction (loop density)
+          const baseProvenance = 1.2 + Math.random() * 0.3; // 1.2-1.5 range
           edges.push({
             source: a.id,
             target: b.id,
             mutualInfo: mi,
-            provenance: 1.0,
+            provenance: baseProvenance,
             weight: mi,
           });
 
