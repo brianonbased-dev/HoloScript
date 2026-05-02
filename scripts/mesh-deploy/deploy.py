@@ -71,11 +71,8 @@ def _direct_ssh(inst: dict) -> tuple[str, int] | None:
 # (different port, smaller VRAM share). The lean-theorist-brain → Goedel-V2-7B
 # is the canonical use case (72B-AWQ general + 7B Lean-specialist on H200).
 #
-# THIS MODULE: schema validation + plan propagation + script-text generator.
-# Execution path (SSH the sidecar startup, run health checks) is intentionally
-# NOT wired in this commit — that requires live-instance validation and
-# F.031 says we don't ship blind. Next agent flips the wiring once a fresh
-# H200 is provisioned per task_1777238593020_7bvu step 2.
+# THIS MODULE: schema validation + plan propagation + script-text generator +
+# execution (SCP sidecar startup script, run via SSH, health-check).
 # ---------------------------------------------------------------------------
 
 _SIDECAR_REQUIRED_FIELDS = ("name", "model", "port", "consumed_by_env_var")
@@ -559,6 +556,23 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
         # no LOCAL_LLM_BASE_URL exported and never reached vLLM on 8081.
         env_lines.append("HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://localhost:8081/v1")
 
+    # AMBER §7: wire sidecar env vars + JSON config into agent.env so the
+    # runtime dispatches sidecar-routed calls to the co-located vLLM process.
+    sidecars = plan.get("sidecars") or []
+    if sidecars:
+        env_lines.extend(_build_sidecar_env_lines(sidecars))
+        # Export sidecar metadata as JSON for the runtime dispatcher.
+        # consumed_by_env_var is excluded — it's already in env_lines above
+        # as a separate KEY=VALUE line (e.g. LEAN_SPECIALIST_URL=http://...).
+        sidecar_meta = []
+        for sc in sidecars:
+            sidecar_meta.append({
+                "name": sc["name"],
+                "model": sc["model"],
+                "port": sc["port"],
+            })
+        env_lines.append(f"HOLOSCRIPT_AGENT_SIDECARS={json.dumps(sidecar_meta)}")
+
     env_text = "\n".join(env_lines) + "\n"
     runner_text = (
         "#!/bin/bash\n"
@@ -579,15 +593,32 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     env_file.write_text(env_text, encoding="utf-8", newline="\n")
     runner_file.write_text(runner_text, encoding="utf-8", newline="\n")
 
-    # ----- Step 1: scp four files in one command (bootstrap, env, runner, brain) -----
-    log(f"scp bootstrap-agent.sh + agent.env + runner.sh + {brain_basename} ...")
-    scp_cmd = scp_base + [
+    # AMBER §7.3: stage sidecar startup + health-check scripts when present.
+    sidecar_startup_file: Path | None = None
+    sidecar_health_file: Path | None = None
+    if sidecars:
+        startup_script = _build_sidecar_startup_script(sidecars)
+        health_script = _build_sidecar_health_check(sidecars)
+        sidecar_startup_file = staging / "sidecar-startup.sh"
+        sidecar_health_file = staging / "sidecar-health-check.sh"
+        sidecar_startup_file.write_text(startup_script, encoding="utf-8", newline="\n")
+        sidecar_health_file.write_text(health_script, encoding="utf-8", newline="\n")
+        log(f"staged sidecar scripts: {len(sidecars)} sidecar(s)")
+
+    # ----- Step 1: scp files in one command (bootstrap, env, runner, brain + sidecar scripts) -----
+    scp_files = [
         str(bootstrap_script),
         str(env_file),
         str(runner_file),
         str(brain_local),
-        f"{remote}:/root/",
     ]
+    if sidecar_startup_file:
+        scp_files.append(str(sidecar_startup_file))
+    if sidecar_health_file:
+        scp_files.append(str(sidecar_health_file))
+    file_label = f"{len(scp_files)} files" if not sidecars else f"{len(scp_files)} files ({len(sidecars)} sidecar(s))"
+    log(f"scp {file_label}: bootstrap + env + runner + {brain_basename}" + (" + sidecar scripts" if sidecars else "") + " ...")
+    scp_cmd = scp_base + scp_files + [f"{remote}:/root/"]
     cp = subprocess.run(scp_cmd, capture_output=True, text=True, timeout=connect_timeout * 3)
     log(f"scp exit={cp.returncode} stderr={cp.stderr[:300]}")
     if cp.returncode != 0:
@@ -607,6 +638,44 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
         return {"handle": plan["handle"], "ok": False, "step": "ssh-bootstrap", "log": str(log_file)}
 
     log("DISPATCH OK - bootstrap running on instance via nohup")
+
+    # AMBER §7.3-7.4: start sidecar vLLM processes on the instance, then
+    # health-check. Only runs when the agent config has sidecars. The
+    # startup script is idempotent (screen -ls check), so re-deploys are
+    # safe. Health-check is advisory (degraded mode — not fatal) per §7.4.
+    if sidecars:
+        log(f"sidecar: starting {len(sidecars)} sidecar(s) on instance")
+        sidecar_ssh = ssh_base + [remote, "bash /root/sidecar-startup.sh"]
+        try:
+            cp_sc = subprocess.run(sidecar_ssh, capture_output=True, text=True, timeout=connect_timeout * 3)
+        except subprocess.TimeoutExpired as exc:
+            log(f"sidecar: ssh TIMEOUT starting sidecars: {exc}")
+            # Non-fatal: agent will fall back to main vLLM for sidecar-routed tasks.
+            cp_sc = None
+        if cp_sc is not None:
+            log(f"sidecar: exit={cp_sc.returncode} stdout={cp_sc.stdout[:300]} stderr={cp_sc.stderr[:300]}")
+            if cp_sc.returncode != 0:
+                log(f"sidecar: WARN — sidecar startup returned non-zero (degraded mode, not fatal)")
+
+        # Brief pause for vLLM to bind ports before health-check.
+        time.sleep(5)
+
+        log("sidecar: running health-check")
+        health_ssh = ssh_base + [remote, "bash /root/sidecar-health-check.sh"]
+        try:
+            cp_hc = subprocess.run(health_ssh, capture_output=True, text=True, timeout=connect_timeout * 2)
+        except subprocess.TimeoutExpired as exc:
+            log(f"sidecar: health-check TIMEOUT: {exc}")
+            cp_hc = None
+        if cp_hc is not None:
+            hc_out = cp_hc.stdout.strip()
+            log(f"sidecar: health-check result: {hc_out[:500]}")
+            # Health-check exits 0 always (degraded mode per §7.4).
+            # Log results but don't fail the deploy on sidecar degradation.
+            if "all-PASS" in hc_out:
+                log("sidecar: all sidecars healthy")
+            else:
+                log("sidecar: one or more sidecars degraded — agent will fall back to main vLLM")
 
     # W.111: bind handle to instance via Vast label so subsequent deploy.py
     # runs see the pairing without SSH probing. Best-effort — failure here
@@ -914,10 +983,10 @@ def main() -> int:
         idem = 'skip-bootstrap' if pl.get('already_deployed') else 'rebuild'
         sc_count = len(pl.get('sidecars') or [])
         total_sidecars += sc_count
-        sc_label = f"{sc_count} (NOT YET WIRED)" if sc_count > 0 else "0"
+        sc_label = str(sc_count)
         print(f"{pl['index']:>3} {pl['instance_id']:>10} {pl['gpu_name']:<14} {pl['handle']:<28} {pl['provider']:<10} {pl.get('match_phase', '?'):<14} {idem:<10} {sc_label:<10} {pl['ok']!s:<5}")
     if total_sidecars > 0:
-        print(f"  NOTE: {total_sidecars} sidecar(s) declared but execution path is NOT YET WIRED in deploy_one (AMBER §7.3-7.5 deferred to next agent + live fleet). Use --validate-only to test the schema in isolation.")
+        print(f"  SIDE: {total_sidecars} sidecar(s) will be started + health-checked alongside bootstrap (AMBER §7.3-7.5)")
 
     blocked = [pl for pl in plans if not pl["ok"]]
     if blocked:

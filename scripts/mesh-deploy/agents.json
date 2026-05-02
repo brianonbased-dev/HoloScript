@@ -28,7 +28,7 @@
       "enabled": true,
       "tickIntervalMs": 30000,
       "enableCommitHook": true,
-      "_sidecar_note": "AMBER §7.2: Goedel-V2-7B Lean-specialist sidecar. Schema validates today (run `python scripts/mesh-deploy/deploy.py --config scripts/mesh-deploy/agents.json --validate-only`). EXECUTION PATH (screen -dmS startup, health-check, runtime dispatch heuristic) is NOT YET WIRED in deploy_one — gated on live-fleet validation per F.031. Next agent flips wiring after task_1777238593020_7bvu step 1 lands a fresh H200.",
+      "_sidecar_note": "AMBER §7.2: Goedel-V2-7B Lean-specialist sidecar. Execution path (screen -dmS startup, health-check, env dispatch) wired in deploy.py deploy_one. Schema validates via --validate-only.",
       "sidecars": [
         {
           "name": "lean-prover",
