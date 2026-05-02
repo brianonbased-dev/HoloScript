@@ -12,6 +12,7 @@ import { AttestationRegistry } from '../attestation-registry';
 import {
   extractAndVerifySigning,
   getAttestationRegistry,
+  GRACE_PERIOD_MS,
   isStrictMode,
   resetAttestationRegistry,
   setAttestationRegistry,
@@ -94,7 +95,96 @@ describe('isStrictMode', () => {
   });
 });
 
-// ── extractAndVerifySigning — unsigned bodies ─────────────────────
+// ── isStrictMode — 14-day timed cutover (Phase 3) ─────────────────
+
+describe('isStrictMode — 14-day timed cutover', () => {
+  it('returns false when deploy date is set but grace period has NOT elapsed', () => {
+    const deployDate = '2026-05-01';
+    // 7 days after deploy — still within 14-day grace
+    const nowMs = Date.parse('2026-05-08T00:00:00.000Z');
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, nowMs)).toBe(false);
+  });
+
+  it('returns true when deploy date is set and grace period HAS elapsed', () => {
+    const deployDate = '2026-05-01';
+    // 15 days after deploy — past 14-day grace
+    const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, nowMs)).toBe(true);
+  });
+
+  it('returns true at exactly the grace-period boundary (deploy + 14 days)', () => {
+    const deployMs = Date.parse('2026-05-01T00:00:00.000Z');
+    const boundaryMs = deployMs + GRACE_PERIOD_MS;
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' }, boundaryMs)).toBe(true);
+  });
+
+  it('returns false one millisecond before the grace-period boundary', () => {
+    const deployMs = Date.parse('2026-05-01T00:00:00.000Z');
+    const justBefore = deployMs + GRACE_PERIOD_MS - 1;
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' }, justBefore)).toBe(false);
+  });
+
+  it('MIGRATION_ACK=1 takes precedence over grace period (early opt-in)', () => {
+    const deployDate = '2026-05-01';
+    // Still within grace period, but MIGRATION_ACK=1 forces strict mode
+    const nowMs = Date.parse('2026-05-05T00:00:00.000Z');
+    expect(isStrictMode({
+      HOLOMESH_SIGNING_DEPLOY_DATE: deployDate,
+      HOLOMESH_SIGNING_MIGRATION_ACK: '1',
+    }, nowMs)).toBe(true);
+  });
+
+  it('returns false when deploy date env var is missing (legacy behavior)', () => {
+    // No deploy date → only MIGRATION_ACK controls strict mode
+    expect(isStrictMode({}, Date.now())).toBe(false);
+  });
+
+  it('returns false when deploy date is unparseable (malformed string)', () => {
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: 'not-a-date' }, Date.now())).toBe(false);
+  });
+
+  it('accepts ISO 8601 date strings with time component', () => {
+    const deployDate = '2026-05-01T12:30:00Z';
+    const deployMs = Date.parse(deployDate);
+    // Exactly 14 days after deploy
+    const boundaryMs = deployMs + GRACE_PERIOD_MS;
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs)).toBe(true);
+    // 1 ms before boundary
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs - 1)).toBe(false);
+  });
+
+  it('GRACE_PERIOD_MS equals 14 days in milliseconds', () => {
+    expect(GRACE_PERIOD_MS).toBe(14 * 24 * 60 * 60 * 1000);
+  });
+});
+
+// ── extractAndVerifySigning — unsigned bodies with timed cutover ───
+
+describe('extractAndVerifySigning — unsigned bodies respect timed cutover', () => {
+  it('unsigned body accepted when within grace period (deploy date set)', async () => {
+    const legacy = { team: 'core', op: 'claim' };
+    // 5 days after deploy — within 14-day grace
+    const nowMs = Date.parse('2026-05-06T00:00:00.000Z');
+    const r = await extractAndVerifySigning(legacy, {
+      env: { HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' },
+      nowMs,
+    });
+    expect(r.ctx.signingValid).toBe(true);
+    expect(r.ctx.signingReason).toBe('unsigned-grace');
+  });
+
+  it('unsigned body rejected when past grace period (deploy date set)', async () => {
+    const legacy = { team: 'core', op: 'claim' };
+    // 15 days after deploy — past 14-day grace
+    const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
+    const r = await extractAndVerifySigning(legacy, {
+      env: { HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' },
+      nowMs,
+    });
+    expect(r.ctx.signingValid).toBe(false);
+    expect(r.ctx.signingReason).toBe('unsigned-rejected');
+  });
+});
 
 describe('extractAndVerifySigning — unsigned (legacy) bodies', () => {
   it('passes through legacy bodies as effectiveBody in dual-mode', async () => {

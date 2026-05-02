@@ -5,8 +5,9 @@
  * attestation registry (./attestation-registry.ts) into a single helper that
  * route handlers can call once-per-mutation to:
  *   1. Detect whether the request body is a signed envelope or a legacy
- *      unsigned body (during the 14-day Phase 1 grace period both are
- *      accepted; HOLOMESH_SIGNING_MIGRATION_ACK=1 flips dual-mode → strict).
+ *      unsigned body (during the 14-day Phase 3 grace period both are
+ *      accepted; HOLOMESH_SIGNING_MIGRATION_ACK=1 or elapsed grace period
+ *      flips dual-mode → strict).
  *   2. Verify the cryptographic signature (when present) and the registry
  *      check (when the registry is populated).
  *   3. Return the effective body (unwrapped from the envelope when present)
@@ -89,16 +90,45 @@ export interface ExtractAndVerifyOptions {
 }
 
 /**
- * True when the server should reject unsigned mutating requests outright.
- * Default during Phase 1 grace period: false (dual-mode accepts both).
- *
- * Per ADR §Q4: HOLOMESH_SIGNING_MIGRATION_ACK=1 opts a specific machine into
- * the strict-mode rejection path before the global 14-day cutover, so
- * operators can validate the rejection path in production without rushing
- * everyone onto signed-only.
+ * Duration of the Phase 3 grace period in milliseconds. Unsigned requests
+ * are accepted for this long after `HOLOMESH_SIGNING_DEPLOY_DATE`, then
+ * automatically rejected. Per ADR §Q4 the window is 14 days.
  */
-export function isStrictMode(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.HOLOMESH_SIGNING_MIGRATION_ACK === '1';
+export const GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * True when the server should reject unsigned mutating requests outright.
+ * Two independent triggers, either sufficient:
+ *
+ *   1. **Early opt-in**: `HOLOMESH_SIGNING_MIGRATION_ACK=1` opts a specific
+ *      machine into the strict-mode rejection path before the global 14-day
+ *      cutover — operators can validate the rejection path in production
+ *      without rushing everyone onto signed-only.
+ *
+ *   2. **Timed cutover**: when `HOLOMESH_SIGNING_DEPLOY_DATE` is set (ISO 8601
+ *      date string, e.g. `2026-05-01` or `2026-05-01T00:00:00Z`) and the
+ *      current time is past `deployDate + 14 days`, unsigned requests are
+ *      automatically rejected. This implements the Phase 3 14-day migration
+ *      window from ADR §Q4.
+ *
+ * During the grace period (deploy date set but < 14 days elapsed and no
+ * MIGRATION_ACK), the server runs in dual-mode: both signed and unsigned
+ * requests are accepted, with unsigned ones logged as `unsigned-grace`.
+ */
+export function isStrictMode(env: NodeJS.ProcessEnv = process.env, nowMs: number = Date.now()): boolean {
+  // Early opt-in: per-machine strict mode for testing the rejection path.
+  if (env.HOLOMESH_SIGNING_MIGRATION_ACK === '1') return true;
+
+  // Timed cutover: automatic strict mode after the 14-day grace period.
+  const deployDateStr = env.HOLOMESH_SIGNING_DEPLOY_DATE;
+  if (deployDateStr) {
+    const deployMs = Date.parse(deployDateStr);
+    if (!Number.isNaN(deployMs) && nowMs >= deployMs + GRACE_PERIOD_MS) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -120,7 +150,7 @@ export async function extractAndVerifySigning(
 ): Promise<ExtractAndVerifyResult> {
   const env: SignedEnvelope | null = extractEnvelope(reqBody);
   const registry = options.registry ?? getAttestationRegistry();
-  const strict = options.strictMode ?? isStrictMode(options.env);
+  const strict = options.strictMode ?? isStrictMode(options.env, options.nowMs);
 
   if (!env) {
     return {
