@@ -454,12 +454,21 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       });
     }
 
-    // Initialize edges (nearest neighbor connectivity)
+    // Initialize edges (nearest neighbor connectivity with early exit)
+    // Max 6 edges per voxel to prevent O(n²) explosion
     const voxelArray = Array.from(voxels.values());
+    const maxEdgesPerVoxel = 6;
+    const edgeCount = new Map<string, number>();
+
     for (let i = 0; i < voxelArray.length; i++) {
       for (let j = i + 1; j < voxelArray.length; j++) {
         const a = voxelArray[i];
         const b = voxelArray[j];
+
+        // Skip if either voxel already has max edges
+        if ((edgeCount.get(a.id) || 0) >= maxEdgesPerVoxel &&
+            (edgeCount.get(b.id) || 0) >= maxEdgesPerVoxel) continue;
+
         const dist = Math.sqrt(
           (a.position[0] - b.position[0]) ** 2 +
           (a.position[1] - b.position[1]) ** 2 +
@@ -476,6 +485,9 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
             provenance: 1.0,
             weight: mi,
           });
+
+          edgeCount.set(a.id, (edgeCount.get(a.id) || 0) + 1);
+          edgeCount.set(b.id, (edgeCount.get(b.id) || 0) + 1);
         }
       }
     }
