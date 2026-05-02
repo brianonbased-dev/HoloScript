@@ -380,11 +380,11 @@ function SceneContent({
     traitNodeRef.current = node;
 
     const config: EmergentSpacetimeConfig = {
-      initial_voxels: 1000,
-      max_voxels: 1000,
+      initial_voxels: 2000,
+      max_voxels: 2000,
       seed: 42,
       force_layout_guard: true,
-      ricci_error_bound: 1e-5,
+      ricci_error_bound: 1e-4,
       ricci_heatmap: true,
       loop_threshold: 0.03, // Lower threshold to activate Hubble earlier
     };
