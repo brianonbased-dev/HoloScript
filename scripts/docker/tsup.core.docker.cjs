@@ -32,7 +32,9 @@ module.exports = {
     __GIT_COMMIT_SHA__: JSON.stringify(gitSha),
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
-  format: ['cjs'],
+  // HoloMap is loaded through the ESM "import" condition in production, so
+  // Docker images need the ESM subpath files that package.json exports.
+  format: ['cjs', 'esm'],
   dts: false,
   clean: true,
   sourcemap: false,
