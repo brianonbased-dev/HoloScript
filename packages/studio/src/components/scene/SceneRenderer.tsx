@@ -32,7 +32,8 @@ import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/Conte
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useLOD } from '@/hooks/useLOD';
 import { useStudioBus } from '@/hooks/useStudioBus';
-import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
+import { ProgressiveLoader } from '@holoscript/r3f-renderer';
+import { PerformanceRegressionBridge } from '@/hooks/usePerformanceRegressionBridge';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -247,16 +248,35 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         </Suspense>
 
         {/*
-          PerformanceBridge disabled in development because pnpm resolves
-          @react-three/fiber to different store paths for studio vs
-          r3f-renderer (peer dep with multiple @types/react peers installed),
-          so Canvas context from studio's fiber instance isn't visible to
-          useFrame inside r3f-renderer's usePerformanceRegression.
-          Re-enable once fiber is deduped (pnpm overrides or a single peer).
+          PerformanceRegressionBridge: monitors frame time via R3F's useFrame
+          and auto-regresses all mesh entities to draft mode when VR frame
+          budget is exceeded (>9ms for 5 consecutive frames). Promotes back
+          when FPS stabilizes (sustained <7ms for ~30 frames).
+
+          Disabled in development because pnpm resolves @react-three/fiber to
+          different store paths for studio vs r3f-renderer (peer dep with
+          multiple @types/react peers installed), so Canvas context from
+          studio's fiber instance isn't visible to useFrame inside
+          r3f-renderer's usePerformanceRegression. Re-enable once fiber is
+          deduped (pnpm overrides or a single peer).
+
+          @see P.084 — VR Performance Regression Pattern
+          @see W.080 — Draft primitives are cheapest rendering AND collision
+          @see task_1776640937112_0ozn — [hololand] VR performance regression
         */}
         {process.env.NODE_ENV === 'production' && (
           <PerformanceBridgeBoundary>
-            <PerformanceBridge />
+            <PerformanceRegressionBridge
+              // VR 90Hz regression thresholds per P.084:
+              // Regress at 9ms frame time for 5 consecutive frames (~55ms)
+              // Promote back when sustained <11.5ms (≈85fps) for 170 frames (~2s at 85fps)
+              thresholdMs={9.0}
+              consecutiveFrames={5}
+              recoveryFrames={170}
+              recoveryThresholdMs={11.5}
+              syncViewMode={true}
+              debounceMs={500}
+            />
           </PerformanceBridgeBoundary>
         )}
 
@@ -480,7 +500,13 @@ function CameraTrackingBridge() {
 
 /**
  * Bridge component that monitors performance via R3F's useFrame (must be inside Canvas)
- * and emits metrics to the Studio bus.
+ * and emits LOD metrics to the Studio bus. Runs alongside PerformanceRegressionBridge
+ * to provide level-of-detail distribution data that the regression bridge can't
+ * compute outside Canvas context.
+ *
+ * @deprecated — LOD metrics are now emitted by PerformanceRegressionBridge.
+ *   This component is kept as a fallback for LOD-specific distribution data
+ *   when the LOD manager has registered objects.
  */
 function PerformanceBridge() {
   const perfResult = usePerformanceRegression({
