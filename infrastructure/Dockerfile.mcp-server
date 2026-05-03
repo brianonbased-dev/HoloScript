@@ -38,6 +38,9 @@ COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
 COPY packages/holomap/ packages/holomap/
+COPY packages/uaal/ packages/uaal/
+COPY packages/crdt-spatial/ packages/crdt-spatial/
+COPY packages/snn-webgpu/ packages/snn-webgpu/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/cli/ packages/cli/
@@ -52,6 +55,9 @@ COPY packages/mesh/ packages/mesh/
 
 # Build in dependency order
 # Skip DTS for shared runtime stack — server image only needs JS runtime.
+RUN cd packages/uaal && npx tsup --no-dts
+RUN cd packages/crdt-spatial && npx tsup --no-dts
+RUN cd packages/snn-webgpu && npx tsup --no-dts
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/holomap && npx tsup --no-dts
 RUN cd packages/config && npx tsup --no-dts
@@ -102,6 +108,9 @@ COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/di
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/holomap/dist packages/holomap/dist
 COPY packages/holomap/profiles/ packages/holomap/profiles/
+COPY --from=builder /app/packages/uaal/dist packages/uaal/dist
+COPY --from=builder /app/packages/crdt-spatial/dist packages/crdt-spatial/dist
+COPY --from=builder /app/packages/snn-webgpu/dist packages/snn-webgpu/dist
 COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/config/dist packages/config/dist
@@ -121,6 +130,9 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/framework /app/node_modules/@holoscript/framework && \
     ln -sfn /app/packages/engine /app/node_modules/@holoscript/engine && \
     ln -sfn /app/packages/holomap /app/node_modules/@holoscript/holomap && \
+    ln -sfn /app/packages/uaal /app/node_modules/@holoscript/uaal && \
+    ln -sfn /app/packages/crdt-spatial /app/node_modules/@holoscript/crdt-spatial && \
+    ln -sfn /app/packages/snn-webgpu /app/node_modules/@holoscript/snn-webgpu && \
     ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \
     ln -sfn /app/packages/mesh /app/node_modules/@holoscript/mesh && \
     ln -sfn /app/packages/absorb-service /app/node_modules/@holoscript/absorb-service && \
@@ -134,6 +146,9 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/core/dist/reconstruction/index.js && \
     test -f /app/packages/holomap/dist/index.cjs && \
+    test -f /app/packages/uaal/dist/index.js && \
+    test -f /app/packages/crdt-spatial/dist/index.js && \
+    test -f /app/packages/snn-webgpu/dist/index.js && \
     test -f /app/packages/core-types/dist/ans.cjs && \
     test -f /app/packages/engine/dist/choreography/index.cjs && \
     test -f /app/packages/framework/dist/learning/index.cjs
