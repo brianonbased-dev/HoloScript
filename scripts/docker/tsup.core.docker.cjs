@@ -26,6 +26,9 @@ module.exports = {
     // Required by mcp-server/src/holo-reconstruct-sessions.ts at runtime
     // (dynamic require through '@holoscript/core/reconstruction').
     'reconstruction/index': 'src/reconstruction/index.ts',
+    // Required by engine's CAEL SimulationContract at runtime
+    // through '@holoscript/core/paper-0c-spike'.
+    'paper-0c-spike/index': 'src/paper-0c-spike/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
