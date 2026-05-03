@@ -13,6 +13,16 @@ async function getSimulation() {
 const traceRegistry = new Map<string, string>();
 
 type TraceEvent = 'init' | 'step' | 'interaction' | 'solve' | 'final';
+type NumberTriple = [number, number, number];
+
+const LEGACY_THERMAL_FACE_MAP: Record<string, string> = {
+  x0: 'x-',
+  x1: 'x+',
+  y0: 'y-',
+  y1: 'y+',
+  z0: 'z-',
+  z1: 'z+',
+};
 
 interface TraceEntry {
   version: 'cael.v1';
@@ -62,6 +72,92 @@ function parseTrace(jsonl: string): TraceEntry[] {
     .map((l) => l.trim())
     .filter(Boolean)
     .map((l) => JSON.parse(l) as TraceEntry);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function asString(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.length > 0 ? value : fallback;
+}
+
+function asTriple(value: unknown, fallback: NumberTriple): NumberTriple {
+  if (!Array.isArray(value) || value.length < 3) return fallback;
+  const tuple = value.slice(0, 3).map((v, i) => asNumber(v, fallback[i])) as NumberTriple;
+  return tuple;
+}
+
+function normalizeThermalSource(value: unknown, index: number): Record<string, unknown> | null {
+  const source = asRecord(value);
+  if (!source) return null;
+  const position = asTriple(source.position, [0, 0, 0]);
+  return {
+    ...source,
+    id: asString(source.id, `source-${index}`),
+    type: asString(source.type, 'point'),
+    position,
+    heat_output: asNumber(source.heat_output ?? source.power, 0),
+    active: source.active !== false,
+  };
+}
+
+function normalizeThermalBoundary(value: unknown): Record<string, unknown> | null {
+  const bc = asRecord(value);
+  if (!bc) return null;
+  const faces = Array.isArray(bc.faces)
+    ? bc.faces
+    : [LEGACY_THERMAL_FACE_MAP[String(bc.face)] ?? bc.face].filter((face): face is string => typeof face === 'string');
+  return {
+    ...bc,
+    faces,
+  };
+}
+
+function normalizeThermalConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const gridResolution = asTriple(config.gridResolution ?? config.gridSize, [3, 3, 3]).map((n) =>
+    Math.max(2, Math.trunc(n))
+  ) as NumberTriple;
+  const spacing = asNumber(config.spacing, 1);
+  const fallbackDomainSize = gridResolution.map((n) => Math.max(spacing, (n - 1) * spacing)) as NumberTriple;
+  const domainSize = asTriple(config.domainSize, fallbackDomainSize);
+  const defaultMaterial = asString(config.defaultMaterial, 'water');
+  const materialOverride = asRecord(config.material);
+  const materials = { ...(asRecord(config.materials) ?? {}) };
+
+  if (materialOverride) {
+    materials[defaultMaterial] = {
+      ...(asRecord(materials[defaultMaterial]) ?? {}),
+      ...materialOverride,
+    };
+  }
+
+  const rawSources = Array.isArray(config.sources) ? config.sources : [];
+  const sources = rawSources
+    .map((source, index) => normalizeThermalSource(source, index))
+    .filter((source): source is Record<string, unknown> => source !== null);
+
+  const rawBoundaryConditions = Array.isArray(config.boundaryConditions) ? config.boundaryConditions : [];
+  const boundaryConditions = rawBoundaryConditions
+    .map((bc) => normalizeThermalBoundary(bc))
+    .filter((bc): bc is Record<string, unknown> => bc !== null);
+
+  return {
+    ...config,
+    gridResolution,
+    domainSize,
+    timeStep: asNumber(config.timeStep, 0.01),
+    materials,
+    defaultMaterial,
+    boundaryConditions,
+    sources,
+    initialTemperature: asNumber(config.initialTemperature, 20),
+  };
 }
 
 function verifyHashChain(trace: TraceEntry[]): { valid: boolean; brokenAt?: number; reason?: string } {
@@ -199,27 +295,53 @@ export const simulationTools: Tool[] = [
           properties: {
             gridSize: {
               type: 'array',
+              description: 'Legacy alias for gridResolution: grid dimensions [nx, ny, nz].',
+              items: { type: 'number' },
+            },
+            gridResolution: {
+              type: 'array',
               description: 'Grid dimensions [nx, ny, nz].',
               items: { type: 'number' },
             },
             spacing: {
               type: 'number',
-              description: 'Grid spacing in meters.',
+              description: 'Legacy shortcut for domainSize: grid spacing in meters.',
+            },
+            domainSize: {
+              type: 'array',
+              description: 'Physical domain size [lx, ly, lz] in meters.',
+              items: { type: 'number' },
+            },
+            timeStep: {
+              type: 'number',
+              description: 'Solver time step in seconds.',
             },
             material: {
               type: 'object',
-              description: 'Material thermal properties.',
+              description: 'Legacy shortcut for materials[defaultMaterial].',
               properties: {
                 conductivity: { type: 'number', description: 'Thermal conductivity (W/m·K)' },
               },
             },
+            materials: {
+              type: 'object',
+              description: 'Material name to thermal property overrides.',
+            },
+            defaultMaterial: {
+              type: 'string',
+              description: 'Default material name, e.g. water, air, concrete.',
+            },
             sources: {
               type: 'array',
-              description: 'Heat sources: array of { position: [x,y,z], power: watts }.',
+              description: 'Heat sources: array of { id?, type?, position: [x,y,z], heat_output | power, radius?, active? }.',
             },
             boundaryConditions: {
               type: 'array',
-              description: 'BCs: array of { face: "x0"|"x1"|"y0"|"y1"|"z0"|"z1", type: "dirichlet"|"neumann", value: number }.',
+              description: 'BCs: engine shape { faces: ["x-"|"x+"|"y-"|"y+"|"z-"|"z+"], type, value } or legacy { face: "x0"|"x1"|"y0"|"y1"|"z0"|"z1", type, value }.',
+            },
+            initialTemperature: {
+              type: 'number',
+              description: 'Initial temperature for the domain.',
             },
           },
         },
@@ -257,6 +379,7 @@ export async function handleSimulationTool(name: string, args: Record<string, un
 
   const { config } = args as { config: Record<string, unknown> };
   if (!config) throw new Error('config is required for simulation tools');
+  const solverConfig = name === 'solve_thermal' ? normalizeThermalConfig(config) : config;
 
   try {
     let recorder: LocalTraceRecorder;
@@ -265,8 +388,8 @@ export async function handleSimulationTool(name: string, args: Record<string, un
     const Sim = await getSimulation();
 
     if (name === 'solve_structural') {
-      const solver = new Sim.StructuralSolverTET10((config as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
-      recorder = new LocalTraceRecorder(name, config);
+      const solver = new Sim.StructuralSolverTET10((solverConfig as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
+      recorder = new LocalTraceRecorder(name, solverConfig);
 
       await Promise.resolve(solver.solve());
       recorder.solve();
@@ -276,10 +399,10 @@ export async function handleSimulationTool(name: string, args: Record<string, un
         safetyFactor: solver.getSafetyFactor(),
       };
     } else {
-      const solver = new Sim.ThermalSolver((config as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
-      recorder = new LocalTraceRecorder(name, config);
+      const solver = new Sim.ThermalSolver((solverConfig as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
+      recorder = new LocalTraceRecorder(name, solverConfig);
 
-      const dt = typeof config.timeStep === 'number' ? config.timeStep : 0.01;
+      const dt = typeof solverConfig.timeStep === 'number' ? solverConfig.timeStep : 0.01;
       const steps = typeof (args as { steps?: unknown }).steps === 'number'
         ? ((args as { steps: number }).steps | 0)
         : 10;

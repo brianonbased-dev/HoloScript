@@ -1,4 +1,49 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@holoscript/engine', () => {
+  class ThermalSolver {
+    private steps = 0;
+
+    constructor(private readonly config: Record<string, unknown>) {
+      if (!Array.isArray(config.gridResolution)) throw new Error('gridResolution required');
+      if (!Array.isArray(config.domainSize)) throw new Error('domainSize required');
+      if (!config.materials || typeof config.defaultMaterial !== 'string') {
+        throw new Error('material config required');
+      }
+    }
+
+    step(): void {
+      this.steps += 1;
+    }
+
+    getTemperatureGrid(): Record<string, unknown> {
+      return {
+        gridResolution: this.config.gridResolution,
+        domainSize: this.config.domainSize,
+        steps: this.steps,
+      };
+    }
+
+    getTemperatureField(): Float32Array {
+      return new Float32Array([this.steps]);
+    }
+  }
+
+  class StructuralSolverTET10 {
+    solve(): void {}
+    getDisplacements(): number[] { return []; }
+    getVonMisesStress(): number[] { return []; }
+    getSafetyFactor(): number { return 1; }
+  }
+
+  return {
+    Simulation: {
+      ThermalSolver,
+      StructuralSolverTET10,
+    },
+  };
+});
+
 import { handleSimulationTool } from '../simulation-tools';
 import { simulationTools } from '../simulation-tools';
 
@@ -10,7 +55,7 @@ describe('simulation tools with CAEL metadata', () => {
     expect(polluted).toBe(false);
   });
 
-  it.skip('solve_thermal returns CAEL trace metadata and verify succeeds by traceId', async () => {
+  it('solve_thermal returns CAEL trace metadata and verify succeeds by traceId', async () => {
     const config = {
       gridResolution: [3, 3, 3],
       domainSize: [1, 1, 1],
@@ -38,7 +83,23 @@ describe('simulation tools with CAEL metadata', () => {
     expect(verify.replayValid).toBe(true);
   });
 
-  it.skip('verify_cael_trace detects tampered trace', async () => {
+  it('solve_thermal accepts the legacy advertised gridSize shape', async () => {
+    const config = {
+      gridSize: [3, 3, 3],
+      spacing: 0.5,
+      material: { conductivity: 0.6 },
+      sources: [{ position: [0.5, 0.5, 0.5], power: 10 }],
+      boundaryConditions: [{ face: 'x0', type: 'dirichlet', value: 20 }],
+      initialTemperature: 20,
+    };
+
+    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 1 })) as Record<string, unknown>;
+
+    expect(solve.success).toBe(true);
+    expect(typeof solve.traceJSONL).toBe('string');
+  });
+
+  it('verify_cael_trace detects tampered trace', async () => {
     const config = {
       gridResolution: [3, 3, 3],
       domainSize: [1, 1, 1],
