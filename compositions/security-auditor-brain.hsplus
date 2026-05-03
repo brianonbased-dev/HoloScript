@@ -1,0 +1,347 @@
+// ============================================================================
+// Security Auditor Brain — Adversarial-First Security Analysis
+// Native HoloScript composition for Paper 21 security work.
+//
+// Capabilities:
+// - Threat modeling (STRIDE, LINDDUN, PASTA)
+// - Attack surface enumeration
+// - Vulnerability scanning (OWASP Top 10, CWE Top 25)
+// - Adversarial testing (prompt injection, jailbreak detection)
+// - Security review (auth, crypto, data handling)
+// - Compliance checks (EU AI Act, SOC2, HIPAA)
+//
+// Run: holoscript security-auditor compositions/security-auditor-brain.hsplus
+// ============================================================================
+
+#version 6.0.0
+#target daemon
+#mode audit
+
+// ── State ──
+
+state {
+  // Identity
+  agentId: null
+  agentName: "security-auditor"
+  workspace: "ai-ecosystem"
+  status: "idle"
+
+  // Security Scope
+  targetRepo: "HoloScript"
+  targetBranch: "main"
+  auditScope: "full" // full | auth | crypto | data | api | prompt
+
+  // Findings
+  findings: []
+  findingsCount: 0
+  criticalCount: 0
+  highCount: 0
+  mediumCount: 0
+  lowCount: 0
+  infoCount: 0
+
+  // Attack Surface
+  attackVectors: []
+  attackVectorCount: 0
+  threatModels: []
+
+  // Compliance
+  complianceChecks: []
+  complianceScore: 0
+  euAiActReady: false
+  soc2Ready: false
+
+  // Budget
+  spentUSD: 0
+  earningsUSD: 0
+  budgetCapUSD: 5.0
+
+  // Counters
+  cycles: 0
+  errors: 0
+  scansCompleted: 0
+  lastScanAt: null
+  lastAuditAt: null
+
+  // Inbox
+  unreadMessages: 0
+  processedMessageIds: []
+
+  // Paper 21 Metrics
+  paper21AttackSurfaceComplete: false
+  paper21ThreatModelComplete: false
+  paper21DefenseMeasurements: []
+}
+
+// ── Computed ──
+
+computed {
+  isRegistered: $agentId != null
+  isRunning: $status == "running"
+  budgetRemaining: $budgetCapUSD - $spentUSD
+  hasFindings: $findingsCount > 0
+  criticalFindingsExist: $criticalCount > 0
+  auditComplete: $scansCompleted > 0 && $findingsCount > 0
+  paper21Complete: $paper21AttackSurfaceComplete && $paper21ThreatModelComplete
+}
+
+// ── Traits ──
+
+traits [
+  "security_auditor",
+  "paper_21_contributor",
+  "adversarial_testing",
+  "threat_modeling",
+  "compliance_checker"
+]
+
+// ── Capabilities (MCP Tools) ──
+
+capabilities {
+  // Scan codebase for security issues
+  scan_codebase: {
+    description: "Full security scan of target repo"
+    input: { scope: string, depth: number }
+    output: { findings: array, summary: object }
+  }
+
+  // Threat modeling
+  threat_model: {
+    description: "STRIDE/LINDDUN threat model for component"
+    input: { component: string, model: "STRIDE" | "LINDDUN" | "PASTA" }
+    output: { threats: array, mitigations: array }
+  }
+
+  // Attack surface enumeration
+  enumerate_attack_surface: {
+    description: "List all attack vectors for target"
+    input: { target: string }
+    output: { vectors: array, risk_scores: object }
+  }
+
+  // Auth review
+  review_auth: {
+    description: "Review authentication/authorization implementation"
+    input: { component: string }
+    output: { issues: array, recommendations: array }
+  }
+
+  // Crypto review
+  review_crypto: {
+    description: "Review cryptographic implementation"
+    input: { component: string }
+    output: { issues: array, recommendations: array }
+  }
+
+  // Data handling review
+  review_data_handling: {
+    description: "Review data handling, PII, secrets management"
+    input: { component: string }
+    output: { issues: array, recommendations: array }
+  }
+
+  // Prompt security review
+  review_prompt_security: {
+    description: "Review for prompt injection, jailbreak vulnerabilities"
+    input: { prompt: string, context: string }
+    output: { vulnerabilities: array, hardening: array }
+  }
+
+  // Compliance check
+  check_compliance: {
+    description: "Check compliance with EU AI Act, SOC2, HIPAA"
+    input: { framework: "EU_AI_ACT" | "SOC2" | "HIPAA" }
+    output: { score: number, gaps: array, remediation: array }
+  }
+
+  // Generate security report
+  generate_report: {
+    description: "Generate comprehensive security report"
+    input: { format: "markdown" | "json" | "pdf" }
+    output: { report: string, executive_summary: string }
+  }
+}
+
+// ── Directives ──
+
+directives {
+  // Paper 21: Adversarial-first security analysis
+  paper_21_directive: """
+    1. Enumerate attack surface for HoloMesh agent network
+    2. Model threats using STRIDE + LINDDUN frameworks
+    3. Identify defense mechanisms and measure effectiveness
+    4. Generate attack PoCs for critical/high findings
+    5. Document measured defense metrics for Paper 21 §7
+
+    Priority: Attack surface > Threat model > Defense measurement
+  """
+
+  // Continuous audit directive
+  continuous_audit: """
+    - Run full security scan on every commit to main
+    - Block commits with critical/high findings (pre-commit hook)
+    - Track security debt over time
+    - Alert on new vulnerability patterns
+  """
+
+  // EU AI Act compliance
+  eu_ai_act_directive: """
+    - Risk classification: HoloScript = high-risk (critical infrastructure)
+    - Required: risk management system, logging, transparency, human oversight
+    - Audit trail: all agent decisions must be traceable
+    - Data governance: training data documentation, bias assessment
+  """
+}
+
+// ── Behaviors ──
+
+behavior on_start {
+  // Register with HoloMesh if not already registered
+  if (!$isRegistered) {
+    action register_with_mesh {
+      endpoint: "/api/holomesh/register"
+      method: POST
+      body: {
+        handle: $agentName,
+        workspace: $workspace,
+        capabilities: ["security_audit", "threat_model", "compliance_check"]
+      }
+    }
+  }
+
+  // Initialize audit state
+  action init_audit_state {
+    set $status = "running"
+    log "Security Auditor started — Paper 21 adversarial analysis enabled"
+  }
+}
+
+behavior on_commit {
+  // Run security scan on every commit
+  action scan_commit_changes {
+    endpoint: "/api/holomesh/scan-commit"
+    method: POST
+    body: {
+      commit_hash: event.commit,
+      scope: $auditScope
+    }
+  }
+
+  // Block if critical findings
+  action check_critical_findings {
+    if ($criticalCount > 0) {
+      action block_commit {
+        endpoint: "/api/holomesh/block-commit"
+        method: POST
+        body: {
+          commit_hash: event.commit,
+          reason: "Critical security findings detected",
+          findings: $findings.filter(f => f.severity == "critical")
+        }
+      }
+    }
+  }
+}
+
+behavior scheduled_scan {
+  // Run full security scan every 24 hours
+  schedule: "0 3 * * *" // 3 AM daily
+
+  action full_security_scan {
+    endpoint: "/api/holomesh/security/scan"
+    method: POST
+    body: {
+      scope: "full",
+      depth: 3,
+      include_tests: true,
+      include_configs: true
+    }
+  }
+
+  action update_findings {
+    set $scansCompleted = $scansCompleted + 1
+    set $lastScanAt = now()
+    log "Security scan complete: " + $findingsCount + " findings (" + $criticalCount + " critical)"
+  }
+}
+
+behavior paper_21_work {
+  // Phase 1: Attack surface enumeration
+  if (!$paper21AttackSurfaceComplete) {
+    action enumerate_attack_surface {
+      endpoint: "/api/holomesh/security/attack-surface"
+      method: POST
+      body: { target: "HoloMesh agent network" }
+    }
+    set $paper21AttackSurfaceComplete = true
+    log "Paper 21 Phase 1 complete: Attack surface enumerated"
+  }
+
+  // Phase 2: Threat modeling
+  if (!$paper21ThreatModelComplete) {
+    action threat_model_stride {
+      endpoint: "/api/holomesh/security/threat-model"
+      method: POST
+      body: { model: "STRIDE", target: "HoloMesh" }
+    }
+    set $paper21ThreatModelComplete = true
+    log "Paper 21 Phase 2 complete: STRIDE threat model generated"
+  }
+
+  // Phase 3: Defense measurements
+  action measure_defenses {
+    endpoint: "/api/holomesh/security/defense-metrics"
+    method: POST
+    body: { metrics: ["detection_time", "mitigation_rate", "false_positive_rate"] }
+  }
+}
+
+// ── Event Handlers ──
+
+on "security.alert" {
+  action process_alert {
+    log "Security alert received: " + event.alert_type
+    action investigate_alert {
+      endpoint: "/api/holomesh/security/investigate"
+      method: POST
+      body: { alert: event }
+    }
+  }
+}
+
+on "commit.security" {
+  action review_commit_security {
+    log "Security review requested for commit: " + event.commit_hash
+    action scan_commit {
+      endpoint: "/api/holomesh/security/scan-commit"
+      method: POST
+      body: { commit_hash: event.commit_hash }
+    }
+  }
+}
+
+// ── Reporting ──
+
+action generate_daily_report {
+  schedule: "0 6 * * *" // 6 AM daily
+
+  action compile_findings {
+    endpoint: "/api/holomesh/security/report"
+    method: POST
+    body: {
+      period: "24h",
+      format: "markdown",
+      include_trends: true
+    }
+  }
+
+  action post_to_moltbook {
+    endpoint: "/api/holomesh/moltbook/post"
+    method: POST
+    body: {
+      title: "Daily Security Report",
+      content: $report,
+      tags: ["security", "paper-21", "daily-report"]
+    }
+  }
+}
