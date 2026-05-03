@@ -28,8 +28,8 @@ import { NextResponse } from 'next/server';
 
 import { assertValidHash, HologramStoreError } from '@holoscript/engine/hologram';
 
-import { authorizeHologramUpload } from '../../_lib/authorizeUpload';
-import { getHologramStore, getShareRegistry } from '../../_lib/store';
+import { authorizeHologramUpload } from '../_lib/authorizeUpload';
+import { getHologramStore, getShareRegistry } from '../_lib/store';
 
 function jsonError(status: number, error: string, code?: string) {
   return NextResponse.json(code ? { error, code } : { error }, { status });

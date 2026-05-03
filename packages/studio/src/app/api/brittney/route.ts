@@ -48,8 +48,8 @@ import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
-import { corsHeaders } from '../../_lib/cors';
-import { readJsonBody } from '../../_lib/body-size';
+import { corsHeaders } from '../_lib/cors';
+import { readJsonBody } from '../_lib/body-size';
 import {
   attachChain,
   buildBrittneyCaelRecord,
