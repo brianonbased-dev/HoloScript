@@ -381,7 +381,7 @@ export interface HoloScriptGenerationResponse {
 // Provider Configuration
 // =============================================================================
 
-export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm';
+export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm' | 'openrouter' | 'xai';
 
 export interface LLMProviderConfig {
   /** API key for authentication */
@@ -435,6 +435,22 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    * prefixes that never repeat — paying 1.25× writes with zero reads).
    */
   enablePromptCaching?: boolean;
+
+  /**
+   * Maximum total cache breakpoints per request (Anthropic API limit: 4).
+   *
+   * One breakpoint is always used for the system+tools prefix when
+   * `enablePromptCaching` is true. The remaining budget is distributed
+   * across message turns (assistant-turn boundaries), working backwards
+   * from the most recent turn. This gives agent tool-loops (which can hit
+   * 30+ iterations) intermediate cache hits within the 5-min TTL window,
+   * preventing the "cache miss after ~15 blocks" cliff.
+   *
+   * Default: 4 (Anthropic's hard limit). Set lower (e.g. 2) to reserve
+   * cache budget for the system prefix only, or in pathological cases
+   * where mid-turn breakpoints add cost without reuse.
+   */
+  maxCacheBreakpoints?: number;
 }
 
 export interface GeminiProviderConfig extends LLMProviderConfig {
@@ -480,6 +496,35 @@ export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'
 
   /** Model name to send in requests. Default: 'mistral-7b-instruct' */
   model?: string;
+}
+
+/**
+ * Config for the OpenRouter provider.
+ * OpenRouter is an OpenAI-compatible API that routes to 200+ models.
+ * The required HTTP-Referer and X-Title headers are set for attribution;
+ * callers can override via referer/title config.
+ */
+export interface OpenRouterProviderConfig extends LLMProviderConfig {
+  /**
+   * HTTP-Referer header for attribution.
+   * OpenRouter requires this. Default: 'https://holoscript.net'
+   */
+  referer?: string;
+
+  /**
+   * X-Title header for attribution.
+   * OpenRouter requires this. Default: 'HoloScript'
+   */
+  title?: string;
+}
+
+/**
+ * Config for the xAI (Grok) provider.
+ * xAI provides an OpenAI-compatible API at https://api.x.ai/v1.
+ */
+export interface XAIProviderConfig extends LLMProviderConfig {
+  // No xAI-specific config beyond the base LLMProviderConfig fields.
+  // baseURL defaults to https://api.x.ai/v1.
 }
 
 // =============================================================================
@@ -554,6 +599,8 @@ export interface LLMProviderRegistry {
   gemini?: ILLMProvider;
   bitnet?: ILLMProvider;
   'local-llm'?: ILLMProvider;
+  openrouter?: ILLMProvider;
+  xai?: ILLMProvider;
 }
 
 export interface ProviderSelectionStrategy {

@@ -5,7 +5,8 @@ import {
   teamMessageStore,
   teamFeedStore,
   agentKeyStore,
-  persistTeamStore
+  persistTeamStore,
+  reloadTeam,
 } from '../state';
 import {
   json,
@@ -280,6 +281,7 @@ export async function handleBoardRoutes(
     const access = requireTeamAccess(req, res, url, 'board:write');
     if (!access) return true;
     const { caller, teamId } = access;
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId)!;
 
     const rawBody = await parseJsonBody(req);
@@ -446,6 +448,7 @@ export async function handleBoardRoutes(
     const access = requireTeamAccess(req, res, url);
     if (!access) return true;
     const { caller, teamId } = access;
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId)!;
     if (!team.taskBoard) team.taskBoard = [];
     if (!team.doneLog) team.doneLog = [];

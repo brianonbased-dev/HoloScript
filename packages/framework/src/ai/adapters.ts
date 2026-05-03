@@ -3,6 +3,10 @@
  *
  * Ready-to-use adapters for popular AI providers.
  * Users just need to provide their API key.
+ *
+ * Migrated (B1b): callAPI methods now delegate to @holoscript/llm-provider
+ * adapters which inherit withRetry from BaseLLMAdapter — exponential
+ * backoff + Retry-After honoring on 429/5xx.
  */
 
 import type {
@@ -13,6 +17,14 @@ import type {
   FixResult,
   GenerateOptions,
 } from './AIAdapter';
+import {
+  AnthropicAdapter as LLMAnthropicAdapter,
+  OpenAIAdapter as LLMOpenAIAdapter,
+  OpenRouterAdapter as LLMOpenRouterAdapter,
+  XAIAdapter as LLMXAIAdapter,
+  GeminiAdapter as LLMGeminiAdapter,
+  LocalLLMAdapter as LLMOllamaAdapter,
+} from '@holoscript/llm-provider';
 /** Shape of API error responses from AI providers. */
 interface APIErrorResponse {
   error?: { message?: string };
@@ -199,39 +211,20 @@ export class OpenAIAdapter implements AIAdapter {
     messages: Array<{ role: string; content: string }>,
     _history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
-    const baseUrl = this.config.baseUrl || 'https://api.openai.com/v1';
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + this.config.apiKey,
-    };
-
-    if (this.config.organization) {
-      headers['OpenAI-Organization'] = this.config.organization;
-    }
-
-    const response = await fetch(baseUrl + '/chat/completions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-      }),
+    // Delegate to @holoscript/llm-provider OpenAIAdapter which wraps
+    // the call with withRetry — exponential backoff on 429/5xx + Retry-After.
+    const adapter = new LLMOpenAIAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
+      ...(this.config.baseUrl && { baseURL: this.config.baseUrl }),
+      ...(this.config.organization && { organization: this.config.organization }),
     });
-
-    if (response.status === 429) {
-      throw new Error('OpenAI rate limited (429) - please retry after backoff');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('OpenAI auth failed - check API key and permissions');
-    }
-    if (!response.ok) {
-      throw new Error('OpenAI API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
@@ -376,33 +369,19 @@ export class AnthropicAdapter implements AIAdapter {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
     _options?: GenerateOptions
   ): Promise<string> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.config.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        max_tokens: 4096,
-        system: HOLOSCRIPT_SYSTEM_PROMPT,
-        messages,
-      }),
+    // Delegate to @holoscript/llm-provider AnthropicAdapter (withRetry on 429/5xx).
+    const adapter = new LLMAnthropicAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
     });
-
-    if (response.status === 429) {
-      throw new Error('Anthropic rate limited (429) - please retry after backoff');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Anthropic auth failed - check API key');
-    }
-    if (!response.ok) {
-      throw new Error('Anthropic API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.content[0].text;
+    const result = await adapter.complete({
+      messages: [
+        { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+        ...messages,
+      ],
+      maxTokens: 4096,
+    });
+    return result.content;
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
@@ -511,6 +490,11 @@ export class OllamaAdapter implements AIAdapter {
   }
 
   private async callAPIWithErrorHandling(apiPath: string, body: RequestInit): Promise<Response> {
+    // For Ollama's /api/generate and /api/embeddings endpoints, we still
+    // use raw fetch since LocalLLMAdapter's complete() handles /chat/completions
+    // but Ollama's native /api/generate endpoint is different. Keep retry
+    // delegation for the chat path (callAPI below) and leave this helper
+    // for the non-chat paths that LocalLLMAdapter doesn't cover.
     const response = await fetch(this.baseUrl + apiPath, body);
 
     if (response.status === 429) {
@@ -532,19 +516,21 @@ export class OllamaAdapter implements AIAdapter {
   }
 
   private async callAPI(system: string, prompt: string): Promise<string> {
-    const response = await this.callAPIWithErrorHandling('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        system,
-        prompt,
-        stream: false,
-      }),
+    // Delegate to @holoscript/llm-provider LocalLLMAdapter (withRetry on 429/5xx).
+    const adapter = new LLMOllamaAdapter({
+      baseURL: this.baseUrl,
+      defaultModel: this.model,
+      timeoutMs: 120_000,
     });
-
-    const data = await response.json();
-    return data.response;
+    const result = await adapter.complete({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt },
+      ],
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
@@ -796,64 +782,26 @@ export class GeminiAdapter implements AIAdapter {
     _options?: GenerateOptions,
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
-    // Build contents array with optional history
-    const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-
+    // Delegate to @holoscript/llm-provider GeminiAdapter (withRetry on 429/5xx).
+    const adapter = new LLMGeminiAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
+    });
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+    ];
     if (history && history.length > 0) {
       for (const msg of history) {
-        contents.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }],
-        });
+        messages.push({ role: msg.role, content: msg.content });
       }
     }
-
-    // Add system prompt + current message
-    contents.push({
-      role: 'user',
-      parts: [{ text: HOLOSCRIPT_SYSTEM_PROMPT }, { text: message }],
+    messages.push({ role: 'user', content: message });
+    const result = await adapter.complete({
+      messages,
+      maxTokens: 4096,
+      temperature: 0.7,
     });
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.config.apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4096,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMsg = (errorData as APIErrorResponse)?.error?.message || response.statusText;
-      const status = response.status;
-
-      if (status === 429) {
-        throw new Error('Gemini API rate limited. Please retry after a short delay.');
-      }
-      if (status === 403) {
-        throw new Error('Gemini API key invalid or quota exceeded: ' + errorMsg);
-      }
-      throw new Error('Gemini API error (' + status + '): ' + errorMsg);
-    }
-
-    const data = await response.json();
-
-    if (!data.candidates || data.candidates.length === 0) {
-      const blockReason = data.promptFeedback?.blockReason;
-      if (blockReason) {
-        throw new Error('Gemini request blocked: ' + blockReason);
-      }
-      throw new Error('Gemini returned no candidates');
-    }
-
-    return data.candidates[0].content.parts[0].text;
+    return result.content;
   }
 }
 
@@ -976,31 +924,17 @@ export class XAIAdapter implements AIAdapter {
   }
 
   private async callAPI(messages: Array<{ role: string; content: string }>): Promise<string> {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + this.config.apiKey,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-      }),
+    // Delegate to @holoscript/llm-provider XAIAdapter (withRetry on 429/5xx).
+    const adapter = new LLMXAIAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
     });
-
-    if (response.status === 429) {
-      throw new Error('xAI rate limited (429) - please retry after backoff');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('xAI auth failed - check API key');
-    }
-    if (!response.ok) {
-      throw new Error('xAI API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 }
 
@@ -1151,32 +1085,19 @@ export class TogetherAdapter implements AIAdapter {
   }
 
   private async callAPI(messages: Array<{ role: string; content: string }>): Promise<string> {
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + this.config.apiKey,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
+    // Together AI uses OpenAI-compatible API — delegate to OpenAIAdapter with
+    // together.xyz baseURL (withRetry on 429/5xx).
+    const adapter = new LLMOpenAIAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
+      baseURL: 'https://api.together.xyz/v1',
     });
-
-    if (response.status === 429) {
-      throw new Error('Together AI rate limited (429) - please retry');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Together AI auth failed - check API key');
-    }
-    if (!response.ok) {
-      throw new Error('Together AI API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 }
 
@@ -1299,32 +1220,19 @@ export class FireworksAdapter implements AIAdapter {
   }
 
   private async callAPI(messages: Array<{ role: string; content: string }>): Promise<string> {
-    const response = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + this.config.apiKey,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
+    // Fireworks uses OpenAI-compatible API — delegate to OpenAIAdapter with
+    // fireworks.ai baseURL (withRetry on 429/5xx).
+    const adapter = new LLMOpenAIAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
+      baseURL: 'https://api.fireworks.ai/inference/v1',
     });
-
-    if (response.status === 429) {
-      throw new Error('Fireworks AI rate limited (429) - please retry');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Fireworks AI auth failed - check API key');
-    }
-    if (!response.ok) {
-      throw new Error('Fireworks AI API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
@@ -1478,32 +1386,19 @@ export class NVIDIAAdapter implements AIAdapter {
   }
 
   private async callAPI(messages: Array<{ role: string; content: string }>): Promise<string> {
-    const response = await fetch(this.baseUrl + '/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + this.config.apiKey,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
+    // NVIDIA NIM uses OpenAI-compatible API — delegate to OpenAIAdapter with
+    // configurable baseURL (withRetry on 429/5xx).
+    const adapter = new LLMOpenAIAdapter({
+      apiKey: this.config.apiKey,
+      defaultModel: this.model,
+      baseURL: this.baseUrl,
     });
-
-    if (response.status === 429) {
-      throw new Error('NVIDIA NIM rate limited (429) - please retry');
-    }
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('NVIDIA NIM auth failed - check API key');
-    }
-    if (!response.ok) {
-      throw new Error('NVIDIA NIM API error: ' + response.statusText);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens: 4096,
+      temperature: 0.7,
+    });
+    return result.content;
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {

@@ -4,14 +4,17 @@
  *
  * Uses a tmp-dir-backed FileSystemHologramStore (the same stack as the
  * production route) to verify:
- *   - valid hash + persisted bundle => loadBundle returns the meta
- *   - invalid hash => returns null (route will 404)
- *   - missing bundle => returns null
+ *   - valid hash + persisted bundle => loadBundle returns bundle info
+ *   - invalid hash => returns { bundle: null, expired: false }
+ *   - missing bundle => returns { bundle: null, expired: false }
+ *   - expired share => returns { bundle: null, expired: true }
  *   - asset existence flags (hasQuilt etc.) reflect what's in the store
  *
  * We don't render the page (Next.js server-component invocation requires
  * the full Next runtime); we test the load function and metadata
  * generator directly.
+ *
+ * Wave B Stream 5: expiry policy tests added.
  */
 
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -26,6 +29,7 @@ import {
   computeBundleHash,
 } from '@holoscript/engine/hologram';
 import { FileSystemHologramStore } from '@holoscript/engine/hologram/FileSystemHologramStore';
+import { HologramShareRegistry } from '@holoscript/engine/hologram/HologramShareRegistry';
 
 import { __resetHologramStoreForTests } from '@/app/api/hologram/_lib/store';
 
@@ -93,52 +97,123 @@ describe('/g/[hash] — loadBundle', () => {
     vi.unstubAllEnvs();
   });
 
-  it('returns null for non-string hash', async () => {
-    expect(await loadBundle(undefined)).toBeNull();
-    expect(await loadBundle(null)).toBeNull();
-    expect(await loadBundle(123)).toBeNull();
+  it('returns bundle: null, expired: false for non-string hash', async () => {
+    const r1 = await loadBundle(undefined);
+    expect(r1.bundle).toBeNull();
+    expect(r1.expired).toBe(false);
+
+    const r2 = await loadBundle(null);
+    expect(r2.bundle).toBeNull();
+    expect(r2.expired).toBe(false);
+
+    const r3 = await loadBundle(123);
+    expect(r3.bundle).toBeNull();
+    expect(r3.expired).toBe(false);
   });
 
-  it('returns null for an invalid hash shape', async () => {
-    expect(await loadBundle('not-a-hash')).toBeNull();
-    expect(await loadBundle('A'.repeat(64))).toBeNull(); // uppercase
-    expect(await loadBundle('a'.repeat(63))).toBeNull(); // too short
-    expect(await loadBundle('../etc/passwd')).toBeNull();
+  it('returns bundle: null, expired: false for invalid hash shape', async () => {
+    const r1 = await loadBundle('not-a-hash');
+    expect(r1.bundle).toBeNull();
+    expect(r1.expired).toBe(false);
+
+    const r2 = await loadBundle('A'.repeat(64)); // uppercase
+    expect(r2.bundle).toBeNull();
+    expect(r2.expired).toBe(false);
+
+    const r3 = await loadBundle('a'.repeat(63)); // too short
+    expect(r3.bundle).toBeNull();
+    expect(r3.expired).toBe(false);
+
+    const r4 = await loadBundle('../etc/passwd');
+    expect(r4.bundle).toBeNull();
+    expect(r4.expired).toBe(false);
   });
 
-  it('returns null for a valid-shape hash that is not in the store', async () => {
-    expect(await loadBundle('a'.repeat(64))).toBeNull();
-    expect(await loadBundle('0123456789abcdef'.repeat(4))).toBeNull();
+  it('returns bundle: null for a valid-shape hash not in the store', async () => {
+    const r = await loadBundle('a'.repeat(64));
+    expect(r.bundle).toBeNull();
+    expect(r.expired).toBe(false);
   });
 
   it('returns bundle info for a persisted bundle (quilt only)', async () => {
     const meta = makeMeta();
     const hash = await persistBundle(store, meta, true, false, false);
-    const loaded = await loadBundle(hash);
-    expect(loaded).not.toBeNull();
-    expect(loaded?.hash).toBe(hash);
-    expect(loaded?.meta.sourceKind).toBe('image');
-    expect(loaded?.hasQuilt).toBe(true);
-    expect(loaded?.hasMvhevc).toBe(false);
-    expect(loaded?.hasParallax).toBe(false);
+    const result = await loadBundle(hash);
+    expect(result.bundle).not.toBeNull();
+    expect(result.bundle?.hash).toBe(hash);
+    expect(result.bundle?.meta.sourceKind).toBe('image');
+    expect(result.bundle?.hasQuilt).toBe(true);
+    expect(result.bundle?.hasMvhevc).toBe(false);
+    expect(result.bundle?.hasParallax).toBe(false);
+    expect(result.expired).toBe(false);
   });
 
   it('reflects all three asset flags', async () => {
     const meta = makeMeta();
     const hash = await persistBundle(store, meta, true, true, true);
-    const loaded = await loadBundle(hash);
-    expect(loaded?.hasQuilt).toBe(true);
-    expect(loaded?.hasMvhevc).toBe(true);
-    expect(loaded?.hasParallax).toBe(true);
+    const result = await loadBundle(hash);
+    expect(result.bundle?.hasQuilt).toBe(true);
+    expect(result.bundle?.hasMvhevc).toBe(true);
+    expect(result.bundle?.hasParallax).toBe(true);
   });
 
   it('reflects no asset flags when only depth/normal exist', async () => {
     const meta = makeMeta();
     const hash = await persistBundle(store, meta, false, false, false);
-    const loaded = await loadBundle(hash);
-    expect(loaded?.hasQuilt).toBe(false);
-    expect(loaded?.hasMvhevc).toBe(false);
-    expect(loaded?.hasParallax).toBe(false);
+    const result = await loadBundle(hash);
+    expect(result.bundle?.hasQuilt).toBe(false);
+    expect(result.bundle?.hasMvhevc).toBe(false);
+    expect(result.bundle?.hasParallax).toBe(false);
+  });
+
+  // ── Wave B Stream 5: expiry policy ──────────────────────────────────────────
+
+  describe('expiry policy', () => {
+    it('returns bundle for unshared gram (no share record)', async () => {
+      const meta = makeMeta();
+      const hash = await persistBundle(store, meta);
+      const result = await loadBundle(hash);
+      // No share record exists, but the bundle is still accessible
+      expect(result.bundle).not.toBeNull();
+      expect(result.expired).toBe(false);
+    });
+
+    it('returns bundle for active (non-expired) share', async () => {
+      const meta = makeMeta();
+      const hash = await persistBundle(store, meta);
+      const registry = new HologramShareRegistry({ rootDir: workDir, defaultTtlSeconds: 3600 });
+      await registry.createShare({ hash });
+
+      const result = await loadBundle(hash);
+      expect(result.bundle).not.toBeNull();
+      expect(result.expired).toBe(false);
+    });
+
+    it('returns expired=true for expired share', async () => {
+      const meta = makeMeta();
+      const hash = await persistBundle(store, meta);
+      const registry = new HologramShareRegistry({ rootDir: workDir, defaultTtlSeconds: 0 });
+      // Create share that expires in 1 second
+      await registry.createShare({ hash, ttlSeconds: 1 });
+
+      // Wait for expiry
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
+      const result = await loadBundle(hash);
+      expect(result.bundle).toBeNull();
+      expect(result.expired).toBe(true);
+    });
+
+    it('returns bundle for never-expiring share (ttlSeconds=0)', async () => {
+      const meta = makeMeta();
+      const hash = await persistBundle(store, meta);
+      const registry = new HologramShareRegistry({ rootDir: workDir, defaultTtlSeconds: 0 });
+      await registry.createShare({ hash, ttlSeconds: 0 });
+
+      const result = await loadBundle(hash);
+      expect(result.bundle).not.toBeNull();
+      expect(result.expired).toBe(false);
+    });
   });
 });
 
@@ -200,5 +275,21 @@ describe('/g/[hash] — generateMetadata', () => {
     expect(Array.isArray(og?.images)).toBe(true);
     const imgs = og?.images as Array<{ url: string }> | undefined;
     expect(imgs?.[0]?.url).toBe(`/api/hologram/${hash}/quilt.png`);
+  });
+
+  // ── Wave B Stream 5: expired gram metadata ─────────────────────────────────
+
+  it('shows "expired" title for expired share', async () => {
+    const hash = await persistBundle(store, makeMeta());
+    const registry = new HologramShareRegistry({ rootDir: workDir, defaultTtlSeconds: 0 });
+    await registry.createShare({ hash, ttlSeconds: 1 });
+
+    // Wait for expiry
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    const meta = await generateMetadata({
+      params: Promise.resolve({ hash }),
+    });
+    expect(meta.title).toBe('HoloGram — expired');
   });
 });

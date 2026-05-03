@@ -4,10 +4,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CreatorRevenueAggregator } from '@holoscript/framework';
 import { PaymentGateway } from '@holoscript/core';
-import { 
-  commentStore, 
-  voteStore, 
-  transactionLedger, 
+import {
+  commentStore,
+  voteStore,
+  transactionLedger,
   paidAccessStore,
   agentKeyStore,
   persistSocialStore,
@@ -16,6 +16,7 @@ import {
   teamStore,
   storyWeaverStore,
   selfImprovingWorldStore,
+  reloadTeam,
 } from '../state';
 import { 
   json, 
@@ -1095,6 +1096,7 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -1162,6 +1164,7 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team || !(team as any).knowledgeMarketplace) {
       json(res, 404, { error: 'Marketplace not found for team' });

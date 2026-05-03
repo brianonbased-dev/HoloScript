@@ -144,6 +144,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
   private readonly apiVersion: string;
   private readonly enablePromptCaching: boolean;
+  private readonly maxCacheBreakpoints: number;
 
   constructor(config: AnthropicProviderConfig) {
     super(config);
@@ -159,6 +160,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // minimum prefixes that never repeat (paying 1.25× writes with zero
     // reads); that caller can opt out with `enablePromptCaching: false`.
     this.enablePromptCaching = config.enablePromptCaching ?? true;
+    // Anthropic's hard limit is 4 breakpoints per request. One is always
+    // used for the system+tools prefix; the rest are distributed across
+    // message turns (most recent assistant turn first).
+    this.maxCacheBreakpoints = config.maxCacheBreakpoints ?? 4;
   }
 
   protected getDefaultModel(): string {
@@ -231,6 +236,16 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
       const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
 
+      // Extended prompt caching: place breakpoints on recent assistant turns
+      // so that agent tool-loops get cache hits beyond the system+tools prefix.
+      const cachedMessages = this.buildMessagesWithCacheBreakpoints(
+        messages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content as never,
+        })),
+        !!(this.enablePromptCaching && system),
+      );
+
       const stream = client.messages.stream({
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
@@ -239,10 +254,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...samplingParams,
         stop_sequences: request.stop,
         system: systemField as never,
-        messages: messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          // Pass content through whether it's a string or a structured
-          // content-block array (tool_result follow-ups). SDK accepts both.
+        messages: cachedMessages.map((m) => ({
+          role: m.role,
           content: m.content as never,
         })),
         // Only set tools when the caller passed any — keeps the request
@@ -376,6 +389,15 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
     const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
 
+    // Extended prompt caching: place breakpoints on recent assistant turns.
+    const cachedMessages = this.buildMessagesWithCacheBreakpoints(
+      messages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content as never,
+      })),
+      !!(this.enablePromptCaching && system),
+    );
+
     let stream;
     try {
       stream = client.messages.stream({
@@ -384,8 +406,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...samplingParams,
         stop_sequences: request.stop,
         system: systemField as never,
-        messages: messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
+        messages: cachedMessages.map((m) => ({
+          role: m.role,
           content: m.content as never,
         })),
         ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
@@ -561,6 +583,86 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     if (streamErrored) {
       throw this.mapAnthropicError(streamError);
     }
+  }
+
+  /**
+   * Build Anthropic-format messages array with cache breakpoints on assistant
+   * turns. Strategy: walk the messages backwards, placing
+   * `cache_control: { type: 'ephemeral' }` on the last content block of
+   * each assistant turn until the breakpoint budget is exhausted.
+   *
+   * Budget calculation: `maxCacheBreakpoints - systemBreakpoint` (the system
+   * breakpoint is handled separately in the caller). If caching is off,
+   * returns messages unchanged (no cache_control anywhere).
+   *
+   * Why assistant turns: in an agent tool-loop, each tick appends one
+   * assistant turn + one user turn (tool_result). The assistant turn is
+   * the stable boundary that repeats identically across subsequent ticks —
+   * exactly the pattern Anthropic's cache rewards. Placing breakpoints on
+   * the MOST RECENT assistant turns maximises cache-hit TTL: the 5-min
+   * window starts from the first request that writes the cache, so later
+   * breakpoints expire later.
+   */
+  private buildMessagesWithCacheBreakpoints(
+    messages: Array<{ role: 'user' | 'assistant'; content: unknown }>,
+    systemBreakpointUsed: boolean,
+  ): Array<Record<string, unknown>> {
+    if (!this.enablePromptCaching) {
+      return messages.map((m) => ({ role: m.role, content: m.content }));
+    }
+
+    const budget = Math.max(0, this.maxCacheBreakpoints - (systemBreakpointUsed ? 1 : 0));
+    if (budget <= 0) {
+      // All breakpoints consumed by system prefix; pass messages through.
+      return messages.map((m) => ({ role: m.role, content: m.content }));
+    }
+
+    let breakpointsRemaining = budget;
+
+    // Walk backwards to find assistant turns to cache, then apply forward.
+    // This two-pass approach avoids mutating during iteration and keeps the
+    // forward-order output stable.
+    const assistantTurnIndices: number[] = [];
+    for (let i = messages.length - 1; i >= 0 && assistantTurnIndices.length < budget; i--) {
+      if (messages[i].role === 'assistant') {
+        assistantTurnIndices.push(i);
+      }
+    }
+    // Reverse so we mark in forward order (most-recent assistant turns first
+    // in the reversed list = last in forward order).
+    assistantTurnIndices.reverse();
+
+    const result: Array<Record<string, unknown>> = messages.map((m, i) => {
+      const shouldCache = assistantTurnIndices.includes(i) && breakpointsRemaining > 0;
+      if (shouldCache && typeof m.content === 'string') {
+        breakpointsRemaining--;
+        // Single string content → wrap in array form to add cache_control
+        // on the last (only) block.
+        return {
+          role: m.role,
+          content: [
+            { type: 'text' as const, text: m.content, cache_control: { type: 'ephemeral' as const } },
+          ],
+        };
+      }
+      if (shouldCache && Array.isArray(m.content)) {
+        breakpointsRemaining--;
+        // Structured content (tool_use blocks from prior assistant turns):
+        // add cache_control to the LAST content block.
+        const blocks = [...(m.content as Array<Record<string, unknown>>)];
+        if (blocks.length > 0) {
+          blocks[blocks.length - 1] = {
+            ...blocks[blocks.length - 1],
+            cache_control: { type: 'ephemeral' as const },
+          };
+        }
+        return { role: m.role, content: blocks };
+      }
+      // No cache breakpoint for this turn.
+      return { role: m.role, content: m.content };
+    });
+
+    return result;
   }
 
   private separateSystemMessages(messages: LLMMessage[]): {

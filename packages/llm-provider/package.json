@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/llm-provider",
   "version": "1.2.0",
-  "description": "Unified LLM provider SDK for HoloScript - OpenAI, Anthropic, and Gemini adapters",
+  "description": "Unified LLM provider SDK for HoloScript - OpenAI, Anthropic, Gemini, OpenRouter, xAI, and local LLM adapters",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -31,6 +31,16 @@
       "types": "./dist/adapters/gemini.d.ts",
       "import": "./dist/adapters/gemini.js",
       "require": "./dist/adapters/gemini.cjs"
+    },
+    "./adapters/openrouter": {
+      "types": "./dist/adapters/openrouter.d.ts",
+      "import": "./dist/adapters/openrouter.js",
+      "require": "./dist/adapters/openrouter.cjs"
+    },
+    "./adapters/xai": {
+      "types": "./dist/adapters/xai.d.ts",
+      "import": "./dist/adapters/xai.js",
+      "require": "./dist/adapters/xai.cjs"
     }
   },
   "files": [
@@ -67,6 +77,9 @@
     "openai",
     "anthropic",
     "gemini",
+    "openrouter",
+    "xai",
+    "grok",
     "vr",
     "ar",
     "ai",

@@ -16,6 +16,7 @@ Concurrent: ThreadPoolExecutor with --max-parallel cap (default 5).
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -561,17 +562,9 @@ def deploy_one(plan: dict, ssh_key: str, bootstrap_script: Path, log_dir: Path,
     sidecars = plan.get("sidecars") or []
     if sidecars:
         env_lines.extend(_build_sidecar_env_lines(sidecars))
-        # Export sidecar metadata as JSON for the runtime dispatcher.
-        # consumed_by_env_var is excluded — it's already in env_lines above
-        # as a separate KEY=VALUE line (e.g. LEAN_SPECIALIST_URL=http://...).
-        sidecar_meta = []
-        for sc in sidecars:
-            sidecar_meta.append({
-                "name": sc["name"],
-                "model": sc["model"],
-                "port": sc["port"],
-            })
-        env_lines.append(f"HOLOSCRIPT_AGENT_SIDECARS={json.dumps(sidecar_meta)}")
+        # Export the full spec: bootstrap-agent.sh needs vllm_args, while the
+        # runtime also receives explicit URL env vars from _build_sidecar_env_lines.
+        env_lines.append(f"HOLOSCRIPT_AGENT_SIDECARS={json.dumps(sidecars)}")
 
     env_text = "\n".join(env_lines) + "\n"
     runner_text = (
@@ -811,35 +804,75 @@ def _self_test_sidecar_script_generation() -> None:
     assert quoted2 == "'plain'", quoted2
 
 
+_LEDGER_MODULE = None
+
+
+def _get_ledger_module():
+    """Import vast-spend-ledger.py as a Python module (structural rail per W.GOLD.001).
+
+    Uses importlib because the hyphenated filename prevents normal import.
+    Raises ImportError if the module can't be loaded — this is intentional:
+    a missing or broken ledger is a HARD failure, not a silent bypass.
+    The cap must be a structural rail, not operator vigilance (W.GOLD.001).
+    Cached on first call so subsequent invocations are free.
+    """
+    global _LEDGER_MODULE
+    if _LEDGER_MODULE is not None:
+        return _LEDGER_MODULE
+    ledger_path = Path(__file__).parent / "vast-spend-ledger.py"
+    if not ledger_path.exists():
+        raise ImportError(
+            f"vast-spend-ledger.py not found at {ledger_path} — "
+            f"spend-cap enforcement is a structural rail (W.GOLD.001), "
+            f"not optional. Use --skip-cap-check to explicitly override."
+        )
+    spec = importlib.util.spec_from_file_location("vast_spend_ledger", str(ledger_path))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module spec for {ledger_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _LEDGER_MODULE = module
+    return _LEDGER_MODULE
+
+
 def check_spend_cap(cap: float, *, ledger_path: Path | None = None,
                       allow_projected_breach: bool = False) -> tuple[bool, dict]:
-    """Run vast-spend-ledger check-cap before deploying.
+    """Structural spend-cap enforcement per W.GOLD.001.
+
+    Uses direct function calls (not subprocess) so the cap rail cannot be
+    silently bypassed by a missing script or path issue. Import failure is a
+    HARD error — operator must use --skip-cap-check to explicitly override.
 
     Returns (allowed, ledger_state). allowed=False means the fleet-wide
     daily cap has been reached or the projected burn would exceed it.
     """
-    ledger_script = Path(__file__).parent / "vast-spend-ledger.py"
-    if not ledger_script.exists():
-        return True, {"_warning": f"ledger script not found: {ledger_script}"}
-    cmd = [
-        sys.executable, str(ledger_script), "check-cap",
-        "--cap", str(cap),
-    ]
-    if allow_projected_breach:
-        cmd.append("--allow-projected-breach")
-    if ledger_path:
-        cmd += ["--ledger", str(ledger_path)]
     try:
-        cp = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
-    except Exception as exc:  # noqa: BLE001
-        return True, {"_warning": f"ledger check failed: {exc}"}
-    try:
-        state = json.loads(cp.stdout)
-    except json.JSONDecodeError:
-        state = {"_parse_error": cp.stdout[:300]}
-    if cp.returncode == 1:
-        return False, state
-    return True, state
+        ledger = _get_ledger_module()
+    except ImportError as exc:
+        # Structural rail: missing ledger = hard failure, not silent bypass.
+        # W.GOLD.001: architecture beats alignment — the cap must be structural.
+        return False, {"_error": f"ledger import failed (structural rail): {exc}"}
+
+    path = ledger_path or ledger.DEFAULT_LEDGER
+    records = ledger.read_records(path)
+    spent, burn_rate, active = ledger.compute_day_spend(records)
+
+    out = {
+        "cap_usd": cap,
+        "already_spent_usd": round(spent, 2),
+        "daily_burn_rate_usd": round(burn_rate, 2),
+        "headroom_spent_usd": round(cap - spent, 2),
+        "headroom_burn_rate_usd": round(cap - burn_rate, 2),
+        "active_rentals": active,
+        "under_cap_actual": spent < cap,
+        "under_cap_projected": burn_rate < cap,
+    }
+
+    if spent >= cap:
+        return False, out
+    if burn_rate >= cap and not allow_projected_breach:
+        return False, out
+    return True, out
 
 
 def main() -> int:

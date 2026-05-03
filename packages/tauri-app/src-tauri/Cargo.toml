@@ -1,0 +1,32 @@
+[package]
+name = "holoscript-studio"
+version = "0.1.0"
+description = "HoloScript Studio Desktop — Tauri 2.0 native shell"
+authors = ["HoloScript Team"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "holoscript_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-updater = "2"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+wgpu = "23"
+pollster = "0.4"
+log = "0.4"
+env_logger = "0.11"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

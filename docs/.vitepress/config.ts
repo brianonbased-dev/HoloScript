@@ -214,6 +214,7 @@ export default defineConfig({
       },
       { text: 'Examples', link: '/examples/' },
       { text: 'Provenance', link: '/provenance' },
+      { text: 'Lotus', link: '/lotus' },
       {
         text: 'Studio',
         link: 'https://studio.holoscript.net',
@@ -738,7 +739,10 @@ export default defineConfig({
       '/strategy/': [
         {
           text: 'Ecosystem Strategy',
-          items: [{ text: 'V8 Vision RFC', link: '/strategy/v8-vision-rfc' }],
+          items: [
+            { text: 'V8 Vision RFC', link: '/strategy/v8-vision-rfc' },
+            { text: 'Lotus Architecture', link: '/strategy/lotus-architecture' },
+          ],
         },
       ],
       '/reviews/': [

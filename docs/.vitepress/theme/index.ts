@@ -4,6 +4,7 @@ import LandingPage from './LandingPage.vue';
 import ProvenanceExplorer from './ProvenanceExplorer.vue';
 import PapersStatusBoard from './PapersStatusBoard.vue';
 import LiveEvidenceStrip from './LiveEvidenceStrip.vue';
+import Lotus from './Lotus.vue';
 
 export default {
   extends: DefaultTheme,
@@ -12,5 +13,6 @@ export default {
     app.component('ProvenanceExplorer', ProvenanceExplorer);
     app.component('PapersStatusBoard', PapersStatusBoard);
     app.component('LiveEvidenceStrip', LiveEvidenceStrip);
+    app.component('Lotus', Lotus);
   },
 };

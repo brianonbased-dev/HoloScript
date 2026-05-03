@@ -19,14 +19,15 @@ Scope: `packages/core/src/traits/*Trait.ts` cross-referenced with compiler usage
 
 | Trait | File | Observed shape | Compiler refs | Notes |
 | --- | --- | --- | ---: | --- |
-| `onnx_runtime` | `packages/core/src/traits/OnnxRuntimeTrait.ts` | `onUpdate` is intentionally empty; behavior is event-driven | 0 direct quoted refs in compiler map scan | Possible Pattern-E risk if trait is runtime-only but not compiler-activated. Needs design decision: runtime-only seam vs compiler surface. |
+| `onnx_runtime` | `packages/core/src/traits/OnnxRuntimeTrait.ts` | `onUpdate` is intentionally empty; behavior is event-driven | 0 direct quoted refs in compiler map scan | **RESOLVED**: Runtime-only seam is correct. No compiler surface needed — the trait uses an adapter pattern (`InferenceAdapter`) where the execution backend is injected at runtime. EffectInference declares `resource:cpu` + `resource:memory` which is sufficient. Guard tests added. JSDoc and trait-mappings.md updated with contract documentation. Pattern-E (emit-without-listener) risk documented — consumers will be wired as real backends land. |
 | `neural_forge` | `packages/core/src/traits/NeuralForgeTrait.ts` | Non-trivial watchdog + timeout fallback present in `onUpdate` | 12 | Historically stub-shaped, now partially wired. Needs consumer wiring audit for emitted events to avoid emit-without-listener void. |
 | `neural_animation` | `packages/core/src/traits/NeuralAnimationTrait.ts` | Motion-matching path is now wired and tested | 15 | No longer Pattern-B by body-size criterion; retain as monitor item because of high compiler surface area. |
 
 ## Pattern-E (emit-without-listener) risk summary
 
 - `NeuralForgeTrait` and `OnnxRuntimeTrait` both emit multiple events and should be checked for downstream listeners in runtime/studio/engine.
-- If listeners exist only in tests, treat as Pattern-E and create consumer-wiring tasks.
+- `OnnxRuntimeTrait`: **RESOLVED** — confirmed no runtime consumers exist outside tests. Pattern-E risk documented in JSDoc + trait-mappings.md. Consumer wiring deferred until real backends (HoloGram depth, motion matching) land.
+- `NeuralForgeTrait`: **RESOLVED** — NeuralForgeCoordinator (5th consumer-bus) closes Pattern E. Subscribes to all 5 emitted events (neural_forge_connected, neural_synthesis_request, neural_synthesis_timeout, neural_shard_created, neural_cognition_evolved), tracks per-node state (shards, weights, pending synthesis, timeout fallback). Wired into TraitRuntimeIntegration alongside the 4 existing buses. 21 tests pass. (task_1777423899630_nsna)
 
 ## Board tasks seeded from this report
 

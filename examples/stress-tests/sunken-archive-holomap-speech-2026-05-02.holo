@@ -1,0 +1,366 @@
+// ============================================================
+// Stress-Test: Sunken Archive
+// A009 — 2026-05-02
+//
+// Never-exercised traits under test:
+//   @holomap_reconstruct          — active 3D reconstruction session on the
+//                                   carved stone tablets, consuming camera
+//                                   frames as the drone orbits
+//   @holomap_camera_trajectory    — drone's orbital flight path fed into the
+//                                   reconstruction pipeline
+//   @holomap_anchor_context       — seabed survey markers that anchor the
+//                                   session's spatial reference frame
+//   @holomap_drift_correction     — compensates for current-induced drift in
+//                                   the drone's pose estimates
+//   @holomap_splat_output         — the output panel: emerging Gaussian splat
+//                                   model rendered in real time as scan data
+//                                   arrives
+//   @speech                       — researcher AI narrates discoveries as new
+//                                   structure is reconstructed
+//
+// Well-exercised anchors (not under test):
+//   @glowing  @collidable  @networked  @grabbable  @physics
+//
+// Visual story:
+// Twelve metres below the Aegean surface, a submersible drone traces slow
+// ellipses around a sunken archive — a trove of carved marble tablets that
+// went under in 365 CE. The drone's camera feeds raw frames into a
+// @holomap_reconstruct session anchored to four survey markers bolted to the
+// seabed. A @holomap_drift_correction module watches the trajectory, nudging
+// pose estimates whenever the current pushes the drone off its programmed
+// orbit. As each orbit completes another ring of geometry materialises on the
+// output panel — a real-time @holomap_splat_output hanging in the water
+// column above, glowing amber against the blue void. A disembodied @speech
+// voice — the researcher AI observing remotely — calls out whenever a new
+// tablet face emerges: "Alpha-seven visible. Greek text, second century."
+// Collaborators on the surface can grab the splat panel, rotate it, pin
+// annotations. The scene is a networked multi-user excavation in slow motion.
+//
+// This is the first time any of the five holomap_* traits and @speech are
+// exercised together. The test verifies:
+//   (a) holomap_reconstruct's session_id / input_mode parse as typed fields
+//   (b) holomap_camera_trajectory's path_mode + orbit_radius parse as nested config
+//   (c) holomap_anchor_context's anchor array syntax with position tuples
+//   (d) holomap_drift_correction's correction_strategy enum parses
+//   (e) holomap_splat_output's output_mode + lod_levels parse
+//   (f) speech event map with variable substitution parses inside a composition
+// ============================================================
+
+composition "SunkenArchive" {
+  version: "7.0"
+  description: "Stress-test: all 5 holomap_* traits + @speech in an underwater archaeological reconstruction scene"
+  tags: ["a009", "stress-test", "holomap", "reconstruction", "speech", "underwater", "archaeology"]
+
+  // ── Environment ────────────────────────────────────────────────────────────
+  // Deep Mediterranean water column: caustic light shafts from above,
+  // bioluminescent particle haze at depth, strong blue-green absorption.
+  environment {
+    skybox: "underwater_deep"
+    ambient_light: 0.08
+    fog: { enabled: true, color: "#010d18", density: 0.12, near: 4.0, far: 28.0 }
+    gravity: [0, -1.5, 0]
+    water: {
+      enabled: true,
+      depth: 12.0,
+      turbidity: 0.35,
+      caustics: { enabled: true, intensity: 0.6, scale: 1.8, speed: 0.4 },
+      current: { direction: [0.4, 0, 0.7], speed: 0.15 }
+    }
+  }
+
+  // Light shafts from the surface
+  light "SurfaceShaft_A" {
+    type: "spot"
+    position: [-3, 10, -1]
+    direction: [0.1, -1, 0.2]
+    intensity: 2.4
+    color: "#aee4f5"
+    angle: 18
+    range: 18
+    volumetric: true
+  }
+
+  light "SurfaceShaft_B" {
+    type: "spot"
+    position: [2, 10, 1.5]
+    direction: [-0.05, -1, 0.15]
+    intensity: 1.8
+    color: "#b3e5fc"
+    angle: 14
+    range: 16
+    volumetric: true
+  }
+
+  // Drone work-light — tight cone on the scan subject
+  light "DroneLight" {
+    type: "spot"
+    position: [0, 3, 0]
+    direction: [0, -1, 0]
+    intensity: 3.5
+    color: "#ffffff"
+    angle: 22
+    range: 6
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom { intensity: 0.6, threshold: 0.65, radius: 0.9 }
+    chromatic_aberration { intensity: 0.08 }
+    color_grading { shadows: "#010d18", midtones: "#023858", highlights: "#aee4f5", saturation: 0.7 }
+    tone_mapping { mode: "aces", exposure: 0.9 }
+  }
+
+  // ── Seabed Foundation ──────────────────────────────────────────────────────
+
+  object "Seabed" {
+    @collidable
+    geometry: "plane"
+    position: [0, -12, 0]
+    scale: [30, 1, 30]
+    material: { baseColor: "#1a1206", roughness: 0.95, metallic: 0.0 }
+  }
+
+  // Sediment mounds — soft physics, displaced by thruster wash
+  object "Sediment_A" {
+    @physics(type: "soft", density: 0.3, drag: 8.0)
+    @collidable
+    geometry: "sphere"
+    position: [-2.5, -11.6, 1]
+    scale: [1.8, 0.4, 1.5]
+    material: { baseColor: "#2d2416", roughness: 0.98, metallic: 0.0 }
+  }
+
+  object "Sediment_B" {
+    @physics(type: "soft", density: 0.3, drag: 8.0)
+    @collidable
+    geometry: "sphere"
+    position: [3.2, -11.7, -0.5]
+    scale: [2.2, 0.35, 1.8]
+    material: { baseColor: "#2a2012", roughness: 0.98, metallic: 0.0 }
+  }
+
+  // ── Survey Anchors (holomap_anchor_context) ────────────────────────────────
+  // Four titanium bolts driven into the seabed — physical reference frame.
+  // @holomap_anchor_context declares these objects as the spatial origin for
+  // the reconstruction session.
+
+  object "Anchor_North" {
+    @holomap_anchor_context(
+      session_id: "archive-2026-sea-1",
+      anchor_role: "origin",
+      position_accuracy_m: 0.002,
+      rtk_gps: { enabled: true, base_station: "surface_buoy_01" }
+    )
+    @glowing(color: "#00e676", intensity: 0.8, pulse_hz: 0.5)
+    @collidable
+    geometry: "cylinder"
+    position: [-4, -11.5, -4]
+    scale: [0.08, 0.5, 0.08]
+    material: { baseColor: "#546e7a", roughness: 0.3, metallic: 0.85 }
+  }
+
+  object "Anchor_South" {
+    @holomap_anchor_context(
+      session_id: "archive-2026-sea-1",
+      anchor_role: "reference",
+      position_accuracy_m: 0.003,
+      rtk_gps: { enabled: true, base_station: "surface_buoy_01" }
+    )
+    @glowing(color: "#00e676", intensity: 0.6, pulse_hz: 0.5)
+    @collidable
+    geometry: "cylinder"
+    position: [4, -11.5, -4]
+    scale: [0.08, 0.5, 0.08]
+    material: { baseColor: "#546e7a", roughness: 0.3, metallic: 0.85 }
+  }
+
+  object "Anchor_East" {
+    @holomap_anchor_context(
+      session_id: "archive-2026-sea-1",
+      anchor_role: "reference",
+      position_accuracy_m: 0.003
+    )
+    @glowing(color: "#00e676", intensity: 0.6, pulse_hz: 0.5)
+    @collidable
+    geometry: "cylinder"
+    position: [4, -11.5, 4]
+    scale: [0.08, 0.5, 0.08]
+    material: { baseColor: "#546e7a", roughness: 0.3, metallic: 0.85 }
+  }
+
+  object "Anchor_West" {
+    @holomap_anchor_context(
+      session_id: "archive-2026-sea-1",
+      anchor_role: "reference",
+      position_accuracy_m: 0.004
+    )
+    @glowing(color: "#00e676", intensity: 0.55, pulse_hz: 0.5)
+    @collidable
+    geometry: "cylinder"
+    position: [-4, -11.5, 4]
+    scale: [0.08, 0.5, 0.08]
+    material: { baseColor: "#546e7a", roughness: 0.3, metallic: 0.85 }
+  }
+
+  // ── Carved Tablets — Scan Subject (holomap_reconstruct) ───────────────────
+  // The marble tablets are the primary reconstruction target. @holomap_reconstruct
+  // declares the active scanning session on each slab.
+
+  object "Tablet_Alpha" {
+    @holomap_reconstruct(
+      session_id: "archive-2026-sea-1",
+      input_mode: "video_stream",
+      frame_rate: 30,
+      resolution: [1920, 1080],
+      reconstruction_method: "neural_radiance_field",
+      confidence_threshold: 0.72,
+      output_format: "gaussian_splat"
+    )
+    @collidable
+    geometry: "cube"
+    position: [-1.2, -10.5, -1.5]
+    rotation: [5, -15, 3]
+    scale: [0.8, 1.1, 0.12]
+    material: { baseColor: "#c8bfa4", roughness: 0.75, metallic: 0.0, normal_map: "textures/marble_carved.png" }
+  }
+
+  object "Tablet_Beta" {
+    @holomap_reconstruct(
+      session_id: "archive-2026-sea-1",
+      input_mode: "video_stream",
+      frame_rate: 30,
+      resolution: [1920, 1080],
+      reconstruction_method: "neural_radiance_field",
+      confidence_threshold: 0.68,
+      output_format: "gaussian_splat"
+    )
+    @collidable
+    geometry: "cube"
+    position: [0.6, -10.8, -2]
+    rotation: [-3, 8, -2]
+    scale: [0.7, 0.9, 0.1]
+    material: { baseColor: "#bdb3a0", roughness: 0.78, metallic: 0.0, normal_map: "textures/marble_carved.png" }
+  }
+
+  object "Tablet_Gamma" {
+    @holomap_reconstruct(
+      session_id: "archive-2026-sea-1",
+      input_mode: "video_stream",
+      frame_rate: 24,
+      resolution: [1280, 720],
+      reconstruction_method: "dense_sfm",
+      confidence_threshold: 0.65,
+      output_format: "gaussian_splat"
+    )
+    @collidable
+    geometry: "cube"
+    position: [1.8, -11, -0.8]
+    rotation: [8, 20, 1]
+    scale: [0.55, 0.75, 0.09]
+    material: { baseColor: "#c5bba9", roughness: 0.72, metallic: 0.0 }
+  }
+
+  // ── Scanning Drone (holomap_camera_trajectory + holomap_drift_correction) ──
+  // The drone holds the reconstruction camera. Its flight path is declared via
+  // @holomap_camera_trajectory (orbital, 2m radius around the tablet cluster).
+  // @holomap_drift_correction watches for current-induced pose error and applies
+  // incremental corrections at 10 Hz.
+
+  object "ScanDrone" {
+    @holomap_camera_trajectory(
+      session_id: "archive-2026-sea-1",
+      path_mode: "orbital",
+      orbit_center: [0, -10.5, -1.5],
+      orbit_radius: 2.8,
+      orbit_plane_normal: [0, 1, 0],
+      altitude_oscillation: { amplitude: 0.4, period_s: 12.0 },
+      speed_m_per_s: 0.22,
+      camera_fov: 72,
+      overlap_pct: 78
+    )
+    @holomap_drift_correction(
+      session_id: "archive-2026-sea-1",
+      correction_strategy: "incremental_icp",
+      correction_hz: 10,
+      max_correction_m: 0.05,
+      reference_anchors: ["Anchor_North", "Anchor_South", "Anchor_East", "Anchor_West"]
+    )
+    @glowing(color: "#80d8ff", intensity: 1.2)
+    @physics(type: "rigid", mass: 4.5, drag: 6.0, angular_drag: 4.0)
+    geometry: "custom"
+    model: "models/research_drone.glb"
+    position: [2.8, -10.5, -1.5]
+    scale: [0.25, 0.25, 0.25]
+    material: { baseColor: "#b0bec5", roughness: 0.4, metallic: 0.7 }
+  }
+
+  // Thruster wash — bioluminescent particles stirred by props
+  particle_system "ThrusterWash" {
+    emitter: "ScanDrone"
+    rate: 80
+    lifetime: 1.8
+    speed: [0.05, 0.3]
+    size: [0.02, 0.06]
+    color: { from: "#80d8ff44", to: "#80d8ff00" }
+    affected_by_current: true
+  }
+
+  // ── Splat Output Panel (holomap_splat_output) ──────────────────────────────
+  // Floats 3m above the tablet cluster. The reconstruction pipeline writes
+  // completed Gaussian splat data into this panel in real time. Collaborators
+  // can grab it and inspect the emerging model.
+
+  object "SplatPanel" {
+    @holomap_splat_output(
+      session_id: "archive-2026-sea-1",
+      output_mode: "realtime_preview",
+      lod_levels: [0.25, 0.5, 0.75, 1.0],
+      lod_switch_distances: [2.0, 4.0, 8.0],
+      splat_scale: 0.004,
+      opacity_floor: 0.15,
+      colorspace: "linear_srgb",
+      show_confidence_overlay: true,
+      confidence_color_map: "viridis"
+    )
+    @networked(sync_mode: "authoritative", owner: "session_lead")
+    @grabbable(two_handed: true, rotation_enabled: true, haptic_on_grab: true)
+    @glowing(color: "#ffcc02", intensity: 0.45, pulse_hz: 0.2)
+    geometry: "plane"
+    position: [0, -7.5, -1.5]
+    rotation: [0, 0, 0]
+    scale: [2.4, 1.6, 1]
+    material: { baseColor: "#0d0d0d", roughness: 1.0, metallic: 0.0, opacity: 0.95 }
+  }
+
+  // ── Researcher AI Voice (speech) ───────────────────────────────────────────
+  // Disembodied voice — appears to emanate from the water column itself.
+  // Fires on reconstruction events: new tablet face visible, confidence plateau,
+  // session complete.
+
+  object "ResearcherAI" {
+    @speech(
+      voice: "soft_academic",
+      language: "en-US",
+      spatial: true,
+      position_locked: false,
+      falloff: "inverse_distance",
+      min_range: 0.5,
+      max_range: 18,
+      events: {
+        "on_surface_reconstructed": "New surface confirmed. ${tablet_id} — ${confidence_pct}% confidence.",
+        "on_text_detected": "Inscription visible: ${detected_text}",
+        "on_confidence_plateau": "Scan saturation at ${plateau_pct}%. Moving to next orbit.",
+        "on_session_complete": "Session archive-2026-sea-1 complete. ${total_tablets} tablets mapped.",
+        "on_drift_correction_applied": "Drift corrected — ${delta_mm}mm adjustment applied."
+      },
+      tts_provider: "edge_tts",
+      pitch: 0.05,
+      speed: 0.88,
+      reverb: { wet: 0.55, decay: 1.4 }
+    )
+    position: [0, -9, -1.5]
+    geometry: "sphere"
+    scale: 0.001
+    material: { opacity: 0.0 }
+  }
+}

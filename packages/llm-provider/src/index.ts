@@ -40,6 +40,8 @@ export type {
   GeminiProviderConfig,
   BitNetProviderConfig,
   LocalLLMProviderConfig,
+  OpenRouterProviderConfig,
+  XAIProviderConfig,
   LLMProviderRegistry,
   ProviderSelectionStrategy,
   // Tool-use types — added 2026-04-25 for mesh-agent runner
@@ -84,6 +86,12 @@ export type { BitNetModel } from './adapters/bitnet';
 export { LocalLLMAdapter, LOCAL_LLM_MODELS } from './adapters/local-llm';
 export type { LocalLLMModel } from './adapters/local-llm';
 
+export { OpenRouterAdapter, OPENROUTER_MODELS } from './adapters/openrouter';
+export type { OpenRouterModel } from './adapters/openrouter';
+
+export { XAIAdapter, XAI_MODELS } from './adapters/xai';
+export type { XAIModel } from './adapters/xai';
+
 // Provider manager
 export { LLMProviderManager } from './provider-manager';
 export type { ProviderManagerConfig } from './provider-manager';
@@ -109,6 +117,8 @@ import { GeminiAdapter } from './adapters/gemini';
 import { MockAdapter } from './adapters/mock';
 import { BitNetAdapter } from './adapters/bitnet';
 import { LocalLLMAdapter } from './adapters/local-llm';
+import { OpenRouterAdapter } from './adapters/openrouter';
+import { XAIAdapter } from './adapters/xai';
 import { LLMProviderManager } from './provider-manager';
 import type {
   OpenAIProviderConfig,
@@ -116,6 +126,8 @@ import type {
   GeminiProviderConfig,
   BitNetProviderConfig,
   LocalLLMProviderConfig,
+  OpenRouterProviderConfig,
+  XAIProviderConfig,
 } from './types';
 
 /**
@@ -212,6 +224,50 @@ export function createLocalLLMProvider(config?: Partial<LocalLLMProviderConfig>)
 }
 
 /**
+ * Create an OpenRouter adapter from environment variables.
+ * Uses OPENROUTER_API_KEY environment variable.
+ * OpenRouter provides an OpenAI-compatible API that routes to 200+ models.
+ *
+ * @example
+ * ```typescript
+ * const openrouter = createOpenRouterProvider();
+ * const scene = await openrouter.generateHoloScript({
+ *   prompt: "a floating island with glowing crystals",
+ * });
+ * ```
+ */
+export function createOpenRouterProvider(config?: Partial<OpenRouterProviderConfig>): OpenRouterAdapter {
+  const apiKey =
+    config?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENROUTER_API_KEY : '') ?? '';
+  if (!apiKey) {
+    throw new Error('OpenRouter API key required. Set OPENROUTER_API_KEY or pass apiKey in config.');
+  }
+  return new OpenRouterAdapter({ ...config, apiKey });
+}
+
+/**
+ * Create an xAI (Grok) adapter from environment variables.
+ * Uses XAI_API_KEY environment variable.
+ * xAI provides an OpenAI-compatible API at https://api.x.ai/v1.
+ *
+ * @example
+ * ```typescript
+ * const xai = createXAIProvider();
+ * const scene = await xai.generateHoloScript({
+ *   prompt: "a floating island with glowing crystals",
+ * });
+ * ```
+ */
+export function createXAIProvider(config?: Partial<XAIProviderConfig>): XAIAdapter {
+  const apiKey =
+    config?.apiKey ?? (typeof process !== 'undefined' ? process.env.XAI_API_KEY : '') ?? '';
+  if (!apiKey) {
+    throw new Error('xAI API key required. Set XAI_API_KEY or pass apiKey in config.');
+  }
+  return new XAIAdapter({ ...config, apiKey });
+}
+
+/**
  * Create a provider manager with automatic provider detection.
  * Reads API keys from environment variables.
  */
@@ -222,6 +278,8 @@ export function createProviderManager(): LLMProviderManager {
     gemini?: GeminiAdapter;
     bitnet?: BitNetAdapter;
     'local-llm'?: LocalLLMAdapter;
+    openrouter?: OpenRouterAdapter;
+    xai?: XAIAdapter;
   } = {};
 
   const openaiKey = typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : '';
@@ -230,10 +288,14 @@ export function createProviderManager(): LLMProviderManager {
     typeof process !== 'undefined'
       ? (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY)
       : '';
+  const openrouterKey = typeof process !== 'undefined' ? process.env.OPENROUTER_API_KEY : '';
+  const xaiKey = typeof process !== 'undefined' ? process.env.XAI_API_KEY : '';
 
   if (openaiKey) providers.openai = new OpenAIAdapter({ apiKey: openaiKey });
   if (anthropicKey) providers.anthropic = new AnthropicAdapter({ apiKey: anthropicKey });
   if (geminiKey) providers.gemini = new GeminiAdapter({ apiKey: geminiKey });
+  if (openrouterKey) providers.openrouter = new OpenRouterAdapter({ apiKey: openrouterKey });
+  if (xaiKey) providers.xai = new XAIAdapter({ apiKey: xaiKey });
 
   // LocalLLM: any OpenAI-compatible local server (llama.cpp, Ollama, LM Studio)
   // Only registered when HOLOSCRIPT_LOCAL_LLM_URL is explicitly set.
@@ -272,7 +334,7 @@ export function createProviderManager(): LLMProviderManager {
 
   if (Object.keys(providers).length === 0) {
     throw new Error(
-      'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, or start a local server.'
+      'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, XAI_API_KEY, or start a local server.'
     );
   }
 

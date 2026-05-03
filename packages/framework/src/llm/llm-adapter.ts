@@ -3,9 +3,19 @@
  *
  * Thin wrapper that dispatches to Anthropic, OpenAI, xAI, or OpenRouter.
  * Each agent can use a different provider/model.
+ *
+ * Migrated (B1b) from inline fetch() calls to @holoscript/llm-provider
+ * adapters, which inherit withRetry from BaseLLMAdapter — exponential
+ * backoff + Retry-After honoring on 429/5xx.
  */
 
 import type { ModelConfig } from '../types';
+import {
+  AnthropicAdapter,
+  OpenAIAdapter,
+  OpenRouterAdapter,
+  XAIAdapter,
+} from '@holoscript/llm-provider';
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -46,48 +56,20 @@ async function callAnthropic(
   maxTokens: number,
   temperature: number
 ): Promise<LLMResponse> {
-  const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY required');
-
-  const system = messages
-    .filter((m) => m.role === 'system')
-    .map((m) => m.content)
-    .join('\n');
-  const userMessages = messages
-    .filter((m) => m.role !== 'system')
-    .map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: maxTokens,
-      temperature,
-      system: system || undefined,
-      messages: userMessages,
-    }),
-    signal: AbortSignal.timeout(60_000),
+  const adapter = new AnthropicAdapter({
+    apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY || '',
+    defaultModel: config.model,
   });
-
-  if (!res.ok) throw new Error(`Anthropic API error: ${res.status}`);
-  const data = (await res.json()) as {
-    content: Array<{ text: string }>;
-    usage?: { output_tokens: number };
-  };
-
+  const result = await adapter.complete({
+    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    maxTokens,
+    temperature,
+  });
   return {
-    content: data.content?.[0]?.text || '',
+    content: result.content,
     model: config.model,
     provider: 'anthropic',
-    tokensUsed: data.usage?.output_tokens,
+    tokensUsed: result.usage?.completionTokens,
   };
 }
 
@@ -101,34 +83,35 @@ async function callOpenAICompatible(
   const apiKey = config.apiKey || (isXAI ? process.env.XAI_API_KEY : process.env.OPENAI_API_KEY);
   if (!apiKey) throw new Error(`${config.provider.toUpperCase()}_API_KEY required`);
 
-  const baseUrl = isXAI ? 'https://api.x.ai/v1' : 'https://api.openai.com/v1';
-
-  const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: maxTokens,
+  if (isXAI) {
+    const adapter = new XAIAdapter({ apiKey, defaultModel: config.model });
+    const result = await adapter.complete({
+      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      maxTokens,
       temperature,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    }),
-    signal: AbortSignal.timeout(60_000),
+    });
+    return {
+      content: result.content,
+      model: config.model,
+      provider: 'xai',
+      tokensUsed: result.usage?.completionTokens,
+    };
+  }
+
+  const adapter = new OpenAIAdapter({
+    apiKey,
+    defaultModel: config.model,
   });
-
-  if (!res.ok) throw new Error(`${config.provider} API error: ${res.status}`);
-  const data = (await res.json()) as {
-    choices: Array<{ message: { content: string } }>;
-    usage?: { completion_tokens: number };
-  };
-
+  const result = await adapter.complete({
+    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    maxTokens,
+    temperature,
+  });
   return {
-    content: data.choices?.[0]?.message?.content || '',
+    content: result.content,
     model: config.model,
     provider: config.provider,
-    tokensUsed: data.usage?.completion_tokens,
+    tokensUsed: result.usage?.completionTokens,
   };
 }
 
@@ -138,36 +121,19 @@ async function callOpenRouter(
   maxTokens: number,
   temperature: number
 ): Promise<LLMResponse> {
-  const apiKey = config.apiKey || process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY required');
-
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://holoscript.net',
-      'X-Title': 'HoloScript Framework',
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: maxTokens,
-      temperature,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    }),
-    signal: AbortSignal.timeout(60_000),
+  const adapter = new OpenRouterAdapter({
+    apiKey: config.apiKey || process.env.OPENROUTER_API_KEY || '',
+    defaultModel: config.model,
   });
-
-  if (!res.ok) throw new Error(`OpenRouter API error: ${res.status}`);
-  const data = (await res.json()) as {
-    choices: Array<{ message: { content: string } }>;
-    usage?: { completion_tokens: number };
-  };
-
+  const result = await adapter.complete({
+    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    maxTokens,
+    temperature,
+  });
   return {
-    content: data.choices?.[0]?.message?.content || '',
+    content: result.content,
     model: config.model,
     provider: 'openrouter',
-    tokensUsed: data.usage?.completion_tokens,
+    tokensUsed: result.usage?.completionTokens,
   };
 }

@@ -1,11 +1,12 @@
 import type http from 'http';
-import { 
-  teamStore, 
-  bountySubmissionStore, 
-  bountyMiniGameStore, 
+import {
+  teamStore,
+  bountySubmissionStore,
+  bountyMiniGameStore,
   bountyGovernanceStore,
   persistTeamStore,
   persistSocialStore,
+  reloadTeam,
 } from '../state';
 import { 
   json, 
@@ -89,6 +90,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -182,6 +184,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -572,6 +575,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(proposal.teamId);
     const team = teamStore.get(proposal.teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found for proposal' });
@@ -625,6 +629,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(proposal.teamId);
     const team = teamStore.get(proposal.teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found for proposal' });
@@ -696,6 +701,7 @@ export async function handleBountyRoutes(
       return true;
     }
 
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });

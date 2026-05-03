@@ -4,6 +4,7 @@
 [workspace]
 members = [
     "packages/compiler-wasm",
+    "packages/tauri-app/src-tauri",
 ]
 resolver = "2"
 

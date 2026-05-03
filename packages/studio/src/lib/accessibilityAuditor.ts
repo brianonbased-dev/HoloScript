@@ -9,7 +9,11 @@
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
-export type Vec3 = [number, number, number];
+export type Vec3 = { x: number; y: number; z: number } | [number, number, number];
+
+function v3x(v: Vec3): number { return Array.isArray(v) ? v[0] : v.x; }
+function v3y(v: Vec3): number { return Array.isArray(v) ? v[1] : v.y; }
+function v3z(v: Vec3): number { return Array.isArray(v) ? v[2] : v.z; }
 
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
 export type WCAGLevel = 'A' | 'AA' | 'AAA';
@@ -422,7 +426,7 @@ export function wcagContrastRatio(
 // ═══════════════════════════════════════════════════════════════════
 
 export interface WheelchairCamera {
-  position: Vec3;
+  position: { x: number; y: number; z: number };
   eyeHeight: number;
   fovDegrees: number;
   reachRadius: number;
@@ -442,16 +446,16 @@ export function vrWheelchairPerspective(
 
   const obstaclesInView = obstacles
     .filter((o) => {
-      const dx = o.position[0] - position[0];
-      const dy = o.position[1] - position[1];
-      const dz = o.position[2] - position[2];
+      const dx = v3x(o.position) - v3x(position);
+      const dy = v3y(o.position) - v3y(position);
+      const dz = v3z(o.position) - v3z(position);
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= maxViewDistance && o.heightCm > eyeHeight * 100;
     })
     .map((o) => o.id);
 
   return {
-    position: [position[0], eyeHeight, position[2]],
+    position: { x: v3x(position), y: eyeHeight, z: v3z(position) },
     eyeHeight,
     fovDegrees: 90,
     reachRadius,

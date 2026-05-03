@@ -33,6 +33,7 @@ import {
   detectMediaSourceKind,
   isValidUploadResponse,
   shareUrlForHash,
+  gramUrlForHash,
   type UploadResponse,
 } from './hologramShareLogic';
 
@@ -65,7 +66,7 @@ type Status =
   | { kind: 'idle' }
   | { kind: 'processing'; filename: string }
   | { kind: 'uploading'; filename: string }
-  | { kind: 'done'; hash: string; url: string }
+  | { kind: 'done'; hash: string; url: string; gramUrl: string; expiresAt?: string | null }
   | { kind: 'error'; message: string };
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -154,7 +155,8 @@ export function HologramShareDropZone({
       }
 
       const url = shareUrlForHash(payload.hash);
-      setStatus({ kind: 'done', hash: payload.hash, url });
+      const gramUrl = gramUrlForHash(payload.hash);
+      setStatus({ kind: 'done', hash: payload.hash, url, gramUrl, expiresAt: payload.expiresAt });
       setCopied(false);
     },
     [fetchImpl, buildBundleOverride]
@@ -200,7 +202,7 @@ export function HologramShareDropZone({
     if (status.kind !== 'done') return;
     const target = `${
       typeof window !== 'undefined' ? window.location.origin : ''
-    }${status.url}`;
+    }${status.gramUrl}`;
     try {
       if (
         typeof navigator !== 'undefined' &&
@@ -234,7 +236,7 @@ export function HologramShareDropZone({
           {isDragging ? 'Drop to publish hologram' : 'Drop image, GIF, or video to share'}
         </p>
         <p className="mt-1 text-[11px] text-studio-muted">
-          Generates a /g/&lt;hash&gt; URL anyone can open
+          Generates a /gram/&lt;hash&gt; URL anyone can open
         </p>
       </div>
 
@@ -257,8 +259,13 @@ export function HologramShareDropZone({
         <div className="flex flex-col gap-2 rounded-lg border border-studio-border bg-black/30 p-3">
           <p className="text-xs text-studio-muted">Published at:</p>
           <code className="block break-all rounded bg-black/40 px-2 py-1 text-xs text-purple-300">
-            {status.url}
+            {status.gramUrl}
           </code>
+          {status.expiresAt && (
+            <p className="text-[10px] text-studio-muted">
+              Expires: {new Date(status.expiresAt).toLocaleDateString()}
+            </p>
+          )}
           <button
             type="button"
             onClick={onCopy}
@@ -311,5 +318,6 @@ export {
   detectMediaSourceKind,
   isValidUploadResponse,
   shareUrlForHash,
+  gramUrlForHash,
   type UploadResponse,
 };

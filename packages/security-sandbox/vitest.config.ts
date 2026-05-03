@@ -3,11 +3,11 @@ import { resolve } from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@holoscript/core/reconstruction': resolve(__dirname, '../core/src/reconstruction/index.ts'),
-      '@holoscript/core': resolve(__dirname, '../core/src/index.ts'),
-      '@holoscript/holomap': resolve(__dirname, '../holomap/src/index.ts'),
-    },
+    alias: [
+      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, '../core/src/reconstruction/index.ts') },
+      { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
+      { find: '@holoscript/holomap', replacement: resolve(__dirname, '../holomap/src/index.ts') },
+    ],
   },
   test: {
     name: 'security-sandbox',

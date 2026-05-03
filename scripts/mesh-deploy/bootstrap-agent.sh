@@ -289,12 +289,50 @@ for tier in table['tiers']:
   # `jupyter-notebook ... --port=8080`, silently shadowing vLLM and leaving
   # 16 local-llm workers unable to reach their LLM despite claiming tasks).
   LLM_PORT="${LOCAL_LLM_PORT:-8081}"
-  # Verify nothing else owns the port; fail loud rather than silently shadow.
+
+  # ── Idempotency: skip if vLLM already running and healthy ──────────────────
+  # Re-bootstrap of the same instance (retry, update, idempotent deploy) must
+  # not fatal-exit on port collision. Matches sidecar guard pattern (line 417)
+  # but with smarter /proc/$PID/cmdline inspection: only reclaim the port if
+  # the owning process is actually vLLM. Non-vLLM owners (Jupyter, SSH, etc.)
+  # are never killed — the start is skipped and a warning is logged instead.
+  # This prevents the previous exit-5-on-any-collision behavior that broke retry
+  # and re-bootstrap on Vast.ai instances where port 8081 can be held by
+  # unrelated system processes.
+  VLLM_ALREADY_UP=0
   if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${LLM_PORT}$"; then
-    echo "[bootstrap] FATAL: port $LLM_PORT already in use — set LOCAL_LLM_PORT to a free port" >&2
-    ss -ltn 2>&1 | head -10 >&2
-    exit 5
+    # Find the PID owning the port (prefer lsof; fall back to ss -ltnp parse)
+    _PORT_PID=$(lsof -ti :${LLM_PORT} 2>/dev/null || ss -ltnp 2>/dev/null | awk -v p=":${LLM_PORT}" '$0~p{for(i=1;i<=NF;i++)if(match($i,/^pid=[0-9]+/))print substr($i,5)}' || true)
+    # Probe the owning process via /proc/$PID/cmdline to decide whether it's vLLM
+    _IS_VLLM=0
+    if [ -n "$_PORT_PID" ]; then
+      _CMDLINE=$(tr '\0' ' ' < "/proc/${_PORT_PID}/cmdline" 2>/dev/null || true)
+      if echo "$_CMDLINE" | grep -qiE 'vllm[./]|vllm\.entrypoints'; then
+        _IS_VLLM=1
+      fi
+    fi
+
+    if curl -sf "http://localhost:${LLM_PORT}/v1/models" > /dev/null 2>&1; then
+      echo "[bootstrap] vLLM already running on port $LLM_PORT and healthy — skipping start"
+      export HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL="http://localhost:$LLM_PORT"
+      VLLM_ALREADY_UP=1
+    elif [ "$_IS_VLLM" = "1" ]; then
+      # Port held by vLLM but NOT healthy — stale/zombie vLLM. Safe to reclaim.
+      echo "[bootstrap] port $LLM_PORT held by stale vLLM (pid $_PORT_PID) — reclaiming..."
+      kill "$_PORT_PID" 2>/dev/null || true
+      sleep 2
+    else
+      # Port held by a NON-vLLM process (Jupyter, SSH, etc.). Never kill it.
+      # Match sidecar behavior: skip start and warn. Agent will fall back to
+      # HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL or fail gracefully at runtime.
+      echo "[bootstrap] WARN: port $LLM_PORT held by non-vLLM process (pid ${_PORT_PID:-unknown}, cmd: ${_CMDLINE:-unknown}) — skipping vLLM start. Set LOCAL_LLM_PORT to a free port." >&2
+      VLLM_ALREADY_UP=1  # prevent vLLM start block; agent runtime decides what to do
+    fi
   fi
+
+  if [ "$VLLM_ALREADY_UP" = "1" ]; then
+    : # nothing more to do for main vLLM
+  else
   echo "[bootstrap] starting vLLM server: $LLM_MODEL on port $LLM_PORT"
   # Vast.ai images ship `python3` and `pip3` only — no bare `python` symlink.
   # Without this resolution every previous bootstrap silently aborted vLLM
@@ -348,6 +386,69 @@ for tier in table['tiers']:
     echo "[bootstrap] FATAL: vLLM did not bind $LLM_PORT within $((GRACE_POLLS * POLL_S))s — see $LOG_DIR/vllm.log" >&2
     tail -30 "$LOG_DIR/vllm.log" >&2 || true
     exit 6
+  fi
+  fi # closes VLLM_ALREADY_UP else
+fi
+
+# ---------------------------------------------------------------------------
+# Sidecars: co-located vLLM processes for specialist models (AMBER §7)
+# ---------------------------------------------------------------------------
+# HOLOSCRIPT_AGENT_SIDECARS is a JSON array passed by the deployer.
+# Each entry: {"name":"lean-prover","model":"Goedel-LM/Goedel-Prover-V2-7B",
+#              "port":8082,"vllm_args":["--enforce-eager","--gpu-memory-utilization=0.10"]}
+# GPU sharing: each sidecar gets a VRAM slice via --gpu-memory-utilization.
+# The main vLLM already claimed its slice above; sidecars must fit in remainder.
+if [ -n "${HOLOSCRIPT_AGENT_SIDECARS:-}" ]; then
+  echo "[bootstrap] parsing sidecars from env..."
+  _SC_COUNT=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
+  if [ "$_SC_COUNT" -gt 0 ] 2>/dev/null; then
+    for _SC_IDX in $(seq 0 $((_SC_COUNT - 1))); do
+      _SC_NAME=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['name'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_MODEL=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['model'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_PORT=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d['port'])" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_ARGS=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(' '.join(d.get('vllm_args',[])))" IDX="$_SC_IDX" 2>/dev/null)
+      _SC_ENVVAR=$(echo "$HOLOSCRIPT_AGENT_SIDECARS" | python3 -c "import sys,json,os; d=json.load(sys.stdin)[int(os.environ['IDX'])]; print(d.get('consumed_by_env_var',''))" IDX="$_SC_IDX" 2>/dev/null)
+
+      if [ -z "$_SC_NAME" ] || [ -z "$_SC_MODEL" ] || [ -z "$_SC_PORT" ]; then
+        echo "[bootstrap] WARN: sidecar[$_SC_IDX] missing required fields — skipping" >&2
+        continue
+      fi
+
+      # Port collision guard
+      if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${_SC_PORT}$"; then
+        echo "[bootstrap] WARN: sidecar $_SC_NAME port $_SC_PORT already in use — skipping" >&2
+        continue
+      fi
+
+      echo "[bootstrap] starting sidecar $_SC_NAME: $_SC_MODEL on port $_SC_PORT"
+      nohup "$PY_BIN" -m vllm.entrypoints.openai.api_server \
+        --model "$_SC_MODEL" \
+        --port "$_SC_PORT" \
+        $_SC_ARGS \
+        > "$LOG_DIR/sidecar-${_SC_NAME}.log" 2>&1 &
+      _SC_PID=$!
+      echo $_SC_PID > "$LOG_DIR/sidecar-${_SC_NAME}.pid"
+
+      # Wait for sidecar to be ready (shorter grace than main vLLM)
+      _SC_UP=0
+      for _SC_ATTEMPT in $(seq 1 30); do
+        sleep 5
+        if curl -sf "http://localhost:${_SC_PORT}/v1/models" >/dev/null 2>&1; then
+          _SC_UP=1
+          echo "[bootstrap] sidecar $_SC_NAME responding on $_SC_PORT (attempt $_SC_ATTEMPT)"
+          break
+        fi
+      done
+      if [ "$_SC_UP" = "0" ]; then
+        echo "[bootstrap] WARN: sidecar $_SC_NAME did not bind $_SC_PORT within 150s — see $LOG_DIR/sidecar-${_SC_NAME}.log" >&2
+      fi
+
+      # Export URL for agent runtime dispatch
+      if [ -n "$_SC_ENVVAR" ]; then
+        export "${_SC_ENVVAR}=http://localhost:${_SC_PORT}/v1"
+        echo "[bootstrap] exported ${_SC_ENVVAR}=http://localhost:${_SC_PORT}/v1"
+      fi
+    done
   fi
 fi
 

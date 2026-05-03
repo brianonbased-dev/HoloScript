@@ -7,6 +7,12 @@ import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoVali
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
+import {
+  AnthropicAdapter,
+  OpenAIAdapter,
+  OpenRouterAdapter,
+  LocalLLMAdapter,
+} from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -199,105 +205,77 @@ export async function POST(request: NextRequest) {
 }
 
 async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+  // B1a: migrated from inline fetch() to @holoscript/llm-provider adapters
+  // which inherit withRetry from BaseLLMAdapter — exponential backoff
+  // on 429/5xx + Retry-After honoring.
+  const providers: Array<{ name: string; call: () => Promise<string | null> }> = [];
+
   const openrouterKey = process.env.OPENROUTER_API_KEY || '';
   const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
   const openaiKey = process.env.OPENAI_API_KEY || '';
 
-  // OpenRouter
   if (openrouterKey) {
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openrouterKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+    const adapter = new OpenRouterAdapter({ apiKey: openrouterKey });
+    providers.push({
+      name: 'openrouter',
+      call: async () => {
+        const result = await adapter.complete({
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt },
           ],
-          max_tokens: 4096,
+          maxTokens: 4096,
           temperature: 0.7,
-        }),
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
-      }
-    } catch {
-      // try next provider
-    }
+        });
+        return result.content || null;
+      },
+    });
   }
 
-  // Anthropic
   if (anthropicKey) {
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: (() => {
-          const model =
-            process.env.BRITTNEY_MODEL ||
-            process.env.ANTHROPIC_MODEL ||
-            'claude-opus-4-7';
-          // Opus 4.7 removes temperature/top_p (400 if sent). Only send
-          // temperature for models that still accept it.
-          const isOpus47 = model === 'claude-opus-4-7';
-          return JSON.stringify({
-            model,
-            max_tokens: 16000,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: prompt }],
-            ...(isOpus47 ? {} : { temperature: 0.7 }),
-          });
-        })(),
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { content?: Array<{ text?: string }> };
-        const text = data.content?.[0]?.text;
-        if (text) return text;
-      }
-    } catch {
-      // try next provider
-    }
-  }
-
-  // OpenAI
-  if (openaiKey) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || 'gpt-4.1',
+    const model = process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
+    const adapter = new AnthropicAdapter({ apiKey: anthropicKey, defaultModel: model });
+    providers.push({
+      name: 'anthropic',
+      call: async () => {
+        const isOpus47 = model === 'claude-opus-4-7';
+        const result = await adapter.complete({
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt },
           ],
-          max_tokens: 4096,
+          maxTokens: 16000,
+          ...(isOpus47 ? {} : { temperature: 0.7 }),
+        });
+        return result.content || null;
+      },
+    });
+  }
+
+  if (openaiKey) {
+    const adapter = new OpenAIAdapter({ apiKey: openaiKey });
+    providers.push({
+      name: 'openai',
+      call: async () => {
+        const result = await adapter.complete({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          maxTokens: 4096,
           temperature: 0.7,
-        }),
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
-      }
+        });
+        return result.content || null;
+      },
+    });
+  }
+
+  for (const provider of providers) {
+    try {
+      const result = await provider.call();
+      if (result) return result;
     } catch {
-      // no-op, fallback to local if configured
+      // try next provider
     }
   }
 
@@ -306,23 +284,20 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
 
 async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) return null; // Optional local fallback
+  if (!ollamaUrl) return null;
 
   try {
-    const res = await fetch(`${ollamaUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest',
-        prompt: `${GENERATE_SYSTEM}\n\n${fullPrompt}`,
-        stream: false,
-        options: { temperature: 0.7, num_predict: 2048 },
-      }),
-      signal: AbortSignal.timeout(30_000),
+    const adapter = new LocalLLMAdapter({
+      baseURL: ollamaUrl,
+      defaultModel: process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest',
+      timeoutMs: 30_000,
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { response?: string };
-    return data.response ?? null;
+    const result = await adapter.complete({
+      messages: [{ role: 'user', content: fullPrompt }],
+      maxTokens: 2048,
+      temperature: 0.7,
+    });
+    return result.content || null;
   } catch {
     return null;
   }

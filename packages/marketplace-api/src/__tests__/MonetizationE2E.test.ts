@@ -93,10 +93,11 @@ describe('Monetization Layer E2E Integration', () => {
     const req2 = {
       body: {
         payment_id: paymentId,
-        transaction_hash: '0xHash123',
+        transaction_hash: '0x' + 'ab'.repeat(32),
         network: 'base',
         creator_address: '0xPhoenixBrewOwner',
         agent_address: '0xConciergeAgent', // The agent completing the transaction for the user
+        content_id: 'phoenix-brew',
       },
     } as unknown as Request;
 
@@ -111,12 +112,10 @@ describe('Monetization Layer E2E Integration', () => {
       }),
     } as unknown as Response;
 
-    // We must mock the verifyPayment internal check to resolve true
-    vi.spyOn(paymentService as any, 'verifyPayment').mockResolvedValue({
-      payment_id: paymentId,
+    // Current implementation verifies chain receipt directly in facilitatorCallback.
+    vi.spyOn(paymentService as any, 'getBlockchainReceipt').mockResolvedValue({
       amount: 10,
-      content_id: 'phoenix-brew',
-      access_granted: true,
+      recipient: '0xPhoenixBrewOwner',
     });
 
     await paymentService.facilitatorCallback(req2, res2);
@@ -141,6 +140,20 @@ describe('Monetization Layer E2E Integration', () => {
       url: '/api/vrr/phoenix-brew',
       params: { twin_id: 'phoenix-brew' },
     } as unknown as Request;
+
+    vi.spyOn(paymentService as any, 'verifyPayment').mockResolvedValue({
+      payment_id: paymentId,
+      transaction_hash: '0x' + 'ab'.repeat(32),
+      block_number: 1,
+      timestamp: Math.floor(Date.now() / 1000),
+      payer_address: '0xPayer',
+      recipient_address: '0xPhoenixBrewOwner',
+      amount: 10,
+      asset: 'USDC',
+      network: 'base',
+      content_id: 'phoenix-brew',
+      access_granted: true,
+    });
 
     const res3 = {
       status: vi.fn().mockReturnThis(),

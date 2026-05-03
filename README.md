@@ -291,6 +291,7 @@ HoloScript release lanes are managed under `scripts/version-policy.json` (for ex
 - [TypeScript API reference](https://holoscript.net/docs/api/) — TypeDoc output (run `pnpm docs:api` locally → [`docs/api/`](./docs/api/))
 - [Examples](./examples/README.md) — copy-paste starting points
 - [Strategy](./docs/strategy/ROADMAP.md) — roadmap and vision
+- [Universal IR Coverage](./docs/universal-ir-coverage.md) — how HoloScript bridges 3D ecosystem tools
 - [Plugins](./packages/plugins/) — domain extensions
 
 ---

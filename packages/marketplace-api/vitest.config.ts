@@ -13,9 +13,9 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
-    },
+    alias: [
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+      { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
+    ],
   },
 });

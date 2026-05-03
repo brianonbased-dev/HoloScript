@@ -213,64 +213,76 @@ function readFarmSource(relativePath: string, maxLines = 300): string {
   }
 }
 
-// ── LLM Client (lightweight Claude API — no SDK dependency) ──
+// ── LLM Client (delegated to @holoscript/llm-provider — withRetry on 429/5xx) ──
+
+import {
+  AnthropicAdapter,
+  OpenRouterAdapter,
+} from '@holoscript/llm-provider';
+
+let _openrouterAdapter: OpenRouterAdapter | null = null;
+let _anthropicAdapter: AnthropicAdapter | null = null;
+
+function getOpenRouterAdapter(): OpenRouterAdapter | null {
+  if (!OPENROUTER_API_KEY) return null;
+  if (!_openrouterAdapter) {
+    _openrouterAdapter = new OpenRouterAdapter({
+      apiKey: OPENROUTER_API_KEY,
+      defaultModel: OPENROUTER_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _openrouterAdapter;
+}
+
+function getAnthropicAdapter(): AnthropicAdapter | null {
+  if (!ANTHROPIC_API_KEY) return null;
+  if (!_anthropicAdapter) {
+    _anthropicAdapter = new AnthropicAdapter({
+      apiKey: ANTHROPIC_API_KEY,
+      defaultModel: CLAUDE_MODEL,
+      timeoutMs: LLM_TIMEOUT,
+    });
+  }
+  return _anthropicAdapter;
+}
 
 async function queryClaude(
   prompt: string,
   system: string,
   maxTokens = 1024
 ): Promise<string | null> {
-  // Try OpenRouter first (preferred), then direct Anthropic
-  if (OPENROUTER_API_KEY) {
+  // Try OpenRouter first (preferred), then direct Anthropic.
+  // Both paths now use @holoscript/llm-provider adapters which
+  // inherit withRetry from BaseLLMAdapter — exponential backoff
+  // on 429/5xx + Retry-After honoring.
+  const openrouter = getOpenRouterAdapter();
+  if (openrouter) {
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://mcp.holoscript.net',
-          'X-Title': 'HoloScript Scout',
-        },
-        body: JSON.stringify({
-          model: OPENROUTER_MODEL,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: maxTokens,
-        }),
-        signal: AbortSignal.timeout(LLM_TIMEOUT),
+      const result = await openrouter.complete({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens,
       });
-      if (res.ok) {
-        const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-        return data.choices?.[0]?.message?.content || null;
-      }
+      return result.content || null;
     } catch {
       /* fall through to Anthropic */
     }
   }
 
-  if (ANTHROPIC_API_KEY) {
+  const anthropic = getAnthropicAdapter();
+  if (anthropic) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: CLAUDE_MODEL,
-          max_tokens: maxTokens,
-          system,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-        signal: AbortSignal.timeout(LLM_TIMEOUT),
+      const result = await anthropic.complete({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens,
       });
-      if (res.ok) {
-        const data = (await res.json()) as { content: Array<{ text: string }> };
-        return data.content?.[0]?.text || null;
-      }
+      return result.content || null;
     } catch {
       /* no LLM available */
     }

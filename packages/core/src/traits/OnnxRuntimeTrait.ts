@@ -1,6 +1,36 @@
 /**
  * OnnxRuntimeTrait — ONNX model execution runtime.
  *
+ * ## Contract: RUNTIME-ONLY (no compiler surface)
+ *
+ * This trait is intentionally runtime-only. The compiler does NOT generate
+ * target-specific code for `@onnx_runtime` — the only compiler reference is
+ * `EffectInference.ts` declaring resource effects (`resource:cpu`,
+ * `resource:memory`). This is correct because:
+ *
+ * 1. **Adapter pattern**: The actual ONNX execution backend (Web, Node,
+ *    PureJS) is injected at runtime via `config.adapterFactory`. The
+ *    compiler cannot know which adapter the runtime will use.
+ * 2. **Event-driven**: All behavior is in `onEvent` (load, run, dispose).
+ *    `onUpdate` is intentionally empty — there is no per-tick work.
+ * 3. **No platform mapping**: No `*Compiler.ts` generates code for this
+ *    trait. Adding one would require knowing the target platform's ONNX
+ *    runtime at compile time, which contradicts the adapter pattern.
+ *
+ * If a future compiler target needs to generate ONNX wiring code (e.g., a
+ * VRChat Udon adapter for runtime model loading), that target should
+ * implement its own adapter factory — NOT add a compiler surface to this
+ * trait. The adapter factory IS the platform extension point.
+ *
+ * ## Pattern-E note (emit-without-listener)
+ *
+ * The trait emits `onnx:loaded`, `onnx:output`, `onnx:error`, `onnx:disposed`
+ * but currently has NO runtime consumers outside of test files. Consumers
+ * will be wired as real backends (HoloGram depth, motion matching) land.
+ * Until then, the NoOpInferenceAdapter + tests validate the contract.
+ *
+ * ## History
+ *
  * idea-run-3 (research/2026-04-26_idea-run-3-neural-locomotion.md) named
  * this trait as a CONFIRMED Pattern B violation: 44 LOC stub where
  * `onnx:load` flipped `loaded:true` and `onnx:run` incremented a counter,
@@ -105,7 +135,10 @@ export const onnxRuntimeHandler: TraitHandler<OnnxRuntimeConfig> = {
   },
 
   onUpdate(): void {
-    // No per-tick work — all activity is event-driven.
+    // RUNTIME-ONLY: intentionally empty. All ONNX behavior is event-driven
+    // (onnx:load, onnx:run, onnx:dispose). No per-tick work. Do NOT add
+    // tick logic here — that would violate the event-driven contract and
+    // create hidden coupling to the simulation loop.
   },
 
   onEvent(

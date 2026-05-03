@@ -9,7 +9,8 @@ import {
   teamPresenceStore,
   persistTeamStore,
   persistAgentStore,
-  challengeStore
+  challengeStore,
+  reloadTeam,
 } from '../state';
 import { 
   json, 
@@ -713,6 +714,7 @@ export async function handleTeamRoutes(
     if (!caller) return true;
 
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/join', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -824,6 +826,7 @@ export async function handleTeamRoutes(
     if (!caller) return true;
 
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/members', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -865,6 +868,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/presence', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
@@ -915,6 +919,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/message', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
@@ -964,6 +969,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/knowledge', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     const membership = getTeamMember(team, caller.id);
@@ -1019,6 +1025,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/mode', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
@@ -1068,6 +1075,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/config', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -1118,6 +1126,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -1162,6 +1171,7 @@ export async function handleTeamRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/board/scout', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
@@ -1217,6 +1227,7 @@ export async function handleTeamRoutes(
     if (!caller) return true;
 
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/moltbook/dm-overdue', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -1296,6 +1307,7 @@ export async function handleTeamRoutes(
     if (!caller) return true;
 
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/moltbook/daemon/activate', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });
@@ -1350,6 +1362,7 @@ export async function handleTeamRoutes(
     if (!caller) return true;
 
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/recruitment/invite', '');
+    await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
       json(res, 404, { error: 'Team not found' });

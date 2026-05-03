@@ -43,6 +43,7 @@
     "@holoscript/connector-vscode": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@holoscript/engine": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*",
     "@holoscript/framework": "workspace:*",
     "@holoscript/marketplace-agentkit": "workspace:*",
     "@holoscript/mesh": "workspace:*",

@@ -1,0 +1,24 @@
+{
+  "name": "@holoscript/tauri-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tauri 2.0 desktop shell for HoloScript Studio — native GPU, file system, and offline capabilities",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:debug": "tauri build --debug",
+    "tauri": "tauri",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-fs": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -179,13 +179,18 @@ function relativeEntropy(rho: Complex[][], sigma: Complex[][]): number {
 }
 
 /**
- * Mutual information I(A:B) = S(A) + S(B) - S(AB)
- * Fast path: returns 0 for product states (most voxels)
+ * Mutual information proxy I(A:B).
+ *
+ * The true formula S(A)+S(B)-S(AB) requires the joint density matrix ρ_AB,
+ * which is unavailable from marginals alone. Under the product-state assumption
+ * S(AB)=S(A)+S(B), the formula cancels identically to zero — making every edge
+ * weight zero and disabling the force-layout entirely. Instead, use quantum
+ * fidelity |<ψ_A|ψ_B>|² as the MI proxy: it is 0 for orthogonal (unentangled)
+ * states and 1 for identical states, providing a non-trivial, non-negative
+ * entanglement measure consistent with the diagonal approximation used here.
  */
 function mutualInformation(rhoA: Complex[][], rhoB: Complex[][]): number {
-  // Fast path: product state has zero mutual information
-  // Skip entropy calculation for performance
-  return 0;
+  return absSquared(complexInnerProduct(rhoA, rhoB));
 }
 
 // =============================================================================

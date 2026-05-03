@@ -5,7 +5,7 @@
  * capacity planning, experience scoring, and park layout.
  */
 
-export type Vec2 = [number, number];
+export type Vec2 = { x: number; y: number };
 
 export type RideType =
   | 'coaster'
@@ -157,15 +157,15 @@ export function crowdFlowSimulation(
 ): CrowdAgent[] {
   const result = agents.map((a) => ({
     ...a,
-    position: [...a.position] as Vec2,
-    target: [...a.target] as Vec2,
+    position: { ...a.position },
+    target: { ...a.target },
   }));
 
   for (let s = 0; s < steps; s++) {
     for (const agent of result) {
       // Direction to target
-      let dx = agent.target[0] - agent.position[0];
-      let dy = agent.target[1] - agent.position[1];
+      let dx = agent.target.x - agent.position.x;
+      let dy = agent.target.y - agent.position.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 0.1) continue; // Arrived
 
@@ -174,8 +174,8 @@ export function crowdFlowSimulation(
 
       for (const other of result) {
         if (other.id === agent.id) continue;
-        const ox = agent.position[0] - other.position[0];
-        const oy = agent.position[1] - other.position[1];
+        const ox = agent.position.x - other.position.x;
+        const oy = agent.position.y - other.position.y;
         const od = Math.sqrt(ox * ox + oy * oy);
         if (od < avoidanceRadius && od > 0.01) {
           dx += (ox / od) * 0.5;
@@ -186,8 +186,8 @@ export function crowdFlowSimulation(
       // Normalize and apply
       const mag = Math.sqrt(dx * dx + dy * dy);
       if (mag > 0.01) {
-        agent.position[0] += (dx / mag) * agent.speed * dt;
-        agent.position[1] += (dy / mag) * agent.speed * dt;
+        agent.position.x += (dx / mag) * agent.speed * dt;
+        agent.position.y += (dy / mag) * agent.speed * dt;
       }
     }
   }

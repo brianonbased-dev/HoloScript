@@ -63,16 +63,25 @@ async function fetchActiveMoltbookAgentsWithTimeout(
   const dbProbe = (async (): Promise<MoltbookProbeResult> => {
     try {
       const { moltbookAgents } = await import('./db/schema.js');
-      const { sql } = await import('drizzle-orm');
+      const { eq, sql } = await import('drizzle-orm');
+      // Fallback from FILTER aggregate: the parenthesized form
+      //   (count(*) filter (where heartbeat_enabled = true))::int
+      // works in PostgreSQL 9.4+, but drizzle-orm's tagged-template sql``
+      // may not emit the parens correctly in all driver versions.
+      // Use a WHERE clause instead — functionally identical for a single-table count.
       const [row] = await db
-        .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
-        .from(moltbookAgents);
+        .select({ count: sql<number>`cast(count(*) as int)` })
+        .from(moltbookAgents)
+        .where(eq(moltbookAgents.heartbeatEnabled, true));
       _lastMoltbookProbeError = null;
       return { status: 'ok', count: row?.count ?? 0 };
     } catch (err) {
       // Table missing or query failed — not the same as Postgres being down.
       // Capture the error message so /health diagnostics can surface it.
-      const message = err instanceof Error ? err.message : String(err);
+      // Include cause chain for richer diagnostics (relation "X" does not exist, etc.)
+      const message = err instanceof Error
+        ? `${err.message}${err.cause ? ` | cause: ${err.cause instanceof Error ? err.cause.message : String(err.cause)}` : ''}`
+        : String(err);
       _lastMoltbookProbeError = message;
       if (!_loggedMoltbookProbeErrorOnce) {
         _loggedMoltbookProbeErrorOnce = true;

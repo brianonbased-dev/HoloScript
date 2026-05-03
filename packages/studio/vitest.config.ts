@@ -65,40 +65,33 @@ export default defineConfig({
     jsxInject: `import React from 'react'`,
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
+    alias: [
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
       // Route idb → in-memory mock that works in Node without IndexedDB
-      idb: path.resolve(__dirname, 'src/__mocks__/idb.ts'),
+      { find: 'idb', replacement: path.resolve(__dirname, 'src/__mocks__/idb.ts') },
       // Route @aztec/bb.js → stub (WASM bindings fail in Node/jsdom test env)
-      '@aztec/bb.js': path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts'),
+      { find: '@aztec/bb.js', replacement: path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts') },
       // Cross-package resolution (A.011 extraction)
-      '@holoscript/core/coordinators': path.resolve(__dirname, '../core/src/coordinators/index.ts'),
-      '@holoscript/core/paper-0c-spike': path.resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
-      '@holoscript/core/reconstruction': path.resolve(__dirname, '../core/src/reconstruction/index.ts'),
-      '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
-      '@holoscript/engine/runtime/TraitRuntimeIntegration': path.resolve(
-        __dirname,
-        '../engine/src/runtime/TraitRuntimeIntegration.ts'
-      ),
-      '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
-      '@holoscript/mesh': path.resolve(__dirname, '../mesh/src/index.ts'),
-      '@holoscript/uaal': path.resolve(__dirname, '../uaal/src/index.ts'),
-      '@holoscript/framework/ai': path.resolve(__dirname, '../framework/src/ai'),
-      '@holoscript/framework/economy': path.resolve(__dirname, '../framework/src/economy'),
-      '@holoscript/framework/negotiation': path.resolve(__dirname, '../framework/src/negotiation'),
-      '@holoscript/framework/learning': path.resolve(__dirname, '../framework/src/learning'),
-      '@holoscript/framework/agents': path.resolve(__dirname, '../framework/src/agents'),
-      '@holoscript/framework/swarm': path.resolve(__dirname, '../framework/src/swarm'),
-      '@holoscript/framework/training': path.resolve(__dirname, '../framework/src/training'),
-      '@holoscript/framework/skills': path.resolve(__dirname, '../framework/src/skills'),
-      '@holoscript/framework/behavior': path.resolve(__dirname, '../framework/src/behavior.ts'),
-      '@holoscript/framework/bt': path.resolve(__dirname, '../framework/src/behavior.ts'),
-      '@holoscript/framework': path.resolve(__dirname, '../framework/src/index.ts'),
+      { find: '@holoscript/core/coordinators', replacement: path.resolve(__dirname, '../core/src/coordinators/index.ts') },
+      { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
+      {
+        find: '@holoscript/engine/runtime/TraitRuntimeIntegration',
+        replacement: path.resolve(__dirname, '../engine/src/runtime/TraitRuntimeIntegration.ts'),
+      },
+      { find: '@holoscript/engine', replacement: path.resolve(__dirname, '../engine/src') },
+      { find: '@holoscript/framework/ai', replacement: path.resolve(__dirname, '../framework/src/ai') },
+      { find: '@holoscript/framework/economy', replacement: path.resolve(__dirname, '../framework/src/economy') },
+      { find: '@holoscript/framework/negotiation', replacement: path.resolve(__dirname, '../framework/src/negotiation') },
+      { find: '@holoscript/framework/learning', replacement: path.resolve(__dirname, '../framework/src/learning') },
+      { find: '@holoscript/framework/agents', replacement: path.resolve(__dirname, '../framework/src/agents') },
+      { find: '@holoscript/framework/swarm', replacement: path.resolve(__dirname, '../framework/src/swarm') },
+      { find: '@holoscript/framework/training', replacement: path.resolve(__dirname, '../framework/src/training') },
+      { find: '@holoscript/framework/skills', replacement: path.resolve(__dirname, '../framework/src/skills') },
+      { find: '@holoscript/framework/behavior', replacement: path.resolve(__dirname, '../framework/src/behavior.ts') },
+      { find: '@holoscript/framework/bt', replacement: path.resolve(__dirname, '../framework/src/behavior.ts') },
+      { find: '@holoscript/framework', replacement: path.resolve(__dirname, '../framework/src/index.ts') },
       // Subpath export resolves to dist in production; tests use source (CI may skip absorb build)
-      '@holoscript/absorb-service/schema': path.resolve(
-        __dirname,
-        '../absorb-service/src/schema.ts'
-      ),
-    },
+      { find: '@holoscript/absorb-service/schema', replacement: path.resolve(__dirname, '../absorb-service/src/schema.ts') },
+    ],
   },
 });

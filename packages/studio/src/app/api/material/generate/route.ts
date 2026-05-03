@@ -5,6 +5,12 @@ import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../_lib/cors';
+import {
+  AnthropicAdapter,
+  OpenAIAdapter,
+  OpenRouterAdapter,
+  LocalLLMAdapter,
+} from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -120,6 +126,9 @@ void main() {
 }
 
 async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+  // B1a: migrated from inline fetch() to @holoscript/llm-provider adapters
+  // which inherit withRetry from BaseLLMAdapter — exponential backoff
+  // on 429/5xx + Retry-After honoring.
   const openrouterKey = process.env.OPENROUTER_API_KEY || '';
   const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
   const openaiKey = process.env.OPENAI_API_KEY || '';
@@ -127,28 +136,16 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   // OpenRouter
   if (openrouterKey) {
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openrouterKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 512,
-          temperature: 0.7,
-        }),
-        signal: AbortSignal.timeout(30_000),
+      const adapter = new OpenRouterAdapter({ apiKey: openrouterKey });
+      const result = await adapter.complete({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 512,
+        temperature: 0.7,
       });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
-      }
+      if (result.content) return result.content;
     } catch {
       /* try next */
     }
@@ -157,33 +154,18 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   // Anthropic
   if (anthropicKey) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: (() => {
-          const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
-          const isOpus47 = model === 'claude-opus-4-7';
-          return JSON.stringify({
-            model,
-            // Material descriptor — short response, 512 is fine here
-            max_tokens: 512,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: prompt }],
-            // Opus 4.7 removes temperature/top_p — only send for older models
-            ...(isOpus47 ? {} : { temperature: 0.7 }),
-          });
-        })(),
-        signal: AbortSignal.timeout(30_000),
+      const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
+      const isOpus47 = model === 'claude-opus-4-7';
+      const adapter = new AnthropicAdapter({ apiKey: anthropicKey, defaultModel: model });
+      const result = await adapter.complete({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 512,
+        ...(isOpus47 ? {} : { temperature: 0.7 }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.content?.[0]?.text;
-        if (text) return text;
-      }
+      if (result.content) return result.content;
     } catch {
       /* try next */
     }
@@ -192,28 +174,16 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   // OpenAI
   if (openaiKey) {
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || 'gpt-4.1',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 512,
-          temperature: 0.7,
-        }),
-        signal: AbortSignal.timeout(30_000),
+      const adapter = new OpenAIAdapter({ apiKey: openaiKey });
+      const result = await adapter.complete({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 512,
+        temperature: 0.7,
       });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
-      }
+      if (result.content) return result.content;
     } catch {
       /* try next */
     }
@@ -224,22 +194,19 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
 
 async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) return null; // Ollama is optional
+  if (!ollamaUrl) return null;
   try {
-    const res = await fetch(`${ollamaUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model || 'brittney-qwen-v23:latest',
-        prompt: fullPrompt,
-        stream: false,
-        options: { temperature: 0.7, num_predict: 512 },
-      }),
-      signal: AbortSignal.timeout(30_000),
+    const adapter = new LocalLLMAdapter({
+      baseURL: ollamaUrl,
+      defaultModel: model || 'brittney-qwen-v23:latest',
+      timeoutMs: 30_000,
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { response?: string };
-    return data.response ?? null;
+    const result = await adapter.complete({
+      messages: [{ role: 'user', content: fullPrompt }],
+      maxTokens: 512,
+      temperature: 0.7,
+    });
+    return result.content || null;
   } catch {
     return null;
   }

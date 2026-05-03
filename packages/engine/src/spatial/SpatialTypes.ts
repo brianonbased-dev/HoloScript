@@ -1,5 +1,6 @@
-import type { Vector3, Vector2, Quaternion } from '@holoscript/core';
-export type { Vector3, Vector2, Quaternion } from '@holoscript/core';
+import type { Vector3, Quaternion } from '@holoscript/core';
+export type { Vector3, Quaternion } from '@holoscript/core';
+export type Vector2 = readonly [number, number];
 
 /**
  * Axis-aligned bounding box

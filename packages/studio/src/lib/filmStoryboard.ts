@@ -213,8 +213,8 @@ export function filmPacing(scenes: Scene[]): Record<NarrativeAct, number> {
 
 export interface CameraKeyframe {
   time: number; // seconds
-  position: [number, number, number];
-  lookAt: [number, number, number];
+  position: [number, number, number] | { x: number; y: number; z: number };
+  lookAt: [number, number, number] | { x: number; y: number; z: number };
   fov: number; // field of view degrees
 }
 
@@ -249,19 +249,21 @@ export function previsCamera(
 
     // Linear interpolation between keyframes
     const lerp = (a: number, b: number) => a + (b - a) * frac;
+    const getComp = (v: [number, number, number] | { x: number; y: number; z: number }, i: 0 | 1 | 2): number =>
+      Array.isArray(v) ? v[i] : i === 0 ? v.x : i === 1 ? v.y : v.z;
 
     result.push({
       time: t,
-      position: [
-        lerp(keyframes[k1].position[0], keyframes[k2].position[0]),
-        lerp(keyframes[k1].position[1], keyframes[k2].position[1]),
-        lerp(keyframes[k1].position[2], keyframes[k2].position[2]),
-      ],
-      lookAt: [
-        lerp(keyframes[k1].lookAt[0], keyframes[k2].lookAt[0]),
-        lerp(keyframes[k1].lookAt[1], keyframes[k2].lookAt[1]),
-        lerp(keyframes[k1].lookAt[2], keyframes[k2].lookAt[2]),
-      ],
+      position: {
+        x: lerp(getComp(keyframes[k1].position, 0), getComp(keyframes[k2].position, 0)),
+        y: lerp(getComp(keyframes[k1].position, 1), getComp(keyframes[k2].position, 1)),
+        z: lerp(getComp(keyframes[k1].position, 2), getComp(keyframes[k2].position, 2)),
+      },
+      lookAt: {
+        x: lerp(getComp(keyframes[k1].lookAt, 0), getComp(keyframes[k2].lookAt, 0)),
+        y: lerp(getComp(keyframes[k1].lookAt, 1), getComp(keyframes[k2].lookAt, 1)),
+        z: lerp(getComp(keyframes[k1].lookAt, 2), getComp(keyframes[k2].lookAt, 2)),
+      },
       fov: lerp(keyframes[k1].fov, keyframes[k2].fov),
     });
   }

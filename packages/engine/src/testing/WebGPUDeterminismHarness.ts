@@ -191,7 +191,7 @@ async function buildMockHarnessArtifact(config: HarnessConfig): Promise<HarnessA
     userAgent: browser,
   };
 
-  const scenarios: HarnessArtifact['scenarios'] = {};
+  const scenarios: Record<string, ScenarioResult> = {};
 
   for (const [scenarioName, trace] of Object.entries(config.traces)) {
     const digest = await mockFinalDigestForScenario(scenarioName, trace);
