@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-03T22:06:00Z",
+  "gaps": [
+    {
+      "type": "feature-request",
+      "title": "Add TraitRoomModeResonance for sub-200Hz eigenfrequency simulation (A-009 example-driven request)",
+      "description": "While refreshing examples/audio/spatial-audio-showcase.refreshed.holo (concert hall scene), the composition wanted to model sub-200Hz room mode behaviour: standing waves, Helmholtz resonance, bass-node buildup in corners. The existing @reverb_zone trait handles broad RT60 and impulse-response convolution well, but provides no way to specify or visualise room eigenfrequencies. Proposed trait @room_mode_resonance would accept: room_dimensions (x,y,z in metres), mode_order (int, 1–5), materials_absorption map per surface, and emit per-mode frequency + Q-factor data. Downstream: spatial audio engines can place notch/peak filters at exact modal frequencies; visualisers can show bass-pressure heatmaps. Use case surface: concert hall, studio, immersive music, medical acoustics.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "audio", "acoustics", "room-modes"],
+      "dedup_key": "a009-trait-room_mode_resonance",
+      "source_file": "examples/audio/spatial-audio-showcase.refreshed.holo",
+      "phase": "phase-2-missing-trait-wish"
+    }
+  ]
+}
