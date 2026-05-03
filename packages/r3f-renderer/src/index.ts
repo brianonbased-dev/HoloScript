@@ -39,6 +39,14 @@ export { QuiltViewer } from './components/QuiltViewer';
 export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
 export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
+export {
+  HolomapPointCloudViewer,
+  decodeHolomapPointCloudPayload,
+} from './components/HolomapPointCloudViewer';
+export type {
+  DecodedHolomapPointCloud,
+  HolomapPointCloudViewerProps,
+} from './components/HolomapPointCloudViewer';
 
 // GAPS Physics Components (Phase 3)
 export { FluidRenderer } from './components/FluidRenderer';

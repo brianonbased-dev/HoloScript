@@ -164,6 +164,30 @@ export interface GaussianSplatViewerProps {
 }
 export declare function GaussianSplatViewer(props: GaussianSplatViewerProps): any;
 
+export interface DecodedHolomapPointCloud {
+  positions: Float32Array;
+  colors: Float32Array;
+  count: number;
+}
+export interface HolomapPointCloudViewerProps {
+  positionsB64: string;
+  colorsB64: string;
+  pointCount: number;
+  maxPoints?: number;
+  pointSize?: number;
+  opacity?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number] | number;
+}
+export declare function decodeHolomapPointCloudPayload(input: {
+  positionsB64: string;
+  colorsB64: string;
+  pointCount: number;
+  maxPoints?: number;
+}): DecodedHolomapPointCloud;
+export declare function HolomapPointCloudViewer(props: HolomapPointCloudViewerProps): any;
+
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
 export interface UseLODBridgeResult {

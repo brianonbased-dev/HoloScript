@@ -4,6 +4,7 @@
  */
 
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
+import type { HoloMapScanRenderAsset } from './holomap-scan-render';
 import { Redis } from '@upstash/redis';
 import { clientIpFromRequest, takeRateLimitToken } from './reconstruction-session-rate-limit';
 
@@ -20,6 +21,7 @@ export interface ScanSession {
   lastError?: string;
   replayFingerprint?: string;
   manifest?: ReconstructionManifest;
+  renderAsset?: HoloMapScanRenderAsset;
 }
 
 const SESSION_KEY = (t: string) => `holoscript:scan-session:${t}`;

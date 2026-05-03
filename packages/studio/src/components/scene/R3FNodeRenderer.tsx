@@ -13,6 +13,7 @@ import {
   DraftMeshNode,
   BiologicalMeshNode,
   GaussianSplatViewer,
+  HolomapPointCloudViewer,
   resolveGaussianSplatSrc,
   partitionStudioChildren,
 } from '@holoscript/r3f-renderer';
@@ -82,6 +83,14 @@ function renderStudioChildList(rest: R3FNode[]) {
   ));
 }
 
+function numberProp(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function stringProp(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 /** Batched draft blockout meshes with Studio selection + one InstancedMesh per shape. */
 function StudioDraftMeshBatch({ nodes }: { nodes: R3FNode[] }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
@@ -100,6 +109,27 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const { props } = node;
 
   switch (node.type) {
+    case 'holomapPointCloud': {
+      const positionsB64 = stringProp(props.positionsB64);
+      const colorsB64 = stringProp(props.colorsB64);
+      const pointCount = numberProp(props.pointCount);
+      if (!positionsB64 || !colorsB64 || pointCount === undefined) return null;
+
+      return (
+        <HolomapPointCloudViewer
+          positionsB64={positionsB64}
+          colorsB64={colorsB64}
+          pointCount={pointCount}
+          maxPoints={numberProp(props.maxPoints)}
+          pointSize={numberProp(props.pointSize)}
+          opacity={numberProp(props.opacity)}
+          position={props.position as [number, number, number] | undefined}
+          rotation={props.rotation as [number, number, number] | undefined}
+          scale={props.scale as [number, number, number] | number | undefined}
+        />
+      );
+    }
+
     case 'splat': {
       const src = resolveGaussianSplatSrc(node);
       if (!src) {

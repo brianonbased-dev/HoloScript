@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
+import { HoloMapScanViewer } from './HoloMapScanViewer';
+import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 
 interface ScanSessionResponse {
   token: string;
@@ -19,6 +21,7 @@ interface ScanSessionState {
   videoHash?: string;
   replayFingerprint?: string;
   manifest?: { version: string; replayHash: string; simulationContract: { replayFingerprint: string } };
+  renderAsset?: HoloMapScanRenderAsset;
   lastError?: string;
 }
 
@@ -152,6 +155,7 @@ export function ReconstructionPanel() {
                     replayFingerprint={state.replayFingerprint}
                   />
                 )}
+                {state.renderAsset && <HoloMapScanViewer renderAsset={state.renderAsset} />}
               </div>
             )}
             {state?.lastError && <p className="mt-2 text-red-400">Error: {state.lastError}</p>}

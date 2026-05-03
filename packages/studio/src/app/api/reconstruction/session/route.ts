@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { buildHoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 import { buildRoomScanCompletionManifest } from '@/lib/scan-session-manifest';
 import { clientIpFromRequest, getScanSessionStore } from '@/lib/reconstruction-scan-store';
 
@@ -186,6 +187,11 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     });
     session.manifest = manifest;
     session.replayFingerprint = manifest.simulationContract.replayFingerprint;
+    session.renderAsset = buildHoloMapScanRenderAsset({
+      manifest,
+      token: session.token,
+      videoHash,
+    });
   }
 
   await store.set(token, session);

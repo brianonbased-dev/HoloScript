@@ -10,6 +10,7 @@ import {
   MATERIAL_PRESETS,
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
+import { HolomapPointCloudViewer } from '@holoscript/r3f-renderer';
 
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>
@@ -139,6 +140,28 @@ function EmbedNodeRenderer({
   const { props } = node;
 
   switch (node.type) {
+    case 'holomapPointCloud': {
+      const positionsB64 = typeof props.positionsB64 === 'string' ? props.positionsB64 : '';
+      const colorsB64 = typeof props.colorsB64 === 'string' ? props.colorsB64 : '';
+      const pointCount =
+        typeof props.pointCount === 'number' && Number.isFinite(props.pointCount)
+          ? props.pointCount
+          : 0;
+      if (!positionsB64 || !colorsB64 || pointCount < 1) return null;
+      return (
+        <HolomapPointCloudViewer
+          positionsB64={positionsB64}
+          colorsB64={colorsB64}
+          pointCount={pointCount}
+          maxPoints={typeof props.maxPoints === 'number' ? props.maxPoints : undefined}
+          pointSize={typeof props.pointSize === 'number' ? props.pointSize : undefined}
+          opacity={typeof props.opacity === 'number' ? props.opacity : undefined}
+          position={props.position as [number, number, number] | undefined}
+          rotation={props.rotation as [number, number, number] | undefined}
+          scale={props.scale as [number, number, number] | number | undefined}
+        />
+      );
+    }
     case 'mesh':
       return (
         <group>
