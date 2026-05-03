@@ -1,0 +1,442 @@
+// ============================================================================
+// Spatial Audio Showcase — Concert Hall (Premiere Night Refresh)
+// A-009 Phase 2 refresh — 2026-05-03
+//
+// Original: concert hall spatial audio (7 traits).
+// Refresh intent: same hall, same audience seat — but it is the world
+// premiere of a new piano concerto on a January night. Sleet falls
+// outside. Guests arrive through the lobby, carrying storm acoustics
+// with them; the inner doors bleed muffled applause and instrument
+// warm-up through @audio_portal. A passing taxi triggers @doppler on
+// the street layer. The foyer zone uses @environmental_audio to model
+// cold humid air (high-frequency absorption), storm weather modulation,
+// and Doppler pitch shifts before the sound crosses into the dry,
+// reverberant concert hall.
+//
+// New in this refresh:
+//   @environmental_audio  — outdoor weather acoustics + air absorption
+//                           + Doppler for the taxi passing outside
+//
+// Missing-trait wish (captured for Phase 4):
+//   @room_mode_resonance  — sub-200Hz standing-wave / Helmholtz
+//                           resonance simulation. @reverb_zone handles
+//                           broad RT60 but not per-room eigenfrequencies
+//                           (bass-node buildup in corners, modal peaks).
+//                           Would make the low strings on the grand piano
+//                           accumulate authentically in the hall corners.
+//
+// Traits covered (8 total):
+//   @ambisonics         @hrtf           @reverb_zone
+//   @audio_occlusion    @audio_portal   @audio_material
+//   @head_tracked_audio @environmental_audio
+// ============================================================================
+
+composition "SpatialAudioShowcase" {
+  version: "7.0"
+  description: "Concert hall binaural premiere — storm outside, Musikverein acoustics inside"
+  tags: ["audio", "spatial", "ambisonics", "hrtf", "reverb", "environmental", "premiere"]
+
+  environment {
+    skybox: "night_overcast"
+    ambient_light: 0.0
+    fog: { enabled: true, color: "#1a1a22", density: 0.015 }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // OUTDOOR ZONE — storm weather controller
+  //
+  // Models cold January air (2 °C, 85 % humidity) as a named
+  // zone object. @environmental_audio drives frequency-dependent
+  // air absorption (high-frequency rolloff over distance) and
+  // storm-weather ambient modulation. Doppler is activated for
+  // moving vehicle sources.
+  //
+  // This is the first use of @environmental_audio in any example.
+  // Tests: nested airAbsorption + doppler config objects,
+  //        WeatherType enum "storm".
+  // ----------------------------------------------------------
+  object "outdoor_weather_zone" {
+    geometry: "box"
+    visible: false
+    position: [0, 4, 18]
+    scale: [24, 12, 6]
+
+    @environmental_audio {
+      weather: "storm"
+      airAbsorption: {
+        enabled: true
+        temperature: 2
+        humidity: 85
+      }
+      doppler: {
+        enabled: true
+        speedOfSound: 337
+        maxPitchShift: 1.45
+      }
+    }
+  }
+
+  // Rain on the glass entrance canopy — heard faintly inside
+  ambience "RainOnCanopy" {
+    clip: "audio/rain_on_glass_heavy.ogg"
+    volume: 0.18
+    loop: true
+    play_on_awake: true
+    spatial_blend: 0.7
+    position: [0, 5, 16]
+  }
+
+  // Taxi passing the entrance — Doppler pitch-shift via zone above
+  audio_source "TaxiPassby" {
+    clip: "audio/taxi_engine_pass.ogg"
+    volume: 0.55
+    spatial_blend: 1.0
+    position: [-14, 1, 18]
+    min_distance: 2
+    max_distance: 30
+    animate: "path"
+    animPath: [[-14, 1, 18], [14, 1, 18]]
+    animDuration: 4.5
+    animLoop: false
+    play_on_awake: true
+  }
+
+  // Thunder rumble (low, distant)
+  ambience "ThunderRumble" {
+    clip: "audio/thunder_distant_rumble.ogg"
+    volume: 0.30
+    loop: false
+    spatial_blend: 0.2
+    play_on_awake: false
+  }
+
+  // ----------------------------------------------------------
+  // FOYER — transitional acoustic space
+  //
+  // Marble floors, glass walls, moderate RT60 (~0.7 s).
+  // A second @environmental_audio on the foyer models cool-but-
+  // dry indoor air once guests pass through the revolving door.
+  // ----------------------------------------------------------
+  object "foyer_weather_zone" {
+    geometry: "box"
+    visible: false
+    position: [0, 3, 12]
+    scale: [14, 8, 5]
+
+    @environmental_audio {
+      weather: "clear"
+      airAbsorption: {
+        enabled: true
+        temperature: 18
+        humidity: 42
+      }
+      doppler: {
+        enabled: false
+        speedOfSound: 343
+        maxPitchShift: 1.0
+      }
+    }
+  }
+
+  reverb_zone "FoyerAcoustics" {
+    @reverb_zone(type: "algorithmic", preset: "large_room")
+    @reverb_zone(rt60_low: 0.9, rt60_mid: 0.7, rt60_high: 0.45)
+    @reverb_zone(room_volume: 800, early_reflections: 6)
+    position: [0, 3, 12]
+    min_distance: 1
+    max_distance: 12
+    decay_time: 0.7
+    diffusion: 55
+    density: 65
+  }
+
+  // Crowd murmur drifting from the main hall doors
+  ambience "CrowdMurmur" {
+    @audio_occlusion(transmission_loss: 18, frequency_dependent: true)
+    @audio_occlusion(low_freq_bleed: 0.25, high_freq_bleed: 0.04)
+    clip: "audio/crowd_anticipation_murmur.ogg"
+    volume: 0.35
+    loop: true
+    play_on_awake: true
+    spatial_blend: 0.8
+    position: [0, 2, 7]
+  }
+
+  // Foyer-to-hall portal — instrument warm-up bleeds through
+  object "LobbyDoors" {
+    @audio_portal(source_zone: "FoyerAcoustics", target_zone: "MainHallAcoustics")
+    @audio_portal(opening_factor: 0.45, frequency_filter: "low_pass")
+    @audio_portal(cutoff_hz: 600, falloff: "inverse_square")
+    @audio_occlusion(transmission_loss: 14)
+    @audio_material(absorption_low: 0.08, absorption_mid: 0.10, absorption_high: 0.12)
+    @collidable
+    geometry: "box"
+    position: [0, 1.1, 8.2]
+    scale: [3.5, 2.2, 0.15]
+    material: { baseColor: "#2c2a24", roughness: 0.4, metallic: 0.7 }
+  }
+
+  // ----------------------------------------------------------
+  // MAIN HALL REVERB ZONE
+  // Musikverein shoebox — RT60 ~2.0 s mid, ~2.4 s low end.
+  // ----------------------------------------------------------
+  reverb_zone "MainHallAcoustics" {
+    @reverb_zone(type: "convolution", ir_file: "impulses/musikverein_hall.wav")
+    @reverb_zone(rt60_low: 2.4, rt60_mid: 2.0, rt60_high: 1.4)
+    @reverb_zone(early_reflections: 12, late_diffusion: 0.85)
+    @reverb_zone(room_volume: 15000, air_absorption: 0.002)
+    position: [0, 6, 0]
+    min_distance: 2
+    max_distance: 35
+    decay_time: 2.0
+    diffusion: 85
+    density: 92
+  }
+
+  // ----------------------------------------------------------
+  // LISTENER — Audience seat, 6-DoF binaural
+  // ----------------------------------------------------------
+  audio_listener "AudienceSeat" {
+    @hrtf(profile: "kemar_diffuse", interpolation: "bilinear")
+    @head_tracked_audio(tracking_mode: "6dof", latency_compensation: true)
+    @head_tracked_audio(crossfade_ms: 8, prediction_ms: 16)
+    position: [0, 1.2, 8]
+    global_volume: 1.0
+    speed_of_sound: 343
+  }
+
+  // ----------------------------------------------------------
+  // STAGE PERFORMERS — Higher Order Ambisonics sources
+  // ----------------------------------------------------------
+
+  audio_source "GrandPiano" {
+    @ambisonics(order: 3, format: "acn_sn3d", channel_count: 16)
+    @ambisonics(near_field_compensation: true, distance: 6.0)
+    @hrtf(profile: "kemar_diffuse")
+    @audio_material(source_directivity: "cardioid", directivity_freq: 2000)
+    clip: "audio/steinway_concert_d.ogg"
+    volume: 0.85
+    spatial_blend: 1.0
+    position: [0, 1.0, -2]
+    min_distance: 1
+    max_distance: 40
+    loop: true
+  }
+
+  // Instrument warm-up medley — heard through foyer doors before curtain
+  audio_source "WarmupMedley" {
+    @ambisonics(order: 1, format: "acn_sn3d", channel_count: 4)
+    @hrtf(profile: "kemar_diffuse")
+    @audio_occlusion(transmission_loss: 16, frequency_dependent: true)
+    clip: "audio/orchestra_warmup_medley.ogg"
+    volume: 0.45
+    spatial_blend: 0.9
+    position: [0, 1.2, -1]
+    min_distance: 2
+    max_distance: 30
+    loop: true
+  }
+
+  audio_source "ViolinSection" {
+    @ambisonics(order: 2, format: "acn_sn3d", channel_count: 9)
+    @hrtf(profile: "kemar_diffuse")
+    clip: "audio/violin_ensemble_legato.ogg"
+    volume: 0.7
+    spatial_blend: 1.0
+    position: [-3, 1.0, -3]
+    min_distance: 1
+    max_distance: 35
+    spread: 45
+    loop: true
+  }
+
+  audio_source "CelloSection" {
+    @ambisonics(order: 2, format: "acn_sn3d", channel_count: 9)
+    @hrtf(profile: "kemar_diffuse")
+    clip: "audio/cello_ensemble_sustain.ogg"
+    volume: 0.75
+    spatial_blend: 1.0
+    position: [3, 1.0, -3]
+    min_distance: 1
+    max_distance: 35
+    spread: 40
+    loop: true
+  }
+
+  audio_source "Timpani" {
+    @ambisonics(order: 1, format: "acn_sn3d", channel_count: 4)
+    @hrtf(profile: "kemar_diffuse")
+    @audio_material(source_directivity: "omnidirectional")
+    clip: "audio/timpani_roll.ogg"
+    volume: 0.9
+    spatial_blend: 1.0
+    position: [0, 1.0, -6]
+    min_distance: 2
+    max_distance: 45
+    spread: 90
+    loop: false
+  }
+
+  // ----------------------------------------------------------
+  // ACOUSTIC SURFACES
+  // ----------------------------------------------------------
+
+  object "StageFloor" {
+    @audio_material(absorption_low: 0.05, absorption_mid: 0.08, absorption_high: 0.10)
+    @audio_material(scattering: 0.15, transmission_loss: 45)
+    @collidable
+    geometry: "box"
+    position: [0, -0.05, -3]
+    scale: [12, 0.1, 8]
+    material: { baseColor: "#5c3a1e", roughness: 0.6, metallic: 0.05 }
+  }
+
+  object "RearWallDiffuser" {
+    @audio_material(absorption_low: 0.15, absorption_mid: 0.20, absorption_high: 0.30)
+    @audio_material(scattering: 0.85, diffusion_pattern: "schroeder")
+    @collidable
+    geometry: "box"
+    position: [0, 4, -7.5]
+    scale: [14, 8, 0.3]
+    material: { baseColor: "#3a3a44", roughness: 0.75, metallic: 0.0 }
+  }
+
+  object "WallLeft" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_material(scattering: 0.3)
+    @audio_occlusion(transmission_loss: 35, frequency_dependent: true)
+    @collidable
+    geometry: "box"
+    position: [-7, 4, 2]
+    scale: [0.3, 8, 18]
+    material: { baseColor: "#5a4a3a", roughness: 0.5, metallic: 0.0 }
+  }
+
+  object "WallRight" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_material(scattering: 0.3)
+    @audio_occlusion(transmission_loss: 35, frequency_dependent: true)
+    @collidable
+    geometry: "box"
+    position: [7, 4, 2]
+    scale: [0.3, 8, 18]
+    material: { baseColor: "#5a4a3a", roughness: 0.5, metallic: 0.0 }
+  }
+
+  object "AudienceFloor" {
+    @audio_material(absorption_low: 0.25, absorption_mid: 0.35, absorption_high: 0.40)
+    @audio_material(scattering: 0.5)
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 6]
+    scale: [14, 1, 10]
+    material: { baseColor: "#2a1a10", roughness: 0.9, metallic: 0.0 }
+  }
+
+  object "Ceiling" {
+    @audio_material(absorption_low: 0.02, absorption_mid: 0.03, absorption_high: 0.05)
+    @audio_material(scattering: 0.10)
+    geometry: "plane"
+    position: [0, 10, 2]
+    scale: [14, 1, 24]
+    material: { baseColor: "#e8e0d4", roughness: 0.4, metallic: 0.0 }
+  }
+
+  // ----------------------------------------------------------
+  // BACKSTAGE — occluded with portal
+  // ----------------------------------------------------------
+
+  object "BackWall" {
+    @audio_occlusion(transmission_loss: 40, frequency_dependent: true)
+    @audio_occlusion(low_freq_bleed: 0.15, high_freq_bleed: 0.02)
+    @audio_material(absorption_low: 0.20, absorption_mid: 0.25, absorption_high: 0.35)
+    @collidable
+    geometry: "box"
+    position: [0, 4, -8.5]
+    scale: [14, 8, 0.4]
+    material: { baseColor: "#4a4a54", roughness: 0.85, metallic: 0.0 }
+  }
+
+  reverb_zone "BackstageAcoustics" {
+    @reverb_zone(type: "algorithmic", preset: "small_room")
+    @reverb_zone(rt60_low: 0.6, rt60_mid: 0.4, rt60_high: 0.25)
+    @reverb_zone(room_volume: 200)
+    position: [0, 2, -12]
+    min_distance: 1
+    max_distance: 8
+    decay_time: 0.4
+    diffusion: 60
+    density: 70
+  }
+
+  object "StageDoor" {
+    @audio_portal(source_zone: "MainHallAcoustics", target_zone: "BackstageAcoustics")
+    @audio_portal(opening_factor: 0.6, frequency_filter: "low_pass")
+    @audio_portal(cutoff_hz: 800, falloff: "inverse_square")
+    @audio_occlusion(transmission_loss: 8)
+    geometry: "box"
+    position: [-3, 1.2, -8.5]
+    scale: [1.0, 2.4, 0.4]
+    material: { baseColor: "#3a3025", roughness: 0.5, metallic: 0.1 }
+  }
+
+  ambience "BackstageHVAC" {
+    @audio_material(source_directivity: "omnidirectional")
+    clip: "audio/hvac_hum_quiet.ogg"
+    volume: 0.25
+    loop: true
+    play_on_awake: true
+    spatial_blend: 0.5
+    position: [0, 3, -12]
+  }
+
+  // ----------------------------------------------------------
+  // HALL LIGHTING
+  // ----------------------------------------------------------
+
+  object "ChandelierKey" {
+    type: "point_light"
+    color: "#f8f0d8"
+    intensity: 3.5
+    position: [0, 9, 0]
+    castShadow: true
+  }
+
+  object "StageSpot" {
+    type: "spot_light"
+    color: "#fff4e0"
+    intensity: 4.0
+    position: [0, 9, -1]
+    rotation: [-75, 0, 0]
+    angle: 28
+    penumbra: 0.3
+    castShadow: true
+  }
+
+  object "HouseWarmLeft" {
+    type: "point_light"
+    color: "#ffe8b0"
+    intensity: 0.9
+    position: [-6, 7, 4]
+  }
+
+  object "HouseWarmRight" {
+    type: "point_light"
+    color: "#ffe8b0"
+    intensity: 0.9
+    position: [6, 7, 4]
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.25
+      threshold: 0.8
+    }
+    tone_mapping: {
+      type: "aces"
+      exposure: 1.0
+    }
+  }
+}

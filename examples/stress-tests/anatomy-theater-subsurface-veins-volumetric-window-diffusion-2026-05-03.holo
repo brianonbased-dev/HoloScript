@@ -1,0 +1,331 @@
+// ============================================================
+// Stress-Test: Holographic Anatomy Theater
+// A-009 — 2026-05-03
+//
+// Never-exercised traits under test:
+//   @subsurface_veins    — procedural vascular tree renderer,
+//                          heartbeat-pulsed subsurface absorption
+//   @volumetric_window   — visionOS spatial window management:
+//                          bounded / volumetric / world-scale
+//   @diffusion_realtime  — LCM / StreamDiffusion real-time AI
+//                          texture streaming at interactive fps
+//
+// Well-exercised anchors:
+//   @glowing  @grabbable  @collidable
+//
+// Visual story:
+// A surgical education suite for Apple Vision Pro — clean clinical
+// white, warm theatre lighting. Three floating windows hover above
+// a teaching table at the centre of the room. Each window is a
+// @volumetric_window spatial container at a different scale mode.
+//
+// Window A (world-scale): a stylised human heart in cross-section.
+//   @subsurface_veins renders 50 K vascular segments, the coronary
+//   arteries lit from inside, pulsing at 72 BPM. The resident can
+//   grab the heart, rotate it, and watch the blood-lit veins shift
+//   under the skin surface with each heartbeat.
+//
+// Window B (tabletop-scale): a sagittal brain slice.
+//   @subsurface_veins at 28 K segments traces the dural venous
+//   sinuses and cortical microvasculature, slower pulse (65 BPM),
+//   with a cooler blue vein tint for venous blood.
+//
+// Window C (room-scale): a live histology feed.
+//   A 512 × 512 @diffusion_realtime stream runs a txt2img LCM
+//   pipeline, generating photorealistic H&E staining slides at
+//   ~15 fps. The prompt is steered by the instructor. This window
+//   is @glowing — the AI slide emits a faint warm light into the
+//   room as it generates.
+//
+// All three anatomy objects are @grabbable: attendees can rearrange
+// the layout during the session.
+//
+// This is the first time @subsurface_veins, @volumetric_window,
+// and @diffusion_realtime are exercised in any example.
+//
+// Parse targets:
+//   (a) @subsurface_veins: segmentCount int + pulseBpm float +
+//       nested color { r g b } object — all single-line inline
+//   (b) @volumetric_window: all-required enum fields on one line
+//   (c) @diffusion_realtime: backend enum + string prompt fields
+//
+// Parser note: all trait configs are placed inside object blocks
+// as inner directives (not inline decorators on the definition
+// line) with comma-separated single-line properties, which is
+// the pattern the current parser handles correctly. Multi-line
+// nested property objects require comma separation to parse.
+// ============================================================
+
+composition "AnatomyTheater" {
+  version: "7.0"
+  description: "Stress-test: subsurface_veins + volumetric_window + diffusion_realtime in surgical XR education"
+  tags: ["a009", "stress-test", "anatomy", "medical", "visionos", "ai-texture", "vascular"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT — clean visionOS surgical suite
+  // Passthrough floor + white walls. Key light from above
+  // simulates the surgical LED dome.
+  // ----------------------------------------------------------
+  environment {
+    skybox: "passthrough"
+    ambient_light: 0.55
+    gravity: [0, -9.81, 0]
+    fog: { enabled: false }
+  }
+
+  // Surgical dome — neutral white, high CRI
+  object "surgical_key" {
+    type: "point_light"
+    color: "#f8f9fa"
+    intensity: 5.0
+    position: [0, 3.2, 0]
+    castShadow: true
+  }
+
+  object "warm_fill_left" {
+    type: "spot_light"
+    color: "#ffe8c8"
+    intensity: 1.4
+    position: [-2.5, 2.8, 0.5]
+    rotation: [-50, 22, 0]
+    angle: 40
+    penumbra: 0.6
+  }
+
+  object "warm_fill_right" {
+    type: "spot_light"
+    color: "#ffe8c8"
+    intensity: 1.4
+    position: [2.5, 2.8, 0.5]
+    rotation: [-50, -22, 0]
+    angle: 40
+    penumbra: 0.6
+  }
+
+  // ----------------------------------------------------------
+  // TEACHING TABLE — base anchor for anatomy windows
+  // ----------------------------------------------------------
+  object "teaching_table" {
+    @collidable
+    geometry: "box"
+    position: [0, 0.6, 0]
+    scale: [1.8, 0.04, 0.9]
+    material: { baseColor: "#d8dde4", roughness: 0.35, metallic: 0.6 }
+    receiveShadow: true
+  }
+
+  object "table_leg_fl" {
+    @collidable
+    geometry: "box"
+    position: [-0.82, 0.3, 0.42]
+    scale: [0.05, 0.6, 0.05]
+    material: { baseColor: "#b0b8c4", roughness: 0.3, metallic: 0.8 }
+  }
+
+  object "table_leg_fr" {
+    @collidable
+    geometry: "box"
+    position: [0.82, 0.3, 0.42]
+    scale: [0.05, 0.6, 0.05]
+    material: { baseColor: "#b0b8c4", roughness: 0.3, metallic: 0.8 }
+  }
+
+  object "table_leg_rl" {
+    @collidable
+    geometry: "box"
+    position: [-0.82, 0.3, -0.42]
+    scale: [0.05, 0.6, 0.05]
+    material: { baseColor: "#b0b8c4", roughness: 0.3, metallic: 0.8 }
+  }
+
+  object "table_leg_rr" {
+    @collidable
+    geometry: "box"
+    position: [0.82, 0.3, -0.42]
+    scale: [0.05, 0.6, 0.05]
+    material: { baseColor: "#b0b8c4", roughness: 0.3, metallic: 0.8 }
+  }
+
+  // ----------------------------------------------------------
+  // WINDOW A — Cardiac Anatomy (world-scale volumetric)
+  //
+  // A 40 × 40 × 40 cm volumetric window positioned centre-left
+  // above the table. World-scale so the resident can resize it
+  // up to 3× to fill the room for group teaching.
+  //
+  // @volumetric_window: window_type = "volumetric" (3D volume),
+  //   scale_mode = "world".
+  //
+  // Content: heart model with @subsurface_veins.
+  //   segmentCount 50 000 → coronary arteries + capillary bed
+  //   pulseBpm 72 → resting adult heart rate
+  //   color warm red-to-pink (arterial blood)
+  //   branchFactor 2.4 → dense coronary tree
+  //
+  // First use of @volumetric_window (window_type "volumetric")
+  // and first use of @subsurface_veins in any example.
+  // Tests: all-required enum fields, nested color {r,g,b}.
+  // ----------------------------------------------------------
+  object "window_a_cardiac" {
+    @grabbable
+    @volumetric_window { window_type: "volumetric", scale_mode: "world", immersion_style: "mixed", initial_width: 0.4, initial_height: 0.4, initial_depth: 0.4, resizable: true, min_scale: 0.5, max_scale: 3.0, default_placement: "scene", ornament_visibility: true }
+    geometry: "box"
+    visible: false
+    position: [-0.6, 1.0, 0]
+    scale: [0.4, 0.4, 0.4]
+  }
+
+  object "heart_model" {
+    @glowing
+    @grabbable
+    @subsurface_veins { segmentCount: 50000, pulseBpm: 72, branchFactor: 2.4, radius: 0.0006, color: { r: 0.75, g: 0.10, b: 0.12 }, intensity: 0.60 }
+    geometry: "sphere"
+    position: [-0.6, 1.0, 0]
+    scale: [0.16, 0.18, 0.16]
+    material: { baseColor: "#cc3a3a", roughness: 0.55, metallic: 0.0 }
+    emissive: "#7a1a1a"
+    emissiveIntensity: 0.12
+  }
+
+  object "label_cardiac" {
+    geometry: "plane"
+    position: [-0.6, 1.32, 0]
+    scale: [0.35, 0.07, 0.01]
+    text: "CARDIAC — 50K VASCULAR SEGMENTS"
+    material: "flat"
+    color: "#334455"
+  }
+
+  // ----------------------------------------------------------
+  // WINDOW B — Neural Anatomy (tabletop-scale bounded)
+  //
+  // A flat bounded window showing a sagittal brain slice.
+  // Cooler blue vein tint (venous blood), slower pulse for
+  // cortical microvasculature.
+  //
+  // @volumetric_window: window_type = "bounded" (flat panel),
+  //   scale_mode = "tabletop".
+  //
+  // @subsurface_veins:
+  //   segmentCount 28 000 → cortical micro + dural sinuses
+  //   pulseBpm 65 → cerebral venous drainage rate
+  //   color cool blue-violet (venous deoxygenated blood)
+  //   branchFactor 3.2 → rich cortical branching
+  // ----------------------------------------------------------
+  object "window_b_neural" {
+    @grabbable
+    @volumetric_window { window_type: "bounded", scale_mode: "tabletop", immersion_style: "mixed", initial_width: 0.38, initial_height: 0.38, initial_depth: 0.02, resizable: true, min_scale: 0.3, max_scale: 2.5, default_placement: "scene", ornament_visibility: true }
+    geometry: "box"
+    visible: false
+    position: [0.5, 1.0, 0]
+    scale: [0.38, 0.38, 0.02]
+  }
+
+  object "brain_slice" {
+    @glowing
+    @grabbable
+    @subsurface_veins { segmentCount: 28000, pulseBpm: 65, branchFactor: 3.2, radius: 0.0004, color: { r: 0.18, g: 0.12, b: 0.42 }, intensity: 0.48 }
+    geometry: "box"
+    position: [0.5, 1.0, 0]
+    scale: [0.17, 0.17, 0.03]
+    material: { baseColor: "#e8dcd4", roughness: 0.72, metallic: 0.0 }
+    emissive: "#303060"
+    emissiveIntensity: 0.08
+  }
+
+  object "label_neural" {
+    geometry: "plane"
+    position: [0.5, 1.31, 0]
+    scale: [0.35, 0.07, 0.01]
+    text: "NEURAL — 28K VASCULAR SEGMENTS"
+    material: "flat"
+    color: "#334455"
+  }
+
+  // ----------------------------------------------------------
+  // WINDOW C — Live Pathology Stream (room-scale bounded)
+  //
+  // A room-scale bounded window floating at reading height.
+  // Runs a @diffusion_realtime LCM txt2img pipeline generating
+  // photorealistic H&E histology slides at ~15 fps.
+  //
+  // The window is @glowing so the AI-generated slide lights
+  // the room faintly — a warm "digital lightbox" presence.
+  //
+  // @volumetric_window: window_type = "bounded", scale_mode = "room"
+  // @diffusion_realtime: backend "lcm", stream_mode "txt2img",
+  //   target_fps 15, steps 4, 512×512.
+  //
+  // First use of @diffusion_realtime in any example.
+  // Tests: backend enum, stream_mode enum, string prompt fields.
+  // ----------------------------------------------------------
+  object "window_c_pathology" {
+    @glowing
+    @grabbable
+    @volumetric_window { window_type: "bounded", scale_mode: "room", immersion_style: "mixed", initial_width: 0.52, initial_height: 0.38, initial_depth: 0.02, resizable: true, min_scale: 0.4, max_scale: 4.0, default_placement: "scene", ornament_visibility: true }
+    @diffusion_realtime { backend: "lcm", stream_mode: "txt2img", target_fps: 15, guidance_scale: 1.2, noise_strength: 0.42, steps: 4, width: 512, height: 512, prompt: "photorealistic histology slide H&E staining hepatocellular carcinoma 40x objective high resolution", negative_prompt: "blurry artifacts noise cartoon illustration low quality" }
+    geometry: "box"
+    position: [0, 1.28, -0.25]
+    scale: [0.52, 0.38, 0.02]
+    emissive: "#fff8e8"
+    emissiveIntensity: 0.35
+    castShadow: true
+  }
+
+  object "label_pathology" {
+    geometry: "plane"
+    position: [0, 1.54, -0.25]
+    scale: [0.45, 0.07, 0.01]
+    text: "AI HISTOLOGY STREAM — 15 FPS LCM"
+    material: "flat"
+    color: "#334455"
+  }
+
+  // Glow cone from the pathology window down to the table
+  object "pathology_glow_cone" {
+    type: "spot_light"
+    color: "#fff0d8"
+    intensity: 0.55
+    position: [0, 1.28, -0.25]
+    rotation: [90, 0, 0]
+    angle: 35
+    penumbra: 0.7
+  }
+
+  // ----------------------------------------------------------
+  // INSTRUCTOR PODIUM
+  // ----------------------------------------------------------
+  object "podium_base" {
+    @collidable
+    geometry: "box"
+    position: [0, 0.5, 1.1]
+    scale: [0.4, 1.0, 0.4]
+    material: { baseColor: "#cfd8dc", roughness: 0.4, metallic: 0.5 }
+  }
+
+  object "podium_top" {
+    @collidable
+    geometry: "box"
+    position: [0, 1.05, 1.1]
+    scale: [0.55, 0.04, 0.45]
+    material: { baseColor: "#b0bec5", roughness: 0.3, metallic: 0.7 }
+  }
+
+  object "podium_glow" {
+    @glowing
+    geometry: "box"
+    position: [0, 1.08, 1.1]
+    scale: [0.52, 0.008, 0.42]
+    emissive: "#80d8ff"
+    emissiveIntensity: 0.9
+  }
+
+  // ----------------------------------------------------------
+  // POST-PROCESSING — clinical bright + mild bloom
+  // ----------------------------------------------------------
+  post_processing {
+    bloom: { enabled: true, intensity: 0.30, threshold: 0.75, radius: 0.5 }
+    tone_mapping: { type: "aces", exposure: 1.05 }
+  }
+
+}
