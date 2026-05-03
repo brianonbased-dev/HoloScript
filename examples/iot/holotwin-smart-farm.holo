@@ -1,0 +1,256 @@
+/**
+ * HoloTwin Example: Smart Farm Sensor Dashboard
+ *
+ * Demonstrates IoT sensor → HoloScript scene → Looking Glass quilt pipeline.
+ * Three sensors (temperature, humidity, soil moisture) drive 3D visualization.
+ *
+ * Usage:
+ *   1. Load in Studio: holoscript studio --load examples/iot/holotwin-smart-farm.holo
+ *   2. Connect to MQTT broker: mqtt://farm.local:1883
+ *   3. Sensors auto-publish to topics: farm/sensor/{temperature,humidity,moisture}
+ *   4. Quilt compiles automatically and displays on Looking Glass
+ *
+ * Or use MCP tools:
+ *   holo_holotwin_connect(physicalId="farm-001", protocol="mqtt", connectionString="mqtt://farm.local:1883")
+ *   holo_holotwin_map_sensor(sessionId, mappings=[...])
+ *   holo_holotwin_compile_quilt(sessionId, holoCode)
+ */
+
+composition "Smart Farm HoloTwin" {
+  environment {
+    skybox: "farm"
+    ambient_light: 0.5
+    shadows: true
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Temperature Sensor
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "TemperatureSensor" {
+    @iot_sensor {
+      device_id: "temp-001"
+      protocol: "mqtt"
+      topic: "farm/sensor/temperature"
+    }
+
+    @holo_twin {
+      physical_id: "temp-001"
+      display_device: "16inch"
+      auto_recompile: true
+      recompile_interval_ms: 1000
+    }
+
+    @digital_twin {
+      physical_id: "temp-001"
+      sync_properties: [
+        { physical_key: "temperature", virtual_property: "emissiveIntensity", direction: "in" }
+      ]
+      update_mode: "polling"
+      poll_interval: 5000
+    }
+
+    geometry: "sphere"
+    position: [0, 2, 0]
+    scale: [0.8, 0.8, 0.8]
+    color: "#FF6B6B"
+    emissive: "#FF6B6B"
+    emissiveIntensity: 0.5  // Updated by sensor: 10°C→0.0, 40°C→2.0
+
+    label: "Temperature"
+  }
+
+  object "TemperatureLabel" {
+    geometry: "plane"
+    position: [0, 3.2, 0]
+    scale: [1.5, 0.4, 0.1]
+    color: "#ffffff"
+    label: "24.5°C"  // Updated by sensor
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Humidity Sensor
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "HumiditySensor" {
+    @iot_sensor {
+      device_id: "humidity-001"
+      protocol: "mqtt"
+      topic: "farm/sensor/humidity"
+    }
+
+    @holo_twin {
+      physical_id: "humidity-001"
+      display_device: "16inch"
+      auto_recompile: true
+    }
+
+    @digital_twin {
+      physical_id: "humidity-001"
+      sync_properties: [
+        { physical_key: "humidity", virtual_property: "scale", direction: "in" }
+      ]
+      update_mode: "polling"
+      poll_interval: 5000
+    }
+
+    geometry: "box"
+    position: [-2.5, 1.5, 0]
+    scale: [0.6, 0.6, 0.6]  // Updated by sensor: 0%→0.5, 100%→1.5
+    color: "#4ECDC4"
+    emissive: "#4ECDC4"
+    emissiveIntensity: 0.3
+
+    label: "Humidity"
+  }
+
+  object "HumidityLabel" {
+    geometry: "plane"
+    position: [-2.5, 2.7, 0]
+    scale: [1.2, 0.3, 0.1]
+    color: "#ffffff"
+    label: "72%"  // Updated by sensor
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Soil Moisture Sensor
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "SoilMoistureSensor" {
+    @iot_sensor {
+      device_id: "moisture-001"
+      protocol: "mqtt"
+      topic: "farm/sensor/moisture"
+    }
+
+    @holo_twin {
+      physical_id: "moisture-001"
+      display_device: "16inch"
+      auto_recompile: true
+    }
+
+    @digital_twin {
+      physical_id: "moisture-001"
+      sync_properties: [
+        { physical_key: "moisture", virtual_property: "scale", direction: "in" }
+      ]
+      update_mode: "polling"
+      poll_interval: 5000
+    }
+
+    geometry: "cylinder"
+    position: [2.5, 1, 0]
+    scale: [0.5, 1, 0.5]  // Updated by sensor: 0%→0.5, 100%→2.0
+    color: "#8B4513"
+    emissive: "#8B4513"
+    emissiveIntensity: 0.2
+
+    label: "Soil Moisture"
+  }
+
+  object "MoistureLabel" {
+    geometry: "plane"
+    position: [2.5, 2.2, 0]
+    scale: [1.5, 0.3, 0.1]
+    color: "#ffffff"
+    label: "65%"  // Updated by sensor
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Dashboard Base
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "DashboardBase" {
+    @static
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0.1, 0]
+    scale: [5, 0.2, 5]
+    color: "#2d3436"
+    metalness: 0.8
+    roughness: 0.2
+  }
+
+  object "TitleLabel" {
+    geometry: "plane"
+    position: [0, 4, -2]
+    scale: [6, 0.6, 0.1]
+    color: "#ffffff"
+    label: "🏭 Smart Farm HoloTwin Dashboard"
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Connection Status Indicator
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "StatusIndicator" {
+    @glowing
+    geometry: "sphere"
+    position: [4, 3.5, 0]
+    scale: [0.15, 0.15, 0.15]
+    color: "#00ff00"  // Green when connected, red when disconnected
+    emissive: "#00ff00"
+    emissiveIntensity: 2.0
+    label: "Connected"
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sensor Mapping Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+@holo_twin_config {
+  // MQTT broker configuration
+  broker: {
+    url: "mqtt://farm.local:1883"
+    clientId: "holotwin-smart-farm"
+    qos: 1
+    keepAliveSeconds: 60
+  }
+
+  // Sensor mappings: IoT key → scene property transform
+  mappings: [
+    {
+      sensor_key: "temperature"
+      scene_property: "emissiveIntensity"
+      transform: "emissive"
+      min: 10      // 10°C maps to 0.0
+      max: 40      // 40°C maps to 2.0
+      invert: false
+    },
+    {
+      sensor_key: "humidity"
+      scene_property: "scale"
+      transform: "scale"
+      min: 0       // 0% maps to 0.5x
+      max: 100     // 100% maps to 1.5x
+      invert: false
+    },
+    {
+      sensor_key: "moisture"
+      scene_property: "scale"
+      transform: "scale"
+      min: 0       // 0% maps to 0.5x
+      max: 100     // 100% maps to 2.0x
+      invert: false
+    }
+  ]
+
+  // Looking Glass display configuration
+  display: {
+    device: "16inch"
+    auto_recompile: true
+    recompile_interval_ms: 1000
+  }
+
+  // Simulation mode for testing without physical sensors
+  simulation: {
+    enabled: true
+    update_interval_ms: 1000
+    sensor_data: {
+      temperature: 24.5
+      humidity: 72
+      moisture: 65
+    }
+  }
+}

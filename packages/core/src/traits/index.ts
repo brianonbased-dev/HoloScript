@@ -77,6 +77,7 @@ export * from './GestureTrait';
 export { GlobalIlluminationTrait } from './GlobalIlluminationTrait';
 export * from './GLTFTrait';
 export * from './GoalOrientedTrait';
+export { holoTwinHandler } from './HoloTwinTrait';
 export * from './GPUBufferTrait';
 export * from './GPUParticleTrait';
 export * from './GPUPhysicsTrait';
