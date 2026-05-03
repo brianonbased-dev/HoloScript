@@ -16,10 +16,15 @@ fi
 
 # --- Cache directory setup ---
 CACHE_DIR="${HOLOSCRIPT_CACHE_DIR:-/app/.holoscript}"
+DATA_DIR="${HOLOMESH_DATA_DIR:-$CACHE_DIR/holomesh}"
 
 mkdir -p "$CACHE_DIR" || true
 chown -R nodejs:nodejs "$CACHE_DIR" || true
 chmod 775 "$CACHE_DIR" || true
+
+mkdir -p "$DATA_DIR" || true
+chown -R nodejs:nodejs "$DATA_DIR" || true
+chmod 775 "$DATA_DIR" || true
 
 # --- Database Migrations ---
 if [ -n "${DATABASE_URL:-}" ]; then
@@ -44,9 +49,13 @@ if [ -n "${DATABASE_URL:-}" ]; then
   ")
 fi
 
-if su-exec nodejs sh -c "touch '$CACHE_DIR/.write_test' && rm -f '$CACHE_DIR/.write_test'" 2>/dev/null; then
+can_write_dir() {
+  su-exec nodejs sh -c 'touch "$1/.write_test" && rm -f "$1/.write_test"' sh "$1" 2>/dev/null
+}
+
+if can_write_dir "$CACHE_DIR" && can_write_dir "$DATA_DIR"; then
   exec su-exec nodejs node packages/mcp-server/dist/http-server.js
 fi
 
-echo "[WARN] nodejs cannot write $CACHE_DIR, starting as root fallback" >&2
+echo "[WARN] nodejs cannot write $CACHE_DIR or $DATA_DIR, starting as root fallback" >&2
 exec node packages/mcp-server/dist/http-server.js

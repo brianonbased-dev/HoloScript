@@ -153,5 +153,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:${PORT:-3000}/health',(r)=>process.exit(r.statusCode===200?0:1))"
 
+# Intentionally keep container startup as root: the entrypoint fixes ownership
+# on Railway-mounted volumes such as /data/holomesh, then drops to nodejs.
+
 # Start HTTP server
 CMD ["/app/packages/mcp-server/scripts/docker-entrypoint.sh"]
