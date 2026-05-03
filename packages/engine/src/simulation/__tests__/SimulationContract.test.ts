@@ -1155,8 +1155,16 @@ describe('Scale Tag & Acceptance Envelopes', () => {
     expect(result.diagnostic).toContain('No projection');
   });
 
-  it('(15d) continuum → empirical-surrogate: valid projection', () => {
+  it('(15d) continuum → empirical-surrogate: valid projection path but field tolerance exceeds target envelope', () => {
+    // empirical-surrogate envelope is 5e-2 (5%); fieldTolerance 0.1 (10%) exceeds it
     const result = acceptsCrossScale('continuum', 'empirical-surrogate', 0.1);
+    expect(result.accepted).toBe(false);
+    expect(result.diagnostic).toContain('exceeds target-scale envelope');
+  });
+
+  it('(15e) continuum → empirical-surrogate: accepted when field tolerance within envelope', () => {
+    // fieldTolerance 3e-2 (3%) is within empirical-surrogate envelope of 5e-2 (5%)
+    const result = acceptsCrossScale('continuum', 'empirical-surrogate', 3e-2);
     expect(result.accepted).toBe(true);
   });
 

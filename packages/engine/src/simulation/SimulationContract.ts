@@ -273,14 +273,18 @@ export function acceptsCrossScale(
   const epsilonScale = targetEnvelope.tolerance;
   const epsilonTotal = Math.max(fieldTolerance, epsilonScale);
 
-  // Conservative check: field tolerance must be within the composed envelope
-  const accepted = fieldTolerance <= epsilonTotal;
+  // Conservative check: field tolerance must be within the target scale's envelope.
+  // epsilonTotal is the composed effective tolerance (informational); the acceptance
+  // criterion is whether the caller's fieldTolerance fits within the target envelope.
+  // (Using epsilonTotal here would make the check a tautology since
+  //  Math.max(fieldTolerance, epsilonScale) >= fieldTolerance always.)
+  const accepted = fieldTolerance <= epsilonScale;
 
   return {
     accepted,
     diagnostic: accepted
       ? `Cross-scale acceptance: ε_total = max(${fieldTolerance}, ${epsilonScale}) = ${epsilonTotal}`
-      : `Field tolerance ${fieldTolerance} exceeds composed envelope ${epsilonTotal}`,
+      : `Field tolerance ${fieldTolerance} exceeds target-scale envelope ${epsilonScale}`,
   };
 }
 
