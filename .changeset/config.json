@@ -9,15 +9,13 @@
       "@holoscript/agent-protocol",
       "@holoscript/holo-vm",
       "@holoscript/snn-webgpu",
-      "@holoscript/uaal",
-      "@holoscript/vm-bridge"
+      "@holoscript/uaal"
     ]
   ],
   "linked": [
     [
       "@holoscript/benchmark",
       "@holoscript/formatter",
-      "@holoscript/fs",
       "@holoscript/linter",
       "@holoscript/lsp",
       "@holoscript/mcp-server",
