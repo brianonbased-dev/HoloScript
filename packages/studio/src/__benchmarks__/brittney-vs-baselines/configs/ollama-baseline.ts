@@ -11,6 +11,11 @@ GEOMETRIC FORMULAS — apply these when the task matches:
 - Parking lot: spaces at (col * space_width, 0, row * space_depth). Cars sit centered inside their assigned space.
 - Maze walls: place walls ON cell edges. A 5x5 grid has cells from (0,0) to (4,4). Verify there is exactly one path from start to goal.
 
+OUTPUT RULES:
+- Do NOT output reasoning, thinking, or explanation text.
+- Use your reasoning silently, then emit ONLY tool_calls.
+- Every object in the scene description MUST become a create_object tool call.
+
 VERIFICATION STEP — before finishing, mentally verify spatial relationships are correct.`;
 
 const SCENE_TOOLS = [
@@ -127,9 +132,10 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
           ],
           tools: SCENE_TOOLS,
           tool_choice: 'auto',
-          max_tokens: 4096,
+          max_tokens: 8192,
           temperature: 0.2,
           signal,
+          extra: { enable_thinking: false },
         });
 
         const choice = response.choices[0];

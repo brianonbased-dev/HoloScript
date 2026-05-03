@@ -274,7 +274,7 @@ async function judgeWithOllama(
       {
         role: 'system',
         content:
-          'You are an exacting evaluator. For each rubric criterion, decide PASS or FAIL. Be strict: if information is ambiguous or absent from both output text and mutations, mark FAIL. Return ONLY a JSON object with a "verdicts" array.',
+          'You are an exacting evaluator. For each rubric criterion, decide PASS or FAIL. Be strict: if information is ambiguous or absent from both output text and mutations, mark FAIL. Return ONLY a JSON object with a "verdicts" array. Do NOT output reasoning or thinking.',
       },
       { role: 'user', content: prompt },
     ],
@@ -282,6 +282,7 @@ async function judgeWithOllama(
     tool_choice: { type: 'function', function: { name: 'submit_verdicts' } },
     max_tokens: 4096,
     temperature: 0,
+    extra: { enable_thinking: false },
   });
 
   usage.input_tokens = ollamaClient.estimateTokens(inputChars);
