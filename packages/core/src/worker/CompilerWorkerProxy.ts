@@ -1,30 +1,32 @@
 /**
  * Main Thread Proxy for the HoloScript Compiler/LSP Worker.
- * 
+ *
  * Exposes a Promise-based async API corresponding to the synchronous
  * LSP operations, acting as the primary integration layer for CLI/Studio.
  */
 
-import { Worker } from 'worker_threads';
+import { existsSync } from 'fs';
+import { Worker, type WorkerOptions } from 'worker_threads';
 import * as path from 'path';
-import { 
-  WorkerRequest, 
-  WorkerResponse, 
+import {
+  WorkerRequest,
+  WorkerResponse,
   WorkerCommand,
   GetAtPositionPayload,
-  UpdateDocumentPayload
+  UpdateDocumentPayload,
 } from './LSPWorkerProtocol';
 
 export class CompilerWorkerProxy {
   private worker: Worker;
   private messageIdCounter = 0;
-  private pendingRequests: Map<string, { resolve: (val: any) => void; reject: (err: any) => void }> = new Map();
+  private pendingRequests: Map<
+    string,
+    { resolve: (val: any) => void; reject: (err: any) => void }
+  > = new Map();
 
   constructor() {
-    // Determine the precise path of the compiled worker
-    // Assumption: when compiled to CJS/ESM, the js file will be at the same relative path
-    const workerPath = path.join(__dirname, 'CompilerWorker.js');
-    this.worker = new Worker(workerPath);
+    const { workerPath, workerOptions } = this.resolveWorkerEntrypoint();
+    this.worker = new Worker(workerPath, workerOptions);
 
     this.worker.on('message', (response: WorkerResponse) => {
       const pending = this.pendingRequests.get(response.id);
@@ -43,11 +45,34 @@ export class CompilerWorkerProxy {
     });
   }
 
+  private resolveWorkerEntrypoint(): { workerPath: string; workerOptions?: WorkerOptions } {
+    const compiledWorkerPath = path.join(__dirname, 'CompilerWorker.js');
+    if (existsSync(compiledWorkerPath)) {
+      return { workerPath: compiledWorkerPath };
+    }
+
+    const sourceWorkerPath = path.join(__dirname, 'CompilerWorker.ts');
+    if (existsSync(sourceWorkerPath)) {
+      return {
+        workerPath: this.sourceWorkerBootstrap(sourceWorkerPath),
+        workerOptions: {
+          eval: true,
+        },
+      };
+    }
+
+    return { workerPath: compiledWorkerPath };
+  }
+
+  private sourceWorkerBootstrap(sourceWorkerPath: string): string {
+    return `require('tsx/cjs');\nrequire(${JSON.stringify(sourceWorkerPath)});`;
+  }
+
   private sendRequest<T>(command: WorkerCommand, payload?: any): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = `${command}_${this.messageIdCounter++}`;
       this.pendingRequests.set(id, { resolve, reject });
-      
+
       const request: WorkerRequest = { id, command, payload };
       this.worker.postMessage(request);
     });
@@ -66,15 +91,24 @@ export class CompilerWorkerProxy {
   }
 
   public getCompletions(uri: string, line: number, character: number): Promise<any[]> {
-    return this.sendRequest('GET_COMPLETIONS', { uri, position: { line, character } } as GetAtPositionPayload);
+    return this.sendRequest('GET_COMPLETIONS', {
+      uri,
+      position: { line, character },
+    } as GetAtPositionPayload);
   }
 
   public getHover(uri: string, line: number, character: number): Promise<any> {
-    return this.sendRequest('GET_HOVER', { uri, position: { line, character } } as GetAtPositionPayload);
+    return this.sendRequest('GET_HOVER', {
+      uri,
+      position: { line, character },
+    } as GetAtPositionPayload);
   }
 
   public getDefinition(uri: string, line: number, character: number): Promise<any> {
-    return this.sendRequest('GET_DEFINITION', { uri, position: { line, character } } as GetAtPositionPayload);
+    return this.sendRequest('GET_DEFINITION', {
+      uri,
+      position: { line, character },
+    } as GetAtPositionPayload);
   }
 
   public compileScene(uri: string, content: string, isIncremental: boolean = true): Promise<any> {
