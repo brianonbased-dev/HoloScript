@@ -1,0 +1,470 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-04
+// "Murmuration Market"
+//
+// NEW TRAITS EXERCISED (zero prior coverage across all examples):
+//   @crowd_sim        — GPU crowd: 4 000 agents flocking + goal-seeking
+//   @navmesh_solver   — bakes the terraced amphitheater into a walkable mesh
+//   @pose_estimation  — 4 drone cameras reading crowd body language overhead
+//
+// Supporting traits (well-exercised, binding the new ones into a scene):
+//   @glowing, @collidable, @physics, @spatial_audio, @billboard, @animated
+//
+// SCENE STORY:
+//   A living open-air bazaar carved into a sunken amphitheater.
+//   4 000 visitors flow between merchant stalls like a murmuration of
+//   starlings — drawn by @crowd_sim GPU flocking with goal weights tuned
+//   to stall positions. The @navmesh_solver bakes the terraced geometry
+//   (stairs, bridges, narrow alleys) so the crowd moves realistically,
+//   not through walls.
+//
+//   Four @pose_estimation drones orbit overhead, each reading body
+//   language from a different quadrant. Their aggregate excitement scores
+//   — derived from arm-raised ratio and inter-person distance — feed back
+//   as dynamic goal weights, shifting crowd flow toward the most animated
+//   cluster. The crowd becomes self-organizing: energy in one corner
+//   propagates outward as a wave of attention.
+//
+// ARTISTIC INTENT:
+//   At steady state the plaza breathes. Vendors near excited clusters
+//   attract more visitors, who raise their arms, which the drones detect,
+//   which attracts more visitors. A feedback loop between human pose and
+//   crowd dynamics — legible, beautiful, emergent.
+//
+// COMPILE TARGETS:
+//   holoscript compile <file> --target webgpu   (preferred — GPU crowd)
+//   holoscript compile <file> --target unity    (HDRP crowd instancing)
+//   holoscript compile <file> --target unreal   (Mass Entity + MetaHuman)
+// ============================================================================
+
+composition "MurmurationMarket" {
+
+  metadata {
+    title: "Murmuration Market"
+    description: "Self-organizing crowd bazaar — @crowd_sim + @navmesh_solver + @pose_estimation stress test"
+    version: "1.0.0"
+    author: "A-009"
+    tags: ["stress-test", "crowd_sim", "navmesh_solver", "pose_estimation", "emergent", "social", "xr"]
+    platforms: ["webgpu", "unity", "unreal"]
+  }
+
+  environment {
+    sky: "afternoon_overcast"
+    fog: { density: 0.012, color: "#c8c0b4" }
+    ambient: 0.55
+    sun_direction: [-0.4, -0.7, 0.3]
+    shadows: true
+  }
+
+  post_processing {
+    ambient_occlusion: { intensity: 0.4, radius: 0.8 }
+    color_grading: { contrast: 1.05, saturation: 0.92 }
+  }
+
+  // -- State ------------------------------------------------------------------
+
+  state MarketState {
+    // Crowd dynamics
+    totalAgents: 4000
+    peakThroughput: 0
+    activeSectors: ["north_market", "south_market", "stage_plaza", "transit_hub"]
+
+    // Pose energy per quadrant (updated by drone cameras, range 0.0–1.0)
+    poseEnergy: { north: 0.0, south: 0.0, east: 0.0, west: 0.0 }
+
+    // Crowd goal weights — rebalanced each second by pose feedback loop
+    goalWeights: {
+      north_stall:  1.0
+      south_stall:  1.0
+      stage:        1.2
+      food_court:   1.0
+      fountain:     0.6
+    }
+
+    // Navmesh
+    navmeshReady: false
+    navmeshPolygons: 0
+  }
+
+  // ==========================================================================
+  // GEOMETRY — Terraced amphitheater
+  // ==========================================================================
+  // Three concentric terraces descend to a central stage plaza.
+  // Stairs connect each terrace level. The navmesh solver treats
+  // all walkable surfaces (terraces, bridges, alley floors) as
+  // traversable; the stair connections become navmesh links.
+
+  group "AmphitheaterGeometry" {
+
+    object "PlazaFloor" {
+      @collidable
+      geometry: "disc"
+      radius: 18
+      position: [0, 0, 0]
+      material: { color: "#b8a898", roughness: 0.85 }
+    }
+
+    object "Terrace1Ring" {
+      @collidable
+      geometry: "torus_flat"
+      inner_radius: 18
+      outer_radius: 26
+      height: 0.3
+      position: [0, 0.5, 0]
+      material: { color: "#a89888", roughness: 0.9 }
+    }
+
+    object "Terrace2Ring" {
+      @collidable
+      geometry: "torus_flat"
+      inner_radius: 26
+      outer_radius: 34
+      height: 0.3
+      position: [0, 1.0, 0]
+      material: { color: "#988878", roughness: 0.9 }
+    }
+
+    object "Terrace3Ring" {
+      @collidable
+      geometry: "torus_flat"
+      inner_radius: 34
+      outer_radius: 42
+      height: 0.3
+      position: [0, 1.5, 0]
+      material: { color: "#887868", roughness: 0.9 }
+    }
+
+    // Four stair runs connecting terrace levels (cardinal directions)
+    template "StairRun" {
+      @collidable
+      geometry: "stair_block"
+      step_count: 6
+      step_rise: 0.17
+      step_run: 0.28
+      width: 4.0
+      material: { color: "#7a6e62", roughness: 0.95 }
+    }
+
+    object "StairsNorth" using "StairRun" { position: [0,  0.5, -22],  rotation: [0, 0,   0] }
+    object "StairsSouth" using "StairRun" { position: [0,  0.5,  22],  rotation: [0, 180, 0] }
+    object "StairsEast"  using "StairRun" { position: [22, 0.5,  0],   rotation: [0, 90,  0] }
+    object "StairsWest"  using "StairRun" { position: [-22,0.5,  0],   rotation: [0, 270, 0] }
+  }
+
+  // ==========================================================================
+  // NAVMESH SOLVER — bakes entire amphitheater surface
+  // ==========================================================================
+  // cell_size: 0.4 m gives good stair fidelity without excess polygon count.
+  // Fires nav:build on scene start; crowd_sim waits for nav:built before
+  // activating agents. On nav:built we update MarketState.navmeshReady.
+
+  object "PlazaNavmesh" {
+    @navmesh_solver {
+      cell_size: 0.4
+    }
+    visible: false
+    position: [0, 0, 0]
+    behavior {
+      on "scene:ready" {
+        action: "nav:build"
+        polygonCount: 0
+      }
+      on "nav:built" {
+        action: "updateNavmeshState"
+      }
+    }
+  }
+
+  // ==========================================================================
+  // CROWD SIMULATION — 4 000 agents across the plaza
+  // ==========================================================================
+  // GPU spatial hash + bitonic sort for O(N) broad phase.
+  // LOD 3 renders full meshes near camera, sprites at distance.
+  // Goal weights come from MarketState.goalWeights, updated by pose feedback.
+
+  object "CrowdLayer" {
+    @crowd_sim {
+      max_agents: 4000
+      speed: 1.2
+      avoidance_radius: 0.8
+      goal_weight: 1.0
+      separation_weight: 1.8
+      alignment_weight: 0.9
+      cohesion_weight: 0.7
+      lod_levels: 3
+      use_gpu: true
+    }
+    @animated {
+      idle:  "crowd_idle_blend"
+      walk:  "crowd_walk_cycle"
+      speed_threshold: 0.3
+    }
+    visible: false
+    position: [0, 0, 0]
+    behavior {
+      on "nav:built" {
+        action: "activateAgents"
+        spawn_area: "Terrace2Ring"
+        initial_goals: ["NorthStall", "SouthStall", "CenterStage", "FoodCourt"]
+      }
+      on "pose:energy_update" {
+        action: "rebalanceGoalWeights"
+        weights: MarketState.goalWeights
+      }
+    }
+  }
+
+  // ==========================================================================
+  // MERCHANT STALLS — crowd goal anchors
+  // ==========================================================================
+  // Each stall is a crowd goal. goal_weight copied from MarketState.goalWeights
+  // so the pose feedback loop can shift foot traffic dynamically.
+
+  template "MarketStall" {
+    @glowing { color: "#ffcc44", intensity: 0.6 }
+    @collidable
+    geometry: "box"
+    scale: [3, 2.5, 2]
+    material: { color: "#c49a40", roughness: 0.7 }
+  }
+
+  object "NorthStall" using "MarketStall" {
+    position: [0, 0.5, -20]
+    crowd_goal: true
+    goal_id: "north_stall"
+    goal_weight: 1.0
+  }
+
+  object "SouthStall" using "MarketStall" {
+    position: [0, 0.5, 20]
+    crowd_goal: true
+    goal_id: "south_stall"
+    goal_weight: 1.0
+  }
+
+  object "EastStall" using "MarketStall" {
+    position: [20, 0.5, 0]
+    crowd_goal: true
+    goal_id: "east_stall"
+    goal_weight: 1.0
+  }
+
+  object "WestStall" using "MarketStall" {
+    position: [-20, 0.5, 0]
+    crowd_goal: true
+    goal_id: "west_stall"
+    goal_weight: 1.0
+  }
+
+  object "CenterStage" {
+    @glowing { color: "#88aaff", intensity: 1.2 }
+    @spatial_audio { source: "ambient_market.ogg", rolloff: "linear", maxDistance: 30 }
+    @collidable
+    geometry: "cylinder"
+    height: 0.4
+    radius: 4
+    position: [0, 0.2, 0]
+    material: { color: "#3a3060", roughness: 0.5, metalness: 0.3 }
+    crowd_goal: true
+    goal_id: "stage"
+    goal_weight: 1.2
+  }
+
+  object "FoodCourt" {
+    @collidable
+    geometry: "box"
+    scale: [6, 0.1, 4]
+    position: [0, 0.05, 12]
+    material: { color: "#8a6a40" }
+    crowd_goal: true
+    goal_id: "food_court"
+    goal_weight: 1.0
+  }
+
+  // ==========================================================================
+  // POSE ESTIMATION DRONES — four overhead cameras reading crowd energy
+  // ==========================================================================
+  // Each drone covers one quadrant of the plaza at an elevation of 18 m.
+  // @pose_estimation runs MediaPipe multi-person pose on the drone's
+  // downward camera feed. The key signal is `excited_ratio`:
+  // fraction of detected persons with both elbows above shoulder height.
+  // When excited_ratio > 0.4 in a quadrant, the nearest stall's
+  // goal_weight increases by 0.3 — drawing more of the crowd there.
+
+  template "PoseDrone" {
+    @pose_estimation {
+      model: "mediapipe"
+      keypoints: 33
+      smoothing: 0.35
+      min_confidence: 0.5
+      multi_person: true
+      tracking_enabled: true
+    }
+    @animated { idle: "drone_hover", speed: 1.0 }
+    @physics { mass: 0.8, drag: 2.0 }
+    @glowing { color: "#00ffcc", intensity: 0.8 }
+    geometry: "quad_rotor"
+    scale: [0.6, 0.2, 0.6]
+    material: { color: "#222244", metalness: 0.7, roughness: 0.3 }
+  }
+
+  object "DroneNorth" using "PoseDrone" {
+    position: [0,  18, -14]
+    camera_fov: 80
+    camera_direction: [0, -1, 0]
+    quadrant: "north"
+    behavior {
+      on "pose:persons_detected" {
+        action: "computeExcitementRatio"
+        quadrant: "north"
+        output: MarketState.poseEnergy.north
+      }
+    }
+  }
+
+  object "DroneSouth" using "PoseDrone" {
+    position: [0,  18, 14]
+    camera_fov: 80
+    camera_direction: [0, -1, 0]
+    quadrant: "south"
+    behavior {
+      on "pose:persons_detected" {
+        action: "computeExcitementRatio"
+        quadrant: "south"
+        output: MarketState.poseEnergy.south
+      }
+    }
+  }
+
+  object "DroneEast" using "PoseDrone" {
+    position: [14, 18, 0]
+    camera_fov: 80
+    camera_direction: [0, -1, 0]
+    quadrant: "east"
+    behavior {
+      on "pose:persons_detected" {
+        action: "computeExcitementRatio"
+        quadrant: "east"
+        output: MarketState.poseEnergy.east
+      }
+    }
+  }
+
+  object "DroneWest" using "PoseDrone" {
+    position: [-14, 18, 0]
+    camera_fov: 80
+    camera_direction: [0, -1, 0]
+    quadrant: "west"
+    behavior {
+      on "pose:persons_detected" {
+        action: "computeExcitementRatio"
+        quadrant: "west"
+        output: MarketState.poseEnergy.west
+      }
+    }
+  }
+
+  // ==========================================================================
+  // ENERGY VISUALIZATION — pose excitement rendered as heat aura on the plaza
+  // ==========================================================================
+  // A semi-transparent quad mesh overlaid on the plaza floor.
+  // Color ramps from cool (#2244aa) to hot (#ff4400) based on
+  // the per-quadrant pose energy. Updates at 4 Hz to avoid visual noise.
+
+  object "EnergyHeatmap" {
+    @billboard
+    @glowing { color: "#ff6600", intensity: 0.0 }
+    geometry: "quad"
+    scale: [40, 1, 40]
+    position: [0, 0.05, 0]
+    material: {
+      color: "#2244aa"
+      opacity: 0.25
+      transparent: true
+      blending: "additive"
+    }
+    behavior {
+      on "pose:energy_update" {
+        action: "updateHeatmapColor"
+        energy: MarketState.poseEnergy
+      }
+    }
+  }
+
+  // ==========================================================================
+  // AMBIENT AUDIO — layered spatial market soundscape
+  // ==========================================================================
+
+  object "MarketAmbience" {
+    @spatial_audio {
+      source: "market_crowd_walla.ogg"
+      rolloff: "linear"
+      maxDistance: 50
+      volume_bind: MarketState.totalAgents
+      volume_scale: 0.00025
+    }
+    position: [0, 2, 0]
+    visible: false
+  }
+
+  object "CrowdMurmur" {
+    @spatial_audio {
+      source: "crowd_murmur_loop.ogg"
+      rolloff: "logarithmic"
+      maxDistance: 30
+      loop: true
+    }
+    position: [0, 1, 0]
+    visible: false
+  }
+
+  // ==========================================================================
+  // ACTIONS
+  // ==========================================================================
+
+  action updateNavmeshState(polygons) {
+    MarketState.navmeshReady = true
+    MarketState.navmeshPolygons = polygons
+    emit("crowd:enable", { goals: MarketState.goalWeights })
+  }
+
+  action activateAgents(spawn_area, initial_goals) {
+    emit("crowd_sim:spawn_batch", {
+      count: MarketState.totalAgents
+      area: spawn_area
+      goals: initial_goals
+    })
+  }
+
+  action computeExcitementRatio(quadrant, persons) {
+    // fraction of detected people with elbows above shoulder keypoints
+    let excited = 0
+    for person in persons {
+      let ls = person.keypoints["left_shoulder"]
+      let le = person.keypoints["left_elbow"]
+      let rs = person.keypoints["right_shoulder"]
+      let re = person.keypoints["right_elbow"]
+      if le.y > ls.y or re.y > rs.y {
+        excited = excited + 1
+      }
+    }
+    let ratio = excited / max(persons.length, 1)
+    MarketState.poseEnergy[quadrant] = ratio
+    emit("pose:energy_update", { quadrant: quadrant, energy: ratio })
+  }
+
+  action rebalanceGoalWeights(quadrant, energy) {
+    // Nearest stall to excited quadrant gains weight
+    let delta = (energy - 0.3) * 0.4
+    if quadrant == "north" { MarketState.goalWeights.north_stall = clamp(1.0 + delta, 0.5, 2.5) }
+    if quadrant == "south" { MarketState.goalWeights.south_stall = clamp(1.0 + delta, 0.5, 2.5) }
+    if quadrant == "east"  { MarketState.goalWeights.stage       = clamp(1.2 + delta, 0.5, 3.0) }
+    if quadrant == "west"  { MarketState.goalWeights.food_court  = clamp(1.0 + delta, 0.5, 2.5) }
+    emit("crowd_sim:update_goals", { weights: MarketState.goalWeights })
+  }
+
+  action updateHeatmapColor(energy) {
+    let avg = (energy.north + energy.south + energy.east + energy.west) * 0.25
+    emit("heatmap:set_intensity", { value: avg, color_ramp: ["#2244aa", "#ff4400"] })
+  }
+}

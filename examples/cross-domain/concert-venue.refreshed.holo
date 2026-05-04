@@ -1,0 +1,400 @@
+// ============================================================================
+// Cross-Domain Composition: Concert Venue (refreshed 2026-05-04)
+// Domains combined: Music + Input + Rendering + Procedural + Performance
+//
+// Refresh adds:
+//   @lip_sync       — vocalist avatar mouth-syncs to audio frequency bands
+//   @cinematic_seq  — opening sequence (fog roll, lights fade, crowd cheer)
+//   @spectator      — remote VR audience gets a passive presence stream
+//
+// Original intent preserved: virtual concert hall with live audio visualization,
+// gesture-based instrument control, procedural particle effects synced to music,
+// advanced rendering. New layer: the performer has a face, the show has an intro,
+// and the remote audience is first-class.
+//
+// Compile targets:
+//   holoscript compile concert-venue.refreshed.holo --target r3f
+//   holoscript compile concert-venue.refreshed.holo --target unity
+//   holoscript compile concert-venue.refreshed.holo --target godot
+// ============================================================================
+
+composition "ConcertVenue" {
+
+  metadata {
+    name: 'Concert Venue — Cross-Domain Example (refreshed)'
+    description: 'Virtual concert hall combining spatial audio, hand-tracked instruments, procedural particle effects, advanced rendering, lip-synced vocalist, opening cinematic, and remote spectators.'
+    version: '1.1.0'
+    author: 'HoloScript Examples Team'
+    category: 'cross-domain'
+    tags: ['cross-domain', 'concert', 'music', 'input', 'rendering', 'procedural', 'vfx', 'lip_sync', 'cinematic', 'spectator']
+    platforms: ['r3f', 'unity', 'godot']
+    minPlayers: 1
+    maxPlayers: 64
+  }
+
+  environment {
+    backgroundColor: "#050508"
+    ambient: 0.1
+    shadows: true
+    toneMapping: "aces"
+    exposure: 0.8
+  }
+
+  post_processing {
+    bloom { intensity: 0.5, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+  }
+
+  // -- State ------------------------------------------------------------------
+
+  state ConcertState {
+    // Music
+    tempo: 128
+    isPlaying: true
+    masterVolume: 0.85
+    beatCount: 0
+    currentBPM: 128
+    frequencyBands: [0, 0, 0, 0, 0, 0, 0, 0]
+    // Input
+    activeInstrument: "synth"
+    lastGesture: "none"
+    handTracking: true
+    // Rendering
+    bloomIntensity: 0.8
+    fogDensity: 0.03
+    laserEnabled: true
+    // Procedural
+    particleDensity: 500
+    particleSeed: 42
+    beatReactive: true
+    // Cinematic
+    showStarted: false
+    cinematicPhase: "pre-show"
+    // Spectators
+    spectatorCount: 0
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OPENING CINEMATIC — lights up, fog rolls in, performer walks on
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // @cinematic_seq drives a frame-accurate timeline: darkness → atmosphere
+  // build → spot reveal → show start. Remote spectators receive the
+  // same timeline offset-synced to their join time.
+
+  object "ShowOpener" {
+    @cinematic_seq {
+      fps: 60
+      loop: false
+      auto_play: true
+      clips: [
+        { name: "darkness",     start_frame: 0,    end_frame: 180  },
+        { name: "fog_roll",     start_frame: 180,  end_frame: 360  },
+        { name: "spot_reveal",  start_frame: 360,  end_frame: 540  },
+        { name: "show_start",   start_frame: 540,  end_frame: 600  }
+      ]
+    }
+    visible: false
+    position: { x: 0, y: 0, z: 0 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MUSIC DOMAIN — Spatial speakers, frequency analysis
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  template "SpeakerStack" {
+    @spatial_audio { rolloff: "logarithmic", maxDistance: 80, refDistance: 2 }
+    geometry: "box"
+    scale: [0.8, 1.2, 0.5]
+    material: { color: "#111111", metalness: 0.5, roughness: 0.4 }
+  }
+
+  object "SpeakerLeft"  using "SpeakerStack" { position: { x: -6, y: 2, z: -8 } }
+  object "SpeakerRight" using "SpeakerStack" { position: { x:  6, y: 2, z: -8 } }
+
+  object "FrequencyVisualizer" {
+    @frequency_analyzer {
+      fftSize: 2048
+      bands: 8
+      smoothing: 0.8
+      output: ConcertState.frequencyBands
+    }
+    geometry: "bar_chart_3d"
+    barCount: 8
+    position: { x: 0, y: 1, z: -9 }
+    scale: [12, 4, 0.5]
+    material: { color: "#2244ff", emissive: "#1122cc", emissiveIntensity: 2.0 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PERFORMER — Vocalist with lip sync driven by audio analysis
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // @lip_sync maps low/mid/high frequency bands to mouth viseme shapes.
+  // The face mesh blends between viseme_idle, viseme_O, viseme_aa, etc.
+  // in real-time — no separate animation clip needed.
+
+  object "Vocalist" {
+    @lip_sync {
+      audio_source: "MainAudio"
+      model: "extended_viseme_15"
+      frequency_mapping: [
+        { band: 0, low: 80,   high: 300,  viseme: "viseme_O",   weight: 0.9 },
+        { band: 1, low: 300,  high: 800,  viseme: "viseme_aa",  weight: 0.8 },
+        { band: 2, low: 800,  high: 2000, viseme: "viseme_E",   weight: 0.7 },
+        { band: 3, low: 2000, high: 6000, viseme: "viseme_I",   weight: 0.5 }
+      ]
+      smoothing: 0.25
+      min_amplitude: 0.05
+    }
+    @glowing { color: "#ffe4c0", intensity: 0.3 }
+    @animated { idle: "breathing_idle", speed: 1.0 }
+    geometry: "humanoid"
+    model: "vocalist_neutral.glb"
+    position: { x: 0, y: 0, z: -5 }
+    scale: [1, 1, 1]
+    material: { color: "#ffe4c0" }
+  }
+
+  // Center stage microphone stand
+  object "MicStand" {
+    geometry: "cylinder"
+    height: 1.4
+    radius: 0.02
+    position: { x: 0, y: 0.7, z: -5.2 }
+    material: { color: "#888888", metalness: 0.95, roughness: 0.1 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INPUT DOMAIN — Gesture-controlled instruments
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "SynthController" {
+    @hand_tracking { hands: "both", gesture_model: "holoscript-v2" }
+    @interactable { type: "air_keyboard", feedback: "haptic" }
+    geometry: "holographic_keyboard"
+    keyCount: 25
+    position: { x: -2, y: 1.2, z: -3 }
+    material: { color: "#8844ff", emissive: "#6622cc", opacity: 0.7 }
+  }
+
+  object "DrumPads" {
+    @hand_tracking { hands: "both", gesture_model: "holoscript-v2" }
+    @interactable { type: "drum_pad", feedback: "haptic" }
+    geometry: "pad_grid"
+    rows: 2
+    cols: 4
+    position: { x: 2, y: 0.9, z: -3 }
+    material: { color: "#ff4422", emissive: "#cc2200", opacity: 0.8 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDERING DOMAIN — Lasers, volumetric fog, dynamic lighting
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "FogMachine" {
+    @volumetric { density: 0.04, scatter: 0.6, color: "#aaccff" }
+    geometry: "box"
+    position: { x: 0, y: 0.5, z: -8 }
+    scale: [20, 3, 2]
+    visible: false
+  }
+
+  object "LaserRig" {
+    @shader {
+      vs: "shaders/laser_beam.vert"
+      fs: "shaders/laser_beam.frag"
+      uniforms: { color: "#ff0088", speed: 2.0, spread: 15 }
+    }
+    @glowing { color: "#ff0088", intensity: 3.0 }
+    geometry: "line_array"
+    lineCount: 12
+    position: { x: 0, y: 8, z: -8 }
+  }
+
+  object "SpotlightCenter" {
+    @post_process { type: "god_rays", intensity: 0.6, decay: 0.95 }
+    type: "spotlight"
+    color: "#ffffff"
+    intensity: 3.0
+    angle: 25
+    position: { x: 0, y: 10, z: -2 }
+    target: { x: 0, y: 0, z: -5 }
+    cast_shadows: true
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROCEDURAL DOMAIN — Beat-reactive particles, light tendrils
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "BeatParticles" {
+    @physics { gravity: -0.5 }
+    @billboard
+    geometry: "particle_system"
+    properties: {
+      particleCount: 500
+      lifetime: 3.0
+      spread: 5.0
+      gravity: -0.5
+    }
+    behavior {
+      on "beat" {
+        action: "emitParticleBurst"
+        bind: ConcertState.beatCount
+      }
+    }
+  }
+
+  object "LightTendrils" {
+    @noise_field { type: "perlin", scale: 4.0, speed: 1.2, influence: "path" }
+    geometry: "tube"
+    radius: 0.01
+    position: { x: 0, y: 5, z: -8 }
+    material: { color: "#8844ff", emissive: "#8844ff", emissiveIntensity: 3.0, transparent: true, opacity: 0.7 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REMOTE SPECTATORS — Passive presence stream for remote VR audience
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // @spectator streams the performer's position and the audio signal to
+  // remote viewers. Spectators see the stage from dedicated camera rigs
+  // and receive the full cinematic timeline synced to their join time.
+  // They cannot interact with the instruments but can react (emoji, clap).
+
+  object "SpectatorAnchorLeft" {
+    @spectator {
+      camera_rig: "side_angle_left"
+      fov: 65
+      audio_mix: "full_spatial"
+      latency_budget_ms: 80
+      max_concurrent: 200
+      reaction_enabled: true
+      reactions: ["clap", "cheer", "heart", "fire"]
+    }
+    @anchor
+    position: { x: -8, y: 3, z: 0 }
+    geometry: "invisible_anchor"
+  }
+
+  object "SpectatorAnchorRight" {
+    @spectator {
+      camera_rig: "side_angle_right"
+      fov: 65
+      audio_mix: "full_spatial"
+      latency_budget_ms: 80
+      max_concurrent: 200
+      reaction_enabled: true
+      reactions: ["clap", "cheer", "heart", "fire"]
+    }
+    @anchor
+    position: { x: 8, y: 3, z: 0 }
+    geometry: "invisible_anchor"
+  }
+
+  // Reaction emitter — spectator reactions become particles above the stage
+  object "ReactionParticles" {
+    @glowing { color: "#ffdd00", intensity: 1.5 }
+    @billboard
+    geometry: "particle_system"
+    properties: {
+      particleCount: 50
+      lifetime: 2.5
+      spread: 8.0
+      gravity: 0.2
+    }
+    behavior {
+      on "spectator:reaction" { action: "emitReactionBurst" }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GEOMETRY — Stage, floor, audience area
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "StageFloor" {
+    geometry: "plane"
+    width: 20
+    height: 15
+    position: { x: 0, y: 0, z: -2 }
+    material: { color: "#0a0a12", metalness: 0.7, roughness: 0.2 }
+  }
+
+  object "AudienceFloor" {
+    geometry: "plane"
+    width: 20
+    height: 10
+    position: { x: 0, y: 0, z: 5 }
+    material: { color: "#050508" }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SYSTEMS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  system "MIDIBridge" {
+    type: "midi"
+    protocol: "webmidi"
+    channels: [1, 2, 10]
+  }
+
+  system "GestureClassifier" {
+    type: "gesture-recognition"
+    model: "mediapipe-hands"
+    updateRate: 30
+  }
+
+  system "ShaderEngine" {
+    type: "shader-compiler"
+    hotReload: true
+    targets: ["glsl", "wgsl"]
+  }
+
+  system "AudioAnalysis" {
+    type: "audio-analysis"
+    fftSize: 2048
+    updateRate: 60
+    beatDetection: true
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  action triggerNote(instrument) {
+    ConcertState.activeInstrument = instrument
+    ConcertState.beatCount = ConcertState.beatCount + 1
+    emit("midi:note_on", { instrument: instrument, velocity: 100 })
+    emit("procedural:burst", { density: ConcertState.particleDensity })
+  }
+
+  action emitParticleBurst(intensity) {
+    emit("procedural:emit", { count: intensity * 50, spread: 3.0 })
+    emit("render:bloom_pulse", { intensity: 1.5, duration: 100 })
+  }
+
+  action onBeatDetected(bpm) {
+    ConcertState.currentBPM = bpm
+    ConcertState.beatCount = ConcertState.beatCount + 1
+    emit("procedural:beat_sync", { bpm: bpm })
+    emit("render:laser_pulse")
+  }
+
+  action setParticleDensity(density) {
+    ConcertState.particleDensity = clamp(density, 100, 2000)
+  }
+
+  action onCinematicPhase(phase) {
+    ConcertState.cinematicPhase = phase
+    if phase == "show_start" {
+      ConcertState.showStarted = true
+      emit("audio:unmute", { fade_ms: 2000 })
+      emit("spectator:sync_timeline", { offset_ms: 0 })
+    }
+  }
+
+  action emitReactionBurst() {
+    emit("particles:reaction_burst", { count: 20, spread: 6.0 })
+  }
+}
