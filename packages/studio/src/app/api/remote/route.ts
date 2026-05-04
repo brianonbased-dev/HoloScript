@@ -4,6 +4,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import crypto from 'crypto';
 
 import { corsHeaders } from '../_lib/cors';
+import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
 /**
  * Mobile Remote Session API
  *
@@ -42,7 +43,7 @@ function pruneExpired() {
   }
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   pruneExpired();
   const token = crypto.randomBytes(12).toString('hex');
   const session: RemoteSession = {
@@ -54,7 +55,7 @@ export async function POST() {
   };
   sessions.set(token, session);
 
-  const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
+  const baseUrl = resolveReachableStudioOrigin(request);
   const remoteUrl = `${baseUrl}/remote/${token}`;
 
   return NextResponse.json({ token, remoteUrl, expiresAt: session.expiresAt }, { status: 201 });

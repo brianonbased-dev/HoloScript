@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { buildHoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
+import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
 import { buildRoomScanCompletionManifest } from '@/lib/scan-session-manifest';
 import { clientIpFromRequest, getScanSessionStore } from '@/lib/reconstruction-scan-store';
 
@@ -16,7 +17,7 @@ const PUT_WINDOW_MS = 60_000;
 const PUT_MAX_PER_TOKEN = 90;
 
 function baseUrl(request: NextRequest): string {
-  return process.env.NEXT_PUBLIC_STUDIO_URL || request.nextUrl.origin || 'http://localhost:3000';
+  return resolveReachableStudioOrigin(request);
 }
 
 function requireAuthForSessionCreate(): boolean {
