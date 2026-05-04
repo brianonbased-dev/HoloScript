@@ -527,8 +527,16 @@ export async function reloadTeam(teamId: string): Promise<void> {
 }
 
 export function persistTeamStore(): void {
-  // PostgreSQL backend is the source of truth — skip shadow JSON write.
+  // Pattern Gamma write-path fix (2026-05-04): when Postgres is active,
+  // route handlers mutate cached Team objects in place (e.g. team.taskBoard.push)
+  // and rely on this function to persist. Early-returning was a silent no-op —
+  // mutations never reached Postgres, so other Railway replicas saw stale state
+  // and writes appeared to "vanish" minutes later when load-balancer routing
+  // moved to a different replica. teamStore.set() fires the write-through.
   if ((teamStore as TeamStore).usesPostgres) {
+    for (const team of teamStore.values()) {
+      teamStore.set(team.id, team);
+    }
     return;
   }
 

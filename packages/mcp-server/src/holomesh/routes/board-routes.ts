@@ -87,7 +87,11 @@ export async function handleBoardRoutes(
   // concern (stale snapshot on one replica), not a code concern.
   // Regression: http-routes.test.ts → counter-parity test.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma read-path fix (2026-05-04): GET /board must reload from
+    // postgres so writes that landed on a different Railway replica are visible.
+    // Sync requireTeamAccess returned stale local cache, producing the
+    // "board wiped" symptom (W.128 / W.131 / W.133 residual).
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
