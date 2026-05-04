@@ -185,7 +185,7 @@ export async function judgeRun(
           return {
             verdicts: fallbackVerdicts,
             usage,
-            parse_error: 'no_tool_use_block',
+            parse_error: 'no_tool_use_block_deterministic_fallback',
           };
         }
         continue;
@@ -341,7 +341,7 @@ async function judgeWithOllama(
     return {
       verdicts: fallbackVerdicts,
       usage,
-      parse_error: 'no_tool_use_block',
+      parse_error: 'no_tool_use_block_deterministic_fallback',
     };
   }
 

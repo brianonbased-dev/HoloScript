@@ -52,7 +52,7 @@ export type ProgressEvent =
       max_usd: number;
     };
 
-const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_TIMEOUT_MS = 240_000;
 
 export async function runBenchmark(opts: RunnerOptions): Promise<BenchmarkRun> {
   const startedAt = new Date().toISOString();
