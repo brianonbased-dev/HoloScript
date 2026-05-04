@@ -1878,24 +1878,35 @@ const httpServer = http.createServer(async (req, res) => {
     if (handled) return;
   }
 
-  // Tier-2 self-custody export routes (task_1776990890662_ards). Spec mounts
-  // these under /api/identity (not /api/holomesh) per the v3 escape-hatch spec
-  // §"API contract". Implementation re-uses HoloMesh's bearer-auth + session
-  // store, but the public path tree is its own root so it can later move under
-  // a dedicated identity service without breaking clients.
+  // /api/identity/* family (task_1777863437716_edgm fix). Three sub-trees share
+  // this root per the v3 escape-hatch spec + seat-wallets ADR §"Attestation flow":
+  //   - identity-export-routes:   /api/identity/export/*    (Tier-2 self-custody)
+  //   - attestation-routes:       /api/identity/attestation/{pending,approve,revoke}
+  //   - custodial-wallet-routes:  /api/identity/custodial/{provision,sign,wallet,...}
+  //
+  // Each handler returns true if the route matched (regardless of outcome) and
+  // false if the caller should keep searching. We try them in order; first
+  // match wins. Without all three wired here, attestation/* and custodial/*
+  // returned 404 even though their handler files existed and were imported in
+  // http-routes.ts (which only handles /api/holomesh/*, the wrong tree).
   if (url?.startsWith('/api/identity/')) {
+    const pathname = new URL(url, 'http://localhost').pathname;
+    const method = req.method || 'GET';
+
     const { handleIdentityExportRoutes } = await import(
       './holomesh/routes/identity-export-routes'
     );
-    const pathname = new URL(url, 'http://localhost').pathname;
-    const handled = await handleIdentityExportRoutes(
-      req,
-      res,
-      pathname,
-      req.method || 'GET',
-      url
+    if (await handleIdentityExportRoutes(req, res, pathname, method, url)) return;
+
+    const { handleAttestationRoutes } = await import(
+      './holomesh/routes/attestation-routes'
     );
-    if (handled) return;
+    if (await handleAttestationRoutes(req, res, pathname, method, url)) return;
+
+    const { handleCustodialWalletRoutes } = await import(
+      './holomesh/routes/custodial-wallet-routes'
+    );
+    if (await handleCustodialWalletRoutes(req, res, pathname, method, url)) return;
   }
 
   if (url?.startsWith('/api/absorb/')) {
