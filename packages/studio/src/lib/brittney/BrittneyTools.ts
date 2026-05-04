@@ -352,7 +352,7 @@ function codeAddTrait(
     return code.replace(objRegex, (_, body, close) => `${body}\n${traitBlock}\n${close}`);
   }
   // Fallback: add new object block at end
-  return code + `\nobject "${objectName}" {\n${traitBlock}\n}\n`;
+  return code + `\nobject "${escapeHoloString(objectName)}" {\n${traitBlock}\n}\n`;
 }
 
 function codeRemoveTrait(code: string, objectName: string, traitName: string): string {
@@ -427,16 +427,16 @@ function codeCreateObject(
   const scale = opts.scale ?? [1, 1, 1];
   lines.push(`  scale: [${scale.join(', ')}]`);
   if (opts.rotation) lines.push(`  rotation: [${opts.rotation.join(', ')}]`);
-  if (opts.primitive) lines.push(`  geometry: "${opts.primitive}"`);
-  if (opts.color) lines.push(`  color: "${opts.color}"`);
-  if (opts.light_type) lines.push(`  light_type: "${opts.light_type}"`);
-  if (opts.projection) lines.push(`  projection: "${opts.projection}"`);
+  if (opts.primitive) lines.push(`  geometry: "${escapeHoloString(opts.primitive)}"`);
+  if (opts.color) lines.push(`  color: "${escapeHoloString(opts.color)}"`);
+  if (opts.light_type) lines.push(`  light_type: "${escapeHoloString(opts.light_type)}"`);
+  if (opts.projection) lines.push(`  projection: "${escapeHoloString(opts.projection)}"`);
   if (opts.radius !== undefined) lines.push(`  radius: ${opts.radius}`);
   if (opts.major_radius !== undefined) lines.push(`  major_radius: ${opts.major_radius}`);
   if (opts.minor_radius !== undefined) lines.push(`  minor_radius: ${opts.minor_radius}`);
   if (opts.direction) lines.push(`  direction: [${opts.direction.join(', ')}]`);
   if (opts.look_at) lines.push(`  look_at: [${opts.look_at.join(', ')}]`);
-  return code + `\n${type} "${name}" {\n${lines.join('\n')}\n}\n`;
+  return code + `\n${type} "${escapeHoloString(name)}" {\n${lines.join('\n')}\n}\n`;
 }
 
 /**
@@ -482,11 +482,19 @@ function codeRenameObject(code: string, oldName: string, newName: string): strin
     `((?:object|scene|group|light|camera)\\s+)"${escapeRegex(oldName)}"`,
     'g'
   );
-  return code.replace(regex, `$1"${newName}"`);
+  return code.replace(regex, `$1"${escapeHoloString(newName)}"`);
 }
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Escapes a string for safe interpolation between double quotes in generated
+// HoloScript source. LLM-supplied identifiers/values reach codeCreateObject
+// and friends; without escaping, a value like `foo"\nmalicious_block: true`
+// would break out of the quoted region and inject structural source.
+function escapeHoloString(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
 export function executeTool(
