@@ -2,6 +2,17 @@
   "routine_id": "manual-claude-2026-05-04",
   "routine_name": "Manual recent-output analysis (A-007 + A-008 + A-003 + A-006)",
   "fired_at": "2026-05-04T22:50:02Z",
+  "_shipped_in_marathon": [
+    {"dedup_key": "manual-r01-brittney-codecreate-injection", "commit": "96ddbcc32"},
+    {"dedup_key": "manual-r03-nextauth-secret-guard", "commit": "ee073a8ba"},
+    {"dedup_key": "manual-r04-hotreload-cjs-esm-mix", "commit": "11361b230"},
+    {"dedup_key": "manual-r05-brittney-prompt-injection-template", "commit": "a4195d64c"},
+    {"dedup_key": "manual-r06-vitepress-weight-hosting", "commit": "9339185fd"},
+    {"dedup_key": "manual-r07-snn-lateral-inhibition-extract", "commit": "7c3d6b98f"},
+    {"dedup_key": "manual-paper-gate-headless-registration", "commit": "ai-eco 4e7620e"},
+    {"dedup_key": "manual-audit-brain-identity-script", "commit": "ai-eco 55ec850"},
+    {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"}
+  ],
   "gaps": [
     {
       "title": "[ops] Force-release 73 ghost claims by agent_1776058303684_3p3i (≥20 days, board at 25% capacity)",
@@ -18,13 +29,6 @@
       "dedup_key": "manual-a008-egress-allowlist-fix"
     },
     {
-      "title": "[security/studio/brittney] Sanitize string interpolation in BrittneyTools.codeCreateObject (R-01 P1)",
-      "description": "A-003 daily code review 2026-05-01 R-01 P1 finding. packages/studio/src/lib/brittney/BrittneyTools.ts line ~407 codeCreateObject() interpolates LLM-supplied name/color/primitive directly into generated .holo source without escaping quotes/backslashes/newlines. Adversarial or confused model output produces structurally-injected HoloScript. Fix: add escapeHoloString helper that escapes backslash and quote, apply before all string-field interpolation in lines.push and the final return. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "high",
-      "tags": ["auto-filed-by-manual","security","P1","studio","brittney","injection","R-01"],
-      "dedup_key": "manual-r01-brittney-codecreate-injection"
-    },
-    {
       "title": "[security/std] Path-boundary enforcement in @holoscript/std/fs (R-02 P1)",
       "description": "A-003 daily code review 2026-05-01 R-02 P1 finding (review explicitly says 'File a board task'). packages/core/src/compiler/identity/PackagePermissionManifest.ts notes '@holoscript/std/fs ... NO path boundary enforcement currently'. The merge from @holoscript/fs (2026-04-29) preserved HIGH-tier permission entry but the documented gap was carried forward without filing. Sandbox confines execution but std/fs calls can still traverse outside project root via absolute or ../-relative paths. Fix: prefix every path with configurable sandbox root and reject .. traversal in packages/std/src/fs/. Source: HoloScript/docs/reviews/2026-05-01.md.",
       "priority": "high",
@@ -33,38 +37,10 @@
     },
     {
       "title": "[studio/docker] Remove '|| true' suppressions on tsup --no-dts in 14 packages (silent prod build failures)",
-      "description": "A-006 bug hunt 2026-04-29 BUG-001 P2 finding. packages/studio/Dockerfile uses 'npx tsup --no-dts || true' on 14 build steps. Since --no-dts uses esbuild not tsc, the only failures it can produce are syntax errors and missing modules - both legitimate failures that should fail the build. || true was inherited from earlier tsc --emitDeclarationOnly pattern. Result: container deploys with empty/missing dist/, studio fails at runtime with 'Cannot find module' 500s. Affected: crdt-spatial, config, platform, mesh, llm-provider, r3f-renderer, studio-plugin-sdk, ui, connector-{core,appstore,github,railway,upstash,vscode}. Fix: remove || true from all --no-dts builds; add missing build dependencies if needed. Source: HoloScript/docs/bugs/2026-04-29.md.",
+      "description": "A-006 bug hunt 2026-04-29 BUG-001 P2 finding. packages/studio/Dockerfile uses 'npx tsup --no-dts || true' on 14 build steps. Since --no-dts uses esbuild not tsc, the only failures it can produce are syntax errors and missing modules - both legitimate failures that should fail the build. || true was inherited from earlier tsc --emitDeclarationOnly pattern. Result: container deploys with empty/missing dist/, studio fails at runtime with 'Cannot find module' 500s. Affected: crdt-spatial, config, platform, mesh, llm-provider, r3f-renderer, studio-plugin-sdk, ui, connector-{core,appstore,github,railway,upstash,vscode}. Fix: remove || true from all --no-dts builds; add missing build dependencies if needed. NOTE: requires Docker-build verification before ship — peer agent may be on it.",
       "priority": "medium",
       "tags": ["auto-filed-by-manual","studio","docker","bug","P2","build"],
       "dedup_key": "manual-bug001-dockerfile-no-dts-or-true"
-    },
-    {
-      "title": "[security/studio/auth] Guard NEXTAUTH_SECRET undefined + remove 'as any' in api-auth.ts (R-03 P2)",
-      "description": "A-003 review 2026-05-01 R-03 P2. packages/studio/src/lib/api-auth.ts getSession fallback has two issues: (1) 'req: { cookies: ... } as any' - hides next-auth/jwt type mismatch, replace with Parameters<typeof getToken>[0]['req']; (2) 'secret: process.env.NEXTAUTH_SECRET' undefined when env var not set, getToken may silently skip signature verification. Guard: const secret = process.env.NEXTAUTH_SECRET; if (!secret) return null. Fail fast not silently. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","security","P2","studio","auth","R-03"],
-      "dedup_key": "manual-r03-nextauth-secret-guard"
-    },
-    {
-      "title": "[security/studio/brittney] Sanitize HoloMesh template name/objective before Brittney prompt interpolation (R-05 P2)",
-      "description": "A-003 review 2026-05-01 R-05 P2 prompt-injection surface. packages/studio/src/components/ai/BrittneyBuildSurface.tsx line ~226 interpolates t.name and t.objective from /api/holomesh/team/templates fetch directly into Brittney prompt: `Set up a HoloMesh \"${t.name}\" team session - ${t.objective}.`. If HoloMesh backend serves crafted template data (misconfig/supply-chain/SSRF), attacker can inject prompt instructions affecting LLM tool execution. Fix options: (a) server-side allowlist constraining template data to known set; (b) strip/length-cap name and objective; (c) wrap in structured message marking content as user-supplied data not instructions. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","security","P2","studio","brittney","prompt-injection","R-05"],
-      "dedup_key": "manual-r05-brittney-prompt-injection-template"
-    },
-    {
-      "title": "[studio/hot-reload] Replace require('fs').statSync with ESM statSync import in HoloFileWatcher (R-04 P2)",
-      "description": "A-003 review 2026-05-01 R-04 P2. packages/studio/src/lib/hot-reload/HoloFileWatcher.ts line ~42 uses 'require(\\'fs\\').statSync(...)' inside an ESM module that already imports {watch, FSWatcher, existsSync} from 'fs' at top. Will throw 'require is not defined' in strict ESM context (type:module package.json or esbuild ESM output). Fix: import {statSync} alongside existing fs imports and replace require call. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","studio","P2","hot-reload","esm","R-04"],
-      "dedup_key": "manual-r04-hotreload-cjs-esm-mix"
-    },
-    {
-      "title": "[docs/headless-agents] Register paper-gate (agent_1777660608794_b8m4) in docs/headless-agents.md",
-      "description": "A-008 fleet-trust day-3 MEDIUM persisting anomaly. paper-gate agent provisioned 2026-05-01 but not in docs/headless-agents.md. Teammates relying on canonical roster cannot address it via /room send <handle>. If agent emits CAEL records with brain_class:paper-gate, drift detector has no baseline brain hash to compare against. Add entry: lifecycle type (ephemeral), teardown condition, scope, agentId agent_1777660608794_b8m4, wallet address. Source: research/audit-reports/fleet-trust-2026-05-04.md Anomaly 3.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","docs","headless-agents","fleet-trust","day-3"],
-      "dedup_key": "manual-paper-gate-headless-registration"
     },
     {
       "title": "[ops] Verify security-auditor daemon liveness (7 cycles, 0 git-attributable commits)",
@@ -72,27 +48,6 @@
       "priority": "medium",
       "tags": ["auto-filed-by-manual","ops","headless-agents","security-auditor","liveness"],
       "dedup_key": "manual-security-auditor-daemon-liveness"
-    },
-    {
-      "title": "[scripts] Create scripts/audit-brain-identity.mjs (referenced 7 cycles, ENOENT)",
-      "description": "A-008 fleet-trust recommendation 5. scripts/audit-brain-identity.mjs is referenced by the fleet-trust audit prompt but does not exist (7 cycles ENOENT). With Codex now added as a new brain-mapped seat (codex-brain.hsplus, 2026-05-03), the handle->instance trust-rule logic has additional mappings to track. Create script implementing handle->instance mapping with brain hash verification per agent. Source: research/audit-reports/fleet-trust-2026-05-04.md.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","scripts","fleet-trust","brain-drift"],
-      "dedup_key": "manual-audit-brain-identity-script"
-    },
-    {
-      "title": "[docs/vitepress] Register docs/holomap/WEIGHT_HOSTING.md in .vitepress/config.ts sidebar (R-06 P2)",
-      "description": "A-003 review 2026-05-01 R-06 P2 + CLAUDE.md rule violation ('NEVER add doc pages without updating docs/.vitepress/config.ts sidebar'). docs/holomap/WEIGHT_HOSTING.md added in c1e70a6 (HoloMap operator guide) but not registered in sidebar config. Page reachable by URL but not discoverable. Fix: add sidebar entry under holomap section in docs/.vitepress/config.ts. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "low",
-      "tags": ["auto-filed-by-manual","docs","P2","vitepress","R-06"],
-      "dedup_key": "manual-r06-vitepress-weight-hosting"
-    },
-    {
-      "title": "[snn-webgpu] Extract lateral-inhibition loop to private method in snn-retrieval-model.ts (R-07 P3)",
-      "description": "A-003 review 2026-05-01 R-07 P3 tech debt. packages/snn-webgpu/src/experiments/snn-retrieval-model.ts has the lateral inhibition block (~12 lines) duplicated character-for-character at two inference paths: training-mode branch (~line 196) and main retrieve() path (~line 345). Extract to private method applyLateralInhibition(hiddenCurrents: number[]): void and call from both sites. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "low",
-      "tags": ["auto-filed-by-manual","snn-webgpu","P3","tech-debt","R-07"],
-      "dedup_key": "manual-r07-snn-lateral-inhibition-extract"
     }
   ]
 }
