@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-04T22:53:54Z",
+  "gaps": [
+    {
+      "type": "missing_trait_wish",
+      "title": "Add TraitBloomReactive for bloom_state-driven mesh/emissive animation (A-009 example-driven request)",
+      "description": "While refreshing examples/lotus-flower/garden.holo, the refresh needed to animate petal glow intensity and mesh scale as a pure function of a `bloom_state` enum (sealed/budding/blooming/full/wilted). Currently this requires an @animated trait with manually authored keyframes plus a separate @glowing block — two traits doing what should be one declarative binding. A @bloom_reactive { state: <var>, sealed: { emissive: 0.1, scale: 0.9 }, budding: { emissive: 0.4, scale: 0.95 }, blooming: { emissive: 1.2, scale: 1.0, pulse: true }, full: { emissive: 2.5, scale: 1.05, pulse_fast: true }, wilted: { emissive: 0.05, scale: 0.85 } } trait would encode the full lifecycle in one semantic block. Required by the lotus garden and any future procedural-growth scene. Suggested home: packages/core/src/traits/constants/nature-life.ts or a new biology.ts category.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension"],
+      "dedup_key": "a009-trait-bloom_reactive",
+      "source_file": "examples/lotus-flower/garden.refreshed.holo",
+      "phase": "phase2_refresh"
+    }
+  ]
+}

@@ -1,0 +1,498 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-04
+// "Abyssal Expedition"
+//
+// NEW TRAITS EXERCISED (zero prior coverage across ALL examples today):
+//   @submarine      — maritime: pressurized vessel with depth/sonar systems
+//   @buoy           — maritime: surface marker beacon with tether physics
+//   @lighthouse     — maritime: rotating navigation beam, fog signal
+//   @kraken         — mythical: ancient cephalopod intelligence, tentacle rig
+//   @wraith         — mythical: non-corporeal shadow entity, phase shift
+//   @phoenix        — mythical: fire-and-rebirth creature, cyclic lifecycle
+//
+// Supporting traits (well-exercised, binding the new ones into a scene):
+//   @glowing, @particle, @spatial_audio, @physics, @animated, @collidable,
+//   @emissive, @reactive
+//
+// SCENE STORY:
+//   The research submersible NAUTILIS-7 descends the Hadal Trench,
+//   breaching three thermocline layers into the aphotic zone. On the
+//   surface, a fleet of navigational buoys marks the dive corridor;
+//   an autonomous lighthouse beacon on the seamount lip guides the
+//   ascent path back.
+//
+//   Below 6 000 m, bioluminescent colonies carpet the walls. Then
+//   the sonar goes wide: the Kraken — not a myth but a cephalopod
+//   macro-intelligence — surfaces from the sediment. Its eight arms
+//   (each a separate tentacle physics rig) surround the submarine.
+//   The lights die. In the dark, a Wraith coalesces — spectrographic
+//   residue of a crew lost decades ago, phase-shifting through the
+//   hull. And at the thermal vent on the trench floor, a Phoenix
+//   rises: plasma-hot gas vents cycling in a 90-second death-and-rebirth
+//   loop, carving an updraft that sends the submarine spiraling upward.
+//
+// ARTISTIC INTENT:
+//   Three mythological archetypes mapped to real deep-ocean phenomena:
+//     Kraken  → colonial intelligence, distributed cognition
+//     Wraith  → electromagnetic residue, sensor ghosts
+//     Phoenix → hydrothermal cycling, life from superheated vents
+//   The submersible is the human witness — fragile, pressurized, lit
+//   from inside. The maritime navigation layer (lighthouse, buoys)
+//   frames the scale: surface is safety, depth is wonder-and-terror.
+//
+// COMPILE TARGET: @target webgpu (volumetric water, GPU particle budget)
+// ============================================================================
+
+composition "Abyssal Expedition" {
+
+  metadata {
+    title: "Abyssal Expedition"
+    description: "Deep-ocean encounter: NAUTILIS-7 descends to meet Kraken, Wraith, and Phoenix."
+    tags: ["stress-test", "a-009", "maritime", "mythical", "deep-sea", "2026-05-04"]
+    target: "webgpu"
+  }
+
+  environment {
+    skybox: "deep_ocean"
+    ambient_light: 0.0
+    gravity: [0, -9.81, 0]
+    water_depth: 11000
+    fog_color: "#000510"
+    fog_density: 0.04
+    fog_mode: "exponential_squared"
+  }
+
+  // ==========================================================================
+  // SURFACE LAYER — navigation & dive corridor
+  // ==========================================================================
+
+  object "LighthouseBeacon" {
+    type: "mesh"
+    model: "models/seamount_lighthouse.glb"
+    position: [-200, -200, 400]
+    @lighthouse {
+      beam_color: "#ffee88"
+      beam_range: 2000
+      beam_spread: 8
+      rotation_rpm: 6
+      fog_horn: true
+      fog_horn_interval: 30
+      power: "autonomous_solar"
+    }
+    @glowing {
+      color: "#ffee88"
+      intensity: 3.0
+      pulse: false
+    }
+    @collidable {
+      shape: "convex_hull"
+      layer: "navigation"
+    }
+  }
+
+  template "DiveBuoy" {
+    @buoy {
+      tether_length: 200
+      tether_stiffness: 0.6
+      buoyancy_force: 850
+      beacon_color: "#ff4400"
+      beacon_flash_rate: 1.0
+      sonar_reflector: true
+    }
+    @physics {
+      mass: 45
+      drag: 0.8
+      angular_drag: 2.5
+      use_gravity: false
+    }
+    @glowing {
+      color: "#ff4400"
+      intensity: 1.8
+      pulse: true
+      pulse_speed: 1.0
+    }
+    @animated {
+      clip: "buoy_bob"
+      speed: 0.6
+      loop: true
+    }
+  }
+
+  object "Buoy_A" using "DiveBuoy" { position: [0, 0, 0] }
+  object "Buoy_B" using "DiveBuoy" { position: [30, 0, 0] }
+  object "Buoy_C" using "DiveBuoy" { position: [0, 0, 30] }
+  object "Buoy_D" using "DiveBuoy" { position: [30, 0, 30] }
+
+  // ==========================================================================
+  // THE SUBMERSIBLE — NAUTILIS-7
+  // ==========================================================================
+
+  object "NAUTILIS7" {
+    type: "mesh"
+    model: "models/research_submersible.glb"
+    position: [15, -3000, 15]
+    @submarine {
+      max_depth: 11500
+      hull_integrity: 100
+      ballast_tanks: 4
+      sonar_range: 800
+      sonar_frequency: 38
+      propulsion: "electric_pod"
+      thrust: [0, 0, -1]
+      speed: 4.0
+      lights: ["bow_flood", "port_nav", "starboard_nav", "aft_work"]
+    }
+    @physics {
+      mass: 18000
+      drag: 0.95
+      angular_drag: 3.0
+      use_gravity: true
+      buoyancy: 17800
+    }
+    @collidable {
+      shape: "convex_hull"
+      layer: "vessel"
+      collision_sound: "audio/hull_groan.ogg"
+    }
+    @animated {
+      clip: "submarine_descent"
+      speed: 1.0
+      loop: false
+    }
+    @spatial_audio {
+      clip: "audio/submarine_engine_loop.ogg"
+      volume: 0.6
+      loop: true
+      attenuation: "logarithmic"
+      min_distance: 5
+      max_distance: 200
+      is_listener: true
+    }
+  }
+
+  // Interior glow visible through portholes
+  object "PortholeLight" {
+    @particle {
+      max_count: 20
+      emission_rate: 0
+      lifetime_min: 999
+      lifetime_max: 999
+      velocity: [0, 0, 0]
+      size_start: 0.15
+      size_end: 0.15
+      color_start: "#ffeecc"
+      color_end: "#ffeecc"
+      blend_mode: "additive"
+    }
+    position: [15, -3000, 15]
+    offset_ring_radius: 1.2
+    offset_ring_count: 6
+  }
+
+  // ==========================================================================
+  // BIOLUMINESCENT WALL COLONIES — mid-depth layer
+  // ==========================================================================
+
+  template "BioLumCluster" {
+    @glowing {
+      color: "#00ccff"
+      intensity: 0.4
+      pulse: true
+      pulse_speed: 0.3
+    }
+    @animated {
+      clip: "pulse_colony"
+      speed: 0.3
+      loop: true
+    }
+    @particle {
+      max_count: 30
+      emission_rate: 3
+      lifetime_min: 4.0
+      lifetime_max: 9.0
+      velocity: [0, 0.1, 0]
+      velocity_spread: 0.05
+      size_start: 0.02
+      size_end: 0.0
+      color_start: "#00ccff"
+      color_end: "#00ccff00"
+      blend_mode: "additive"
+    }
+  }
+
+  spatial_group "BioWall_Port" {
+    instances: 80
+    distribution: "surface_scatter"
+    surface: "trench_wall_port"
+    min_distance: 2.0
+    using: "BioLumCluster"
+  }
+
+  spatial_group "BioWall_Starboard" {
+    instances: 80
+    distribution: "surface_scatter"
+    surface: "trench_wall_starboard"
+    min_distance: 2.0
+    using: "BioLumCluster"
+  }
+
+  // ==========================================================================
+  // THE KRAKEN — Cephalopod macro-intelligence (first new trait combo)
+  // ==========================================================================
+
+  object "Kraken_Body" {
+    type: "mesh"
+    model: "models/kraken_mantle.glb"
+    position: [15, -6200, 15]
+    @kraken {
+      intelligence_tier: 4
+      tentacle_count: 8
+      reach_radius: 120
+      camouflage_pattern: "bioluminescent_threat"
+      aggression: 0.3
+      siphon_jet_force: 2200
+      ink_cloud_capacity: 5
+      sediment_anchor: true
+    }
+    @animated {
+      clip: "kraken_rise"
+      speed: 0.8
+      loop: false
+      trigger_play: "submarine_enters_radius"
+    }
+    @collidable {
+      shape: "capsule"
+      layer: "creature"
+    }
+    @reactive {
+      trigger: "proximity"
+      radius: 300
+      on_enter: "kraken_awakens"
+      fire_once: true
+    }
+    @glowing {
+      color: "#002244"
+      intensity: 0.2
+      pulse: true
+      pulse_speed: 0.15
+    }
+    @spatial_audio {
+      clip: "audio/kraken_rumble.ogg"
+      volume: 0.0
+      loop: true
+      attenuation: "logarithmic"
+      min_distance: 20
+      max_distance: 500
+      trigger_event: "kraken_awakens"
+      trigger_volume: 0.9
+    }
+    @particle {
+      max_count: 600
+      emission_rate: 0
+      trigger_rate: 80
+      trigger_event: "kraken_awakens"
+      lifetime_min: 3.0
+      lifetime_max: 8.0
+      velocity: [0, -0.5, 0]
+      velocity_spread: 2.0
+      size_start: 0.3
+      size_end: 0.0
+      color_start: "#001133"
+      color_end: "#00000000"
+      blend_mode: "normal"
+    }
+  }
+
+  template "KrakenTentacle" {
+    @physics {
+      mass: 400
+      drag: 5.0
+      angular_drag: 8.0
+      use_gravity: false
+    }
+    @animated {
+      clip: "tentacle_coil"
+      speed: 0.5
+      loop: true
+    }
+    @collidable {
+      shape: "capsule_chain"
+      segments: 12
+      layer: "creature"
+    }
+  }
+
+  object "Tentacle_1" using "KrakenTentacle" { position: [45,  -6150,  15] }
+  object "Tentacle_2" using "KrakenTentacle" { position: [-15, -6150,  55] }
+  object "Tentacle_3" using "KrakenTentacle" { position: [-15, -6150, -25] }
+  object "Tentacle_4" using "KrakenTentacle" { position: [45,  -6150, -25] }
+  object "Tentacle_5" using "KrakenTentacle" { position: [75,  -6100,  15] }
+  object "Tentacle_6" using "KrakenTentacle" { position: [-45, -6100,  15] }
+  object "Tentacle_7" using "KrakenTentacle" { position: [15,  -6100,  75] }
+  object "Tentacle_8" using "KrakenTentacle" { position: [15,  -6100, -45] }
+
+  // ==========================================================================
+  // THE WRAITH — electromagnetic residue of NAUTILIS-4 crew (second new trait)
+  // ==========================================================================
+
+  object "Wraith_Navigator" {
+    type: "mesh"
+    model: "models/wraith_silhouette.glb"
+    position: [15, -3100, 15]
+    @wraith {
+      corporeal: false
+      phase_shift_speed: 2.0
+      electromagnetic_disruption: 0.7
+      affect_electronics_radius: 8
+      visibility_state: "partial"
+      origin_event: "nautilis_4_incident_1997"
+      manifest_trigger: "submarine_lights_off"
+    }
+    @animated {
+      clip: "wraith_drift"
+      speed: 0.4
+      loop: true
+    }
+    @glowing {
+      color: "#88aaff"
+      intensity: 0.6
+      pulse: true
+      pulse_speed: 3.0
+      flicker_random: true
+    }
+    @emissive {
+      color: "#4466cc"
+      intensity: 0.3
+      flicker: true
+      flicker_speed: 8.0
+    }
+    @particle {
+      max_count: 150
+      emission_rate: 15
+      lifetime_min: 1.5
+      lifetime_max: 4.0
+      velocity: [0, 0.3, 0]
+      velocity_spread: 0.8
+      size_start: 0.08
+      size_end: 0.0
+      color_start: "#88aaff"
+      color_end: "#88aaff00"
+      blend_mode: "additive"
+    }
+    @spatial_audio {
+      clip: "audio/wraith_whisper.ogg"
+      volume: 0.5
+      loop: true
+      attenuation: "logarithmic"
+      min_distance: 3
+      max_distance: 40
+    }
+  }
+
+  // ==========================================================================
+  // THE PHOENIX — hydrothermal vent cycling (third new trait)
+  // ==========================================================================
+
+  object "PhoenixVent" {
+    type: "mesh"
+    model: "models/hydrothermal_vent.glb"
+    position: [15, -11000, 15]
+    @phoenix {
+      cycle_period: 90
+      death_duration: 12
+      rebirth_duration: 8
+      peak_temperature: 380
+      plume_velocity: 3.5
+      ash_radius: 25
+      rebirth_flash_color: "#ff6600"
+      rebirth_flash_intensity: 8.0
+    }
+    @emissive {
+      color: "#ff4400"
+      intensity: 4.0
+      flicker: true
+      flicker_speed: 12.0
+    }
+    @glowing {
+      color: "#ff8800"
+      intensity: 5.0
+      pulse: false
+    }
+    @particle {
+      max_count: 1200
+      emission_rate: 120
+      lifetime_min: 4.0
+      lifetime_max: 12.0
+      velocity: [0, 3.5, 0]
+      velocity_spread: 1.5
+      size_start: 0.4
+      size_end: 0.0
+      color_start: "#ffaa00"
+      color_end: "#ff000000"
+      blend_mode: "additive"
+      turbulence: 0.8
+      turbulence_frequency: 2.0
+    }
+    @physics {
+      mass: 0
+      is_trigger: true
+      trigger_event: "phoenix_updraft"
+      trigger_force: [0, 1800, 0]
+      trigger_radius: 30
+    }
+    @spatial_audio {
+      clip: "audio/thermal_vent_roar.ogg"
+      volume: 0.8
+      loop: true
+      attenuation: "logarithmic"
+      min_distance: 10
+      max_distance: 400
+    }
+    @animated {
+      clip: "phoenix_cycle"
+      speed: 1.0
+      loop: true
+    }
+  }
+
+  // Rebirth flash — fires every 90s when the phoenix reaches peak
+  object "PhoenixRebirthFlash" {
+    @particle {
+      max_count: 2000
+      emission_rate: 0
+      trigger_rate: 2000
+      trigger_event: "phoenix_rebirth"
+      lifetime_min: 0.8
+      lifetime_max: 2.5
+      velocity: [0, 5.0, 0]
+      velocity_spread: 6.0
+      size_start: 0.8
+      size_end: 0.0
+      color_start: "#ffffff"
+      color_end: "#ff660000"
+      blend_mode: "additive"
+    }
+    position: [15, -11000, 15]
+  }
+
+  // ==========================================================================
+  // POST-PROCESSING — deep trench visual stack
+  // ==========================================================================
+
+  post_processing "AbyssalStack" {
+    bloom_enabled: true
+    bloom_intensity: 1.8
+    bloom_threshold: 0.3
+    bloom_radius: 6
+    tone_mapping: "filmic"
+    tone_mapping_exposure: 0.7
+    vignette_intensity: 0.7
+    chromatic_aberration: 0.15
+    lens_distortion: 0.05
+    color_grading_lift: [0.0, 0.02, 0.08]
+    color_grading_gamma: [0.9, 0.95, 1.0]
+    color_grading_gain: [0.8, 0.9, 1.0]
+    underwater_caustics: true
+    underwater_caustics_scale: 0.3
+  }
+}

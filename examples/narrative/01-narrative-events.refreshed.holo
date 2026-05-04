@@ -1,0 +1,397 @@
+/**
+ * Narrative Events — The Shattered Crown
+ * Refreshed by A-009 on 2026-05-04
+ *
+ * Refresh delta: Replaced generic narrator scaffolding with a concrete
+ * three-act mystery scene. Added @reactive to interactive story objects so
+ * flashback triggers fire when the player *approaches* them (not just on
+ * manual trigger). Added @state_machine to drive act transitions cleanly.
+ * Added @spatial_audio depth to the moonlit court. Added @emissive to
+ * foreshadowing artifacts so visual hints are legible without subtitles.
+ *
+ * Scene story: The player discovers the throne room of a ruined castle.
+ * Three shattered relics each hold a memory fragment — approaching each
+ * triggers a flashback. Collect all three to unlock the fourth act: the
+ * truth of the crown's fall. The night sky shifts color as acts progress.
+ *
+ * @version 5.2.0
+ * @format .holo
+ * @traits @reactive, @state_machine, @spatial_audio, @emissive, @animated,
+ *         @glowing, @particle, @clickable
+ */
+
+composition "NarrativeEventsShowcase" {
+
+  // ─── Environment ─────────────────────────────────────────────────────────
+  environment {
+    skybox: "gradient:#1a0533:#4a1a6b"
+    ambient_light: 0.25
+    shadows: true
+    fog_enabled: true
+    fog_density: 0.008
+    fog_color: "#2a1040"
+  }
+
+  light "MoonLight" {
+    type: "directional"
+    color: "#b0c4de"
+    intensity: 0.6
+    position: [-3, 10, 5]
+    cast_shadows: true
+  }
+
+  light "MysticalGlow" {
+    type: "point"
+    color: "#8855cc"
+    intensity: 0.8
+    position: [0, 3, 0]
+    range: 15
+  }
+
+  object "MysticalGlowFlicker" {
+    @animated {
+      clip: "flicker_slow"
+      speed: 0.7
+      loop: true
+      target: "MysticalGlow"
+      target_property: "intensity"
+      keyframes: [[0.0, 0.8], [0.3, 0.5], [0.7, 0.9], [1.0, 0.8]]
+    }
+    position: [0, 3, 0]
+  }
+
+  post_processing {
+    bloom_enabled: true
+    bloom_intensity: 0.4
+    bloom_threshold: 0.6
+    tone_mapping: "aces"
+    tone_mapping_exposure: 0.9
+  }
+
+  // ─── Act State Machine ────────────────────────────────────────────────────
+  // Drives sky color, ambient light, and narrator voice register.
+
+  object "StoryProgress" {
+    @state_machine {
+      initial: "act1_arrival"
+      states: ["act1_arrival", "act2_memories", "act3_revelation", "act4_truth"]
+      transitions: [
+        { from: "act1_arrival",    to: "act2_memories",   on: "first_relic_found" },
+        { from: "act2_memories",   to: "act3_revelation", on: "all_relics_found" },
+        { from: "act3_revelation", to: "act4_truth",      on: "crown_assembled" }
+      ]
+    }
+  }
+
+  // ─── Throne Room Floor ───────────────────────────────────────────────────
+
+  object "ThroneRoomFloor" {
+    type: "plane"
+    scale: [100, 100, 1]
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    material_base_color: "#2a2a2a"
+    material_roughness: 0.9
+    material_metallic: 0.0
+  }
+
+  // ─── Spatial Audio ────────────────────────────────────────────────────────
+
+  object "ThroneChamberWind" {
+    @spatial_audio {
+      clip: "audio/ruins_wind_loop.ogg"
+      volume: 0.35
+      loop: true
+      attenuation: "none"
+      eq_preset: "cold_stone"
+    }
+    position: [0, 3, 0]
+  }
+
+  object "FlashbackChord" {
+    @spatial_audio {
+      clip: "audio/memory_chord.ogg"
+      volume: 0.0
+      loop: false
+      trigger_event: "relic_touched"
+      volume_on_trigger: 0.8
+      fade_out: 2.5
+    }
+    position: [0, 2, 0]
+  }
+
+  object "TruthStinger" {
+    @spatial_audio {
+      clip: "audio/truth_revelation.ogg"
+      volume: 0.0
+      loop: false
+      trigger_event: "crown_assembled"
+      volume_on_trigger: 1.0
+      fade_out: 4.0
+    }
+    position: [0, 4, 0]
+  }
+
+  // ─── Narrator Voice ──────────────────────────────────────────────────────
+
+  entity "NarratorVoice" {
+    narrator_trigger {
+      trigger_mode: "on_state_change"
+      voice_type: "omniscient"
+      voice_gender: "neutral"
+      lines: [
+        {
+          state: "act1_arrival"
+          text: "The throne room holds its breath. Three relics, three memories. Find them."
+          duration: 5.0
+          emotion: "foreboding"
+        },
+        {
+          state: "act2_memories"
+          text: "The crown begins to speak. Each shard a chapter. Listen."
+          duration: 4.5
+          emotion: "revelatory"
+        },
+        {
+          state: "act3_revelation"
+          text: "The shape of what was lost emerges. One piece remains."
+          duration: 4.0
+          emotion: "dread"
+        },
+        {
+          state: "act4_truth"
+          text: "Now you know. The crown fell by the hand it trusted most."
+          duration: 6.0
+          emotion: "tragic"
+        }
+      ]
+    }
+  }
+
+  // ─── RELIC 1: The Broken Scepter ─────────────────────────────────────────
+  // Foreshadowing: emissive crack. Memory: a coronation turned to ash.
+
+  object "RelicScepter" {
+    type: "mesh"
+    model: "models/scepter_broken.glb"
+    position: [-6, 0.5, -4]
+    @reactive {
+      trigger: "proximity"
+      radius: 2.5
+      on_enter: "fire_flashback_scepter"
+      cooldown: 0
+      fire_once: true
+    }
+    @emissive {
+      color: "#ff4400"
+      intensity: 0.6
+      flicker: true
+      flicker_speed: 2.0
+    }
+    @clickable {
+      cursor_style: "inspect"
+      on_click: "fire_flashback_scepter"
+    }
+    @particle {
+      max_count: 60
+      emission_rate: 8
+      lifetime_min: 1.5
+      lifetime_max: 3.0
+      velocity: [0, 0.5, 0]
+      velocity_spread: 0.3
+      size_start: 0.03
+      size_end: 0.0
+      color_start: "#ff4400"
+      color_end: "#ff000000"
+      blend_mode: "additive"
+    }
+  }
+
+  // ─── RELIC 2: The Shattered Crown Ring ────────────────────────────────────
+  // Foreshadowing: pulsing silver ring. Memory: the betrayal.
+
+  object "RelicCrownRing" {
+    type: "mesh"
+    model: "models/crown_ring_shard.glb"
+    position: [5, 0.5, -7]
+    @reactive {
+      trigger: "proximity"
+      radius: 2.5
+      on_enter: "fire_flashback_crown"
+      cooldown: 0
+      fire_once: true
+    }
+    @glowing {
+      color: "#c0c0ff"
+      intensity: 0.9
+      pulse: true
+      pulse_speed: 1.5
+    }
+    @clickable {
+      cursor_style: "inspect"
+      on_click: "fire_flashback_crown"
+    }
+    @animated {
+      clip: "float_spin"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  // ─── RELIC 3: The Oath Stone ──────────────────────────────────────────────
+  // Foreshadowing: deep violet glow, carved runes lit. Memory: the broken vow.
+
+  object "RelicOathStone" {
+    type: "mesh"
+    model: "models/oath_stone.glb"
+    position: [0, 0.3, 8]
+    @reactive {
+      trigger: "proximity"
+      radius: 2.5
+      on_enter: "fire_flashback_oath"
+      cooldown: 0
+      fire_once: true
+    }
+    @emissive {
+      color: "#8800ff"
+      intensity: 1.1
+      flicker: false
+    }
+    @clickable {
+      cursor_style: "inspect"
+      on_click: "fire_flashback_oath"
+    }
+    @particle {
+      max_count: 40
+      emission_rate: 5
+      lifetime_min: 2.0
+      lifetime_max: 5.0
+      velocity: [0, 0.2, 0]
+      velocity_spread: 0.15
+      size_start: 0.04
+      size_end: 0.0
+      color_start: "#8800ff"
+      color_end: "#00000000"
+      blend_mode: "additive"
+    }
+  }
+
+  // ─── THE THRONE (act4 goal object) ────────────────────────────────────────
+  // Dark and cold until all three relics are found; then blazes to life.
+
+  object "Throne" {
+    type: "mesh"
+    model: "models/ruined_throne.glb"
+    position: [0, 0, -12]
+    @reactive {
+      trigger: "event"
+      event: "all_relics_found"
+      on_enter: "reveal_throne_glow"
+    }
+    @glowing {
+      color: "#000000"
+      intensity: 0.0
+      on_reveal: { color: "#ffd700", intensity: 2.5, transition: 3.0 }
+    }
+    @animated {
+      clip: "throne_reveal"
+      speed: 1.0
+      loop: false
+      autoplay: false
+      trigger_play: "all_relics_found"
+    }
+  }
+
+  // ─── CROWN ASSEMBLY ZONE ─────────────────────────────────────────────────
+
+  object "CrownAssemblyAltar" {
+    type: "mesh"
+    model: "models/altar_pedestal.glb"
+    position: [0, 0.8, -10]
+    @reactive {
+      trigger: "event"
+      event: "all_relics_found"
+      on_enter: "activate_assembly"
+    }
+    @clickable {
+      cursor_style: "combine"
+      on_click: "assemble_crown"
+      enabled_after: "all_relics_found"
+    }
+    @glowing {
+      color: "#ffd700"
+      intensity: 0.0
+      on_activate: { intensity: 1.8, transition: 2.0, pulse: true, pulse_speed: 0.8 }
+    }
+    @particle {
+      max_count: 200
+      emission_rate: 0
+      trigger_rate: 40
+      trigger_event: "crown_assembled"
+      lifetime_min: 2.0
+      lifetime_max: 5.0
+      velocity: [0, 2.0, 0]
+      velocity_spread: 1.5
+      size_start: 0.06
+      size_end: 0.0
+      color_start: "#ffd700"
+      color_end: "#ffffff00"
+      blend_mode: "additive"
+    }
+  }
+
+  // ─── FLASHBACK VOLUMES ────────────────────────────────────────────────────
+
+  cutscene "FlashbackScepter" {
+    trigger: "fire_flashback_scepter"
+    duration: 8.0
+    camera_path: [
+      { t: 0.0, pos: [-6, 2, -1], look_at: [-6, 0.5, -4] },
+      { t: 0.4, pos: [-6, 3, 4],  look_at: [-6, 0.5, -4] }
+    ]
+    filter: "sepia"
+    audio: "audio/flashback_coronation.ogg"
+    subtitle: "The day of crowning — before the sky turned red."
+    on_complete: "check_relics_count"
+  }
+
+  cutscene "FlashbackCrown" {
+    trigger: "fire_flashback_crown"
+    duration: 7.0
+    camera_path: [
+      { t: 0.0, pos: [5, 2, -3],  look_at: [5, 0.5, -7] },
+      { t: 0.5, pos: [2, 4, -5],  look_at: [5, 0.5, -7] }
+    ]
+    filter: "desaturate"
+    audio: "audio/flashback_betrayal.ogg"
+    subtitle: "A hand outstretched — not in fealty, but in hunger."
+    on_complete: "check_relics_count"
+  }
+
+  cutscene "FlashbackOath" {
+    trigger: "fire_flashback_oath"
+    duration: 9.0
+    camera_path: [
+      { t: 0.0, pos: [0, 2, 12],  look_at: [0, 0.3, 8] },
+      { t: 0.6, pos: [3, 5, 6],   look_at: [0, 0.3, 8] }
+    ]
+    filter: "cold_blue"
+    audio: "audio/flashback_vow.ogg"
+    subtitle: "The stone remembers every word. Every broken promise."
+    on_complete: "check_relics_count"
+  }
+
+  cutscene "TruthRevelation" {
+    trigger: "crown_assembled"
+    duration: 14.0
+    camera_path: [
+      { t: 0.0,  pos: [0, 2, 0],   look_at: [0, 1, -12] },
+      { t: 0.3,  pos: [0, 6, 8],   look_at: [0, 2, -10] },
+      { t: 0.8,  pos: [0, 10, 0],  look_at: [0, 0, -12] }
+    ]
+    filter: "none"
+    audio: "audio/truth_revelation.ogg"
+    subtitle: "The crown remembers. And now, so do you."
+    letterbox: true
+  }
+}

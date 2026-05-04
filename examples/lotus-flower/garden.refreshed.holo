@@ -1,0 +1,534 @@
+/**
+ * The Lotus Flower — Living Visualization of the 16-Paper Research Program
+ * Refreshed by A-009 on 2026-05-04
+ *
+ * Refresh delta: Added @glowing + @animated to petals so bloom-state is
+ * visually readable at a glance (sealed=dark, budding=dim, blooming=bright,
+ * full=radiant). Added @spatial_audio for pond ambience that shifts register
+ * as papers mature. Added @particle for pollen-drift on `full` petals and
+ * a rising light-column on the genesis trigger.
+ *
+ * MISSING-TRAIT WISH (queued for Phase 4):
+ *   @bloom_reactive — a trait that drives mesh scale + emissive intensity
+ *   as a pure function of a `bloom_state` enum without needing an onUpdate
+ *   hook. Right now we approximate with @animated + manual keyframes, but
+ *   a semantic @bloom_reactive { state: bloomStateVar } would be far cleaner
+ *   for the lotus and any future procedural-growth compositions.
+ *
+ * @version 0.2
+ * @format .holo
+ * @traits @lotus_root, @lotus_stalk, @lotus_petal, @lotus_center,
+ *         @lotus_gardener, @lotus_genesis_trigger,
+ *         @glowing, @animated, @spatial_audio, @particle
+ */
+
+composition "The Lotus Flower" {
+
+  metadata {
+    title: "The Lotus Flower — 16-Paper Research Program"
+    description: "Brittney's living garden. Petals bloom as papers mature. Visual bloom-state readable at a glance."
+    version: "0.2"
+    author: "HoloScript A-009 refresh"
+    tags: ["lotus", "research-program", "brittney-garden", "provenance", "paper-26-seed"]
+  }
+
+  environment {
+    skybox: "hdri/dawn_pond.hdr"
+    ambient_light: 0.4
+    gravity: [0, -9.81, 0]
+    shadows: true
+  }
+
+  // ── POND AMBIENCE ─────────────────────────────────────────────────────────
+  // Calming backdrop that subtly shifts tonality as bloom progress increases.
+  // Low register = few full petals. High shimmer = approaching genesis.
+
+  object "PondAmbience" {
+    @spatial_audio {
+      clip: "audio/garden_pond_loop.ogg"
+      volume: 0.45
+      loop: true
+      attenuation: "none"
+      eq_preset: "warm"
+    }
+    position: [0, 0, 0]
+  }
+
+  object "GenesisChime" {
+    @spatial_audio {
+      clip: "audio/genesis_chime_loop.ogg"
+      volume: 0.0
+      loop: true
+      attenuation: "none"
+      trigger: "all_petals_full"
+      fade_in: 4.0
+    }
+    position: [0, 5, 0]
+  }
+
+  // ── ROOTS (underwater substrate) ──────────────────────────────────────────
+
+  object "Root: Parser" {
+    type: "mesh"
+    position: [-1.5, -2.0, 0]
+    @lotus_root {
+      substrate: "parser"
+      ships_in: "@holoscript/core"
+    }
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.6
+      pulse: false
+    }
+  }
+
+  object "Root: Multi-target Compiler" {
+    type: "mesh"
+    position: [0, -2.0, 0]
+    @lotus_root {
+      substrate: "compiler"
+      ships_in: "@holoscript/core"
+    }
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.6
+      pulse: false
+    }
+  }
+
+  object "Root: Provenance Semiring" {
+    type: "mesh"
+    position: [1.5, -2.0, 0]
+    @lotus_root {
+      substrate: "provenance-semiring"
+      ships_in: "@holoscript/engine"
+    }
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.8
+      pulse: true
+      pulse_speed: 0.5
+    }
+  }
+
+  // ── STALK (formats) ───────────────────────────────────────────────────────
+
+  object "Stalk: .hs (Core IR)" {
+    type: "mesh"
+    position: [0, 0, 0]
+    @lotus_stalk {
+      format: "hs"
+      role: "core IR"
+    }
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .hsplus (Reactive Traits)" {
+    type: "mesh"
+    position: [0, 1, 0]
+    @lotus_stalk {
+      format: "hsplus"
+      role: "reactive state + interaction traits"
+    }
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .holo (Scene Composition)" {
+    type: "mesh"
+    position: [0, 2, 0]
+    @lotus_stalk {
+      format: "holo"
+      role: "scene composition"
+    }
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .hs.md (Documentation)" {
+    type: "mesh"
+    position: [0, 3, 0]
+    @lotus_stalk {
+      format: "hs-md"
+      role: "knowledge documentation"
+    }
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  // ── CENTER (Dumb Glass — Rendering as Contracted Synthesis) ───────────────
+
+  object "Center: Dumb Glass" {
+    type: "mesh"
+    position: [0, 5, 0]
+    @lotus_center {
+      paper_id: "p3-center"
+      venue: "SIGGRAPH 2028"
+      bloom_state: "sealed"
+      role: "rendering as contracted synthesis"
+    }
+    @glowing {
+      color: "#ffffff"
+      intensity: 0.3
+      bloom_state_driven: true
+    }
+    @animated {
+      clip: "rotate_slow"
+      speed: 0.15
+      loop: true
+    }
+  }
+
+  // ── PROGRAM 1 PETALS (8 papers, in flight) ────────────────────────────────
+  // Bloom-state → glow intensity mapping:
+  //   sealed:   intensity 0.1, color #220033
+  //   budding:  intensity 0.4, color #6633aa
+  //   blooming: intensity 1.2, color #cc66ff, pulse
+  //   full:     intensity 2.5, color #ffffff, pulse_fast + pollen particles
+
+  object "Petal: Trust by Construction (TVCG)" {
+    type: "mesh"
+    position: [2.5, 5, 0]
+    @lotus_petal {
+      paper_id: "trust-by-construction"
+      venue: "IEEE TVCG 2026"
+      program: 1
+      bloom_state: "blooming"
+    }
+    @glowing {
+      color: "#cc66ff"
+      intensity: 1.2
+      pulse: true
+      pulse_speed: 1.0
+    }
+    @animated {
+      clip: "petal_unfurl"
+      speed: 0.3
+      loop: false
+      play_on_bloom: true
+    }
+  }
+
+  object "Petal: CAEL (AAMAS)" {
+    type: "mesh"
+    position: [2.31, 5, 0.96]
+    @lotus_petal {
+      paper_id: "cael"
+      venue: "AAMAS 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: Trust by Replay (USENIX Sec)" {
+    type: "mesh"
+    position: [1.77, 5, 1.77]
+    @lotus_petal {
+      paper_id: "trust-by-replay"
+      venue: "USENIX Security 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: Browser-Native SNN (NeurIPS)" {
+    type: "mesh"
+    position: [0.96, 5, 2.31]
+    @lotus_petal {
+      paper_id: "snn"
+      venue: "NeurIPS 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: Conflict-Free Spatial State CRDT (ECOOP)" {
+    type: "mesh"
+    position: [0, 5, 2.5]
+    @lotus_petal {
+      paper_id: "crdt"
+      venue: "ECOOP 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: Sandboxed Embodied Sim (USENIX Sec)" {
+    type: "mesh"
+    position: [-0.96, 5, 2.31]
+    @lotus_petal {
+      paper_id: "sandboxed-sim"
+      venue: "USENIX Security 2026"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: GraphRAG Codebase Intel (ICSE)" {
+    type: "mesh"
+    position: [-1.77, 5, 1.77]
+    @lotus_petal {
+      paper_id: "graphrag"
+      venue: "ICSE 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: From Notation to Cognition (UIST capstone)" {
+    type: "mesh"
+    position: [-2.31, 5, 0.96]
+    @lotus_petal {
+      paper_id: "capstone-notation-cognition"
+      venue: "UIST 2027"
+      program: 1
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  // ── PROGRAM 2 PETALS (4 papers, animation) ────────────────────────────────
+
+  object "Petal: Contracted Animation (SCA)" {
+    type: "mesh"
+    position: [-2.5, 5, 0]
+    @lotus_petal {
+      paper_id: "p2-0-contracted-animation"
+      venue: "SCA 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal: IK Under Contract (SIGGRAPH short)" {
+    type: "mesh"
+    position: [-2.31, 5, -0.96]
+    @lotus_petal {
+      paper_id: "p2-1-ik"
+      venue: "SIGGRAPH 2027 short / I3D 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal: Unified Sim+Anim (SIGGRAPH thesis)" {
+    type: "mesh"
+    position: [-1.77, 5, -1.77]
+    @lotus_petal {
+      paper_id: "p2-2-unified-sim-anim"
+      venue: "SIGGRAPH 2027"
+      program: 2
+      bloom_state: "budding"
+    }
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal: Verifiable Motion (SIGGRAPH Asia)" {
+    type: "mesh"
+    position: [-0.96, 5, -2.31]
+    @lotus_petal {
+      paper_id: "p2-3-verifiable-motion"
+      venue: "SIGGRAPH Asia 2027"
+      program: 2
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  // ── PROGRAM 3 PETALS ──────────────────────────────────────────────────────
+
+  object "Petal: .hs Core IR (PLDI)" {
+    type: "mesh"
+    position: [0, 5, -2.5]
+    @lotus_petal {
+      paper_id: "p3-s1-hs-core-ir"
+      venue: "PLDI 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal: .hsplus Traits (ECOOP)" {
+    type: "mesh"
+    position: [0.96, 5, -2.31]
+    @lotus_petal {
+      paper_id: "p3-s2-hsplus-traits"
+      venue: "ECOOP 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal: .holo Composition (I3D)" {
+    type: "mesh"
+    position: [1.77, 5, -1.77]
+    @lotus_petal {
+      paper_id: "p3-s3-holo-composition"
+      venue: "I3D 2027"
+      program: 3
+      bloom_state: "sealed"
+    }
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  // ── POLLEN DRIFT (only on `full` petals) ─────────────────────────────────
+  // This particle emitter would activate per-petal when bloom_state reaches
+  // `full`. Currently models the genesis trigger as the anchor. When individual
+  // per-petal particle activation is supported (see missing-trait wish above),
+  // each full petal should spawn its own pollen drift.
+
+  object "PollenDrift" {
+    @particle {
+      max_count: 300
+      emission_rate: 20
+      lifetime_min: 3.0
+      lifetime_max: 7.0
+      velocity: [0, 0.3, 0]
+      velocity_spread: 0.4
+      size_start: 0.02
+      size_end: 0.0
+      color_start: "#ffffcc"
+      color_end: "#ffffff00"
+      blend_mode: "additive"
+      world_space: true
+    }
+    position: [0, 5.5, 0]
+    trigger: "any_petal_full"
+  }
+
+  // ── BRITTNEY (the gardener) ───────────────────────────────────────────────
+
+  object "Brittney" {
+    type: "mesh"
+    position: [4, 5, 0]
+    @lotus_gardener {
+      role: "tender of the lotus"
+      tools: ["bloom_petal", "wilt_petal", "read_garden_state", "tend_garden", "propose_evidence"]
+      cannot_lie: true
+    }
+    @animated {
+      clip: "idle_gardener"
+      speed: 1.0
+      loop: true
+    }
+  }
+
+  // ── LOTUS GENESIS TRIGGER ─────────────────────────────────────────────────
+
+  object "Lotus Genesis Trigger" {
+    type: "mesh"
+    position: [0, 7, 0]
+    @lotus_genesis_trigger {
+      condition: "all 16 petals === full"
+      wallet: "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3"
+      anchor_strategy: "ots+base"
+      armed: false
+    }
+    @glowing {
+      color: "#ffffff"
+      intensity: 0.05
+      bloom_state_driven: true
+      full_intensity: 5.0
+    }
+    @animated {
+      clip: "genesis_spiral"
+      speed: 0.0
+      trigger_play: "all_petals_full"
+    }
+    @particle {
+      max_count: 500
+      emission_rate: 0
+      trigger_rate: 100
+      trigger_event: "all_petals_full"
+      lifetime_min: 2.0
+      lifetime_max: 6.0
+      velocity: [0, 1.5, 0]
+      velocity_spread: 1.2
+      size_start: 0.05
+      size_end: 0.0
+      color_start: "#ffffff"
+      color_end: "#cc88ff00"
+      blend_mode: "additive"
+      world_space: true
+    }
+  }
+}
