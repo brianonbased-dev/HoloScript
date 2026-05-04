@@ -65,6 +65,14 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
 
   return {
     name: 'brittney-prod',
+    // The prod /api/brittney endpoint can route through Ollama Cloud
+    // internally (D.025 Phase 3 provider gate). Ollama Cloud latency is
+    // bimodal: fast path ~10s, slow path >120s. The 120s default ceiling
+    // produced ~11% timeout aborts in the 2026-05-04 run. 240s gives the
+    // slow path room to land without padding error columns. (idea-run-10
+    // Pattern Beta — research/2026-05-04_idea-run-10-benchmark-to-
+    // production-gaps.md.)
+    perRunTimeoutMs: 240_000,
     async run(task: Task, signal: AbortSignal): Promise<ConfigRunResult> {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (opts.authHeader) headers['authorization'] = opts.authHeader;

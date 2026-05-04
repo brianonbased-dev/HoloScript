@@ -101,4 +101,12 @@ export interface BenchmarkRun {
 export interface ConfigRunner {
   name: ConfigName;
   run(task: Task, signal: AbortSignal): Promise<ConfigRunResult>;
+  /**
+   * Optional per-config wall-clock timeout in ms. Overrides the
+   * runner-level default for configs whose backend latency profile
+   * differs from Anthropic-direct (e.g. brittney-prod can route
+   * through Ollama Cloud internally and hit the bimodal slow path
+   * past the standard 120s ceiling).
+   */
+  perRunTimeoutMs?: number;
 }

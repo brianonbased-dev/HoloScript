@@ -170,7 +170,11 @@ async function executeCell(opts: ExecuteCellOptions): Promise<RunOutcome> {
 
   const wallStart = Date.now();
   const ac = new AbortController();
-  const timeout = setTimeout(() => ac.abort(), opts.perRunTimeoutMs);
+  // Per-config override (e.g. brittney-prod's Ollama-routed slow path
+  // needs more headroom than Anthropic-direct configs) takes priority
+  // over the runner-level default.
+  const cellTimeoutMs = opts.config.perRunTimeoutMs ?? opts.perRunTimeoutMs;
+  const timeout = setTimeout(() => ac.abort(), cellTimeoutMs);
   let outcome: RunOutcome;
   try {
     const cfgResult = await opts.config.run(opts.task, ac.signal);
