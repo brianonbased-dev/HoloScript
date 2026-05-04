@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
+import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 import { HoloMapScanViewer } from './HoloMapScanViewer';
@@ -46,6 +46,10 @@ export function ReconstructionPanel() {
     const ms = new Date(session.expiresAt).getTime() - Date.now();
     return Math.max(0, Math.floor(ms / 1000));
   }, [session?.expiresAt]);
+  const mobileUrlSupportsLiveCamera = useMemo(
+    () => session?.mobileUrl.startsWith('https://') ?? false,
+    [session?.mobileUrl],
+  );
 
   const createSession = async () => {
     setLoading(true);
@@ -119,6 +123,23 @@ export function ReconstructionPanel() {
         <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
           <div className="space-y-3">
             <QRCodeImage url={session.mobileUrl} size={200} alt="Scan-room mobile QR" />
+            <div
+              className={`rounded-lg border px-3 py-2 text-[11px] leading-4 ${
+                mobileUrlSupportsLiveCamera
+                  ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+                  : 'border-yellow-400/30 bg-yellow-500/10 text-yellow-100'
+              }`}
+            >
+              {mobileUrlSupportsLiveCamera ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Studio camera overlays enabled
+                </span>
+              ) : (
+                <span className="inline-flex items-start gap-1.5">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Use an HTTPS Studio URL for live phone overlays.
+                </span>
+              )}
+            </div>
             <button
               onClick={createSession}
               className="inline-flex items-center gap-2 rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text"

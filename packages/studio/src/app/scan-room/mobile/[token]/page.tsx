@@ -65,6 +65,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     live: false,
     reason: null,
   });
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<'idle' | 'starting' | 'ready' | 'recording' | 'processing'>('idle');
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -100,16 +101,17 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       .join('');
   };
 
-  const stopCameraStream = () => {
+  const stopCameraStream = (resetState = true) => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    if (resetState) setCameraStream(null);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
   };
 
   useEffect(() => {
-    return () => stopCameraStream();
+    return () => stopCameraStream(false);
   }, []);
 
   useEffect(() => {
@@ -136,6 +138,12 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     setCameraCapability({ checked: true, live: true, reason: null });
   }, []);
+
+  useEffect(() => {
+    if (!cameraStream || !videoRef.current) return;
+    videoRef.current.srcObject = cameraStream;
+    void videoRef.current.play().catch(() => undefined);
+  }, [cameraStream, cameraState]);
 
   useEffect(() => {
     if (recordingStartedAt === null) return;
@@ -232,7 +240,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     await submitCapture(file);
   };
 
-  const openNativeCamera = async () => {
+  const openStudioCamera = async () => {
     setError(null);
     setDone(false);
 
@@ -252,10 +260,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
-      }
+      setCameraStream(stream);
       await pushState({ status: 'capturing' });
       setCameraState('ready');
     } catch (e) {
@@ -304,6 +309,24 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }
   };
 
+  const isStudioCameraOpen =
+    cameraState === 'starting' ||
+    cameraState === 'ready' ||
+    cameraState === 'recording' ||
+    cameraState === 'processing';
+  const trackingPercent =
+    cameraState === 'recording'
+      ? Math.min(100, 24 + recordingSeconds * 8)
+      : cameraState === 'ready'
+        ? 18
+        : cameraState === 'processing'
+          ? 100
+          : 0;
+  const overlayPointCount = Math.max(
+    sessionFeedback?.renderAsset?.pointCount ?? 0,
+    cameraState === 'recording' ? 128 + recordingSeconds * 36 : 0,
+  );
+
   const effectiveStatus: ScanStatus =
     sessionFeedback?.status ??
     (done
@@ -351,12 +374,14 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     if (effectiveStatus === 'capturing') {
       return {
         title: 'Camera linked',
-        detail: 'Studio sees the phone session. Capture the room when ready.',
+        detail: 'Studio sees the phone session. Follow the overlay and capture the room when ready.',
       };
     }
     return {
       title: 'Connected to Studio',
-      detail: 'Open the camera and start a mesh capture from this phone.',
+      detail: cameraCapability.live
+        ? 'Open the Studio camera and start a mesh capture from this phone.'
+        : 'Open the phone camera fallback, or use an HTTPS Studio URL for live overlays.',
     };
   })();
 
@@ -437,49 +462,99 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       </section>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
-        {(cameraState === 'starting' ||
-          cameraState === 'ready' ||
-          cameraState === 'recording' ||
-          cameraState === 'processing') && (
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="aspect-[9/16] max-h-[58vh] w-full rounded-2xl border border-indigo-300/40 bg-black object-cover"
-          />
+        {isStudioCameraOpen && (
+          <div
+            data-testid="room-studio-camera"
+            className="relative aspect-[9/16] max-h-[58vh] w-full overflow-hidden rounded-2xl border border-indigo-300/40 bg-black"
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+            <div
+              data-testid="room-camera-overlay"
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(129,140,248,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(129,140,248,0.14)_1px,transparent_1px)] bg-[size:42px_42px] opacity-45" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,transparent_42%,rgba(10,10,18,0.55)_100%)]" />
+              <div className="absolute left-4 right-4 top-4 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-indigo-100">
+                <span className="rounded-full border border-indigo-200/35 bg-black/35 px-2 py-1">
+                  HoloMap scan
+                </span>
+                <span className="rounded-full border border-emerald-200/35 bg-emerald-400/15 px-2 py-1 text-emerald-100">
+                  {cameraState === 'recording' ? 'Recording' : cameraState === 'ready' ? 'Ready' : 'Linking'}
+                </span>
+              </div>
+              <div className="absolute left-8 right-8 top-[24%] h-px bg-cyan-200/50 shadow-[0_0_18px_rgba(103,232,249,0.8)]" />
+              <div className="absolute left-[18%] right-[18%] top-[42%] h-px bg-indigo-200/45" />
+              <div className="absolute left-1/2 top-[42%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/45 shadow-[0_0_28px_rgba(103,232,249,0.35)]" />
+              <div className="absolute left-1/2 top-[42%] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-200" />
+              <div className="absolute left-7 top-24 h-10 w-10 border-l-2 border-t-2 border-cyan-200/75" />
+              <div className="absolute right-7 top-24 h-10 w-10 border-r-2 border-t-2 border-cyan-200/75" />
+              <div className="absolute bottom-36 left-7 h-10 w-10 border-b-2 border-l-2 border-cyan-200/75" />
+              <div className="absolute bottom-36 right-7 h-10 w-10 border-b-2 border-r-2 border-cyan-200/75" />
+              <div className="absolute bottom-24 left-8 right-8 rounded-xl border border-white/15 bg-black/35 p-3 backdrop-blur-sm">
+                <div className="flex items-center justify-between text-[11px] text-white/80">
+                  <span>Tracking mesh</span>
+                  <span className="font-mono text-cyan-100">{Math.round(trackingPercent)}%</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+                  <div
+                    className="h-full rounded-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,0.65)] transition-[width] duration-300"
+                    style={{ width: `${trackingPercent}%` }}
+                  />
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] text-white/55">
+                  <span>Floor plane</span>
+                  <span>Wall edges</span>
+                  <span>{overlayPointCount > 0 ? `${overlayPointCount.toLocaleString()} pts` : '0 pts'}</span>
+                </div>
+              </div>
+              {cameraState === 'recording' && (
+                <div className="absolute inset-x-0 top-1/2 h-16 -translate-y-1/2 border-y border-cyan-200/25 bg-cyan-200/10 shadow-[0_0_32px_rgba(103,232,249,0.22)]" />
+              )}
+            </div>
+          </div>
         )}
 
         {cameraState === 'idle' && (
           <>
-            <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center">
-              <Camera className="h-6 w-6 text-indigo-300" />
-              <span className="text-sm font-medium">Open phone camera</span>
-              <span className="text-xs text-white/50">
-                {cameraCapability.reason ?? 'Use the native camera. Live preview appears on secure connections.'}
-              </span>
-              <input
-                ref={cameraCaptureInputRef}
-                data-testid="room-camera-input"
-                type="file"
-                accept="video/*"
-                capture="environment"
-                className="hidden"
-                onClick={(e) => {
-                  e.currentTarget.value = '';
-                }}
-                onChange={(e) => void onVideoSelected(e.target.files?.[0] ?? null)}
-              />
-            </label>
-
-            {cameraCapability.live && (
+            {cameraCapability.checked && cameraCapability.live && (
               <button
                 type="button"
-                onClick={() => void openNativeCamera()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70"
+                data-testid="room-studio-camera-button"
+                onClick={() => void openStudioCamera()}
+                className="flex w-full flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center"
               >
-                <Video className="h-4 w-4" /> Use live preview
+                <Video className="h-6 w-6 text-indigo-300" />
+                <span className="text-sm font-medium">Open Studio camera</span>
+                <span className="text-xs text-white/50">Live capture with HoloMap overlays on this screen.</span>
               </button>
+            )}
+
+            {!cameraCapability.live && (
+              <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center">
+                <Camera className="h-6 w-6 text-indigo-300" />
+                <span className="text-sm font-medium">Open phone camera fallback</span>
+                <span className="text-xs text-white/50">
+                  {cameraCapability.reason ?? 'HTTPS is required before Studio can draw live overlays.'}
+                </span>
+                <input
+                  ref={cameraCaptureInputRef}
+                  data-testid="room-camera-input"
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  className="hidden"
+                  onClick={(e) => {
+                    e.currentTarget.value = '';
+                  }}
+                  onChange={(e) => void onVideoSelected(e.target.files?.[0] ?? null)}
+                />
+              </label>
             )}
           </>
         )}
