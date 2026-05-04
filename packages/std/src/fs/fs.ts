@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as nodePath from 'path';
 import { glob as globAsync } from 'glob';
+import { enforcePathBoundary } from './sandbox.js';
 
 export type Encoding = BufferEncoding;
 
@@ -70,6 +71,7 @@ export interface CopyOptions {
  * Read a file as text
  */
 export async function readText(path: string, encoding: Encoding = 'utf-8'): Promise<string> {
+  path = enforcePathBoundary(path);
   return fsPromises.readFile(path, { encoding });
 }
 
@@ -77,6 +79,7 @@ export async function readText(path: string, encoding: Encoding = 'utf-8'): Prom
  * Read a file as text (sync)
  */
 export function readTextSync(path: string, encoding: Encoding = 'utf-8'): string {
+  path = enforcePathBoundary(path);
   return fs.readFileSync(path, { encoding });
 }
 
@@ -84,6 +87,7 @@ export function readTextSync(path: string, encoding: Encoding = 'utf-8'): string
  * Read a file as bytes
  */
 export async function readBytes(path: string): Promise<Buffer> {
+  path = enforcePathBoundary(path);
   return fsPromises.readFile(path);
 }
 
@@ -91,6 +95,7 @@ export async function readBytes(path: string): Promise<Buffer> {
  * Read a file as bytes (sync)
  */
 export function readBytesSync(path: string): Buffer {
+  path = enforcePathBoundary(path);
   return fs.readFileSync(path);
 }
 
@@ -138,6 +143,7 @@ export async function writeText(
   content: string,
   options: WriteOptions = {}
 ): Promise<void> {
+  path = enforcePathBoundary(path);
   const { encoding = 'utf-8', mode, flag = options.append ? 'a' : 'w' } = options;
   await ensureDir(nodePath.dirname(path));
   await fsPromises.writeFile(path, content, { encoding, mode, flag });
@@ -147,6 +153,7 @@ export async function writeText(
  * Write text to a file (sync)
  */
 export function writeTextSync(path: string, content: string, options: WriteOptions = {}): void {
+  path = enforcePathBoundary(path);
   const { encoding = 'utf-8', mode, flag = options.append ? 'a' : 'w' } = options;
   ensureDirSync(nodePath.dirname(path));
   fs.writeFileSync(path, content, { encoding, mode, flag });
@@ -160,6 +167,7 @@ export async function writeBytes(
   content: Buffer,
   options: WriteOptions = {}
 ): Promise<void> {
+  path = enforcePathBoundary(path);
   const { mode, flag = options.append ? 'a' : 'w' } = options;
   await ensureDir(nodePath.dirname(path));
   await fsPromises.writeFile(path, content, { mode, flag });
@@ -169,6 +177,7 @@ export async function writeBytes(
  * Write bytes to a file (sync)
  */
 export function writeBytesSync(path: string, content: Buffer, options: WriteOptions = {}): void {
+  path = enforcePathBoundary(path);
   const { mode, flag = options.append ? 'a' : 'w' } = options;
   ensureDirSync(nodePath.dirname(path));
   fs.writeFileSync(path, content, { mode, flag });
@@ -244,6 +253,7 @@ export function appendLineSync(path: string, line: string, encoding: Encoding = 
  * Check if a path exists
  */
 export async function exists(path: string): Promise<boolean> {
+  path = enforcePathBoundary(path);
   try {
     await fsPromises.access(path);
     return true;
@@ -256,6 +266,7 @@ export async function exists(path: string): Promise<boolean> {
  * Check if a path exists (sync)
  */
 export function existsSync(path: string): boolean {
+  path = enforcePathBoundary(path);
   return fs.existsSync(path);
 }
 
@@ -263,6 +274,7 @@ export function existsSync(path: string): boolean {
  * Check if path is a file
  */
 export async function isFile(path: string): Promise<boolean> {
+  path = enforcePathBoundary(path);
   try {
     const stats = await fsPromises.stat(path);
     return stats.isFile();
@@ -275,6 +287,7 @@ export async function isFile(path: string): Promise<boolean> {
  * Check if path is a file (sync)
  */
 export function isFileSync(path: string): boolean {
+  path = enforcePathBoundary(path);
   try {
     return fs.statSync(path).isFile();
   } catch {
@@ -286,6 +299,7 @@ export function isFileSync(path: string): boolean {
  * Check if path is a directory
  */
 export async function isDirectory(path: string): Promise<boolean> {
+  path = enforcePathBoundary(path);
   try {
     const stats = await fsPromises.stat(path);
     return stats.isDirectory();
@@ -298,6 +312,7 @@ export async function isDirectory(path: string): Promise<boolean> {
  * Check if path is a directory (sync)
  */
 export function isDirectorySync(path: string): boolean {
+  path = enforcePathBoundary(path);
   try {
     return fs.statSync(path).isDirectory();
   } catch {
@@ -309,6 +324,7 @@ export function isDirectorySync(path: string): boolean {
  * Get file/directory stats
  */
 export async function stat(path: string): Promise<FileStats> {
+  path = enforcePathBoundary(path);
   const stats = await fsPromises.stat(path);
   return {
     size: stats.size,
@@ -326,6 +342,7 @@ export async function stat(path: string): Promise<FileStats> {
  * Get file/directory stats (sync)
  */
 export function statSync(path: string): FileStats {
+  path = enforcePathBoundary(path);
   const stats = fs.statSync(path);
   return {
     size: stats.size,
@@ -343,6 +360,7 @@ export function statSync(path: string): FileStats {
  * Create a directory (and parents if needed)
  */
 export async function mkdir(path: string, recursive = true): Promise<void> {
+  path = enforcePathBoundary(path);
   await fsPromises.mkdir(path, { recursive });
 }
 
@@ -350,6 +368,7 @@ export async function mkdir(path: string, recursive = true): Promise<void> {
  * Create a directory (sync)
  */
 export function mkdirSync(path: string, recursive = true): void {
+  path = enforcePathBoundary(path);
   fs.mkdirSync(path, { recursive });
 }
 
@@ -375,6 +394,7 @@ export function ensureDirSync(path: string): void {
  * Ensure a file exists (create empty if not)
  */
 export async function ensureFile(path: string): Promise<void> {
+  path = enforcePathBoundary(path);
   if (!(await exists(path))) {
     await ensureDir(nodePath.dirname(path));
     await writeText(path, '');
@@ -385,6 +405,7 @@ export async function ensureFile(path: string): Promise<void> {
  * Ensure a file exists (sync)
  */
 export function ensureFileSync(path: string): void {
+  path = enforcePathBoundary(path);
   if (!existsSync(path)) {
     ensureDirSync(nodePath.dirname(path));
     writeTextSync(path, '');
@@ -395,6 +416,7 @@ export function ensureFileSync(path: string): void {
  * Remove a file or directory
  */
 export async function remove(path: string, recursive = true): Promise<void> {
+  path = enforcePathBoundary(path);
   await fsPromises.rm(path, { recursive, force: true });
 }
 
@@ -402,6 +424,7 @@ export async function remove(path: string, recursive = true): Promise<void> {
  * Remove a file or directory (sync)
  */
 export function removeSync(path: string, recursive = true): void {
+  path = enforcePathBoundary(path);
   fs.rmSync(path, { recursive, force: true });
 }
 
@@ -409,6 +432,8 @@ export function removeSync(path: string, recursive = true): void {
  * Copy a file or directory
  */
 export async function copy(src: string, dest: string, options: CopyOptions = {}): Promise<void> {
+  src = enforcePathBoundary(src);
+  dest = enforcePathBoundary(dest);
   const { overwrite = true, recursive = true, filter } = options;
 
   if (filter && !filter(src)) return;
@@ -437,6 +462,8 @@ export async function copy(src: string, dest: string, options: CopyOptions = {})
  * Copy a file or directory (sync)
  */
 export function copySync(src: string, dest: string, options: CopyOptions = {}): void {
+  src = enforcePathBoundary(src);
+  dest = enforcePathBoundary(dest);
   const { overwrite = true, recursive = true, filter } = options;
 
   if (filter && !filter(src)) return;
@@ -465,6 +492,8 @@ export function copySync(src: string, dest: string, options: CopyOptions = {}): 
  * Move/rename a file or directory
  */
 export async function move(src: string, dest: string, overwrite = true): Promise<void> {
+  src = enforcePathBoundary(src);
+  dest = enforcePathBoundary(dest);
   if (!overwrite && (await exists(dest))) {
     throw new Error(`Destination already exists: ${dest}`);
   }
@@ -476,6 +505,8 @@ export async function move(src: string, dest: string, overwrite = true): Promise
  * Move/rename a file or directory (sync)
  */
 export function moveSync(src: string, dest: string, overwrite = true): void {
+  src = enforcePathBoundary(src);
+  dest = enforcePathBoundary(dest);
   if (!overwrite && existsSync(dest)) {
     throw new Error(`Destination already exists: ${dest}`);
   }
@@ -491,6 +522,7 @@ export function moveSync(src: string, dest: string, overwrite = true): void {
  * Read directory entries
  */
 export async function readDir(path: string): Promise<DirEntry[]> {
+  path = enforcePathBoundary(path);
   const entries = await fsPromises.readdir(path, { withFileTypes: true });
   return entries.map((entry) => ({
     name: entry.name,
@@ -505,6 +537,7 @@ export async function readDir(path: string): Promise<DirEntry[]> {
  * Read directory entries (sync)
  */
 export function readDirSync(path: string): DirEntry[] {
+  path = enforcePathBoundary(path);
   const entries = fs.readdirSync(path, { withFileTypes: true });
   return entries.map((entry) => ({
     name: entry.name,
