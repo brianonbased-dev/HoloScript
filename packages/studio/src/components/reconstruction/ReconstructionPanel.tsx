@@ -5,13 +5,13 @@ import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2, AlertTria
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 import { HoloMapScanViewer } from './HoloMapScanViewer';
+import {
+  clearStoredScanSession,
+  readStoredScanSession,
+  writeStoredScanSession,
+  type ScanSessionResponse,
+} from '@/lib/reconstruction-scan-session-client';
 import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
-
-interface ScanSessionResponse {
-  token: string;
-  mobileUrl: string;
-  expiresAt: string;
-}
 
 interface ScanSessionState {
   token: string;
@@ -40,6 +40,7 @@ export function ReconstructionPanel() {
   const [session, setSession] = useState<ScanSessionResponse | null>(null);
   const [state, setState] = useState<ScanSessionState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const expiresIn = useMemo(() => {
     if (!session?.expiresAt) return null;
@@ -62,20 +63,56 @@ export function ReconstructionPanel() {
       const data = (await res.json()) as ScanSessionResponse;
       setSession(data);
       setState(null);
+      setSessionError(null);
+      writeStoredScanSession(data);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const stored = readStoredScanSession();
+    if (stored) {
+      setSession(stored);
+      setSessionError(null);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!session?.token) return;
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(session.token)}`);
-      if (!res.ok) return;
-      const data = (await res.json()) as ScanSessionState;
-      setState(data);
-    }, 1200);
-    return () => clearInterval(interval);
+
+    let isCurrent = true;
+    const refreshSessionState = async () => {
+      try {
+        const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(session.token)}`);
+        if (!isCurrent) return;
+
+        if (res.status === 404) {
+          clearStoredScanSession();
+          setSessionError('This scan session expired or the Studio server restarted. Start a new QR.');
+          return;
+        }
+
+        if (!res.ok) {
+          setSessionError(`Session polling failed (${res.status}).`);
+          return;
+        }
+
+        const data = (await res.json()) as ScanSessionState;
+        setSessionError(null);
+        setState(data);
+      } catch (e) {
+        if (!isCurrent) return;
+        setSessionError(e instanceof Error ? e.message : 'Session polling failed.');
+      }
+    };
+
+    void refreshSessionState();
+    const interval = window.setInterval(() => void refreshSessionState(), 1200);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
   }, [session?.token]);
 
   return (
@@ -154,6 +191,7 @@ export function ReconstructionPanel() {
               <span className="font-medium">Session status</span>
             </div>
             <p className="text-studio-muted">{state ? statusLabel[state.status] : 'Initializing session…'}</p>
+            {sessionError && <p className="mt-1 text-red-400">{sessionError}</p>}
             {state?.frameCount !== undefined && <p className="mt-1 text-studio-muted">Frames: {state.frameCount}</p>}
             {state?.videoBytes !== undefined && <p className="text-studio-muted">Upload: {(state.videoBytes / 1024 / 1024).toFixed(2)} MB</p>}
             {expiresIn !== null && <p className="mt-2 text-studio-muted">Expires in ~{expiresIn}s</p>}

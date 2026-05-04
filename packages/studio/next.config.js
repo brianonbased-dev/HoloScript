@@ -189,6 +189,12 @@ const nextConfig = {
       '.mjs': ['.mts', '.mjs'],
       '.cjs': ['.cts', '.cjs'],
     };
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Studio imports only extractTraits/formatBytes from @holoscript/std.
+      // Point webpack at the source utility so local dev and E2E do not depend on generated std dist files.
+      '@holoscript/std$': path.resolve(__dirname, '../std/src/string.ts'),
+    };
 
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
