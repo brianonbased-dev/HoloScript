@@ -17,6 +17,10 @@ interface GoldenObject {
   radius?: number;
   light_type?: string;
   projection?: string;
+  /** Camera look-at target (for camera tasks). */
+  target?: [number, number, number];
+  /** Light direction vector (for directional-light tasks). */
+  direction?: [number, number, number];
 }
 
 interface GoldenCase {
@@ -188,6 +192,102 @@ const GOLDEN_CASES: GoldenCase[] = [
       { name: 'SmallAxle', type: 'mesh', primitive: 'cylinder', position: [1.4, 0, 0], radius: 0.05, scale: [1, 1.5, 1] as [number, number, number], color: 'gray' },
     ],
     notes: 'Large gear (r=1.0) at origin, small gear (r=0.4) at (1.4,0,0), 8 teeth each, gray axles',
+  },
+
+  // --- T01: Single red cube at world origin ---
+  {
+    task_id: 'T01',
+    objects: [
+      { name: 'RedCube', type: 'mesh', primitive: 'cube', position: [0, 0, 0], scale: [1, 1, 1], color: 'red' },
+    ],
+    notes: 'Single red cube at the world origin',
+  },
+
+  // --- T02: Blue sphere of radius 0.5 at (1, 0, 0) ---
+  {
+    task_id: 'T02',
+    objects: [
+      { name: 'BlueSphere', type: 'mesh', primitive: 'sphere', position: [1, 0, 0], radius: 0.5, color: 'blue' },
+    ],
+    notes: 'Blue sphere, radius 0.5, at (1, 0, 0)',
+  },
+
+  // --- T03: Green cylinder of height 2 standing on the ground ---
+  {
+    task_id: 'T03',
+    objects: [
+      // Center at y=1 so bottom rests at y=0 with scale.y=2 (full height).
+      { name: 'GreenCylinder', type: 'mesh', primitive: 'cylinder', position: [0, 1, 0], scale: [1, 2, 1], color: 'green' },
+    ],
+    notes: 'Green cylinder, height 2 (scale.y), bottom on y=0 ground (center at y=1)',
+  },
+
+  // --- T04: Directional light pointing downward ---
+  {
+    task_id: 'T04',
+    objects: [
+      {
+        name: 'SunLight',
+        type: 'light',
+        position: [0, 10, 0],
+        light_type: 'directional',
+        direction: [0, -1, 0],
+        color: 'white',
+      },
+    ],
+    notes: 'Directional light, direction (0, -1, 0) — pointing straight down',
+  },
+
+  // --- T05: 10x10 gray ground plane ---
+  {
+    task_id: 'T05',
+    objects: [
+      // Plane primitive defaults to xz-plane (normal +Y), so no rotation needed.
+      { name: 'Ground', type: 'mesh', primitive: 'plane', position: [0, 0, 0], scale: [10, 1, 10], color: 'gray' },
+    ],
+    notes: '10x10 gray ground plane in the xz-plane',
+  },
+
+  // --- T07: Perspective camera at (5,5,5) looking at origin ---
+  {
+    task_id: 'T07',
+    objects: [
+      {
+        name: 'MainCamera',
+        type: 'camera',
+        position: [5, 5, 5],
+        projection: 'perspective',
+        target: [0, 0, 0],
+      },
+    ],
+    notes: 'Perspective camera at (5,5,5) looking at world origin',
+  },
+
+  // --- T08: Torus (major=1, minor=0.25) at (0,1,0) ---
+  // Major/minor radii are not tracked as distinct ParsedObject fields; the
+  // verifier only checks count + position. The dimensional criteria fall
+  // through to the LLM judge for nuanced verdict.
+  {
+    task_id: 'T08',
+    objects: [
+      { name: 'Torus', type: 'mesh', primitive: 'torus', position: [0, 1, 0], scale: [1, 1, 1] },
+    ],
+    notes: 'Single torus at (0,1,0) — major/minor radii not deterministically captured',
+  },
+
+  // --- T10: Single white point light at (2, 4, 2) ---
+  {
+    task_id: 'T10',
+    objects: [
+      {
+        name: 'PointLight',
+        type: 'light',
+        position: [2, 4, 2],
+        light_type: 'point',
+        color: 'white',
+      },
+    ],
+    notes: 'Single white point light at (2, 4, 2)',
   },
 ];
 

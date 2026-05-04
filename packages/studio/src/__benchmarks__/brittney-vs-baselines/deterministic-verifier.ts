@@ -25,6 +25,10 @@ interface ParsedObject {
   radius?: number;
   light_type?: string;
   projection?: string;
+  /** Camera look-at target. Read from input.target when present. */
+  target?: [number, number, number];
+  /** Light direction vector. Read from input.direction when present. */
+  direction?: [number, number, number];
 }
 
 function parseObjects(mutations: SceneMutation[]): ParsedObject[] {
@@ -48,6 +52,12 @@ function parseObjects(mutations: SceneMutation[]): ParsedObject[] {
       radius: typeof input.radius === 'number' ? input.radius : undefined,
       light_type: input.light_type ? String(input.light_type) : undefined,
       projection: input.projection ? String(input.projection) : undefined,
+      target: Array.isArray(input.target) && input.target.length === 3
+          ? ([Number(input.target[0] ?? 0), Number(input.target[1] ?? 0), Number(input.target[2] ?? 0)] as [number, number, number])
+          : undefined,
+      direction: Array.isArray(input.direction) && input.direction.length === 3
+          ? ([Number(input.direction[0] ?? 0), Number(input.direction[1] ?? 0), Number(input.direction[2] ?? 0)] as [number, number, number])
+          : undefined,
       };
     });
 }
@@ -485,9 +495,178 @@ function verifyA10(objs: ParsedObject[]): VerificationResult[] {
   ];
 }
 
+// --- Trivial-tier verifiers (single-object property checks) ---
+
+function verifyT01(objs: ParsedObject[]): VerificationResult[] {
+  // Single red cube at origin.
+  const cubes = objs.filter((o) => o.primitive === 'cube');
+  const reds = cubes.filter((o) => (o.color ?? '').toLowerCase().includes('red'));
+  const cube = cubes[0];
+  const pos = cube?.position ?? [0, 0, 0];
+  const atOrigin = within(pos[0], 0, 0.01) && within(pos[1], 0, 0.01) && within(pos[2], 0, 0.01);
+
+  return [
+    { criterion_id: 'single_object', passed: objs.length === 1, rationale: `found ${objs.length} objects` },
+    { criterion_id: 'object_is_cube', passed: cubes.length === 1, rationale: `found ${cubes.length} cubes` },
+    { criterion_id: 'color_red', passed: reds.length >= 1, rationale: `red cubes: ${reds.length}` },
+    { criterion_id: 'position_origin', passed: atOrigin, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+  ];
+}
+
+function verifyT02(objs: ParsedObject[]): VerificationResult[] {
+  // Blue sphere of radius 0.5 at (1, 0, 0).
+  const spheres = objs.filter((o) => o.primitive === 'sphere');
+  const blues = spheres.filter((o) => (o.color ?? '').toLowerCase().includes('blue'));
+  const sphere = spheres[0];
+  const r = sphere?.radius;
+  const radiusOk = r !== undefined && within(r, 0.5, 0.025); // 5% tol
+  const pos = sphere?.position ?? [0, 0, 0];
+  const positionOk =
+    within(pos[0], 1, 0.01) && within(pos[1], 0, 0.01) && within(pos[2], 0, 0.01);
+
+  return [
+    { criterion_id: 'single_sphere', passed: spheres.length === 1, rationale: `found ${spheres.length} spheres` },
+    { criterion_id: 'color_blue', passed: blues.length >= 1, rationale: `blue spheres: ${blues.length}` },
+    { criterion_id: 'radius_half', passed: radiusOk, rationale: r !== undefined ? `radius=${r.toFixed(3)} (target 0.5)` : 'no radius property' },
+    { criterion_id: 'position_correct', passed: positionOk, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+  ];
+}
+
+function verifyT03(objs: ParsedObject[]): VerificationResult[] {
+  // Green cylinder of height 2 standing on the ground (y=0).
+  const cylinders = objs.filter((o) => o.primitive === 'cylinder');
+  const greens = cylinders.filter((o) => (o.color ?? '').toLowerCase().includes('green'));
+  const cyl = cylinders[0];
+  // Height typically encoded in scale.y. 5% tol on height=2.
+  const height = cyl?.scale?.[1] ?? 0;
+  const heightOk = within(height, 2, 0.1);
+  // Bottom on ground means center.y ≈ height/2 ≈ 1 when scale.y is the full height.
+  const cy = cyl?.position?.[1] ?? 0;
+  const onGround = within(cy, height / 2, 0.1) || within(cy, 1, 0.1);
+
+  return [
+    { criterion_id: 'single_cylinder', passed: cylinders.length === 1, rationale: `found ${cylinders.length} cylinders` },
+    { criterion_id: 'color_green', passed: greens.length >= 1, rationale: `green cylinders: ${greens.length}` },
+    { criterion_id: 'height_two', passed: heightOk, rationale: `scale.y=${height.toFixed(2)} (target 2)` },
+    { criterion_id: 'on_ground', passed: onGround, rationale: `center y=${cy.toFixed(2)} (expect ≈1 with height 2)` },
+  ];
+}
+
+function verifyT04(objs: ParsedObject[]): VerificationResult[] {
+  // Directional light pointing downward.
+  const lights = objs.filter((o) => o.light_type !== undefined || o.type === 'light');
+  const directional = lights.filter((o) => (o.light_type ?? '').toLowerCase() === 'directional');
+  const light = directional[0];
+  const dir = light?.direction;
+  const downOk =
+    dir !== undefined && dir[1] < -0.5 && Math.abs(dir[0]) < 0.5 && Math.abs(dir[2]) < 0.5;
+
+  return [
+    { criterion_id: 'is_light', passed: lights.length >= 1, rationale: `found ${lights.length} lights` },
+    { criterion_id: 'directional', passed: directional.length >= 1, rationale: `directional lights: ${directional.length}` },
+    {
+      criterion_id: 'direction_down',
+      passed: downOk,
+      rationale: dir !== undefined ? `direction [${dir.map((n) => n.toFixed(2)).join(', ')}]` : 'no direction property',
+    },
+  ];
+}
+
+function verifyT05(objs: ParsedObject[]): VerificationResult[] {
+  // 10x10 gray ground plane, horizontal.
+  const planes = objs.filter((o) => o.primitive === 'plane' || o.primitive === 'cube');
+  const plane = planes[0];
+  const sx = plane?.scale?.[0] ?? 0;
+  const sz = plane?.scale?.[2] ?? 0;
+  const sizeOk = within(sx, 10, 1) && within(sz, 10, 1); // 10% tol per memo
+  const grayOk = isGrayish(plane?.color);
+  // Horizontal: rotation undefined or near-identity (planes default to xz-plane).
+  // For thin cubes used as ground, scale.y is small.
+  const sy = plane?.scale?.[1] ?? 1;
+  const horizontalOk =
+    plane?.primitive === 'plane' ||
+    (plane?.primitive === 'cube' && sy < sx && sy < sz);
+
+  return [
+    { criterion_id: 'is_plane', passed: planes.length >= 1, rationale: `found ${planes.length} ground candidates` },
+    { criterion_id: 'size_10x10', passed: sizeOk, rationale: `scale x=${sx.toFixed(2)} z=${sz.toFixed(2)} (target 10)` },
+    { criterion_id: 'color_gray', passed: grayOk, rationale: `color: ${plane?.color ?? 'none'}` },
+    { criterion_id: 'horizontal', passed: horizontalOk, rationale: plane?.primitive === 'plane' ? 'plane primitive (default normal +Y)' : `cube with thin Y axis (scale ${sx.toFixed(1)}x${sy.toFixed(2)}x${sz.toFixed(1)})` },
+  ];
+}
+
+function verifyT07(objs: ParsedObject[]): VerificationResult[] {
+  // Perspective camera at (5,5,5) looking at origin.
+  const cameras = objs.filter((o) => o.type === 'camera' || o.projection !== undefined);
+  const cam = cameras[0];
+  const perspOk = (cam?.projection ?? '').toLowerCase() === 'perspective';
+  const pos = cam?.position ?? [0, 0, 0];
+  const positionOk =
+    within(pos[0], 5, 0.01) && within(pos[1], 5, 0.01) && within(pos[2], 5, 0.01);
+  const tgt = cam?.target;
+  const looksAtOrigin =
+    tgt !== undefined && within(tgt[0], 0, 0.01) && within(tgt[1], 0, 0.01) && within(tgt[2], 0, 0.01);
+
+  return [
+    { criterion_id: 'is_camera', passed: cameras.length >= 1, rationale: `found ${cameras.length} cameras` },
+    { criterion_id: 'perspective', passed: perspOk, rationale: `projection=${cam?.projection ?? 'none'}` },
+    { criterion_id: 'position_correct', passed: positionOk, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+    {
+      criterion_id: 'looks_at_origin',
+      passed: looksAtOrigin,
+      rationale: tgt !== undefined ? `target [${tgt.map((n) => n.toFixed(2)).join(', ')}]` : 'no target property',
+    },
+  ];
+}
+
+function verifyT08(objs: ParsedObject[]): VerificationResult[] {
+  // Torus with major=1, minor=0.25 at (0,1,0). Major/minor radii are not
+  // tracked as distinct fields on ParsedObject, so we only deterministically
+  // verify count and position; major_radius / minor_radius criteria fall
+  // through to the LLM judge.
+  const tori = objs.filter((o) => o.primitive === 'torus');
+  const torus = tori[0];
+  const pos = torus?.position ?? [0, 0, 0];
+  const positionOk =
+    within(pos[0], 0, 0.01) && within(pos[1], 1, 0.01) && within(pos[2], 0, 0.01);
+
+  return [
+    { criterion_id: 'is_torus', passed: tori.length === 1, rationale: `found ${tori.length} tori` },
+    { criterion_id: 'position_correct', passed: positionOk, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+  ];
+}
+
+function verifyT10(objs: ParsedObject[]): VerificationResult[] {
+  // Single white point light at (2, 4, 2).
+  const lights = objs.filter((o) => o.light_type !== undefined || o.type === 'light');
+  const points = lights.filter((o) => (o.light_type ?? '').toLowerCase() === 'point');
+  const light = points[0];
+  const colorWhite =
+    (light?.color ?? '').toLowerCase().includes('white') ||
+    (light?.color ?? '').toLowerCase() === '#ffffff' ||
+    (light?.color ?? '').toLowerCase() === '#fff';
+  const pos = light?.position ?? [0, 0, 0];
+  const positionOk =
+    within(pos[0], 2, 0.01) && within(pos[1], 4, 0.01) && within(pos[2], 2, 0.01);
+
+  return [
+    { criterion_id: 'is_point_light', passed: points.length === 1, rationale: `point lights: ${points.length}` },
+    { criterion_id: 'color_white', passed: colorWhite, rationale: `color: ${light?.color ?? 'none'}` },
+    { criterion_id: 'position_correct', passed: positionOk, rationale: `position [${pos.map((n) => n.toFixed(2)).join(', ')}]` },
+  ];
+}
+
 const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResult[]> = {
+  T01: verifyT01,
+  T02: verifyT02,
+  T03: verifyT03,
+  T04: verifyT04,
+  T05: verifyT05,
   T06: verifyT06,
+  T07: verifyT07,
+  T08: verifyT08,
   T09: verifyT09,
+  T10: verifyT10,
   M02: verifyM02,
   M06: verifyM06,
   M09: verifyM09,
