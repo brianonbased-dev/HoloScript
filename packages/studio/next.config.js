@@ -1,8 +1,32 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
+const { networkInterfaces } = require('os');
+
+function isPrivateIpv4(address) {
+  const [a, b] = address.split('.').map((part) => Number(part));
+  return (
+    a === 10 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
+function localLanDevOrigins() {
+  const hosts = new Set();
+  for (const infos of Object.values(networkInterfaces())) {
+    for (const info of infos || []) {
+      if (info.family !== 'IPv4' || info.internal) continue;
+      if (!isPrivateIpv4(info.address)) continue;
+      hosts.add(info.address);
+    }
+  }
+  if (process.env.STUDIO_LAN_HOST) hosts.add(process.env.STUDIO_LAN_HOST.trim());
+  return [...hosts].filter(Boolean);
+}
 
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: localLanDevOrigins(),
   images: {
     formats: ['image/avif', 'image/webp'],
     // Use remotePatterns (preferred over deprecated `domains`) for external image sources

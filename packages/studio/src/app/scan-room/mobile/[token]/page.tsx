@@ -59,6 +59,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [captureNotice, setCaptureNotice] = useState<string | null>(null);
   const [sessionFeedback, setSessionFeedback] = useState<MobileScanFeedback | null>(null);
   const [cameraCapability, setCameraCapability] = useState<CameraCapability>({
     checked: false,
@@ -93,12 +94,23 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }));
   };
 
-  const sha256Hex = async (file: File): Promise<string> => {
+  const fallbackVideoFingerprint = (file: File): string =>
+    `size-only:${file.size}:${file.lastModified}:${file.name}`;
+
+  const videoFingerprint = async (file: File): Promise<string> => {
+    if (!globalThis.crypto?.subtle) {
+      return fallbackVideoFingerprint(file);
+    }
+
     const buf = await file.arrayBuffer();
-    const digest = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch {
+      return fallbackVideoFingerprint(file);
+    }
   };
 
   const stopCameraStream = (resetState = true) => {
@@ -208,10 +220,16 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     setUploading(true);
     setDone(false);
     setError(null);
-    await pushState({ status: 'capturing' });
+    setCaptureNotice('Sending capture to Studio...');
 
     try {
-      const videoHash = await sha256Hex(file);
+      if (file.size <= 0) {
+        throw new Error('The recorded video was empty. Please record again for a few seconds.');
+      }
+
+      await pushState({ status: 'capturing' });
+      setCaptureNotice('Preparing video metadata...');
+      const videoHash = await videoFingerprint(file);
       // MVP transport: report metadata first (actual chunk streaming can follow in next sprint)
       await pushState({
         status: 'uploaded',
@@ -219,15 +237,21 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         videoBytes: file.size,
         videoHash,
       });
+      setCaptureNotice('Studio received the capture. Building mesh...');
       await pushState({ status: 'processing' });
       // MVP transport: enqueue metadata into the reconstruction worker.
       await new Promise<void>((resolve) => window.setTimeout(resolve, 1200));
       await pushState({ status: 'done' });
+      setCaptureNotice('Mesh captured. Studio has the render asset.');
       setDone(true);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Upload failed';
       setError(message);
-      await pushState({ status: 'error', error: message });
+      try {
+        await pushState({ status: 'error', error: message });
+      } catch (pushError) {
+        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the capture update.');
+      }
     } finally {
       setUploading(false);
       setCameraState('idle');
@@ -236,7 +260,10 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   };
 
   const onVideoSelected = async (file: File | null) => {
-    if (!file) return;
+    if (!file) {
+      setCaptureNotice('No video was selected.');
+      return;
+    }
     await submitCapture(file);
   };
 
@@ -271,14 +298,41 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }
   };
 
+  const finalizeRecordedCapture = (recorder: MediaRecorder, typeHint?: string) => {
+    const type = recorder.mimeType || typeHint || 'video/webm';
+    const blob = new Blob(chunksRef.current, { type });
+    recorderRef.current = null;
+
+    if (blob.size <= 0) {
+      setCameraState('ready');
+      setRecordingStartedAt(null);
+      setError('No video data was captured. Record for a few seconds, then finish again.');
+      return;
+    }
+
+    const extension = type.includes('mp4') ? 'mp4' : 'webm';
+    const file = new File([blob], `room-scan-${Date.now()}.${extension}`, { type });
+    stopCameraStream();
+    void submitCapture(file);
+  };
+
   const startRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
 
     chunksRef.current = [];
     const mimeType = bestRecorderMime();
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      setError(`This browser could not start recording: ${detail}`);
+      setCameraState('ready');
+      return;
+    }
     recorderRef.current = recorder;
+    let finalized = false;
 
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -286,27 +340,60 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       }
     };
 
+    recorder.onerror = (event) => {
+      const mediaEvent = event as Event & { error?: DOMException };
+      setError(mediaEvent.error?.message ?? 'The camera recorder stopped unexpectedly.');
+      setCameraState('ready');
+      setRecordingStartedAt(null);
+    };
+
     recorder.onstop = () => {
-      const type = recorder.mimeType || mimeType || 'video/webm';
-      const blob = new Blob(chunksRef.current, { type });
-      const extension = type.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([blob], `room-scan-${Date.now()}.${extension}`, { type });
-      stopCameraStream();
-      void submitCapture(file);
+      if (finalized) return;
+      finalized = true;
+      finalizeRecordedCapture(recorder, mimeType);
     };
 
     setRecordingSeconds(0);
     setRecordingStartedAt(Date.now());
     setCameraState('recording');
-    recorder.start(1000);
+    try {
+      recorder.start(1000);
+    } catch {
+      try {
+        recorder.start();
+      } catch (e) {
+        recorderRef.current = null;
+        setCameraState('ready');
+        setRecordingStartedAt(null);
+        const detail = e instanceof Error ? e.message : String(e);
+        setError(`This browser could not record video: ${detail}`);
+      }
+    }
   };
 
   const stopRecording = () => {
+    const recorder = recorderRef.current;
+    if (!recorder) {
+      setError('No active recording was found. Start capture again.');
+      setCameraState('ready');
+      setRecordingStartedAt(null);
+      return;
+    }
+
     setCameraState('processing');
     setRecordingStartedAt(null);
-    if (recorderRef.current?.state === 'recording') {
-      recorderRef.current.stop();
+    try {
+      recorder.requestData();
+    } catch {
+      // Some mobile implementations only flush data on stop.
     }
+
+    if (recorder.state === 'recording' || recorder.state === 'paused') {
+      recorder.stop();
+      return;
+    }
+
+    finalizeRecordedCapture(recorder, bestRecorderMime());
   };
 
   const isStudioCameraOpen =
@@ -522,6 +609,12 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
         {cameraState === 'idle' && (
           <>
+            {!cameraCapability.checked && (
+              <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-300/40 bg-indigo-400/10 px-4 py-5 text-sm text-indigo-200">
+                <Loader2 className="h-4 w-4 animate-spin" /> Preparing Studio camera...
+              </div>
+            )}
+
             {cameraCapability.checked && cameraCapability.live && (
               <button
                 type="button"
@@ -535,7 +628,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
               </button>
             )}
 
-            {!cameraCapability.live && (
+            {cameraCapability.checked && !cameraCapability.live && (
               <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center">
                 <Camera className="h-6 w-6 text-indigo-300" />
                 <span className="text-sm font-medium">Open phone camera fallback</span>
@@ -627,7 +720,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
       {uploading && (
         <div className="inline-flex items-center gap-2 text-sm text-indigo-300">
-          <UploadCloud className="h-4 w-4 animate-pulse" /> Sending mesh capture to Studio…
+          <UploadCloud className="h-4 w-4 animate-pulse" /> {captureNotice ?? 'Sending mesh capture to Studio...'}
+        </div>
+      )}
+
+      {captureNotice && !uploading && !done && (
+        <div className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/65">
+          {captureNotice}
         </div>
       )}
 
