@@ -68,7 +68,7 @@ import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
-import { initStores } from './holomesh/state';
+import { initStores, teamStore } from './holomesh/state';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
@@ -696,6 +696,14 @@ const httpServer = http.createServer(async (req, res) => {
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
+        // W.131 follow-up: surface team-store backend so external probes can
+        // diagnose Pattern Gamma (in-memory + ephemeral container = team state
+        // wiped on every redeploy) without code-spelunking. teamStore.usesPostgres
+        // reflects whether DATABASE_URL was set at boot AND pg loaded successfully.
+        storage: {
+          teamStore: teamStore.usesPostgres ? 'postgres' : 'memory',
+          databaseUrl: Boolean(process.env.DATABASE_URL),
+        },
         sse: {
           railway: IS_RAILWAY,
           mcpClassicSse: ALLOW_SSE_TRANSPORT,
