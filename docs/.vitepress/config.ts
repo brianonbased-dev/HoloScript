@@ -291,6 +291,47 @@ export default defineConfig({
         },
       ],
 
+      '/holomap/': [
+        {
+          text: 'HoloMap',
+          collapsed: false,
+          items: [
+            { text: 'Overview', link: '/holomap/' },
+            { text: 'Charter', link: '/holomap/CHARTER' },
+            { text: 'Sprint-2 Ground Truth', link: '/holomap/I008_SPRINT2_GROUND_TRUTH' },
+            { text: 'Reconstruction Runtime', link: '/holomap/reconstruction-runtime' },
+            { text: 'Studio Reconstruction Panel', link: '/holomap/STUDIO_RECONSTRUCTION_PANEL' },
+            { text: 'MCP Surface Validation', link: '/holomap/MCP_SURFACE_VALIDATION' },
+            { text: 'Ingest Path Entrypoints', link: '/holomap/INGEST_PATH_ENTRYPOINTS' },
+            { text: 'Scope Guardrail', link: '/holomap/SCOPE_GUARDRAIL' },
+            { text: 'Spatial Sovereignty', link: '/holomap/SPATIAL_SOVEREIGNTY' },
+          ],
+        },
+        {
+          text: 'Operator Guides',
+          collapsed: false,
+          items: [
+            { text: 'Operator Glossary', link: '/holomap/OPERATOR_GLOSSARY' },
+            { text: 'Weight Hosting', link: '/holomap/WEIGHT_HOSTING' },
+            { text: 'Weights CDN Fallback', link: '/holomap/weights-cdn-fallback' },
+            { text: 'Modality Weights', link: '/holomap/MODALITY_WEIGHTS' },
+            { text: 'Vertical Weight Variants', link: '/holomap/VERTICAL_WEIGHT_VARIANTS' },
+            { text: 'Support Matrix', link: '/holomap/SUPPORT_MATRIX' },
+            { text: 'Rollback Defaults', link: '/holomap/ROLLBACK_DEFAULTS' },
+            { text: 'DepthAnything V2 Import', link: '/holomap/DEPTHANYTHING_V2_IMPORT' },
+          ],
+        },
+        {
+          text: 'Runbooks & Demos',
+          collapsed: false,
+          items: [
+            { text: 'HoloLand U001 90s Demo', link: '/holomap/HOLAND_U001_90S_DEMO_RUNBOOK' },
+            { text: 'Paper Harnesses Runbook', link: '/holomap/RUNBOOK_PAPER_HARNESSES' },
+            { text: 'Paper-2 / Paper-4 Dual-Path', link: '/holomap/PAPER2_PAPER4_DUAL_PATH_TABLE' },
+          ],
+        },
+      ],
+
       '/academy/': [
         {
           text: 'Level 1: Fundamentals',
