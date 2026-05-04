@@ -7,25 +7,78 @@ interface MobileScanProps {
   params: Promise<{ token: string }>;
 }
 
+type ScanStatus = 'pending-phone' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+
+interface MobileScanFeedback {
+  status?: ScanStatus;
+  frameCount?: number;
+  videoBytes?: number;
+  lastError?: string;
+  replayFingerprint?: string;
+  renderAsset?: { pointCount?: number };
+}
+
+const scanSteps: Array<{ status: ScanStatus; label: string }> = [
+  { status: 'pending-phone', label: 'Ready' },
+  { status: 'capturing', label: 'Capture' },
+  { status: 'uploaded', label: 'Received' },
+  { status: 'processing', label: 'Mesh' },
+  { status: 'done', label: 'Done' },
+];
+
+function isScanStatus(value: unknown): value is ScanStatus {
+  return (
+    value === 'pending-phone' ||
+    value === 'capturing' ||
+    value === 'uploaded' ||
+    value === 'processing' ||
+    value === 'done' ||
+    value === 'error'
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
 export default function MobileScanPage({ params }: MobileScanProps) {
   const { token } = use(params);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const completionFeedbackSentRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [sessionFeedback, setSessionFeedback] = useState<MobileScanFeedback | null>(null);
   const [cameraState, setCameraState] = useState<'idle' | 'starting' | 'ready' | 'recording' | 'processing'>('idle');
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const pushState = async (body: Record<string, unknown>) => {
-    await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
+    const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      throw new Error(`Session update failed (${res.status})`);
+    }
+    const data = (await res.json().catch(() => null)) as { session?: MobileScanFeedback } | null;
+    if (data?.session) {
+      setSessionFeedback(data.session);
+      return;
+    }
+    setSessionFeedback((prev) => ({
+      ...prev,
+      ...(isScanStatus(body.status) ? { status: body.status } : {}),
+      ...(typeof body.frameCount === 'number' ? { frameCount: body.frameCount } : {}),
+      ...(typeof body.videoBytes === 'number' ? { videoBytes: body.videoBytes } : {}),
+      ...(typeof body.error === 'string' ? { lastError: body.error } : {}),
+    }));
   };
 
   const sha256Hex = async (file: File): Promise<string> => {
@@ -55,6 +108,46 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }, 250);
     return () => window.clearInterval(interval);
   }, [recordingStartedAt]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const refreshFeedback = async () => {
+      try {
+        const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`);
+        if (!isCurrent) return;
+        if (!res.ok) {
+          setFeedbackError(`Session feedback unavailable (${res.status})`);
+          return;
+        }
+
+        const data = (await res.json()) as MobileScanFeedback;
+        setFeedbackError(null);
+        setSessionFeedback(data);
+
+        if (data.status === 'done') {
+          setDone(true);
+          if (!completionFeedbackSentRef.current) {
+            completionFeedbackSentRef.current = true;
+            navigator.vibrate?.([60, 40, 60]);
+          }
+        }
+        if (data.status === 'error') {
+          setError(data.lastError ?? 'Capture failed');
+        }
+      } catch (e) {
+        if (!isCurrent) return;
+        setFeedbackError(e instanceof Error ? e.message : 'Session feedback unavailable');
+      }
+    };
+
+    void refreshFeedback();
+    const interval = window.setInterval(() => void refreshFeedback(), 1200);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [token]);
 
   const bestRecorderMime = (): string | undefined => {
     if (typeof MediaRecorder === 'undefined') return undefined;
@@ -175,12 +268,137 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }
   };
 
+  const effectiveStatus: ScanStatus =
+    sessionFeedback?.status ??
+    (done
+      ? 'done'
+      : uploading || cameraState === 'processing'
+        ? 'processing'
+        : cameraState === 'ready' || cameraState === 'recording'
+          ? 'capturing'
+          : 'pending-phone');
+  const stepIndex = effectiveStatus === 'error'
+    ? scanSteps.length - 1
+    : Math.max(0, scanSteps.findIndex((step) => step.status === effectiveStatus));
+  const progressPercent = Math.round(((stepIndex + 1) / scanSteps.length) * 100);
+  const statusCopy = (() => {
+    if (effectiveStatus === 'error') {
+      return {
+        title: 'Capture needs attention',
+        detail: sessionFeedback?.lastError ?? error ?? 'Studio reported a capture error.',
+      };
+    }
+    if (effectiveStatus === 'done') {
+      return {
+        title: 'Mesh captured',
+        detail: 'Desktop Studio has the scan asset and can render it in the viewer.',
+      };
+    }
+    if (effectiveStatus === 'processing') {
+      return {
+        title: 'Building mesh',
+        detail: 'Keep this page open while Studio prepares the renderable scan.',
+      };
+    }
+    if (effectiveStatus === 'uploaded') {
+      return {
+        title: 'Capture received',
+        detail: 'Video metadata reached Studio. Reconstruction is next.',
+      };
+    }
+    if (cameraState === 'recording') {
+      return {
+        title: 'Recording room',
+        detail: `Move slowly around the space, then finish capture. ${recordingSeconds}s recorded.`,
+      };
+    }
+    if (effectiveStatus === 'capturing') {
+      return {
+        title: 'Camera linked',
+        detail: 'Studio sees the phone session. Capture the room when ready.',
+      };
+    }
+    return {
+      title: 'Connected to Studio',
+      detail: 'Open the camera and start a mesh capture from this phone.',
+    };
+  })();
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-5 bg-[#0a0a12] px-4 py-6 text-white">
       <div className="text-center">
         <h1 className="text-xl font-semibold">Phone Capture</h1>
         <p className="mt-1 text-xs text-white/50">Token: {token.slice(0, 8)}…</p>
       </div>
+
+      <section
+        aria-live="polite"
+        className="w-full max-w-sm rounded-2xl border border-white/15 bg-white/[0.04] p-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">{statusCopy.title}</p>
+            <p className="mt-1 text-xs leading-5 text-white/55">{statusCopy.detail}</p>
+          </div>
+          <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/70">
+            {progressPercent}%
+          </span>
+        </div>
+
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progressPercent}
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"
+        >
+          <div
+            className={`h-full rounded-full ${effectiveStatus === 'error' ? 'bg-red-400' : 'bg-indigo-300'}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px] text-white/45">
+          {scanSteps.map((step, index) => (
+            <div
+              key={step.status}
+              className={index <= stepIndex && effectiveStatus !== 'error' ? 'text-indigo-200' : undefined}
+            >
+              <div
+                className={`mx-auto mb-1 h-1.5 w-1.5 rounded-full ${
+                  index <= stepIndex && effectiveStatus !== 'error' ? 'bg-indigo-300' : 'bg-white/20'
+                }`}
+              />
+              {step.label}
+            </div>
+          ))}
+        </div>
+
+        {(sessionFeedback?.frameCount !== undefined ||
+          sessionFeedback?.videoBytes !== undefined ||
+          sessionFeedback?.renderAsset?.pointCount !== undefined) && (
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div className="rounded-lg bg-black/20 px-2 py-2">
+              <p className="text-white/40">Frames</p>
+              <p className="mt-1 font-mono text-white/80">{sessionFeedback.frameCount ?? '-'}</p>
+            </div>
+            <div className="rounded-lg bg-black/20 px-2 py-2">
+              <p className="text-white/40">Video</p>
+              <p className="mt-1 font-mono text-white/80">
+                {sessionFeedback.videoBytes !== undefined ? formatBytes(sessionFeedback.videoBytes) : '-'}
+              </p>
+            </div>
+            <div className="rounded-lg bg-black/20 px-2 py-2">
+              <p className="text-white/40">Points</p>
+              <p className="mt-1 font-mono text-white/80">
+                {sessionFeedback.renderAsset?.pointCount?.toLocaleString() ?? '-'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {feedbackError && <p className="mt-3 text-xs text-yellow-300">{feedbackError}</p>}
+      </section>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
         {(cameraState === 'ready' || cameraState === 'recording' || cameraState === 'processing') && (
