@@ -15,7 +15,6 @@ import {
   flushFederatedAnalytics,
   isFederatedAnalyticsEnabled,
 } from '../lib/federatedAnalytics';
-import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
 const DevToolsInit = dynamic(
   () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),
@@ -147,7 +146,8 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  useGlobalHotkeys({ enableHistoryShortcuts: pathname !== '/create' });
+  const isScanRoom = pathname?.startsWith('/scan-room') ?? false;
+  useGlobalHotkeys({ enableHistoryShortcuts: pathname !== '/create' && !isScanRoom });
 
   // Onboarding handled by /start (Brittney-first) — no popup wizard
 
@@ -195,12 +195,12 @@ export function Providers({ children }: { children: ReactNode }) {
                   {children}
                 </PluginHostProvider>
               </ErrorBoundary>
-              <DevToolsInit />
-              <WebVitals />
+              {!isScanRoom && <DevToolsInit />}
+              {!isScanRoom && <WebVitals />}
               {/* Paper 24 — installs zundo-CAEL bridge always; activates
                   full UI session recording when ?study=1 in URL. */}
-              <StudioCAELMount />
-              {process.env.NODE_ENV === 'development' && !pathname?.startsWith('/scan-room') && <AgentationWired />}
+              {!isScanRoom && <StudioCAELMount />}
+              {process.env.NODE_ENV === 'development' && !isScanRoom && <AgentationWired />}
             </ToastContext.Provider>
           </ThemeContext.Provider>
         </QueryClientProvider>

@@ -167,8 +167,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
   useEffect(() => {
     let isCurrent = true;
+    let isRefreshing = false;
 
     const refreshFeedback = async () => {
+      if (isRefreshing) return;
+      isRefreshing = true;
       try {
         const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`);
         if (!isCurrent) return;
@@ -194,6 +197,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       } catch (e) {
         if (!isCurrent) return;
         setFeedbackError(e instanceof Error ? e.message : 'Session feedback unavailable');
+      } finally {
+        isRefreshing = false;
       }
     };
 
@@ -288,8 +293,10 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       });
       streamRef.current = stream;
       setCameraStream(stream);
-      await pushState({ status: 'capturing' });
       setCameraState('ready');
+      void pushState({ status: 'capturing' }).catch((pushError) => {
+        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the camera update.');
+      });
     } catch (e) {
       stopCameraStream();
       setCameraState('idle');

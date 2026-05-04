@@ -82,7 +82,10 @@ export function ReconstructionPanel() {
     if (!session?.token) return;
 
     let isCurrent = true;
+    let isRefreshing = false;
     const refreshSessionState = async () => {
+      if (isRefreshing) return;
+      isRefreshing = true;
       try {
         const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(session.token)}`);
         if (!isCurrent) return;
@@ -104,6 +107,8 @@ export function ReconstructionPanel() {
       } catch (e) {
         if (!isCurrent) return;
         setSessionError(e instanceof Error ? e.message : 'Session polling failed.');
+      } finally {
+        isRefreshing = false;
       }
     };
 

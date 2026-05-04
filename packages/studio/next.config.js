@@ -13,15 +13,30 @@ function isPrivateIpv4(address) {
 
 function localLanDevOrigins() {
   const hosts = new Set();
+  addDevOrigin(hosts, 'localhost');
+  addDevOrigin(hosts, '127.0.0.1');
+  addDevOrigin(hosts, '*.trycloudflare.com');
   for (const infos of Object.values(networkInterfaces())) {
     for (const info of infos || []) {
       if (info.family !== 'IPv4' || info.internal) continue;
       if (!isPrivateIpv4(info.address)) continue;
-      hosts.add(info.address);
+      addDevOrigin(hosts, info.address);
     }
   }
-  if (process.env.STUDIO_LAN_HOST) hosts.add(process.env.STUDIO_LAN_HOST.trim());
+  addDevOrigin(hosts, process.env.STUDIO_LAN_HOST);
+  addDevOrigin(hosts, process.env.STUDIO_MOBILE_ORIGIN);
+  addDevOrigin(hosts, process.env.NEXT_PUBLIC_STUDIO_MOBILE_ORIGIN);
   return [...hosts].filter(Boolean);
+}
+
+function addDevOrigin(hosts, value) {
+  const raw = value?.trim();
+  if (!raw) return;
+  try {
+    hosts.add(new URL(raw).hostname);
+  } catch {
+    hosts.add(raw.replace(/^https?:\/\//, '').split('/')[0].split(':')[0]);
+  }
 }
 
 const nextConfig = {
