@@ -16,6 +16,7 @@ import {
   getTeamMember,
   hasTeamPermission,
   requireTeamAccess,
+  requireTeamAccessFresh,
   pruneStalePresence
 } from '../utils';
 import { requireAuth } from '../auth-utils';
@@ -282,10 +283,13 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/board — Add tasks
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'board:write');
+    // Pattern Gamma residual fix: requireTeamAccessFresh reloads from postgres
+    // BEFORE the membership check so cross-replica writes (peer just /joined
+    // on another replica) are visible. Sync requireTeamAccess used to fire 403
+    // here even though the caller had successfully joined seconds earlier.
+    const access = await requireTeamAccessFresh(req, res, url, 'board:write');
     if (!access) return true;
     const { caller, teamId } = access;
-    await reloadTeam(teamId);
     const team = teamStore.get(teamId)!;
 
     const rawBody = await parseJsonBody(req);
@@ -359,7 +363,8 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/board/scout — Scout tasks
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/scout$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'board:write');
+    // Pattern Gamma residual fix — see board POST handler above.
+    const access = await requireTeamAccessFresh(req, res, url, 'board:write');
     if (!access) return true;
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -449,10 +454,11 @@ export async function handleBoardRoutes(
 
   // PATCH /api/holomesh/team/:id/board/:taskId — claim/done/block/reopen/delegate/delete
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'PATCH') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma residual fix — fresh variant reloads from postgres before
+    // membership check so claim/done from a peer replica are visible.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { caller, teamId } = access;
-    await reloadTeam(teamId);
     const team = teamStore.get(teamId)!;
     if (!team.taskBoard) team.taskBoard = [];
     if (!team.doneLog) team.doneLog = [];
@@ -767,7 +773,8 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/message
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/message$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'messages:write');
+    // Pattern Gamma residual fix — see board POST handler above.
+    const access = await requireTeamAccessFresh(req, res, url, 'messages:write');
     if (!access) return true;
     const { caller, teamId } = access;
 
@@ -838,7 +845,8 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/feed — append feed item (poster identity from auth only)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/feed$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'messages:write');
+    // Pattern Gamma residual fix — see board POST handler above.
+    const access = await requireTeamAccessFresh(req, res, url, 'messages:write');
     if (!access) return true;
     const { teamId, caller } = access;
     const rawBody = await parseJsonBody(req);

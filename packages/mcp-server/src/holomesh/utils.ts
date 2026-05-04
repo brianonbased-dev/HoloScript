@@ -1,7 +1,7 @@
 import type http from 'http';
 import type { Team, TeamMember, TeamRole, RegisteredAgent } from './types';
 import { TEAM_ROLE_PERMISSIONS, PRESENCE_TTL_MS } from './types';
-import { teamStore, teamPresenceStore, teamMessageStore } from './state';
+import { teamStore, teamPresenceStore, teamMessageStore, reloadTeam } from './state';
 import { resolveRequestingAgent } from './auth-utils';
 
 // ── HTTP Response Helpers ─────────────────────────────────────────────────────
@@ -106,6 +106,37 @@ export function requireTeamAccess(
   }
 
   return { teamId, caller: caller.agent };
+}
+
+/**
+ * Async variant of `requireTeamAccess` that reloads the team from the shared
+ * backend (PostgreSQL) BEFORE the membership check. Use on mutation handlers
+ * (POST /board, POST /knowledge, etc.) where a recent /join from a peer
+ * replica may not yet have propagated to this replica's in-memory teamStore.
+ *
+ * Pattern Gamma residual: `/join` does `await reloadTeam` then `members.push`
+ * + `persistTeamStore` (postgres-backed). But `requireTeamAccess` is sync and
+ * reads `teamStore.get(teamId)` directly, so a write that hit replica A is
+ * invisible to replica B until B's in-memory cache reloads. Symptom: caller
+ * just /joined, /me on a different replica shows teams.len:0, and POST /board
+ * returns 403 "Not a member of this team". Reloading inside the guard makes
+ * the membership read see postgres-truth on every call, eliminating the
+ * cross-replica visibility gap on the membership-check path.
+ *
+ * Cost: one postgres roundtrip per mutating request. Acceptable on writes;
+ * read paths should keep using the sync `requireTeamAccess` for fast-path.
+ */
+export async function requireTeamAccessFresh(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: string,
+  permission?: string
+): Promise<{ teamId: string; caller: RegisteredAgent } | null> {
+  const teamId = extractParam(url, '/api/holomesh/team/');
+  if (teamId) {
+    await reloadTeam(teamId);
+  }
+  return requireTeamAccess(req, res, url, permission);
 }
 
 /**

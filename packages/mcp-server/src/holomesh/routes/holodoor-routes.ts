@@ -3,7 +3,7 @@
  */
 
 import type http from 'http';
-import { json, parseJsonBody, requireTeamAccess } from '../utils';
+import { json, parseJsonBody, requireTeamAccess, requireTeamAccessFresh } from '../utils';
 import { holoDoorPolicyByTeam, holoDoorEventsByTeam, persistHoloDoorStore } from '../state';
 
 const MAX_EVENTS_PER_TEAM = 5000;
@@ -43,7 +43,9 @@ export async function handleHoloDoorRoutes(
 
   // PATCH /api/holomesh/team/:id/holodoor/policy
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/holodoor\/policy$/) && method === 'PATCH') {
-    const access = requireTeamAccess(req, res, url, 'config:write');
+    // Pattern Gamma residual fix — fresh variant reloads from postgres before
+    // membership check so cross-replica writes are visible.
+    const access = await requireTeamAccessFresh(req, res, url, 'config:write');
     if (!access) return true;
     const { teamId } = access;
     const body = await parseJsonBody(req);
