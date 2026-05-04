@@ -159,6 +159,10 @@ export const holoTwinHandler: TraitHandler<HoloTwinConfig> = {
     if (state?.connectionHandle) {
       disconnectFromSensor(node, state, config, context);
     }
+    const simulationInterval = (state as unknown as Record<string, unknown>)?.simulationInterval;
+    if (simulationInterval !== undefined) {
+      clearInterval(simulationInterval as ReturnType<typeof setInterval>);
+    }
     delete node.__holoTwinState;
   },
 
