@@ -7,7 +7,7 @@
  * @package @holoscript/studio
  */
 
-import { watch, FSWatcher, existsSync } from 'fs';
+import { watch, FSWatcher, existsSync, statSync } from 'fs';
 import { resolve, dirname } from 'path';
 
 export type WatchEventType = 'modified' | 'created' | 'deleted';
@@ -42,7 +42,7 @@ export class HoloFileWatcher {
 
   constructor(targetPath: string, options: HoloFileWatcherOptions = {}) {
     this.targetPath = resolve(targetPath);
-    this.isDirectory = existsSync(this.targetPath) && require('fs').statSync(this.targetPath).isDirectory();
+    this.isDirectory = existsSync(this.targetPath) && statSync(this.targetPath).isDirectory();
     this.options = {
       debounceMs: 300,
       ...options,
