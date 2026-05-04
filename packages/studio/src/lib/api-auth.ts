@@ -24,10 +24,13 @@ export async function getSession() {
   if (session) return session;
 
   // Fallback for App Router: decode JWT directly from cookies
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return null;
   const cookieStore = await cookies();
+  type GetTokenReq = Parameters<typeof getToken>[0]['req'];
   const token = await getToken({
-    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
-    secret: process.env.NEXTAUTH_SECRET,
+    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as GetTokenReq,
+    secret,
   });
   if (!token) return null;
 
