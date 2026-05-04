@@ -15,7 +15,7 @@ import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 
 interface ScanSessionState {
   token: string;
-  status: 'pending-phone' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+  status: 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   frameCount?: number;
   videoBytes?: number;
@@ -28,7 +28,8 @@ interface ScanSessionState {
 
 const statusLabel: Record<ScanSessionState['status'], string> = {
   'pending-phone': 'Waiting for phone scan',
-  capturing: 'Phone connected · capturing',
+  'phone-connected': 'Phone connected · waiting for camera',
+  capturing: 'Camera linked · sensing room',
   uploaded: 'Capture uploaded',
   processing: 'Processing reconstruction',
   done: 'Reconstruction complete',
@@ -196,6 +197,22 @@ export function ReconstructionPanel() {
               <span className="font-medium">Session status</span>
             </div>
             <p className="text-studio-muted">{state ? statusLabel[state.status] : 'Initializing session…'}</p>
+            {state && state.status !== 'pending-phone' && state.status !== 'error' && (
+              <div
+                data-testid="scan-phone-connected"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-300"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Phone is connected
+              </div>
+            )}
+            {state?.status === 'capturing' && (
+              <div
+                data-testid="scan-camera-linked"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-indigo-500/10 px-2 py-1 text-indigo-300"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Camera stream linked
+              </div>
+            )}
             {sessionError && <p className="mt-1 text-red-400">{sessionError}</p>}
             {state?.frameCount !== undefined && <p className="mt-1 text-studio-muted">Frames: {state.frameCount}</p>}
             {state?.videoBytes !== undefined && <p className="text-studio-muted">Upload: {(state.videoBytes / 1024 / 1024).toFixed(2)} MB</p>}

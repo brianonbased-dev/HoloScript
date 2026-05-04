@@ -7,7 +7,7 @@ interface MobileScanProps {
   params: Promise<{ token: string }>;
 }
 
-type ScanStatus = 'pending-phone' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+type ScanStatus = 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
 
 interface MobileScanFeedback {
   status?: ScanStatus;
@@ -23,8 +23,23 @@ type CameraCapability =
   | { checked: true; live: true; reason: null }
   | { checked: true; live: false; reason: string };
 
+interface RoomPlaneSensing {
+  floorConfidence: number;
+  wallConfidence: number;
+  motion: number;
+  samples: number;
+}
+
+const emptyPlaneSensing: RoomPlaneSensing = {
+  floorConfidence: 0,
+  wallConfidence: 0,
+  motion: 0,
+  samples: 0,
+};
+
 const scanSteps: Array<{ status: ScanStatus; label: string }> = [
   { status: 'pending-phone', label: 'Ready' },
+  { status: 'phone-connected', label: 'Phone' },
   { status: 'capturing', label: 'Capture' },
   { status: 'uploaded', label: 'Received' },
   { status: 'processing', label: 'Mesh' },
@@ -34,6 +49,7 @@ const scanSteps: Array<{ status: ScanStatus; label: string }> = [
 function isScanStatus(value: unknown): value is ScanStatus {
   return (
     value === 'pending-phone' ||
+    value === 'phone-connected' ||
     value === 'capturing' ||
     value === 'uploaded' ||
     value === 'processing' ||
@@ -47,6 +63,79 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function analyzeRoomPlaneFrame(
+  frame: ImageData,
+  previousLuma: Uint8Array | null,
+): RoomPlaneSensing & { luma: Uint8Array } {
+  const { data, width, height } = frame;
+  const luma = new Uint8Array(width * height);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    luma[p] = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+  }
+
+  let floorEnergy = 0;
+  let floorCount = 0;
+  let wallEnergy = 0;
+  let wallCount = 0;
+  let wallEdges = 0;
+  let motionEnergy = 0;
+  let motionCount = 0;
+  const floorStart = Math.floor(height * 0.58);
+  const wallStart = Math.floor(height * 0.12);
+  const wallEnd = Math.floor(height * 0.78);
+
+  for (let y = 1; y < height; y += 1) {
+    for (let x = 1; x < width; x += 1) {
+      const idx = y * width + x;
+      const dx = Math.abs(luma[idx] - luma[idx - 1]);
+      const dy = Math.abs(luma[idx] - luma[idx - width]);
+
+      if (y >= floorStart) {
+        floorEnergy += dx + dy;
+        floorCount += 1;
+      }
+
+      if (y >= wallStart && y <= wallEnd) {
+        wallEnergy += dx;
+        wallEdges += dx > 18 ? 1 : 0;
+        wallCount += 1;
+      }
+
+      if (previousLuma && previousLuma.length === luma.length) {
+        motionEnergy += Math.abs(luma[idx] - previousLuma[idx]);
+        motionCount += 1;
+      }
+    }
+  }
+
+  const floorTexture = floorCount > 0 ? floorEnergy / floorCount / 255 : 0;
+  const wallEdgeEnergy = wallCount > 0 ? wallEnergy / wallCount / 255 : 0;
+  const wallEdgeDensity = wallCount > 0 ? wallEdges / wallCount : 0;
+  const motion = motionCount > 0 ? motionEnergy / motionCount / 255 : 0;
+
+  return {
+    luma,
+    floorConfidence: clamp01(floorTexture * 8.5 + motion * 1.7),
+    wallConfidence: clamp01(wallEdgeEnergy * 9 + wallEdgeDensity * 2.4 + motion),
+    motion: clamp01(motion * 6),
+    samples: 1,
+  };
+}
+
+function smoothPlaneSensing(previous: RoomPlaneSensing, next: RoomPlaneSensing): RoomPlaneSensing {
+  if (previous.samples === 0) return next;
+  return {
+    floorConfidence: previous.floorConfidence * 0.62 + next.floorConfidence * 0.38,
+    wallConfidence: previous.wallConfidence * 0.62 + next.wallConfidence * 0.38,
+    motion: previous.motion * 0.55 + next.motion * 0.45,
+    samples: previous.samples + 1,
+  };
+}
+
 export default function MobileScanPage({ params }: MobileScanProps) {
   const { token } = use(params);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -55,6 +144,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const chunksRef = useRef<Blob[]>([]);
   const cameraCaptureInputRef = useRef<HTMLInputElement | null>(null);
   const completionFeedbackSentRef = useRef(false);
+  const phoneConnectedSentRef = useRef(false);
+  const sensingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previousLumaRef = useRef<Uint8Array | null>(null);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +162,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const [cameraState, setCameraState] = useState<'idle' | 'starting' | 'ready' | 'recording' | 'processing'>('idle');
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [planeSensing, setPlaneSensing] = useState<RoomPlaneSensing>(emptyPlaneSensing);
 
   const pushState = async (body: Record<string, unknown>) => {
     const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
@@ -152,10 +245,71 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   }, []);
 
   useEffect(() => {
+    if (!cameraCapability.checked || phoneConnectedSentRef.current) return;
+    phoneConnectedSentRef.current = true;
+
+    const markPhoneConnected = async () => {
+      const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'phone-connected' }),
+      });
+      if (!res.ok) {
+        throw new Error(`Session update failed (${res.status})`);
+      }
+      const data = (await res.json().catch(() => null)) as { session?: MobileScanFeedback } | null;
+      if (data?.session) setSessionFeedback(data.session);
+    };
+
+    void markPhoneConnected().catch((pushError) => {
+      setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the phone connection.');
+    });
+  }, [cameraCapability.checked, token]);
+
+  useEffect(() => {
     if (!cameraStream || !videoRef.current) return;
     videoRef.current.srcObject = cameraStream;
     void videoRef.current.play().catch(() => undefined);
   }, [cameraStream, cameraState]);
+
+  useEffect(() => {
+    const isSampling = cameraStream && (cameraState === 'ready' || cameraState === 'recording');
+    if (!isSampling) {
+      previousLumaRef.current = null;
+      if (cameraState === 'idle') setPlaneSensing(emptyPlaneSensing);
+      return;
+    }
+
+    let isCurrent = true;
+    const canvas = sensingCanvasRef.current ?? document.createElement('canvas');
+    sensingCanvasRef.current = canvas;
+    canvas.width = 96;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const sampleFrame = () => {
+      const video = videoRef.current;
+      if (!isCurrent || !ctx || !video || video.readyState < 2 || video.videoWidth === 0) return;
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const analysis = analyzeRoomPlaneFrame(
+          ctx.getImageData(0, 0, canvas.width, canvas.height),
+          previousLumaRef.current,
+        );
+        previousLumaRef.current = analysis.luma;
+        setPlaneSensing((prev) => smoothPlaneSensing(prev, analysis));
+      } catch {
+        // Camera frames can briefly be unavailable while mobile browsers rotate or resume.
+      }
+    };
+
+    sampleFrame();
+    const interval = window.setInterval(sampleFrame, 450);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [cameraState, cameraStream]);
 
   useEffect(() => {
     if (recordingStartedAt === null) return;
@@ -408,11 +562,19 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     cameraState === 'ready' ||
     cameraState === 'recording' ||
     cameraState === 'processing';
+  const floorPercent = Math.round(planeSensing.floorConfidence * 100);
+  const wallPercent = Math.round(planeSensing.wallConfidence * 100);
+  const motionPercent = Math.round(planeSensing.motion * 100);
+  const floorLocked = planeSensing.floorConfidence >= 0.42;
+  const wallsLocked = planeSensing.wallConfidence >= 0.38;
+  const planeLockPercent = Math.round(
+    (planeSensing.floorConfidence * 0.54 + planeSensing.wallConfidence * 0.46) * 100,
+  );
   const trackingPercent =
     cameraState === 'recording'
-      ? Math.min(100, 24 + recordingSeconds * 8)
+      ? Math.min(100, Math.max(planeLockPercent, 24 + recordingSeconds * 8))
       : cameraState === 'ready'
-        ? 18
+        ? planeLockPercent
         : cameraState === 'processing'
           ? 100
           : 0;
@@ -422,14 +584,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   );
 
   const effectiveStatus: ScanStatus =
-    sessionFeedback?.status ??
-    (done
+    done || sessionFeedback?.status === 'done'
       ? 'done'
       : uploading || cameraState === 'processing'
         ? 'processing'
         : cameraState === 'ready' || cameraState === 'recording'
           ? 'capturing'
-          : 'pending-phone');
+          : sessionFeedback?.status ?? 'pending-phone';
   const stepIndex = effectiveStatus === 'error'
     ? scanSteps.length - 1
     : Math.max(0, scanSteps.findIndex((step) => step.status === effectiveStatus));
@@ -462,13 +623,21 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     if (cameraState === 'recording') {
       return {
         title: 'Recording room',
-        detail: `Move slowly around the space, then finish capture. ${recordingSeconds}s recorded.`,
+        detail: `Move slowly around the space, then finish capture. Floor ${floorPercent}%, walls ${wallPercent}%. ${recordingSeconds}s recorded.`,
       };
     }
     if (effectiveStatus === 'capturing') {
       return {
         title: 'Camera linked',
-        detail: 'Studio sees the phone session. Follow the overlay and capture the room when ready.',
+        detail: floorLocked && wallsLocked
+          ? 'Floor and wall cues are visible. Start capture when ready.'
+          : 'Sweep slowly across the floor line and wall edges until the overlay locks on.',
+      };
+    }
+    if (effectiveStatus === 'phone-connected') {
+      return {
+        title: 'Phone connected',
+        detail: 'Desktop Studio sees this phone. Open the Studio camera to begin sensing the room.',
       };
     }
     return {
@@ -513,7 +682,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
           />
         </div>
 
-        <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px] text-white/45">
+        <div className="mt-3 grid grid-cols-6 gap-1 text-center text-[10px] text-white/45">
           {scanSteps.map((step, index) => (
             <div
               key={step.status}
@@ -579,7 +748,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                   HoloMap scan
                 </span>
                 <span className="rounded-full border border-emerald-200/35 bg-emerald-400/15 px-2 py-1 text-emerald-100">
-                  {cameraState === 'recording' ? 'Recording' : cameraState === 'ready' ? 'Ready' : 'Linking'}
+                  {cameraState === 'recording'
+                    ? 'Recording'
+                    : floorLocked && wallsLocked
+                      ? 'Planes locked'
+                      : cameraState === 'ready'
+                        ? 'Sensing'
+                        : 'Linking'}
                 </span>
               </div>
               <div className="absolute left-8 right-8 top-[24%] h-px bg-cyan-200/50 shadow-[0_0_18px_rgba(103,232,249,0.8)]" />
@@ -602,9 +777,22 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                   />
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] text-white/55">
-                  <span>Floor plane</span>
-                  <span>Wall edges</span>
+                  <span
+                    data-testid="room-floor-sensing"
+                    className={floorLocked ? 'text-emerald-100' : 'text-yellow-100'}
+                  >
+                    Floor {planeSensing.samples > 0 ? `${floorPercent}%` : '--'}
+                  </span>
+                  <span
+                    data-testid="room-wall-sensing"
+                    className={wallsLocked ? 'text-emerald-100' : 'text-yellow-100'}
+                  >
+                    Walls {planeSensing.samples > 0 ? `${wallPercent}%` : '--'}
+                  </span>
                   <span>{overlayPointCount > 0 ? `${overlayPointCount.toLocaleString()} pts` : '0 pts'}</span>
+                </div>
+                <div className="mt-2 text-center text-[10px] text-white/45">
+                  Motion {planeSensing.samples > 0 ? `${motionPercent}%` : '--'}
                 </div>
               </div>
               {cameraState === 'recording' && (

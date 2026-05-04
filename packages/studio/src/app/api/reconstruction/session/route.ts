@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { buildHoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
 import { buildRoomScanCompletionManifest } from '@/lib/scan-session-manifest';
-import { clientIpFromRequest, getScanSessionStore } from '@/lib/reconstruction-scan-store';
+import { clientIpFromRequest, getScanSessionStore, type ScanSession } from '@/lib/reconstruction-scan-store';
 
 const POST_WINDOW_MS = 60_000;
 const POST_MAX_PER_IP = 20;
@@ -15,6 +15,22 @@ const GET_WINDOW_MS = 60_000;
 const GET_MAX_PER_IP = 200;
 const PUT_WINDOW_MS = 60_000;
 const PUT_MAX_PER_TOKEN = 90;
+const statusRank: Record<ScanSession['status'], number> = {
+  'pending-phone': 0,
+  'phone-connected': 1,
+  capturing: 2,
+  uploaded: 3,
+  processing: 4,
+  done: 5,
+  error: 6,
+};
+
+function shouldApplyStatus(current: ScanSession['status'], next: ScanSession['status']): boolean {
+  if (current === 'done') return next === 'done';
+  if (next === 'error') return true;
+  if (current === 'error') return true;
+  return statusRank[next] >= statusRank[current];
+}
 
 function baseUrl(request: NextRequest): string {
   return resolveReachableStudioOrigin(request);
@@ -161,7 +177,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     return withCors(request, NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }));
   }
 
-  if (body.status) session.status = body.status;
+  if (body.status && shouldApplyStatus(session.status, body.status)) {
+    session.status = body.status;
+  }
   if (typeof body.frameCount === 'number') session.frameCount = body.frameCount;
   if (typeof body.videoBytes === 'number') session.videoBytes = body.videoBytes;
   if (typeof body.videoHash === 'string' && body.videoHash.length > 0) {

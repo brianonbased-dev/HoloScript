@@ -13,7 +13,7 @@ export interface ScanSession {
   createdAt: string;
   expiresAt: string;
   desktopUser?: string;
-  status: 'pending-phone' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+  status: 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   frameCount?: number;
   videoBytes?: number;
