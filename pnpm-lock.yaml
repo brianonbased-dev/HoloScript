@@ -3080,6 +3080,9 @@ importers:
       prismjs:
         specifier: ^1.29.0
         version: 1.30.0
+      qrcode:
+        specifier: ^1.5.3
+        version: 1.5.3
       react:
         specifier: ^19.2.0
         version: 19.2.4

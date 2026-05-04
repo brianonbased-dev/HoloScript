@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
+import { QRCodeImage } from '@/components/QRCodeImage';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 import { HoloMapScanViewer } from './HoloMapScanViewer';
 import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
@@ -23,12 +24,6 @@ interface ScanSessionState {
   manifest?: { version: string; replayHash: string; simulationContract: { replayFingerprint: string } };
   renderAsset?: HoloMapScanRenderAsset;
   lastError?: string;
-}
-
-function QRCodeImage({ url }: { url: string }) {
-  const encoded = encodeURIComponent(url);
-  const src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encoded}&choe=UTF-8`;
-  return <img src={src} alt="Scan-room mobile QR" width={200} height={200} className="rounded-xl border border-studio-border" />;
 }
 
 const statusLabel: Record<ScanSessionState['status'], string> = {
@@ -123,7 +118,7 @@ export function ReconstructionPanel() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
           <div className="space-y-3">
-            <QRCodeImage url={session.mobileUrl} />
+            <QRCodeImage url={session.mobileUrl} size={200} alt="Scan-room mobile QR" />
             <button
               onClick={createSession}
               className="inline-flex items-center gap-2 rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text"

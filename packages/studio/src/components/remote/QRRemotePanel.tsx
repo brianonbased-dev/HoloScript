@@ -8,24 +8,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Smartphone, X, Loader2, RefreshCw, Wifi, WifiOff, Joystick } from 'lucide-react';
+import { Smartphone, X, Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { QRCodeImage } from '@/components/QRCodeImage';
 import { useMobileRemote } from '@/hooks/useMobileRemote';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
-
-// Lightweight QR SVG generated via Google Charts API (no npm dep)
-function QRCodeImage({ url }: { url: string }) {
-  const encoded = encodeURIComponent(url);
-  const src = `https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=${encoded}&choe=UTF-8`;
-  return (
-    <img
-      src={src}
-      alt="QR code for mobile remote"
-      width={180}
-      height={180}
-      className="rounded-xl border border-studio-border"
-    />
-  );
-}
 
 interface QRRemotePanelProps {
   onClose: () => void;
@@ -99,7 +85,7 @@ export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
             <Loader2 className="h-6 w-6 animate-spin text-studio-muted" />
           </div>
         ) : remoteUrl ? (
-          <QRCodeImage url={remoteUrl} />
+          <QRCodeImage url={remoteUrl} alt="QR code for mobile remote" />
         ) : (
           <div className="flex h-[180px] w-[180px] items-center justify-center rounded-xl border border-studio-border text-[11px] text-studio-muted">
             Scan QR to connect

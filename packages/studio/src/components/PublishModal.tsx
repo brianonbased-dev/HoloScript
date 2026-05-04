@@ -9,26 +9,11 @@
 
 import { useState, useCallback } from 'react';
 import { Globe, Copy, Check, Loader2, X, ExternalLink } from 'lucide-react';
+import { QRCodeImage } from '@/components/QRCodeImage';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { serializeScene } from '@/lib/serializer';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
-
-// Minimal QR code via QR-SVG inline (no external dep) — redirects to URL
-// We'll use a simple encoded URL placeholder approach with the qr endpoint or
-// just display an iframe from a QR service. For zero-dep, use Google Charts QR.
-function QRCode({ url }: { url: string }) {
-  const src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(url)}&bgcolor=0a0a12&color=818cf8&margin=4`;
-  return (
-    <img
-      src={src}
-      alt="QR code"
-      width={120}
-      height={120}
-      className="rounded-lg border border-studio-border"
-    />
-  );
-}
 
 interface PublishModalProps {
   onClose: () => void;
@@ -85,7 +70,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
       setErrMsg(e instanceof Error ? e.message : String(e));
       setStage('error');
     }
-  }, [code, metadata, r3fTree]);
+  }, [assets, code, metadata, nodes, r3fTree]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(publishedUrl).then(() => {
@@ -171,7 +156,11 @@ export function PublishModal({ onClose }: PublishModalProps) {
               </div>
 
               {/* QR Code */}
-              <QRCode url={publishedUrl} />
+              <QRCodeImage
+                url={publishedUrl}
+                size={120}
+                className="rounded-lg border border-studio-border"
+              />
 
               <button
                 onClick={onClose}
