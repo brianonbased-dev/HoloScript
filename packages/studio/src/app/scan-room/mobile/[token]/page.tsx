@@ -18,6 +18,11 @@ interface MobileScanFeedback {
   renderAsset?: { pointCount?: number };
 }
 
+type CameraCapability =
+  | { checked: false; live: false; reason: null }
+  | { checked: true; live: true; reason: null }
+  | { checked: true; live: false; reason: string };
+
 const scanSteps: Array<{ status: ScanStatus; label: string }> = [
   { status: 'pending-phone', label: 'Ready' },
   { status: 'capturing', label: 'Capture' },
@@ -48,12 +53,18 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const cameraCaptureInputRef = useRef<HTMLInputElement | null>(null);
   const completionFeedbackSentRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [sessionFeedback, setSessionFeedback] = useState<MobileScanFeedback | null>(null);
+  const [cameraCapability, setCameraCapability] = useState<CameraCapability>({
+    checked: false,
+    live: false,
+    reason: null,
+  });
   const [cameraState, setCameraState] = useState<'idle' | 'starting' | 'ready' | 'recording' | 'processing'>('idle');
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -99,6 +110,31 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
   useEffect(() => {
     return () => stopCameraStream();
+  }, []);
+
+  useEffect(() => {
+    const hasMediaDevices = Boolean(navigator.mediaDevices?.getUserMedia);
+    const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
+
+    if (!window.isSecureContext) {
+      setCameraCapability({
+        checked: true,
+        live: false,
+        reason: 'Live preview needs HTTPS on mobile. Opening the native phone camera instead.',
+      });
+      return;
+    }
+
+    if (!hasMediaDevices || !hasMediaRecorder) {
+      setCameraCapability({
+        checked: true,
+        live: false,
+        reason: 'Live recording is not supported in this browser. Opening the native phone camera instead.',
+      });
+      return;
+    }
+
+    setCameraCapability({ checked: true, live: true, reason: null });
   }, []);
 
   useEffect(() => {
@@ -200,8 +236,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     setError(null);
     setDone(false);
 
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setError('Live camera recording needs HTTPS support. Use the phone camera app fallback below.');
+    if (!cameraCapability.checked || !cameraCapability.live) {
+      setError('Live preview is unavailable here. Use Open phone camera to capture with this phone.');
       return;
     }
 
@@ -226,7 +262,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       stopCameraStream();
       setCameraState('idle');
       const detail = e instanceof Error ? e.message : String(e);
-      setError(`Camera could not start: ${detail}. Use the phone camera app fallback below.`);
+      setError(`Live camera could not start: ${detail}. Opening the phone camera fallback is still available.`);
     }
   };
 
@@ -401,7 +437,10 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       </section>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
-        {(cameraState === 'ready' || cameraState === 'recording' || cameraState === 'processing') && (
+        {(cameraState === 'starting' ||
+          cameraState === 'ready' ||
+          cameraState === 'recording' ||
+          cameraState === 'processing') && (
           <video
             ref={videoRef}
             autoPlay
@@ -412,15 +451,37 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         )}
 
         {cameraState === 'idle' && (
-          <button
-            type="button"
-            onClick={() => void openNativeCamera()}
-            className="flex w-full flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center"
-          >
-            <Camera className="h-6 w-6 text-indigo-300" />
-            <span className="text-sm font-medium">Open live camera</span>
-            <span className="text-xs text-white/50">Use the rear camera and stream capture directly to Studio.</span>
-          </button>
+          <>
+            <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center">
+              <Camera className="h-6 w-6 text-indigo-300" />
+              <span className="text-sm font-medium">Open phone camera</span>
+              <span className="text-xs text-white/50">
+                {cameraCapability.reason ?? 'Use the native camera. Live preview appears on secure connections.'}
+              </span>
+              <input
+                ref={cameraCaptureInputRef}
+                data-testid="room-camera-input"
+                type="file"
+                accept="video/*"
+                capture="environment"
+                className="hidden"
+                onClick={(e) => {
+                  e.currentTarget.value = '';
+                }}
+                onChange={(e) => void onVideoSelected(e.target.files?.[0] ?? null)}
+              />
+            </label>
+
+            {cameraCapability.live && (
+              <button
+                type="button"
+                onClick={() => void openNativeCamera()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70"
+              >
+                <Video className="h-4 w-4" /> Use live preview
+              </button>
+            )}
+          </>
         )}
 
         {cameraState === 'starting' && (
@@ -456,21 +517,23 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         )}
       </div>
 
-      <label className="flex w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
-        <Camera className="h-4 w-4" />
-        Use phone camera app fallback
-        <input
-          data-testid="room-camera-input"
-          type="file"
-          accept="video/*"
-          capture="environment"
-          className="hidden"
-          onClick={(e) => {
-            e.currentTarget.value = '';
-          }}
-          onChange={(e) => void onVideoSelected(e.target.files?.[0] ?? null)}
-        />
-      </label>
+      {cameraCapability.live && (
+        <label className="flex w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
+          <Camera className="h-4 w-4" />
+          Use phone camera app fallback
+          <input
+            data-testid="room-camera-input-fallback"
+            type="file"
+            accept="video/*"
+            capture="environment"
+            className="hidden"
+            onClick={(e) => {
+              e.currentTarget.value = '';
+            }}
+            onChange={(e) => void onVideoSelected(e.target.files?.[0] ?? null)}
+          />
+        </label>
+      )}
 
       <label className="flex w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
         <UploadCloud className="h-4 w-4" />
