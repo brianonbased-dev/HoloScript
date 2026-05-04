@@ -11,7 +11,8 @@
     {"dedup_key": "manual-r07-snn-lateral-inhibition-extract", "commit": "7c3d6b98f"},
     {"dedup_key": "manual-paper-gate-headless-registration", "commit": "ai-eco 4e7620e"},
     {"dedup_key": "manual-audit-brain-identity-script", "commit": "ai-eco 55ec850"},
-    {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"}
+    {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"},
+    {"dedup_key": "manual-r02-std-fs-path-boundary", "commit": "fe186f8e7"}
   ],
   "gaps": [
     {
@@ -27,13 +28,6 @@
       "priority": "high",
       "tags": ["auto-filed-by-manual","infra","fleet-trust","day-7","railway","allowlist"],
       "dedup_key": "manual-a008-egress-allowlist-fix"
-    },
-    {
-      "title": "[security/std] Path-boundary enforcement in @holoscript/std/fs (R-02 P1)",
-      "description": "A-003 daily code review 2026-05-01 R-02 P1 finding (review explicitly says 'File a board task'). packages/core/src/compiler/identity/PackagePermissionManifest.ts notes '@holoscript/std/fs ... NO path boundary enforcement currently'. The merge from @holoscript/fs (2026-04-29) preserved HIGH-tier permission entry but the documented gap was carried forward without filing. Sandbox confines execution but std/fs calls can still traverse outside project root via absolute or ../-relative paths. Fix: prefix every path with configurable sandbox root and reject .. traversal in packages/std/src/fs/. Source: HoloScript/docs/reviews/2026-05-01.md.",
-      "priority": "high",
-      "tags": ["auto-filed-by-manual","security","P1","std-fs","sandbox","R-02"],
-      "dedup_key": "manual-r02-std-fs-path-boundary"
     },
     {
       "title": "[studio/docker] Remove '|| true' suppressions on tsup --no-dts in 14 packages (silent prod build failures)",

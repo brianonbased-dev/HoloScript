@@ -396,7 +396,7 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     allowsFsWrites: true,
     accessesNetwork: false,
     handlesSecrets: false,
-    notes: 'File system subpath of @holoscript/std (merged from @holoscript/fs 2026-04-29). NO path boundary enforcement currently.',
+    notes: 'File system subpath of @holoscript/std (merged from @holoscript/fs 2026-04-29). Path-boundary enforcement available via HOLOSCRIPT_FS_SANDBOX_ROOT env (R-02 P1, 2026-05-04); pass-through when unset for backwards compat. Runtime should set the env to the project root when loading a .hsplus.',
   },
   {
     name: 'spatial-engine',
