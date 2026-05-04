@@ -133,24 +133,24 @@ const GOLDEN_CASES: GoldenCase[] = [
       { name: 'Goal', type: 'mesh', primitive: 'cube', position: [9.5, 0.1, 9.5], scale: [0.2, 0.2, 0.2], color: 'red' },
       // Outer walls (perimeter)
       ...[
-        { name: 'Wall_North', pos: [5, 0.75, 0] as [number, number, number], scale: [10, 1.5, 0.1] as [number, number, number] },
-        { name: 'Wall_South', pos: [5, 0.75, 10] as [number, number, number], scale: [10, 1.5, 0.1] as [number, number, number] },
-        { name: 'Wall_East', pos: [10, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
-        { name: 'Wall_West', pos: [0, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
-      ].map(({ pos, ...w }) => ({ ...w, position: pos, type: 'mesh', primitive: 'cube', color: 'brown' })),
-      // Interior walls — simplified spanning tree maze (removes some walls)
+        { name: 'Wall_North', position: [5, 0.75, 0] as [number, number, number], scale: [10, 1.5, 0.1] as [number, number, number] },
+        { name: 'Wall_South', position: [5, 0.75, 10] as [number, number, number], scale: [10, 1.5, 0.1] as [number, number, number] },
+        { name: 'Wall_East', position: [10, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
+        { name: 'Wall_West', position: [0, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
+      ].map((w) => ({ ...w, type: 'mesh', primitive: 'cube', color: 'brown' })),
+      // Interior walls — unique-path maze: right along bottom row, up rightmost column
+      // Vertical walls at x=2,4,6,8 spanning z=2..10 block rightward for rows 1-4
+      // Horizontal walls at z=2,4,6,8 spanning x=0..8 block upward for cols 0-3
       ...[
-        // Vertical walls at x=2, 4, 6, 8 (with gaps)
-        { name: 'V2_full', pos: [2, 0.75, 3] as [number, number, number], scale: [0.1, 1.5, 6] as [number, number, number] },
-        { name: 'V4_gap', pos: [4, 0.75, 7] as [number, number, number], scale: [0.1, 1.5, 6] as [number, number, number] },
-        { name: 'V6_full', pos: [6, 0.75, 3] as [number, number, number], scale: [0.1, 1.5, 6] as [number, number, number] },
-        { name: 'V8_gap', pos: [8, 0.75, 7] as [number, number, number], scale: [0.1, 1.5, 6] as [number, number, number] },
-        // Horizontal walls at z=2, 4, 6, 8 (with gaps)
-        { name: 'H2_full', pos: [3, 0.75, 2] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
-        { name: 'H4_gap', pos: [7, 0.75, 4] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
-        { name: 'H6_full', pos: [3, 0.75, 6] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
-        { name: 'H8_gap', pos: [7, 0.75, 8] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
-      ].map(({ pos, ...w }) => ({ ...w, position: pos, type: 'mesh', primitive: 'cube', color: 'brown' })),
+        { name: 'V2', position: [2, 0.75, 6] as [number, number, number], scale: [0.1, 1.5, 8] as [number, number, number] },
+        { name: 'V4', position: [4, 0.75, 6] as [number, number, number], scale: [0.1, 1.5, 8] as [number, number, number] },
+        { name: 'V6', position: [6, 0.75, 6] as [number, number, number], scale: [0.1, 1.5, 8] as [number, number, number] },
+        { name: 'V8', position: [8, 0.75, 6] as [number, number, number], scale: [0.1, 1.5, 8] as [number, number, number] },
+        { name: 'H2', position: [4, 0.75, 2] as [number, number, number], scale: [8, 1.5, 0.1] as [number, number, number] },
+        { name: 'H4', position: [4, 0.75, 4] as [number, number, number], scale: [8, 1.5, 0.1] as [number, number, number] },
+        { name: 'H6', position: [4, 0.75, 6] as [number, number, number], scale: [8, 1.5, 0.1] as [number, number, number] },
+        { name: 'H8', position: [4, 0.75, 8] as [number, number, number], scale: [8, 1.5, 0.1] as [number, number, number] },
+      ].map((w) => ({ ...w, type: 'mesh', primitive: 'cube', color: 'brown' })),
     ],
     notes: '5x5 grid (2m cells), outer perimeter + interior walls forming unique path from (0,0) to (4,4)',
   },

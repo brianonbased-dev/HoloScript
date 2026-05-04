@@ -42,27 +42,32 @@
       {
         "id": "base_present",
         "description": "Base cylinder of size 0.3 radius x 0.3 height",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       },
       {
         "id": "upper_arm",
         "description": "Upper-arm box ~0.15x0.15x1.0 attached above the base",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       },
       {
         "id": "forearm",
         "description": "Forearm box ~0.12x0.12x0.8 attached above the upper arm",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       },
       {
         "id": "gripper",
         "description": "A small sphere acts as gripper at the forearm tip",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "joints_or_grouping",
         "description": "Output explicitly identifies pivot/joint locations or hierarchy between segments",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       }
     ],
     "trust_mutations_over_prose": true,
@@ -150,27 +155,32 @@
       {
         "id": "five_houses",
         "description": "Exactly 5 houses are present",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "each_house_complete",
         "description": "Each house has both a wall box and a roof prism (or pyramid)",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "spacing_5m",
         "description": "Houses are spaced 5m apart along one axis",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       },
       {
         "id": "color_correctness",
         "description": "Walls white, roofs brown across all houses",
-        "required": true
+        "required": true,
+        "verifier_type": "presence"
       },
       {
         "id": "sun_present",
         "description": "A yellow sphere acts as the sun above the scene",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       }
     ],
     "trust_mutations_over_prose": true,
@@ -293,27 +303,32 @@
       {
         "id": "chessboard",
         "description": "8x8 chessboard with alternating colors exists",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "white_pawns",
         "description": "8 white cylinders at row index 1 (one per file)",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "black_pawns",
         "description": "8 black cylinders at row index 6 (one per file)",
-        "required": true
+        "required": true,
+        "verifier_type": "count"
       },
       {
         "id": "pawns_centered",
         "description": "Each pawn is centered in its tile (XZ center within 0.1)",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       },
       {
         "id": "pawn_dimensions",
         "description": "Pawns are radius ~0.3, height ~0.5",
-        "required": true
+        "required": true,
+        "verifier_type": "geometric"
       }
     ],
     "trust_mutations_over_prose": true,

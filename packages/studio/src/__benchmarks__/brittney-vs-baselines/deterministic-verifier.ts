@@ -656,6 +656,129 @@ function verifyT10(objs: ParsedObject[]): VerificationResult[] {
   ];
 }
 
+function verifyA02(objs: ParsedObject[]): VerificationResult[] {
+  const cylinders = objs.filter((o) => o.primitive === 'cylinder');
+  const cubes = objs.filter((o) => o.primitive === 'cube');
+  const spheres = objs.filter((o) => o.primitive === 'sphere');
+
+  // Base: cylinder radius ~0.3, height ~0.3
+  const base = cylinders.find((o) => within(o.radius ?? 0, 0.3, 0.1) && within(o.scale[1], 0.3, 0.1));
+  // Upper arm: box ~0.15x0.15x1.0
+  const upperArm = cubes.find((o) => within(o.scale[0], 0.15, 0.05) && within(o.scale[2], 0.15, 0.05) && within(o.scale[1], 1.0, 0.15));
+  // Forearm: box ~0.12x0.12x0.8
+  const forearm = cubes.find((o) => within(o.scale[0], 0.12, 0.04) && within(o.scale[2], 0.12, 0.04) && within(o.scale[1], 0.8, 0.12));
+  // Gripper: small sphere
+  const gripper = spheres.find((o) => (o.radius ?? 0.5) <= 0.2);
+  // Joints: small cylinders between segments
+  const joints = cylinders.filter((o) => within(o.radius ?? 0, 0.05, 0.05) && within(o.scale[1], 0.05, 0.05) && o !== base);
+
+  // Chain check: base y < upperArm y < forearm y < gripper y (within tolerance)
+  let chainPassed = false;
+  let chainRationale = 'missing segments';
+  if (base && upperArm && forearm && gripper) {
+    const yOrder = [base.position[1], upperArm.position[1], forearm.position[1], gripper.position[1]];
+    chainPassed = yOrder.every((y, i) => i === 0 || y > yOrder[i - 1] - 0.2);
+    chainRationale = `y chain: ${yOrder.map((n) => n.toFixed(2)).join(' < ')}`;
+  }
+
+  return [
+    { criterion_id: 'base_present', passed: !!base, rationale: base ? `base cylinder r=${(base.radius ?? 0).toFixed(2)} h=${base.scale[1].toFixed(2)}` : `no base cylinder found among ${cylinders.length} cylinders` },
+    { criterion_id: 'upper_arm', passed: !!upperArm, rationale: upperArm ? `upper arm scale=[${upperArm.scale.map((n) => n.toFixed(2)).join(',')}]` : `no upper-arm box found among ${cubes.length} cubes` },
+    { criterion_id: 'forearm', passed: !!forearm, rationale: forearm ? `forearm scale=[${forearm.scale.map((n) => n.toFixed(2)).join(',')}]` : `no forearm box found among ${cubes.length} cubes` },
+    { criterion_id: 'gripper', passed: !!gripper, rationale: gripper ? `gripper sphere r=${(gripper.radius ?? 0).toFixed(2)}` : `no small sphere found among ${spheres.length} spheres` },
+    { criterion_id: 'joints_or_grouping', passed: chainPassed || joints.length >= 2, rationale: chainPassed ? `chain verified: ${chainRationale}` : `${joints.length} joint cylinders found` },
+  ];
+}
+
+function verifyA05(objs: ParsedObject[]): VerificationResult[] {
+  const cubes = objs.filter((o) => o.primitive === 'cube');
+  const cones = objs.filter((o) => o.primitive === 'cone');
+  const spheres = objs.filter((o) => o.primitive === 'sphere');
+
+  // Houses: pair a wall cube (white, scale ~2x2x2) with a roof cone (brown)
+  const walls = cubes.filter((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return (c.includes('white') || c === '#ffffff') && within(o.scale[0], 2, 0.5) && within(o.scale[1], 2, 0.5);
+  });
+  const roofs = cones.filter((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return c.includes('brown') || c === '#8b4513' || c === '#a0522d';
+  });
+
+  // Match roofs to walls by proximity (same x,z within 2m)
+  let matchedHouses = 0;
+  const usedRoofs = new Set<number>();
+  for (const w of walls) {
+    const roofIdx = roofs.findIndex((r, i) => !usedRoofs.has(i) && dist([w.position[0], 0, w.position[2]], [r.position[0], 0, r.position[2]]) <= 2);
+    if (roofIdx >= 0) {
+      matchedHouses++;
+      usedRoofs.add(roofIdx);
+    }
+  }
+
+  // Spacing: sort house x positions, check ~5m apart
+  const wallXs = walls.map((o) => o.position[0]).sort((a, b) => a - b);
+  let spacingPassed = false;
+  let spacingRationale = `houses=${walls.length}`;
+  if (wallXs.length >= 2) {
+    const diffs = wallXs.slice(1).map((x, i) => x - wallXs[i]);
+    spacingPassed = diffs.every((d) => within(d, 5, 1.5));
+    spacingRationale = `x diffs: ${diffs.map((n) => n.toFixed(1)).join(', ')}`;
+  }
+
+  // Sun: yellow sphere high up (y > 5)
+  const sun = spheres.find((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return (c.includes('yellow') || c === '#ffff00') && o.position[1] > 5;
+  });
+
+  return [
+    { criterion_id: 'five_houses', passed: walls.length >= 5, rationale: `found ${walls.length} wall cubes` },
+    { criterion_id: 'each_house_complete', passed: matchedHouses >= 5, rationale: `${matchedHouses}/${walls.length} walls have a paired roof` },
+    { criterion_id: 'spacing_5m', passed: spacingPassed, rationale: spacingRationale },
+    { criterion_id: 'color_correctness', passed: walls.length >= 5 && roofs.length >= 5, rationale: `white walls=${walls.length}, brown roofs=${roofs.length}` },
+    { criterion_id: 'sun_present', passed: !!sun, rationale: sun ? `sun at y=${sun.position[1].toFixed(1)}` : 'no yellow sphere high in sky' },
+  ];
+}
+
+function verifyA09(objs: ParsedObject[]): VerificationResult[] {
+  const planes = objs.filter((o) => o.primitive === 'plane' || o.primitive === 'cube');
+  const cylinders = objs.filter((o) => o.primitive === 'cylinder');
+
+  // Chessboard: 64 tiles, alternating black/white, 1x1 size, in XZ plane
+  const boardTiles = planes.filter((o) => within(o.scale[0], 1, 0.2) && within(o.scale[2], 1, 0.2) && within(o.position[1], 0, 0.2));
+  const colors = boardTiles.map((o) => (o.color ?? '').toLowerCase());
+  const hasBlack = colors.some((c) => c.includes('black') || c === '#000000');
+  const hasWhite = colors.some((c) => c.includes('white') || c === '#ffffff');
+
+  // Pawns: white cylinders at row 1 (z ≈ 1), black at row 6 (z ≈ 6)
+  const whitePawns = cylinders.filter((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return (c.includes('white') || c === '#ffffff') && within(o.position[2], 1, 0.5) && within(o.radius ?? 0, 0.3, 0.15) && within(o.scale[1], 0.5, 0.15);
+  });
+  const blackPawns = cylinders.filter((o) => {
+    const c = (o.color ?? '').toLowerCase();
+    return (c.includes('black') || c === '#000000') && within(o.position[2], 6, 0.5) && within(o.radius ?? 0, 0.3, 0.15) && within(o.scale[1], 0.5, 0.15);
+  });
+
+  // Centered: pawn x positions should be near 0.5, 1.5, ..., 7.5 (tile centers)
+  const allPawns = [...whitePawns, ...blackPawns];
+  const centered = allPawns.filter((o) => {
+    const x = o.position[0];
+    const z = o.position[2];
+    return Array.from({ length: 8 }, (_, i) => i + 0.5).some((cx) => within(x, cx, 0.25)) &&
+           Array.from({ length: 8 }, (_, i) => i + 0.5).some((cz) => within(z, cz, 0.25));
+  });
+
+  return [
+    { criterion_id: 'chessboard', passed: boardTiles.length === 64 && hasBlack && hasWhite, rationale: `${boardTiles.length} tiles, black=${hasBlack}, white=${hasWhite}` },
+    { criterion_id: 'white_pawns', passed: whitePawns.length === 8, rationale: `white pawns: ${whitePawns.length}` },
+    { criterion_id: 'black_pawns', passed: blackPawns.length === 8, rationale: `black pawns: ${blackPawns.length}` },
+    { criterion_id: 'pawns_centered', passed: centered.length >= 14, rationale: `${centered.length}/${allPawns.length} pawns centered in tiles` },
+    { criterion_id: 'pawn_dimensions', passed: allPawns.every((o) => within(o.radius ?? 0, 0.3, 0.15) && within(o.scale[1], 0.5, 0.15)), rationale: `radii: ${allPawns.map((o) => (o.radius ?? 0).toFixed(2)).join(', ')}, heights: ${allPawns.map((o) => o.scale[1].toFixed(2)).join(', ')}` },
+  ];
+}
+
 const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResult[]> = {
   T01: verifyT01,
   T02: verifyT02,
@@ -671,8 +794,11 @@ const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResul
   M06: verifyM06,
   M09: verifyM09,
   A01: verifyA01,
+  A02: verifyA02,
   A04: verifyA04,
+  A05: verifyA05,
   A07: verifyA07,
+  A09: verifyA09,
   A10: verifyA10,
 };
 
