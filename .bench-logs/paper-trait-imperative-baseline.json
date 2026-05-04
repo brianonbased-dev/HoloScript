@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-05-03T22:25:47.412Z",
+  "generatedAt": "2026-05-04T22:26:03.328Z",
   "traitUniverseCount": 2819,
   "warmup": 50,
   "iterations": 500,
   "jsonSerializationUs": {
-    "median": 0.547,
-    "p99": 2.204,
+    "median": 0.683,
+    "p99": 1.168,
     "note": "single TraitApplication.config JSON.stringify, µs (probe-shape identical to paper-trait-semiring-overhead.json)"
   },
   "byBatchSize": [
@@ -13,64 +13,64 @@
       "batchSize": 1,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 0.329,
-      "perCallP99Us": 1.729,
-      "perTraitMedianUs": 0.329,
-      "perTraitP99Us": 1.729
+      "perCallMedianUs": 0.335,
+      "perCallP99Us": 0.515,
+      "perTraitMedianUs": 0.335,
+      "perTraitP99Us": 0.515
     },
     {
       "batchSize": 2,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 0.446,
-      "perCallP99Us": 2.464,
-      "perTraitMedianUs": 0.223,
-      "perTraitP99Us": 1.232
+      "perCallMedianUs": 0.44,
+      "perCallP99Us": 0.995,
+      "perTraitMedianUs": 0.22,
+      "perTraitP99Us": 0.497
     },
     {
       "batchSize": 5,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 0.668,
-      "perCallP99Us": 9.455,
-      "perTraitMedianUs": 0.134,
-      "perTraitP99Us": 1.891
+      "perCallMedianUs": 0.306,
+      "perCallP99Us": 0.754,
+      "perTraitMedianUs": 0.061,
+      "perTraitP99Us": 0.151
     },
     {
       "batchSize": 10,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 0.406,
-      "perCallP99Us": 0.721,
-      "perTraitMedianUs": 0.041,
-      "perTraitP99Us": 0.072
+      "perCallMedianUs": 0.398,
+      "perCallP99Us": 0.901,
+      "perTraitMedianUs": 0.04,
+      "perTraitP99Us": 0.09
     },
     {
       "batchSize": 20,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 1.62,
-      "perCallP99Us": 2.65,
-      "perTraitMedianUs": 0.081,
-      "perTraitP99Us": 0.133
+      "perCallMedianUs": 1.981,
+      "perCallP99Us": 18.526,
+      "perTraitMedianUs": 0.099,
+      "perTraitP99Us": 0.926
     },
     {
       "batchSize": 50,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 5.498,
-      "perCallP99Us": 15.237,
-      "perTraitMedianUs": 0.11,
-      "perTraitP99Us": 0.305
+      "perCallMedianUs": 7.477,
+      "perCallP99Us": 29.73,
+      "perTraitMedianUs": 0.15,
+      "perTraitP99Us": 0.595
     },
     {
       "batchSize": 100,
       "warmup": 50,
       "iterations": 500,
-      "perCallMedianUs": 7.207,
-      "perCallP99Us": 25.459,
-      "perTraitMedianUs": 0.072,
-      "perTraitP99Us": 0.255
+      "perCallMedianUs": 12.223,
+      "perCallP99Us": 56.642,
+      "perTraitMedianUs": 0.122,
+      "perTraitP99Us": 0.566
     }
   ],
   "compositionShape": "imperative-direct-write-no-semiring-no-provenance-no-conflict-mode",
