@@ -197,17 +197,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
           }
 
           // Apply lateral inhibition from previous-timestep spikes
-          if (this.config.lateralInhibitionStrength !== undefined && this.config.lateralInhibitionStrength !== 0) {
-            for (let h = 0; h < this.hiddenSize; h++) {
-              let inhibition = 0;
-              for (let j = 0; j < this.hiddenSize; j++) {
-                if (j !== h && this.hiddenNeurons[j].spiked) {
-                  inhibition += this.weightsLateralInhibition[j * this.hiddenSize + h];
-                }
-              }
-              hiddenCurrents[h] += inhibition;
-            }
-          }
+          this.applyLateralInhibition(hiddenCurrents);
 
           // Step hidden layer
           for (let h = 0; h < this.hiddenSize; h++) {
@@ -346,17 +336,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
       }
 
       // Apply lateral inhibition from previous-timestep spikes
-      if (this.config.lateralInhibitionStrength !== undefined && this.config.lateralInhibitionStrength !== 0) {
-        for (let h = 0; h < this.hiddenSize; h++) {
-          let inhibition = 0;
-          for (let j = 0; j < this.hiddenSize; j++) {
-            if (j !== h && this.hiddenNeurons[j].spiked) {
-              inhibition += this.weightsLateralInhibition[j * this.hiddenSize + h];
-            }
-          }
-          hiddenCurrents[h] += inhibition;
-        }
-      }
+      this.applyLateralInhibition(hiddenCurrents);
 
       // Step hidden
       for (let h = 0; h < this.hiddenSize; h++) {
@@ -473,6 +453,24 @@ export class SNNRetrievalModel implements FactRetrievalModel {
 
     this.resetNeuronState();
     this.totalSpikeCount = 0;
+  }
+
+  private applyLateralInhibition(hiddenCurrents: Float32Array): void {
+    if (
+      this.config.lateralInhibitionStrength === undefined ||
+      this.config.lateralInhibitionStrength === 0
+    ) {
+      return;
+    }
+    for (let h = 0; h < this.hiddenSize; h++) {
+      let inhibition = 0;
+      for (let j = 0; j < this.hiddenSize; j++) {
+        if (j !== h && this.hiddenNeurons[j].spiked) {
+          inhibition += this.weightsLateralInhibition[j * this.hiddenSize + h];
+        }
+      }
+      hiddenCurrents[h] += inhibition;
+    }
   }
 
   private resetNeuronState(): void {
