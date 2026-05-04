@@ -76,8 +76,8 @@ export function usePerformanceRegressionBridge(
     debounceMs = 500,
     thresholdMs = 9.0,
     consecutiveFrames = 5,
-    recoveryFrames = 30,
-    recoveryThresholdMs = 7.0,
+    recoveryFrames = 170,
+    recoveryThresholdMs = 11.5,
     enabled = true,
   } = options;
 

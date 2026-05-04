@@ -251,7 +251,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           PerformanceRegressionBridge: monitors frame time via R3F's useFrame
           and auto-regresses all mesh entities to draft mode when VR frame
           budget is exceeded (>9ms for 5 consecutive frames). Promotes back
-          when FPS stabilizes (sustained <7ms for ~30 frames).
+          when FPS stabilizes (sustained <11.5ms for ~170 frames ≈ 2s at 85fps).
 
           Disabled in development because pnpm resolves @react-three/fiber to
           different store paths for studio vs r3f-renderer (peer dep with
