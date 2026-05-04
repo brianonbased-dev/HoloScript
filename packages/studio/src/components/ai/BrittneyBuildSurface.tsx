@@ -187,6 +187,20 @@ interface HolomeshTemplate {
   objective: string;
 }
 
+// Sanitize HoloMesh-served template strings before splicing into Brittney's
+// prompt. Strips control characters / newlines that could break out of the
+// inline context, and length-caps so a compromised /api/holomesh/team/templates
+// response can't blow out or instruction-inject the prompt the LLM receives.
+function sanitizeForPrompt(s: string, maxLen: number): string {
+  let stripped = '';
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    stripped += code < 0x20 || code === 0x7f ? ' ' : s[i];
+  }
+  stripped = stripped.trim();
+  return stripped.length > maxLen ? `${stripped.slice(0, maxLen)}...` : stripped;
+}
+
 function HolomeshTemplateChips({ onChip }: { onChip: (prompt: string) => void }) {
   const [templates, setTemplates] = useState<HolomeshTemplate[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -222,7 +236,9 @@ function HolomeshTemplateChips({ onChip }: { onChip: (prompt: string) => void })
       </div>
       <div className="flex flex-wrap gap-1.5 px-1">
       {templates.map((t) => {
-        const prompt = `Set up a HoloMesh "${t.name}" team session — ${t.objective}.`;
+        const safeName = sanitizeForPrompt(t.name, 60);
+        const safeObjective = sanitizeForPrompt(t.objective, 200);
+        const prompt = `Set up a HoloMesh "${safeName}" team session — ${safeObjective}.`;
         return (
           <button
             key={t.slug}
@@ -433,7 +449,7 @@ export function BrittneyBuildSurface() {
 
   return (
     <div className="fixed inset-0 flex flex-col bg-[#0a0a12]">
-      {/* ─── Header ───────────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <header className="z-10 flex w-full items-center justify-between border-b border-white/[0.04] px-6 py-3">
         <Link
           href="/"
@@ -457,9 +473,9 @@ export function BrittneyBuildSurface() {
         </button>
       </header>
 
-      {/* ─── Main split ───────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Main split â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid flex-1 grid-cols-1 lg:grid-cols-[420px_1fr] xl:grid-cols-[480px_1fr]">
-        {/* Left: chat ─────────────────────────────────────────────── */}
+        {/* Left: chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="flex min-h-0 flex-col border-r border-white/[0.04]">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -591,7 +607,7 @@ export function BrittneyBuildSurface() {
           </div>
         </section>
 
-        {/* Right: live preview ────────────────────────────────────── */}
+        {/* Right: live preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="relative min-h-0 bg-[#0a0a12]">
           <SceneViewer
             code={code}
