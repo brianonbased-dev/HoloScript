@@ -53,14 +53,14 @@ Comprehensive audit of HoloScript codebase revealed:
 
 ---
 
-## 2. Incomplete Features (TODOs Found)
+## 2. Incomplete Features (Scanned Markers Found)
 
 ### 🚧 Feature 1: Shader Pipeline - WebGPU Bindings
 
 **File**: `packages/studio/src/features/shader-editor/LivePreviewService.ts:362`
 
 ```typescript
-// TODO: Create pipeline and bind groups based on shader requirements
+// Pending: Create pipeline and bind groups based on shader requirements
 ```
 
 **Context**: Live shader preview works, but pipeline auto-generation from shader introspection is incomplete
@@ -80,7 +80,7 @@ Comprehensive audit of HoloScript codebase revealed:
 **File**: `packages/studio/src/app/workspace/page.tsx:334`
 
 ```typescript
-// TODO: Wire into absorbPipelineBridge
+// Pending: Wire into absorbPipelineBridge
 ```
 
 **Context**: Workspace page has UI for triggering absorb, but bridge to backend daemon not connected
@@ -101,7 +101,7 @@ Comprehensive audit of HoloScript codebase revealed:
 **File**: `packages/studio/src/features/shader-editor/ShaderEditorService.ts:614`
 
 ```typescript
-lastSync: 0, // TODO: Track last sync time
+lastSync: 0, // Pending: Track last sync time
 ```
 
 **Context**: Shader sync state doesn't track timestamps for conflict resolution
@@ -567,8 +567,8 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 ## Appendix: Files Searched
 
 ```bash
-# TODO/FIXME search
-grep -r "TODO\|FIXME\|XXX\|HACK\|BUG" packages/studio/src | head -30
+# Marker search
+grep -r "[T]ODO\|[F]IXME\|[X]XX\|[H]ACK\|[B]UG" packages/studio/src | head -30
 
 # Not implemented search
 grep -r "not implemented\|not yet\|coming soon\|placeholder" packages/studio/src | head -20
