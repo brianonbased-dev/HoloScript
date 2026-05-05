@@ -3,7 +3,7 @@
  *
  * Paper-12 (HoloLand I3D) §"Remaining Work for Camera-Ready" item 1 —
  * Scene-suite mean/median plugin-loaded overhead matrix. Closes the first
- * `\todo{}` in `paper-12-holo-i3d.tex:597-600` ("Scene suite size, target
+ * camera-ready note in `paper-12-holo-i3d.tex:597-600` ("Scene suite size, target
  * list, host, and mean/median overhead from timed runs").
  *
  * Existing single-scene probe (`paper12PluginProbe.ts` /
@@ -226,10 +226,13 @@ function measureScene(scene: SceneSpec, iters: number): ScenePoint {
 
   // OpenUSD plugin export path on the same conceptual scene.
   let usdLines = 0;
-  const usdExportMeanMs = timedMean(() => {
-    const out = exportToUsda(scene.usd);
-    usdLines = out.loc;
-  }, Math.min(iters, 60));
+  const usdExportMeanMs = timedMean(
+    () => {
+      const out = exportToUsda(scene.usd);
+      usdLines = out.loc;
+    },
+    Math.min(iters, 60)
+  );
 
   return {
     name: scene.name,
@@ -251,15 +254,23 @@ function renderArtifact(points: ScenePoint[], wallMs: number, date: string): str
   lines.push(`# Paper-12 §"Remaining Work" item 1 — Scene-Suite Plugin-Loaded Overhead`);
   lines.push('');
   lines.push(`- Date: ${date}`);
-  lines.push(`- Suite: ${points.length} scenes × 2 target paths (HoloScript parser + OpenUSD plugin export)`);
+  lines.push(
+    `- Suite: ${points.length} scenes × 2 target paths (HoloScript parser + OpenUSD plugin export)`
+  );
   lines.push(`- Iterations per measurement: see code (PAPER12_QUICK env supported)`);
   lines.push(`- Wall-clock: ${wallMs.toFixed(1)} ms`);
-  lines.push(`- Item 2 (structural-biology USD comparison) is split into a separate board task — NOT covered here.`);
+  lines.push(
+    `- Item 2 (structural-biology USD comparison) is split into a separate board task — NOT covered here.`
+  );
   lines.push('');
   lines.push(`## Per-scene measurements`);
   lines.push('');
-  lines.push(`| Scene | Objects | Traits/Obj | Holo LOC | Cold parse mean (ms) | Warm parse mean (ms) | Warm/Cold | USD export mean (ms) | USD plugin LOC |`);
-  lines.push(`|-------|---------|------------|----------|----------------------|----------------------|-----------|----------------------|----------------|`);
+  lines.push(
+    `| Scene | Objects | Traits/Obj | Holo LOC | Cold parse mean (ms) | Warm parse mean (ms) | Warm/Cold | USD export mean (ms) | USD plugin LOC |`
+  );
+  lines.push(
+    `|-------|---------|------------|----------|----------------------|----------------------|-----------|----------------------|----------------|`
+  );
   for (const p of points) {
     const ratio = p.holoColdMeanMs > 0 ? p.holoWarmMeanMs / p.holoColdMeanMs : 0;
     lines.push(
@@ -292,8 +303,12 @@ function renderArtifact(points: ScenePoint[], wallMs: number, date: string): str
   lines.push('');
   lines.push(`## Source`);
   lines.push('');
-  lines.push(`- Harness: \`packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts\``);
-  lines.push(`- Sibling probe: \`packages/comparative-benchmarks/src/paper12PluginProbe.ts\` (single-scene reference)`);
+  lines.push(
+    `- Harness: \`packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts\``
+  );
+  lines.push(
+    `- Sibling probe: \`packages/comparative-benchmarks/src/paper12PluginProbe.ts\` (single-scene reference)`
+  );
   lines.push('');
   return lines.join('\n');
 }
@@ -324,10 +339,7 @@ describe('[Paper-12 §RemainingWork item 1] scene-suite mean/median plugin-loade
     const repoRoot = resolve(__dir, '..', '..', '..', '..');
     const benchLogsDir = resolve(repoRoot, '.bench-logs');
     if (!existsSync(benchLogsDir)) mkdirSync(benchLogsDir, { recursive: true });
-    const artifactPath = resolve(
-      benchLogsDir,
-      '2026-04-27-paper-12-scene-suite-overhead.md'
-    );
+    const artifactPath = resolve(benchLogsDir, '2026-04-27-paper-12-scene-suite-overhead.md');
     const md = renderArtifact(points, wallMs, '2026-04-27');
     writeFileSync(artifactPath, md);
 

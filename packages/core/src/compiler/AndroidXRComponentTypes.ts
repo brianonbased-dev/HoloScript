@@ -67,7 +67,7 @@ export type AndroidXRComponent =
 
 export type TraitImplementationLevel =
   | 'full' // Generates complete Kotlin/Android XR code
-  | 'partial' // Generates some code with TODOs
+  | 'partial' // Generates partial scaffold code
   | 'comment' // Only generates documentation comment
   | 'unsupported'; // Not available in Android XR
 
@@ -89,4 +89,3 @@ export interface AndroidXRTraitMapping {
 // =============================================================================
 // PHYSICS TRAITS
 // =============================================================================
-

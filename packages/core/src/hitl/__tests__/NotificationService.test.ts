@@ -22,6 +22,9 @@ import type { ApprovalRequest } from '../HITLBackendService';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+const FAKE_SLACK_WEBHOOK_URL =
+  'https://example.invalid/slack-webhook-test';
+
 describe('HITLNotificationService', () => {
   let service: HITLNotificationService;
 
@@ -56,7 +59,7 @@ describe('HITLNotificationService', () => {
       from: 'notifications@test.com',
     },
     slack: {
-      webhookUrl: 'https://hooks.slack.com/services/xxx/yyy/zzz',
+      webhookUrl: FAKE_SLACK_WEBHOOK_URL,
       channel: '#approvals',
       username: 'HITL Bot',
     },
@@ -119,7 +122,7 @@ describe('HITLNotificationService', () => {
       const fullService = new HITLNotificationService({
         channels: ['email', 'slack', 'webhook', 'sms'],
         email: { provider: 'ses', apiKey: 'key', from: 'test@test.com' },
-        slack: { webhookUrl: 'https://hooks.slack.com/xxx' },
+        slack: { webhookUrl: FAKE_SLACK_WEBHOOK_URL },
         webhook: { url: 'https://api.example.com', method: 'POST' },
         sms: { provider: 'twilio', apiKey: 'key', from: '+1234567890' },
         recipients: { email: ['test@test.com'], phone: ['+1234567890'] },
@@ -273,7 +276,7 @@ describe('HITLNotificationService', () => {
       const slackService = new HITLNotificationService({
         channels: ['slack'],
         slack: {
-          webhookUrl: 'https://hooks.slack.com/services/T00/B00/xxx',
+          webhookUrl: FAKE_SLACK_WEBHOOK_URL,
           channel: '#hitl-approvals',
           username: 'HITL Bot',
           iconEmoji: ':robot_face:',
@@ -284,7 +287,7 @@ describe('HITLNotificationService', () => {
       const results = await slackService.notify(mockApproval);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://hooks.slack.com/services/T00/B00/xxx',
+        FAKE_SLACK_WEBHOOK_URL,
         expect.objectContaining({
           method: 'POST',
           body: expect.any(String),
@@ -296,7 +299,7 @@ describe('HITLNotificationService', () => {
     it('should format Slack message with approval details', async () => {
       const slackService = new HITLNotificationService({
         channels: ['slack'],
-        slack: { webhookUrl: 'https://hooks.slack.com/xxx' },
+        slack: { webhookUrl: FAKE_SLACK_WEBHOOK_URL },
         recipients: {},
       });
 
@@ -313,7 +316,7 @@ describe('HITLNotificationService', () => {
     it('should include action URL in Slack message', async () => {
       const slackService = new HITLNotificationService({
         channels: ['slack'],
-        slack: { webhookUrl: 'https://hooks.slack.com/xxx' },
+        slack: { webhookUrl: FAKE_SLACK_WEBHOOK_URL },
         recipients: {},
       });
 
@@ -603,7 +606,7 @@ describe('Notification Factory Functions', () => {
 
     configureNotifications({
       channels: ['slack'],
-      slack: { webhookUrl: 'https://hooks.slack.com/xxx' },
+      slack: { webhookUrl: FAKE_SLACK_WEBHOOK_URL },
       recipients: {},
     });
 

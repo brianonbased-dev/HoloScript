@@ -2,7 +2,7 @@
  * paper-10-depth-distribution-50xk.bench.test.ts
  *
  * Paper-10 (HS Core PLDI) §3.3 — Empirical depth-distribution harness over the
- * 50-source × k-target compile matrix. Closes the camera-ready TODO at
+ * 50-source × k-target compile matrix. Closes the camera-ready item at
  * `paper-10-hs-core-pldi.tex:571-575` ("the 50 k-job run").
  *
  * Per (source, target) cell we measure two depth components:
@@ -47,10 +47,7 @@ import {
 } from '../traits/ProvenanceSemiring';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler } from '../VRChatCompiler';
-import type {
-  HoloComposition,
-  HoloObjectDecl,
-} from '../../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
 // Bypass agent-token RBAC (paper-10 measures the compile pipeline, not auth).
 // Same mock pattern as paper-10-multitarget-bench.test.ts.
@@ -81,10 +78,22 @@ const PIPELINE_BOUND_MAX = PIPELINE_BASE_K + OPTIMIZE_PASSES_P + 2 * 2; // 15
 /** 16-element trait pool — multiple traits per object force ProvenanceSemiring
  *  conflict resolution on the shared `depth` property. */
 const TRAIT_POOL = [
-  'glowing', 'collidable', 'physics', 'kinematic',
-  'visible', 'animated', 'interactive', 'grabbable',
-  'hoverable', 'magnetic', 'reactive', 'persistent',
-  'audible', 'tactile', 'thermal', 'gravity',
+  'glowing',
+  'collidable',
+  'physics',
+  'kinematic',
+  'visible',
+  'animated',
+  'interactive',
+  'grabbable',
+  'hoverable',
+  'magnetic',
+  'reactive',
+  'persistent',
+  'audible',
+  'tactile',
+  'thermal',
+  'gravity',
 ] as const;
 
 /** Mulberry32 — small, deterministic PRNG. */
@@ -140,10 +149,7 @@ function generateSource(sourceId: number, seed: number): SyntheticSource {
     composition: { name: `Paper10Source_${sourceId}`, objects } as HoloComposition,
     traitsPerObject,
     objectCount,
-    maxTraitsPerObject: traitsPerObject.reduce(
-      (m, t) => Math.max(m, t.length),
-      0
-    ),
+    maxTraitsPerObject: traitsPerObject.reduce((m, t) => Math.max(m, t.length), 0),
   };
 }
 
@@ -265,7 +271,9 @@ function renderArtifact(
   const allInBound = cells.every(
     (c) => c.pipelineDepth >= PIPELINE_BOUND_MIN && c.pipelineDepth <= PIPELINE_BOUND_MAX
   );
-  lines.push(`- Pipeline depth ∈ [${PIPELINE_BOUND_MIN}, ${PIPELINE_BOUND_MAX}] for all cells: **${allInBound ? 'PASS' : 'FAIL'}**`);
+  lines.push(
+    `- Pipeline depth ∈ [${PIPELINE_BOUND_MIN}, ${PIPELINE_BOUND_MAX}] for all cells: **${allInBound ? 'PASS' : 'FAIL'}**`
+  );
   const webgpuT = cells.filter((c) => c.target === 'webgpu').map((c) => c.observedT);
   const vrchatT = cells.filter((c) => c.target === 'vrchat').map((c) => c.observedT);
   lines.push(`- WebGPU observed t: ${distStats(webgpuT).median} (median)`);
@@ -279,7 +287,9 @@ function renderArtifact(
     lines.push(`### ${target}`);
     lines.push('');
     lines.push(`- Cells: ${sub.length}`);
-    lines.push(`- Total chain depth — min ${tStats.min}, median ${tStats.median}, p95 ${tStats.p95}, max ${tStats.max}, mean ${tStats.mean.toFixed(2)}`);
+    lines.push(
+      `- Total chain depth — min ${tStats.min}, median ${tStats.median}, p95 ${tStats.p95}, max ${tStats.max}, mean ${tStats.mean.toFixed(2)}`
+    );
     lines.push('');
   }
   lines.push(`## Per-cell sample (first 10)`);
@@ -300,13 +310,13 @@ function renderArtifact(
   lines.push(
     `Trait-composition chain depth (per object) = count of ⊗ operators in the ProvenanceSemiring source string when traits are composed under an explicit \`tropical-min-plus\` rule on the shared \`depth\` property. Cell value = max across objects in source.`
   );
-  lines.push(
-    `Total chain depth per cell = pipeline + trait-composition.`
-  );
+  lines.push(`Total chain depth per cell = pipeline + trait-composition.`);
   lines.push('');
   lines.push(`## Source`);
   lines.push('');
-  lines.push(`- Harness: \`packages/core/src/compiler/__tests__/paper-10-depth-distribution-50xk.bench.test.ts\``);
+  lines.push(
+    `- Harness: \`packages/core/src/compiler/__tests__/paper-10-depth-distribution-50xk.bench.test.ts\``
+  );
   lines.push(`- Runner:  \`packages/core/scripts/run-paper10-depth-distribution.mjs\``);
   lines.push('');
   return lines.join('\n');
@@ -330,9 +340,7 @@ describe('[Paper-10 §3.3] empirical depth distribution — 50 sources × k targ
       const tcDepths = src.traitsPerObject.map(measureTraitChainDepth);
       const tcMax = tcDepths.length === 0 ? 0 : Math.max(...tcDepths);
       const tcMean =
-        tcDepths.length === 0
-          ? 0
-          : tcDepths.reduce((a, b) => a + b, 0) / tcDepths.length;
+        tcDepths.length === 0 ? 0 : tcDepths.reduce((a, b) => a + b, 0) / tcDepths.length;
 
       for (const target of TARGETS) {
         const observedT = observeTargetPasses(target, src.composition);
@@ -375,10 +383,7 @@ describe('[Paper-10 §3.3] empirical depth distribution — 50 sources × k targ
     const repoRoot = resolve(__dir, '..', '..', '..', '..', '..');
     const benchLogsDir = resolve(repoRoot, '.bench-logs');
     if (!existsSync(benchLogsDir)) mkdirSync(benchLogsDir, { recursive: true });
-    const artifactPath = resolve(
-      benchLogsDir,
-      '2026-04-27-paper-10-depth-distribution-50xk.md'
-    );
+    const artifactPath = resolve(benchLogsDir, '2026-04-27-paper-10-depth-distribution-50xk.md');
     const date = '2026-04-27';
     const commit = process.env.PAPER10_COMMIT_SHA ?? 'local-run';
     const md = renderArtifact(cells, pipelineStats, traitStats, totalStats, wallMs, date, commit);
@@ -387,15 +392,9 @@ describe('[Paper-10 §3.3] empirical depth distribution — 50 sources × k targ
     console.log(
       `[paper-10][depth-distribution-50xk] cells=${cells.length} wallMs=${wallMs.toFixed(1)}`
     );
-    console.log(
-      `[paper-10][depth-distribution-50xk] pipeline=${JSON.stringify(pipelineStats)}`
-    );
-    console.log(
-      `[paper-10][depth-distribution-50xk] traitChain=${JSON.stringify(traitStats)}`
-    );
-    console.log(
-      `[paper-10][depth-distribution-50xk] total=${JSON.stringify(totalStats)}`
-    );
+    console.log(`[paper-10][depth-distribution-50xk] pipeline=${JSON.stringify(pipelineStats)}`);
+    console.log(`[paper-10][depth-distribution-50xk] traitChain=${JSON.stringify(traitStats)}`);
+    console.log(`[paper-10][depth-distribution-50xk] total=${JSON.stringify(totalStats)}`);
     console.log(`[paper-10][depth-distribution-50xk] artifact=${artifactPath}`);
   });
 });
