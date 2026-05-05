@@ -60,11 +60,11 @@ export function getSandboxRoot(): string | null {
  * symlink-targeted escapes.)
  */
 export function enforcePathBoundary(path: string): string {
-  const root = getSandboxRoot();
-  if (root === null) return path;
   if (typeof path !== 'string') {
     throw new TypeError(`[@holoscript/std/fs] path must be a string, got ${typeof path}`);
   }
+  const root = getSandboxRoot();
+  if (root === null) return path;
 
   // Resolve relative paths against sandbox root, not the current working
   // directory. This is the critical difference: a `.hsplus` scene shouldn't

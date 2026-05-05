@@ -28,7 +28,7 @@ const statusRank: Record<ScanSession['status'], number> = {
 function shouldApplyStatus(current: ScanSession['status'], next: ScanSession['status']): boolean {
   if (current === 'done') return next === 'done';
   if (next === 'error') return true;
-  if (current === 'error') return true;
+  if (current === 'error') return next === 'error';
   return statusRank[next] >= statusRank[current];
 }
 

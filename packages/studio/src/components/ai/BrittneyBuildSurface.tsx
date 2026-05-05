@@ -198,7 +198,7 @@ function sanitizeForPrompt(s: string, maxLen: number): string {
     stripped += code < 0x20 || code === 0x7f ? ' ' : s[i];
   }
   stripped = stripped.trim();
-  return stripped.length > maxLen ? `${stripped.slice(0, maxLen)}...` : stripped;
+  return stripped.length > maxLen ? `${stripped.slice(0, maxLen - 3)}...` : stripped;
 }
 
 function HolomeshTemplateChips({ onChip }: { onChip: (prompt: string) => void }) {
