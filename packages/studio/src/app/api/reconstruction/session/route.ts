@@ -185,7 +185,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   if (typeof body.videoHash === 'string' && body.videoHash.length > 0) {
     session.videoHash = body.videoHash;
   }
-  if (typeof body.error === 'string') {
+  if (typeof body.error === 'string' && session.status !== 'done') {
     session.lastError = body.error;
     session.status = 'error';
   }

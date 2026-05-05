@@ -142,6 +142,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const finalizeTimeoutRef = useRef<number | null>(null);
   const cameraCaptureInputRef = useRef<HTMLInputElement | null>(null);
   const completionFeedbackSentRef = useRef(false);
   const phoneConnectedSentRef = useRef(false);
@@ -216,7 +217,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   };
 
   useEffect(() => {
-    return () => stopCameraStream(false);
+    return () => {
+      if (finalizeTimeoutRef.current !== null) {
+        window.clearTimeout(finalizeTimeoutRef.current);
+        finalizeTimeoutRef.current = null;
+      }
+      stopCameraStream(false);
+    };
   }, []);
 
   useEffect(() => {
@@ -374,6 +381,12 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     ].find((mime) => MediaRecorder.isTypeSupported(mime));
   };
 
+  const clearFinalizeTimer = () => {
+    if (finalizeTimeoutRef.current === null) return;
+    window.clearTimeout(finalizeTimeoutRef.current);
+    finalizeTimeoutRef.current = null;
+  };
+
   const submitCapture = async (file: File) => {
     if (!file) return;
     setUploading(true);
@@ -460,14 +473,20 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   };
 
   const finalizeRecordedCapture = (recorder: MediaRecorder, typeHint?: string) => {
+    clearFinalizeTimer();
     const type = recorder.mimeType || typeHint || 'video/webm';
     const blob = new Blob(chunksRef.current, { type });
     recorderRef.current = null;
 
     if (blob.size <= 0) {
+      const message = 'No video data was captured. Record for a few seconds, then finish again.';
       setCameraState('ready');
       setRecordingStartedAt(null);
-      setError('No video data was captured. Record for a few seconds, then finish again.');
+      setError(message);
+      setCaptureNotice(null);
+      void pushState({ status: 'error', error: message }).catch((pushError) => {
+        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the capture failure.');
+      });
       return;
     }
 
@@ -477,11 +496,23 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     void submitCapture(file);
   };
 
+  const scheduleFinalizeRecordedCapture = (recorder: MediaRecorder, typeHint: string | undefined, delayMs: number) => {
+    clearFinalizeTimer();
+    finalizeTimeoutRef.current = window.setTimeout(() => {
+      finalizeTimeoutRef.current = null;
+      if (recorderRef.current !== recorder) return;
+      finalizeRecordedCapture(recorder, typeHint);
+    }, delayMs);
+  };
+
   const startRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
 
     chunksRef.current = [];
+    clearFinalizeTimer();
+    setCaptureNotice('Recording room scan...');
+    setError(null);
     const mimeType = bestRecorderMime();
     let recorder: MediaRecorder;
     try {
@@ -503,15 +534,19 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     recorder.onerror = (event) => {
       const mediaEvent = event as Event & { error?: DOMException };
-      setError(mediaEvent.error?.message ?? 'The camera recorder stopped unexpectedly.');
+      const message = mediaEvent.error?.message ?? 'The camera recorder stopped unexpectedly.';
+      setError(message);
       setCameraState('ready');
       setRecordingStartedAt(null);
+      void pushState({ status: 'error', error: message }).catch((pushError) => {
+        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the recorder error.');
+      });
     };
 
     recorder.onstop = () => {
       if (finalized) return;
       finalized = true;
-      finalizeRecordedCapture(recorder, mimeType);
+      scheduleFinalizeRecordedCapture(recorder, mimeType, 900);
     };
 
     setRecordingSeconds(0);
@@ -543,6 +578,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     setCameraState('processing');
     setRecordingStartedAt(null);
+    setCaptureNotice('Finishing capture...');
     try {
       recorder.requestData();
     } catch {
@@ -551,10 +587,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     if (recorder.state === 'recording' || recorder.state === 'paused') {
       recorder.stop();
+      scheduleFinalizeRecordedCapture(recorder, bestRecorderMime(), 2500);
       return;
     }
 
-    finalizeRecordedCapture(recorder, bestRecorderMime());
+    scheduleFinalizeRecordedCapture(recorder, bestRecorderMime(), 900);
   };
 
   const isStudioCameraOpen =
