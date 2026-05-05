@@ -155,7 +155,7 @@ const result = await sandbox.executeHoloScript(aiCode, {
 | Triple braces | 50 | `{{{` or `}}}` |
 | OOP syntax | 40 | `class`, `extends` |
 | Placeholders | 60 | `[PLACEHOLDER]`, `[YOUR_VALUE]` |
-| TODO comments | 20 | `// TODO: Fix this` |
+| Task-marker comments | 20 | `// [T]ODO: Fix this` |
 | HTML/XML | 35 | `<cube>...</cube>` |
 | JavaScript | 35 | `function createCube()` |
 | Template literals | 45 | `@color("${var}")` |
