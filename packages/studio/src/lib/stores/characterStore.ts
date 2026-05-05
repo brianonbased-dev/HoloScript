@@ -3,9 +3,20 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { RecordedClip } from '../animationBuilder';
+import type { HoloMapScanRenderAsset } from '../holomap-scan-render';
 
 // Re-export wardrobe types for backward compatibility (now live in wardrobeStore)
 export type { WardrobeSlot, WardrobeItem } from './wardrobeStore';
+
+export interface HoloAvatarAsset {
+  url: string;
+  name: string;
+  scanKind: 'face';
+  renderAsset: HoloMapScanRenderAsset;
+  replayFingerprint?: string;
+  manifest?: unknown;
+  traits: string[];
+}
 
 // ─── Character Store ─────────────────────────────────────────────────────────
 // Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
@@ -14,6 +25,8 @@ export type { WardrobeSlot, WardrobeItem } from './wardrobeStore';
 interface CharacterState {
   /** Object URL of the loaded .glb file */
   glbUrl: string | null;
+  /** Derived .holo avatar asset from local-first HoloMap face capture */
+  holoAvatar: HoloAvatarAsset | null;
   /** Bone names extracted from the skeleton */
   boneNames: string[];
   /** Currently selected bone index (null = none) */
@@ -45,6 +58,7 @@ interface CharacterState {
 
   // Actions
   setGlbUrl: (url: string | null) => void;
+  setHoloAvatar: (asset: HoloAvatarAsset | null) => void;
   setBoneNames: (names: string[]) => void;
   setSelectedBoneIndex: (index: number | null) => void;
   setShowSkeleton: (v: boolean) => void;
@@ -67,6 +81,7 @@ export const useCharacterStore = create<CharacterState>()(
   devtools(
     (set) => ({
       glbUrl: null,
+      holoAvatar: null,
       boneNames: [],
       selectedBoneIndex: null,
       showSkeleton: true,
@@ -84,6 +99,16 @@ export const useCharacterStore = create<CharacterState>()(
       setGlbUrl: (glbUrl) =>
         set({
           glbUrl,
+          holoAvatar: null,
+          boneNames: [],
+          selectedBoneIndex: null,
+          builtinAnimations: [],
+          activeBuiltinAnimation: null,
+        }),
+      setHoloAvatar: (holoAvatar) =>
+        set({
+          holoAvatar,
+          glbUrl: null,
           boneNames: [],
           selectedBoneIndex: null,
           builtinAnimations: [],
@@ -93,7 +118,8 @@ export const useCharacterStore = create<CharacterState>()(
       setSelectedBoneIndex: (selectedBoneIndex) => set({ selectedBoneIndex }),
       setShowSkeleton: (showSkeleton) => set({ showSkeleton }),
       setIsRecording: (isRecording) => set({ isRecording }),
-      addRecordedClip: (clip) => set((s) => ({ recordedClips: [...s.recordedClips, clip].slice(-50) })),
+      addRecordedClip: (clip) =>
+        set((s) => ({ recordedClips: [...s.recordedClips, clip].slice(-50) })),
       removeRecordedClip: (id) =>
         set((s) => ({ recordedClips: s.recordedClips.filter((c) => c.id !== id) })),
       renameRecordedClip: (id, name) =>

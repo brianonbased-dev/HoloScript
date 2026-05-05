@@ -16,12 +16,22 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { clientIpFromRequest, takeRateLimitToken } from './reconstruction-session-rate-limit';
 
+export type ScanKind = 'room' | 'face';
+
 export interface ScanSession {
   token: string;
   createdAt: string;
   expiresAt: string;
   desktopUser?: string;
-  status: 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+  status:
+    | 'pending-phone'
+    | 'phone-connected'
+    | 'capturing'
+    | 'uploaded'
+    | 'processing'
+    | 'done'
+    | 'error';
+  scanKind?: ScanKind;
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   frameCount?: number;
   videoBytes?: number;

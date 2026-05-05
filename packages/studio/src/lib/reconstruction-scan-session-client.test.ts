@@ -32,7 +32,7 @@ function activeSession(overrides: Partial<ScanSessionResponse> = {}): ScanSessio
 describe('reconstruction scan session client storage', () => {
   it('persists and restores an active scan session', () => {
     const storage = memoryStorage();
-    const session = activeSession();
+    const session = activeSession({ scanKind: 'face' });
 
     writeStoredScanSession(session, storage);
 
@@ -43,7 +43,18 @@ describe('reconstruction scan session client storage', () => {
     const storage = memoryStorage();
     storage.setItem(
       SCAN_SESSION_STORAGE_KEY,
-      JSON.stringify(activeSession({ expiresAt: new Date(Date.now() - 1_000).toISOString() })),
+      JSON.stringify(activeSession({ expiresAt: new Date(Date.now() - 1_000).toISOString() }))
+    );
+
+    expect(readStoredScanSession(storage)).toBeNull();
+    expect(storage.getItem(SCAN_SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('clears sessions with malformed scan kind', () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      SCAN_SESSION_STORAGE_KEY,
+      JSON.stringify(activeSession({ scanKind: 'biometric' as unknown as 'face' }))
     );
 
     expect(readStoredScanSession(storage)).toBeNull();

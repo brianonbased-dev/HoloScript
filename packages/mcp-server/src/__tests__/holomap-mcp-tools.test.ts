@@ -1,24 +1,25 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../holo-reconstruct-sessions', () => ({
-  mcpStartReconstructFromVideo: vi.fn(async () => ({
-    sessionId: 'sess-1',
-    replayFingerprint: 'fp-1',
-    framesIngested: 0,
-    ingestMode: 'none',
-    videoBytes: 0,
-    ingestWarning: undefined,
-  })),
+  mcpStartReconstructFromVideo: vi.fn(
+    async (_videoUrl: string, config?: Record<string, unknown>) => ({
+      sessionId: 'sess-1',
+      replayFingerprint: 'fp-1',
+      framesIngested: 0,
+      ingestMode: 'none',
+      captureProfile:
+        config?.captureProfile === 'face' || config?.scanKind === 'face' ? 'face' : 'room',
+      videoBytes: 0,
+      ingestWarning: undefined,
+    })
+  ),
   mcpReconstructStep: vi.fn(async () => ({ ok: true, kind: 'step' })),
   mcpReconstructAnchor: vi.fn(async () => ({ ok: true, kind: 'anchor' })),
   mcpReconstructExport: vi.fn(async () => ({ ok: true, kind: 'export' })),
 }));
 
-import {
-  holoMapToolDefinitions,
-  isHoloMapToolName,
-  handleHoloMapTool,
-} from '../holomap-mcp-tools';
+import { holoMapToolDefinitions, isHoloMapToolName, handleHoloMapTool } from '../holomap-mcp-tools';
+import { mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
 
 describe('holomap mcp tools', () => {
   it('defines expected HoloMap tools', () => {
@@ -76,5 +77,19 @@ describe('holomap mcp tools', () => {
     expect(result.ok).toBe(true);
     expect(result.status).toBe('SESSION_OPEN');
     expect(result.sessionId).toBe('sess-1');
+    expect(result.captureProfile).toBe('room');
+  });
+
+  it('passes face capture profile through from_video config', async () => {
+    const result = (await handleHoloMapTool('holo_reconstruct_from_video', {
+      videoUrl: 'file:///tmp/face.mp4',
+      config: { ingestVideo: false, captureProfile: 'face' },
+    })) as Record<string, unknown>;
+
+    expect(result.captureProfile).toBe('face');
+    expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenLastCalledWith(
+      'file:///tmp/face.mp4',
+      { ingestVideo: false, captureProfile: 'face' }
+    );
   });
 });

@@ -8,7 +8,9 @@ import { logger } from '@/lib/logger';
 
 export function GlbDropZone() {
   const setGlbUrl = useCharacterStore((s) => s.setGlbUrl);
+  const setHoloAvatar = useCharacterStore((s) => s.setHoloAvatar);
   const glbUrl = useCharacterStore((s) => s.glbUrl);
+  const holoAvatar = useCharacterStore((s) => s.holoAvatar);
   const [dragging, setDragging] = useState(false);
   const [creationModalOpen, setCreationModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +23,18 @@ export function GlbDropZone() {
 
   const handleCharacterCreated = (glbUrl: string, metadata?: CharacterMetadata) => {
     logger.debug('[CharacterCreation] Character created:', metadata);
+    if (metadata?.source === 'face-scan' && metadata.holoRenderAsset) {
+      setHoloAvatar({
+        url: glbUrl,
+        name: metadata.name ?? 'Face scan avatar',
+        scanKind: 'face',
+        renderAsset: metadata.holoRenderAsset,
+        replayFingerprint: metadata.replayFingerprint,
+        manifest: metadata.holoManifest,
+        traits: metadata.holoTraits ?? [],
+      });
+      return;
+    }
     setGlbUrl(glbUrl);
   };
 
@@ -31,7 +45,7 @@ export function GlbDropZone() {
     if (file) handleFile(file);
   };
 
-  if (glbUrl) return null; // hide once loaded — model is in viewport
+  if (glbUrl || holoAvatar) return null; // hide once loaded — model is in viewport
 
   return (
     <>

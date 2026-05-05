@@ -38,7 +38,13 @@ describe('CharacterMetadata type contract', () => {
 
   it('accepts all valid source values', () => {
     const sources: CharacterMetadata['source'][] = [
-      'ai', 'vroid', 'mixamo', 'preset', 'sketchfab', 'upload',
+      'ai',
+      'vroid',
+      'mixamo',
+      'preset',
+      'sketchfab',
+      'upload',
+      'face-scan',
     ];
     for (const source of sources) {
       const meta: CharacterMetadata = { source };
@@ -63,6 +69,21 @@ describe('CharacterMetadata type contract', () => {
     const meta: CharacterMetadata = { source: 'upload' };
     expect(meta.name).toBeUndefined();
     expect(meta.templateId).toBeUndefined();
+  });
+
+  it('accepts HoloMap face scan metadata', () => {
+    const meta: CharacterMetadata = {
+      source: 'face-scan',
+      assetFormat: 'holo',
+      scanKind: 'face',
+      scanSessionToken: 'scan-token',
+      replayFingerprint: 'fp-test',
+      holoTraits: ['@avatar_embodiment', '@face_tracking'],
+    };
+
+    expect(meta.assetFormat).toBe('holo');
+    expect(meta.scanKind).toBe('face');
+    expect(meta.holoTraits).toContain('@face_tracking');
   });
 });
 
@@ -92,8 +113,13 @@ describe('ExportOptions type contract', () => {
     const formats: ExportOptions['format'][] = ['mp4', 'webm'];
     for (const format of formats) {
       const opts: ExportOptions = {
-        width: 1080, height: 1080, fps: 30, duration: 3,
-        format, codec: 'h264', transparent: false,
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        duration: 3,
+        format,
+        codec: 'h264',
+        transparent: false,
       };
       expect(opts.format).toBe(format);
     }
@@ -103,8 +129,13 @@ describe('ExportOptions type contract', () => {
     const codecs: ExportOptions['codec'][] = ['h264', 'vp9', 'av1'];
     for (const codec of codecs) {
       const opts: ExportOptions = {
-        width: 1080, height: 1080, fps: 30, duration: 3,
-        format: 'mp4', codec, transparent: false,
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        duration: 3,
+        format: 'mp4',
+        codec,
+        transparent: false,
       };
       expect(opts.codec).toBe(codec);
     }
@@ -112,8 +143,13 @@ describe('ExportOptions type contract', () => {
 
   it('supports transparent background flag', () => {
     const transparent: ExportOptions = {
-      width: 1080, height: 1080, fps: 30, duration: 3,
-      format: 'webm', codec: 'vp9', transparent: true,
+      width: 1080,
+      height: 1080,
+      fps: 30,
+      duration: 3,
+      format: 'webm',
+      codec: 'vp9',
+      transparent: true,
     };
     expect(transparent.transparent).toBe(true);
   });
@@ -209,7 +245,12 @@ describe('buildCharacterCard', () => {
 describe('WardrobeSlot type contract', () => {
   it('covers all 6 wardrobe slots', () => {
     const ALL_SLOTS: WardrobeSlot[] = [
-      'hair', 'top', 'bottom', 'shoes', 'accessory_1', 'accessory_2',
+      'hair',
+      'top',
+      'bottom',
+      'shoes',
+      'accessory_1',
+      'accessory_2',
     ];
     expect(ALL_SLOTS).toHaveLength(6);
     for (const slot of ALL_SLOTS) {
@@ -241,9 +282,7 @@ describe('WardrobeItem type contract', () => {
   });
 
   it('can have any valid WardrobeSlot', () => {
-    const slots: WardrobeSlot[] = [
-      'hair', 'top', 'bottom', 'shoes', 'accessory_1', 'accessory_2',
-    ];
+    const slots: WardrobeSlot[] = ['hair', 'top', 'bottom', 'shoes', 'accessory_1', 'accessory_2'];
     for (const slot of slots) {
       const item = createWardrobeItem({ slot });
       expect(item.slot).toBe(slot);

@@ -13,14 +13,17 @@
  * 4. Preset Models - Hosted GLB files (Pepe, Wojak, etc.)
  * 5. Sketchfab - Search 3M+ models
  * 6. Upload - Drag & drop GLB/GLTF/VRM
+ * 7. Face Scan - Phone/webcam HoloMap capture → derived .holo avatar
  *
  * NO DEPENDENCIES on defunct services (ReadyPlayerMe is gone)
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Sparkles, Upload, Library, Search, Cpu, User, Zap, Settings, Key } from 'lucide-react';
+import { QRCodeImage } from '@/components/QRCodeImage';
 import APIKeysPanel, { hasAPIKey } from '@/components/settings/APIKeysPanel';
 import { logger } from '@/lib/logger';
+import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 
 interface CharacterCreationModalProps {
   isOpen: boolean;
@@ -30,13 +33,20 @@ interface CharacterCreationModalProps {
 
 export interface CharacterMetadata {
   name?: string;
-  source: 'ai' | 'vroid' | 'mixamo' | 'preset' | 'sketchfab' | 'upload';
+  source: 'ai' | 'vroid' | 'mixamo' | 'preset' | 'sketchfab' | 'upload' | 'face-scan';
+  assetFormat?: 'glb' | 'gltf' | 'vrm' | 'holo';
   templateId?: string;
   thumbnailUrl?: string;
   credits?: string;
+  scanKind?: 'face';
+  scanSessionToken?: string;
+  replayFingerprint?: string;
+  holoTraits?: string[];
+  holoManifest?: unknown;
+  holoRenderAsset?: HoloMapScanRenderAsset;
 }
 
-type CreationTab = 'presets' | 'ai' | 'vroid' | 'mixamo' | 'sketchfab' | 'upload';
+type CreationTab = 'presets' | 'face-scan' | 'ai' | 'vroid' | 'mixamo' | 'sketchfab' | 'upload';
 
 const TABS: Array<{
   id: CreationTab;
@@ -52,6 +62,14 @@ const TABS: Array<{
     icon: Library,
     description: 'Instant meme characters (Pepe, Wojak, Doge)',
     badge: 'FREE',
+    badgeType: 'free',
+  },
+  {
+    id: 'face-scan',
+    label: 'Face Scan',
+    icon: Zap,
+    description: 'Phone capture → face mesh → .holo avatar',
+    badge: 'LOCAL',
     badgeType: 'free',
   },
   {
@@ -220,6 +238,13 @@ export function CharacterCreationModal({
                   onOpenSettings={() => setShowSettings(true)}
                 />
               )}
+              {activeTab === 'face-scan' && (
+                <FaceScanTab
+                  onCharacterCreated={handleCharacterCreated}
+                  isLoading={isLoading}
+                  setIsLoading={setIsLoading}
+                />
+              )}
               {activeTab === 'mixamo' && (
                 <MixamoTab
                   onCharacterCreated={handleCharacterCreated}
@@ -259,6 +284,7 @@ export function CharacterCreationModal({
             <p className="text-studio-muted">
               💡 <span className="font-semibold text-studio-text">Free:</span>{' '}
               <span className="text-green-400">Meme Templates</span>,{' '}
+              <span className="text-green-400">Face Scan</span>,{' '}
               <span className="text-green-400">Upload</span>,{' '}
               <span className="text-green-400">VRoid</span>
             </p>
@@ -281,6 +307,239 @@ interface TabProps {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   onOpenSettings?: () => void;
+}
+
+type FaceScanStatus =
+  | 'pending-phone'
+  | 'phone-connected'
+  | 'capturing'
+  | 'uploaded'
+  | 'processing'
+  | 'done'
+  | 'error';
+
+interface FaceScanSessionResponse {
+  token: string;
+  mobileUrl: string;
+  expiresAt: string;
+  scanKind?: 'room' | 'face';
+}
+
+interface FaceScanState {
+  token: string;
+  status: FaceScanStatus;
+  scanKind?: 'room' | 'face';
+  frameCount?: number;
+  videoBytes?: number;
+  videoHash?: string;
+  replayFingerprint?: string;
+  manifest?: unknown;
+  renderAsset?: HoloMapScanRenderAsset;
+  lastError?: string;
+}
+
+const FACE_AVATAR_TRAITS = [
+  '@avatar_embodiment',
+  '@face_tracking',
+  '@lip_sync',
+  '@morph',
+  '@eye_tracked',
+  '@neural_animation',
+  '@gaussian_splat',
+];
+
+function FaceScanTab({
+  onCharacterCreated,
+  isLoading: _isLoading,
+  setIsLoading: _setIsLoading,
+}: TabProps) {
+  const [session, setSession] = useState<FaceScanSessionResponse | null>(null);
+  const [scanState, setScanState] = useState<FaceScanState | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startFaceSession = async () => {
+    setSessionLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/reconstruction/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanKind: 'face',
+          weightStrategy: 'distill',
+          user: 'studio-character-face-scan',
+        }),
+      });
+      if (!res.ok) throw new Error(`Face scan session failed (${res.status})`);
+      const data = (await res.json()) as FaceScanSessionResponse;
+      setSession(data);
+      setScanState(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start face scan session.');
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!session?.token) return;
+
+    let isCurrent = true;
+    let isRefreshing = false;
+    const refresh = async () => {
+      if (isRefreshing) return;
+      isRefreshing = true;
+      try {
+        const res = await fetch(
+          `/api/reconstruction/session?t=${encodeURIComponent(session.token)}`
+        );
+        if (!isCurrent) return;
+        if (!res.ok) {
+          setError(`Face scan polling failed (${res.status}).`);
+          return;
+        }
+        const data = (await res.json()) as FaceScanState;
+        setScanState(data);
+        setError(null);
+      } catch (e) {
+        if (isCurrent) {
+          setError(e instanceof Error ? e.message : 'Face scan polling failed.');
+        }
+      } finally {
+        isRefreshing = false;
+      }
+    };
+
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 1200);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [session?.token]);
+
+  const useFaceScan = () => {
+    if (!session || !scanState?.renderAsset || !scanState.manifest) return;
+
+    const holoAsset = {
+      version: '1.0.0',
+      kind: 'holoscript.face-avatar',
+      source: 'holomap-face-scan',
+      threatModel: 'creator-owned-face-content-not-identity-verification',
+      privacy: {
+        biometricSourceShared: false,
+        sharedArtifact: 'derived-avatar-holo',
+        retainedIdentity: 'mesh-hash-and-replay-fingerprint',
+      },
+      traits: FACE_AVATAR_TRAITS,
+      reconstruction: {
+        token: session.token,
+        replayFingerprint: scanState.replayFingerprint,
+        manifest: scanState.manifest,
+        renderAsset: scanState.renderAsset,
+      },
+    };
+    const blob = new Blob([JSON.stringify(holoAsset, null, 2)], {
+      type: 'application/holoscript+json',
+    });
+    const url = URL.createObjectURL(blob);
+
+    onCharacterCreated(url, {
+      name: `Face scan ${session.token.slice(0, 6)}`,
+      source: 'face-scan',
+      assetFormat: 'holo',
+      scanKind: 'face',
+      scanSessionToken: session.token,
+      replayFingerprint: scanState.replayFingerprint,
+      credits: 'Captured locally with HoloMap',
+      holoTraits: FACE_AVATAR_TRAITS,
+      holoManifest: scanState.manifest,
+      holoRenderAsset: scanState.renderAsset,
+    });
+  };
+
+  const ready = Boolean(
+    scanState?.status === 'done' && scanState.renderAsset && scanState.manifest
+  );
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-white">Scan Your Face</h3>
+        <p className="mt-1 text-sm text-studio-muted">
+          Phone capture creates a derived .holo avatar with mesh hash provenance.
+        </p>
+      </div>
+
+      {!session ? (
+        <button
+          onClick={() => void startFaceSession()}
+          disabled={sessionLoading}
+          className="inline-flex items-center gap-2 rounded-xl border border-purple-500/40 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-300 transition-all hover:bg-purple-500/20 disabled:opacity-60"
+        >
+          {sessionLoading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-purple-300 border-t-transparent" />
+          ) : (
+            <Zap className="h-4 w-4" />
+          )}
+          Start face scan
+        </button>
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+          <div className="space-y-3">
+            <QRCodeImage url={session.mobileUrl} size={200} alt="Face scan mobile QR" />
+            <button
+              onClick={() => void startFaceSession()}
+              className="w-full rounded-lg border border-studio-border bg-black/20 px-3 py-2 text-xs text-studio-muted transition hover:text-white"
+            >
+              New QR
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-xl border border-studio-border bg-black/20 p-4">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-semibold text-white">Session status</span>
+                <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-studio-muted">
+                  {scanState?.status ?? 'pending-phone'}
+                </span>
+              </div>
+              {scanState?.replayFingerprint && (
+                <p className="mt-3 truncate font-mono text-[11px] text-studio-muted">
+                  {scanState.replayFingerprint}
+                </p>
+              )}
+              {scanState?.lastError && (
+                <p className="mt-2 text-xs text-red-300">{scanState.lastError}</p>
+              )}
+            </div>
+
+            {scanState?.renderAsset && (
+              <div className="rounded-xl border border-studio-border bg-black/20 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-studio-muted">
+                  Face mesh
+                </p>
+                <p className="mt-2 font-mono text-sm text-white">
+                  {scanState.renderAsset.pointCount.toLocaleString()} points
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={useFaceScan}
+              disabled={!ready}
+              className="w-full rounded-lg bg-purple-500 py-3 font-semibold text-white transition-all hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Use Face Scan Avatar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+    </div>
+  );
 }
 
 /**

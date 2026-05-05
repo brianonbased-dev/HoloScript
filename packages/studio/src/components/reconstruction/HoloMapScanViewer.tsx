@@ -66,8 +66,7 @@ export function HoloMapScanViewer({ renderAsset }: HoloMapScanViewerProps) {
     return Math.max(maxX - minX, maxY - minY, maxZ - minZ, 0.1);
   }, [renderAsset.bounds]);
   const cameraPosition = useMemo(
-    () =>
-      [target[0], target[1], target[2] + scanSpan * 2.3] as [number, number, number],
+    () => [target[0], target[1], target[2] + scanSpan * 2.3] as [number, number, number],
     [scanSpan, target]
   );
   const pointSize = useMemo(() => {
@@ -124,7 +123,8 @@ export function HoloMapScanViewer({ renderAsset }: HoloMapScanViewerProps) {
       </Canvas>
 
       <div className="absolute left-3 top-3 rounded-md border border-white/10 bg-black/45 px-2.5 py-1 text-[11px] text-white/70 backdrop-blur">
-        HoloMap scan · {renderAsset.pointCount.toLocaleString()} points
+        {renderAsset.scanKind === 'face' ? 'Face scan' : 'HoloMap scan'} ·{' '}
+        {renderAsset.pointCount.toLocaleString()} points
       </div>
     </div>
   );

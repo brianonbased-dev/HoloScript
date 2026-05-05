@@ -1,6 +1,6 @@
 # MEME-018: Character & Avatar Creation System
 
-**Status:** ✅ **COMPLETE** (All 6 creation paths + Settings panel)
+**Status:** ✅ **COMPLETE** (7 creation paths + Settings panel)
 **Priority:** Critical
 **Actual Time:** 4.5 hours
 **Date:** 2026-02-26
@@ -10,7 +10,7 @@
 
 ## 🎯 Overview
 
-Multi-path character and avatar creation system with **NO DEPENDENCIES** on defunct third-party services (ReadyPlayerMe is gone). Users can create characters through 6 different approaches, ensuring no single point of failure.
+Multi-path character and avatar creation system with **NO DEPENDENCIES** on defunct third-party services (ReadyPlayerMe is gone). Users can create characters through 7 different approaches, ensuring no single point of failure.
 
 ---
 
@@ -215,6 +215,23 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
 
 ---
 
+### 7. ✅ Face Scan (HOLOMAP AVATAR)
+
+**Status:** Production-ready bridge
+**Files:**
+
+- `src/industry/character/creation/CharacterCreationModal.tsx`
+- `src/app/api/reconstruction/session/route.ts`
+- `src/app/scan-room/mobile/[token]/page.tsx`
+
+- Phone-first capture with webcam/browser fallback
+- Uses `scanKind: "face"` / `captureProfile: "face"` on the existing HoloMap reconstruction session
+- Produces a derived `.holo` avatar asset with `@avatar_embodiment`, `@face_tracking`, `@lip_sync`, `@morph`, `@eye_tracked`, `@neural_animation`, and `@gaussian_splat`
+- Threat model: creator-owned face content; this is not identity verification
+- Shares the derived avatar artifact and replay/mesh hash metadata, not the biometric source video
+
+---
+
 ## 📁 Files Created/Updated
 
 ### New Files (6 total):
@@ -229,7 +246,7 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
 ### Updated Files (4 total):
 
 1. `src/components/character/CharacterCreationModal.tsx` (1300+ lines)
-   - Full 6-tab modal implementation with settings integration
+   - Full 7-tab modal implementation with settings integration
    - Settings button in header ("API Keys")
    - Updated tab badges (FREE 🟢, KEY 🔑, GUIDE 📖)
    - API key configuration prompts in AI/Sketchfab tabs
@@ -237,6 +254,7 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
    - VRoidTab (150+ lines)
    - MixamoTab (200+ lines)
    - SketchfabTab (250+ lines) + API key check
+   - FaceScanTab + HoloMap `.holo` avatar bridge
    - PresetModelsTab (150+ lines)
    - UploadTab (50 lines)
 
@@ -269,7 +287,7 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
 
 ### Tab Navigation
 
-- 6 tabs with icons and badges
+- 7 tabs with icons and badges
 - "INSTANT" badge on Preset Models
 - "2026" badge on AI Generate
 - "PRO" badge on Mixamo
@@ -318,6 +336,7 @@ holoscript_sketchfab_api_key  → Sketchfab
 ### Behavior Without API Keys:
 
 - **Preset Models:** ✅ Fully functional (no keys needed)
+- **Face Scan:** ✅ Fully functional (no keys needed)
 - **Upload:** ✅ Fully functional (no keys needed)
 - **VRoid Import:** ✅ Fully functional (no keys needed)
 - **AI Generate:** ⚠️ Shows configuration prompt (requires Meshy or Rodin key)
@@ -359,6 +378,7 @@ holoscript_sketchfab_api_key  → Sketchfab
 - ✅ AI Generate (mock mode)
 - ✅ Mixamo (manual instructions)
 - ✅ Sketchfab (search works, manual download)
+- ✅ Face Scan (local-first HoloMap avatar bridge)
 
 ---
 
@@ -369,7 +389,7 @@ holoscript_sketchfab_api_key  → Sketchfab
 | Total Lines Added  | ~3,550                                            |
 | New Files Created  | 6                                                 |
 | Files Updated      | 4                                                 |
-| Creation Paths     | 6                                                 |
+| Creation Paths     | 7                                                 |
 | Preset Characters  | 9                                                 |
 | Test Cases Added   | 1                                                 |
 | Development Time   | 4.5 hours                                         |
@@ -382,7 +402,7 @@ holoscript_sketchfab_api_key  → Sketchfab
 
 ✅ **All criteria met:**
 
-- [x] Multiple character creation paths (6 total)
+- [x] Multiple character creation paths (7 total)
 - [x] No dependency on defunct services (ReadyPlayerMe eliminated)
 - [x] CDN-hosted preset models with fallback
 - [x] AI character generation (2026 standard)
@@ -467,6 +487,9 @@ holoscript_sketchfab_api_key  → Sketchfab
 **Custom Models:**
 → Upload tab → Drag & drop .glb file
 
+**Face Avatar:**
+→ Face Scan tab → Scan QR → Capture → Use derived .holo avatar
+
 **Search 3M+ Models:**
 → Sketchfab tab → Search → Download → Use
 
@@ -478,9 +501,9 @@ holoscript_sketchfab_api_key  → Sketchfab
 
 ### ✅ Complete Implementation
 
-**6 Creation Paths + Settings Panel:**
+**7 Creation Paths + Settings Panel:**
 
-- 🟢 **FREE (email sign-up):** Brittney AI + Preset Models, Upload, VRoid, all manual tools
+- 🟢 **FREE (email sign-up):** Brittney AI + Preset Models, Face Scan, Upload, VRoid, all manual tools
 - 💰 **CLOUD TOKENS:** Pay-per-token Brittney cloud usage (scene gen, code assist, etc.)
 - ✨ **PRO:** Vision model for AI generation (characters, creatures, scenes, etc.)
 - 🔗 **INTEGRATIONS:** Sketchfab (third-party API key)

@@ -6,18 +6,18 @@ Central index for **operators, integrators, and tutorial authors**. Deep technic
 
 ## 1. Start here
 
-| Doc | Who | Purpose |
-|-----|-----|---------|
-| [CHARTER.md](./CHARTER.md) | Product + eng | Versioning, determinism, package boundaries |
-| [RFC-HoloMap.md](../../packages/core/src/reconstruction/RFC-HoloMap.md) | Engineers | Protocol + MCP tool names |
-| [STUDIO_RECONSTRUCTION_PANEL.md](./STUDIO_RECONSTRUCTION_PANEL.md) | Studio / UX | How native runs surface next to compatibility ingest |
-| [RUNBOOK_PAPER_HARNESSES.md](./RUNBOOK_PAPER_HARNESSES.md) | Research + CI | Paper harness flags, ingest paths, logs |
-| [MCP_SURFACE_VALIDATION.md](./MCP_SURFACE_VALIDATION.md) | CI + MCP | Tool list + vitest contract file |
-| [weights-cdn-fallback.md](./weights-cdn-fallback.md) | Ops | CDN, content-addressed weights, failover |
-| [reconstruction-runtime.md](./reconstruction-runtime.md) | Engineers | Code map + doc delta checklist |
-| [MODALITY_WEIGHTS.md](./MODALITY_WEIGHTS.md) | Product + eng | Desktop HoloMap vs mobile `npu_depth` weight families |
-| [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md) | Product + ML | RFC Q2: indoor / outdoor / object specialists vs generalist |
-| [LAB_COMPOSITION_PLAN.md](./LAB_COMPOSITION_PLAN.md) | Research + hardware lab | S23 + Studio + Quest 3 composition plan and Lab Cell 001 contract |
+| Doc                                                                     | Who                     | Purpose                                                           |
+| ----------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------- |
+| [CHARTER.md](./CHARTER.md)                                              | Product + eng           | Versioning, determinism, package boundaries                       |
+| [RFC-HoloMap.md](../../packages/core/src/reconstruction/RFC-HoloMap.md) | Engineers               | Protocol + MCP tool names                                         |
+| [STUDIO_RECONSTRUCTION_PANEL.md](./STUDIO_RECONSTRUCTION_PANEL.md)      | Studio / UX             | How native runs surface next to compatibility ingest              |
+| [RUNBOOK_PAPER_HARNESSES.md](./RUNBOOK_PAPER_HARNESSES.md)              | Research + CI           | Paper harness flags, ingest paths, logs                           |
+| [MCP_SURFACE_VALIDATION.md](./MCP_SURFACE_VALIDATION.md)                | CI + MCP                | Tool list + vitest contract file                                  |
+| [weights-cdn-fallback.md](./weights-cdn-fallback.md)                    | Ops                     | CDN, content-addressed weights, failover                          |
+| [reconstruction-runtime.md](./reconstruction-runtime.md)                | Engineers               | Code map + doc delta checklist                                    |
+| [MODALITY_WEIGHTS.md](./MODALITY_WEIGHTS.md)                            | Product + eng           | Desktop HoloMap vs mobile `npu_depth` weight families             |
+| [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md)            | Product + ML            | RFC Q2: indoor / outdoor / object specialists vs generalist       |
+| [LAB_COMPOSITION_PLAN.md](./LAB_COMPOSITION_PLAN.md)                    | Research + hardware lab | S23 + Studio + Quest 3 composition plan and Lab Cell 001 contract |
 
 ---
 
@@ -25,12 +25,12 @@ Central index for **operators, integrators, and tutorial authors**. Deep technic
 
 Implemented in `packages/mcp-server/src/holomap-mcp-tools.ts` (names stable for automation):
 
-| Tool | Role |
-|------|------|
-| `holo_reconstruct_from_video` | Open a session from `videoUrl`; optional ffmpeg frame ingest |
-| `holo_reconstruct_step` | Stream a single frame (`frameBase64`) through the session |
-| `holo_reconstruct_anchor` | Read anchor / context for the session |
-| `holo_reconstruct_export` | Export compiled output for a `target` |
+| Tool                          | Role                                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `holo_reconstruct_from_video` | Open a session from `videoUrl`; optional ffmpeg frame ingest; `config.captureProfile: "face"` selects avatar face capture |
+| `holo_reconstruct_step`       | Stream a single frame (`frameBase64`) through the session                                                                 |
+| `holo_reconstruct_anchor`     | Read anchor / context for the session                                                                                     |
+| `holo_reconstruct_export`     | Export compiled output for a `target`                                                                                     |
 
 **Environment / limits:** See `HOLOMAP_MCP_*` variables in `packages/mcp-server/src/holo-video-ingest.ts` (max bytes, fetch timeout).
 
@@ -39,7 +39,7 @@ Implemented in `packages/mcp-server/src/holomap-mcp-tools.ts` (names stable for 
 ## 3. Tutorial outline — video → composition → export
 
 1. **Inputs:** Video URL or file; decide trust tier (see charter) and weight profile.
-2. **Session:** Call `holo_reconstruct_from_video` with `config` (e.g. `ingestVideo: true` when ffmpeg is available).
+2. **Session:** Call `holo_reconstruct_from_video` with `config` (e.g. `ingestVideo: true` when ffmpeg is available; add `captureProfile: "face"` for creator-owned face scans).
 3. **Iterate:** Use `holo_reconstruct_step` for streaming or chunked pipelines.
 4. **Anchor:** Call `holo_reconstruct_anchor` before export if downstream needs attestation context.
 5. **Export:** `holo_reconstruct_export` with desired compiler target; verify manifest fingerprint in logs.
@@ -72,3 +72,4 @@ Use before calling a release “HoloMap-ready” for a given profile:
 - [Operator runbook](../ops/RUNBOOK.md)
 - [NUMBERS.md](../NUMBERS.md) — verification commands for ecosystem metrics
 - [Team mode ↔ board sync](../strategy/team-mode-board-sync.md) — how `TEAM_MODES` steers work
+- Studio face scan path: `packages/studio/src/industry/character/creation/CharacterCreationModal.tsx`

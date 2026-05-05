@@ -45,6 +45,7 @@ describe('buildHoloMapScanRenderAsset', () => {
     });
 
     expect(asset.kind).toBe('holomap-point-cloud');
+    expect(asset.scanKind).toBe('room');
     expect(asset.pointCount).toBe(256);
     expect(Buffer.from(asset.positionsB64, 'base64').byteLength).toBe(256 * 3 * 4);
     expect(Buffer.from(asset.colorsB64, 'base64').byteLength).toBe(256 * 3);
@@ -73,5 +74,26 @@ describe('buildHoloMapScanRenderAsset', () => {
     });
 
     expect(asset.pointCount).toBe(20_000);
+  });
+
+  it('builds deterministic face preview clouds for avatar scans', () => {
+    const input = {
+      manifest: manifest({
+        displayName: 'Studio face scan',
+        pointCount: 512,
+        bounds: { min: [-0.46, -0.62, -0.32], max: [0.46, 0.58, 0.28] },
+      }),
+      token: 'face-token',
+      videoHash: 'face-video',
+      scanKind: 'face' as const,
+    };
+
+    const first = buildHoloMapScanRenderAsset(input);
+    const second = buildHoloMapScanRenderAsset(input);
+
+    expect(first.scanKind).toBe('face');
+    expect(first.pointCount).toBe(512);
+    expect(second.positionsB64).toBe(first.positionsB64);
+    expect(second.colorsB64).toBe(first.colorsB64);
   });
 });

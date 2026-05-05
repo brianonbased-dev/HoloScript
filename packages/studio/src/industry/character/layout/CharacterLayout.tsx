@@ -22,7 +22,8 @@ import { GlbDropZone } from '../viewer/GlbDropZone';
 import { CharacterCustomizer } from '../customizer/CharacterCustomizer';
 import { MorphTargetController } from '../customizer/MorphTargetController';
 import { WardrobePanel } from '../wardrobe/WardrobePanel';
-import { Bone, Sliders, Shirt } from 'lucide-react';
+import { HoloMapScanViewer } from '@/components/reconstruction/HoloMapScanViewer';
+import { Bone, RotateCcw, Sliders, Shirt } from 'lucide-react';
 
 // Dynamically import the R3F viewer to avoid SSR issues
 // MEME-012: Using OptimizedGlbViewer for <500ms load times
@@ -44,10 +45,47 @@ function LoadingSpinner() {
 
 function Viewport() {
   const glbUrl = useCharacterStore((s) => s.glbUrl);
+  const holoAvatar = useCharacterStore((s) => s.holoAvatar);
+  const setHoloAvatar = useCharacterStore((s) => s.setHoloAvatar);
   const panelMode = useCharacterStore((s) => s.panelMode);
   const setPanelMode = useCharacterStore((s) => s.setPanelMode);
+  const modelUrl = glbUrl;
 
-  if (!glbUrl) {
+  if (!modelUrl && !holoAvatar) {
+    return <GlbDropZone />;
+  }
+
+  if (holoAvatar) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="w-full max-w-3xl space-y-3">
+          <div className="flex items-center justify-between rounded-xl border border-studio-border bg-studio-panel px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-studio-text">{holoAvatar.name}</p>
+              <p className="mt-1 text-xs text-studio-muted">
+                Derived .holo avatar · {holoAvatar.traits.join(', ')}
+              </p>
+            </div>
+            <button
+              onClick={() => setHoloAvatar(null)}
+              title="Unload face scan"
+              className="rounded-lg border border-studio-border p-2 text-studio-muted transition hover:text-red-300"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          </div>
+          <HoloMapScanViewer renderAsset={holoAvatar.renderAsset} />
+          {holoAvatar.replayFingerprint && (
+            <p className="truncate rounded-lg border border-studio-border bg-black/20 px-3 py-2 font-mono text-[11px] text-studio-muted">
+              {holoAvatar.replayFingerprint}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!modelUrl) {
     return <GlbDropZone />;
   }
 
@@ -60,7 +98,7 @@ function Viewport() {
         className="h-full w-full"
       >
         <Suspense fallback={null}>
-          <GlbViewer url={glbUrl} />
+          <GlbViewer url={modelUrl} />
           {panelMode === 'customize' && <MorphTargetController />}
         </Suspense>
       </Canvas>

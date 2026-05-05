@@ -4,6 +4,7 @@ export interface ScanSessionResponse {
   token: string;
   mobileUrl: string;
   expiresAt: string;
+  scanKind?: 'room' | 'face';
 }
 
 type ScanSessionStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -12,11 +13,19 @@ export const SCAN_SESSION_STORAGE_KEY = 'holoscript:scan-room:last-session';
 
 export function isScanSessionResponse(value: unknown): value is ScanSessionResponse {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as { token?: unknown; mobileUrl?: unknown; expiresAt?: unknown };
+  const candidate = value as {
+    token?: unknown;
+    mobileUrl?: unknown;
+    expiresAt?: unknown;
+    scanKind?: unknown;
+  };
   return (
     typeof candidate.token === 'string' &&
     typeof candidate.mobileUrl === 'string' &&
-    typeof candidate.expiresAt === 'string'
+    typeof candidate.expiresAt === 'string' &&
+    (candidate.scanKind === undefined ||
+      candidate.scanKind === 'room' ||
+      candidate.scanKind === 'face')
   );
 }
 
@@ -31,7 +40,7 @@ function isExpiredSession(session: ScanSessionResponse): boolean {
 }
 
 export function readStoredScanSession(
-  storage: ScanSessionStorage | null = currentScanSessionStorage(),
+  storage: ScanSessionStorage | null = currentScanSessionStorage()
 ): ScanSessionResponse | null {
   if (!storage) return null;
 
@@ -58,7 +67,7 @@ export function readStoredScanSession(
 
 export function writeStoredScanSession(
   session: ScanSessionResponse,
-  storage: ScanSessionStorage | null = currentScanSessionStorage(),
+  storage: ScanSessionStorage | null = currentScanSessionStorage()
 ): void {
   if (!storage) return;
 
@@ -70,7 +79,7 @@ export function writeStoredScanSession(
 }
 
 export function clearStoredScanSession(
-  storage: ScanSessionStorage | null = currentScanSessionStorage(),
+  storage: ScanSessionStorage | null = currentScanSessionStorage()
 ): void {
   if (!storage) return;
 

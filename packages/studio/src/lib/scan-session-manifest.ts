@@ -5,6 +5,7 @@ import {
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 
 const DEFAULT_MODEL_HASH = 'studio-room-scan-mvp';
+type ScanKind = 'room' | 'face';
 
 export function scanSessionModelHash(): string {
   return process.env.HOLOMAP_SESSION_MODEL_HASH?.trim() || DEFAULT_MODEL_HASH;
@@ -18,9 +19,10 @@ export function holoScriptBuildLabel(): string {
   );
 }
 
-/** Minimal v1.0 manifest fields for room-scan completion (ingest / replay identity). */
-export function buildRoomScanCompletionManifest(input: {
+/** Minimal v1.0 manifest fields for scan completion (ingest / replay identity). */
+export function buildScanCompletionManifest(input: {
   token: string;
+  scanKind?: ScanKind;
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   videoHash: string;
   frameCount: number;
@@ -29,6 +31,19 @@ export function buildRoomScanCompletionManifest(input: {
 }): ReconstructionManifest {
   const modelHash = scanSessionModelHash();
   const seed = 0;
+  const scanKind = input.scanKind === 'face' ? 'face' : 'room';
+  const pointMultiplier = scanKind === 'face' ? 96 : 128;
+  const bounds =
+    scanKind === 'face'
+      ? {
+          min: [-0.46, -0.62, -0.32] as [number, number, number],
+          max: [0.46, 0.58, 0.28] as [number, number, number],
+        }
+      : {
+          min: [-1, -1, -1] as [number, number, number],
+          max: [1, 1, 1] as [number, number, number],
+        };
+  const assetPrefix = scanKind === 'face' ? 'face-scan-sessions' : 'scan-sessions';
   const replayFingerprint = computeHoloMapReplayFingerprint({
     modelHash,
     seed,
@@ -39,14 +54,12 @@ export function buildRoomScanCompletionManifest(input: {
 
   return {
     version: '1.0.0',
-    worldId: `scan-session:${input.token}`,
-    displayName: 'Studio room scan',
-    pointCount: Math.max(0, input.frameCount * 128),
+    worldId:
+      scanKind === 'face' ? `face-scan-session:${input.token}` : `scan-session:${input.token}`,
+    displayName: scanKind === 'face' ? 'Studio face scan' : 'Studio room scan',
+    pointCount: Math.max(0, input.frameCount * pointMultiplier),
     frameCount: input.frameCount,
-    bounds: {
-      min: [-1, -1, -1],
-      max: [1, 1, 1],
-    },
+    bounds,
     replayHash,
     simulationContract: {
       kind: HOLOMAP_SIMULATION_CONTRACT_KIND,
@@ -57,10 +70,16 @@ export function buildRoomScanCompletionManifest(input: {
       capturedAtIso: input.capturedAtIso,
     },
     assets: {
-      points: `scan-sessions/${input.token}/points.bin`,
-      trajectory: `scan-sessions/${input.token}/trajectory.json`,
-      anchors: `scan-sessions/${input.token}/anchors.json`,
+      points: `${assetPrefix}/${input.token}/points.bin`,
+      trajectory: `${assetPrefix}/${input.token}/trajectory.json`,
+      anchors: `${assetPrefix}/${input.token}/anchors.json`,
     },
     weightStrategy: input.weightStrategy,
   };
+}
+
+export function buildRoomScanCompletionManifest(
+  input: Omit<Parameters<typeof buildScanCompletionManifest>[0], 'scanKind'>
+): ReconstructionManifest {
+  return buildScanCompletionManifest({ ...input, scanKind: 'room' });
 }

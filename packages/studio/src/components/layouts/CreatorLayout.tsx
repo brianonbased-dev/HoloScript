@@ -8,7 +8,10 @@ declare global {
     readonly isFinal: boolean;
   }
   interface SpeechRecognitionEvent extends Event {
-    results: { length: number; [index: number]: SpeechRecognitionResult } & Iterable<SpeechRecognitionResult>;
+    results: {
+      length: number;
+      [index: number]: SpeechRecognitionResult;
+    } & Iterable<SpeechRecognitionResult>;
   }
   interface SpeechRecognition extends EventTarget {
     continuous: boolean;
@@ -285,7 +288,9 @@ function BrittneyPromptBar() {
     // Web Speech API — available in Chrome/Edge; undefined in some environments
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as unknown as Record<string, unknown>;
-    const SR = (win.SpeechRecognition || win.webkitSpeechRecognition) as (new () => SpeechRecognition) | undefined;
+    const SR = (win.SpeechRecognition || win.webkitSpeechRecognition) as
+      | (new () => SpeechRecognition)
+      | undefined;
     if (!SR) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -388,6 +393,7 @@ interface CreatorLayoutProps {
 export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
   const setCode = useSceneStore((s) => s.setCode);
   const setGlbUrl = useCharacterStore((s) => s.setGlbUrl);
+  const setHoloAvatar = useCharacterStore((s) => s.setHoloAvatar);
 
   // Wizard: show on first visit
   const [wizardOpen, setWizardOpen] = useState(() => {
@@ -576,6 +582,18 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
         onClose={() => setCharacterModalOpen(false)}
         onCharacterCreated={(glbUrl, metadata) => {
           logger.debug('[CreatorLayout] Character created globally:', metadata);
+          if (metadata?.source === 'face-scan' && metadata.holoRenderAsset) {
+            setHoloAvatar({
+              url: glbUrl,
+              name: metadata.name ?? 'Face scan avatar',
+              scanKind: 'face',
+              renderAsset: metadata.holoRenderAsset,
+              replayFingerprint: metadata.replayFingerprint,
+              manifest: metadata.holoManifest,
+              traits: metadata.holoTraits ?? [],
+            });
+            return;
+          }
           setGlbUrl(glbUrl);
         }}
       />

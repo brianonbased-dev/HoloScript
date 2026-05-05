@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { QrCode, Smartphone, Camera, RefreshCw, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  QrCode,
+  Smartphone,
+  Camera,
+  RefreshCw,
+  CheckCircle2,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 import { HoloMapScanViewer } from './HoloMapScanViewer';
@@ -15,13 +23,25 @@ import type { HoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 
 interface ScanSessionState {
   token: string;
-  status: 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+  status:
+    | 'pending-phone'
+    | 'phone-connected'
+    | 'capturing'
+    | 'uploaded'
+    | 'processing'
+    | 'done'
+    | 'error';
+  scanKind?: 'room' | 'face';
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
   frameCount?: number;
   videoBytes?: number;
   videoHash?: string;
   replayFingerprint?: string;
-  manifest?: { version: string; replayHash: string; simulationContract: { replayFingerprint: string } };
+  manifest?: {
+    version: string;
+    replayHash: string;
+    simulationContract: { replayFingerprint: string };
+  };
   renderAsset?: HoloMapScanRenderAsset;
   lastError?: string;
 }
@@ -50,7 +70,7 @@ export function ReconstructionPanel() {
   }, [session?.expiresAt]);
   const mobileUrlSupportsLiveCamera = useMemo(
     () => session?.mobileUrl.startsWith('https://') ?? false,
-    [session?.mobileUrl],
+    [session?.mobileUrl]
   );
 
   const createSession = async () => {
@@ -88,12 +108,16 @@ export function ReconstructionPanel() {
       if (isRefreshing) return;
       isRefreshing = true;
       try {
-        const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(session.token)}`);
+        const res = await fetch(
+          `/api/reconstruction/session?t=${encodeURIComponent(session.token)}`
+        );
         if (!isCurrent) return;
 
         if (res.status === 404) {
           clearStoredScanSession();
-          setSessionError('This scan session expired or the Studio server restarted. Start a new QR.');
+          setSessionError(
+            'This scan session expired or the Studio server restarted. Start a new QR.'
+          );
           return;
         }
 
@@ -129,7 +153,8 @@ export function ReconstructionPanel() {
       </div>
 
       <p className="mb-4 text-xs text-studio-muted">
-        Login on desktop with GitHub, scan this QR from your phone, capture your room, and feed reconstruction back into Studio.
+        Login on desktop with GitHub, scan this QR from your phone, capture your room, and feed
+        reconstruction back into Studio.
       </p>
 
       <div className="mb-4 grid gap-2 sm:grid-cols-3">
@@ -179,7 +204,8 @@ export function ReconstructionPanel() {
                 </span>
               ) : (
                 <span className="inline-flex items-start gap-1.5">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Use an HTTPS Studio URL for live phone overlays.
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Use an HTTPS Studio URL
+                  for live phone overlays.
                 </span>
               )}
             </div>
@@ -196,7 +222,9 @@ export function ReconstructionPanel() {
               <Smartphone className="h-4 w-4 text-indigo-300" />
               <span className="font-medium">Session status</span>
             </div>
-            <p className="text-studio-muted">{state ? statusLabel[state.status] : 'Initializing session…'}</p>
+            <p className="text-studio-muted">
+              {state ? statusLabel[state.status] : 'Initializing session…'}
+            </p>
             {state && state.status !== 'pending-phone' && state.status !== 'error' && (
               <div
                 data-testid="scan-phone-connected"
@@ -214,9 +242,17 @@ export function ReconstructionPanel() {
               </div>
             )}
             {sessionError && <p className="mt-1 text-red-400">{sessionError}</p>}
-            {state?.frameCount !== undefined && <p className="mt-1 text-studio-muted">Frames: {state.frameCount}</p>}
-            {state?.videoBytes !== undefined && <p className="text-studio-muted">Upload: {(state.videoBytes / 1024 / 1024).toFixed(2)} MB</p>}
-            {expiresIn !== null && <p className="mt-2 text-studio-muted">Expires in ~{expiresIn}s</p>}
+            {state?.frameCount !== undefined && (
+              <p className="mt-1 text-studio-muted">Frames: {state.frameCount}</p>
+            )}
+            {state?.videoBytes !== undefined && (
+              <p className="text-studio-muted">
+                Upload: {(state.videoBytes / 1024 / 1024).toFixed(2)} MB
+              </p>
+            )}
+            {expiresIn !== null && (
+              <p className="mt-2 text-studio-muted">Expires in ~{expiresIn}s</p>
+            )}
             {state?.status === 'done' && (
               <div className="mt-3 space-y-2">
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2 py-1 text-green-300">

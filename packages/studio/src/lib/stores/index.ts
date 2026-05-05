@@ -8,7 +8,7 @@ export type { TraitConfig, SceneNode } from './sceneGraphStore';
 export { useEditorStore } from './editorStore';
 export type { GizmoMode, ArtMode, StudioMode, GeometricViewMode } from './editorStore';
 export { useCharacterStore } from './characterStore';
-export type { WardrobeSlot, WardrobeItem } from './characterStore';
+export type { HoloAvatarAsset, WardrobeSlot, WardrobeItem } from './characterStore';
 export { useWardrobeStore } from './wardrobeStore';
 export { useBuilderStore, snapToGrid, snapPosition } from './builderStore';
 export type { BuilderMode, GeometryType, HotbarSlot } from './builderStore';

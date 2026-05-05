@@ -66,7 +66,10 @@ function getReconstructionTraitsFromDecorators(
   }
   return out;
 }
-import { compileManifestToTarget, holomapPayloadFromAggregatedPoints } from './holo-reconstruct-export';
+import {
+  compileManifestToTarget,
+  holomapPayloadFromAggregatedPoints,
+} from './holo-reconstruct-export';
 import {
   appendStepToAggregate,
   boundsFromPositions,
@@ -89,6 +92,7 @@ function maxExportPointsCap(): number {
 export type HoloReconstructMcpSession = {
   runtime: HoloMapRuntime;
   videoUrl: string;
+  captureProfile: 'room' | 'face';
   lastStep?: ReconstructionStep;
   finalizedManifest?: ReconstructionManifest;
   aggregate: AggregatedScanGeometry;
@@ -121,7 +125,11 @@ function pickPartialHoloMapConfig(raw: unknown): Partial<HoloMapConfig> {
     p.maxSequenceLength = o.maxSequenceLength;
   }
   if (typeof o.cpuOffload === 'boolean') p.cpuOffload = o.cpuOffload;
-  if (o.weightStrategy === 'distill' || o.weightStrategy === 'fine-tune' || o.weightStrategy === 'from-scratch') {
+  if (
+    o.weightStrategy === 'distill' ||
+    o.weightStrategy === 'fine-tune' ||
+    o.weightStrategy === 'from-scratch'
+  ) {
     p.weightStrategy = o.weightStrategy;
   }
   if (typeof o.allowCpuFallback === 'boolean') p.allowCpuFallback = o.allowCpuFallback;
@@ -134,7 +142,7 @@ function pickIngestOptions(configArg: unknown): { ingestVideo: boolean; maxInges
   let ingestVideo = process.env.HOLOMAP_MCP_INGEST_VIDEO !== '0';
   let maxIngestFrames = Math.min(
     500,
-    Math.max(1, Number.parseInt(process.env.HOLOMAP_MCP_MAX_FRAMES ?? '120', 10) || 120),
+    Math.max(1, Number.parseInt(process.env.HOLOMAP_MCP_MAX_FRAMES ?? '120', 10) || 120)
   );
   if (configArg && typeof configArg === 'object') {
     const o = configArg as Record<string, unknown>;
@@ -144,6 +152,12 @@ function pickIngestOptions(configArg: unknown): { ingestVideo: boolean; maxInges
     }
   }
   return { ingestVideo, maxIngestFrames };
+}
+
+function pickCaptureProfile(configArg: unknown): 'room' | 'face' {
+  if (!configArg || typeof configArg !== 'object') return 'room';
+  const o = configArg as Record<string, unknown>;
+  return o.captureProfile === 'face' || o.scanKind === 'face' ? 'face' : 'room';
 }
 
 /**
@@ -223,18 +237,20 @@ export function dispatchReconstructionFromDecorators(
 
 export async function mcpStartReconstructFromVideo(
   videoUrl: string,
-  configArg: unknown,
+  configArg: unknown
 ): Promise<{
   sessionId: string;
   replayFingerprint: string;
   framesIngested: number;
   ingestMode: 'ffmpeg' | 'none';
+  captureProfile: 'room' | 'face';
   videoBytes?: number;
   ingestWarning?: string;
 }> {
   const sessionId = randomUUID();
   const runtime = createHoloMapRuntime();
   const partial = pickPartialHoloMapConfig(configArg);
+  const captureProfile = pickCaptureProfile(configArg);
   const cfg: HoloMapConfig = { ...HOLOMAP_DEFAULTS, ...partial };
   const { ingestVideo, maxIngestFrames } = pickIngestOptions(configArg);
 
@@ -284,11 +300,10 @@ export async function mcpStartReconstructFromVideo(
           ingestWarning =
             'ffmpeg produced zero frames (unsupported codec, empty video, or decode error). Session is ready for holo_reconstruct_step.';
         }
-        sessions.set(sessionId, { runtime, videoUrl, aggregate, lastStep });
+        sessions.set(sessionId, { runtime, videoUrl, captureProfile, aggregate, lastStep });
       } catch (ffErr) {
-        ingestWarning =
-          ffErr instanceof Error ? ffErr.message : String(ffErr);
-        sessions.set(sessionId, { runtime, videoUrl, aggregate });
+        ingestWarning = ffErr instanceof Error ? ffErr.message : String(ffErr);
+        sessions.set(sessionId, { runtime, videoUrl, captureProfile, aggregate });
       }
     } catch (e) {
       ingestWarning = e instanceof Error ? e.message : String(e);
@@ -297,7 +312,7 @@ export async function mcpStartReconstructFromVideo(
         videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
         allowCpuFallback: partial.allowCpuFallback !== false,
       });
-      sessions.set(sessionId, { runtime, videoUrl, aggregate });
+      sessions.set(sessionId, { runtime, videoUrl, captureProfile, aggregate });
     } finally {
       if (cleanup) await cleanup();
     }
@@ -307,7 +322,7 @@ export async function mcpStartReconstructFromVideo(
       videoHash: partial.videoHash ?? hashVideoUrl(videoUrl),
       allowCpuFallback: partial.allowCpuFallback !== false,
     });
-    sessions.set(sessionId, { runtime, videoUrl, aggregate });
+    sessions.set(sessionId, { runtime, videoUrl, captureProfile, aggregate });
   }
 
   return {
@@ -315,6 +330,7 @@ export async function mcpStartReconstructFromVideo(
     replayFingerprint: runtime.replayHash(),
     framesIngested,
     ingestMode,
+    captureProfile,
     videoBytes,
     ingestWarning,
   };
@@ -323,7 +339,9 @@ export async function mcpStartReconstructFromVideo(
 function getSessionOrThrow(sessionId: string): HoloReconstructMcpSession {
   const s = sessions.get(sessionId);
   if (!s) {
-    throw new Error(`holo_reconstruct: unknown sessionId (create one with holo_reconstruct_from_video first)`);
+    throw new Error(
+      `holo_reconstruct: unknown sessionId (create one with holo_reconstruct_from_video first)`
+    );
   }
   return s;
 }
@@ -340,7 +358,7 @@ function decodeFrame(
   frameBase64: string,
   frameIndex: number,
   width: number,
-  height: number,
+  height: number
 ): ReconstructionFrame {
   let buf: Buffer;
   try {
@@ -355,7 +373,7 @@ function decodeFrame(
   else if (buf.length === n3) stride = 3;
   else {
     throw new Error(
-      `holo_reconstruct_step: frame byte length ${buf.length} does not match width*height*3 (${n3}) or *4 (${n4})`,
+      `holo_reconstruct_step: frame byte length ${buf.length} does not match width*height*3 (${n3}) or *4 (${n4})`
     );
   }
   return {
@@ -373,7 +391,7 @@ export async function mcpReconstructStep(
   frameBase64: string,
   frameIndex: number,
   width: number,
-  height: number,
+  height: number
 ): Promise<{
   ok: true;
   frameIndex: number;
@@ -455,7 +473,7 @@ function manifestToJson(m: ReconstructionManifest): Record<string, unknown> {
 
 export async function mcpReconstructExport(
   sessionId: string,
-  target: string,
+  target: string
 ): Promise<{
   ok: true;
   target: string;
@@ -491,8 +509,7 @@ export async function mcpReconstructExport(
   const exportPointCount = Math.floor(geom.positions.length / 3);
   const pointCloudPly =
     exportPointCount > 0 ? encodePlyAscii(geom.positions, geom.colors) : undefined;
-  const trajectoryJson =
-    geom.poses.length > 0 ? encodeTrajectoryJson(geom.poses) : undefined;
+  const trajectoryJson = geom.poses.length > 0 ? encodeTrajectoryJson(geom.poses) : undefined;
 
   let compiledOutput: string | undefined;
   let usedCompilerFallback: boolean | undefined;

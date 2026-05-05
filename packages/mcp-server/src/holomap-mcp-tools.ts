@@ -24,7 +24,7 @@ export const holoMapToolDefinitions: Tool[] = [
         config: {
           type: 'object',
           description:
-            'HoloMapConfig fields plus ingestVideo?, maxIngestFrames?, weightCid? (content-addressed weights). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS, FFPROBE_PATH, HOLOMAP_MCP_FFPROBE_TIMEOUT_MS.',
+            'HoloMapConfig fields plus captureProfile? ("room" | "face"), scanKind? ("face" alias), ingestVideo?, maxIngestFrames?, weightCid? (content-addressed weights). Env: HOLOMAP_MCP_INGEST_VIDEO=0, HOLOMAP_MCP_MAX_VIDEO_BYTES, HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS, HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION, HOLOMAP_MCP_FFMPEG_PROBE_SIZE, HOLOMAP_MCP_EXPORT_MAX_POINTS, FFPROBE_PATH, HOLOMAP_MCP_FFPROBE_TIMEOUT_MS.',
         },
       },
       required: ['videoUrl'],
@@ -38,7 +38,10 @@ export const holoMapToolDefinitions: Tool[] = [
       type: 'object',
       properties: {
         sessionId: { type: 'string', description: 'Session id from holo_reconstruct_from_video' },
-        frameBase64: { type: 'string', description: 'Base64-encoded RGB (WxHx3) or RGBA (WxHx4) frame bytes' },
+        frameBase64: {
+          type: 'string',
+          description: 'Base64-encoded RGB (WxHx3) or RGBA (WxHx4) frame bytes',
+        },
         frameIndex: { type: 'number', description: 'Monotonic frame index' },
         width: { type: 'number' },
         height: { type: 'number' },
@@ -67,7 +70,8 @@ export const holoMapToolDefinitions: Tool[] = [
         sessionId: { type: 'string' },
         target: {
           type: 'string',
-          description: 'ExportTarget id or alias (r3f, unity, godot, usd / usd-physics, unreal, webgpu, vrr, …)',
+          description:
+            'ExportTarget id or alias (r3f, unity, godot, usd / usd-physics, unreal, webgpu, vrr, …)',
         },
       },
       required: ['sessionId', 'target'],
@@ -87,7 +91,8 @@ export const holoMapToolDefinitions: Tool[] = [
         ingestPath: {
           type: 'string',
           enum: ['marble', 'holomap', 'both'],
-          description: 'Scene source mode (default marble if omitted — uses process env when not passed)',
+          description:
+            'Scene source mode (default marble if omitted — uses process env when not passed)',
         },
       },
       required: [],
@@ -102,7 +107,7 @@ export function isHoloMapToolName(name: string): boolean {
 }
 
 export async function handleHoloMapPaperIngestProbe(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   const { runPaperHarnessIngestProbe, resolveIngestPath } = await import('@holoscript/holomap');
   const paperId =
@@ -119,9 +124,12 @@ export async function handleHoloMapPaperIngestProbe(
   return runPaperHarnessIngestProbe({ paperId, ingestPath });
 }
 
-export async function handleHoloMapTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+export async function handleHoloMapTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
   switch (name) {
-       case 'holo_reconstruct_from_video': {
+    case 'holo_reconstruct_from_video': {
       const videoUrl = args.videoUrl;
       if (typeof videoUrl !== 'string' || !videoUrl.trim()) {
         throw new Error('holo_reconstruct_from_video: videoUrl (non-empty string) is required');
@@ -134,6 +142,7 @@ export async function handleHoloMapTool(name: string, args: Record<string, unkno
         replayFingerprint: started.replayFingerprint,
         framesIngested: started.framesIngested,
         ingestMode: started.ingestMode,
+        captureProfile: started.captureProfile,
         videoBytes: started.videoBytes,
         ingestWarning: started.ingestWarning,
         message:
@@ -162,7 +171,7 @@ export async function handleHoloMapTool(name: string, args: Record<string, unkno
         frameBase64.trim(),
         args.frameIndex as number,
         args.width as number,
-        args.height as number,
+        args.height as number
       );
     }
     case 'holo_reconstruct_anchor': {

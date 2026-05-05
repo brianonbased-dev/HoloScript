@@ -20,10 +20,18 @@ interface MobileScanProps {
   params: Promise<{ token: string }>;
 }
 
-type ScanStatus = 'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
+type ScanStatus =
+  | 'pending-phone'
+  | 'phone-connected'
+  | 'capturing'
+  | 'uploaded'
+  | 'processing'
+  | 'done'
+  | 'error';
 
 interface MobileScanFeedback {
   status?: ScanStatus;
+  scanKind?: 'room' | 'face';
   frameCount?: number;
   videoBytes?: number;
   lastError?: string;
@@ -90,11 +98,15 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     reason: null,
   });
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [cameraState, setCameraState] = useState<'idle' | 'starting' | 'ready' | 'recording' | 'processing'>('idle');
+  const [cameraState, setCameraState] = useState<
+    'idle' | 'starting' | 'ready' | 'recording' | 'processing'
+  >('idle');
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [planeSensing, setPlaneSensing] = useState<RoomPlaneSensing>(emptyPlaneSensing);
   const [sweepCoverage, setSweepCoverage] = useState<RoomSweepCoverage>(emptyRoomSweepCoverage);
+  const scanKind = sessionFeedback?.scanKind === 'face' ? 'face' : 'room';
+  const isFaceScan = scanKind === 'face';
 
   const pushState = async (body: Record<string, unknown>) => {
     const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
@@ -174,7 +186,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       setCameraCapability({
         checked: true,
         live: false,
-        reason: 'Live recording is not supported in this browser. Opening the native phone camera instead.',
+        reason:
+          'Live recording is not supported in this browser. Opening the native phone camera instead.',
       });
       return;
     }
@@ -200,7 +213,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     };
 
     void markPhoneConnected().catch((pushError) => {
-      setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the phone connection.');
+      setFeedbackError(
+        pushError instanceof Error
+          ? pushError.message
+          : 'Studio did not receive the phone connection.'
+      );
     });
   }, [cameraCapability.checked, token]);
 
@@ -234,7 +251,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
       const elapsedSeconds = Math.max(0, Math.min(0.5, (now - previousAt) / 1000));
       if (elapsedSeconds === 0) return;
-      const nextHeading = normalizeHeadingDegrees((syntheticHeadingRef.current ?? 0) + yawRate * elapsedSeconds);
+      const nextHeading = normalizeHeadingDegrees(
+        (syntheticHeadingRef.current ?? 0) + yawRate * elapsedSeconds
+      );
       syntheticHeadingRef.current = nextHeading;
       headingRef.current = nextHeading;
     };
@@ -271,7 +290,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const analysis = analyzeRoomPlaneFrame(
           ctx.getImageData(0, 0, canvas.width, canvas.height),
-          previousLumaRef.current,
+          previousLumaRef.current
         );
         previousLumaRef.current = analysis.luma;
         setPlaneSensing((prev) => accumulatePlaneSensing(prev, analysis));
@@ -354,12 +373,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
   const bestRecorderMime = (): string | undefined => {
     if (typeof MediaRecorder === 'undefined') return undefined;
-    return [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-      'video/mp4',
-    ].find((mime) => MediaRecorder.isTypeSupported(mime));
+    return ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'].find(
+      (mime) => MediaRecorder.isTypeSupported(mime)
+    );
   };
 
   const clearFinalizeTimer = () => {
@@ -403,7 +419,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       try {
         await pushState({ status: 'error', error: message });
       } catch (pushError) {
-        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the capture update.');
+        setFeedbackError(
+          pushError instanceof Error
+            ? pushError.message
+            : 'Studio did not receive the capture update.'
+        );
       }
     } finally {
       setUploading(false);
@@ -425,7 +445,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     setDone(false);
 
     if (!cameraCapability.checked || !cameraCapability.live) {
-      setError('Live preview is unavailable here. Use Open phone camera to capture with this phone.');
+      setError(
+        'Live preview is unavailable here. Use Open phone camera to capture with this phone.'
+      );
       return;
     }
 
@@ -436,7 +458,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
           requestPermission?: (absolute?: boolean) => Promise<PermissionState>;
         };
         if (typeof orientationEvent.requestPermission === 'function') {
-          await orientationEvent.requestPermission(true).catch(() => orientationEvent.requestPermission?.());
+          await orientationEvent
+            .requestPermission(true)
+            .catch(() => orientationEvent.requestPermission?.());
         }
       }
       if (typeof window.DeviceMotionEvent !== 'undefined') {
@@ -449,7 +473,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' },
+          facingMode: { ideal: isFaceScan ? 'user' : 'environment' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -459,13 +483,19 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       setCameraStream(stream);
       setCameraState('ready');
       void pushState({ status: 'capturing' }).catch((pushError) => {
-        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the camera update.');
+        setFeedbackError(
+          pushError instanceof Error
+            ? pushError.message
+            : 'Studio did not receive the camera update.'
+        );
       });
     } catch (e) {
       stopCameraStream();
       setCameraState('idle');
       const detail = e instanceof Error ? e.message : String(e);
-      setError(`Live camera could not start: ${detail}. Opening the phone camera fallback is still available.`);
+      setError(
+        `Live camera could not start: ${detail}. Opening the phone camera fallback is still available.`
+      );
     }
   };
 
@@ -482,18 +512,30 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       setError(message);
       setCaptureNotice(null);
       void pushState({ status: 'error', error: message }).catch((pushError) => {
-        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the capture failure.');
+        setFeedbackError(
+          pushError instanceof Error
+            ? pushError.message
+            : 'Studio did not receive the capture failure.'
+        );
       });
       return;
     }
 
     const extension = type.includes('mp4') ? 'mp4' : 'webm';
-    const file = new File([blob], `room-scan-${Date.now()}.${extension}`, { type });
+    const file = new File(
+      [blob],
+      `${isFaceScan ? 'face' : 'room'}-scan-${Date.now()}.${extension}`,
+      { type }
+    );
     stopCameraStream();
     void submitCapture(file);
   };
 
-  const scheduleFinalizeRecordedCapture = (recorder: MediaRecorder, typeHint: string | undefined, delayMs: number) => {
+  const scheduleFinalizeRecordedCapture = (
+    recorder: MediaRecorder,
+    typeHint: string | undefined,
+    delayMs: number
+  ) => {
     clearFinalizeTimer();
     finalizeTimeoutRef.current = window.setTimeout(() => {
       finalizeTimeoutRef.current = null;
@@ -512,7 +554,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     nativeHeadingSeenRef.current = false;
     syntheticHeadingRef.current = null;
     lastMotionAtRef.current = null;
-    setCaptureNotice('Recording room scan...');
+    setCaptureNotice(`Recording ${isFaceScan ? 'face' : 'room'} scan...`);
     setError(null);
     const mimeType = bestRecorderMime();
     let recorder: MediaRecorder;
@@ -540,7 +582,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       setCameraState('ready');
       setRecordingStartedAt(null);
       void pushState({ status: 'error', error: message }).catch((pushError) => {
-        setFeedbackError(pushError instanceof Error ? pushError.message : 'Studio did not receive the recorder error.');
+        setFeedbackError(
+          pushError instanceof Error
+            ? pushError.message
+            : 'Studio did not receive the recorder error.'
+        );
       });
     };
 
@@ -605,25 +651,31 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const sweepPercent = Math.round(sweepProgress * 100);
   const floorCuePercent = Math.round(planeSensing.floorConfidence * 100);
   const wallCuePercent = Math.round(planeSensing.wallConfidence * 100);
-  const floorCoveragePercent = Math.round(constrainedPlaneCoverage(planeSensing.floorConfidence, sweepProgress) * 100);
-  const wallCoveragePercent = Math.round(constrainedPlaneCoverage(planeSensing.wallConfidence, sweepProgress) * 100);
+  const floorCoveragePercent = Math.round(
+    constrainedPlaneCoverage(planeSensing.floorConfidence, sweepProgress) * 100
+  );
+  const wallCoveragePercent = Math.round(
+    constrainedPlaneCoverage(planeSensing.wallConfidence, sweepProgress) * 100
+  );
   const motionPercent = Math.round(planeSensing.motion * 100);
   const floorLocked = planeSensing.floorConfidence >= 0.42;
   const wallsLocked = planeSensing.wallConfidence >= 0.38;
   const planeLockPercent = Math.round(
-    floorCoveragePercent * 0.42 + wallCoveragePercent * 0.42 + sweepPercent * 0.16,
+    floorCoveragePercent * 0.42 + wallCoveragePercent * 0.42 + sweepPercent * 0.16
   );
   const trackingPercent =
     cameraState === 'recording'
       ? planeLockPercent
       : cameraState === 'ready'
-        ? Math.round((planeSensing.floorConfidence * 0.54 + planeSensing.wallConfidence * 0.46) * 42)
+        ? Math.round(
+            (planeSensing.floorConfidence * 0.54 + planeSensing.wallConfidence * 0.46) * 42
+          )
         : cameraState === 'processing'
           ? 100
           : 0;
   const overlayPointCount = Math.max(
     sessionFeedback?.renderAsset?.pointCount ?? 0,
-    cameraState === 'recording' ? 128 + recordingSeconds * 36 : 0,
+    cameraState === 'recording' ? 128 + recordingSeconds * 36 : 0
   );
 
   const effectiveStatus: ScanStatus =
@@ -633,10 +685,14 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         ? 'processing'
         : cameraState === 'ready' || cameraState === 'recording'
           ? 'capturing'
-          : sessionFeedback?.status ?? 'pending-phone';
-  const stepIndex = effectiveStatus === 'error'
-    ? scanSteps.length - 1
-    : Math.max(0, scanSteps.findIndex((step) => step.status === effectiveStatus));
+          : (sessionFeedback?.status ?? 'pending-phone');
+  const stepIndex =
+    effectiveStatus === 'error'
+      ? scanSteps.length - 1
+      : Math.max(
+          0,
+          scanSteps.findIndex((step) => step.status === effectiveStatus)
+        );
   const progressPercent = Math.round(((stepIndex + 1) / scanSteps.length) * 100);
   const statusCopy = (() => {
     if (effectiveStatus === 'error') {
@@ -647,14 +703,18 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }
     if (effectiveStatus === 'done') {
       return {
-        title: 'Mesh captured',
-        detail: 'Desktop Studio has the scan asset and can render it in the viewer.',
+        title: isFaceScan ? 'Face mesh captured' : 'Mesh captured',
+        detail: isFaceScan
+          ? 'Desktop Studio has the derived avatar asset and mesh hash.'
+          : 'Desktop Studio has the scan asset and can render it in the viewer.',
       };
     }
     if (effectiveStatus === 'processing') {
       return {
-        title: 'Building mesh',
-        detail: 'Keep this page open while Studio prepares the renderable scan.',
+        title: isFaceScan ? 'Building face mesh' : 'Building mesh',
+        detail: isFaceScan
+          ? 'Keep this page open while Studio prepares the derived avatar.'
+          : 'Keep this page open while Studio prepares the renderable scan.',
       };
     }
     if (effectiveStatus === 'uploaded') {
@@ -665,28 +725,36 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     }
     if (cameraState === 'recording') {
       return {
-        title: 'Recording room',
-        detail: `Turn slowly through the room. Coverage ${sweepPercent}% across ${viewCount}/8 views. Tap Finish capture when the sweep is high. ${recordingSeconds}s recorded.`,
+        title: isFaceScan ? 'Recording face' : 'Recording room',
+        detail: isFaceScan
+          ? `Keep your face centered and turn slightly left and right. Tap Finish capture after a few seconds. ${recordingSeconds}s recorded.`
+          : `Turn slowly through the room. Coverage ${sweepPercent}% across ${viewCount}/8 views. Tap Finish capture when the sweep is high. ${recordingSeconds}s recorded.`,
       };
     }
     if (effectiveStatus === 'capturing') {
       return {
         title: 'Camera linked',
-        detail: planeSensing.floorConfidence >= 0.42 && planeSensing.wallConfidence >= 0.38
-          ? 'Surface cues are visible. Start capture, then turn in a slow full circle.'
-          : 'Aim at the floor line and wall edges until the overlay finds stable surface cues.',
+        detail: isFaceScan
+          ? 'Center your face in the guide, then start capture.'
+          : planeSensing.floorConfidence >= 0.42 && planeSensing.wallConfidence >= 0.38
+            ? 'Surface cues are visible. Start capture, then turn in a slow full circle.'
+            : 'Aim at the floor line and wall edges until the overlay finds stable surface cues.',
       };
     }
     if (effectiveStatus === 'phone-connected') {
       return {
         title: 'Phone connected',
-        detail: 'Desktop Studio sees this phone. Open the Studio camera to begin sensing the room.',
+        detail: isFaceScan
+          ? 'Desktop Studio sees this phone. Open the front camera to scan your face.'
+          : 'Desktop Studio sees this phone. Open the Studio camera to begin sensing the room.',
       };
     }
     return {
       title: 'Connected to Studio',
       detail: cameraCapability.live
-        ? 'Open the Studio camera and start a mesh capture from this phone.'
+        ? isFaceScan
+          ? 'Open the Studio camera and start a face capture from this phone.'
+          : 'Open the Studio camera and start a mesh capture from this phone.'
         : 'Open the phone camera fallback, or use an HTTPS Studio URL for live overlays.',
     };
   })();
@@ -694,7 +762,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-5 bg-[#0a0a12] px-4 py-6 text-white">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">Phone Capture</h1>
+        <h1 className="text-xl font-semibold">{isFaceScan ? 'Face Capture' : 'Phone Capture'}</h1>
         <p className="mt-1 text-xs text-white/50">Token: {token.slice(0, 8)}…</p>
       </div>
 
@@ -729,11 +797,15 @@ export default function MobileScanPage({ params }: MobileScanProps) {
           {scanSteps.map((step, index) => (
             <div
               key={step.status}
-              className={index <= stepIndex && effectiveStatus !== 'error' ? 'text-indigo-200' : undefined}
+              className={
+                index <= stepIndex && effectiveStatus !== 'error' ? 'text-indigo-200' : undefined
+              }
             >
               <div
                 className={`mx-auto mb-1 h-1.5 w-1.5 rounded-full ${
-                  index <= stepIndex && effectiveStatus !== 'error' ? 'bg-indigo-300' : 'bg-white/20'
+                  index <= stepIndex && effectiveStatus !== 'error'
+                    ? 'bg-indigo-300'
+                    : 'bg-white/20'
                 }`}
               />
               {step.label}
@@ -752,7 +824,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
             <div className="rounded-lg bg-black/20 px-2 py-2">
               <p className="text-white/40">Video</p>
               <p className="mt-1 font-mono text-white/80">
-                {sessionFeedback.videoBytes !== undefined ? formatBytes(sessionFeedback.videoBytes) : '-'}
+                {sessionFeedback.videoBytes !== undefined
+                  ? formatBytes(sessionFeedback.videoBytes)
+                  : '-'}
               </p>
             </div>
             <div className="rounded-lg bg-black/20 px-2 py-2">
@@ -788,7 +862,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,transparent_42%,rgba(10,10,18,0.55)_100%)]" />
               <div className="absolute left-4 right-4 top-4 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-indigo-100">
                 <span className="rounded-full border border-indigo-200/35 bg-black/35 px-2 py-1">
-                  HoloMap scan
+                  {isFaceScan ? 'Face mesh' : 'HoloMap scan'}
                 </span>
                 <span className="rounded-full border border-emerald-200/35 bg-emerald-400/15 px-2 py-1 text-emerald-100">
                   {cameraState === 'recording'
@@ -826,20 +900,24 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                     data-testid="room-floor-sensing"
                     className={floorLocked ? 'text-emerald-100' : 'text-yellow-100'}
                   >
-                    Floor cue {planeSensing.samples > 0 ? `${floorCuePercent}%` : '--'}
+                    {isFaceScan ? 'Alignment' : 'Floor cue'}{' '}
+                    {planeSensing.samples > 0 ? `${floorCuePercent}%` : '--'}
                   </span>
                   <span
                     data-testid="room-wall-sensing"
                     className={wallsLocked ? 'text-emerald-100' : 'text-yellow-100'}
                   >
-                    Wall cue {planeSensing.samples > 0 ? `${wallCuePercent}%` : '--'}
+                    {isFaceScan ? 'Lighting' : 'Wall cue'}{' '}
+                    {planeSensing.samples > 0 ? `${wallCuePercent}%` : '--'}
                   </span>
                   <span data-testid="room-view-sensing">
-                    Views {cameraState === 'recording' ? `${viewCount}/8` : '--'}
+                    {isFaceScan ? 'Stability' : 'Views'}{' '}
+                    {cameraState === 'recording' ? `${viewCount}/8` : '--'}
                   </span>
                 </div>
                 <div className="mt-2 text-center text-[10px] text-white/45">
-                  Room sweep {cameraState === 'recording' ? `${sweepPercent}%` : '--'} · Motion{' '}
+                  {isFaceScan ? 'Face guide' : 'Room sweep'}{' '}
+                  {cameraState === 'recording' ? `${sweepPercent}%` : '--'} · Motion{' '}
                   {planeSensing.samples > 0 ? `${motionPercent}%` : '--'} ·{' '}
                   {overlayPointCount.toLocaleString()} pts
                 </div>
@@ -867,24 +945,33 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                 className="flex w-full flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center"
               >
                 <Video className="h-6 w-6 text-indigo-300" />
-                <span className="text-sm font-medium">Open Studio camera</span>
-                <span className="text-xs text-white/50">Live capture with HoloMap overlays on this screen.</span>
+                <span className="text-sm font-medium">
+                  {isFaceScan ? 'Open Studio face camera' : 'Open Studio camera'}
+                </span>
+                <span className="text-xs text-white/50">
+                  {isFaceScan
+                    ? 'Live face capture with HoloMap overlays on this screen.'
+                    : 'Live capture with HoloMap overlays on this screen.'}
+                </span>
               </button>
             )}
 
             {cameraCapability.checked && !cameraCapability.live && (
               <label className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-indigo-300/50 bg-indigo-400/10 px-4 py-5 text-center">
                 <Camera className="h-6 w-6 text-indigo-300" />
-                <span className="text-sm font-medium">Open phone camera fallback</span>
+                <span className="text-sm font-medium">
+                  {isFaceScan ? 'Open phone face camera fallback' : 'Open phone camera fallback'}
+                </span>
                 <span className="text-xs text-white/50">
-                  {cameraCapability.reason ?? 'HTTPS is required before Studio can draw live overlays.'}
+                  {cameraCapability.reason ??
+                    'HTTPS is required before Studio can draw live overlays.'}
                 </span>
                 <input
                   ref={cameraCaptureInputRef}
                   data-testid="room-camera-input"
                   type="file"
                   accept="video/*"
-                  capture="environment"
+                  capture={isFaceScan ? 'user' : 'environment'}
                   className="hidden"
                   onClick={(e) => {
                     e.currentTarget.value = '';
@@ -908,7 +995,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
             onClick={startRecording}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-medium text-white"
           >
-            <Video className="h-4 w-4" /> Start mesh capture
+            <Video className="h-4 w-4" /> Start {isFaceScan ? 'face' : 'mesh'} capture
           </button>
         )}
 
@@ -924,7 +1011,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
         {cameraState === 'processing' && (
           <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
-            <Loader2 className="h-4 w-4 animate-spin" /> Building mesh capture package…
+            <Loader2 className="h-4 w-4 animate-spin" /> Building {isFaceScan ? 'face' : 'mesh'}{' '}
+            capture package…
           </div>
         )}
       </div>
@@ -932,12 +1020,12 @@ export default function MobileScanPage({ params }: MobileScanProps) {
       {cameraCapability.live && (
         <label className="flex w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
           <Camera className="h-4 w-4" />
-          Use phone camera app fallback
+          Use phone {isFaceScan ? 'face' : 'camera'} app fallback
           <input
             data-testid="room-camera-input-fallback"
             type="file"
             accept="video/*"
-            capture="environment"
+            capture={isFaceScan ? 'user' : 'environment'}
             className="hidden"
             onClick={(e) => {
               e.currentTarget.value = '';
@@ -964,7 +1052,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
       {uploading && (
         <div className="inline-flex items-center gap-2 text-sm text-indigo-300">
-          <UploadCloud className="h-4 w-4 animate-pulse" /> {captureNotice ?? 'Sending mesh capture to Studio...'}
+          <UploadCloud className="h-4 w-4 animate-pulse" />{' '}
+          {captureNotice ?? `Sending ${isFaceScan ? 'face' : 'mesh'} capture to Studio...`}
         </div>
       )}
 
@@ -976,7 +1065,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
       {done && !uploading && (
         <div className="inline-flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-300">
-          <CheckCircle2 className="h-4 w-4" /> Mesh captured. Return to desktop Studio.
+          <CheckCircle2 className="h-4 w-4" /> {isFaceScan ? 'Face mesh' : 'Mesh'} captured. Return
+          to desktop Studio.
         </div>
       )}
 

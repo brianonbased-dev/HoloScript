@@ -6,8 +6,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { buildHoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
 import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
-import { buildRoomScanCompletionManifest } from '@/lib/scan-session-manifest';
-import { clientIpFromRequest, getScanSessionStore, type ScanSession } from '@/lib/reconstruction-scan-store';
+import { buildScanCompletionManifest } from '@/lib/scan-session-manifest';
+import {
+  clientIpFromRequest,
+  getScanSessionStore,
+  type ScanKind,
+  type ScanSession,
+} from '@/lib/reconstruction-scan-store';
 
 const POST_WINDOW_MS = 60_000;
 const POST_MAX_PER_IP = 20;
@@ -38,7 +43,13 @@ function baseUrl(request: NextRequest): string {
 
 function requireAuthForSessionCreate(): boolean {
   if (process.env.STUDIO_SCAN_SESSION_PUBLIC_POST === '1') return false;
-  return process.env.NODE_ENV === 'production' || process.env.STUDIO_SCAN_SESSION_REQUIRE_AUTH === '1';
+  return (
+    process.env.NODE_ENV === 'production' || process.env.STUDIO_SCAN_SESSION_REQUIRE_AUTH === '1'
+  );
+}
+
+function normalizeScanKind(value: unknown): ScanKind {
+  return value === 'face' ? 'face' : 'room';
 }
 
 /**
@@ -57,7 +68,10 @@ function corsHeaders(request: NextRequest): Record<string, string> {
     return { ...base, 'Access-Control-Allow-Origin': '*' };
   }
   if (raw) {
-    const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    const list = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (origin && list.includes(origin)) {
       return { ...base, 'Access-Control-Allow-Origin': origin };
     }
@@ -94,8 +108,8 @@ function rateLimitResponse(request: NextRequest, retryAfterSec: number): NextRes
     request,
     NextResponse.json(
       { error: 'Too many requests', retryAfter: retryAfterSec },
-      { status: 429, headers: { 'Retry-After': String(retryAfterSec) } },
-    ),
+      { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+    )
   );
 }
 
@@ -115,7 +129,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  let payload: { user?: string; weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch' } = {};
+  let payload: {
+    user?: string;
+    scanKind?: ScanKind;
+    weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  } = {};
   try {
     payload = (await request.json()) as typeof payload;
   } catch {
@@ -128,6 +146,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
     desktopUser: payload.user ?? authSession?.user?.email ?? authSession?.user?.name ?? undefined,
     status: 'pending-phone' as const,
+    scanKind: normalizeScanKind(payload.scanKind),
     weightStrategy: payload.weightStrategy ?? ('distill' as const),
   };
   await store.set(token, session);
@@ -135,7 +154,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const url = `${baseUrl(request)}/scan-room/mobile/${encodeURIComponent(token)}`;
   return withCors(
     request,
-    NextResponse.json({ token, mobileUrl: url, expiresAt: session.expiresAt }, { status: 201 }),
+    NextResponse.json(
+      { token, mobileUrl: url, expiresAt: session.expiresAt, scanKind: session.scanKind },
+      { status: 201 }
+    )
   );
 }
 
@@ -149,7 +171,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const token = new URL(request.url).searchParams.get('t') ?? '';
   const session = await store.get(token);
-  if (!session) return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
+  if (!session)
+    return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
   return withCors(request, NextResponse.json(session));
 }
 
@@ -159,7 +182,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
   const token = new URL(request.url).searchParams.get('t') ?? '';
   const session = await store.get(token);
-  if (!session) return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
+  if (!session)
+    return withCors(request, NextResponse.json({ error: 'Session not found' }, { status: 404 }));
 
   const putRl = await store.rateLimitPut(token, PUT_MAX_PER_TOKEN, Math.ceil(PUT_WINDOW_MS / 1000));
   if (!putRl.ok) return rateLimitResponse(request, putRl.retryAfterSec);
@@ -191,13 +215,13 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   }
 
   if (session.status === 'done') {
+    const scanKind = normalizeScanKind(session.scanKind);
     const videoHash =
       session.videoHash ??
-      (session.videoBytes !== undefined
-        ? `size-only:${session.videoBytes}`
-        : 'no-video-payload');
-    const manifest = buildRoomScanCompletionManifest({
+      (session.videoBytes !== undefined ? `size-only:${session.videoBytes}` : 'no-video-payload');
+    const manifest = buildScanCompletionManifest({
       token: session.token,
+      scanKind,
       weightStrategy: session.weightStrategy,
       videoHash,
       frameCount: session.frameCount ?? 0,
@@ -210,6 +234,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       manifest,
       token: session.token,
       videoHash,
+      scanKind,
     });
   }
 

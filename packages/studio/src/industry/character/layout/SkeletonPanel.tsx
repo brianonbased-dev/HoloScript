@@ -70,6 +70,8 @@ export function SkeletonPanel() {
   const setShowSkeleton = useCharacterStore((s) => s.setShowSkeleton);
   const glbUrl = useCharacterStore((s) => s.glbUrl);
   const setGlbUrl = useCharacterStore((s) => s.setGlbUrl);
+  const holoAvatar = useCharacterStore((s) => s.holoAvatar);
+  const setHoloAvatar = useCharacterStore((s) => s.setHoloAvatar);
 
   const [filter, setFilter] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -120,6 +122,15 @@ export function SkeletonPanel() {
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
           )}
+          {holoAvatar && (
+            <button
+              onClick={() => setHoloAvatar(null)}
+              title="Unload face scan"
+              className="rounded p-1 text-studio-muted hover:text-red-400 transition"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -133,7 +144,17 @@ export function SkeletonPanel() {
         />
       </div>
 
-      {boneNames.length === 0 ? (
+      {holoAvatar ? (
+        <div className="flex flex-1 flex-col justify-center gap-3 p-4 text-center">
+          <p className="text-xs font-semibold text-studio-text">{holoAvatar.name}</p>
+          <p className="text-xs leading-5 text-studio-muted">
+            Derived face mesh loaded as a .holo avatar asset.
+          </p>
+          <p className="font-mono text-[10px] text-studio-muted">
+            {holoAvatar.renderAsset.pointCount.toLocaleString()} pts
+          </p>
+        </div>
+      ) : boneNames.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
           <span className="text-3xl">🦴</span>
           <p className="text-xs text-studio-muted">Load a .glb model to see its bones here</p>
