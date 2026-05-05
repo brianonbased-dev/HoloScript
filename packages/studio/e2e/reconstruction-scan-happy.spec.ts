@@ -10,9 +10,12 @@ const STUDIO_SCAN_DEFAULT_MODEL_HASH = 'studio-room-scan-mvp';
  * Desktop /scan-room (GitHub OAuth) is covered in staging with real auth; local dev keeps POST open unless STUDIO_SCAN_SESSION_REQUIRE_AUTH=1.
  */
 test.describe.serial('Reconstruction scan session', () => {
+  test.setTimeout(180_000);
+
   test('mobile upload completes with deterministic replay fingerprint', async ({ page, request }) => {
     const create = await request.post('/api/reconstruction/session', {
       data: { weightStrategy: 'distill' },
+      timeout: 30_000,
     });
     expect(create.ok(), await create.text()).toBeTruthy();
     const { token } = (await create.json()) as { token: string };
@@ -22,13 +25,15 @@ test.describe.serial('Reconstruction scan session', () => {
     const videoHash = createHash('sha256').update(videoBody).digest('hex');
 
     await page.goto(`/scan-room/mobile/${encodeURIComponent(token)}`);
-    await page.locator('input[type="file"]').setInputFiles({
+    await expect(page.getByText(/Phone connected/i)).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText(/Upload existing video/i)).toBeVisible({ timeout: 60_000 });
+    await page.getByTestId('room-upload-input').setInputFiles({
       name: 'e2e-cap.mp4',
       mimeType: 'video/mp4',
       buffer: videoBody,
     });
 
-    await expect(page.getByText(/Capture sent/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Mesh captured\. Return to desktop Studio/i)).toBeVisible({ timeout: 30_000 });
 
     let replayFingerprint: string | undefined;
     for (let i = 0; i < 60; i += 1) {

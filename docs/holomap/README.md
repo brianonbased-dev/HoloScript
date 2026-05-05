@@ -17,6 +17,7 @@ Central index for **operators, integrators, and tutorial authors**. Deep technic
 | [reconstruction-runtime.md](./reconstruction-runtime.md) | Engineers | Code map + doc delta checklist |
 | [MODALITY_WEIGHTS.md](./MODALITY_WEIGHTS.md) | Product + eng | Desktop HoloMap vs mobile `npu_depth` weight families |
 | [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md) | Product + ML | RFC Q2: indoor / outdoor / object specialists vs generalist |
+| [LAB_COMPOSITION_PLAN.md](./LAB_COMPOSITION_PLAN.md) | Research + hardware lab | S23 + Studio + Quest 3 composition plan and Lab Cell 001 contract |
 
 ---
 

@@ -212,8 +212,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private boundsValid = false;
   /** Running total point count (avoids O(n) re-scan in finalize). */
   private totalPointCount = 0;
-  /** Last accepted frame timestamp (ms) for FPS throttling. */
-  private lastStepTimeMs = 0;
+  /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
+  private lastAcceptedFrameTimestampMs: number | null = null;
   /** Deterministic session start timestamp. */
   private sessionStartMs = 0;
   /** Performance metrics accumulated across steps. */
@@ -317,7 +317,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.boundsValid = false;
     this.boundsMin = [0, 0, 0];
     this.boundsMax = [0, 0, 0];
-    this.lastStepTimeMs = 0;
+    this.lastAcceptedFrameTimestampMs = null;
     this.sessionStartMs = performance.now();
     this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
 
@@ -443,6 +443,10 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
     }
 
+    if (!Number.isFinite(frame.timestampMs)) {
+      throw new Error(`HoloMapRuntime.step invalid frame timestamp: ${frame.timestampMs}`);
+    }
+
     const expectedBytes = frame.width * frame.height * frame.stride;
     if (frame.rgb.byteLength !== expectedBytes) {
       throw new Error(
@@ -450,21 +454,24 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       );
     }
 
-    // Sprint-3: frame-rate throttling
-    const now = performance.now();
+    // Sprint-3: deterministic frame-rate throttling. Use capture timestamps,
+    // not wall-clock runtime speed, so replay keeps the same accepted frames.
     const minIntervalMs = 1000 / Math.max(1, this.config.targetFPS);
-    if (this.lastStepTimeMs > 0 && now - this.lastStepTimeMs < minIntervalMs) {
+    if (
+      this.lastAcceptedFrameTimestampMs !== null &&
+      frame.timestampMs - this.lastAcceptedFrameTimestampMs < minIntervalMs
+    ) {
       this.perfMetrics.throttledCount += 1;
       logHoloMapEvent(this.runId, 'step_throttled', {
         frameIndex: frame.index,
-        elapsedSinceLastMs: Math.round(now - this.lastStepTimeMs),
+        elapsedFrameMs: Math.round(frame.timestampMs - this.lastAcceptedFrameTimestampMs),
         targetIntervalMs: Math.round(minIntervalMs),
       });
       return null;
     }
 
     const stepStartMs = performance.now();
-    this.lastStepTimeMs = stepStartMs;
+    this.lastAcceptedFrameTimestampMs = frame.timestampMs;
 
     // Sprint-3: memory bound enforcement
     if (this.steps.length >= this.config.maxSequenceLength) {
@@ -658,6 +665,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.weightBytes = null;
     this.totalPointCount = 0;
     this.boundsValid = false;
+    this.lastAcceptedFrameTimestampMs = null;
     this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
   }
 }

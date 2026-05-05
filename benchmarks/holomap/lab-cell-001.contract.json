@@ -1,0 +1,148 @@
+{
+  "id": "holomap-lab-cell-001",
+  "version": 1,
+  "title": "Same room, three truths",
+  "status": "active-plan",
+  "date": "2026-05-05",
+  "objective": "Validate one indoor room across Studio browser capture, Galaxy S23 Ultra depth/pose capture, and Meta Quest 3 embodied viewing using a shared HoloMap manifest and CAEL replay contract.",
+  "devices": [
+    {
+      "id": "desktop-studio",
+      "role": "orchestrator-and-viewer",
+      "requiredOutputs": [
+        "scanSessionToken",
+        "statusTimeline",
+        "replayFingerprint",
+        "renderAsset"
+      ]
+    },
+    {
+      "id": "galaxy-s23-ultra",
+      "role": "capture-device",
+      "requiredOutputs": [
+        "rgbVideo",
+        "frameCount",
+        "videoHash"
+      ],
+      "plannedOutputs": [
+        "arcoreDepth",
+        "cameraPose",
+        "intrinsics",
+        "timestamps"
+      ]
+    },
+    {
+      "id": "meta-quest-3",
+      "role": "embodied-validator",
+      "requiredOutputs": [
+        "scaleCheck",
+        "floorCheck",
+        "wallCheck",
+        "navigationCheck",
+        "operatorNotes"
+      ]
+    }
+  ],
+  "modalities": [
+    {
+      "id": "studio-browser-scan",
+      "status": "wired",
+      "entrypoints": [
+        "packages/studio/src/app/scan-room/page.tsx",
+        "packages/studio/src/app/scan-room/mobile/[token]/page.tsx",
+        "packages/studio/src/app/api/reconstruction/session/route.ts"
+      ],
+      "acceptance": [
+        "desktopSeesPhoneConnected",
+        "desktopSeesCameraLinked",
+        "nonzeroCaptureMetadata",
+        "desktopRendersScanViewer"
+      ]
+    },
+    {
+      "id": "s23-arcore-depth-pose",
+      "status": "planned-adapter",
+      "entrypoints": [
+        "packages/core/src/traits/constants/mobile/depth-scanner.ts",
+        "packages/core/src/traits/constants/mobile/npu-scene.ts",
+        "packages/core/src/traits/constants/mobile/webxr.ts"
+      ],
+      "acceptance": [
+        "rgbDepthPoseNormalized",
+        "manifestReplayFingerprintStable",
+        "sameRoomComparisonAgainstStudioRun"
+      ]
+    },
+    {
+      "id": "quest3-embodied-validation",
+      "status": "planned-validation",
+      "entrypoints": [
+        "research/quest3-iphone-moment/README.md",
+        "research/quest3-iphone-moment/a-quest3-feasibility-probe.md",
+        "packages/studio/src/components/quest/QuestProbe.tsx"
+      ],
+      "acceptance": [
+        "questCanOpenViewer",
+        "scaleFloorWallNavigationRecorded",
+        "validationLinkedToReplayFingerprint"
+      ]
+    }
+  ],
+  "sharedContract": {
+    "manifestRuntime": "packages/core/src/reconstruction/HoloMapRuntime.ts",
+    "simulationBinding": "packages/core/src/reconstruction/simulationContractBinding.ts",
+    "replayFingerprint": "packages/core/src/reconstruction/replayFingerprint.ts",
+    "caelRuntime": "packages/engine/src/simulation/SimulationContract.ts"
+  },
+  "qualityGates": [
+    {
+      "id": "phone-connection",
+      "threshold": "phone-connected within 2 seconds of mobile page load"
+    },
+    {
+      "id": "camera-link",
+      "threshold": "capturing status emitted when Studio camera starts"
+    },
+    {
+      "id": "capture-receipt",
+      "threshold": "videoBytes > 0 and frameCount > 0"
+    },
+    {
+      "id": "viewer-output",
+      "threshold": "renderAsset.pointCount > 0 and HoloMapScanViewer visible"
+    },
+    {
+      "id": "plane-cues",
+      "threshold": "floor and wall evidence accumulate independently"
+    },
+    {
+      "id": "room-sweep",
+      "threshold": "single wall cannot reach full room coverage"
+    },
+    {
+      "id": "replay",
+      "threshold": "same videoHash, modelHash, seed, and weightStrategy produce the same replay fingerprint"
+    },
+    {
+      "id": "quest-validation",
+      "threshold": "scale, floor, wall, and navigation checks recorded against the replay fingerprint"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "secure-mobile-camera",
+      "state": "mobile browser getUserMedia requires HTTPS or another secure context",
+      "nextAction": "Run Lab Cell 001 from HTTPS Studio, production, or a trusted tunnel when testing on the phone."
+    },
+    {
+      "id": "arcore-adapter",
+      "state": "S23 native RGB-D pose capture is not yet normalized into the HoloMap manifest contract",
+      "nextAction": "Build an Android/ARCore adapter that writes RGB, depth, pose, intrinsics, timestamps, and calibration into this contract."
+    },
+    {
+      "id": "quest-physical-run",
+      "state": "Quest validation requires headset execution",
+      "nextAction": "Run the Quest feasibility probe and attach observations to this contract."
+    }
+  ]
+}

@@ -161,16 +161,20 @@ describe('HoloMapRuntime Sprint-3 — frame-rate throttling', () => {
     await r.dispose();
   });
 
-  it('accepts frames after throttle interval', async () => {
+  it('accepts frames after the capture timestamp passes the throttle interval', async () => {
     const r = createHoloMapRuntime();
     await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', targetFPS: 1 }); // 1000 ms interval
 
     const s1 = await r.step(makeFrame(0));
     expect(s1).not.toBeNull();
 
-    // With 1 FPS, any immediate second frame is throttled
+    // With 1 FPS, a frame at +100 ms is throttled.
     const s2 = await r.step(makeFrame(1));
     expect(s2).toBeNull();
+
+    // A frame at +1000 ms is accepted even if the test calls step() immediately.
+    const s3 = await r.step(makeFrame(10));
+    expect(s3).not.toBeNull();
 
     await r.dispose();
   });

@@ -127,6 +127,7 @@ describe('HoloMap E2E smoke gate', () => {
       seed: 7,
       modelHash: 'smoke-gate-model-v1',
       videoHash: 'smoke-gate-video',
+      targetFPS: 10000,
     });
 
     for (let i = 0; i < SMOKE_FRAME_COUNT; i += 1) {
@@ -163,6 +164,7 @@ describe('HoloMap E2E smoke gate', () => {
         seed: 99,
         modelHash: 'smoke-gate-determinism-v1',
         videoHash: 'fix-v1',
+        targetFPS: 10000,
       });
       for (let i = 0; i < SMOKE_FRAME_COUNT; i += 1) {
         await runtime.step(buildFrame(i));
