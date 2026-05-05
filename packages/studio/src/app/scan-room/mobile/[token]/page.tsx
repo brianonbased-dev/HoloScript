@@ -5,8 +5,14 @@ import { Camera, UploadCloud, CheckCircle2, Loader2, Square, Video } from 'lucid
 import {
   accumulatePlaneSensing,
   analyzeRoomPlaneFrame,
+  constrainedPlaneCoverage,
   emptyPlaneSensing,
+  emptyRoomSweepCoverage,
+  observeRoomSweep,
+  roomSweepProgress,
+  roomSweepViewCount,
   type RoomPlaneSensing,
+  type RoomSweepCoverage,
 } from '@/lib/room-plane-sensing';
 
 interface MobileScanProps {
@@ -67,6 +73,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const phoneConnectedSentRef = useRef(false);
   const sensingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previousLumaRef = useRef<Uint8Array | null>(null);
+  const headingRef = useRef<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +90,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [planeSensing, setPlaneSensing] = useState<RoomPlaneSensing>(emptyPlaneSensing);
+  const [sweepCoverage, setSweepCoverage] = useState<RoomSweepCoverage>(emptyRoomSweepCoverage);
 
   const pushState = async (body: Record<string, unknown>) => {
     const res = await fetch(`/api/reconstruction/session?t=${encodeURIComponent(token)}`, {
@@ -199,6 +207,26 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   }, [cameraStream, cameraState]);
 
   useEffect(() => {
+    if (!cameraStream) return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const compassEvent = event as DeviceOrientationEvent & { webkitCompassHeading?: number };
+      const heading =
+        typeof compassEvent.webkitCompassHeading === 'number'
+          ? compassEvent.webkitCompassHeading
+          : event.alpha;
+      headingRef.current = heading ?? null;
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation, true);
+      window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+    };
+  }, [cameraStream]);
+
+  useEffect(() => {
     const isSampling = cameraStream && (cameraState === 'ready' || cameraState === 'recording');
     if (!isSampling) {
       previousLumaRef.current = null;
@@ -224,6 +252,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         );
         previousLumaRef.current = analysis.luma;
         setPlaneSensing((prev) => accumulatePlaneSensing(prev, analysis));
+        if (cameraState === 'recording') {
+          setSweepCoverage((prev) => observeRoomSweep(prev, headingRef.current, analysis.motion));
+        }
       } catch {
         // Camera frames can briefly be unavailable while mobile browsers rotate or resume.
       }
@@ -369,6 +400,14 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     setCameraState('starting');
     try {
+      if (typeof window.DeviceOrientationEvent !== 'undefined') {
+        const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+          requestPermission?: () => Promise<PermissionState>;
+        };
+        if (typeof orientationEvent.requestPermission === 'function') {
+          await orientationEvent.requestPermission().catch(() => undefined);
+        }
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
@@ -430,6 +469,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
 
     chunksRef.current = [];
     clearFinalizeTimer();
+    setSweepCoverage({ ...emptyRoomSweepCoverage });
     setCaptureNotice('Recording room scan...');
     setError(null);
     const mimeType = bestRecorderMime();
@@ -518,19 +558,22 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     cameraState === 'ready' ||
     cameraState === 'recording' ||
     cameraState === 'processing';
-  const floorPercent = Math.round(planeSensing.floorConfidence * 100);
-  const wallPercent = Math.round(planeSensing.wallConfidence * 100);
+  const sweepProgress = roomSweepProgress(sweepCoverage);
+  const viewCount = roomSweepViewCount(sweepCoverage);
+  const sweepPercent = Math.round(sweepProgress * 100);
+  const floorPercent = Math.round(constrainedPlaneCoverage(planeSensing.floorConfidence, sweepProgress) * 100);
+  const wallPercent = Math.round(constrainedPlaneCoverage(planeSensing.wallConfidence, sweepProgress) * 100);
   const motionPercent = Math.round(planeSensing.motion * 100);
-  const floorLocked = planeSensing.floorConfidence >= 0.42;
-  const wallsLocked = planeSensing.wallConfidence >= 0.38;
+  const floorLocked = floorPercent >= 55;
+  const wallsLocked = wallPercent >= 55;
   const planeLockPercent = Math.round(
-    (planeSensing.floorConfidence * 0.54 + planeSensing.wallConfidence * 0.46) * 100,
+    floorPercent * 0.42 + wallPercent * 0.42 + sweepPercent * 0.16,
   );
   const trackingPercent =
     cameraState === 'recording'
-      ? Math.min(100, Math.max(planeLockPercent, 24 + recordingSeconds * 8))
+      ? planeLockPercent
       : cameraState === 'ready'
-        ? planeLockPercent
+        ? Math.round((planeSensing.floorConfidence * 0.54 + planeSensing.wallConfidence * 0.46) * 42)
         : cameraState === 'processing'
           ? 100
           : 0;
@@ -579,15 +622,15 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     if (cameraState === 'recording') {
       return {
         title: 'Recording room',
-        detail: `Move slowly around the space, then finish capture. Floor ${floorPercent}%, walls ${wallPercent}%. ${recordingSeconds}s recorded.`,
+        detail: `Turn slowly through the room. Coverage ${sweepPercent}% across ${viewCount}/8 views. Tap Finish capture when the sweep is high. ${recordingSeconds}s recorded.`,
       };
     }
     if (effectiveStatus === 'capturing') {
       return {
         title: 'Camera linked',
-        detail: floorLocked && wallsLocked
-          ? 'Floor and wall cues are visible. Start capture when ready.'
-          : 'Sweep slowly across the floor line and wall edges until the overlay locks on.',
+        detail: planeSensing.floorConfidence >= 0.42 && planeSensing.wallConfidence >= 0.38
+          ? 'Surface cues are visible. Start capture, then turn in a slow full circle.'
+          : 'Aim at the floor line and wall edges until the overlay finds stable surface cues.',
       };
     }
     if (effectiveStatus === 'phone-connected') {
@@ -705,8 +748,10 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                 </span>
                 <span className="rounded-full border border-emerald-200/35 bg-emerald-400/15 px-2 py-1 text-emerald-100">
                   {cameraState === 'recording'
-                    ? 'Recording'
-                    : floorLocked && wallsLocked
+                    ? viewCount >= 8
+                      ? 'Full sweep'
+                      : 'Recording'
+                    : planeSensing.floorConfidence >= 0.42 && planeSensing.wallConfidence >= 0.38
                       ? 'Planes locked'
                       : cameraState === 'ready'
                         ? 'Sensing'
@@ -745,10 +790,14 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                   >
                     Walls {planeSensing.samples > 0 ? `${wallPercent}%` : '--'}
                   </span>
-                  <span>{overlayPointCount > 0 ? `${overlayPointCount.toLocaleString()} pts` : '0 pts'}</span>
+                  <span data-testid="room-view-sensing">
+                    Views {cameraState === 'recording' ? `${viewCount}/8` : '--'}
+                  </span>
                 </div>
                 <div className="mt-2 text-center text-[10px] text-white/45">
-                  Motion {planeSensing.samples > 0 ? `${motionPercent}%` : '--'}
+                  Room sweep {cameraState === 'recording' ? `${sweepPercent}%` : '--'} · Motion{' '}
+                  {planeSensing.samples > 0 ? `${motionPercent}%` : '--'} ·{' '}
+                  {overlayPointCount.toLocaleString()} pts
                 </div>
               </div>
               {cameraState === 'recording' && (
