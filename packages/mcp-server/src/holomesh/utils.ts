@@ -123,8 +123,15 @@ export function requireTeamAccess(
  * the membership read see postgres-truth on every call, eliminating the
  * cross-replica visibility gap on the membership-check path.
  *
- * Cost: one postgres roundtrip per mutating request. Acceptable on writes;
- * read paths should keep using the sync `requireTeamAccess` for fast-path.
+ * Cost: one postgres roundtrip per request. The original guidance here was
+ * "read paths should keep using sync requireTeamAccess for fast-path", but
+ * empirical investigation (commits 29e9a8da7 + read-path coverage follow-up,
+ * task_1777932178900_isb8) found read paths exhibit the same cross-replica
+ * staleness — a board write on replica A is invisible to a /board read on
+ * replica B until in-memory cache bleed-through. The Pattern Gamma fix is
+ * read-and-write coverage; the postgres roundtrip is the price of correctness.
+ * If a fast-path read (no membership-check, no postgres traffic) is ever
+ * needed, add a separate guard rather than reverting board reads to sync.
  */
 export async function requireTeamAccessFresh(
   req: http.IncomingMessage,

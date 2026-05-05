@@ -15,7 +15,6 @@ import {
   extractParam,
   getTeamMember,
   hasTeamPermission,
-  requireTeamAccess,
   requireTeamAccessFresh,
   pruneStalePresence
 } from '../utils';
@@ -124,7 +123,11 @@ export async function handleBoardRoutes(
   // so a team with 753+ done entries was forever limited to the last 200 —
   // no way to enumerate the full history. Pagination closes that gap.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/done$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma read-path coverage (2026-05-04, follow-up to 29e9a8da7):
+    // same cross-replica staleness issue as GET /board — done-log reads on a
+    // replica that hasn't seen the latest /board done-action would return a
+    // truncated history.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -162,7 +165,10 @@ export async function handleBoardRoutes(
 
   // GET /api/holomesh/team/:id/suggestions — list improvement suggestions (MCP: holomesh_suggest_list)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): suggestions
+    // posted on another replica must be visible without waiting for cache
+    // bleed-through.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -187,7 +193,10 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/suggestions — propose (MCP: holomesh_suggest)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma write-path coverage (follow-up to 29e9a8da7): same
+    // cross-replica /join visibility issue as POST /board — caller may have
+    // joined on a different replica seconds ago.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -223,7 +232,10 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/suggestions/:suggestionId/vote (MCP: holomesh_suggest_vote)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+\/vote$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma write-path coverage (follow-up to 29e9a8da7): voting
+    // mutates the suggestions array; must reload before the membership check
+    // so cross-replica /joins are visible.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { caller, teamId } = access;
     const m = pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/([^/]+)\/vote$/);
@@ -649,7 +661,11 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/presence — Heartbeat
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma write-path coverage (follow-up to 29e9a8da7): heartbeats
+    // are the load-bearing identity check — when a fresh /join lands on
+    // replica A and the heartbeat hits replica B, the sync access check 403s
+    // on stale cache. W.133 documented this as the read-only verdict trigger.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -730,7 +746,10 @@ export async function handleBoardRoutes(
   //
   // Auth: team membership (same gate as GET /presence). Non-members 403.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/members$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url);
+    // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): the W.087
+    // vertex-C disambiguation endpoint must reflect the latest membership;
+    // stale cache here breaks per-surface seat enumeration.
+    const access = await requireTeamAccessFresh(req, res, url);
     if (!access) return true;
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -818,7 +837,10 @@ export async function handleBoardRoutes(
 
   // GET /api/holomesh/team/:id/messages
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/messages$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url, 'messages:read');
+    // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): handoff DMs
+    // landing on a different replica must be visible to the next agent's
+    // session-start inbox read.
+    const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
     if (!access) return true;
     const { teamId } = access;
     
@@ -829,7 +851,10 @@ export async function handleBoardRoutes(
 
   // GET /api/holomesh/team/:id/feed — team activity feed (hologram publishes, etc.)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/feed$/) && method === 'GET') {
-    const access = requireTeamAccess(req, res, url, 'messages:read');
+    // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): feed
+    // publishes via POST /feed already use Fresh; the read side must match
+    // or the feed silently lags by one cross-replica round-trip.
+    const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
     if (!access) return true;
     const { teamId } = access;
     const limitParam = new URL(url, 'http://localhost').searchParams.get('limit');
