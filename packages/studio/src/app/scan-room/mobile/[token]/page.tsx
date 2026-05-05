@@ -8,6 +8,7 @@ import {
   constrainedPlaneCoverage,
   emptyPlaneSensing,
   emptyRoomSweepCoverage,
+  normalizeHeadingDegrees,
   observeRoomSweep,
   roomSweepProgress,
   roomSweepViewCount,
@@ -74,6 +75,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const sensingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previousLumaRef = useRef<Uint8Array | null>(null);
   const headingRef = useRef<number | null>(null);
+  const nativeHeadingSeenRef = useRef(false);
+  const syntheticHeadingRef = useRef<number | null>(null);
+  const lastMotionAtRef = useRef<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -216,13 +220,32 @@ export default function MobileScanPage({ params }: MobileScanProps) {
           ? compassEvent.webkitCompassHeading
           : event.alpha;
       headingRef.current = heading ?? null;
+      if (heading !== null && heading !== undefined) nativeHeadingSeenRef.current = true;
+    };
+    const handleMotion = (event: DeviceMotionEvent) => {
+      if (nativeHeadingSeenRef.current) return;
+      const yawRate = event.rotationRate?.alpha;
+      if (typeof yawRate !== 'number' || !Number.isFinite(yawRate)) return;
+
+      const now = event.timeStamp || performance.now();
+      const previousAt = lastMotionAtRef.current;
+      lastMotionAtRef.current = now;
+      if (previousAt === null) return;
+
+      const elapsedSeconds = Math.max(0, Math.min(0.5, (now - previousAt) / 1000));
+      if (elapsedSeconds === 0) return;
+      const nextHeading = normalizeHeadingDegrees((syntheticHeadingRef.current ?? 0) + yawRate * elapsedSeconds);
+      syntheticHeadingRef.current = nextHeading;
+      headingRef.current = nextHeading;
     };
 
     window.addEventListener('deviceorientation', handleOrientation, true);
     window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('devicemotion', handleMotion, true);
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation, true);
       window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.removeEventListener('devicemotion', handleMotion, true);
     };
   }, [cameraStream]);
 
@@ -402,10 +425,18 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     try {
       if (typeof window.DeviceOrientationEvent !== 'undefined') {
         const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
-          requestPermission?: () => Promise<PermissionState>;
+          requestPermission?: (absolute?: boolean) => Promise<PermissionState>;
         };
         if (typeof orientationEvent.requestPermission === 'function') {
-          await orientationEvent.requestPermission().catch(() => undefined);
+          await orientationEvent.requestPermission(true).catch(() => orientationEvent.requestPermission?.());
+        }
+      }
+      if (typeof window.DeviceMotionEvent !== 'undefined') {
+        const motionEvent = window.DeviceMotionEvent as typeof DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>;
+        };
+        if (typeof motionEvent.requestPermission === 'function') {
+          await motionEvent.requestPermission().catch(() => undefined);
         }
       }
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -470,6 +501,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     chunksRef.current = [];
     clearFinalizeTimer();
     setSweepCoverage({ ...emptyRoomSweepCoverage });
+    nativeHeadingSeenRef.current = false;
+    syntheticHeadingRef.current = null;
+    lastMotionAtRef.current = null;
     setCaptureNotice('Recording room scan...');
     setError(null);
     const mimeType = bestRecorderMime();
@@ -561,13 +595,15 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const sweepProgress = roomSweepProgress(sweepCoverage);
   const viewCount = roomSweepViewCount(sweepCoverage);
   const sweepPercent = Math.round(sweepProgress * 100);
-  const floorPercent = Math.round(constrainedPlaneCoverage(planeSensing.floorConfidence, sweepProgress) * 100);
-  const wallPercent = Math.round(constrainedPlaneCoverage(planeSensing.wallConfidence, sweepProgress) * 100);
+  const floorCuePercent = Math.round(planeSensing.floorConfidence * 100);
+  const wallCuePercent = Math.round(planeSensing.wallConfidence * 100);
+  const floorCoveragePercent = Math.round(constrainedPlaneCoverage(planeSensing.floorConfidence, sweepProgress) * 100);
+  const wallCoveragePercent = Math.round(constrainedPlaneCoverage(planeSensing.wallConfidence, sweepProgress) * 100);
   const motionPercent = Math.round(planeSensing.motion * 100);
-  const floorLocked = floorPercent >= 55;
-  const wallsLocked = wallPercent >= 55;
+  const floorLocked = planeSensing.floorConfidence >= 0.42;
+  const wallsLocked = planeSensing.wallConfidence >= 0.38;
   const planeLockPercent = Math.round(
-    floorPercent * 0.42 + wallPercent * 0.42 + sweepPercent * 0.16,
+    floorCoveragePercent * 0.42 + wallCoveragePercent * 0.42 + sweepPercent * 0.16,
   );
   const trackingPercent =
     cameraState === 'recording'
@@ -752,7 +788,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                       ? 'Full sweep'
                       : 'Recording'
                     : planeSensing.floorConfidence >= 0.42 && planeSensing.wallConfidence >= 0.38
-                      ? 'Planes locked'
+                      ? 'Cues locked'
                       : cameraState === 'ready'
                         ? 'Sensing'
                         : 'Linking'}
@@ -782,13 +818,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
                     data-testid="room-floor-sensing"
                     className={floorLocked ? 'text-emerald-100' : 'text-yellow-100'}
                   >
-                    Floor {planeSensing.samples > 0 ? `${floorPercent}%` : '--'}
+                    Floor cue {planeSensing.samples > 0 ? `${floorCuePercent}%` : '--'}
                   </span>
                   <span
                     data-testid="room-wall-sensing"
                     className={wallsLocked ? 'text-emerald-100' : 'text-yellow-100'}
                   >
-                    Walls {planeSensing.samples > 0 ? `${wallPercent}%` : '--'}
+                    Wall cue {planeSensing.samples > 0 ? `${wallCuePercent}%` : '--'}
                   </span>
                   <span data-testid="room-view-sensing">
                     Views {cameraState === 'recording' ? `${viewCount}/8` : '--'}
