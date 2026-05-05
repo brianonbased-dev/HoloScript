@@ -40,11 +40,11 @@ import {
   VALID_ATTACK_CLASSES,
   type DispatchEntry,
 } from '../state';
-import type { TeamPresenceEntry } from '../types';
+import type { TeamPresenceEntry, RegisteredAgent } from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
-import { json, parseJsonBody } from '../utils';
+import { json, parseJsonBody, pruneStalePresence } from '../utils';
 import type { MeshKnowledgeEntry } from '../types';
 import { TEAM_ROLE_PERMISSIONS } from '../types';
 
@@ -337,16 +337,108 @@ export async function handleCoreRoutes(
   }
 
   // ── GET /api/holomesh/agents ──────────────────────────────────────────────
+  //
+  // Aliveness filter (task_1777939860298_m9ep, layer a): an agent is "online"
+  // iff ALL of:
+  //   (1) registered in agentKeyStore (handle-registry agreement),
+  //   (2) has a presence entry newer than PRESENCE_TTL_MS in at least one team,
+  //   (3) the surfaceTag on that presence entry agrees with what the
+  //       caller's KeyRecord declared at register time (no impostor heartbeats).
+  //
+  // Without (3) the read-side could still surface a ghost: an old presence
+  // entry whose surfaceTag was written when a different surface owned the
+  // bearer. The two-store split is presence-store (heartbeats, mutated by
+  // POST /presence) vs handle-registry (agentKeyStore.surfaceTag, frozen at
+  // /register). Both must agree before we mark the agent online.
+  //
+  // We ALSO actively call pruneStalePresence(teamId) for every team that the
+  // current registered-agents touch, so the read mutates the store — no longer
+  // append-only on read. This closes the cursor-claude-x402 ghost observed
+  // during marathon 2026-05-04 (W.128 Pattern Gamma sibling).
+  //
+  // Strategy: keep ALL registered agents in the response (registry is
+  // authoritative), but tag each with `online` + `lastHeartbeat` + optional
+  // `presenceMismatch: true` when (3) fails — callers can render
+  // "registered but offline" or "registered but tag mismatch" without
+  // re-deriving the cross-team join.
   if (pathname === '/api/holomesh/agents' && method === 'GET') {
-    const agents = Array.from(agentKeyStore.values()).map((a) => ({
-      id: a.id,
-      name: a.name,
-      walletAddress: a.walletAddress,
-      traits: a.traits.slice(0, 5),
-      traitCount: a.traits.length,
-      reputation: a.reputation,
-      createdAt: a.createdAt,
-    }));
+    const url2 = new URL(req.url ?? '/', 'http://localhost');
+    const onlineOnly = url2.searchParams.get('online') === 'true';
+    const now = Date.now();
+    const PRESENCE_TTL_MS = 120 * 1000; // mirrors types.ts SSOT; if this drifts, types.ts wins
+    // Layer A.1: actively prune stale presence per team before reading.
+    // Without this, a heartbeat older than TTL persists in teamPresenceStore
+    // until /presence GET (and only that endpoint) prunes it. /agents reads
+    // would silently filter the stale entry out but leave the store dirty —
+    // the next /presence GET still sees the ghost briefly. Active prune at
+    // /agents read time is what closes the two-store split.
+    //
+    // We iterate teamPresenceStore directly rather than relying on
+    // agentTeamIndex because the latter is only hydrated from durable storage
+    // (postgres / file load). Live /team POST + /join updates do not write to
+    // the index — they push to team.members. teamPresenceStore is the
+    // authoritative live signal, so iterate it for the join.
+    for (const tid of teamPresenceStore.keys()) {
+      try { pruneStalePresence(tid); } catch { /* best-effort — never fail /agents */ }
+    }
+    // Build agentId → freshest heartbeat across all presence stores,
+    // requiring surfaceTag agreement with the registered agent's surfaceTag
+    // (layer A.2: handle-registry agreement check).
+    const freshestByAgent = new Map<string, { lastHeartbeat: string; teamId: string; surfaceTagMatch: boolean }>();
+    const presenceMismatchByAgent = new Map<string, boolean>();
+    // Pre-build agentId → registered KeyRecord lookup for the surfaceTag check.
+    const registeredById = new Map<string, RegisteredAgent>();
+    for (const a of agentKeyStore.values()) registeredById.set(a.id, a);
+    for (const [tid, presenceMap] of teamPresenceStore.entries()) {
+      for (const [agentId, entry] of presenceMap.entries()) {
+        if (!entry?.lastHeartbeat) continue;
+        const ts = new Date(entry.lastHeartbeat).getTime();
+        if (!Number.isFinite(ts)) continue;
+        if (now - ts > PRESENCE_TTL_MS) continue; // stale — already pruned above; defense-in-depth
+        // Status==='offline' is the explicit-teardown signal (layer b).
+        // Treat it as an immediate offline marker even within TTL window.
+        if (entry.status === 'offline') continue;
+        // Frozen surface tag from /register. May be undefined for legacy agents
+        // (registered before surfaceTag snapshotting landed) — in that case we
+        // skip the agreement check, falling back to heartbeat-only.
+        const registered = registeredById.get(agentId);
+        const expectedSurfaceTag = registered?.surfaceTag;
+        // surfaceTag agreement: only enforce when both sides declared one.
+        const surfaceTagMatch = !expectedSurfaceTag
+          || !entry.surfaceTag
+          || expectedSurfaceTag === entry.surfaceTag;
+        if (!surfaceTagMatch) {
+          presenceMismatchByAgent.set(agentId, true);
+          continue; // ghost: heartbeat fresh but surface lied
+        }
+        const prev = freshestByAgent.get(agentId);
+        if (!prev || new Date(prev.lastHeartbeat).getTime() < ts) {
+          freshestByAgent.set(agentId, {
+            lastHeartbeat: entry.lastHeartbeat,
+            teamId: tid,
+            surfaceTagMatch: true,
+          });
+        }
+      }
+    }
+    const agentsAll = Array.from(agentKeyStore.values()).map((a) => {
+      const fresh = freshestByAgent.get(a.id);
+      const mismatch = presenceMismatchByAgent.get(a.id) === true && !fresh;
+      const out: Record<string, unknown> = {
+        id: a.id,
+        name: a.name,
+        walletAddress: a.walletAddress,
+        traits: a.traits.slice(0, 5),
+        traitCount: a.traits.length,
+        reputation: a.reputation,
+        createdAt: a.createdAt,
+        online: Boolean(fresh),
+        lastHeartbeat: fresh?.lastHeartbeat ?? null,
+      };
+      if (mismatch) out.presenceMismatch = true;
+      return out;
+    });
+    const agents = onlineOnly ? agentsAll.filter((a) => a.online === true) : agentsAll;
     json(res, 200, { success: true, agents, count: agents.length });
     return true;
   }

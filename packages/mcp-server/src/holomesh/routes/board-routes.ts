@@ -701,6 +701,31 @@ export async function handleBoardRoutes(
     const resolvedSurfaceTag = caller.surfaceTag
       ?? teamMember?.surfaceTag
       ?? declaredSurfaceTag;
+    // Aliveness fix (task_1777939860298_m9ep, layer b): explicit teardown.
+    // body.status==='offline' is the Stop hook's "I'm leaving" signal — the
+    // server must DELETE the row, not stamp it offline and let it expire
+    // naturally over the PRESENCE_TTL_MS window. Without this we get the
+    // cursor-claude-x402 ghost: closed IDE, fresh-looking heartbeat, agent
+    // still online for ~2 minutes after the window closed.
+    //
+    // We accept both `status` and `body.status` casings for safety; the
+    // legacy code path used the same `body.status` field. Idempotent —
+    // posting offline with no row reports removed=false.
+    const declaredStatus = (body.status as string) || 'active';
+    if (declaredStatus === 'offline') {
+      const had = presenceMap.has(caller.id);
+      presenceMap.delete(caller.id);
+      if (had) {
+        broadcastToTeam(teamId, {
+          type: 'presence:leave',
+          agent: caller.name,
+          data: { agentId: caller.id, agentName: caller.name, reason: 'explicit-teardown' },
+        });
+      }
+      const online = Array.from(presenceMap.values());
+      json(res, 200, { success: true, removed: had, online, online_count: online.length });
+      return true;
+    }
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,

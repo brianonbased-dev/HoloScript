@@ -12,13 +12,14 @@ import {
   challengeStore,
   reloadTeam,
 } from '../state';
-import { 
-  json, 
-  parseJsonBody, 
-  extractParam, 
-  getTeamMember, 
+import {
+  json,
+  parseJsonBody,
+  extractParam,
+  getTeamMember,
   hasTeamPermission,
-  requireTeamAccess
+  requireTeamAccess,
+  pruneStalePresence
 } from '../utils';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
@@ -883,11 +884,26 @@ export async function handleTeamRoutes(
     const resolvedSurfaceTag = caller.surfaceTag
       ?? teamMember?.surfaceTag
       ?? declaredSurfaceTag;
+    const declaredStatus = (body.status as string) || 'active';
+    // Aliveness fix (task_1777939860298_m9ep, layer b): explicit teardown.
+    // When the Stop hook posts {status:'offline'} the server must DELETE the
+    // presence row, not just stamp it offline. Without this, an offline
+    // record sits in teamPresenceStore until PRESENCE_TTL_MS expires and the
+    // next /presence GET prunes it — a 2-minute ghost window. Active deletion
+    // closes the window to "as fast as the next request".
+    if (declaredStatus === 'offline') {
+      const presenceMap = teamPresenceStore.get(teamId);
+      const had = presenceMap?.has(caller.id) ?? false;
+      if (presenceMap) presenceMap.delete(caller.id);
+      const onlineCount = presenceMap?.size ?? 0;
+      json(res, 200, { success: true, removed: had, online_count: onlineCount });
+      return true;
+    }
     const entry = {
       agentId: caller.id,
       agentName: caller.name,
       ideType: (body.ideType as string) || 'unknown',
-      status: (body.status as string) || 'active',
+      status: declaredStatus,
       lastHeartbeat: new Date().toISOString(),
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
@@ -901,6 +917,13 @@ export async function handleTeamRoutes(
   }
 
   // GET /api/holomesh/team/:id/presence
+  //
+  // Aliveness filter (task_1777939860298_m9ep, layer a): prune stale presence
+  // before responding so an IDE that closed without firing its Stop hook does
+  // NOT keep ghosting the online roster. PRESENCE_TTL_MS (2 min) lives in
+  // types.ts; pruneStalePresence() reads it. Without this call the heartbeat
+  // store is append-only-on-read for non-board surfaces — exactly the
+  // cursor-claude-x402 ghost observed during marathon 2026-05-04.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'GET') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
@@ -908,6 +931,7 @@ export async function handleTeamRoutes(
     const team = teamStore.get(teamId);
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    pruneStalePresence(teamId);
     const presenceMap = teamPresenceStore.get(teamId);
     const online = presenceMap ? Array.from(presenceMap.values()) : [];
     json(res, 200, { success: true, online_count: online.length, online });

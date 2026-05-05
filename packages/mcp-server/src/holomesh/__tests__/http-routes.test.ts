@@ -2133,6 +2133,117 @@ describe('HoloMesh HTTP Routes', () => {
       expect(selfMember?.surfaceTag).toBe('claude-code');
     });
 
+    // ── Aliveness filter (task_1777939860298_m9ep) ──
+    //
+    // Regression coverage for the cursor-claude-x402 ghost observed during
+    // marathon 2026-05-04. Three vectors:
+    //   (1) /agents online filter respects PRESENCE_TTL — stale heartbeats
+    //       drop off the online roster and the underlying store gets pruned.
+    //   (2) POST /presence with status='offline' deletes the row immediately
+    //       (explicit teardown — the layer-b Stop hook leans on this).
+    //   (3) /agents enforces surfaceTag agreement — a heartbeat that lies
+    //       about its surface is treated as a ghost, not as online.
+
+    it('GET /agents?online=true filters out agents with stale heartbeats (layer a)', async () => {
+      // Register a fresh agent so its surfaceTag is captured at register time.
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `ghost-${Date.now()}`,
+        surface_tag: 'cursor-claude',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const agentId = regRes._body.agent.id;
+
+      // Create a team and join it.
+      const createReq = mockReq('POST', '/api/holomesh/team',
+        { name: `ghost-team-${Date.now()}` },
+        { authorization: `Bearer ${apiKey}` });
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Beat presence to mark agent online.
+      const beatReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'cursor', surface_tag: 'cursor-claude', status: 'active' },
+        { authorization: `Bearer ${apiKey}` });
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+
+      // /agents?online=true should include this agent right after a fresh beat.
+      const liveReq = mockReq('GET', '/api/holomesh/agents?online=true');
+      const liveRes = mockRes();
+      await handleHoloMeshRoute(liveReq, liveRes, '/api/holomesh/agents');
+      expect(liveRes._status).toBe(200);
+      const liveIds = (liveRes._body.agents as Array<{ id: string }>).map((a) => a.id);
+      expect(liveIds).toContain(agentId);
+
+      // Now backdate the heartbeat to PRESENCE_TTL_MS + 1s in the past, mimicking
+      // an IDE that closed without firing its Stop hook. The /agents?online=true
+      // call must surface the agent as offline AND the underlying presence row
+      // must be pruned (not just filtered on read — that's the two-store split
+      // this fix is closing).
+      const stateMod = await import('../state');
+      const presenceMap = stateMod.teamPresenceStore.get(tid);
+      expect(presenceMap?.has(agentId)).toBe(true);
+      const stale = presenceMap!.get(agentId)!;
+      stale.lastHeartbeat = new Date(Date.now() - 121_000).toISOString();
+      presenceMap!.set(agentId, stale);
+
+      const ghostReq = mockReq('GET', '/api/holomesh/agents?online=true');
+      const ghostRes = mockRes();
+      await handleHoloMeshRoute(ghostReq, ghostRes, '/api/holomesh/agents');
+      expect(ghostRes._status).toBe(200);
+      const ghostIds = (ghostRes._body.agents as Array<{ id: string }>).map((a) => a.id);
+      expect(ghostIds).not.toContain(agentId);
+      // Active prune: the read mutated the store, the row is gone.
+      expect(stateMod.teamPresenceStore.get(tid)?.has(agentId)).toBe(false);
+    });
+
+    it('POST /presence with status=offline deletes the presence row (layer b)', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `tear-${Date.now()}`,
+        surface_tag: 'claude-code',
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const agentId = regRes._body.agent.id;
+
+      const createReq = mockReq('POST', '/api/holomesh/team',
+        { name: `tear-team-${Date.now()}` },
+        { authorization: `Bearer ${apiKey}` });
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Beat — row created
+      const beatReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'claude-code', status: 'active' },
+        { authorization: `Bearer ${apiKey}` });
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+      expect(beatRes._body.online_count).toBe(1);
+
+      // Explicit offline — row deleted, NOT just stamped
+      const offlineReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'claude-code', status: 'offline' },
+        { authorization: `Bearer ${apiKey}` });
+      const offlineRes = mockRes();
+      await handleHoloMeshRoute(offlineReq, offlineRes, `/api/holomesh/team/${tid}/presence`);
+      expect(offlineRes._status).toBe(200);
+      expect(offlineRes._body.removed).toBe(true);
+      expect(offlineRes._body.online_count).toBe(0);
+      // No stale presence record left over — the load-bearing assertion.
+      // Without the layer-b deletion, the row would persist with status='offline'
+      // until PRESENCE_TTL_MS (120s) — which is exactly the cursor-claude-x402
+      // ghost we're closing.
+      const stateMod = await import('../state');
+      expect(stateMod.teamPresenceStore.get(tid)?.has(agentId)).toBe(false);
+    });
+
     // ── Messaging ──
 
     it('POST /api/holomesh/team/:id/message sends team message', async () => {
