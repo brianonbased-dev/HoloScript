@@ -2,10 +2,11 @@
 
 ## Overview
 
-This guide documents the implementation of real Zora Protocol SDK integration for the ZoraCoinsTrait, replacing HTTP API stubs with actual blockchain interactions.
+This guide documents the real Zora Protocol SDK integration for the ZoraCoinsTrait, replacing HTTP API stubs with actual blockchain interactions.
 
-**Status:** ✅ PRODUCTION READY
-**Progress:** 100% Complete (implementation ✅, tests ✅, docs ✅, production deployment ready ✅)
+**Status:** ✅ PRODUCTION READY for minting against an existing collection
+**Canonical implementation:** `packages/marketplace-api/src/traits/ZoraCoinsTrait.ts`
+**Collection deployment:** explicit operator step via `packages/marketplace-api/scripts/deploy-protocol-collection.ts` or Zora UI before minting
 
 ---
 
@@ -19,7 +20,7 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 
 ### 2. Utility Classes Created
 
-#### **WalletConnection.ts** (`src/traits/utils/WalletConnection.ts`)
+#### **WalletConnection.ts** (`packages/marketplace-api/src/web3/WalletConnection.ts`)
 
 - Manages Base L2 blockchain connections
 - Provides public client (read) and wallet client (write)
@@ -33,7 +34,7 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 - `getWalletClient()` - Get write client (throws if not connected)
 - `isConnected()` - Check connection status
 
-#### **GasEstimator.ts** (`src/traits/utils/GasEstimator.ts`)
+#### **GasEstimator.ts** (`packages/marketplace-api/src/web3/GasEstimator.ts`)
 
 - Estimates gas costs for Zora mints
 - Calculates total cost (gas + 0.000777 ETH mint fee)
@@ -48,19 +49,19 @@ This guide documents the implementation of real Zora Protocol SDK integration fo
 
 ---
 
-## 🚧 In Progress (Week 1, Days 4-6)
+## ✅ Implemented (Week 1, Days 4-6)
 
 ### 3. ZoraCoinsTrait.ts Updates
 
-#### Changes Required:
+#### Implemented Integration Shape:
 
-**A. Add Imports** (after line 22):
+**A. Imports:**
 
 ```typescript
-import { WalletConnection } from './utils/WalletConnection';
-import { GasEstimator } from './utils/GasEstimator';
+import { WalletConnection } from './web3/WalletConnection';
+import { GasEstimator } from './web3/GasEstimator';
 import { parseEther, formatEther, type Address, type Hex } from 'viem';
-import { ZoraCreator1155Impl } from '@zoralabs/protocol-deployments';
+import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
 ```
 
 **B. Add Context Interface** (after line 143):
@@ -72,7 +73,7 @@ interface ZoraExecutionContext {
 }
 ```
 
-**C. Replace `executeMinting()` Function** (lines 626-653):
+**C. `executeMinting()` Function:**
 
 ```typescript
 /**
@@ -115,11 +116,10 @@ async function executeMinting(
     // Use existing collection
     contractAddress = config.collection_id as Address;
   } else {
-    // For now, require collection_id
-    // Future work: implement auto-deployment in a later version
     throw new Error(
-      'collection_id is required. Auto-deployment not yet implemented. ' +
-        'Create a Zora collection first at https://zora.co/create'
+      'collection_id is required before minting. Deploy a collection with ' +
+        'packages/marketplace-api/scripts/deploy-protocol-collection.ts or create one at ' +
+        'https://zora.co/create, then pass its address.'
     );
   }
 
@@ -174,7 +174,7 @@ async function executeMinting(
   try {
     const { request } = await publicClient.simulateContract({
       address: contractAddress,
-      abi: ZoraCreator1155Impl.abi,
+      abi: zoraCreator1155ImplABI,
       functionName: 'mintWithRewards',
       args: [
         walletAddress, // minter (who receives the NFT)
@@ -243,7 +243,7 @@ async function executeMinting(
 }
 ```
 
-**D. Replace `checkMintStatus()` Function** (lines 593-595):
+**D. `checkMintStatus()` Function:**
 
 ```typescript
 /**
@@ -431,4 +431,4 @@ BASE_TESTNET_RPC_URL=https://goerli.base.org
 
 ---
 
-**Next Command:** Apply the changes to ZoraCoinsTrait.ts
+**Verification Command:** `pnpm --filter @holoscript/marketplace-api test -- src/traits/__tests__/ZoraCoinsTrait.blockchain.test.ts`

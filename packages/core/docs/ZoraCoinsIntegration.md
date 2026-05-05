@@ -505,11 +505,13 @@ Shortfall: 0.003125 ETH
 #### 3. Collection ID Required
 
 ```
-Error: collection_id is required. Auto-deployment not yet implemented.
-Create a Zora collection first at https://zora.co/create
+Error: collection_id is required before minting. Deploy a collection with
+packages/marketplace-api/scripts/deploy-protocol-collection.ts or create one at
+https://zora.co/create, then pass its address.
 ```
 
-**Solution:** Create a collection on Zora and add `collection_id` to config.
+**Solution:** Deploy a collection with `packages/marketplace-api/scripts/deploy-protocol-collection.ts`
+or create one on Zora, then add the collection address as `collection_id` in config.
 
 #### 4. Transaction Timeout
 

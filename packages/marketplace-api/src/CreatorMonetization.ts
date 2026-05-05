@@ -311,10 +311,11 @@ export class CreatorMonetization {
   // ===========================================================================
 
   /**
-   * Create a new NFT collection on Zora
+   * Resolve collection deployment guidance for Zora.
    *
-   * Note: Currently requires pre-created collection via Zora UI.
-   * Auto-deployment will be implemented in future version.
+   * Collection deployment is an explicit operator step in this release. Use
+   * `packages/marketplace-api/scripts/deploy-protocol-collection.ts` or Zora UI,
+   * then pass the resulting address to `mintNFT`.
    *
    * @param name - Collection name
    * @param symbol - Collection symbol (e.g., "HOLO")
@@ -331,15 +332,22 @@ export class CreatorMonetization {
    * );
    * ```
    */
-  async createCollection(_name: string, _symbol: string, _description?: string): Promise<Collection> {
+  async createCollection(
+    _name: string,
+    _symbol: string,
+    _description?: string
+  ): Promise<Collection> {
     this.ensureInitialized();
 
-    // Auto-deployment via Zora SDK is planned — use Zora UI in the meantime.
     throw new CreatorMonetizationError(
-      'Auto-deployment not yet implemented. Create collection at https://zora.co/create',
-      'NOT_IMPLEMENTED',
+      'Collection deployment is external in this release. Run ' +
+        'packages/marketplace-api/scripts/deploy-protocol-collection.ts or create a collection at ' +
+        'https://zora.co/create, then provide the collection address in mintNFT options.',
+      'COLLECTION_DEPLOYMENT_EXTERNAL',
       {
-        message: 'Use Zora UI to create collection, then provide address in mintNFT options',
+        message:
+          'Deploy or create the collection first, then provide its address in mintNFT options',
+        script: 'packages/marketplace-api/scripts/deploy-protocol-collection.ts',
         createUrl: 'https://zora.co/create',
       }
     );

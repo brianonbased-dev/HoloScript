@@ -798,11 +798,10 @@ async function executeMinting(
     // Use existing collection
     contractAddress = config.collection_id as Address;
   } else {
-    // For now, require collection_id
-    // Auto-deployment is planned — require collection_id for now.
     throw new Error(
-      'collection_id is required. Auto-deployment not yet implemented. ' +
-        'Create a Zora collection first at https://zora.co/create'
+      'collection_id is required before minting. Deploy a collection with ' +
+        'packages/marketplace-api/scripts/deploy-protocol-collection.ts or create one at ' +
+        'https://zora.co/create, then pass its address.'
     );
   }
 
