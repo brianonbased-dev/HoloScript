@@ -4,98 +4,79 @@
 >
 > _The declarative language for the spatial and autonomous web._
 
-> **Current version: v7.0.0** — shipped 2026-04-22. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current release marker: v7.0.0** — shipped 2026-04-21. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
+> **Metrics policy:** live counts belong in [docs/NUMBERS.md](../NUMBERS.md), not in this roadmap.
 
 ---
 
-## Current State (v7.0.0)
+## Current State (v7.0.0, refreshed 2026-05-05)
 
-v7.0.0 shipped 2026-04-22. All v5.x "Great Refinement" goals have been met or exceeded:
+v7.0.0 is the current platform-era marker. The active roadmap is no longer "finish the v5/v6 feature list"; it is verification, adoption, and physical-world closure over the substrate that already shipped.
 
-| Metric          | v5.0 Target | v7.0.0 Actual (verify via `docs/NUMBERS.md`)                                          |
-| --------------- | ----------- | -------------------------------------------------------------------------------------- |
-| Tests           | 1,500+      | Verify: `pnpm test` (see CI dashboard)                                               |
-| Traits          | 1,800+      | Verify: `find packages/core/src/traits -name "*.ts" -not -name "*.test.*" | wc -l`     |
-| Compile targets | 15          | Verify: `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" | wc -l` |
-| Export targets  | —           | Verify: `ExportTarget` enum in `packages/core/src/compiler/CircuitBreaker.ts`          |
-| MCP tools       | —           | Verify: `curl https://mcp.holoscript.net/health` → `tools` field                       |
-| Packages        | —           | Verify: `ls -d packages/*/ | wc -l`                                                    |
-| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (verify tools via health)     |
-| HoloMesh        | concept     | V8+: endpoints via health check (verify live)                                          |
-| Knowledge store | —           | Verify: `curl https://mcp-orchestrator-production-45f9.up.railway.app/health`        |
-| Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction, at time of writing)                |
-
-What shipped in v6.0.4:
-
-- **Studio restructured**: 43 routes → 18, progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`)
-- **Brittney AI**: wired to Claude via Anthropic SDK, 54 tools (13 scene + 29 Studio API + 15 MCP), conversation wizard
-- **3 spaces**: HoloMesh (public social), Teams (private workspaces), Agents (profiles + fleet)
-- **HoloClaw**: integrated into Teams tab with 3 daemons (HoloDaemon, HoloMesh Agent, Moltbook Agent)
-- **User provisioning**: GitHub OAuth → API key → repo → scaffold → daemon, with consent gates
-- **Project scaffolder**: every user gets full Claude structure (`.claude/`, NORTH_STAR, memory, skills, hooks)
-- **Agent fleet**: launch agents to HoloMesh/Moltbook/Custom from `/agents/me`
-- **Orchestrator v1.4.0**: RBAC, A2A, TTL, pgvector, OTEL, error aggregation, SDKs, live dashboard
-- **87 board tasks** completed
-- Type safety sweep, 1,100+ new tests, security hardening
-
-What shipped in v6.0.0-v6.0.1:
-
-- HoloMesh V5-V8 (social traits, marketplace, enterprise teams, accessibility endpoints)
-- Publishing protocol (4-layer on-chain: Provenance, Registry, Collect, Remix Revenue)
-- Multi-tenant auth, RBAC across compilers
-- Absorb service extracted as standalone microservice at `absorb.holoscript.net`
-- **The 8-Paper Research Foundation**: Centering trust as an algebraic primitive. CAEL agent contracts, tropical conflict resolution, and browser-native SNN (LIF) benchmarks established as the scientific baseline for v7.0.
+| Surface | Current state | Evidence |
+| ------- | ------------- | -------- |
+| Platform release | v7.0.0 shipped as Platform v7: Option C security plus Route 2b/2d cross-adapter verification. | [CHANGELOG.md](../../CHANGELOG.md) |
+| Live metrics | Counts are dynamic and must be re-derived before citation. | [docs/NUMBERS.md](../NUMBERS.md) |
+| Studio funnel | Progressive creation, team, HoloMesh, agent, and provisioning surfaces exist; ongoing work is polish and discoverability. | [packages/studio/README.md](../../packages/studio/README.md) |
+| HoloMesh / Teams | Team board, presence, messages, suggestions, and knowledge are production coordination surfaces. | [packages/mcp-server/src/holomesh/README.md](../../packages/mcp-server/src/holomesh/README.md) |
+| Absorb | Codebase intelligence is a first-class service and local graph workflow, not an aspirational research item. | [packages/absorb-service/README.md](../../packages/absorb-service/README.md) |
+| Physical and twin stack | Robotics, WoT, MQTT, digital-twin, WebGPU, WebXR, and demo-scene substrate exist; the gap is repeatable validation and operator-facing docs. | [docs/research/ECOSYSTEM_EXPANSION_ROADMAP.md](../research/ECOSYSTEM_EXPANSION_ROADMAP.md), [docs/physics/PHYSICS_ENHANCEMENTS_ROADMAP.md](../physics/PHYSICS_ENHANCEMENTS_ROADMAP.md) |
 
 ---
 
-## Shipped: v6.x Series (H1 2026)
+## Shipped Foundation
 
-### 1. Adoption Funnel
-
-The infrastructure holds weight without load. Zero external agents have joined HoloMesh organically. The bottleneck is adoption, not capability.
-
-- **Absorb -> Studio handoff:** Agent scans a repo with Absorb, gets offered Studio as the next step.
-- **Studio -> HoloMesh deploy:** One-click publish from Studio to HoloMesh knowledge exchange.
-- **Absorb web UI:** Browser-based entry point for agents that don't run MCP clients.
-
-### 2. Studio Polish
-
-18-route progressive funnel shipped. Brittney AI wired. Remaining gaps:
-
-- Full mobile responsiveness audit (viewport meta done, breakpoint audit deferred)
-- Live 3D preview for all asset types
-- Error classification and deterministic error messages in IDE
-
-### 3. Compile Target Coverage
-
-33 CompilerBase subclasses, 29 registered ExportTargets. The "30+" claim is accurate. Next step: run the audit-results pipeline to earn Interoperability Badges for each target that passes all cross-platform tests.
-
-### 4. Trait Depth
-
-3,300+ traits across 114 categories exist. Cross-domain interaction testing is incomplete — networked + physics + AI trait combinations need systematic audit for race conditions and edge-case crashes.
+- **Studio creation and provisioning**: GitHub OAuth, project scaffolding, agent workspace bootstrap, and progressive creation surfaces.
+- **Agent-native infrastructure**: HoloMesh teams, signed identity work, HoloClaw/HoloDaemon integration, board-driven execution, and knowledge exchange.
+- **Research-grade verification**: Option C cryptographic hash mode, Route 2b/2d simulation replay, paper-program benchmark harnesses, and daily digest recording rules.
+- **External bridges**: MCP, Python, REST, Studio, HoloMap, HoloLand, robotics export, IoT traits, and social/share workflows all have code-backed entry points.
 
 ---
 
-## Current: v7.0 (H2 2026)
+## Active v7 Lanes
 
-### The Sovereign Mesh (Epoch 7 Autonomy)
+### 1. Evidence Over Claims
 
-v7.0.0 shipped 2026-04-22. The v6.x foundation enables `.holo` files to act as universal format for scaling intelligence across virtual worlds, physical robotics, and organizational automation.
+Every public claim needs either a command, a committed artifact, a health endpoint, or a benchmark log. `docs/NUMBERS.md` is the metric source of truth; roadmaps should name the lane and point to verification, not pin counts.
 
-- **HoloVM clustering:** Deploy across Kubernetes clusters. Agent topologies scale dynamically. Cross-scene telemetry for concurrent agents.
-- **Physical unification:** Native execution of `.hs` logic within edge devices and robotic hardware. Robotics and Medical plugins refined for real-world fidelity.
-- **uAAL cognitive engine:** Transition from TypeScript-bound heuristics to the unified uAAL (AI-native DSL) virtual machine. Neural Forge integration into the `.holo` execution path.
+### 2. Adoption Funnel
 
-### Verification Criteria
+The path is now:
 
-v7.0 readiness is verified when an autonomous agent can:
+```text
+Absorb/codebase intelligence -> Studio creation -> HoloMesh/team publish -> economic or embodied execution
+```
 
-1. Spawn natively in a VR training simulation
-2. Form a sovereign economic contract (x402) to rent edge compute
-3. Migrate its logic into a physical robotic wrapper
-4. Execute its assigned task in the real world
+The missing work is not basic capability. It is making this path obvious, measurable, and hard to fall out of:
+
+- Better docs links from onboarding pages to the live agent/MCP entry points.
+- Failure-mode docs for API keys, HoloMesh identity, and local hardware prerequisites.
+- Studio surfaces that make "publish to team / publish to world / publish to agent" feel like one flow.
+
+### 3. Physical Unification
+
+`.holo` is the shared source for virtual worlds, robotic wrappers, digital twins, and organizational automation. The next useful work is validation-oriented:
+
+- Re-run hardware checks for WebGPU/WebXR paths on local Chrome, Quest-class browsers, and fallback runtimes.
+- Turn existing physics demos into repeatable smoke commands with artifact output.
+- Connect IoT/robotics trait docs to actual handlers, tests, and compiler targets.
+
+### 4. Docs Currency
+
+Active roadmaps must answer "what is true now?" in the first screen. Historical plans move to `docs/archive/`; active plans keep a dated refresh block, source links, and a drift guard in `pnpm docs:roadmap:drift`.
+
+---
+
+## v7 Verification Criteria
+
+v7 is operationally credible when an autonomous agent can:
+
+1. Spawn natively in a VR training simulation.
+2. Form a sovereign economic contract through x402.
+3. Move the same logic into a physical robotic or digital-twin wrapper.
+4. Produce replayable evidence that the task executed without undocumented workarounds.
 
 All four steps powered by the v6.0 architecture without workarounds.
 

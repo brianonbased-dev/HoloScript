@@ -1,8 +1,11 @@
 # Physics Integration Enhancements Roadmap
 
 **Date**: February 21, 2026
-**Status**: Active Roadmap
+**Last Ground-Truth Refresh**: 2026-05-05
+**Status**: Active validation roadmap; implementation substrate exists
 **Based On**: Physics Integration System (COMPLETE ✅)
+
+> 2026-05-05 refresh: this document used to read like a start-from-zero plan. The repo now contains WebGPU context/buffer/pipeline code, WGSL shaders, WebXR managers, hand tracking/haptics modules, and earthquake/avalanche/erosion/demolition demo implementations. The active work is hardware validation, repeatable smoke commands, and doc links to the shipped examples.
 
 ---
 
@@ -22,9 +25,11 @@
 
 ### Current State
 
-- ✅ CPU-based physics: ~90 particles @ 60 FPS
-- ✅ Simplified physics in Three.js renderer
-- ⚠️ Performance degrades rapidly >1000 particles
+- ✅ CPU-based physics fallback remains available
+- ✅ WebGPU substrate exists under `packages/engine/src/gpu/`
+- ✅ WGSL particle and spatial-grid shaders exist under `packages/engine/src/gpu/shaders/`
+- ✅ GPU physics tests exist under `packages/engine/src/gpu/__tests__/`
+- ⚠️ Hardware performance evidence still needs a repeatable artifact linked from this doc
 
 ### Target State
 
@@ -172,8 +177,11 @@
 
 ### Current State (Enhancement 2)
 
-- ✅ Wrecking Ball Demolition (complete)
-- ⏳ Earthquake, Avalanche, Erosion, Demolition (pending)
+- ✅ Earthquake demo implementation and tests: `examples/earthquake-demo/`
+- ✅ Avalanche demo implementation and tests: `examples/avalanche-demo/`
+- ✅ Erosion demo implementation and tests: `examples/erosion-demo/`
+- ✅ Demolition demo implementation and tests: `examples/demolition-demo/`
+- ⚠️ Remaining gap: one command per demo that records a comparable smoke artifact
 
 ### Demo 1: Earthquake Building Collapse
 
@@ -402,7 +410,9 @@
 
 - ✅ Desktop rendering (Three.js)
 - ✅ Mouse/keyboard controls
-- ⏳ No VR/AR support
+- ✅ WebXR manager substrate exists under `packages/engine/src/runtime/` and `packages/engine/src/vr/`
+- ✅ Hand tracking, haptics, and locomotion modules exist under `packages/engine/src/vr/`
+- ⚠️ Remaining gap: Quest/Vision Pro/HoloLens hardware validation and operator-facing guides
 
 ### Target State (Enhancement 3)
 
@@ -789,7 +799,7 @@
 
 ---
 
-**Status**: Ready to Begin 🚀
+**Status**: Substrate implemented; validation and operator docs active
 **Priority**: High
 **Dependencies**: Physics Integration System (COMPLETE ✅)
 

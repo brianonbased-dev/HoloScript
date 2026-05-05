@@ -2,9 +2,10 @@
 
 ## Beyond VR: IoT, Robotics, and Digital Twins
 
-**Research Date**: 2026-02-05 (Updated: 2026-03-01)
-**Protocol**: uAA2++ v3.42
-**Status**: Partially Implemented — See Implementation Status below
+**Research Date**: 2026-02-05
+**Last Ground-Truth Refresh**: 2026-05-05
+**Protocol**: uAA2++ roadmap, refreshed against repo files
+**Status**: Substrate implemented; validation and external integration remain active
 
 ---
 
@@ -34,9 +35,9 @@ HoloScript is uniquely positioned to expand beyond VR into IoT, robotics, and di
 
 ## Existing HoloScript Capabilities
 
-### Already Implemented (2,000+ Traits)
+### Already Implemented
 
-> **Note**: Since this roadmap was written (Feb 2026), substantial implementation has occurred. See [Implementation Status](#implementation-status-as-of-v3420) below.
+> **Note**: Since this roadmap was written (February 2026), substantial implementation has occurred. Use [docs/NUMBERS.md](../NUMBERS.md) for live counts, and use the evidence paths below for capability status.
 
 ```holoscript
 // Digital Twin & IoT traits (ALREADY EXIST)
@@ -58,7 +59,7 @@ model#factory @usd @gltf @scene_graph @portable {
 
 ---
 
-## Implementation Status (as of v3.42.0)
+## Implementation Status (refreshed 2026-05-05)
 
 | Roadmap Item                                   | Status         | Evidence                                                                                   |
 | ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------ |
@@ -71,28 +72,29 @@ model#factory @usd @gltf @scene_graph @portable {
 | **Operating Room Simulation**                  | ✅ Implemented | `operating-room.scenario.ts` (VRRRuntime + IoT telemetry)                                  |
 | **Industrial Plant Helpers**                   | ✅ Implemented | `studio/src/lib/industrialHelpers.ts`, `industrial-plant-designer.scenario.ts` (597 lines) |
 | **Robot Engineer Workflow**                    | ✅ Implemented | `robot-engineer.scenario.ts` (586 lines), `@/lib/robotHelpers`                             |
-| `@wot_thing` (W3C Thing Description)           | ❌ Not started | —                                                                                          |
-| `@mqtt_source` / `@mqtt_sink` (protocol-level) | ❌ Not started | Library exists, not as compiler traits                                                     |
-| `@opc_ua` / `@modbus` (industrial protocols)   | ❌ Not started | —                                                                                          |
-| WasmEdge IoT compilation target                | ❌ Not started | —                                                                                          |
-| ROS 2 bridge proof of concept                  | ❌ Not started | —                                                                                          |
-| Smart Building integration                     | ❌ Not started | No `smart_building` files found                                                            |
+| `@wot_thing` (W3C Thing Description)           | ✅ Implemented | `packages/core/src/traits/WoTThingTrait.ts` + `WoTThingTrait.prod.test.ts`                 |
+| `@mqtt_source` / `@mqtt_sink` (protocol-level) | ✅ Implemented | `packages/core/src/traits/MQTTSourceTrait.ts`, `MQTTSinkTrait.ts`                          |
+| `@opc_ua` / `@modbus` (industrial protocols)   | ⚠️ Trait vocabulary exists | `packages/core/src/traits/constants/robotics-industrial.ts`; runtime bridge validation still needed |
+| `@twin_sync`, `@dtdl_interface`, `@telemetry`  | ✅ Trait vocabulary exists | `packages/core/src/traits/constants/iot-autonomous-agents.ts`, `DigitalTwinTrait.ts`       |
+| WasmEdge IoT compilation target                | ⚠️ Still open | No dedicated WasmEdge compiler surfaced in this refresh                                    |
+| ROS 2 bridge proof of concept                  | ⚠️ Export path exists | URDF/SDF compiler targets exist; live ROS 2 bridge runner still needs proof artifact        |
+| Smart Building integration                     | ⚠️ Trait-level only | Device and climate-control traits exist; no dedicated smart-building scenario verified      |
 
 ---
 
 ## Expansion Roadmap
 
-### Phase 1: IoT Integration (Q1-Q2 2026)
+### Lane 1: IoT Integration
 
 #### New Traits
 
 | Trait          | Purpose                             | Priority |
 | -------------- | ----------------------------------- | -------- |
-| `@wot_thing`   | Auto-generate W3C Thing Description | P0       |
-| `@mqtt_source` | MQTT subscribe binding              | P0       |
-| `@mqtt_sink`   | MQTT publish binding                | P0       |
-| `@opc_ua`      | Industrial automation protocol      | P1       |
-| `@modbus`      | Legacy industrial devices           | P2       |
+| `@wot_thing`   | Auto-generate W3C Thing Description | Shipped; keep TD compliance tests current |
+| `@mqtt_source` | MQTT subscribe binding              | Shipped; verify broker integration path |
+| `@mqtt_sink`   | MQTT publish binding                | Shipped; verify broker integration path |
+| `@opc_ua`      | Industrial automation protocol      | Trait vocabulary shipped; runtime bridge still needs validation |
+| `@modbus`      | Legacy industrial devices           | Trait vocabulary shipped; runtime bridge still needs validation |
 
 #### Compilation Target
 
@@ -120,7 +122,7 @@ device#thermostat @sensor {
 // }
 ```
 
-### Phase 2: Digital Twin Sync (Q2-Q3 2026)
+### Lane 2: Digital Twin Sync
 
 #### New Traits (Phase 2)
 
@@ -139,7 +141,7 @@ Physical Device ←→ HoloScript Twin ←→ Cloud Platform
      (sensors)     (reactive state)    (Azure/AWS)
 ```
 
-### Phase 3: Robotics Integration (Q3-Q4 2026)
+### Lane 3: Robotics Integration
 
 #### New Traits (Phase 3)
 
@@ -171,7 +173,7 @@ composition "RobotArm" @urdf_export {
 }
 ```
 
-### Phase 4: Industrial Metaverse (2027)
+### Lane 4: Industrial Metaverse
 
 #### Integration Points
 
@@ -256,17 +258,17 @@ composition "RobotArm" @urdf_export {
 
 ## Next Actions
 
-### Immediate (This Sprint)
+### Immediate
 
-1. Research MQTT client libraries for browser/Node.js/WASM
-2. Prototype `@wot_thing` trait implementation
-3. Create headless runtime configuration
+1. Add or refresh tests that prove `@wot_thing`, `@mqtt_source`, and `@mqtt_sink` still match the public examples in this doc.
+2. Produce one ROS 2 / URDF proof artifact from an example scene and link it from the robotics guide.
+3. Decide whether WasmEdge is still the IoT edge target, or replace it with the current WASM/runtime path and update compiler docs.
 
-### This Quarter
+### Next
 
-1. Implement WASM compilation target
-2. Build ROS 2 bridge proof of concept
-3. Partner outreach (Siemens Xcelerator, NVIDIA Omniverse)
+1. Validate OPC-UA and Modbus beyond trait vocabulary: runtime handler, example, and smoke test.
+2. Add a smart-building scenario if that vertical remains strategically active.
+3. Keep this roadmap synchronized with `pnpm docs:roadmap:drift` when files move.
 
 ---
 

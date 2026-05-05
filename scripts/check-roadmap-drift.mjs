@@ -6,33 +6,43 @@ const root = process.cwd();
 const checks = [
   {
     id: 'A1',
-    description: 'Legacy trait baseline phrase removed from active strategy roadmap',
+    description: 'Hardcoded trait counts removed from active strategy roadmap',
     file: 'docs/strategy/ROADMAP.md',
-    forbidden: [/1,800\+\s*(named\s*)?traits?/i],
+    forbidden: [/(?:1,800|2,000|3,300)\+\s*(named\s*)?traits?/i],
   },
   {
     id: 'A2',
-    description: 'Legacy compiler target count removed from active studio audit roadmap',
-    file: 'docs/ROADMAP_STUDIO_AUDIT.md',
+    description: 'Legacy compiler target count removed from active Studio audit',
+    file: 'packages/studio/STUDIO_AUDIT.md',
     forbidden: [/30\+\s*compiler\s*targets?/i],
   },
   {
     id: 'A3',
-    description: 'Legacy implementation-status version removed from active research roadmap',
+    description: 'Legacy implementation-status/version language removed from active research roadmap',
     file: 'docs/research/ECOSYSTEM_EXPANSION_ROADMAP.md',
-    forbidden: [/implementation\s*status\s*\(\s*as\s*of\s*v5\.0\.0\s*\)/i],
+    forbidden: [
+      /implementation\s*status\s*\(\s*as\s*of\s*v(?:3\.42\.0|5\.0\.0)\s*\)/i,
+      /\b2,000\+\s*traits\b/i,
+      /\bQ1-Q2\s+2026\b/i,
+    ],
   },
   {
     id: 'A4',
-    description: 'Planning Phase label removed from active physics roadmap',
+    description: 'Start-from-zero status labels removed from active physics roadmap',
     file: 'docs/physics/PHYSICS_ENHANCEMENTS_ROADMAP.md',
-    forbidden: [/\bplanning\s+phase\b/i],
+    forbidden: [/\bplanning\s+phase\b/i, /\bready\s+to\s+begin\b/i],
   },
   {
     id: 'A5',
-    description: 'Legacy Sprint 1 status phrase removed from active Grok roadmap',
-    file: 'docs/GROK_X_INTEGRATION_ROADMAP.md',
-    forbidden: [/sprint\s*1\s*:\s*.*complete/i],
+    description: 'Archived Grok/X endpoints and guide links removed from active integration guide',
+    file: 'docs/integrations/grok.md',
+    forbidden: [
+      /https:\/\/api\.holoscript\.net/i,
+      /MCP_SERVER_GUIDE\.md/i,
+      /pypi\.org\/project\/holoscript\/5\.3\.0/i,
+      /\b103\+\s*tools\b/i,
+      /sprint\s*1\s*:\s*.*complete/i,
+    ],
   },
 ];
 

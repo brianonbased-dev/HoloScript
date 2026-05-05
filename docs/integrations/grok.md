@@ -2,6 +2,8 @@
 
 Complete guide for integrating HoloScript with Grok (xAI) to build VR scenes directly in X conversations.
 
+> **Status refresh (2026-05-05):** The original Grok/X roadmap is archived at [docs/archive/GROK_X_INTEGRATION_ROADMAP.md](../archive/GROK_X_INTEGRATION_ROADMAP.md). This guide is the active integration surface. Verify MCP tool availability through `https://mcp.holoscript.net/health`; do not pin tool counts here.
+
 ## Overview
 
 HoloScript is designed to be AI-native, making it ideal for Grok to:
@@ -218,13 +220,12 @@ Connect to `@holoscript/mcp-server` via stdio:
 ### 3. REST API (Public Endpoint)
 
 ```
-Base: https://api.holoscript.net
+Base: https://mcp.holoscript.net
 
-POST /generate  - Generate scene from description
-POST /validate  - Validate code
-POST /render    - Generate preview image
-POST /share     - Create share links
-GET  /examples  - Get example code
+POST /mcp         - Full MCP JSON-RPC protocol
+POST /api/render  - Generate preview image
+POST /api/share   - Create share links
+GET  /api/health  - Public REST health/capability check
 ```
 
 ## Best Practices for Grok
@@ -318,13 +319,13 @@ npx @holoscript/mcp-server
 Check if the render service is available:
 
 ```python
-hs = HoloScript(api_url="https://api.holoscript.net")
+hs = HoloScript(api_url="https://mcp.holoscript.net")
 ```
 
 ## Resources
 
 - [HoloScript Documentation](https://holoscript.net)
-- [MCP Server Guide](../MCP_SERVER_GUIDE.md)
+- [MCP Server Guide](../guides/mcp-server.md)
 - [Examples Overview](/examples/)
 - [AI Generated World Cookbook](/cookbook/ai-generated-world)
 - [Python Package](https://pypi.org/project/holoscript)

@@ -45,6 +45,15 @@ Use this index for current, canonical documentation entry points.
 2. **[Examples](./examples/index.md)** - Practical copy-ready scenes
 3. **[Cookbook](./cookbook/index.md)** - Task-focused recipes
 
+## Roadmaps and Status
+
+1. **[Strategic Roadmap](./strategy/ROADMAP.md)** - Current platform lanes and v7 verification criteria
+2. **[Ecosystem Expansion](./research/ECOSYSTEM_EXPANSION_ROADMAP.md)** - IoT, robotics, and digital-twin roadmap refreshed against repo evidence
+3. **[Physics Enhancements](./physics/PHYSICS_ENHANCEMENTS_ROADMAP.md)** - WebGPU/WebXR/demo validation roadmap
+4. **[Paper Program Status](./paper-program-status.md)** - Research program dashboard
+
+Active roadmap pages should open with a dated refresh note and source links. Historical plans belong under `docs/archive/`. Live counts belong in [NUMBERS.md](./NUMBERS.md).
+
 ## Contributing and RFCs
 
 1. **[Contributing Guide](../CONTRIBUTING.md)** - Contribution workflow and standards
