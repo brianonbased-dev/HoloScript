@@ -25,6 +25,7 @@ interface NavItem {
 const CORE_ITEMS: NavItem[] = [
   { label: 'Start', href: '/start', icon: '💬', description: 'Conversational entry point' },
   { label: 'Vibe', href: '/vibe', icon: '✨', description: 'Vibe-coded creation' },
+  { label: 'Creator', href: '/creator', icon: 'C', description: 'Creator-first authoring' },
   { label: 'Create', href: '/create', icon: '🪄', description: 'New scene from prompt' },
   { label: 'Projects', href: '/projects', icon: '📁', description: 'Your saved work' },
 ];
