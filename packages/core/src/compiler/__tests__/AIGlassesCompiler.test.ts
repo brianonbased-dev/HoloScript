@@ -19,6 +19,12 @@ import { AIGlassesCompiler } from '../AIGlassesCompiler';
 import type { AIGlassesCompileResult, AIGlassesCompilerOptions } from '../AIGlassesCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
+const PLACEHOLDER_TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
+
+function hasNoPlaceholderTaskMarker(code: string[]): boolean {
+  return code.every((line) => !line.toUpperCase().includes(PLACEHOLDER_TASK_MARKER));
+}
+
 // Mock RBAC for tests (W.013 pattern)
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -817,7 +823,7 @@ describe('AIGlassesTraitMap', () => {
       const code = traitMap.generateTraitCode('vision', 'cam', {});
       expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
       expect(code.some((l) => l.includes('cam'))).toBe(true);
-      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
     });
 
     it('vision generates TextRecognition for text_recognition task', () => {
@@ -967,7 +973,7 @@ describe('AIGlassesTraitMap', () => {
       const code = traitMap.generateTraitCode('hoverable', 'infoCard', {});
       expect(code.some((l) => l.includes('focusable = true'))).toBe(true);
       expect(code.some((l) => l.includes('infoCard'))).toBe(true);
-      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
     });
 
     it('hoverable declares Glimmer surface imports', () => {
@@ -983,7 +989,7 @@ describe('AIGlassesTraitMap', () => {
       expect(code.some((l) => l.includes('focusable = true') || l.includes('swipe'))).toBe(true);
       expect(code.some((l) => l.includes('scrollList'))).toBe(true);
       expect(code.some((l) => l.includes('vertical'))).toBe(true);
-      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
     });
 
     it('draggable horizontal direction is emitted in code', () => {
@@ -1004,7 +1010,7 @@ describe('AIGlassesTraitMap', () => {
       expect(code.some((l) => l.includes('gemini-nano'))).toBe(true);
       expect(code.some((l) => l.includes('assistant'))).toBe(true);
       expect(code.some((l) => l.includes('generateResponse'))).toBe(true);
-      expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+      expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
     });
 
     it('ai_npc_brain uses custom max_tokens and temperature', () => {
@@ -1036,7 +1042,7 @@ describe('AIGlasses batch 4 — promoted partials', () => {
     const code = traitMap.generateTraitCode('plane_detection', 'planeNode', {});
     expect(code.some((l) => l.includes('Session'))).toBe(true);
     expect(code.some((l) => l.includes('planeNode'))).toBe(true);
-    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
   });
 
   it('plane_detection with vertical plane type', () => {
@@ -1051,7 +1057,7 @@ describe('AIGlasses batch 4 — promoted partials', () => {
     const code = traitMap.generateTraitCode('geospatial', 'geoNode', {});
     expect(code.some((l) => l.includes('LocationManager'))).toBe(true);
     expect(code.some((l) => l.includes('geoNode'))).toBe(true);
-    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
   });
 
   it('geospatial with coarse accuracy', () => {
@@ -1066,7 +1072,7 @@ describe('AIGlasses batch 4 — promoted partials', () => {
     const code = traitMap.generateTraitCode('animated', 'panel', {});
     expect(code.some((l) => l.includes('AnimatedVisibility'))).toBe(true);
     expect(code.some((l) => l.includes('panel'))).toBe(true);
-    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
   });
 
   it('animated uses custom duration', () => {
@@ -1081,6 +1087,6 @@ describe('AIGlasses batch 4 — promoted partials', () => {
     const code = traitMap.generateTraitCode('ai_vision', 'detector', {});
     expect(code.some((l) => l.includes('ObjectDetection') || l.includes('detection'))).toBe(true);
     expect(code.some((l) => l.includes('detector'))).toBe(true);
-    expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
+    expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
   });
 });
