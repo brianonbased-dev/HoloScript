@@ -150,20 +150,40 @@ export async function judgeRun(
       usage.input_tokens += response.usage.input_tokens;
       usage.output_tokens += response.usage.output_tokens;
 
+      // Compute deterministic fallback early — used when judge flakes (no tool_use).
+      const deterministic = verifyDeterministically(task, mutations);
+      const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
+
       const toolUse = response.content.find(
         (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === 'submit_verdicts'
       );
       if (!toolUse) {
         if (attempt === maxAttempts) {
-          return {
-            verdicts: task.evaluation_rubric.map((c) => ({
+          // Fallback: prefer deterministic verifier over blanket all-False
+          // when the judge produces no tool_use block (recover 3+ cells).
+          const fallbackVerdicts = task.evaluation_rubric.map((c) => {
+            const det = detById.get(c.id);
+            if (det) {
+              return {
+                task_id: task.id,
+                config,
+                trial,
+                criterion_id: c.id,
+                passed: det.passed,
+                rationale: `[deterministic fallback] ${det.rationale}`,
+              };
+            }
+            return {
               task_id: task.id,
               config,
               trial,
               criterion_id: c.id,
               passed: false,
-              rationale: 'judge produced no tool call',
-            })),
+              rationale: 'judge produced no tool call and no deterministic verifier available',
+            };
+          });
+          return {
+            verdicts: fallbackVerdicts,
             usage,
             parse_error: 'no_tool_use_block',
           };
@@ -192,8 +212,6 @@ export async function judgeRun(
       // Deterministic override: per-criterion routing based on verifier_type.
       // Criteria tagged with geometric/count/presence get ground-truth checks;
       // criteria tagged with 'llm' or untagged stay with the judge.
-      const deterministic = verifyDeterministically(task, mutations);
-      const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
       verdicts = verdicts.map((v) => {
         const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
         const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
@@ -269,6 +287,10 @@ async function judgeWithOllama(
   const prompt = buildPrompt(task, candidateOutput, task.evaluation_rubric, mutations);
   const inputChars = prompt.length;
 
+  // Compute deterministic fallback early for Ollama path too.
+  const deterministic = verifyDeterministically(task, mutations);
+  const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
+
   const response = await ollamaClient.chat({
     messages: [
       {
@@ -294,15 +316,30 @@ async function judgeWithOllama(
   const tc = toolCalls?.find((t) => t.function.name === 'submit_verdicts');
 
   if (!tc) {
-    return {
-      verdicts: task.evaluation_rubric.map((c) => ({
+    // Fallback: prefer deterministic verifier over blanket all-False.
+    const fallbackVerdicts = task.evaluation_rubric.map((c) => {
+      const det = detById.get(c.id);
+      if (det) {
+        return {
+          task_id: task.id,
+          config,
+          trial,
+          criterion_id: c.id,
+          passed: det.passed,
+          rationale: `[deterministic fallback] ${det.rationale}`,
+        };
+      }
+      return {
         task_id: task.id,
         config,
         trial,
         criterion_id: c.id,
         passed: false,
-        rationale: 'judge produced no tool call',
-      })),
+        rationale: 'judge produced no tool call and no deterministic verifier available',
+      };
+    });
+    return {
+      verdicts: fallbackVerdicts,
       usage,
       parse_error: 'no_tool_use_block',
     };
@@ -344,8 +381,6 @@ async function judgeWithOllama(
   });
 
   // Deterministic override: same logic as Anthropic judge path.
-  const deterministic = verifyDeterministically(task, mutations);
-  const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
   verdicts = verdicts.map((v) => {
     const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
     const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';

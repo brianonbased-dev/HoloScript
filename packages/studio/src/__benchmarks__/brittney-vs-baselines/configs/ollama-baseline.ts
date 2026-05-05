@@ -112,6 +112,7 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
 
   return {
     name: 'ollama-baseline',
+    perRunTimeoutMs: 240_000,
     async run(task: Task, signal: AbortSignal): Promise<ConfigRunResult> {
       if (signal.aborted) {
         return {
