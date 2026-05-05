@@ -69,13 +69,18 @@ This document explains how to integrate runtime profiling (FPS, memory, draw cal
 ```csharp
 // Assets/Scripts/ProfilingCollector.cs
 using UnityEngine;
+using Unity.Profiling;
 using UnityEngine.Profiling;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 public class ProfilingCollector : MonoBehaviour
 {
     private List<FrameData> frames = new List<FrameData>();
+    private FrameTiming[] frameTimings = new FrameTiming[1];
+    private ProfilerRecorder drawCallsRecorder;
+    private ProfilerRecorder trianglesRecorder;
     private float startTime;
     private int frameCount = 0;
     private const int TARGET_FRAMES = 60 * 60; // 60 seconds @ 60 FPS
@@ -94,9 +99,28 @@ public class ProfilingCollector : MonoBehaviour
     {
         startTime = Time.realtimeSinceStartup;
 
-        // Enable deep profiling (careful - performance impact)
+        // Enable Frame Timing Stats in Player Settings for release builds.
+        // Development Player builds enable FrameTimingManager automatically.
+        FrameTimingManager.CaptureFrameTimings();
+
+        drawCallsRecorder = ProfilerRecorder.StartNew(
+            ProfilerCategory.Render,
+            "Draw Calls Count"
+        );
+        trianglesRecorder = ProfilerRecorder.StartNew(
+            ProfilerCategory.Render,
+            "Triangles Count"
+        );
+
+        // Enable deep profiling only for local diagnosis (performance impact).
         // Profiler.enableBinaryLog = true;
         Profiler.logFile = "profiler.raw";
+    }
+
+    void OnDestroy()
+    {
+        if (drawCallsRecorder.Valid) drawCallsRecorder.Dispose();
+        if (trianglesRecorder.Valid) trianglesRecorder.Dispose();
     }
 
     void Update()
@@ -114,13 +138,19 @@ public class ProfilingCollector : MonoBehaviour
 
     void CollectFrameData()
     {
+        // FrameTimingManager reports GPU data with a small delay, so capture the
+        // next frame now and read the most recent available timing sample.
+        FrameTimingManager.CaptureFrameTimings();
+        uint timingCount = FrameTimingManager.GetLatestTimings(1, frameTimings);
+        float gpuFrameMs = timingCount > 0 ? (float)frameTimings[0].gpuFrameTime : 0f;
+
         FrameData frame = new FrameData
         {
             frameTime = Time.deltaTime * 1000f, // Convert to ms
             memoryUsed = Profiler.GetTotalAllocatedMemoryLong(),
-            drawCalls = UnityStats.batches,
-            triangles = UnityStats.triangles,
-            gpuTime = 0 // TODO: Extract from Profiler
+            drawCalls = drawCallsRecorder.Valid ? (int)drawCallsRecorder.LastValue : 0,
+            triangles = trianglesRecorder.Valid ? (int)trianglesRecorder.LastValue : 0,
+            gpuTime = gpuFrameMs
         };
 
         frames.Add(frame);
@@ -135,7 +165,8 @@ public class ProfilingCollector : MonoBehaviour
             avgFrameTime = frames.Average(f => f.frameTime),
             avgMemoryMB = frames.Average(f => f.memoryUsed) / (1024 * 1024),
             avgDrawCalls = frames.Average(f => f.drawCalls),
-            avgTriangles = frames.Average(f => f.triangles)
+            avgTriangles = frames.Average(f => f.triangles),
+            avgGpuTime = frames.Average(f => f.gpuTime)
         };
 
         string json = JsonUtility.ToJson(summary, prettyPrint: true);
