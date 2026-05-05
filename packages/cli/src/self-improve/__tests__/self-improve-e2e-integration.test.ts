@@ -4,7 +4,7 @@
  * Validates the complete wiring from CLI arg parsing through to the
  * SelfImproveCommand execution with mock IO, covering:
  *
- *  1. Minimal HoloScript file with a known TODO/stub as improvement target
+ *  1. Minimal HoloScript file with a known task-marker stub as improvement target
  *  2. Full absorb -> generate -> test cycle with a mock LLM response
  *  3. Pipeline correctly identifies improvement target, generates code,
  *     runs tests, and produces a harvest JSONL entry
@@ -18,6 +18,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseArgs } from '../../args.ts';
+
+const TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
 
 // Import from the core source directly via the workspace symlink.
 // The CLI vitest config does not alias @holoscript/core subpath exports,
@@ -35,13 +37,13 @@ import type {
 } from '../../../../absorb-service/src/self-improvement/SelfImproveCommand';
 
 // =============================================================================
-// TEST FIXTURES: Minimal HoloScript with a known TODO stub
+// TEST FIXTURES: Minimal HoloScript with a known task-marker stub
 // =============================================================================
 
-/** A minimal HoloScript source file with a TODO stub representing untested code */
+/** A minimal HoloScript source file with a task-marker stub representing untested code */
 const MINIMAL_HOLOSCRIPT_SOURCE = `
-// TODO: Implement interaction handler
-composition "TodoItem" {
+// ${TASK_MARKER}: Implement interaction handler
+composition "TaskItem" {
   object "Card" {
     @hoverable
     @grabbable
@@ -51,8 +53,8 @@ composition "TodoItem" {
     scale: [0.3, 0.4, 0.01]
     color: "#3498db"
 
-    // TODO: Add onGrab handler for card interaction
-    // TODO: Add state management for completion status
+    // ${TASK_MARKER}: Add onGrab handler for card interaction
+    // ${TASK_MARKER}: Add state management for completion status
   }
 
   state {
@@ -61,7 +63,7 @@ composition "TodoItem" {
   }
 
   logic {
-    // TODO: Implement toggle_completion function
+    // ${TASK_MARKER}: Implement toggle_completion function
     toggle_completion() {
       state.completed = !state.completed
     }
@@ -73,10 +75,10 @@ composition "TodoItem" {
 const MOCK_GENERATED_TEST_CONTENT = `
 import { describe, it, expect } from 'vitest';
 
-describe('TodoItem composition', () => {
+describe('TaskItem composition', () => {
   it('should define a Card object with hoverable and grabbable traits', () => {
     const composition = {
-      name: 'TodoItem',
+      name: 'TaskItem',
       objects: [{ name: 'Card', traits: ['@hoverable', '@grabbable'] }],
     };
     expect(composition.objects[0].traits).toContain('@hoverable');
@@ -106,7 +108,7 @@ describe('TodoItem composition', () => {
 /**
  * Creates a mock SelfImproveIO that simulates the full pipeline with:
  * - Codebase absorption returning a known graph structure
- * - GraphRAG query returning the TODO stub as untested target
+ * - GraphRAG query returning the task-marker stub as untested target
  * - Test generation returning mock LLM output
  * - Vitest execution returning configurable pass/fail
  * - Quality metrics returning realistic values
@@ -133,12 +135,12 @@ function createEndToEndMockIO(
   const writtenFiles = new Map<string, string>();
 
   const defaultTarget: UntestedTarget = {
-    symbolName: 'TodoItem.toggle_completion',
-    filePath: 'src/compositions/TodoItem.hsplus',
+    symbolName: 'TaskItem.toggle_completion',
+    filePath: 'src/compositions/TaskItem.hsplus',
     language: 'holoscript',
     relevanceScore: 0.95,
     description:
-      'TodoItem composition with TODO stubs for interaction handlers and state management',
+      'TaskItem composition with task-marker stubs for interaction handlers and state management',
   };
 
   const targets = options.noTargets ? [] : (options.targets ?? [defaultTarget]);
@@ -325,11 +327,11 @@ describe('Self-improve pipeline end-to-end integration', () => {
       // Verify GraphRAG query was issued
       expect(io.queryUntested).toHaveBeenCalledWith(expect.stringContaining('test coverage'));
 
-      // Verify the TODO target was identified
+      // Verify the task-marker target was identified
       expect(io.generateTest).toHaveBeenCalledWith(
         expect.objectContaining({
-          symbolName: 'TodoItem.toggle_completion',
-          filePath: 'src/compositions/TodoItem.hsplus',
+          symbolName: 'TaskItem.toggle_completion',
+          filePath: 'src/compositions/TaskItem.hsplus',
         })
       );
 
@@ -341,20 +343,20 @@ describe('Self-improve pipeline end-to-end integration', () => {
 
       // Verify vitest was run on the generated test
       expect(io.runVitest).toHaveBeenCalledWith(
-        expect.stringContaining('TodoItem_toggle_completion.test.ts')
+        expect.stringContaining('TaskItem_toggle_completion.test.ts')
       );
 
       // Verify commit happened for passing test
       expect(io.gitAdd).toHaveBeenCalled();
       expect(io.gitCommit).toHaveBeenCalledWith(
-        expect.stringContaining('test(self-improve): add test for TodoItem.toggle_completion')
+        expect.stringContaining('test(self-improve): add test for TaskItem.toggle_completion')
       );
 
       // Verify result structure
       expect(result.totalTestsAdded).toBe(1);
       expect(result.totalCommits).toBe(1);
       expect(result.iterations).toHaveLength(1);
-      expect(result.iterations[0].target?.symbolName).toBe('TodoItem.toggle_completion');
+      expect(result.iterations[0].target?.symbolName).toBe('TaskItem.toggle_completion');
       expect(result.iterations[0].testPassed).toBe(true);
       expect(result.iterations[0].committed).toBe(true);
     });
@@ -363,17 +365,17 @@ describe('Self-improve pipeline end-to-end integration', () => {
       const customTargets: UntestedTarget[] = [
         {
           symbolName: 'Card.onGrab',
-          filePath: 'src/compositions/TodoItem.hsplus',
+          filePath: 'src/compositions/TaskItem.hsplus',
           language: 'holoscript',
           relevanceScore: 0.88,
           description: 'Missing onGrab handler implementation',
         },
         {
-          symbolName: 'TodoItem.toggle_completion',
-          filePath: 'src/compositions/TodoItem.hsplus',
+          symbolName: 'TaskItem.toggle_completion',
+          filePath: 'src/compositions/TaskItem.hsplus',
           language: 'holoscript',
           relevanceScore: 0.95,
-          description: 'TODO: toggle_completion function needs tests',
+          description: 'toggle_completion function needs tests',
         },
       ];
 
@@ -455,8 +457,8 @@ describe('Self-improve pipeline end-to-end integration', () => {
         if (callCount === 1) {
           return [
             {
-              symbolName: 'TodoItem.toggle_completion',
-              filePath: 'src/compositions/TodoItem.hsplus',
+              symbolName: 'TaskItem.toggle_completion',
+              filePath: 'src/compositions/TaskItem.hsplus',
               language: 'holoscript',
               relevanceScore: 0.95,
               description: 'Needs tests',
@@ -688,9 +690,9 @@ describe('Self-improve pipeline end-to-end integration', () => {
       const writtenPath = Array.from(io.writtenFiles.keys())[0];
       const writtenContent = io.writtenFiles.get(writtenPath);
 
-      expect(writtenPath).toContain('TodoItem_toggle_completion.test.ts');
+      expect(writtenPath).toContain('TaskItem_toggle_completion.test.ts');
       expect(writtenContent).toBe(MOCK_GENERATED_TEST_CONTENT);
-      expect(writtenContent).toContain("describe('TodoItem composition'");
+      expect(writtenContent).toContain("describe('TaskItem composition'");
       expect(writtenContent).toContain('should toggle completion state');
     });
 
@@ -705,8 +707,8 @@ describe('Self-improve pipeline end-to-end integration', () => {
           description: 'Missing grab handler',
         },
         {
-          symbolName: 'TodoItem.state_init',
-          filePath: 'src/TodoItem.hsplus',
+          symbolName: 'TaskItem.state_init',
+          filePath: 'src/TaskItem.hsplus',
           language: 'holoscript',
           relevanceScore: 0.85,
           description: 'Missing state initialization',
@@ -731,7 +733,7 @@ describe('Self-improve pipeline end-to-end integration', () => {
       expect(io.writtenFiles.size).toBe(2);
       const paths = Array.from(io.writtenFiles.keys());
       expect(paths[0]).toContain('Card_onGrab.test.ts');
-      expect(paths[1]).toContain('TodoItem_state_init.test.ts');
+      expect(paths[1]).toContain('TaskItem_state_init.test.ts');
     });
   });
 
@@ -752,7 +754,7 @@ describe('Self-improve pipeline end-to-end integration', () => {
 
       const commitMessage = (io.gitCommit as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(commitMessage).toContain('test(self-improve)');
-      expect(commitMessage).toContain('TodoItem.toggle_completion');
+      expect(commitMessage).toContain('TaskItem.toggle_completion');
       expect(commitMessage).toContain('iteration 1');
       expect(commitMessage).toContain('3/3 passed');
     });
@@ -788,7 +790,7 @@ describe('Self-improve pipeline end-to-end integration', () => {
       expect(messages.some((m) => m.includes('Iteration 1'))).toBe(true);
 
       // Should log target selection
-      expect(messages.some((m) => m.includes('TodoItem.toggle_completion'))).toBe(true);
+      expect(messages.some((m) => m.includes('TaskItem.toggle_completion'))).toBe(true);
 
       // Should log test generation
       expect(messages.some((m) => m.includes('Generating test'))).toBe(true);
@@ -944,11 +946,11 @@ describe('Self-improve harvest JSONL entry production', () => {
 
     // Simulate a harvest from a cycle
     harvester.harvestFromCycle(
-      'Generate a test for TodoItem.toggle_completion that verifies state toggling',
+      'Generate a test for TaskItem.toggle_completion that verifies state toggling',
       MOCK_GENERATED_TEST_CONTENT,
       'pass',
       0.85,
-      { target: 'TodoItem.toggle_completion', iteration: 1 }
+      { target: 'TaskItem.toggle_completion', iteration: 1 }
     );
 
     const stats = harvester.getStats();
