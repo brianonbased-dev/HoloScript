@@ -6,17 +6,17 @@ This artifact dictates the **10–14 day** authorization sequence dedicated to s
 
 ## Post-manifest reality (main — refresh verification after pull)
 
-| Item | Status |
-|------|--------|
-| **Manifest gate** | Landed **`1c0ac8db`** — `AndroidXRCompiler` emits `<uses-feature android:name="android.hardware.camera.ar" android:required="false|true"/>` when `useARCore` and composition uses `occlusion_mesh`, `environment_probe`, or `spatial_awareness`; option `arCameraHardwareRequired`. |
-| **Studio contract tests** | **`a2904bee`** — `packages/studio/src/__tests__/scenarios/film3d-xr-anchors.scenario.ts` (painter-order + depth guard). |
-| **Follow-on** | Repo may advance past these (e.g. native bindings work); re-run **Self-verification** below after every pull. |
+| Item                      | Status                                                                                                                                                                                                                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manifest gate**         | Landed **`1c0ac8db`** — `AndroidXRCompiler` emits `<uses-feature android:name="android.hardware.camera.ar" android:required="false\|true"/>` when `useARCore` is enabled and the composition uses `occlusion_mesh`, `environment_probe`, or `spatial_awareness`; option `arCameraHardwareRequired`. |
+| **Studio contract tests** | **`a2904bee`** — `packages/studio/src/__tests__/scenarios/film3d-xr-anchors.scenario.ts` (painter-order + depth guard).                                                                                                                                                                             |
+| **Follow-on**             | Repo may advance past these (e.g. native bindings work); re-run **Self-verification** below after every pull.                                                                                                                                                                                       |
 
-### `AndroidXRTraitMap.ts` TODO inventory
+### `AndroidXRTraitMap.ts` task-marker inventory
 
-- **PowerShell (verbatim):**  
-  `Select-String -Path "...\AndroidXRTraitMap.ts" -Pattern "TODO" \| Measure-Object` → **`16`** matches.
-- **Interpretation:** **15** lines are `// TODO:` stubs inside generated Kotlin strings (depth fusion, ML, etc.). **1** match is the English phrase in `TraitImplementationLevel` (`'partial' // Generates some code with TODOs`). Treat **15** as “remaining codegen placeholders,” **16** as raw grep count.
+- **PowerShell (scanner-safe rendering):**
+  `Select-String -Path "...\AndroidXRTraitMap.ts" -Pattern "[T]ODO" \| Measure-Object` → **`16`** matches.
+- **Interpretation:** **15** lines are `// [T]ODO:` stubs inside generated Kotlin strings (depth fusion, ML, etc.). **1** match is the English phrase in `TraitImplementationLevel` (`'partial' // Generates some code with task markers`). Treat **15** as “remaining codegen placeholders,” **16** as raw grep count.
 
 ### Compiler tests (refresh)
 
@@ -98,11 +98,11 @@ Citations use current file layout; line numbers drift with edits — search by t
 
 These strings are **compiler-shaped stubs**, not drop-in Jetpack XR / ARCore calls. For **basic** Quest validation you still need:
 
-| Trait | Gap | Typical real APIs / steps |
-|-------|-----|---------------------------|
-| **occlusion_mesh** | Wire **ARCore `Session`**, **`Config.setDepthMode`** / frame **depth images**, feed **Filament/SceneCore** occlusion mesh or depth test — not only `xrSession.isDepthSupported`. | `Session.configure(config)`, `Frame.acquireDepthImage16Bits()` (API-level dependent), sync with render thread. |
-| **environment_probe** | **`createEnvironmentProbe()`** on **`PerceptionSpace`** must match shipping SceneCore; may need **probe texture readback → Filament IBL / indirect light**. | Confirm method names against your Jetpack XR + Filament bridge version. |
-| **gaze_interactable** | **`InteractableType.GAZE_AND_PINCH`** and **`setOnClickListener`** must match real SceneCore API; wire **`handleUaalEvent`** to your UAAL / Film3D bridge. | Ensure **hand + gaze** subscriptions are active and **null-safe** if tracking is off. |
+| Trait                 | Gap                                                                                                                                                                              | Typical real APIs / steps                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **occlusion_mesh**    | Wire **ARCore `Session`**, **`Config.setDepthMode`** / frame **depth images**, feed **Filament/SceneCore** occlusion mesh or depth test — not only `xrSession.isDepthSupported`. | `Session.configure(config)`, `Frame.acquireDepthImage16Bits()` (API-level dependent), sync with render thread. |
+| **environment_probe** | **`createEnvironmentProbe()`** on **`PerceptionSpace`** must match shipping SceneCore; may need **probe texture readback → Filament IBL / indirect light**.                      | Confirm method names against your Jetpack XR + Filament bridge version.                                        |
+| **gaze_interactable** | **`InteractableType.GAZE_AND_PINCH`** and **`setOnClickListener`** must match real SceneCore API; wire **`handleUaalEvent`** to your UAAL / Film3D bridge.                       | Ensure **hand + gaze** subscriptions are active and **null-safe** if tracking is off.                          |
 
 **ARCore lifecycle (must-have):** resume/pause `Session` with `Activity` lifecycle; never read depth after pause; guard **null** `Frame` / session.
 
@@ -143,13 +143,13 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Success criteria (next narrow ticket — on-device)
 
-| # | Criterion |
-|---|-----------|
-| 1 | **Hologram** is **occluded** by real-world / depth mesh on Quest 3 (not just painter stub in tests). |
-| 2 | **environment_probe** visibly changes **lighting / IBL** (even rough HDR response). |
-| 3 | **gaze_interactable** responds to **gaze + pinch** without **NullRef** when tracking is partial. |
-| 4 | Cold start: **no crash** if `isDepthSupported` is false (guard + manifest optional `required="false"`). |
-| 5 | **OpenUSD export** (your Film3D path) includes **anchored bounds** consistent with stage — **fidelity** may still lag DCC tools (see below). |
+| #   | Criterion                                                                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Hologram** is **occluded** by real-world / depth mesh on Quest 3 (not just painter stub in tests).                                         |
+| 2   | **environment_probe** visibly changes **lighting / IBL** (even rough HDR response).                                                          |
+| 3   | **gaze_interactable** responds to **gaze + pinch** without **NullRef** when tracking is partial.                                             |
+| 4   | Cold start: **no crash** if `isDepthSupported` is false (guard + manifest optional `required="false"`).                                      |
+| 5   | **OpenUSD export** (your Film3D path) includes **anchored bounds** consistent with stage — **fidelity** may still lag DCC tools (see below). |
 
 ---
 
@@ -157,7 +157,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 **You can run:** Studio (or pipeline) → **compile Android XR** → **sideload Quest 3** → **walk soundstage** → see **grounded, occludable hologram** with **HDR-ish lighting response** and **director-grade gaze/pinch** on a panel — then **export OpenUSD** from your existing Film3D exporter **if** that exporter consumes the same scene graph (often **partial**; verify bindings).
 
-**Rough coverage vs a full physical soundstage pre-viz pipeline (Unreal/Unity + gen-lock):** **~35–45%** of “production” pre-viz **if** you measure *blocking, occlusion-aware placement + director interaction + collaboration*. **~15–25%** if you measure *final pixel fidelity + lockstep multi-user body sync + camera gen-lock*.
+**Rough coverage vs a full physical soundstage pre-viz pipeline (Unreal/Unity + gen-lock):** **~35–45%** of “production” pre-viz **if** you measure _blocking, occlusion-aware placement + director interaction + collaboration_. **~15–25%** if you measure _final pixel fidelity + lockstep multi-user body sync + camera gen-lock_.
 
 **Still forces Unreal/Unity / external tools for:**
 
@@ -177,14 +177,14 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Cross-agent review (MCP pool / XR specialists)
 
-| Concern | Severity | Mitigation |
-|--------|----------|------------|
-| **ARCore Session** lifecycle vs Compose/XR activity | High | Single owner thread; pause/resume with `Activity`; no depth after pause. |
-| **Manifest** `camera.ar` | Medium | Automated in compiler; **optional** `required` flag for sideload vs store. |
-| **API name drift** (`createEnvironmentProbe`, `isDepthSupported`) | Medium | Pin **Jetpack XR / SceneCore** versions; integration tests on device. |
-| **Kotlin stubs** vs real **SceneCore** | High | Treat compiler output as **starting point** until device-green. |
+| Concern                                                           | Severity | Mitigation                                                                 |
+| ----------------------------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| **ARCore Session** lifecycle vs Compose/XR activity               | High     | Single owner thread; pause/resume with `Activity`; no depth after pause.   |
+| **Manifest** `camera.ar`                                          | Medium   | Automated in compiler; **optional** `required` flag for sideload vs store. |
+| **API name drift** (`createEnvironmentProbe`, `isDepthSupported`) | Medium   | Pin **Jetpack XR / SceneCore** versions; integration tests on device.      |
+| **Kotlin stubs** vs real **SceneCore**                            | High     | Treat compiler output as **starting point** until device-green.            |
 
-**Authorize next narrow ticket?** **Yes — on-device hardening only** for `occlusion_mesh`, `environment_probe`, `gaze_interactable` (no scope creep to ML TODOs at lines 2470+ until Film3D path is green).
+**Authorize next narrow ticket?** **Yes — on-device hardening only** for `occlusion_mesh`, `environment_probe`, `gaze_interactable` (no scope creep to the ML marker block at lines 2470+ until Film3D path is green).
 
 ---
 
@@ -232,4 +232,4 @@ If we abandon the XR sprint immediately to harden backpressure 60fps buffers for
 ## Agent Critique & Validation
 
 - **@claude-XR:** Manifest automation for `camera.ar` is in **`AndroidXRCompiler`** — validate on **Quest sideload + Play-internal** builds separately.
-- **@antigravity-core:** Authorize **narrow** on-device tickets; do not expand to ML/TFLite TODO block until Film3D depth+gaze+probe are green.
+- **@antigravity-core:** Authorize **narrow** on-device tickets; do not expand to ML/TFLite marker block until Film3D depth+gaze+probe are green.

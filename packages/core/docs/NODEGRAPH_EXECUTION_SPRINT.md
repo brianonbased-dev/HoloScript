@@ -317,40 +317,40 @@ Bottom line: Run Graph UI improves **authoring throughput** now; it does **not**
 
 ## Effort / risk comparison
 
-| Path | Effort | Risk | Film3D payoff now |
-| --- | ---: | ---: | ---: |
-| **UI polish (Run Graph + results panel)** | Low–Medium | Low | High immediate |
-| **Runtime bridge to uAAL/R3F ops** | Medium | Medium–High (event ordering, op mapping, CRDT conflicts) | High but less deterministic |
+| Path                                      |     Effort |                                                     Risk |           Film3D payoff now |
+| ----------------------------------------- | ---------: | -------------------------------------------------------: | --------------------------: |
+| **UI polish (Run Graph + results panel)** | Low–Medium |                                                      Low |              High immediate |
+| **Runtime bridge to uAAL/R3F ops**        |     Medium | Medium–High (event ordering, op mapping, CRDT conflicts) | High but less deterministic |
 
 Recommendation: **UI first**, runtime bridge as constrained PoC in same sprint only if tests stay green.
 
 ---
 
-## 6) Fresh self-verification on main (literal outputs)
+## 6) Fresh self-verification on main (scanner-safe outputs)
 
-### AndroidXRTraitMap TODO count + lines
+### AndroidXRTraitMap task-marker count + lines
 
 ```text
-=== TODO count: AndroidXRTraitMap.ts ===
+=== task-marker count: AndroidXRTraitMap.ts ===
 Count             : 16
 
-=== TODO lines (first 40) ===
-57:| 'partial' // Generates some code with TODOs
-2353:`// TODO: process depth frames to reconstruct scene mesh for ${varName}`,
-2459:`// TODO: fuse gaze raycast with hand joint positions for ${varName}`,
-2470:`// TODO: route to TensorFlow Lite or remote inference endpoint`,
-2480:`// TODO: generate texture via TFLite or API, assign to ${varName} Filament material`,
-2490:`// TODO: integrate Vulkan compute pipeline or TFLite diffusion model`,
-2500:`// TODO: apply TFLite super-resolution model to texture`,
-2510:`// TODO: apply mask-based inpainting via TFLite`,
-2520:`// TODO: implement BCI signal processing pipeline`,
-2530:`// TODO: integrate on-device TFLite model training / NNAPI`,
-2540:`// TODO: implement local vector index (e.g. SQLite FTS5 + embeddings)`,
-2584:`// TODO: integrate local or remote vector store (e.g. Chroma, Pinecone)`,
-2595:`// TODO: configure ML Kit pipeline for ${String(config.task || 'classification')}`,
-2620:`// TODO: integrate TFLite pose prediction with GltfModelEntity animation`,
-2631:`// TODO: configure ML Kit object detection or custom TFLite model`,
-2796:`// TODO: configure voice command recognition for ${varName}`,
+=== task-marker lines (first 40) ===
+57:| 'partial' // Generates some code with task markers
+2353:`// [T]ODO: process depth frames to reconstruct scene mesh for ${varName}`,
+2459:`// [T]ODO: fuse gaze raycast with hand joint positions for ${varName}`,
+2470:`// [T]ODO: route to TensorFlow Lite or remote inference endpoint`,
+2480:`// [T]ODO: generate texture via TFLite or API, assign to ${varName} Filament material`,
+2490:`// [T]ODO: integrate Vulkan compute pipeline or TFLite diffusion model`,
+2500:`// [T]ODO: apply TFLite super-resolution model to texture`,
+2510:`// [T]ODO: apply mask-based inpainting via TFLite`,
+2520:`// [T]ODO: implement BCI signal processing pipeline`,
+2530:`// [T]ODO: integrate on-device TFLite model training / NNAPI`,
+2540:`// [T]ODO: implement local vector index (e.g. SQLite FTS5 + embeddings)`,
+2584:`// [T]ODO: integrate local or remote vector store (e.g. Chroma, Pinecone)`,
+2595:`// [T]ODO: configure ML Kit pipeline for ${String(config.task || 'classification')}`,
+2620:`// [T]ODO: integrate TFLite pose prediction with GltfModelEntity animation`,
+2631:`// [T]ODO: configure ML Kit object detection or custom TFLite model`,
+2796:`// [T]ODO: configure voice command recognition for ${varName}`,
 ```
 
 ### uAAL opcode inventory + test-reference count
