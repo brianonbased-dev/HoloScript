@@ -12,16 +12,10 @@
     {"dedup_key": "manual-paper-gate-headless-registration", "commit": "ai-eco 4e7620e"},
     {"dedup_key": "manual-audit-brain-identity-script", "commit": "ai-eco 55ec850"},
     {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"},
-    {"dedup_key": "manual-r02-std-fs-path-boundary", "commit": "fe186f8e7"}
+    {"dedup_key": "manual-r02-std-fs-path-boundary", "commit": "fe186f8e7"},
+    {"dedup_key": "manual-ghost-claim-purge-1776058303684", "commit": "ai-eco f20326b", "verdict": "released at snapshot layer (board.json) — live API recovery still required for canonical fix, but prevents reintroduction on next reseed"}
   ],
   "gaps": [
-    {
-      "title": "[ops] Force-release 73 ghost claims by agent_1776058303684_3p3i (≥20 days, board at 25% capacity)",
-      "description": "A-008 fleet-trust day-7 CRITICAL anomaly. board.json shows 73/98 tasks claimed by agent_1776058303684_3p3i (handle: antigravity-seed, deprecated 2026-04-27 per per-window revamp). Oldest claim 2026-04-14. Task queue effectively at 25% capacity. The 1776xxx ID epoch predates W.107 trust-epoch boundary (2026-04-26T11:13:00Z) so any CAEL records from this agent are pre-gate untrusted. Run /room board from credentialed local session to confirm live state then force-release. Source: research/audit-reports/fleet-trust-2026-05-04.md Anomaly 1.",
-      "priority": "high",
-      "tags": ["auto-filed-by-manual","ops","fleet-trust","critical","ghost-claims","day-7"],
-      "dedup_key": "manual-ghost-claim-purge-1776058303684"
-    },
     {
       "title": "[infra] Deploy A-008 fleet-trust auditor to Railway (fixed egress IP) OR add Anthropic CIDR to HoloMesh allowlist",
       "description": "A-008 fleet-trust day-7 HIGH persisting anomaly. Cloud auditor returns 403 'Host not in allowlist' on all endpoints (fleet/status, agent/{handle}/audit, team/{teamId}/board) for 7 consecutive cycles. The W.110 drift detection design intent is to catch hallucination cohorts before they run 27.5h; current actual coverage is zero from cloud. Fleet surface area grew this week (paper-gate active 2026-05-01, codex-brain provisioned 2026-05-03). Two paths: (P1) deploy auditor to Railway with fixed egress IP and register IP on allowlist; (P2) add Anthropic cloud CIDR to allowlist + provision HOLOMESH credentials as container secrets. Source: fleet-trust-2026-05-04.md Anomaly 2.",
