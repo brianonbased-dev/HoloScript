@@ -14,7 +14,9 @@
     {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"},
     {"dedup_key": "manual-r02-std-fs-path-boundary", "commit": "fe186f8e7"},
     {"dedup_key": "manual-ghost-claim-purge-1776058303684", "commit": "ai-eco f20326b", "verdict": "released at snapshot layer (board.json) — live API recovery still required for canonical fix, but prevents reintroduction on next reseed"},
-    {"dedup_key": "manual-bug001-dockerfile-no-dts-or-true", "verdict": "false-positive — Dockerfile already uses split pattern `--no-dts && (--dts-only || true)`, JS failures fail loudly. Bug doc 2026-04-29 itself notes fix landed in 0a723ce."}
+    {"dedup_key": "manual-bug001-dockerfile-no-dts-or-true", "verdict": "false-positive — Dockerfile already uses split pattern `--no-dts && (--dts-only || true)`, JS failures fail loudly. Bug doc 2026-04-29 itself notes fix landed in 0a723ce."},
+    {"dedup_key": "manual-security-auditor-daemon-liveness", "verdict": "verified-dark via direct API probe (after Pattern Gamma unblock 2026-05-05): /agent/security-auditor/audit returned 0 records, presence list contains only claudecode-claude-x402. Daemon restart required from provisioning machine; not unblockable from agent seat."},
+    {"dedup_key": "_pattern-gamma-meta", "verdict": "Pattern Gamma — assumed blocking at marathon start, found UNBLOCKED at session end. Fixes 29e9a8da7 + 27df7f572 deployed during the marathon. Verified via /health (postgres, databaseUrl=true, uptime ~3min) + write-then-read message round-trip. Carousel Effect F.035 — world moved while we worked."}
   ],
   "gaps": [
     {
@@ -25,11 +27,11 @@
       "dedup_key": "manual-a008-egress-allowlist-fix"
     },
     {
-      "title": "[ops] Verify security-auditor daemon liveness (7 cycles, 0 git-attributable commits)",
-      "description": "A-008 fleet-trust recommendation 4. Across all 7 audit cycles, zero commits attributable to security-auditor handle (agent_1777079220108_d8yw). Daemon may operate without committing but the only provisioned headless seat has never contributed verifiable git work. Verify via /room feed team from credentialed session. If dark, restart or document why this seat exists without producing commits. Source: research/audit-reports/fleet-trust-2026-05-04.md.",
+      "title": "[ops/headless] Restart security-auditor daemon (verified dark 2026-05-05)",
+      "description": "VERIFIED via direct API probe after Pattern Gamma unblock 2026-05-05: /agent/security-auditor/audit returns 0 records, daemon not in /presence (only claudecode-claude-x402 online). Confirms A-008 recommendation 4 finding. The only provisioned headless seat has never contributed verifiable work. Action: restart daemon on the machine where it was originally provisioned. Reference compositions/security-auditor-brain.hsplus (sha256 3015e849e61f). After restart, expect heartbeat in /presence within 60s and CAEL records to begin appearing.",
       "priority": "medium",
-      "tags": ["auto-filed-by-manual","ops","headless-agents","security-auditor","liveness"],
-      "dedup_key": "manual-security-auditor-daemon-liveness"
+      "tags": ["auto-filed-by-manual","ops","headless-agents","security-auditor","verified-dark"],
+      "dedup_key": "manual-security-auditor-daemon-restart"
     }
   ]
 }
