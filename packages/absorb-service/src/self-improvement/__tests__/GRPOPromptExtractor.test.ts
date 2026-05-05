@@ -744,7 +744,7 @@ describe('Working', () => {
       // Create files that would generate similar prompts
       const files: Record<string, string> = {
         'packages/core/src/feature.ts': `
-// TODO: Implement feature X completely
+// ${TASK_MARKER}: Implement feature X completely
 export function featureX(): void {
   throw new Error("not implemented");
 }
@@ -847,17 +847,26 @@ describe('FooClass', () => {
     });
 
     it('finds enclosing function declaration', () => {
-      const lines = ['function myFunction() {', '  // some code', '  // TODO: fix this', '}'];
+      const lines = [
+        'function myFunction() {',
+        '  // some code',
+        `  // ${TASK_MARKER}: fix this`,
+        '}',
+      ];
       expect(extractor.findEnclosingFunction(lines, 2)).toBe('myFunction');
     });
 
     it('finds enclosing arrow function', () => {
-      const lines = ['const handler = async (req, res) => {', '  // TODO: validate input', '};'];
+      const lines = [
+        'const handler = async (req, res) => {',
+        `  // ${TASK_MARKER}: validate input`,
+        '};',
+      ];
       expect(extractor.findEnclosingFunction(lines, 1)).toBe('handler');
     });
 
     it('returns module-level for top-level comments', () => {
-      const lines = ['// TODO: add module documentation', 'export const x = 1;'];
+      const lines = [`// ${TASK_MARKER}: add module documentation`, 'export const x = 1;'];
       expect(extractor.findEnclosingFunction(lines, 0)).toBe('module-level');
     });
   });
