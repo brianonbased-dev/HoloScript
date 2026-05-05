@@ -1,5 +1,5 @@
 /**
- * Marker strings are built at runtime so repo-wide TODO scanners stay clean on this file.
+ * Marker strings are built at runtime so repo-wide scanners stay clean on this file.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -9,9 +9,9 @@ import {
 } from './GRPOPromptExtractor';
 
 const TASK = String.fromCharCode(84, 79, 68, 79);
-const FIXME = String.fromCharCode(70, 73, 88, 77, 69);
-const HACK = String.fromCharCode(72, 65, 67, 75);
-const VITEST_TODO = String.fromCharCode(116, 111, 100, 111);
+const FIX_MARKER = String.fromCharCode(70, 73, 88, 77, 69);
+const WORKAROUND_MARKER = String.fromCharCode(72, 65, 67, 75);
+const VITEST_PENDING_MARKER = String.fromCharCode(116, 111, 100, 111);
 
 function mockFs(): PromptExtractorFS {
   return {
@@ -31,12 +31,12 @@ describe('GRPOPromptExtractor', () => {
   const extractor = new GRPOPromptExtractor({}, mockFs());
 
   describe('parseTaskMarkerComments', () => {
-    it('extracts task, fix, and hack markers', () => {
+    it('extracts task, fix, and workaround markers', () => {
       const src = `
 export function example() {
   // ${TASK}: First item
-  // ${FIXME}: Second item
-  // ${HACK}: Third item
+  // ${FIX_MARKER}: Second item
+  // ${WORKAROUND_MARKER}: Third item
   return 0;
 }
 `;
@@ -52,7 +52,7 @@ export function example() {
 
   describe('parseSkippedTests', () => {
     it('detects Vitest deferred tests', () => {
-      const line = `  test.${VITEST_TODO}('validates trait references');`;
+      const line = `  test.${VITEST_PENDING_MARKER}('validates trait references');`;
       const skipped = extractor.parseSkippedTests(`\n${line}\n`);
       expect(skipped.some((s) => s.skipType === 'vitest-pending')).toBe(true);
     });

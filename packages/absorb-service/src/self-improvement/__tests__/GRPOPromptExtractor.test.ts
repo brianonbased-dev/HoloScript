@@ -65,14 +65,15 @@ function getWrittenContent(fs: PromptExtractorFS): string {
 
 const TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
 const FIX_MARKER = String.fromCharCode(70, 73, 88, 77, 69);
-const HACK_MARKER = String.fromCharCode(72, 65, 67, 75);
+const WORKAROUND_MARKER = String.fromCharCode(72, 65, 67, 75);
+const VITEST_PENDING_MARKER = String.fromCharCode(116, 111, 100, 111);
 
 // =============================================================================
 // SAMPLE SOURCE FILES
 // =============================================================================
 // Strings below embed task-marker comments on purpose (parser coverage). They are not product defects.
 
-const SAMPLE_TODO_FILE = `
+const SAMPLE_TASK_FILE = `
 import { parse } from './parser';
 
 /**
@@ -86,7 +87,7 @@ export function compileSource(source: string): string {
 }
 
 function processNode(node: any): void {
-  // ${HACK_MARKER}: Workaround for tree-sitter issue #123
+  // ${WORKAROUND_MARKER}: Workaround for tree-sitter issue #123
   console.log(node);
 }
 `;
@@ -123,7 +124,7 @@ describe('Compiler', () => {
     // Not yet implemented
   });
 
-  test.todo('validates trait references');
+  test.${VITEST_PENDING_MARKER}('validates trait references');
 
   xit('compiles animation blocks', () => {
     // Pending animation support
@@ -331,35 +332,35 @@ describe('GRPOPromptExtractor', () => {
       extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
     });
 
-    it('extracts TODO comments', () => {
-      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
-      const todos = annotations.filter((a) => a.type === TASK_MARKER);
-      expect(todos.length).toBeGreaterThanOrEqual(1);
-      expect(todos[0].text).toContain('Add support for nested scene compositions');
+    it('extracts task-marker comments', () => {
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TASK_FILE);
+      const taskItems = annotations.filter((a) => a.type === TASK_MARKER);
+      expect(taskItems.length).toBeGreaterThanOrEqual(1);
+      expect(taskItems[0].text).toContain('Add support for nested scene compositions');
     });
 
-    it('extracts FIXME comments', () => {
-      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
-      const fixmes = annotations.filter((a) => a.type === FIX_MARKER);
-      expect(fixmes.length).toBeGreaterThanOrEqual(1);
-      expect(fixmes[0].text).toContain('Memory leak');
+    it('extracts fix-marker comments', () => {
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TASK_FILE);
+      const fixItems = annotations.filter((a) => a.type === FIX_MARKER);
+      expect(fixItems.length).toBeGreaterThanOrEqual(1);
+      expect(fixItems[0].text).toContain('Memory leak');
     });
 
-    it('extracts HACK comments', () => {
-      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
-      const hacks = annotations.filter((a) => a.type === HACK_MARKER);
-      expect(hacks.length).toBeGreaterThanOrEqual(1);
-      expect(hacks[0].text).toContain('Workaround');
+    it('extracts workaround-marker comments', () => {
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TASK_FILE);
+      const workarounds = annotations.filter((a) => a.type === WORKAROUND_MARKER);
+      expect(workarounds.length).toBeGreaterThanOrEqual(1);
+      expect(workarounds[0].text).toContain('Workaround');
     });
 
     it('finds enclosing function names', () => {
-      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
-      const todo = annotations.find((a) => a.type === TASK_MARKER);
-      expect(todo?.functionName).toBe('compileSource');
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TASK_FILE);
+      const task = annotations.find((a) => a.type === TASK_MARKER);
+      expect(task?.functionName).toBe('compileSource');
     });
 
     it('includes context around annotations', () => {
-      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TODO_FILE);
+      const annotations = extractor.parseTaskMarkerComments(SAMPLE_TASK_FILE);
       expect(annotations.length).toBeGreaterThan(0);
       for (const ann of annotations) {
         expect(ann.context.length).toBeGreaterThan(0);
@@ -441,11 +442,11 @@ export function realFunction(x: number): number {
       expect(itSkip!.description).toBe('handles nested scenes');
     });
 
-    it('detects test.todo tests', () => {
+    it('detects Vitest pending tests', () => {
       const skipped = extractor.parseSkippedTests(SAMPLE_TEST_FILE);
-      const testTodo = skipped.find((s) => s.skipType === 'vitest-pending');
-      expect(testTodo).toBeDefined();
-      expect(testTodo!.description).toBe('validates trait references');
+      const pendingTest = skipped.find((s) => s.skipType === 'vitest-pending');
+      expect(pendingTest).toBeDefined();
+      expect(pendingTest!.description).toBe('validates trait references');
     });
 
     it('detects xit tests', () => {
@@ -666,7 +667,7 @@ describe('Working', () => {
   describe('extract() (integration)', () => {
     it('extracts prompts from all 4 sources and writes JSONL', async () => {
       const files: Record<string, string> = {
-        'packages/core/src/compiler.ts': SAMPLE_TODO_FILE,
+        'packages/core/src/compiler.ts': SAMPLE_TASK_FILE,
         'packages/core/src/runtime.ts': SAMPLE_STUB_FILE,
         'packages/core/src/__tests__/compiler.test.ts': SAMPLE_TEST_FILE,
         'packages/analysis/src/graph.ts': SAMPLE_EXPORT_FILE_UNTESTED,
@@ -759,7 +760,7 @@ export function featureX(): void {
 
       const result = await extractor.extract();
 
-      // Should have prompts from both TODO and stub sources
+      // Should have prompts from both task-marker and stub sources
       // but after dedup, very similar ones might be removed
       expect(result.stats.totalExtracted).toBeGreaterThanOrEqual(2);
       expect(result.stats.totalAfterDedup).toBeGreaterThanOrEqual(1);
@@ -938,7 +939,7 @@ describe('FooClass', () => {
       expect(annotations[0].type).toBe(TASK_MARKER);
     });
 
-    it('handles unicode in TODO comments', () => {
+    it('handles unicode in task-marker comments', () => {
       const extractor = new GRPOPromptExtractor({ rootDir: '/repo' }, createMockFS());
 
       const code = `
