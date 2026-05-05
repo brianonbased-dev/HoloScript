@@ -44,6 +44,18 @@ const checks = [
       /sprint\s*1\s*:\s*.*complete/i,
     ],
   },
+  {
+    id: 'A6',
+    description: 'AI-first docs/filesystem contract stays active and enforceable',
+    file: 'docs/guides/ai-first-docs-filesystems.md',
+    required: [
+      /docs and filesystems are agent interfaces first/i,
+      /Source of truth:/i,
+      /Verify:/i,
+      /What Remains After This Plan/i,
+    ],
+    forbidden: [],
+  },
 ];
 
 let failed = false;
@@ -67,8 +79,11 @@ for (const check of checks) {
     continue;
   }
 
-  const hasForbiddenPhrase = check.forbidden.some((pattern) => pattern.test(content));
-  if (hasForbiddenPhrase) {
+  const forbidden = check.forbidden ?? [];
+  const required = check.required ?? [];
+  const hasForbiddenPhrase = forbidden.some((pattern) => pattern.test(content));
+  const missingRequiredPhrase = required.some((pattern) => !pattern.test(content));
+  if (hasForbiddenPhrase || missingRequiredPhrase) {
     failed = true;
     console.log(`[ ] ${check.id} ${check.description}`);
   } else {

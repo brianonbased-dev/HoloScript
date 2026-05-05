@@ -260,6 +260,7 @@ export default defineConfig({
           text: 'Development',
           items: [
             { text: 'Best Practices', link: '/guides/best-practices' },
+            { text: 'AI-First Docs & Filesystems', link: '/guides/ai-first-docs-filesystems' },
             { text: 'Studio Repo Management', link: '/guides/studio-repo-management' },
             { text: 'Studio Repo Management PRD', link: '/guides/studio-repo-management-prd' },
             { text: 'Troubleshooting', link: '/guides/troubleshooting' },

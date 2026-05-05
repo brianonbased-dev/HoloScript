@@ -31,13 +31,14 @@ Use this index for current, canonical documentation entry points.
 
 ## Guides
 
-1. **[Publishing & platform terms](./guides/publishing-platform-terms.md)** - VRChat, Unity, Unreal, Godot, web, mobile: official terms before you ship
-2. **[Testing](./guides/testing.md)** - Vitest setup, test categories, CI integration
-3. **[Smart Assets](./guides/smart-assets.md)** - SmartAssetLoader API and HSA format
-4. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
-5. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
-6. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
-7. **[Zero-Latency Creation](./guides/zero-latency-creation.md)** - Leveraging Prophetic Vision in Studio
+1. **[AI-First Docs and Filesystems](./guides/ai-first-docs-filesystems.md)** - Repository structure as an agent retrieval and verification interface
+2. **[Publishing & platform terms](./guides/publishing-platform-terms.md)** - VRChat, Unity, Unreal, Godot, web, mobile: official terms before you ship
+3. **[Testing](./guides/testing.md)** - Vitest setup, test categories, CI integration
+4. **[Smart Assets](./guides/smart-assets.md)** - SmartAssetLoader API and HSA format
+5. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
+6. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
+7. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
+8. **[Zero-Latency Creation](./guides/zero-latency-creation.md)** - Leveraging Prophetic Vision in Studio
 
 ## Learn and Build
 
