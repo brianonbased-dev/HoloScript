@@ -52,6 +52,19 @@ These are proprietary trademarks owned by the HoloScript project.
 | **HololandObject**             | ✅ Active | React component for 3D objects                                       | 2024      | `@hololand/react-three` package                        |
 | **HololandAIBridge**           | ✅ Active | AI integration bridge component                                      | 2024      | `@hololand/ai-bridge` package                          |
 
+### Brittney AI Identity Mark
+
+Use this mark when a markdown, docs, or IDE surface supports KaTeX or equivalent inline math rendering.
+
+| Flavor | Copy-paste form | Use when |
+| ------ | --------------- | -------- |
+| Primary brand | `\( x^{ai}\text{Brittney} \)` | Markdown or IDE surfaces that render KaTeX inline math |
+| Rendered math source | `$  x^{ai}\text{Brittney}  $` | Markdown preview surfaces that prefer dollar-delimited math |
+| Compact | `\( ^{ai}\text{Brittney} \)` | Tight labels where the `x` base is too visually heavy |
+| Username-safe fallback | `aiBrittney` or `xaiBrittney` | Handles, URLs, package names, file names, env vars, and plain-text systems |
+
+The primary mark is `x^{ai}\text{Brittney}`. The `x` is the visual base, `ai` is the exponent, and `Brittney` remains the spoken brand. Do not use KaTeX syntax in package names, API route names, filenames, environment variables, or identifiers.
+
 ---
 
 ## Third-Party Trademarks (Licensed/Used)

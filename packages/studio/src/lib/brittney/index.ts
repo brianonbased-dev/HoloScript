@@ -37,3 +37,11 @@ export { validateHoloOutput, stripMarkdownFences } from './holoValidator';
 export type { ValidationResult } from './holoValidator';
 export { SIMULATION_TOOLS, SIMULATION_PROMPT_EXTENSION } from './SimulationTools';
 export { SimulationToolExecutor, type SimToolResult } from './SimulationToolExecutor';
+export {
+  BRITTNEY_IDENTITY_MARK,
+  BRITTNEY_KATEX_COMPACT_MARK,
+  BRITTNEY_KATEX_COMPACT_MARK_MARKDOWN,
+  BRITTNEY_KATEX_MARK,
+  BRITTNEY_KATEX_MARK_MARKDOWN,
+  BRITTNEY_USERNAME_FALLBACKS,
+} from './brand';
