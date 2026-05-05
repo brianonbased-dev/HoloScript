@@ -71,6 +71,9 @@ interface EdgeSnapshot {
 
 const exports = new Map<string, EmergentSpacetimeExport>();
 
+const getParam = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
 // =============================================================================
 // Routes
 // =============================================================================
@@ -148,7 +151,8 @@ router.get('/', (req: Request, res: Response) => {
  * Get full export data.
  */
 router.get('/:id', (req: Request, res: Response) => {
-  const exportData = exports.get(req.params.id);
+  const id = getParam(req.params.id);
+  const exportData = id ? exports.get(id) : undefined;
 
   if (!exportData) {
     return res.status(404).json({ error: 'Export not found' });
@@ -163,7 +167,8 @@ router.get('/:id', (req: Request, res: Response) => {
  * Get export as JSON (full fidelity).
  */
 router.get('/:id/json', (req: Request, res: Response) => {
-  const exportData = exports.get(req.params.id);
+  const id = getParam(req.params.id);
+  const exportData = id ? exports.get(id) : undefined;
 
   if (!exportData) {
     return res.status(404).json({ error: 'Export not found' });
@@ -182,7 +187,8 @@ router.get('/:id/json', (req: Request, res: Response) => {
  *   frame,timestamp,voxel_id,position_x,position_y,position_z,provenance,ricci,hubble_delta,violations
  */
 router.get('/:id/csv', async (req: Request, res: Response) => {
-  const exportData = exports.get(req.params.id);
+  const id = getParam(req.params.id);
+  const exportData = id ? exports.get(id) : undefined;
 
   if (!exportData) {
     return res.status(404).json({ error: 'Export not found' });
@@ -262,13 +268,14 @@ router.get('/:id/csv', async (req: Request, res: Response) => {
  * Delete an export.
  */
 router.delete('/:id', (req: Request, res: Response) => {
-  const deleted = exports.delete(req.params.id);
+  const id = getParam(req.params.id);
+  const deleted = id ? exports.delete(id) : false;
 
   if (!deleted) {
     return res.status(404).json({ error: 'Export not found' });
   }
 
-  res.json({ deleted: true, id: req.params.id });
+  res.json({ deleted: true, id });
 });
 
 export default router;

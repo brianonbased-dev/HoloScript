@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { HoloScriptPlusParser, HoloCompositionParser, R3FCompiler } from '@holoscript/core';
+import { HoloScriptPlusParser, HoloCompositionParser } from '@holoscript/core/parser';
+import { R3FCompiler } from '@holoscript/core/compiler/r3f';
+import type { R3FNode } from '@holoscript/core/compiler/r3f';
 export interface PipelineError {
   message: string;
   line?: number;
@@ -9,7 +11,7 @@ export interface PipelineError {
 }
 
 export interface PipelineResult {
-  r3fTree: import('@holoscript/core').R3FNode | null;
+  r3fTree: R3FNode | null;
   errors: PipelineError[];
 }
 
@@ -24,7 +26,7 @@ interface ScenePipelineOptions {
  * Walks the tree recursively and marks draft nodes so the renderer
  * can auto-enter draft mode without manual toggle.
  */
-function applyDraftMaturity(node: import('@holoscript/core').R3FNode): void {
+function applyDraftMaturity(node: R3FNode): void {
   // Check if this node has the 'draft' trait
   if (node.traits?.has('draft') || node.props?.draftMode) {
     node.assetMaturity = 'draft';

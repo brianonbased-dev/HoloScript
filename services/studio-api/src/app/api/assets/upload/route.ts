@@ -6,7 +6,6 @@ import {
   isStorageConfigured,
   getPresignedUploadUrl,
   makeAssetKey,
-  _uploadFile,
 } from '../../../../lib/storage-s3';
 
 /**

@@ -1,6 +1,91 @@
 import * as esbuild from 'esbuild';
 import fs from 'fs';
 import _path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = _path.dirname(fileURLToPath(import.meta.url));
+
+const nodeShimModules = [
+  '@aztec/bb.js',
+  'puppeteer-core',
+  'ioredis',
+  'jsonwebtoken',
+  'jws',
+  'cosmiconfig',
+  '@holoscript/platform',
+  '@holoscript/framework',
+  '@holoscript/framework/economy',
+  '@holoscript/engine',
+  '@holoscript/crdt-spatial',
+  '@holoscript/mcp-server',
+  '@holoscript/snn-webgpu',
+  '@modelcontextprotocol/sdk',
+  'loro-crdt',
+  'playwright',
+  'playwright-core',
+  'crypto',
+  'fs',
+  'fs/promises',
+  'path',
+  'zlib',
+  'net',
+  'tls',
+  'dns',
+  'stream',
+  'os',
+  'buffer',
+  'punycode',
+  'url',
+  'child_process',
+  'readline',
+  'http',
+  'https',
+  'http2',
+  'util',
+  'assert',
+  'events',
+  'tty',
+  'perf_hooks',
+  'worker_threads',
+  'inspector',
+  'diagnostics_channel',
+  'trace_events',
+  'wasi',
+  'v8',
+  'vm',
+  'string_decoder',
+  'sys',
+  'constants',
+  'async_hooks',
+  'dgram',
+  'process',
+  'node:fs/promises',
+  'node:readline/promises',
+  'node:timers',
+  'node:timers/promises',
+];
+
+const nodeProtocolShimModules = nodeShimModules
+  .filter((moduleName) => !moduleName.startsWith('@') && !moduleName.startsWith('node:') && !moduleName.includes('/'))
+  .map((moduleName) => `node:${moduleName}`);
+
+const workspaceShimPatterns = [
+  '@holoscript/platform/*',
+  '@holoscript/framework/*',
+  '@holoscript/engine/*',
+  '@holoscript/crdt-spatial/*',
+  '@holoscript/mcp-server/*',
+  '@holoscript/snn-webgpu/*',
+  '@modelcontextprotocol/sdk/*',
+  'loro-crdt/*',
+  'playwright/*',
+  'playwright-core/*',
+  'node:*',
+];
+
+const shimImportMapEntries = [...nodeShimModules, ...nodeProtocolShimModules]
+  .map((moduleName) => `        "${moduleName}": "/native/assets/node-fs-shim.js"`)
+  .join(',\n');
 
 async function build() {
   console.log('Building spatial client with esbuild...');
@@ -25,16 +110,16 @@ async function build() {
       '@react-three/drei', 
       '@react-three/rapier',
       'three-stdlib',
-      '@aztec/bb.js', 'puppeteer-core', 'ioredis', 'jsonwebtoken', 'jws', 'cosmiconfig',
-      'crypto', 'fs', 'fs/promises', 'path', 'zlib', 'net', 'tls', 'dns', 'stream',
-      'os', 'buffer', 'punycode', 'url', 'child_process', 'readline', 'http', 'https',
-      'util', 'assert', 'events', 'tty', 'perf_hooks', 'worker_threads', 'inspector',
-      'diagnostics_channel', 'trace_events', 'wasi', 'v8', 'string_decoder', 'sys'
+      ...nodeShimModules,
+      ...nodeProtocolShimModules,
+      ...workspaceShimPatterns
     ],
     loader: {
       '.tsx': 'tsx',
       '.ts': 'ts',
-      '.svg': 'file'
+      '.svg': 'file',
+      '.wasm': 'file',
+      '.wgsl': 'text'
     },
     minify: true,
     sourcemap: true,
@@ -62,42 +147,7 @@ async function build() {
         "@react-three/rapier": "https://esm.sh/@react-three/rapier@1.2.1?deps=three@0.160.0,react@18.2.0,@react-three/fiber@8.15.11",
         "lucide-react": "https://esm.sh/lucide-react@0.314.0?deps=react@18.2.0",
         "zustand": "https://esm.sh/zustand@4.5.0?deps=react@18.2.0",
-        "@aztec/bb.js": "/native/assets/node-fs-shim.js",
-        "puppeteer-core": "/native/assets/node-fs-shim.js",
-        "ioredis": "/native/assets/node-fs-shim.js",
-        "jsonwebtoken": "/native/assets/node-fs-shim.js",
-        "jws": "/native/assets/node-fs-shim.js",
-        "cosmiconfig": "/native/assets/node-fs-shim.js",
-        "crypto": "/native/assets/node-fs-shim.js",
-        "fs": "/native/assets/node-fs-shim.js",
-        "fs/promises": "/native/assets/node-fs-shim.js",
-        "path": "/native/assets/node-fs-shim.js",
-        "zlib": "/native/assets/node-fs-shim.js",
-        "net": "/native/assets/node-fs-shim.js",
-        "tls": "/native/assets/node-fs-shim.js",
-        "dns": "/native/assets/node-fs-shim.js",
-        "stream": "/native/assets/node-fs-shim.js",
-        "os": "/native/assets/node-fs-shim.js",
-        "buffer": "/native/assets/node-fs-shim.js",
-        "punycode": "/native/assets/node-fs-shim.js",
-        "url": "/native/assets/node-fs-shim.js",
-        "child_process": "/native/assets/node-fs-shim.js",
-        "readline": "/native/assets/node-fs-shim.js",
-        "http": "/native/assets/node-fs-shim.js",
-        "https": "/native/assets/node-fs-shim.js",
-        "util": "/native/assets/node-fs-shim.js",
-        "assert": "/native/assets/node-fs-shim.js",
-        "events": "/native/assets/node-fs-shim.js",
-        "tty": "/native/assets/node-fs-shim.js",
-        "perf_hooks": "/native/assets/node-fs-shim.js",
-        "worker_threads": "/native/assets/node-fs-shim.js",
-        "inspector": "/native/assets/node-fs-shim.js",
-        "diagnostics_channel": "/native/assets/node-fs-shim.js",
-        "trace_events": "/native/assets/node-fs-shim.js",
-        "wasi": "/native/assets/node-fs-shim.js",
-        "v8": "/native/assets/node-fs-shim.js",
-        "string_decoder": "/native/assets/node-fs-shim.js",
-        "sys": "/native/assets/node-fs-shim.js"
+${shimImportMapEntries}
       }
     }
     </script>

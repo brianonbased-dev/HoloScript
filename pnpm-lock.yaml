@@ -138,7 +138,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   benchmarks/crdt-performance:
     dependencies:
@@ -256,7 +256,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/adapter-postgres:
     dependencies:
@@ -281,7 +281,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/agent-protocol:
     dependencies:
@@ -303,7 +303,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/ai-validator:
     dependencies:
@@ -328,7 +328,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/aibrittney:
     dependencies:
@@ -346,7 +346,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/auth:
     dependencies:
@@ -368,7 +368,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/benchmark:
     dependencies:
@@ -399,7 +399,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/cli:
     dependencies:
@@ -460,7 +460,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
       vscode-languageserver:
         specifier: ^9.0.1
         version: 9.0.1
@@ -494,7 +494,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/compiler-wasm: {}
 
@@ -508,7 +508,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-appstore:
     dependencies:
@@ -542,7 +542,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-core:
     dependencies:
@@ -558,7 +558,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-github:
     dependencies:
@@ -583,7 +583,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-moltbook:
     dependencies:
@@ -602,7 +602,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-railway:
     dependencies:
@@ -624,7 +624,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-upstash:
     dependencies:
@@ -652,7 +652,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/connector-vscode:
     dependencies:
@@ -671,7 +671,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/core:
     dependencies:
@@ -916,7 +916,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/core-types: {}
 
@@ -952,7 +952,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/crdt-spatial:
     dependencies:
@@ -980,7 +980,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/create-holoscript:
     dependencies:
@@ -1002,7 +1002,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/engine:
     dependencies:
@@ -1054,7 +1054,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/formatter:
     devDependencies:
@@ -1069,7 +1069,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/framework:
     dependencies:
@@ -1091,7 +1091,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/graphql-api:
     dependencies:
@@ -1176,7 +1176,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/holo-vm:
     dependencies:
@@ -1195,7 +1195,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/hologram-worker:
     dependencies:
@@ -1229,7 +1229,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/hololand-platform:
     dependencies:
@@ -1264,7 +1264,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/holoscript:
     dependencies:
@@ -1283,7 +1283,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/holoscript-agent:
     dependencies:
@@ -1305,13 +1305,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/holoscript-cdn:
     devDependencies:
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/linter:
     dependencies:
@@ -1330,7 +1330,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/llm-provider:
     dependencies:
@@ -1352,7 +1352,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/lsp:
     dependencies:
@@ -1395,7 +1395,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/marketplace-agentkit:
     dependencies:
@@ -1417,7 +1417,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/marketplace-api:
     dependencies:
@@ -1502,7 +1502,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/marketplace-web:
     dependencies:
@@ -1917,7 +1917,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/mvc-schema:
     dependencies:
@@ -1951,7 +1951,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/partner-sdk:
     dependencies:
@@ -1970,7 +1970,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/platform:
     dependencies:
@@ -2212,7 +2212,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/plugins/alphafold-plugin:
     dependencies:
@@ -2700,7 +2700,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/react-agent-sdk:
     dependencies:
@@ -2804,7 +2804,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/runtime:
     dependencies:
@@ -2844,7 +2844,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/security-sandbox:
     dependencies:
@@ -2878,7 +2878,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/snn-webgpu:
     devDependencies:
@@ -2908,7 +2908,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
       webgpu:
         specifier: ^0.3.8
         version: 0.3.8
@@ -2926,7 +2926,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/std:
     devDependencies:
@@ -2938,7 +2938,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/studio:
     dependencies:
@@ -3197,7 +3197,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/studio-plugin-sdk:
     dependencies:
@@ -3293,7 +3293,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/ui:
     dependencies:
@@ -3547,7 +3547,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   services/absorb-service:
     dependencies:
@@ -3566,6 +3566,9 @@ importers:
       cors:
         specifier: ^2.8.5
         version: 2.8.6
+      csv-stringify:
+        specifier: ^6.7.0
+        version: 6.7.0
       drizzle-orm:
         specifier: '>=0.45.2'
         version: 0.45.2(@neondatabase/serverless@1.0.2)(@types/pg@8.16.0)(pg@8.18.0)
@@ -3608,7 +3611,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   services/export-api:
     dependencies:
@@ -3678,7 +3681,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   services/holoscript-net:
     dependencies:
@@ -3843,7 +3846,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   services/studio-api:
     dependencies:
@@ -15054,7 +15057,7 @@ packages:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+      vitest: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
     dev: true
 
   /@vitest/expect@1.6.1:
@@ -18515,6 +18518,10 @@ packages:
 
   /csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  /csv-stringify@6.7.0:
+    resolution: {integrity: sha512-UdtziYp5HuTz7e5j8Nvq+a/3HQo+2/aJZ9xntNTpmRRIg/3YYqDVgiS9fvAhtNbnyfbv2ZBe0bqCHqzhE7FqWQ==}
+    dev: false
 
   /cuer@0.0.3(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3):
     resolution: {integrity: sha512-f/UNxRMRCYtfLEGECAViByA3JNflZImOk11G9hwSd+44jvzrc99J35u5l+fbdQ2+ZG441GvOpaeGYBmWquZsbQ==}

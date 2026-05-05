@@ -9,8 +9,8 @@ import {
   createDaemonJob,
   listDaemonJobs,
   getTelemetrySummary,
-  type CreateDaemonJobInput,
 } from './store';
+import type { DaemonJobLimits } from '@/lib/daemon/types';
 
 // SEC-T02: Daemon jobs require auth, Zod validation, and projectPath containment
 // (parity with packages/studio).
@@ -20,12 +20,28 @@ const WORKSPACE_ROOT = path.join(
   'workspaces',
 );
 
+const ProjectDnaSchema = z.object({
+  kind: z.enum(['service', 'frontend', 'data', 'automation', 'spatial', 'unknown']),
+  confidence: z.number().min(0).max(1),
+  detectedStack: z.array(z.string()),
+  recommendedProfile: z.enum(['quick', 'balanced', 'deep']),
+  notes: z.array(z.string()),
+}).passthrough();
+
+const CustomLimitsSchema = z.object({
+  maxCycles: z.number().int().positive().optional(),
+  maxTokens: z.number().int().positive().optional(),
+  maxFilesChanged: z.number().int().positive().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+  protectedPaths: z.array(z.string()).optional(),
+}).strict();
+
 const CreateJobSchema = z.object({
   projectId: z.string().min(1).max(256),
   profile: z.enum(['quick', 'balanced', 'deep']),
-  projectDna: z.object({}).passthrough(),
+  projectDna: ProjectDnaSchema,
   projectPath: z.string().min(1).max(512).optional(),
-  customLimits: z.object({}).passthrough().optional(),
+  customLimits: CustomLimitsSchema.optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -78,8 +94,9 @@ export async function POST(request: NextRequest) {
     profile: body.profile,
     projectDna: body.projectDna,
     projectPath: body.projectPath,
-    customLimits: body.customLimits,
-  } as CreateDaemonJobInput);
+    customLimits: body.customLimits satisfies Partial<DaemonJobLimits> | undefined,
+    userId: auth.user.id,
+  });
 
   return NextResponse.json({ job: created }, { status: 201 });
 }

@@ -23,6 +23,7 @@
     "@holoscript/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
+    "csv-stringify": "^6.7.0",
     "drizzle-orm": ">=0.45.2",
     "express": "^5.2.1",
     "pg": "^8.13.1",

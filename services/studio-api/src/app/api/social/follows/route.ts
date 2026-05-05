@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/api-auth';
 import { getDb } from '../../../../db/client';
 import { follows, users, activityFeed } from '../../../../db/schema';
-import { eq, and, _desc, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 /**
  * /api/social/follows — Follow/unfollow users.
@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
 
   // Check if current user follows this user
   let isFollowing = false;
-  const { requireAuth: _ } = await import('../../../../lib/api-auth');
   const { getSession } = await import('../../../../lib/api-auth');
   const session = await getSession();
   if (session?.user?.id && session.user.id !== userId) {

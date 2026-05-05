@@ -6,10 +6,7 @@
  * concrete patch proposals that users can review and apply through Studio.
  */
 
-import {
-  runDaemonJob,
-  type _AbsorbGraphData,
-} from './runner';
+import { runDaemonJob } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import type {
   CreateDaemonJobInput,
@@ -18,7 +15,6 @@ import type {
   DaemonJobLimits,
   DaemonLogEntry,
   DaemonProfile,
-  _DaemonProjectDNA,
   DaemonTelemetryEvent,
   DaemonTelemetrySummary,
   PatchProposal,

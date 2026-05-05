@@ -5,7 +5,7 @@ import path from 'path';
 import { randomBytes } from 'crypto';
 import { getDb } from '../../../db/client';
 import { sharedScenes } from '../../../db/schema';
-import { _eq, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 /**
  * POST /api/publish
