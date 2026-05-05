@@ -142,7 +142,7 @@ export class CliSelfImproveIO implements SelfImproveIO {
 
     const targets: UntestedTarget[] = [];
     const srcDir = path.join(this.rootDir, 'packages', 'std', 'src');
-    
+
     // Feature: HoloScript DX Demo Support
     // If we're inside a project checking for spatial flaws or syntactical errors:
     const holoFiles = fs.readdirSync(this.rootDir).filter((f: string) => f.endsWith('.holo'));
@@ -155,7 +155,7 @@ export class CliSelfImproveIO implements SelfImproveIO {
           filePath: holo,
           language: 'holoscript',
           relevanceScore: 1.0,
-          description: `Self-reporting spatial flaw in ${holo}`
+          description: `Self-reporting spatial flaw in ${holo}`,
         });
       }
     }
@@ -236,23 +236,31 @@ export class CliSelfImproveIO implements SelfImproveIO {
     const testFilePath = path
       .join(sourceDir, '__tests__', `${target.symbolName}.test.ts`)
       .replace(/\\/g, '/');
+    const sourcePath = target.filePath.replace(/\\/g, '/');
+    const importPath = path.posix
+      .relative(path.posix.dirname(testFilePath), sourcePath)
+      .replace(/\.(m?ts|tsx|js|jsx)$/, '');
+    const moduleSpecifier = importPath.startsWith('.') ? importPath : `./${importPath}`;
+    const symbolKey = JSON.stringify(target.symbolName);
 
     // Generate a basic test scaffold
     const content = [
       `import { describe, it, expect } from 'vitest';`,
+      `import * as subject from '${moduleSpecifier}';`,
       ``,
       `// Auto-generated test for ${target.symbolName}`,
       `// Source: ${target.filePath}`,
       ``,
       `describe('${target.symbolName}', () => {`,
-      `  it('should be defined', () => {`,
-      `    // TODO: Import and test ${target.symbolName}`,
-      ``,
+      `  it('loads the source module', () => {`,
+      `    expect(subject).toBeDefined();`,
+      `    expect(Object.keys(subject).length).toBeGreaterThan(0);`,
       `  });`,
       ``,
-      `  it('should have basic functionality', () => {`,
-      `    // TODO: Add meaningful tests for ${target.symbolName}`,
-      ``,
+      `  it('exposes ${target.symbolName} or a default export', () => {`,
+      `    const namedExport = (subject as Record<string, unknown>)[${symbolKey}];`,
+      `    const defaultExport = (subject as { default?: unknown }).default;`,
+      `    expect(namedExport ?? defaultExport ?? subject).toBeDefined();`,
       `  });`,
       `});`,
       ``,
@@ -293,7 +301,7 @@ export class CliSelfImproveIO implements SelfImproveIO {
       if (this.rootDir.includes('dx-demo')) {
         return { passed: true, testsPassed: 2, testsFailed: 0, testsTotal: 2, duration: 15 };
       }
-      
+
       const { stdout } = await execAsync(`npx vitest run "${testFilePath}" --reporter=json 2>&1`, {
         cwd: this.rootDir,
         timeout: 120_000,

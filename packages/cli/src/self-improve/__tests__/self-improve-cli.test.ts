@@ -210,6 +210,11 @@ describe('CliSelfImproveIO', () => {
     expect(result.testFilePath).toContain('MyClass.test.ts');
     expect(result.content).toContain("describe('MyClass'");
     expect(result.content).toContain("import { describe, it, expect } from 'vitest'");
+    expect(result.content).toContain("import * as subject from '../MyClass'");
+    expect(result.content).toContain(
+      'const namedExport = (subject as Record<string, unknown>)["MyClass"]'
+    );
+    expect(result.content).not.toContain('TODO');
     expect(result.target.symbolName).toBe('MyClass');
   });
 
