@@ -276,6 +276,11 @@ Create a puzzle where the user must:
 
 ```hsplus
 composition "Stacking Puzzle" {
+  state {
+    balancedFor: 0
+    won: false
+  }
+
   // Platform to stack on
   composition platform {
     @collidable { static: true }
@@ -293,8 +298,54 @@ composition "Stacking Puzzle" {
     geometry: "cube"
   }
 
-  // TODO: Add cube2 and cube3
-  // TODO: Add victory detection logic
+  composition cube2 {
+    @grabbable
+    @physics { mass: 1.0 }
+    position: [1.4, 1, -2]
+    scale: 0.2
+    color: "#3498DB"
+    geometry: "cube"
+  }
+
+  composition cube3 {
+    @grabbable
+    @physics { mass: 1.0 }
+    position: [1.8, 1, -2]
+    scale: 0.2
+    color: "#2ECC71"
+    geometry: "cube"
+  }
+
+  composition victoryGlow {
+    position: [0, 1.35, -2]
+    scale: 0
+    color: "#F1C40F"
+    geometry: "sphere"
+    opacity: 0.85
+  }
+
+  onUpdate(deltaTime): {
+    const centered =
+      Math.abs(cube1.position.x - platform.position.x) < 0.15 &&
+      Math.abs(cube2.position.x - platform.position.x) < 0.15 &&
+      Math.abs(cube3.position.x - platform.position.x) < 0.15
+
+    const stacked =
+      centered &&
+      cube1.position.y > platform.position.y + 0.15 &&
+      cube2.position.y > cube1.position.y + 0.18 &&
+      cube3.position.y > cube2.position.y + 0.18
+
+    state.balancedFor = stacked ? state.balancedFor + deltaTime : 0
+
+    if (!state.won && state.balancedFor >= 3.0) {
+      state.won = true
+      victoryGlow.scale = 0.6
+      victoryGlow.emitParticles("sparkle", { count: 32 })
+      audio.play("success.wav")
+      emit "puzzle_victory" "Stack complete!"
+    }
+  }
 }
 ```
 
