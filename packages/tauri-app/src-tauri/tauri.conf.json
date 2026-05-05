@@ -10,7 +10,6 @@
     "frontendDist": "../studio/out"
   },
   "app": {
-    "title": "HoloScript Studio",
     "windows": [
       {
         "title": "HoloScript Studio",

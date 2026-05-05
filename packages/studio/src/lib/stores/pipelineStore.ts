@@ -333,7 +333,10 @@ export const usePipelineStore = create<PipelineState>()(
           pipelineHistory: state.pipelineHistory.map((run) => ({
             ...run,
             layers: Object.fromEntries(
-              Object.entries(run.layers).map(([k, v]) => [k, { ...v, history: [], feedbackBuffer: [] }])
+              Object.entries(run.layers).map(([k, v]) => {
+                const layer = typeof v === 'object' && v !== null ? v : {};
+                return [k, { ...layer, history: [], feedbackBuffer: [] }];
+              })
             ) as unknown as PipelineRun['layers'],
           })),
         }),

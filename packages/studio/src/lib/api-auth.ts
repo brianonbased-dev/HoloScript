@@ -44,7 +44,7 @@ export async function getSession() {
     },
     // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
     // only when the claim is absent so we don't extend a near-expiry token.
-    expires: token.exp
+    expires: typeof token.exp === 'number'
       ? new Date(token.exp * 1000).toISOString()
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
@@ -70,7 +70,15 @@ export async function requireAuth(request?: Request) {
   if (request && process.env.BRITTNEY_BENCHMARK_KEY) {
     const benchKey = request.headers.get('x-benchmark-key');
     if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
-      return { user: { id: 'benchmark', name: 'Benchmark Runner', email: '', githubUsername: '' } };
+      return {
+        user: {
+          id: 'benchmark',
+          name: 'Benchmark Runner',
+          email: '',
+          image: null,
+          githubUsername: '',
+        },
+      };
     }
   }
 

@@ -161,10 +161,10 @@ export class SessionPresenceCoordinator {
       )
     );
     this.unsubscribers.push(
-      this.bus.on<SharePlayEvent>('shareplay:peer_joined', (e) => this.onPeerJoined(e))
+      this.bus.on<SharePlayEvent>('shareplay:peer_joined', (e) => this.handlePeerJoined(e))
     );
     this.unsubscribers.push(
-      this.bus.on<SharePlayEvent>('shareplay:peer_left', (e) => this.onPeerLeft(e))
+      this.bus.on<SharePlayEvent>('shareplay:peer_left', (e) => this.handlePeerLeft(e))
     );
     this.unsubscribers.push(
       this.bus.on<SharePlayEvent>('shareplay:session_ended', (e) =>
@@ -198,7 +198,7 @@ export class SessionPresenceCoordinator {
     );
     this.unsubscribers.push(
       this.bus.on<HeartbeatEvent>('world_heartbeat:timeout', (e) =>
-        this.onHeartbeatTimeout(e)
+        this.handleHeartbeatTimeout(e)
       )
     );
 
@@ -244,7 +244,7 @@ export class SessionPresenceCoordinator {
     this.bus.emit('presence:session_started', e);
   }
 
-  private onPeerJoined(e: SharePlayEvent): void {
+  private handlePeerJoined(e: SharePlayEvent): void {
     const peerId = e.remotePeerId ?? e.localPeerId;
     if (!peerId) return;
     const peer: PeerRecord = {
@@ -261,7 +261,7 @@ export class SessionPresenceCoordinator {
     this.bus.emit('presence:peer_joined', peer);
   }
 
-  private onPeerLeft(e: SharePlayEvent): void {
+  private handlePeerLeft(e: SharePlayEvent): void {
     const peerId = e.remotePeerId ?? e.localPeerId;
     if (!peerId) return;
     const peer = this.peers.get(peerId);
@@ -334,7 +334,7 @@ export class SessionPresenceCoordinator {
     this.bus.emit('presence:heartbeat_pong', e);
   }
 
-  private onHeartbeatTimeout(e: HeartbeatEvent): void {
+  private handleHeartbeatTimeout(e: HeartbeatEvent): void {
     const hb = this.heartbeats.get(e.sourceId) ?? {
       sourceId: e.sourceId,
       lastPingAt: e.timestamp,

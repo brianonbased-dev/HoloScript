@@ -394,14 +394,14 @@ export function pharmacophoreFeatures(mol: Molecule): PharmacophoreFeature[] {
       if (atom.charge >= 0) {
         features.push({
           type: 'h-bond-donor',
-          position: atom.position,
+          position: toTuple(atom.position),
           radius: 1.0,
           atomIds: [atom.id],
         });
       }
       features.push({
         type: 'h-bond-acceptor',
-        position: atom.position,
+        position: toTuple(atom.position),
         radius: 1.0,
         atomIds: [atom.id],
       });
@@ -409,16 +409,16 @@ export function pharmacophoreFeatures(mol: Molecule): PharmacophoreFeature[] {
 
     // Charged groups
     if (atom.charge > 0.3) {
-      features.push({ type: 'positive', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+      features.push({ type: 'positive', position: toTuple(atom.position), radius: 1.5, atomIds: [atom.id] });
     } else if (atom.charge < -0.3) {
-      features.push({ type: 'negative', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+      features.push({ type: 'negative', position: toTuple(atom.position), radius: 1.5, atomIds: [atom.id] });
     }
 
     // Hydrophobic (C atoms with no polar neighbors)
     if (atom.element === 'C') {
       features.push({
         type: 'hydrophobic',
-        position: atom.position,
+        position: toTuple(atom.position),
         radius: 1.5,
         atomIds: [atom.id],
       });

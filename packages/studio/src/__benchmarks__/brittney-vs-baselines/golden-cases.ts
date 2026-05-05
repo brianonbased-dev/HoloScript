@@ -137,7 +137,7 @@ const GOLDEN_CASES: GoldenCase[] = [
         { name: 'Wall_South', pos: [5, 0.75, 10] as [number, number, number], scale: [10, 1.5, 0.1] as [number, number, number] },
         { name: 'Wall_East', pos: [10, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
         { name: 'Wall_West', pos: [0, 0.75, 5] as [number, number, number], scale: [0.1, 1.5, 10] as [number, number, number] },
-      ].map((w) => ({ ...w, type: 'mesh', primitive: 'cube', color: 'brown' })),
+      ].map(({ pos, ...w }) => ({ ...w, position: pos, type: 'mesh', primitive: 'cube', color: 'brown' })),
       // Interior walls — simplified spanning tree maze (removes some walls)
       ...[
         // Vertical walls at x=2, 4, 6, 8 (with gaps)
@@ -150,7 +150,7 @@ const GOLDEN_CASES: GoldenCase[] = [
         { name: 'H4_gap', pos: [7, 0.75, 4] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
         { name: 'H6_full', pos: [3, 0.75, 6] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
         { name: 'H8_gap', pos: [7, 0.75, 8] as [number, number, number], scale: [6, 1.5, 0.1] as [number, number, number] },
-      ].map((w) => ({ ...w, type: 'mesh', primitive: 'cube', color: 'brown' })),
+      ].map(({ pos, ...w }) => ({ ...w, position: pos, type: 'mesh', primitive: 'cube', color: 'brown' })),
     ],
     notes: '5x5 grid (2m cells), outer perimeter + interior walls forming unique path from (0,0) to (4,4)',
   },

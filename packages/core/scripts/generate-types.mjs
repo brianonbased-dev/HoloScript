@@ -77,6 +77,36 @@ export class HoloScriptPlusParser {
   parseStatement(source: string): any;
 }
 
+export interface ParseCacheStats {
+  size: number;
+  evictions: number;
+  maxEntries: number;
+}
+
+export interface ParseCache {
+  get(id: string, currentHash: string): any | null;
+  set(id: string, hash: string, node: any): void;
+  clear(): void;
+  getStats(): ParseCacheStats;
+}
+
+export const globalParseCache: ParseCache;
+
+export interface IncrementalParseResult {
+  ast: any;
+  cached: number;
+  parsed: number;
+  duration: number;
+  changedChunks: string[];
+}
+
+export class ChunkBasedIncrementalParser {
+  constructor(cache?: ParseCache);
+  parse(source: string): IncrementalParseResult;
+  clearCache(): void;
+  getCacheStats(): ParseCacheStats;
+}
+
 export class HSPlusRuntime {
   constructor(options?: any);
   mount(container: any): void;
@@ -2146,12 +2176,14 @@ export interface CompilerOptions { target?: string; optimize?: boolean; [key: st
 export interface CompilerDiagnostic { severity: 'error' | 'warning' | 'info'; message: string; line?: number; column?: number; [key: string]: any; }
 export interface IncrementalBuildResult { success: boolean; diagnostics: CompilerDiagnostic[]; artifacts: any[]; [key: string]: any; }
 export declare class IncrementalCompiler {
+  static deserialize(json: string): IncrementalCompiler;
   constructor(config?: any);
   addSource(id: string, source: string): void;
-  compile(targets?: string[]): IncrementalBuildResult;
+  compile(ast: HoloComposition, compileObject: (obj: any) => string, options?: any): Promise<any>;
   invalidate(id: string): void;
   [key: string]: any;
 }
+export declare function createIncrementalCompiler(config?: any): IncrementalCompiler;
 
 // ============================================================================
 // ECS INSPECTOR TYPES
@@ -3448,6 +3480,17 @@ const parserDTS = `export class HoloScriptPlusParser {
   parse(source: string): any;
 }
 export function parse(source: string): any;
+export function createParser(options?: any): HoloScriptPlusParser;
+export class HoloCompositionParser {
+  constructor(options?: any);
+  parse(source: string): any;
+}
+export function parseHolo(source: string, options?: any): any;
+export function parseHoloStrict(source: string, options?: any): any;
+export function parseHoloPartial(source: string, options?: any): any;
+export type HoloParseResult = any;
+export type HoloParseError = any;
+export type HoloParserOptions = any;
 `;
 
 const runtimeDTS = `export class HoloScriptRuntime {
@@ -3754,7 +3797,12 @@ export class URDFCompiler extends CompilerBase { compile(ast: any, token: Compil
 export class USDPhysicsCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class StateCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class TraitCompositionCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class IncrementalCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class IncrementalCompiler extends CompilerBase {
+  static deserialize(json: string): IncrementalCompiler;
+  compile(ast: any, compileObject: (obj: any) => string, options?: any): Promise<any>;
+  [key: string]: any;
+}
+export function createIncrementalCompiler(config?: any): IncrementalCompiler;
 export class MultiLayerCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class COCOExporter { [key: string]: any; }
 export class GLTFPipelineMCPTool { [key: string]: any; }
@@ -3866,6 +3914,30 @@ export function mergeSocialCausalModels(
   agentDags: SCMDAG[],
   options?: SocialMergeOptions,
 ): SocialMergeResult;
+`;
+
+const r3fDTS = `export interface R3FNode {
+  type: string;
+  id?: string;
+  props: Record<string, unknown>;
+  children?: R3FNode[];
+  traits?: Map<string, Record<string, unknown>>;
+  directives?: unknown[];
+  assetMaturity?: 'draft' | 'mesh' | 'final';
+  [key: string]: any;
+}
+
+export class R3FCompiler {
+  constructor(options?: any);
+  compile(ast: any): R3FNode | R3FNode[];
+  compileComposition(composition: any): R3FNode;
+  [key: string]: any;
+}
+
+export declare const ENVIRONMENT_PRESETS: Record<string, any>;
+export declare const MATERIAL_PRESETS: Record<string, Record<string, unknown>>;
+export declare const QUALITY_TIER_SCALES: Record<string, number>;
+export declare const UI_COMPONENT_PRESETS: Record<string, unknown>;
 `;
 
 const selfImprovementDTS = `/**
@@ -4408,7 +4480,7 @@ export declare function verifySubgridAttestation(attestation: SubgridAttestation
 export declare function verifySubgridAttestationAsync(attestation: SubgridAttestation, params: SubgridParams): Promise<VerifyResult>;
 `;
 
-const coordinatorsDTS = `/** @holoscript/core/coordinators — Pattern E consumer-bus infrastructure (4 buses) */
+const coordinatorsDTS = `/** @holoscript/core/coordinators — Pattern E consumer-bus infrastructure (5 buses) */
 
 // --- Shared duck-typed event source ---
 export interface CoordinatorEventSource {
@@ -4597,6 +4669,38 @@ export declare class SessionPresenceCoordinator {
   getStats(): SessionPresenceStats;
   reset(): void;
 }
+
+// --- NeuralForgeCoordinator ---
+export type NeuralNodeStatus = 'connected' | 'idle' | 'synthesizing' | 'timeout_fallback';
+export interface NeuralNodeState {
+  nodeId: string;
+  status: NeuralNodeStatus;
+  shardCount: number;
+  weights: Record<string, number>;
+  lastSynthesisAt: number | null;
+  pendingExternalSynthesis: boolean;
+  pendingSince: number | null;
+  experienceLogLength: number;
+  updatedAt: number;
+}
+export interface NeuralForgeStats {
+  total: number;
+  synthesizing: number;
+  timeoutFallback: number;
+  totalShards: number;
+  anyConnected: boolean;
+}
+export type NeuralForgeListener = (state: NeuralNodeState) => void;
+export declare class NeuralForgeCoordinator {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: NeuralForgeListener): () => void;
+  getNodeState(nodeId: string): NeuralNodeState | undefined;
+  getAllStates(): NeuralNodeState[];
+  isConnected(nodeId: string): boolean;
+  getStats(): NeuralForgeStats;
+  reset(): void;
+  readonly subscribedEventCount: number;
+}
 `;
 
 // Create subdirectory declaration files
@@ -4624,6 +4728,17 @@ for (const { dir, content } of subdirDeclarations) {
   } catch (err) {
     console.error(`✗ Failed to create ${dir}/index.d.ts:`, err.message);
   }
+}
+
+try {
+  const compilerDir = path.join(distDir, 'compiler');
+  if (!fs.existsSync(compilerDir)) {
+    fs.mkdirSync(compilerDir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(compilerDir, 'r3f.d.ts'), r3fDTS, 'utf8');
+  console.log('✓ Created compiler/r3f.d.ts');
+} catch (err) {
+  console.error('✗ Failed to create compiler/r3f.d.ts:', err.message);
 }
 
 // Create entries/ subdirectory declaration files

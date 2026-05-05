@@ -88,10 +88,10 @@ function Sparkline({
 // ─── Stats HUD (inside Canvas via Html) ──────────────────────────────────────
 
 interface StatsProps {
-  open: boolean;
+  open?: boolean;
 }
 
-export function PerformanceOverlay({ open }: StatsProps) {
+export function PerformanceOverlay({ open = true }: StatsProps) {
   const { gl } = useThree();
   const fps = useRef(0);
   const frameMs = useRef(0);

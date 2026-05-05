@@ -32,7 +32,7 @@ import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/Conte
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useLOD } from '@/hooks/useLOD';
 import { useStudioBus } from '@/hooks/useStudioBus';
-import { ProgressiveLoader } from '@holoscript/r3f-renderer';
+import { ProgressiveLoader, usePerformanceRegression } from '@holoscript/r3f-renderer';
 import { PerformanceRegressionBridge } from '@/hooks/usePerformanceRegressionBridge';
 
 interface SceneRendererProps {

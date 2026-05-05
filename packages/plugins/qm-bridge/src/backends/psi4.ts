@@ -30,7 +30,7 @@ import type {
   QmNmrResult,
   QmTransitionStateResult,
 } from '../QmSolver';
-import { QM_BACKEND_CAPABILITIES, requireCapability } from '../QmSolver';
+import { requireCapability } from '../QmSolver';
 import type { FieldData } from '@holoscript/engine/simulation/SimSolver';
 import type { SimulationScale } from '@holoscript/engine/simulation/SimulationContract';
 
@@ -42,6 +42,18 @@ export interface Psi4Config extends QmSolverConfig {
   psi4Path?: string;
   /** Scratch directory for Psi4 temporary files. */
   scratchDir?: string;
+}
+
+interface Psi4RawResult {
+  total_energy?: number;
+  nuclear_repulsion_energy?: number;
+  converged?: boolean;
+  scf_iterations?: number;
+  optimization_steps?: number;
+  final_gradient_norm?: number;
+  frequencies?: number[];
+  zero_point_energy?: number;
+  shieldings?: number[];
 }
 
 // ── Psi4 input generation ─────────────────────────────────────────────────────
@@ -217,6 +229,7 @@ export class Psi4Backend implements QmSolver {
       method: this.qmConfig.method,
       basis: this.qmConfig.basis,
       lastEnergy: this.lastEnergy,
+      scratchDir: this.scratchDir,
     };
   }
 
@@ -338,8 +351,8 @@ export class Psi4Backend implements QmSolver {
       `${getAtomicNumber(a.symbol) === 1 ? '1' : a.symbol}H`,
     );
 
-    const shieldings = raw.shieldings ?? new Array(molecule.atoms.length).fill(0);
-    const chemicalShifts = shieldings.map((s: number, i: number) => {
+    const shieldings = raw.shieldings ?? new Array<number>(molecule.atoms.length).fill(0);
+    const chemicalShifts = shieldings.map((s, i) => {
       const label = nucleusLabels[i]?.replace(/\d+/, '') || '1H';
       return (tmsReference[label] ?? 0) - s;
     });
@@ -368,12 +381,18 @@ export class Psi4Backend implements QmSolver {
 
     // Stage 1: approximate TS as midpoint geometry (real implementation
     // uses Psi4's native NEB or opt=ts)
-    const midpointAtoms = reactant.atoms.map((a, i) => ({
-      symbol: a.symbol,
-      x: (a.x + product.atoms[i].x) / 2,
-      y: (a.y + product.atoms[i].y) / 2,
-      z: (a.z + product.atoms[i].z) / 2,
-    }));
+    const midpointAtoms = reactant.atoms.map((a, i) => {
+      const productAtom = product.atoms[i];
+      if (!productAtom) {
+        throw new Error('[qm-bridge] Reactant/product atom counts must match for transition state search.');
+      }
+      return {
+        symbol: a.symbol,
+        x: (a.x + productAtom.x) / 2,
+        y: (a.y + productAtom.y) / 2,
+        z: (a.z + productAtom.z) / 2,
+      };
+    });
     const midpoint: MoleculeSpec = { ...reactant, atoms: midpointAtoms };
     const energyResult = await this.computeEnergy(midpoint);
     const wallTime = (performance.now() - startTime) / 1000;
@@ -427,7 +446,7 @@ export class Psi4Backend implements QmSolver {
    * the result is synthesized. The bridge pattern keeps Psi4 (a C++/Python
    * application) outside the HoloScript Node.js process.
    */
-  private async runPsi4(inputScript: string): Promise<Record<string, unknown>> {
+  private async runPsi4(inputScript: string): Promise<Psi4RawResult> {
     // In stage 1, we provide a mock implementation that returns
     // placeholder results. Real Psi4 invocation requires:
     // 1. Psi4 installed (pip install psi4)
@@ -447,7 +466,7 @@ export class Psi4Backend implements QmSolver {
   }
 
   /** Mock result for testing without Psi4 installed. */
-  private mockPsi4Result(_input: string): Record<string, unknown> {
+  private mockPsi4Result(_input: string): Psi4RawResult {
     return {
       total_energy: -75.0 + Math.random() * 0.001,  // Typical water energy
       nuclear_repulsion_energy: 9.0,

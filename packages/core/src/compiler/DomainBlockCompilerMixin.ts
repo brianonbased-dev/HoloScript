@@ -3532,14 +3532,14 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
     axes = [
       String(props.x_axis ?? ''),
       String(props.y_axis ?? ''),
-      props.z_axis != null ? String(props.z_axis) : undefined,
+      String(props.z_axis ?? ''),
     ];
   } else if (props.axes && typeof props.axes === 'object') {
     const a = props.axes as Record<string, unknown>;
     axes = [
       String(a[0] ?? ''),
       String(a[1] ?? ''),
-      a[2] != null ? String(a[2]) : undefined,
+      String(a[2] ?? ''),
     ];
   }
   let dimensions: CompiledDataViz['dimensions'];

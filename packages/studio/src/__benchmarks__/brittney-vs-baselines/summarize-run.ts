@@ -20,7 +20,7 @@ const run: BenchmarkRun = JSON.parse(fs.readFileSync(path.join(resultsDir, 'resu
 const total = run.outcomes.length;
 const passed = run.outcomes.filter((o) => o.creation_completion).length;
 const passRate = ((passed / total) * 100).toFixed(1);
-const duration = ((new Date(run.finished_at) - new Date(run.started_at)) / 60000).toFixed(1);
+const duration = ((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 60000).toFixed(1);
 
 const byTier: Record<string, { pass: number; total: number }> = {};
 for (const o of run.outcomes) {

@@ -606,7 +606,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   private buildMessagesWithCacheBreakpoints(
     messages: Array<{ role: 'user' | 'assistant'; content: unknown }>,
     systemBreakpointUsed: boolean,
-  ): Array<Record<string, unknown>> {
+  ): Array<{ role: 'user' | 'assistant'; content: unknown }> {
     if (!this.enablePromptCaching) {
       return messages.map((m) => ({ role: m.role, content: m.content }));
     }
@@ -632,7 +632,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // in the reversed list = last in forward order).
     assistantTurnIndices.reverse();
 
-    const result: Array<Record<string, unknown>> = messages.map((m, i) => {
+    const result: Array<{ role: 'user' | 'assistant'; content: unknown }> = messages.map((m, i) => {
       const shouldCache = assistantTurnIndices.includes(i) && breakpointsRemaining > 0;
       if (shouldCache && typeof m.content === 'string') {
         breakpointsRemaining--;

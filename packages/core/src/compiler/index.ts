@@ -75,7 +75,7 @@ export { URDFCompiler } from './URDFCompiler';
 export { USDPhysicsCompiler } from './USDPhysicsCompiler';
 export { StateCompiler } from './StateCompiler';
 export { TraitCompositionCompiler } from './TraitCompositionCompiler';
-export { IncrementalCompiler } from './IncrementalCompiler';
+export { IncrementalCompiler, createIncrementalCompiler } from './IncrementalCompiler';
 export { MultiLayerCompiler } from './MultiLayerCompiler';
 
 // Sprint 2 extensions

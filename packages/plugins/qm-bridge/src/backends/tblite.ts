@@ -20,7 +20,6 @@ import type {
   QmSolver,
   QmBackend,
   QmSolverConfig,
-  QmMethod,
   MoleculeSpec,
   QmEnergyResult,
   QmGeometryResult,
@@ -39,6 +38,15 @@ export interface TBLiteConfig extends QmSolverConfig {
   xtbMethod?: 'GFN0-xTB' | 'GFN1-xTB' | 'GFN2-xTB';
   /** Accuracy level (1-5, higher = more accurate, slower). Default: 1. */
   accuracy?: number;
+}
+
+interface TBLiteRawResult {
+  total_energy?: number;
+  converged?: boolean;
+  scf_iterations?: number;
+  dipole_moment?: [number, number, number];
+  gradient_norm?: number;
+  opt_steps?: number;
 }
 
 // ── TBLite Backend Implementation ──────────────────────────────────────────────
@@ -154,7 +162,7 @@ export class TBLiteBackend implements QmSolver {
       nuclearRepulsionEnergy: 0,
       scfIterations: raw.scf_iterations ?? 0,
       converged: raw.converged ?? false,
-      dipoleMoment: raw.dipole_moment as [number, number, number] | undefined,
+      dipoleMoment: raw.dipole_moment,
       solverConfig: this.qmConfig,
       wallTimeSeconds: wallTime,
     };
@@ -176,7 +184,7 @@ export class TBLiteBackend implements QmSolver {
   private async runXtb(
     molecule: MoleculeSpec,
     task: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<TBLiteRawResult> {
     // Generate xtb-compatible XYZ input
     const xyz = this.moleculeToXyz(molecule);
 
@@ -207,7 +215,7 @@ export class TBLiteBackend implements QmSolver {
   private mockXtbResult(
     molecule: MoleculeSpec,
     task: string,
-  ): Record<string, unknown> {
+  ): TBLiteRawResult {
     const numAtoms = molecule.atoms.length;
     // GFN2-xTB energies are typically close to DFT but faster
     // ~-0.5 Hartree per atom is a rough approximation

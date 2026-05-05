@@ -175,6 +175,8 @@ export function showTotalDuration(segments: ShowSegment[]): number {
 // ═══════════════════════════════════════════════════════════════════
 
 export interface ClothParticle {
+  x: number;
+  y: number;
   position: Vec2; // [x, y]
   velocity: Vec2; // [vx, vy]
   pinned: boolean;
@@ -290,8 +292,6 @@ export function audienceHeatmap(
         const dist2 = dx * dx + dy * dy + 0.01; // Epsilon to avoid division by zero
         intensity += 1 / dist2;
       }
-      cells.push({ position: { x: cx, y: cy }, intensity });
-      cells.pop();
       cells.push({ x: cx, y: cy, intensity });
     }
   }

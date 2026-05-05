@@ -26,7 +26,7 @@
  */
 
 import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
-import type { HSPlusNode } from '@holoscript/core/traits';
+import type { HSPlusNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -106,6 +106,15 @@ export interface BenchmarkOptions {
   ricciErrorBound?: number;
 }
 
+type BrowserPerformanceMemory = {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+};
+
+type PerformanceWithMemory = Performance & {
+  memory?: BrowserPerformanceMemory;
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // Mock Node Creation
 // ═══════════════════════════════════════════════════════════════════
@@ -121,7 +130,7 @@ function createMockNode(voxelCount: number): HSPlusNode {
     properties: {},
     children: [],
     parentId: null,
-  } as HSPlusNode;
+  } as unknown as HSPlusNode;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -292,16 +301,18 @@ export async function runEmergentSpacetimeBenchmark(
   const avgForceMagnitude = forceMagnitudes.reduce((a, b) => a + b, 0) / forceMagnitudes.length;
 
   // Memory (approximate)
-  const memory = performance.memory
+  const performanceMemory = (performance as PerformanceWithMemory).memory;
+  const networkSizeKB = JSON.stringify(network).length / 1024;
+  const memory = performanceMemory
     ? {
-        heapUsedMB: (performance.memory as any).usedJSHeapSize / (1024 * 1024),
-        heapTotalMB: (performance.memory as any).totalJSHeapSize / (1024 * 1024),
-        networkSizeKB: JSON.stringify(network).length / 1024,
+        heapUsedMB: performanceMemory.usedJSHeapSize / (1024 * 1024),
+        heapTotalMB: performanceMemory.totalJSHeapSize / (1024 * 1024),
+        networkSizeKB,
       }
     : {
         heapUsedMB: 0,
         heapTotalMB: 0,
-        networkSizeKB: JSON.stringify(network).length / 1024,
+        networkSizeKB,
       };
 
   // Budget check (Paper 3 §7.8)

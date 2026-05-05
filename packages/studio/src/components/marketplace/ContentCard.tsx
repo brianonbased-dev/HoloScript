@@ -28,6 +28,8 @@ export function ContentCard({
   const Icon =
     (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[meta.icon] ||
     LucideIcons.Box;
+  const priceCents = item.templateMetrics?.priceCents;
+  const cognitiveHz = item.templateMetrics?.cognitiveHz;
 
   return (
     <article
@@ -61,13 +63,13 @@ export function ContentCard({
         </div>
         <p className="line-clamp-2 text-xs text-studio-muted">{item.description}</p>
         <div className="mt-auto flex flex-col gap-1 text-xs text-studio-muted">
-          {item.priceCents > 0 && (
+          {priceCents != null && priceCents > 0 && (
             <span className="font-medium text-studio-text">
-              ${(item.priceCents / 100).toFixed(2)}
+              ${(priceCents / 100).toFixed(2)}
             </span>
           )}
-          {item.cognitiveHz != null && (
-            <span>{item.cognitiveHz} Hz</span>
+          {cognitiveHz != null && (
+            <span>{cognitiveHz} Hz</span>
           )}
           <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1">

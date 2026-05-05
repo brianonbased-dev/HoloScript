@@ -268,6 +268,8 @@ function BreakpointIndicator({
 // =============================================================================
 
 interface ResponsiveStudioLayoutProps {
+  /** Optional page-level title for routes that wrap their own toolbar/header. */
+  title?: string;
   /** Left panel content */
   leftPanel?: React.ReactNode;
   /** Right panel content */
@@ -285,6 +287,7 @@ interface ResponsiveStudioLayoutProps {
 }
 
 export function ResponsiveStudioLayout({
+  title: _title,
   leftPanel,
   rightPanel,
   children,

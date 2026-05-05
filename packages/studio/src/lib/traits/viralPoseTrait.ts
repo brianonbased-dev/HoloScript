@@ -456,10 +456,10 @@ export class ViralPoseTrait {
 
       // Apply rotation
       bone.quaternion.set(
-        bonePose.rotation[0],
-        bonePose.rotation[1],
-        bonePose.rotation[2],
-        bonePose.rotation[3]
+        bonePose.rotation.x,
+        bonePose.rotation.y,
+        bonePose.rotation.z,
+        bonePose.rotation.w
       );
 
       // Apply position if specified

@@ -50,6 +50,16 @@ export interface QuantumEspressoConfig extends QmSolverConfig {
   smearing?: { type: string; degauss: number };
 }
 
+interface QuantumEspressoRawResult {
+  total_energy?: number;
+  fermi_energy?: number;
+  band_gap?: number;
+  is_metallic?: boolean;
+  scf_iterations?: number;
+  converged?: boolean;
+  band_energies?: number[][];
+}
+
 // ── QE input generation ───────────────────────────────────────────────────────
 
 /** Generate a QE pw.x input file from a crystal spec. */
@@ -62,6 +72,9 @@ function generateQeScfInput(
   const ecutrho = config.ecutrho ?? 480;
   const kmesh = config.kMesh ?? [8, 8, 8];
   const smearing = config.smearing ?? { type: 'mv', degauss: 0.01 };
+  const smearingOptions = smearing
+    ? `  occupations = 'smearing'\n  smearing = '${smearing.type}'\n  degauss = ${smearing.degauss}`
+    : '';
 
   // Map method to QE functional
   const functionalMap: Record<string, string> = {
@@ -103,6 +116,7 @@ function generateQeScfInput(
   ecutwfc = ${ecutwfc}
   ecutrho = ${ecutrho}
   input_dft = '${functional}'
+${smearingOptions}
 /
 
 &ELECTRONS
@@ -178,6 +192,7 @@ export class QuantumEspressoBackend implements QmSolver {
       backend: this.backend,
       method: this.qmConfig.method,
       ecutwfc: (this.qmConfig as QuantumEspressoConfig).ecutwfc ?? 60,
+      bandsPath: this.bandsPath,
       lastEnergy: this.lastEnergy,
       lastBandGap: this.lastBandGap,
     };
@@ -215,7 +230,7 @@ export class QuantumEspressoBackend implements QmSolver {
     const wallTime = (performance.now() - startTime) / 1000;
 
     const result: QmBandStructureResult = {
-      bandEnergies: raw.band_eneries ?? [],
+      bandEnergies: raw.band_energies ?? [],
       fermiEnergy: raw.fermi_energy ?? 0,
       bandGap: raw.band_gap ?? 0,
       isMetallic: (raw.band_gap ?? 1) <= 0.01,
@@ -279,7 +294,7 @@ export class QuantumEspressoBackend implements QmSolver {
 
   // ── Subprocess bridge ──────────────────────────────────────────────────
 
-  private async runQe(_input: string): Promise<Record<string, unknown>> {
+  private async runQe(_input: string): Promise<QuantumEspressoRawResult> {
     // Stage 1 mock implementation
     // Real QE invocation:
     // 1. Write input to file
@@ -293,7 +308,7 @@ export class QuantumEspressoBackend implements QmSolver {
     return this.mockQeResult();
   }
 
-  private mockQeResult(): Record<string, unknown> {
+  private mockQeResult(): QuantumEspressoRawResult {
     // Typical perovskite SrTiO3 values
     return {
       total_energy: -340.5 + Math.random() * 0.01,

@@ -13,7 +13,7 @@
  * Source: research/2026-04-28_qm-as-foundational-layer-EVOLVED.md §7.1
  */
 
-import type { SimSolver, SolverMode, FieldData } from '@holoscript/engine/simulation/SimSolver';
+import type { SimSolver } from '@holoscript/engine/simulation/SimSolver';
 import type { SimulationScale } from '@holoscript/engine/simulation/SimulationContract';
 
 // ── QM Method Taxonomy ────────────────────────────────────────────────────────

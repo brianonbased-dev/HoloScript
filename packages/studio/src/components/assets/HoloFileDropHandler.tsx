@@ -12,7 +12,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { Loader2, CheckCircle, UploadCloud, FileText } from 'lucide-react';
-import { useSceneGraphStore, type SceneNode, type SceneTrait } from '@/lib/stores';
+import { useSceneGraphStore, type SceneNode, type TraitConfig } from '@/lib/stores';
 import { StudioEvents } from '@/lib/analytics';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
@@ -44,7 +44,7 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
   const compositionName = compMatch ? compMatch[1] : 'HoloComposition';
 
   // Extract objects with regex (simplified parser for common patterns)
-  const objectRegex = /object\s+"([^"]+)"\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gs;
+  const objectRegex = /object\s+"([^"]+)"\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/g;
   let match;
 
   while ((match = objectRegex.exec(source)) !== null) {
@@ -52,7 +52,7 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
     const objectBody = match[2];
 
     // Parse traits (@traitName { ... } or @traitName)
-    const traits: SceneTrait[] = [];
+    const traits: TraitConfig[] = [];
     const traitRegex = /@(\w+)(?:\s*\{([^}]*)\})?/g;
     let traitMatch;
 
@@ -60,7 +60,7 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
       const traitName = traitMatch[1];
       const traitProps = traitMatch[2];
 
-      const trait: SceneTrait = {
+      const trait: TraitConfig = {
         name: traitName,
         properties: traitProps ? parseTraitProperties(traitProps) : {},
       };
@@ -91,10 +91,10 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
 
     // Determine node type based on traits
     let nodeType: SceneNode['type'] = 'mesh';
-    if (traits.some(t => t.name === 'character')) nodeType = 'character';
+    if (traits.some(t => t.name === 'character')) nodeType = 'gltfModel';
     if (traits.some(t => t.name === 'light')) nodeType = 'light';
     if (traits.some(t => t.name === 'camera')) nodeType = 'camera';
-    if (traits.some(t => t.name === 'environment')) nodeType = 'environment';
+    if (traits.some(t => t.name === 'environment')) nodeType = 'group';
 
     const node: SceneNode = {
       id: makeId(),
@@ -104,11 +104,16 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
       position,
       rotation,
       scale,
-      traits,
-      properties: {
-        geometryType: geometryType,
-        compositionName,
-      },
+      traits: [
+        ...traits,
+        {
+          name: 'holo_composition',
+          properties: {
+            geometryType,
+            compositionName,
+          },
+        },
+      ],
     };
 
     nodes.push(node);

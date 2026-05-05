@@ -13,7 +13,8 @@
 
 // Compile-time: USD/URDF codegen (from holoscript-compiler)
 export { USDCodeGen } from './usd-codegen';
-export { Lexer, Token, TokenType } from './lexer';
+export { Lexer, TokenType } from './lexer';
+export type { Token } from './lexer';
 export { Parser } from './parser';
 export * from './ast';
 

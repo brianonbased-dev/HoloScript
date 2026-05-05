@@ -21,7 +21,7 @@ import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom, SSAO, Vignette, ToneMapping } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
-import type { HSPlusNode } from '@holoscript/core/traits';
+import type { HSPlusNode } from '@holoscript/core';
 import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 
 // =============================================================================
@@ -274,7 +274,7 @@ function createMockNode(): HSPlusNode {
     properties: {},
     children: [],
     parentId: null,
-  } as HSPlusNode;
+  } as unknown as HSPlusNode;
 }
 
 // =============================================================================
@@ -536,7 +536,7 @@ function SceneContent({
         autoRotate
         autoRotateSpeed={0.5}
       />
-      <EffectComposer disableNormalPass>
+      <EffectComposer enableNormalPass={false}>
         <Bloom
           intensity={0.4}
           luminanceThreshold={0.85}
@@ -547,7 +547,6 @@ function SceneContent({
           radius={0.3}
           intensity={4}
           luminanceInfluence={0.3}
-          normalPass={false}
         />
         <Vignette offset={0.4} darkness={0.4} />
         <ToneMapping />

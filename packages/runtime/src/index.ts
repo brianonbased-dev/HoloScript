@@ -143,9 +143,11 @@ export {
   type SsoEvent,
   type QuotaEvent,
   type TenantEvent,
-  type AuditEvent,
+  type AuditLogEvent,
+  type AuditLogEvent as AuditEvent,
   type ForgetPolicyEvent,
-  type AuditRecord,
+  type SecurityAuditEntry,
+  type SecurityAuditEntry as AuditRecord,
 } from './SecurityEventBus.js';
 
 export {
