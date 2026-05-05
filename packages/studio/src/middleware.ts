@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const isScanRoomMobile = request.nextUrl.pathname.startsWith('/scan-room/mobile/');
   const permissionsPolicy = isScanRoomMobile
-    ? 'camera=(self), microphone=(), geolocation=()'
+    ? 'camera=(self), microphone=(), geolocation=(), accelerometer=(self), gyroscope=(self), magnetometer=(self)'
     : 'camera=(), microphone=(), geolocation=()';
   
   // Create a strict Content Security Policy

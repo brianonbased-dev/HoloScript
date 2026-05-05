@@ -276,6 +276,14 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         previousLumaRef.current = analysis.luma;
         setPlaneSensing((prev) => accumulatePlaneSensing(prev, analysis));
         if (cameraState === 'recording') {
+          const hasInertialFallback = lastMotionAtRef.current !== null;
+          if (!nativeHeadingSeenRef.current && !hasInertialFallback && Math.abs(analysis.horizontalShift) >= 2) {
+            const nextHeading = normalizeHeadingDegrees(
+              (syntheticHeadingRef.current ?? 0) - analysis.horizontalShift * 4.5,
+            );
+            syntheticHeadingRef.current = nextHeading;
+            headingRef.current = nextHeading;
+          }
           setSweepCoverage((prev) => observeRoomSweep(prev, headingRef.current, analysis.motion));
         }
       } catch {

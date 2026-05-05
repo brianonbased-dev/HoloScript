@@ -1,11 +1,19 @@
 /**
- * Reconstruction room-scan sessions: in-memory (default) or Upstash Redis when
- * UPSTASH_REDIS_URL + UPSTASH_REDIS_TOKEN are set (matches connector-upstash env).
+ * Reconstruction room-scan sessions: local file store by default, or Upstash
+ * Redis when UPSTASH_REDIS_URL + UPSTASH_REDIS_TOKEN are set.
+ *
+ * The file store is intentional for local Studio: desktop polls localhost while
+ * the phone often calls the LAN IP, and Next dev workers/HMR can split or reset
+ * module globals. File persistence keeps the QR session visible across both
+ * request paths without requiring Redis for lab work.
  */
 
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 import type { HoloMapScanRenderAsset } from './holomap-scan-render';
 import { Redis } from '@upstash/redis';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { clientIpFromRequest, takeRateLimitToken } from './reconstruction-session-rate-limit';
 
 export interface ScanSession {
@@ -53,7 +61,7 @@ function pruneMemoryExpired(): void {
 export type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
 
 export interface ScanSessionStore {
-  mode: 'memory' | 'redis';
+  mode: 'memory' | 'file' | 'redis';
   get(token: string): Promise<ScanSession | undefined>;
   set(token: string, session: ScanSession): Promise<void>;
   delete(token: string): Promise<void>;
@@ -81,6 +89,100 @@ class MemoryScanSessionStore implements ScanSessionStore {
 
   async pruneExpired(): Promise<void> {
     pruneMemoryExpired();
+  }
+
+  async rateLimitPost(ip: string, max: number, windowSec: number): Promise<RateLimitResult> {
+    const ms = windowSec * 1000;
+    const r = takeRateLimitToken(`scan-session:post:${ip}`, max, ms);
+    return r.ok ? { ok: true } : { ok: false, retryAfterSec: r.retryAfterSec };
+  }
+
+  async rateLimitGet(ip: string, max: number, windowSec: number): Promise<RateLimitResult> {
+    const ms = windowSec * 1000;
+    const r = takeRateLimitToken(`scan-session:get:${ip}`, max, ms);
+    return r.ok ? { ok: true } : { ok: false, retryAfterSec: r.retryAfterSec };
+  }
+
+  async rateLimitPut(token: string, max: number, windowSec: number): Promise<RateLimitResult> {
+    const ms = windowSec * 1000;
+    const r = takeRateLimitToken(`scan-session:put:${token}`, max, ms);
+    return r.ok ? { ok: true } : { ok: false, retryAfterSec: r.retryAfterSec };
+  }
+}
+
+class FileScanSessionStore implements ScanSessionStore {
+  readonly mode = 'file' as const;
+
+  constructor(private readonly rootDir: string) {}
+
+  private async ensureDir(): Promise<void> {
+    await mkdir(this.rootDir, { recursive: true });
+  }
+
+  private sessionPath(token: string): string | null {
+    if (!/^[A-Za-z0-9_-]{8,128}$/.test(token)) return null;
+    return join(this.rootDir, `${token}.json`);
+  }
+
+  async get(token: string): Promise<ScanSession | undefined> {
+    const path = this.sessionPath(token);
+    if (!path) return undefined;
+
+    try {
+      const raw = await readFile(path, 'utf8');
+      const session = JSON.parse(raw) as ScanSession;
+      if (new Date(session.expiresAt).getTime() < Date.now()) {
+        await this.delete(token);
+        return undefined;
+      }
+      return session;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async set(token: string, session: ScanSession): Promise<void> {
+    const path = this.sessionPath(token);
+    if (!path) return;
+
+    await this.ensureDir();
+    const tmpPath = `${path}.${process.pid}.${Date.now()}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(session), 'utf8');
+    await rename(tmpPath, path);
+  }
+
+  async delete(token: string): Promise<void> {
+    const path = this.sessionPath(token);
+    if (!path) return;
+    await rm(path, { force: true });
+  }
+
+  async pruneExpired(): Promise<void> {
+    await this.ensureDir();
+    const now = Date.now();
+    let entries: string[];
+    try {
+      entries = await readdir(this.rootDir);
+    } catch {
+      return;
+    }
+
+    await Promise.all(
+      entries
+        .filter((name) => name.endsWith('.json'))
+        .map(async (name) => {
+          const path = join(this.rootDir, name);
+          try {
+            const raw = await readFile(path, 'utf8');
+            const session = JSON.parse(raw) as ScanSession;
+            if (new Date(session.expiresAt).getTime() < now) {
+              await rm(path, { force: true });
+            }
+          } catch {
+            await rm(path, { force: true });
+          }
+        }),
+    );
   }
 
   async rateLimitPost(ip: string, max: number, windowSec: number): Promise<RateLimitResult> {
@@ -162,12 +264,18 @@ let singleton: ScanSessionStore | null = null;
 
 export function getScanSessionStore(): ScanSessionStore {
   if (singleton) return singleton;
+  const forcedStore = process.env.STUDIO_SCAN_SESSION_STORE?.trim().toLowerCase();
   const url = process.env.UPSTASH_REDIS_URL?.trim();
   const token = process.env.UPSTASH_REDIS_TOKEN?.trim();
-  if (url && token) {
+  if (forcedStore === 'memory') {
+    singleton = new MemoryScanSessionStore();
+  } else if (url && token && forcedStore !== 'file') {
     singleton = new RedisScanSessionStore(new Redis({ url, token }));
   } else {
-    singleton = new MemoryScanSessionStore();
+    singleton = new FileScanSessionStore(
+      process.env.STUDIO_SCAN_SESSION_DIR?.trim() ||
+        join(tmpdir(), 'holoscript-studio-scan-sessions'),
+    );
   }
   return singleton;
 }

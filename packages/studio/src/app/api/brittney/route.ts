@@ -341,7 +341,6 @@ export async function POST(request: NextRequest) {
             const request: LLMCompletionRequest = {
               messages: roundMessages,
               maxTokens,
-              model,
               tools: tools.length > 0 ? tools : undefined,
               stream: true,
             };
@@ -372,31 +371,32 @@ export async function POST(request: NextRequest) {
 
                 case 'tool_use_end': {
                   // tool_use_end carries the fully-parsed input.
+                  const toolName = currentToolName || `tool:${chunk.id}`;
                   const parsedArgs: Record<string, unknown> = chunk.input && Object.keys(chunk.input).length > 0
                     ? chunk.input
                     : (currentToolInput ? (JSON.parse(currentToolInput) as Record<string, unknown>) : {});
                   // CAEL: record the call attempt regardless of branch.
-                  roundToolCalls.push({ name: currentToolName || chunk.name, input: parsedArgs });
+                  roundToolCalls.push({ name: toolName, input: parsedArgs });
 
-                  if (SERVER_EXECUTED_TOOL_NAMES.has(currentToolName || chunk.name)) {
+                  if (SERVER_EXECUTED_TOOL_NAMES.has(toolName)) {
                     // Studio API, MCP, Lotus, or Embodied tool — execute server-side.
                     pendingToolCalls.push({
                       id: chunk.id,
-                      name: currentToolName || chunk.name,
+                      name: toolName,
                       input: parsedArgs,
                     });
                     send({
                       type: 'tool_call',
                       payload: {
-                        name: currentToolName || chunk.name,
+                        name: toolName,
                         arguments: parsedArgs,
                         serverExecuted: true,
                       },
                     });
-                  } else if (isSceneMutationTool(currentToolName || chunk.name)) {
+                  } else if (isSceneMutationTool(toolName)) {
                     // BRITTNEY scene mutation — pre-validate against SimulationContract.
                     const check = verifySceneMutation(sceneContext, {
-                      tool: currentToolName || chunk.name,
+                      tool: toolName,
                       input: parsedArgs,
                     });
                     send({
@@ -411,12 +411,12 @@ export async function POST(request: NextRequest) {
                     if (check.passed) {
                       send({
                         type: 'tool_call',
-                        payload: { name: currentToolName || chunk.name, arguments: parsedArgs },
+                        payload: { name: toolName, arguments: parsedArgs },
                       });
                     } else {
                       rejectedMutations.push({
                         id: chunk.id,
-                        name: currentToolName || chunk.name,
+                        name: toolName,
                         input: parsedArgs,
                         check,
                       });
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
                     // BRITTNEY read-only tool or SIMULATION_TOOLS — pass through.
                     send({
                       type: 'tool_call',
-                      payload: { name: currentToolName || chunk.name, arguments: parsedArgs },
+                      payload: { name: toolName, arguments: parsedArgs },
                     });
                   }
                   currentToolName = '';

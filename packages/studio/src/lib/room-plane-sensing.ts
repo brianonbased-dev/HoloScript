@@ -2,6 +2,7 @@ export interface RoomPlaneSensing {
   floorConfidence: number;
   wallConfidence: number;
   motion: number;
+  horizontalShift: number;
   samples: number;
 }
 
@@ -15,6 +16,7 @@ export const emptyPlaneSensing: RoomPlaneSensing = {
   floorConfidence: 0,
   wallConfidence: 0,
   motion: 0,
+  horizontalShift: 0,
   samples: 0,
 };
 
@@ -89,14 +91,56 @@ export function analyzeRoomPlaneFrame(
   const wallEdgeEnergy = wallCount > 0 ? wallEnergy / wallCount / 255 : 0;
   const wallEdgeDensity = wallCount > 0 ? wallEdges / wallCount : 0;
   const motion = motionCount > 0 ? motionEnergy / motionCount / 255 : 0;
+  const horizontalShift = estimateHorizontalShift(luma, previousLuma, width, height);
 
   return {
     luma,
     floorConfidence: clamp01(floorTexture * 8.5 + motion * 1.7),
     wallConfidence: clamp01(wallEdgeEnergy * 9 + wallEdgeDensity * 2.4 + motion),
     motion: clamp01(motion * 6),
+    horizontalShift,
     samples: 1,
   };
+}
+
+function estimateHorizontalShift(
+  luma: Uint8Array,
+  previousLuma: Uint8Array | null,
+  width: number,
+  height: number,
+): number {
+  if (!previousLuma || previousLuma.length !== luma.length) return 0;
+
+  const yStart = Math.floor(height * 0.22);
+  const yEnd = Math.floor(height * 0.72);
+  const xStart = Math.floor(width * 0.12);
+  const xEnd = Math.floor(width * 0.88);
+  let bestShift = 0;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let shift = -8; shift <= 8; shift += 1) {
+    let score = 0;
+    let count = 0;
+    for (let y = yStart; y < yEnd; y += 3) {
+      const row = y * width;
+      for (let x = xStart; x < xEnd; x += 3) {
+        const px = x + shift;
+        if (px < 0 || px >= width) continue;
+        score += Math.abs(luma[row + x] - previousLuma[row + px]);
+        count += 1;
+      }
+    }
+
+    if (count > 0) {
+      const normalizedScore = score / count;
+      if (normalizedScore < bestScore) {
+        bestScore = normalizedScore;
+        bestShift = shift;
+      }
+    }
+  }
+
+  return Math.abs(bestShift) >= 2 ? bestShift : 0;
 }
 
 function accumulateCoverage(previous: number, evidence: number): number {
@@ -113,6 +157,10 @@ export function accumulatePlaneSensing(previous: RoomPlaneSensing, next: RoomPla
     floorConfidence: accumulateCoverage(previous.floorConfidence, next.floorConfidence),
     wallConfidence: accumulateCoverage(previous.wallConfidence, next.wallConfidence),
     motion: previous.samples === 0 ? next.motion : previous.motion * 0.55 + next.motion * 0.45,
+    horizontalShift:
+      previous.samples === 0
+        ? next.horizontalShift
+        : previous.horizontalShift * 0.35 + next.horizontalShift * 0.65,
     samples: previous.samples + 1,
   };
 }

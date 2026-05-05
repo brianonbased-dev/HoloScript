@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   accumulatePlaneSensing,
+  analyzeRoomPlaneFrame,
   constrainedPlaneCoverage,
   emptyPlaneSensing,
   emptyRoomSweepCoverage,
@@ -15,8 +16,26 @@ function sample(floorConfidence: number, wallConfidence: number): RoomPlaneSensi
     floorConfidence,
     wallConfidence,
     motion: 0.12,
+    horizontalShift: 0,
     samples: 1,
   };
+}
+
+function stripedFrame(width: number, height: number, offset: number): ImageData {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const i = (y * width + x) * 4;
+      const stripe = Math.floor(((x + offset + width) % width) / 4) % 2;
+      const value = stripe === 0 ? 44 : 210;
+      data[i] = value;
+      data[i + 1] = value;
+      data[i + 2] = value;
+      data[i + 3] = 255;
+    }
+  }
+
+  return { data, width, height } as ImageData;
 }
 
 describe('room plane sensing', () => {
@@ -71,5 +90,12 @@ describe('room plane sensing', () => {
     expect(roomSweepProgress(sweep)).toBe(1);
     expect(constrainedPlaneCoverage(1, roomSweepProgress(sweep))).toBe(1);
     expect(constrainedPlaneCoverage(0.5, roomSweepProgress(sweep))).toBeGreaterThan(0.95);
+  });
+
+  it('estimates horizontal visual pan when device heading is unavailable', () => {
+    const first = analyzeRoomPlaneFrame(stripedFrame(96, 128, 0), null);
+    const second = analyzeRoomPlaneFrame(stripedFrame(96, 128, 5), first.luma);
+
+    expect(Math.abs(second.horizontalShift)).toBeGreaterThanOrEqual(2);
   });
 });
