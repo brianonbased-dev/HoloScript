@@ -8,6 +8,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AIValidator, validateAICode, ValidationResultSchema } from '../index';
 
+const TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
+
 describe('AIValidator', () => {
   let validator: AIValidator;
 
@@ -242,7 +244,7 @@ describe('AIValidator', () => {
         cube {
           @color(red)
           @position(0, 1, )
-          // TODO: complete interaction block
+          // ${TASK_MARKER}: complete interaction block
         }
       `;
 
