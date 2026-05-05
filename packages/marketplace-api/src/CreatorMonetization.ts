@@ -313,9 +313,16 @@ export class CreatorMonetization {
   /**
    * Resolve collection deployment guidance for Zora.
    *
+<<<<<<< Updated upstream
    * Collection deployment is an explicit operator step in this release. Use
    * `packages/marketplace-api/scripts/deploy-protocol-collection.ts` or Zora UI,
    * then pass the resulting address to `mintNFT`.
+=======
+   * Collection deployment spends gas from a funded wallet, so this class keeps
+   * it as an explicit operator step. Use scripts/deploy-protocol-collection.ts
+   * for the shared HoloScript collection, or create a collection externally and
+   * pass the address to mintNFT().
+>>>>>>> Stashed changes
    *
    * @param name - Collection name
    * @param symbol - Collection symbol (e.g., "HOLO")
@@ -339,6 +346,7 @@ export class CreatorMonetization {
   ): Promise<Collection> {
     this.ensureInitialized();
 
+<<<<<<< Updated upstream
     throw new CreatorMonetizationError(
       'Collection deployment is external in this release. Run ' +
         'packages/marketplace-api/scripts/deploy-protocol-collection.ts or create a collection at ' +
@@ -348,31 +356,20 @@ export class CreatorMonetization {
         message:
           'Deploy or create the collection first, then provide its address in mintNFT options',
         script: 'packages/marketplace-api/scripts/deploy-protocol-collection.ts',
+=======
+    // Keep deployment outside this API so callers do not trigger live chain
+    // writes without an explicit wallet-funded operator step.
+    throw new CreatorMonetizationError(
+      'Collection deployment is an explicit operator step. Use scripts/deploy-protocol-collection.ts or create a collection at https://zora.co/create.',
+      'NOT_IMPLEMENTED',
+      {
+        message:
+          'Deploy with pnpm tsx scripts/deploy-protocol-collection.ts, then set HOLOSCRIPT_COLLECTION_ADDRESS or pass collectionAddress in mintNFT options.',
+        deployScript: 'scripts/deploy-protocol-collection.ts',
+>>>>>>> Stashed changes
         createUrl: 'https://zora.co/create',
       }
     );
-
-    // Future implementation:
-    /*
-    const walletClient = this.wallet.getWalletClient();
-    const publicClient = this.wallet.getPublicClient();
-
-    // Deploy ERC-1155 collection via Zora factory
-    const factoryAddress = this.getZoraFactoryAddress();
-
-    // ... deployment logic ...
-
-    return {
-      address: contractAddress,
-      name,
-      symbol,
-      description,
-      creator: this.options.creatorAddress,
-      totalMinted: 0,
-      royaltyPercentage: 10,
-      createdAt: Date.now(),
-    };
-    */
   }
 
   // ===========================================================================

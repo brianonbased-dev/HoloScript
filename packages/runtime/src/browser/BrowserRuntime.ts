@@ -2173,7 +2173,6 @@ class BrowserRuntime implements HoloScriptRuntime {
       state: this.state,
       setState: this.setState.bind(this),
       emit: emit,
-      // @ts-expect-error - TS2322 structural type mismatch
       parse_holo: (code: string) => {
         try {
           const result = loadComposition(code, 'holo');
@@ -2183,7 +2182,6 @@ class BrowserRuntime implements HoloScriptRuntime {
           return { success: false, errors: [message] };
         }
       },
-      // @ts-expect-error - TS2322 structural type mismatch
       render_to_preview: (viewportId: string, ast: LoadedComposition) => {
         const viewport = this.uiComponents.get(viewportId);
         if (viewport && viewport.type === '3d-viewport') {
@@ -3113,8 +3111,8 @@ interface ActionContext {
   state: Record<string, unknown>;
   setState: (key: string, value: unknown) => void;
   emit: typeof emit;
-  parse_holo: (code: string) => { success: boolean; ast?: HoloComposition; errors?: string[] };
-  render_to_preview: (viewportId: string, ast: HoloComposition) => void;
+  parse_holo: (code: string) => { success: boolean; ast?: LoadedComposition; errors?: string[] };
+  render_to_preview: (viewportId: string, ast: LoadedComposition) => void;
   format_holoscript: (code: string) => string;
   lint_holoscript: (code: string) => unknown[];
   get_fps: () => number;

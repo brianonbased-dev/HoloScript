@@ -30,8 +30,26 @@
  *   - Emphasis: <emphasis level="strong"> word </emphasis>
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, _readdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import path from 'path';
+
+type ElevenLabsClientConstructor = new (options: { apiKey: string }) => {
+  textToSpeech: {
+    convert(
+      voiceId: string,
+      options: {
+        model_id: string;
+        text: string;
+        voice_settings: {
+          stability: number;
+          similarity_boost: number;
+          style: number;
+          use_speaker_boost: boolean;
+        };
+      }
+    ): Promise<AsyncIterable<Uint8Array | ArrayBuffer | string>>;
+  };
+};
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -356,10 +374,14 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
   }
 
   // Dynamic import — package may not be installed yet
-  let ElevenLabs: unknown;
+  let ElevenLabs: ElevenLabsClientConstructor;
   try {
     const mod = await import('elevenlabs');
-    ElevenLabs = mod.ElevenLabsClient ?? mod.default;
+    const candidate = mod.ElevenLabsClient ?? mod.default;
+    if (!candidate) {
+      throw new Error('elevenlabs client constructor not exported');
+    }
+    ElevenLabs = candidate;
   } catch {
     throw new Error(
       'elevenlabs package not installed. Run:\n' +
@@ -385,7 +407,11 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
   // Collect stream to buffer
   const chunks: Buffer[] = [];
   for await (const chunk of audioStream) {
-    chunks.push(Buffer.from(chunk));
+    if (chunk instanceof ArrayBuffer) {
+      chunks.push(Buffer.from(new Uint8Array(chunk)));
+    } else {
+      chunks.push(Buffer.from(chunk));
+    }
   }
   const buffer = Buffer.concat(chunks);
   writeFileSync(outputPath, buffer);

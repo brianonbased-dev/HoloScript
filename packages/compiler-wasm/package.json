@@ -8,7 +8,7 @@
     "pkg"
   ],
   "scripts": {
-    "build": "echo 'WASM build requires wasm-pack (Rust toolchain) - skipping if not available' && wasm-pack build --target web --out-dir pkg || echo 'wasm-pack not installed, skipping WASM build'",
+    "build": "node scripts/build-wasm.mjs",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",
     "test": "cargo test || echo 'cargo not installed, skipping WASM tests'",

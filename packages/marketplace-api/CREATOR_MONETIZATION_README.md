@@ -85,8 +85,9 @@ export class CreatorMonetization {
 #### 2. `createCollection()` - Collection Management (Lines 252-286)
 
 - Currently throws NOT_IMPLEMENTED with helpful error message
-- Provides Zora UI URL for manual collection creation
-- Placeholder for future auto-deployment via Zora SDK
+- Points operators to `scripts/deploy-protocol-collection.ts` for the shared protocol collection
+- Provides Zora UI URL for creator-specific collection creation
+- Keeps collection deployment out-of-band because it spends gas from a funded wallet
 
 #### 3. `uploadToIPFS()` - IPFS Upload (Lines 299-318)
 
@@ -309,9 +310,9 @@ All requirements met:
 - ✅ getPricingEstimate() - Gas cost estimation
 - ✅ getTransactionStatus() - Transaction monitoring
 
-### Placeholder (To Be Completed)
+### External or Placeholder Workflows
 
-- ⏳ createCollection() - Manual process via Zora UI (auto-deployment planned)
+- ⏳ createCollection() - External deployment via `scripts/deploy-protocol-collection.ts` or Zora UI
 - ⏳ uploadToIPFS() - Will be implemented by Agent 6
 - ⏳ withdrawEarnings() - Manual process via Zora dashboard (automation planned)
 
@@ -325,7 +326,7 @@ All requirements met:
 
 ### Future Enhancements
 
-1. Auto-deploy Zora collections via SDK
+1. Reusable deploy service for creator-specific collections, gated by explicit wallet custody policy
 2. Automated earnings withdrawal
 3. Dutch auction support
 4. Multi-chain deployment (Ethereum, Zora Network)

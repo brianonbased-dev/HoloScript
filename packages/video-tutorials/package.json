@@ -5,7 +5,8 @@
   "description": "Programmatic instructional video generation for HoloScript and HoloLand",
   "scripts": {
     "dev": "remotion studio",
-    "build": "remotion bundle",
+    "build": "tsc --noEmit",
+    "bundle": "remotion bundle",
     "render": "tsx scripts/render-all.ts",
     "render:unity": "tsx scripts/render-all.ts --filter unity",
     "render:godot": "tsx scripts/render-all.ts --filter godot",
