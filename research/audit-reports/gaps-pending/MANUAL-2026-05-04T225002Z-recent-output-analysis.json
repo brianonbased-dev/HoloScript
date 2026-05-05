@@ -21,11 +21,11 @@
   ],
   "gaps": [
     {
-      "title": "[ops/headless] Restart security-auditor daemon (verified dark 2026-05-05)",
-      "description": "VERIFIED via direct API probe after Pattern Gamma unblock 2026-05-05: /agent/security-auditor/audit returns 0 records, daemon not in /presence (only claudecode-claude-x402 online). Confirms A-008 recommendation 4 finding. The only provisioned headless seat has never contributed verifiable work. Action: restart daemon on the machine where it was originally provisioned. Reference compositions/security-auditor-brain.hsplus (sha256 3015e849e61f). After restart, expect heartbeat in /presence within 60s and CAEL records to begin appearing.",
+      "title": "[ops/headless/founder] Re-provision security-auditor daemon (orphaned credentials, dark since 2026-04-29)",
+      "description": "FOUNDER-AUTHORITY required (F.002 / G.GOLD.016 — wallets are sacred). Verified dark 2026-05-05 via /agent/security-auditor/audit (0 records) + /presence (absent). Further investigation: ~/.ai-ecosystem/seats/ contains 4 IDE seats + paper-gate + 2 mesh-workers but NO security-auditor seat — the 2026-04-24 provisioning (MEMORY S.IDENT: agent_1777079220108_d8yw, wallet 0xEaE09E2F…0BfaEd) put credentials outside the per-window seat system. Last supervisor temp config: ~/AppData/Local/Temp/sup-cfg-cvzLC3/agents.json mtime 2026-04-29T03:17:52 — 6 days idle. .env has no HOLOMESH_API_KEY_SECURITY_AUDITOR_X402 / HOLOSCRIPT_AGENT_WALLET_SECURITY_AUDITOR. Two paths for founder ruling: (a) recover original provisioning artifacts from wherever holoscript-agent provision wrote them on 2026-04-24, OR (b) re-provision new wallet+bearer+agentId via holoscript-agent provision --handle=security-auditor --execute (creates new identity; old agent_1777079220108_d8yw becomes orphan). Path (b) is cleaner per per-window revamp 2026-04-27.",
       "priority": "medium",
-      "tags": ["auto-filed-by-manual","ops","headless-agents","security-auditor","verified-dark"],
-      "dedup_key": "manual-security-auditor-daemon-restart"
+      "tags": ["auto-filed-by-manual","ops","headless-agents","security-auditor","founder-authority","verified-dark"],
+      "dedup_key": "manual-security-auditor-reprovision"
     }
   ]
 }
