@@ -94,6 +94,7 @@ nul
 
 # Logs
 *.log
+*.err
 npm-debug.log*
 pnpm-debug.log*
 
