@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open spatial computing platform — 3 languages, 45+ compile targets, AI agent runtime, visual studio, and 60+ packages',
+    'Open spatial computing platform for spatial languages, compile targets, AI agent runtime, visual studio, and workspace packages',
 
   lastUpdated: true,
 
@@ -160,7 +160,7 @@ export default defineConfig({
       {
         name: 'twitter:description',
         content:
-          'Create with AI. Own what you build. Ship everywhere. Open platform for spatial worlds — AI agents, marketplace, 25+ compile targets.',
+          'Create with AI. Own what you build. Ship everywhere. Open platform for spatial worlds, AI agents, marketplace, and compile targets.',
       },
     ],
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],
@@ -205,8 +205,8 @@ export default defineConfig({
         items: [
           { text: 'Language Reference', link: '/language/reference' },
           { text: 'Packages', link: '/packages/' },
-          { text: 'Traits (2,000+)', link: '/traits/' },
-          { text: 'Compilers (30+ targets)', link: '/compilers/' },
+          { text: 'Traits', link: '/traits/' },
+          { text: 'Compilers', link: '/compilers/' },
           { text: 'Agents', link: '/agents/' },
           { text: 'API Reference', link: '/api/' },
           { text: 'Language Spec', link: '/language/holoscript-language-spec' },
@@ -486,7 +486,7 @@ export default defineConfig({
       '/compilers/': [
         {
           text: 'Overview',
-          items: [{ text: 'All 30+ Targets', link: '/compilers/' }],
+          items: [{ text: 'All Targets', link: '/compilers/' }],
         },
         {
           text: 'Game Engines',

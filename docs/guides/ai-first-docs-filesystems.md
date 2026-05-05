@@ -3,7 +3,7 @@
 > Status: active | refreshed 2026-05-05
 > Purpose: Define how HoloScript docs and repository layout should be shaped for agent retrieval, verification, and action.
 > Source of truth: This guide, [NUMBERS.md](../NUMBERS.md), [AGENTS.md](../../AGENTS.md), and [CLAUDE.md](../../CLAUDE.md).
-> Verify: `pnpm docs:roadmap:drift`
+> Verify: `pnpm docs:roadmap:drift` and `pnpm audit:red-flags`
 > Next agent action: Use this checklist before adding or reorganizing docs, package READMEs, manifests, generated artifacts, or roadmap pages.
 
 HoloScript docs and filesystems are agent interfaces first. Humans should still be able to read them, but the primary design target is an agent that needs to locate truth, verify it, change the right file, and leave behind a stable trail for the next agent.
@@ -32,6 +32,12 @@ HoloScript docs and filesystems are agent interfaces first. Humans should still 
 | `docs/packages/` | Package reference and API entrypoints. Link to package-local READMEs where possible. |
 | `packages/*/README.md` | Local package entrypoint: purpose, exports, commands, generated outputs, and owner surface. |
 | `scripts/*` | Executable checks and maintenance tools. Scripts that enforce docs policy should be linked from the docs they protect. |
+
+## Red Flag Audit
+
+Run `pnpm audit:red-flags` when you need a capped report of hidden problems before changing docs, filesystem layout, or shared source. It reports focused/skipped tests, automatic TypeScript remediation comments, type suppressions, work markers, hardcoded live counts, missing top-level directory entrypoints, and uppercase active guide filenames.
+
+The command is report-only by default because the current backlog is not zero. Use `node scripts/check-red-flags.mjs --json` for agent ingestion and `node scripts/check-red-flags.mjs --fail-on=critical` when a branch is ready to make critical findings blocking.
 
 ## Required Active Doc Header
 
@@ -65,6 +71,6 @@ Use this shape for active docs that guide future work:
 
 ## What Remains After This Plan
 
-- Add an automated audit for active directories that lack a `README.md`, `index.md`, manifest, or generated header.
+- Promote the red-flag audit from report-only to a strict gate after the existing backlog is triaged.
 - Decide whether active docs should standardize on blockquote headers, YAML frontmatter, or both.
 - Sweep legacy uppercase guide filenames and either preserve them as explicit legacy aliases or migrate them to lowercase routes.
