@@ -16,16 +16,10 @@
     {"dedup_key": "manual-ghost-claim-purge-1776058303684", "commit": "ai-eco f20326b", "verdict": "released at snapshot layer (board.json) — live API recovery still required for canonical fix, but prevents reintroduction on next reseed"},
     {"dedup_key": "manual-bug001-dockerfile-no-dts-or-true", "verdict": "false-positive — Dockerfile already uses split pattern `--no-dts && (--dts-only || true)`, JS failures fail loudly. Bug doc 2026-04-29 itself notes fix landed in 0a723ce."},
     {"dedup_key": "manual-security-auditor-daemon-liveness", "verdict": "verified-dark via direct API probe (after Pattern Gamma unblock 2026-05-05): /agent/security-auditor/audit returned 0 records, presence list contains only claudecode-claude-x402. Daemon restart required from provisioning machine; not unblockable from agent seat."},
-    {"dedup_key": "_pattern-gamma-meta", "verdict": "Pattern Gamma — assumed blocking at marathon start, found UNBLOCKED at session end. Fixes 29e9a8da7 + 27df7f572 deployed during the marathon. Verified via /health (postgres, databaseUrl=true, uptime ~3min) + write-then-read message round-trip. Carousel Effect F.035 — world moved while we worked."}
+    {"dedup_key": "_pattern-gamma-meta", "verdict": "Pattern Gamma — assumed blocking at marathon start, found UNBLOCKED at session end. Fixes 29e9a8da7 + 27df7f572 deployed during the marathon. Verified via /health (postgres, databaseUrl=true, uptime ~3min) + write-then-read message round-trip. Carousel Effect F.035 — world moved while we worked."},
+    {"dedup_key": "manual-a008-egress-allowlist-fix", "verdict": "founder-skill ruled P1 over P2 (production-over-bandaid, architecture beats alignment). Filed as task_1777949129549_7tst on live board (HTTP 201 verified). Active queue now empty."}
   ],
   "gaps": [
-    {
-      "title": "[infra] Deploy A-008 fleet-trust auditor to Railway (fixed egress IP) OR add Anthropic CIDR to HoloMesh allowlist",
-      "description": "A-008 fleet-trust day-7 HIGH persisting anomaly. Cloud auditor returns 403 'Host not in allowlist' on all endpoints (fleet/status, agent/{handle}/audit, team/{teamId}/board) for 7 consecutive cycles. The W.110 drift detection design intent is to catch hallucination cohorts before they run 27.5h; current actual coverage is zero from cloud. Fleet surface area grew this week (paper-gate active 2026-05-01, codex-brain provisioned 2026-05-03). Two paths: (P1) deploy auditor to Railway with fixed egress IP and register IP on allowlist; (P2) add Anthropic cloud CIDR to allowlist + provision HOLOMESH credentials as container secrets. Source: fleet-trust-2026-05-04.md Anomaly 2.",
-      "priority": "high",
-      "tags": ["auto-filed-by-manual","infra","fleet-trust","day-7","railway","allowlist"],
-      "dedup_key": "manual-a008-egress-allowlist-fix"
-    },
     {
       "title": "[ops/headless] Restart security-auditor daemon (verified dark 2026-05-05)",
       "description": "VERIFIED via direct API probe after Pattern Gamma unblock 2026-05-05: /agent/security-auditor/audit returns 0 records, daemon not in /presence (only claudecode-claude-x402 online). Confirms A-008 recommendation 4 finding. The only provisioned headless seat has never contributed verifiable work. Action: restart daemon on the machine where it was originally provisioned. Reference compositions/security-auditor-brain.hsplus (sha256 3015e849e61f). After restart, expect heartbeat in /presence within 60s and CAEL records to begin appearing.",
