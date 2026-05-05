@@ -106,8 +106,8 @@ const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_V
 
 const IS_RAILWAY = Boolean(
   process.env.RAILWAY_PUBLIC_DOMAIN ||
-    process.env.RAILWAY_PROJECT_ID ||
-    process.env.RAILWAY_ENVIRONMENT
+  process.env.RAILWAY_PROJECT_ID ||
+  process.env.RAILWAY_ENVIRONMENT
 );
 /** SSE MCP session mode: off on Railway unless opted in (multi-replica routing can split GET/POST). */
 const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY;
@@ -159,9 +159,15 @@ if (process.env.DATABASE_URL) {
     `
       )
       .then(() => console.info('[credits] Tables ready'))
-      .catch((e: Error) => console.error(`[credits] Migration failed: ${e.message}. Credit tracking will not persist. Check DATABASE_URL and ensure PostgreSQL is reachable.`));
+      .catch((e: Error) =>
+        console.error(
+          `[credits] Migration failed: ${e.message}. Credit tracking will not persist. Check DATABASE_URL and ensure PostgreSQL is reachable.`
+        )
+      );
   } catch (err) {
-    console.error(`[auth] Failed to initialize PostgreSQL pool: ${(err as Error)?.message ?? err}. Verify DATABASE_URL is set and the database is running. Falling back to in-memory token store — tokens will not survive restarts.`);
+    console.error(
+      `[auth] Failed to initialize PostgreSQL pool: ${(err as Error)?.message ?? err}. Verify DATABASE_URL is set and the database is running. Falling back to in-memory token store — tokens will not survive restarts.`
+    );
     console.warn('[auth] Using in-memory token store (DATABASE_URL connection failed)');
   }
 } else {
@@ -631,7 +637,9 @@ async function handleToolForA2A(name: string, args: Record<string, unknown>): Pr
 
   if (isError) {
     const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
-    throw new Error(`[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`);
+    throw new Error(
+      `[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`
+    );
   }
   return result;
 }
@@ -1151,16 +1159,19 @@ const httpServer = http.createServer(async (req, res) => {
     const mimeType = ALLOWED_ARTIFACTS[artifactName];
     if (!mimeType) {
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'Unknown artifact', allowed: Object.keys(ALLOWED_ARTIFACTS) }));
+      res.end(
+        JSON.stringify({ error: 'Unknown artifact', allowed: Object.keys(ALLOWED_ARTIFACTS) })
+      );
       return;
     }
 
     const artifactPath = pathJoin(resolveStoreRoot(), bundleHash, artifactName);
     try {
       const data = await fsPromises.readFile(artifactPath);
-      const cacheControl = mimeType.startsWith('image/') || mimeType === 'video/mp4'
-        ? 'public, max-age=86400, immutable'
-        : 'public, max-age=3600';
+      const cacheControl =
+        mimeType.startsWith('image/') || mimeType === 'video/mp4'
+          ? 'public, max-age=86400, immutable'
+          : 'public, max-age=3600';
       res.writeHead(200, {
         'Content-Type': mimeType,
         'Content-Length': data.length.toString(),
@@ -1172,7 +1183,9 @@ const httpServer = http.createServer(async (req, res) => {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'ENOENT') {
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Artifact not found', hash: bundleHash, artifact: artifactName }));
+        res.end(
+          JSON.stringify({ error: 'Artifact not found', hash: bundleHash, artifact: artifactName })
+        );
       } else {
         const message = err instanceof Error ? err.message : String(err);
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1245,10 +1258,14 @@ const httpServer = http.createServer(async (req, res) => {
           client_id: clientId,
           client_secret: clientSecret,
           client_name: body.client_name,
+          redirect_uris: redirectUris,
           token_endpoint_auth_method: 'client_secret_post',
           grant_types: ['authorization_code', 'client_credentials', 'refresh_token'],
+          response_types: ['code'],
           scope: (body.scope as string) || 'tools:read',
           scopes_supported: Object.keys(OAUTH2_SCOPES),
+          client_id_issued_at: Math.floor(Date.now() / 1000),
+          client_secret_expires_at: 0,
         })
       );
     } catch (err) {
@@ -1463,8 +1480,7 @@ const httpServer = http.createServer(async (req, res) => {
           error: 'SSE transport disabled',
           reason:
             'On Railway, MCP SSE is off by default: edge routing can send GET /mcp and POST /mcp/messages to different replicas so the session map misses.',
-          hint:
-            'Prefer stateless MCP: POST /mcp (streamable HTTP). To force classic SSE here, set MCP_ENABLE_SSE=true and run a single replica (or sticky routing), and keep CDN/proxy buffering disabled for /mcp*. HoloMesh team room uses a single GET only: /api/holomesh/team/:id/room/live.',
+          hint: 'Prefer stateless MCP: POST /mcp (streamable HTTP). To force classic SSE here, set MCP_ENABLE_SSE=true and run a single replica (or sticky routing), and keep CDN/proxy buffering disabled for /mcp*. HoloMesh team room uses a single GET only: /api/holomesh/team/:id/room/live.',
           transport: 'streamable-http',
         })
       );
@@ -1520,8 +1536,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           error: 'SSE message endpoint disabled',
-          hint:
-            'Use stateless MCP over POST /mcp, or enable MCP_ENABLE_SSE with a single MCP replica. HoloMesh: GET /api/holomesh/team/:id/room/live is unaffected.',
+          hint: 'Use stateless MCP over POST /mcp, or enable MCP_ENABLE_SSE with a single MCP replica. HoloMesh: GET /api/holomesh/team/:id/room/live is unaffected.',
           transport: 'streamable-http',
         })
       );
@@ -1871,7 +1886,9 @@ const httpServer = http.createServer(async (req, res) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ success: false, error: 'Crosspost handler failed', detail: message }));
+      res.end(
+        JSON.stringify({ success: false, error: 'Crosspost handler failed', detail: message })
+      );
     }
     return;
   }
@@ -1901,19 +1918,14 @@ const httpServer = http.createServer(async (req, res) => {
     const pathname = new URL(url, 'http://localhost').pathname;
     const method = req.method || 'GET';
 
-    const { handleIdentityExportRoutes } = await import(
-      './holomesh/routes/identity-export-routes'
-    );
+    const { handleIdentityExportRoutes } = await import('./holomesh/routes/identity-export-routes');
     if (await handleIdentityExportRoutes(req, res, pathname, method, url)) return;
 
-    const { handleAttestationRoutes } = await import(
-      './holomesh/routes/attestation-routes'
-    );
+    const { handleAttestationRoutes } = await import('./holomesh/routes/attestation-routes');
     if (await handleAttestationRoutes(req, res, pathname, method, url)) return;
 
-    const { handleCustodialWalletRoutes } = await import(
-      './holomesh/routes/custodial-wallet-routes'
-    );
+    const { handleCustodialWalletRoutes } =
+      await import('./holomesh/routes/custodial-wallet-routes');
     if (await handleCustodialWalletRoutes(req, res, pathname, method, url)) return;
   }
 
@@ -1941,7 +1953,10 @@ const httpServer = http.createServer(async (req, res) => {
     // Prune old entries (older than 60s)
     while (timestamps.length > 0 && timestamps[0] < now - 60_000) timestamps.shift();
     if (timestamps.length >= 60) {
-      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '60' });
+      res.writeHead(429, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Retry-After': '60',
+      });
       res.end(JSON.stringify({ error: 'Rate limit exceeded. 60 requests per minute.' }));
       return;
     }
@@ -2037,6 +2052,40 @@ const httpServer = http.createServer(async (req, res) => {
           res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid token required' }));
           return;
         }
+      }
+
+      if (method === 'initialize') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: {
+              protocolVersion:
+                typeof params?.protocolVersion === 'string' ? params.protocolVersion : '2025-11-25',
+              capabilities: {
+                tools: { listChanged: true },
+              },
+              serverInfo: {
+                name: SERVICE_NAME,
+                version: SERVICE_VERSION,
+              },
+            },
+          })
+        );
+        return;
+      }
+
+      if (!id && method.startsWith('notifications/')) {
+        res.writeHead(202, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end('');
+        return;
+      }
+
+      if (method === 'ping') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ jsonrpc: '2.0', id, result: {} }));
+        return;
       }
 
       if (method === 'tools/list') {
@@ -2802,74 +2851,82 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
   await initStores();
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-  const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
-  ensureMcpOtelTracer();
-  const otlp = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
-  console.info(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
-  console.info(
-    `   Transport: Streamable HTTP (default)${ALLOW_SSE_TRANSPORT ? ' + SSE session mode enabled' : ' (SSE session mode disabled on Railway)'}`
-  );
-  console.info(`   Port: ${PORT}`);
-  console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
-  console.info(
-    `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
-  );
-  console.info(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
-  console.info(`   Legacy API Key: ${HOLOSCRIPT_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
-  console.info(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
-  console.info(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
-  console.info(`   Audit: EU AI Act compliant (Articles 12-14)`);
-  if (otlp) {
-    console.info(`   OpenTelemetry: MCP tool spans → OTLP (${otlp})`);
-  }
-  console.info(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
-  console.info(
-    `   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`
-  );
-  console.info(`   Endpoints:`);
-  console.info(`     GET  /health                       - Health check (public)`);
-  console.info(`     GET  /.well-known/mcp              - MCP discovery (public)`);
-  console.info(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
-  console.info(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
-  console.info(`     POST /oauth/register               - Client registration`);
-  console.info(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
-  console.info(`     POST /oauth/authorize              - Authorization code (PKCE)`);
-  console.info(`     POST /oauth/token                  - Token exchange`);
-  console.info(`     POST /oauth/revoke                 - Token revocation`);
-  console.info(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
-  console.info(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
-  if (ALLOW_SSE_TRANSPORT) {
-    console.info(`     GET  /mcp                          - MCP SSE session bootstrap (authenticated)`);
-    console.info(`     POST /mcp/messages                 - MCP SSE session messages (authenticated)`);
-  }
-  console.info(`     GET  /a2a                          - A2A protocol info (public)`);
-  console.info(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
-  console.info(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
-  console.info(`     GET  /a2a/tasks                    - A2A list tasks`);
-  console.info(`     GET  /a2a/tasks/:id                - A2A get task`);
-  console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
-  console.info(`     GET  /api/health                   - API health + capabilities (public)`);
-  console.info(`     POST /api/moltbook/crosspost       - HoloMesh handoff / WPG knowledge -> Moltbook (auth)`);
-  console.info(
-    `     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`
-  );
-  console.info(`     POST /api/render                   - Render HoloScript preview`);
-  console.info(`     POST /api/share                    - Create share links`);
-  console.info(`     POST /api/publish                  - Studio full publish flow`);
-  console.info(`     POST /api/extract                  - Pre-publish trait extraction`);
-  console.info(`     POST /api/scene                    - Store scene, get short URL`);
-  console.info(`     GET  /scene/:id                    - View stored scene (public)`);
-  console.info(`     GET  /embed/:id                    - Embed stored scene (public)`);
-  console.info(
-    `     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`
-  );
-  console.info(`     GET  /admin/audit                  - Admin operations audit trail (admin)`);
-  console.info(`     GET  /api/audit                    - Query audit log (admin)`);
-  console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
-  console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
-  maybeStartRailwayAutoscaleLoop({ port: PORT });
-  maybeStartPredictiveCloudflareLbLoop();
-});
+    const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
+    ensureMcpOtelTracer();
+    const otlp = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+    console.info(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
+    console.info(
+      `   Transport: Streamable HTTP (default)${ALLOW_SSE_TRANSPORT ? ' + SSE session mode enabled' : ' (SSE session mode disabled on Railway)'}`
+    );
+    console.info(`   Port: ${PORT}`);
+    console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    console.info(
+      `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
+    );
+    console.info(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
+    console.info(
+      `   Legacy API Key: ${HOLOSCRIPT_API_KEY ? 'configured' : 'NONE (open dev mode)'}`
+    );
+    console.info(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
+    console.info(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
+    console.info(`   Audit: EU AI Act compliant (Articles 12-14)`);
+    if (otlp) {
+      console.info(`   OpenTelemetry: MCP tool spans → OTLP (${otlp})`);
+    }
+    console.info(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
+    console.info(
+      `   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`
+    );
+    console.info(`   Endpoints:`);
+    console.info(`     GET  /health                       - Health check (public)`);
+    console.info(`     GET  /.well-known/mcp              - MCP discovery (public)`);
+    console.info(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
+    console.info(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
+    console.info(`     POST /oauth/register               - Client registration`);
+    console.info(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
+    console.info(`     POST /oauth/authorize              - Authorization code (PKCE)`);
+    console.info(`     POST /oauth/token                  - Token exchange`);
+    console.info(`     POST /oauth/revoke                 - Token revocation`);
+    console.info(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
+    console.info(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
+    if (ALLOW_SSE_TRANSPORT) {
+      console.info(
+        `     GET  /mcp                          - MCP SSE session bootstrap (authenticated)`
+      );
+      console.info(
+        `     POST /mcp/messages                 - MCP SSE session messages (authenticated)`
+      );
+    }
+    console.info(`     GET  /a2a                          - A2A protocol info (public)`);
+    console.info(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
+    console.info(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
+    console.info(`     GET  /a2a/tasks                    - A2A list tasks`);
+    console.info(`     GET  /a2a/tasks/:id                - A2A get task`);
+    console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
+    console.info(`     GET  /api/health                   - API health + capabilities (public)`);
+    console.info(
+      `     POST /api/moltbook/crosspost       - HoloMesh handoff / WPG knowledge -> Moltbook (auth)`
+    );
+    console.info(
+      `     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`
+    );
+    console.info(`     POST /api/render                   - Render HoloScript preview`);
+    console.info(`     POST /api/share                    - Create share links`);
+    console.info(`     POST /api/publish                  - Studio full publish flow`);
+    console.info(`     POST /api/extract                  - Pre-publish trait extraction`);
+    console.info(`     POST /api/scene                    - Store scene, get short URL`);
+    console.info(`     GET  /scene/:id                    - View stored scene (public)`);
+    console.info(`     GET  /embed/:id                    - Embed stored scene (public)`);
+    console.info(
+      `     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`
+    );
+    console.info(`     GET  /admin/audit                  - Admin operations audit trail (admin)`);
+    console.info(`     GET  /api/audit                    - Query audit log (admin)`);
+    console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
+    console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
+    maybeStartRailwayAutoscaleLoop({ port: PORT });
+    maybeStartPredictiveCloudflareLbLoop();
+  });
 })();
 
 // ─── Thermodynamic consolidation timer ─────────────────────────────────────
@@ -2892,7 +2949,9 @@ function runConsolidationCycle(): void {
     const totalDropped = results.reduce((s, r) => s + r.dropped, 0);
 
     if (results.length > 0) {
-      console.info(`[consolidation] Sleep cycle: ${results.length} domains consolidated — promoted:${totalPromoted} merged:${totalMerged} evicted:${totalEvicted} dropped:${totalDropped}`);
+      console.info(
+        `[consolidation] Sleep cycle: ${results.length} domains consolidated — promoted:${totalPromoted} merged:${totalMerged} evicted:${totalEvicted} dropped:${totalDropped}`
+      );
     }
   } catch (err) {
     console.warn('[consolidation] Sleep cycle failed:', err instanceof Error ? err.message : err);
