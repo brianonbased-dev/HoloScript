@@ -13,7 +13,8 @@
     {"dedup_key": "manual-audit-brain-identity-script", "commit": "ai-eco 55ec850"},
     {"dedup_key": "manual-paper-11-bib-orphan-block", "verdict": "false-positive — \\iffalse-gated, no action needed"},
     {"dedup_key": "manual-r02-std-fs-path-boundary", "commit": "fe186f8e7"},
-    {"dedup_key": "manual-ghost-claim-purge-1776058303684", "commit": "ai-eco f20326b", "verdict": "released at snapshot layer (board.json) — live API recovery still required for canonical fix, but prevents reintroduction on next reseed"}
+    {"dedup_key": "manual-ghost-claim-purge-1776058303684", "commit": "ai-eco f20326b", "verdict": "released at snapshot layer (board.json) — live API recovery still required for canonical fix, but prevents reintroduction on next reseed"},
+    {"dedup_key": "manual-bug001-dockerfile-no-dts-or-true", "verdict": "false-positive — Dockerfile already uses split pattern `--no-dts && (--dts-only || true)`, JS failures fail loudly. Bug doc 2026-04-29 itself notes fix landed in 0a723ce."}
   ],
   "gaps": [
     {
@@ -22,13 +23,6 @@
       "priority": "high",
       "tags": ["auto-filed-by-manual","infra","fleet-trust","day-7","railway","allowlist"],
       "dedup_key": "manual-a008-egress-allowlist-fix"
-    },
-    {
-      "title": "[studio/docker] Remove '|| true' suppressions on tsup --no-dts in 14 packages (silent prod build failures)",
-      "description": "A-006 bug hunt 2026-04-29 BUG-001 P2 finding. packages/studio/Dockerfile uses 'npx tsup --no-dts || true' on 14 build steps. Since --no-dts uses esbuild not tsc, the only failures it can produce are syntax errors and missing modules - both legitimate failures that should fail the build. || true was inherited from earlier tsc --emitDeclarationOnly pattern. Result: container deploys with empty/missing dist/, studio fails at runtime with 'Cannot find module' 500s. Affected: crdt-spatial, config, platform, mesh, llm-provider, r3f-renderer, studio-plugin-sdk, ui, connector-{core,appstore,github,railway,upstash,vscode}. Fix: remove || true from all --no-dts builds; add missing build dependencies if needed. NOTE: requires Docker-build verification before ship — peer agent may be on it.",
-      "priority": "medium",
-      "tags": ["auto-filed-by-manual","studio","docker","bug","P2","build"],
-      "dedup_key": "manual-bug001-dockerfile-no-dts-or-true"
     },
     {
       "title": "[ops] Verify security-auditor daemon liveness (7 cycles, 0 git-attributable commits)",
