@@ -1,0 +1,845 @@
+/**
+ * The Lotus Flower — SEEDABLE STAGED ARTIFACT (Pre-Genesis)
+ *
+ * staged: true
+ * Composed by /artist on 2026-05-06 per idea-run-11 form recommendation
+ * (research/2026-05-06_idea-run-11-lotus-seedable-artifact.md).
+ *
+ * RELATIONSHIP TO BASELINE:
+ *   This file is NEW and DOES NOT replace garden.refreshed.holo.
+ *   `garden.refreshed.holo` (A-009 baseline, 2026-05-04) remains the
+ *   bloom-state visual-readability reference and is NOT touched here.
+ *   `garden.seedable.holo` adds the seedable mathematical-sculpture
+ *   spine + Fibonacci-layered petals + deterministic placement on top
+ *   of A-009's glow/pulse/pollen vocabulary.
+ *
+ * FORM (per /idea memo):
+ *   Hybrid: golden-angle phyllotaxis spine + Fibonacci-layered petals
+ *   (8 inner + 13 middle + 21 outer = 42 petals = 3 program-tiers ×
+ *   Fibonacci sequence) + GPUParticleTrait pollen field + @bloom_reactive
+ *   driving petal opacity from program-progress signal.
+ *
+ *   Petal placement is a PURE FUNCTION of LOTUS_GENESIS_SEED. Same seed →
+ *   same composition byte-for-byte. Pre-genesis: seed = 0x0000DEAD
+ *   (placeholder per project_lotus-genesis-trigger.md). Post-genesis:
+ *   seed = first-16-bytes(events.jsonl[0].hash). Staged-vs-live transition
+ *   is zero-code-change at composition level — the renderer swaps the seed.
+ *
+ * DETERMINISM CONTRACT:
+ *   - Petal positions: golden-angle 137.50776° spiral, indexed globally
+ *     across layers (continuous spiral, not per-layer reset).
+ *   - Layer radii: [2.0, 3.4, 4.8] (Fibonacci-derived: 2, 3+1, 5-0.2).
+ *   - Layer counts: [8, 13, 21] (Fibonacci sequence F6/F7/F8, mapping
+ *     to Programs 1/2/3 by capacity-not-current-content).
+ *   - Bloom-state per petal driven by `lotus.api.bloom_state` signal
+ *     (already wired in packages/studio/src/lib/brittney/lotus/derive-bloom-state.ts).
+ *   - Jitter / particle seed / pollen drift PRNG: SeedHKDF(LOTUS_GENESIS_SEED,
+ *     petal_index). Staged seed produces deterministic but visibly muted
+ *     palette so genesis-fired version reads as a phase change.
+ *
+ * I.007 CONSTRAINTS PRESERVED:
+ *   - SDF center body deferred to Phase 2 (placeholder mesh until genesis fires).
+ *   - GenesisLightColumn declared but `enabled: false` until trigger.
+ *   - Genesis chime audio at volume 0.0 until `all_petals_full`.
+ *   - Outer-layer (21 petals, Program 3) starts FULLY SEALED — these are
+ *     the future capacity slots, named but not paper-bound.
+ *
+ * FRAME-DRIFT NOTE (W.137):
+ *   Pattern-B traits below are marked TODO[trait-binding]. The composition
+ *   parses and validates today, but @lotus_root / @lotus_stalk / @lotus_petal
+ *   / @lotus_center / @lotus_genesis_trigger / @phyllotaxis / @bloom_reactive
+ *   have NO BACKING TRAIT FILES in packages/core/src/traits/. This is the
+ *   trait-binding layer of W.137 and the reason this artifact is STAGED.
+ *   render_preview will fail until those traits land. validate_holoscript
+ *   passes because the parser accepts unbound trait names.
+ *
+ * @version 1.0.0-staged
+ * @format .holo
+ * @staged true
+ * @cites I.007, W.137, F.014, idea-run-11
+ * @traits @lotus_root, @lotus_stalk, @lotus_petal, @lotus_center,
+ *         @lotus_genesis_trigger, @phyllotaxis, @bloom_reactive,  (Pattern-B)
+ *         @gpu_particle, @glowing, @animated, @spatial_audio       (backed)
+ */
+
+composition "Lotus — Seedable Artifact (Pre-Genesis)" {
+
+  metadata {
+    title: "The Lotus Flower — Seedable Staged Artifact"
+    description: "Deterministic phyllotaxis lotus. 42 petals on a golden-angle spiral, Fibonacci-layered, seeded from LOTUS_GENESIS_SEED. Staged form lives at /lotus pre-genesis; genesis fire swaps the seed and unlocks SDF center + light column."
+    version: "1.0.0-staged"
+    author: "HoloScript /artist (2026-05-06)"
+    staged: true
+    seed_hash_placeholder: "0x0000DEAD"
+    seed_source_pre_genesis: "env('LOTUS_GENESIS_SEED', '0x0000DEAD')"
+    seed_source_post_genesis: "first16bytes(D:/GOLD/anchors/lotus-genesis.json::events[0].hash)"
+    cites: ["I.007", "W.137", "F.014", "idea-run-11", "project_lotus-genesis-trigger.md"]
+    tags: ["lotus", "seedable", "phyllotaxis", "fibonacci", "staged", "pre-genesis", "16-paper-program"]
+  }
+
+  environment {
+    skybox: "hdri/dawn_pond.hdr"
+    ambient_light: 0.4
+    gravity: [0, -9.81, 0]
+    shadows: true
+  }
+
+  // ── PHYLLOTAXIS ANCHOR (deterministic petal-placement source) ─────────────
+  // Pure function: (layer_index, petal_index, golden_angle, seed) -> Vector3
+  // The 42 explicit petal positions below are the canonical evaluation of
+  // this anchor at seed=0x0000DEAD. When the trait lands and renders live,
+  // the explicit positions become redundant and can be replaced with
+  // `instanced_object` driven by the anchor.
+
+  object "PhyllotaxisAnchor" {
+    type: "node"
+    position: [0, 5, 0]
+    // TODO[trait-binding]: replace with @phyllotaxis once PhyllotaxisTrait lands.
+    // Expected shape:
+    //   @phyllotaxis {
+    //     golden_angle_deg: 137.50776
+    //     layer_radii: [2.0, 3.4, 4.8]
+    //     petal_counts: [8, 13, 21]
+    //     seed: env("LOTUS_GENESIS_SEED", "0x0000DEAD")
+    //     jitter_amplitude_deg: 0.0  # staged: zero. genesis: derived from seed.
+    //   }
+    @glowing {
+      color: "#3a1a6b"
+      intensity: 0.05
+      pulse: false
+    }
+  }
+
+  // ── ROOTS (underwater substrate, identical to baseline) ───────────────────
+
+  object "Root: Parser" {
+    type: "mesh"
+    position: [-1.5, -2.0, 0]
+    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.6
+      pulse: false
+    }
+  }
+
+  object "Root: Multi-target Compiler" {
+    type: "mesh"
+    position: [0, -2.0, 0]
+    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.6
+      pulse: false
+    }
+  }
+
+  object "Root: Provenance Semiring" {
+    type: "mesh"
+    position: [1.5, -2.0, 0]
+    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    @glowing {
+      color: "#1a6b3a"
+      intensity: 0.8
+      pulse: true
+      pulse_speed: 0.5
+    }
+  }
+
+  // ── STALK (formats: hs / hsplus / holo / hs.md) ───────────────────────────
+
+  object "Stalk: .hs (Core IR)" {
+    type: "mesh"
+    position: [0, 0, 0]
+    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .hsplus (Reactive Traits)" {
+    type: "mesh"
+    position: [0, 1, 0]
+    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .holo (Scene Composition)" {
+    type: "mesh"
+    position: [0, 2, 0]
+    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  object "Stalk: .hs.md (Documentation)" {
+    type: "mesh"
+    position: [0, 3, 0]
+    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    @animated {
+      clip: "sway_gentle"
+      speed: 0.4
+      loop: true
+    }
+  }
+
+  // ── CENTER (Dumb Glass — SDF body deferred to Phase 2 per I.007) ──────────
+  // Staged: placeholder mesh + low glow. Post-genesis: SDF center body
+  // (paper P3-CENTER "rendering as contracted synthesis") activates via
+  // ShaderTrait + ComputeShaderTrait wiring.
+
+  object "Center: Dumb Glass (placeholder)" {
+    type: "mesh"
+    position: [0, 5, 0]
+    // TODO[trait-binding]: replace with @lotus_center once LotusCenterTrait lands.
+    // TODO[phase-2]: SDF body via @sdf_scene + ShaderTrait once genesis fires.
+    @glowing {
+      color: "#ffffff"
+      intensity: 0.3
+      pulse: false
+    }
+    @animated {
+      clip: "rotate_slow"
+      speed: 0.15
+      loop: true
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PROGRAM 1 PETALS (Fibonacci layer 1 — 8 petals @ r=2.0, golden-angle spiral)
+  // Indices 0–7. Bloom-state from existing 8-paper Program-1 manifest.
+  // Positions are the deterministic phyllotaxis evaluation at seed=0x0000DEAD.
+  // ════════════════════════════════════════════════════════════════════════════
+
+  object "Petal P1.0: Trust by Construction (TVCG)" {
+    type: "mesh"
+    position: [2.000, 5.0, 0.000]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once
+    // LotusPetalTrait and BloomReactiveTrait land.
+    // Expected shape:
+    //   @lotus_petal { paper_id: "trust-by-construction"; venue: "IEEE TVCG 2026"; program: 1; layer: 1; spiral_index: 0 }
+    //   @bloom_reactive { state_source: "lotus.api.bloom_state"; opacity_curve: "default" }
+    @glowing {
+      color: "#cc66ff"
+      intensity: 1.2
+      pulse: true
+      pulse_speed: 1.0
+    }
+    @animated {
+      clip: "petal_unfurl"
+      speed: 0.3
+      loop: false
+      play_on_bloom: true
+    }
+  }
+
+  object "Petal P1.1: CAEL (AAMAS)" {
+    type: "mesh"
+    position: [-1.475, 5.0, 1.351]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.2: Trust by Replay (USENIX Sec)" {
+    type: "mesh"
+    position: [0.175, 5.0, -1.992]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.3: Browser-Native SNN (NeurIPS)" {
+    type: "mesh"
+    position: [1.217, 5.0, 1.587]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.4: Conflict-Free Spatial CRDT (ECOOP)" {
+    type: "mesh"
+    position: [-1.969, 5.0, -0.348]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.5: Sandboxed Embodied Sim (USENIX Sec)" {
+    type: "mesh"
+    position: [1.688, 5.0, -1.073]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.6: GraphRAG Codebase Intel (ICSE)" {
+    type: "mesh"
+    position: [-0.519, 5.0, 1.931]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P1.7: From Notation to Cognition (UIST capstone)" {
+    type: "mesh"
+    position: [-0.922, 5.0, -1.775]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PROGRAM 2 PETALS (Fibonacci layer 2 — 13 petals @ r=3.4, continuous spiral)
+  // Indices 8–20. Maps to 4 known animation papers + 9 reserved capacity slots.
+  // ════════════════════════════════════════════════════════════════════════════
+
+  object "Petal P2.0: Contracted Animation (SCA)" {
+    type: "mesh"
+    position: [3.194, 5.0, 1.166]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.1: IK Under Contract (SIGGRAPH short)" {
+    type: "mesh"
+    position: [-3.143, 5.0, 1.297]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.2: Unified Sim+Anim (SIGGRAPH thesis)" {
+    type: "mesh"
+    position: [1.441, 5.0, -3.079]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#6633aa"
+      intensity: 0.4
+      pulse: false
+    }
+  }
+
+  object "Petal P2.3: Verifiable Motion (SIGGRAPH Asia)" {
+    type: "mesh"
+    position: [1.018, 5.0, 3.244]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.4: [reserved capacity]" {
+    type: "mesh"
+    position: [-2.942, 5.0, -1.705]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.5: [reserved capacity]" {
+    type: "mesh"
+    position: [3.321, 5.0, -0.730]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.6: [reserved capacity]" {
+    type: "mesh"
+    position: [-1.955, 5.0, 2.781]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.7: [reserved capacity]" {
+    type: "mesh"
+    position: [-0.437, 5.0, -3.372]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.8: [reserved capacity]" {
+    type: "mesh"
+    position: [2.600, 5.0, 2.191]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.9: [reserved capacity]" {
+    type: "mesh"
+    position: [-3.397, 5.0, 0.140]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.10: [reserved capacity]" {
+    type: "mesh"
+    position: [2.410, 5.0, -2.398]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.11: [reserved capacity]" {
+    type: "mesh"
+    position: [-0.157, 5.0, 3.396]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P2.12: [reserved capacity]" {
+    type: "mesh"
+    position: [-2.178, 5.0, -2.610]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PROGRAM 3 PETALS (Fibonacci layer 3 — 21 petals @ r=4.8, continuous spiral)
+  // Indices 21–41. Maps to 3 known core-IR papers + 18 reserved capacity slots
+  // (Papers 17–25 + Longitudinal-RE-INTAKE per D.010).
+  // ALL SEALED in staged artifact — these are the genesis-blocked outer ring.
+  // ════════════════════════════════════════════════════════════════════════════
+
+  object "Petal P3.0: .hs Core IR (PLDI)" {
+    type: "mesh"
+    position: [4.757, 5.0, 0.640]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.1: .hsplus Traits (ECOOP)" {
+    type: "mesh"
+    position: [-3.940, 5.0, 2.741]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.2: .holo Composition (I3D)" {
+    type: "mesh"
+    position: [1.054, 5.0, -4.683]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.3: [reserved — Paper 17]" {
+    type: "mesh"
+    position: [2.386, 5.0, 4.165]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.4: [reserved — Paper 18]" {
+    type: "mesh"
+    position: [-4.573, 5.0, -1.459]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.5: [reserved — Paper 19]" {
+    type: "mesh"
+    position: [4.357, 5.0, -2.013]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.6: [reserved — Paper 20]" {
+    type: "mesh"
+    position: [-1.853, 5.0, 4.428]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.7: [reserved — Paper 21 (Adversarial Trust)]" {
+    type: "mesh"
+    position: [-1.625, 5.0, -4.517]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.8: [reserved — Paper 22 (Mechanized SimContract)]" {
+    type: "mesh"
+    position: [4.249, 5.0, 2.233]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.9: [reserved — Paper 23 (Formal Semantics HS Core)]" {
+    type: "mesh"
+    position: [-4.641, 5.0, 1.223]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.10: [reserved — Paper 24]" {
+    type: "mesh"
+    position: [2.596, 5.0, -4.037]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.11: [reserved — Paper 25]" {
+    type: "mesh"
+    position: [0.813, 5.0, 4.731]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.12: [reserved — Longitudinal-RE-INTAKE]" {
+    type: "mesh"
+    position: [-3.795, 5.0, -2.939]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.13: [reserved capacity]" {
+    type: "mesh"
+    position: [4.784, 5.0, -0.396]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.14: [reserved capacity]" {
+    type: "mesh"
+    position: [-3.260, 5.0, 3.524]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.15: [reserved capacity]" {
+    type: "mesh"
+    position: [0.023, 5.0, -4.800]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.16: [reserved capacity]" {
+    type: "mesh"
+    position: [3.225, 5.0, 3.555]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.17: [reserved capacity]" {
+    type: "mesh"
+    position: [-4.780, 5.0, -0.443]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.18: [reserved capacity]" {
+    type: "mesh"
+    position: [3.823, 5.0, -2.902]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.19: [reserved capacity]" {
+    type: "mesh"
+    position: [-0.859, 5.0, 4.722]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  object "Petal P3.20: [reserved capacity]" {
+    type: "mesh"
+    position: [-2.557, 5.0, -4.063]
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
+    @glowing {
+      color: "#220033"
+      intensity: 0.1
+      pulse: false
+    }
+  }
+
+  // ── POLLEN FIELD (GPU particle, gated on bloom_state == "full") ───────────
+  // Backed by GPUParticleTrait (packages/core/src/traits/GPUParticleTrait.ts).
+  // Single emitter at canopy origin pre-genesis. When BloomReactiveTrait + per-
+  // petal particle activation land, this expands to 42 per-petal emitters that
+  // ignite individually as petals reach `full`.
+
+  object "PollenField" {
+    @gpu_particle {
+      count: 5000
+      emission_rate: 20
+      lifetime: 5.0
+      lifetime_variance: 2.0
+      initial_velocity: [0, 0.3, 0]
+      velocity_variance: [0.4, 0.2, 0.4]
+      spread_angle: 25
+      forces: [
+        { type: "gravity", strength: 0.05, direction: [0, -1, 0] },
+        { type: "turbulence", strength: 0.15 }
+      ]
+      color_over_life: [
+        { time: 0.0, color: [1.0, 1.0, 0.8, 0.0] },
+        { time: 0.2, color: [1.0, 1.0, 0.8, 0.9] },
+        { time: 1.0, color: [1.0, 1.0, 1.0, 0.0] }
+      ]
+      size_over_life: [
+        { time: 0.0, size: 0.02 },
+        { time: 1.0, size: 0.0 }
+      ]
+      collision: false
+      sprite: "sprites/pollen_disc.png"
+      blend_mode: "additive"
+    }
+    position: [0, 5.5, 0]
+    // Staged: emits at low rate from canopy center.
+    // TODO[trait-binding]: when BloomReactiveTrait + per-instance particle
+    // gating land, replace this with `instanced_object` driven by phyllotaxis
+    // anchor so each `full` petal spawns its own pollen drift.
+  }
+
+  // ── BRITTNEY (the gardener, identical to baseline) ────────────────────────
+
+  object "Brittney" {
+    type: "mesh"
+    position: [4, 5, 0]
+    // TODO[trait-binding]: replace with @lotus_gardener once trait lands.
+    @animated {
+      clip: "idle_gardener"
+      speed: 1.0
+      loop: true
+    }
+  }
+
+  // ── POND AMBIENCE (backed by SpatialAudio family) ─────────────────────────
+
+  object "PondAmbience" {
+    @spatial_audio {
+      clip: "audio/garden_pond_loop.ogg"
+      volume: 0.45
+      loop: true
+      attenuation: "none"
+      eq_preset: "warm"
+    }
+    position: [0, 0, 0]
+  }
+
+  object "GenesisChime" {
+    @spatial_audio {
+      clip: "audio/genesis_chime_loop.ogg"
+      volume: 0.0
+      loop: true
+      attenuation: "none"
+      fade_in: 4.0
+    }
+    position: [0, 5, 0]
+    // Staged: volume 0.0. Genesis trigger → fades to 0.6 over 4s.
+  }
+
+  // ── GENESIS LIGHT COLUMN (DORMANT until 16-paper trigger fires) ───────────
+  // I.007 constraint: this asset SHIPS but is `enabled: false` until the
+  // genesis hash anchors. Founder rules its activation, not /artist.
+
+  object "GenesisLightColumn" {
+    @gpu_particle {
+      count: 8000
+      emission_rate: 0
+      lifetime: 6.0
+      lifetime_variance: 2.0
+      initial_velocity: [0, 1.5, 0]
+      velocity_variance: [0.4, 0.5, 0.4]
+      spread_angle: 5
+      forces: [
+        { type: "vortex", strength: 0.8, position: [0, 5, 0], direction: [0, 1, 0], radius: 1.5 }
+      ]
+      color_over_life: [
+        { time: 0.0, color: [1.0, 1.0, 1.0, 0.0] },
+        { time: 0.3, color: [1.0, 1.0, 1.0, 1.0] },
+        { time: 1.0, color: [0.8, 0.55, 1.0, 0.0] }
+      ]
+      size_over_life: [
+        { time: 0.0, size: 0.05 },
+        { time: 1.0, size: 0.0 }
+      ]
+      collision: false
+      sprite: "sprites/light_quanta.png"
+      blend_mode: "additive"
+    }
+    position: [0, 7, 0]
+    enabled: false
+    // TODO[trait-binding]: replace with @lotus_genesis_trigger once trait lands.
+    // Trigger contract (post-genesis):
+    //   condition: "all 16 petals === full"
+    //   wallet: "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3"
+    //   anchor_strategy: "ots+base"
+    //   on_fire: { enabled: true; emission_rate: 100; duration_s: 60 }
+    @glowing {
+      color: "#ffffff"
+      intensity: 0.05
+      pulse: false
+    }
+  }
+}
