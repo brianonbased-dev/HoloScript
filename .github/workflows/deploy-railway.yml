@@ -202,11 +202,27 @@ jobs:
           esac
 
       - name: TypeScript type-check Studio
-        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
+        if: |
+          ${{
+            !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') &&
+            (
+              github.event_name != 'workflow_dispatch' ||
+              github.event.inputs.service == 'all' ||
+              github.event.inputs.service == 'studio'
+            )
+          }}
         run: npx tsc --noEmit --skipLibCheck --project packages/studio/tsconfig.json
 
       - name: TypeScript type-check MCP server
-        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
+        if: |
+          ${{
+            !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') &&
+            (
+              github.event_name != 'workflow_dispatch' ||
+              github.event.inputs.service == 'all' ||
+              github.event.inputs.service == 'mcp-server'
+            )
+          }}
         run: npx tsc --noEmit --skipLibCheck --project packages/mcp-server/tsconfig.json || true
 
       - name: Block pre-flight bypass for production deploys
