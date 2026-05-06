@@ -6,3 +6,4 @@
  */
 
 export * from './SelfImproveHarvester';
+export * from './OutcomeLoop';
