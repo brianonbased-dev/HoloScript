@@ -30,7 +30,7 @@ function resolveRepoRoot(): string {
   const candidates = [
     process.cwd(),
     path.resolve(process.cwd(), '..'),
-    path.resolve(process.cwd(), '..', '..'),
+    path.resolve(/* turbopackIgnore: true */ process.cwd(), '..', '..'),
   ];
 
   for (const candidate of candidates) {

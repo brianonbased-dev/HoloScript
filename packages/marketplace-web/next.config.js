@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   transpilePackages: ['@holoscript/marketplace-api'],
+  turbopack: {
+    root: path.join(__dirname, '..', '..'),
+  },
   images: {
     remotePatterns: [
       {

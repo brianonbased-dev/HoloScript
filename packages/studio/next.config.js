@@ -4,11 +4,7 @@ const { networkInterfaces } = require('os');
 
 function isPrivateIpv4(address) {
   const [a, b] = address.split('.').map((part) => Number(part));
-  return (
-    a === 10 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
 }
 
 function localLanDevOrigins() {
@@ -35,7 +31,12 @@ function addDevOrigin(hosts, value) {
   try {
     hosts.add(new URL(raw).hostname);
   } catch {
-    hosts.add(raw.replace(/^https?:\/\//, '').split('/')[0].split(':')[0]);
+    hosts.add(
+      raw
+        .replace(/^https?:\/\//, '')
+        .split('/')[0]
+        .split(':')[0]
+    );
   }
 }
 
@@ -97,7 +98,6 @@ const nextConfig = {
     ];
   },
   // Enable standard Next.js build checks
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
@@ -107,6 +107,7 @@ const nextConfig = {
   // and resolveAlias map to be dropped — which broke Studio dev with
   // "Unknown module type" errors on .wgsl imports from @holoscript/engine.
   turbopack: {
+    root: path.join(__dirname, '..', '..'),
     // Next.js 16's turbopack.resolveAlias rejects `false` (the webpack
     // convention to disable a module). Use empty-module-stub.js as the
     // alias target — semantically equivalent: any import resolves to {}

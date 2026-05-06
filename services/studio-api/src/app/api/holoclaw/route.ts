@@ -85,12 +85,19 @@ function discoverSkills(rootDir: string): SkillMeta[] {
   return skills.sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
 }
 
+function resolveRepoRoot(): string {
+  return (
+    process.env.HOLOSCRIPT_REPO_ROOT ||
+    path.resolve(/* turbopackIgnore: true */ process.cwd())
+  );
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/holoclaw — list installed skills
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const repoRoot = process.env.HOLOSCRIPT_REPO_ROOT || process.cwd();
+  const repoRoot = resolveRepoRoot();
   const skills = discoverSkills(repoRoot);
   return NextResponse.json({ skills, total: skills.length });
 }
@@ -100,7 +107,7 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
-  const repoRoot = process.env.HOLOSCRIPT_REPO_ROOT || process.cwd();
+  const repoRoot = resolveRepoRoot();
   const skillsDir = path.join(repoRoot, 'compositions', 'skills');
 
   if (!fs.existsSync(skillsDir)) {
