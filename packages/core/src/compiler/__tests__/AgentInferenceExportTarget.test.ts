@@ -261,6 +261,37 @@ describe('compile() — TypeScript output', () => {
     expect(result['tools.ts']).toContain('Look up an order by its ID');
   });
 
+  it('tools.ts emits Anthropic tool schema for the Anthropic target', () => {
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain("import Anthropic from '@anthropic-ai/sdk';");
+    expect(result['tools.ts']).toContain('Anthropic.Tool[]');
+    expect(result['tools.ts']).toContain('input_schema');
+    expect(result['tools.ts']).not.toContain("type: 'function' as const");
+  });
+
+  it('tools.ts emits OpenAI-compatible function schema for OpenAI-like targets', () => {
+    const openaiCompiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'openai',
+    });
+    const result = openaiCompiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).not.toContain('@anthropic-ai/sdk');
+    expect(result['tools.ts']).toContain("type: 'function' as const");
+    expect(result['tools.ts']).toContain('parameters');
+    expect(result['tools.ts']).not.toContain('input_schema');
+  });
+
+  it('tools.ts emits vendor-neutral schema for the custom target', () => {
+    const customCompiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'custom',
+    });
+    const result = customCompiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain('parameters');
+    expect(result['tools.ts']).not.toContain("type: 'function' as const");
+    expect(result['tools.ts']).not.toContain('input_schema');
+  });
+
   it('tools.ts has ToolName union type', () => {
     const result = compiler.compile(makeAgentComposition(), '');
     expect(result['tools.ts']).toContain("'lookup_order'");
@@ -342,6 +373,17 @@ describe('compile() — Python output', () => {
     expect(result['tools.py']).toContain('TOOLS = [');
     expect(result['tools.py']).toContain('lookup_order');
     expect(result['tools.py']).toContain('def execute_tool_call');
+  });
+
+  it('tools.py uses OpenAI-compatible function schema for OpenAI-like targets', () => {
+    const openaiCompiler = new AgentInferenceCompiler({
+      language: 'python',
+      defaultProvider: 'openai',
+    });
+    const result = openaiCompiler.compile(makeAgentComposition(), '');
+    expect(result['tools.py']).toContain('"type": "function"');
+    expect(result['tools.py']).toContain('"parameters"');
+    expect(result['tools.py']).not.toContain('"input_schema"');
   });
 
   it('requirements.txt has anthropic dependency', () => {
@@ -585,5 +627,125 @@ describe('edge cases', () => {
     const compiler = new AgentInferenceCompiler({ includeEnvTemplate: false });
     const result = compiler.compile(makeAgentComposition(), '');
     expect(result).not.toHaveProperty('.env.example');
+  });
+});
+
+// ─── Tool emission — provider-specific shapes (universal+segregated) ─────────
+//
+// Generated tool defs must match the target provider's SDK shape, NOT default
+// to Anthropic for non-Anthropic targets. Per OpenAI/Codex audit 2026-05-06
+// (docs/LLM_CAPABILITIES.md, AgentInferenceExportTarget.ts:916). Includes
+// false-case assertions per G.GOLD.013.
+
+describe('emitToolDefinitions — provider dispatch (TypeScript)', () => {
+  it('anthropic provider emits Anthropic.Tool[] shape with input_schema', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'anthropic',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain("import Anthropic from '@anthropic-ai/sdk';");
+    expect(result['tools.ts']).toContain('export const tools: Anthropic.Tool[]');
+    expect(result['tools.ts']).toContain('input_schema:');
+    // False case: should NOT contain OpenAI-shape markers
+    expect(result['tools.ts']).not.toContain("type: 'function' as const");
+    expect(result['tools.ts']).not.toMatch(/^\s*parameters:\s*\{$/m);
+  });
+
+  it('openai provider emits OpenAI Responses function-tool shape with parameters', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'openai',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain("type: 'function' as const");
+    expect(result['tools.ts']).toContain('parameters:');
+    expect(result['tools.ts']).toContain('export const tools = [');
+    // False case: must NOT leak Anthropic shape
+    expect(result['tools.ts']).not.toContain("import Anthropic from '@anthropic-ai/sdk';");
+    expect(result['tools.ts']).not.toContain('Anthropic.Tool[]');
+    expect(result['tools.ts']).not.toContain('input_schema');
+  });
+
+  it('local provider emits OpenAI-compatible shape (OpenAI-compat at wire level)', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'local',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain("type: 'function' as const");
+    expect(result['tools.ts']).not.toContain('Anthropic.Tool[]');
+    expect(result['tools.ts']).not.toContain('input_schema');
+  });
+
+  it('ollama provider emits OpenAI-compatible shape', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'ollama',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain("type: 'function' as const");
+    expect(result['tools.ts']).not.toContain('Anthropic.Tool[]');
+  });
+
+  it('custom provider emits vendor-neutral JSON Schema shape (no SDK assumptions)', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'typescript',
+      defaultProvider: 'custom',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.ts']).toContain('export const tools = [');
+    expect(result['tools.ts']).toContain('parameters:');
+    // False cases: no SDK-specific shape markers
+    expect(result['tools.ts']).not.toContain("import Anthropic from '@anthropic-ai/sdk';");
+    expect(result['tools.ts']).not.toContain('Anthropic.Tool[]');
+    expect(result['tools.ts']).not.toContain('input_schema');
+    expect(result['tools.ts']).not.toContain("type: 'function' as const");
+  });
+
+  it('omitting defaultProvider falls back to anthropic (regression check)', () => {
+    const compiler = new AgentInferenceCompiler({ language: 'typescript' });
+    const result = compiler.compile(makeAgentComposition(), '');
+    // Default behavior must remain Anthropic-shaped — backward compat
+    expect(result['tools.ts']).toContain('Anthropic.Tool[]');
+    expect(result['tools.ts']).toContain('input_schema:');
+  });
+});
+
+describe('emitToolDefinitions — provider dispatch (Python)', () => {
+  it('anthropic provider emits input_schema key', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'python',
+      defaultProvider: 'anthropic',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.py']).toContain('"input_schema":');
+    // False case
+    expect(result['tools.py']).not.toContain('"type": "function"');
+    expect(result['tools.py']).not.toMatch(/"parameters":/);
+  });
+
+  it('openai provider emits parameters key with type=function discriminator', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'python',
+      defaultProvider: 'openai',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.py']).toContain('"type": "function"');
+    expect(result['tools.py']).toContain('"parameters":');
+    // False case: no Anthropic key
+    expect(result['tools.py']).not.toContain('"input_schema"');
+  });
+
+  it('custom provider emits vendor-neutral parameters (no type discriminator)', () => {
+    const compiler = new AgentInferenceCompiler({
+      language: 'python',
+      defaultProvider: 'custom',
+    });
+    const result = compiler.compile(makeAgentComposition(), '');
+    expect(result['tools.py']).toContain('"parameters":');
+    // False cases
+    expect(result['tools.py']).not.toContain('"input_schema"');
+    expect(result['tools.py']).not.toContain('"type": "function"');
   });
 });
