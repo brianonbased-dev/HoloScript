@@ -73,18 +73,25 @@ function normalizeElement(value: unknown): string | null {
   return value.trim().toLowerCase();
 }
 
+function isTraitDirective(
+  value: unknown,
+  traitName: string
+): value is { type: 'trait'; name: string; config?: Record<string, unknown> } {
+  return isRecord(value) && value.type === 'trait' && value.name === traitName;
+}
+
 function readTraitConfig(node: HSPlusNode, traitName: string): Record<string, unknown> | undefined {
   const fromTraits = node.traits?.get(traitName);
   if (isRecord(fromTraits)) return fromTraits;
 
   const directives = node.directives ?? [];
-  const directive = directives.find((d) => d?.type === 'trait' && d.name === traitName);
+  const directive = directives.find((d) => isTraitDirective(d, traitName));
   return isRecord(directive?.config) ? directive.config : undefined;
 }
 
 function hasTrait(node: HSPlusNode, traitName: string): boolean {
   if (node.traits?.has(traitName)) return true;
-  return (node.directives ?? []).some((d) => d?.type === 'trait' && d.name === traitName);
+  return (node.directives ?? []).some((d) => isTraitDirective(d, traitName));
 }
 
 function isQualifiedGem(node: HSPlusNode): boolean {

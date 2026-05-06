@@ -1543,7 +1543,7 @@ const VFX_PARTICLE_PRESETS: Record<string, Record<string, unknown>> = {
 };
 
 function createVfxParticleHandler(name: string): TraitHandler<Record<string, unknown>> {
-  const gpuParticle = gpuParticleHandler as TraitHandler<Record<string, unknown>>;
+  const gpuParticle = gpuParticleHandler as unknown as TraitHandler<Record<string, unknown>>;
   const defaultConfig = {
     ...(gpuParticle.defaultConfig as Record<string, unknown>),
     effect: name.replace('vfx_particle_', ''),

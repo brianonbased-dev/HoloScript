@@ -55,6 +55,30 @@ describe('GemResonanceTrait', () => {
     );
   });
 
+  it('resolves enchantable element from trait directives', () => {
+    const node = {
+      id: 'directive_gem',
+      directives: [
+        { type: 'trait', name: 'crystal_gem', config: { cut: 'round' } },
+        { type: 'trait', name: 'enchantable', config: { element: 'water' } },
+      ],
+    } as any;
+    const ctx = makeContext();
+    const config = makeConfig();
+
+    gemResonanceHandler.onAttach!(node, config, ctx as any);
+
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'gem_resonance_register',
+      expect.objectContaining({
+        nodeId: 'directive_gem',
+        element: 'water',
+        baseFrequency: 528,
+        qualified: true,
+      })
+    );
+  });
+
   it('probes nearby gems on a deterministic update interval', () => {
     const node = makeNode('fire');
     const ctx = makeContext();
