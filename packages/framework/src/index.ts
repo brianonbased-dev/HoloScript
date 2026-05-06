@@ -284,6 +284,32 @@ export {
   deleteTask,
 } from './board';
 
+export {
+  BOARD_WEBHOOK_EVENT_TYPES,
+  BOARD_WEBHOOK_ORDERING_GUARANTEE,
+  BOARD_WEBHOOK_FETCH_BY_ID_BEHAVIOR,
+  type BoardWebhookEventType,
+  type BoardWebhookDeliveryStatus,
+  type BoardWebhookOrderingScope,
+  type BoardWebhookRetryPolicy,
+  type BoardWebhookSigningConfig,
+  type BoardWebhookSubscription,
+  type BoardWebhookFetchById,
+  type BoardWebhookEnvelope,
+  type CreateBoardWebhookEnvelopeOptions,
+  type BoardWebhookRequest,
+  type BoardWebhookDelivery,
+  validateBoardWebhookSubscription,
+  createBoardWebhookEnvelope,
+  canonicalBoardWebhookBody,
+  shouldDeliverBoardWebhook,
+  signBoardWebhookEnvelope,
+  verifyBoardWebhookSignature,
+  buildBoardWebhookRequest,
+  nextBoardWebhookRetry,
+  recordBoardWebhookDeliveryFailure,
+} from './board';
+
 // Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)
 export {
   type PeerMetadata,
