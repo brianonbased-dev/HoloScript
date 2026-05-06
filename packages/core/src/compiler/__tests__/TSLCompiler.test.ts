@@ -433,6 +433,24 @@ describe('TSLCompiler', () => {
       expect(cs).toContain('Particle');
     });
 
+    it('generates compute shader for VFX particle subtype traits', () => {
+      const comp = makeComposition({
+        objects: [
+          makeObject('SparkEmitter', [
+            { name: 'vfx_particle_sparks', config: { count: 1200, lifetime: 0.6 } },
+          ]),
+        ],
+      });
+      const result = compiler.compile(comp, 'test-token');
+
+      expect(result['SparkEmitter.compute.vfx_particle_sparks.wgsl']).toBeDefined();
+      expect(result['SparkEmitter.compute.vfx_particle_sparks.wgsl']).toContain(
+        'cs_particle_update'
+      );
+      expect(result['_warnings.txt']).toBeUndefined();
+      expect(result['_pipeline.ts']).toContain('cs_particle_update');
+    });
+
     it('generates compute shader for @gpu_physics trait', () => {
       const comp = makeComposition({
         objects: [makeObject('PhysicsObj', [{ name: 'gpu_physics' }])],

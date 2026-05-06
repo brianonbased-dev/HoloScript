@@ -1397,6 +1397,170 @@ function parseDuration(duration: string): number {
   }
 }
 
+const VFX_PARTICLE_PRESETS: Record<string, Record<string, unknown>> = {
+  vfx_particle_fire: {
+    count: 6000,
+    emission_rate: 900,
+    lifetime: 1.4,
+    lifetime_variance: 0.35,
+    initial_velocity: [0, 2.8, 0],
+    velocity_variance: [0.8, 1.2, 0.8],
+    spread_angle: 38,
+    forces: [
+      { type: 'gravity', strength: -1.2, direction: [0, -1, 0] },
+      { type: 'turbulence', strength: 0.45, radius: 1.4 },
+    ],
+    color_over_life: [
+      { time: 0, color: [1, 0.9, 0.35, 1] },
+      { time: 0.45, color: [1, 0.25, 0.04, 0.85] },
+      { time: 1, color: [0.08, 0.02, 0.01, 0] },
+    ],
+    size_over_life: [
+      { time: 0, size: 0.08 },
+      { time: 0.55, size: 0.22 },
+      { time: 1, size: 0 },
+    ],
+    sprite: 'vfx/fire.png',
+    blend_mode: 'additive',
+  },
+  vfx_particle_smoke: {
+    count: 4000,
+    emission_rate: 180,
+    lifetime: 3.5,
+    lifetime_variance: 1.0,
+    initial_velocity: [0, 0.8, 0],
+    velocity_variance: [0.65, 0.45, 0.65],
+    spread_angle: 48,
+    forces: [
+      { type: 'wind', strength: 0.18, direction: [0.35, 0.2, 0] },
+      { type: 'turbulence', strength: 0.25, radius: 2.0 },
+    ],
+    color_over_life: [
+      { time: 0, color: [0.38, 0.38, 0.36, 0.42] },
+      { time: 0.55, color: [0.28, 0.28, 0.27, 0.28] },
+      { time: 1, color: [0.18, 0.18, 0.17, 0] },
+    ],
+    size_over_life: [
+      { time: 0, size: 0.18 },
+      { time: 0.7, size: 0.85 },
+      { time: 1, size: 1.15 },
+    ],
+    sprite: 'vfx/smoke.png',
+    blend_mode: 'alpha',
+  },
+  vfx_particle_sparks: {
+    count: 1200,
+    emission_rate: 240,
+    lifetime: 0.65,
+    lifetime_variance: 0.25,
+    initial_velocity: [0, 2.4, 0],
+    velocity_variance: [2.1, 1.2, 2.1],
+    spread_angle: 72,
+    forces: [{ type: 'gravity', strength: 9.81, direction: [0, -1, 0] }],
+    color_over_life: [
+      { time: 0, color: [1, 0.95, 0.45, 1] },
+      { time: 0.4, color: [1, 0.42, 0.08, 0.9] },
+      { time: 1, color: [0.5, 0.05, 0.01, 0] },
+    ],
+    size_over_life: [
+      { time: 0, size: 0.035 },
+      { time: 0.5, size: 0.02 },
+      { time: 1, size: 0 },
+    ],
+    collision: true,
+    collision_damping: 0.35,
+    sprite: 'vfx/spark.png',
+    blend_mode: 'additive',
+  },
+  vfx_particle_dust: {
+    count: 2500,
+    emission_rate: 120,
+    lifetime: 2.4,
+    initial_velocity: [0, 0.35, 0],
+    velocity_variance: [0.45, 0.25, 0.45],
+    spread_angle: 55,
+    color_over_life: [
+      { time: 0, color: [0.62, 0.52, 0.38, 0.34] },
+      { time: 1, color: [0.42, 0.35, 0.25, 0] },
+    ],
+    sprite: 'vfx/dust.png',
+    blend_mode: 'alpha',
+  },
+  vfx_particle_rain: {
+    count: 12000,
+    emission_rate: 2200,
+    lifetime: 1.3,
+    initial_velocity: [0, -7.5, 0],
+    velocity_variance: [0.2, 0.7, 0.2],
+    spread_angle: 8,
+    color_over_life: [
+      { time: 0, color: [0.58, 0.72, 1, 0.55] },
+      { time: 1, color: [0.58, 0.72, 1, 0] },
+    ],
+    sprite: 'vfx/raindrop.png',
+    blend_mode: 'alpha',
+  },
+  vfx_particle_snow: {
+    count: 8000,
+    emission_rate: 650,
+    lifetime: 5.5,
+    initial_velocity: [0, -0.9, 0],
+    velocity_variance: [0.55, 0.25, 0.55],
+    spread_angle: 22,
+    forces: [
+      { type: 'wind', strength: 0.25, direction: [0.5, 0, 0.2] },
+      { type: 'turbulence', strength: 0.12, radius: 3.0 },
+    ],
+    color_over_life: [
+      { time: 0, color: [1, 1, 1, 0.95] },
+      { time: 1, color: [1, 1, 1, 0] },
+    ],
+    sprite: 'vfx/snowflake.png',
+    blend_mode: 'alpha',
+  },
+  vfx_particle_fog: {
+    count: 3000,
+    emission_rate: 90,
+    lifetime: 6.0,
+    initial_velocity: [0, 0.15, 0],
+    velocity_variance: [0.25, 0.1, 0.25],
+    spread_angle: 65,
+    color_over_life: [
+      { time: 0, color: [0.72, 0.78, 0.82, 0.2] },
+      { time: 1, color: [0.72, 0.78, 0.82, 0] },
+    ],
+    sprite: 'vfx/fog.png',
+    blend_mode: 'alpha',
+  },
+  vfx_particle_emitter: {
+    count: 10000,
+    emission_rate: 1000,
+    lifetime: 2.0,
+    sprite: 'vfx/particle.png',
+    blend_mode: 'additive',
+  },
+};
+
+function createVfxParticleHandler(name: string): TraitHandler<Record<string, unknown>> {
+  const gpuParticle = gpuParticleHandler as TraitHandler<Record<string, unknown>>;
+  const defaultConfig = {
+    ...(gpuParticle.defaultConfig as Record<string, unknown>),
+    effect: name.replace('vfx_particle_', ''),
+    ...VFX_PARTICLE_PRESETS[name],
+  };
+
+  return {
+    ...gpuParticle,
+    name: name as VRTraitName,
+    defaultConfig,
+    onAttach(node, config, context) {
+      gpuParticle.onAttach?.(node, { ...defaultConfig, ...config }, context);
+    },
+  };
+}
+
+const vfxParticleHandlers = Object.keys(VFX_PARTICLE_PRESETS).map(createVfxParticleHandler);
+
 // =============================================================================
 // TRAIT REGISTRY
 // =============================================================================
@@ -1472,6 +1636,7 @@ export class VRTraitRegistry {
     // Phase 5: WebGPU Compute
     this.register(computeHandler as TraitHandler);
     this.register(gpuParticleHandler as TraitHandler);
+    for (const handler of vfxParticleHandlers) this.register(handler as TraitHandler);
     this.register(gpuPhysicsHandler as TraitHandler);
     this.register(gpuBufferHandler as TraitHandler);
 

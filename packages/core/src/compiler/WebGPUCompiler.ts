@@ -17,6 +17,7 @@
 import type {
   HoloComposition,
   HoloObjectDecl,
+  HoloObjectTrait,
   HoloSpatialGroup,
   HoloLight,
   HoloEnvironment,
@@ -30,6 +31,14 @@ import {
   compileMaterialBlock,
   materialToWebGPU,
 } from './DomainBlockCompilerMixin';
+
+function isGpuParticleTraitName(name: string): boolean {
+  return name === 'gpu_particle' || name.startsWith('vfx_particle_');
+}
+
+function findGpuParticleTrait(traits: HoloObjectTrait[] | undefined): HoloObjectTrait | undefined {
+  return traits?.find((t) => isGpuParticleTraitName(t.name));
+}
 
 export interface WebGPUCompilerOptions {
   entryPoint?: string;
@@ -214,7 +223,7 @@ export class WebGPUCompiler extends CompilerBase {
 
     const isGaussianSplat = traits.some((t) => t.name === 'gaussian_splat');
     const isPointCloud = traits.some((t) => t.name === 'point_cloud');
-    const isGpuParticle = traits.some((t) => t.name === 'gpu_particle');
+    const isGpuParticle = traits.some((t) => isGpuParticleTraitName(t.name));
 
     if (isModel && modelSrc) {
       this.emit(`const ${v}Model = await assetLoader.load("${modelSrc}");`);
@@ -383,9 +392,9 @@ export class WebGPUCompiler extends CompilerBase {
   }
 
   private emitGpuParticleObject(v: string, obj: HoloObjectDecl): void {
-    const trait = obj.traits?.find((t) => t.name === 'gpu_particle');
+    const trait = findGpuParticleTrait(obj.traits);
     const count = trait?.config?.count || 10000;
-    this.emit(`// GPU Particles (${count})`);
+    this.emit(`// GPU Particles (${count}) from @${trait?.name ?? 'gpu_particle'}`);
     this.emit(`const ${v}ParticleCount = ${count};`);
     this.emit(`const ${v}ParticleBufA = createStorageBuffer(device, ${v}ParticleCount * 32);`);
     this.emit(`const ${v}ParticleBufB = createStorageBuffer(device, ${v}ParticleCount * 32);`);
@@ -495,7 +504,7 @@ export class WebGPUCompiler extends CompilerBase {
   private emitComputeShaders(composition: HoloComposition): void {
     const gpuObjs = (composition.objects || []).filter((o) =>
       o.traits?.some(
-        (t) => t.name === 'gpu_particle' || t.name === 'gpu_physics' || t.name === 'compute'
+        (t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics' || t.name === 'compute'
       )
     );
     if (gpuObjs.length === 0) return;
@@ -505,8 +514,8 @@ export class WebGPUCompiler extends CompilerBase {
       const v = this.sanitizeName(obj.name);
       const traits = obj.traits || [];
 
-      if (traits.some((t) => t.name === 'gpu_particle')) {
-        const count = traits.find((t) => t.name === 'gpu_particle')?.config?.count || 10000;
+      if (traits.some((t) => isGpuParticleTraitName(t.name))) {
+        const count = findGpuParticleTrait(traits)?.config?.count || 10000;
         this.emit(
           `const ${v}ParticleCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_PARTICLE_COMPUTE }), entryPoint: "cs_particle_update" } });`
         );
@@ -646,14 +655,14 @@ export class WebGPUCompiler extends CompilerBase {
     // Compute pass
     const gpuObjs = (composition.objects || []).filter((o) =>
       o.traits?.some(
-        (t) => t.name === 'gpu_particle' || t.name === 'gpu_physics' || t.name === 'compute'
+        (t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics' || t.name === 'compute'
       )
     );
     if (gpuObjs.length > 0 && this.options.enableCompute) {
       this.emit('const cp = enc.beginComputePass();');
       for (const obj of gpuObjs) {
         const v = this.sanitizeName(obj.name);
-        if (obj.traits?.some((t) => t.name === 'gpu_particle')) {
+        if (obj.traits?.some((t) => isGpuParticleTraitName(t.name))) {
           this.emit(
             `cp.setPipeline(${v}ParticleCompute); cp.dispatchWorkgroups(${v}ComputeDispatches);`
           );
@@ -706,7 +715,7 @@ export class WebGPUCompiler extends CompilerBase {
       this.emit(`rp.setPipeline(${v}SplatPipeline); rp.draw(4, ${v}SplatCount.value);`);
     } else if (traits.some((t) => t.name === 'point_cloud')) {
       this.emit(`rp.setPipeline(${v}PointPipeline); rp.draw(${v}PointCount.value);`);
-    } else if (traits.some((t) => t.name === 'gpu_particle')) {
+    } else if (traits.some((t) => isGpuParticleTraitName(t.name))) {
       this.emit(
         `rp.setPipeline(${v}ParticlePipeline); rp.setVertexBuffer(0, ${v}ParticleBufA); rp.draw(${v}ParticleCount);`
       );

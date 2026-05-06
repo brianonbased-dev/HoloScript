@@ -1,7 +1,7 @@
 /**
  * Visual Effects Particles & Spatial Audio Traits
  */
-export const VFX_AUDIO_TRAITS = [
+export const VFX_PARTICLE_TRAITS = [
   'vfx_particle_fire',
   'vfx_particle_smoke',
   'vfx_particle_sparks',
@@ -10,6 +10,9 @@ export const VFX_AUDIO_TRAITS = [
   'vfx_particle_snow',
   'vfx_particle_fog',
   'vfx_particle_emitter',
+] as const;
+
+export const SPATIAL_AUDIO_EXTENSION_TRAITS = [
   'vfx_trail',
   'vfx_sprite_sheet',
   'vfx_beam',
@@ -22,4 +25,9 @@ export const VFX_AUDIO_TRAITS = [
   'spatial_audio_ambient',
   'spatial_audio_music',
   'spatial_audio_surface_absorption',
+] as const;
+
+export const VFX_AUDIO_TRAITS = [
+  ...VFX_PARTICLE_TRAITS,
+  ...SPATIAL_AUDIO_EXTENSION_TRAITS,
 ] as const;

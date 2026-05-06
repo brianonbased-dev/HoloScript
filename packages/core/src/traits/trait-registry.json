@@ -2129,6 +2129,158 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "vfx_particle_dust": {
+        "id": "vfx_particle_dust",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a dust preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_emitter": {
+        "id": "vfx_particle_emitter",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a generic emitter preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_fire": {
+        "id": "vfx_particle_fire",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a fire preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_fog": {
+        "id": "vfx_particle_fog",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a fog preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_rain": {
+        "id": "vfx_particle_rain",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a rain preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_smoke": {
+        "id": "vfx_particle_smoke",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a smoke preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_snow": {
+        "id": "vfx_particle_snow",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a snow preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "vfx_particle_sparks": {
+        "id": "vfx_particle_sparks",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Adapted to the GPU particle pipeline with a sparks preset."
+            }
+        ],
+        "composable": [
+            "gpu_particle",
+            "vfx"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "volumetric": {
         "id": "volumetric",
         "namespace": "@holoscript/core",

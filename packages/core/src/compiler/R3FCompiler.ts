@@ -48,6 +48,14 @@ const r3fNodePool = new ASTNodePool<R3FNode>(
   0 // Was 20000 — demand-allocate instead of pre-allocating
 );
 
+function isVfxParticleTraitName(name: string): boolean {
+  return name.startsWith('vfx_particle_');
+}
+
+function vfxParticleEffect(name: string): string {
+  return name.replace('vfx_particle_', '');
+}
+
 export interface R3FNode {
   type: string;
   id?: string;
@@ -3193,6 +3201,14 @@ export class R3FCompiler {
           props.compute = trait.config || true;
         } else if (name === 'gpu_particle') {
           props.gpuParticle = trait.config || { count: 10000 };
+        } else if (isVfxParticleTraitName(name)) {
+          const particleConfig = {
+            effect: vfxParticleEffect(name),
+            ...(trait.config || {}),
+          };
+          const gpuParticles = (props.gpuParticles as Record<string, unknown>[] | undefined) ?? [];
+          props.gpuParticles = [...gpuParticles, particleConfig];
+          if (!props.gpuParticle) props.gpuParticle = particleConfig;
         } else if (name === 'gpu_physics') {
           props.gpuPhysics = trait.config || true;
         }

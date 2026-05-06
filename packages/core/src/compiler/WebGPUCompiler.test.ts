@@ -415,6 +415,23 @@ describe('WebGPUCompiler', () => {
       expect(result).toContain('ParticlePipeline');
     });
 
+    it('should handle VFX particle subtype traits as GPU particles', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('sparkObj', {
+            traits: [{ name: 'vfx_particle_sparks', config: { count: 640 } }],
+          }),
+        ],
+      });
+
+      const result = compiler.compile(composition, 'test-token');
+
+      expect(result).toContain('// GPU Particles (640) from @vfx_particle_sparks');
+      expect(result).toContain('sparkObjParticleCount = 640');
+      expect(result).toContain('sparkObjParticlePipeline');
+      expect(result).toContain('sparkObjParticleCompute');
+    });
+
     it('should handle gpu_physics trait', () => {
       const composition = createComposition({
         objects: [

@@ -99,6 +99,26 @@ describe('R3FCompiler — Production', () => {
       expect(result.children!.length).toBeGreaterThan(0);
     });
 
+    it('adapts VFX particle subtype traits to GPU particle props', () => {
+      const result = compiler.compileComposition(
+        makeComp({
+          objects: [
+            makeObj('sparkBall', 'sphere', [
+              { name: 'vfx_particle_sparks', config: { count: 256 } },
+              { name: 'vfx_particle_smoke', config: { density: 0.4 } },
+            ]),
+          ],
+        })
+      );
+
+      const objNode = result.children!.find((c) => c.id === 'sparkBall');
+      expect(objNode?.props.gpuParticle).toMatchObject({ effect: 'sparks', count: 256 });
+      expect(objNode?.props.gpuParticles).toEqual([
+        expect.objectContaining({ effect: 'sparks', count: 256 }),
+        expect.objectContaining({ effect: 'smoke', density: 0.4 }),
+      ]);
+    });
+
     it('compiled object preserves name as id', () => {
       const result = compiler.compileComposition(makeComp({ objects: [makeObj('myBox')] }));
       const objNode = result.children!.find((c) => c.id === 'myBox');

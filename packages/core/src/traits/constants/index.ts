@@ -27,6 +27,7 @@ import { OBJECT_INTERACTION_TRAITS } from './object-interaction';
 import { RESOURCE_GATHERING_TRAITS } from './resource-gathering';
 import { GAME_MECHANICS_TRAITS } from './game-mechanics';
 import { VISUAL_EFFECTS_TRAITS } from './visual-effects';
+import { VFX_PARTICLE_TRAITS } from './vfx-audio';
 import { ENVIRONMENTAL_BIOME_TRAITS } from './environmental-biome';
 import { SOCIAL_COMMERCE_TRAITS } from './social-commerce';
 import { INTELLIGENCE_BEHAVIOR_TRAITS } from './intelligence-behavior';
@@ -218,6 +219,7 @@ export const VR_TRAITS = [
   ...RESOURCE_GATHERING_TRAITS,
   ...GAME_MECHANICS_TRAITS,
   ...VISUAL_EFFECTS_TRAITS,
+  ...VFX_PARTICLE_TRAITS,
   ...ENVIRONMENTAL_BIOME_TRAITS,
   ...SOCIAL_COMMERCE_TRAITS,
   ...INTELLIGENCE_BEHAVIOR_TRAITS,
@@ -493,6 +495,7 @@ export { OBJECT_INTERACTION_TRAITS } from './object-interaction';
 export { RESOURCE_GATHERING_TRAITS } from './resource-gathering';
 export { GAME_MECHANICS_TRAITS } from './game-mechanics';
 export { VISUAL_EFFECTS_TRAITS } from './visual-effects';
+export { VFX_AUDIO_TRAITS, VFX_PARTICLE_TRAITS, SPATIAL_AUDIO_EXTENSION_TRAITS } from './vfx-audio';
 export { ENVIRONMENTAL_BIOME_TRAITS } from './environmental-biome';
 export { SOCIAL_COMMERCE_TRAITS } from './social-commerce';
 export { INTELLIGENCE_BEHAVIOR_TRAITS } from './intelligence-behavior';
@@ -832,4 +835,3 @@ export {
   type ConnectorIntegrationTraitName,
   type KnownConnector,
 } from './connector-integration';
-

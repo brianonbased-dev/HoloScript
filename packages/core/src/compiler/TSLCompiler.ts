@@ -155,6 +155,56 @@ interface TraitShaderMapping {
   workgroupSize?: [number, number, number];
 }
 
+function isGpuParticleTraitName(name: string): boolean {
+  return name === 'gpu_particle' || name.startsWith('vfx_particle_');
+}
+
+const GPU_PARTICLE_SHADER_MAPPING: TraitShaderMapping = {
+  uniforms: [
+    { configKey: 'count', shaderName: 'u_particleCount', type: 'u32', defaultValue: '10000u' },
+    { configKey: 'gravity', shaderName: 'u_gravity', type: 'f32', defaultValue: '-9.81' },
+    { configKey: 'lifetime', shaderName: 'u_lifetime', type: 'f32', defaultValue: '2.0' },
+    { configKey: 'emit_rate', shaderName: 'u_emitRate', type: 'f32', defaultValue: '100.0' },
+  ],
+  computeContribution: `
+    // GPU particle trait: particle simulation
+    struct Particle {
+      pos: vec3<f32>,
+      _pad0: f32,
+      vel: vec3<f32>,
+      life: f32,
+    };
+
+    @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
+    @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
+    @group(0) @binding(2) var<uniform> dt: f32;
+
+    @compute @workgroup_size(64)
+    fn cs_particle_update(@builtin(global_invocation_id) gid: vec3<u32>) {
+      let i = gid[0];
+      if (i >= arrayLength(&particlesIn)) { return; }
+
+      var p = particlesIn[i];
+      p.vel[1] += material.u_gravity * dt;
+      p.pos += p.vel * dt;
+      p.life -= dt;
+
+      if (p.life <= 0.0) {
+        p.pos = vec3<f32>(0.0);
+        p.vel = vec3<f32>(0.0, 5.0, 0.0);
+        p.life = material.u_lifetime;
+      }
+
+      particlesOut[i] = p;
+    }`,
+  fragmentContribution: `
+    // GPU particle trait: particle rendering
+    let particleLife = clamp(in.worldPosition[1] / 5.0, 0.0, 1.0);
+    baseColor = mix(vec3<f32>(1.0, 0.2, 0.0), vec3<f32>(1.0, 1.0, 0.5), particleLife);
+    alpha = particleLife * 0.8;`,
+  workgroupSize: [64, 1, 1],
+};
+
 const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
   // ─── Material Traits ─────────────────────────────────────────────────
   shader: {
@@ -307,51 +357,15 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
   },
 
   // ─── GPU Compute Traits ──────────────────────────────────────────────
-  gpu_particle: {
-    uniforms: [
-      { configKey: 'count', shaderName: 'u_particleCount', type: 'u32', defaultValue: '10000u' },
-      { configKey: 'gravity', shaderName: 'u_gravity', type: 'f32', defaultValue: '-9.81' },
-      { configKey: 'lifetime', shaderName: 'u_lifetime', type: 'f32', defaultValue: '2.0' },
-      { configKey: 'emit_rate', shaderName: 'u_emitRate', type: 'f32', defaultValue: '100.0' },
-    ],
-    computeContribution: `
-    // @gpu_particle trait: GPU particle simulation
-    struct Particle {
-      pos: vec3<f32>,
-      _pad0: f32,
-      vel: vec3<f32>,
-      life: f32,
-    };
-
-    @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
-    @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
-    @group(0) @binding(2) var<uniform> dt: f32;
-
-    @compute @workgroup_size(64)
-    fn cs_particle_update(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let i = gid[0];
-      if (i >= arrayLength(&particlesIn)) { return; }
-
-      var p = particlesIn[i];
-      p.vel[1] += material.u_gravity * dt;
-      p.pos += p.vel * dt;
-      p.life -= dt;
-
-      if (p.life <= 0.0) {
-        p.pos = vec3<f32>(0.0);
-        p.vel = vec3<f32>(0.0, 5.0, 0.0);
-        p.life = material.u_lifetime;
-      }
-
-      particlesOut[i] = p;
-    }`,
-    fragmentContribution: `
-    // @gpu_particle trait: particle rendering
-    let particleLife = clamp(in.worldPosition[1] / 5.0, 0.0, 1.0);
-    baseColor = mix(vec3<f32>(1.0, 0.2, 0.0), vec3<f32>(1.0, 1.0, 0.5), particleLife);
-    alpha = particleLife * 0.8;`,
-    workgroupSize: [64, 1, 1],
-  },
+  gpu_particle: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_fire: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_smoke: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_sparks: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_dust: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_rain: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_snow: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_fog: GPU_PARTICLE_SHADER_MAPPING,
+  vfx_particle_emitter: GPU_PARTICLE_SHADER_MAPPING,
 
   gpu_physics: {
     uniforms: [
@@ -1465,7 +1479,7 @@ ${contribution.computeCode}
         );
         lines.push(`      layout: 'auto',`);
         lines.push(
-          `      compute: { module: ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}ComputeModule, entryPoint: 'cs_${ct.name === 'gpu_particle' ? 'particle_update' : ct.name === 'gpu_physics' ? 'physics_step' : 'generic'}' },`
+          `      compute: { module: ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}ComputeModule, entryPoint: 'cs_${isGpuParticleTraitName(ct.name) ? 'particle_update' : ct.name === 'gpu_physics' ? 'physics_step' : 'generic'}' },`
         );
         lines.push(`    });`);
         lines.push(

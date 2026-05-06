@@ -33,6 +33,18 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(node.traits.has('networked')).toBe(true);
     expect(node.traits.has('grabbable')).toBe(true);
   });
+
+  it('Parses VFX particle subtype traits as first-class VR traits', () => {
+    const source = `object#fx_ball @vfx_particle_sparks(color: "#ffaa22", intensity: 2) @vfx_particle_smoke(density: 0.7, drift: [0.1, 0.4, 0]) { position: [0, 1, 0] }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const node = result.ast.root;
+    expect(node.traits.has('vfx_particle_sparks')).toBe(true);
+    expect(node.traits.get('vfx_particle_sparks')?.intensity).toBe(2);
+    expect(node.traits.has('vfx_particle_smoke')).toBe(true);
+    expect(node.traits.get('vfx_particle_smoke')?.density).toBe(0.7);
+  });
 });
 
 describe('HoloScriptPlusParser - Control Flow', () => {

@@ -68,6 +68,16 @@ describe('VRTraitSystem — Production', () => {
       expect(vrTraitRegistry.getHandler('rotatable' as any)).toBeDefined();
     });
 
+    it('registers VFX particle subtype handlers through the GPU particle adapter', () => {
+      const sparks = vrTraitRegistry.getHandler('vfx_particle_sparks' as any);
+      const smoke = vrTraitRegistry.getHandler('vfx_particle_smoke' as any);
+
+      expect(sparks).toBeDefined();
+      expect(smoke).toBeDefined();
+      expect(sparks?.defaultConfig).toMatchObject({ effect: 'sparks', blend_mode: 'additive' });
+      expect(smoke?.defaultConfig).toMatchObject({ effect: 'smoke', blend_mode: 'alpha' });
+    });
+
     it('returns undefined for unknown handler', () => {
       expect(vrTraitRegistry.getHandler('nonexistent_trait' as any)).toBeUndefined();
     });
@@ -139,6 +149,27 @@ describe('VRTraitSystem — Production', () => {
       const node = makeNode();
       reg.attachTrait(node, 'does_not_exist', {}, makeContext());
       expect(node.traits.size).toBe(0);
+    });
+
+    it('attaches VFX particle subtype traits via gpu_particle_create', () => {
+      const reg = new VRTraitRegistry();
+      const node = makeNode('spark-emitter');
+      const ctx = makeContext();
+
+      reg.attachTrait(node, 'vfx_particle_sparks' as any, { count: 64 }, ctx);
+
+      expect(node.traits.get('vfx_particle_sparks')).toMatchObject({
+        effect: 'sparks',
+        count: 64,
+      });
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'gpu_particle_create',
+        expect.objectContaining({
+          node,
+          maxParticles: 64,
+          blendMode: 'additive',
+        })
+      );
     });
   });
 
