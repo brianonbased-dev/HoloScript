@@ -40,6 +40,8 @@ import {
   type ConsolidationResult,
   type ReconsolidationEvent,
   type DomainConsolidationConfig,
+  type MemoryReceipt,
+  hashString,
 } from './types';
 
 /** Reconsolidation window duration (5 minutes) */
@@ -398,7 +400,9 @@ Insight("${this.agentDid}_${Date.now()}") {
     try {
       return JSON.parse(raw);
     } catch (e) {
-      console.warn(`[crdt-sync] Failed to parse reputation for agent ${agentDid}: ${(e as Error)?.message}. Raw data: ${String(raw).slice(0, 80)}. Entry skipped.`);
+      console.warn(
+        `[crdt-sync] Failed to parse reputation for agent ${agentDid}: ${(e as Error)?.message}. Raw data: ${String(raw).slice(0, 80)}. Entry skipped.`
+      );
       return null;
     }
   }
@@ -693,6 +697,7 @@ Insight("${this.agentDid}_${Date.now()}") {
       ingestedAt: Date.now(),
       corroborations: [sourcePeerDid],
       sourcePeerDid,
+      retentionState: 'candidate',
     };
     buffer.push(hotEntry);
     this.hotBuffer.set(domain, buffer);
@@ -818,6 +823,26 @@ Insight("${this.agentDid}_${Date.now()}") {
         excitability.corroborationCount = entry.corroborations.length;
         excitability.excitability = computeExcitability(excitability);
 
+        const receipt: MemoryReceipt = {
+          id: `receipt_${entryId}_${now}`,
+          rawSourceIds: [entry.id],
+          sourceHashes: [
+            {
+              sourceId: entry.id,
+              hash: hashString(
+                `${entry.content}|${entry.type}|${entry.authorDid}|${entry.tags.join(',')}`
+              ),
+              algorithm: 'custom',
+            },
+          ],
+          extractorVersion: 'crdt-sync-v9',
+          modelIdentity: { agentId: this.agentDid, agentName: 'crdt-sync' },
+          toolIdentity: { toolName: 'consolidateDomain' },
+          timestamp: now,
+          corroborators: entry.corroborations,
+          confidence: entry.corroborations.length >= config.minCorroborations ? 1.0 : 0.0,
+        };
+
         const coldEntry = {
           content: entry.content,
           type: entry.type,
@@ -827,6 +852,8 @@ Insight("${this.agentDid}_${Date.now()}") {
           accessCount: 0,
           lastAccessed: 0,
           _excitability: excitability,
+          retentionState: 'retained',
+          memoryReceipt: receipt,
         };
         domainMap.set(entryId, JSON.stringify(coldEntry));
         promoted++;
@@ -868,6 +895,8 @@ Insight("${this.agentDid}_${Date.now()}") {
       merged,
       evicted,
       dropped,
+      quarantined: 0,
+      rejected: 0,
       downscaleFactor: config.downscaleFactor,
       consolidatedAt: now,
     };
@@ -968,7 +997,9 @@ Insight("${this.agentDid}_${Date.now()}") {
 
       return { entry, reconsolidation: reconEvent };
     } catch (e) {
-      console.warn(`[crdt-sync] Failed to deserialize knowledge entry ${domain}/${entryId}: ${(e as Error)?.message}. Raw: ${String(raw).slice(0, 80)}. Entry skipped — may need manual repair.`);
+      console.warn(
+        `[crdt-sync] Failed to deserialize knowledge entry ${domain}/${entryId}: ${(e as Error)?.message}. Raw: ${String(raw).slice(0, 80)}. Entry skipped — may need manual repair.`
+      );
       return null;
     }
   }

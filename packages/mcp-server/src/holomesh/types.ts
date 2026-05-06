@@ -13,6 +13,7 @@ export type {
   HotBufferEntry,
   ConsolidationResult,
   ReconsolidationEvent,
+  MemoryReceipt,
 } from '@holoscript/framework';
 
 import type { TeamTask, BountyManager } from '@holoscript/framework';
@@ -26,6 +27,7 @@ export {
   applyHalfLifeDecay,
   RECONSOLIDATION_WINDOW_MS,
   triggerReconsolidation,
+  hashString,
 } from '@holoscript/framework';
 
 // --- Agent Identity ---
@@ -103,8 +105,7 @@ export interface ExportSession {
   packageManifestHash?: string;
 }
 
-export interface SerializedExportSession
-  extends Omit<ExportSession, 'idempotencyKeys'> {
+export interface SerializedExportSession extends Omit<ExportSession, 'idempotencyKeys'> {
   idempotencyKeys: string[];
 }
 
@@ -487,14 +488,14 @@ export interface Team {
   inviteCode?: string;
   waitlist: string[];
   createdAt: string;
-  
+
   // Board data
   taskBoard?: TeamTask[];
   doneLog?: TeamTask[];
 
   /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
   knowledge?: MeshKnowledgeEntry[];
-  
+
   // Bounty data (V7 Expansion)
   bounties?: BountyManager;
   submissions?: StoredBountySubmission[];
@@ -609,7 +610,14 @@ export interface TeamModeChangeFeedItem {
 export type TeamFeedItem = TeamHologramFeedItem | TeamModeChangeFeedItem;
 
 export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
-  owner: ['board:write', 'board:read', 'members:manage', 'config:write', 'messages:write', 'messages:read'],
+  owner: [
+    'board:write',
+    'board:read',
+    'members:manage',
+    'config:write',
+    'messages:write',
+    'messages:read',
+  ],
   lead: ['board:write', 'board:read', 'members:invite', 'messages:write', 'messages:read'],
   member: ['board:read', 'board:write', 'board:claim', 'messages:write', 'messages:read'],
   guest: ['board:read', 'messages:read'],
@@ -712,7 +720,7 @@ export interface StoredBountySubmission {
   agentName?: string; // Legacy
   submitterId: string;
   submitterName: string;
-  proof?: string; 
+  proof?: string;
   status: 'pending' | 'submitted' | 'accepted' | 'rejected' | 'paid';
   submittedAt: string;
   reviewedAt?: string;

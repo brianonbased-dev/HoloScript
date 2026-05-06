@@ -118,7 +118,9 @@ export function validateMemoryReceipt(receipt: MemoryReceipt | undefined): strin
     if (!sourceHash.sourceId) errors.push('MemoryReceipt.sourceHashes.sourceId is required.');
     if (!sourceHash.hash) errors.push('MemoryReceipt.sourceHashes.hash is required.');
     if (!['sha256', 'git-blob', 'cid', 'custom'].includes(sourceHash.algorithm)) {
-      errors.push(`MemoryReceipt.sourceHashes.algorithm is unsupported: ${String(sourceHash.algorithm)}.`);
+      errors.push(
+        `MemoryReceipt.sourceHashes.algorithm is unsupported: ${String(sourceHash.algorithm)}.`
+      );
     }
   }
   if (!receipt.extractorVersion) errors.push('MemoryReceipt.extractorVersion is required.');
@@ -129,7 +131,8 @@ export function validateMemoryReceipt(receipt: MemoryReceipt | undefined): strin
   ) {
     errors.push('MemoryReceipt.modelIdentity needs model, agentId, or agentName.');
   }
-  if (!receipt.toolIdentity?.toolName) errors.push('MemoryReceipt.toolIdentity.toolName is required.');
+  if (!receipt.toolIdentity?.toolName)
+    errors.push('MemoryReceipt.toolIdentity.toolName is required.');
   if (!Number.isFinite(receipt.timestamp) || receipt.timestamp <= 0) {
     errors.push('MemoryReceipt.timestamp must be a positive epoch milliseconds value.');
   }
@@ -339,7 +342,12 @@ export class ConsolidationEngine {
         this.quarantineEntry(domain, entry, receiptErrors);
         quarantined++;
       } else if (containsInjectionPattern(entry.content)) {
-        this.quarantineEntry(domain, entry, ['Content failed injection-pattern sanitization.'], 'rejected');
+        this.quarantineEntry(
+          domain,
+          entry,
+          ['Content failed injection-pattern sanitization.'],
+          'rejected'
+        );
         rejected++;
       } else {
         sanitized.push(entry);

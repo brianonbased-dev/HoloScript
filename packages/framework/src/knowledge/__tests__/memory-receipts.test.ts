@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ConsolidationEngine,
-  validateMemoryReceipt,
-  type MemoryReceipt,
-} from '../../index';
+import { ConsolidationEngine, validateMemoryReceipt } from '../consolidation';
+import type { MemoryReceipt } from '../brain';
 
 function makeReceipt(overrides: Partial<MemoryReceipt> = {}): MemoryReceipt {
   return {
@@ -132,9 +129,9 @@ describe('memory receipts', () => {
     expect(quarantine[0].state).toBe('quarantined');
     expect(quarantine[0].reasons).toContain('MemoryReceipt is required before retention.');
 
-    expect(engine.rejectQuarantinedMemory('agents', quarantine[0].entry.id, 'No raw source hash.')).toBe(
-      true
-    );
+    expect(
+      engine.rejectQuarantinedMemory('agents', quarantine[0].entry.id, 'No raw source hash.')
+    ).toBe(true);
     expect(engine.getQuarantine('agents')[0].state).toBe('rejected');
   });
 

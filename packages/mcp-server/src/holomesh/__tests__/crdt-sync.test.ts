@@ -617,9 +617,14 @@ describe('HoloMeshWorldState', () => {
       if (mapInst) mapInst.delete = vi.fn();
 
       const result = ws.consolidateDomain('general');
+      const retained = Object.values(mockMaps['knowledge.general']).map((raw) => JSON.parse(raw));
+
       expect(result.domain).toBe('general');
       expect(result.promoted).toBe(1);
       expect(result.dropped).toBe(0);
+      expect(retained[0].retentionState).toBe('retained');
+      expect(retained[0].memoryReceipt.rawSourceIds).toHaveLength(1);
+      expect(retained[0].memoryReceipt.sourceHashes[0].algorithm).toBe('custom');
     });
 
     it('consolidateDomain drops entries with insufficient corroborations', () => {
@@ -773,6 +778,164 @@ describe('HoloMeshWorldState', () => {
 
       const results = ws.sleepCycle(true);
       expect(results.length).toBe(5);
+    });
+
+    it('consolidateDomain generates MemoryReceipt for promoted entries', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Insight with provenance',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: ['test'],
+        },
+        'peer-1'
+      );
+
+      // Backdate to exceed hotBufferTTL (general = 6h)
+      (ws as any).hotBuffer.get('general')[0].ingestedAt = Date.now() - 7 * 60 * 60 * 1000;
+
+      ws.consolidateDomain('general');
+
+      // Parse the promoted entry from the mock domain map
+      const keys = Object.keys(mockMaps['knowledge.general']);
+      expect(keys.length).toBe(1);
+      const coldEntry = JSON.parse(mockMaps['knowledge.general'][keys[0]]);
+
+      expect(coldEntry.memoryReceipt).toBeDefined();
+      expect(coldEntry.memoryReceipt.id).toContain('receipt_');
+      expect(coldEntry.memoryReceipt.rawSourceIds).toEqual([
+        expect.stringContaining('hot_general_'),
+      ]);
+      expect(coldEntry.memoryReceipt.sourceHashes).toHaveLength(1);
+      expect(coldEntry.memoryReceipt.sourceHashes[0].algorithm).toBe('custom');
+      expect(coldEntry.memoryReceipt.extractorVersion).toBe('crdt-sync-v9');
+      expect(coldEntry.memoryReceipt.modelIdentity).toMatchObject({
+        agentId: 'agent-did-12345',
+        agentName: 'crdt-sync',
+      });
+      expect(coldEntry.memoryReceipt.toolIdentity).toMatchObject({
+        toolName: 'consolidateDomain',
+      });
+      expect(coldEntry.memoryReceipt.timestamp).toBeGreaterThan(0);
+      expect(coldEntry.memoryReceipt.corroborators).toEqual(['peer-1']);
+      expect(coldEntry.memoryReceipt.confidence).toBe(1.0);
+      expect(coldEntry.retentionState).toBe('retained');
+    });
+
+    it('consolidateDomain drops entries without sufficient corroborations and does not generate receipt', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+
+      // Security requires minCorroborations = 2
+      ws.ingestToHotBuffer(
+        'security',
+        {
+          content: 'Unverified claim',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: [],
+        },
+        'peer-1'
+      );
+
+      // Backdate past TTL (security = 1h)
+      (ws as any).hotBuffer.get('security')[0].ingestedAt = Date.now() - 2 * 60 * 60 * 1000;
+
+      const result = ws.consolidateDomain('security');
+      expect(result.dropped).toBe(1);
+      expect(result.promoted).toBe(0);
+
+      // No entry should exist in cold store
+      expect(Object.keys(mockMaps['knowledge.security'] || {})).toHaveLength(0);
+    });
+
+    it('consolidateDomain includes merged corroborators in MemoryReceipt', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Shared insight',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: ['test'],
+        },
+        'peer-1'
+      );
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Shared insight',
+          type: 'wisdom',
+          authorDid: 'peer-2',
+          tags: ['test'],
+        },
+        'peer-2'
+      );
+
+      const buf = (ws as any).hotBuffer.get('general');
+      buf[0].ingestedAt = Date.now() - 7 * 60 * 60 * 1000;
+      buf[1].ingestedAt = Date.now() - 7 * 60 * 60 * 1000;
+
+      const mapInst = mockMapInstances['knowledge.general'];
+      if (mapInst) mapInst.delete = vi.fn();
+
+      const result = ws.consolidateDomain('general');
+      expect(result.merged).toBe(1);
+      expect(result.promoted).toBe(1);
+
+      const keys = Object.keys(mockMaps['knowledge.general']);
+      expect(keys.length).toBe(1);
+      const coldEntry = JSON.parse(mockMaps['knowledge.general'][keys[0]]);
+
+      expect(coldEntry.memoryReceipt.corroborators).toContain('peer-1');
+      expect(coldEntry.memoryReceipt.corroborators).toContain('peer-2');
+      expect(coldEntry.memoryReceipt.confidence).toBe(1.0);
+    });
+
+    it('sleepCycle generates MemoryReceipts across all domains', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+
+      for (const domain of ['security', 'rendering', 'agents', 'compilation', 'general'] as const) {
+        (ws as any).lastConsolidation.set(domain, 0);
+        const mapInst = mockMapInstances[`knowledge.${domain}`];
+        if (mapInst) mapInst.delete = vi.fn();
+      }
+
+      // Seed one entry per domain with enough corroborations
+      for (const domain of ['security', 'rendering', 'agents', 'compilation', 'general'] as const) {
+        const entry = ws.ingestToHotBuffer(
+          domain,
+          {
+            content: `Domain ${domain} insight`,
+            type: 'wisdom',
+            authorDid: 'peer-1',
+            tags: [domain],
+          },
+          'peer-1'
+        );
+        // Add second corroboration for security (needs 2)
+        if (domain === 'security') {
+          ws.corroborateHotEntry(domain, entry.id, 'peer-2');
+        }
+        // Backdate past TTL
+        const buf = (ws as any).hotBuffer.get(domain);
+        buf[0].ingestedAt = Date.now() - 25 * 60 * 60 * 1000; // 25h > all TTLs
+      }
+
+      const results = ws.sleepCycle();
+      expect(results.length).toBe(5);
+
+      for (const domain of ['security', 'rendering', 'agents', 'compilation', 'general'] as const) {
+        const keys = Object.keys(mockMaps[`knowledge.${domain}`] || {});
+        expect(keys.length).toBeGreaterThanOrEqual(1);
+        const coldEntry = JSON.parse(mockMaps[`knowledge.${domain}`][keys[0]]);
+        expect(coldEntry.memoryReceipt).toBeDefined();
+        expect(coldEntry.memoryReceipt.extractorVersion).toBe('crdt-sync-v9');
+        expect(coldEntry.retentionState).toBe('retained');
+      }
     });
 
     it('needsConsolidation reports overdue domains', () => {
