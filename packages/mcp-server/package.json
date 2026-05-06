@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
@@ -21,7 +22,8 @@
     "start.js"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/sync-public-types.mjs",
+    "check:public-types": "node scripts/sync-public-types.mjs --check",
     "dev": "tsx watch src/index.ts",
     "start": "node start.js",
     "scout:start": "npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout",
