@@ -160,6 +160,7 @@ export * from './LotusStalkTrait';
 export * from './LotusPetalTrait';
 export * from './LotusCenterTrait';
 export * from './LotusGardenerTrait';
+export * from './BeatmapTrait';
 export { PIDControllerTrait } from './PIDControllerTrait';
 export * from './PlaneDetectionTrait';
 export * from './PointCloudTrait';

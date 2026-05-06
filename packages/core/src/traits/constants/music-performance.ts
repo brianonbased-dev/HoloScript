@@ -38,4 +38,5 @@ export const MUSIC_PERFORMANCE_TRAITS = [
   'tempo',
   'key_signature',
   'chord_progression',
+  'beatmap',
 ] as const;
