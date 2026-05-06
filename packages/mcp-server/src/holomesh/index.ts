@@ -45,6 +45,11 @@ export { HoloMeshOrchestratorClient } from './orchestrator-client';
 export type { WalletAuth } from './orchestrator-client';
 export { HoloMeshDiscovery } from './discovery';
 export { HoloMeshWorldState } from './crdt-sync';
+export {
+  HoloMeshConsolidationBridge,
+  getConsolidationBridge,
+  resetConsolidationBridge,
+} from './consolidation-bridge';
 export { deriveAgentDid, isWalletDid, verifyGossipSignature } from './wallet-auth';
 export {
   DEFAULT_MESH_CONFIG,
@@ -70,7 +75,6 @@ export type {
   KnowledgeDomain,
   DomainConsolidationConfig,
   HotBufferEntry,
-  
   ConsolidationResult,
   ReconsolidationEvent,
 } from './types';

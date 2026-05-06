@@ -594,6 +594,16 @@ export class ConsolidationEngine {
     return true;
   }
 
+  /**
+   * Discard an entry permanently from cold store (rollback / manual deletion).
+   * Unlike deprecation, this removes immediately without waiting for prune.
+   */
+  discardEntry(domain: KnowledgeDomain, entryId: string): boolean {
+    const coldStore = this.coldStores.get(domain);
+    if (!coldStore) return false;
+    return coldStore.delete(entryId);
+  }
+
   // ── Inspection ──
 
   /** Get hot buffer contents for a domain (copy). */

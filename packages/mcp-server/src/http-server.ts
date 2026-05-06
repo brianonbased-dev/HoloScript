@@ -69,6 +69,7 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores, teamStore } from './holomesh/state';
+import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 import type { GossipDeltaRequest } from './holomesh/types';
@@ -2930,27 +2931,27 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 })();
 
 // ─── Thermodynamic consolidation timer ─────────────────────────────────────
-// Runs the biological sleep cycle every 6 hours (matching security domain's
-// sleepFrequencyMs). Creates a transient HoloMeshWorldState, loads from disk,
-// runs consolidation, and persists. This is the "brain sleeping" — replaying,
-// merging, downscaling, and pruning knowledge entries across all 5 domains.
+// Runs the biological sleep cycle every 6 hours via HoloMeshConsolidationBridge.
+// The bridge wraps ConsolidationEngine from @holoscript/framework and adds:
+//   - explicit trigger paths from HoloMesh knowledge + session reports
+//   - timer / entropy / conflict / manual triggers
+//   - reviewed quarantine output (safe Dreaming pattern)
+//   - run logs with rollback / discard behavior
 const CONSOLIDATION_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function runConsolidationCycle(): void {
   try {
-    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
-    const agentId = process.env.AGENT_DID || `did:holo:server:${process.env.PORT || 3001}`;
-    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-
-    const results = worldState.sleepCycle(false); // Only consolidate overdue domains
-    const totalPromoted = results.reduce((s, r) => s + r.promoted, 0);
-    const totalEvicted = results.reduce((s, r) => s + r.evicted, 0);
-    const totalMerged = results.reduce((s, r) => s + r.merged, 0);
-    const totalDropped = results.reduce((s, r) => s + r.dropped, 0);
-
+    const bridge = getConsolidationBridge();
+    const results = bridge.triggerTimer();
     if (results.length > 0) {
+      const totalPromoted = results.reduce((s, r) => s + r.promoted, 0);
+      const totalEvicted = results.reduce((s, r) => s + r.evicted, 0);
+      const totalMerged = results.reduce((s, r) => s + r.merged, 0);
+      const totalDropped = results.reduce((s, r) => s + r.dropped, 0);
+      const totalQuarantined = results.reduce((s, r) => s + r.quarantined, 0);
+      const totalRejected = results.reduce((s, r) => s + r.rejected, 0);
       console.info(
-        `[consolidation] Sleep cycle: ${results.length} domains consolidated — promoted:${totalPromoted} merged:${totalMerged} evicted:${totalEvicted} dropped:${totalDropped}`
+        `[consolidation] Sleep cycle: ${results.length} domains consolidated — promoted:${totalPromoted} merged:${totalMerged} evicted:${totalEvicted} dropped:${totalDropped} quarantined:${totalQuarantined} rejected:${totalRejected}`
       );
     }
   } catch (err) {

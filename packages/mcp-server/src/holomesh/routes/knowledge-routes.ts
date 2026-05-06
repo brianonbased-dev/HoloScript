@@ -18,17 +18,12 @@ import {
   selfImprovingWorldStore,
   reloadTeam,
 } from '../state';
-import { 
-  json, 
-  parseQuery, 
-  parseJsonBody, 
-  extractParam,
-  getTeamMember,
-} from '../utils';
+import { json, parseQuery, parseJsonBody, extractParam, getTeamMember } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
+import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import type {
   MeshKnowledgeEntry,
@@ -76,7 +71,9 @@ function getOrCreateAuditKeyPair(): { privateKeyPem: string; publicKeyPem: strin
   return { privateKeyPem, publicKeyPem };
 }
 
-function buildAuditPayload(entry: Pick<MeshKnowledgeEntry, 'id' | 'authorId' | 'createdAt' | 'provenanceHash'>): string {
+function buildAuditPayload(
+  entry: Pick<MeshKnowledgeEntry, 'id' | 'authorId' | 'createdAt' | 'provenanceHash'>
+): string {
   return JSON.stringify({
     id: entry.id,
     authorId: entry.authorId,
@@ -85,7 +82,11 @@ function buildAuditPayload(entry: Pick<MeshKnowledgeEntry, 'id' | 'authorId' | '
   });
 }
 
-function signAuditPayload(payload: string): { signature: string; publicKeyPem: string; payloadHash: string } {
+function signAuditPayload(payload: string): {
+  signature: string;
+  publicKeyPem: string;
+  payloadHash: string;
+} {
   const { privateKeyPem, publicKeyPem } = getOrCreateAuditKeyPair();
   const signature = crypto.sign(null, Buffer.from(payload), privateKeyPem).toString('base64');
   const payloadHash = crypto.createHash('sha256').update(payload).digest('hex');
@@ -123,7 +124,8 @@ function toHoloAlphaEnvelope(sourceFormat: string, source: unknown): string {
 
 function deriveStoryBeats(chapterText: string): StoryWeaverBeat[] {
   const now = new Date().toISOString();
-  const slice = (start: number, len: number): string => chapterText.slice(start, Math.min(chapterText.length, start + len)).trim();
+  const slice = (start: number, len: number): string =>
+    chapterText.slice(start, Math.min(chapterText.length, start + len)).trim();
   const fallback = chapterText.trim().slice(0, 160) || 'Narrative beat pending.';
   const setupText = slice(0, 140) || fallback;
   const conflictText = slice(Math.floor(chapterText.length * 0.25), 140) || fallback;
@@ -134,7 +136,12 @@ function deriveStoryBeats(chapterText: string): StoryWeaverBeat[] {
     { id: `beat_${Date.now()}_setup`, kind: 'setup', text: setupText, createdAt: now },
     { id: `beat_${Date.now()}_conflict`, kind: 'conflict', text: conflictText, createdAt: now },
     { id: `beat_${Date.now()}_twist`, kind: 'twist', text: twistText, createdAt: now },
-    { id: `beat_${Date.now()}_resolution`, kind: 'resolution', text: resolutionText, createdAt: now },
+    {
+      id: `beat_${Date.now()}_resolution`,
+      kind: 'resolution',
+      text: resolutionText,
+      createdAt: now,
+    },
   ];
 }
 
@@ -146,7 +153,7 @@ function inferWorldPatches(observations: string[], goal?: string): SelfImproving
     action: SelfImprovingWorldPatch['action'],
     reason: string,
     proposedValue: Record<string, unknown>,
-    confidence: number,
+    confidence: number
   ): SelfImprovingWorldPatch => ({
     id: `patch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     traitPath,
@@ -158,33 +165,68 @@ function inferWorldPatches(observations: string[], goal?: string): SelfImproving
 
   if (/lag|slow|fps|stutter|frame/.test(text)) {
     patches.push(
-      mk('rendering.lod', 'update', 'Observed performance degradation', { distanceBias: 1.25, maxDetailTier: 2 }, 0.82),
+      mk(
+        'rendering.lod',
+        'update',
+        'Observed performance degradation',
+        { distanceBias: 1.25, maxDetailTier: 2 },
+        0.82
+      )
     );
   }
   if (/collision|clip|physics|fall through/.test(text)) {
     patches.push(
-      mk('physics.collision', 'update', 'Physics/collision instability detected', { broadphase: 'sweep-and-prune', substeps: 4 }, 0.79),
+      mk(
+        'physics.collision',
+        'update',
+        'Physics/collision instability detected',
+        { broadphase: 'sweep-and-prune', substeps: 4 },
+        0.79
+      )
     );
   }
   if (/agent|npc|path|nav/.test(text)) {
     patches.push(
-      mk('ai.navigation', 'update', 'Navigation issues reported', { repathIntervalMs: 800, avoidanceRadius: 1.2 }, 0.76),
+      mk(
+        'ai.navigation',
+        'update',
+        'Navigation issues reported',
+        { repathIntervalMs: 800, avoidanceRadius: 1.2 },
+        0.76
+      )
     );
   }
   if (/lighting|dark|overexposed|bloom/.test(text)) {
     patches.push(
-      mk('rendering.postfx', 'update', 'Lighting quality imbalance', { bloom: 0.35, tonemap: 'aces' }, 0.72),
+      mk(
+        'rendering.postfx',
+        'update',
+        'Lighting quality imbalance',
+        { bloom: 0.35, tonemap: 'aces' },
+        0.72
+      )
     );
   }
   if (patches.length === 0) {
     patches.push(
-      mk('world.meta', 'update', goal ? `Goal-driven optimization for: ${goal}` : 'General world stabilization', { tune: 'balanced' }, 0.61),
+      mk(
+        'world.meta',
+        'update',
+        goal ? `Goal-driven optimization for: ${goal}` : 'General world stabilization',
+        { tune: 'balanced' },
+        0.61
+      )
     );
   }
   return patches;
 }
 
-function buildEdgeExecutionPlan(source: string, device: string, memoryKb: number, flashKb: number): {
+function buildEdgeExecutionPlan(
+  source: string,
+  device: string,
+  memoryKb: number,
+  flashKb: number
+): {
   profile: string;
   warnings: string[];
   optimizations: string[];
@@ -201,11 +243,17 @@ function buildEdgeExecutionPlan(source: string, device: string, memoryKb: number
   const ramEstimate = Math.max(32, Math.min(4096, Math.round(source.length / 24)));
   const flashEstimate = Math.max(64, Math.min(8192, Math.round(source.length / 10)));
 
-  if (ramEstimate > memoryKb) warnings.push(`Estimated RAM ${ramEstimate}KB exceeds device memory ${memoryKb}KB`);
-  if (flashEstimate > flashKb) warnings.push(`Estimated flash ${flashEstimate}KB exceeds device flash ${flashKb}KB`);
-  if (/@physics|@network|@ai/.test(source)) optimizations.push('Enable feature flags to lazy-load heavy runtime traits');
+  if (ramEstimate > memoryKb)
+    warnings.push(`Estimated RAM ${ramEstimate}KB exceeds device memory ${memoryKb}KB`);
+  if (flashEstimate > flashKb)
+    warnings.push(`Estimated flash ${flashEstimate}KB exceeds device flash ${flashKb}KB`);
+  if (/@physics|@network|@ai/.test(source))
+    optimizations.push('Enable feature flags to lazy-load heavy runtime traits');
   if (source.length > 5000) optimizations.push('Split script into multiple lightweight modules');
-  if (!optimizations.length) optimizations.push('Use fixed-point math and compact trait structs for deterministic edge runtime');
+  if (!optimizations.length)
+    optimizations.push(
+      'Use fixed-point math and compact trait structs for deterministic edge runtime'
+    );
 
   return {
     profile: `${device.toLowerCase()}-edge-v1`,
@@ -216,8 +264,16 @@ function buildEdgeExecutionPlan(source: string, device: string, memoryKb: number
   };
 }
 
-function buildSovereignPreview(clusterCount: number, replicasPerCluster: number): {
-  clusters: Array<{ id: string; region: string; holovmReplicas: number; status: 'healthy' | 'degraded' }>;
+function buildSovereignPreview(
+  clusterCount: number,
+  replicasPerCluster: number
+): {
+  clusters: Array<{
+    id: string;
+    region: string;
+    holovmReplicas: number;
+    status: 'healthy' | 'degraded';
+  }>;
   totalReplicas: number;
 } {
   const regions = ['us-east', 'us-west', 'eu-central', 'ap-south', 'sa-east'];
@@ -247,7 +303,13 @@ function buildRevenueAggregator(): CreatorRevenueAggregator {
   for (const tx of transactionLedger) {
     // priceCents currently stores USD cents; convert to USDC base units for aggregator semantics.
     const grossBaseUnits = Math.round(tx.priceCents * 10_000);
-    agg.recordRevenue(tx.sellerWallet || tx.sellerName, tx.entryDomain || 'general', grossBaseUnits, tx.buyerWallet || tx.buyerName, tx.id);
+    agg.recordRevenue(
+      tx.sellerWallet || tx.sellerName,
+      tx.entryDomain || 'general',
+      grossBaseUnits,
+      tx.buyerWallet || tx.buyerName,
+      tx.id
+    );
   }
   return agg;
 }
@@ -318,6 +380,15 @@ export async function handleKnowledgeRoutes(
     };
 
     const synced = await c.contributeKnowledge([entry]);
+
+    // Bridge into ConsolidationEngine (explicit trigger path)
+    try {
+      const bridge = getConsolidationBridge();
+      bridge.ingestKnowledgeEntry(entry, caller.id);
+    } catch {
+      /* consolidation bridge is best-effort — never block the contribution */
+    }
+
     json(res, 201, { success: true, entryId, synced, audit: entry.metadata.audit });
     return true;
   }
@@ -364,7 +435,15 @@ export async function handleKnowledgeRoutes(
     const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 5);
     const patterns = kb.filter((e) => e.type === 'pattern').slice(0, 5);
 
-    const gotchaSignals = ['error', 'fail', 'unsafe', 'invalid', 'deprecated', 'mismatch', 'unsupported'];
+    const gotchaSignals = [
+      'error',
+      'fail',
+      'unsafe',
+      'invalid',
+      'deprecated',
+      'mismatch',
+      'unsupported',
+    ];
     const gotchaDensity = gotchas.reduce((sum, g) => {
       const text = g.content.toLowerCase();
       const hits = gotchaSignals.filter((s) => text.includes(s)).length;
@@ -373,9 +452,24 @@ export async function handleKnowledgeRoutes(
     const baseRisk = Math.min(100, gotchas.length * 12 + gotchaDensity * 4);
 
     const recommendations = [
-      ...wisdom.map((w) => ({ type: 'wisdom' as const, id: w.id, tip: w.content.slice(0, 220), domain: w.domain })),
-      ...patterns.map((p) => ({ type: 'pattern' as const, id: p.id, tip: p.content.slice(0, 220), domain: p.domain })),
-      ...gotchas.map((g) => ({ type: 'gotcha' as const, id: g.id, tip: g.content.slice(0, 220), domain: g.domain })),
+      ...wisdom.map((w) => ({
+        type: 'wisdom' as const,
+        id: w.id,
+        tip: w.content.slice(0, 220),
+        domain: w.domain,
+      })),
+      ...patterns.map((p) => ({
+        type: 'pattern' as const,
+        id: p.id,
+        tip: p.content.slice(0, 220),
+        domain: p.domain,
+      })),
+      ...gotchas.map((g) => ({
+        type: 'gotcha' as const,
+        id: g.id,
+        tip: g.content.slice(0, 220),
+        domain: g.domain,
+      })),
     ].slice(0, 10);
 
     json(res, 200, {
@@ -423,7 +517,15 @@ export async function handleKnowledgeRoutes(
     const query = `${target} ${source.slice(0, 500)}`;
     const kb = await c.queryKnowledge(query, { limit: 40 });
     const gotchas = kb.filter((e) => e.type === 'gotcha');
-    const gotchaSignals = ['error', 'fail', 'unsafe', 'invalid', 'deprecated', 'mismatch', 'unsupported'];
+    const gotchaSignals = [
+      'error',
+      'fail',
+      'unsafe',
+      'invalid',
+      'deprecated',
+      'mismatch',
+      'unsupported',
+    ];
     const signalHits = gotchas.reduce((sum, g) => {
       const text = g.content.toLowerCase();
       return sum + gotchaSignals.filter((s) => text.includes(s)).length;
@@ -441,7 +543,9 @@ export async function handleKnowledgeRoutes(
         decision: allowed ? 'allow' : 'block',
       },
       rationale: {
-        gotchas: gotchas.slice(0, 5).map((g) => ({ id: g.id, domain: g.domain, snippet: g.content.slice(0, 180) })),
+        gotchas: gotchas
+          .slice(0, 5)
+          .map((g) => ({ id: g.id, domain: g.domain, snippet: g.content.slice(0, 180) })),
         knowledgeUsed: kb.length,
       },
       checkedBy: caller.name,
@@ -477,7 +581,11 @@ export async function handleKnowledgeRoutes(
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
-        .filter((w) => w.length >= 5 && !['there', 'their', 'about', 'which', 'using', 'could', 'would'].includes(w));
+        .filter(
+          (w) =>
+            w.length >= 5 &&
+            !['there', 'their', 'about', 'which', 'using', 'could', 'would'].includes(w)
+        );
       for (const w of words) themeScores.set(w, (themeScores.get(w) || 0) + 1);
     };
     for (const e of [...wisdom, ...gotchas, ...patterns]) collectThemes(e.content);
@@ -526,7 +634,7 @@ export async function handleKnowledgeRoutes(
     }
     const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
-    const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
+    const device = (body.device as string | undefined)?.trim() || 'microcontroller';
     const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
     const flashKb = Math.max(32, parseInt(String(body.flashKb ?? 1024), 10));
     if (!source) {
@@ -562,7 +670,7 @@ export async function handleKnowledgeRoutes(
     }
     const body: any = effectiveBody;
     const source = (body.source as string | undefined)?.trim();
-    const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
+    const device = (body.device as string | undefined)?.trim() || 'microcontroller';
     const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
     const flashKb = Math.max(32, parseInt(String(body.flashKb ?? 1024), 10));
     if (!source) {
@@ -592,7 +700,8 @@ export async function handleKnowledgeRoutes(
       artifact,
       next: {
         flash: 'Use device flasher to deploy transformedSource as main.hs',
-        verify: 'Run hardware smoke tests and compare runtime telemetry against estimated RAM/flash',
+        verify:
+          'Run hardware smoke tests and compare runtime telemetry against estimated RAM/flash',
       },
     });
     return true;
@@ -627,11 +736,15 @@ export async function handleKnowledgeRoutes(
     const replicasPerCluster = Math.max(1, Math.min(64, parseInt(q.get('replicas') || '4', 10)));
     const preview = buildSovereignPreview(clusterCount, replicasPerCluster);
 
-    const nodes = preview.clusters.map((c) => ({ id: c.id, region: c.region, replicas: c.holovmReplicas }));
+    const nodes = preview.clusters.map((c) => ({
+      id: c.id,
+      region: c.region,
+      replicas: c.holovmReplicas,
+    }));
     const edges = preview.clusters.flatMap((from, i) =>
       preview.clusters
         .filter((_, j) => j > i)
-        .map((to) => ({ from: from.id, to: to.id, link: 'lifepod-gossip' })),
+        .map((to) => ({ from: from.id, to: to.id, link: 'lifepod-gossip' }))
     );
 
     json(res, 200, {
@@ -666,7 +779,13 @@ export async function handleKnowledgeRoutes(
     const agentCount = Math.max(1, parseInt(String(body.agentCount ?? 1), 10));
 
     const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const payload = JSON.stringify({ lifePodId, worldId, sourceCluster, agentCount, ts: Date.now() });
+    const payload = JSON.stringify({
+      lifePodId,
+      worldId,
+      sourceCluster,
+      agentCount,
+      ts: Date.now(),
+    });
     const checksum = crypto.createHash('sha256').update(payload).digest('hex');
 
     const snapshot: LifePodSnapshot = {
@@ -752,13 +871,13 @@ export async function handleKnowledgeRoutes(
     const body: any = effectiveBody;
     const requestedAgentId = (body.agentId as string | undefined)?.trim();
     const impersonated = Boolean(
-      requestedAgentId && caller.isFounder && requestedAgentId !== caller.id,
+      requestedAgentId && caller.isFounder && requestedAgentId !== caller.id
     );
     // Founder-override gate: non-founders always get caller.id regardless of body.agentId.
     const agentId = caller.isFounder && requestedAgentId ? requestedAgentId : caller.id;
     const fromCluster = (body.fromCluster as string | undefined)?.trim() || 'cluster_1';
     const toCluster = (body.toCluster as string | undefined)?.trim() || 'cluster_2';
-    const mode = ((body.mode as string | undefined)?.trim() || 'live-cutover');
+    const mode = (body.mode as string | undefined)?.trim() || 'live-cutover';
 
     const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const payload = JSON.stringify({ agentId, fromCluster, toCluster, mode, ts: Date.now() });
@@ -843,11 +962,17 @@ export async function handleKnowledgeRoutes(
   }
 
   // POST /api/holomesh/storyweaver/session/:id/branch — Add branch chapter and generated plot beats
-  if (pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const sessionId = extractParam(url, '/api/holomesh/storyweaver/session/').replace('/branch', '');
+    const sessionId = extractParam(url, '/api/holomesh/storyweaver/session/').replace(
+      '/branch',
+      ''
+    );
     const session = storyWeaverStore.get(sessionId);
     if (!session) {
       json(res, 404, { error: 'Story session not found' });
@@ -874,7 +999,9 @@ export async function handleKnowledgeRoutes(
     }
 
     const premium = Boolean(body.premium);
-    const priceCents = premium ? Math.max(1, parseInt(String(body.priceCents ?? 99), 10)) : undefined;
+    const priceCents = premium
+      ? Math.max(1, parseInt(String(body.priceCents ?? 99), 10))
+      : undefined;
 
     const branch: StoryWeaverBranch = {
       id: `branch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -897,7 +1024,10 @@ export async function handleKnowledgeRoutes(
   }
 
   // POST /api/holomesh/storyweaver/session/:id/branch/:branchId/unlock — x402-style micropayment unlock
-  if (pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch\/[^/]+\/unlock$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch\/[^/]+\/unlock$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -1023,7 +1153,17 @@ export async function handleKnowledgeRoutes(
       const domain = (e.domain || '').toLowerCase();
       const text = `${e.content} ${tags.join(' ')} ${domain}`.toLowerCase();
       return (
-        tags.some((t) => ['film3d', 'cinematic', 'volumetric', 'gaussian-splat', 'nerf', 'showcase', 'trailer'].includes(t)) ||
+        tags.some((t) =>
+          [
+            'film3d',
+            'cinematic',
+            'volumetric',
+            'gaussian-splat',
+            'nerf',
+            'showcase',
+            'trailer',
+          ].includes(t)
+        ) ||
         domain.includes('film') ||
         /film3d|cinematic|volumetric|gaussian|splat|nerf|trailer|showcase/.test(text)
       );
@@ -1068,7 +1208,9 @@ export async function handleKnowledgeRoutes(
           const team = teamStore.get(teamId);
           return (team as any)?.knowledgeMarketplace?.activeListings?.() || [];
         })()
-      : [...teamStore.values()].flatMap((team) => (team as any).knowledgeMarketplace?.activeListings?.() || []);
+      : [...teamStore.values()].flatMap(
+          (team) => (team as any).knowledgeMarketplace?.activeListings?.() || []
+        );
 
     json(res, 200, { success: true, listings, count: listings.length, teamId });
     return true;
@@ -1089,7 +1231,7 @@ export async function handleKnowledgeRoutes(
     const teamId = (body.teamId as string | undefined)?.trim();
     const entryId = (body.entryId as string | undefined)?.trim();
     const price = Number(body.price);
-    const currency = ((body.currency as 'USDC' | 'credits' | undefined) || 'USDC');
+    const currency = (body.currency as 'USDC' | 'credits' | undefined) || 'USDC';
 
     if (!teamId || !entryId || !Number.isFinite(price) || price <= 0) {
       json(res, 400, { error: 'Missing or invalid teamId, entryId, or price' });
@@ -1137,7 +1279,7 @@ export async function handleKnowledgeRoutes(
       },
       price,
       caller.name,
-      currency,
+      currency
     );
 
     persistTeamStore();
@@ -1220,9 +1362,10 @@ export async function handleKnowledgeRoutes(
     const comments = commentStore.get(entryId) || [];
     const isPremium = (entry.price || 0) > 0;
     const paymentHeader = req.headers['x-payment'] as string | undefined;
-    const paid = isPremium && caller.authenticated && (
-      paidAccessStore.has(`${caller.id}:${entryId}`) || !!paymentHeader
-    );
+    const paid =
+      isPremium &&
+      caller.authenticated &&
+      (paidAccessStore.has(`${caller.id}:${entryId}`) || !!paymentHeader);
 
     if (isPremium && !paymentHeader && !paidAccessStore.has(`${caller.id}:${entryId}`)) {
       const gateway = new (PaymentGateway as any)();
@@ -1344,7 +1487,8 @@ export async function handleKnowledgeRoutes(
   if (pathname.match(/^\/api\/holomesh\/revenue\/creator\/[^/]+$/) && method === 'GET') {
     const creatorId = extractParam(url, '/api/holomesh/revenue/creator/');
     const q = parseQuery(url);
-    const period = (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
+    const period =
+      (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
     const agg = buildRevenueAggregator();
     const earnings = agg.getCreatorEarnings(creatorId, period);
     json(res, 200, { success: true, creatorId, period, earnings });
@@ -1354,7 +1498,8 @@ export async function handleKnowledgeRoutes(
   // GET /api/holomesh/revenue/top-creators — leaderboard of creator royalties
   if (pathname === '/api/holomesh/revenue/top-creators' && method === 'GET') {
     const q = parseQuery(url);
-    const period = (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
+    const period =
+      (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
     const limit = parseInt(q.get('limit') || '10', 10);
     const agg = buildRevenueAggregator();
     const top = agg.getTopCreators(period, limit);
@@ -1420,7 +1565,10 @@ export async function handleKnowledgeRoutes(
     }
     const body: any = effectiveBody;
     const observations = Array.isArray(body.observations)
-      ? (body.observations as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
+      ? (body.observations as unknown[])
+          .filter((x): x is string => typeof x === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
     if (observations.length === 0) {
       json(res, 400, { error: 'Missing observations[]' });
@@ -1445,11 +1593,17 @@ export async function handleKnowledgeRoutes(
   }
 
   // POST /api/holomesh/worlds/:id/self-improve/redeploy — apply selected patches and bump revision
-  if (pathname.match(/^\/api\/holomesh\/worlds\/[^/]+\/self-improve\/redeploy$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/worlds\/[^/]+\/self-improve\/redeploy$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/redeploy', '');
+    const worldId = extractParam(url, '/api/holomesh/worlds/').replace(
+      '/self-improve/redeploy',
+      ''
+    );
     const rawBody = await parseJsonBody(req);
     const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
     if (!signingCtx.signingValid) {
@@ -1499,7 +1653,6 @@ export async function handleKnowledgeRoutes(
     json(res, 200, { success: true, session });
     return true;
   }
-
 
   // POST /api/holomesh/crosspost/moltbook — Crosspost a knowledge entry to Moltbook
   if (pathname === '/api/holomesh/crosspost/moltbook' && method === 'POST') {
@@ -1575,6 +1728,174 @@ export async function handleKnowledgeRoutes(
       entry_id: entryId,
       platform: 'moltbook',
       moltbook: posted.data,
+    });
+    return true;
+  }
+
+  // ── Consolidation Bridge Routes ──
+
+  // POST /api/holomesh/consolidation/trigger — manual consolidation cycle
+  if (pathname === '/api/holomesh/consolidation/trigger' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
+    const reason = (body.reason as string | undefined) || `manual by ${caller.name}`;
+
+    const bridge = getConsolidationBridge();
+    const results = bridge.triggerManual(reason);
+
+    json(res, 200, {
+      success: true,
+      trigger: 'manual',
+      results,
+      stats: bridge.getStats(),
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/consolidation/review — review quarantined + rejected sets
+  if (pathname === '/api/holomesh/consolidation/review' && method === 'GET') {
+    const caller = resolveRequestingAgent(req);
+    if (!caller.authenticated) {
+      json(res, 401, { error: 'Authentication required' });
+      return true;
+    }
+
+    const bridge = getConsolidationBridge();
+    const review = bridge.getReviewSet();
+
+    json(res, 200, {
+      success: true,
+      quarantined: review.quarantined.map((q) => ({
+        id: q.entry.id,
+        state: q.state,
+        reasons: q.reasons,
+        quarantinedAt: q.quarantinedAt,
+        contentPreview: q.entry.content.slice(0, 200),
+        domain: q.entry.domain,
+      })),
+      rejected: review.rejected.map((q) => ({
+        id: q.entry.id,
+        state: q.state,
+        reasons: q.reasons,
+        quarantinedAt: q.quarantinedAt,
+        rejectedAt: q.rejectedAt,
+        contentPreview: q.entry.content.slice(0, 200),
+        domain: q.entry.domain,
+      })),
+      stats: review.stats,
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/consolidation/review/:id/reject — reject a quarantined entry
+  if (
+    pathname.match(/^\/api\/holomesh\/consolidation\/review\/[^/]+\/reject$/) &&
+    method === 'POST'
+  ) {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const entryId = extractParam(url, '/api/holomesh/consolidation/review/').replace('/reject', '');
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
+    const reason = (body.reason as string | undefined) || `rejected by ${caller.name}`;
+
+    const bridge = getConsolidationBridge();
+    // Try each domain — entryId is unique across domains
+    let ok = false;
+    let foundDomain = '';
+    for (const domain of ['security', 'rendering', 'agents', 'compilation', 'general'] as const) {
+      if (
+        bridge
+          .getReviewSet()
+          .quarantined.some((q) => q.entry.id === entryId && q.entry.domain === domain)
+      ) {
+        ok = bridge.rejectQuarantined(domain, entryId, reason);
+        if (ok) {
+          foundDomain = domain;
+          break;
+        }
+      }
+    }
+
+    if (!ok) {
+      json(res, 404, { error: 'Quarantined entry not found' });
+      return true;
+    }
+
+    json(res, 200, { success: true, entryId, domain: foundDomain, reason });
+    return true;
+  }
+
+  // POST /api/holomesh/consolidation/rollback — rollback last N cycles
+  if (pathname === '/api/holomesh/consolidation/rollback' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    const body: any = effectiveBody;
+    const depth = Math.max(1, Math.min(10, parseInt(String(body.depth ?? 1), 10)));
+
+    const bridge = getConsolidationBridge();
+    const { discarded, domains } = bridge.rollback({ depth });
+
+    json(res, 200, {
+      success: true,
+      depth,
+      discarded,
+      domains,
+      stats: bridge.getStats(),
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/consolidation/logs — run logs
+  if (pathname === '/api/holomesh/consolidation/logs' && method === 'GET') {
+    const caller = resolveRequestingAgent(req);
+    if (!caller.authenticated) {
+      json(res, 401, { error: 'Authentication required' });
+      return true;
+    }
+
+    const q = parseQuery(url);
+    const limit = Math.max(1, Math.min(100, parseInt(q.get('limit') || '20', 10)));
+    const bridge = getConsolidationBridge();
+    const logs = bridge.getRunLogs().slice(-limit);
+
+    json(res, 200, {
+      success: true,
+      logs: logs.map((l) => ({
+        id: l.id,
+        startedAt: l.startedAt,
+        finishedAt: l.finishedAt,
+        trigger: l.trigger,
+        rolledBack: l.rolledBack,
+        rollbackAt: l.rollbackAt,
+        reason: l.reason,
+        results: l.results,
+        promotedCount: l.promotedEntryIds.length,
+        quarantinedCount: l.quarantinedEntryIds.length,
+        rejectedCount: l.rejectedEntryIds.length,
+      })),
+      stats: bridge.getStats(),
     });
     return true;
   }

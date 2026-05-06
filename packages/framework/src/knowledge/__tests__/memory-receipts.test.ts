@@ -105,6 +105,29 @@ describe('memory receipts', () => {
     expect(evidence?.receipt.extractorVersion).toBe('wpg-extractor@1.0.0');
   });
 
+  it('can discard a retained memory immediately during manual review', () => {
+    const engine = new ConsolidationEngine();
+    engine.ingest(
+      'agents',
+      {
+        type: 'wisdom',
+        content: 'Discardable retained memory.',
+        authorDid: 'agent_codex',
+        tags: ['memory-lineage'],
+        memoryReceipt: makeReceipt({ id: 'receipt_discard' }),
+      },
+      'peer-a'
+    );
+    backdateCandidate(engine);
+
+    engine.runConsolidationCycle('agents');
+    const retained = engine.getColdStore('agents')[0];
+
+    expect(engine.discardEntry('agents', retained.id)).toBe(true);
+    expect(engine.getColdStoreEntry('agents', retained.id)).toBeUndefined();
+    expect(engine.discardEntry('agents', retained.id)).toBe(false);
+  });
+
   it('quarantines candidate memory that has no receipt instead of retaining it', () => {
     const engine = new ConsolidationEngine();
     engine.ingest(
