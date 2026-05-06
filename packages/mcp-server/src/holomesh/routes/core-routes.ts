@@ -46,7 +46,7 @@ import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { json, parseJsonBody, pruneStalePresence } from '../utils';
 import type { MeshKnowledgeEntry } from '../types';
-import { TEAM_ROLE_PERMISSIONS } from '../types';
+import { PRESENCE_TTL_MS, TEAM_ROLE_PERMISSIONS } from '../types';
 
 // ── Domain descriptions ─────────────────────────────────────────────────────
 
@@ -365,7 +365,6 @@ export async function handleCoreRoutes(
     const url2 = new URL(req.url ?? '/', 'http://localhost');
     const onlineOnly = url2.searchParams.get('online') === 'true';
     const now = Date.now();
-    const PRESENCE_TTL_MS = 120 * 1000; // mirrors types.ts SSOT; if this drifts, types.ts wins
     // Layer A.1: actively prune stale presence per team before reading.
     // Without this, a heartbeat older than TTL persists in teamPresenceStore
     // until /presence GET (and only that endpoint) prunes it. /agents reads
