@@ -53,6 +53,9 @@ interface ScenePetal {
   radius: number;
   length: number;
   width: number;
+  cup: number;
+  gravitySag: number;
+  height: number;
   color: string;
   bloom: LotusBloomState;
   label: string;
@@ -149,9 +152,9 @@ function seededRandom(seed: number) {
 
 function buildSeedablePetals(): ScenePetal[] {
   const rings = [
-    { ring: 1 as const, count: 8, radius: 1.08, length: 0.96, width: 0.3 },
-    { ring: 2 as const, count: 13, radius: 1.86, length: 1.08, width: 0.28 },
-    { ring: 3 as const, count: 21, radius: 2.55, length: 1, width: 0.23 },
+    { ring: 1 as const, count: 8, radius: 0.44, length: 0.72, width: 0.24, cup: 0.74, gravitySag: 0.03, height: 1.18 },
+    { ring: 2 as const, count: 13, radius: 0.82, length: 1.02, width: 0.25, cup: 0.44, gravitySag: 0.16, height: 1.02 },
+    { ring: 3 as const, count: 21, radius: 1.28, length: 1.06, width: 0.2, cup: 0.18, gravitySag: 0.34, height: 0.82 },
   ];
   let index = 0;
   const petals: ScenePetal[] = [];
@@ -169,7 +172,10 @@ function buildSeedablePetals(): ScenePetal[] {
         radius: ring.radius,
         length: ring.length,
         width: ring.width,
-        color: isRootPaper ? '#fef3c7' : ring.ring === 1 ? '#f0abfc' : ring.ring === 2 ? '#d946ef' : '#8b5cf6',
+        cup: ring.cup,
+        gravitySag: ring.gravitySag,
+        height: ring.height,
+        color: isRootPaper ? '#fff7ed' : ring.ring === 1 ? '#ffe4f1' : ring.ring === 2 ? '#f8b8d7' : '#d9a7cf',
         bloom,
         label: `P${ring.ring}.${ringIndex}`,
       });
@@ -216,34 +222,39 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
     if (!meshRef.current || !materialRef.current) return;
     const cycle = progressRef.current;
     const grow = phase(cycle, delay, delay + 0.22);
-    const breathe = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 1.1 + petal.index) * 0.025;
-    const radial = petal.radius * (0.04 + grow * 0.96);
-    const lift = -0.08 + grow * (1.28 + petal.ring * 0.08);
-    const curl = (1 - grow) * 0.56 + Math.sin(clock.elapsedTime * 0.7 + petal.index) * 0.035 * grow;
-    const opacityBase = petal.bloom === 'sealed' ? 0.62 : petal.bloom === 'full' ? 0.98 : 0.82;
+    const settle = phase(cycle, delay + 0.12, 1);
+    const breathe = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 0.9 + petal.index) * 0.012;
+    const radial = petal.radius * (0.1 + grow * 0.9);
+    const lift = 0.22 + grow * petal.height - settle * petal.gravitySag;
+    const unfurl = 0.98 - grow * (0.88 - petal.cup);
+    const gravityBend = settle * petal.gravitySag;
+    const sideLean = Math.sin(clock.elapsedTime * 0.45 + petal.index) * 0.018 * grow;
 
     meshRef.current.position.set(Math.cos(petal.angle) * radial, lift, Math.sin(petal.angle) * radial);
-    meshRef.current.rotation.set(0.72 - grow * 0.52, -petal.angle, curl);
+    meshRef.current.rotation.set(
+      0,
+      -petal.angle,
+      petal.cup + unfurl - gravityBend + sideLean
+    );
     meshRef.current.scale.set(
       (petal.length + breathe) * grow,
-      0.055 + grow * 0.018,
-      (petal.width + breathe * 0.35) * grow
+      0.045 + grow * 0.035,
+      (petal.width + breathe * 0.25) * grow
     );
-    materialRef.current.opacity = opacityBase * grow;
-    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 1.2 : petal.bloom === 'sealed' ? 0.08 : 0.36) * grow;
+    materialRef.current.opacity = 1;
+    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.14 : petal.bloom === 'sealed' ? 0.015 : 0.06) * grow;
   });
 
   return (
     <mesh ref={meshRef} castShadow receiveShadow>
-      <sphereGeometry args={[1, 36, 16]} />
+      <sphereGeometry args={[1, 44, 18]} />
       <meshStandardMaterial
         ref={materialRef}
         color={baseColor}
         emissive={baseColor}
-        roughness={0.48}
+        roughness={0.68}
         metalness={0.04}
-        transparent
-        opacity={0}
+        opacity={1}
       />
     </mesh>
   );
@@ -266,7 +277,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
     const stalk = phase(cycle, 0.18, 0.42);
     const center = phase(cycle, 0.34, 0.54);
     const seedOpen = phase(cycle, 0.04, 0.2);
-    const genesis = phase(cycle, 0.78, 1) * 0.28;
+    const genesis = phase(cycle, 0.78, 1) * 0.06;
 
     if (seedRef.current) {
       seedRef.current.position.y = -1.08 + seedOpen * 0.08;
@@ -282,12 +293,12 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
       seedRightRef.current.rotation.set(-0.18, -0.02, 0.25 + seedOpen * 0.42);
     }
     if (stalkRef.current) {
-      stalkRef.current.position.y = -1.2 + stalk * 1.25;
-      stalkRef.current.scale.set(1, 0.08 + stalk * 2.65, 1);
+      stalkRef.current.position.y = -1.2 + stalk * 0.98;
+      stalkRef.current.scale.set(1, 0.08 + stalk * 2.14, 1);
     }
     if (centerRef.current) {
-      centerRef.current.position.y = -0.72 + center * 1.95;
-      centerRef.current.scale.setScalar(0.05 + center * 0.58);
+      centerRef.current.position.y = -0.66 + center * 1.78;
+      centerRef.current.scale.setScalar(0.04 + center * 0.34);
       centerRef.current.rotation.y = clock.elapsedTime * 0.3;
     }
     if (leafLeftRef.current) {
@@ -337,7 +348,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
 
       <mesh ref={centerRef} castShadow>
         <sphereGeometry args={[1, 40, 20]} />
-        <meshStandardMaterial color="#fff7ed" emissive="#d946ef" emissiveIntensity={0.58} roughness={0.25} />
+        <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={0.24} roughness={0.44} />
       </mesh>
 
       <mesh ref={lightColumnRef}>
