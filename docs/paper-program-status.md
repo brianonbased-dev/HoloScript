@@ -125,7 +125,7 @@ Tracks not yet committed to a venue slot. Gate condition must clear before the p
 
 | # | Track | Short Title | Status | Gate Condition | Target Venue | Detail Doc |
 |---|-------|-------------|--------|----------------|--------------|------------|
-| 17 | SESL | Semantic Embodiment Self-Bootstrapping Loop | Gated (Phase 0 not started) | >=5k CAEL-verified pairs; >=60% SimContract pass rate; fine-tuned checkpoint >=5% better | NeurIPS/ICML workshop | `research/2026-04-24_sesl-brittney-sovereign-training.md` |
+| 17 | SESL | Semantic Embodiment Self-Bootstrapping Loop | Gated (Phase 1 smoke harness emitted; see `research/paper-17-sesl-pairs/INDEX.json`) | >=5k CAEL-verified pairs; >=60% SimContract pass rate; fine-tuned checkpoint >=5% better | NeurIPS/ICML workshop | `research/2026-04-24_sesl-brittney-sovereign-training.md` |
 | 18 | Motion-SESL | Verifiable motion via SESL feedback | Gated (Paper 9 ML subsystem not shipped) | Paper 9 ships + >=10k CAEL motion traces + generator beats kinematic baseline | SIGGRAPH/SCA 2028 | `research/2026-04-24_motion-sesl-verifiable-motion-synthesis.md` |
 | 19 | Trait Inference | Automated `.hsplus` annotation from NL | Gated (novelty undefined vs LLM baselines) | >=80% F1 on held-out + production corpus | ECOOP/OOPSLA | `research/2026-04-24_trait-inference-automated-hsplus.md` |
 | 20 | Learned Scene Composition | Generative spatial layouts from HoloLand traces | Gated (HoloLand unproven at scale) | >=70% user preference (A/B) + >=500 training compositions | I3D/CHI 2028 | `research/2026-04-24_learned-scene-composition-hololand.md` |
