@@ -49,6 +49,7 @@
     "directory": "packages/crdt-spatial"
   },
   "dependencies": {
+    "@holoscript/framework": "workspace:*",
     "loro-crdt": "^1.0.0"
   },
   "peerDependencies": {

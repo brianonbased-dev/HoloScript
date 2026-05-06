@@ -219,6 +219,7 @@ export {
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
 export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';
+export { registerSimulationSolvers } from './register';
 
 // Simulation Serialization — Shareable simulation configs
 export {

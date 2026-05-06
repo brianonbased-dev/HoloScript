@@ -5,6 +5,7 @@ import LiquidBlob from './components/LiquidBlob';
 import SpatialBackground from './components/SpatialBackground';
 import { MagicMomentWizard } from './components/MagicMomentWizard';
 import LiveEvidenceStrip from './components/LiveEvidenceStrip';
+import LotusProgram from './components/LotusProgram';
 
 // Icons
 const IconCheck = () => (
@@ -153,7 +154,7 @@ export function HoloScriptLandingComponent() {
         <LiveCursors peers={peers} />
         
         {/* Identity Widget */}
-        <div className="fixed bottom-6 right-6 z-[90] bg-[#0c0c16]/90 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl flex flex-col gap-3">
+        <div className="fixed bottom-6 right-6 z-[90] hidden flex-col gap-3 rounded-xl border border-white/10 bg-[#0c0c16]/90 p-3 shadow-2xl backdrop-blur-md md:flex">
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Customize Identity</div>
           <div className="flex gap-2">
             {COLORS.map(c => (
@@ -306,6 +307,8 @@ export function HoloScriptLandingComponent() {
             </div>
           </div>
         </section>
+
+        <LotusProgram />
 
         {/* Claim 1: Build Physics-Aware Worlds */}
         <section className="py-24 relative flex flex-col gap-3 w-full p-[12px] semantic-layout-priority border-t border-white/5">

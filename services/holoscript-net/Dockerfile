@@ -35,8 +35,11 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source packages in dependency order
 COPY packages/crdt/ packages/crdt/
+COPY packages/crdt-spatial/ packages/crdt-spatial/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
+COPY packages/platform/ packages/platform/
+COPY packages/framework/ packages/framework/
 COPY packages/engine/ packages/engine/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/config/ packages/config/
@@ -47,10 +50,13 @@ COPY services/holoscript-net/ services/holoscript-net/
 
 # Build workspace dependencies (no dts for speed in Docker)
 RUN cd packages/crdt && npx tsup --no-dts
+RUN cd packages/crdt-spatial && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/platform && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts
+RUN cd packages/framework && npx tsup --config tsup.config.ts --no-dts
 RUN cd packages/engine && npx tsup --no-dts
 RUN cd packages/mcp-server && npx tsup --no-dts
 RUN cd packages/runtime && npx tsup --no-dts
@@ -73,8 +79,11 @@ RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy built artifacts from builder
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
+COPY --from=builder /app/packages/crdt-spatial/dist packages/crdt-spatial/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
+COPY --from=builder /app/packages/platform/dist packages/platform/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
@@ -86,6 +95,8 @@ COPY --from=builder /app/services/holoscript-net/dist services/holoscript-net/di
 # Force workspace symlinks so externalized packages resolve at runtime
 RUN mkdir -p /app/node_modules/@holoscript && \
 	ln -sfn /app/packages/core /app/node_modules/@holoscript/core && \
+	ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \
+	ln -sfn /app/packages/framework /app/node_modules/@holoscript/framework && \
 	ln -sfn /app/packages/mcp-server /app/node_modules/@holoscript/mcp-server && \
 	ln -sfn /app/packages/runtime /app/node_modules/@holoscript/runtime && \
 	ln -sfn /app/packages/r3f-renderer /app/node_modules/@holoscript/r3f-renderer && \
@@ -93,6 +104,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 	ln -sfn /app/packages/config /app/node_modules/@holoscript/config && \
 	ln -sfn /app/packages/llm-provider /app/node_modules/@holoscript/llm-provider && \
 	ln -sfn /app/packages/crdt /app/node_modules/@holoscript/crdt && \
+	ln -sfn /app/packages/crdt-spatial /app/node_modules/@holoscript/crdt-spatial && \
 	ln -sfn /app/packages/agent-protocol /app/node_modules/@holoscript/agent-protocol
 
 WORKDIR /app/services/holoscript-net

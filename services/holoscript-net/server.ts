@@ -14,6 +14,370 @@ const app = express();
 const port = process.env.PORT || 3001;
 const server = http.createServer(app);
 
+type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
+
+interface LotusPaperEvidence {
+  paperId: string;
+  label: string;
+  cluster: 'roots' | 'p1' | 'p2' | 'p3' | 'center';
+  venue: string;
+  hasDraft: boolean;
+  stubCount: number;
+  benchmarkTodoCount: number;
+  otsAnchored: boolean;
+  baseAnchored: boolean;
+  anchorMismatch: boolean;
+  retracted?: boolean;
+}
+
+interface LotusDerivation {
+  state: LotusBloomState;
+  reason: string;
+  blockedBy?: Array<keyof LotusPaperEvidence>;
+}
+
+const LOTUS_COLORS: Record<LotusBloomState, string> = {
+  sealed: '#64748b',
+  budding: '#f59e0b',
+  blooming: '#38bdf8',
+  full: '#34d399',
+  wilted: '#ef4444',
+};
+
+const LOTUS_PROGRAM: LotusPaperEvidence[] = [
+  {
+    paperId: 'trust-by-construction',
+    label: 'Trust by Construction',
+    cluster: 'roots',
+    venue: 'IEEE TVCG 2026',
+    hasDraft: true,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'cael-causal-agents',
+    label: 'CAEL: Causal Agents',
+    cluster: 'p1',
+    venue: 'AAMAS 2027',
+    hasDraft: true,
+    stubCount: 1,
+    benchmarkTodoCount: 1,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'trust-by-replay',
+    label: 'Trust by Replay',
+    cluster: 'p1',
+    venue: 'USENIX Security 2026',
+    hasDraft: true,
+    stubCount: 3,
+    benchmarkTodoCount: 2,
+    otsAnchored: true,
+    baseAnchored: true,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'snn-tropical',
+    label: 'Tropical SNN',
+    cluster: 'p1',
+    venue: 'NeurIPS 2027',
+    hasDraft: true,
+    stubCount: 1,
+    benchmarkTodoCount: 0,
+    otsAnchored: true,
+    baseAnchored: true,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'crdt-state',
+    label: 'CRDT State',
+    cluster: 'p1',
+    venue: 'ECOOP 2027',
+    hasDraft: true,
+    stubCount: 1,
+    benchmarkTodoCount: 1,
+    otsAnchored: true,
+    baseAnchored: true,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'sandboxed-sim',
+    label: 'Sandboxed Simulation',
+    cluster: 'p1',
+    venue: 'USENIX Security 2027',
+    hasDraft: true,
+    stubCount: 2,
+    benchmarkTodoCount: 1,
+    otsAnchored: true,
+    baseAnchored: true,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'graphrag-evidence',
+    label: 'GraphRAG Evidence',
+    cluster: 'p1',
+    venue: 'ICSE 2027',
+    hasDraft: true,
+    stubCount: 2,
+    benchmarkTodoCount: 2,
+    otsAnchored: true,
+    baseAnchored: true,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'mcp-trust',
+    label: 'MCP Trust',
+    cluster: 'p1',
+    venue: 'CCS 2027',
+    hasDraft: true,
+    stubCount: 2,
+    benchmarkTodoCount: 1,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'perception-contracts',
+    label: 'Perception Contracts',
+    cluster: 'p1',
+    venue: 'CVPR 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'contracted-animation',
+    label: 'Contracted Animation',
+    cluster: 'p2',
+    venue: 'SCA 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'ik-convergence',
+    label: 'IK Convergence',
+    cluster: 'p2',
+    venue: 'I3D 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'unified-sim-animation',
+    label: 'Unified Sim + Anim',
+    cluster: 'p2',
+    venue: 'SIGGRAPH 2027',
+    hasDraft: true,
+    stubCount: 4,
+    benchmarkTodoCount: 3,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'motion-provenance',
+    label: 'AI Motion Provenance',
+    cluster: 'p2',
+    venue: 'SIGGRAPH Asia 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'holoscript-core-ir',
+    label: 'HoloScript Core IR',
+    cluster: 'p3',
+    venue: 'PLDI 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'reactive-traits',
+    label: 'Reactive Traits',
+    cluster: 'p3',
+    venue: 'ECOOP 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'scene-composition',
+    label: 'Scene Composition',
+    cluster: 'p3',
+    venue: 'I3D 2027',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+  {
+    paperId: 'dumb-glass',
+    label: 'Dumb Glass',
+    cluster: 'center',
+    venue: 'SIGGRAPH 2028',
+    hasDraft: false,
+    stubCount: 0,
+    benchmarkTodoCount: 0,
+    otsAnchored: false,
+    baseAnchored: false,
+    anchorMismatch: false,
+  },
+];
+
+function deriveLotusBloomState(evidence: LotusPaperEvidence): LotusDerivation {
+  if (evidence.retracted) {
+    return { state: 'wilted', reason: 'Paper retracted or moved off-program.', blockedBy: ['retracted'] };
+  }
+  if (evidence.anchorMismatch && !evidence.otsAnchored && !evidence.baseAnchored) {
+    return { state: 'wilted', reason: 'Anchor mismatch with no surviving anchors.', blockedBy: ['anchorMismatch', 'otsAnchored', 'baseAnchored'] };
+  }
+  if (!evidence.hasDraft) {
+    return { state: 'sealed', reason: 'No draft content yet.', blockedBy: ['hasDraft'] };
+  }
+  if (evidence.stubCount > 0) {
+    return { state: 'budding', reason: `Draft present with ${evidence.stubCount} stub(s).`, blockedBy: ['stubCount'] };
+  }
+  if (evidence.benchmarkTodoCount > 0) {
+    return { state: 'blooming', reason: `${evidence.benchmarkTodoCount} benchmark(s) pending.`, blockedBy: ['benchmarkTodoCount'] };
+  }
+  if (!evidence.otsAnchored || !evidence.baseAnchored) {
+    const missing: Array<keyof LotusPaperEvidence> = [];
+    if (!evidence.otsAnchored) missing.push('otsAnchored');
+    if (!evidence.baseAnchored) missing.push('baseAnchored');
+    return { state: 'blooming', reason: `Awaiting ${missing.map((m) => (m === 'otsAnchored' ? 'OTS' : 'Base')).join(' + ')} anchor.`, blockedBy: missing };
+  }
+  return { state: 'full', reason: 'Content complete and dual-anchored.' };
+}
+
+function getBearerToken(req: express.Request): string {
+  const auth = req.header('authorization') ?? '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() ?? '';
+}
+
+function getLotusTeamTokens(): Set<string> {
+  const raw = [
+    process.env.LOTUS_TEAM_BEARER,
+    process.env.LOTUS_TEAM_TOKEN,
+    process.env.HOLOMESH_API_KEY,
+    process.env.HOLOSCRIPT_API_KEY,
+    process.env.MCP_API_KEY,
+    process.env.LOTUS_TEAM_BEARERS,
+  ]
+    .filter(Boolean)
+    .join(',');
+
+  return new Set(
+    raw
+      .split(',')
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0),
+  );
+}
+
+function isLotusTeamRequest(req: express.Request): boolean {
+  const token = getBearerToken(req);
+  return token.length > 0 && getLotusTeamTokens().has(token);
+}
+
+function buildLotusModeAResponse() {
+  let fullPetals = 0;
+  const petals = LOTUS_PROGRAM.map((paper, index) => {
+    const derived = deriveLotusBloomState(paper);
+    if (derived.state === 'full') fullPetals++;
+    return {
+      index,
+      paper_id: paper.paperId,
+      label: paper.label,
+      cluster: paper.cluster,
+      venue: paper.venue,
+      state: derived.state,
+      color: LOTUS_COLORS[derived.state],
+      reason: derived.reason,
+      measured: {
+        hasDraft: paper.hasDraft,
+        stubCount: paper.stubCount,
+        benchmarkTodoCount: paper.benchmarkTodoCount,
+        otsAnchored: paper.otsAnchored,
+        baseAnchored: paper.baseAnchored,
+      },
+      claimed: {
+        state: derived.state,
+        blockedBy: derived.blockedBy ?? [],
+      },
+    };
+  });
+
+  return {
+    mode: 'A',
+    petals,
+    readiness: {
+      ready: fullPetals === LOTUS_PROGRAM.length && fullPetals > 0,
+      fullPetals,
+      totalPetals: LOTUS_PROGRAM.length,
+    },
+    metadata: {
+      snapshot_at: new Date().toISOString(),
+      source: 'services/holoscript-net/server.ts',
+      disclosure: 'team',
+    },
+  };
+}
+
+function buildLotusModeBResponse() {
+  let fullPetals = 0;
+  const petals = LOTUS_PROGRAM.map((paper, index) => {
+    const derived = deriveLotusBloomState(paper);
+    if (derived.state === 'full') fullPetals++;
+    return {
+      index,
+      cluster: paper.cluster,
+      state: derived.state,
+      color: LOTUS_COLORS[derived.state],
+    };
+  });
+
+  return {
+    mode: 'B',
+    petals,
+    readiness: {
+      fullPetals,
+      totalPetals: LOTUS_PROGRAM.length,
+    },
+    metadata: {
+      snapshot_at: new Date().toISOString(),
+      disclosure: 'public',
+    },
+  };
+}
+
 // Middleware
 app.use(morgan('combined'));
 app.use(compression());
@@ -22,7 +386,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://esm.sh"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://esm.sh", "https://ga.jspm.io"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         "img-src": ["'self'", "data:", "https:", "blob:"],
@@ -75,7 +439,8 @@ app.use('/native/assets/@holoscript/runtime', express.static(path.resolve(ROOT, 
 app.use('/native/assets/@holoscript/r3f-renderer', express.static(path.resolve(ROOT, '../../packages/r3f-renderer/dist')));
 app.get('/native/assets/node-fs-shim.js', (req, res) => {
   res.type('application/javascript');
-  res.sendFile(path.resolve(ROOT, './src/empty-module.ts'));
+  const builtShim = path.join(NATIVE_ENGINE_DIST, 'native/assets/node-fs-shim.js');
+  res.sendFile(fs.existsSync(builtShim) ? builtShim : path.resolve(ROOT, './src/empty-module.ts'));
 });
 
 // ZERO-BUNDLE ESM SERVING
@@ -90,6 +455,14 @@ app.get('/site.holo', (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', engine: 'holoscript-native' });
+});
+
+app.get('/api/lotus', (req, res) => {
+  const modeA = isLotusTeamRequest(req);
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.setHeader('Vary', 'Authorization');
+  res.setHeader('X-Lotus-Mode', modeA ? 'A' : 'B');
+  res.json(modeA ? buildLotusModeAResponse() : buildLotusModeBResponse());
 });
 
 // --- SEO & Crawlers ---
@@ -107,11 +480,11 @@ app.get('/sitemap.xml', (req, res) => {
 });
 
 // Fallbacks
-app.get('/docs*', (req, res) => {
+app.get(/^\/docs(?:\/.*)?$/, (req, res) => {
   res.sendFile(path.join(DOCS_DIST, 'index.html'));
 });
 
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(NATIVE_ENGINE_DIST, 'index.html'));
 });
 

@@ -1,6 +1,9 @@
 import * as esbuild from 'esbuild';
+import autoprefixer from 'autoprefixer';
 import fs from 'fs';
 import _path from 'path';
+import postcss from 'postcss';
+import tailwindcss from 'tailwindcss';
 import { fileURLToPath } from 'url';
 
 const __dirname = _path.dirname(fileURLToPath(import.meta.url));
@@ -12,15 +15,9 @@ const nodeShimModules = [
   'jsonwebtoken',
   'jws',
   'cosmiconfig',
-  '@holoscript/platform',
-  '@holoscript/framework',
-  '@holoscript/framework/economy',
-  '@holoscript/engine',
-  '@holoscript/crdt-spatial',
   '@holoscript/mcp-server',
   '@holoscript/snn-webgpu',
   '@modelcontextprotocol/sdk',
-  'loro-crdt',
   'playwright',
   'playwright-core',
   'crypto',
@@ -71,13 +68,9 @@ const nodeProtocolShimModules = nodeShimModules
 
 const workspaceShimPatterns = [
   '@holoscript/platform/*',
-  '@holoscript/framework/*',
-  '@holoscript/engine/*',
-  '@holoscript/crdt-spatial/*',
   '@holoscript/mcp-server/*',
   '@holoscript/snn-webgpu/*',
   '@modelcontextprotocol/sdk/*',
-  'loro-crdt/*',
   'playwright/*',
   'playwright-core/*',
   'node:*',
@@ -101,15 +94,15 @@ async function build() {
     outfile: 'dist/client/main.js',
     format: 'esm',
     target: ['es2022'],
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    banner: {
+      js: 'globalThis.process ??= { env: {}, browser: true, version: "", versions: {}, cwd: () => "/", nextTick: (fn, ...args) => queueMicrotask(() => fn(...args)) };',
+    },
+    define: {
+      'process.env.NODE_ENV': '"production"',
+    },
     external: [
-      'react', 
-      'react-dom', 
-      'react-dom/client', 
-      'three', 
-      '@react-three/fiber', 
-      '@react-three/drei', 
-      '@react-three/rapier',
-      'three-stdlib',
       ...nodeShimModules,
       ...nodeProtocolShimModules,
       ...workspaceShimPatterns
@@ -126,6 +119,21 @@ async function build() {
     logLevel: 'info'
   });
 
+  if (fs.existsSync('dist/client/main.css')) {
+    const cssPath = 'dist/client/main.css';
+    const css = fs.readFileSync(cssPath, 'utf-8');
+    const result = await postcss([
+      tailwindcss({
+        content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+        theme: { extend: {} },
+        plugins: [],
+      }),
+      autoprefixer,
+    ]).process(css, { from: 'src/custom.css', to: cssPath });
+    fs.writeFileSync(cssPath, result.css);
+    console.log('[build] processed Tailwind CSS -> dist/client/main.css');
+  }
+
   // Copy and transform index.html
   let html = fs.readFileSync('index.html', 'utf-8');
   
@@ -137,6 +145,8 @@ async function build() {
     {
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
+        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+        "react/jsx-dev-runtime": "https://esm.sh/react@18.2.0/jsx-dev-runtime",
         "react-dom": "https://esm.sh/react-dom@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
         "three": "https://esm.sh/three@0.160.0",
@@ -164,6 +174,10 @@ ${shimImportMapEntries}
   html = html.replace('src="/src/main.tsx"', 'src="/main.js"');
   
   fs.writeFileSync('dist/client/index.html', html);
+
+  const shimDir = _path.join('dist/client', 'native/assets');
+  fs.mkdirSync(shimDir, { recursive: true });
+  fs.copyFileSync('src/empty-module.ts', _path.join(shimDir, 'node-fs-shim.js'));
   
   // Copy static assets
   if (fs.existsSync('public')) {
