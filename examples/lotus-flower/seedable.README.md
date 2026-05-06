@@ -15,9 +15,18 @@ trait-substrate work before it can render, and how to fire it when the
 | `garden.holo` | First-pass declarative composition | LEGACY (kept for diff history) |
 | `garden.refreshed.holo` | A-009's bloom-state visual-readability baseline (glow / pulse / pollen) | BASELINE (do not modify; reference for visual vocabulary) |
 | `garden.seedable.holo` | This artifact — phyllotaxis spine + Fibonacci-layered petals + GPU pollen + bloom-reactive opacity | STAGED (this file) |
+| `reference.anchors.json` | Pending CAEL media anchors for the three in-thread lotus reference images | STAGED (awaiting raw media ingest) |
+| `reference.material-extract.json` | Photo-derived material seed for `@botanical_lotus` | STAGED (visual seed) |
+| `build-reference-manifest.mjs` | Local hashing helper for replacing pending anchors with `sha256:` anchors | TOOLING |
 
 `garden.seedable.holo` is **additive**. It does not replace either earlier
 file. It composes a new form on top of A-009's visual vocabulary.
+
+**2026-05-06 update:** `@botanical_lotus` now has a backed core handler in
+`packages/core/src/traits/BotanicalLotusTrait.ts`, and holoscript-net consumes
+its render profile for the live 3D proof surface. The raw reference images still
+need media ingest + wallet signing before these anchors can be promoted from
+pending to CAEL-signed.
 
 ## What's staged
 

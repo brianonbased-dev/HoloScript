@@ -1,12 +1,18 @@
 {
   "schema": "holoscript.lotus.reference.material-extract.v0",
-  "status": "visual-seed-only",
+  "status": "visual-seed-with-pending-anchors",
   "captured_at": "2026-05-06",
+  "reference_manifest": "examples/lotus-flower/reference.anchors.json",
   "source": {
     "kind": "conversation_reference_images",
     "count": 3,
     "content_hash_status": "pending_media_ingest",
     "wallet_signature_status": "pending_cael_anchor",
+    "anchor_ids": [
+      "lotus-reference-2026-05-06-01",
+      "lotus-reference-2026-05-06-02",
+      "lotus-reference-2026-05-06-03"
+    ],
     "note": "Derived from the three pink lotus reference images provided in-thread. This is not a signed CAEL node yet."
   },
   "botanical_trait_target": "@botanical_lotus",

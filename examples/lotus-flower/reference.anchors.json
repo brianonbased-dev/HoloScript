@@ -1,0 +1,38 @@
+{
+  "schema": "holoscript.lotus.reference.anchors.v0",
+  "status": "pending_media_ingest",
+  "generated_by": "conversation_reference_images",
+  "wallet_signature_status": "pending_cael_anchor",
+  "anchors": [
+    {
+      "id": "lotus-reference-2026-05-06-01",
+      "label": "open pink lotus close-up",
+      "uri": "conversation://2026-05-06/lotus-reference-01",
+      "role": "material",
+      "status": "pending_media_ingest",
+      "content_hash": null,
+      "wallet_signature": null,
+      "note": "Chat attachment only; raw media file must be ingested before hashing."
+    },
+    {
+      "id": "lotus-reference-2026-05-06-02",
+      "label": "upright pink lotus silhouette",
+      "uri": "conversation://2026-05-06/lotus-reference-02",
+      "role": "silhouette",
+      "status": "pending_media_ingest",
+      "content_hash": null,
+      "wallet_signature": null,
+      "note": "Chat attachment only; raw media file must be ingested before hashing."
+    },
+    {
+      "id": "lotus-reference-2026-05-06-03",
+      "label": "pink lotus with leaves and water context",
+      "uri": "conversation://2026-05-06/lotus-reference-03",
+      "role": "leaf_context",
+      "status": "pending_media_ingest",
+      "content_hash": null,
+      "wallet_signature": null,
+      "note": "Chat attachment only; raw media file must be ingested before hashing."
+    }
+  ]
+}

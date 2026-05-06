@@ -96,6 +96,28 @@ The repo already has most of the lower layers needed for this pipeline:
 | Wallet/manifest signing pattern | `packages/mcp-server/src/holomesh/export-package.ts` |
 | SNN WebGPU compute substrate | `packages/snn-webgpu/README.md` and package references |
 
+## Implementation Slice Landed 2026-05-06
+
+The first reusable slice is now in code:
+
+- `packages/core/src/traits/BotanicalLotusTrait.ts` defines the
+  `@botanical_lotus` material/provenance contract, validates pending vs hashed
+  vs wallet-signed anchors, and exposes a deterministic R3F-ready render
+  profile.
+- `examples/lotus-flower/reference.anchors.json` records the three in-thread
+  reference photos as pending media-ingest anchors. They are not claimed as
+  content-hashed until the raw files are supplied.
+- `examples/lotus-flower/build-reference-manifest.mjs` hashes local media files
+  into deterministic `sha256:` anchors so the pending placeholders can be
+  replaced without changing the trait shape.
+- `services/holoscript-net/src/components/LotusProgram.tsx` now consumes the
+  botanical render profile for colors, petal rings, stamen count, and PBR
+  material parameters instead of duplicating those values as one-off scene
+  constants.
+
+Still pending: raw photo ingest, wallet signing, automated photo-to-material
+extraction, HoloMap placement receipts, and Dumb Glass pixel provenance.
+
 ## Proposed Trait Contract
 
 This is a schema sketch, not parser-backed syntax yet:
@@ -197,7 +219,9 @@ These claims are not ready until the missing bridge lands:
 2. Define the material extraction output schema.
 3. Implement a first offline extractor for color gradients and roughness.
 4. Add SSS/translucency estimation as a separate, testable extractor stage.
-5. Land `@botanical_lotus` as an organic trait library entry.
+5. Land `@botanical_lotus` as an organic trait library entry. DONE:
+   `BotanicalLotusTrait.ts`.
 6. Add an R3F adapter that maps the trait to shader uniforms and petal geometry.
+   FIRST PASS: holoscript-net reads the trait render profile.
 7. Bind the lotus to HoloMap surface anchors.
 8. Capture a Dumb Glass render receipt for the living-room benchmark.

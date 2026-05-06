@@ -155,6 +155,7 @@ export * from './PerceptionTrait';
 export * from './PersistentAnchorTrait';
 export * from './PhotogrammetryTrait';
 export * from './PhyllotaxisTrait';
+export * from './BotanicalLotusTrait';
 export * from './LotusRootTrait';
 export * from './LotusStalkTrait';
 export * from './LotusPetalTrait';
@@ -458,4 +459,3 @@ export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality'
 export * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
 export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
 export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
-
