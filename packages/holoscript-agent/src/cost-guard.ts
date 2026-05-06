@@ -34,6 +34,38 @@ export function defaultLocalLlmPricer(_model: string, _usage: TokenUsage): numbe
   return 0;
 }
 
+// xAI / Grok pricing — populated by /research task task_1778109552044_qed8.
+// Empty until verified pricing lands. defaultXAIPricer throws on missing
+// model with a helpful pointer (matches defaultAnthropicPricer behavior).
+// Never paste training-era pricing here — F.014 / W.GOLD.341.
+export const XAI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {};
+
+export function defaultXAIPricer(model: string, usage: TokenUsage): number {
+  const price = XAI_PRICING_USD_PER_MTOK[model];
+  if (!price) {
+    throw new Error(
+      `No xAI pricing configured for model "${model}" — populate XAI_PRICING_USD_PER_MTOK ` +
+      `(see /research task_1778109552044_qed8 in docs/LLM_CAPABILITIES.md) or pass a custom pricer`
+    );
+  }
+  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+}
+
+// OpenRouter pricing is per-model and varies by upstream — populated lazily.
+// Empty until verified pricing lands.
+export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {};
+
+export function defaultOpenRouterPricer(model: string, usage: TokenUsage): number {
+  const price = OPENROUTER_PRICING_USD_PER_MTOK[model];
+  if (!price) {
+    throw new Error(
+      `No OpenRouter pricing configured for model "${model}" — populate OPENROUTER_PRICING_USD_PER_MTOK ` +
+      `or pass a custom pricer`
+    );
+  }
+  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+}
+
 /**
  * Provider-aware default pricer dispatch. Picks the right pricer by
  * provider so the holoscript-agent runtime works for both Anthropic
@@ -44,11 +76,18 @@ export function defaultLocalLlmPricer(_model: string, _usage: TokenUsage): numbe
  * "No pricing configured for model 'Qwen/Qwen2.5-0.5B-Instruct'" because
  * defaultAnthropicPricer was wired in for ALL providers regardless of
  * which LLM the agent uses.
+ *
+ * Known gap (separate task): non-Anthropic non-local providers (openai,
+ * gemini) still fall through to defaultAnthropicPricer here. xai +
+ * openrouter were added 2026-05-06 with explicit dispatch + empty
+ * pricing dicts (Lane A — see docs/LLM_CAPABILITIES.md).
  */
 export function defaultPricerForProvider(
-  provider: 'anthropic' | 'local-llm' | 'openai' | string
+  provider: 'anthropic' | 'local-llm' | 'openai' | 'xai' | 'openrouter' | string
 ): ModelPricer {
   if (provider === 'local-llm' || provider === 'mock') return defaultLocalLlmPricer;
+  if (provider === 'xai') return defaultXAIPricer;
+  if (provider === 'openrouter') return defaultOpenRouterPricer;
   return defaultAnthropicPricer;
 }
 

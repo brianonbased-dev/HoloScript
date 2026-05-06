@@ -5,6 +5,8 @@ const VALID_PROVIDERS: ReadonlySet<LLMProviderName> = new Set([
   'anthropic',
   'openai',
   'gemini',
+  'xai',
+  'openrouter',
   'mock',
   'bitnet',
   'local-llm',

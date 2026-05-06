@@ -7,6 +7,8 @@ import {
   createGeminiProvider,
   createMockProvider,
   createLocalLLMProvider,
+  createXAIProvider,
+  createOpenRouterProvider,
 } from '@holoscript/llm-provider';
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
@@ -125,6 +127,10 @@ function supervisorProviderFactory(): ProviderFactory {
         return createOpenAIProvider({ defaultModel: spec.model });
       case 'gemini':
         return createGeminiProvider({ defaultModel: spec.model });
+      case 'xai':
+        return createXAIProvider({ defaultModel: spec.model });
+      case 'openrouter':
+        return createOpenRouterProvider({ defaultModel: spec.model });
       case 'local-llm':
         return createLocalLLMProvider({
           baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
@@ -133,7 +139,7 @@ function supervisorProviderFactory(): ProviderFactory {
       case 'mock':
         return createMockProvider();
       default:
-        throw new Error(`Provider "${spec.provider}" not yet wired in supervisor — Phase 2.5 deliverable.`);
+        throw new Error(`Provider "${spec.provider}" not yet wired in supervisor — add a case here.`);
     }
   };
 }

@@ -23,10 +23,15 @@ export interface SupervisorConfig {
   defaultTickIntervalMs?: number;
 }
 
+// Mirror of VALID_PROVIDERS in identity.ts. Deduplication is a separate
+// task — both Sets must stay in sync until then. Single-source-of-truth
+// via LLMProviderName-derived runtime Set is the clean fix (W.GOLD.006).
 const VALID_PROVIDERS: ReadonlySet<LLMProviderName> = new Set([
   'anthropic',
   'openai',
   'gemini',
+  'xai',
+  'openrouter',
   'mock',
   'bitnet',
   'local-llm',
