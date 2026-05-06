@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { createBotanicalLotusRenderProfile } from '@holoscript/core/traits';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
 import type { Group, Mesh, MeshPhysicalMaterial } from 'three';
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Vector3 } from 'three';
@@ -90,21 +91,46 @@ const GOLDEN_ANGLE = (137.50776 * Math.PI) / 180;
 const GROWTH_SECONDS = 12.5;
 const LOTUS_SEED = 0x0000dead;
 const GrowthProgressContext = createContext<MutableRefObject<number> | null>(null);
+const BOTANICAL_LOTUS_PROFILE = createBotanicalLotusRenderProfile();
+const BOTANICAL_PBR = BOTANICAL_LOTUS_PROFILE.pbr_uniforms;
+const PETAL_RENDER_MATERIAL = {
+  roughness: BOTANICAL_PBR.roughness,
+  transmission: BOTANICAL_PBR.transmission * 0.18,
+  thickness: Math.max(0.06, BOTANICAL_PBR.thickness * 0.22),
+  ior: BOTANICAL_PBR.ior,
+} as const;
 
 const REFERENCE_LOTUS_COLORS = {
-  petalBase: '#fff1f6',
-  petalMid: '#f47ab7',
-  petalInner: '#ff9ecf',
-  petalRim: '#c42a86',
-  petalShadow: '#84205f',
-  stamen: '#f59e0b',
-  stamenTip: '#fff4bd',
-  seedPod: '#f4d74a',
-  seedPodRim: '#b7c66b',
-  leaf: '#235f4f',
-  leafDark: '#102f28',
-  water: '#07140f',
+  petalBase: BOTANICAL_LOTUS_PROFILE.colors.petal_base,
+  petalMid: BOTANICAL_LOTUS_PROFILE.colors.petal_mid,
+  petalInner: BOTANICAL_LOTUS_PROFILE.colors.petal_inner,
+  petalRim: BOTANICAL_LOTUS_PROFILE.colors.petal_rim,
+  petalShadow: BOTANICAL_LOTUS_PROFILE.colors.petal_shadow,
+  stamen: BOTANICAL_LOTUS_PROFILE.colors.stamen,
+  stamenTip: BOTANICAL_LOTUS_PROFILE.colors.stamen_tip,
+  seedPod: BOTANICAL_LOTUS_PROFILE.colors.seed_pod,
+  seedPodRim: BOTANICAL_LOTUS_PROFILE.colors.seed_pod_rim,
+  leaf: BOTANICAL_LOTUS_PROFILE.colors.leaf,
+  leafDark: BOTANICAL_LOTUS_PROFILE.colors.leaf_dark,
+  water: BOTANICAL_LOTUS_PROFILE.colors.water,
 } as const;
+
+const LOTUS_RING_LAYOUT = BOTANICAL_LOTUS_PROFILE.petal_rings.map((ring, index) => {
+  const ringNumber = (index + 1) as 1 | 2 | 3;
+  const lengthScale = ringNumber === 1 ? 0.98 : ringNumber === 2 ? 0.94 : 0.82;
+  const widthScale = ringNumber === 1 ? 1.65 : ringNumber === 2 ? 1.48 : 1.35;
+  const height = ringNumber === 1 ? 1.12 : ringNumber === 2 ? 0.98 : 0.78;
+  return {
+    ring: ringNumber,
+    count: ring.count,
+    radius: ring.radius * 1.25,
+    length: ring.length * lengthScale,
+    width: ring.width * widthScale,
+    cup: ring.cup,
+    gravitySag: ring.gravity_sag,
+    height,
+  };
+});
 
 function isTeamPetal(petal: LotusPetal): petal is LotusTeamPetal {
   return 'paper_id' in petal;
@@ -166,14 +192,9 @@ function seededRandom(seed: number) {
 }
 
 function buildSeedablePetals(): ScenePetal[] {
-  const rings = [
-    { ring: 1 as const, count: 8, radius: 0.36, length: 0.8, width: 0.56, cup: 0.86, gravitySag: 0.02, height: 1.12 },
-    { ring: 2 as const, count: 13, radius: 0.74, length: 1.08, width: 0.68, cup: 0.5, gravitySag: 0.1, height: 0.98 },
-    { ring: 3 as const, count: 21, radius: 1.16, length: 1.24, width: 0.78, cup: 0.28, gravitySag: 0.22, height: 0.78 },
-  ];
   let index = 0;
   const petals: ScenePetal[] = [];
-  for (const ring of rings) {
+  for (const ring of LOTUS_RING_LAYOUT) {
     for (let ringIndex = 0; ringIndex < ring.count; ringIndex += 1) {
       const angle = index * GOLDEN_ANGLE;
       const isRootPaper = index === 0;
@@ -299,8 +320,9 @@ interface PadSpec {
 
 function buildStamens(): StamenSpec[] {
   const rand = seededRandom(LOTUS_SEED ^ 0xfbbf24);
-  return Array.from({ length: 58 }, (_, index) => ({
-    angle: (index / 58) * Math.PI * 2 + (rand() - 0.5) * 0.08,
+  const stamenCount = BOTANICAL_LOTUS_PROFILE.stamen_filament_count;
+  return Array.from({ length: stamenCount }, (_, index) => ({
+    angle: (index / stamenCount) * Math.PI * 2 + (rand() - 0.5) * 0.08,
     radius: 0.18 + rand() * 0.05,
     length: 0.24 + rand() * 0.16,
     height: -0.05 + rand() * 0.1,
@@ -389,13 +411,13 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
         ref={materialRef}
         color="#ffffff"
         emissive={glowColor}
-        roughness={0.72}
+        roughness={PETAL_RENDER_MATERIAL.roughness}
         metalness={0}
         clearcoat={0.08}
         clearcoatRoughness={0.7}
-        transmission={0}
-        thickness={0.08}
-        ior={1.36}
+        transmission={PETAL_RENDER_MATERIAL.transmission}
+        thickness={PETAL_RENDER_MATERIAL.thickness}
+        ior={PETAL_RENDER_MATERIAL.ior}
         opacity={1}
         side={DoubleSide}
         vertexColors
