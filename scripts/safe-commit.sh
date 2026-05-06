@@ -262,6 +262,12 @@ if [ "$DO_PUSH" = "1" ] && [ "$COMMIT_STATUS" -eq 0 ]; then
             echo "[safe-commit]     git push ${REMOTE} ${BRANCH}" >&2
             echo "[safe-commit]   or bypass the fence with: --push-force (or PUSH_FENCE_OFF=1)" >&2
             echo "[safe-commit]   inspect the loop: git reflog --date=iso --since='${PUSH_FENCE_WINDOW_MINUTES} minutes ago' | grep -E 'pull(:|.*--rebase)'" >&2
+            echo "[safe-commit]" >&2
+            echo "[safe-commit]   IF this commit DOES get dropped by a peer pull --rebase --abort + reset (W.135):" >&2
+            echo "[safe-commit]     git reflog                          # find the orphaned SHA (look for ${POST_HEAD:0:12})" >&2
+            echo "[safe-commit]     git cherry-pick ${POST_HEAD:0:12}       # restore the commit on top of new HEAD" >&2
+            echo "[safe-commit]     git push ${REMOTE} ${BRANCH}                  # push IMMEDIATELY before next collision" >&2
+            echo "[safe-commit]   See W.135 in ai-ecosystem MEMORY.md for the full recovery protocol." >&2
             # Exit 0 — the commit succeeded. The fence is informational, not a failure.
             exit 0
         fi
