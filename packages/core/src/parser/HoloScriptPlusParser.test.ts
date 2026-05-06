@@ -178,6 +178,30 @@ describe('HoloScriptPlusParser - Environment & Lighting', () => {
     expect(directiveNames).toContain('global_illumination');
     expect(directiveNames).toContain('fluid_simulation');
   });
+
+  it('parses artist-requested holographic mesh trait configs without unknown warnings', () => {
+    const source = `composition "FashionDemo" {
+      object "Mannequin" {
+        @holographic_mesh {
+          density: 0.8
+          refraction: true
+        }
+      }
+    }`;
+
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const unknownWarnings = (result.warnings || []).filter((w: any) =>
+      String(w.message || '').includes('Unknown directive')
+    );
+    expect(unknownWarnings).toHaveLength(0);
+
+    const mannequin = result.ast.root.children?.[0];
+    const trait = (mannequin?.directives || []).find((d: any) => d?.name === 'holographic_mesh');
+    expect(trait).toBeDefined();
+    expect((trait as any).config).toMatchObject({ density: 0.8, refraction: true });
+  });
 });
 
 describe('HoloScriptPlusParser - Expression Parsing', () => {

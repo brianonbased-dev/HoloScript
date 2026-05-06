@@ -137,6 +137,18 @@ describe('Auto-registration from presets', () => {
     expect(config?.layer).toBe('visual_effect');
   });
 
+  it('contains holographic_mesh trait for refractive authored meshes', () => {
+    const registry = TraitVisualRegistry.getInstance();
+    expect(registry.has('holographic_mesh')).toBe(true);
+
+    const config = registry.get('holographic_mesh');
+    expect(config?.shader).toBe('hologram');
+    expect(config?.material?.transparent).toBe(true);
+    expect(config?.material?.transmission).toBeGreaterThan(0);
+    expect(config?.tags).toContain('refractive');
+    expect(config?.layer).toBe('visual_effect');
+  });
+
   it('contains wooden trait (material-properties preset)', () => {
     const registry = TraitVisualRegistry.getInstance();
     expect(registry.has('wooden')).toBe(true);

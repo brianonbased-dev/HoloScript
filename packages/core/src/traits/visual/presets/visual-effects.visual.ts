@@ -1,7 +1,7 @@
 import type { TraitVisualConfig } from '../types';
 
 /**
- * Visual configs for visual-effects traits (30 traits).
+ * Visual configs for visual-effects traits (31 traits).
  * Shaders, transparency, and special rendering effects.
  */
 export const VISUAL_EFFECTS_VISUALS: Record<string, TraitVisualConfig> = {
@@ -60,6 +60,22 @@ export const VISUAL_EFFECTS_VISUALS: Record<string, TraitVisualConfig> = {
     },
     shader: 'hologram',
     tags: ['transparent', 'emissive', 'scifi'],
+    layer: 'visual_effect',
+  },
+  holographic_mesh: {
+    material: {
+      roughness: 0.02,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.65,
+      transmission: 0.75,
+      ior: 1.45,
+      emissive: '#00D6FF',
+      emissiveIntensity: 0.9,
+      iridescence: 0.35,
+    },
+    shader: 'hologram',
+    tags: ['transparent', 'emissive', 'refractive', 'mesh', 'scifi'],
     layer: 'visual_effect',
   },
   outlined: {

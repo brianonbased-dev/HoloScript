@@ -12,6 +12,7 @@ export const VISUAL_EFFECTS_TRAITS = [
   'fading',
   'color_shifting',
   'holographic',
+  'holographic_mesh',
   'outlined',
   'x_ray',
   'neon_glow',
