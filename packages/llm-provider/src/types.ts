@@ -133,6 +133,18 @@ export interface LLMCompletionRequest {
    * to `high` to avoid 400s.
    */
   effort?: AnthropicEffortLevel;
+
+  /**
+   * Provider-namespaced request extensions (segregated axis). Each adapter
+   * validates only its own namespace and ignores others — same request
+   * object can be re-routed to a fallback provider on retry without
+   * stripping fields. See `ProviderExtensions`.
+   *
+   * Anthropic-specific fields above (`thinking`/`thinkingDisplay`/`effort`)
+   * remain valid for backward-compat; `provider.anthropic.*` is the canonical
+   * long-term home. Migration is brain-by-brain, not breaking.
+   */
+  provider?: ProviderExtensions;
 }
 
 /**
@@ -575,6 +587,23 @@ export interface ILLMProvider {
   readonly defaultHoloScriptModel: string;
 
   /**
+   * Capability manifest — drives capability-aware routing in the supervisor.
+   * Adapters override `BaseLLMAdapter`'s `DEFAULT_CAPABILITIES` with their
+   * actual declarations. Brain compositions declare `requires` / `prefers`
+   * / `avoids` over capability keys; the router matches at session start.
+   */
+  readonly capabilities: Capabilities;
+
+  /**
+   * Optional escape hatch — return the underlying typed SDK client for
+   * advanced cases not covered by the universal/segregated split. Calling
+   * `.native()` is allowed but flags routing-debt: a knob the abstraction
+   * is missing. Each adapter narrows the return type via its own typed
+   * override (e.g. AnthropicAdapter.native(): Anthropic).
+   */
+  native?(): unknown;
+
+  /**
    * Send a completion request to the provider. Adapters wrap the underlying
    * SDK/fetch call in `withRetry` (BaseLLMAdapter) so transient errors
    * (429, 5xx, network) retry with exponential backoff and Retry-After
@@ -689,3 +718,204 @@ export class LLMContextLengthError extends LLMProviderError {
     this.name = 'LLMContextLengthError';
   }
 }
+
+// =============================================================================
+// Capabilities Manifest (Universal Axis)
+// =============================================================================
+
+/**
+ * Capability declaration for a provider. Drives capability-aware routing:
+ * brain compositions declare `requires` / `prefers` / `avoids` over capability
+ * keys; the router matches against each provider's manifest at session start.
+ *
+ * Mirrors the cross-provider matrix in
+ * `ai-ecosystem/docs/LLM_CAPABILITIES.md`. Add new fields here when the doc
+ * grows a new row, and update each adapter's overridden manifest.
+ *
+ * Universal+segregated principle (founder ruling 2026-05-06): this is the
+ * UNIVERSAL axis (the swap contract). Provider-specific superpowers go on
+ * the SEGREGATED axis (`req.provider.<name>.*` — see `ProviderExtensions`).
+ * Both first-class. Never flatten one into the other.
+ */
+export interface Capabilities {
+  /** Maximum input context window in tokens (0 = unknown / per-model). */
+  contextWindow: number;
+  /** Maximum output tokens per response (0 = unknown / per-model). */
+  maxOutput: number;
+  /** Per-million-token pricing in USD. Omit for $0 / variable / unknown. */
+  costPerMillion?: { input: number; output: number };
+
+  // ─── Universal axis support ─────────────────────────────────────
+  streaming: boolean;
+  tools: boolean;
+
+  // ─── Multimodal ─────────────────────────────────────────────────
+  vision: boolean;
+  /** >1568px long-edge images (e.g. Anthropic Opus 4.7 2576px). */
+  highResVision?: boolean;
+  videoInput?: boolean;
+  audioInput?: boolean;
+  audioOutput?: boolean;
+  imageGeneration?: boolean;
+  /** Sora-class video generation. Anthropic = false; OpenAI Sora deprecated 2026-09-24. */
+  videoGeneration?: boolean;
+
+  // ─── Reasoning ──────────────────────────────────────────────────
+  /** Visible chain-of-thought (Anthropic adaptive thinking, OpenAI o-series). */
+  visibleReasoning?: boolean;
+  /** Adjustable effort level (low/medium/high/xhigh/max). */
+  adjustableEffort?: boolean;
+
+  // ─── Agentic / routing-relevant ─────────────────────────────────
+  /** Real-time web search (xAI Live Search, Gemini Grounding, OpenAI web tool). */
+  liveWebSearch?: boolean;
+  /** Hosted shell tool (OpenAI Responses) — gate via HoloDoor (W.GOLD don't). */
+  hostedShell?: boolean;
+  /** Server-side code execution sandbox. */
+  codeExecutionSandbox?: boolean;
+  /** First-party file search / vector store — never source-of-truth (W.GOLD don't). */
+  fileSearchBuiltIn?: boolean;
+  /** Server-side prompt caching (Anthropic cache_control, Gemini cached_content). */
+  promptCaching?: boolean;
+  /** Per-loop token budget the model is aware of (Anthropic Task Budgets). */
+  perLoopBudget?: boolean;
+  /** Server-side conversation compaction (Anthropic compact-2026-01-12). */
+  serverSideCompaction?: boolean;
+  /** Hosted agentic loop (Anthropic Managed Agents, OpenAI Assistants/Agents). */
+  hostedAgenticLoop?: boolean;
+  /** Persistent cross-session memory store (Anthropic Memory Stores, OpenAI vector store). */
+  persistentMemoryStore?: boolean;
+  /** Strict JSON-schema-enforced structured outputs. */
+  structuredOutputs?: boolean;
+  /** First-class embeddings endpoint. */
+  embeddings?: boolean;
+  /** Batch API with discounted pricing (typically 50% off, 24h SLA). */
+  batchApi?: boolean;
+  /** WebRTC/SIP/WebSocket realtime voice (OpenAI Realtime API). */
+  realtimeVoice?: boolean;
+  /** Embedded chat UI components (OpenAI ChatKit). */
+  embeddedChatUI?: boolean;
+  /** MCP-Apps iframe surface inside vendor's chat UI (OpenAI Apps SDK). */
+  appsIframeSurface?: boolean;
+  /** This provider exposes its capabilities AS an MCP server (Codex MCP-server mode). */
+  mcpServerMode?: boolean;
+  /** App worktrees / per-task git worktree lifecycle (Codex). */
+  appWorktrees?: boolean;
+  /** First-party eval / prompt-optimizer pipeline (OpenAI Evals + Prompt Optimizer). */
+  evalsFirstParty?: boolean;
+
+  // ─── Deployment ─────────────────────────────────────────────────
+  /** Runs locally / offline (Ollama, Codex hardware-native). */
+  local?: boolean;
+  /** $0 per-call inference cost (compute pre-paid via hardware). */
+  zeroMarginalInference?: boolean;
+  /** Available via Amazon Bedrock. */
+  bedrockAvailable?: boolean;
+  /** Available via Google Vertex AI. */
+  vertexAvailable?: boolean;
+  /** Programmatic bearer-token API access (vs IDE-only / OAuth-only). */
+  bearerTokenAccess: boolean;
+}
+
+/**
+ * Conservative default capability manifest. Adapters override the fields
+ * they actually support; the router falls back to this when an adapter
+ * hasn't declared its capabilities yet. Returning these defaults means
+ * "I can do streaming + tools, nothing else known" — the router will
+ * only route brains that don't `require` any superpower.
+ */
+export const DEFAULT_CAPABILITIES: Capabilities = {
+  contextWindow: 0,
+  maxOutput: 0,
+  streaming: true,
+  tools: true,
+  vision: false,
+  bearerTokenAccess: true,
+};
+
+// =============================================================================
+// Provider-Namespaced Request Extensions (Segregated Axis)
+// =============================================================================
+
+/**
+ * Provider-namespaced request extensions. Each adapter validates ONLY its
+ * own namespace and ignores others — the same `LLMCompletionRequest` can
+ * be routed to a fallback provider on retry without stripping fields.
+ *
+ * This is the SEGREGATED axis: each provider's superpowers are addressable
+ * without leakage. The UNIVERSAL axis is the top-level fields on
+ * `LLMCompletionRequest` (messages, maxTokens, tools, stream, ...).
+ *
+ * See `ai-ecosystem/docs/LLM_CAPABILITIES.md` § Universal axis vs Segregated axis.
+ */
+export interface ProviderExtensions {
+  anthropic?: AnthropicProviderExtensions;
+  openai?: OpenAIProviderExtensions;
+  codex?: CodexProviderExtensions;
+  grok?: GrokProviderExtensions;
+  gemini?: GeminiProviderExtensions;
+  ollama?: OllamaProviderExtensions;
+  copilot?: CopilotProviderExtensions;
+}
+
+/**
+ * Anthropic-specific request extensions. Existing top-level
+ * `thinking`/`thinkingDisplay`/`effort` fields on `LLMCompletionRequest`
+ * remain valid for backward-compat; `provider.anthropic.*` is the canonical
+ * long-term home. Migration is brain-by-brain, not breaking.
+ */
+export interface AnthropicProviderExtensions {
+  thinking?: AnthropicThinkingParam;
+  thinkingDisplay?: 'summarized' | 'omitted';
+  effort?: AnthropicEffortLevel;
+  /** Beta `task-budgets-2026-03-13` — Opus 4.7 per-loop token budget visible to model. */
+  taskBudget?: { type: 'tokens'; total: number };
+  /** Beta `compact-2026-01-12` — server-side conversation compaction (4.6+). */
+  compaction?: { type: 'compact_20260112' };
+  /** Opt-in beta headers (e.g. `managed-agents-2026-04-01`, `advisor-tool-2026-03-01`). */
+  betaHeaders?: string[];
+}
+
+export interface OpenAIProviderExtensions {
+  reasoningEffort?: OpenAIReasoningEffort;
+  parallelToolCalls?: boolean;
+  /** Responses API background mode — long-running task returns a token; poll for completion. */
+  background?: boolean;
+}
+
+/**
+ * Codex is a runtime, not an API surface — its extensions describe
+ * execution-lane state (worktree path, AGENTS.md, hooks, MCP-server mode).
+ * Slot is open; populated when the Codex execution lane is built.
+ */
+export interface CodexProviderExtensions {}
+
+export interface GrokProviderExtensions {
+  /** xAI Live Search — real-time web + X-platform results. */
+  liveSearch?: boolean;
+}
+
+export interface GeminiProviderExtensions {
+  /** Search Grounding — first-party Google Search citations. */
+  grounding?: boolean;
+  /** Reference to a previously-cached `cached_content` resource. */
+  cachedContent?: string;
+  /** systemInstruction (split from top-level `system` if upstream call needs it). */
+  systemInstruction?: string;
+}
+
+export interface OllamaProviderExtensions {
+  /** Controls how long the model stays loaded after the call (e.g. '5m', '1h'). */
+  keepAlive?: string;
+  /** Per-request context window override. */
+  numCtx?: number;
+  /** GPU layer offload count. */
+  numGpu?: number;
+}
+
+/**
+ * Copilot is an IDE surface, not a router-style provider — slot exists for
+ * symmetry but is unlikely to be populated. See
+ * `docs/LLM_CAPABILITIES.md` § Copilot for the architectural framing.
+ */
+export interface CopilotProviderExtensions {}

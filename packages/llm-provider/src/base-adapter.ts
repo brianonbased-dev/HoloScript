@@ -17,7 +17,9 @@ import type {
   LLMProviderName,
   LLMProviderConfig,
   TokenUsage,
+  Capabilities,
 } from './types';
+import { DEFAULT_CAPABILITIES } from './types';
 import {
   LLMProviderError,
   LLMRateLimitError,
@@ -86,6 +88,14 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
   abstract readonly name: LLMProviderName;
   abstract readonly models: readonly string[];
   abstract readonly defaultHoloScriptModel: string;
+
+  /**
+   * Capability manifest. Conservative default (DEFAULT_CAPABILITIES) so
+   * existing adapters compile without change; each adapter overrides
+   * with its actual declarations to participate in capability-aware
+   * routing. See `Capabilities` in types.ts for the full field set.
+   */
+  readonly capabilities: Capabilities = DEFAULT_CAPABILITIES;
 
   protected readonly config: Required<LLMProviderConfig>;
 
