@@ -224,6 +224,76 @@ describe('NetworkedTrait.applyState', () => {
     // Still returns a sample (the last one) — not null
     expect(t.getInterpolatedState()).not.toBeNull();
   });
+
+  // ─── Regression: networked-collider state divergence ────────────────────────
+  // task_1778061290860_vh05 / A-009 stress-demo gap
+  // a009-20260427-stress-demo-networked-collider-divergence
+  //
+  // Bug: applyState() (network-received) only emitted a single generic
+  // 'stateReceived' event, while setProperty() (local) emitted per-property
+  // 'propertyChanged' events. Downstream collision-bound caches listened to
+  // 'propertyChanged' for invalidation, so network-received position updates
+  // left the dependent bounds cache stale until something else mutated the
+  // object locally — producing ~1.2 s of failed hits on the receiving client
+  // in the 2026-04-27 multi-peer stress test.
+  //
+  // Fix: emit propertyChanged per-key inside applyState() so the network path
+  // matches the local path. Tests assert exact emit count (G.GOLD.013 — false
+  // case included: empty state → zero propertyChanged events).
+  it('emits propertyChanged for every key applied from network', () => {
+    const t = makeSharedTrait({ interpolation: false });
+    const events: any[] = [];
+    t.on('propertyChanged', (e) => events.push(e));
+
+    t.applyState({ position: [1, 2, 3], rotation: [0, 0, 0, 1], health: 80 });
+
+    expect(events.length).toBe(3);
+    const props = events.map((e) => e.property).sort();
+    expect(props).toEqual(['health', 'position', 'rotation']);
+    const positionEvent = events.find((e) => e.property === 'position');
+    expect(positionEvent.value).toEqual([1, 2, 3]);
+  });
+
+  it('emits ZERO propertyChanged events when applyState is called with empty state', () => {
+    // G.GOLD.013 false-case assertion: an empty state must not spuriously
+    // invalidate downstream caches.
+    const t = makeSharedTrait({ interpolation: false });
+    const events: any[] = [];
+    t.on('propertyChanged', (e) => events.push(e));
+
+    t.applyState({});
+
+    expect(events.length).toBe(0);
+  });
+
+  it('emits propertyChanged BEFORE stateReceived (cache-invalidation must precede whole-state notify)', () => {
+    // Listeners that react to 'stateReceived' (e.g. a render flush) should see
+    // an already-invalidated cache, otherwise a render can land between the
+    // per-property invalidate and the whole-state notify and capture stale
+    // bounds. Order: all propertyChanged → then stateReceived.
+    const t = makeSharedTrait({ interpolation: false });
+    const order: string[] = [];
+    t.on('propertyChanged', () => order.push('propertyChanged'));
+    t.on('stateReceived', () => order.push('stateReceived'));
+
+    t.applyState({ position: [1, 2, 3] });
+
+    expect(order).toEqual(['propertyChanged', 'stateReceived']);
+  });
+
+  it('per-property emits also fire when interpolation is enabled (interp path must not swallow them)', () => {
+    // Receiver-side interpolation buffers position/rotation/scale for smoothing,
+    // but bounds cache invalidation must still fire — otherwise interpolation
+    // would re-introduce the divergence bug for the very objects it serves.
+    const t = makeSharedTrait({ interpolation: true });
+    const events: any[] = [];
+    t.on('propertyChanged', (e) => events.push(e));
+
+    t.applyState({ position: [4, 5, 6], scale: [2, 2, 2] });
+
+    expect(events.length).toBe(2);
+    expect(events.map((e) => e.property).sort()).toEqual(['position', 'scale']);
+  });
 });
 
 // ─── getInterpolatedState ─────────────────────────────────────────────────────

@@ -763,6 +763,29 @@ export class NetworkedTrait {
 
   /**
    * Apply received state (from network)
+   *
+   * Fix (task_1778061290860_vh05 / A-009 stress-demo gap
+   * a009-20260427-stress-demo-networked-collider-divergence): emit a
+   * `propertyChanged` event for every key that arrives over the network, in
+   * addition to the existing `stateReceived` notification.
+   *
+   * Background: `setProperty()` (locally-mutated path) emits `propertyChanged`
+   * per-property, which downstream physics / collision-bound systems listen to
+   * for cache invalidation (see TransformGraph.markDirty). `applyState()`
+   * (network-received path) previously only emitted a single generic
+   * `stateReceived` event with no per-property data. This produced an
+   * asymmetry: local mutations invalidated dependent caches immediately, but
+   * network-received mutations did not — leaving collision bounds (which are
+   * derived from position+rotation+scale) stale until something else moved
+   * the object locally. In multi-peer stress tests this manifested as ~1.2 s
+   * of failed hits on receiving clients post-sync.
+   *
+   * Per-property emit aligns the network path with the local path: any
+   * listener that already invalidates on `propertyChanged` (collider bounds,
+   * spatial-hash buckets, AABB caches, attached visual children) now
+   * invalidates equally on remote application. The pre-existing
+   * `stateReceived` emit is preserved for back-compat with consumers that
+   * react at the whole-state granularity.
    */
   public applyState(state: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(state)) {
@@ -787,9 +810,26 @@ export class NetworkedTrait {
       }
     }
 
+    // Emit propertyChanged per key so downstream cache-invalidation listeners
+    // (collision bounds, spatial hashes, AABB caches) fire on remote-applied
+    // state the same way they fire on locally-mutated state via setProperty().
+    // Without this, networked colliders diverge: position is synced but the
+    // dependent bounds cache stays stale until a local mutation triggers
+    // recompute, which produced ~1.2 s of failed hits on client B in the
+    // 2026-04-27 A-009 stress test (multi-peer scenario).
+    const ts = Date.now();
+    for (const [key, value] of Object.entries(state)) {
+      this.emit('propertyChanged', {
+        type: 'propertyChanged',
+        property: key,
+        value,
+        timestamp: ts,
+      });
+    }
+
     this.emit('stateReceived', {
       type: 'stateReceived',
-      timestamp: Date.now(),
+      timestamp: ts,
     });
   }
 
