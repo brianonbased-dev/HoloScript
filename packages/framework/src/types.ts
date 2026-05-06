@@ -6,6 +6,11 @@
 
 import { ProtocolPhase } from './protocol/implementations';
 import type { PhaseResult, ProtocolCycleResult } from './protocol/implementations';
+import type {
+  SubagentEvent,
+  TaskAction,
+  TaskDecompositionPlan,
+} from './board/board-types';
 
 // Re-export protocol specs from canonical source (framework owns these now)
 export type {
@@ -75,6 +80,15 @@ export interface TaskDef {
   claimedBy?: string;
   createdAt: string;
   completedAt?: string;
+  dependsOn?: string[];
+  unblocks?: string[];
+  onComplete?: TaskAction[];
+  tags?: string[];
+  parentTaskId?: string;
+  childTaskIds?: string[];
+  decomposition?: TaskDecompositionPlan;
+  subagentEvents?: SubagentEvent[];
+  metadata?: Record<string, unknown>;
 }
 
 // ── Knowledge (aligns with MeshKnowledgeEntry from holomesh/types.ts) ──

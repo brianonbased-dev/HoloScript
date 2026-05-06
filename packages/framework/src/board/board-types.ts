@@ -223,6 +223,26 @@ export const TASK_POLICY_ACTION_KINDS = [
 
 export const TASK_POLICY_DECISIONS = ['allow', 'deny', 'escalate'] as const;
 
+export const TASK_ORCHESTRATION_EVENT_TYPES = [
+  'decompose',
+  'delegate',
+  'subtask_started',
+  'subtask_blocked',
+  'subtask_done',
+  'synthesize',
+  'verify',
+] as const;
+
+export const TASK_ORCHESTRATION_AGENT_SURFACES = [
+  'claude',
+  'codex',
+  'gemini',
+  'copilot',
+  'headless',
+  'human',
+  'custom',
+] as const;
+
 export type TaskPolicyActionKind = (typeof TASK_POLICY_ACTION_KINDS)[number];
 export type TaskPolicyDecisionType = (typeof TASK_POLICY_DECISIONS)[number];
 export type TaskPolicyEnforcementMode = 'advisory' | 'block' | 'escalate';
@@ -316,6 +336,84 @@ export interface TaskPolicyDecision {
   event: TaskPolicyEvent;
 }
 
+export type TaskOrchestrationEventType = (typeof TASK_ORCHESTRATION_EVENT_TYPES)[number];
+export type TaskOrchestrationAgentSurface =
+  (typeof TASK_ORCHESTRATION_AGENT_SURFACES)[number];
+export type TaskDecompositionStrategy = 'manual' | 'llm' | 'rule' | 'hybrid' | 'external';
+export type TaskSubagentStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'blocked'
+  | 'done'
+  | 'failed'
+  | 'verified';
+
+export interface TaskOrchestrationAgentRef {
+  surface: TaskOrchestrationAgentSurface;
+  agentId?: string;
+  agentName?: string;
+  handle?: string;
+  model?: string;
+  provider?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskDecompositionChild {
+  id: string;
+  title?: string;
+  taskId?: string;
+  phaseId?: string;
+  dependencies?: string[];
+  wave: number;
+  requiredCapabilities?: string[];
+  assignedAgent?: TaskOrchestrationAgentRef;
+  status?: TaskSubagentStatus;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskDecompositionWave {
+  index: number;
+  childIds: string[];
+  dependsOnWaves?: number[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskDecompositionPlan {
+  id: string;
+  parentTaskId: string;
+  strategy: TaskDecompositionStrategy;
+  createdAt: string;
+  createdBy: TaskOrchestrationAgentRef;
+  children: TaskDecompositionChild[];
+  waves: TaskDecompositionWave[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface SubagentEvent {
+  id: string;
+  type: TaskOrchestrationEventType;
+  taskId: string;
+  parentTaskId?: string;
+  childTaskId?: string;
+  phaseId?: string;
+  wave?: number;
+  actor: TaskOrchestrationAgentRef;
+  target?: TaskOrchestrationAgentRef;
+  timestamp: string;
+  status?: TaskSubagentStatus;
+  dependencies?: string[];
+  summary?: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskCoordinationTimeline {
+  taskId: string;
+  childTaskIds: string[];
+  waves: TaskDecompositionWave[];
+  events: SubagentEvent[];
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -364,6 +462,14 @@ export interface TeamTask {
   policy?: TaskPolicyProfile;
   /** Policy decisions or violations recorded by runners/hooks. */
   policyEvents?: TaskPolicyEvent[];
+  /** Parent task id when this task is one child of a typed decomposition plan. */
+  parentTaskId?: string;
+  /** Child task ids retained by parent tasks for dependency reconstruction. */
+  childTaskIds?: string[];
+  /** Typed decomposition plan, including child dependency edges and wave ordering. */
+  decomposition?: TaskDecompositionPlan;
+  /** Replayable coordination events emitted by Claude/Codex/Gemini/Copilot/headless seats. */
+  subagentEvents?: SubagentEvent[];
   /** Arbitrary metadata (estimatedHours, repo, branch, etc.) */
   metadata?: Record<string, unknown>;
 }
@@ -387,6 +493,14 @@ export interface DoneLogEntry {
   policy?: TaskPolicyProfile;
   /** Policy decisions or violations preserved when the task is moved off the live board. */
   policyEvents?: TaskPolicyEvent[];
+  /** Parent task id preserved for decomposed child tasks. */
+  parentTaskId?: string;
+  /** Child task ids preserved for parent task replay. */
+  childTaskIds?: string[];
+  /** Decomposition plan preserved when the task is moved off the live board. */
+  decomposition?: TaskDecompositionPlan;
+  /** Subagent coordination events preserved for replay. */
+  subagentEvents?: SubagentEvent[];
 }
 
 // ── Suggestions ──
@@ -1062,6 +1176,224 @@ export function cloneTaskPolicyEvent(event: TaskPolicyEvent): TaskPolicyEvent {
     reasons: [...event.reasons],
     ...(event.metadata ? { metadata: { ...event.metadata } } : {}),
   };
+}
+
+export function isSupportedTaskOrchestrationEventType(
+  type: string
+): type is TaskOrchestrationEventType {
+  return (TASK_ORCHESTRATION_EVENT_TYPES as readonly string[]).includes(type);
+}
+
+export function isSupportedTaskOrchestrationAgentSurface(
+  surface: string
+): surface is TaskOrchestrationAgentSurface {
+  return (TASK_ORCHESTRATION_AGENT_SURFACES as readonly string[]).includes(surface);
+}
+
+function validateTaskOrchestrationAgentRef(
+  ref: TaskOrchestrationAgentRef | undefined,
+  label: string
+): string[] {
+  const errors: string[] = [];
+  if (!ref) {
+    errors.push(`${label} is required.`);
+    return errors;
+  }
+  if (!isSupportedTaskOrchestrationAgentSurface(ref.surface)) {
+    errors.push(`${label}.surface is unsupported: ${String(ref.surface)}.`);
+  }
+  if (!ref.agentId && !ref.agentName && !ref.handle) {
+    errors.push(`${label} needs agentId, agentName, or handle.`);
+  }
+  return errors;
+}
+
+function isSupportedTaskSubagentStatus(status: string): status is TaskSubagentStatus {
+  return ['pending', 'in_progress', 'blocked', 'done', 'failed', 'verified'].includes(status);
+}
+
+export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): string[] {
+  const errors: string[] = [];
+  if (!plan.id) errors.push('TaskDecompositionPlan.id is required.');
+  if (!plan.parentTaskId) errors.push('TaskDecompositionPlan.parentTaskId is required.');
+  if (!['manual', 'llm', 'rule', 'hybrid', 'external'].includes(plan.strategy)) {
+    errors.push(`TaskDecompositionPlan.strategy is unsupported: ${String(plan.strategy)}.`);
+  }
+  if (!plan.createdAt) errors.push('TaskDecompositionPlan.createdAt is required.');
+  errors.push(...validateTaskOrchestrationAgentRef(plan.createdBy, 'TaskDecompositionPlan.createdBy'));
+
+  if (!plan.children.length) {
+    errors.push('TaskDecompositionPlan.children is required.');
+  }
+  if (!plan.waves.length) {
+    errors.push('TaskDecompositionPlan.waves is required.');
+  }
+
+  const childIds = new Set<string>();
+  for (const child of plan.children) {
+    if (!child.id) {
+      errors.push('TaskDecompositionPlan child id is required.');
+      continue;
+    }
+    if (childIds.has(child.id)) {
+      errors.push(`TaskDecompositionPlan child id is duplicated: ${child.id}.`);
+    }
+    childIds.add(child.id);
+    if (!Number.isInteger(child.wave) || child.wave < 0) {
+      errors.push(`TaskDecompositionPlan child ${child.id} has invalid wave ${String(child.wave)}.`);
+    }
+    for (const dep of child.dependencies ?? []) {
+      if (!dep) {
+        errors.push(`TaskDecompositionPlan child ${child.id} has an empty dependency.`);
+      } else if (!childIds.has(dep) && !plan.children.some((candidate) => candidate.id === dep)) {
+        errors.push(`TaskDecompositionPlan child ${child.id} depends on unknown child ${dep}.`);
+      }
+    }
+    if (child.status && !isSupportedTaskSubagentStatus(child.status)) {
+      errors.push(`TaskDecompositionPlan child ${child.id} has unsupported status ${child.status}.`);
+    }
+    if (child.assignedAgent) {
+      errors.push(
+        ...validateTaskOrchestrationAgentRef(
+          child.assignedAgent,
+          `TaskDecompositionPlan child ${child.id}.assignedAgent`
+        )
+      );
+    }
+  }
+
+  const waveIndices = new Set<number>();
+  for (const wave of plan.waves) {
+    if (!Number.isInteger(wave.index) || wave.index < 0) {
+      errors.push(`TaskDecompositionPlan wave has invalid index ${String(wave.index)}.`);
+    }
+    if (waveIndices.has(wave.index)) {
+      errors.push(`TaskDecompositionPlan wave index is duplicated: ${wave.index}.`);
+    }
+    waveIndices.add(wave.index);
+    if (!wave.childIds.length) {
+      errors.push(`TaskDecompositionPlan wave ${wave.index} has no childIds.`);
+    }
+    for (const childId of wave.childIds) {
+      if (!childIds.has(childId)) {
+        errors.push(`TaskDecompositionPlan wave ${wave.index} references unknown child ${childId}.`);
+      }
+    }
+    for (const depWave of wave.dependsOnWaves ?? []) {
+      if (!Number.isInteger(depWave) || depWave < 0) {
+        errors.push(`TaskDecompositionPlan wave ${wave.index} has invalid dependency wave ${depWave}.`);
+      }
+      if (depWave === wave.index) {
+        errors.push(`TaskDecompositionPlan wave ${wave.index} cannot depend on itself.`);
+      }
+    }
+  }
+
+  for (const child of plan.children) {
+    if (child.id && !plan.waves.some((wave) => wave.index === child.wave && wave.childIds.includes(child.id))) {
+      errors.push(
+        `TaskDecompositionPlan child ${child.id} is not listed in its declared wave ${child.wave}.`
+      );
+    }
+  }
+
+  return errors;
+}
+
+export function validateSubagentEvent(event: SubagentEvent): string[] {
+  const errors: string[] = [];
+  if (!event.id) errors.push('SubagentEvent.id is required.');
+  if (!isSupportedTaskOrchestrationEventType(event.type)) {
+    errors.push(`SubagentEvent.type is unsupported: ${String(event.type)}.`);
+  }
+  if (!event.taskId) errors.push('SubagentEvent.taskId is required.');
+  if (!event.timestamp) errors.push('SubagentEvent.timestamp is required.');
+  if (event.wave !== undefined && (!Number.isInteger(event.wave) || event.wave < 0)) {
+    errors.push(`SubagentEvent.wave is invalid: ${String(event.wave)}.`);
+  }
+  if (event.status && !isSupportedTaskSubagentStatus(event.status)) {
+    errors.push(`SubagentEvent.status is unsupported: ${String(event.status)}.`);
+  }
+  for (const dep of event.dependencies ?? []) {
+    if (!dep) errors.push('SubagentEvent.dependencies cannot contain empty ids.');
+  }
+  errors.push(...validateTaskOrchestrationAgentRef(event.actor, 'SubagentEvent.actor'));
+  if (event.target) {
+    errors.push(...validateTaskOrchestrationAgentRef(event.target, 'SubagentEvent.target'));
+  }
+  return errors;
+}
+
+export function cloneTaskOrchestrationAgentRef(
+  ref: TaskOrchestrationAgentRef
+): TaskOrchestrationAgentRef {
+  return {
+    ...ref,
+    ...(ref.metadata ? { metadata: { ...ref.metadata } } : {}),
+  };
+}
+
+export function cloneTaskDecompositionPlan(
+  plan: TaskDecompositionPlan
+): TaskDecompositionPlan {
+  return {
+    ...plan,
+    createdBy: cloneTaskOrchestrationAgentRef(plan.createdBy),
+    children: plan.children.map((child) => ({
+      ...child,
+      ...(child.dependencies ? { dependencies: [...child.dependencies] } : {}),
+      ...(child.requiredCapabilities
+        ? { requiredCapabilities: [...child.requiredCapabilities] }
+        : {}),
+      ...(child.assignedAgent
+        ? { assignedAgent: cloneTaskOrchestrationAgentRef(child.assignedAgent) }
+        : {}),
+      ...(child.metadata ? { metadata: { ...child.metadata } } : {}),
+    })),
+    waves: plan.waves.map((wave) => ({
+      ...wave,
+      childIds: [...wave.childIds],
+      ...(wave.dependsOnWaves ? { dependsOnWaves: [...wave.dependsOnWaves] } : {}),
+      ...(wave.metadata ? { metadata: { ...wave.metadata } } : {}),
+    })),
+    ...(plan.metadata ? { metadata: { ...plan.metadata } } : {}),
+  };
+}
+
+export function cloneSubagentEvent(event: SubagentEvent): SubagentEvent {
+  return {
+    ...event,
+    actor: cloneTaskOrchestrationAgentRef(event.actor),
+    ...(event.target ? { target: cloneTaskOrchestrationAgentRef(event.target) } : {}),
+    ...(event.dependencies ? { dependencies: [...event.dependencies] } : {}),
+    ...(event.payload ? { payload: { ...event.payload } } : {}),
+    ...(event.metadata ? { metadata: { ...event.metadata } } : {}),
+  };
+}
+
+export function replayTaskCoordination(task: {
+  id?: string;
+  taskId?: string;
+  childTaskIds?: string[];
+  decomposition?: TaskDecompositionPlan;
+  subagentEvents?: SubagentEvent[];
+}): TaskCoordinationTimeline {
+  const taskId = task.taskId ?? task.id ?? '';
+  const childTaskIds =
+    task.childTaskIds ??
+    task.decomposition?.children.map((child) => child.taskId ?? child.id) ??
+    [];
+  const waves = task.decomposition?.waves.map((wave) => ({
+    ...wave,
+    childIds: [...wave.childIds],
+    ...(wave.dependsOnWaves ? { dependsOnWaves: [...wave.dependsOnWaves] } : {}),
+    ...(wave.metadata ? { metadata: { ...wave.metadata } } : {}),
+  })) ?? [];
+  const events = (task.subagentEvents ?? [])
+    .map(cloneSubagentEvent)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id));
+
+  return { taskId, childTaskIds: [...childTaskIds], waves, events };
 }
 
 export function evaluateTaskPolicyAction(

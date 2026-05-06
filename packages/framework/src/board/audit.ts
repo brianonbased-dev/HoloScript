@@ -24,6 +24,8 @@ export interface AuditResult {
   artifactReceipts: number;
   environmentReceipts: number;
   policyEvents: number;
+  decompositionPlans: number;
+  subagentEvents: number;
   unverifiedTasks: Array<{
     taskId: string;
     title: string;
@@ -80,6 +82,8 @@ export interface DoneLogStats {
   artifactReceipts: number;
   environmentReceipts: number;
   policyEvents: number;
+  decompositionPlans: number;
+  subagentEvents: number;
   byAgent: AgentStats[];
   bySource: SourceStats[];
   completionOverTime: CompletionBucket[];
@@ -132,6 +136,8 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     0
   );
   const policyEvents = doneLog.reduce((sum, e) => sum + (e.policyEvents?.length ?? 0), 0);
+  const decompositionPlans = doneLog.reduce((sum, e) => sum + (e.decomposition ? 1 : 0), 0);
+  const subagentEvents = doneLog.reduce((sum, e) => sum + (e.subagentEvents?.length ?? 0), 0);
 
   const duplicateMap = new Map<string, number>();
   for (const e of doneLog) {
@@ -155,6 +161,8 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     artifactReceipts,
     environmentReceipts,
     policyEvents,
+    decompositionPlans,
+    subagentEvents,
     unverifiedTasks: unverified.map((e) => ({
       taskId: e.taskId,
       title: e.title,
@@ -293,6 +301,11 @@ export class DoneLogAuditor {
         0
       ),
       policyEvents: this.entries.reduce((sum, entry) => sum + (entry.policyEvents?.length ?? 0), 0),
+      decompositionPlans: this.entries.reduce((sum, entry) => sum + (entry.decomposition ? 1 : 0), 0),
+      subagentEvents: this.entries.reduce(
+        (sum, entry) => sum + (entry.subagentEvents?.length ?? 0),
+        0
+      ),
       byAgent: Array.from(agentMap.entries())
         .map(([agent, s]) => ({ agent, ...s }))
         .sort((a, b) => b.completed - a.completed),

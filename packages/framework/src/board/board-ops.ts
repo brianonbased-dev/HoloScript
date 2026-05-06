@@ -16,6 +16,8 @@ import type {
   ArtifactReceipt,
   TaskEnvironmentReceipt,
   TaskPolicyEvent,
+  TaskDecompositionPlan,
+  SubagentEvent,
 } from './board-types';
 import {
   normalizeTitle,
@@ -30,6 +32,10 @@ import {
   cloneTaskPolicyEvent,
   cloneTaskPolicyProfile,
   validateTaskPolicyProfile,
+  cloneTaskDecompositionPlan,
+  cloneSubagentEvent,
+  validateTaskDecompositionPlan,
+  validateSubagentEvent,
 } from './board-types';
 
 // ── Task Operations ──
@@ -143,6 +149,20 @@ export function completeTask(
     };
   }
 
+  const orchestrationErrors = [
+    ...(task.decomposition ? validateTaskDecompositionPlan(task.decomposition) : []),
+    ...(task.subagentEvents ?? []).flatMap((event) => validateSubagentEvent(event)),
+  ];
+  if (orchestrationErrors.length) {
+    return {
+      result: {
+        success: false,
+        error: `Invalid task orchestration: ${orchestrationErrors.join(' ')}`,
+      },
+      updatedBoard: board,
+    };
+  }
+
   const artifacts = [
     ...(task.artifacts ?? []),
     ...(opts.artifacts ?? []),
@@ -178,6 +198,12 @@ export function completeTask(
     ...(task.policy ? { policy: cloneTaskPolicyProfile(task.policy) } : {}),
     ...(task.policyEvents?.length
       ? { policyEvents: task.policyEvents.map(cloneTaskPolicyEvent) }
+      : {}),
+    ...(task.parentTaskId ? { parentTaskId: task.parentTaskId } : {}),
+    ...(task.childTaskIds?.length ? { childTaskIds: [...task.childTaskIds] } : {}),
+    ...(task.decomposition ? { decomposition: cloneTaskDecompositionPlan(task.decomposition) } : {}),
+    ...(task.subagentEvents?.length
+      ? { subagentEvents: task.subagentEvents.map(cloneSubagentEvent) }
       : {}),
   };
 
@@ -256,6 +282,53 @@ export function recordTaskPolicyEvent(
   if (!task) return { success: false, error: 'Task not found' };
 
   task.policyEvents = [...(task.policyEvents ?? []), cloneTaskPolicyEvent(event)];
+  return { success: true, task };
+}
+
+export function attachTaskDecomposition(
+  board: TeamTask[],
+  taskId: string,
+  plan: TaskDecompositionPlan
+): TaskActionResult {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) return { success: false, error: 'Task not found' };
+  if (plan.parentTaskId !== taskId) {
+    return {
+      success: false,
+      error: `TaskDecompositionPlan.parentTaskId ${plan.parentTaskId} does not match task ${taskId}`,
+    };
+  }
+
+  const errors = validateTaskDecompositionPlan(plan);
+  if (errors.length) {
+    return { success: false, error: `Invalid task orchestration: ${errors.join(' ')}` };
+  }
+
+  task.decomposition = cloneTaskDecompositionPlan(plan);
+  task.childTaskIds = plan.children.map((child) => child.taskId ?? child.id);
+  return { success: true, task };
+}
+
+export function recordSubagentEvent(
+  board: TeamTask[],
+  taskId: string,
+  event: SubagentEvent
+): TaskActionResult {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) return { success: false, error: 'Task not found' };
+  if (event.taskId !== taskId && event.parentTaskId !== taskId) {
+    return {
+      success: false,
+      error: `SubagentEvent task linkage does not reference task ${taskId}`,
+    };
+  }
+
+  const errors = validateSubagentEvent(event);
+  if (errors.length) {
+    return { success: false, error: `Invalid task orchestration: ${errors.join(' ')}` };
+  }
+
+  task.subagentEvents = [...(task.subagentEvents ?? []), cloneSubagentEvent(event)];
   return { success: true, task };
 }
 
@@ -366,7 +439,8 @@ export type SkippedTaskReason =
   | 'empty_title'
   | 'invalid_artifact'
   | 'invalid_environment'
-  | 'invalid_policy';
+  | 'invalid_policy'
+  | 'invalid_orchestration';
 
 export interface SkippedTaskEntry {
   title: string;
@@ -478,6 +552,15 @@ export function addTasksToBoard(
       continue;
     }
 
+    const orchestrationErrors = [
+      ...(t.decomposition ? validateTaskDecompositionPlan(t.decomposition) : []),
+      ...(t.subagentEvents ?? []).flatMap((event) => validateSubagentEvent(event)),
+    ];
+    if (orchestrationErrors.length) {
+      skipped.push({ title, reason: 'invalid_orchestration' });
+      continue;
+    }
+
     const rawDescription = String(t.description || '');
     // Cap unified with the suggestion-description cap at line 367 (2000).
     // W.085 post-mortem: agents repeatedly hit the old 1000 cap while filing
@@ -515,6 +598,10 @@ export function addTasksToBoard(
     }
     if (t.policy) task.policy = cloneTaskPolicyProfile(t.policy);
     if (t.policyEvents?.length) task.policyEvents = t.policyEvents.map(cloneTaskPolicyEvent);
+    if (t.parentTaskId) task.parentTaskId = t.parentTaskId;
+    if (t.childTaskIds?.length) task.childTaskIds = [...t.childTaskIds];
+    if (t.decomposition) task.decomposition = cloneTaskDecompositionPlan(t.decomposition);
+    if (t.subagentEvents?.length) task.subagentEvents = t.subagentEvents.map(cloneSubagentEvent);
     if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
     if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);

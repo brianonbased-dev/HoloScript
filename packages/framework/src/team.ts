@@ -44,6 +44,9 @@ import type {
   TaskEnvironmentReceipt,
   TaskPolicyEvent,
   TaskPolicyProfile,
+  TaskDecompositionPlan,
+  SubagentEvent,
+  TaskOrchestrationAgentRef,
 } from './board/board-types';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
@@ -52,7 +55,7 @@ import { GoalSynthesizer } from './protocol/goal-synthesizer';
 import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
-import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';
+import type { DecompositionResult, MicroPhase, TaskDescription } from './protocol/micro-phase-decomposer';
 import { parseDeriveContent, ROOM_PRESETS } from './board';
 import { MeshDiscovery, SignalService, GossipProtocol } from './mesh';
 import type { PeerMetadata, GossipPacket } from './mesh';
@@ -269,6 +272,15 @@ export class Team {
         status: 'open',
         createdAt: new Date().toISOString(),
       };
+      if (t.dependsOn?.length) task.dependsOn = [...t.dependsOn];
+      if (t.unblocks?.length) task.unblocks = [...t.unblocks];
+      if (t.onComplete?.length) task.onComplete = [...t.onComplete];
+      if (t.tags?.length) task.tags = [...t.tags];
+      if (t.parentTaskId) task.parentTaskId = t.parentTaskId;
+      if (t.childTaskIds?.length) task.childTaskIds = [...t.childTaskIds];
+      if (t.decomposition) task.decomposition = t.decomposition;
+      if (t.subagentEvents?.length) task.subagentEvents = [...t.subagentEvents];
+      if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
       this.board.push(task);
       added.push(task);
     }
@@ -373,6 +385,10 @@ export class Team {
           completedBy: runtime.name,
           timestamp: task.completedAt,
           summary,
+          ...(task.parentTaskId ? { parentTaskId: task.parentTaskId } : {}),
+          ...(task.childTaskIds?.length ? { childTaskIds: [...task.childTaskIds] } : {}),
+          ...(task.decomposition ? { decomposition: task.decomposition } : {}),
+          ...(task.subagentEvents?.length ? { subagentEvents: [...task.subagentEvents] } : {}),
         });
 
         // Publish knowledge
@@ -710,6 +726,21 @@ export class Team {
         policy:
           d.policy && typeof d.policy === 'object' ? (d.policy as TaskPolicyProfile) : undefined,
         policyEvents: Array.isArray(d.policyEvents) ? (d.policyEvents as TaskPolicyEvent[]) : undefined,
+        parentTaskId: (d.parentTaskId as string | undefined) ?? (d.parent_task_id as string | undefined),
+        childTaskIds: Array.isArray(d.childTaskIds)
+          ? (d.childTaskIds as string[])
+          : Array.isArray(d.child_task_ids)
+            ? (d.child_task_ids as string[])
+            : undefined,
+        decomposition:
+          d.decomposition && typeof d.decomposition === 'object'
+            ? (d.decomposition as TaskDecompositionPlan)
+            : undefined,
+        subagentEvents: Array.isArray(d.subagentEvents)
+          ? (d.subagentEvents as SubagentEvent[])
+          : Array.isArray(d.subagent_events)
+            ? (d.subagent_events as SubagentEvent[])
+            : undefined,
       }));
     } else {
       entries = this.doneLog.map((d) => ({ ...d }));
@@ -1215,23 +1246,99 @@ export class Team {
 
     if (!result.wasDecomposed) return result;
 
-    // Convert micro-phases into board tasks, preserving wave ordering via priority
+    // Convert micro-phases into board tasks, preserving wave ordering via priority.
     const subTasks: Array<Omit<TaskDef, 'id' | 'status' | 'createdAt'>> = [];
+    const phaseOrder: MicroPhase[] = [];
+    const waveByPhaseId = new Map<string, number>();
     for (let waveIdx = 0; waveIdx < result.plan.waves.length; waveIdx++) {
       for (const phase of result.plan.waves[waveIdx]) {
+        phaseOrder.push(phase);
+        waveByPhaseId.set(phase.id, waveIdx);
         subTasks.push({
           title: `[${task.id}/${phase.id}] ${phase.description}`,
           description: `Sub-phase of "${task.title}" (wave ${waveIdx + 1}/${result.plan.waves.length}). Dependencies: ${phase.dependencies.join(', ') || 'none'}`,
           priority: Math.max(1, task.priority - 1 + waveIdx), // Earlier waves get higher priority
           role: (phase.requiredCapabilities[0] as TaskDef['role']) ?? task.role,
           source: `decomposer:${task.id}`,
+          parentTaskId: task.id,
+          tags: [`parent:${task.id}`, `wave:${waveIdx}`],
+          metadata: { phaseId: phase.id, wave: waveIdx },
         });
       }
     }
 
-    // Remove the original complex task and add sub-tasks
-    this.board = this.board.filter((t) => t.id !== task.id);
-    await this.addTasks(subTasks);
+    const added = await this.addTasks(subTasks);
+    const childTaskIdByPhaseId = new Map<string, string>();
+    for (let i = 0; i < phaseOrder.length; i++) {
+      const phase = phaseOrder[i];
+      const child = added[i];
+      if (!child) continue;
+      childTaskIdByPhaseId.set(phase.id, child.id);
+      child.dependsOn = phase.dependencies
+        .map((dep) => childTaskIdByPhaseId.get(dep))
+        .filter((dep): dep is string => Boolean(dep));
+    }
+
+    const actor: TaskOrchestrationAgentRef = {
+      surface: 'headless',
+      agentName: 'team-decomposer',
+      handle: 'team',
+    };
+    const now = new Date().toISOString();
+    const plan: TaskDecompositionPlan = {
+      id: `decomp_${task.id}_${now.replace(/[^0-9]/g, '')}`,
+      parentTaskId: task.id,
+      strategy: 'llm',
+      createdAt: now,
+      createdBy: actor,
+      children: result.phases.map((phase) => ({
+        id: phase.id,
+        taskId: childTaskIdByPhaseId.get(phase.id) ?? phase.id,
+        title: phase.description,
+        dependencies: [...phase.dependencies],
+        wave: waveByPhaseId.get(phase.id) ?? 0,
+        requiredCapabilities: [...phase.requiredCapabilities],
+        status: 'pending',
+      })),
+      waves: result.plan.waves.map((wave, index) => ({
+        index,
+        childIds: wave.map((phase) => phase.id),
+      })),
+    };
+    const events: SubagentEvent[] = [
+      {
+        id: `event_${task.id}_decompose`,
+        type: 'decompose',
+        taskId: task.id,
+        actor,
+        timestamp: now,
+        status: 'pending',
+        summary: `Decomposed into ${added.length} child tasks across ${result.plan.waves.length} waves.`,
+      },
+      ...result.phases.map((phase) => ({
+        id: `event_${task.id}_${phase.id}_delegate`,
+        type: 'delegate' as const,
+        taskId: task.id,
+        childTaskId: childTaskIdByPhaseId.get(phase.id) ?? phase.id,
+        phaseId: phase.id,
+        wave: waveByPhaseId.get(phase.id) ?? 0,
+        actor,
+        timestamp: now,
+        status: 'pending' as const,
+        dependencies: phase.dependencies
+          .map((dep) => childTaskIdByPhaseId.get(dep))
+          .filter((dep): dep is string => Boolean(dep)),
+        summary: `Delegated phase ${phase.id}.`,
+      })),
+    ];
+
+    const parent = this.board.find((t) => t.id === task.id);
+    if (parent) {
+      parent.status = 'blocked';
+      parent.childTaskIds = added.map((child) => child.id);
+      parent.decomposition = plan;
+      parent.subagentEvents = [...(parent.subagentEvents ?? []), ...events];
+    }
 
     return result;
   }
