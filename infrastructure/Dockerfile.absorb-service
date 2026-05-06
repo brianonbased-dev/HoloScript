@@ -81,15 +81,15 @@ COPY --from=manifests /manifests/ ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts and source core for CodebaseScanner
-COPY --from=builder /app/packages packages
-COPY --from=builder /app/services services
-COPY tsconfig.json tsconfig.base.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/packages packages
+COPY --from=builder --chown=nodejs:nodejs /app/services services
+COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
 
 # Copy entrypoint
-COPY services/absorb-service/scripts/docker-entrypoint.sh /app/services/absorb-service/scripts/docker-entrypoint.sh
+COPY --chown=nodejs:nodejs services/absorb-service/scripts/docker-entrypoint.sh /app/services/absorb-service/scripts/docker-entrypoint.sh
 
-# Set ownership
-RUN chown -R nodejs:nodejs /app
+# Keep /app writable for runtime caches without recursively rewriting node_modules.
+RUN chown nodejs:nodejs /app
 
 # Ensure entrypoint is executable
 RUN chmod +x /app/services/absorb-service/scripts/docker-entrypoint.sh
