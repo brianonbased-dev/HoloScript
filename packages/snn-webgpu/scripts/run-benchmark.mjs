@@ -29,6 +29,7 @@ function resolveOptions() {
   const requireCompleted = boolEnv('BENCH_REQUIRE_COMPLETED', true);
   const commit = process.env.BENCH_COMMIT ?? process.env.GIT_COMMIT ?? 'auto';
   const driver = process.env.BENCH_DRIVER ?? 'auto';
+  const forceHighPerformanceGpu = boolEnv('BENCH_FORCE_HIGH_PERFORMANCE_GPU', target === 'rtx3060');
   // Vulkan backend Chromium passes to its WebGPU implementation:
   //   "swiftshader" (default) — CPU emulator. Reproducible across CI; no
   //                              GPU dependency. ~150-160 M neurons/s on
@@ -50,6 +51,7 @@ function resolveOptions() {
     requireCompleted,
     commit,
     driver,
+    forceHighPerformanceGpu,
     vulkanBackend,
     outputPath,
   };
@@ -64,14 +66,20 @@ async function main() {
   // - swiftshader (default): CPU emulator, no GPU required, reproducible CI.
   // - native: real GPU via system Vulkan (set BENCH_VULKAN_BACKEND=native;
   //   requires vulkan-tools + mesa-vulkan-drivers; container must expose GPU).
+  const chromiumArgs = [
+    '--enable-unsafe-webgpu',
+    '--enable-webgpu-developer-features',
+    `--use-vulkan=${options.vulkanBackend}`,
+    '--disable-vulkan-fallback-to-gl-for-testing',
+    '--ignore-gpu-blocklist'
+  ];
+  if (options.forceHighPerformanceGpu) {
+    chromiumArgs.push('--force_high_performance_gpu');
+  }
+
   const browser = await chromium.launch({
     headless: options.headless,
-    args: [
-      '--enable-unsafe-webgpu',
-      `--use-vulkan=${options.vulkanBackend}`,
-      '--disable-vulkan-fallback-to-gl-for-testing',
-      '--ignore-gpu-blocklist'
-    ]
+    args: chromiumArgs
   });
 
   const page = await browser.newPage();
@@ -111,7 +119,13 @@ async function main() {
 
   await page.addInitScript(watchScript);
 
-  const fileUrl = `file://${path.join(pkgRoot, 'benchmark-gpu.html')}?target=${encodeURIComponent(options.target)}&strictAdapter=${options.strictAdapter ? '1' : '0'}&commit=${encodeURIComponent(options.commit)}&driver=${encodeURIComponent(options.driver)}`;
+  const fileUrl =
+    `file://${path.join(pkgRoot, 'benchmark-gpu.html')}` +
+    `?target=${encodeURIComponent(options.target)}` +
+    `&strictAdapter=${options.strictAdapter ? '1' : '0'}` +
+    `&commit=${encodeURIComponent(options.commit)}` +
+    `&driver=${encodeURIComponent(options.driver)}` +
+    `&outputPath=${encodeURIComponent(options.outputPath)}`;
   console.log(`[SNN-WebGPU Benchmark] Navigating to ${fileUrl}`);
   
   await page.goto(fileUrl);
@@ -150,6 +164,11 @@ async function main() {
   if (artifact.lif && artifact.lif.peak) {
     console.log(`\n=== RESULTS ===`);
     console.log(`Peak Throughput: ${artifact.lif.peak.throughput_M_per_s} M neurons/s (N=${artifact.lif.peak.neurons})`);
+    if (artifact.tropical?.peak) {
+      console.log(
+        `Peak Tropical GEMM: ${artifact.tropical.peak.gflops} GFLOP/s (N=${artifact.tropical.peak.n})`
+      );
+    }
   }
 }
 

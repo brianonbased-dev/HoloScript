@@ -44,7 +44,7 @@ const outputFilename = 'paper-2-lif-throughput-rtx3060.json';
 const artifact = {
   schema_version: 'paper-2-lif-throughput-rtx3060-v1',
   benchmark: 'paper-2-lif-throughput-rtx3060',
-  outputPath: `HoloScript/.bench-logs/${outputFilename}`,
+  outputPath: query.get('outputPath') ?? `HoloScript/.bench-logs/${outputFilename}`,
   generatedAt: new Date().toISOString(),
   status: 'initializing',
   target,
@@ -56,6 +56,10 @@ const artifact = {
   adapter: null,
   lif: {
     timesteps: 100,
+    results: [],
+    peak: null,
+  },
+  tropical: {
     results: [],
     peak: null,
   },
@@ -102,6 +106,13 @@ function computePeak(results) {
   if (!results.length) return null;
   return results.reduce((best, row) =>
     row.throughput_M_per_s > best.throughput_M_per_s ? row : best
+  );
+}
+
+function computeTropicalPeak(results) {
+  if (!results.length) return null;
+  return results.reduce((best, row) =>
+    row.gflops > best.gflops ? row : best
   );
 }
 
@@ -359,6 +370,15 @@ async function run() {
     const elapsed = performance.now() - start;
 
     const gflops = (2 * N * N * N * iters) / (elapsed / 1000) / 1e9;
+    artifact.tropical.results.push({
+      n: N,
+      iterations: iters,
+      time_ms: Number(elapsed.toFixed(3)),
+      gflops: Number(gflops.toFixed(3)),
+    });
+    artifact.tropical.peak = computeTropicalPeak(artifact.tropical.results);
+    refreshArtifactView();
+
     print(`N=${N.toString().padStart(5)} | ${iters} iters | ${elapsed.toFixed(1).padStart(8)} ms | ${gflops.toFixed(2).padStart(8)} GFLOP/s`, 'pass');
 
     aBuf.destroy(); bBuf.destroy(); cBuf.destroy(); dimBuf.destroy();

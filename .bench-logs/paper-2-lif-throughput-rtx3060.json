@@ -2,19 +2,19 @@
   "schema_version": "paper-2-lif-throughput-rtx3060-v1",
   "benchmark": "paper-2-lif-throughput-rtx3060",
   "outputPath": "HoloScript/.bench-logs/paper-2-lif-throughput-rtx3060.json",
-  "generatedAt": "2026-04-18T19:44:04.689Z",
+  "generatedAt": "2026-05-06T17:55:05.833Z",
   "status": "completed",
   "target": "rtx3060",
   "strictAdapter": true,
-  "commitSha": "eebc0b331884a4b8e4b810e4938124a836297cc9",
+  "commitSha": "d0a990964",
   "driver": "591.74",
   "sourceHtml": "packages/snn-webgpu/benchmark-gpu.html",
-  "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
   "adapter": {
-    "description": "",
+    "description": "NVIDIA GeForce RTX 3060 Laptop GPU",
     "vendor": "nvidia",
     "architecture": "ampere",
-    "device": "",
+    "device": "0x2520",
     "maxBufferSize": 2147483648,
     "maxStorageBufferBindingSize": 2147483644
   },
@@ -23,39 +23,85 @@
     "results": [
       {
         "neurons": 1024,
-        "time_ms": 91.6,
-        "throughput_M_per_s": 1.118
+        "time_ms": 16.4,
+        "throughput_M_per_s": 6.244
       },
       {
         "neurons": 4096,
-        "time_ms": 21.4,
-        "throughput_M_per_s": 19.14
+        "time_ms": 22.8,
+        "throughput_M_per_s": 17.965
       },
       {
         "neurons": 16384,
-        "time_ms": 20.7,
-        "throughput_M_per_s": 79.15
+        "time_ms": 20.8,
+        "throughput_M_per_s": 78.769
       },
       {
         "neurons": 65536,
-        "time_ms": 25.1,
-        "throughput_M_per_s": 261.1
+        "time_ms": 18.4,
+        "throughput_M_per_s": 356.174
       },
       {
         "neurons": 262144,
-        "time_ms": 18.8,
-        "throughput_M_per_s": 1394.383
+        "time_ms": 19,
+        "throughput_M_per_s": 1379.705
       },
       {
         "neurons": 1048576,
-        "time_ms": 21.3,
-        "throughput_M_per_s": 4922.892
+        "time_ms": 17.8,
+        "throughput_M_per_s": 5890.876
       }
     ],
     "peak": {
       "neurons": 1048576,
-      "time_ms": 21.3,
-      "throughput_M_per_s": 4922.892
+      "time_ms": 17.8,
+      "throughput_M_per_s": 5890.876
+    }
+  },
+  "tropical": {
+    "results": [
+      {
+        "n": 64,
+        "iterations": 6,
+        "time_ms": 4.4,
+        "gflops": 0.715
+      },
+      {
+        "n": 128,
+        "iterations": 7,
+        "time_ms": 6.7,
+        "gflops": 4.382
+      },
+      {
+        "n": 256,
+        "iterations": 8,
+        "time_ms": 3.9,
+        "gflops": 68.83
+      },
+      {
+        "n": 512,
+        "iterations": 9,
+        "time_ms": 11,
+        "gflops": 219.629
+      },
+      {
+        "n": 1024,
+        "iterations": 10,
+        "time_ms": 96.3,
+        "gflops": 222.999
+      },
+      {
+        "n": 2048,
+        "iterations": 11,
+        "time_ms": 740.9,
+        "gflops": 255.066
+      }
+    ],
+    "peak": {
+      "n": 2048,
+      "iterations": 11,
+      "time_ms": 740.9,
+      "gflops": 255.066
     }
   },
   "failures": [],
